@@ -1551,6 +1551,50 @@ def migrate_journal_data():
     print("[MIGRATION] Check complete.")
 
 
+def _estimate_transparency(visibility_m, rh):
+    if visibility_m is None:
+        return None
+    if visibility_m >= 50000:
+        return 1
+    elif visibility_m >= 30000:
+        return 2
+    elif visibility_m >= 20000:
+        return 3
+    elif visibility_m >= 15000:
+        return 4
+    elif visibility_m >= 10000:
+        return 5
+    elif visibility_m >= 5000:
+        return 6
+    elif visibility_m >= 2000:
+        return 7
+    else:
+        return 8
+
+
+def _estimate_seeing(temp, dew_point, wind_speed):
+    if temp is None or dew_point is None:
+        return None
+    spread = abs(temp - dew_point)
+    wind = wind_speed if wind_speed else 0
+    if spread >= 15 and wind < 10:
+        return 1
+    elif spread >= 12 and wind < 15:
+        return 2
+    elif spread >= 10 and wind < 20:
+        return 3
+    elif spread >= 8 and wind < 25:
+        return 4
+    elif spread >= 6:
+        return 5
+    elif spread >= 4:
+        return 6
+    elif spread >= 2:
+        return 7
+    else:
+        return 8
+
+
 def get_open_meteo_data(lat: float, lon: float) -> dict | None:
     """
     Fetches weather data from Open-Meteo with basic error handling.
@@ -1564,7 +1608,7 @@ def get_open_meteo_data(lat: float, lon: float) -> dict | None:
         params = {
             "latitude": lat,
             "longitude": lon,
-            "hourly": "temperature_2m,relative_humidity_2m,cloud_cover_low,cloud_cover_mid,cloud_cover_high,wind_speed_10m",
+            "hourly": "temperature_2m,relative_humidity_2m,cloud_cover_low,cloud_cover_mid,cloud_cover_high,wind_speed_10m,visibility,dew_point_2m",
             "forecast_days": 7,
             "timezone": "UTC",  # Request data in UTC for easier processing
         }
@@ -1734,6 +1778,11 @@ def get_hybrid_weather_forecast(lat, lon):
                 temp = om_hourly.get("temperature_2m", [None] * len(times))[i]
                 rh = om_hourly.get("relative_humidity_2m", [None] * len(times))[i]
                 wind = om_hourly.get("wind_speed_10m", [None] * len(times))[i]
+                visibility = om_hourly.get("visibility", [None] * len(times))[i]
+                dew_point = om_hourly.get("dew_point_2m", [None] * len(times))[i]
+
+                est_trans = _estimate_transparency(visibility, rh)
+                est_seeing = _estimate_seeing(temp, dew_point, wind)
 
                 block = {
                     "timepoint": timepoint,
@@ -1741,8 +1790,8 @@ def get_hybrid_weather_forecast(lat, lon):
                     "temp2m": temp,
                     "rh2m": rh,
                     "wind_speed": wind,
-                    "seeing": -9999,
-                    "transparency": -9999,
+                    "seeing": -est_seeing if est_seeing else -9999,
+                    "transparency": -est_trans if est_trans else -9999,
                 }
                 translated_dataseries[timepoint] = block  # Store by timepoint
 
@@ -2906,11 +2955,24 @@ def sanitize_html_filter(html_content):
 def inject_user_mode():
     from flask_login import current_user
     user_config = getattr(g, "user_config", {})
-    theme_preference = user_config.get("theme_preference", "follow_system") if user_config else "follow_system"
-    # Get current language from user config or session
-    current_language = user_config.get("language") if user_config else None
-    if not current_language:
-        current_language = session.get("language", "en")
+    theme_preference = (
+        user_config.get("theme_preference", "follow_system")
+        if user_config
+        else "follow_system"
+    )
+    # Translation status from upstream i18n feature
+    translation_status = {
+        "en": "complete",
+        "de": "complete",
+        "fr": "complete",
+        "es": "complete",
+        "ja": "auto",
+        "zh": "auto",
+    }
+    # Read from user_config first (authenticated users), then session (guests)
+    current_language = (
+        user_config.get("language") if user_config else None
+    ) or session.get("language", "en")
     return {
         "SINGLE_USER_MODE": SINGLE_USER_MODE,
         "current_user": current_user,
@@ -2922,6 +2984,274 @@ def inject_user_mode():
     }
 
 
+@core_bp.route("/logout", methods=["POST"])
+def logout():
+    logout_user()
+    session.clear()  # Optional: reset session if needed
+    flash("Logged out successfully!", "success")
+    return redirect(url_for("core.login"))
+
+
+@core_bp.route("/set_language/<lang>")
+def set_language(lang):
+    """Set the user's preferred language and redirect back."""
+    # Validate the language is supported
+    supported_locales = app.config.get("BABEL_SUPPORTED_LOCALES", ["en"])
+    if lang not in supported_locales:
+        flash(_("Language '%(lang)s' is not supported.", lang=lang), "error")
+        return redirect(request.referrer or url_for("core.index"))
+
+    # Get the current user
+    if not hasattr(g, "db_user") or not g.db_user:
+        # For guest users, just set session and redirect
+        session["language"] = lang
+        return redirect(request.referrer or url_for("core.index"))
+
+    # Save to UiPref.json_blob for authenticated users
+    db = get_db()
+    try:
+        prefs = db.query(UiPref).filter_by(user_id=g.db_user.id).first()
+        if not prefs:
+            prefs = UiPref(user_id=g.db_user.id, json_blob="{}")
+            db.add(prefs)
+
+        # Load existing settings, add language, save back
+        try:
+            settings = json.loads(prefs.json_blob or "{}")
+        except json.JSONDecodeError:
+            settings = {}
+
+        settings["language"] = lang
+        prefs.json_blob = json.dumps(settings, ensure_ascii=False)
+        db.commit()
+
+        # Update g.user_config for current request
+        if hasattr(g, "user_config"):
+            g.user_config["language"] = lang
+
+        # Also set session for consistency with context processor
+        session["language"] = lang
+
+    except Exception as e:
+        db.rollback()
+        print(f"[SET_LANGUAGE] Error saving language preference: {e}")
+
+    # Redirect back to the previous page
+    return redirect(request.referrer or url_for("core.index"))
+
+
+def get_static_cache_key(obj_name, date_str, location):
+    return f"{obj_name.lower()}_{date_str}_{location.lower()}"
+
+
+def get_static_nightly_values(
+    ra,
+    dec,
+    obj_name,
+    local_date,
+    fixed_time_utc_str,
+    location,
+    lat,
+    lon,
+    tz_name,
+    alt_threshold,
+):
+    key = get_static_cache_key(obj_name, local_date, location)
+    if key in static_cache:
+        return static_cache[key]
+
+    # Otherwise calculate and cache
+    alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, lat, lon, fixed_time_utc_str)
+    transit_time = calculate_transit_time(ra, lat, lon, tz_name)
+    altitude_threshold = g.user_config.get("altitude_threshold", 20)
+    obs_duration, max_altitude, _obs_from, _obs_to = (
+        calculate_observable_duration_vectorized(
+            ra, dec, lat, lon, local_date, tz_name, altitude_threshold
+        )
+    )
+    static_cache[key] = {
+        "Altitude 11PM": alt_11pm,
+        "Azimuth 11PM": az_11pm,
+        "Transit Time": transit_time,
+        "Observable Duration (min)": int(obs_duration.total_seconds() / 60),
+        "Max Altitude (°)": round(max_altitude, 1)
+        if max_altitude is not None
+        else "N/A",
+    }
+    return static_cache[key]
+
+
+@core_bp.route("/trigger_update", methods=["POST"])
+@permission_required("settings.edit")
+def trigger_update():
+    try:
+        script_path = os.path.join(os.path.dirname(__file__), "updater.py")
+        subprocess.Popen([sys.executable, script_path])
+        print("Exiting current app to allow updater to restart it...")
+        sys.exit(0)  # Force exit without cleanup
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
+
+
+@core_bp.route("/login", methods=["GET", "POST"])
+def login():
+    if SINGLE_USER_MODE:
+        # In single-user mode, the login page is not needed, just redirect.
+        return redirect(url_for("core.index"))
+
+    # --- MULTI-USER MODE LOGIC ---
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        db_sess = SessionLocal()
+        try:
+            user = db_sess.query(DbUser).filter_by(username=username).first()
+            if (
+                user
+                and user.password_hash
+                and check_password_hash(user.password_hash, password)
+            ):
+                if not user.active:
+                    flash("Account is deactivated.", "error")
+                    return render_template("login.html")
+                db_sess.expunge(user)
+                print(
+                    f"[DEBUG login] Calling login_user for user.id={user.id}, username={user.username}"
+                )
+                login_user(user, remember=True)
+                print(f"[DEBUG login] After login_user, session={dict(session)}")
+                record_login()
+                session.modified = True
+                flash("Logged in successfully!", "success")
+
+                next_page = request.form.get("next")
+                if next_page and next_page.startswith("/"):
+                    return redirect(next_page, code=303)
+                return redirect(url_for("core.index"), code=303)
+            else:
+                flash("Invalid username or password.", "error")
+        finally:
+            db_sess.close()
+    return render_template("login.html")
+
+
+@core_bp.route("/sso/login")
+def sso_login():
+    # First, check if the app is in single-user mode. SSO is not applicable here.
+    if SINGLE_USER_MODE:
+        flash("Single Sign-On is not applicable in single-user mode.", "error")
+        return redirect(url_for("core.index"))
+
+    # Get the token from the URL (e.g., ?token=...)
+    token = request.args.get("token")
+    if not token:
+        flash("SSO Error: No token provided.", "error")
+        return redirect(url_for("core.login"))
+
+    # Get the shared secret key from the .env file
+    secret_key = os.environ.get("JWT_SECRET_KEY")
+    if not secret_key:
+        flash("SSO Error: SSO is not configured on the server.", "error")
+        return redirect(url_for("core.login"))
+
+    try:
+        # Decode the token. This automatically verifies the signature and expiration.
+        payload = jwt.decode(token, secret_key, algorithms=["HS256"])
+        username = payload.get("username")
+
+        if not username:
+            raise jwt.InvalidTokenError("Token is missing username.")
+
+        # Find the user in the Nova database (using DbUser from app.db)
+        db_sess = SessionLocal()
+        try:
+            user = db_sess.query(DbUser).filter_by(username=username).first()
+            if user and user.is_active:
+                db_sess.expunge(user)
+                login_user(user)  # Log the user in using Flask-Login
+                record_login()
+                session.modified = True  # Force session save before redirect
+                flash(f"Welcome back, {user.username}!", "success")
+                return redirect(url_for("core.index"), code=303)
+            else:
+                flash(
+                    f"SSO Error: User '{username}' not found or is disabled in Nova.",
+                    "error",
+                )
+                return redirect(url_for("core.login"))
+        finally:
+            db_sess.close()
+
+    except jwt.ExpiredSignatureError:
+        flash(
+            "SSO Error: The login link has expired. Please try again from WordPress.",
+            "error",
+        )
+        return redirect(url_for("core.login"))
+    except jwt.InvalidTokenError:
+        flash("SSO Error: Invalid login token.", "error")
+        return redirect(url_for("core.login"))
+
+
+@core_bp.route("/proxy_focus", methods=["POST"])
+@permission_required("settings.stellarium")
+def proxy_focus():
+    payload = request.form
+    try:
+        # This line ensures the dynamically determined STELLARIUM_API_URL_BASE is used:
+        stellarium_focus_url = f"{STELLARIUM_API_URL_BASE}/api/main/focus"
+
+        # print(f"[PROXY FOCUS] Attempting to connect to Stellarium at: {stellarium_focus_url}")  # For debugging
+
+        # Make the request to Stellarium
+        r = requests.post(
+            stellarium_focus_url, data=payload, timeout=DEFAULT_HTTP_TIMEOUT
+        )  # Added timeout
+        r.raise_for_status()  # Raise an exception for bad status codes (4xx or 5xx)
+
+        # print(f"[PROXY FOCUS] Stellarium response: {r.status_code}")  # For debugging
+        return jsonify({"status": "success", "stellarium_response": r.text})
+
+    except requests.exceptions.ConnectionError:
+        # Specific error if Stellarium isn't running or reachable at the URL
+        message = f"Could not connect to Stellarium at {STELLARIUM_API_URL_BASE}. Ensure Stellarium is running, Remote Control is enabled, and the URL is correct."
+        if STELLARIUM_ERROR_MESSAGE:  # User-defined message overrides if present
+            message = STELLARIUM_ERROR_MESSAGE
+        print(f"[PROXY FOCUS ERROR] ConnectionError: {message}")
+        return jsonify(
+            {"status": "error", "message": message}
+        ), 503  # 503 Service Unavailable
+
+    except requests.exceptions.Timeout:
+        # Specific error for timeouts
+        message = f"Connection to Stellarium at {STELLARIUM_API_URL_BASE} timed out after 10 seconds."
+        print(f"[PROXY FOCUS ERROR] Timeout: {message}")
+        return jsonify(
+            {"status": "error", "message": message}
+        ), 504  # 504 Gateway Timeout
+
+    except requests.exceptions.HTTPError as http_err:
+        # Specific error for HTTP errors from Stellarium (e.g., API errors)
+        error_details = (
+            http_err.response.text
+            if http_err.response is not None
+            else "No response details"
+        )
+        message = f"Stellarium at {STELLARIUM_API_URL_BASE} returned an error: {http_err}. Details: {error_details}"
+        status_code = (
+            http_err.response.status_code if http_err.response is not None else 500
+        )
+        print(f"[PROXY FOCUS ERROR] HTTPError {status_code}: {message}")
+        return jsonify({"status": "error", "message": message}), status_code
+
+    except Exception as e:
+        # Catch-all for other unexpected errors
+        message = (
+            STELLARIUM_ERROR_MESSAGE
+            or f"An unexpected error occurred while attempting to contact Stellarium: {str(e)}"
+        )
+        print(f"[PROXY FOCUS ERROR] Unexpected error: {e}")  # Log the actual error
+        return jsonify({"status": "error", "message": message}), 500
 
 
 @app.before_request

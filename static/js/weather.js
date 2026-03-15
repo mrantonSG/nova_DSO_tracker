@@ -183,6 +183,16 @@
                 font-style: italic;
             }
 
+            .weather-cell.estimated {
+                opacity: 0.7;
+                border-style: dashed;
+            }
+            .weather-cell.estimated .cell-value::after {
+                content: '~';
+                font-size: 0.7em;
+                vertical-align: super;
+            }
+
             /* --- Loading state ------------------------------------- */
             .weather-loading[hidden],
             .weather-error[hidden] {
@@ -436,8 +446,10 @@
         if (!notice) {
             notice = document.createElement('div');
             notice.className = 'weather-sim-notice';
+            var simText = (_i18n().labels && _i18n().labels.simModeNotice) ||
+                'Simulation mode active — showing current forecast (weather APIs do not support historical/future dates)';
             notice.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
-                '<span>Simulation mode active — showing current forecast (weather APIs do not support historical/future dates)</span>';
+                '<span>' + simText + '</span>';
             var controls = panel.querySelector('.weather-controls');
             if (controls && controls.nextSibling) {
                 controls.parentNode.insertBefore(notice, controls.nextSibling);
@@ -605,7 +617,9 @@
 
         // Time row
         html += '<tr class="weather-row--time">';
-        html += '<th class="weather-label">Time</th>';
+        var lbl = (_i18n().labels) || {};
+        var na = lbl.na || 'N/A';
+        html += '<th class="weather-label">' + (lbl.time || 'Time') + '</th>';
         columns.forEach(function (col, i) {
             const ns  = isNightStart(i) ? ' night-start-border' : '';
             const cls = col.isNight ? ' night-hour' : '';
@@ -616,42 +630,46 @@
         });
         html += '</tr></thead><tbody>';
 
-        // Cloud Cover
-        html += _buildRow('☁', 'Clouds', columns, function (d, i) {
+        html += _buildRow('☁', lbl.clouds || 'Clouds', columns, function (d, i) {
             const val = d.cloudcover;
             const cls = getConditionClass(val, 'cloudcover');
             const ns  = isNightStart(i) ? ' night-start-border' : '';
-            const lbl = _cloudCoverSymbol(val);
-            const tip = `Cloud cover: ${_cloudCoverText(val)} (${val}/9)`;
-            return `<td class="weather-cell ${cls}${ns}" title="${tip}"><span class="cell-value">${lbl}</span></td>`;
+            const sym = _cloudCoverSymbol(val);
+            const tip = (lbl.cloudCover || 'Cloud cover') + `: ${_cloudCoverText(val)} (${val}/9)`;
+            return `<td class="weather-cell ${cls}${ns}" title="${tip}"><span class="cell-value">${sym}</span></td>`;
         });
 
-        // Seeing
-        html += _buildRow('★', 'Seeing', columns, function (d, i) {
-            const val = d.seeing;
+        html += _buildRow('★', lbl.seeing || 'Seeing', columns, function (d, i) {
+            const raw = d.seeing;
             const ns  = isNightStart(i) ? ' night-start-border' : '';
-            if (val === -9999 || val === undefined || val === null) {
-                return `<td class="weather-cell condition-na${ns}" title="Seeing: N/A"><span class="cell-value na">–</span></td>`;
+            if (raw === -9999 || raw === undefined || raw === null) {
+                return `<td class="weather-cell condition-na${ns}" title="${lbl.seeing || 'Seeing'}: ${na}"><span class="cell-value na">–</span></td>`;
             }
+            const isEst = raw < 0 && raw !== -9999;
+            const val = Math.abs(raw);
             const cls = getConditionClass(val, 'seeing');
-            const tip = `Seeing: ${_seeingText(val)} (${val}/8)`;
-            return `<td class="weather-cell ${cls}${ns}" title="${tip}"><span class="cell-value">${val}</span></td>`;
+            const estCls = isEst ? ' estimated' : '';
+            const estNote = isEst ? ' (est.)' : '';
+            const tip = (lbl.seeing || 'Seeing') + `: ${_seeingText(val)} (${val}/8)${estNote}`;
+            return `<td class="weather-cell ${cls}${estCls}${ns}" title="${tip}"><span class="cell-value">${val}</span></td>`;
         });
 
-        // Transparency
-        html += _buildRow('◈', 'Transp.', columns, function (d, i) {
-            const val = d.transparency;
+        html += _buildRow('◈', lbl.transparency || 'Trans', columns, function (d, i) {
+            const raw = d.transparency;
             const ns  = isNightStart(i) ? ' night-start-border' : '';
-            if (val === -9999 || val === undefined || val === null) {
-                return `<td class="weather-cell condition-na${ns}" title="Transparency: N/A"><span class="cell-value na">–</span></td>`;
+            if (raw === -9999 || raw === undefined || raw === null) {
+                return `<td class="weather-cell condition-na${ns}" title="${lbl.transparency || 'Trans'}: ${na}"><span class="cell-value na">–</span></td>`;
             }
+            const isEst = raw < 0 && raw !== -9999;
+            const val = Math.abs(raw);
             const cls = getConditionClass(val, 'transparency');
-            const tip = `Transparency: ${_transparencyText(val)} (${val}/8)`;
-            return `<td class="weather-cell ${cls}${ns}" title="${tip}"><span class="cell-value">${val}</span></td>`;
+            const estCls = isEst ? ' estimated' : '';
+            const estNote = isEst ? ' (est.)' : '';
+            const tip = (lbl.transparency || 'Trans') + `: ${_transparencyText(val)} (${val}/8)${estNote}`;
+            return `<td class="weather-cell ${cls}${estCls}${ns}" title="${tip}"><span class="cell-value">${val}</span></td>`;
         });
 
-        // Wind
-        html += _buildRow('〜', 'Wind', columns, function (d, i) {
+        html += _buildRow('〜', lbl.wind || 'Wind', columns, function (d, i) {
             const wind  = d.wind10m;
             const speed = wind
                 ? (wind.speed !== undefined ? wind.speed : wind)
@@ -659,31 +677,29 @@
             const dir   = (wind && wind.direction) ? wind.direction : '';
             const ns    = isNightStart(i) ? ' night-start-border' : '';
             if (speed === null || speed === undefined) {
-                return `<td class="weather-cell condition-na${ns}" title="Wind: N/A"><span class="cell-value na">–</span></td>`;
+                return `<td class="weather-cell condition-na${ns}" title="${lbl.wind || 'Wind'}: ${na}"><span class="cell-value na">–</span></td>`;
             }
             const cls = getConditionClass(speed, 'wind');
-            const tip = `Wind: ${speed} m/s${dir ? ' ' + dir : ''}`;
+            const tip = (lbl.wind || 'Wind') + `: ${speed} m/s${dir ? ' ' + dir : ''}`;
             return `<td class="weather-cell ${cls}${ns}" title="${tip}"><span class="cell-value" style="font-size:9px">${speed}</span></td>`;
         });
 
-        // Humidity
-        html += _buildRow('💧', 'Humid.', columns, function (d, i) {
+        html += _buildRow('💧', lbl.humidity || 'Humid', columns, function (d, i) {
             const val = d.rh2m;
             const ns  = isNightStart(i) ? ' night-start-border' : '';
             if (val === null || val === undefined) {
-                return `<td class="weather-cell condition-na${ns}" title="Humidity: N/A"><span class="cell-value na">–</span></td>`;
+                return `<td class="weather-cell condition-na${ns}" title="${lbl.humidity || 'Humid'}: ${na}"><span class="cell-value na">–</span></td>`;
             }
             const cls = getConditionClass(val, 'humidity');
-            const tip = `Humidity: ${val}%`;
+            const tip = (lbl.humidity || 'Humidity') + `: ${val}%`;
             return `<td class="weather-cell ${cls}${ns}" title="${tip}"><span class="cell-value" style="font-size:9px">${val}%</span></td>`;
         });
 
-        // Temperature (neutral — no quality mapping)
-        html += _buildRow('°C', 'Temp.', columns, function (d, i) {
+        html += _buildRow('°C', lbl.temp || 'Temp', columns, function (d, i) {
             const val = d.temp2m;
             const ns  = isNightStart(i) ? ' night-start-border' : '';
             const disp = (val !== null && val !== undefined) ? `${val}°` : '—';
-            return `<td class="weather-cell${ns}" title="Temperature: ${disp}C" style="color:var(--text-secondary,#4a4a4a)"><span class="cell-value" style="font-size:9px">${disp}</span></td>`;
+            return `<td class="weather-cell${ns}" title="${lbl.temp || 'Temp'}: ${disp}C" style="color:var(--text-secondary,#4a4a4a)"><span class="cell-value" style="font-size:9px">${disp}</span></td>`;
         });
 
         html += '</tbody></table></div>';
@@ -1154,9 +1170,13 @@
         return '██';
     }
 
+    function _i18n() {
+        return window.WEATHER_I18N || {};
+    }
+
     function _cloudCoverText(val) {
         if (val === null || val === undefined) return 'Unknown';
-        const labels = {
+        var labels = _i18n().clouds || {
             1: 'Clear', 2: 'Mostly Clear', 3: 'Partly Cloudy',
             4: 'Partly Cloudy', 5: 'Mostly Cloudy', 6: 'Mostly Cloudy',
             7: 'Overcast', 8: 'Very Cloudy', 9: 'Overcast'
@@ -1165,8 +1185,9 @@
     }
 
     function _seeingText(val) {
-        if (val === null || val === undefined || val === -9999) return 'N/A';
-        const labels = {
+        var na = (_i18n().labels && _i18n().labels.na) || 'N/A';
+        if (val === null || val === undefined || val === -9999) return na;
+        var labels = _i18n().seeing || {
             1: 'Excellent', 2: 'Excellent', 3: 'Very Good', 4: 'Good',
             5: 'Average', 6: 'Below Avg', 7: 'Poor', 8: 'Very Poor'
         };
@@ -1174,8 +1195,9 @@
     }
 
     function _transparencyText(val) {
-        if (val === null || val === undefined || val === -9999) return 'N/A';
-        const labels = {
+        var na = (_i18n().labels && _i18n().labels.na) || 'N/A';
+        if (val === null || val === undefined || val === -9999) return na;
+        var labels = _i18n().transparency || {
             1: 'Excellent', 2: 'Very Good', 3: 'Good', 4: 'Fair',
             5: 'Below Avg', 6: 'Poor', 7: 'Very Poor', 8: 'Terrible'
         };
@@ -1220,24 +1242,24 @@
         var cyclePos    = ((daysSince % SYNODIC) + SYNODIC) % SYNODIC; // 0 → SYNODIC
         var phaseNorm   = cyclePos / SYNODIC;                           // 0.0 → 1.0
 
-        // Map phase fraction to name and glyph
+        var mp = (_i18n().moonPhases) || {};
         var phaseName, phaseGlyph;
         if (phaseNorm < 0.03 || phaseNorm >= 0.97) {
-            phaseName  = 'New Moon';        phaseGlyph = '🌑';
+            phaseName  = mp.newMoon        || 'New Moon';        phaseGlyph = '🌑';
         } else if (phaseNorm < 0.22) {
-            phaseName  = 'Waxing Crescent'; phaseGlyph = '🌒';
+            phaseName  = mp.waxingCrescent || 'Waxing Crescent'; phaseGlyph = '🌒';
         } else if (phaseNorm < 0.28) {
-            phaseName  = 'First Quarter';   phaseGlyph = '🌓';
+            phaseName  = mp.firstQuarter   || 'First Quarter';   phaseGlyph = '🌓';
         } else if (phaseNorm < 0.47) {
-            phaseName  = 'Waxing Gibbous';  phaseGlyph = '🌔';
+            phaseName  = mp.waxingGibbous  || 'Waxing Gibbous';  phaseGlyph = '🌔';
         } else if (phaseNorm < 0.53) {
-            phaseName  = 'Full Moon';       phaseGlyph = '🌕';
+            phaseName  = mp.fullMoon       || 'Full Moon';       phaseGlyph = '🌕';
         } else if (phaseNorm < 0.72) {
-            phaseName  = 'Waning Gibbous';  phaseGlyph = '🌖';
+            phaseName  = mp.waningGibbous  || 'Waning Gibbous';  phaseGlyph = '🌖';
         } else if (phaseNorm < 0.78) {
-            phaseName  = 'Last Quarter';    phaseGlyph = '🌗';
+            phaseName  = mp.lastQuarter    || 'Last Quarter';    phaseGlyph = '🌗';
         } else {
-            phaseName  = 'Waning Crescent'; phaseGlyph = '🌘';
+            phaseName  = mp.waningCrescent || 'Waning Crescent'; phaseGlyph = '🌘';
         }
 
         // Illumination %: standard formula (0% new moon → 100% full moon)
@@ -1267,8 +1289,20 @@
         el = document.getElementById('weather-moon-set');
         if (el) el.textContent = moonSet;
 
-        el = document.getElementById('weather-moon-glyph');
-        if (el) el.textContent = phaseGlyph;
+        el = document.getElementById('weather-moon-visual');
+        if (el) {
+            var phaseIndex;
+            if      (phaseNorm < 0.0625) phaseIndex = 0;
+            else if (phaseNorm < 0.1875) phaseIndex = 12;
+            else if (phaseNorm < 0.3125) phaseIndex = 25;
+            else if (phaseNorm < 0.4375) phaseIndex = 37;
+            else if (phaseNorm < 0.5625) phaseIndex = 50;
+            else if (phaseNorm < 0.6875) phaseIndex = 62;
+            else if (phaseNorm < 0.8125) phaseIndex = 75;
+            else if (phaseNorm < 0.9375) phaseIndex = 87;
+            else                         phaseIndex = 0;
+            el.setAttribute('data-phase', phaseIndex);
+        }
     }
 
 
