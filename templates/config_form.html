@@ -64,6 +64,7 @@
             <button class="tab-button" data-tab="rigs">{{ _('Rigs') }}</button>
             {% if not SINGLE_USER_MODE %}
             <button class="tab-button" data-tab="shared">{{ _('Shared Items') }}</button>
+            <button class="tab-button" data-tab="account">{{ _('Account') }}</button>
             {% endif %}
         </div>
 
@@ -664,6 +665,55 @@
           </div>
       </div>
   </div>
+
+  {% if not SINGLE_USER_MODE %}
+  <div id="account-tab-content" class="tab-content">
+      <div class="config-section">
+          <h2>{{ _('Account Settings') }}</h2>
+          <p>{{ _('Manage your account credentials.') }}</p>
+
+          <h3 style="margin-top: 30px;">{{ _('Change Username') }}</h3>
+          <form method="post" action="{{ url_for('core.change_username') }}" style="max-width: 400px;">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div class="form-group" style="margin-bottom: 15px;">
+                  <label for="current_username">{{ _('Current Username') }}</label>
+                  <input type="text" id="current_username" value="{{ current_user.username }}" disabled class="form-control" style="background: var(--bg-secondary); cursor: not-allowed;">
+              </div>
+              <div class="form-group" style="margin-bottom: 15px;">
+                  <label for="new_username">{{ _('New Username') }}</label>
+                  <input type="text" name="new_username" id="new_username" required minlength="3" maxlength="80" pattern="[a-zA-Z0-9_-]+" class="form-control" placeholder="{{ _('Enter new username') }}">
+                  <small class="form-text text-muted">{{ _('3-80 characters, letters, numbers, underscores, and hyphens only.') }}</small>
+              </div>
+              <div class="form-group" style="margin-bottom: 15px;">
+                  <label for="password_for_username">{{ _('Current Password') }}</label>
+                  <input type="password" name="current_password" id="password_for_username" required class="form-control" placeholder="{{ _('Confirm with your password') }}">
+              </div>
+              <button type="submit" class="action-button">{{ _('Change Username') }}</button>
+          </form>
+
+          <hr style="margin: 40px 0;">
+
+          <h3>{{ _('Change Password') }}</h3>
+          <form method="post" action="{{ url_for('core.change_password') }}" style="max-width: 400px;">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div class="form-group" style="margin-bottom: 15px;">
+                  <label for="current_password">{{ _('Current Password') }}</label>
+                  <input type="password" name="current_password" id="current_password" required class="form-control" placeholder="{{ _('Enter current password') }}">
+              </div>
+              <div class="form-group" style="margin-bottom: 15px;">
+                  <label for="new_password">{{ _('New Password') }}</label>
+                  <input type="password" name="new_password" id="new_password" required minlength="8" class="form-control" placeholder="{{ _('Enter new password') }}">
+                  <small class="form-text text-muted">{{ _('Minimum 8 characters.') }}</small>
+              </div>
+              <div class="form-group" style="margin-bottom: 15px;">
+                  <label for="confirm_password">{{ _('Confirm New Password') }}</label>
+                  <input type="password" name="confirm_password" id="confirm_password" required minlength="8" class="form-control" placeholder="{{ _('Confirm new password') }}">
+              </div>
+              <button type="submit" class="action-button">{{ _('Change Password') }}</button>
+          </form>
+      </div>
+  </div>
+  {% endif %}
 
   <div id="notes-modal" class="modal-backdrop" data-action="close-notes-modal">
       <div class="modal-content" data-stop-propagation="true">

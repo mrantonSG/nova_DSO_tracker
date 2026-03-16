@@ -3135,6 +3135,124 @@ def login():
     return render_template("login.html")
 
 
+@core_bp.route("/account/change-password", methods=["POST"])
+@login_required
+def change_password():
+    """Allow authenticated users to change their own password."""
+    if SINGLE_USER_MODE:
+        flash(_("Password change is not available in single-user mode."), "error")
+        return redirect(url_for("core.config_form"))
+
+    current_password = request.form.get("current_password", "").strip()
+    new_password = request.form.get("new_password", "").strip()
+    confirm_password = request.form.get("confirm_password", "").strip()
+
+    if not current_password or not new_password or not confirm_password:
+        flash(_("All fields are required."), "error")
+        return redirect(url_for("core.config_form") + "#account")
+
+    if new_password != confirm_password:
+        flash(_("New passwords do not match."), "error")
+        return redirect(url_for("core.config_form") + "#account")
+
+    if len(new_password) < 8:
+        flash(_("Password must be at least 8 characters."), "error")
+        return redirect(url_for("core.config_form") + "#account")
+
+    db_sess = SessionLocal()
+    try:
+        user = db_sess.query(DbUser).filter_by(id=current_user.id).first()
+        if not user:
+            flash(_("User not found."), "error")
+            return redirect(url_for("core.config_form") + "#account")
+
+        if not user.check_password(current_password):
+            flash(_("Current password is incorrect."), "error")
+            return redirect(url_for("core.config_form") + "#account")
+
+        user.set_password(new_password)
+        db_sess.commit()
+        flash(_("Password changed successfully."), "success")
+    except Exception as e:
+        db_sess.rollback()
+        logging.exception("Error changing password")
+        flash(_("An error occurred while changing password."), "error")
+    finally:
+        db_sess.close()
+
+    return redirect(url_for("core.config_form") + "#account")
+
+
+@core_bp.route("/account/change-username", methods=["POST"])
+@login_required
+def change_username():
+    """Allow authenticated users to change their own username."""
+    if SINGLE_USER_MODE:
+        flash(_("Username change is not available in single-user mode."), "error")
+        return redirect(url_for("core.config_form"))
+
+    new_username = request.form.get("new_username", "").strip()
+    current_password = request.form.get("current_password", "").strip()
+
+    if not new_username or not current_password:
+        flash(_("All fields are required."), "error")
+        return redirect(url_for("core.config_form") + "#account")
+
+    # Validate username format
+    import re
+
+    if not re.match(r"^[a-zA-Z0-9_-]{3,80}$", new_username):
+        flash(
+            _(
+                "Username must be 3-80 characters and contain only letters, numbers, underscores, and hyphens."
+            ),
+            "error",
+        )
+        return redirect(url_for("core.config_form") + "#account")
+
+    # Check reserved usernames
+    reserved = ["admin", "root", "system", "guest", "default", "guest_user"]
+    if (
+        new_username.lower() in reserved
+        and new_username.lower() != current_user.username.lower()
+    ):
+        flash(_("This username is reserved."), "error")
+        return redirect(url_for("core.config_form") + "#account")
+
+    db_sess = SessionLocal()
+    try:
+        user = db_sess.query(DbUser).filter_by(id=current_user.id).first()
+        if not user:
+            flash(_("User not found."), "error")
+            return redirect(url_for("core.config_form") + "#account")
+
+        if not user.check_password(current_password):
+            flash(_("Current password is incorrect."), "error")
+            return redirect(url_for("core.config_form") + "#account")
+
+        # Check if username is already taken
+        existing = (
+            db_sess.query(DbUser)
+            .filter(DbUser.username == new_username, DbUser.id != current_user.id)
+            .first()
+        )
+        if existing:
+            flash(_("This username is already taken."), "error")
+            return redirect(url_for("core.config_form") + "#account")
+
+        user.username = new_username
+        db_sess.commit()
+        flash(_("Username changed successfully."), "success")
+    except Exception as e:
+        db_sess.rollback()
+        logging.exception("Error changing username")
+        flash(_("An error occurred while changing username."), "error")
+    finally:
+        db_sess.close()
+
+    return redirect(url_for("core.config_form") + "#account")
+
+
 @core_bp.route("/sso/login")
 def sso_login():
     # First, check if the app is in single-user mode. SSO is not applicable here.
