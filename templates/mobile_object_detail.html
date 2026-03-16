@@ -707,28 +707,25 @@ body {
                 const responses = await Promise.all(monthUrls.map(url => fetch(url)));
                 const monthlyData = await Promise.all(responses.map(r => r.json()));
 
-                // Aggregate into single dataset with one point per month (max altitude)
+                // Flatten all daily values across all 12 months into one dataset
                 const labels = [];
                 const objectAlt = [];
                 const moonAlt = [];
 
                 monthlyData.forEach((monthData, i) => {
-                    // Guard against empty arrays: Math.max(...[]) === -Infinity,
-                    // which Chart.js drops silently, breaking the line.
+                    const dates   = monthData.dates && monthData.dates.length
+                        ? monthData.dates : [];
                     const objArr  = monthData.object_alt && monthData.object_alt.length
-                        ? monthData.object_alt : [0];
+                        ? monthData.object_alt : [];
                     const moonArr = monthData.moon_alt && monthData.moon_alt.length
-                        ? monthData.moon_alt : [0];
+                        ? monthData.moon_alt : [];
 
-                    const maxObjAlt  = Math.max(...objArr);
-                    const maxMoonAlt = Math.max(...moonArr);
-                    const dateStr = monthData.dates && monthData.dates.length
-                        ? monthData.dates[Math.floor(monthData.dates.length / 2)]
-                        : `${year}-${String(i + 1).padStart(2, '0')}-15`; // fallback
-
-                    labels.push(dateStr);
-                    objectAlt.push(maxObjAlt);
-                    moonAlt.push(maxMoonAlt);
+                    const len = Math.max(dates.length, objArr.length, moonArr.length);
+                    for (let j = 0; j < len; j++) {
+                        labels.push(dates[j] || `${year}-${String(i + 1).padStart(2, '0')}-${String(j + 1).padStart(2, '0')}`);
+                        objectAlt.push(objArr[j] !== undefined ? objArr[j] : null);
+                        moonAlt.push(moonArr[j] !== undefined ? moonArr[j] : null);
+                    }
                 });
 
                 data = {
@@ -918,22 +915,26 @@ body {
             };
         }
 
-        // --- X-axis centering on midnight ---
-        const labelsInMs = labels.map(l => new Date(l).getTime());
-        const firstMs = labelsInMs[0];
-        const lastMs = labelsInMs[labelsInMs.length - 1];
-        const originalWindowMs = lastMs - firstMs;
+        // --- X-axis centering on midnight (day view only) ---
+        // Note: Computed values not currently used in chart options.
+        // Kept for potential future use or reference.
+        if (isDayView && data.date) {
+            const labelsInMs = labels.map(l => new Date(l).getTime());
+            const firstMs = labelsInMs[0];
+            const lastMs = labelsInMs[labelsInMs.length - 1];
+            const originalWindowMs = lastMs - firstMs;
 
-        // Calculate midnight for the chart date
-        const midnightDate = new Date(data.date);
-        midnightDate.setHours(0, 0, 0, 0);
-        const midnightMs = midnightDate.getTime();
+            // Calculate midnight for the chart date
+            const midnightDate = new Date(data.date);
+            midnightDate.setHours(0, 0, 0, 0);
+            const midnightMs = midnightDate.getTime();
 
-        // Shift window to center on midnight
-        const currentCenterMs = (firstMs + lastMs) / 2;
-        const delta = midnightMs - currentCenterMs;
-        const xMinCentered = firstMs + delta;
-        const xMaxCentered = xMinCentered + originalWindowMs;
+            // Shift window to center on midnight
+            const currentCenterMs = (firstMs + lastMs) / 2;
+            const delta = midnightMs - currentCenterMs;
+            const xMinCentered = firstMs + delta;
+            const xMaxCentered = xMinCentered + originalWindowMs;
+        }
 
         const nightShade = createNightShadePlugin(duskTime, dawnTime);
 
@@ -1031,7 +1032,7 @@ body {
                         }
                     },
                     y: {
-                        min: 0,
+                        min: -90,
                         max: 90,
                         grid: {
                             color: 'rgba(0, 0, 0, 0.05)'
