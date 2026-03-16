@@ -1197,3 +1197,341 @@
   border: none;
   display: block;
 }
+
+/* =================================================================
+   SECTION 19: LIGHT THEME OVERRIDES
+   ================================================================ */
+
+:root:not([data-theme="dark"]) .weather-panel {
+  background: var(--bg-white, #fff);
+  border-color: var(--border-light, #e5e2dc);
+}
+
+:root:not([data-theme="dark"]) .weather-panel__header {
+  background: #f5f3ef;
+  border-bottom-color: var(--border-light, #e5e2dc);
+}
+
+:root:not([data-theme="dark"]) .weather-panel__title {
+  color: #3a6a7a;
+}
+
+:root:not([data-theme="dark"]) .weather-controls {
+  background: #e8e5df;
+}
+
+:root:not([data-theme="dark"]) .weather-tab-btn {
+  color: #5a5a5a;
+}
+
+:root:not([data-theme="dark"]) .weather-tab-btn:hover {
+  color: #3a3a3a;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+:root:not([data-theme="dark"]) .weather-tab-btn.active {
+  background: #fff;
+  color: #2a6a80;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+:root:not([data-theme="dark"]) .weather-panel__refresh {
+  color: #5a5a5a;
+}
+
+:root:not([data-theme="dark"]) .weather-panel__refresh:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #2a6a80;
+}
+
+:root:not([data-theme="dark"]) .weather-legend {
+  background: #f5f3ef;
+  border-top-color: var(--border-light, #e5e2dc);
+}
+
+:root:not([data-theme="dark"]) .weather-legend__label {
+  color: #5a5a5a;
+}
+
+:root:not([data-theme="dark"]) .weather-legend__text {
+  color: #5a5a5a;
+}
+
+/* Legend swatches */
+:root:not([data-theme="dark"]) .weather-legend__swatch--good {
+  background: #22c55e;
+}
+
+:root:not([data-theme="dark"]) .weather-legend__swatch--fair {
+  background: #eab308;
+}
+
+:root:not([data-theme="dark"]) .weather-legend__swatch--poor {
+  background: #ef4444;
+}
+
+/* Moon phase container */
+:root:not([data-theme="dark"]) .moon-phase-container {
+  background: #f9f7f4;
+  border-bottom-color: var(--border-light, #e5e2dc);
+}
+
+:root:not([data-theme="dark"]) .moon-phase__shadow {
+  background: #f5f3ef;
+}
+
+:root:not([data-theme="dark"]) .moon-phase-info__name {
+  color: #2a2a2a;
+}
+
+:root:not([data-theme="dark"]) .moon-phase-info__illumination {
+  color: #5a5a5a;
+}
+
+:root:not([data-theme="dark"]) .moon-time-item {
+  color: #5a5a5a;
+}
+
+:root:not([data-theme="dark"]) .moon-time-item__value {
+  color: #2a2a2a;
+}
+
+/* Grid elements */
+:root:not([data-theme="dark"]) .weather-header {
+  background: #f5f3ef;
+}
+
+:root:not([data-theme="dark"]) .weather-header .weather-label {
+  background: #f5f3ef;
+  color: #5a5a5a;
+  border-color: var(--border-light, #e5e2dc);
+}
+
+:root:not([data-theme="dark"]) .weather-header-cell {
+  color: #3a3a3a;
+  border-color: var(--border-light, #e5e2dc);
+}
+
+:root:not([data-theme="dark"]) .weather-header-cell.night-hour {
+  background: rgba(42, 106, 128, 0.08);
+  color: #2a6a80;
+}
+
+:root:not([data-theme="dark"]) .weather-label {
+  background: #f5f3ef;
+  border-right-color: var(--border-light, #e5e2dc);
+  border-bottom-color: var(--border-light, #e5e2dc);
+}
+
+:root:not([data-theme="dark"]) .weather-label__name {
+  color: #2a2a2a;
+}
+
+:root:not([data-theme="dark"]) .weather-label__unit {
+  color: #6a6a6a;
+}
+
+:root:not([data-theme="dark"]) .weather-cell {
+  border-right-color: rgba(0, 0, 0, 0.08);
+  border-bottom-color: var(--border-light, #e5e2dc);
+  background: #fafafa;
+}
+
+:root:not([data-theme="dark"]) .weather-cell .cell-unit {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+:root:not([data-theme="dark"]) .weather-cell[title]:hover::after {
+  background: #fff;
+  border-color: var(--border-light, #e5e2dc);
+  color: #2a2a2a;
+}
+
+/* Condition colors - same hues but adjusted for light theme visibility */
+:root:not([data-theme="dark"]) .condition-0,
+:root:not([data-theme="dark"]) .condition-none {
+  background-color: #f5f3ef;
+  color: #6a6a6a;
+}
+
+:root:not([data-theme="dark"]) .condition-na {
+  background: transparent;
+  color: #8a8a8a;
+}
+
+/* Condition colors 1-9: light theme — pastel backgrounds with dark text */
+:root:not([data-theme="dark"]) .condition-1,
+:root:not([data-theme="dark"]) .condition-2 {
+  background-color: #dcfce7;
+  color: #14532d;
+}
+:root:not([data-theme="dark"]) .condition-1 {
+  background-color: #bbf7d0;
+}
+:root:not([data-theme="dark"]) .condition-2 {
+  background-color: #dcfce7;
+}
+
+:root:not([data-theme="dark"]) .condition-3,
+:root:not([data-theme="dark"]) .condition-4 {
+  background-color: #ecfccb;
+  color: #365314;
+}
+:root:not([data-theme="dark"]) .condition-3 {
+  background-color: #d9f99d;
+}
+:root:not([data-theme="dark"]) .condition-4 {
+  background-color: #ecfccb;
+}
+
+:root:not([data-theme="dark"]) .condition-5,
+:root:not([data-theme="dark"]) .condition-6 {
+  background-color: #fef9c3;
+  color: #713f12;
+}
+:root:not([data-theme="dark"]) .condition-5 {
+  background-color: #fef08a;
+}
+:root:not([data-theme="dark"]) .condition-6 {
+  background-color: #fef9c3;
+}
+
+:root:not([data-theme="dark"]) .condition-7,
+:root:not([data-theme="dark"]) .condition-8 {
+  background-color: #ffedd5;
+  color: #7c2d12;
+}
+:root:not([data-theme="dark"]) .condition-7 {
+  background-color: #fed7aa;
+}
+:root:not([data-theme="dark"]) .condition-8 {
+  background-color: #ffedd5;
+}
+
+:root:not([data-theme="dark"]) .condition-9 {
+  background-color: #fee2e2;
+  color: #7f1d1d;
+}
+
+/* Daily cards */
+:root:not([data-theme="dark"]) .weather-daily-cards {
+  background: #fafafa;
+  border-top-color: var(--border-light, #e5e2dc);
+}
+
+:root:not([data-theme="dark"]) .weather-daily-card {
+  background: #fff;
+  border-color: var(--border-light, #e5e2dc);
+}
+
+:root:not([data-theme="dark"]) .weather-daily-card:hover {
+  border-color: #ccc;
+}
+
+:root:not([data-theme="dark"]) .weather-daily-card--tonight {
+  border-color: rgba(42, 106, 128, 0.3);
+  background: rgba(42, 106, 128, 0.04);
+}
+
+:root:not([data-theme="dark"]) .weather-daily-card__date {
+  color: #2a2a2a;
+}
+
+:root:not([data-theme="dark"]) .weather-daily-card__night {
+  color: #6a6a6a;
+}
+
+:root:not([data-theme="dark"]) .weather-daily-card__score-label {
+  color: #6a6a6a;
+}
+
+:root:not([data-theme="dark"]) .weather-daily-card__metrics {
+  border-top-color: var(--border-light, #e5e2dc);
+}
+
+:root:not([data-theme="dark"]) .weather-daily-card__metric-label {
+  color: #6a6a6a;
+}
+
+:root:not([data-theme="dark"]) .weather-daily-card__metric-value {
+  color: #2a2a2a;
+}
+
+/* Satellite viewer */
+:root:not([data-theme="dark"]) .satellite-viewer {
+  border-color: var(--border-light, #e5e2dc);
+}
+
+:root:not([data-theme="dark"]) .satellite-viewer__header {
+  background: #f5f3ef;
+  border-bottom-color: var(--border-light, #e5e2dc);
+}
+
+:root:not([data-theme="dark"]) .satellite-viewer__title {
+  color: #2a6a80;
+}
+
+:root:not([data-theme="dark"]) .satellite-viewer__btn {
+  border-color: #ccc;
+  color: #3a3a3a;
+}
+
+:root:not([data-theme="dark"]) .satellite-viewer__btn:hover {
+  background: rgba(42, 106, 128, 0.08);
+  border-color: #2a6a80;
+  color: #2a6a80;
+}
+
+:root:not([data-theme="dark"]) .satellite-viewer__footer {
+  background: #f5f3ef;
+  border-top-color: var(--border-light, #e5e2dc);
+  color: #6a6a6a;
+}
+
+/* Loading and error states */
+:root:not([data-theme="dark"]) .weather-loading-spinner {
+  color: #6a6a6a;
+}
+
+:root:not([data-theme="dark"]) .weather-loading-spinner::before {
+  border-color: #e5e2dc;
+  border-top-color: #2a6a80;
+}
+
+:root:not([data-theme="dark"]) .weather-panel--error,
+:root:not([data-theme="dark"]) .weather-panel--empty {
+  color: #6a6a6a;
+}
+
+/* Source badge */
+:root:not([data-theme="dark"]) .weather-source-badge {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: #e5e2dc;
+  color: #6a6a6a;
+}
+
+:root:not([data-theme="dark"]) .weather-source-badge:hover {
+  border-color: #ccc;
+  color: #3a3a3a;
+}
+
+/* Twilight bar */
+:root:not([data-theme="dark"]) .twilight-bar__label {
+  background: #f5f3ef;
+  border-right-color: var(--border-light, #e5e2dc);
+}
+
+:root:not([data-theme="dark"]) .twilight-bar__segment.night {
+  background: rgba(42, 106, 128, 0.15);
+}
+
+:root:not([data-theme="dark"]) .twilight-bar__segment.astronomical {
+  background: rgba(42, 106, 128, 0.10);
+}
+
+/* Simulation notice */
+:root:not([data-theme="dark"]) .weather-sim-notice {
+  background: rgba(255, 193, 7, 0.1);
+  border-color: rgba(255, 193, 7, 0.3);
+  color: #8a6d00;
+}

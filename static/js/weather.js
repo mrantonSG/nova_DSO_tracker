@@ -165,22 +165,73 @@
                 border-left: 2px solid rgba(131,180,197,0.45) !important;
             }
 
-            /* --- Condition colour scale: 1=best, 9=worst ----------- */
-            .condition-1  { background: #145a32; color: #a9dfbf; }
-            .condition-2  { background: #1e8449; color: #abebc6; }
-            .condition-3  { background: #58b15e; color: #eafaf1; }
-            .condition-4  { background: #93c847; color: #1a3a0d; }
-            .condition-5  { background: #d4d629; color: #2a2a00; }
-            .condition-6  { background: #e6960f; color: #2a1800; }
-            .condition-7  { background: #d4550d; color: #fff0e0; }
-            .condition-8  { background: #b92c0c; color: #ffe0d8; }
-            .condition-9  { background: #7b0a0a; color: #ffd0d0; }
-            .condition-na { background: transparent; color: var(--text-muted, #888); font-style: italic; }
+            /* Current time marker line */
+            .now-marker {
+                position: relative;
+            }
+            .now-marker::before {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                width: 2px;
+                background: linear-gradient(to bottom, 
+                    rgba(255, 200, 87, 0.9) 0%,
+                    rgba(255, 200, 87, 0.7) 50%,
+                    rgba(255, 200, 87, 0.9) 100%);
+                box-shadow: 0 0 6px rgba(255, 200, 87, 0.5);
+                z-index: 3;
+            }
+            .now-label {
+                font-size: 8px;
+                font-weight: 700;
+                color: rgba(255, 200, 87, 0.95);
+                letter-spacing: 0.08em;
+                text-shadow: 0 0 4px rgba(0,0,0,0.6);
+                margin-top: 2px;
+            }
+            :root:not([data-theme="dark"]) .now-marker::before {
+                background: linear-gradient(to bottom, 
+                    rgba(204, 130, 0, 0.95) 0%,
+                    rgba(204, 130, 0, 0.8) 50%,
+                    rgba(204, 130, 0, 0.95) 100%);
+                box-shadow: 0 0 6px rgba(204, 130, 0, 0.6);
+            }
+            :root:not([data-theme="dark"]) .now-label {
+                color: #b87700;
+                text-shadow: none;
+            }
 
-            :root[data-theme="dark"] .condition-na {
-                background: transparent;
-                color: rgba(255,255,255,0.28);
-                font-style: italic;
+            /* Condition colours are defined in weather.css with theme-aware overrides */
+
+            /* --- Light theme overrides ----------------------------- */
+            :root:not([data-theme="dark"]) .weather-row--time th.weather-label {
+                background: #e8e5df;
+                color: #2a2a2a;
+            }
+            :root:not([data-theme="dark"]) .weather-cell--time {
+                background: #f5f3ef;
+                color: #1a1a1a;
+            }
+            :root:not([data-theme="dark"]) .weather-cell--time.night-hour {
+                background: #e0edf2;
+                color: #1a5a70;
+            }
+            :root:not([data-theme="dark"]) .weather-cell--date-label {
+                background: #e8e5df;
+                color: #4a4a4a;
+            }
+            :root:not([data-theme="dark"]) .weather-cell--date-label.night-hour {
+                background: #dbe8ed;
+                color: #2a6a80;
+            }
+            :root:not([data-theme="dark"]) .weather-label {
+                background: #e8e5df;
+                color: #2a2a2a;
+            }
+            :root:not([data-theme="dark"]) .weather-grid-table {
+                background: #d5d2cc;
             }
 
             .weather-cell.estimated {
@@ -591,6 +642,23 @@
             return columns[i].isNight && !columns[i - 1].isNight;
         }
 
+        var nowIndex = -1;
+        var now = new Date();
+        var minDiff = Infinity;
+        columns.forEach(function (col, i) {
+            if (col.date) {
+                var diff = Math.abs(now.getTime() - col.date.getTime());
+                if (diff < minDiff && diff < 1.5 * 3600 * 1000) {
+                    minDiff = diff;
+                    nowIndex = i;
+                }
+            }
+        });
+
+        function isNowColumn(i) {
+            return i === nowIndex;
+        }
+
         // --- Build HTML ---
         let html = '<div class="weather-grid-scroll"><table class="weather-grid-table">';
 
@@ -609,8 +677,9 @@
             columns.forEach(function (col, i) {
                 const ns   = isNightStart(i) ? ' night-start-border' : '';
                 const cls  = col.isNight ? ' night-hour' : '';
+                const nw   = isNowColumn(i) ? ' now-marker' : '';
                 const text = col.isNewDay && col.date ? _fmtShortDate(col.date) : '';
-                html += `<th class="weather-cell--date-label${cls}${ns}">${text}</th>`;
+                html += `<th class="weather-cell--date-label${cls}${ns}${nw}">${text}</th>`;
             });
             html += '</tr>';
         }
@@ -623,10 +692,12 @@
         columns.forEach(function (col, i) {
             const ns  = isNightStart(i) ? ' night-start-border' : '';
             const cls = col.isNight ? ' night-hour' : '';
+            const nw  = isNowColumn(i) ? ' now-marker' : '';
+            const nowLabel = isNowColumn(i) ? '<div class="now-label">NOW</div>' : '';
             const ttl = col.date
                 ? `${_fmtShortDate(col.date)} ${col.label}`
                 : col.label;
-            html += `<th class="weather-cell--time${cls}${ns}" title="${ttl}">${col.label}</th>`;
+            html += `<th class="weather-cell--time${cls}${ns}${nw}" title="${ttl}">${col.label}${nowLabel}</th>`;
         });
         html += '</tr></thead><tbody>';
 
@@ -634,16 +705,18 @@
             const val = d.cloudcover;
             const cls = getConditionClass(val, 'cloudcover');
             const ns  = isNightStart(i) ? ' night-start-border' : '';
+            const nw  = isNowColumn(i) ? ' now-marker' : '';
             const sym = _cloudCoverSymbol(val);
             const tip = (lbl.cloudCover || 'Cloud cover') + `: ${_cloudCoverText(val)} (${val}/9)`;
-            return `<td class="weather-cell ${cls}${ns}" title="${tip}"><span class="cell-value">${sym}</span></td>`;
+            return `<td class="weather-cell ${cls}${ns}${nw}" title="${tip}"><span class="cell-value">${sym}</span></td>`;
         });
 
         html += _buildRow('★', lbl.seeing || 'Seeing', columns, function (d, i) {
             const raw = d.seeing;
             const ns  = isNightStart(i) ? ' night-start-border' : '';
+            const nw  = isNowColumn(i) ? ' now-marker' : '';
             if (raw === -9999 || raw === undefined || raw === null) {
-                return `<td class="weather-cell condition-na${ns}" title="${lbl.seeing || 'Seeing'}: ${na}"><span class="cell-value na">–</span></td>`;
+                return `<td class="weather-cell condition-na${ns}${nw}" title="${lbl.seeing || 'Seeing'}: ${na}"><span class="cell-value na">–</span></td>`;
             }
             const isEst = raw < 0 && raw !== -9999;
             const val = Math.abs(raw);
@@ -651,14 +724,15 @@
             const estCls = isEst ? ' estimated' : '';
             const estNote = isEst ? ' (est.)' : '';
             const tip = (lbl.seeing || 'Seeing') + `: ${_seeingText(val)} (${val}/8)${estNote}`;
-            return `<td class="weather-cell ${cls}${estCls}${ns}" title="${tip}"><span class="cell-value">${val}</span></td>`;
+            return `<td class="weather-cell ${cls}${estCls}${ns}${nw}" title="${tip}"><span class="cell-value">${val}</span></td>`;
         });
 
         html += _buildRow('◈', lbl.transparency || 'Trans', columns, function (d, i) {
             const raw = d.transparency;
             const ns  = isNightStart(i) ? ' night-start-border' : '';
+            const nw  = isNowColumn(i) ? ' now-marker' : '';
             if (raw === -9999 || raw === undefined || raw === null) {
-                return `<td class="weather-cell condition-na${ns}" title="${lbl.transparency || 'Trans'}: ${na}"><span class="cell-value na">–</span></td>`;
+                return `<td class="weather-cell condition-na${ns}${nw}" title="${lbl.transparency || 'Trans'}: ${na}"><span class="cell-value na">–</span></td>`;
             }
             const isEst = raw < 0 && raw !== -9999;
             const val = Math.abs(raw);
@@ -666,7 +740,7 @@
             const estCls = isEst ? ' estimated' : '';
             const estNote = isEst ? ' (est.)' : '';
             const tip = (lbl.transparency || 'Trans') + `: ${_transparencyText(val)} (${val}/8)${estNote}`;
-            return `<td class="weather-cell ${cls}${estCls}${ns}" title="${tip}"><span class="cell-value">${val}</span></td>`;
+            return `<td class="weather-cell ${cls}${estCls}${ns}${nw}" title="${tip}"><span class="cell-value">${val}</span></td>`;
         });
 
         html += _buildRow('〜', lbl.wind || 'Wind', columns, function (d, i) {
@@ -676,30 +750,33 @@
                 : (d.wind_speed !== undefined ? d.wind_speed : null);
             const dir   = (wind && wind.direction) ? wind.direction : '';
             const ns    = isNightStart(i) ? ' night-start-border' : '';
+            const nw    = isNowColumn(i) ? ' now-marker' : '';
             if (speed === null || speed === undefined) {
-                return `<td class="weather-cell condition-na${ns}" title="${lbl.wind || 'Wind'}: ${na}"><span class="cell-value na">–</span></td>`;
+                return `<td class="weather-cell condition-na${ns}${nw}" title="${lbl.wind || 'Wind'}: ${na}"><span class="cell-value na">–</span></td>`;
             }
             const cls = getConditionClass(speed, 'wind');
             const tip = (lbl.wind || 'Wind') + `: ${speed} m/s${dir ? ' ' + dir : ''}`;
-            return `<td class="weather-cell ${cls}${ns}" title="${tip}"><span class="cell-value" style="font-size:9px">${speed}</span></td>`;
+            return `<td class="weather-cell ${cls}${ns}${nw}" title="${tip}"><span class="cell-value" style="font-size:9px">${speed}</span></td>`;
         });
 
         html += _buildRow('💧', lbl.humidity || 'Humid', columns, function (d, i) {
             const val = d.rh2m;
             const ns  = isNightStart(i) ? ' night-start-border' : '';
+            const nw  = isNowColumn(i) ? ' now-marker' : '';
             if (val === null || val === undefined) {
-                return `<td class="weather-cell condition-na${ns}" title="${lbl.humidity || 'Humid'}: ${na}"><span class="cell-value na">–</span></td>`;
+                return `<td class="weather-cell condition-na${ns}${nw}" title="${lbl.humidity || 'Humid'}: ${na}"><span class="cell-value na">–</span></td>`;
             }
             const cls = getConditionClass(val, 'humidity');
             const tip = (lbl.humidity || 'Humidity') + `: ${val}%`;
-            return `<td class="weather-cell ${cls}${ns}" title="${tip}"><span class="cell-value" style="font-size:9px">${val}%</span></td>`;
+            return `<td class="weather-cell ${cls}${ns}${nw}" title="${tip}"><span class="cell-value" style="font-size:9px">${val}%</span></td>`;
         });
 
         html += _buildRow('°C', lbl.temp || 'Temp', columns, function (d, i) {
             const val = d.temp2m;
             const ns  = isNightStart(i) ? ' night-start-border' : '';
+            const nw  = isNowColumn(i) ? ' now-marker' : '';
             const disp = (val !== null && val !== undefined) ? `${val}°` : '—';
-            return `<td class="weather-cell${ns}" title="${lbl.temp || 'Temp'}: ${disp}C" style="color:var(--text-secondary,#4a4a4a)"><span class="cell-value" style="font-size:9px">${disp}</span></td>`;
+            return `<td class="weather-cell${ns}${nw}" title="${lbl.temp || 'Temp'}: ${disp}C" style="color:var(--text-secondary,#4a4a4a)"><span class="cell-value" style="font-size:9px">${disp}</span></td>`;
         });
 
         html += '</tbody></table></div>';
