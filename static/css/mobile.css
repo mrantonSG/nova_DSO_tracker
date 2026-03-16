@@ -234,7 +234,7 @@ trix-editor {
     cursor: not-allowed;
 }
 
-/* --- Bottom Navigation (Bar Indicator Style) --- */
+/* --- Bottom Navigation (Nova Design System) --- */
 .mobile-nav {
     position: fixed;
     bottom: 0;
@@ -254,41 +254,31 @@ trix-editor {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
-    padding: 0 0 6px;
-    height: 52px;
+    justify-content: center;
+    padding: 10px 4px;
+    height: 64px;
     text-align: center;
-    color: var(--text-muted, #888888);
+    color: var(--text-faint, #aaaaaa);
     text-decoration: none;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 500;
     letter-spacing: 0.01em;
     border: none;
+    border-top: 2px solid transparent;
     border-radius: 0;
     background: transparent;
-    transition: color 0.15s;
+    transition: all 0.15s;
     -webkit-tap-highlight-color: transparent;
 }
 
 .mobile-nav a .nav-bar {
-    display: block;
-    width: 24px;
-    height: 3px;
-    border-radius: 2px;
-    background: transparent;
-    margin: 0 auto 6px;
-    flex-shrink: 0;
-    transition: background 0.15s;
+    display: none; /* No longer needed - using border-top */
 }
 
 .mobile-nav a.active {
     color: var(--primary-color, #83b4c5);
     font-weight: 700;
-    background: transparent;
-}
-
-.mobile-nav a.active .nav-bar {
-    background: var(--primary-color, #83b4c5);
+    border-top-color: var(--primary-color, #83b4c5);
 }
 .form-group input[readonly] {
     font-size: 1.1rem;
