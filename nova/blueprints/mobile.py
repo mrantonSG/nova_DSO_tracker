@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 import bleach
 from flask import (
     Blueprint, render_template, redirect, url_for, flash,
-    request, g, session, current_app
+    request, g, session, current_app, jsonify
 )
 
 from flask_login import login_required, current_user
@@ -154,7 +154,45 @@ def _format_dec_csv(dec_deg):
     s = int(total_seconds % 60)
     # Telescopius Format: 41º 53' 27" (Uses ordinal º, no plus sign for positive)
     # FIX: Added padding {d:02d} to match strict 00º format required by importers
-    return f"{sign}{d:02d}º {m:02d}' {s:02d}\""
+    return f'{sign}{d:02d}º {m:02d}\' {s:02d}"'
+
+
+@mobile_bp.route('/api/mobile_framing_coords/<path:object_name>')
+@login_required
+def mobile_framing_coords(object_name):
+    """Returns ASIAIR-formatted RA/Dec for an object."""
+    db = get_db()
+
+    # Try to get saved framing first
+    framing = db.query(SavedFraming).filter_by(
+        user_id=g.db_user.id, object_name=object_name
+    ).one_or_none()
+
+    if framing:
+        ra_deg = framing.ra
+        dec_deg = framing.dec
+        has_framing = True
+    else:
+        # Fall back to object RA/Dec from request args
+        try:
+            ra_deg = float(request.args.get('ra', 0))
+            dec_deg = float(request.args.get('dec', 0))
+            has_framing = False
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Invalid coordinates'}), 400
+
+    ra_fmt = _format_ra_csv(ra_deg)
+    dec_fmt = _format_dec_csv(dec_deg)
+    csv_line = f"{object_name},{ra_fmt},{dec_fmt}"
+
+    return jsonify({
+        'ra_fmt': ra_fmt,
+        'dec_fmt': dec_fmt,
+        'csv_line': csv_line,
+        'has_framing': has_framing,
+        'mosaic_url': url_for('mobile.mobile_mosaic_view',
+                              object_name=object_name) if has_framing else None
+    })
 
 
 @mobile_bp.route('/m/mosaic/<path:object_name>')
