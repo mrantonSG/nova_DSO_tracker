@@ -58,7 +58,10 @@ def mobile_up_now():
     """Renders the mobile 'Up Now' dashboard skeleton (data fetched via API)."""
     load_full_astro_context()
     # Render template immediately with empty data; JS will fetch it.
-    return render_template('mobile_up_now.html')
+    return render_template(
+        'mobile_up_now.html',
+        selected_location=g.selected_location or ''
+    )
 
 @mobile_bp.route('/m/location')
 @login_required
