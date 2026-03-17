@@ -143,6 +143,10 @@
 
     // Location from sessionStorage (same pattern as mobile_up_now.html)
     if (locationEl) {
+        const serverLocation = "{{ selected_location | default('') }}";
+        if (serverLocation && !sessionStorage.getItem('nova_mobile_location')) {
+            sessionStorage.setItem('nova_mobile_location', serverLocation);
+        }
         const loc = sessionStorage.getItem('nova_mobile_location') || '—';
         locationEl.textContent = loc;
     }
