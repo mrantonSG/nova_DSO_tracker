@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}{{ post.title | e }} - {{ _('Blog') }} - {{ _('Nova DSO Tracker') }}{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/blog.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/glightbox@3.3.1/dist/css/glightbox.min.css">
+{% endblock %}
+
+{% block body %}
+<div class="blog-container">
+    {# Back link #}
+    <a href="{{ url_for('blog.blog_list') }}" class="blog-back-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        {{ _('Back to Blog') }}
+    </a>
+
+    <article class="blog-post">
+        {# Header with title and actions #}
+        <header class="blog-post-header">
+            <h1 class="blog-post-title">{{ post.title | e }}</h1>
+            
+            <div class="blog-post-meta">
+                {% if not SINGLE_USER_MODE and post.user %}
+                <span class="blog-post-author">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    {{ post.user.username | e }}
+                </span>
+                {% endif %}
+                
+                <span class="blog-post-date">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    {{ post.created_at.strftime('%Y-%m-%d %H:%M') }}
+                </span>
+                
+                {% if post.updated_at and post.updated_at != post.created_at %}
+                <span class="blog-post-updated">
+                    ({{ _('Updated') }}: {{ post.updated_at.strftime('%Y-%m-%d') }})
+                </span>
+                {% endif %}
+            </div>
+
+            {# Edit/Delete buttons for owner or admin #}
+            {% if not is_guest and (SINGLE_USER_MODE or (current_user.is_authenticated and (current_user.id == post.user_id or current_user.is_admin))) %}
+            <div class="blog-post-actions">
+                <a href="{{ url_for('blog.blog_edit', post_id=post.id) }}" class="btn-ghost">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                    {{ _('Edit') }}
+                </a>
+                <form method="POST" action="{{ url_for('blog.blog_delete', post_id=post.id) }}"
+                      style="display:inline"
+                      onsubmit="return confirm('{{ _('Delete this post?') }}')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn-ghost btn-danger">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                        {{ _('Delete') }}
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </header>
+
+        {# Image Gallery #}
+        {% if post.images %}
+        <div class="blog-gallery">
+            {% for image in post.images %}
+            <a href="{{ url_for('blog.blog_serve_image', user_id=post.user_id, filename=image.filename) }}"
+               class="glightbox blog-gallery-item"
+               data-gallery="post-{{ post.id }}"
+               data-glightbox="title: {{ image.caption | default('', true) | e }}">
+                <img src="{{ url_for('blog.blog_serve_image', user_id=post.user_id, filename=image.thumb_filename or image.filename) }}"
+                     alt="{{ image.caption | default('Astrophoto', true) | e }}"
+                     loading="lazy">
+                {% if image.caption %}
+                <span class="blog-gallery-caption">{{ image.caption | e }}</span>
+                {% endif %}
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {# Post Content (Markdown rendered) #}
+        <div class="blog-post-content prose">
+            {{ post.content | render_markdown }}
+        </div>
+    </article>
+
+    {# Comments Section #}
+    <section id="comments" class="blog-comments-section">
+        <h3 class="blog-comments-title">
+            {{ _('Comments') }}
+            <span class="blog-comments-count">({{ post.comments | length }})</span>
+        </h3>
+
+        {# Existing comments list #}
+        {% if post.comments %}
+        <div class="blog-comments-list">
+            {% for comment in post.comments %}
+            <div class="blog-comment" id="comment-{{ comment.id }}">
+                <div class="blog-comment-header">
+                    <span class="blog-comment-author">
+                        {% if comment.user %}{{ comment.user.username | e }}{% else %}{{ _('Unknown') }}{% endif %}
+                    </span>
+                    <span class="blog-comment-date">
+                        {{ comment.created_at.strftime('%Y-%m-%d %H:%M') }}
+                    </span>
+
+                    {# Delete button: comment author, post author, or admin #}
+                    {% if not is_guest and (SINGLE_USER_MODE or (
+                         current_user.is_authenticated and (
+                           current_user.id == comment.user_id
+                           or current_user.id == post.user_id
+                           or current_user.is_admin
+                         ))) %}
+                    <form method="POST"
+                          action="{{ url_for('blog.blog_delete_comment', post_id=post.id, comment_id=comment.id) }}"
+                          class="blog-comment-delete-form"
+                          onsubmit="return confirm('{{ _('Delete this comment?') }}')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="blog-comment-delete-btn" aria-label="{{ _('Delete comment') }}">
+                            &times;
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+                <div class="blog-comment-content">
+                    {{ comment.content | render_markdown }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="blog-comments-empty">{{ _('No comments yet. Be the first!') }}</p>
+        {% endif %}
+
+        {# Add comment form: login-required #}
+        {% if is_guest %}
+        <p class="blog-comment-login-prompt">
+            <a href="{{ url_for('core.login') }}?next={{ request.path }}">{{ _('Log in') }}</a> {{ _('to leave a comment.') }}
+        </p>
+        {% elif SINGLE_USER_MODE or current_user.is_authenticated %}
+        <form method="POST"
+              action="{{ url_for('blog.blog_add_comment', post_id=post.id) }}"
+              class="blog-comment-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label for="comment_content" class="sr-only">{{ _('Your comment') }}</label>
+                <textarea id="comment_content"
+                          name="comment_content"
+                          class="blog-comment-textarea"
+                          rows="4"
+                          maxlength="2000"
+                          placeholder="{{ _('Write a comment... (Markdown supported)') }}"
+                          required></textarea>
+                <small class="blog-comment-charcount"><span id="char-count">0</span> / 2000</small>
+            </div>
+            <button type="submit" class="action-button">{{ _('Post Comment') }}</button>
+        </form>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/glightbox@3.3.1/dist/js/glightbox.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize GLightbox for image gallery
+    const lightbox = GLightbox({
+        selector: '.glightbox',
+        touchNavigation: true,
+        loop: true,
+        closeButton: true
+    });
+
+    // Comment character counter
+    const commentArea = document.getElementById('comment_content');
+    const charCount = document.getElementById('char-count');
+    if (commentArea && charCount) {
+        commentArea.addEventListener('input', function() {
+            charCount.textContent = this.value.length;
+        });
+    }
+});
+</script>
+{% endblock %}

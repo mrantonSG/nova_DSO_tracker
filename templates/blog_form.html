@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}{% if is_edit %}{{ _('Edit Post') }}{% else %}{{ _('New Post') }}{% endif %} - {{ _('Blog') }} - {{ _('Nova DSO Tracker') }}{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/blog.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde@2.20.0/dist/easymde.min.css">
+{% endblock %}
+
+{% block body %}
+<div class="blog-container">
+    {# Back link #}
+    <a href="{% if is_edit %}{{ url_for('blog.blog_detail', post_id=post.id) }}{% else %}{{ url_for('blog.blog_list') }}{% endif %}" class="blog-back-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        {{ _('Cancel') }}
+    </a>
+
+    <div class="blog-form-container">
+        <h2>{% if is_edit %}{{ _('Edit Post') }}{% else %}{{ _('Create New Post') }}{% endif %}</h2>
+
+        <form method="POST" 
+              action="{% if is_edit %}{{ url_for('blog.blog_edit', post_id=post.id) }}{% else %}{{ url_for('blog.blog_create') }}{% endif %}"
+              enctype="multipart/form-data"
+              class="blog-form"
+              id="blog-post-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            {# Title #}
+            <div class="form-group">
+                <label for="title">{{ _('Title') }} <span class="required">*</span></label>
+                <input type="text" 
+                       id="title" 
+                       name="title" 
+                       value="{{ post.title | default('', true) | e }}"
+                       placeholder="{{ _('Enter a title for your post') }}"
+                       required
+                       maxlength="256">
+            </div>
+
+            {# Content (Markdown editor) #}
+            <div class="form-group">
+                <label for="content">{{ _('Content') }} <span class="required">*</span></label>
+                <textarea id="content" 
+                          name="content"
+                          placeholder="{{ _('Write your post content here... (Markdown supported)') }}"
+                          required>{{ post.content | default('', true) }}</textarea>
+            </div>
+
+            {# Existing Images (Edit mode) #}
+            {% if is_edit and post.images %}
+            <div class="form-group">
+                <label>{{ _('Current Images') }}</label>
+                <div class="blog-existing-images" id="existing-images">
+                    {% for image in post.images %}
+                    <div class="blog-existing-image-item" data-image-id="{{ image.id }}">
+                        <img src="{{ url_for('blog.blog_serve_image', user_id=post.user_id, filename=image.thumb_filename or image.filename) }}"
+                             alt="{{ image.caption | default('', true) | e }}">
+                        <div class="blog-existing-image-info">
+                            <span class="blog-existing-image-caption">{{ image.caption | default(_('No caption'), true) | e }}</span>
+                            <button type="button"
+                                    class="blog-remove-existing-image btn-ghost btn-danger btn-sm"
+                                    data-image-id="{{ image.id }}"
+                                    data-post-id="{{ post.id }}">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                                {{ _('Remove') }}
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {# New Image Upload #}
+            <div class="form-group">
+                <label for="images">{{ _('Add Images') }}</label>
+                <div class="blog-upload-zone" id="upload-zone">
+                    <input type="file" 
+                           id="images" 
+                           name="images" 
+                           accept="image/png,image/jpeg,image/gif"
+                           multiple
+                           class="blog-file-input">
+                    <div class="blog-upload-prompt">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                        <span>{{ _('Click to select images or drag & drop') }}</span>
+                        <small>{{ _('PNG, JPEG, GIF - Max 10MB each') }}</small>
+                    </div>
+                </div>
+                
+                {# Preview container for new uploads #}
+                <div class="blog-image-previews" id="image-previews"></div>
+            </div>
+
+            {# Submit buttons #}
+            <div class="blog-form-actions">
+                <a href="{% if is_edit %}{{ url_for('blog.blog_detail', post_id=post.id) }}{% else %}{{ url_for('blog.blog_list') }}{% endif %}" 
+                   class="btn-ghost">{{ _('Cancel') }}</a>
+                <button type="submit" class="action-button" id="submit-btn">
+                    {% if is_edit %}{{ _('Update Post') }}{% else %}{{ _('Publish Post') }}{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/easymde@2.20.0/dist/easymde.min.js"></script>
+<script src="{{ url_for('static', filename='js/blog.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize EasyMDE markdown editor
+    const contentTextarea = document.getElementById('content');
+    if (contentTextarea) {
+        const easyMDE = new EasyMDE({
+            element: contentTextarea,
+            spellChecker: false,
+            autosave: {
+                enabled: true,
+                uniqueId: 'nova-blog-draft-{{ post.id | default("new", true) }}',
+                delay: 3000
+            },
+            toolbar: [
+                'bold', 'italic', 'heading', '|',
+                'quote', 'code', '|',
+                'unordered-list', 'ordered-list', '|',
+                'link', 'image', '|',
+                'preview', 'side-by-side', 'fullscreen', '|',
+                'guide'
+            ],
+            minHeight: '350px',
+            forceSync: true,
+            placeholder: '{{ _("Write your post content here... (Markdown supported)") }}',
+        });
+
+        // Make sure form validation works with EasyMDE
+        document.getElementById('blog-post-form').addEventListener('submit', function(e) {
+            easyMDE.codemirror.save();
+            if (!contentTextarea.value.trim()) {
+                e.preventDefault();
+                alert('{{ _("Content is required.") }}');
+                easyMDE.codemirror.focus();
+            }
+        });
+    }
+
+    // Initialize blog.js functions if available
+    if (typeof initBlogForm === 'function') {
+        initBlogForm({
+            isEdit: {{ 'true' if is_edit else 'false' }},
+            postId: {{ post.id | default('null', true) }},
+            csrfToken: '{{ csrf_token() }}'
+        });
+    }
+});
+</script>
+{% endblock %}

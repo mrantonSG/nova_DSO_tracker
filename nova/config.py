@@ -11,11 +11,14 @@ from nova.models import INSTANCE_PATH
 APP_VERSION = "5.6.0"
 
 # --- Directories ---
-TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config_templates")
+TEMPLATE_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)), "config_templates"
+)
 CACHE_DIR = os.path.join(INSTANCE_PATH, "cache")
 CONFIG_DIR = os.path.join(INSTANCE_PATH, "configs")
 BACKUP_DIR = os.path.join(INSTANCE_PATH, "backups")
-UPLOAD_FOLDER = os.path.join(INSTANCE_PATH, 'uploads')
+UPLOAD_FOLDER = os.path.join(INSTANCE_PATH, "uploads")
+BLOG_UPLOAD_FOLDER = os.path.join(INSTANCE_PATH, "uploads", "blog")
 
 # --- .env handling ---
 ENV_FILE = os.path.join(INSTANCE_PATH, ".env")
@@ -24,18 +27,41 @@ load_dotenv(dotenv_path=ENV_FILE)
 FIRST_RUN_ENV_CREATED = False
 
 # --- Mode ---
-SINGLE_USER_MODE = config('SINGLE_USER_MODE', default='True') == 'True'
+SINGLE_USER_MODE = config("SINGLE_USER_MODE", default="True") == "True"
 
 # --- Sentry (error reporting, multi-user only) ---
-SENTRY_DSN = config('SENTRY_DSN', default='')
+SENTRY_DSN = config("SENTRY_DSN", default="")
+
 
 # --- Keys & external config ---
-SECRET_KEY = config('SECRET_KEY', default=secrets.token_hex(32))
+def _get_or_create_secret_key():
+    """Get SECRET_KEY from env, or generate and persist a stable key."""
+    # 1. Check environment variable first
+    env_key = config("SECRET_KEY", default="")
+    if env_key:
+        return env_key
+
+    # 2. Check for persisted key file
+    key_file = os.path.join(INSTANCE_PATH, ".secret_key")
+    if os.path.exists(key_file):
+        with open(key_file, "r") as f:
+            return f.read().strip()
+
+    # 3. Generate new key and persist it
+    new_key = secrets.token_hex(32)
+    os.makedirs(INSTANCE_PATH, exist_ok=True)
+    with open(key_file, "w") as f:
+        f.write(new_key)
+    print(f"[CONFIG] Generated new SECRET_KEY and saved to {key_file}")
+    return new_key
+
+
+SECRET_KEY = _get_or_create_secret_key()
 STELLARIUM_ERROR_MESSAGE = os.getenv("STELLARIUM_ERROR_MESSAGE")
-NOVA_CATALOG_URL = config('NOVA_CATALOG_URL', default='')
+NOVA_CATALOG_URL = config("NOVA_CATALOG_URL", default="")
 
 # --- File uploads ---
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
 
 # --- Limits ---
 MAX_ACTIVE_LOCATIONS = 5
@@ -44,20 +70,26 @@ MAX_ACTIVE_LOCATIONS = 5
 SIMBAD_TIMEOUT = 60  # SIMBAD queries can be slow
 
 # --- Dither defaults ---
-DEFAULT_DITHER_MAIN_SHIFT_PX = 10  # Default desired shift on main camera sensor (pixels)
+DEFAULT_DITHER_MAIN_SHIFT_PX = (
+    10  # Default desired shift on main camera sensor (pixels)
+)
+
 
 # --- Bounded cache to prevent unbounded memory growth ---
 class BoundedCache(dict):
     """Dict with max size — evicts oldest entries when full."""
+
     def __init__(self, maxsize=2000):
         super().__init__()
         self._maxsize = maxsize
+
     def __setitem__(self, key, value):
         if len(self) >= self._maxsize:
-            to_remove = list(self.keys())[:self._maxsize // 10 or 1]
+            to_remove = list(self.keys())[: self._maxsize // 10 or 1]
             for k in to_remove:
                 del self[k]
         super().__setitem__(key, value)
+
 
 # --- Mutable cache dicts (shared between workers and routes) ---
 static_cache = BoundedCache(2000)
@@ -78,12 +110,12 @@ DEFAULT_HTTP_TIMEOUT = 10  # Standard timeout for HTTP requests
 
 # --- Translation status ---
 TRANSLATION_STATUS = {
-    'en': 'validated',  # English is the source language
-    'de': 'auto',  # German translations auto-generated
-    'fr': 'auto',       # French translations auto-generated
-    'zh': 'auto',       # Chinese translations auto-generated
-    'ja': 'auto',       # Japanese translations auto-generated
-    'es': 'auto',       # Spanish translations auto-generated
+    "en": "validated",  # English is the source language
+    "de": "validated",  # German translations validated
+    "fr": "auto",  # French translations auto-generated
+    "zh": "auto",  # Chinese translations auto-generated
+    "ja": "auto",  # Japanese translations auto-generated
+    "es": "auto",  # Spanish translations auto-generated
 }
 
 # --- AI Configuration ---
@@ -97,9 +129,9 @@ AI_ALLOWED_USERS = config('AI_ALLOWED_USERS', default='')
 _telemetry_startup_once = threading.Event()
 
 TELEMETRY_DEBUG_STATE = {
-    'endpoint': None,
-    'last_payload': None,
-    'last_result': None,
-    'last_error': None,
-    'last_ts': None
+    "endpoint": None,
+    "last_payload": None,
+    "last_result": None,
+    "last_error": None,
+    "last_ts": None,
 }
