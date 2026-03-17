@@ -453,107 +453,6 @@ body {
     /* 80px clears the fixed bottom nav */
 }
 
-/* ── Bottom sheet overlay ── */
-.m-sheet-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    bottom: 64px;
-    background: rgba(0,0,0,0.3);
-    z-index: 100;
-}
-.m-sheet-overlay.open { display: block; }
-
-/* ── Bottom sheet ── */
-.m-sheet {
-    position: fixed;
-    top: 15vh;
-    bottom: 64px;
-    left: 0;
-    right: 0;
-    background: var(--m-surface, #fff);
-    border-radius: 16px 16px 0 0;
-    z-index: 101;
-    display: flex;
-    flex-direction: column;
-    transform: translateY(100%);
-    transition: transform 0.25s ease-out;
-    box-shadow: 0 -2px 20px rgba(0,0,0,0.15);
-}
-.m-sheet.open { transform: translateY(0); }
-
-.m-sheet-handle-area {
-    padding: 10px 0 4px;
-    display: flex;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.m-sheet-handle {
-    width: 36px;
-    height: 4px;
-    background: var(--border-color, #e5e2dc);
-    border-radius: 2px;
-}
-
-.m-sheet-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 4px 20px 12px;
-    border-bottom: 1px solid var(--border-color, #e5e2dc);
-}
-
-.m-sheet-title {
-    font-size: 17px;
-    font-weight: 700;
-    color: var(--text-primary, #141414);
-}
-
-.m-sheet-reset {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--primary-hover, #6a9eb0);
-    background: none;
-    border: none;
-    cursor: pointer;
-}
-
-.m-sheet-body {
-    overflow-y: scroll;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-    padding: 8px 20px 24px;
-    flex: 1;
-}
-
-.m-sheet-footer {
-    padding: 16px 20px;
-    padding-bottom: max(16px, env(safe-area-inset-bottom));
-    border-top: 1px solid var(--border-color, #e5e2dc);
-    flex-shrink: 0;
-    background: var(--bg-secondary, #fff);
-}
-
-.m-sheet-apply {
-    width: 100%;
-    padding: 13px;
-    background: var(--primary-color, #83b4c5);
-    color: #fff;
-    border: none;
-    border-radius: 10px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-}
-.m-sheet-apply:active {
-    filter: brightness(0.9);
-}
-
-@media (min-width: 600px) {
-    .m-sheet { bottom: 114px; }
-    .m-sheet-overlay { bottom: 114px; }
-}
 </style>
 {% endblock %}
 
@@ -609,7 +508,7 @@ body {
 
 <!-- Action Row -->
 <div class="action-row">
-    <button class="action-btn ghost-teal" id="framing-btn">{{ _('Framing') }}</button>
+    <a href="{{ url_for('mobile.mobile_framing_coords', object_name=object_name) }}?ra={{ ra }}&dec={{ dec }}" class="action-btn ghost-teal">{{ _('Framing') }}</a>
     <a href="/m/journal/new?object={{ object_name }}" class="action-btn primary">{{ _('Log Session') }}</a>
     <a href="https://simbad.cds.unistra.fr/simbad/sim-id?Ident={{ object_name }}" target="_blank" class="action-btn ghost">{{ _('SIMBAD') }}</a>
 </div>
@@ -647,21 +546,6 @@ body {
     </div>
 </div>
 
-<!-- Framing sheet -->
-<div class="m-sheet-overlay" id="framing-overlay"></div>
-<div class="m-sheet" id="framing-sheet">
-    <div class="m-sheet-handle-area"><div class="m-sheet-handle"></div></div>
-    <div class="m-sheet-header">
-        <span class="m-sheet-title">{{ _('Framing') }}</span>
-        <button class="m-sheet-reset" id="framing-close">{{ _('Close') }}</button>
-    </div>
-    <div class="m-sheet-body" id="framing-body">
-        <p style="color:var(--text-faint); font-size:14px;">{{ _('Loading...') }}</p>
-    </div>
-    <div class="m-sheet-footer">
-        <button class="m-sheet-apply" id="framing-copy" style="display:none;">{{ _('Copy CSV') }}</button>
-    </div>
-</div>
 {% endblock %}
 
 {% block scripts %}
@@ -1326,81 +1210,5 @@ body {
         });
     }
 
-    // --- Framing Sheet ---
-    (function() {
-        const sheet   = document.getElementById('framing-sheet');
-        const overlay = document.getElementById('framing-overlay');
-        const body    = document.getElementById('framing-body');
-        const copyBtn = document.getElementById('framing-copy');
-        let csvLine   = '';
-
-        function openFramingSheet() {
-            sheet.classList.add('open');
-            overlay.classList.add('open');
-            body.innerHTML = '<p style="color:var(--text-faint);font-size:14px;">Loading...</p>';
-            copyBtn.style.display = 'none';
-
-            const ra  = OBJECT_DATA.ra;
-            const dec = OBJECT_DATA.dec;
-            const url = `/api/mobile_framing_coords/${encodeURIComponent(OBJECT_DATA.name)}?ra=${ra}&dec=${dec}`;
-
-            fetch(url)
-                .then(r => r.json())
-                .then(data => {
-                    if (data.error) {
-                        body.innerHTML = `<p style="color:red">${data.error}</p>`;
-                        return;
-                    }
-                    csvLine = data.csv_line;
-                    body.innerHTML = `
-                        <div style="margin-bottom:16px;">
-                            <div style="font-size:11px;font-weight:600;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">RA</div>
-                            <div style="font-family:'DM Mono',monospace;font-size:17px;color:var(--text-primary);">${data.ra_fmt}"</div>
-                        </div>
-                        <div style="margin-bottom:16px;">
-                            <div style="font-size:11px;font-weight:600;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Dec</div>
-                            <div style="font-family:'DM Mono',monospace;font-size:17px;color:var(--text-primary);">${data.dec_fmt}</div>
-                        </div>
-                        <div style="margin-bottom:8px;">
-                            <div style="font-size:11px;font-weight:600;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">CSV</div>
-                            <div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--text-secondary);background:var(--bg-tertiary);padding:10px;border-radius:8px;word-break:break-all;">${data.csv_line}</div>
-                        </div>
-                        ${data.has_framing ? `<a href="${data.mosaic_url}" style="display:block;text-align:center;margin-top:8px;font-size:13px;color:var(--primary-color);">View full mosaic plan →</a>` : ''}
-                    `;
-                    copyBtn.style.display = 'block';
-                })
-                .catch(() => {
-                    body.innerHTML = '<p style="color:red">Failed to load coordinates.</p>';
-                });
-        }
-
-        function closeFramingSheet() {
-            sheet.classList.remove('open');
-            overlay.classList.remove('open');
-        }
-
-        document.getElementById('framing-btn')
-            ?.addEventListener('click', openFramingSheet);
-        document.getElementById('framing-close')
-            ?.addEventListener('click', closeFramingSheet);
-        overlay?.addEventListener('click', closeFramingSheet);
-
-        copyBtn?.addEventListener('click', () => {
-            navigator.clipboard.writeText(csvLine).then(() => {
-                copyBtn.textContent = 'Copied!';
-                setTimeout(() => { copyBtn.textContent = 'Copy CSV'; }, 2000);
-            }).catch(() => {
-                // Fallback
-                const ta = document.createElement('textarea');
-                ta.value = csvLine;
-                document.body.appendChild(ta);
-                ta.select();
-                document.execCommand('copy');
-                document.body.removeChild(ta);
-                copyBtn.textContent = 'Copied!';
-                setTimeout(() => { copyBtn.textContent = 'Copy CSV'; }, 2000);
-            });
-        });
-    })();
 </script>
 {% endblock %}

@@ -157,13 +157,14 @@ def _format_dec_csv(dec_deg):
     return f'{sign}{d:02d}º {m:02d}\' {s:02d}"'
 
 
-@mobile_bp.route('/api/mobile_framing_coords/<path:object_name>')
+@mobile_bp.route('/m/framing_coords/<path:object_name>')
 @login_required
 def mobile_framing_coords(object_name):
-    """Returns ASIAIR-formatted RA/Dec for an object."""
+    """Mobile page to display formatted framing coordinates."""
+    load_full_astro_context()
     db = get_db()
 
-    # Try to get saved framing first
+    # Try to get saved framing for this user/object
     framing = db.query(SavedFraming).filter_by(
         user_id=g.db_user.id, object_name=object_name
     ).one_or_none()
@@ -173,26 +174,27 @@ def mobile_framing_coords(object_name):
         dec_deg = framing.dec
         has_framing = True
     else:
-        # Fall back to object RA/Dec from request args
+        # Fall back to request args
         try:
             ra_deg = float(request.args.get('ra', 0))
             dec_deg = float(request.args.get('dec', 0))
-            has_framing = False
-        except (ValueError, TypeError):
-            return jsonify({'error': 'Invalid coordinates'}), 400
+        except (TypeError, ValueError):
+            ra_deg = 0
+            dec_deg = 0
+        has_framing = False
 
     ra_fmt = _format_ra_csv(ra_deg)
     dec_fmt = _format_dec_csv(dec_deg)
     csv_line = f"{object_name},{ra_fmt},{dec_fmt}"
 
-    return jsonify({
-        'ra_fmt': ra_fmt,
-        'dec_fmt': dec_fmt,
-        'csv_line': csv_line,
-        'has_framing': has_framing,
-        'mosaic_url': url_for('mobile.mobile_mosaic_view',
-                              object_name=object_name) if has_framing else None
-    })
+    return render_template('mobile_framing_coords.html',
+        object_name=object_name,
+        ra_fmt=ra_fmt,
+        dec_fmt=dec_fmt,
+        csv_line=csv_line,
+        has_framing=has_framing,
+        back_url=request.referrer or url_for('mobile.mobile_up_now')
+    )
 
 
 @mobile_bp.route('/m/mosaic/<path:object_name>')
