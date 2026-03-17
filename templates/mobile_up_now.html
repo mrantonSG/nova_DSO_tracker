@@ -5,6 +5,7 @@
 
 {% block head %}
 <style>
+/* nova-mobile v2 — 2026-03-17 */
 /* ===================================================================
    NOVA MOBILE UP NOW - PAGE SPECIFIC STYLES
    Uses Nova Design System tokens from tokens.css and base.css
@@ -13,6 +14,12 @@
 /* === Page Background === */
 body {
     background-color: var(--bg-primary, #f2f0ed);
+}
+
+body.sheet-open {
+    position: fixed;
+    width: 100%;
+    overflow-y: scroll;
 }
 
 /* === Header Override === */
@@ -587,6 +594,7 @@ body {
     display: none;
     position: fixed;
     inset: 0;
+    bottom: 64px;
     background: rgba(0,0,0,0.3);
     z-index: 200;
 }
@@ -596,7 +604,8 @@ body {
 /* ── Bottom sheet ── */
 .m-sheet {
     position: fixed;
-    bottom: 0;
+    top: 15vh;
+    bottom: 64px;
     left: 0;
     right: 0;
     background: var(--bg-secondary, #fff);
@@ -604,9 +613,9 @@ body {
     z-index: 201;
     transform: translateY(100%);
     transition: transform 0.28s cubic-bezier(0.32, 0, 0.15, 1);
-    max-height: 85vh;
     display: flex;
     flex-direction: column;
+    padding-bottom: env(safe-area-inset-bottom);
 }
 
 .m-sheet.open { transform: translateY(0); }
@@ -635,13 +644,13 @@ body {
 }
 
 .m-sheet-title {
-    font-size: 15px;
+    font-size: 17px;
     font-weight: 700;
     color: var(--text-primary, #141414);
 }
 
 .m-sheet-reset {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     color: var(--primary-hover, #6a9eb0);
     background: none;
@@ -652,9 +661,12 @@ body {
 }
 
 .m-sheet-body {
-    overflow-y: auto;
-    padding: 8px 20px;
+    overflow-y: scroll;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding: 8px 20px 24px;
     flex: 1;
+    min-height: 0;
 }
 
 .m-sheet-row {
@@ -669,8 +681,8 @@ body {
 .m-sheet-row:last-child { border-bottom: none; }
 
 .m-sheet-label {
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 15px;
+    font-weight: 600;
     color: var(--text-primary, #141414);
     flex-shrink: 0;
 }
@@ -711,7 +723,7 @@ body {
     padding: 6px 10px;
     border: 1px solid var(--border-color, #e5e2dc);
     border-radius: 6px;
-    font-size: 13px;
+    font-size: 15px;
     font-family: 'DM Sans', sans-serif;
     color: var(--text-primary, #141414);
     background: var(--bg-tertiary, #f7f5f2);
@@ -724,10 +736,11 @@ body {
 }
 
 .m-sheet-footer {
-    padding: 12px 20px;
-    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    padding: 16px 20px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
     border-top: 1px solid var(--border-color, #e5e2dc);
     flex-shrink: 0;
+    background: var(--bg-secondary, #fff);
 }
 
 .m-sheet-apply {
@@ -761,7 +774,7 @@ body {
 }
 
 .m-slider-value {
-    font-size: 12px;
+    font-size: 15px;
     font-weight: 600;
     font-family: 'DM Mono', monospace;
     color: var(--primary-hover, #6a9eb0);
@@ -817,7 +830,7 @@ body {
     padding: 4px 10px;
     border: 1px solid var(--border-color, #e5e2dc);
     border-radius: 14px;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 600;
     font-family: 'DM Mono', monospace;
     color: var(--text-muted, #888);
@@ -841,6 +854,11 @@ body {
     font-family: 'DM Mono', monospace;
     margin-left: 2px;
 }
+
+    @media not all and (display-mode: standalone) {
+        .m-sheet { bottom: 114px; }
+        .m-sheet-overlay { bottom: 114px; }
+    }
 </style>
 {% endblock %}
 
@@ -964,15 +982,12 @@ body {
             </div>
         </div>
 
-        <!-- Constellation chip grid + text fallback -->
+        <!-- Constellation text filter -->
         <div class="m-sheet-row m-sheet-chips-row">
             <label class="m-sheet-label">{{ _('Constellation') }}</label>
-            <div class="m-type-chips" id="const-chips">
-                <!-- Populated dynamically from loaded data -->
-            </div>
             <input type="text" class="m-sheet-input-full" id="f-const"
                    placeholder="{{ _('or type name...') }}"
-                   style="margin-top: 8px;">
+                   style="margin-top: 4px;">
         </div>
 
     </div>
@@ -1219,13 +1234,13 @@ body {
         function openSheet() {
             filterSheet.classList.add('open');
             filterOverlay.classList.add('open');
-            document.body.style.overflow = 'hidden';
+            document.body.classList.add('sheet-open');
         }
 
         function closeSheet() {
             filterSheet.classList.remove('open');
             filterOverlay.classList.remove('open');
-            document.body.style.overflow = '';
+            document.body.classList.remove('sheet-open');
         }
 
         function countActiveFilters() {
@@ -1257,14 +1272,8 @@ body {
             // Type chips (multi-select)
             const typeChips = document.querySelectorAll('#type-chips .m-type-chip.selected');
             FILTERS.type    = Array.from(typeChips).map(c => c.dataset.type).join(',');
-            // Constellation chips OR text fallback
-            const constChips = document.querySelectorAll('#const-chips .m-type-chip.selected');
-            const constText = document.getElementById('f-const').value.trim();
-            if (constChips.length > 0) {
-                FILTERS.const = Array.from(constChips).map(c => c.dataset.const).join(',');
-            } else {
-                FILTERS.const = constText;
-            }
+            // Constellation text input
+            FILTERS.const = document.getElementById('f-const').value.trim();
             updateFilterBadge();
             closeSheet();
             refreshListItemsAndSort();
