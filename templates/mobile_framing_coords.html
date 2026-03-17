@@ -1,0 +1,60 @@
+{% extends "mobile_base.html" %}
+{% block title %}{{ _('Framing') }} — {{ object_name }}{% endblock %}
+
+{% block content %}
+<div style="padding: 20px; max-width: 600px; margin: 0 auto;">
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <a href="{{ back_url }}" style="font-size:15px; color:var(--primary-color); text-decoration:none;">← {{ _('Back') }}</a>
+        <h2 style="margin:0; font-size:17px;">{{ object_name }}</h2>
+        <div style="width:60px;"></div>
+    </div>
+
+    <div style="background:var(--bg-secondary);border-radius:12px;padding:16px;margin-bottom:12px;">
+        <div style="font-size:11px;font-weight:600;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">RA</div>
+        <div style="font-family:'DM Mono',monospace;font-size:20px;color:var(--text-primary);">{{ ra_fmt }}"</div>
+    </div>
+
+    <div style="background:var(--bg-secondary);border-radius:12px;padding:16px;margin-bottom:12px;">
+        <div style="font-size:11px;font-weight:600;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Dec</div>
+        <div style="font-family:'DM Mono',monospace;font-size:20px;color:var(--text-primary);">{{ dec_fmt }}</div>
+    </div>
+
+    <div style="background:var(--bg-secondary);border-radius:12px;padding:16px;margin-bottom:20px;">
+        <div style="font-size:11px;font-weight:600;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">CSV</div>
+        <div id="csv-text" style="font-family:'DM Mono',monospace;font-size:13px;color:var(--text-secondary);word-break:break-all;">{{ csv_line }}</div>
+    </div>
+
+    <button onclick="copyCSV()" style="width:100%;padding:14px;background:var(--primary-color);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;" id="copy-btn">
+        {{ _('Copy CSV') }}
+    </button>
+
+    {% if has_framing %}
+    <a href="{{ url_for('mobile.mobile_mosaic_view', object_name=object_name) }}"
+       style="display:block;text-align:center;margin-top:16px;font-size:14px;color:var(--primary-color);">
+        {{ _('View full mosaic plan') }} →
+    </a>
+    {% endif %}
+
+</div>
+<script>
+function copyCSV() {
+    const text = document.getElementById('csv-text').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('copy-btn');
+        btn.textContent = '{{ _("Copied!") }}';
+        setTimeout(() => { btn.textContent = '{{ _("Copy CSV") }}'; }, 2000);
+    }).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        const btn = document.getElementById('copy-btn');
+        btn.textContent = '{{ _("Copied!") }}';
+        setTimeout(() => { btn.textContent = '{{ _("Copy CSV") }}'; }, 2000);
+    });
+}
+</script>
+{% endblock %}
