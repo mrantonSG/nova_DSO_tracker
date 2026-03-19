@@ -452,7 +452,14 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.textContent = '💡 Ask Nova';
             editorEl.parentNode.insertBefore(btn, editorEl);
 
-            btn.addEventListener('click', function() {
+            // Helper to remove any existing confirmation UI
+            function removeConfirmUI() {
+                var existingConfirm = document.getElementById('ai-notes-confirm');
+                if (existingConfirm) existingConfirm.remove();
+            }
+
+            // Helper to execute the fetch with a specific mode
+            function fetchNotes(mode) {
                 btn.disabled = true;
                 btn.textContent = '⏳ Thinking...';
 
@@ -463,7 +470,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 fetch('/api/ai/notes', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ object_id: window.NOVA_GRAPH_DATA.objectId })
+                    body: JSON.stringify({ object_id: window.NOVA_GRAPH_DATA.objectId, mode: mode })
                 })
                 .then(function(resp) {
                     if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -472,7 +479,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(function(data) {
                     var trixEditor = document.querySelector('trix-editor#project-field-editor');
                     if (trixEditor && trixEditor.editor) {
-                        trixEditor.editor.loadHTML(data.notes || '');
+                        if (mode === 'overwrite') {
+                            trixEditor.editor.loadHTML(data.notes || '');
+                        } else if (mode === 'append') {
+                            var current = trixEditor.innerHTML;
+                            trixEditor.editor.loadHTML(current + (data.notes || ''));
+                        }
                     }
                     btn.textContent = '💡 Ask Nova';
                     btn.disabled = false;
@@ -493,6 +505,57 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     trixEl.parentNode.insertBefore(errDiv, trixEl.nextSibling);
                 });
+            }
+
+            btn.addEventListener('click', function() {
+                // Remove any existing confirmation UI first
+                removeConfirmUI();
+
+                // Check if the Trix editor has existing content
+                var trixEditor = document.querySelector('trix-editor#project-field-editor');
+                var hasContent = trixEditor &&
+                    trixEditor.editor &&
+                    trixEditor.editor.getDocument().toString().trim().length > 1;
+                // Note: Trix always has at least '\n' in empty state, hence > 1
+
+                if (hasContent) {
+                    // Disable button immediately
+                    btn.disabled = true;
+
+                    // Create confirmation UI
+                    var confirmDiv = document.createElement('div');
+                    confirmDiv.id = 'ai-notes-confirm';
+                    confirmDiv.style.cssText = 'padding: 8px; margin-bottom: 6px; border: 1px solid var(--border-color, #ccc); border-radius: 4px; font-size: 13px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;';
+
+                    confirmDiv.innerHTML = '<span>Nova has notes ready. What would you like to do?</span>' +
+                        '<button class="ai-confirm-overwrite" style="padding: 4px 10px; font-size: 12px; cursor: pointer;">Overwrite</button>' +
+                        '<button class="ai-confirm-append" style="padding: 4px 10px; font-size: 12px; cursor: pointer;">Append</button>' +
+                        '<button class="ai-confirm-cancel" style="padding: 4px 10px; font-size: 12px; cursor: pointer;">Cancel</button>';
+
+                    // Insert before the trix-editor
+                    editorEl.parentNode.insertBefore(confirmDiv, editorEl);
+
+                    // Overwrite button
+                    confirmDiv.querySelector('.ai-confirm-overwrite').addEventListener('click', function() {
+                        removeConfirmUI();
+                        fetchNotes('overwrite');
+                    });
+
+                    // Append button
+                    confirmDiv.querySelector('.ai-confirm-append').addEventListener('click', function() {
+                        removeConfirmUI();
+                        fetchNotes('append');
+                    });
+
+                    // Cancel button
+                    confirmDiv.querySelector('.ai-confirm-cancel').addEventListener('click', function() {
+                        removeConfirmUI();
+                        btn.disabled = false;
+                    });
+                } else {
+                    // No existing content, proceed directly
+                    fetchNotes('overwrite');
+                }
             });
         })
         .catch(function() {
