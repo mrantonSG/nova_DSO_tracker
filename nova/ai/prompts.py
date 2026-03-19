@@ -73,7 +73,9 @@ Your response must follow these strict formatting rules:
 - Paragraph 2: Visual observing tips and recommended filters
 - Paragraph 3: Astrophotography — imaging time, filters, challenges
 - Paragraph 4: Best season and conditions for observation
-- Paragraph 5: A single short sentence — a warm wish for the observer's session, or a poetic thought about this specific object or the night sky. Make it feel personal and genuine, never generic. This is Nova's signature sign-off.
+- Paragraph 5: End with a single short sentence — a warm wish for the observer's session, or a poetic thought about this specific object or the night sky. Make it feel personal and genuine, never generic. Wrap it exactly like this: <p><em>"Your poetic sentence here."</em><br>— Nova</p> This exact HTML format is required for the sign-off paragraph.
+
+IMPORTANT: You must separate each paragraph with a blank line (two newline characters). This is required for correct display.
 
 Write in a natural, conversational style suitable for pasting directly into an observing notes field.
 
@@ -180,7 +182,7 @@ Respond in the language corresponding to this ISO locale code: {locale}. If the 
 
     # Add the final instruction
     prompt_lines.append("")
-    prompt_lines.append("Write observing notes for this object. Keep your notes practical and based on real observing experience.")
+    prompt_lines.append("Write observing notes for this object. Keep your notes practical and based on real observing experience. Close with a short personal sign-off as Nova — a poetic thought or warm wish specific to this object.")
 
     user_prompt = "\n".join(prompt_lines)
 

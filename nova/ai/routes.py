@@ -161,6 +161,18 @@ def generate_dso_notes():
         # Get AI response
         notes = get_ai_response(prompt["user"], system=prompt["system"])
 
+        # Convert plain text to HTML paragraphs for Trix editor
+        import re
+        notes = notes.strip()
+        raw_paragraphs = [p.strip() for p in re.split(r'\n+', notes) if p.strip()]
+        html_parts = []
+        for p in raw_paragraphs:
+            if p.startswith('<p>'):
+                html_parts.append(p)
+            else:
+                html_parts.append(f'<p>{p}</p>')
+        notes = ''.join(html_parts)
+
         return jsonify({"notes": notes})
 
     except AIServiceError as e:
