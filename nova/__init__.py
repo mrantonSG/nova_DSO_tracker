@@ -119,7 +119,8 @@ from nova.config import (
     cache_worker_status, monthly_top_targets_cache, config_cache,
     config_mtime, journal_cache, journal_mtime, LATEST_VERSION_INFO,
     rig_data_cache, weather_cache, CATALOG_MANIFEST_CACHE,
-    _telemetry_startup_once, TELEMETRY_DEBUG_STATE, TRANSLATION_STATUS
+    _telemetry_startup_once, TELEMETRY_DEBUG_STATE, TRANSLATION_STATUS,
+    AI_PROVIDER, AI_API_KEY, AI_MODEL, AI_BASE_URL, AI_ALLOWED_USERS
 )
 from nova.helpers import (
     get_db, get_user_log_string, allowed_file, _yaml_dump_pretty,
@@ -149,6 +150,7 @@ from nova.blueprints.journal import journal_bp
 from nova.blueprints.mobile import mobile_bp
 from nova.blueprints.projects import projects_bp
 from nova.blueprints.tools import tools_bp
+from nova.ai.routes import register_ai_blueprint
 
 
 # =============================================================================
@@ -2921,6 +2923,13 @@ app.secret_key = SECRET_KEY
 csrf = CSRFProtect()
 csrf.init_app(app)
 app.config['WTF_CSRF_CHECK_DEFAULT'] = False  # Don't enforce globally; protect routes explicitly
+
+# --- AI Configuration (loaded from .env via nova.config) ---
+app.config['AI_PROVIDER'] = AI_PROVIDER
+app.config['AI_API_KEY'] = AI_API_KEY
+app.config['AI_MODEL'] = AI_MODEL
+app.config['AI_BASE_URL'] = AI_BASE_URL
+app.config['AI_ALLOWED_USERS'] = AI_ALLOWED_USERS
 
 # --- Internationalization (i18n) with Flask-Babel ---
 app.config['BABEL_DEFAULT_LOCALE'] = 'en'
@@ -10111,5 +10120,8 @@ app.register_blueprint(journal_bp)
 app.register_blueprint(mobile_bp)
 app.register_blueprint(projects_bp)
 app.register_blueprint(tools_bp)
+
+# Register AI blueprint (conditional on AI_API_KEY being set)
+register_ai_blueprint(app)
 
 
