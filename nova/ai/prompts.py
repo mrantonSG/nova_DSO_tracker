@@ -1,6 +1,115 @@
-"""AI prompt templates.
+# AI Persona: All system prompts should refer to the assistant as "Nova"
 
-This module will contain prompt templates for various AI-assisted features.
+"""AI prompt templates for Nova DSO Tracker.
+
+This module contains prompt builder functions for various AI-assisted features.
+All functions follow the signature pattern:
+    (object_data: dict, locale: str = "en") -> dict
+
+Returns a dict with "system" and "user" prompt strings.
+
+Locale handling in Nova:
+    The current locale is determined by get_locale() in nova/__init__.py,
+    which is registered as Flask-Babel's locale_selector. Priority order:
+        1. g.user_config.get('language') - authenticated user preference
+        2. session.get('language') - guest user session preference
+        3. request.accept_languages.best_match() - browser preference
+        4. 'en' - default fallback
+
+    To retrieve the locale in a request context:
+        from nova import get_locale
+        locale = get_locale()  # Returns locale string like 'en', 'de', 'fr'
+
+    Supported locales are defined in app.config['BABEL_SUPPORTED_LOCALES'].
 """
 
-# TODO: Define prompt templates
+from typing import Dict, Optional
+
+
+def build_dso_notes_prompt(object_data: dict, locale: str = "en") -> dict:
+    """Build system and user prompts for generating DSO observing notes.
+
+    Args:
+        object_data: Dictionary containing object information. All keys are optional:
+            - name: Object name (e.g., "M31", "NGC 7000")
+            - type: Object type (e.g., "Galaxy", "Nebula", "Star Cluster")
+            - constellation: Constellation name (e.g., "Andromeda", "Cygnus")
+            - magnitude: Apparent magnitude (float or string)
+            - size_arcmin: Angular size in arcminutes (float or string)
+            - ra: Right ascension (string, e.g., "00h 42m 44s")
+            - dec: Declination (string, e.g., "+41° 16'")
+        locale: ISO locale code for response language (default: "en")
+
+    Returns:
+        dict with "system" and "user" keys containing prompt strings.
+    """
+    system_prompt = """You are Nova, an expert astrophotographer and visual observer built into the Nova DSO Tracker, with decades of experience observing and imaging deep-sky objects. Write concise, practical observing and imaging notes that help amateur astronomers plan their sessions.
+
+Your response must follow these strict formatting rules:
+- Plain text only
+- No markdown formatting
+- No bullet points or lists
+- No headers or section titles
+- 3-5 short paragraphs
+
+Write in a natural, conversational style suitable for pasting directly into an observing notes field in an astronomy app. Focus on practical, actionable advice based on real observing experience.
+
+Respond in the language corresponding to this ISO locale code: {locale}. If the locale is unsupported or unrecognized, fall back to English.""".format(locale=locale)
+
+    # Build object description, handling missing fields gracefully
+    object_parts = []
+
+    name = object_data.get("name")
+    if name:
+        object_parts.append(name)
+
+    obj_type = object_data.get("type")
+    if obj_type:
+        object_parts.append(f"a {obj_type}")
+
+    constellation = object_data.get("constellation")
+    if constellation:
+        object_parts.append(f"in {constellation}")
+
+    if object_parts:
+        if name and obj_type:
+            object_intro = f"{name}, {obj_type} in {constellation}" if constellation else f"{name}, a {obj_type}"
+        elif name:
+            object_intro = name
+            if constellation:
+                object_intro += f" in {constellation}"
+        else:
+            object_intro = "This deep-sky object"
+    else:
+        object_intro = "This deep-sky object"
+
+    # Add physical details if available
+    details = []
+    magnitude = object_data.get("magnitude")
+    if magnitude is not None:
+        details.append(f"magnitude {magnitude}")
+
+    size_arcmin = object_data.get("size_arcmin")
+    if size_arcmin is not None:
+        details.append(f"{size_arcmin} arcminutes in size")
+
+    if details:
+        object_intro += f" ({' and '.join(details)})"
+
+    # Add coordinates if available
+    ra = object_data.get("ra")
+    dec = object_data.get("dec")
+    if ra and dec:
+        object_intro += f" at coordinates {ra} {dec}"
+
+    user_prompt = f"""{object_intro}.
+
+Please write observing notes covering:
+1) What makes this object visually interesting or photogenic
+2) Recommended filters for both visual observing and astrophotography
+3) Suggested minimum imaging time and any key challenges
+4) Best season or conditions for observation
+
+Keep your notes practical and based on real observing experience."""
+
+    return {"system": system_prompt, "user": user_prompt}
