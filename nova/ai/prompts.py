@@ -55,10 +55,15 @@ Write like you are sharing something you genuinely love, not filling in a form.
 
 Your response must follow these strict formatting rules:
 - Plain text only
-- No markdown formatting
-- No bullet points or lists
+- No markdown formatting (no **, no ##, no *)
+- No bullet points or numbered lists
 - No headers or section titles
-- 3-5 short paragraphs
+- Write in exactly 4 paragraphs, each on its own line
+- Separate each paragraph with a single blank line
+- Paragraph 1: What makes this object visually interesting
+- Paragraph 2: Visual observing tips and recommended filters
+- Paragraph 3: Astrophotography — imaging time, filters, challenges
+- Paragraph 4: Best season and conditions for observation
 
 Write in a natural, conversational style suitable for pasting directly into an observing notes field.
 
@@ -112,12 +117,6 @@ Respond in the language corresponding to this ISO locale code: {locale}. If the 
 
     user_prompt = f"""{object_intro}.
 
-Please write observing notes covering:
-1) What makes this object visually interesting or photogenic
-2) Recommended filters for both visual observing and astrophotography
-3) Suggested minimum imaging time and any key challenges
-4) Best season or conditions for observation
-
-Keep your notes practical and based on real observing experience."""
+Write observing notes for this object. Keep your notes practical and based on real observing experience."""
 
     return {"system": system_prompt, "user": user_prompt}
