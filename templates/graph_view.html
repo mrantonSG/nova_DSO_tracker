@@ -429,4 +429,76 @@
 <script src="{{ url_for('static', filename='js/graph_view.js') }}" defer></script>
 <script src="{{ url_for('static', filename='js/journal_section.js') }}" defer></script>
 
+{# AI Notes button - desktop only #}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Desktop only check
+    if (window.innerWidth < 768) return;
+
+    fetch('/api/ai/status')
+        .then(function(resp) { return resp.json(); })
+        .then(function(data) {
+            if (!data || data.enabled !== true) return;
+
+            var editorEl = document.getElementById('project-field-editor');
+            if (!editorEl) return;
+
+            // Inject button before the trix-editor
+            var btn = document.createElement('button');
+            btn.id = 'ai-notes-btn';
+            btn.className = 'ai-notes-btn';
+            btn.title = 'Ask Nova for observing notes';
+            btn.style.cssText = 'float: right; margin-bottom: 4px;';
+            btn.textContent = '💡 Ask Nova';
+            editorEl.parentNode.insertBefore(btn, editorEl);
+
+            btn.addEventListener('click', function() {
+                btn.disabled = true;
+                btn.textContent = '⏳ Thinking...';
+
+                // Remove any previous error
+                var prevErr = document.getElementById('ai-notes-error');
+                if (prevErr) prevErr.remove();
+
+                fetch('/api/ai/notes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ object_id: window.NOVA_GRAPH_DATA.objectId })
+                })
+                .then(function(resp) {
+                    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                    return resp.json();
+                })
+                .then(function(data) {
+                    var trixEditor = document.querySelector('trix-editor#project-field-editor');
+                    if (trixEditor && trixEditor.editor) {
+                        trixEditor.editor.loadHTML(data.notes || '');
+                    }
+                    btn.textContent = '💡 Ask Nova';
+                    btn.disabled = false;
+                })
+                .catch(function(err) {
+                    btn.textContent = '💡 Ask Nova';
+                    btn.disabled = false;
+
+                    // Create error div after the trix-editor
+                    var trixEl = document.getElementById('project-field-editor');
+                    var errDiv = document.createElement('div');
+                    errDiv.id = 'ai-notes-error';
+                    errDiv.style.cssText = 'color: var(--danger-color, #c00); font-size: 13px; margin-top: 6px;';
+                    errDiv.innerHTML = 'Nova couldn\'t load notes: ' + err.message + ' <button style="margin-left:6px;cursor:pointer;border:none;background:none;font-weight:bold;">[x]</button>';
+
+                    var closeBtn = errDiv.querySelector('button');
+                    closeBtn.addEventListener('click', function() { errDiv.remove(); });
+
+                    trixEl.parentNode.insertBefore(errDiv, trixEl.nextSibling);
+                });
+            });
+        })
+        .catch(function() {
+            // Silently ignore fetch failures
+        });
+});
+</script>
+
 {% endblock %}
