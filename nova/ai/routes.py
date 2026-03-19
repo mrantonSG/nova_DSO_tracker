@@ -7,12 +7,13 @@ is present in app.config.
 import logging
 
 from flask import Blueprint, jsonify, g, request
+from sqlalchemy.orm import selectinload
 
 from nova.ai.config import ai_enabled, user_has_ai_access
 from nova.ai.prompts import build_dso_notes_prompt
 from nova.ai.service import get_ai_response, AIServiceError
 from nova.helpers import get_db
-from nova.models import AstroObject
+from nova.models import AstroObject, Location, Rig
 
 logger = logging.getLogger(__name__)
 
@@ -99,9 +100,63 @@ def generate_dso_notes():
     from nova import get_locale
     locale = get_locale()
 
+    # Gather location context
+    loc_rows = db.query(Location).filter_by(
+        user_id=g.db_user.id, active=True
+    ).order_by(Location.id).all()
+
+    locations = [
+        {
+            "name": loc.name,
+            "lat": loc.lat,
+            "lon": loc.lon,
+            "is_default": loc.is_default,
+            "altitude_threshold": loc.altitude_threshold,
+        }
+        for loc in loc_rows
+    ]
+
+    active_location = next(
+        (l for l in locations if l["is_default"]),
+        locations[0] if locations else None
+    )
+
+    # Gather rig context
+    rig_rows = db.query(Rig).options(
+        selectinload(Rig.telescope),
+        selectinload(Rig.camera),
+        selectinload(Rig.reducer_extender)
+    ).filter_by(user_id=g.db_user.id).all()
+
+    rigs = []
+    for rig in rig_rows:
+        rigs.append({
+            "name": rig.rig_name,
+            "effective_focal_length": rig.effective_focal_length,
+            "f_ratio": rig.f_ratio,
+            "fov_w_arcmin": rig.fov_w_arcmin,
+            "image_scale": rig.image_scale,
+            "telescope": {
+                "name": rig.telescope.name if rig.telescope else None,
+                "aperture_mm": rig.telescope.aperture_mm if rig.telescope else None,
+                "focal_length_mm": rig.telescope.focal_length_mm if rig.telescope else None,
+            } if rig.telescope else None,
+            "camera": {
+                "name": rig.camera.name if rig.camera else None,
+                "sensor_width_mm": rig.camera.sensor_width_mm if rig.camera else None,
+                "pixel_size_um": rig.camera.pixel_size_um if rig.camera else None,
+            } if rig.camera else None,
+        })
+
     try:
         # Build the prompt
-        prompt = build_dso_notes_prompt(object_data, locale=locale)
+        prompt = build_dso_notes_prompt(
+            object_data,
+            locations=locations,
+            active_location=active_location,
+            rigs=rigs,
+            locale=locale
+        )
 
         # Get AI response
         notes = get_ai_response(prompt["user"], system=prompt["system"])
