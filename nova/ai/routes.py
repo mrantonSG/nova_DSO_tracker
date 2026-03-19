@@ -13,7 +13,6 @@ from nova.ai.prompts import build_dso_notes_prompt
 from nova.ai.service import get_ai_response, AIServiceError
 from nova.helpers import get_db
 from nova.models import AstroObject
-from nova import get_locale
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +95,8 @@ def generate_dso_notes():
         "dec": getattr(obj, "dec_deg", None),
     }
 
-    # Get current locale using the documented pattern
+    # Get current locale using lazy import to avoid circular dependency
+    from nova import get_locale
     locale = get_locale()
 
     try:
@@ -109,6 +109,7 @@ def generate_dso_notes():
         return jsonify({"notes": notes})
 
     except AIServiceError as e:
+        logger.error(f"AIServiceError in /api/ai/notes: {str(e)}")
         return jsonify({"error": str(e)}), 503
 
     except Exception as e:
