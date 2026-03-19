@@ -84,6 +84,13 @@ TRANSLATION_STATUS = {
     'es': 'auto',       # Spanish translations auto-generated
 }
 
+# --- AI Configuration ---
+AI_PROVIDER = config('AI_PROVIDER', default='anthropic')
+AI_API_KEY = config('AI_API_KEY', default='')
+AI_MODEL = config('AI_MODEL', default='claude-sonnet-4-20250514')
+AI_BASE_URL = config('AI_BASE_URL', default='')
+AI_ALLOWED_USERS = config('AI_ALLOWED_USERS', default='')
+
 # --- Telemetry state ---
 _telemetry_startup_once = threading.Event()
 
