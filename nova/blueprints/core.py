@@ -1987,7 +1987,8 @@ def graph_dashboard(object_name):
                                framing_objects=all_objects_for_framing,
                                stellarium_api_url_base=STELLARIUM_API_URL_BASE,
                                today_date=datetime.now().strftime('%Y-%m-%d'),
-                               is_guest=g.is_guest
+                               is_guest=g.is_guest,
+                               object_id=obj_record.id
                                )
         record_event('graph_view_open')
 

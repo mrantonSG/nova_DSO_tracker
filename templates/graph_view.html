@@ -409,6 +409,7 @@
 <script>
     // Data object to pass server-side variables to the external script
     window.NOVA_GRAPH_DATA = {
+        objectId: {{ object_id | default(0) }},
         objectName: {{ object_name | tojson }},
         altName: {{ alt_name | default(object_name, True) | tojson }},
         plotLat: "{{ graph_lat_param | default('', True) }}",
