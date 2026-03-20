@@ -1857,7 +1857,50 @@ button[type="submit"]:active,
 }
 
 /* =================================================================
-   5. TEXT INPUTS and SELECTS
+   6. NOVA AI BUTTON
+   AI-powered entry points across the app
+   ================================================================ */
+
+/* Nova AI star icon — paste inline into any .btn-nova-ai button:
+<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+  <path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/>
+</svg>
+*/
+
+.btn-nova-ai {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--primary-bg);
+  color: var(--primary-hover);
+  border: 1px solid rgba(131, 180, 197, 0.35);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-nova-ai:hover {
+  background: rgba(131, 180, 197, 0.22);
+  border-color: rgba(131, 180, 197, 0.55);
+}
+.btn-nova-ai:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+[data-theme="dark"] .btn-nova-ai {
+  color: var(--primary-color);
+  border-color: rgba(142, 200, 218, 0.25);
+}
+[data-theme="dark"] .btn-nova-ai:hover {
+  background: rgba(142, 200, 218, 0.12);
+  border-color: rgba(142, 200, 218, 0.45);
+}
+
+/* =================================================================
+   7. TEXT INPUTS and SELECTS
    General forms — Config page, filter rows, journal session editor,
    date inputs
    ================================================================ */
