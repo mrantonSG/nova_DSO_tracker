@@ -416,6 +416,9 @@
         plotLon: "{{ graph_lon_param | default('', True) }}",
         plotTz: "{{ graph_tz_name_param | default('UTC', true) }}",
         plotLocName: {{ header_location_name | tojson }},
+        selectedDay: {{ selected_day }},
+        selectedMonth: {{ selected_month }},
+        selectedYear: {{ selected_year }},
 
         // We pass RA in DEGREES (RA_Hours * 15) and DEC in DEGREES
         // 'null' is passed if the database has no value.
@@ -487,7 +490,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 fetch('/api/ai/notes', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ object_id: window.NOVA_GRAPH_DATA.objectId, mode: mode })
+                    body: JSON.stringify({
+                        object_id: window.NOVA_GRAPH_DATA.objectId,
+                        mode: mode,
+                        selected_day: window.NOVA_GRAPH_DATA.selectedDay,
+                        selected_month: window.NOVA_GRAPH_DATA.selectedMonth,
+                        selected_year: window.NOVA_GRAPH_DATA.selectedYear,
+                        sim_mode: localStorage.getItem('simModeActive') === 'true',
+                    })
                 })
                 .then(function(resp) {
                     if (!resp.ok) throw new Error('HTTP ' + resp.status);
