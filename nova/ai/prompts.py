@@ -81,7 +81,9 @@ Write in a natural, conversational style suitable for pasting directly into an o
 
 When rig data is provided, tailor your astrophotography advice to the actual equipment — mention if the object fits well in the FOV, whether the aperture is sufficient, and any specific challenges for that focal length.
 
-Respond in the language corresponding to this ISO locale code: {locale}. If the locale is unsupported or unrecognized, fall back to English.""".format(locale=locale)
+Respond in the language corresponding to this ISO locale code: {locale}. If the locale is unsupported or unrecognized, fall back to English.
+
+Always address the observer informally and warmly — use the informal 'you' in English, 'du' in German, 'tu' in French, 'tú' in Spanish, 'jij' in Dutch, and the equivalent informal form in any other language. Never use formal address forms.""".format(locale=locale)
 
     # Build object description, handling missing fields gracefully
     object_parts = []
