@@ -5,8 +5,9 @@ is present in app.config.
 """
 
 import logging
+import re
 
-from flask import Blueprint, current_app, jsonify, g, request
+from flask import Blueprint, current_app, jsonify, g, request, Response, stream_with_context
 from sqlalchemy.orm import selectinload
 
 from nova.ai.config import ai_enabled, user_has_ai_access
@@ -194,14 +195,14 @@ def generate_dso_notes():
 
 @ai_bp.route("/api/ai/session-summary", methods=["POST"])
 def generate_session_summary():
-    """Generate AI-assisted summary for a journal session.
+    """Generate AI-assisted summary for a journal session (streaming).
 
     Request body:
         JSON: {"session_id": int}
 
     Returns:
-        JSON: {"summary": str} on success
-        JSON: {"error": str} on error (400/403/404/500/503)
+        SSE stream: "data: <chunk>\n\n" for each text chunk
+        JSON error on failure (400/403/404/500/503)
     """
     # Guard: check AI access for current user
     username = getattr(g, "db_user", None)
@@ -245,6 +246,7 @@ def generate_session_summary():
         "camera_name_snapshot": session.camera_name_snapshot,
         "rig_efl_snapshot": session.rig_efl_snapshot,
         "rig_fr_snapshot": session.rig_fr_snapshot,
+        "imaging_scale_arcsec_px": session.rig_scale_snapshot,
         "seeing_observed_fwhm": session.seeing_observed_fwhm,
         "sky_sqm_observed": session.sky_sqm_observed,
         "guiding_rms_avg_arcsec": session.guiding_rms_avg_arcsec,
@@ -273,11 +275,39 @@ def generate_session_summary():
             asiair = cached.get("asiair")
             if asiair and asiair.get("stats"):
                 log_analysis_summary["asiair_stats"] = asiair["stats"]
+                # Calculate dither statistics
+                dithers = asiair.get("dithers", [])
+                if dithers:
+                    successful_dithers = [d for d in dithers if d.get("ok")]
+                    timeout_dithers = [d for d in dithers if not d.get("ok")]
+                    if successful_dithers:
+                        avg_settle_seconds = sum(d.get("dur", 0) for d in successful_dithers) / len(successful_dithers)
+                        log_analysis_summary["asiair_stats"]["avg_settle_seconds"] = round(avg_settle_seconds, 1)
+                    total_dither_time = sum(d.get("dur", 0) for d in dithers)
+                    log_analysis_summary["asiair_stats"]["total_dither_time_sec"] = round(total_dither_time, 1)
+                    if timeout_dithers:
+                        log_analysis_summary["asiair_stats"]["avg_timeout_duration_sec"] = round(
+                            sum(d.get("dur", 0) for d in timeout_dithers) / len(timeout_dithers), 1
+                        )
 
             # Extract PHD2 stats
             phd2 = cached.get("phd2")
             if phd2 and phd2.get("stats"):
                 log_analysis_summary["phd2_stats"] = phd2["stats"]
+                # Calculate dither/settle statistics
+                settles = phd2.get("settle", [])
+                if settles:
+                    successful_settles = [s for s in settles if s.get("ok")]
+                    timeout_settles = [s for s in settles if not s.get("ok")]
+                    if successful_settles:
+                        avg_settle_seconds = sum(s.get("dur", 0) for s in successful_settles) / len(successful_settles)
+                        log_analysis_summary["phd2_stats"]["avg_settle_seconds"] = round(avg_settle_seconds, 1)
+                    total_settle_time = sum(s.get("dur", 0) for s in settles)
+                    log_analysis_summary["phd2_stats"]["total_settle_time_sec"] = round(total_settle_time, 1)
+                    if timeout_settles:
+                        log_analysis_summary["phd2_stats"]["avg_timeout_duration_sec"] = round(
+                            sum(s.get("dur", 0) for s in timeout_settles) / len(timeout_settles), 1
+                        )
 
             # Extract NINA summary
             nina = cached.get("nina")
@@ -299,7 +329,6 @@ def generate_session_summary():
     session_data["log_analysis_summary"] = log_analysis_summary
 
     # Strip HTML tags from general_notes_problems_learnings before passing to prompt
-    import re
     notes = session_data.get("general_notes_problems_learnings")
     if notes:
         # Remove HTML tags but preserve content
@@ -309,33 +338,57 @@ def generate_session_summary():
     from nova import get_locale
     locale = get_locale()
 
-    try:
-        # Build the prompt
-        prompt = build_session_summary_prompt(session_data, locale=locale)
+    # Build the prompt
+    prompt = build_session_summary_prompt(session_data, locale=locale)
 
-        # Get AI response
-        summary = get_ai_response(prompt["user"], system=prompt["system"])
+    def generate():
+        """Generate SSE stream from AI provider chunks."""
+        try:
+            # Buffer to accumulate text until we get a newline
+            buffer = ""
+            paragraph_buffer = ""
 
-        # Convert plain text to HTML paragraphs for Trix editor
-        summary = summary.strip()
-        raw_paragraphs = [p.strip() for p in re.split(r'\n+', summary) if p.strip()]
-        html_parts = []
-        for p in raw_paragraphs:
-            if p.startswith('<p>'):
-                html_parts.append(p)
-            else:
-                html_parts.append(f'<p>{p}</p>')
-        summary = ''.join(html_parts)
+            for chunk in get_ai_response(prompt["user"], system=prompt["system"], stream=True):
+                if not chunk:
+                    continue
 
-        return jsonify({"summary": summary})
+                buffer += chunk
+                paragraph_buffer += chunk
 
-    except AIServiceError as e:
-        logger.error(f"AIServiceError in /api/ai/session-summary: {str(e)}")
-        return jsonify({"error": str(e)}), 503
+                # When we have newlines, convert completed paragraphs to HTML and emit
+                while "\n" in buffer:
+                    line, buffer = buffer.split("\n", 1)
+                    line = line.strip()
+                    if line:
+                        # Convert this paragraph to HTML and emit
+                        yield f"data: <p>{line}</p>\n\n"
+                    else:
+                        # Empty line just emits a paragraph break
+                        yield f"data: \n\n"
 
-    except Exception as e:
-        logger.exception("Unexpected error generating session summary")
-        return jsonify({"error": "An unexpected error occurred"}), 500
+            # Emit any remaining content in the buffer
+            remaining = buffer.strip()
+            if remaining:
+                yield f"data: <p>{remaining}</p>\n\n"
+
+            # Emit completion signal
+            yield "data: [DONE]\n\n"
+
+        except AIServiceError as e:
+            logger.error(f"AIServiceError in /api/ai/session-summary: {str(e)}")
+            yield f"data: [ERROR]{str(e)}\n\n"
+        except Exception as e:
+            logger.exception("Unexpected error generating session summary")
+            yield f"data: [ERROR]An unexpected error occurred\n\n"
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",  # Disable nginx buffering
+        },
+    )
 
 
 def register_ai_blueprint(app):

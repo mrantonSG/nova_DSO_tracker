@@ -1518,6 +1518,31 @@
       margin: 0;
       cursor: pointer;
     }
+
+    /* AI Notes Button (Ask Nova) */
+    .ai-notes-btn {
+        background: transparent;
+        color: var(--text-secondary, #4a4a4a);
+        border: 1px solid var(--border-color, #d0cdc8);
+        padding: 2px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        font-family: 'DM Sans', sans-serif;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+    .ai-notes-btn:hover {
+        background: var(--bg-tertiary);
+    }
+    .ai-notes-btn:disabled {
+        opacity: 0.5;
+        cursor: default;
+    }
+    [data-theme="dark"] .ai-notes-btn {
+        color: rgba(255,255,255,0.55);
+        border-color: rgba(255,255,255,0.15);
+    }
 </style>
 
 {% from "macros.html" import form_group, stat_box, tab_button, detail_row %}
@@ -2295,14 +2320,15 @@
                     <div class="form-section-title">{{ _('Outcome & Reflections') }}</div>
                     {{ form_group('session_rating_subjective', _('Session Rating (1-5 ★):'), type='number', min=1, max=5) }}
                     <div class="form-group">
-                        <label>{{ _('General Notes, Problems, Learnings:') }}
-                        <button type="button" id="ai-session-summary-btn"
-                          class="ai-notes-btn"
-                          title="Ask Nova for session summary"
-                          style="float:right; margin-bottom:4px; display:none;">
-                          Ask Nova
-                        </button>
-                        </label>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                            <label style="margin:0;">{{ _('General Notes, Problems, Learnings:') }}</label>
+                            <button type="button" id="ai-session-summary-btn"
+                              class="ai-notes-btn"
+                              title="Ask Nova for session summary"
+                              style="display:none;">
+                              Ask Nova
+                            </button>
+                        </div>
                         <input type="hidden" id="journal-notes-hidden" name="general_notes_problems_learnings">
                         <trix-editor input="journal-notes-hidden" id="journal-notes-editor" style="min-height: 120px; height: auto; background-color: var(--bg-white);"></trix-editor>
                     </div>
@@ -2828,26 +2854,87 @@ function novaSessionFetch(mode) {
     var confirm = document.getElementById('ai-session-confirm');
     if (confirm) confirm.remove();
 
+    // Store initial editor content for append mode
+    var initialHTML = trixEditor ? trixEditor.innerHTML : '';
+    var accumulatedHTML = '';
+
     fetch('/api/ai/session-summary', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({session_id: parseInt(sessionId)})
     })
-    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-    .then(data => {
-        clearInterval(novaMsgInterval);
-        if (trixEditor && trixEditor.editor) {
-            if (mode === 'overwrite') {
-                trixEditor.editor.loadHTML(data.summary || '');
-            } else {
-                trixEditor.editor.loadHTML(trixEditor.innerHTML + (data.summary || ''));
-            }
+    .then(function(response) {
+        if (!response.ok) {
+            throw new Error('HTTP ' + response.status);
         }
-        btn.textContent = 'Ask Nova';
-        btn.style.fontStyle = '';
-        btn.disabled = false;
+        var reader = response.body.getReader();
+        var decoder = new TextDecoder();
+
+        function read() {
+            return reader.read().then(function(result) {
+                if (result.done) {
+                    return;
+                }
+
+                var chunk = decoder.decode(result.value, {stream: true});
+                var lines = chunk.split('\n');
+
+                lines.forEach(function(line) {
+                    line = line.trim();
+                    if (line.startsWith('data: ')) {
+                        var data = line.slice(6);
+
+                        // Stop loading messages on first chunk
+                        if (novaMsgInterval && data !== '[DONE]' && !data.startsWith('[ERROR]')) {
+                            clearInterval(novaMsgInterval);
+                            novaMsgInterval = null;
+                            btn.textContent = 'Nova writing...';
+                        }
+
+                        // Handle completion
+                        if (data === '[DONE]') {
+                            btn.textContent = 'Ask Nova';
+                            btn.style.fontStyle = '';
+                            btn.disabled = false;
+                            return;
+                        }
+
+                        // Handle errors
+                        if (data.startsWith('[ERROR]')) {
+                            var errorMsg = data.slice(7);
+                            clearInterval(novaMsgInterval);
+                            btn.textContent = 'Ask Nova';
+                            btn.style.fontStyle = '';
+                            btn.disabled = false;
+                            var errDiv = document.createElement('div');
+                            errDiv.style.cssText = 'color:var(--danger-color,#c00);font-size:13px;margin-top:6px;';
+                            errDiv.textContent = 'Nova error: ' + errorMsg;
+                            btn.parentNode.appendChild(errDiv);
+                            setTimeout(function() { errDiv.remove(); }, 5000);
+                            return;
+                        }
+
+                        // Append non-empty data chunks
+                        if (data && data !== '') {
+                            accumulatedHTML += data;
+                            if (trixEditor && trixEditor.editor) {
+                                if (mode === 'overwrite') {
+                                    trixEditor.editor.loadHTML(accumulatedHTML);
+                                } else {
+                                    trixEditor.editor.loadHTML(initialHTML + accumulatedHTML);
+                                }
+                            }
+                        }
+                    }
+                });
+
+                return read();
+            });
+        }
+
+        return read();
     })
-    .catch(err => {
+    .catch(function(err) {
         clearInterval(novaMsgInterval);
         btn.textContent = 'Ask Nova';
         btn.style.fontStyle = '';
@@ -2856,7 +2943,7 @@ function novaSessionFetch(mode) {
         errDiv.style.cssText = 'color:var(--danger-color,#c00);font-size:13px;margin-top:6px;';
         errDiv.textContent = 'Nova error: ' + err.message;
         btn.parentNode.appendChild(errDiv);
-        setTimeout(() => errDiv.remove(), 5000);
+        setTimeout(function() { errDiv.remove(); }, 5000);
     });
 }
 </script>
