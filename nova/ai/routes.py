@@ -264,6 +264,33 @@ def generate_session_summary():
         "general_notes_problems_learnings": session.notes,  # stored in 'notes' column
     }
 
+    # Fetch guide hardware data from rig snapshot if available
+    guide_pixel_um = None
+    guide_FL_mm = None
+
+    if session.rig_id_snapshot:
+        rig = db.query(Rig).filter(Rig.id == session.rig_id_snapshot).first()
+        if rig and (not rig.guide_camera_id or not rig.guide_telescope_id):
+            # Fallback: try to find rig by partial name match if guide hardware IDs are missing
+            rig = db.query(Rig).filter(
+                Rig.rig_name.ilike(f"%{session.rig_name_snapshot}%"),
+                Rig.guide_camera_id.isnot(None)
+            ).first()
+
+        if rig:
+            guide_pixel_um = rig.guide_camera.pixel_size_um if rig.guide_camera else None
+
+            if rig.guide_is_oag:
+                guide_FL_mm = rig.effective_focal_length
+            elif rig.guide_telescope:
+                guide_FL_mm = rig.guide_telescope.focal_length_mm
+
+    session_data["guide_pixel_um"] = guide_pixel_um
+    session_data["guide_FL_mm"] = guide_FL_mm
+
+    # Guide binning is not tracked in the data model
+    session_data["guide_binning_note"] = "Binning not tracked — check PHD2/ASIAIR config manually"
+
     # Process log_analysis_cache
     log_analysis_summary = {}
     if session.log_analysis_cache:
@@ -344,23 +371,23 @@ def generate_session_summary():
     def generate():
         """Generate SSE stream from AI provider chunks."""
         try:
-            # Buffer to accumulate text until we get a newline
+            # Buffer to accumulate all streamed content for post-processing
+            full_content = []
             buffer = ""
-            paragraph_buffer = ""
 
             for chunk in get_ai_response(prompt["user"], system=prompt["system"], stream=True):
                 if not chunk:
                     continue
 
                 buffer += chunk
-                paragraph_buffer += chunk
 
                 # When we have newlines, convert completed paragraphs to HTML and emit
                 while "\n" in buffer:
                     line, buffer = buffer.split("\n", 1)
                     line = line.strip()
                     if line:
-                        # Convert this paragraph to HTML and emit
+                        # Emit paragraph and also store for post-processing
+                        full_content.append(f"<p>{line}</p>")
                         yield f"data: <p>{line}</p>\n\n"
                     else:
                         # Empty line just emits a paragraph break
@@ -369,7 +396,35 @@ def generate_session_summary():
             # Emit any remaining content in the buffer
             remaining = buffer.strip()
             if remaining:
+                full_content.append(f"<p>{remaining}</p>")
                 yield f"data: <p>{remaining}</p>\n\n"
+
+            # Post-process: Fix sign-off format
+            complete_text = "".join(full_content)
+
+            # Remove the entire sign-off line from the text first
+            text_without_signoff = re.sub(
+                r'["\u201c\u201d]?[^"\u201c\u201d\n\r]*["\u201c\u201d]?\s*[\r\n]*\s*[—\-]+\s*Nova["\u201c\u201d\s]*',
+                '',
+                complete_text.rstrip(),
+                flags=re.IGNORECASE | re.MULTILINE
+            )
+
+            # Extract just the sign-off sentence
+            signoff_match = re.search(
+                r'["\u201c\u201d]?([^"\u201c\u201d\n\r]{10,}?)["\u201c\u201d]?\s*[\r\n]*\s*[—\-]+\s*Nova',
+                complete_text.rstrip(),
+                flags=re.IGNORECASE
+            )
+
+            if signoff_match:
+                sentence = signoff_match.group(1).strip().strip('"').strip()
+                fixed_text = text_without_signoff.rstrip() + f'\n\n<p><em>"{sentence}"</em><br>— Nova</p>'
+            else:
+                fixed_text = complete_text
+
+            # Re-emit corrected complete content with a correction signal
+            yield f"data: [CORRECT]{fixed_text}\n\n"
 
             # Emit completion signal
             yield "data: [DONE]\n\n"
