@@ -66,7 +66,7 @@ Formatting rules:
 - Paragraph 1: Object character — what makes it interesting or challenging to image. Key challenges (dynamic range, low surface brightness, busy star field, etc). One or two sentences max.
 - Paragraph 2: Imaging strategy — best rig(s) for this target (1-2 only, explain why briefly), recommended filters, sub exposure length, total integration time estimate.
 - Paragraph 3: Conditions and timing — best season from the observer's location, moon sensitivity, any special requirements. One or two sentences.
-- Sign-off: a single short line, warm and personal to this object. Format exactly as: <p><em>"sentence here"</em><br>— Nova</p>
+- End with a short poetic sentence on its own line, signed: — Nova
 
 CRITICAL: aperture_mm is the lens/mirror diameter. focal_length_mm is the optical path length. These are different values. Never confuse them. When discussing light gathering, use aperture. When discussing magnification or image scale, use focal length.
 
@@ -233,7 +233,7 @@ Do not mention rigs that are clearly wrong for this target."""
 
     # Add the final instruction
     prompt_lines.append("")
-    prompt_lines.append("Write observing notes for this object. Keep your notes practical and based on real observing experience. Close with a short personal sign-off as Nova — a poetic thought or warm wish specific to this object.")
+    prompt_lines.append("Write observing notes for this object. Keep your notes practical and based on real observing experience. End with a short poetic sentence on its own line, signed: — Nova")
 
     user_prompt = "\n".join(prompt_lines)
 
@@ -325,7 +325,7 @@ AUTOFOCUS AND THERMAL: Comment on focus drift relative to temperature change, ca
 
 Paragraph 3 — Actionable recommendations: Maximum 3 recommendations. Each must reference a specific number or observation from this session. Direct, specific, and honest. No hedging.
 
-Sign-off: A single short line, warm and personal to this specific target and session. Format exactly as: <p><em>"sentence here"</em><br>— Nova</p>
+Sign-off: End with a short poetic sentence on its own line, signed: — Nova.
 
 Formatting rules:
 - Plain text only, no markdown, no bullets, no headers
@@ -333,8 +333,6 @@ Formatting rules:
 - Exactly 3 paragraphs separated by a blank line
 - No hedging language: never use "might", "could potentially", "perhaps", "it may be worth considering", "consider exploring"
 - Tone: warm but efficient. Say more with less.
-- The sign-off must feel personal to this specific session and target — never generic
-- SIGN-OFF FORMAT IS NON-NEGOTIABLE. You must output this exact HTML structure: <p><em>"your sentence here"</em><br>— Nova</p>. No plain text. No asterisks. No dashes without the HTML wrapper. If you output anything other than this exact HTML, the sign-off will not render correctly.
 
 Respond in the language of this ISO locale code: {locale}. Use informal address in all languages (du/tu/jij etc, never Sie/vous).""".format(locale=locale)
 
