@@ -2323,9 +2323,12 @@
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
                             <label style="margin:0;">{{ _('General Notes, Problems, Learnings:') }}</label>
                             <button type="button" id="ai-session-summary-btn"
-                              class="ai-notes-btn"
+                              class="btn-nova-ai"
                               title="Ask Nova for session summary"
                               style="display:none;">
+                              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+                                <path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/>
+                              </svg>
                               Ask Nova
                             </button>
                         </div>
@@ -2821,9 +2824,10 @@ document.addEventListener('DOMContentLoaded', function() {
             confirmDiv.innerHTML = 'Nova has a summary ready. What would you like to do? ' +
                 '<button type="button" onclick="novaSessionFetch(\'overwrite\')">Overwrite</button> ' +
                 '<button type="button" onclick="novaSessionFetch(\'append\')">Append</button> ' +
-                '<button type="button" onclick="document.getElementById(\'ai-session-confirm\').remove(); document.getElementById(\'ai-session-summary-btn\').disabled=false;">Cancel</button>';
+                '<button type="button" onclick="document.getElementById(\'ai-session-confirm\').remove(); document.getElementById(\'ai-session-summary-btn\').disabled=false; document.getElementById(\'ai-session-summary-btn\').style.display=\'\';">Cancel</button>';
             btn.parentNode.insertBefore(confirmDiv, btn.parentNode.querySelector('trix-editor'));
             btn.disabled = true;
+            btn.style.display = 'none';
         } else {
             novaSessionFetch('overwrite');
         }
@@ -2845,10 +2849,10 @@ function novaSessionFetch(mode) {
     var msgIndex = 0;
     btn.disabled = true;
     btn.style.fontStyle = 'italic';
-    btn.textContent = novaMessages[0];
+    btn.innerHTML = novaMessages[0];
     novaMsgInterval = setInterval(function() {
         msgIndex = (msgIndex + 1) % novaMessages.length;
-        btn.textContent = novaMessages[msgIndex];
+        btn.innerHTML = novaMessages[msgIndex];
     }, 2500);
 
     var confirm = document.getElementById('ai-session-confirm');
@@ -2857,6 +2861,8 @@ function novaSessionFetch(mode) {
     // Store initial editor content for append mode
     var initialHTML = trixEditor ? trixEditor.innerHTML : '';
     var accumulatedHTML = '';
+
+    btn.style.display = '';
 
     fetch('/api/ai/session-summary', {
         method: 'POST',
@@ -2888,14 +2894,15 @@ function novaSessionFetch(mode) {
                         if (novaMsgInterval && data !== '[DONE]' && !data.startsWith('[ERROR]')) {
                             clearInterval(novaMsgInterval);
                             novaMsgInterval = null;
-                            btn.textContent = 'Nova writing...';
+                            btn.innerHTML = 'Nova writing...';
                         }
 
                         // Handle completion
                         if (data === '[DONE]') {
-                            btn.textContent = 'Ask Nova';
+                            btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/></svg> Ask Nova';
                             btn.style.fontStyle = '';
                             btn.disabled = false;
+                            btn.style.display = '';
                             return;
                         }
 
@@ -2903,9 +2910,10 @@ function novaSessionFetch(mode) {
                         if (data.startsWith('[ERROR]')) {
                             var errorMsg = data.slice(7);
                             clearInterval(novaMsgInterval);
-                            btn.textContent = 'Ask Nova';
+                            btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/></svg> Ask Nova';
                             btn.style.fontStyle = '';
                             btn.disabled = false;
+                            btn.style.display = '';
                             var errDiv = document.createElement('div');
                             errDiv.style.cssText = 'color:var(--danger-color,#c00);font-size:13px;margin-top:6px;';
                             errDiv.textContent = 'Nova error: ' + errorMsg;
@@ -2933,7 +2941,7 @@ function novaSessionFetch(mode) {
                             // Show word count progress so user knows content is arriving
                             var wordCount = accumulatedHTML.replace(/<[^>]+>/g, '').trim().split(/\s+/).filter(Boolean).length;
                             if (btn && wordCount > 0) {
-                                btn.textContent = 'Nova writing... (' + wordCount + ' words)';
+                                btn.innerHTML = 'Nova writing… <span style="font-size:10px;font-weight:700;font-style:normal;background:var(--primary-color);color:#fff;border-radius:10px;padding:1px 6px;">' + wordCount + ' words</span>';
                             }
                         }
                     }
@@ -2947,7 +2955,7 @@ function novaSessionFetch(mode) {
     })
     .catch(function(err) {
         clearInterval(novaMsgInterval);
-        btn.textContent = 'Ask Nova';
+        btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/></svg> Ask Nova';
         btn.style.fontStyle = '';
         btn.disabled = false;
         var errDiv = document.createElement('div');
