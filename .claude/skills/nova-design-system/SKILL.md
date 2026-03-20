@@ -527,3 +527,13 @@ breaks functionality silently.
   color" and "doesn't dominate the data".
 - **Ghost button on border**: always use hardcoded `#d0cdc8` fallback alongside
   the CSS variable — the variable resolves inconsistently in some contexts.
+
+---
+
+## CC Bulk Translation Prompt Template
+
+Use this template when requesting bulk translations for Nova DSO Tracker UI strings:
+
+### Leave untranslated
+- Leave untranslated: SQM, RA, Dec, FWHM, RMS, PHD2, ASIAIR, NINA, OAG, Darks, Flats, Bias, SIMBAD, HFR, Nova, DSO
+- "Nova" is a PROPER NAME (the app's AI companion), not the Latin word for "new". Never translate it. This applies to all strings containing Nova: "Ask Nova", "Nova writing", "Nova error", "Nova DSO Tracker", etc.

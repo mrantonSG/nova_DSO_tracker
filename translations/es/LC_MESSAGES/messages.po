@@ -1813,7 +1813,7 @@ msgstr "Notas generales, problemas, aprendizajes:"
 
 #: templates/_journal_section.html:2327 templates/_journal_section.html:2470
 msgid "Ask Nova for session summary"
-msgstr "Resumen de sesión de ASIAIR"
+msgstr "Ask Nova for session summary"
 
 #: templates/_journal_section.html:2338
 msgid "Current Image:"
@@ -1917,7 +1917,7 @@ msgstr "{label} eliminado."
 
 #: templates/_journal_section.html:2469 templates/graph_view.html:438
 msgid "Ask Nova"
-msgstr "Nova"
+msgstr "Ask Nova"
 
 #: templates/_journal_section.html:2471
 msgid "Analyzing your session..."
@@ -1937,7 +1937,7 @@ msgstr "Ya casi..."
 
 #: templates/_journal_section.html:2475
 msgid "Nova writing…"
-msgstr "Nova escribiendo..."
+msgstr "Nova writing…"
 
 #: templates/_journal_section.html:2476
 msgid "words"
@@ -1945,7 +1945,7 @@ msgstr "Contraseña"
 
 #: templates/_journal_section.html:2477
 msgid "Nova has a summary ready. What would you like to do?"
-msgstr "Nova tiene un resumen preparado. ¿Qué te gustaría hacer?"
+msgstr "Nova has a summary ready. What would you like to do?"
 
 #: templates/_journal_section.html:2478 templates/graph_view.html:447
 msgid "Overwrite"
@@ -1957,7 +1957,7 @@ msgstr "Añada"
 
 #: templates/_journal_section.html:2481
 msgid "Nova error"
-msgstr "Error desconocido"
+msgstr "Nova error"
 
 #: templates/_objects_section.html:9
 msgid "Manage My Objects"
@@ -3145,7 +3145,7 @@ msgstr "Ayuda"
 
 #: templates/base.html:402
 msgid "Nova DSO Tracker Logo"
-msgstr "Logotipo de Nova DSO Tracker"
+msgstr "Nova DSO Tracker Logo"
 
 #: templates/base.html:404
 msgid "Version"
@@ -4163,7 +4163,7 @@ msgstr "pasos"
 
 #: templates/graph_view.html:439
 msgid "Ask Nova for observing notes"
-msgstr "Pedir notas de observación a Nova"
+msgstr "Ask Nova for observing notes"
 
 #: templates/graph_view.html:440
 msgid "Consulting the star charts..."
@@ -4187,11 +4187,11 @@ msgstr "Ubicación"
 
 #: templates/graph_view.html:446
 msgid "Nova has notes ready. What would you like to do?"
-msgstr "Nova tiene notas preparadas. ¿Qué te gustaría hacer?"
+msgstr "Nova has notes ready. What would you like to do?"
 
 #: templates/graph_view.html:450
 msgid "Nova couldn't load notes"
-msgstr "Nova no pudo cargar las notas"
+msgstr "Nova couldn't load notes"
 
 #: templates/index.html:3 templates/login.html:2
 msgid "DSO Altitude Tracker"
@@ -4564,7 +4564,7 @@ msgstr "Guardar entrada"
 
 #: templates/journal_report.html:673 templates/project_report.html:789
 msgid "Nova Logo"
-msgstr "Logotipo de Nova"
+msgstr "Nova Logo"
 
 #: templates/journal_report.html:676
 msgid "Nova"

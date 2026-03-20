@@ -1836,7 +1836,7 @@ msgstr "Remarques générales, problèmes, enseignements tirés :"
 
 #: templates/_journal_section.html:2327 templates/_journal_section.html:2470
 msgid "Ask Nova for session summary"
-msgstr "Résumé de la session ASIAIR"
+msgstr "Ask Nova for session summary"
 
 #: templates/_journal_section.html:2338
 msgid "Current Image:"
@@ -1940,7 +1940,7 @@ msgstr "{label} supprimé."
 
 #: templates/_journal_section.html:2469 templates/graph_view.html:438
 msgid "Ask Nova"
-msgstr "Nouveau"
+msgstr "Ask Nova"
 
 #: templates/_journal_section.html:2471
 msgid "Analyzing your session..."
@@ -1960,7 +1960,7 @@ msgstr "Nous y sommes presque..."
 
 #: templates/_journal_section.html:2475
 msgid "Nova writing…"
-msgstr "Nova writing..."
+msgstr "Nova writing…"
 
 #: templates/_journal_section.html:2476
 msgid "words"
@@ -1968,7 +1968,7 @@ msgstr "Mot de passe"
 
 #: templates/_journal_section.html:2477
 msgid "Nova has a summary ready. What would you like to do?"
-msgstr "Nova a préparé un résumé. Que voulez-vous faire ?"
+msgstr "Nova has a summary ready. What would you like to do?"
 
 #: templates/_journal_section.html:2478 templates/graph_view.html:447
 msgid "Overwrite"
@@ -1980,7 +1980,7 @@ msgstr "Ajouter"
 
 #: templates/_journal_section.html:2481
 msgid "Nova error"
-msgstr "Erreur inconnue"
+msgstr "Nova error"
 
 #: templates/_objects_section.html:9
 msgid "Manage My Objects"
@@ -2583,7 +2583,7 @@ msgstr "Enregistrer"
 
 #: templates/analytics.html:6
 msgid "Nova Analytics"
-msgstr "Nouvelle analyse"
+msgstr "Nova Analytics"
 
 #: templates/analytics.html:250
 msgid "Analytics Dashboard"
@@ -3174,7 +3174,7 @@ msgstr "Aide"
 
 #: templates/base.html:402
 msgid "Nova DSO Tracker Logo"
-msgstr "Nouveau logo DSO Tracker"
+msgstr "Nova DSO Tracker Logo"
 
 #: templates/base.html:404
 msgid "Version"
@@ -3872,7 +3872,7 @@ msgstr "Veuillez patienter, communication avec SIMBAD..."
 #: templates/journal_report.html:6 templates/journal_report.html:1210
 #: templates/project_report.html:6 templates/project_report.html:1200
 msgid "Nova DSO Tracker"
-msgstr "Nouveau DSO Tracker"
+msgstr "Nova DSO Tracker"
 
 #: templates/graph_view.html:47
 msgid "← Back to Dashboard"
@@ -4195,7 +4195,7 @@ msgstr "étapes"
 
 #: templates/graph_view.html:439
 msgid "Ask Nova for observing notes"
-msgstr "Demander à Nova des notes d'observation"
+msgstr "Ask Nova for observing notes"
 
 #: templates/graph_view.html:440
 msgid "Consulting the star charts..."
@@ -4219,11 +4219,11 @@ msgstr "Emplacement"
 
 #: templates/graph_view.html:446
 msgid "Nova has notes ready. What would you like to do?"
-msgstr "Nova a préparé des notes. Que voulez-vous faire ?"
+msgstr "Nova has notes ready. What would you like to do?"
 
 #: templates/graph_view.html:450
 msgid "Nova couldn't load notes"
-msgstr "Nova n'a pas pu charger les notes"
+msgstr "Nova couldn't load notes"
 
 #: templates/index.html:3 templates/login.html:2
 msgid "DSO Altitude Tracker"
@@ -4596,11 +4596,11 @@ msgstr "Enregistrer l'entrée"
 
 #: templates/journal_report.html:673 templates/project_report.html:789
 msgid "Nova Logo"
-msgstr "Nouveau logo"
+msgstr "Nova Logo"
 
 #: templates/journal_report.html:676
 msgid "Nova"
-msgstr "Nouveau"
+msgstr "Nova"
 
 #: templates/journal_report.html:676
 msgid "DSO Tracker"
@@ -4905,7 +4905,7 @@ msgstr "Erreur :"
 
 #: templates/mobile_base.html:6
 msgid "Nova Companion"
-msgstr "Compagnon Nova"
+msgstr "Nova Companion"
 
 #: templates/mobile_base.html:24 templates/mobile_base.html:56
 #: templates/mobile_up_now.html:3 templates/mobile_up_now.html:4
