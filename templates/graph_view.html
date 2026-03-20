@@ -446,14 +446,25 @@ document.addEventListener('DOMContentLoaded', function() {
             var editorEl = document.getElementById('project-field-editor');
             if (!editorEl) return;
 
-            // Inject button before the trix-editor
+            // Inject button into the title row (right-aligned)
             var btn = document.createElement('button');
             btn.id = 'ai-notes-btn';
             btn.className = 'btn-nova-ai';
             btn.title = 'Ask Nova for observing notes';
-            btn.style.cssText = 'float: right; margin-bottom: 4px;';
             btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;font-style:normal"><path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/></svg> Ask Nova';
-            editorEl.parentNode.insertBefore(btn, editorEl);
+
+            var cardTitle = editorEl.closest('.content-section')?.querySelector('h3');
+            if (cardTitle) {
+                cardTitle.style.display = 'flex';
+                cardTitle.style.justifyContent = 'space-between';
+                cardTitle.style.alignItems = 'center';
+                btn.style.cssText = 'margin-left: auto;';
+                cardTitle.appendChild(btn);
+            } else {
+                // fallback: keep existing injection
+                btn.style.cssText = 'float: right; margin-bottom: 4px;';
+                editorEl.parentNode.insertBefore(btn, editorEl);
+            }
 
             // Helper to remove any existing confirmation UI
             function removeConfirmUI() {
@@ -477,6 +488,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 // Start message animation
                 var msgIndex = 0;
+                btn.style.fontStyle = 'italic';
                 btn.innerHTML = novaMessages[msgIndex];
                 var msgInterval = setInterval(function() {
                     msgIndex = (msgIndex + 1) % novaMessages.length;
@@ -516,11 +528,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;font-style:normal"><path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/></svg> Ask Nova';
                     btn.disabled = false;
+                    btn.style.fontStyle = '';
                 })
                 .catch(function(err) {
                     clearInterval(msgInterval);
                     btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;font-style:normal"><path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/></svg> Ask Nova';
                     btn.disabled = false;
+                    btn.style.fontStyle = '';
 
                     // Create error div after the trix-editor
                     var trixEl = document.getElementById('project-field-editor');
@@ -533,6 +547,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     closeBtn.addEventListener('click', function() { errDiv.remove(); });
 
                     trixEl.parentNode.insertBefore(errDiv, trixEl.nextSibling);
+
+                    // Auto-dismiss error after 5 seconds
+                    setTimeout(function() {
+                        if (errDiv && errDiv.parentNode) errDiv.remove();
+                    }, 5000);
                 });
             }
 
@@ -558,8 +577,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     confirmDiv.innerHTML = '<span>Nova has notes ready. What would you like to do?</span>' +
                         '<button class="inline-button ai-confirm-overwrite">Overwrite</button>' +
-                        '<button class="inline-button ai-confirm-append">Append</button>' +
-                        '<button class="inline-button-ghost ai-confirm-cancel">Cancel</button>';
+                        '<button class="inline-button ai-confirm-append">Append</button>';
+
+                    // Create cancel button separately
+                    var cancelBtn = document.createElement('button');
+                    cancelBtn.className = 'inline-button-ghost ai-confirm-cancel';
+                    cancelBtn.textContent = 'Cancel';
+                    cancelBtn.onclick = function() {
+                        removeConfirmUI();
+                        btn.disabled = false;
+                            btn.style.fontStyle = '';
+                    };
+                    confirmDiv.appendChild(cancelBtn);
 
                     // Insert before the trix-editor
                     editorEl.parentNode.insertBefore(confirmDiv, editorEl);
@@ -574,12 +603,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     confirmDiv.querySelector('.ai-confirm-append').addEventListener('click', function() {
                         removeConfirmUI();
                         fetchNotes('append');
-                    });
-
-                    // Cancel button
-                    confirmDiv.querySelector('.ai-confirm-cancel').addEventListener('click', function() {
-                        removeConfirmUI();
-                        btn.disabled = false;
                     });
                 } else {
                     // No existing content, proceed directly
