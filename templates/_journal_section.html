@@ -2324,7 +2324,7 @@
                             <label style="margin:0;">{{ _('General Notes, Problems, Learnings:') }}</label>
                             <button type="button" id="ai-session-summary-btn"
                               class="btn-nova-ai"
-                              title="Ask Nova for session summary"
+                              title="{{ _('Ask Nova for session summary') }}"
                               style="display:none;">
                               <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
                                 <path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/>
@@ -2466,6 +2466,19 @@ const journalI18n = {
   confirmRemoveFilter:   '{{ _("Remove \"{label}\"? Historical session data for this filter is kept.") }}',
   errorRemovingFilter:   '{{ _("Error removing filter.") }}',
   filterRemoved:         '{{ _("{label} removed.") }}',
+  askNova:               '{{ _("Ask Nova") }}',
+  askNovaTitle:          '{{ _("Ask Nova for session summary") }}',
+  analyzingSession:      '{{ _("Analyzing your session...") }}',
+  reviewingConditions:   '{{ _("Reviewing conditions...") }}',
+  checkingGuidingData:   '{{ _("Checking guiding data...") }}',
+  almostThere:           '{{ _("Almost there...") }}',
+  novaWriting:           '{{ _("Nova writing\u2026") }}',
+  words:                 '{{ _("words") }}',
+  novaSummaryReady:      '{{ _("Nova has a summary ready. What would you like to do?") }}',
+  overwrite:             '{{ _("Overwrite") }}',
+  append:                '{{ _("Append") }}',
+  cancel:                '{{ _("Cancel") }}',
+  novaError:             '{{ _("Nova error") }}',
 };
 
 (function() {
@@ -2799,10 +2812,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!btn) return;
 
     var novaMessages = [
-        "Analyzing your session...",
-        "Reviewing conditions...",
-        "Checking guiding data...",
-        "Almost there..."
+        journalI18n.analyzingSession,
+        journalI18n.reviewingConditions,
+        journalI18n.checkingGuidingData,
+        journalI18n.almostThere
     ];
 
     btn.addEventListener('click', function() {
@@ -2821,10 +2834,10 @@ document.addEventListener('DOMContentLoaded', function() {
             var confirmDiv = document.createElement('div');
             confirmDiv.id = 'ai-session-confirm';
             confirmDiv.style.cssText = 'padding:8px; margin:6px 0; border:1px solid var(--border-color,#ccc); border-radius:4px; font-size:13px;';
-            confirmDiv.innerHTML = 'Nova has a summary ready. What would you like to do? ' +
-                '<button type="button" onclick="novaSessionFetch(\'overwrite\')">Overwrite</button> ' +
-                '<button type="button" onclick="novaSessionFetch(\'append\')">Append</button> ' +
-                '<button type="button" onclick="document.getElementById(\'ai-session-confirm\').remove(); document.getElementById(\'ai-session-summary-btn\').disabled=false; document.getElementById(\'ai-session-summary-btn\').style.display=\'\';">Cancel</button>';
+            confirmDiv.innerHTML = journalI18n.novaSummaryReady + ' ' +
+                '<button type="button" onclick="novaSessionFetch(\'overwrite\')">' + journalI18n.overwrite + '</button> ' +
+                '<button type="button" onclick="novaSessionFetch(\'append\')">' + journalI18n.append + '</button> ' +
+                '<button type="button" onclick="document.getElementById(\'ai-session-confirm\').remove(); document.getElementById(\'ai-session-summary-btn\').disabled=false; document.getElementById(\'ai-session-summary-btn\').style.display=\'\';">' + journalI18n.cancel + '</button>';
             btn.parentNode.insertBefore(confirmDiv, btn.parentNode.querySelector('trix-editor'));
             btn.disabled = true;
             btn.style.display = 'none';
@@ -2841,10 +2854,10 @@ function novaSessionFetch(mode) {
     var sessionId = document.querySelector('input[name="session_id"]').value;
     var trixEditor = document.getElementById('journal-notes-editor');
     var novaMessages = [
-        "Analyzing your session...",
-        "Reviewing conditions...",
-        "Checking guiding data...",
-        "Almost there..."
+        journalI18n.analyzingSession,
+        journalI18n.reviewingConditions,
+        journalI18n.checkingGuidingData,
+        journalI18n.almostThere
     ];
     var msgIndex = 0;
     btn.disabled = true;
@@ -2894,12 +2907,12 @@ function novaSessionFetch(mode) {
                         if (novaMsgInterval && data !== '[DONE]' && !data.startsWith('[ERROR]')) {
                             clearInterval(novaMsgInterval);
                             novaMsgInterval = null;
-                            btn.innerHTML = 'Nova writing...';
+                            btn.innerHTML = journalI18n.novaWriting;
                         }
 
                         // Handle completion
                         if (data === '[DONE]') {
-                            btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/></svg> Ask Nova';
+                            btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/></svg> ' + journalI18n.askNova;
                             btn.style.fontStyle = '';
                             btn.disabled = false;
                             btn.style.display = '';
@@ -2910,13 +2923,13 @@ function novaSessionFetch(mode) {
                         if (data.startsWith('[ERROR]')) {
                             var errorMsg = data.slice(7);
                             clearInterval(novaMsgInterval);
-                            btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/></svg> Ask Nova';
+                            btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/></svg> ' + journalI18n.askNova;
                             btn.style.fontStyle = '';
                             btn.disabled = false;
                             btn.style.display = '';
                             var errDiv = document.createElement('div');
                             errDiv.style.cssText = 'color:var(--danger-color,#c00);font-size:13px;margin-top:6px;';
-                            errDiv.textContent = 'Nova error: ' + errorMsg;
+                            errDiv.textContent = journalI18n.novaError + ': ' + errorMsg;
                             btn.parentNode.appendChild(errDiv);
                             setTimeout(function() { errDiv.remove(); }, 5000);
                             return;
@@ -2941,7 +2954,7 @@ function novaSessionFetch(mode) {
                             // Show word count progress so user knows content is arriving
                             var wordCount = accumulatedHTML.replace(/<[^>]+>/g, '').trim().split(/\s+/).filter(Boolean).length;
                             if (btn && wordCount > 0) {
-                                btn.innerHTML = 'Nova writing… <span style="font-size:10px;font-weight:700;font-style:normal;background:var(--primary-color);color:#fff;border-radius:10px;padding:1px 6px;">' + wordCount + ' words</span>';
+                                btn.innerHTML = journalI18n.novaWriting + ' <span style="font-size:10px;font-weight:700;font-style:normal;background:var(--primary-color);color:#fff;border-radius:10px;padding:1px 6px;">' + wordCount + ' ' + journalI18n.words + '</span>';
                             }
                         }
                     }
@@ -2960,7 +2973,7 @@ function novaSessionFetch(mode) {
         btn.disabled = false;
         var errDiv = document.createElement('div');
         errDiv.style.cssText = 'color:var(--danger-color,#c00);font-size:13px;margin-top:6px;';
-        errDiv.textContent = 'Nova error: ' + err.message;
+        errDiv.textContent = journalI18n.novaError + ': ' + err.message;
         btn.parentNode.appendChild(errDiv);
         setTimeout(function() { errDiv.remove(); }, 5000);
     });
