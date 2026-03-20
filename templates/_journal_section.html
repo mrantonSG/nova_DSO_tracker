@@ -2914,15 +2914,26 @@ function novaSessionFetch(mode) {
                             return;
                         }
 
-                        // Append non-empty data chunks
-                        if (data && data !== '') {
-                            accumulatedHTML += data;
+                        // Handle server-corrected full text (replaces accumulated partial content)
+                        if (data.startsWith('[CORRECT]')) {
+                            accumulatedHTML = data.slice('[CORRECT]'.length);
                             if (trixEditor && trixEditor.editor) {
                                 if (mode === 'overwrite') {
                                     trixEditor.editor.loadHTML(accumulatedHTML);
                                 } else {
                                     trixEditor.editor.loadHTML(initialHTML + accumulatedHTML);
                                 }
+                            }
+                            return;
+                        }
+
+                        // Append non-empty data chunks
+                        if (data && data !== '') {
+                            accumulatedHTML += data;
+                            // Show word count progress so user knows content is arriving
+                            var wordCount = accumulatedHTML.replace(/<[^>]+>/g, '').trim().split(/\s+/).filter(Boolean).length;
+                            if (btn && wordCount > 0) {
+                                btn.textContent = 'Nova writing... (' + wordCount + ' words)';
                             }
                         }
                     }
