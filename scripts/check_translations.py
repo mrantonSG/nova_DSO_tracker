@@ -53,7 +53,10 @@ ALLOWED_IDENTICAL = {
     'SQM', 'ID', 'Lat:', 'Lon:', 'Factor:', 'Rig', 'Rig:', 'Temp', 'Exp',
     'Subs', '# Subs:', 'Error:', 'Config:',
     # Product names (never translate)
-    'Nova Analytics', 'Nova DSO Tracker', 'Nova Companion', 'Nova',
+    'Nova Analytics', 'Nova DSO Tracker', 'Nova Companion', 'Nova', 'Nova DSO Tracker Logo', 'Nova Logo',
+    'Ask Nova', 'Ask Nova for session summary', 'Ask Nova for observing notes',
+    'Nova error', "Nova couldn't load notes", 'Nova writing…', 'Nova writing\u2026',
+    'Nova has a summary ready. What would you like to do?', 'Nova has notes ready. What would you like to do?',
     'DSO Tracker', 'SIMBAD', 'Rigs', 'General',
 }
 

@@ -1773,7 +1773,7 @@ msgstr "常规说明、问题、心得："
 
 #: templates/_journal_section.html:2327 templates/_journal_section.html:2470
 msgid "Ask Nova for session summary"
-msgstr "ASIAIR 会话摘要"
+msgstr "Ask Nova for session summary"
 
 #: templates/_journal_section.html:2338
 msgid "Current Image:"
@@ -1875,7 +1875,7 @@ msgstr "{label} 已删除。"
 
 #: templates/_journal_section.html:2469 templates/graph_view.html:438
 msgid "Ask Nova"
-msgstr "Nova"
+msgstr "Ask Nova"
 
 #: templates/_journal_section.html:2471
 msgid "Analyzing your session..."
@@ -1895,7 +1895,7 @@ msgstr "快到了..."
 
 #: templates/_journal_section.html:2475
 msgid "Nova writing…"
-msgstr "新星写作..."
+msgstr "Nova writing…"
 
 #: templates/_journal_section.html:2476
 msgid "words"
@@ -1903,7 +1903,7 @@ msgstr "密码"
 
 #: templates/_journal_section.html:2477
 msgid "Nova has a summary ready. What would you like to do?"
-msgstr "诺沃已经准备好了摘要。你想做什么？"
+msgstr "Nova has a summary ready. What would you like to do?"
 
 #: templates/_journal_section.html:2478 templates/graph_view.html:447
 msgid "Overwrite"
@@ -1915,7 +1915,7 @@ msgstr "附加"
 
 #: templates/_journal_section.html:2481
 msgid "Nova error"
-msgstr "未知错误"
+msgstr "Nova error"
 
 #: templates/_objects_section.html:9
 msgid "Manage My Objects"
@@ -2503,7 +2503,7 @@ msgstr "保存"
 
 #: templates/analytics.html:6
 msgid "Nova Analytics"
-msgstr "Nova 分析"
+msgstr "Nova Analytics"
 
 #: templates/analytics.html:250
 msgid "Analytics Dashboard"
@@ -3071,7 +3071,7 @@ msgstr "帮助"
 
 #: templates/base.html:402
 msgid "Nova DSO Tracker Logo"
-msgstr "Nova DSO Tracker 徽标"
+msgstr "Nova DSO Tracker Logo"
 
 #: templates/base.html:404
 msgid "Version"
@@ -4045,7 +4045,7 @@ msgstr "步"
 
 #: templates/graph_view.html:439
 msgid "Ask Nova for observing notes"
-msgstr "向 Nova 索取观察笔记"
+msgstr "Ask Nova for observing notes"
 
 #: templates/graph_view.html:440
 msgid "Consulting the star charts..."
@@ -4069,11 +4069,11 @@ msgstr "位置"
 
 #: templates/graph_view.html:446
 msgid "Nova has notes ready. What would you like to do?"
-msgstr "诺瓦已经准备好了笔记。你想做什么？"
+msgstr "Nova has notes ready. What would you like to do?"
 
 #: templates/graph_view.html:450
 msgid "Nova couldn't load notes"
-msgstr "Nova 无法加载笔记"
+msgstr "Nova couldn't load notes"
 
 #: templates/index.html:3 templates/login.html:2
 msgid "DSO Altitude Tracker"
@@ -4444,7 +4444,7 @@ msgstr "保存条目"
 
 #: templates/journal_report.html:673 templates/project_report.html:789
 msgid "Nova Logo"
-msgstr "Nova 徽标"
+msgstr "Nova Logo"
 
 #: templates/journal_report.html:676
 msgid "Nova"
@@ -4753,7 +4753,7 @@ msgstr "错误："
 
 #: templates/mobile_base.html:6
 msgid "Nova Companion"
-msgstr "Nova 伴侣"
+msgstr "Nova Companion"
 
 #: templates/mobile_base.html:24 templates/mobile_base.html:56
 #: templates/mobile_up_now.html:3 templates/mobile_up_now.html:4
@@ -5466,7 +5466,7 @@ msgstr "曝光"
 #~ msgstr "PHD2 导星日志（.txt/.log）"
 
 #~ msgid "Nova Pocket"
-#~ msgstr "Nova 便携版"
+#~ msgstr "Nova Pocket"
 
 #~ msgid "Search by name (e.g., M42 or Orion)..."
 #~ msgstr "按名称搜索（例如 M42 或 Orion）..."

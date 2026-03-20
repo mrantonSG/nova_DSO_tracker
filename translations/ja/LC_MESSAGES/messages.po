@@ -1773,7 +1773,7 @@ msgstr "一般的な注意事項、問題点、学び："
 
 #: templates/_journal_section.html:2327 templates/_journal_section.html:2470
 msgid "Ask Nova for session summary"
-msgstr "ASIAIR セッション概要"
+msgstr "Ask Nova for session summary"
 
 #: templates/_journal_section.html:2338
 msgid "Current Image:"
@@ -1875,7 +1875,7 @@ msgstr "{label} を削除しました。"
 
 #: templates/_journal_section.html:2469 templates/graph_view.html:438
 msgid "Ask Nova"
-msgstr "新着"
+msgstr "Ask Nova"
 
 #: templates/_journal_section.html:2471
 msgid "Analyzing your session..."
@@ -1895,7 +1895,7 @@ msgstr "もう少しだ..."
 
 #: templates/_journal_section.html:2475
 msgid "Nova writing…"
-msgstr "ノヴァの執筆..."
+msgstr "Nova writing…"
 
 #: templates/_journal_section.html:2476
 msgid "words"
@@ -1903,7 +1903,7 @@ msgstr "パスワード"
 
 #: templates/_journal_section.html:2477
 msgid "Nova has a summary ready. What would you like to do?"
-msgstr "ノヴァは要約を用意している。どうしますか？"
+msgstr "Nova has a summary ready. What would you like to do?"
 
 #: templates/_journal_section.html:2478 templates/graph_view.html:447
 msgid "Overwrite"
@@ -1915,7 +1915,7 @@ msgstr "追加"
 
 #: templates/_journal_section.html:2481
 msgid "Nova error"
-msgstr "不明なエラー"
+msgstr "Nova error"
 
 #: templates/_objects_section.html:9
 msgid "Manage My Objects"
@@ -2507,7 +2507,7 @@ msgstr "保存"
 
 #: templates/analytics.html:6
 msgid "Nova Analytics"
-msgstr "ノヴァ・アナリティクス"
+msgstr "Nova Analytics"
 
 #: templates/analytics.html:250
 msgid "Analytics Dashboard"
@@ -3077,7 +3077,7 @@ msgstr "助けて"
 
 #: templates/base.html:402
 msgid "Nova DSO Tracker Logo"
-msgstr "新しいDSOトラッカーのロゴ"
+msgstr "Nova DSO Tracker Logo"
 
 #: templates/base.html:404
 msgid "Version"
@@ -3749,7 +3749,7 @@ msgstr "お待ちください、SIMBADと通信中です..."
 #: templates/journal_report.html:6 templates/journal_report.html:1210
 #: templates/project_report.html:6 templates/project_report.html:1200
 msgid "Nova DSO Tracker"
-msgstr "新DSOトラッカー"
+msgstr "Nova DSO Tracker"
 
 #: templates/graph_view.html:47
 msgid "← Back to Dashboard"
@@ -4059,7 +4059,7 @@ msgstr "ステップ"
 
 #: templates/graph_view.html:439
 msgid "Ask Nova for observing notes"
-msgstr "ノヴァに観戦記を求める"
+msgstr "Ask Nova for observing notes"
 
 #: templates/graph_view.html:440
 msgid "Consulting the star charts..."
@@ -4083,11 +4083,11 @@ msgstr "場所"
 
 #: templates/graph_view.html:446
 msgid "Nova has notes ready. What would you like to do?"
-msgstr "ノヴァはメモを用意している。どうしますか？"
+msgstr "Nova has notes ready. What would you like to do?"
 
 #: templates/graph_view.html:450
 msgid "Nova couldn't load notes"
-msgstr "ノヴァがノートをロードできなかった"
+msgstr "Nova couldn't load notes"
 
 #: templates/index.html:3 templates/login.html:2
 msgid "DSO Altitude Tracker"
@@ -4459,11 +4459,11 @@ msgstr "エントリを保存"
 
 #: templates/journal_report.html:673 templates/project_report.html:789
 msgid "Nova Logo"
-msgstr "新ロゴ"
+msgstr "Nova Logo"
 
 #: templates/journal_report.html:676
 msgid "Nova"
-msgstr "新着"
+msgstr "Nova"
 
 #: templates/journal_report.html:676
 msgid "DSO Tracker"
@@ -4768,7 +4768,7 @@ msgstr "エラー:"
 
 #: templates/mobile_base.html:6
 msgid "Nova Companion"
-msgstr "ノヴァ・コンパニオン"
+msgstr "Nova Companion"
 
 #: templates/mobile_base.html:24 templates/mobile_base.html:56
 #: templates/mobile_up_now.html:3 templates/mobile_up_now.html:4
@@ -5483,7 +5483,7 @@ msgstr "実験"
 #~ msgstr "PHD2 ガイドログ (.txt/.log)"
 
 #~ msgid "Nova Pocket"
-#~ msgstr "ノヴァポケット"
+#~ msgstr "Nova Pocket"
 
 #~ msgid "Search by name (e.g., M42 or Orion)..."
 #~ msgstr "名前で検索（例：M42 または オリオン座）..."
