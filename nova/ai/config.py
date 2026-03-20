@@ -16,14 +16,19 @@ def user_has_ai_access(username: str) -> bool:
     """Check if a specific user has AI access.
 
     Reads AI_ALLOWED_USERS from app.config (comma-separated usernames).
+    Special value 'all' grants access to all users.
     If AI_ALLOWED_USERS is empty or missing, no user has access even if key is present.
     """
-    allowed_users = current_app.config.get("AI_ALLOWED_USERS", "")
+    allowed = current_app.config.get("AI_ALLOWED_USERS", "").strip()
 
-    if not allowed_users:
+    if not allowed:
         return False
 
+    # Special value 'all' grants access to everyone
+    if allowed.lower() == 'all':
+        return True
+
     # Parse comma-separated list, strip whitespace
-    allowed_list = [u.strip() for u in allowed_users.split(",") if u.strip()]
+    allowed_list = [u.strip() for u in allowed.split(",") if u.strip()]
 
     return username in allowed_list
