@@ -399,32 +399,37 @@ def generate_session_summary():
                 full_content.append(f"<p>{remaining}</p>")
                 yield f"data: <p>{remaining}</p>\n\n"
 
-            # Post-process: Fix sign-off format
+            # Post-process: Fix sign-off format (only operates on last line)
             complete_text = "".join(full_content)
 
-            # Remove the entire sign-off line from the text first
-            text_without_signoff = re.sub(
-                r'["\u201c\u201d]?[^"\u201c\u201d\n\r]*["\u201c\u201d]?\s*[\r\n]*\s*[—\-]+\s*Nova["\u201c\u201d\s]*',
-                '',
-                complete_text.rstrip(),
-                flags=re.IGNORECASE | re.MULTILINE
-            )
+            lines = complete_text.rstrip().split('\n')
+            # Find the last non-empty line
+            last_line_idx = len(lines) - 1
+            while last_line_idx >= 0 and not lines[last_line_idx].strip():
+                last_line_idx -= 1
 
-            # Extract just the sign-off sentence
-            signoff_match = re.search(
-                r'["\u201c\u201d]?([^"\u201c\u201d\n\r]{10,}?)["\u201c\u201d]?\s*[\r\n]*\s*[—\-]+\s*Nova',
-                complete_text.rstrip(),
-                flags=re.IGNORECASE
-            )
-
-            if signoff_match:
-                sentence = signoff_match.group(1).strip().strip('"').strip()
-                fixed_text = text_without_signoff.rstrip() + f'\n\n<p><em>"{sentence}"</em><br>— Nova</p>'
+            if last_line_idx >= 0:
+                last_line = lines[last_line_idx].strip()
+                signoff_match = re.search(
+                    r'["\u201c\u201d]?(.+?)["\u201c\u201d]?\s*[—\-]+\s*Nova["\u201c\u201d\s]*',
+                    last_line, re.IGNORECASE
+                )
+                if signoff_match:
+                    sentence = signoff_match.group(1).strip().strip('"').strip('\u201c').strip('\u201d').strip()
+                    # Replace the entire last line with properly formatted sign-off
+                    lines[last_line_idx] = f'<p><em>"{sentence}"</em><br>— Nova</p>'
+                    # Also remove any preceding line that is just a stray quote
+                    if last_line_idx > 0 and lines[last_line_idx - 1].strip() in ('"', '\u201c', '\u201d', "'"):
+                        lines.pop(last_line_idx - 1)
+                    fixed_text = '\n'.join(lines)
+                else:
+                    fixed_text = complete_text
             else:
                 fixed_text = complete_text
 
-            # Re-emit corrected complete content with a correction signal
-            yield f"data: [CORRECT]{fixed_text}\n\n"
+            # Only emit correction if we actually have valid content
+            if fixed_text and len(fixed_text) > 100:
+                yield f"data: [CORRECT]{fixed_text}\n\n"
 
             # Emit completion signal
             yield "data: [DONE]\n\n"
