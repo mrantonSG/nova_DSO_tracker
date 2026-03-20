@@ -446,10 +446,10 @@ document.addEventListener('DOMContentLoaded', function() {
             // Inject button before the trix-editor
             var btn = document.createElement('button');
             btn.id = 'ai-notes-btn';
-            btn.className = 'ai-notes-btn';
+            btn.className = 'btn-nova-ai';
             btn.title = 'Ask Nova for observing notes';
             btn.style.cssText = 'float: right; margin-bottom: 4px;';
-            btn.textContent = '💡 Ask Nova';
+            btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;font-style:normal"><path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/></svg> Ask Nova';
             editorEl.parentNode.insertBefore(btn, editorEl);
 
             // Helper to remove any existing confirmation UI
@@ -461,9 +461,6 @@ document.addEventListener('DOMContentLoaded', function() {
             // Helper to execute the fetch with a specific mode
             function fetchNotes(mode) {
                 btn.disabled = true;
-                btn.style.color = 'var(--text-color, #333)';
-                btn.style.fontStyle = 'italic';
-                btn.style.opacity = '1';
 
                 // Build message sequence with location name
                 var locName = (window.NOVA_GRAPH_DATA && window.NOVA_GRAPH_DATA.activeLoc) || 'your location';
@@ -477,10 +474,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 // Start message animation
                 var msgIndex = 0;
-                btn.textContent = novaMessages[msgIndex];
+                btn.innerHTML = novaMessages[msgIndex];
                 var msgInterval = setInterval(function() {
                     msgIndex = (msgIndex + 1) % novaMessages.length;
-                    btn.textContent = novaMessages[msgIndex];
+                    btn.innerHTML = novaMessages[msgIndex];
                 }, 2500);
 
                 // Remove any previous error
@@ -507,18 +504,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             trixEditor.editor.loadHTML(current + (data.notes || ''));
                         }
                     }
-                    btn.style.color = '';
-                    btn.style.fontStyle = '';
-                    btn.style.opacity = '';
-                    btn.textContent = '💡 Ask Nova';
+                    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;font-style:normal"><path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/></svg> Ask Nova';
                     btn.disabled = false;
                 })
                 .catch(function(err) {
                     clearInterval(msgInterval);
-                    btn.style.color = '';
-                    btn.style.fontStyle = '';
-                    btn.style.opacity = '';
-                    btn.textContent = '💡 Ask Nova';
+                    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;font-style:normal"><path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/></svg> Ask Nova';
                     btn.disabled = false;
 
                     // Create error div after the trix-editor
@@ -556,9 +547,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     confirmDiv.style.cssText = 'padding: 8px; margin-bottom: 6px; border: 1px solid var(--border-color, #ccc); border-radius: 4px; font-size: 13px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;';
 
                     confirmDiv.innerHTML = '<span>Nova has notes ready. What would you like to do?</span>' +
-                        '<button class="ai-confirm-overwrite" style="padding: 4px 10px; font-size: 12px; cursor: pointer;">Overwrite</button>' +
-                        '<button class="ai-confirm-append" style="padding: 4px 10px; font-size: 12px; cursor: pointer;">Append</button>' +
-                        '<button class="ai-confirm-cancel" style="padding: 4px 10px; font-size: 12px; cursor: pointer;">Cancel</button>';
+                        '<button class="inline-button ai-confirm-overwrite">Overwrite</button>' +
+                        '<button class="inline-button ai-confirm-append">Append</button>' +
+                        '<button class="inline-button-ghost ai-confirm-cancel">Cancel</button>';
 
                     // Insert before the trix-editor
                     editorEl.parentNode.insertBefore(confirmDiv, editorEl);
