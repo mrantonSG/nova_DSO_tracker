@@ -38,6 +38,7 @@ import yaml
 
 from flask import abort, jsonify, redirect, Response, stream_with_context
 from flask_login import current_user, login_required
+from sqlalchemy import func
 from sqlalchemy.orm import selectinload
 import numpy as np
 import time
