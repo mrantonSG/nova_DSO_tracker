@@ -71,6 +71,10 @@ def generate_dso_notes():
 
     object_id = data.get("object_id")
     object_name = data.get("object_name")
+    selected_day = data.get("selected_day")
+    selected_month = data.get("selected_month")
+    selected_year = data.get("selected_year")
+    sim_mode = data.get("sim_mode", False)
 
     # Fetch the DSO object from database
     db = get_db()
@@ -164,7 +168,11 @@ def generate_dso_notes():
             locations=locations,
             active_location=active_location,
             rigs=rigs,
-            locale=locale
+            locale=locale,
+            selected_day=selected_day,
+            selected_month=selected_month,
+            selected_year=selected_year,
+            sim_mode=sim_mode,
         )
 
         # Get AI response

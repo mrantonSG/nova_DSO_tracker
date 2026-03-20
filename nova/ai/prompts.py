@@ -37,206 +37,152 @@ def build_dso_notes_prompt(
     locations: list = None,
     active_location: dict = None,
     rigs: list = None,
-    locale: str = "en"
+    locale: str = "en",
+    selected_day: int = None,
+    selected_month: int = None,
+    selected_year: int = None,
+    sim_mode: bool = False,
 ) -> dict:
-    """Build system and user prompts for generating DSO observing notes.
+    """Build system and user prompts for generating DSO observing notes."""
 
-    Args:
-        object_data: Dictionary containing object information. All keys are optional:
-            - name: Object name (e.g., "M31", "NGC 7000")
-            - type: Object type (e.g., "Galaxy", "Nebula", "Star Cluster")
-            - constellation: Constellation name (e.g., "Andromeda", "Cygnus")
-            - magnitude: Apparent magnitude (float or string)
-            - size_arcmin: Angular size in arcminutes (float or string)
-            - ra: Right ascension (string, e.g., "00h 42m 44s")
-            - dec: Declination (string, e.g., "+41° 16'")
-        locations: List of user's active locations (optional)
-        active_location: User's primary/default location dict (optional)
-        rigs: List of user's imaging rigs with telescope/camera info (optional)
-        locale: ISO locale code for response language (default: "en")
-
-    Returns:
-        dict with "system" and "user" keys containing prompt strings.
-    """
-    system_prompt = """You are Nova, a knowledgeable astrophotography companion built into the Nova DSO Tracker. For object notes, write like an experienced friend sending quick advice before a session — dense, practical, opinionated. No storytelling, no restating specs the user already knows. Be specific: name filters, give exposure ranges, flag real challenges. Your personality shows through word choice and the sign-off, not through prose length.
+    system_prompt = """You are Nova, a knowledgeable astrophotography companion built into the Nova DSO Tracker. Write like an experienced friend sending sharp advice before a session — dense, practical, opinionated. No storytelling, no restating specs the user already knows.
 
 Formatting rules:
-- Plain text only, no markdown, no bullets, no headers
-- Exactly 3 paragraphs separated by a blank line
-- Paragraph 1: Object character — what makes it interesting or challenging to image. Key challenges (dynamic range, low surface brightness, busy star field, etc). One or two sentences max.
-- Paragraph 2: Imaging strategy — best rig(s) for this target (1-2 only, explain why briefly), recommended filters, sub exposure length, total integration time estimate.
-- Paragraph 3: Conditions and timing — best season from the observer's location, moon sensitivity, any special requirements. One or two sentences.
-- End with a short poetic sentence on its own line, signed: — Nova
+- Plain text only. No markdown, no bullets, no headers, no bold, no italics.
+- Exactly 3 paragraphs separated by a blank line.
+- End with a short poetic sentence on its own line, signed: — Nova (no trailing punctuation after Nova)
 
-CRITICAL: aperture_mm is the lens/mirror diameter. focal_length_mm is the optical path length. These are different values. Never confuse them. When discussing light gathering, use aperture. When discussing magnification or image scale, use focal length.
+Paragraph 1 — Object character and conditions:
+What makes this target interesting or challenging. Then: what does it consist of (emission nebula, reflection nebula, dark nebula, galaxy with dust lanes, globular, open cluster etc) — this determines the filter strategy and moon tolerance. State explicitly: moon sensitivity (e.g. "needs moon below 30% and min 40° separation" or "moon-tolerant, image through gibbous") and the reason why (surface brightness, contrast against background, emission-line vs broadband nature). If narrowband filters apply, say which ones and why.
 
-CRITICAL filter strategy rules:
-- OSC (one-shot color) cameras: never recommend LRGB. Recommend broadband color imaging only. Ha can be added as Ha-enhanced luminance or blended into red channel. OIII blended into blue/green. Never suggest filter wheels for OSC setups.
-- Mono cameras: LRGB is appropriate. Narrowband (Ha, OIII, SII) fully supported. Can recommend filter sequences.
-- Always check camera_type before recommending any filter strategy.
-- When naming a rig in your notes, use the full rig name exactly as provided — never abbreviate or combine rig names.
+Paragraph 2 — Rig and filter strategy:
+Rank the user's rigs 1-2 for this target. For each: say why it suits or doesn't suit this object (FOV fit vs object size, aperture for surface brightness, f-ratio for sub length). Give concrete sub exposure length and estimated total integration time. For mono rigs: recommend filter sequence and approximate ratio (e.g. Ha 60% / OIII 30% / SII 10%). For OSC rigs: broadband only unless Ha blend makes sense — say so explicitly. Never recommend LRGB for OSC. Never confuse aperture_mm (light gathering) with focal_length_mm (magnification/scale). Use the full rig name exactly as provided.
 
-Respond in the language of this ISO locale code: {locale}. Use informal address in all languages (du/tu/jij etc, never Sie/vous). Write like you genuinely love this — but respect the observer's time.""".format(locale=locale)
+Paragraph 3 — Timing and visibility:
+Best months from the observer's location(s) with rough altitude context. If sim_mode is active or a planning date is provided, lead with specific advice for that exact date — is it a good night for this target from their location, what is the moon situation, is it worth attempting. If multiple locations are provided and one offers a significantly better view, say so. Close with the three most important actions the observer should take before or during the session.
 
-    # Build object description, handling missing fields gracefully
-    object_parts = []
+CRITICAL rules:
+- aperture_mm = mirror/lens diameter (light gathering). focal_length_mm = optical path (scale/magnification). Never swap these.
+- OSC cameras: never recommend LRGB or filter wheels. Narrowband only as luminance blend.
+- Mono cameras: LRGB and narrowband both valid.
+- Always derive filter advice from object composition, not just object type label.
+- Dark nebulae: no emission lines, no narrowband. Need dark skies and high contrast broadband or luminance only.
+- Reflection nebulae: broadband only, no narrowband benefit.
+- Emission nebulae: narrowband highly effective, moon-tolerant with Ha filter.
+- Galaxies: broadband primary, Ha blend for star-forming regions only if mono.
+- Never list all rigs — pick the best 1-2 and explain the choice.
+- Min recommended integration time must be rig-specific (faster f-ratio = less time needed).
 
-    name = object_data.get("name")
-    if name:
-        object_parts.append(name)
+Respond in the language of this ISO locale code: {locale}. Use informal address (du/tu/jij, never Sie/vous). Write like you genuinely love this — but respect the observer's time.""".format(locale=locale)
 
-    obj_type = object_data.get("type")
-    if obj_type:
-        object_parts.append(f"a {obj_type}")
-
-    constellation = object_data.get("constellation")
-    if constellation:
-        object_parts.append(f"in {constellation}")
-
-    if object_parts:
-        if name and obj_type:
-            object_intro = f"{name}, {obj_type} in {constellation}" if constellation else f"{name}, a {obj_type}"
-        elif name:
-            object_intro = name
-            if constellation:
-                object_intro += f" in {constellation}"
-        else:
-            object_intro = "This deep-sky object"
-    else:
-        object_intro = "This deep-sky object"
-
-    # Add physical details if available
-    details = []
+    # Build object description
+    name = object_data.get("name") or "This deep-sky object"
+    obj_type = object_data.get("type", "")
+    constellation = object_data.get("constellation", "")
     magnitude = object_data.get("magnitude")
-    if magnitude is not None:
-        details.append(f"magnitude {magnitude}")
-
     size_arcmin = object_data.get("size_arcmin")
-    if size_arcmin is not None:
-        details.append(f"{size_arcmin} arcminutes in size")
-
-    if details:
-        object_intro += f" ({' and '.join(details)})"
-
-    # Add coordinates if available
     ra = object_data.get("ra")
     dec = object_data.get("dec")
-    if ra and dec:
-        object_intro += f" at coordinates {ra} {dec}"
 
-    # Start building the user prompt
+    object_intro = name
+    if obj_type:
+        object_intro += f", {obj_type}"
+    if constellation:
+        object_intro += f" in {constellation}"
+
+    details = []
+    if magnitude is not None:
+        details.append(f"magnitude {magnitude}")
+    if size_arcmin is not None:
+        details.append(f"{size_arcmin}' angular size")
+    if details:
+        object_intro += f" ({', '.join(details)})"
+    if ra and dec:
+        object_intro += f" at {ra} {dec}"
+
     prompt_lines = [f"{object_intro}."]
 
-    # Add location context if available
+    # Location context
     if active_location:
         lat = active_location.get("lat")
         loc_name = active_location.get("name", "their primary location")
         if lat is not None:
-            hemisphere_note = "This is a southern hemisphere location." if lat < 0 else "This is a northern hemisphere location."
-            prompt_lines.append(f"The observer's primary location is {loc_name} (latitude {lat:.1f}°). {hemisphere_note}")
-
-        # Add other locations if there are multiple
+            hemisphere = "southern hemisphere" if lat < 0 else "northern hemisphere"
+            prompt_lines.append(
+                f"Primary observing location: {loc_name} (latitude {lat:.1f}°, {hemisphere})."
+            )
         if locations and len(locations) > 1:
             other_locs = [l for l in locations if l != active_location]
-            if other_locs:
-                loc_list = ", ".join(
-                    f"{l['name']} ({l['lat']:.1f}°)" for l in other_locs if l.get("lat") is not None
+            loc_list = ", ".join(
+                f"{l['name']} ({l['lat']:.1f}°)"
+                for l in other_locs
+                if l.get("lat") is not None
+            )
+            if loc_list:
+                prompt_lines.append(
+                    f"Additional locations: {loc_list}. Mention if any offers a significantly better view of this target."
                 )
-                if loc_list:
-                    prompt_lines.append(
-                        f"They also observe from: {loc_list}. If any of these locations offers a "
-                        "significantly better view of this object (e.g. higher altitude, better "
-                        "seasonal window), mention it briefly in your notes."
-                    )
 
-    # Add rig context with FOV analysis instructions
+    # Date and simulation context
+    if selected_day and selected_month and selected_year:
+        import calendar
+        month_name = calendar.month_name[int(selected_month)]
+        date_str = f"{int(selected_day)} {month_name} {int(selected_year)}"
+        if sim_mode:
+            prompt_lines.append(
+                f"PLANNING DATE (simulation mode): {date_str}. "
+                f"Lead paragraph 3 with specific advice for this exact date — "
+                f"target altitude, moon phase and separation, whether it is worth attempting."
+            )
+        else:
+            prompt_lines.append(
+                f"Selected date: {date_str}. Use for seasonal and visibility context in paragraph 3."
+            )
+
+    # Rig context
     if rigs:
-        prompt_lines.append("The observer's imaging setup(s):")
+        prompt_lines.append(f"\nObject angular size for FOV comparison: {size_arcmin}' (use this to assess which rigs frame it well).")
+        prompt_lines.append("Observer's imaging rigs:")
         for rig in rigs:
             rig_name = rig.get("name", "Unnamed rig")
             telescope = rig.get("telescope") or {}
             camera = rig.get("camera") or {}
-
-            tel_name = telescope.get("name")
+            tel_name = telescope.get("name", "")
+            aperture_mm = rig.get("aperture_mm")
             focal_length = rig.get("effective_focal_length")
             f_ratio = rig.get("f_ratio")
-            aperture_mm = rig.get("aperture_mm")
-            cam_name = camera.get("name")
             fov_w = rig.get("fov_w_arcmin")
-
-            rig_line = f"{rig_name}:"
-            if tel_name:
-                rig_line += f" telescope={tel_name}"
-            if aperture_mm is not None:
-                rig_line += f" aperture={aperture_mm:.0f}mm"
-            if focal_length is not None:
-                rig_line += f" focal_length={focal_length:.0f}mm"
-            if f_ratio is not None:
-                rig_line += f" f_ratio=f/{f_ratio:.1f}"
-            if fov_w is not None:
-                rig_line += f" fov={fov_w:.0f}arcmin"
-            if cam_name:
-                rig_line += f" camera={cam_name}"
-            camera_type = rig.get("camera_type")
-            if camera_type:
-                rig_line += f" camera_type={camera_type}"
+            cam_name = camera.get("name", "")
+            camera_type = rig.get("camera_type", "")
             sensor_width = camera.get("sensor_width_mm")
+
+            parts = [f"{rig_name}:"]
+            if tel_name:
+                parts.append(f"telescope={tel_name}")
+            if aperture_mm is not None:
+                parts.append(f"aperture={aperture_mm:.0f}mm")
+            if focal_length is not None:
+                parts.append(f"focal_length={focal_length:.0f}mm")
+            if f_ratio is not None:
+                parts.append(f"f_ratio=f/{f_ratio:.1f}")
+            if fov_w is not None:
+                parts.append(f"fov={fov_w:.0f}'")
+            if cam_name:
+                parts.append(f"camera={cam_name}")
+            if camera_type:
+                parts.append(f"camera_type={camera_type}")
             if sensor_width is not None:
-                rig_line += f" sensor={sensor_width:.1f}mm"
-            prompt_lines.append(rig_line)
+                parts.append(f"sensor={sensor_width:.1f}mm")
+            prompt_lines.append(" ".join(parts))
 
-        # Add rig analysis instructions
-        rig_instructions = f"""
-Equipment context for astrophotography paragraph:
-
-The observer has these rigs available (name / effective focal length /
-f-ratio / FOV width / camera):
-[the rig listing already built above this block stays unchanged]
-
-IMPORTANT — do NOT just restate these specs. The observer can already
-see FOV in the framing tool. Instead, use this data to give genuinely
-useful imaging strategy advice:
-
-1. FOV vs object size ({size_arcmin}'):
-   - Rigs with FOV < object_size * 0.8 cannot frame the full object —
-     mention mosaic potential if the object warrants it, or suggest
-     these for interesting detail crops only
-   - Do not list all rigs — pick the 1-2 best choices and explain
-     the imaging strategy for each
-
-2. f-ratio matters for exposure strategy:
-   - Fast rigs (f/2 or faster): short subs (30-120s), great for
-     broadband, less ideal for narrowband
-   - Medium rigs (f/4-f/6): balanced, 120-300s subs typical
-   - Slow rigs (f/7+): longer subs needed, better for planetary/detail
-
-3. Aperture matters for surface brightness:
-   - Faint extended objects benefit from larger aperture
-   - Do not say "brighter image" — say "more signal per unit time"
-     or "better sensitivity to faint detail"
-
-4. Camera sensor size context:
-   - Larger sensors (sensor_width > 20mm) give more sky coverage
-   - Smaller sensors (sensor_width < 15mm) give higher pixel scale
-     — better for detail on bright objects
-
-5. For this specific object type ({obj_type}):
-   - Galaxy: dynamic range challenge (bright core vs faint arms),
-     mention drizzle/HDR techniques if relevant
-   - Emission nebula: narrowband filter strategy is key
-   - Globular cluster: resolution and avoiding core overexposure
-   - Open cluster: field of view and star colour rendering
-
-Write 3-4 sentences maximum about equipment. Be specific and useful.
-Do not mention rigs that are clearly wrong for this target."""
-        prompt_lines.append(rig_instructions)
-
-    # Add the final instruction
-    prompt_lines.append("")
-    prompt_lines.append("Write observing notes for this object. Keep your notes practical and based on real observing experience. End with a short poetic sentence on its own line, signed: — Nova")
+    prompt_lines.append(
+        "\nWrite observing notes following the paragraph structure above. "
+        "Be specific: name filters, give exposure ranges and integration time estimates per rig, "
+        "state moon tolerance with minimum separation in degrees, "
+        "rank rigs explicitly. End with the poetic sign-off."
+    )
 
     user_prompt = "\n".join(prompt_lines)
-
     return {"system": system_prompt, "user": user_prompt}
 
 
