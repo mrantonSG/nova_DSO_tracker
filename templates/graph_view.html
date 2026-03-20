@@ -461,7 +461,27 @@ document.addEventListener('DOMContentLoaded', function() {
             // Helper to execute the fetch with a specific mode
             function fetchNotes(mode) {
                 btn.disabled = true;
-                btn.textContent = '⏳ Thinking...';
+                btn.style.color = 'var(--text-color, #333)';
+                btn.style.fontStyle = 'italic';
+                btn.style.opacity = '1';
+
+                // Build message sequence with location name
+                var locName = (window.NOVA_GRAPH_DATA && window.NOVA_GRAPH_DATA.activeLoc) || 'your location';
+                var novaMessages = [
+                    "Consulting the star charts...",
+                    "Checking your rigs...",
+                    "Scanning the cosmos...",
+                    "Calculating from " + locName + "...",
+                    "Almost there..."
+                ];
+
+                // Start message animation
+                var msgIndex = 0;
+                btn.textContent = novaMessages[msgIndex];
+                var msgInterval = setInterval(function() {
+                    msgIndex = (msgIndex + 1) % novaMessages.length;
+                    btn.textContent = novaMessages[msgIndex];
+                }, 2500);
 
                 // Remove any previous error
                 var prevErr = document.getElementById('ai-notes-error');
@@ -477,6 +497,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     return resp.json();
                 })
                 .then(function(data) {
+                    clearInterval(msgInterval);
                     var trixEditor = document.querySelector('trix-editor#project-field-editor');
                     if (trixEditor && trixEditor.editor) {
                         if (mode === 'overwrite') {
@@ -486,10 +507,17 @@ document.addEventListener('DOMContentLoaded', function() {
                             trixEditor.editor.loadHTML(current + (data.notes || ''));
                         }
                     }
+                    btn.style.color = '';
+                    btn.style.fontStyle = '';
+                    btn.style.opacity = '';
                     btn.textContent = '💡 Ask Nova';
                     btn.disabled = false;
                 })
                 .catch(function(err) {
+                    clearInterval(msgInterval);
+                    btn.style.color = '';
+                    btn.style.fontStyle = '';
+                    btn.style.opacity = '';
                     btn.textContent = '💡 Ask Nova';
                     btn.disabled = false;
 

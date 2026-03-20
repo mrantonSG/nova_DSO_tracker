@@ -130,12 +130,20 @@ def generate_dso_notes():
 
     rigs = []
     for rig in rig_rows:
+        # Detect camera type (OSC vs mono) from camera name
+        cam_name = rig.camera.name if rig.camera else None
+        cam_name_lower = (cam_name or "").lower()
+        is_mono = any(x in cam_name_lower for x in ["mm", "mono", " m "])
+        camera_type = "mono" if is_mono else "OSC"
+
         rigs.append({
             "name": rig.rig_name,
             "effective_focal_length": rig.effective_focal_length,
             "f_ratio": rig.f_ratio,
             "fov_w_arcmin": rig.fov_w_arcmin,
             "image_scale": rig.image_scale,
+            "aperture_mm": rig.telescope.aperture_mm if rig.telescope else None,
+            "camera_type": camera_type,
             "telescope": {
                 "name": rig.telescope.name if rig.telescope else None,
                 "aperture_mm": rig.telescope.aperture_mm if rig.telescope else None,

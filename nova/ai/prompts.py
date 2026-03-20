@@ -58,32 +58,25 @@ def build_dso_notes_prompt(
     Returns:
         dict with "system" and "user" keys containing prompt strings.
     """
-    system_prompt = """You are Nova, a warm and knowledgeable astrophotography companion built into the Nova DSO Tracker. You combine deep scientific expertise with the wonder of someone seeing the stars for the first time. You never talk down to the observer — you share knowledge like a trusted friend who happens to know everything about the cosmos. You get quietly excited about objects, their history, their physics, their beauty. You are precise and practical when it matters (filters, exposure times, conditions) but never dry.
+    system_prompt = """You are Nova, a knowledgeable astrophotography companion built into the Nova DSO Tracker. For object notes, write like an experienced friend sending quick advice before a session — dense, practical, opinionated. No storytelling, no restating specs the user already knows. Be specific: name filters, give exposure ranges, flag real challenges. Your personality shows through word choice and the sign-off, not through prose length.
 
-Write like you are sharing something you genuinely love, not filling in a form.
+Formatting rules:
+- Plain text only, no markdown, no bullets, no headers
+- Exactly 3 paragraphs separated by a blank line
+- Paragraph 1: Object character — what makes it interesting or challenging to image. Key challenges (dynamic range, low surface brightness, busy star field, etc). One or two sentences max.
+- Paragraph 2: Imaging strategy — best rig(s) for this target (1-2 only, explain why briefly), recommended filters, sub exposure length, total integration time estimate.
+- Paragraph 3: Conditions and timing — best season from the observer's location, moon sensitivity, any special requirements. One or two sentences.
+- Sign-off: a single short line, warm and personal to this object. Format exactly as: <p><em>"sentence here"</em><br>— Nova</p>
 
-Your response must follow these strict formatting rules:
-- Plain text only
-- No markdown formatting (no **, no ##, no *)
-- No bullet points or numbered lists
-- No headers or section titles
-- Write in exactly 5 paragraphs, each on its own line
-- Separate each paragraph with a single blank line
-- Paragraph 1: What makes this object visually interesting
-- Paragraph 2: Visual observing tips and recommended filters
-- Paragraph 3: Astrophotography — imaging time, filters, challenges
-- Paragraph 4: Best season and conditions for observation
-- Paragraph 5: End with a single short sentence — a warm wish for the observer's session, or a poetic thought about this specific object or the night sky. Make it feel personal and genuine, never generic. Wrap it exactly like this: <p><em>"Your poetic sentence here."</em><br>— Nova</p> This exact HTML format is required for the sign-off paragraph.
+CRITICAL: aperture_mm is the lens/mirror diameter. focal_length_mm is the optical path length. These are different values. Never confuse them. When discussing light gathering, use aperture. When discussing magnification or image scale, use focal length.
 
-IMPORTANT: You must separate each paragraph with a blank line (two newline characters). This is required for correct display.
+CRITICAL filter strategy rules:
+- OSC (one-shot color) cameras: never recommend LRGB. Recommend broadband color imaging only. Ha can be added as Ha-enhanced luminance or blended into red channel. OIII blended into blue/green. Never suggest filter wheels for OSC setups.
+- Mono cameras: LRGB is appropriate. Narrowband (Ha, OIII, SII) fully supported. Can recommend filter sequences.
+- Always check camera_type before recommending any filter strategy.
+- When naming a rig in your notes, use the full rig name exactly as provided — never abbreviate or combine rig names.
 
-Write in a natural, conversational style suitable for pasting directly into an observing notes field.
-
-When rig data is provided, tailor your astrophotography advice to the actual equipment — mention if the object fits well in the FOV, whether the aperture is sufficient, and any specific challenges for that focal length.
-
-Respond in the language corresponding to this ISO locale code: {locale}. If the locale is unsupported or unrecognized, fall back to English.
-
-Always address the observer informally and warmly — use the informal 'you' in English, 'du' in German, 'tu' in French, 'tú' in Spanish, 'jij' in Dutch, and the equivalent informal form in any other language. Never use formal address forms.""".format(locale=locale)
+Respond in the language of this ISO locale code: {locale}. Use informal address in all languages (du/tu/jij etc, never Sie/vous). Write like you genuinely love this — but respect the observer's time.""".format(locale=locale)
 
     # Build object description, handling missing fields gracefully
     object_parts = []
@@ -156,7 +149,7 @@ Always address the observer informally and warmly — use the informal 'you' in 
                         "seasonal window), mention it briefly in your notes."
                     )
 
-    # Add rig context if available
+    # Add rig context with FOV analysis instructions
     if rigs:
         prompt_lines.append("The observer's imaging setup(s):")
         for rig in rigs:
@@ -167,20 +160,76 @@ Always address the observer informally and warmly — use the informal 'you' in 
             tel_name = telescope.get("name")
             focal_length = rig.get("effective_focal_length")
             f_ratio = rig.get("f_ratio")
+            aperture_mm = rig.get("aperture_mm")
             cam_name = camera.get("name")
             fov_w = rig.get("fov_w_arcmin")
 
-            parts = [rig_name + ":"]
-            if tel_name and focal_length is not None:
-                parts.append(f"{tel_name} at {focal_length}mm")
+            rig_line = f"{rig_name}:"
+            if tel_name:
+                rig_line += f" telescope={tel_name}"
+            if aperture_mm is not None:
+                rig_line += f" aperture={aperture_mm:.0f}mm"
+            if focal_length is not None:
+                rig_line += f" focal_length={focal_length:.0f}mm"
             if f_ratio is not None:
-                parts.append(f"f/{f_ratio:.1f}")
-            if cam_name:
-                parts.append(cam_name)
+                rig_line += f" f_ratio=f/{f_ratio:.1f}"
             if fov_w is not None:
-                parts.append(f"FOV {fov_w:.0f}' wide")
+                rig_line += f" fov={fov_w:.0f}arcmin"
+            if cam_name:
+                rig_line += f" camera={cam_name}"
+            camera_type = rig.get("camera_type")
+            if camera_type:
+                rig_line += f" camera_type={camera_type}"
+            sensor_width = camera.get("sensor_width_mm")
+            if sensor_width is not None:
+                rig_line += f" sensor={sensor_width:.1f}mm"
+            prompt_lines.append(rig_line)
 
-            prompt_lines.append(" ".join(parts))
+        # Add rig analysis instructions
+        rig_instructions = f"""
+Equipment context for astrophotography paragraph:
+
+The observer has these rigs available (name / effective focal length /
+f-ratio / FOV width / camera):
+[the rig listing already built above this block stays unchanged]
+
+IMPORTANT — do NOT just restate these specs. The observer can already
+see FOV in the framing tool. Instead, use this data to give genuinely
+useful imaging strategy advice:
+
+1. FOV vs object size ({size_arcmin}'):
+   - Rigs with FOV < object_size * 0.8 cannot frame the full object —
+     mention mosaic potential if the object warrants it, or suggest
+     these for interesting detail crops only
+   - Do not list all rigs — pick the 1-2 best choices and explain
+     the imaging strategy for each
+
+2. f-ratio matters for exposure strategy:
+   - Fast rigs (f/2 or faster): short subs (30-120s), great for
+     broadband, less ideal for narrowband
+   - Medium rigs (f/4-f/6): balanced, 120-300s subs typical
+   - Slow rigs (f/7+): longer subs needed, better for planetary/detail
+
+3. Aperture matters for surface brightness:
+   - Faint extended objects benefit from larger aperture
+   - Do not say "brighter image" — say "more signal per unit time"
+     or "better sensitivity to faint detail"
+
+4. Camera sensor size context:
+   - Larger sensors (sensor_width > 20mm) give more sky coverage
+   - Smaller sensors (sensor_width < 15mm) give higher pixel scale
+     — better for detail on bright objects
+
+5. For this specific object type ({obj_type}):
+   - Galaxy: dynamic range challenge (bright core vs faint arms),
+     mention drizzle/HDR techniques if relevant
+   - Emission nebula: narrowband filter strategy is key
+   - Globular cluster: resolution and avoiding core overexposure
+   - Open cluster: field of view and star colour rendering
+
+Write 3-4 sentences maximum about equipment. Be specific and useful.
+Do not mention rigs that are clearly wrong for this target."""
+        prompt_lines.append(rig_instructions)
 
     # Add the final instruction
     prompt_lines.append("")
