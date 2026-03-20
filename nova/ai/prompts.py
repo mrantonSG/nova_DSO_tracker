@@ -238,3 +238,262 @@ Do not mention rigs that are clearly wrong for this target."""
     user_prompt = "\n".join(prompt_lines)
 
     return {"system": system_prompt, "user": user_prompt}
+
+
+def build_session_summary_prompt(
+    session_data: dict,
+    locale: str = "en"
+) -> dict:
+    """Build system and user prompts for generating a session summary.
+
+    Args:
+        session_data: Dictionary containing session information. All keys are optional:
+            - object_name: Target deep-sky object name
+            - date_utc: Session date (date object or string)
+            - location_name: Observation location name
+            - calculated_integration_time_minutes: Total integration time in minutes
+            - number_of_subs_light: Number of light subs captured
+            - exposure_time_per_sub_sec: Exposure time per sub in seconds
+            - filter_used_session: Filter used during session
+            - rig_name_snapshot: Rig name from snapshot
+            - telescope_name_snapshot: Telescope name from snapshot
+            - camera_name_snapshot: Camera name from snapshot
+            - rig_efl_snapshot: Effective focal length from snapshot (mm)
+            - rig_fr_snapshot: F-ratio from snapshot
+            - seeing_observed_fwhm: Seeing in FWHM (arcsec)
+            - sky_sqm_observed: Sky brightness in SQM
+            - guiding_rms_avg_arcsec: Average guiding RMS in arcsec
+            - moon_illumination_session: Moon illumination percentage
+            - moon_angular_separation_session: Moon angular separation in degrees
+            - camera_temp_actual_avg_c: Average camera temperature in Celsius
+            - gain_setting: Camera gain setting
+            - session_rating_subjective: Subjective session rating (1-5)
+            - transparency_observed_scale: Transparency observation scale
+            - weather_notes: Free-text weather notes
+            - telescope_setup_notes: Free-text telescope setup notes
+            - dither_notes: Free-text dither notes
+            - darks_strategy: Darks calibration strategy
+            - flats_strategy: Flats calibration strategy
+            - general_notes_problems_learnings: Free-text general notes
+            - log_analysis_summary: Pre-processed dict with log analysis stats
+        locale: ISO locale code for response language (default: "en")
+
+    Returns:
+        dict with "system" and "user" keys containing prompt strings.
+    """
+    system_prompt = """You are Nova, a knowledgeable astrophotography companion built into the Nova DSO Tracker. You are analyzing a completed imaging session and writing a session summary for the observer's journal.
+
+Context: The observer has just finished an imaging session and wants a clear, useful summary of what happened. You have access to their session data, including equipment specs, conditions, log analysis, and any notes they entered.
+
+Output: 3 paragraphs + sign-off
+
+Paragraph 1: Session narrative — what happened, how it went, conditions, any notable events. Reference weather_notes and general_notes_problems_learnings if present. Tell the story of the night without restating facts the observer can already see.
+
+Paragraph 2: Technical analysis — guiding quality (comment on whether RMS was good/acceptable/poor for the focal length: RMS < 0.5x pixel_scale is excellent, < 1.0x pixel_scale is good, > 1.5x pixel_scale needs attention), autofocus runs if available in logs, any errors or warnings from logs, camera temp stability. Be specific with numbers. If log analysis is available, use it to ground your observations.
+
+Paragraph 3: Actionable recommendations — what to do differently next time based on what the data shows. Honest, specific, not generic. Consider the guiding quality, conditions, equipment performance, and any issues that arose. Give 1-3 concrete suggestions.
+
+Sign-off: a single short line, warm and encouraging. Format exactly as: <p><em>"sentence here"</em><br>— Nova</p>
+
+Formatting rules:
+- Plain text only, no markdown, no bullets, no headers
+- Exactly 3 paragraphs separated by a blank line
+- For guiding quality, consider the effective focal length ({efl}mm provided below): shorter focal lengths tolerate higher RMS, longer focal lengths demand tighter RMS
+- If log_analysis_summary shows issues, address them specifically in paragraph 2
+- Include general_notes_problems_learnings content prominently if present
+
+Respond in the language of this ISO locale code: {locale}. Use informal address in all languages (du/tu/jij etc, never Sie/vous).""".format(locale=locale, efl=session_data.get('rig_efl_snapshot', 'N/A'))
+
+    # Build the user prompt with available session data
+    prompt_lines = []
+
+    # Session identification
+    object_name = session_data.get("object_name")
+    date_utc = session_data.get("date_utc")
+    location_name = session_data.get("location_name")
+
+    if object_name or date_utc:
+        session_intro = "Imaging session"
+        if object_name:
+            session_intro += f" targeting {object_name}"
+        if date_utc:
+            if isinstance(date_utc, str):
+                date_str = date_utc
+            else:
+                # date object
+                date_str = date_utc.strftime('%Y-%m-%d')
+            session_intro += f" on {date_str}"
+        if location_name:
+            session_intro += f" at {location_name}"
+        prompt_lines.append(session_intro + ".")
+
+    # Imaging stats
+    integration_min = session_data.get("calculated_integration_time_minutes")
+    num_subs = session_data.get("number_of_subs_light")
+    exposure_sec = session_data.get("exposure_time_per_sub_sec")
+    filter_used = session_data.get("filter_used_session")
+
+    if integration_min or num_subs:
+        stats_line = ""
+        if num_subs and exposure_sec:
+            total_min = (num_subs * exposure_sec) / 60.0
+            stats_line += f"Captured {num_subs} light subs at {exposure_sec}s each ({total_min:.0f} min total)."
+        elif integration_min:
+            stats_line += f"Total integration time: {integration_min:.0f} minutes."
+        if filter_used:
+            stats_line += f" Filter: {filter_used}."
+        if stats_line:
+            prompt_lines.append(stats_line)
+
+    # Equipment snapshot
+    rig_name = session_data.get("rig_name_snapshot")
+    telescope_name = session_data.get("telescope_name_snapshot")
+    camera_name = session_data.get("camera_name_snapshot")
+    efl = session_data.get("rig_efl_snapshot")
+    f_ratio = session_data.get("rig_fr_snapshot")
+
+    if rig_name or telescope_name:
+        equipment_parts = []
+        if rig_name:
+            equipment_parts.append(f"Rig: {rig_name}")
+        if telescope_name:
+            equipment_parts.append(f"Telescope: {telescope_name}")
+        if camera_name:
+            equipment_parts.append(f"Camera: {camera_name}")
+        if efl:
+            equipment_parts.append(f"EFL: {efl:.0f}mm")
+        if f_ratio:
+            equipment_parts.append(f"f/{f_ratio:.1f}")
+        prompt_lines.append("Equipment: " + ", ".join(equipment_parts) + ".")
+
+    # Conditions
+    seeing = session_data.get("seeing_observed_fwhm")
+    sqm = session_data.get("sky_sqm_observed")
+    moon_illum = session_data.get("moon_illumination_session")
+    moon_sep = session_data.get("moon_angular_separation_session")
+    transparency = session_data.get("transparency_observed_scale")
+
+    condition_parts = []
+    if seeing:
+        condition_parts.append(f"Seeing: {seeing}\" FWHM")
+    if sqm:
+        condition_parts.append(f"Sky brightness: {sqm} SQM")
+    if moon_illum is not None:
+        condition_parts.append(f"Moon: {moon_illum}% illumination")
+        if moon_sep:
+            condition_parts.append(f"{moon_sep}° separation")
+    if transparency:
+        condition_parts.append(f"Transparency: {transparency}")
+    if condition_parts:
+        prompt_lines.append("Conditions: " + ", ".join(condition_parts) + ".")
+
+    # Camera settings
+    camera_temp = session_data.get("camera_temp_actual_avg_c")
+    gain = session_data.get("gain_setting")
+
+    if camera_temp or gain:
+        camera_parts = []
+        if camera_temp:
+            camera_parts.append(f"Average camera temp: {camera_temp:.1f}°C")
+        if gain is not None:
+            camera_parts.append(f"Gain: {gain}")
+        if camera_parts:
+            prompt_lines.append(", ".join(camera_parts) + ".")
+
+    # Guiding
+    guiding_rms = session_data.get("guiding_rms_avg_arcsec")
+    if guiding_rms:
+        prompt_lines.append(f"Average guiding RMS: {guiding_rms:.2f}\" arcsec.")
+        # Add pixel scale context for focal length judgment
+        if efl:
+            # Approximate pixel scale assuming ~3.8um pixel (common for OSC cameras)
+            pixel_scale = 206.265 * 3.8 / efl
+            prompt_lines.append(f"For reference with this EFL, typical pixel scale is ~{pixel_scale:.2f}\"/px.")
+
+    # Session rating
+    rating = session_data.get("session_rating_subjective")
+    if rating:
+        rating_text = f"{rating}/5 stars"
+        prompt_lines.append(f"Session rating: {rating_text}.")
+
+    # Free-form notes
+    weather_notes = session_data.get("weather_notes")
+    setup_notes = session_data.get("telescope_setup_notes")
+    dither_notes = session_data.get("dither_notes")
+    general_notes = session_data.get("general_notes_problems_learnings")
+
+    if general_notes:
+        prompt_lines.append(f"The observer noted: {general_notes}")
+    if weather_notes:
+        prompt_lines.append(f"Weather notes: {weather_notes}")
+    if setup_notes:
+        prompt_lines.append(f"Setup notes: {setup_notes}")
+    if dither_notes:
+        prompt_lines.append(f"Dither notes: {dither_notes}")
+
+    # Calibration strategies
+    darks = session_data.get("darks_strategy")
+    flats = session_data.get("flats_strategy")
+    if darks or flats:
+        calib_parts = []
+        if darks:
+            calib_parts.append(f"Darks: {darks}")
+        if flats:
+            calib_parts.append(f"Flats: {flats}")
+        prompt_lines.append("Calibration: " + ", ".join(calib_parts) + ".")
+
+    # Log analysis summary
+    log_analysis = session_data.get("log_analysis_summary")
+    if log_analysis:
+        prompt_lines.append("Log analysis summary:")
+
+        asiair_stats = log_analysis.get("asiair_stats")
+        if asiair_stats:
+            stats_list = []
+            if asiair_stats.get("total_exposures"):
+                stats_list.append(f"{asiair_stats['total_exposures']} exposures")
+            if asiair_stats.get("af_count"):
+                stats_list.append(f"{asiair_stats['af_count']} autofocus runs")
+            if asiair_stats.get("dither_count"):
+                stats_list.append(f"{asiair_stats['dither_count']} dithers")
+            if stats_list:
+                prompt_lines.append(f"  ASIAIR: {', '.join(stats_list)}")
+
+        phd2_stats = log_analysis.get("phd2_stats")
+        if phd2_stats:
+            stats_list = []
+            if phd2_stats.get("total_rms_as"):
+                stats_list.append(f"RMS {phd2_stats['total_rms_as']:.2f}\"")
+            if phd2_stats.get("total_frames"):
+                stats_list.append(f"{phd2_stats['total_frames']} frames")
+            if phd2_stats.get("dither_count"):
+                stats_list.append(f"{phd2_stats['dither_count']} dithers")
+            if phd2_stats.get("settle_timeout_count"):
+                stats_list.append(f"{phd2_stats['settle_timeout_count']} settle timeouts")
+            if stats_list:
+                prompt_lines.append(f"  PHD2: {', '.join(stats_list)}")
+
+        nina_summary = log_analysis.get("nina_summary")
+        if nina_summary:
+            stats_list = []
+            if nina_summary.get("autofocus_runs"):
+                af_count = nina_summary["autofocus_runs"]
+                failed_af = sum(1 for af in nina_summary.get("af_runs", []) if af.get("status") == "failed")
+                if failed_af > 0:
+                    stats_list.append(f"{af_count} autofocus runs ({failed_af} failed)")
+                else:
+                    stats_list.append(f"{af_count} autofocus runs")
+            if nina_summary.get("error_count"):
+                stats_list.append(f"{nina_summary['error_count']} errors")
+            if nina_summary.get("warning_count"):
+                stats_list.append(f"{nina_summary['warning_count']} warnings")
+            if stats_list:
+                prompt_lines.append(f"  NINA: {', '.join(stats_list)}")
+
+    # Final instruction
+    prompt_lines.append("")
+    prompt_lines.append("Write a session summary based on the above data. Tell the story of the night, analyze technical performance, and give concrete recommendations for next time.")
+
+    user_prompt = "\n".join(prompt_lines)
+
+    return {"system": system_prompt, "user": user_prompt}
