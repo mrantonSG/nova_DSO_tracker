@@ -434,6 +434,22 @@
 
 {# AI Notes button - desktop only #}
 <script>
+const graphI18n = {
+    askNova:             '{{ _("Ask Nova") }}',
+    askNovaTitle:        '{{ _("Ask Nova for observing notes") }}',
+    consultingCharts:    '{{ _("Consulting the star charts...") }}',
+    checkingRigs:        '{{ _("Checking your rigs...") }}',
+    scanningCosmos:      '{{ _("Scanning the cosmos...") }}',
+    calculatingFrom:     '{{ _("Calculating from") }}',
+    almostThere:         '{{ _("Almost there...") }}',
+    yourLocation:        '{{ _("your location") }}',
+    novaNotesReady:      '{{ _("Nova has notes ready. What would you like to do?") }}',
+    overwrite:           '{{ _("Overwrite") }}',
+    append:              '{{ _("Append") }}',
+    cancel:              '{{ _("Cancel") }}',
+    novaError:           '{{ _("Nova couldn\'t load notes") }}',
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     // Desktop only check
     if (window.innerWidth < 768) return;
@@ -450,8 +466,8 @@ document.addEventListener('DOMContentLoaded', function() {
             var btn = document.createElement('button');
             btn.id = 'ai-notes-btn';
             btn.className = 'btn-nova-ai';
-            btn.title = 'Ask Nova for observing notes';
-            btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;font-style:normal"><path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/></svg> Ask Nova';
+            btn.title = graphI18n.askNovaTitle;
+            btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;font-style:normal"><path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/></svg> ' + graphI18n.askNova;
 
             var cardTitle = editorEl.closest('.content-section')?.querySelector('h3');
             if (cardTitle) {
@@ -477,13 +493,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 btn.disabled = true;
 
                 // Build message sequence with location name
-                var locName = (window.NOVA_GRAPH_DATA && window.NOVA_GRAPH_DATA.activeLoc) || 'your location';
+                var locName = (window.NOVA_GRAPH_DATA && window.NOVA_GRAPH_DATA.activeLoc) || graphI18n.yourLocation;
                 var novaMessages = [
-                    "Consulting the star charts...",
-                    "Checking your rigs...",
-                    "Scanning the cosmos...",
-                    "Calculating from " + locName + "...",
-                    "Almost there..."
+                    graphI18n.consultingCharts,
+                    graphI18n.checkingRigs,
+                    graphI18n.scanningCosmos,
+                    graphI18n.calculatingFrom + ' ' + locName + '...',
+                    graphI18n.almostThere
                 ];
 
                 // Start message animation
@@ -526,13 +542,13 @@ document.addEventListener('DOMContentLoaded', function() {
                             trixEditor.editor.loadHTML(current + (data.notes || ''));
                         }
                     }
-                    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;font-style:normal"><path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/></svg> Ask Nova';
+                    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;font-style:normal"><path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/></svg> ' + graphI18n.askNova;
                     btn.disabled = false;
                     btn.style.fontStyle = '';
                 })
                 .catch(function(err) {
                     clearInterval(msgInterval);
-                    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;font-style:normal"><path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/></svg> Ask Nova';
+                    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;font-style:normal"><path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/></svg> ' + graphI18n.askNova;
                     btn.disabled = false;
                     btn.style.fontStyle = '';
 
@@ -541,7 +557,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     var errDiv = document.createElement('div');
                     errDiv.id = 'ai-notes-error';
                     errDiv.style.cssText = 'color: var(--danger-color, #c00); font-size: 13px; margin-top: 6px;';
-                    errDiv.innerHTML = 'Nova couldn\'t load notes: ' + err.message + ' <button style="margin-left:6px;cursor:pointer;border:none;background:none;font-weight:bold;">[x]</button>';
+                    errDiv.innerHTML = graphI18n.novaError + ': ' + err.message + ' <button style="margin-left:6px;cursor:pointer;border:none;background:none;font-weight:bold;">[x]</button>';
 
                     var closeBtn = errDiv.querySelector('button');
                     closeBtn.addEventListener('click', function() { errDiv.remove(); });
@@ -575,14 +591,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     confirmDiv.id = 'ai-notes-confirm';
                     confirmDiv.style.cssText = 'padding: 8px; margin-bottom: 6px; border: 1px solid var(--border-color, #ccc); border-radius: 4px; font-size: 13px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;';
 
-                    confirmDiv.innerHTML = '<span>Nova has notes ready. What would you like to do?</span>' +
-                        '<button class="inline-button ai-confirm-overwrite">Overwrite</button>' +
-                        '<button class="inline-button ai-confirm-append">Append</button>';
+                    confirmDiv.innerHTML = '<span>' + graphI18n.novaNotesReady + '</span>' +
+                        '<button class="inline-button ai-confirm-overwrite">' + graphI18n.overwrite + '</button>' +
+                        '<button class="inline-button ai-confirm-append">' + graphI18n.append + '</button>';
 
                     // Create cancel button separately
                     var cancelBtn = document.createElement('button');
                     cancelBtn.className = 'inline-button-ghost ai-confirm-cancel';
-                    cancelBtn.textContent = 'Cancel';
+                    cancelBtn.textContent = graphI18n.cancel;
                     cancelBtn.onclick = function() {
                         removeConfirmUI();
                         btn.disabled = false;
