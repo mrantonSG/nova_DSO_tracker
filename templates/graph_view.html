@@ -435,19 +435,19 @@
 {# AI Notes button - desktop only #}
 <script>
 const graphI18n = {
-    askNova:             '{{ _("Ask Nova") }}',
-    askNovaTitle:        '{{ _("Ask Nova for observing notes") }}',
-    consultingCharts:    '{{ _("Consulting the star charts...") }}',
-    checkingRigs:        '{{ _("Checking your rigs...") }}',
-    scanningCosmos:      '{{ _("Scanning the cosmos...") }}',
-    calculatingFrom:     '{{ _("Calculating from") }}',
-    almostThere:         '{{ _("Almost there...") }}',
-    yourLocation:        '{{ _("your location") }}',
-    novaNotesReady:      '{{ _("Nova has notes ready. What would you like to do?") }}',
-    overwrite:           '{{ _("Overwrite") }}',
-    append:              '{{ _("Append") }}',
-    cancel:              '{{ _("Cancel") }}',
-    novaError:           '{{ _("Nova couldn\'t load notes") }}',
+    askNova:             {{ _("Ask Nova") | tojson }},
+    askNovaTitle:        {{ _("Ask Nova for observing notes") | tojson }},
+    consultingCharts:    {{ _("Consulting the star charts...") | tojson }},
+    checkingRigs:        {{ _("Checking your rigs...") | tojson }},
+    scanningCosmos:      {{ _("Scanning the cosmos...") | tojson }},
+    calculatingFrom:     {{ _("Calculating from") | tojson }},
+    almostThere:         {{ _("Almost there...") | tojson }},
+    yourLocation:        {{ _("your location") | tojson }},
+    novaNotesReady:      {{ _("Nova has notes ready. What would you like to do?") | tojson }},
+    overwrite:           {{ _("Overwrite") | tojson }},
+    append:              {{ _("Append") | tojson }},
+    cancel:              {{ _("Cancel") | tojson }},
+    novaError:           {{ _("Nova couldn't load notes") | tojson }},
 };
 
 document.addEventListener('DOMContentLoaded', function() {
