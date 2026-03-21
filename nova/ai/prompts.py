@@ -42,6 +42,8 @@ def build_dso_notes_prompt(
     selected_month: int = None,
     selected_year: int = None,
     sim_mode: bool = False,
+    moon_phase: float = None,
+    moon_separation: float = None,
     framing_context: dict = None,
 ) -> dict:
     """Build system and user prompts for generating DSO observing notes."""
@@ -183,11 +185,20 @@ Respond in the language of this ISO locale code: {locale}. Use informal address 
         month_name = calendar.month_name[int(selected_month)]
         date_str = f"{int(selected_day)} {month_name} {int(selected_year)}"
         if sim_mode:
-            prompt_lines.append(
-                f"PLANNING DATE (simulation mode): {date_str}. "
-                f"Lead paragraph 3 with specific advice for this exact date — "
-                f"target altitude, moon phase and separation, whether it is worth attempting."
-            )
+            # Build moon data string with explicit values
+            moon_str = ""
+            if moon_phase is not None and moon_separation is not None:
+                moon_str = (
+                    f"Moon illumination: {moon_phase}%. Moon separation from target: {moon_separation}°. "
+                    f"Lead paragraph 3 with specific advice for this exact date — "
+                    f"use ONLY these provided moon values, do NOT calculate or infer moon conditions yourself."
+                )
+            else:
+                moon_str = (
+                    f"Lead paragraph 3 with specific advice for this exact date — "
+                    f"target altitude, whether it is worth attempting."
+                )
+            prompt_lines.append(f"PLANNING DATE (simulation mode): {date_str}. {moon_str}")
         else:
             prompt_lines.append(
                 f"Selected date: {date_str}. Use for seasonal and visibility context in paragraph 3."

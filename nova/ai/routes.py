@@ -6,6 +6,13 @@ is present in app.config.
 
 import logging
 import re
+from datetime import datetime, time
+
+import ephem
+import pytz
+from astropy.coordinates import EarthLocation, AltAz, SkyCoord, get_body
+from astropy.time import Time
+import astropy.units as u
 
 from flask import Blueprint, current_app, jsonify, g, request, Response, stream_with_context
 from sqlalchemy.orm import selectinload
@@ -14,7 +21,7 @@ from nova.ai.config import ai_enabled, user_has_ai_access
 from nova.ai.prompts import build_dso_notes_prompt, build_session_summary_prompt
 from nova.ai.service import get_ai_response, AIServiceError
 from nova.helpers import get_db
-from nova.models import AstroObject, Location, Rig, JournalSession
+from nova.models import AstroObject, Location, Rig, JournalSession, SavedFraming
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +122,7 @@ def generate_dso_notes():
             "name": loc.name,
             "lat": loc.lat,
             "lon": loc.lon,
+            "timezone": loc.timezone,
             "is_default": loc.is_default,
             "altitude_threshold": loc.altitude_threshold,
         }
@@ -125,6 +133,48 @@ def generate_dso_notes():
         (l for l in locations if l["is_default"]),
         locations[0] if locations else None
     )
+
+    # Calculate moon phase and separation for sim_mode
+    moon_phase = None
+    moon_separation = None
+    if sim_mode and selected_day and selected_month and selected_year and active_location:
+        try:
+            from modules.astro_calculations import calculate_sun_events_cached
+
+            lat = active_location["lat"]
+            lon = active_location["lon"]
+            tz_name = active_location.get("timezone", "UTC")
+
+            # Create date object
+            date_obj = datetime(int(selected_year), int(selected_month), int(selected_day))
+            date_str = date_obj.strftime('%Y-%m-%d')
+
+            # Get sun events for astronomical dusk
+            sun_events = calculate_sun_events_cached(date_str, tz_name, lat, lon)
+            dusk_str = sun_events.get("astronomical_dusk", "21:00")
+
+            # Create timezone-aware datetime at astronomical dusk
+            local_tz = pytz.timezone(tz_name)
+            dusk_time_obj = datetime.strptime(dusk_str, "%H:%M").time()
+            dt_for_moon_local = local_tz.localize(datetime.combine(date_obj, dusk_time_obj))
+            dt_utc = dt_for_moon_local.astimezone(pytz.utc)
+
+            # Moon Phase
+            moon_phase = round(ephem.Moon(dt_utc).phase, 1)
+
+            # Angular Separation between moon and target object
+            time_obj_sep = Time(dt_utc)
+            loc_obj_sep = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+            moon_coord_sep = get_body('moon', time_obj_sep, loc_obj_sep)
+            obj_coord_sep = SkyCoord(ra=obj.ra_hours * u.hourangle, dec=obj.dec_deg * u.deg)
+            frame_sep = AltAz(obstime=time_obj_sep, location=loc_obj_sep)
+
+            sep_val = obj_coord_sep.transform_to(frame_sep).separation(moon_coord_sep.transform_to(frame_sep)).deg
+            moon_separation = round(sep_val)
+        except Exception as e:
+            logger.warning(f"Failed to calculate moon phase/separation: {e}")
+            moon_phase = None
+            moon_separation = None
 
     # Gather rig context
     rig_rows = db.query(Rig).options(
@@ -161,6 +211,42 @@ def generate_dso_notes():
             } if rig.camera else None,
         })
 
+    # Query for saved framing for this object
+    framing = db.query(SavedFraming).filter_by(
+        user_id=g.db_user.id,
+        object_name=obj.object_name
+    ).one_or_none()
+
+    rig = None
+    if framing and framing.rig_id:
+        rig = db.query(Rig).options(
+            selectinload(Rig.telescope),
+            selectinload(Rig.camera)
+        ).filter_by(id=framing.rig_id).one_or_none()
+
+        if rig is None and framing.rig_name:
+            rig = next((r for r in rig_rows if r.rig_name == framing.rig_name), None)
+
+    # Build framing context if a saved framing exists with a rig
+    framing_context = None
+    if rig:
+        # Calculate FOV height from sensor dimensions and focal length
+        # Formula: (sensor_height_mm / focal_length_mm) * 3437.75 = arcmin
+        fov_h_arcmin = None
+        if rig.camera and rig.camera.sensor_height_mm and rig.effective_focal_length:
+            fov_h_arcmin = (rig.camera.sensor_height_mm / rig.effective_focal_length) * 3437.75
+
+        framing_context = {
+            "rig_name": rig.rig_name,
+            "telescope_name": rig.telescope.name if rig.telescope else None,
+            "focal_length_mm": rig.effective_focal_length,
+            "sensor_width_mm": rig.camera.sensor_width_mm if rig.camera else None,
+            "pixel_scale_arcsec_px": rig.image_scale,
+            "fov_w_deg": (rig.fov_w_arcmin / 60) if rig.fov_w_arcmin else None,
+            "fov_h_deg": (fov_h_arcmin / 60) if fov_h_arcmin else None,
+            "f_ratio": rig.f_ratio,
+        }
+
     try:
         # Build the prompt
         prompt = build_dso_notes_prompt(
@@ -173,6 +259,9 @@ def generate_dso_notes():
             selected_month=selected_month,
             selected_year=selected_year,
             sim_mode=sim_mode,
+            moon_phase=moon_phase,
+            moon_separation=moon_separation,
+            framing_context=framing_context,
         )
 
         # Get AI response
