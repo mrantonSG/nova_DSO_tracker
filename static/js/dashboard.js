@@ -1119,7 +1119,7 @@
                     e.stopPropagation(); // Prevent row click from opening graph
 
                     // Create/show modal with rank details - use stored object name from badge
-                    showNovaRankModal(e.target.dataset.objectName, rankData.rank, rankData.reason, rankData.recommendedRig);
+                    showNovaRankModal(e.target.dataset.objectName, rankData.rank, rankData.reason, rankData.recommendedRigs);
                 });
 
                 // Insert badge before the object name
@@ -1133,9 +1133,12 @@
      * @param {string} objectName - The object name
      * @param {number} rank - The rank number
      * @param {string} reason - The reason for the ranking
-     * @param {string|null} recommendedRig - The recommended rig
+     * @param {Array} recommendedRigs - Array of recommended rig names
      */
-    function showNovaRankModal(objectName, rank, reason, recommendedRig) {
+    function showNovaRankModal(objectName, rank, reason, recommendedRigs) {
+        // Ensure recommendedRigs is an array
+        const rigs = Array.isArray(recommendedRigs) ? recommendedRigs : [];
+
         // Create modal element if it doesn't exist
         let modal = document.getElementById('nova-rank-modal');
         if (!modal) {
@@ -1159,11 +1162,10 @@
                 <div style="margin-bottom:15px;">
                     <strong>Reason:</strong> <p id="nova-rank-reason" style="margin:5px 0 0 0; line-height:1.4;"></p>
                 </div>
-                ${recommendedRig ? `
                 <div style="margin-bottom:15px;">
-                    <strong>Recommended Rig:</strong> <p id="nova-rank-rig" style="margin:5px 0 0 0; line-height:1.4;"></p>
+                    <strong>${window.t ? window.t('recommended_rigs') : 'Recommended Rigs'}:</strong>
+                    <div id="nova-rank-rigs" style="margin:5px 0 0 0; line-height:1.4;"></div>
                 </div>
-                ` : ''}
                 <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
                     <button id="nova-rank-close-btn" style="background:var(--accent-gray-medium); color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">Close</button>
                 </div>
@@ -1190,9 +1192,15 @@
         document.getElementById('nova-rank-rank').textContent = '#' + rank;
         const shortReason = reason.length > 200 ? reason.substring(0, 200) + '…' : reason;
         document.getElementById('nova-rank-reason').textContent = shortReason;
-        const rigElement = document.getElementById('nova-rank-rig');
-        if (rigElement) {
-            rigElement.textContent = recommendedRig || 'N/A';
+
+        // Display rigs as numbered list
+        const rigsElement = document.getElementById('nova-rank-rigs');
+        if (rigs.length > 0) {
+            rigsElement.innerHTML = rigs.map((rig, index) => {
+                return `${index + 1}. ${rig}`;
+            }).join('<br>');
+        } else {
+            rigsElement.textContent = 'N/A';
         }
 
         // Show modal
@@ -1252,9 +1260,36 @@
             return;
         }
 
-        // Set loading state
+        // Set loading state with alternating messages
         askNovaBtn.disabled = true;
-        askNovaBtn.textContent = window.t ? window.t('asking_nova') : 'Asking Nova...';
+
+        // Build message sequence with location name
+        const novaMessages = [
+            window.t('consulting_charts'),
+            window.t('checking_rigs'),
+            window.t('scanning_cosmos'),
+            window.t('almost_there')
+        ];
+
+        // Start message animation
+        let msgIndex = 0;
+        const msgInterval = setInterval(() => {
+            msgIndex = (msgIndex + 1) % novaMessages.length;
+            askNovaBtn.innerHTML = `
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+                    <path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/>
+                </svg>
+                ${novaMessages[msgIndex]}
+            `;
+        }, 2500);
+
+        // Set initial message
+        askNovaBtn.innerHTML = `
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+                <path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/>
+            </svg>
+            ${novaMessages[0]}
+        `;
 
         try {
             // Call the API
@@ -1292,7 +1327,7 @@
                 novaRankMap[objectNameUpper] = {
                     rank: ranked.rank,
                     reason: ranked.reason || '',
-                    recommendedRig: ranked.recommended_rig || null
+                    recommendedRigs: Array.isArray(ranked.recommended_rigs) ? ranked.recommended_rigs : []
                 };
             });
 
@@ -1310,6 +1345,9 @@
             errorDiv.textContent = window.t ? window.t('error_ask_nova') : error.message;
             errorDiv.style.display = 'block';
         } finally {
+            // Stop message animation
+            clearInterval(msgInterval);
+
             // Reset button state (remove loading, restore to default or active state)
             askNovaBtn.disabled = false;
             // Use innerHTML to preserve the SVG icon

@@ -599,15 +599,15 @@ CRITICAL OUTPUT FORMAT:
 You MUST respond with ONLY a valid JSON array. No markdown, no code blocks, no explanations before or after. The JSON must be parseable directly.
 
 Each object in the array must have these exact keys:
-- "Object": the exact object name from the input
+- "Object": the exact object name from the input. YOU MUST use the exact Object value from the input list as the "Object" key in your response. Do not add common names, parentheticals, or alternate catalog IDs. Return it character-for-character as provided.
 - "rank": integer (1 = best)
 - "reason": one sentence explaining why this object is ranked here
-- "recommended_rig": name of the best rig for this object (must be one of the provided rigs)
+- "recommended_rigs": array of up to 5 rig names in order of fit (ranked list from best to good). Must use exact rig names from the provided list. Include the most suitable rigs for this target.
 
 Example:
 [
-  {"Object": "M31", "rank": 1, "reason": "Large galaxy with excellent surface brightness, well above 50° all night. Moon at 15% won't affect it.", "recommended_rig": "Main Imaging Rig"},
-  {"Object": "NGC 7000", "rank": 2, "reason": "Compact nebula, high surface brightness. Fits well in narrowband through the 8\" scope.", "recommended_rig": "Portable Setup"}
+  {"Object": "M31", "rank": 1, "reason": "Large galaxy with excellent surface brightness, well above 50° all night. Moon at 15% won't affect it.", "recommended_rigs": ["Main Imaging Rig", "Portable Setup"]},
+  {"Object": "NGC 7000", "rank": 2, "reason": "Compact nebula, high surface brightness. Fits well in narrowband through the 8\" scope.", "recommended_rigs": ["Portable Setup", "Widefield Rig"]}
 ]
 
 Ranking criteria:
@@ -615,11 +615,11 @@ Ranking criteria:
 2. **Object character**: Surface brightness, contrast, size, composition. Favor targets that shine in the current conditions.
 3. **Equipment match**: Which rig frames and images this target well. Match FOV to object size, f-ratio to exposure time needed.
 4. **Moon tolerance**: How well the object handles current moon phase. Narrowband targets win under bright moon.
-5. **One rig per object**: Pick the single best rig for each target. Don't list multiple rigs per object.
+5. **Top 5 rigs per object**: Return an array of up to 5 rig names ranked by suitability. The first rig is the best match, subsequent rigs are good alternatives.
 
 Tone: Direct, opinionated, specific. Explain why, don't just describe. "Great target because..." is weak. "Captures well in 2 hours on the 200mm rig, surface brightness holds up even with 30% moon" is strong.
 
-Respond in the language of this ISO locale code: {locale}.""".format(locale=locale)
+Respond in the language of this ISO locale code: """ + locale + "."
 
     # Build the user prompt
     prompt_lines = []

@@ -691,6 +691,8 @@ def get_best_objects():
         # Get AI response
         response_text = get_ai_response(prompt["user"], system=prompt["system"])
 
+        logger.warning(f"RAW AI RESPONSE: {response_text}")
+
         # Parse the response to extract ranked objects
         # Expected format: JSON array with objects having "Object" key
         ranked_objects = []
@@ -713,13 +715,29 @@ def get_best_objects():
             # Not JSON, try to extract from text
             ranked_objects = _extract_objects_from_text(response_text, objects_for_prompt)
 
-        # Ensure all ranked objects have rank and reason
+        # Ensure all ranked objects have rank, reason, and recommended_rigs array
         for i, obj in enumerate(ranked_objects, 1):
             obj["rank"] = i
             if "reason" not in obj:
                 obj["reason"] = ""
-            if "recommended_rig" not in obj:
-                obj["recommended_rig"] = None
+
+            # Normalize recommended_rigs to array (handle both array and string fallback)
+            if "recommended_rigs" in obj:
+                # Already an array - ensure it's a list
+                if not isinstance(obj["recommended_rigs"], list):
+                    obj["recommended_rigs"] = [obj["recommended_rigs"]]
+            elif "recommended_rig" in obj:
+                # Fallback from old format - convert to array
+                rig_value = obj["recommended_rig"]
+                if rig_value:
+                    obj["recommended_rigs"] = [rig_value]
+                else:
+                    obj["recommended_rigs"] = []
+                # Remove old key for consistency
+                del obj["recommended_rig"]
+            else:
+                # No recommended rig provided
+                obj["recommended_rigs"] = []
 
         return jsonify({"ranked_objects": ranked_objects})
 
@@ -740,7 +758,7 @@ def _extract_objects_from_text(text, objects_for_prompt):
         objects_for_prompt: List of original objects for reference
 
     Returns:
-        List of dicts with Object, rank, reason, recommended_rig keys
+        List of dicts with Object, rank, reason, recommended_rigs keys
     """
     import re
 
@@ -767,7 +785,7 @@ def _extract_objects_from_text(text, objects_for_prompt):
                 "Object": obj_name,
                 "rank": int(rank_str),
                 "reason": reason.strip(),
-                "recommended_rig": None
+                "recommended_rigs": []
             })
 
     # If no matches found, return empty list
