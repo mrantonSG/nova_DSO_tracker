@@ -1065,8 +1065,12 @@
             // Unranked objects are excluded entirely (filter behavior like activeOnly)
         });
 
-        // Sort ranked objects by rank ascending
-        rankedObjects.sort((a, b) => a.rank - b.rank);
+        // Sort ranked objects by rank ascending (ensure numeric comparison)
+        rankedObjects.sort((a, b) => {
+            const rankA = parseInt(a.rank, 10);
+            const rankB = parseInt(b.rank, 10);
+            return rankA - rankB;
+        });
 
         // Return only ranked objects
         return rankedObjects.map(item => item.obj);
@@ -1325,7 +1329,7 @@
             rankedObjects.forEach(ranked => {
                 const objectNameUpper = (ranked.Object || '').trim().toUpperCase();
                 novaRankMap[objectNameUpper] = {
-                    rank: ranked.rank,
+                    rank: parseInt(ranked.rank, 10), // Ensure rank is stored as number
                     reason: ranked.reason || '',
                     recommendedRigs: Array.isArray(ranked.recommended_rigs) ? ranked.recommended_rigs : []
                 };
