@@ -104,8 +104,12 @@
         </label>
 
         <div style="display: flex; align-items: center; gap: 5px; margin-left: 10px;">
-            <button id="ask-nova-btn" type="button" title="{{ _('Ask Nova to rank and recommend best objects') }}">★ {{ _('Ask Nova') }}</button>
-            <button id="reset-ranking-btn" type="button" style="display: none;" title="{{ _('Reset to original table sorting and remove rank badges') }}">{{ _('Reset Ranking') }}</button>
+            <button id="ask-nova-btn" class="btn-nova-ai" type="button" title="{{ _('Ask Nova to rank and recommend best objects') }}">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+                    <path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/>
+                </svg>
+                {{ _('Ask Nova') }}
+            </button>
         </div>
 
         <div id="ask-nova-error" style="display: none; color: var(--danger-color); font-size: 12px; margin-left: 10px;"></div>

@@ -1899,6 +1899,18 @@ button[type="submit"]:active,
   border-color: rgba(142, 200, 218, 0.45);
 }
 
+/* Active/ranked state — Nova ranking is applied */
+.btn-nova-ai.active {
+  background: var(--primary-color);
+  color: #ffffff;
+  border-color: var(--primary-color);
+}
+[data-theme="dark"] .btn-nova-ai.active {
+  background: var(--primary-color);
+  color: #ffffff;
+  border-color: var(--primary-color);
+}
+
 /* =================================================================
    7. TEXT INPUTS and SELECTS
    General forms — Config page, filter rows, journal session editor,

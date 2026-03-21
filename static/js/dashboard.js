@@ -120,6 +120,7 @@
         let allOutlookOpportunities = [];
         window.latestDSOData = []; // <--- EXPOSE DATA GLOBALLY for Inspiration Tab
         let currentOutlookSort = { columnKey: 'date', ascending: true };
+        let novaRankMap = {}; // <--- NOVA RANKING PERSISTENCE - stores object names (uppercase) to rank data
         const outlookColumnConfig = {
             'object_name':  { dataKey: 'object_name',  sortable: true, filterable: true, numeric: false },
             'common_name':  { dataKey: 'common_name',  sortable: true, filterable: true, numeric: false },
@@ -327,24 +328,30 @@
         function updateRemoveFiltersButtonVisibility() {
             const btnContainer = document.getElementById('remove-filters-container');
             if (!btnContainer) return;
-    
+
             let isAnyFilterActive = false;
             const allFilterInputs = document.querySelectorAll('#data-table .filter-row input, #journal-filter-row input');
-    
+
             for (const input of allFilterInputs) {
                 if (input.value.trim() !== '') {
                     isAnyFilterActive = true;
                     break;
                 }
             }
-    
+
             // --- FIX: Also show button if a Saved View is active ---
             const svDropdown = document.getElementById('saved-views-dropdown');
             if (svDropdown && svDropdown.value !== "") {
                 isAnyFilterActive = true;
             }
             // --- END FIX ---
-    
+
+            // --- FIX: Also show button if Nova ranking is active ---
+            if (Object.keys(novaRankMap).length > 0) {
+                isAnyFilterActive = true;
+            }
+            // --- END FIX ---
+
             btnContainer.style.display = isAnyFilterActive ? 'block' : 'none';
         }
     
@@ -377,12 +384,17 @@
                 updateHeatmapFilter();
             }
             // --- END FIX ---
-    
+
             // Refresh the tables to reflect the cleared filters
             filterTable();
             filterJournalTable();
-    
-            // Ensure button state updates immediately
+
+            // --- Clear Nova ranking if badges are present ---
+            if (Object.keys(novaRankMap).length > 0) {
+                resetRanking();
+            }
+
+            // Ensure button state updates immediately (after clearing)
             updateRemoveFiltersButtonVisibility();
         }
     
@@ -903,7 +915,8 @@
         const cachedData = _checkFetchCache(CACHE_KEY, CACHE_EXPIRY);
         if (cachedData) {
             if (signal.aborted) return;
-            renderRows(cachedData);
+            const sortedData = applyNovaRankSorting(cachedData);
+            renderRows(sortedData);
             if (signal.aborted) return;
             finalizeFetch();
             return;
@@ -985,10 +998,11 @@
     
             // CRITICAL FIX: Ensure global data is always updated for other tabs
             window.latestDSOData = allData;
-    
+
             // If background refresh, replace table now
             if (!shouldShowLoader) {
-                renderRows(allData);
+                const sortedData = applyNovaRankSorting(allData);
+                renderRows(sortedData);
             }
             // Logic for triggering inspiration update moved to finalizeFetch
             // to ensure filters are applied first.
@@ -1013,6 +1027,7 @@
                 finalizeFetch();
             }
         }
+    }  // closes fetchData
 
     // ========================================================================
     // "Ask Nova" Best Objects Feature
@@ -1022,12 +1037,174 @@
     let originalSortState = null;
 
     /**
+     * Apply Nova rank sorting to data array before rendering
+     * Returns sorted data with ranked objects first (by rank ascending), unranked objects follow in original order
+     * @param {Array} data - Array of object data
+     * @returns {Array} Sorted array of object data
+     */
+    function applyNovaRankSorting(data) {
+        // If novaRankMap is empty, return data unchanged
+        if (Object.keys(novaRankMap).length === 0) {
+            return data;
+        }
+
+        // When novaRankMap has entries, return ONLY ranked objects (filter behavior like activeOnly)
+        const rankedObjects = [];
+
+        data.forEach(obj => {
+            // Normalize object name to uppercase for lookup
+            const objectNameUpper = (obj.Object || '').trim().toUpperCase();
+            const rankData = novaRankMap[objectNameUpper];
+
+            if (rankData) {
+                rankedObjects.push({
+                    obj: obj,
+                    rank: rankData.rank
+                });
+            }
+            // Unranked objects are excluded entirely (filter behavior like activeOnly)
+        });
+
+        // Sort ranked objects by rank ascending
+        rankedObjects.sort((a, b) => a.rank - b.rank);
+
+        // Return only ranked objects
+        return rankedObjects.map(item => item.obj);
+    }
+
+    /**
+     * Apply Nova rank badges to all rows in the table
+     * This function is called after rendering to ensure badges persist across refreshes
+     */
+    function applyNovaRankBadges() {
+        const tbody = document.getElementById('data-body');
+        if (!tbody) return;
+
+        // If novaRankMap is empty, remove all badges and return
+        if (Object.keys(novaRankMap).length === 0) {
+            const badges = tbody.querySelectorAll('.nova-rank-badge');
+            badges.forEach(badge => badge.remove());
+            return;
+        }
+
+        // Get all rows in the table
+        const rows = tbody.querySelectorAll('tr');
+
+        // Remove existing badges from all rows first
+        const existingBadges = tbody.querySelectorAll('.nova-rank-badge');
+        existingBadges.forEach(badge => badge.remove());
+
+        // Apply badges to rows that have rankings
+        rows.forEach(row => {
+            // Find object name in first cell
+            const objectCell = row.querySelector('td[data-column-key="Object"]');
+            if (!objectCell) return;
+
+            // Get object name and normalize to uppercase for lookup
+            const objectName = objectCell.textContent.trim().toUpperCase();
+            const rankData = novaRankMap[objectName];
+
+            if (rankData) {
+                // Create rank badge
+                const badge = document.createElement('span');
+                badge.className = 'nova-rank-badge';
+                badge.textContent = '#' + rankData.rank;
+                badge.style.cursor = 'pointer';
+
+                // Store the original object name (before uppercasing) for the modal
+                badge.dataset.objectName = objectCell.textContent.trim();
+
+                // Add click handler to show modal with details
+                badge.addEventListener('click', function(e) {
+                    e.stopPropagation(); // Prevent row click from opening graph
+
+                    // Create/show modal with rank details - use stored object name from badge
+                    showNovaRankModal(e.target.dataset.objectName, rankData.rank, rankData.reason, rankData.recommendedRig);
+                });
+
+                // Insert badge before the object name
+                objectCell.insertBefore(badge, objectCell.firstChild);
+            }
+        });
+    }
+
+    /**
+     * Show modal with Nova ranking details
+     * @param {string} objectName - The object name
+     * @param {number} rank - The rank number
+     * @param {string} reason - The reason for the ranking
+     * @param {string|null} recommendedRig - The recommended rig
+     */
+    function showNovaRankModal(objectName, rank, reason, recommendedRig) {
+        // Create modal element if it doesn't exist
+        let modal = document.getElementById('nova-rank-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'nova-rank-modal';
+            modal.className = 'modal-backdrop';
+            modal.style.cssText = 'display:none; position:fixed; inset:0; background:var(--overlay-dark); z-index:3000;';
+
+            const content = document.createElement('div');
+            content.className = 'modal-content';
+            content.style.cssText = 'position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:var(--bg-white); padding:20px; border-radius:8px; width:400px; max-width:90%;';
+
+            content.innerHTML = `
+                <h3 style="margin-top:0; color:var(--primary-color);">Nova Ranking</h3>
+                <div style="margin-bottom:15px;">
+                    <strong>Object:</strong> <span id="nova-rank-object"></span>
+                </div>
+                <div style="margin-bottom:15px;">
+                    <strong>Rank:</strong> <span id="nova-rank-rank"></span>
+                </div>
+                <div style="margin-bottom:15px;">
+                    <strong>Reason:</strong> <p id="nova-rank-reason" style="margin:5px 0 0 0; line-height:1.4;"></p>
+                </div>
+                ${recommendedRig ? `
+                <div style="margin-bottom:15px;">
+                    <strong>Recommended Rig:</strong> <p id="nova-rank-rig" style="margin:5px 0 0 0; line-height:1.4;"></p>
+                </div>
+                ` : ''}
+                <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
+                    <button id="nova-rank-close-btn" style="background:var(--accent-gray-medium); color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">Close</button>
+                </div>
+            `;
+
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+
+            // Add click handler for close button
+            document.getElementById('nova-rank-close-btn').addEventListener('click', function() {
+                modal.style.display = 'none';
+            });
+
+            // Close on backdrop click
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+
+        // Populate modal content
+        document.getElementById('nova-rank-object').textContent = objectName;
+        document.getElementById('nova-rank-rank').textContent = '#' + rank;
+        const shortReason = reason.length > 200 ? reason.substring(0, 200) + '…' : reason;
+        document.getElementById('nova-rank-reason').textContent = shortReason;
+        const rigElement = document.getElementById('nova-rank-rig');
+        if (rigElement) {
+            rigElement.textContent = recommendedRig || 'N/A';
+        }
+
+        // Show modal
+        modal.style.display = 'block';
+    }
+
+    /**
      * Handle Ask Nova button click
      */
     async function askNova() {
         console.log('askNova triggered');
         const askNovaBtn = document.getElementById('ask-nova-btn');
-        const resetRankingBtn = document.getElementById('reset-ranking-btn');
         const errorDiv = document.getElementById('ask-nova-error');
 
         if (!askNovaBtn) return;
@@ -1105,32 +1282,48 @@
             const result = await response.json();
             const rankedObjects = result.ranked_objects || [];
 
-            // Create a map of object names to rank data
-            const rankMap = {};
+            // Save original data before applying Nova ranking (for resetRanking)
+            originalTableData = [...(window.latestDSOData || [])];
+
+            // Populate module-level novaRankMap (case-insensitive, stored as uppercase)
+            novaRankMap = {};
             rankedObjects.forEach(ranked => {
-                rankMap[ranked.Object] = {
+                const objectNameUpper = (ranked.Object || '').trim().toUpperCase();
+                novaRankMap[objectNameUpper] = {
                     rank: ranked.rank,
                     reason: ranked.reason || '',
                     recommendedRig: ranked.recommended_rig || null
                 };
             });
 
-            // Re-sort table rows based on ranking
-            reSortTableByRank(rankMap);
+            // Re-render with ranked data (data-level sorting, not DOM manipulation)
+            const sortedData = applyNovaRankSorting(window.latestDSOData);
+            renderRows(sortedData);
+            applyNovaRankBadges(); // For badge rendering only
 
-            // Show reset button
-            if (resetRankingBtn) {
-                resetRankingBtn.style.display = 'inline-block';
-            }
+            // Show Remove Filters button and mark Ask Nova button as active
+            updateRemoveFiltersButtonVisibility();
+            askNovaBtn.classList.add('active');
 
         } catch (error) {
             console.error('Error asking Nova:', error);
             errorDiv.textContent = window.t ? window.t('error_ask_nova') : error.message;
             errorDiv.style.display = 'block';
         } finally {
-            // Reset button state
+            // Reset button state (remove loading, restore to default or active state)
             askNovaBtn.disabled = false;
-            askNovaBtn.textContent = '★ ' + (window.t ? window.t('ask_nova') : 'Ask Nova');
+            // Use innerHTML to preserve the SVG icon
+            const activeClass = askNovaBtn.classList.contains('active') ? ' active' : '';
+            askNovaBtn.innerHTML = `
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+                    <path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/>
+                </svg>
+                ${window.t ? window.t('ask_nova') : 'Ask Nova'}
+            `;
+            // Restore the active class if it was added (the innerHTML replacement removes all attributes)
+            if (activeClass) {
+                askNovaBtn.classList.add('active');
+            }
         }
     }
 
@@ -1151,8 +1344,10 @@
             const objectCell = row.querySelector('td[data-column-key="Object"]');
             if (!objectCell) return;
 
+            // Use case-insensitive matching (uppercase for lookup)
             const objectName = objectCell.textContent.trim();
-            const rankData = rankMap[objectName];
+            const objectNameUpper = objectName.toUpperCase();
+            const rankData = rankMap[objectNameUpper];
 
             if (rankData) {
                 rankedRows.push({
@@ -1206,22 +1401,28 @@
      * Reset table to original sorting and remove rank badges
      */
     function resetRanking() {
-        const tbody = document.getElementById('data-body');
+        // Clear module-level novaRankMap
+        novaRankMap = {};
 
-        // Remove all rank badges
-        const badges = tbody.querySelectorAll('.nova-rank-badge');
-        badges.forEach(badge => badge.remove());
+        // Apply to remove all badges
+        applyNovaRankBadges();
 
-        // Re-render with original data (if available)
-        if (window.latestDSOData && window.latestDSOData.length > 0) {
+        // Re-render with original full dataset (if available)
+        if (originalTableData && originalTableData.length > 0) {
+            renderRows(originalTableData);
+            filterTable();
+        } else if (window.latestDSOData && window.latestDSOData.length > 0) {
             renderRows(window.latestDSOData);
             filterTable();
         }
 
-        // Hide reset button
-        const resetBtn = document.getElementById('reset-ranking-btn');
-        if (resetBtn) {
-            resetBtn.style.display = 'none';
+        // Update button visibility
+        updateRemoveFiltersButtonVisibility();
+
+        // Remove active state from Ask Nova button
+        const askNovaBtn = document.getElementById('ask-nova-btn');
+        if (askNovaBtn) {
+            askNovaBtn.classList.remove('active');
         }
 
         // Clear error
@@ -1234,269 +1435,275 @@
 
     // --- Helper: Render All (Replaces Table) ---
     function renderRows(data) {
-            window.latestDSOData = data; // <--- CAPTURE DATA HERE
-            tbody.innerHTML = '';
+        const tbody = document.getElementById("data-body");
+        window.latestDSOData = data; // <--- CAPTURE DATA HERE
+        tbody.innerHTML = '';
             appendRows(data);
     
             // NOTE: Auto-refresh for Inspiration tab removed to prevent jarring shuffles.
             // The user must click "Refresh" to see new suggestions.
         }
+
+    // --- Helper: Append Rows (Adds to existing) ---
+    function appendRows(data) {
+        const tbody = document.getElementById("data-body");
+        const altitudeThreshold = window.NOVA_INDEX.altitudeThreshold;
+        const columnOrder = [
+            'Object', 'Common Name', 'Altitude Current', 'Azimuth Current', 'Trend', 'Altitude 11PM',
+            'Azimuth 11PM', 'Transit Time', 'Observable Duration (min)', 'Max Altitude (°)',
+            'Angular Separation (°)', 'Constellation', 'Type', 'Magnitude', 'Size', 'SB',
+            'Best Month', 'Max Altitude'
+        ];
     
-        // --- Helper: Append Rows (Adds to existing) ---
-        function appendRows(data) {
-            const altitudeThreshold = window.NOVA_INDEX.altitudeThreshold;
-            const columnOrder = [
-                'Object', 'Common Name', 'Altitude Current', 'Azimuth Current', 'Trend', 'Altitude 11PM',
-                'Azimuth 11PM', 'Transit Time', 'Observable Duration (min)', 'Max Altitude (°)',
-                'Angular Separation (°)', 'Constellation', 'Type', 'Magnitude', 'Size', 'SB',
-                'Best Month', 'Max Altitude'
-            ];
+        data.forEach(objectData => {
+            if (!objectData) return;
     
-            data.forEach(objectData => {
-                if (!objectData) return;
+            const sanitizedId = String(objectData.Object || 'unknown').replace(/\s+/g, '-');
+            const row = document.createElement('tr');
+            row.id = `row-${sanitizedId}`;
+            row.className = 'clickable-row';
     
-                const sanitizedId = String(objectData.Object || 'unknown').replace(/\s+/g, '-');
-                const row = document.createElement('tr');
-                row.id = `row-${sanitizedId}`;
-                row.className = 'clickable-row';
+            // Store impossible status for sorting logic
+            row.dataset.impossible = objectData.is_geometrically_impossible ? 'true' : 'false';
     
-                // Store impossible status for sorting logic
-                row.dataset.impossible = objectData.is_geometrically_impossible ? 'true' : 'false';
+            if (objectData.error === true || (objectData['Common Name'] && String(objectData['Common Name']).startsWith("Error:"))) {
+                row.style.backgroundColor = getDangerBgColor();
+                row.style.color = getDangerTextColor();
+                row.style.cursor = 'default';
+            } else if (objectData.is_geometrically_impossible) {
+                // Apply "Greyed Out" styling
+                row.classList.add('geometrically-impossible');
+                row.title = "Object never rises above your altitude threshold.";
+                row.onclick = () => { showGraph(objectData.Object); }; // Still allow click to verify graph
+            } else {
+                const ap = objectData.ActiveProject;
+                if ((ap === true) || (ap === 1) || (ap === '1') || (ap === 'true')) {
+                    row.classList.add('active-project-row');
+                }
+                row.onclick = () => { showGraph(objectData.Object); };
+            }
     
-                if (objectData.error === true || (objectData['Common Name'] && String(objectData['Common Name']).startsWith("Error:"))) {
-                    row.style.backgroundColor = getDangerBgColor();
-                    row.style.color = getDangerTextColor();
-                    row.style.cursor = 'default';
-                } else if (objectData.is_geometrically_impossible) {
-                    // Apply "Greyed Out" styling
-                    row.classList.add('geometrically-impossible');
-                    row.title = "Object never rises above your altitude threshold.";
-                    row.onclick = () => { showGraph(objectData.Object); }; // Still allow click to verify graph
-                } else {
-                    const ap = objectData.ActiveProject;
-                    if ((ap === true) || (ap === 1) || (ap === '1') || (ap === 'true')) {
-                        row.classList.add('active-project-row');
-                    }
-                    row.onclick = () => { showGraph(objectData.Object); };
+            columnOrder.forEach(columnKey => {
+                const config = columnConfig[columnKey];
+                if (!config) return;
+    
+                const td = document.createElement('td');
+                td.dataset.columnKey = columnKey;
+                td.style.textAlign = (columnKey === 'Object' || columnKey === 'Common Name') ? 'left' : 'center';
+    
+                const rawValue = objectData[config.dataKey];
+                const displayValue = (rawValue === null || rawValue === undefined || String(rawValue).trim() === '')
+                                     ? 'N/A'
+                                     : (config.format ? config.format(rawValue) : rawValue);
+    
+                if (columnKey === 'Common Name') {
+                    // Create flex container to hold text and icon side-by-side
+                    const container = document.createElement('div');
+                    container.style.display = 'flex';
+                    container.style.alignItems = 'center';
+                    container.style.justifyContent = 'space-between';
+                    container.style.width = '100%';
+    
+                    // Text Span (Handles ellipsis)
+                    const spanText = document.createElement('span');
+                    spanText.textContent = displayValue;
+                    spanText.style.flex = '1';
+                    spanText.style.whiteSpace = 'nowrap';
+                    spanText.style.overflow = 'hidden';
+                    spanText.style.textOverflow = 'ellipsis';
+                    container.appendChild(spanText);
+    
+                    // Check for available inspiration content (Custom Image OR Desc)
+                    const hasCustomContent = (objectData.image_url && objectData.image_url.trim() !== "") || (objectData.description_text && objectData.description_text.trim() !== "");
+    
+                    // Only show the icon if there is CUSTOM content (ignore coordinates/fallbacks for the table view)
+                    if (hasCustomContent) {
+                        // Inspiration Icon
+                        const icon = document.createElement('span');
+                        icon.innerHTML = '&#9432;'; // Circled i
+                    icon.style.cursor = 'pointer';
+                    icon.style.marginLeft = '8px';
+                    icon.style.color = getPrimaryColor();
+                    icon.style.fontSize = '1.2em';
+                    icon.style.lineHeight = '1';
+                    icon.title = "View Inspiration";
+    
+                    // Click Handler: Stop propagation to prevent opening the graph
+                    icon.onclick = function(e) {
+                        e.stopPropagation();
+    
+                        // 1. Resolve Image (Custom > DSS2 Fallback)
+                        let finalImg = objectData.image_url;
+                        let finalSource = objectData.image_credit || "Catalog";
+                        let finalLink = objectData.image_source_link || "";
+    
+                        // If no custom image, try calculating DSS2 URL using helper from _inspiration_section.html
+                        if (!finalImg && typeof getAladinFallbackUrl === 'function') {
+                            const raDeg = (parseFloat(objectData['RA (hours)']) || 0) * 15;
+                            const decDeg = parseFloat(objectData['DEC (degrees)']) || 0;
+                            if (objectData['RA (hours)'] != null) {
+                                finalImg = getAladinFallbackUrl(raDeg, decDeg, objectData.Size);
+                                finalSource = "DSS2";
+                            }
+                        }
+    
+                        // 2. Resolve Description Text
+                        let finalText = objectData.description_text;
+                        if (!finalText) {
+                             finalText = `Type: ${objectData.Type || 'DSO'}. Located in ${objectData.Constellation || 'unknown'}.`;
+                        }
+    
+                        // 3. Open Modal
+                        if (typeof openInspirationModal === 'function') {
+                            openInspirationModal(objectData, finalImg, finalText, finalSource, finalLink);
+                            // Graph load is now handled automatically by the global hook in window.onload
+                        } else {
+                            console.warn("Inspiration modal function not found.");
+                        }
+                    };
+    
+                    container.appendChild(icon);
+                } // End if (hasCustomContent || hasCoordinates)
+    
+                td.innerHTML = ''; // Clear any existing text
+                td.appendChild(container);
+            } else if (columnKey === 'Trend') {
+                // Trend column - wrap in span with appropriate class for coloring
+                const trendSpan = document.createElement('span');
+                if (rawValue === '↑') {
+                    trendSpan.className = 'trend-up';
+                } else if (rawValue === '↓') {
+                    trendSpan.className = 'trend-down';
+                }
+                trendSpan.textContent = displayValue;
+                td.appendChild(trendSpan);
+            } else {
+                    td.textContent = displayValue;
                 }
     
-                columnOrder.forEach(columnKey => {
-                    const config = columnConfig[columnKey];
-                    if (!config) return;
+                // Add tooltip for both Object and Common Name so truncated text can be read
+                if ((columnKey === 'Common Name' || columnKey === 'Object') && rawValue) {
+                    td.setAttribute('title', String(rawValue));
+                }
     
-                    const td = document.createElement('td');
-                    td.dataset.columnKey = columnKey;
-                    td.style.textAlign = (columnKey === 'Object' || columnKey === 'Common Name') ? 'left' : 'center';
+                // Immediate Visibility Check (Prevents flash of hidden columns during loading)
+                const isVisible = (config.type === 'always-visible' || config.type === activeTab);
+                td.style.display = isVisible ? 'table-cell' : 'none';
     
-                    const rawValue = objectData[config.dataKey];
-                    const displayValue = (rawValue === null || rawValue === undefined || String(rawValue).trim() === '')
-                                         ? 'N/A'
-                                         : (config.format ? config.format(rawValue) : rawValue);
+                // Highlights
+                _applyRowHighlights(td, columnKey, rawValue, objectData, altitudeThreshold);
     
-                    if (columnKey === 'Common Name') {
-                        // Create flex container to hold text and icon side-by-side
-                        const container = document.createElement('div');
-                        container.style.display = 'flex';
-                        container.style.alignItems = 'center';
-                        container.style.justifyContent = 'space-between';
-                        container.style.width = '100%';
+                // Sort helpers
+                const numericSortKeys = ['Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
+                                         'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)',
+                                         'Magnitude', 'Size', 'SB', 'Max Altitude'];
     
-                        // Text Span (Handles ellipsis)
-                        const spanText = document.createElement('span');
-                        spanText.textContent = displayValue;
-                        spanText.style.flex = '1';
-                        spanText.style.whiteSpace = 'nowrap';
-                        spanText.style.overflow = 'hidden';
-                        spanText.style.textOverflow = 'ellipsis';
-                        container.appendChild(spanText);
+                if (numericSortKeys.includes(columnKey)) {
+                    if (rawValue === 'N/A' || rawValue == null) td.dataset.rawValue = 'N/A';
+                    else if (!isNaN(parseFloat(rawValue))) td.dataset.rawValue = parseFloat(rawValue);
+                    else td.dataset.rawValue = rawValue;
+                } else if (rawValue === 'N/A' || rawValue == null) {
+                    td.dataset.rawValue = 'N/A';
+                }
     
-                        // Check for available inspiration content (Custom Image OR Desc)
-                        const hasCustomContent = (objectData.image_url && objectData.image_url.trim() !== "") || (objectData.description_text && objectData.description_text.trim() !== "");
-    
-                        // Only show the icon if there is CUSTOM content (ignore coordinates/fallbacks for the table view)
-                        if (hasCustomContent) {
-                            // Inspiration Icon
-                            const icon = document.createElement('span');
-                            icon.innerHTML = '&#9432;'; // Circled i
-                        icon.style.cursor = 'pointer';
-                        icon.style.marginLeft = '8px';
-                        icon.style.color = getPrimaryColor();
-                        icon.style.fontSize = '1.2em';
-                        icon.style.lineHeight = '1';
-                        icon.title = "View Inspiration";
-    
-                        // Click Handler: Stop propagation to prevent opening the graph
-                        icon.onclick = function(e) {
-                            e.stopPropagation();
-    
-                            // 1. Resolve Image (Custom > DSS2 Fallback)
-                            let finalImg = objectData.image_url;
-                            let finalSource = objectData.image_credit || "Catalog";
-                            let finalLink = objectData.image_source_link || "";
-    
-                            // If no custom image, try calculating DSS2 URL using helper from _inspiration_section.html
-                            if (!finalImg && typeof getAladinFallbackUrl === 'function') {
-                                const raDeg = (parseFloat(objectData['RA (hours)']) || 0) * 15;
-                                const decDeg = parseFloat(objectData['DEC (degrees)']) || 0;
-                                if (objectData['RA (hours)'] != null) {
-                                    finalImg = getAladinFallbackUrl(raDeg, decDeg, objectData.Size);
-                                    finalSource = "DSS2";
-                                }
-                            }
-    
-                            // 2. Resolve Description Text
-                            let finalText = objectData.description_text;
-                            if (!finalText) {
-                                 finalText = `Type: ${objectData.Type || 'DSO'}. Located in ${objectData.Constellation || 'unknown'}.`;
-                            }
-    
-                            // 3. Open Modal
-                            if (typeof openInspirationModal === 'function') {
-                                openInspirationModal(objectData, finalImg, finalText, finalSource, finalLink);
-                                // Graph load is now handled automatically by the global hook in window.onload
-                            } else {
-                                console.warn("Inspiration modal function not found.");
-                            }
-                        };
-    
-                        container.appendChild(icon);
-                    } // End if (hasCustomContent || hasCoordinates)
-    
-                    td.innerHTML = ''; // Clear any existing text
-                    td.appendChild(container);
-                } else if (columnKey === 'Trend') {
-                    // Trend column - wrap in span with appropriate class for coloring
-                    const trendSpan = document.createElement('span');
-                    if (rawValue === '↑') {
-                        trendSpan.className = 'trend-up';
-                    } else if (rawValue === '↓') {
-                        trendSpan.className = 'trend-down';
-                    }
-                    trendSpan.textContent = displayValue;
-                    td.appendChild(trendSpan);
-                } else {
-                        td.textContent = displayValue;
-                    }
-    
-                    // Add tooltip for both Object and Common Name so truncated text can be read
-                    if ((columnKey === 'Common Name' || columnKey === 'Object') && rawValue) {
-                        td.setAttribute('title', String(rawValue));
-                    }
-    
-                    // Immediate Visibility Check (Prevents flash of hidden columns during loading)
-                    const isVisible = (config.type === 'always-visible' || config.type === activeTab);
-                    td.style.display = isVisible ? 'table-cell' : 'none';
-    
-                    // Highlights
-                    _applyRowHighlights(td, columnKey, rawValue, objectData, altitudeThreshold);
-    
-                    // Sort helpers
-                    const numericSortKeys = ['Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
-                                             'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)',
-                                             'Magnitude', 'Size', 'SB', 'Max Altitude'];
-    
-                    if (numericSortKeys.includes(columnKey)) {
-                        if (rawValue === 'N/A' || rawValue == null) td.dataset.rawValue = 'N/A';
-                        else if (!isNaN(parseFloat(rawValue))) td.dataset.rawValue = parseFloat(rawValue);
-                        else td.dataset.rawValue = rawValue;
-                    } else if (rawValue === 'N/A' || rawValue == null) {
-                        td.dataset.rawValue = 'N/A';
-                    }
-    
-                    row.appendChild(td);
-                });
-                tbody.appendChild(row);
+                row.appendChild(td);
             });
-        }
-    
-        function finalizeFetch() {
-            _hideFetchLoader(loadingDiv);
-            applyDsoColumnVisibility();
-            sortTable(currentSort.columnKey, false);
-    
-            // 1. Apply filters (calculates window.currentFilteredData)
-            filterTable();
-    
-            tbody.dataset.loading = 'false';
-            fetchSunEvents();
-    
-            // 2. NOW it is safe to update the Inspiration grid with filtered data
-            if (activeTab === 'inspiration' && typeof renderInspirationGrid === 'function') {
-                renderInspirationGrid();
-            }
-
-            // REMOVED: Location change check was causing duplicate fetch on initial page load
-            // The fetchLocations() call in window.onload sets sessionStorage before fetchData() runs,
-            // and location-select change event handles user-triggered changes. No need to re-check here.
-        }
+            tbody.appendChild(row);
+        });
     }
     
-        function sortOutlookTable(columnKey, toggle = true) {
-            if (toggle) {
-                if (currentOutlookSort.columnKey === columnKey) {
-                    currentOutlookSort.ascending = !currentOutlookSort.ascending;
-                } else {
-                    currentOutlookSort.columnKey = columnKey;
-                    currentOutlookSort.ascending = (columnKey === 'date');
-                }
-            }
-    
-            const config = outlookColumnConfig[columnKey];
-            if (!config) return;
-    
-            allOutlookOpportunities.sort((a, b) => {
-                let valA = a[config.dataKey];
-                let valB = b[config.dataKey];
-    
-                if (config.dataKey === 'date') {
-                     return currentOutlookSort.ascending ? new Date(valA) - new Date(valB) : new Date(valB) - new Date(valA);
-                }
-    
-                if (config.numeric) {
-                    valA = parseFloat(valA) || 0;
-                    valB = parseFloat(valB) || 0;
-                    return currentOutlookSort.ascending ? valA - valB : valB - valA;
-                } else {
-                    return currentOutlookSort.ascending ? String(valA).localeCompare(String(valB)) : String(valB).localeCompare(String(valA));
-                }
-            });
-    
-            document.querySelectorAll('#outlook-table th .sort-indicator').forEach(span => span.innerHTML = '');
-            const activeTh = document.querySelector(`#outlook-table th[data-outlook-column-key="${columnKey}"] .sort-indicator`);
-            if (activeTh) activeTh.innerHTML = currentOutlookSort.ascending ? '▲' : '▼';
-    
-            renderOutlookTable();
+    function finalizeFetch() {
+        const tbody = document.getElementById("data-body");
+        const loadingDiv = document.getElementById("table-loading");
+        _hideFetchLoader(loadingDiv);
+        applyDsoColumnVisibility();
+        sortTable(currentSort.columnKey, false);
+
+        // 1. Apply filters (calculates window.currentFilteredData)
+        filterTable();
+
+        tbody.dataset.loading = 'false';
+        fetchSunEvents();
+
+        // 2. NOW it is safe to update the Inspiration grid with filtered data
+        if (activeTab === 'inspiration' && typeof renderInspirationGrid === 'function') {
+            renderInspirationGrid();
         }
-    
-        function filterOutlookTable() {
-            renderOutlookTable(); // The render function will handle filtering
-        }
-    
-        function sortTable(columnKey, toggle = true) { // DSO Table Sort
-            const table = document.getElementById("data-table");
-            if (!table) return;
-            let sortOrder;
-            if (toggle) {
-                if (currentSort.columnKey === columnKey) { currentSort.ascending = !currentSort.ascending; }
-                else { currentSort.columnKey = columnKey; currentSort.ascending = true; }
-                localStorage.setItem("dso_sortOrder", currentSort.ascending ? "asc" : "desc");
-                localStorage.setItem("dso_sortColumnKey", columnKey);
+
+        // 3. Re-apply Nova rank badges after render (DOM rebuild wipes badge spans)
+        applyNovaRankBadges();
+
+        // REMOVED: Location change check was causing duplicate fetch on initial page load
+        // The fetchLocations() call in window.onload sets sessionStorage before fetchData() runs,
+        // and location-select change event handles user-triggered changes. No need to re-check here.
+    }
+
+    function sortOutlookTable(columnKey, toggle = true) {
+        if (toggle) {
+            if (currentOutlookSort.columnKey === columnKey) {
+                currentOutlookSort.ascending = !currentOutlookSort.ascending;
             } else {
-                const storedSortOrder = localStorage.getItem("dso_sortOrder");
-                const storedSortColumnKey = localStorage.getItem("dso_sortColumnKey");
-                if (storedSortColumnKey) {
-                    currentSort.columnKey = storedSortColumnKey;
-                    currentSort.ascending = (storedSortOrder === "asc");
-                }
+                currentOutlookSort.columnKey = columnKey;
+                currentOutlookSort.ascending = (columnKey === 'date');
             }
-            sortOrder = currentSort.ascending ? "asc" : "desc";
-            table.setAttribute("data-sort-order", sortOrder);
-            const tbody = document.getElementById("data-body");
-            if (!tbody) return;
-            const rows = Array.from(tbody.getElementsByTagName("tr"));
-            const config = columnConfig[currentSort.columnKey];
+        }
     
-            rows.sort((a, b) => {
+        const config = outlookColumnConfig[columnKey];
+        if (!config) return;
+    
+        allOutlookOpportunities.sort((a, b) => {
+            let valA = a[config.dataKey];
+            let valB = b[config.dataKey];
+    
+            if (config.dataKey === 'date') {
+                 return currentOutlookSort.ascending ? new Date(valA) - new Date(valB) : new Date(valB) - new Date(valA);
+            }
+    
+            if (config.numeric) {
+                valA = parseFloat(valA) || 0;
+                valB = parseFloat(valB) || 0;
+                return currentOutlookSort.ascending ? valA - valB : valB - valA;
+            } else {
+                return currentOutlookSort.ascending ? String(valA).localeCompare(String(valB)) : String(valB).localeCompare(String(valA));
+            }
+        });
+    
+        document.querySelectorAll('#outlook-table th .sort-indicator').forEach(span => span.innerHTML = '');
+        const activeTh = document.querySelector(`#outlook-table th[data-outlook-column-key="${columnKey}"] .sort-indicator`);
+        if (activeTh) activeTh.innerHTML = currentOutlookSort.ascending ? '▲' : '▼';
+    
+        renderOutlookTable();
+    }
+    
+    function filterOutlookTable() {
+        renderOutlookTable(); // The render function will handle filtering
+    }
+    
+    function sortTable(columnKey, toggle = true) { // DSO Table Sort
+        const table = document.getElementById("data-table");
+        if (!table) return;
+        let sortOrder;
+        if (toggle) {
+            if (currentSort.columnKey === columnKey) { currentSort.ascending = !currentSort.ascending; }
+            else { currentSort.columnKey = columnKey; currentSort.ascending = true; }
+            localStorage.setItem("dso_sortOrder", currentSort.ascending ? "asc" : "desc");
+            localStorage.setItem("dso_sortColumnKey", columnKey);
+        } else {
+            const storedSortOrder = localStorage.getItem("dso_sortOrder");
+            const storedSortColumnKey = localStorage.getItem("dso_sortColumnKey");
+            if (storedSortColumnKey) {
+                currentSort.columnKey = storedSortColumnKey;
+                currentSort.ascending = (storedSortOrder === "asc");
+            }
+        }
+        sortOrder = currentSort.ascending ? "asc" : "desc";
+        table.setAttribute("data-sort-order", sortOrder);
+        const tbody = document.getElementById("data-body");
+        if (!tbody) return;
+        const rows = Array.from(tbody.getElementsByTagName("tr"));
+        const config = columnConfig[currentSort.columnKey];
+    
+        rows.sort((a, b) => {
                 // Priority Sort: Push "Geometrically Impossible" (greyed out) rows to the bottom always
                 const impA = a.dataset.impossible === 'true';
                 const impB = b.dataset.impossible === 'true';
@@ -2901,16 +3108,10 @@
 
             // --- Event listeners for "Ask Nova" feature ---
             const askNovaBtn = document.getElementById('ask-nova-btn');
-            const resetRankingBtn = document.getElementById('reset-ranking-btn');
             console.log('ask-nova-btn found:', askNovaBtn);
-            console.log('reset-ranking-btn found:', resetRankingBtn);
 
             if (askNovaBtn) {
                 askNovaBtn.addEventListener('click', askNova);
-            }
-
-            if (resetRankingBtn) {
-                resetRankingBtn.addEventListener('click', resetRanking);
             }
 
             // --- Event delegation for data-action attributes ---
