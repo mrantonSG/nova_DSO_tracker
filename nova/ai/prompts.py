@@ -42,6 +42,7 @@ def build_dso_notes_prompt(
     selected_month: int = None,
     selected_year: int = None,
     sim_mode: bool = False,
+    framing_context: dict = None,
 ) -> dict:
     """Build system and user prompts for generating DSO observing notes."""
 
@@ -100,7 +101,60 @@ Respond in the language of this ISO locale code: {locale}. Use informal address 
     if ra and dec:
         object_intro += f" at {ra} {dec}"
 
-    prompt_lines = [f"{object_intro}."]
+    # Framing context - if the user has saved a framing for this object (MOVED TO TOP)
+    if framing_context:
+        rig_name = framing_context.get("rig_name", "")
+        telescope_name = framing_context.get("telescope_name")
+        focal_length = framing_context.get("focal_length_mm")
+        f_ratio = framing_context.get("f_ratio")
+        pixel_scale = framing_context.get("pixel_scale_arcsec_px")
+        fov_w = framing_context.get("fov_w_deg")
+        fov_h = framing_context.get("fov_h_deg")
+
+        # Build the context sentence with safe formatting (omit None values)
+        parts = [f"CRITICAL CONSTRAINT: The user has committed to imaging this object with \"{rig_name}\""]
+
+        spec_parts = []
+        if telescope_name:
+            spec_parts.append(f"({telescope_name}")
+        else:
+            spec_parts.append("(")
+
+        if focal_length is not None:
+            spec_parts[-1] += f" at {focal_length:.0f}mm"
+        else:
+            spec_parts[-1] += " at [focal_length]mm"
+
+        if f_ratio is not None:
+            spec_parts[-1] += f", f/{f_ratio:.1f}"
+        else:
+            spec_parts[-1] += ", f/[f_ratio]"
+
+        if pixel_scale is not None:
+            spec_parts[-1] += f", pixel scale {pixel_scale:.2f}\"/px"
+        else:
+            spec_parts[-1] += ", pixel scale [pixel_scale]\"/px"
+
+        if fov_w is not None and fov_h is not None:
+            spec_parts[-1] += f", FOV {fov_w:.1f}° × {fov_h:.1f}°"
+        elif fov_w is not None:
+            spec_parts[-1] += f", FOV {fov_w:.1f}° width"
+        else:
+            spec_parts[-1] += ", FOV [fov_w]° × [fov_h]°"
+
+        if spec_parts:
+            parts.append("".join(spec_parts) + ")")
+
+        parts.append(
+            "This is non-negotiable. Do NOT rank other rigs above this one. Do NOT suggest switching rigs as a primary recommendation. All exposure, filter, and framing advice must be built around this specific setup. You may briefly mention limitations of this rig only if directly relevant to achievability, but the committed rig is always the primary recommendation."
+        )
+        prompt_lines = [" ".join(parts)]
+
+    # Add object description after framing context
+    if framing_context:
+        prompt_lines.append(f"{object_intro}.")
+    else:
+        prompt_lines = [f"{object_intro}."]
 
     # Location context
     if active_location:
