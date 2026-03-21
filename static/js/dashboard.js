@@ -1013,9 +1013,227 @@
                 finalizeFetch();
             }
         }
-    
-        // --- Helper: Render All (Replaces Table) ---
-        function renderRows(data) {
+
+    // ========================================================================
+    // "Ask Nova" Best Objects Feature
+    // ========================================================================
+
+    let originalTableData = null;
+    let originalSortState = null;
+
+    /**
+     * Handle Ask Nova button click
+     */
+    async function askNova() {
+        console.log('askNova triggered');
+        const askNovaBtn = document.getElementById('ask-nova-btn');
+        const resetRankingBtn = document.getElementById('reset-ranking-btn');
+        const errorDiv = document.getElementById('ask-nova-error');
+
+        if (!askNovaBtn) return;
+
+        // Reset button state
+        errorDiv.style.display = 'none';
+
+        // Get current data and filters
+        const allData = window.latestDSOData || [];
+        if (allData.length === 0) {
+            errorDiv.textContent = window.t ? window.t('no_data_available') : 'No data available';
+            errorDiv.style.display = 'block';
+            return;
+        }
+
+        // Pre-filter by imaging criteria
+        const imagingCriteria = window.NOVA_INDEX.imagingCriteria || {};
+        const minObservableMinutes = imagingCriteria.min_observable_minutes || 60;
+        const minMaxAltitude = imagingCriteria.min_max_altitude || 30;
+
+        // Filter objects that meet the imaging criteria
+        const filteredObjects = allData.filter(obj => {
+            const obsDuration = parseFloat(obj['Observable Duration (min)'] || 0);
+            const maxAlt = parseFloat(obj['Max Altitude (°)'] || 0);
+
+            // Check if object meets minimum criteria
+            return obsDuration >= minObservableMinutes && maxAlt >= minMaxAltitude;
+        });
+
+        if (filteredObjects.length === 0) {
+            errorDiv.textContent = window.t ? window.t('no_targets_found') : 'No targets found matching your criteria.';
+            errorDiv.style.display = 'block';
+            return;
+        }
+
+        // Get current location and sim date
+        const locationName = sessionStorage.getItem('selectedLocation') || document.getElementById('location-select')?.value;
+        const simModeOn = document.getElementById('sim-mode-toggle')?.checked;
+        const simDateVal = document.getElementById('sim-date-input')?.value;
+        const effectiveDate = simModeOn && simDateVal ? simDateVal : null;
+
+        if (!locationName) {
+            errorDiv.textContent = 'Please select a location first.';
+            errorDiv.style.display = 'block';
+            return;
+        }
+
+        // Set loading state
+        askNovaBtn.disabled = true;
+        askNovaBtn.textContent = window.t ? window.t('asking_nova') : 'Asking Nova...';
+
+        try {
+            // Call the API
+            const response = await fetch('/api/ai/best_objects', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    object_list: filteredObjects,
+                    location_name: locationName,
+                    sim_date: effectiveDate
+                })
+            });
+
+            if (response.status === 404) {
+                throw new Error('Nova AI endpoint not available. Check AI_API_KEY configuration.');
+            }
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'API request failed');
+            }
+
+            const result = await response.json();
+            const rankedObjects = result.ranked_objects || [];
+
+            // Create a map of object names to rank data
+            const rankMap = {};
+            rankedObjects.forEach(ranked => {
+                rankMap[ranked.Object] = {
+                    rank: ranked.rank,
+                    reason: ranked.reason || '',
+                    recommendedRig: ranked.recommended_rig || null
+                };
+            });
+
+            // Re-sort table rows based on ranking
+            reSortTableByRank(rankMap);
+
+            // Show reset button
+            if (resetRankingBtn) {
+                resetRankingBtn.style.display = 'inline-block';
+            }
+
+        } catch (error) {
+            console.error('Error asking Nova:', error);
+            errorDiv.textContent = window.t ? window.t('error_ask_nova') : error.message;
+            errorDiv.style.display = 'block';
+        } finally {
+            // Reset button state
+            askNovaBtn.disabled = false;
+            askNovaBtn.textContent = '★ ' + (window.t ? window.t('ask_nova') : 'Ask Nova');
+        }
+    }
+
+    /**
+     * Re-sort table rows based on Nova's ranking
+     * @param {Object} rankMap - Map of object names to rank data
+     */
+    function reSortTableByRank(rankMap) {
+        const tbody = document.getElementById('data-body');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+
+        // Separate ranked and unranked rows
+        const rankedRows = [];
+        const unrankedRows = [];
+
+        rows.forEach(row => {
+            // Find object name in first cell
+            const objectCell = row.querySelector('td[data-column-key="Object"]');
+            if (!objectCell) return;
+
+            const objectName = objectCell.textContent.trim();
+            const rankData = rankMap[objectName];
+
+            if (rankData) {
+                rankedRows.push({
+                    row: row,
+                    rank: rankData.rank,
+                    reason: rankData.reason,
+                    recommendedRig: rankData.recommendedRig
+                });
+            } else {
+                unrankedRows.push(row);
+            }
+        });
+
+        // Sort ranked rows by rank
+        rankedRows.sort((a, b) => a.rank - b.rank);
+
+        // Clear table and re-append in new order
+        tbody.innerHTML = '';
+
+        // Add ranked rows with badges
+        rankedRows.forEach(({row, rank, reason, recommendedRig}) => {
+            // Find the Object cell and add badge
+            const objectCell = row.querySelector('td[data-column-key="Object"]');
+            if (objectCell) {
+                // Remove any existing badge
+                const existingBadge = objectCell.querySelector('.nova-rank-badge');
+                if (existingBadge) existingBadge.remove();
+
+                // Create rank badge
+                const badge = document.createElement('span');
+                badge.className = 'nova-rank-badge';
+                badge.textContent = '#' + rank;
+
+                // Add tooltip with reason
+                badge.title = reason;
+
+                // Insert badge before the object name
+                objectCell.insertBefore(badge, objectCell.firstChild);
+            }
+
+            tbody.appendChild(row);
+        });
+
+        // Add unranked rows at the bottom
+        unrankedRows.forEach(row => {
+            tbody.appendChild(row);
+        });
+    }
+
+    /**
+     * Reset table to original sorting and remove rank badges
+     */
+    function resetRanking() {
+        const tbody = document.getElementById('data-body');
+
+        // Remove all rank badges
+        const badges = tbody.querySelectorAll('.nova-rank-badge');
+        badges.forEach(badge => badge.remove());
+
+        // Re-render with original data (if available)
+        if (window.latestDSOData && window.latestDSOData.length > 0) {
+            renderRows(window.latestDSOData);
+            filterTable();
+        }
+
+        // Hide reset button
+        const resetBtn = document.getElementById('reset-ranking-btn');
+        if (resetBtn) {
+            resetBtn.style.display = 'none';
+        }
+
+        // Clear error
+        const errorDiv = document.getElementById('ask-nova-error');
+        if (errorDiv) {
+            errorDiv.style.display = 'none';
+        }
+    }
+
+
+    // --- Helper: Render All (Replaces Table) ---
+    function renderRows(data) {
             window.latestDSOData = data; // <--- CAPTURE DATA HERE
             tbody.innerHTML = '';
             appendRows(data);
@@ -2681,6 +2899,20 @@
                 locationSelect.addEventListener('change', setLocation);
             }
 
+            // --- Event listeners for "Ask Nova" feature ---
+            const askNovaBtn = document.getElementById('ask-nova-btn');
+            const resetRankingBtn = document.getElementById('reset-ranking-btn');
+            console.log('ask-nova-btn found:', askNovaBtn);
+            console.log('reset-ranking-btn found:', resetRankingBtn);
+
+            if (askNovaBtn) {
+                askNovaBtn.addEventListener('click', askNova);
+            }
+
+            if (resetRankingBtn) {
+                resetRankingBtn.addEventListener('click', resetRanking);
+            }
+
             // --- Event delegation for data-action attributes ---
             document.addEventListener('click', function(e) {
                 const target = e.target.closest('[data-action]');
@@ -2721,4 +2953,6 @@
     window.fetchData = fetchData;
     window.fetchSunEvents = fetchSunEvents;
     window.showGraph = showGraph;
+    window.askNova = askNova;
+    window.resetRanking = resetRanking;
 })();

@@ -12,7 +12,8 @@
       isGuest: {{ is_guest | tojson }},
       hideInvisible: {{ hide_invisible | tojson }},
       journalSessions: {{ journal_sessions | tojson | safe }},
-      altitudeThreshold: {{ g.altitude_threshold | default(20) }}
+      altitudeThreshold: {{ g.altitude_threshold | default(20) }},
+      imagingCriteria: {{ imaging_criteria | tojson | safe }}
     };
   </script>
 
@@ -101,6 +102,13 @@
             <input type="checkbox" id="global-active-toggle" style="margin-right:5px;">
             {{ _('Active Only') }}
         </label>
+
+        <div style="display: flex; align-items: center; gap: 5px; margin-left: 10px;">
+            <button id="ask-nova-btn" type="button" title="{{ _('Ask Nova to rank and recommend best objects') }}">★ {{ _('Ask Nova') }}</button>
+            <button id="reset-ranking-btn" type="button" style="display: none;" title="{{ _('Reset to original table sorting and remove rank badges') }}">{{ _('Reset Ranking') }}</button>
+        </div>
+
+        <div id="ask-nova-error" style="display: none; color: var(--danger-color); font-size: 12px; margin-left: 10px;"></div>
     </div>
     <div id="remove-filters-container" style="display: none; margin-left: auto;"> <button type="button" id="remove-filters-btn">
        {{ _('Remove Filter') }}

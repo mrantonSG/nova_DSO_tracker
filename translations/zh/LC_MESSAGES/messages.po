@@ -3008,6 +3008,38 @@ msgid ""
 "targets."
 msgstr "转到<strong>配置 > 管理天体</strong>为您的目标添加「灵感内容」（图像URL、署名、描述）。"
 
+#: templates/base.html:246
+msgid "Ask Nova"
+msgstr "询问Nova"
+
+#: templates/base.html:247
+msgid "Asking Nova..."
+msgstr "正在询问Nova..."
+
+#: templates/base.html:248
+msgid "Nova Recommended"
+msgstr "Nova推荐"
+
+#: templates/base.html:249
+msgid "Reset Ranking"
+msgstr "重置排名"
+
+#: templates/base.html:250
+msgid "Nova recommends this object"
+msgstr "Nova推荐此天体"
+
+#: templates/base.html:251
+msgid "#%(rank)d"
+msgstr "#%(rank)d"
+
+#: templates/base.html:252
+msgid "Reason"
+msgstr "原因"
+
+#: templates/base.html:253
+msgid "Error asking Nova. Please try again."
+msgstr "询问Nova时出错。请再试一次。"
+
 #: templates/base.html:273
 msgid "Demo Mode:"
 msgstr "演示模式："

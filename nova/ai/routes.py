@@ -18,7 +18,7 @@ from flask import Blueprint, current_app, jsonify, g, request, Response, stream_
 from sqlalchemy.orm import selectinload
 
 from nova.ai.config import ai_enabled, user_has_ai_access
-from nova.ai.prompts import build_dso_notes_prompt, build_session_summary_prompt
+from nova.ai.prompts import build_dso_notes_prompt, build_session_summary_prompt, build_best_objects_prompt
 from nova.ai.service import get_ai_response, AIServiceError
 from nova.helpers import get_db
 from nova.models import AstroObject, Location, Rig, JournalSession, SavedFraming
@@ -543,6 +543,238 @@ def generate_session_summary():
             "X-Accel-Buffering": "no",  # Disable nginx buffering
         },
     )
+
+
+@ai_bp.route("/api/ai/best_objects", methods=["POST"])
+def get_best_objects():
+    """Generate AI-assisted ranking of best objects for the current conditions.
+
+    Request body:
+        JSON: {
+            "object_list": list of object dicts with keys: Object, Common Name, Type,
+                     Magnitude, Size, Constellation, Altitude, Azimuth,
+                     Observable Duration (min), Max Altitude (°),
+                     Angular Separation (°), etc.
+            "location_name": str, name of the observing location
+            "sim_date": str or None, date in YYYY-MM-DD format (None for live mode)
+        }
+
+    Returns:
+        JSON: {
+            "ranked_objects": [
+                {"Object": str, "rank": int, "reason": str, "recommended_rig": str or None},
+                ...
+            ]
+        } on success
+        JSON: {"error": str} on error (400/403/404/500/503)
+    """
+    # Guard: check AI access for current user
+    username = getattr(g, "db_user", None)
+    if username is not None:
+        username = getattr(username, "username", None)
+
+    if not username or not user_has_ai_access(username):
+        return jsonify({"error": "AI access not enabled for this account"}), 403
+
+    # Validate request body
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "Request body is required"}), 400
+
+    object_list = data.get("object_list", [])
+    location_name = data.get("location_name")
+    sim_date = data.get("sim_date")
+
+    if not object_list:
+        return jsonify({"error": "object_list is required"}), 400
+
+    if not location_name:
+        return jsonify({"error": "location_name is required"}), 400
+
+    # Get current locale
+    from nova import get_locale
+    locale = get_locale()
+
+    # Fetch location details
+    db = get_db()
+    location = db.query(Location).filter_by(
+        user_id=g.db_user.id, name=location_name
+    ).first()
+
+    if not location:
+        return jsonify({"error": "Location not found"}), 404
+
+    # Pre-filter to max 50 objects by observable duration descending
+    # Sort by Observable Duration (min) desc, take top 50
+    sorted_objects = sorted(
+        object_list,
+        key=lambda o: float(o.get("Observable Duration (min)", 0) or 0),
+        reverse=True
+    )
+    objects_for_prompt = sorted_objects[:50]
+
+    # Calculate moon phase for the date/location
+    moon_phase = None
+    try:
+        if sim_date:
+            # Sim mode: use the provided date
+            from datetime import datetime
+            date_obj = datetime.strptime(sim_date, "%Y-%m-%d")
+        else:
+            # Live mode: use current date at 11 PM local time
+            local_tz = pytz.timezone(location.timezone or "UTC")
+            now_local = datetime.now(local_tz)
+            # If it's before noon, use "night of" previous day
+            if now_local.hour < 12:
+                date_obj = now_local.date() - timedelta(days=1)
+            else:
+                date_obj = now_local.date()
+
+        # Use 11 PM local for moon phase calculation (matches dashboard)
+        time_11pm_local = local_tz.localize(
+            datetime.combine(date_obj, time(23, 0))
+        )
+        dt_utc = time_11pm_local.astimezone(pytz.utc)
+        moon_phase = round(ephem.Moon(dt_utc).phase, 1)
+    except Exception as e:
+        logger.warning(f"Failed to calculate moon phase: {e}")
+        moon_phase = None
+
+    # Gather rig context
+    rig_rows = db.query(Rig).options(
+        selectinload(Rig.telescope),
+        selectinload(Rig.camera),
+        selectinload(Rig.reducer_extender)
+    ).filter_by(user_id=g.db_user.id).all()
+
+    rigs = []
+    for rig in rig_rows:
+        # Detect camera type (OSC vs mono) from camera name
+        cam_name = rig.camera.name if rig.camera else None
+        cam_name_lower = (cam_name or "").lower()
+        is_mono = any(x in cam_name_lower for x in ["mm", "mono", " m "])
+        camera_type = "mono" if is_mono else "OSC"
+
+        rigs.append({
+            "name": rig.rig_name,
+            "effective_focal_length": rig.effective_focal_length,
+            "f_ratio": rig.f_ratio,
+            "fov_w_arcmin": rig.fov_w_arcmin,
+            "image_scale": rig.image_scale,
+            "aperture_mm": rig.telescope.aperture_mm if rig.telescope else None,
+            "camera_type": camera_type,
+            "telescope": {
+                "name": rig.telescope.name if rig.telescope else None,
+                "aperture_mm": rig.telescope.aperture_mm if rig.telescope else None,
+                "focal_length_mm": rig.telescope.focal_length_mm if rig.telescope else None,
+            } if rig.telescope else None,
+            "camera": {
+                "name": rig.camera.name if rig.camera else None,
+                "sensor_width_mm": rig.camera.sensor_width_mm if rig.camera else None,
+                "pixel_size_um": rig.camera.pixel_size_um if rig.camera else None,
+            } if rig.camera else None,
+        })
+
+    try:
+        # Build the prompt
+        prompt = build_best_objects_prompt(
+            objects=objects_for_prompt,
+            location_name=location_name,
+            location_lat=location.lat,
+            location_lon=location.lon,
+            moon_phase=moon_phase,
+            rigs=rigs,
+            locale=locale,
+            sim_date=sim_date,
+        )
+
+        # Get AI response
+        response_text = get_ai_response(prompt["user"], system=prompt["system"])
+
+        # Parse the response to extract ranked objects
+        # Expected format: JSON array with objects having "Object" key
+        ranked_objects = []
+
+        try:
+            # Try to parse as JSON first
+            import json
+            parsed = json.loads(response_text)
+
+            if isinstance(parsed, list):
+                ranked_objects = parsed
+            elif isinstance(parsed, dict) and "ranked_objects" in parsed:
+                ranked_objects = parsed["ranked_objects"]
+            elif isinstance(parsed, dict) and "objects" in parsed:
+                ranked_objects = parsed["objects"]
+            else:
+                # Fallback: try to extract object names from text
+                ranked_objects = _extract_objects_from_text(response_text, objects_for_prompt)
+        except json.JSONDecodeError:
+            # Not JSON, try to extract from text
+            ranked_objects = _extract_objects_from_text(response_text, objects_for_prompt)
+
+        # Ensure all ranked objects have rank and reason
+        for i, obj in enumerate(ranked_objects, 1):
+            obj["rank"] = i
+            if "reason" not in obj:
+                obj["reason"] = ""
+            if "recommended_rig" not in obj:
+                obj["recommended_rig"] = None
+
+        return jsonify({"ranked_objects": ranked_objects})
+
+    except AIServiceError as e:
+        logger.error(f"AIServiceError in /api/ai/best_objects: {str(e)}")
+        return jsonify({"error": str(e)}), 503
+
+    except Exception as e:
+        logger.exception("Unexpected error generating best objects")
+        return jsonify({"error": "An unexpected error occurred"}), 500
+
+
+def _extract_objects_from_text(text, objects_for_prompt):
+    """Extract ranked objects from AI text response when JSON parsing fails.
+
+    Args:
+        text: AI response text
+        objects_for_prompt: List of original objects for reference
+
+    Returns:
+        List of dicts with Object, rank, reason, recommended_rig keys
+    """
+    import re
+
+    # Create a map of object names to original object data
+    obj_map = {o.get("Object", ""): o for o in objects_for_prompt}
+
+    # Try to find object names in the text (common patterns: M31, NGC 7000, etc.)
+    # Look for object names that appear in our input list
+    ranked_objects = []
+
+    # Extract object names from text - look for patterns like "1. M31 - reason" or "1) M31: reason"
+    pattern = r'(?:^|\n)\s*(\d+)[\.\)]\s*([A-Z]?[A-Za-z0-9\s\-]+)\s*[:-]\s*(.*?)(?=\n\d+[\.\)]|\n\n|$)'
+    matches = re.findall(pattern, text, re.MULTILINE)
+
+    for match in matches:
+        rank_str, obj_name, reason = match
+        obj_name = obj_name.strip()
+
+        # Clean up the object name
+        obj_name = re.sub(r'\s+', ' ', obj_name).strip()
+
+        if obj_name in obj_map:
+            ranked_objects.append({
+                "Object": obj_name,
+                "rank": int(rank_str),
+                "reason": reason.strip(),
+                "recommended_rig": None
+            })
+
+    # If no matches found, return empty list
+    if not ranked_objects:
+        logger.warning("Could not parse AI response as structured data")
+
+    return ranked_objects
 
 
 def register_ai_blueprint(app):

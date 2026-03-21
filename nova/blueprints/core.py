@@ -1235,13 +1235,17 @@ def index():
     # Get hiding preference (safe default False)
     hide_invisible_pref = g.user_config.get('hide_invisible', True)
 
+    # Get imaging criteria for "Ask Nova" feature
+    imaging_criteria = get_imaging_criteria()
+
     record_event('dashboard_load')
     return render_template('index.html',
                            journal_sessions=sessions_for_template,
                            selected_day=observing_date_for_calcs.day,
                            selected_month=observing_date_for_calcs.month,
                            selected_year=observing_date_for_calcs.year,
-                           hide_invisible=hide_invisible_pref)
+                           hide_invisible=hide_invisible_pref,
+                           imaging_criteria=imaging_criteria)
 
 
 @core_bp.route('/sun_events')

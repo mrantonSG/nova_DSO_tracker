@@ -563,3 +563,154 @@ Respond in the language of this ISO locale code: {locale}. Use informal address 
     user_prompt = "\n".join(prompt_lines)
 
     return {"system": system_prompt, "user": user_prompt}
+
+
+def build_best_objects_prompt(
+    objects: list,
+    location_name: str,
+    location_lat: float,
+    location_lon: float,
+    moon_phase: float = None,
+    rigs: list = None,
+    locale: str = "en",
+    sim_date: str = None,
+) -> dict:
+    """Build system and user prompts for ranking best objects.
+
+    Args:
+        objects: List of object dicts with keys: Object, Common Name, Type, Magnitude,
+                Size, Constellation, Altitude, Azimuth,
+                Observable Duration (min), Max Altitude (°),
+                Angular Separation (°), etc.
+        location_name: Name of the observing location
+        location_lat: Latitude of the location
+        location_lon: Longitude of the location
+        moon_phase: Moon illumination percentage (0-100)
+        rigs: List of user's rig configurations
+        locale: ISO locale code for response language (default: "en")
+        sim_date: Date in YYYY-MM-DD format (None for live mode)
+
+    Returns:
+        dict with "system" and "user" keys containing prompt strings.
+    """
+    system_prompt = """You are Nova — a warm, sharp, and genuinely passionate astrophotography companion built into the Nova DSO Tracker. You rank deep-sky objects for imaging based on current conditions and the observer's equipment. Your personality shows through your concise, opinionated analysis — you are not a generic assistant, you are a friend who loves this and wants the observer to succeed.
+
+CRITICAL OUTPUT FORMAT:
+You MUST respond with ONLY a valid JSON array. No markdown, no code blocks, no explanations before or after. The JSON must be parseable directly.
+
+Each object in the array must have these exact keys:
+- "Object": the exact object name from the input
+- "rank": integer (1 = best)
+- "reason": one sentence explaining why this object is ranked here
+- "recommended_rig": name of the best rig for this object (must be one of the provided rigs)
+
+Example:
+[
+  {"Object": "M31", "rank": 1, "reason": "Large galaxy with excellent surface brightness, well above 50° all night. Moon at 15% won't affect it.", "recommended_rig": "Main Imaging Rig"},
+  {"Object": "NGC 7000", "rank": 2, "reason": "Compact nebula, high surface brightness. Fits well in narrowband through the 8\" scope.", "recommended_rig": "Portable Setup"}
+]
+
+Ranking criteria:
+1. **Observable conditions first**: High max altitude, long observable duration (especially before/after midnight for current date)
+2. **Object character**: Surface brightness, contrast, size, composition. Favor targets that shine in the current conditions.
+3. **Equipment match**: Which rig frames and images this target well. Match FOV to object size, f-ratio to exposure time needed.
+4. **Moon tolerance**: How well the object handles current moon phase. Narrowband targets win under bright moon.
+5. **One rig per object**: Pick the single best rig for each target. Don't list multiple rigs per object.
+
+Tone: Direct, opinionated, specific. Explain why, don't just describe. "Great target because..." is weak. "Captures well in 2 hours on the 200mm rig, surface brightness holds up even with 30% moon" is strong.
+
+Respond in the language of this ISO locale code: {locale}.""".format(locale=locale)
+
+    # Build the user prompt
+    prompt_lines = []
+
+    # Location context
+    hemisphere = "southern hemisphere" if location_lat < 0 else "northern hemisphere"
+    prompt_lines.append(f"Observing location: {location_name} (latitude {location_lat:.1f}°, longitude {location_lon:.1f}°, {hemisphere}).")
+
+    # Date and moon context
+    if sim_date:
+        prompt_lines.append(f"Planning date: {sim_date} (simulation mode).")
+    else:
+        prompt_lines.append("Planning date: Tonight (live mode).")
+
+    if moon_phase is not None:
+        prompt_lines.append(f"Moon illumination: {moon_phase}%.")
+
+    # Object list - format as compact table-like structure
+    prompt_lines.append(f"\nAvailable objects ({len(objects)} total):")
+    for obj in objects:
+        obj_name = obj.get("Object", "Unknown")
+        common_name = obj.get("Common Name", "")
+        obj_type = obj.get("Type", "")
+        magnitude = obj.get("Magnitude")
+        size = obj.get("Size")
+        obs_duration = obj.get("Observable Duration (min)")
+        max_alt = obj.get("Max Altitude (°)")
+        ang_sep = obj.get("Angular Separation (°)")
+        constellation = obj.get("Constellation", "")
+
+        # Build compact object description
+        parts = [obj_name]
+        if common_name:
+            parts.append(f'({common_name})')
+        if obj_type:
+            parts.append(f"{obj_type}")
+        if magnitude:
+            parts.append(f"mag {magnitude}")
+        if size:
+            parts.append(f"{size}'")
+        if obs_duration:
+            parts.append(f"{obs_duration}min")
+        if max_alt:
+            parts.append(f"max {max_alt}°")
+        if ang_sep:
+            parts.append(f"moon sep {ang_sep}°")
+        if constellation:
+            parts.append(f"in {constellation}")
+
+        prompt_lines.append("  " + ", ".join(parts))
+
+    # Rig context
+    if rigs:
+        prompt_lines.append(f"\nObserver's rigs:")
+        for rig in rigs:
+            rig_name = rig.get("name", "Unnamed rig")
+            telescope = rig.get("telescope") or {}
+            camera = rig.get("camera") or {}
+            aperture = rig.get("aperture_mm")
+            focal_length = rig.get("effective_focal_length")
+            f_ratio = rig.get("f_ratio")
+            fov = rig.get("fov_w_arcmin")
+            cam_name = camera.get("name", "")
+            camera_type = rig.get("camera_type", "")
+
+            parts = [f"{rig_name}:"]
+            if telescope.get("name"):
+                parts.append(f"telescope={telescope['name']}")
+            if aperture:
+                parts.append(f"aperture={aperture:.0f}mm")
+            if focal_length:
+                parts.append(f"FL={focal_length:.0f}mm")
+            if f_ratio:
+                parts.append(f"f/{f_ratio:.1f}")
+            if fov:
+                parts.append(f"FOV={fov:.0f}'")
+            if cam_name:
+                parts.append(f"camera={cam_name}")
+            if camera_type:
+                parts.append(f"type={camera_type}")
+
+            prompt_lines.append("  " + ", ".join(parts))
+
+    # Final instruction
+    prompt_lines.append(
+        "\nRank these objects for the current conditions. "
+        "Return ONLY the JSON array with the specified format. "
+        "Rank 1 is the best choice tonight. "
+        "Provide one recommended rig per object."
+    )
+
+    user_prompt = "\n".join(prompt_lines)
+
+    return {"system": system_prompt, "user": user_prompt}
