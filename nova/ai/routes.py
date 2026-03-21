@@ -691,8 +691,6 @@ def get_best_objects():
         # Get AI response
         response_text = get_ai_response(prompt["user"], system=prompt["system"])
 
-        logger.warning(f"RAW AI RESPONSE: {response_text}")
-
         # Parse the response to extract ranked objects
         # Expected format: JSON array with objects having "Object" key
         ranked_objects = []

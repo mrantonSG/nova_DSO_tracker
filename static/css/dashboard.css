@@ -113,6 +113,14 @@
         white-space: nowrap;
     }
 
+    /* --- Nova Rank Badge Hover Effect --- */
+    .nova-rank-badge:hover {
+        background-color: var(--primary-dark);
+        filter: brightness(1.1);
+        transform: translateY(-1px);
+        transition: all 0.2s ease;
+    }
+
     #data-table th:not([data-column-key="Object"]):not([data-column-key="Common Name"]),
     #data-table td:not([data-column-key="Object"]):not([data-column-key="Common Name"]) {
         text-align: center;

@@ -598,6 +598,8 @@ def build_best_objects_prompt(
 CRITICAL OUTPUT FORMAT:
 You MUST respond with ONLY a valid JSON array. No markdown, no code blocks, no explanations before or after. The JSON must be parseable directly.
 
+Return a maximum of 20 objects, ranked from best (1) to worst (20). If more objects are available, select only the top 20.
+
 Each object in the array must have these exact keys:
 - "Object": the exact object name from the input. YOU MUST use the exact Object value from the input list as the "Object" key in your response. Do not add common names, parentheticals, or alternate catalog IDs. Return it character-for-character as provided.
 - "rank": integer (1 = best)
