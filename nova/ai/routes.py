@@ -134,12 +134,14 @@ def generate_dso_notes():
         locations[0] if locations else None
     )
 
-    # Calculate moon phase and separation for sim_mode
+    # Calculate moon phase, separation, and target data for sim_mode
     moon_phase = None
     moon_separation = None
+    target_altitude_deg = None
+    target_transit_time = None
     if sim_mode and selected_day and selected_month and selected_year and active_location:
         try:
-            from modules.astro_calculations import calculate_sun_events_cached
+            from modules.astro_calculations import calculate_transit_time
 
             lat = active_location["lat"]
             lon = active_location["lon"]
@@ -149,20 +151,15 @@ def generate_dso_notes():
             date_obj = datetime(int(selected_year), int(selected_month), int(selected_day))
             date_str = date_obj.strftime('%Y-%m-%d')
 
-            # Get sun events for astronomical dusk
-            sun_events = calculate_sun_events_cached(date_str, tz_name, lat, lon)
-            dusk_str = sun_events.get("astronomical_dusk", "21:00")
-
-            # Create timezone-aware datetime at astronomical dusk
+            # Use 11 PM local for moon phase and separation (matches dashboard "Ang. Sep." column)
             local_tz = pytz.timezone(tz_name)
-            dusk_time_obj = datetime.strptime(dusk_str, "%H:%M").time()
-            dt_for_moon_local = local_tz.localize(datetime.combine(date_obj, dusk_time_obj))
-            dt_utc = dt_for_moon_local.astimezone(pytz.utc)
+            time_11pm_local = local_tz.localize(datetime.combine(date_obj, time(23, 0)))
+            dt_utc = time_11pm_local.astimezone(pytz.utc)
 
             # Moon Phase
             moon_phase = round(ephem.Moon(dt_utc).phase, 1)
 
-            # Angular Separation between moon and target object
+            # Angular Separation between moon and target object at 11 PM local
             time_obj_sep = Time(dt_utc)
             loc_obj_sep = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
             moon_coord_sep = get_body('moon', time_obj_sep, loc_obj_sep)
@@ -171,10 +168,31 @@ def generate_dso_notes():
 
             sep_val = obj_coord_sep.transform_to(frame_sep).separation(moon_coord_sep.transform_to(frame_sep)).deg
             moon_separation = round(sep_val)
+
+            # Calculate target transit time first (needed for max altitude)
+            target_transit_time = calculate_transit_time(
+                obj.ra_hours, obj.dec_deg, lat, lon, tz_name, date_str
+            )
+
+            # Calculate target altitude AT transit time (this is the max observable altitude)
+            # Parse transit time (format: "HH:MM")
+            transit_hour, transit_minute = map(int, target_transit_time.split(':'))
+            time_transit_local = local_tz.localize(datetime.combine(date_obj, time(transit_hour, transit_minute)))
+            dt_transit_utc = time_transit_local.astimezone(pytz.utc)
+
+            # Reuse object coordinates, calculate new frame at transit time
+            time_obj_transit = Time(dt_transit_utc)
+            loc_obj_transit = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+            frame_transit = AltAz(obstime=time_obj_transit, location=loc_obj_transit)
+            obj_altaz_transit = obj_coord_sep.transform_to(frame_transit)
+
+            target_altitude_deg = round(obj_altaz_transit.alt.deg, 1)
         except Exception as e:
-            logger.warning(f"Failed to calculate moon phase/separation: {e}")
+            logger.warning(f"Failed to calculate moon phase/separation/target data: {e}")
             moon_phase = None
             moon_separation = None
+            target_altitude_deg = None
+            target_transit_time = None
 
     # Gather rig context
     rig_rows = db.query(Rig).options(
@@ -261,6 +279,8 @@ def generate_dso_notes():
             sim_mode=sim_mode,
             moon_phase=moon_phase,
             moon_separation=moon_separation,
+            target_altitude_deg=target_altitude_deg,
+            target_transit_time=target_transit_time,
             framing_context=framing_context,
         )
 
