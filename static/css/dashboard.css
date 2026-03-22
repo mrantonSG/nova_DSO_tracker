@@ -100,6 +100,19 @@
     }
 
     /* --- Nova Rank Column Style --- */
+
+    /* Nova Rank column hidden by default */
+    #data-table th[data-column-key="Nova Rank"],
+    #data-table td[data-column-key="Nova Rank"] {
+        display: none;
+    }
+
+    /* Nova Rank column visible when table has nova-active class */
+    #data-table.nova-active th[data-column-key="Nova Rank"],
+    #data-table.nova-active td[data-column-key="Nova Rank"] {
+        display: table-cell;
+    }
+
     #data-table .col-nova-rank,
     #data-table td[data-column-key="Nova Rank"] {
         width: 40px;

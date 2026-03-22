@@ -926,7 +926,7 @@
             renderRows(cachedData);
             // Restore Nova Rank column and sort if active
             if (Object.keys(novaRankMap).length > 0) {
-                showNovaRankColumn();
+                document.getElementById('data-table').classList.add('nova-active');
                 if (currentSort.columnKey === 'Nova Rank') {
                     sortTable('Nova Rank', false);
                 }
@@ -1018,7 +1018,7 @@
                 renderRows(allData);
                 // Restore Nova Rank column and sort if active
                 if (Object.keys(novaRankMap).length > 0) {
-                    showNovaRankColumn();
+                    document.getElementById('data-table').classList.add('nova-active');
                     if (currentSort.columnKey === 'Nova Rank') {
                         sortTable('Nova Rank', false);
                     }
@@ -1142,24 +1142,6 @@
     }
 
     /**
-     * Show Nova Rank column (both th and td elements)
-     */
-    function showNovaRankColumn() {
-        document.querySelectorAll(
-            'th[data-column-key="Nova Rank"], td[data-column-key="Nova Rank"]'
-        ).forEach(el => el.style.display = 'table-cell');
-    }
-
-    /**
-     * Hide Nova Rank column (both th and td elements)
-     */
-    function hideNovaRankColumn() {
-        document.querySelectorAll(
-            'th[data-column-key="Nova Rank"], td[data-column-key="Nova Rank"]'
-        ).forEach(el => el.style.display = 'none');
-    }
-
-    /**
      * Reset table to original sorting and remove Nova ranking
      */
     function resetRanking() {
@@ -1181,7 +1163,7 @@
         }
 
         // Hide Nova Rank column
-        hideNovaRankColumn();
+        document.getElementById('data-table').classList.remove('nova-active');
 
         // Update button visibility
         updateRemoveFiltersButtonVisibility();
@@ -1283,7 +1265,7 @@
             renderRows(allData);
             // Show Nova Rank column
             if (Object.keys(novaRankMap).length > 0) {
-                showNovaRankColumn();
+                document.getElementById('data-table').classList.add('nova-active');
                 sortTable('Nova Rank', false);
             }
             // Update button state
@@ -1396,7 +1378,7 @@
 
             // Show Nova Rank column
             if (Object.keys(novaRankMap).length > 0) {
-                showNovaRankColumn();
+                document.getElementById('data-table').classList.add('nova-active');
                 sortTable('Nova Rank', false);
             }
 
