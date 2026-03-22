@@ -111,6 +111,8 @@
         let activeFetchController = null; // Controls network cancellation
         let dataUpdateIntervalId = null; // 60-second interval for data updates
         let timerUpdateIntervalId = null; // 1-second interval for countdown display
+        let askNovaController = null; // AbortController for Ask Nova requests
+        let askNovaTimeoutId = null; // Timeout ID for Ask Nova requests
     
         // --- ADDED FOR SAVED VIEWS ---
         let savedViewsDropdown, saveViewBtn, deleteViewBtn;
@@ -1224,6 +1226,9 @@
      * Handle Ask Nova button click
      */
     async function askNova() {
+        console.log('[Nova] askNova started, controller state:',
+            askNovaController ? 'exists' : 'null',
+            'signal aborted:', askNovaController?.signal?.aborted)
         console.log('askNova triggered');
         const askNovaBtn = document.getElementById('ask-nova-btn');
         const errorDiv = document.getElementById('ask-nova-error');
@@ -1307,11 +1312,21 @@
         try {
             console.log('[Nova] Sending to AI:', filteredObjects.length, 'objects');
 
+            // Abort any previous Ask Nova request
+            if (askNovaController) {
+                askNovaController.abort();
+            }
+            if (askNovaTimeoutId) {
+                clearTimeout(askNovaTimeoutId);
+            }
+
             // AbortController for timeout
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 180000);
+            askNovaController = new AbortController();
+            askNovaTimeoutId = setTimeout(() => askNovaController.abort(), 180000);
 
             // Call the API
+            console.log('[Nova] About to fetch, signal aborted:',
+                askNovaController.signal.aborted)
             const response = await fetch('/api/ai/best_objects', {
                 method: 'POST',
                 headers: {
@@ -1322,10 +1337,11 @@
                     location_name: locationName,
                     sim_date: effectiveDate
                 }),
-                signal: controller.signal
+                signal: askNovaController.signal
             });
 
-            clearTimeout(timeoutId);
+            console.log('[Nova] Fetch returned, status:', response.status)
+            clearTimeout(askNovaTimeoutId);
 
             if (response.status === 404) {
                 throw new Error('Nova AI endpoint not available. Check AI_API_KEY configuration.');
@@ -1389,6 +1405,8 @@
 
             // Reset button state (remove loading, restore to default or active state)
             askNovaBtn.disabled = false;
+            askNovaController = null;
+            askNovaTimeoutId = null;
             // Use innerHTML to preserve the SVG icon
             const activeClass = askNovaBtn.classList.contains('active') ? ' active' : '';
             askNovaBtn.innerHTML = `

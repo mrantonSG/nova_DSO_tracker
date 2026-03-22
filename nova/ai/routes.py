@@ -820,7 +820,6 @@ def get_best_objects():
 
         if sim_date:
             # Sim mode: use the provided date
-            from datetime import datetime
             date_obj = datetime.strptime(sim_date, "%Y-%m-%d")
         else:
             # Live mode: use current date at 11 PM local time
@@ -916,6 +915,7 @@ def get_best_objects():
 
     # Compress objects for AI prompt
     compressed_objects = compress_objects_for_prompt(objects_for_prompt)
+    logger.warning(f"[AI DEBUG] Compressed payload ({len(compressed_objects)} chars):\n{compressed_objects[:500]}")
 
     try:
         # Build single AI ranking prompt with compressed format
@@ -931,8 +931,8 @@ def get_best_objects():
             compressed_objects=compressed_objects,
         )
 
-        # Get AI response for ranking
-        ranking_response = get_ai_response(ranking_prompt["user"], system=ranking_prompt["system"], max_tokens=4096)
+        # Get AI response for ranking (increased timeout for large JSON response)
+        ranking_response = get_ai_response(ranking_prompt["user"], system=ranking_prompt["system"], max_tokens=4096, timeout=300)
 
         # Parse ranking response to extract ranked objects
         # Expected format: JSON array with objects having "Object" key
@@ -940,12 +940,26 @@ def get_best_objects():
 
         try:
             import json
-            # Strip markdown code fences before parsing
+            if not ranking_response:
+                raise AIServiceError("AI returned an empty response")
+            # Strip markdown code fences before parsing (handle various fence formats)
             ranking_response = ranking_response.strip()
-            if ranking_response.startswith("```"):
-                ranking_response = re.sub(r'^```[a-zA-Z]*\n?', '', ranking_response)
-                ranking_response = re.sub(r'\n?```\s*$', '', ranking_response)
+            # Pattern: optional whitespace + ``` + optional language + newline ... content ... + newline + optional whitespace + ```
+            # This handles: ```json\n[...]\n```, ```\n[...]\n```, ```js\n[...]\n```
+            fence_pattern = r'^\s*```(?:json|js|javascript)?\s*\n([\s\S]*?)\n\s*```\s*$'
+            match = re.match(fence_pattern, ranking_response, re.DOTALL | re.MULTILINE)
+            if match:
+                ranking_response = match.group(1).strip()
+                logger.info("Stripped markdown code fences from AI response")
+            # Also handle case where only opening fence exists (truncated response)
+            elif ranking_response.startswith("```"):
+                ranking_response = re.sub(r'^\s*```(?:json|js|javascript)?\s*\n?', '', ranking_response)
                 ranking_response = ranking_response.strip()
+                logger.warning("AI response had opening code fence but no closing fence (possibly truncated)")
+
+            # Log the cleaned response for debugging (first 500 chars)
+            logger.debug(f"Cleaned AI response (first 500 chars): '{ranking_response[:500]}'")
+
             # Try to parse as JSON first
             parsed = json.loads(ranking_response)
 

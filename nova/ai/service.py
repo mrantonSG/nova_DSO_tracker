@@ -12,14 +12,14 @@ class AIServiceError(Exception):
     pass
 
 
-def get_ai_response(prompt: str, system: str = None, stream: bool = False, max_tokens: int = 1500, timeout: int = 120) -> str | object:
+def get_ai_response(prompt: str, system: str = None, stream: bool = False, max_tokens: int = 4000, timeout: int = 120) -> str | object:
     """Get a response from the configured AI provider.
 
     Args:
         prompt: The user prompt to send to the AI.
         system: Optional system prompt for context/instructions.
         stream: If True, returns a generator yielding text chunks.
-        max_tokens: Maximum tokens in the response (default: 1500).
+        max_tokens: Maximum tokens in the response (default: 4000).
         timeout: Request timeout in seconds (default: 120).
 
     Returns:

@@ -901,6 +901,8 @@ Respond in the language of this ISO locale code: {locale}."""
         "Rank 1 is the best choice tonight. "
         "Provide one recommended rig per object."
     )
+    # CRITICAL: This is the LAST instruction - model's first token must be the opening bracket
+    prompt_lines.append("Respond with ONLY a JSON array. No preamble, no explanation. Start with [")
 
     user_prompt = "\n".join(prompt_lines)
 
