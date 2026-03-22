@@ -628,3 +628,101 @@
         display: none;
     }
 }
+
+/* ===================================================================
+   RESPONSIVE — DSO TABLE HORIZONTAL SCROLL (WAVE 2)
+   =================================================================== */
+
+@media (max-width: 1100px) {
+    /* Enable horizontal scroll on all table wrappers */
+    .table-wrapper,
+    #dso-table-wrapper,
+    #journal-table-wrapper,
+    #outlook-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+    }
+    
+    /* Sticky first column (Object) for DSO table */
+    #data-table th:first-child,
+    #data-table td:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 2;
+        background: var(--nova-surface, var(--bg-dark-secondary));
+    }
+    #data-table thead th:first-child {
+        z-index: 3; /* above body rows */
+    }
+    
+    /* Sticky first column for journal table */
+    #journal-data-table th:first-child,
+    #journal-data-table td:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 2;
+        background: var(--nova-surface, var(--bg-dark-secondary));
+    }
+    #journal-data-table thead th:first-child {
+        z-index: 3;
+    }
+    
+    /* Sticky first column for outlook table */
+    #outlook-table th:first-child,
+    #outlook-table td:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 2;
+        background: var(--nova-surface, var(--bg-dark-secondary));
+    }
+    #outlook-table thead th:first-child {
+        z-index: 3;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Compact table cells on mobile */
+    #data-table td,
+    #data-table th,
+    #journal-data-table td,
+    #journal-data-table th,
+    #outlook-table td,
+    #outlook-table th {
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+    
+    /* Filter inputs: smaller */
+    .filter-row input {
+        font-size: 12px;
+        padding: 4px 6px;
+        min-width: 50px;
+    }
+    
+    /* Simulation controls: allow wrapping */
+    #simulation-controls {
+        flex-wrap: wrap;
+        gap: var(--space-2);
+    }
+    
+    /* Table minimum widths: ensure scrollability */
+    #data-table {
+        min-width: 900px;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Even more compact on very small screens */
+    #data-table td,
+    #data-table th {
+        padding: 4px 6px;
+        font-size: 11px;
+    }
+    
+    /* Reduce filter input height */
+    .filter-row input {
+        height: 28px;
+        font-size: 11px;
+    }
+}

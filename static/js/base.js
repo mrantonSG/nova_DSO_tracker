@@ -543,4 +543,80 @@ document.addEventListener('change', function(e) {
     if (e.target && e.target.id === 'language-select') {
         clearTranslationBannerFlags();
     }
-});;
+});
+
+(function initUserDropdown() {
+    const dropdown = document.querySelector('.user-dropdown');
+    if (!dropdown) return;
+
+    const toggle = dropdown.querySelector('.user-dropdown-toggle');
+    toggle.addEventListener('click', function(e) {
+        e.stopPropagation();
+        dropdown.classList.toggle('open');
+        toggle.setAttribute('aria-expanded', dropdown.classList.contains('open'));
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!dropdown.contains(e.target)) {
+            dropdown.classList.remove('open');
+            toggle.setAttribute('aria-expanded', 'false');
+        }
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && dropdown.classList.contains('open')) {
+            dropdown.classList.remove('open');
+            toggle.setAttribute('aria-expanded', 'false');
+        }
+    });
+})();
+
+(function initNavDrawer() {
+    const hamburger = document.getElementById('nav-hamburger');
+    const drawer = document.getElementById('nav-drawer');
+    const overlay = document.getElementById('nav-drawer-overlay');
+    const closeBtn = document.getElementById('nav-drawer-close');
+    const drawerThemeToggle = document.getElementById('drawer-theme-toggle');
+    if (!hamburger || !drawer) return;
+
+    function openDrawer() {
+        document.body.classList.add('nav-drawer-open');
+        hamburger.setAttribute('aria-expanded', 'true');
+        const firstFocusable = drawer.querySelector('button, a, [tabindex]');
+        if (firstFocusable) firstFocusable.focus();
+    }
+
+    function closeDrawer() {
+        document.body.classList.remove('nav-drawer-open');
+        hamburger.setAttribute('aria-expanded', 'false');
+        hamburger.focus();
+    }
+
+    hamburger.addEventListener('click', openDrawer);
+    if (closeBtn) closeBtn.addEventListener('click', closeDrawer);
+    if (overlay) overlay.addEventListener('click', closeDrawer);
+
+    let touchStartX = 0;
+    drawer.addEventListener('touchstart', function(e) { touchStartX = e.touches[0].clientX; }, { passive: true });
+    drawer.addEventListener('touchend', function(e) {
+        const deltaX = e.changedTouches[0].clientX - touchStartX;
+        if (deltaX < -60) closeDrawer();
+    }, { passive: true });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && document.body.classList.contains('nav-drawer-open')) {
+            closeDrawer();
+        }
+    });
+
+    drawer.addEventListener('click', function(e) {
+        if (e.target.closest('a')) closeDrawer();
+    });
+
+    if (drawerThemeToggle) {
+        drawerThemeToggle.addEventListener('click', function() {
+            const themeToggle = document.getElementById('theme-toggle');
+            if (themeToggle) themeToggle.click();
+        });
+    }
+})();

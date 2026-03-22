@@ -76,32 +76,28 @@
   --radius-sm: 5px;     /* Filter inputs, small elements */
   --radius-md: 8px;     /* Standard inputs, buttons */
   --radius-lg: 12px;     /* Larger buttons, cards */
+  --radius-xl: 16px;     /* Modals, containers */
 
   /* =================================================================
-     MOBILE INTERFACE VARIABLES
-     Used by mobile.css for mobile-specific styling
+     TOUCH TARGET TOKENS
+     iOS HIG/WCAG 2.5.5 minimum: 44×44px
      ================================================================ */
-  --primary-color: #83b4c5;
-  --primary-hover: #5a9aad;
-  --primary-bg: rgba(131, 180, 197, 0.15);
-  --bg-light-gray-alt4: #f4f7f6;
-  --text-primary: #141414;
-  --text-muted: #666666;
-  --text-faint: #888888;
-  --text-white: #ffffff;
+  --touch-min: 44px;
 
   /* =================================================================
-     BACKGROUND SURFACES
+     SAFE AREA TOKENS
+     For iPhone notch/home indicator areas (viewport-fit=cover)
      ================================================================ */
-  --bg-primary: #f2f0ed;
-  --bg-secondary: #ffffff;
-  --bg-tertiary: #f7f5f2;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
 
   /* =================================================================
-     BORDERS
+     Z-INDEX SCALE EXTENSION
+     For off-canvas drawer (between sticky and modal)
      ================================================================ */
-  --border-color: #e5e2dc;
-  --border-light: #eeebe5;
+  --z-drawer: 1100;
 }
 
 /* =====================================================================
