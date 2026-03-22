@@ -1588,7 +1588,17 @@
                 }
                 row.onclick = () => { showGraph(objectData.Object); };
             }
-    
+
+            // Nova Rank cell — always created, CSS controls visibility
+            const novaRankTd = document.createElement('td');
+            novaRankTd.dataset.columnKey = 'Nova Rank';
+            novaRankTd.style.textAlign = 'center';
+            const objectNameUpper = String(objectData.Object || '').trim().toUpperCase();
+            const rankData = novaRankMap[objectNameUpper];
+            novaRankTd.dataset.rawValue = rankData ? rankData.rank : 9999;
+            novaRankTd.textContent = rankData ? rankData.rank : '';
+            row.appendChild(novaRankTd);
+
             columnOrder.forEach(columnKey => {
                 const config = columnConfig[columnKey];
                 if (!config) return;
