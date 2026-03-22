@@ -449,64 +449,6 @@ def permission_required(perm_name: str) -> Callable:
     return decorator
 
 
-def require_owner_or_permission(
-    perm_name: str, get_owner_id: Callable[..., Optional[int]]
-) -> Callable:
-    """
-    Decorator factory for resource ownership OR permission check.
-
-    Allows access if:
-    1. User owns the resource (owner_id matches user.id), OR
-    2. User has the specified permission (or is admin)
-
-    Args:
-        perm_name: The permission name that grants access to others' resources
-        get_owner_id: Function that takes route kwargs and returns the owner's user_id
-                     (should return None if resource not found)
-
-    Example:
-        def get_object_owner(**kwargs):
-            obj_id = kwargs.get('object_id')
-            obj = db.query(AstroObject).get(obj_id)
-            return obj.user_id if obj else None
-
-        @app.route('/objects/<int:object_id>')
-        @login_required
-        @require_owner_or_permission('data.export.any', get_object_owner)
-        def view_object(object_id):
-            ...
-    """
-
-    def decorator(f: Callable) -> Callable:
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            user = _get_current_user()
-
-            if user is None:
-                return _abort_forbidden("Authentication required")
-
-            # Admins bypass all checks
-            if user.is_admin:
-                return f(*args, **kwargs)
-
-            # Check ownership
-            owner_id = get_owner_id(**kwargs)
-            if owner_id is not None and owner_id == user.id:
-                return f(*args, **kwargs)
-
-            # Check permission
-            if user.has_permission(perm_name):
-                return f(*args, **kwargs)
-
-            return _abort_forbidden(
-                f"You don't own this resource and lack permission: {perm_name}"
-            )
-
-        return decorated_function
-
-    return decorator
-
-
 # =============================================================================
 # API-specific Decorators
 # =============================================================================

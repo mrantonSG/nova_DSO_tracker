@@ -13,8 +13,15 @@ os.makedirs(INSTANCE_PATH, exist_ok=True)
 DB_PATH = os.path.join(INSTANCE_PATH, 'app.db')
 DB_URI = f"sqlite:///{DB_PATH}"
 
-engine = create_engine(DB_URI, echo=False, future=True)
-SessionLocal = scoped_session(sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False))
+engine = create_engine(
+    DB_URI,
+    echo=False,
+    future=True,
+    connect_args={"check_same_thread": False},
+)
+SessionLocal = scoped_session(
+    sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
+)
 Base = declarative_base()
 
 
@@ -64,7 +71,9 @@ class Project(Base):
     processing_notes = Column(Text, nullable=True)  # Processing workflow (rich text)
     final_image_file = Column(String(256), nullable=True)  # Path to the final image (similar to session_image_file)
     goals = Column(Text, nullable=True)  # Goals and completion status (rich text)
-    status = Column(String(32), nullable=False, default="In Progress")  # e.g., 'In Progress', 'Completed', 'On Hold'
+    status = Column(
+        String(32), nullable=False, default="In Progress", index=True
+    )  # e.g., 'In Progress', 'Completed', 'On Hold'
 
     user = relationship("DbUser", back_populates="projects")
     sessions = relationship("JournalSession", back_populates="project")
@@ -139,7 +148,7 @@ class SavedFraming(Base):
     # Overlay Preferences
     geo_belt_enabled = Column(Boolean, default=True)
 
-    updated_at = Column(Date, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("DbUser", backref="saved_framings")
     __table_args__ = (UniqueConstraint('user_id', 'object_name', name='uq_user_object_framing'),)
@@ -160,12 +169,12 @@ class AstroObject(Base):
     common_name = Column(String(256), nullable=True)
     ra_hours = Column(Float, nullable=False)
     dec_deg = Column(Float, nullable=False)
-    type = Column(String(128), nullable=True)
-    constellation = Column(String(64), nullable=True)
+    type = Column(String(128), nullable=True, index=True)
+    constellation = Column(String(64), nullable=True, index=True)
     magnitude = Column(String(32), nullable=True)
     size = Column(String(64), nullable=True)
     sb = Column(String(64), nullable=True)
-    active_project = Column(Boolean, nullable=False, default=False)
+    active_project = Column(Boolean, nullable=False, default=False, index=True)
     project_name = Column(Text, nullable=True)
     is_shared = Column(Boolean, nullable=False, default=False, index=True)
     shared_notes = Column(Text, nullable=True)
@@ -402,7 +411,7 @@ class UserCustomFilter(Base):
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), nullable=False, index=True)
     filter_key = Column(String(64), nullable=False)
     filter_label = Column(String(64), nullable=False)
-    created_at = Column(Date, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
     __table_args__ = (
         UniqueConstraint("user_id", "filter_key", name="uq_user_filter_key"),
@@ -422,7 +431,7 @@ class ApiKey(Base):
     name = Column(String(128), nullable=False, default="default")
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     last_used_at = Column(DateTime, nullable=True)
-    is_active = Column(Boolean, nullable=False, default=True)
+    is_active = Column(Boolean, nullable=False, default=True, index=True)
 
     db_user = relationship("DbUser", backref="api_keys")
 

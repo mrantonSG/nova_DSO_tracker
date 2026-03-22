@@ -16,34 +16,21 @@ from pathlib import Path
 from math import atan, degrees
 from typing import Optional
 
-from flask import g, has_request_context, current_app, session, request
-from sqlalchemy.orm import selectinload
-from astroquery.simbad import Simbad
-from astropy.coordinates import SkyCoord, get_constellation, EarthLocation, AltAz, get_body
-from astropy.time import Time
-import astropy.units as u
+from flask import g, jsonify
 
-from nova.models import SessionLocal, Location, AstroObject, Component, SavedFraming
-from nova.config import (
-    INSTANCE_PATH, BACKUP_DIR, ALLOWED_EXTENSIONS, SINGLE_USER_MODE, SIMBAD_TIMEOUT,
-    nightly_curves_cache, NOVA_CATALOG_URL, CATALOG_MANIFEST_CACHE, DEFAULT_HTTP_TIMEOUT
-)
-from modules.astro_calculations import (
-    get_common_time_arrays, hms_to_hours, dms_to_degrees,
-    calculate_transit_time, calculate_observable_duration_vectorized,
-    ra_dec_to_alt_az, get_utc_time_for_local_11pm, interpolate_horizon
-)
-
-logger = logging.getLogger(__name__)
+from nova.models import SessionLocal
+from nova.config import INSTANCE_PATH, BACKUP_DIR, ALLOWED_EXTENSIONS, SINGLE_USER_MODE
 
 try:
     import fcntl
+
     _HAS_FCNTL = True
 except Exception:
     _HAS_FCNTL = False
 
 
 # === Core DB helper ===
+
 
 def get_db():
     """
@@ -56,6 +43,23 @@ def get_db():
     No manual close() or remove() calls are needed in route handlers.
     """
     return SessionLocal()
+
+
+def get_current_username() -> str:
+    """Return 'default' in single-user mode, else current Flask-Login user's username."""
+    from nova.config import SINGLE_USER_MODE
+    from flask_login import current_user
+
+    return "default" if SINGLE_USER_MODE else current_user.username
+
+
+def error_response(message: str, status_code: int = 400):
+    """
+    Standard JSON error response: {"error": message}
+
+    Use for consistent error formatting across routes.
+    """
+    return jsonify({"error": message}), status_code
 
 
 def get_user_log_string(user_id, username):
@@ -88,9 +92,9 @@ def get_user_log_string(user_id, username):
 
 # === File & YAML IO helpers ===
 
+
 def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 def _yaml_dump_pretty(data):
@@ -105,19 +109,22 @@ def _mkdirp(path):
 def _backup_with_rotation(src_path: str, keep: int = 10):
     try:
         _mkdirp(BACKUP_DIR)
-        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         stem = Path(src_path).stem
         dst = os.path.join(BACKUP_DIR, f"{stem}_{ts}.yaml")
         if os.path.exists(src_path):
             shutil.copy2(src_path, dst)
         # prune old
-        siblings = sorted([p for p in Path(BACKUP_DIR).glob(f"{stem}_*.yaml")],
-                          key=lambda p: p.stat().st_mtime, reverse=True)
+        siblings = sorted(
+            [p for p in Path(BACKUP_DIR).glob(f"{stem}_*.yaml")],
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
         for p in siblings[keep:]:
-            try: p.unlink()
-            except OSError as e:
-                import logging
-                logging.getLogger(__name__).warning("[BACKUP] failed to delete old backup %s: %s", p, e)
+            try:
+                p.unlink()
+            except:
+                pass
         return dst
     except Exception as e:
         print(f"[BACKUP] warning: {e}")
@@ -143,9 +150,11 @@ def _atomic_write_yaml(path: str, data: dict):
 
 class _FileLock:
     """Simple advisory lock; no-ops if fcntl is unavailable."""
+
     def __init__(self, path: str):
         self.path = path
         self._fh = None
+
     def __enter__(self):
         try:
             os.makedirs(os.path.dirname(self.path), exist_ok=True)
@@ -158,6 +167,7 @@ class _FileLock:
         except Exception:
             pass
         return self
+
     def __exit__(self, exc_type, exc, tb):
         try:
             if self._fh:
@@ -171,20 +181,21 @@ class _FileLock:
 def to_yaml_filter(data):
     """Jinja2 filter to convert a Python object to a YAML string for form display."""
     if data is None:
-        return ''
+        return ""
     try:
         # CORRECT: Force flow style AND provide a large width to prevent any wrapping.
-        return yaml.dump(data, default_flow_style=True, width=9999, sort_keys=False).strip()
+        return yaml.dump(
+            data, default_flow_style=True, width=9999, sort_keys=False
+        ).strip()
     except Exception:
-        return ''
+        return ""
 
 
 # === Log file storage helpers ===
 
-LOGS_DIR = os.path.join(INSTANCE_PATH, 'logs')
-ASIAIR_LOGS_DIR = os.path.join(LOGS_DIR, 'asiair')
-PHD2_LOGS_DIR = os.path.join(LOGS_DIR, 'phd2')
-NINA_LOGS_DIR = os.path.join(LOGS_DIR, 'nina')
+LOGS_DIR = os.path.join(INSTANCE_PATH, "logs")
+ASIAIR_LOGS_DIR = os.path.join(LOGS_DIR, "asiair")
+PHD2_LOGS_DIR = os.path.join(LOGS_DIR, "phd2")
 
 
 def _ensure_log_dirs():
@@ -194,7 +205,9 @@ def _ensure_log_dirs():
     os.makedirs(NINA_LOGS_DIR, exist_ok=True)
 
 
-def save_log_to_filesystem(session_id: int, log_type: str, content: str, original_filename: str = None) -> str:
+def save_log_to_filesystem(
+    session_id: int, log_type: str, content: str, original_filename: str = None
+) -> str:
     """
     Save log content to filesystem and return the relative path.
 
@@ -210,13 +223,13 @@ def save_log_to_filesystem(session_id: int, log_type: str, content: str, origina
     _ensure_log_dirs()
 
     # Sanitize filename
-    safe_name = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', original_filename or 'log.txt')
+    safe_name = re.sub(r"[^a-zA-Z0-9_\-\.]", "_", original_filename or "log.txt")
     if len(safe_name) > 100:
         safe_name = safe_name[:100]
 
     filename = f"{session_id}_{safe_name}"
 
-    if log_type == 'asiair':
+    if log_type == "asiair":
         filepath = os.path.join(ASIAIR_LOGS_DIR, filename)
     elif log_type == 'phd2':
         filepath = os.path.join(PHD2_LOGS_DIR, filename)
@@ -225,11 +238,11 @@ def save_log_to_filesystem(session_id: int, log_type: str, content: str, origina
     else:
         raise ValueError(f"Unknown log_type: {log_type}")
 
-    with open(filepath, 'w', encoding='utf-8', errors='ignore') as f:
+    with open(filepath, "w", encoding="utf-8", errors="ignore") as f:
         f.write(content)
 
     # Return path relative to instance/
-    return os.path.join('instance', 'logs', log_type, filename)
+    return os.path.join("instance", "logs", log_type, filename)
 
 
 def read_log_content(db_value: str) -> str:
@@ -246,16 +259,16 @@ def read_log_content(db_value: str) -> str:
         return None
 
     # Check if it's a filesystem path (no newlines = path, has newlines = raw content)
-    if '\n' not in db_value and db_value.startswith('instance/logs/'):
+    if "\n" not in db_value and db_value.startswith("instance/logs/"):
         # It's a filesystem path - read from file
         # Convert relative path to absolute
-        if db_value.startswith('instance/'):
+        if db_value.startswith("instance/"):
             filepath = os.path.join(os.path.dirname(INSTANCE_PATH), db_value)
         else:
             filepath = db_value
 
         try:
-            with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+            with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
                 return f.read()
         except FileNotFoundError:
             return None
@@ -264,23 +277,17 @@ def read_log_content(db_value: str) -> str:
         return db_value
 
 
-def is_log_path(db_value: str) -> bool:
-    """Check if the db_value is a filesystem path vs raw content."""
-    if not db_value:
-        return False
-    return '\n' not in db_value and db_value.startswith('instance/logs/')
-
-
 # === Data conversion helpers ===
 
 import math
+
 
 def calculate_dither_recommendation(
     main_pixel_size_um: float,
     main_focal_length_mm: float,
     guide_pixel_size_um: float,
     guide_focal_length_mm: float,
-    desired_main_shift_px: int = 10
+    desired_main_shift_px: int = 10,
 ) -> dict:
     """
     Calculate dither pixel recommendation for guide-based capture systems (ASIAIR, etc.).
@@ -307,10 +314,15 @@ def calculate_dither_recommendation(
         Returns None if any input is invalid (zero, negative, or None)
     """
     # Validate inputs - all must be positive non-zero values
-    if not all(v is not None and v > 0 for v in [
-        main_pixel_size_um, main_focal_length_mm,
-        guide_pixel_size_um, guide_focal_length_mm
-    ]):
+    if not all(
+        v is not None and v > 0
+        for v in [
+            main_pixel_size_um,
+            main_focal_length_mm,
+            guide_pixel_size_um,
+            guide_focal_length_mm,
+        ]
+    ):
         return None
 
     try:
@@ -364,7 +376,7 @@ def dither_display(session) -> str:
         or the legacy dither_details value if structured fields are not set.
     """
     if session.dither_pixels is None:
-        return session.dither_details or ''
+        return session.dither_details or ""
 
     parts = [f"{session.dither_pixels} px"]
 
@@ -374,7 +386,7 @@ def dither_display(session) -> str:
         else:
             parts.append(f"every {session.dither_every_n} subs")
 
-    result = ', '.join(parts)
+    result = ", ".join(parts)
 
     if session.dither_notes:
         result += f" ({session.dither_notes})"
@@ -401,21 +413,8 @@ def convert_to_native_python(val):
     return val
 
 
-def recursively_clean_numpy_types(data):
-    """
-    Recursively traverses a dict or list and converts any NumPy
-    numeric types to native Python types. Needed before jsonify.
-    """
-    if isinstance(data, dict):
-        return {key: recursively_clean_numpy_types(value) for key, value in data.items()}
-    elif isinstance(data, list):
-        return [recursively_clean_numpy_types(item) for item in data]
-    elif isinstance(data, np.generic):
-        return data.item()
-    return data
-
-
 # === Settings helpers ===
+
 
 def load_effective_settings():
     """
@@ -424,17 +423,19 @@ def load_effective_settings():
     """
     if SINGLE_USER_MODE:
         # In single-user mode, read from the user's config file.
-        g.sampling_interval = g.user_config.get('sampling_interval_minutes') or 15
+        g.sampling_interval = g.user_config.get("sampling_interval_minutes") or 15
         # --- START FIX ---
         # Handle case where 'telemetry' key exists but is None
-        telemetry_config = g.user_config.get('telemetry') or {}
-        g.telemetry_enabled = telemetry_config.get('enabled', True)
+        telemetry_config = g.user_config.get("telemetry") or {}
+        g.telemetry_enabled = telemetry_config.get("enabled", True)
         # --- END FIX ---
 
     else:
         # In multi-user mode, read from the .env file with hardcoded defaults.
-        g.sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
-        g.telemetry_enabled = os.environ.get('TELEMETRY_ENABLED', 'true').lower() == 'true'
+        g.sampling_interval = int(os.environ.get("CALCULATION_PRECISION", 15))
+        g.telemetry_enabled = (
+            os.environ.get("TELEMETRY_ENABLED", "true").lower() == "true"
+        )
 
 
 def get_imaging_criteria():
@@ -447,20 +448,21 @@ def get_imaging_criteria():
         "min_max_altitude": 30,
         "max_moon_illumination": 20,
         "min_angular_separation": 30,
-        "search_horizon_months": 6
+        "search_horizon_months": 6,
     }
     try:
-        cfg = getattr(g, 'user_config', {}) or {}
+        cfg = getattr(g, "user_config", {}) or {}
         raw = cfg.get("imaging_criteria") or {}
-        out = dict(defaults) # Start with defaults
+        out = dict(defaults)  # Start with defaults
 
         if isinstance(raw, dict):
+
             def _update_key(key, cast_func):
                 if key in raw and raw[key] is not None:
                     try:
                         out[key] = cast_func(str(raw[key]))
                     except (ValueError, TypeError):
-                        pass # Keep default if parsing fails
+                        pass  # Keep default if parsing fails
 
             _update_key("min_observable_minutes", int)
             _update_key("min_max_altitude", float)
@@ -471,9 +473,15 @@ def get_imaging_criteria():
         # Clamp to sensible ranges
         out["min_observable_minutes"] = max(0, out.get("min_observable_minutes", 0))
         out["min_max_altitude"] = max(0.0, min(90.0, out.get("min_max_altitude", 0.0)))
-        out["max_moon_illumination"] = max(0, min(100, out.get("max_moon_illumination", 100)))
-        out["min_angular_separation"] = max(0, min(180, out.get("min_angular_separation", 0)))
-        out["search_horizon_months"] = max(1, min(12, out.get("search_horizon_months", 1)))
+        out["max_moon_illumination"] = max(
+            0, min(100, out.get("max_moon_illumination", 100))
+        )
+        out["min_angular_separation"] = max(
+            0, min(180, out.get("min_angular_separation", 0))
+        )
+        out["search_horizon_months"] = max(
+            1, min(12, out.get("search_horizon_months", 1))
+        )
         return out
     except Exception:
         return dict(defaults)
