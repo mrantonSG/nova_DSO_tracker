@@ -3286,3 +3286,186 @@ hr,
   border-color: var(--nova-accent);
   box-shadow: 0 0 0 2px rgba(142, 200, 218, 0.25);
 }
+
+/* =================================================================
+   USER DROPDOWN MENU
+   Header user menu with dropdown for settings, logout, etc.
+   ================================================================ */
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  color: var(--nova-text-2);
+}
+
+.user-dropdown {
+  position: relative;
+}
+
+.user-dropdown-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: var(--nova-font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--nova-text);
+  transition: all 0.15s ease;
+}
+
+.user-dropdown-toggle:hover {
+  background: var(--hover-bg);
+  border-color: var(--border-medium);
+}
+
+.user-dropdown-toggle:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(131, 180, 197, 0.25);
+}
+
+.user-dropdown-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-dropdown-chevron {
+  transition: transform 0.2s ease;
+  opacity: 0.6;
+}
+
+.user-dropdown.open .user-dropdown-chevron {
+  transform: rotate(180deg);
+}
+
+.user-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 180px;
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.08);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition: all 0.15s ease;
+  z-index: 1000;
+  padding: 4px 0;
+}
+
+.user-dropdown.open .user-dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.user-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  color: var(--nova-text);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 400;
+  transition: background 0.1s ease;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: var(--nova-font-sans);
+}
+
+.user-dropdown-item:hover {
+  background: var(--hover-bg);
+}
+
+.user-dropdown-item.active {
+  background: var(--primary-bg);
+  color: var(--primary-dark);
+}
+
+.user-dropdown-item svg {
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.user-dropdown-item:hover svg {
+  opacity: 0.8;
+}
+
+.user-dropdown-divider {
+  height: 1px;
+  background: var(--border-light);
+  margin: 4px 0;
+}
+
+.user-dropdown-logout {
+  color: var(--danger-color);
+}
+
+.user-dropdown-logout:hover {
+  background: var(--danger-bg);
+}
+
+.user-dropdown-logout svg {
+  opacity: 0.8;
+}
+
+/* Dark mode styles */
+:root[data-theme="dark"] .user-dropdown-toggle {
+  border-color: var(--bg-dark-border);
+  color: var(--nova-text);
+}
+
+:root[data-theme="dark"] .user-dropdown-toggle:hover {
+  background: var(--bg-dark-tertiary);
+  border-color: var(--bg-dark-border-light);
+}
+
+:root[data-theme="dark"] .user-dropdown-toggle:focus {
+  border-color: var(--nova-accent);
+  box-shadow: 0 0 0 2px rgba(142, 200, 218, 0.25);
+}
+
+:root[data-theme="dark"] .user-dropdown-menu {
+  background: var(--bg-dark-secondary);
+  border-color: var(--bg-dark-border);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+:root[data-theme="dark"] .user-dropdown-item {
+  color: var(--nova-text);
+}
+
+:root[data-theme="dark"] .user-dropdown-item:hover {
+  background: var(--bg-dark-tertiary);
+}
+
+:root[data-theme="dark"] .user-dropdown-item.active {
+  background: rgba(142, 200, 218, 0.15);
+  color: var(--nova-accent);
+}
+
+:root[data-theme="dark"] .user-dropdown-divider {
+  background: var(--bg-dark-border);
+}
+
+:root[data-theme="dark"] .user-dropdown-logout {
+  color: #f87171;
+}
+
+:root[data-theme="dark"] .user-dropdown-logout:hover {
+  background: rgba(248, 113, 113, 0.15);
+}
