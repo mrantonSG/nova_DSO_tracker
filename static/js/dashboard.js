@@ -1390,6 +1390,7 @@
             // Show Remove Filters button and mark Ask Nova button as active
             updateRemoveFiltersButtonVisibility();
             askNovaBtn.classList.add('active');
+            document.getElementById('data-table').classList.add('nova-active');
 
         } catch (error) {
             console.error('Error asking Nova:', error);
@@ -1530,6 +1531,7 @@
         if (askNovaBtn) {
             askNovaBtn.classList.remove('active');
         }
+        document.getElementById('data-table').classList.remove('nova-active');
 
         // Clear error
         const errorDiv = document.getElementById('ask-nova-error');
@@ -1753,6 +1755,7 @@
 
         // 4. Restore Object filter to "#" if Nova ranking is active
         if (Object.keys(novaRankMap).length > 0) {
+            document.getElementById('data-table').classList.add('nova-active');
             const objectFilterInput = document.querySelector('#data-table .filter-row th[data-column-key="Object"] input');
             if (objectFilterInput) {
                 objectFilterInput.value = '#';
