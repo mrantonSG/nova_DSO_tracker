@@ -746,15 +746,15 @@ dd {
   gap: 6px;
 }
 
-.user-menu a,
-.user-menu button[type="submit"] {
+.user-menu > a,
+.user-menu button[type="submit"]:not(.user-dropdown-item) {
   color: var(--nova-accent);
   font-size: 12px;
   text-decoration: none;
 }
 
-.user-menu a:hover,
-.user-menu button[type="submit"]:hover {
+.user-menu > a:hover,
+.user-menu button[type="submit"]:not(.user-dropdown-item):hover {
   color: var(--nova-accent-mid);
 }
 
