@@ -6,7 +6,7 @@ is present in app.config.
 
 import logging
 import re
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 
 import ephem
 import pytz
@@ -18,12 +18,220 @@ from flask import Blueprint, current_app, jsonify, g, request, Response, stream_
 from sqlalchemy.orm import selectinload
 
 from nova.ai.config import ai_enabled, user_has_ai_access
-from nova.ai.prompts import build_dso_notes_prompt, build_session_summary_prompt, build_best_objects_prompt
+from nova.ai.prompts import (
+    build_dso_notes_prompt,
+    build_session_summary_prompt,
+    build_best_objects_prompt,
+)
 from nova.ai.service import get_ai_response, AIServiceError
+import math
+
 from nova.helpers import get_db
 from nova.models import AstroObject, Location, Rig, JournalSession, SavedFraming
 
 logger = logging.getLogger(__name__)
+
+
+def compress_objects_for_prompt(objects: list[dict]) -> str:
+    """Converts object dicts to compact pipe-delimited lines for AI prompt.
+
+    Format: NAME|TYPE|OBSm|altALT|moonMOON|magMAG|SIZE'
+    Example: M42|HII|180m|alt52|moon60|mag4.0|66'
+
+    Args:
+        objects: List of object dicts with keys: Object, Type, Magnitude,
+                Size, Observable Duration (min), Max Altitude (°),
+                Angular Separation (°)
+
+    Returns:
+        String of newline-separated compressed object lines.
+
+    Rules:
+    - obs_duration: round to int
+    - max_altitude: round to 1 decimal
+    - moon_separation: round to 1 decimal
+    - magnitude: convert to float, round to 2 decimals, if >= 90 or unknown → 'mag?'
+    - size: convert to float, round to 1 decimal, if 'Not Found' or null/0/empty → 'size?'
+    - join all lines with newline
+    """
+    lines = []
+    for obj in objects:
+        name = obj.get("Object", "")
+        obj_type = obj.get("Type", "")
+        obs_duration = obj.get("Observable Duration (min)")
+        max_altitude = obj.get("Max Altitude (°)")
+        moon_sep = obj.get("Angular Separation (°)")
+        magnitude = obj.get("Magnitude")
+        size = obj.get("Size")
+
+        # Round obs_duration to int
+        obs_str = f"{int(obs_duration)}m" if obs_duration is not None else "obs?"
+
+        # Round max_altitude to 1 decimal
+        alt_str = f"alt{max_altitude:.1f}" if max_altitude is not None else "alt?"
+
+        # Round moon separation to 1 decimal
+        moon_str = f"moon{moon_sep:.1f}" if moon_sep is not None else "moon?"
+
+        # Handle magnitude: convert to float, round to 2 decimals, if parse fails or >= 99 → mag?
+        if magnitude is None or magnitude == 99 or magnitude == "unknown":
+            mag_str = "mag?"
+        else:
+            try:
+                mag_val = float(magnitude)
+                if mag_val >= 99:
+                    mag_str = "mag?"
+                else:
+                    mag_str = f"mag{round(mag_val, 2)}"
+            except (ValueError, TypeError):
+                mag_str = "mag?"
+
+        # Handle size: convert to float, round to 1 decimal, if parse fails or 0/null/empty → size?
+        if size is None or size == "Not Found" or size == 0 or (isinstance(size, str) and size.strip() == ""):
+            size_str = "size?"
+        else:
+            # Extract numeric part for size (arcmin)
+            try:
+                size_val = float(size)
+                size_str = f"{round(size_val, 1)}'"
+            except (ValueError, TypeError):
+                size_str = "size?"
+        lines.append(f"{name}|{obj_type}|{obs_str}|{alt_str}|{moon_str}|{mag_str}|{size_str}")
+
+    return "\n".join(lines)
+
+
+def pre_filter_objects(objects, user_settings, moon_illumination_pct, max_aperture_mm=None):
+    """Pre-filter objects based on user settings and conditions.
+
+    Filters are applied in order, fail-fast per object. Returns both filtered
+    objects and a counts dictionary for debugging/logging.
+
+    Args:
+        objects: List of object dicts with keys:
+            - Object (name)
+            - enabled (bool)
+            - Magnitude (string or float)
+            - Size (string representing arcmin)
+            - Observable Duration (min) (float)
+            - Max Altitude (°) (float)
+            - Angular Separation (°) (float)  # Note: typo preserved for compatibility
+        user_settings: Dict with keys:
+            - min_observable_minutes (int)
+            - min_max_altitude (float)
+        moon_illumination_pct: Float (0-100), moon illumination percentage
+        max_aperture_mm: Optional - largest aperture in mm from user's rigs. If None,
+                         skip magnitude filter entirely.
+
+    Returns:
+        Tuple: (filtered_objects, counts_dict)
+        filtered_objects: List of objects that pass all filters
+        counts_dict: Dict with filter stage counts
+    """
+    # Calculate limiting magnitude if aperture is available
+    # Formula: limiting_mag = 2.1 + 5 * log10(aperture_mm)
+    limiting_mag = None
+    if max_aperture_mm and max_aperture_mm > 0:
+        limiting_mag = 2.1 + 5 * math.log10(max_aperture_mm)
+    # Initialize counts
+    counts = {
+        "total_in": len(objects),
+        "enabled_count": 0,
+        "after_obs": 0,
+        "after_alt": 0,
+        "after_moon": 0,
+        "after_size": 0,
+        "after_magnitude": 0,
+        "total_out": 0
+    }
+
+    # Extract settings with defaults
+    min_obs_duration = user_settings.get("min_observable_minutes", 60)
+    min_max_altitude = user_settings.get("min_max_altitude", 30)
+
+    # Helper to parse angular size from Size string
+    # Expected formats: "10'" (arcmin), "10x5'" (rectangular), "0.5°" (degrees)
+    def parse_angular_size(size_str):
+        if not size_str:
+            return None
+        try:
+            size_str = str(size_str).strip()
+            # Check for arcmin format (e.g., "10'", "10'", "10'")
+            if "'" in size_str:
+                # Remove the arcmin symbol and convert to float
+                size_str = size_str.replace("'", "").replace("′", "").replace("′", "")
+                # Handle rectangular format like "10x5"
+                if "x" in size_str.lower():
+                    parts = size_str.lower().split("x")
+                    # Average the dimensions
+                    values = [float(p) for p in parts if p]
+                    return sum(values) / len(values) if values else None
+                return float(size_str)
+            # Check for degree format (e.g., "0.5°")
+            elif "°" in size_str:
+                degrees = float(size_str.replace("°", ""))
+                return degrees * 60  # Convert to arcmin
+            else:
+                # Try direct float
+                return float(size_str)
+        except (ValueError, AttributeError):
+            return None
+
+    filtered = []
+    for obj in objects:
+        # Filter 1: enabled == True only
+        if not obj.get("enabled", True):
+            continue
+        counts["enabled_count"] += 1
+
+        # Filter 2: obs_duration >= user_settings.min_observable_duration
+        obs_duration = obj.get("Observable Duration (min)")
+        if obs_duration is None or obs_duration < min_obs_duration:
+            continue
+        counts["after_obs"] += 1
+
+        # Filter 3: max_altitude >= user_settings.min_max_altitude
+        max_altitude = obj.get("Max Altitude (°)")
+        if max_altitude is None or max_altitude < min_max_altitude:
+            continue
+        counts["after_alt"] += 1
+
+        # Filter 4: moon_separation >= moon_illumination_pct * 0.55
+        moon_sep = obj.get("Angular Separation (°)")
+        min_moon_sep = moon_illumination_pct * 0.55
+        if moon_sep is not None and moon_sep < min_moon_sep:
+            continue
+        counts["after_moon"] += 1
+
+        # Filter 5: angular_size >= 3 arcmin OR angular_size is null/0/unknown
+        angular_size = parse_angular_size(obj.get("Size"))
+        if angular_size is not None and angular_size < 3:
+            continue
+        counts["after_size"] += 1
+
+        # Filter 6: magnitude check
+        # If magnitude == 99 or null → keep
+        # Else keep only if within rig's aperture-based limiting magnitude
+        magnitude = obj.get("Magnitude")
+        if magnitude is not None:
+            try:
+                mag_val = float(magnitude)
+                if mag_val >= 90:  # Sentinel value for "unknown"
+                    # Keep - unknown magnitude
+                    pass
+                elif limiting_mag is not None and mag_val > limiting_mag:
+                    # Object is too faint for largest aperture
+                    continue
+                # Else: magnitude is known and within limits - keep
+            except (ValueError, TypeError):
+                # Invalid magnitude format - skip
+                continue
+
+        counts["after_magnitude"] += 1
+        filtered.append(obj)
+
+    counts["total_out"] = len(filtered)
+    return filtered, counts
 
 ai_bp = Blueprint("ai", __name__)
 
@@ -604,25 +812,18 @@ def get_best_objects():
     if not location:
         return jsonify({"error": "Location not found"}), 404
 
-    # Pre-filter to max 50 objects by observable duration descending
-    # Sort by Observable Duration (min) desc, take top 50
-    sorted_objects = sorted(
-        object_list,
-        key=lambda o: float(o.get("Observable Duration (min)", 0) or 0),
-        reverse=True
-    )
-    objects_for_prompt = sorted_objects[:50]
-
-    # Calculate moon phase for the date/location
+    # Get moon illumination for date/location
     moon_phase = None
     try:
+        # Safe fallback timezone (used for sim_mode)
+        local_tz = pytz.timezone(location.timezone or "UTC")
+
         if sim_date:
             # Sim mode: use the provided date
             from datetime import datetime
             date_obj = datetime.strptime(sim_date, "%Y-%m-%d")
         else:
             # Live mode: use current date at 11 PM local time
-            local_tz = pytz.timezone(location.timezone or "UTC")
             now_local = datetime.now(local_tz)
             # If it's before noon, use "night of" previous day
             if now_local.hour < 12:
@@ -640,7 +841,17 @@ def get_best_objects():
         logger.warning(f"Failed to calculate moon phase: {e}")
         moon_phase = None
 
-    # Gather rig context
+    # Get user imaging criteria settings for pre-filter
+    user_settings = {
+        "min_observable_minutes": 60,
+        "min_max_altitude": 30,
+    }
+    imaging_criteria = getattr(g, "user_config", {}).get("imaging_criteria", {})
+    if imaging_criteria:
+        user_settings["min_observable_minutes"] = imaging_criteria.get("min_observable_minutes", 60)
+        user_settings["min_max_altitude"] = imaging_criteria.get("min_max_altitude", 30)
+
+    # Gather rig context and find max aperture
     rig_rows = db.query(Rig).options(
         selectinload(Rig.telescope),
         selectinload(Rig.camera),
@@ -648,12 +859,18 @@ def get_best_objects():
     ).filter_by(user_id=g.db_user.id).all()
 
     rigs = []
+    max_aperture_mm = None
     for rig in rig_rows:
         # Detect camera type (OSC vs mono) from camera name
         cam_name = rig.camera.name if rig.camera else None
         cam_name_lower = (cam_name or "").lower()
         is_mono = any(x in cam_name_lower for x in ["mm", "mono", " m "])
         camera_type = "mono" if is_mono else "OSC"
+
+        # Track max aperture
+        if rig.telescope and rig.telescope.aperture_mm:
+            if max_aperture_mm is None or rig.telescope.aperture_mm > max_aperture_mm:
+                max_aperture_mm = rig.telescope.aperture_mm
 
         rigs.append({
             "name": rig.rig_name,
@@ -675,9 +892,33 @@ def get_best_objects():
             } if rig.camera else None,
         })
 
+    # Run pre_filter_objects on incoming object list
+    filtered_objects, counts = pre_filter_objects(
+        object_list,
+        user_settings,
+        moon_phase if moon_phase is not None else 0,
+        max_aperture_mm
+    )
+
+    logger.info(f"Pre-filter counts: {counts}")
+
+    # If no objects survive pre-filter, return empty results with debug info
+    if not filtered_objects:
+        return jsonify({
+            "ranked_objects": [],
+            "debug_filter_counts": counts,
+            "debug_objects_sent_to_ai": 0,
+            "debug_prompt_object_block": ""
+        })
+
+    objects_for_prompt = filtered_objects
+
+    # Compress objects for AI prompt
+    compressed_objects = compress_objects_for_prompt(objects_for_prompt)
+
     try:
-        # Build the prompt
-        prompt = build_best_objects_prompt(
+        # Build single AI ranking prompt with compressed format
+        ranking_prompt = build_best_objects_prompt(
             objects=objects_for_prompt,
             location_name=location_name,
             location_lat=location.lat,
@@ -686,19 +927,20 @@ def get_best_objects():
             rigs=rigs,
             locale=locale,
             sim_date=sim_date,
+            compressed_objects=compressed_objects,
         )
 
-        # Get AI response
-        response_text = get_ai_response(prompt["user"], system=prompt["system"])
+        # Get AI response for ranking
+        ranking_response = get_ai_response(ranking_prompt["user"], system=ranking_prompt["system"])
 
-        # Parse the response to extract ranked objects
+        # Parse ranking response to extract ranked objects
         # Expected format: JSON array with objects having "Object" key
         ranked_objects = []
 
         try:
-            # Try to parse as JSON first
             import json
-            parsed = json.loads(response_text)
+            # Try to parse as JSON first
+            parsed = json.loads(ranking_response)
 
             if isinstance(parsed, list):
                 ranked_objects = parsed
@@ -708,10 +950,10 @@ def get_best_objects():
                 ranked_objects = parsed["objects"]
             else:
                 # Fallback: try to extract object names from text
-                ranked_objects = _extract_objects_from_text(response_text, objects_for_prompt)
+                ranked_objects = _extract_objects_from_text(ranking_response, objects_for_prompt)
         except json.JSONDecodeError:
             # Not JSON, try to extract from text
-            ranked_objects = _extract_objects_from_text(response_text, objects_for_prompt)
+            ranked_objects = _extract_objects_from_text(ranking_response, objects_for_prompt)
 
         # Ensure all ranked objects have rank, reason, and recommended_rigs array
         for i, obj in enumerate(ranked_objects, 1):
@@ -737,7 +979,13 @@ def get_best_objects():
                 # No recommended rig provided
                 obj["recommended_rigs"] = []
 
-        return jsonify({"ranked_objects": ranked_objects})
+        # Return results with debug keys for inspection
+        return jsonify({
+            "ranked_objects": ranked_objects,
+            "debug_filter_counts": counts,
+            "debug_objects_sent_to_ai": len(objects_for_prompt),
+            "debug_prompt_object_block": compressed_objects,
+        })
 
     except AIServiceError as e:
         logger.error(f"AIServiceError in /api/ai/best_objects: {str(e)}")
@@ -763,7 +1011,7 @@ def _extract_objects_from_text(text, objects_for_prompt):
     # Create a map of object names to original object data
     obj_map = {o.get("Object", ""): o for o in objects_for_prompt}
 
-    # Try to find object names in the text (common patterns: M31, NGC 7000, etc.)
+    # Try to find object names in text (common patterns: M31, NGC 7000, etc.)
     # Look for object names that appear in our input list
     ranked_objects = []
 
@@ -791,6 +1039,183 @@ def _extract_objects_from_text(text, objects_for_prompt):
         logger.warning("Could not parse AI response as structured data")
 
     return ranked_objects
+
+
+@ai_bp.route("/api/ai/prefilter_debug", methods=["GET"])
+def prefilter_debug():
+    """Debug endpoint for testing pre-filter function against real object catalog.
+
+    Returns filter counts and filtered object details for debugging.
+
+    Returns:
+        JSON: {
+            "counts": {...stage breakdown... },
+            "moon_phase": ...,
+            "user_settings": ...,
+            "max_aperture_mm": ...,
+            "surviving_objects": [...]
+        }
+    """
+    # Get user settings
+    user_settings = {
+        "min_observable_minutes": 60,
+        "min_max_altitude": 30,
+    }
+    imaging_criteria = getattr(g, "user_config", {}).get("imaging_criteria", {})
+    if imaging_criteria:
+        user_settings["min_observable_minutes"] = imaging_criteria.get("min_observable_minutes", 60)
+        user_settings["min_max_altitude"] = imaging_criteria.get("min_max_altitude", 30)
+
+    # Get moon phase (use 11 PM tonight)
+    moon_phase = 0
+    local_date_str = None
+    try:
+        local_tz = pytz.timezone("UTC")
+        now_local = datetime.now(local_tz)
+        # If it's before noon, use "night of" previous day
+        if now_local.hour < 12:
+            date_obj = now_local.date() - timedelta(days=1)
+        else:
+            date_obj = now_local.date()
+        local_date_str = date_obj.strftime("%Y-%m-%d")
+        time_11pm_local = local_tz.localize(
+            datetime.combine(date_obj, time(23, 0))
+        )
+        dt_utc = time_11pm_local.astimezone(pytz.utc)
+        moon_phase = round(ephem.Moon(dt_utc).phase, 1)
+    except Exception as e:
+        logger.warning(f"Failed to calculate moon phase for debug: {e}")
+        # Fallback to today
+        local_date_str = datetime.now().strftime("%Y-%m-%d")
+
+    # Get user's rigs to find max aperture
+    db = get_db()
+    rig_rows = db.query(Rig).options(
+        selectinload(Rig.telescope)
+    ).filter_by(user_id=g.db_user.id).all()
+
+    max_aperture_mm = None
+    for rig in rig_rows:
+        if rig.telescope and rig.telescope.aperture_mm:
+            if max_aperture_mm is None or rig.telescope.aperture_mm > max_aperture_mm:
+                max_aperture_mm = rig.telescope.aperture_mm
+
+    # Get user's default location for calculations
+    location = db.query(Location).filter_by(
+        user_id=g.db_user.id, is_default=True
+    ).first()
+    if not location:
+        location = db.query(Location).filter_by(
+            user_id=g.db_user.id
+        ).first()
+
+    # Get all enabled objects from DB for this user
+    obj_records = db.query(AstroObject).filter_by(
+        user_id=g.db_user.id
+    ).all()
+
+    # Import calculation functions
+    from modules.astro_calculations import (
+        calculate_transit_time,
+        calculate_observable_duration_vectorized,
+    )
+
+    # Build object list with computed fields
+    all_objects = []
+    for obj_record in obj_records:
+        try:
+            if not location:
+                # Skip if no location available
+                continue
+
+            ra = obj_record.ra_hours
+            dec = obj_record.dec_deg
+            lat = location.lat
+            lon = location.lon
+            tz_name = location.timezone or "UTC"
+            altitude_threshold = location.altitude_threshold or 20
+
+            # Calculate observable duration and max altitude
+            obs_duration, max_altitude, _, _ = calculate_observable_duration_vectorized(
+                ra, dec, lat, lon, local_date_str, tz_name, altitude_threshold
+            )
+
+            # Calculate transit time (for 11 PM altitude reference)
+            transit_time = calculate_transit_time(
+                ra, dec, lat, lon, tz_name, local_date_str
+            )
+
+            # Calculate moon separation at 11 PM
+            angular_sep = None
+            try:
+                # Parse transit time for datetime conversion
+                if transit_time and transit_time != "N/A":
+                    time_11pm_local = pytz.timezone(tz_name).localize(
+                        datetime.combine(
+                            datetime.strptime(local_date_str, "%Y-%m-%d"),
+                            datetime.strptime(transit_time, "%H:%M").time()
+                        )
+                    )
+                    dt_11pm_utc = time_11pm_local.astimezone(pytz.utc)
+                    time_obj = Time(dt_11pm_utc)
+                    loc_obj = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+                    obj_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+                    frame = AltAz(obstime=time_obj, location=loc_obj)
+                    moon_coord = get_body("moon", time_obj, loc_obj)
+                    angular_sep = round(obj_coord.transform_to(frame).separation(
+                        moon_coord.transform_to(frame)
+                    ).deg, 1)
+            except Exception as e:
+                logger.debug(f"Failed to calculate moon separation for {obj_record.object_name}: {e}")
+
+            obs_duration_min = int(obs_duration.total_seconds() / 60) if obs_duration else 0
+            max_altitude_val = round(max_altitude, 1) if max_altitude is not None else 0
+
+            all_objects.append({
+                "Object": obj_record.object_name,
+                "enabled": obj_record.enabled,
+                "Magnitude": obj_record.magnitude,
+                "Size": obj_record.size,
+                "Type": obj_record.type,
+                "Constellation": obj_record.constellation,
+                "Observable Duration (min)": obs_duration_min,
+                "Max Altitude (°)": max_altitude_val,
+                "Angular Separation (°)": angular_sep,
+            })
+        except Exception as e:
+            logger.debug(f"Failed to calculate data for {obj_record.object_name}: {e}")
+            continue
+
+    # Run pre-filter
+    filtered_objects, counts = pre_filter_objects(
+        all_objects,
+        user_settings,
+        moon_phase,
+        max_aperture_mm
+    )
+
+    # Build surviving objects list with key values
+    surviving_objects = [
+        {
+            "name": o["Object"],
+            "type": o.get("Type"),
+            "obs_duration": o.get("Observable Duration (min)"),
+            "max_altitude": o.get("Max Altitude (°)"),
+            "moon_separation": o.get("Angular Separation (°)"),
+            "magnitude": o.get("Magnitude"),
+            "size": o.get("Size"),
+        }
+        for o in filtered_objects
+    ]
+
+    return jsonify({
+        "counts": counts,
+        "moon_phase": moon_phase,
+        "user_settings": user_settings,
+        "max_aperture_mm": max_aperture_mm,
+        "surviving_objects": surviving_objects,
+        "total_catalog_size": len(all_objects),
+    })
 
 
 def register_ai_blueprint(app):

@@ -565,70 +565,68 @@ Respond in the language of this ISO locale code: {locale}. Use informal address 
     return {"system": system_prompt, "user": user_prompt}
 
 
-def build_best_objects_prompt(
+def build_viability_check_prompt(
     objects: list,
+    rigs: list,
+    moon_phase: float,
     location_name: str,
-    location_lat: float,
-    location_lon: float,
-    moon_phase: float = None,
-    rigs: list = None,
-    locale: str = "en",
     sim_date: str = None,
 ) -> dict:
-    """Build system and user prompts for ranking best objects.
+    """Build system and user prompts for viability check (Pass 1).
 
     Args:
         objects: List of object dicts with keys: Object, Common Name, Type, Magnitude,
                 Size, Constellation, Altitude, Azimuth,
                 Observable Duration (min), Max Altitude (°),
                 Angular Separation (°), etc.
-        location_name: Name of the observing location
-        location_lat: Latitude of the location
-        location_lon: Longitude of the location
-        moon_phase: Moon illumination percentage (0-100)
         rigs: List of user's rig configurations
-        locale: ISO locale code for response language (default: "en")
+        moon_phase: Moon illumination percentage (0-100)
+        location_name: Name of the observing location
         sim_date: Date in YYYY-MM-DD format (None for live mode)
 
     Returns:
         dict with "system" and "user" keys containing prompt strings.
     """
-    system_prompt = """You are Nova — a warm, sharp, and genuinely passionate astrophotography companion built into the Nova DSO Tracker. You rank deep-sky objects for imaging based on current conditions and the observer's equipment. Your personality shows through your concise, opinionated analysis — you are not a generic assistant, you are a friend who loves this and wants the observer to succeed.
+    system_prompt = """You are Nova — a warm, sharp, and genuinely passionate astrophotography companion built into the Nova DSO Tracker. You evaluate deep-sky objects for imaging viability based on current conditions and the observer's equipment.
 
 CRITICAL OUTPUT FORMAT:
 You MUST respond with ONLY a valid JSON array. No markdown, no code blocks, no explanations before or after. The JSON must be parseable directly.
 
-Return a maximum of 20 objects, ranked from best (1) to worst (20). If more objects are available, select only the top 20.
-
 Each object in the array must have these exact keys:
 - "Object": the exact object name from the input. YOU MUST use the exact Object value from the input list as the "Object" key in your response. Do not add common names, parentheticals, or alternate catalog IDs. Return it character-for-character as provided.
-- "rank": integer (1 = best)
-- "reason": one sentence explaining why this object is ranked here
-- "recommended_rigs": array of up to 5 rig names in order of fit (ranked list from best to good). Must use exact rig names from the provided list. Include the most suitable rigs for this target.
+- "viable": true or false (boolean)
+- "reason": one sentence explaining why this object is viable or not viable
 
 Example:
 [
-  {"Object": "M31", "rank": 1, "reason": "Large galaxy with excellent surface brightness, well above 50° all night. Moon at 15% won't affect it.", "recommended_rigs": ["Main Imaging Rig", "Portable Setup"]},
-  {"Object": "NGC 7000", "rank": 2, "reason": "Compact nebula, high surface brightness. Fits well in narrowband through the 8\" scope.", "recommended_rigs": ["Portable Setup", "Widefield Rig"]}
+  {"Object": "M31", "viable": true, "reason": "Large galaxy with excellent surface brightness, moon at 15% won't affect it."},
+  {"Object": "NGC 7000", "viable": false, "reason": "Faint emission nebula needs dark skies, moon at 80% will wash it out."},
+  {"Object": "M42", "viable": true, "reason": "Bright nebula, moon-tolerant even through narrowband filters."}
 ]
 
-Ranking criteria:
-1. **Observable conditions first**: High max altitude, long observable duration (especially before/after midnight for current date)
-2. **Object character**: Surface brightness, contrast, size, composition. Favor targets that shine in the current conditions.
-3. **Equipment match**: Which rig frames and images this target well. Match FOV to object size, f-ratio to exposure time needed.
-4. **Moon tolerance**: How well the object handles current moon phase. Narrowband targets win under bright moon.
-5. **Top 5 rigs per object**: Return an array of up to 5 rig names ranked by suitability. The first rig is the best match, subsequent rigs are good alternatives.
+CRITICAL rules:
+- aperture_mm = mirror/lens diameter (light gathering). focal_length_mm = optical path (scale/magnification). Never swap these.
+- OSC cameras shoot broadband RGB natively (no filter or with a light pollution filter like L-Pro/IDAS). They can also use dual-narrowband filters (e.g. Optolong L-eXtreme) for emission nebulae under bright moon. Do not treat OSC as narrowband-limited.
+- Mono cameras: LRGB and narrowband both valid.
+- Always derive filter advice from object composition, not just object type label.
+- Dark nebulae: no emission lines, no narrowband. Need dark skies and high contrast broadband or luminance only.
+- Reflection nebulae: broadband only, no narrowband benefit.
+- Emission nebulae: narrowband highly effective, moon-tolerant with Ha filter.
+- Galaxies are primarily broadband targets. However, galaxies with significant star-forming regions or emission nebulae (e.g. M31, M33, NGC 300, Centaurus A) benefit from Ha and OIII blending with a mono camera. Under bright moon, a mono rig with narrowband filters can still image emission-rich galaxies effectively.
 
-Tone: Direct, opinionated, specific. Explain why, don't just describe. "Great target because..." is weak. "Captures well in 2 hours on the 200mm rig, surface brightness holds up even with 30% moon" is strong.
+"Viable" means this target will produce a useful astrophotograph tonight — not just that it is visually detectable or bright enough to see. Ask yourself: will the finished image have acceptable contrast and detail given tonight's moon and the available equipment?
 
-Respond in the language of this ISO locale code: """ + locale + "."
+Specific rules:
+- Star clusters (open or globular): ONLY viable if moon separation > 60° AND moon < 50%. Under bright moon, sky background overwhelms stellar contrast regardless of cluster brightness. There is no filter solution for star clusters.
+- Planetary nebulae: viable if a narrowband-capable rig exists (mono camera) AND moon separation > 30°. Bright planetary nebulae (mag < 10) are more tolerant. Do not reject bright planetary nebulae purely on moon phase.
+- Emission nebulae: viable if OSC with dual-narrowband OR mono rig available AND moon separation > 25°.
+- Galaxies: only viable under bright moon (>50%) if they have significant HII emission regions AND a mono rig is available. Pure broadband galaxies are NOT viable above 50% moon regardless of brightness or altitude.
+- Dark/reflection nebulae: not viable above 30% moon.
+
+Return a JSON array with all objects, each marked as viable or not viable with a one-sentence reason."""
 
     # Build the user prompt
     prompt_lines = []
-
-    # Location context
-    hemisphere = "southern hemisphere" if location_lat < 0 else "northern hemisphere"
-    prompt_lines.append(f"Observing location: {location_name} (latitude {location_lat:.1f}°, longitude {location_lon:.1f}°, {hemisphere}).")
 
     # Date and moon context
     if sim_date:
@@ -636,8 +634,8 @@ Respond in the language of this ISO locale code: """ + locale + "."
     else:
         prompt_lines.append("Planning date: Tonight (live mode).")
 
-    if moon_phase is not None:
-        prompt_lines.append(f"Moon illumination: {moon_phase}%.")
+    prompt_lines.append(f"Location: {location_name}.")
+    prompt_lines.append(f"Moon illumination: {moon_phase}%.")
 
     # Object list - format as compact table-like structure
     prompt_lines.append(f"\nAvailable objects ({len(objects)} total):")
@@ -672,6 +670,184 @@ Respond in the language of this ISO locale code: """ + locale + "."
             parts.append(f"in {constellation}")
 
         prompt_lines.append("  " + ", ".join(parts))
+
+    # Rig context
+    if rigs:
+        prompt_lines.append(f"\nObserver's rigs:")
+        for rig in rigs:
+            rig_name = rig.get("name", "Unnamed rig")
+            telescope = rig.get("telescope") or {}
+            camera = rig.get("camera") or {}
+            aperture = rig.get("aperture_mm")
+            focal_length = rig.get("effective_focal_length")
+            f_ratio = rig.get("f_ratio")
+            fov = rig.get("fov_w_arcmin")
+            cam_name = camera.get("name", "")
+            camera_type = rig.get("camera_type", "")
+
+            parts = [f"{rig_name}:"]
+            if telescope.get("name"):
+                parts.append(f"telescope={telescope['name']}")
+            if aperture:
+                parts.append(f"aperture={aperture:.0f}mm")
+            if focal_length:
+                parts.append(f"FL={focal_length:.0f}mm")
+            if f_ratio:
+                parts.append(f"f/{f_ratio:.1f}")
+            if fov:
+                parts.append(f"FOV={fov:.0f}'")
+            if cam_name:
+                parts.append(f"camera={cam_name}")
+            if camera_type:
+                parts.append(f"type={camera_type}")
+
+            prompt_lines.append("  " + ", ".join(parts))
+
+    # Final instruction
+    prompt_lines.append(
+        "\nEvaluate each object independently for viability tonight. "
+        "Return ONLY the JSON array with the specified format. "
+        "Mark each object as viable (true/false) with a one-sentence reason."
+    )
+
+    user_prompt = "\n".join(prompt_lines)
+
+    return {"system": system_prompt, "user": user_prompt}
+
+
+def build_best_objects_prompt(
+    objects: list,
+    location_name: str,
+    location_lat: float,
+    location_lon: float,
+    moon_phase: float = None,
+    rigs: list = None,
+    locale: str = "en",
+    sim_date: str = None,
+    compressed_objects: str = None,
+) -> dict:
+    """Build system and user prompts for ranking best objects.
+
+    Args:
+        objects: List of object dicts with keys: Object, Common Name, Type, Magnitude,
+                Size, Constellation, Altitude, Azimuth,
+                Observable Duration (min), Max Altitude (°),
+                Angular Separation (°), etc.
+        location_name: Name of the observing location
+        location_lat: Latitude of the location
+        location_lon: Longitude of the location
+        moon_phase: Moon illumination percentage (0-100)
+        rigs: List of user's rig configurations
+        locale: ISO locale code for response language (default: "en")
+        sim_date: Date in YYYY-MM-DD format (None for live mode)
+        compressed_objects: Optional string of pipe-delimited object data.
+                          If provided, objects list is ignored and this is used.
+
+    Returns:
+        dict with "system" and "user" keys containing prompt strings.
+    """
+    system_prompt = """You are Nova — a warm, sharp, and genuinely passionate astrophotography companion built into the Nova DSO Tracker. You rank deep-sky objects for imaging based on current conditions and the observer's equipment. Your personality shows through your concise, opinionated analysis — you are not a generic assistant, you are a friend who loves this and wants the observer to succeed.
+
+CRITICAL OUTPUT FORMAT:
+You MUST respond with ONLY a valid JSON array. No markdown, no code blocks, no explanations before or after. The JSON must be parseable directly.
+
+Return a maximum of 20 objects, ranked from best (1) to worst (20). If more objects are available, select only the top 20.
+
+Each object in the array must have these exact keys:
+- "Object": the exact object name from the input. YOU MUST use the exact Object value from the input list as the "Object" key in your response. Do not add common names, parentheticals, or alternate catalog IDs. Return it character-for-character as provided.
+- "rank": integer (1 = best)
+- "reason": one sentence explaining why this object is ranked here
+- "recommended_rigs": array of up to 5 rig names in order of fit (ranked list from best to good). Must use exact rig names from the provided list. Include the most suitable rigs for this target.
+
+Example:
+[
+  {"Object": "M31", "rank": 1, "reason": "Large galaxy with excellent surface brightness, well above 50° all night. Moon at 15% won't affect it.", "recommended_rigs": ["Main Imaging Rig", "Portable Setup"]},
+  {"Object": "NGC 7000", "rank": 2, "reason": "Compact nebula, high surface brightness. Fits well in narrowband through the 8\" scope.", "recommended_rigs": ["Portable Setup", "Widefield Rig"]}
+]
+
+CRITICAL rules:
+- aperture_mm = mirror/lens diameter (light gathering). focal_length_mm = optical path (scale/magnification). Never swap these.
+- OSC cameras shoot broadband RGB natively (no filter or with a light pollution filter like L-Pro/IDAS). They can also use dual-narrowband filters (e.g. Optolong L-eXtreme) for emission nebulae under bright moon. Do not treat OSC as narrowband-limited.
+- Mono cameras: LRGB and narrowband both valid.
+- Always derive filter advice from object composition, not just object type label.
+- Dark nebulae: no emission lines, no narrowband. Need dark skies and high contrast broadband or luminance only.
+- Reflection nebulae: broadband only, no narrowband benefit.
+- Emission nebulae: narrowband highly effective, moon-tolerant with Ha filter.
+- Galaxies are primarily broadband targets. However, galaxies with significant star-forming regions or emission nebulae (e.g. M31, M33, NGC 300, Centaurus A) benefit from Ha and OIII blending with a mono camera. Under bright moon, a mono rig with narrowband filters can still image emission-rich galaxies effectively.
+
+The moon is """ + str(int(moon_phase)) if moon_phase is not None else "unknown" + """% illuminated tonight.
+Each object in the list includes its angular separation from the moon.
+
+When ranking, reason about each object individually using both values:
+- Consider whether the object type is narrowband-capable (emission nebulae, HII regions, SNR, planetary nebulae, WR* bubbles) or broadband-only (globular clusters, open clusters, galaxies, reflection nebulae)
+- A narrowband-capable target remains viable even under bright moon
+- A broadband-only target depends heavily on both moon illumination AND its angular distance from the moon — reason about each case individually using your astronomy knowledge
+- If you include a broadband-only target under high moon illumination, explicitly state in the reason field why it is still worth attempting given the specific conditions
+
+You are an experienced astrophotographer advising a fellow astronomer on what to image tonight.
+
+These objects have already been qualified as viable for tonight. Rank them in order of best achievable image quality tonight, considering sky position, moon separation, equipment match, and object character. Observable time has already been filtered — do not weight it heavily.
+
+Return the top 20 opportunities in order of best to worst for tonight.
+
+Respond in the language of this ISO locale code: """ + locale + "."
+
+    # Build the user prompt
+    prompt_lines = []
+
+    # Location context
+    hemisphere = "southern hemisphere" if location_lat < 0 else "northern hemisphere"
+    prompt_lines.append(f"Observing location: {location_name} (latitude {location_lat:.1f}°, longitude {location_lon:.1f}°, {hemisphere}).")
+
+    # Date and moon context
+    if sim_date:
+        prompt_lines.append(f"Planning date: {sim_date} (simulation mode).")
+    else:
+        prompt_lines.append("Planning date: Tonight (live mode).")
+
+    if moon_phase is not None:
+        prompt_lines.append(f"Moon illumination: {moon_phase}%.")
+
+    # Object list - use compressed format if provided
+    if compressed_objects:
+        prompt_lines.append(f"\nAvailable objects ({len(objects)} total):")
+        prompt_lines.append("Format: NAME|TYPE|OBS_MINUTES|ALT_DEG|MOON_SEP_DEG|MAG|SIZE_ARCMIN")
+        prompt_lines.append("mag? = unknown magnitude, size? = unknown size")
+        prompt_lines.append(compressed_objects)
+    else:
+        # Fallback to original verbose format
+        prompt_lines.append(f"\nAvailable objects ({len(objects)} total):")
+        for obj in objects:
+            obj_name = obj.get("Object", "Unknown")
+            common_name = obj.get("Common Name", "")
+            obj_type = obj.get("Type", "")
+            magnitude = obj.get("Magnitude")
+            size = obj.get("Size")
+            obs_duration = obj.get("Observable Duration (min)")
+            max_alt = obj.get("Max Altitude (°)")
+            ang_sep = obj.get("Angular Separation (°)")
+            constellation = obj.get("Constellation", "")
+
+            # Build compact object description
+            parts = [obj_name]
+            if common_name:
+                parts.append(f'({common_name})')
+            if obj_type:
+                parts.append(f"{obj_type}")
+            if magnitude:
+                parts.append(f"mag {magnitude}")
+            if size:
+                parts.append(f"{size}'")
+            if obs_duration:
+                parts.append(f"{obs_duration}min")
+            if max_alt:
+                parts.append(f"max {max_alt}°")
+            if ang_sep:
+                parts.append(f"moon sep {ang_sep}°")
+            if constellation:
+                parts.append(f"in {constellation}")
+
+            prompt_lines.append("  " + ", ".join(parts))
 
     # Rig context
     if rigs:
