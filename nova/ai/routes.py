@@ -907,6 +907,7 @@ def get_best_objects():
         return jsonify({
             "ranked_objects": [],
             "debug_filter_counts": counts,
+            "debug_post_trim_count": 0,
             "debug_objects_sent_to_ai": 0,
             "debug_prompt_object_block": ""
         })
@@ -983,6 +984,7 @@ def get_best_objects():
         return jsonify({
             "ranked_objects": ranked_objects,
             "debug_filter_counts": counts,
+            "debug_post_trim_count": len(objects_for_prompt),
             "debug_objects_sent_to_ai": len(objects_for_prompt),
             "debug_prompt_object_block": compressed_objects,
         })
@@ -1036,6 +1038,7 @@ def _extract_objects_from_text(text, objects_for_prompt):
 
     # If no matches found, return empty list
     if not ranked_objects:
+        logger.warning(f"Raw AI response was: {ranking_response[:500]}")
         logger.warning("Could not parse AI response as structured data")
 
     return ranked_objects

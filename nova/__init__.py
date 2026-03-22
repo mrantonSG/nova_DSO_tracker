@@ -6068,7 +6068,8 @@ def inject_user_mode():
         "is_guest": getattr(g, "is_guest", False),
         "user_theme_preference": theme_preference,
         "current_language": current_language,
-        "supported_languages": app.config.get("BABEL_SUPPORTED_LOCALES", ["en"])
+        "supported_languages": app.config.get("BABEL_SUPPORTED_LOCALES", ["en"]),
+        "ai_enabled": bool(app.config.get("AI_API_KEY"))
     }
 
 

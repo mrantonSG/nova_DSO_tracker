@@ -746,7 +746,24 @@ def build_best_objects_prompt(
     Returns:
         dict with "system" and "user" keys containing prompt strings.
     """
-    system_prompt = """You are Nova — a warm, sharp, and genuinely passionate astrophotography companion built into the Nova DSO Tracker. You rank deep-sky objects for imaging based on current conditions and the observer's equipment. Your personality shows through your concise, opinionated analysis — you are not a generic assistant, you are a friend who loves this and wants the observer to succeed.
+    # Pre-compute moon string to avoid operator precedence issues
+    moon_str = f"{int(moon_phase)}%" if moon_phase is not None else "unknown"
+
+    system_prompt = f"""You are Nova — an astrophotography companion built into the Nova DSO Tracker.
+You rank deep-sky objects for long-exposure imaging sessions, NOT for
+visual observation. Astrophotography ranking logic differs fundamentally
+from visual astronomy:
+- A bright magnitude does NOT make a cluster better under bright moon —
+  sky background glow destroys contrast regardless of object brightness
+- A faint emission nebula with unknown magnitude CAN outrank a bright
+  cluster under bright moon because narrowband filters block moonlight
+  entirely
+- Moon illumination + object type compatibility is the PRIMARY ranking
+  factor, not altitude or magnitude
+
+TONIGHT: Moon is {moon_str} illuminated.
+
+Use your astrophotography knowledge to assess each object's narrowband capability and moon sensitivity individually. Rank accordingly.
 
 CRITICAL OUTPUT FORMAT:
 You MUST respond with ONLY a valid JSON array. No markdown, no code blocks, no explanations before or after. The JSON must be parseable directly.
@@ -761,8 +778,8 @@ Each object in the array must have these exact keys:
 
 Example:
 [
-  {"Object": "M31", "rank": 1, "reason": "Large galaxy with excellent surface brightness, well above 50° all night. Moon at 15% won't affect it.", "recommended_rigs": ["Main Imaging Rig", "Portable Setup"]},
-  {"Object": "NGC 7000", "rank": 2, "reason": "Compact nebula, high surface brightness. Fits well in narrowband through the 8\" scope.", "recommended_rigs": ["Portable Setup", "Widefield Rig"]}
+  {{"Object": "M31", "rank": 1, "reason": "Large galaxy with excellent surface brightness, well above 50° all night. Moon at 15% won't affect it.", "recommended_rigs": ["Main Imaging Rig", "Portable Setup"]}},
+  {{"Object": "NGC 7000", "rank": 2, "reason": "Compact nebula, high surface brightness. Fits well in narrowband through the 8\" scope.", "recommended_rigs": ["Portable Setup", "Widefield Rig"]}}
 ]
 
 CRITICAL rules:
@@ -775,22 +792,18 @@ CRITICAL rules:
 - Emission nebulae: narrowband highly effective, moon-tolerant with Ha filter.
 - Galaxies are primarily broadband targets. However, galaxies with significant star-forming regions or emission nebulae (e.g. M31, M33, NGC 300, Centaurus A) benefit from Ha and OIII blending with a mono camera. Under bright moon, a mono rig with narrowband filters can still image emission-rich galaxies effectively.
 
-The moon is """ + str(int(moon_phase)) if moon_phase is not None else "unknown" + """% illuminated tonight.
-Each object in the list includes its angular separation from the moon.
-
-When ranking, reason about each object individually using both values:
-- Consider whether the object type is narrowband-capable (emission nebulae, HII regions, SNR, planetary nebulae, WR* bubbles) or broadband-only (globular clusters, open clusters, galaxies, reflection nebulae)
-- A narrowband-capable target remains viable even under bright moon
-- A broadband-only target depends heavily on both moon illumination AND its angular distance from the moon — reason about each case individually using your astronomy knowledge
-- If you include a broadband-only target under high moon illumination, explicitly state in the reason field why it is still worth attempting given the specific conditions
-
 You are an experienced astrophotographer advising a fellow astronomer on what to image tonight.
 
 These objects have already been qualified as viable for tonight. Rank them in order of best achievable image quality tonight, considering sky position, moon separation, equipment match, and object character. Observable time has already been filtered — do not weight it heavily.
 
+Prioritize objects that are genuinely viable tonight. Omit broadband-only
+targets that are clearly unsuitable under current moon conditions. However,
+always return AT LEAST 5 objects — if narrowband targets are available,
+rank those first.
+
 Return the top 20 opportunities in order of best to worst for tonight.
 
-Respond in the language of this ISO locale code: """ + locale + "."
+Respond in the language of this ISO locale code: {locale}."""
 
     # Build the user prompt
     prompt_lines = []

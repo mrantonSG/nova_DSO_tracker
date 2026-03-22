@@ -103,6 +103,7 @@
             {{ _('Active Only') }}
         </label>
 
+        {% if ai_enabled %}
         <div style="display: flex; align-items: center; gap: 5px; margin-left: 10px;">
             <button id="ask-nova-btn" class="btn-nova-ai" type="button" title="{{ _('Ask Nova to rank and recommend best objects') }}">
                 <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
@@ -111,6 +112,7 @@
                 {{ _('Ask Nova') }}
             </button>
         </div>
+        {% endif %}
 
         <div id="ask-nova-error" style="display: none; color: var(--danger-color); font-size: 12px; margin-left: 10px;"></div>
     </div>
