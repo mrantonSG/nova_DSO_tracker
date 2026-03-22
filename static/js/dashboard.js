@@ -1756,8 +1756,10 @@
                     } else {
                         td.dataset.rawValue = rawValue;
                     }
-                } else if (rawValue === 'N/A' || rawValue == null) {
-                    td.dataset.rawValue = 'N/A';
+                } else {
+                    if (rawValue === 'N/A' || rawValue == null) {
+                        td.dataset.rawValue = 'N/A';
+                    }
                 }
     
                 row.appendChild(td);
