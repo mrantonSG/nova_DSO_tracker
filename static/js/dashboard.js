@@ -1145,16 +1145,18 @@
      * Show Nova Rank column (both th and td elements)
      */
     function showNovaRankColumn() {
-        document.querySelectorAll('[data-column-key="Nova Rank"]')
-            .forEach(el => el.style.display = 'table-cell');
+        document.querySelectorAll(
+            'th[data-column-key="Nova Rank"], td[data-column-key="Nova Rank"]'
+        ).forEach(el => el.style.display = 'table-cell');
     }
 
     /**
      * Hide Nova Rank column (both th and td elements)
      */
     function hideNovaRankColumn() {
-        document.querySelectorAll('[data-column-key="Nova Rank"]')
-            .forEach(el => el.style.display = 'none');
+        document.querySelectorAll(
+            'th[data-column-key="Nova Rank"], td[data-column-key="Nova Rank"]'
+        ).forEach(el => el.style.display = 'none');
     }
 
     /**
@@ -1525,10 +1527,6 @@
                         });
                         td.appendChild(rankSpan);
 
-                        // Visibility: show only when nova ranking is active
-                        const isVisible = Object.keys(novaRankMap).length > 0;
-                        td.style.display = isVisible ? 'table-cell' : 'none';
-
                         row.appendChild(td);
                         return; // Skip rest of column processing
                     } else {
@@ -1541,7 +1539,6 @@
                         td.style.textAlign = 'center';
                         td.dataset.rawValue = 'N/A';
                         td.textContent = 'N/A';
-                        td.style.display = Object.keys(novaRankMap).length > 0 ? 'table-cell' : 'none';
                         row.appendChild(td);
                         return; // Skip rest of column processing
                     }
