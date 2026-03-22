@@ -12,13 +12,15 @@ class AIServiceError(Exception):
     pass
 
 
-def get_ai_response(prompt: str, system: str = None, stream: bool = False) -> str | object:
+def get_ai_response(prompt: str, system: str = None, stream: bool = False, max_tokens: int = 1500, timeout: int = 120) -> str | object:
     """Get a response from the configured AI provider.
 
     Args:
         prompt: The user prompt to send to the AI.
         system: Optional system prompt for context/instructions.
         stream: If True, returns a generator yielding text chunks.
+        max_tokens: Maximum tokens in the response (default: 1500).
+        timeout: Request timeout in seconds (default: 120).
 
     Returns:
         If stream=False: The AI's response text.
@@ -35,18 +37,18 @@ def get_ai_response(prompt: str, system: str = None, stream: bool = False) -> st
 
     if provider == "anthropic":
         if stream:
-            return _stream_anthropic(api_key, model, prompt, system)
-        return _call_anthropic(api_key, model, prompt, system)
+            return _stream_anthropic(api_key, model, prompt, system, max_tokens, timeout)
+        return _call_anthropic(api_key, model, prompt, system, max_tokens, timeout)
     elif provider == "openai":
         if stream:
-            return _stream_openai(api_key, model, base_url, prompt, system)
-        return _call_openai(api_key, model, base_url, prompt, system)
+            return _stream_openai(api_key, model, base_url, prompt, system, max_tokens, timeout)
+        return _call_openai(api_key, model, base_url, prompt, system, max_tokens, timeout)
     elif provider == "openai-compatible":
         if not base_url:
             raise AIServiceError("AI_BASE_URL is required for openai-compatible provider")
         if stream:
-            return _stream_openai(api_key, model, base_url, prompt, system)
-        return _call_openai(api_key, model, base_url, prompt, system)
+            return _stream_openai(api_key, model, base_url, prompt, system, max_tokens, timeout)
+        return _call_openai(api_key, model, base_url, prompt, system, max_tokens, timeout)
     elif provider == "ollama":
         if stream:
             return _stream_ollama(base_url, model, prompt, system)
@@ -55,7 +57,7 @@ def get_ai_response(prompt: str, system: str = None, stream: bool = False) -> st
         raise AIServiceError(f"Unsupported AI provider: {provider}")
 
 
-def _call_anthropic(api_key: str, model: str, prompt: str, system: str = None) -> str:
+def _call_anthropic(api_key: str, model: str, prompt: str, system: str = None, max_tokens: int = 1500, timeout: int = 120) -> str:
     """Call the Anthropic API."""
     try:
         import anthropic
@@ -64,8 +66,9 @@ def _call_anthropic(api_key: str, model: str, prompt: str, system: str = None) -
 
         kwargs = {
             "model": model,
-            "max_tokens": 1024,
+            "max_tokens": max_tokens,
             "messages": [{"role": "user", "content": prompt}],
+            "timeout": timeout,
         }
         if system is not None:
             kwargs["system"] = system
@@ -76,12 +79,12 @@ def _call_anthropic(api_key: str, model: str, prompt: str, system: str = None) -
         raise AIServiceError(str(e))
 
 
-def _call_openai(api_key: str, model: str, base_url: str, prompt: str, system: str = None) -> str:
+def _call_openai(api_key: str, model: str, base_url: str, prompt: str, system: str = None, max_tokens: int = 1500, timeout: int = 120) -> str:
     """Call the OpenAI API (or compatible endpoint)."""
     try:
         import openai
 
-        kwargs = {"api_key": api_key}
+        kwargs = {"api_key": api_key, "timeout": timeout}
         if base_url:
             kwargs["base_url"] = base_url
 
@@ -95,6 +98,7 @@ def _call_openai(api_key: str, model: str, base_url: str, prompt: str, system: s
         response = client.chat.completions.create(
             model=model,
             messages=messages,
+            max_tokens=max_tokens,
         )
         return response.choices[0].message.content
     except Exception as e:
@@ -123,7 +127,7 @@ def _call_ollama(base_url: str, model: str, prompt: str, system: str = None) -> 
         raise AIServiceError(str(e))
 
 
-def _stream_anthropic(api_key: str, model: str, prompt: str, system: str = None):
+def _stream_anthropic(api_key: str, model: str, prompt: str, system: str = None, max_tokens: int = 1500, timeout: int = 120):
     """Stream response from the Anthropic API, yielding text chunks."""
     try:
         import anthropic
@@ -132,9 +136,10 @@ def _stream_anthropic(api_key: str, model: str, prompt: str, system: str = None)
 
         kwargs = {
             "model": model,
-            "max_tokens": 1024,
+            "max_tokens": max_tokens,
             "messages": [{"role": "user", "content": prompt}],
             "stream": True,
+            "timeout": timeout,
         }
         if system is not None:
             kwargs["system"] = system
@@ -148,12 +153,12 @@ def _stream_anthropic(api_key: str, model: str, prompt: str, system: str = None)
         raise AIServiceError(str(e))
 
 
-def _stream_openai(api_key: str, model: str, base_url: str, prompt: str, system: str = None):
+def _stream_openai(api_key: str, model: str, base_url: str, prompt: str, system: str = None, max_tokens: int = 1500, timeout: int = 120):
     """Stream response from the OpenAI API (or compatible endpoint), yielding text chunks."""
     try:
         import openai
 
-        kwargs = {"api_key": api_key}
+        kwargs = {"api_key": api_key, "timeout": timeout}
         if base_url:
             kwargs["base_url"] = base_url
 
@@ -168,6 +173,7 @@ def _stream_openai(api_key: str, model: str, base_url: str, prompt: str, system:
             model=model,
             messages=messages,
             stream=True,
+            max_tokens=max_tokens,
         )
         for chunk in stream:
             if chunk.choices and chunk.choices[0].delta.content:

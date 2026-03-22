@@ -1305,6 +1305,12 @@
         `;
 
         try {
+            console.log('[Nova] Sending to AI:', filteredObjects.length, 'objects');
+
+            // AbortController for timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 180000);
+
             // Call the API
             const response = await fetch('/api/ai/best_objects', {
                 method: 'POST',
@@ -1315,8 +1321,11 @@
                     object_list: filteredObjects,
                     location_name: locationName,
                     sim_date: effectiveDate
-                })
+                }),
+                signal: controller.signal
             });
+
+            clearTimeout(timeoutId);
 
             if (response.status === 404) {
                 throw new Error('Nova AI endpoint not available. Check AI_API_KEY configuration.');
@@ -1328,6 +1337,7 @@
             }
 
             const result = await response.json();
+            console.log('[Nova] AI response received');
             const rankedObjects = result.ranked_objects || [];
 
             // Save original data before applying Nova ranking (for resetRanking)
@@ -1367,7 +1377,11 @@
 
         } catch (error) {
             console.error('Error asking Nova:', error);
-            errorDiv.textContent = window.t ? window.t('error_ask_nova') : error.message;
+            if (error.name === 'AbortError') {
+                errorDiv.textContent = 'Nova took too long to respond. Please try again.';
+            } else {
+                errorDiv.textContent = window.t ? window.t('error_ask_nova') : error.message;
+            }
             errorDiv.style.display = 'block';
         } finally {
             // Stop message animation

@@ -493,7 +493,7 @@ def generate_dso_notes():
         )
 
         # Get AI response
-        notes = get_ai_response(prompt["user"], system=prompt["system"])
+        notes = get_ai_response(prompt["user"], system=prompt["system"], max_tokens=1500)
 
         # Convert plain text to HTML paragraphs for Trix editor
         import re
@@ -700,7 +700,7 @@ def generate_session_summary():
             full_content = []
             buffer = ""
 
-            for chunk in get_ai_response(prompt["user"], system=prompt["system"], stream=True):
+            for chunk in get_ai_response(prompt["user"], system=prompt["system"], stream=True, max_tokens=3000):
                 if not chunk:
                     continue
 
@@ -932,7 +932,7 @@ def get_best_objects():
         )
 
         # Get AI response for ranking
-        ranking_response = get_ai_response(ranking_prompt["user"], system=ranking_prompt["system"])
+        ranking_response = get_ai_response(ranking_prompt["user"], system=ranking_prompt["system"], max_tokens=4096)
 
         # Parse ranking response to extract ranked objects
         # Expected format: JSON array with objects having "Object" key
@@ -940,6 +940,12 @@ def get_best_objects():
 
         try:
             import json
+            # Strip markdown code fences before parsing
+            ranking_response = ranking_response.strip()
+            if ranking_response.startswith("```"):
+                ranking_response = re.sub(r'^```[a-zA-Z]*\n?', '', ranking_response)
+                ranking_response = re.sub(r'\n?```\s*$', '', ranking_response)
+                ranking_response = ranking_response.strip()
             # Try to parse as JSON first
             parsed = json.loads(ranking_response)
 
