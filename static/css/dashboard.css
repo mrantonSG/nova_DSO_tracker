@@ -107,18 +107,19 @@
         display: none;
     }
 
-    /* Nova Rank column visible when table has nova-active class */
+    /* Nova Rank column — hidden by default, shown when table has nova-active class */
+    #data-table th[data-column-key="Nova Rank"],
+    #data-table td[data-column-key="Nova Rank"] {
+        display: none;
+    }
+
     #data-table.nova-active th[data-column-key="Nova Rank"],
     #data-table.nova-active td[data-column-key="Nova Rank"] {
         display: table-cell;
-    }
-
-    #data-table .col-nova-rank,
-    #data-table td[data-column-key="Nova Rank"] {
-        width: 40px;
         text-align: center;
-        font-weight: var(--font-weight-bold, 600);
+        font-weight: 600;
         color: var(--primary-color);
+        min-width: 48px;
     }
 
     #data-table td[data-column-key="Nova Rank"]:hover {
