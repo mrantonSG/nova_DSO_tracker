@@ -924,6 +924,13 @@
         if (cachedData) {
             if (signal.aborted) return;
             renderRows(cachedData);
+            // Restore Nova Rank column and sort if active
+            if (Object.keys(novaRankMap).length > 0) {
+                showNovaRankColumn();
+                if (currentSort.columnKey === 'Nova Rank') {
+                    sortTable('Nova Rank', false);
+                }
+            }
             if (signal.aborted) return;
             finalizeFetch();
             return;
@@ -1009,6 +1016,13 @@
             // If background refresh, replace table now
             if (!shouldShowLoader) {
                 renderRows(allData);
+                // Restore Nova Rank column and sort if active
+                if (Object.keys(novaRankMap).length > 0) {
+                    showNovaRankColumn();
+                    if (currentSort.columnKey === 'Nova Rank') {
+                        sortTable('Nova Rank', false);
+                    }
+                }
             }
             // Logic for triggering inspiration update moved to finalizeFetch
             // to ensure filters are applied first.
@@ -1266,9 +1280,10 @@
             // Re-render with ranked data
             renderRows(allData);
             // Show Nova Rank column
-            showNovaRankColumn();
-            // Auto-sort by Nova Rank
-            sortTable('Nova Rank', false);
+            if (Object.keys(novaRankMap).length > 0) {
+                showNovaRankColumn();
+                sortTable('Nova Rank', false);
+            }
             // Update button state
             askNovaBtn.classList.add('active');
             askNovaBtn.innerHTML = `
@@ -1378,10 +1393,10 @@
             renderRows(allData);
 
             // Show Nova Rank column
-            showNovaRankColumn();
-
-            // Auto-sort by Nova Rank ascending
-            sortTable('Nova Rank', false);
+            if (Object.keys(novaRankMap).length > 0) {
+                showNovaRankColumn();
+                sortTable('Nova Rank', false);
+            }
 
             // Update button state
             askNovaBtn.classList.add('active');
