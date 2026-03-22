@@ -1749,9 +1749,13 @@
                                          'Magnitude', 'Size', 'SB', 'Max Altitude'];
     
                 if (numericSortKeys.includes(columnKey)) {
-                    if (rawValue === 'N/A' || rawValue == null) td.dataset.rawValue = 'N/A';
-                    else if (!isNaN(parseFloat(rawValue))) td.dataset.rawValue = parseFloat(rawValue);
-                    else td.dataset.rawValue = rawValue;
+                    if (rawValue === 'N/A' || rawValue == null) {
+                        td.dataset.rawValue = 'N/A';
+                    } else if (!isNaN(parseFloat(rawValue))) {
+                        td.dataset.rawValue = parseFloat(rawValue);
+                    } else {
+                        td.dataset.rawValue = rawValue;
+                    }
                 } else if (rawValue === 'N/A' || rawValue == null) {
                     td.dataset.rawValue = 'N/A';
                 }
