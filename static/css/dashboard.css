@@ -99,30 +99,23 @@
         color: #7aafc0 !important;
     }
 
-    /* --- Nova Rank Badge Style --- */
-    .nova-rank-badge {
-        display: inline-block;
-        background-color: var(--primary-color);
-        color: white;
-        font-size: var(--font-size-xs, 11px);
+    /* --- Nova Rank Column Style --- */
+    #data-table .col-nova-rank,
+    #data-table td[data-column-key="Nova Rank"] {
+        width: 40px;
+        text-align: center;
         font-weight: var(--font-weight-bold, 600);
-        padding: 2px 6px;
-        border-radius: var(--radius-sm, 4px);
-        margin-right: var(--space-1, 4px);
-        line-height: 1;
-        white-space: nowrap;
+        color: var(--primary-color);
     }
 
-    /* --- Nova Rank Badge Hover Effect --- */
-    .nova-rank-badge:hover {
-        background-color: var(--primary-dark);
-        filter: brightness(1.1);
-        transform: translateY(-1px);
-        transition: all 0.2s ease;
+    #data-table td[data-column-key="Nova Rank"]:hover {
+        background-color: var(--primary-light);
+        cursor: pointer;
+        transition: background-color 0.2s ease;
     }
 
-    #data-table th:not([data-column-key="Object"]):not([data-column-key="Common Name"]),
-    #data-table td:not([data-column-key="Object"]):not([data-column-key="Common Name"]) {
+    #data-table th:not([data-column-key="Object"]):not([data-column-key="Common Name"]):not([data-column-key="Nova Rank"]),
+    #data-table td:not([data-column-key="Object"]):not([data-column-key="Common Name"]):not([data-column-key="Nova Rank"]) {
         text-align: center;
     }
 
