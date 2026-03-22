@@ -954,6 +954,7 @@ def get_best_objects():
                 ranked_objects = _extract_objects_from_text(ranking_response, objects_for_prompt)
         except json.JSONDecodeError:
             # Not JSON, try to extract from text
+            logger.warning(f"Raw AI response was: '{ranking_response[:500]}'")
             ranked_objects = _extract_objects_from_text(ranking_response, objects_for_prompt)
 
         # Ensure all ranked objects have rank, reason, and recommended_rigs array
@@ -1038,7 +1039,6 @@ def _extract_objects_from_text(text, objects_for_prompt):
 
     # If no matches found, return empty list
     if not ranked_objects:
-        logger.warning(f"Raw AI response was: {ranking_response[:500]}")
         logger.warning("Could not parse AI response as structured data")
 
     return ranked_objects
