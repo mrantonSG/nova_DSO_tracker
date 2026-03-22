@@ -122,18 +122,8 @@
         let allOutlookOpportunities = [];
         window.latestDSOData = []; // <--- EXPOSE DATA GLOBALLY for Inspiration Tab
         let currentOutlookSort = { columnKey: 'date', ascending: true };
-        let novaRankMap = {}; // <--- NOVA RANKING PERSISTENCE - stores object names (uppercase) to rank data (in-memory, persisted via novaCache)
-
-        // --- NOVA RANKING CACHE ---
-        // Module-level cache for Nova ranking results (in-memory only, NOT persisted)
-        // Cache key format: nova_cache_${locationName}_${simDate}
-        let novaCache = {
-            key: null,
-            rankedObjects: [],
-            novaRankMap: {},
-            timestamp: null
-        };
-        // --- END NOVA RANKING CACHE ---
+        let novaRankMap = {}; // Stores object names (uppercase) to rank number (e.g., 'M51': 1)
+        let novaRankCache = null; // Client-side cache: { locationName, simDate, rankedObjects, novaRankMap, timestamp }
 
         const outlookColumnConfig = {
             'object_name':  { dataKey: 'object_name',  sortable: true, filterable: true, numeric: false },
@@ -153,7 +143,7 @@
         // --- DSO Table Configuration ---
         let currentSort = { columnKey: 'Altitude Current', ascending: false };
         const columnConfig = {
-            'Nova Rank':        { header: '★<br><span class="subtext">&nbsp;</span>', dataKey: 'Nova Rank', type: 'nova-rank', filterable: false, sortable: true },
+            'Nova Rank':        { header: '★ Rank<br><span class="subtext">Nova</span>', dataKey: 'novaRank', type: 'nova', filterable: false, sortable: true, format: val => (val === 'N/A' || val == null) ? 'N/A' : '#' + val },
             'Object':           { header: 'Object<br><span class="subtext">&nbsp;</span>', dataKey: 'Object', type: 'always-visible', filterable: true, sortable: true },
             'Common Name':      { header: 'Common Name<br><span class="subtext">&nbsp;</span>', dataKey: 'Common Name', type: 'always-visible', filterable: true, sortable: true },
             'Altitude Current': { header: 'Altitude<br><span class="subtext">(Current)</span>', dataKey: 'Altitude Current', type: 'position', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined) ? 'N/A' : `${parseFloat(val).toFixed(2)}°` },
@@ -283,6 +273,9 @@
                         sessionStorage.removeItem(key);
                     }
                 }
+                // Clear Nova ranking cache on date change
+                novaRankMap = {};
+                novaRankCache = null;
                 // Reset outlook flag so it re-calculates for the new reference date
                 outlookDataLoaded = false;
                 fetchData();
@@ -302,11 +295,6 @@
                 localStorage.setItem('simModeActive', isChecked);
                 localStorage.setItem('simDate', simDateInput.value);
                 applySimState(isChecked, simDateInput.value);
-
-                // Clear Nova cache on simulation mode change
-                clearNovaCache();
-                hideNovaRankColumn();
-
                 // Only trigger data fetch if a date was already set (e.g., from previous session).
                 // If we just auto-filled today's date, wait for the user to set their desired date.
                 if (hadExistingDate) {
@@ -318,11 +306,6 @@
                 if (simModeToggle.checked) {
                     localStorage.setItem('simDate', this.value);
                     applySimState(true, this.value);
-
-                    // Clear Nova cache on simulation date change
-                    clearNovaCache();
-                    hideNovaRankColumn();
-
                     updateDataForSim();
                 }
             });
@@ -350,129 +333,6 @@
           const [h, m] = timeStr.split(':').map(Number);
           return h * 60 + m;
         }
-
-        // ========================================================================
-        // Nova Cache Helper Functions
-        // ========================================================================
-        function getNovaCacheKey(locationName, simDate) {
-            const datePart = simDate ? simDate : 'today';
-            return `nova_cache_${locationName}_${datePart}`;
-        }
-
-        function setNovaCache(locationName, simDate, rankedObjects, rankMap) {
-            novaCache = {
-                key: getNovaCacheKey(locationName, simDate),
-                rankedObjects: rankedObjects,
-                novaRankMap: rankMap,
-                timestamp: Date.now()
-            };
-        }
-
-        function getNovaCache(locationName, simDate) {
-            const cacheKey = getNovaCacheKey(locationName, simDate);
-            if (novaCache.key === cacheKey) {
-                return novaCache;
-            }
-            return null;
-        }
-
-        function clearNovaCache() {
-            novaCache = {
-                key: null,
-                rankedObjects: [],
-                novaRankMap: {},
-                timestamp: null
-            };
-        }
-
-        function isNovaCacheValid(locationName, simDate) {
-            return getNovaCache(locationName, simDate) !== null;
-        }
-
-        function showNovaRankColumn() {
-            const header = document.getElementById('nova-rank-column-header');
-            const filterHeader = document.querySelector('#data-table .filter-row th[data-column-key="Nova Rank"]');
-            const tbody = document.getElementById('data-body');
-            if (header) header.style.display = 'table-cell';
-            if (filterHeader) filterHeader.style.display = 'table-cell';
-            if (tbody) {
-                const cells = tbody.querySelectorAll('td[data-column-key="Nova Rank"]');
-                cells.forEach(cell => {
-                    if (cell.textContent.trim() !== '') {
-                        cell.style.display = 'table-cell';
-                    }
-                });
-            }
-        }
-
-        function hideNovaRankColumn() {
-            const header = document.getElementById('nova-rank-column-header');
-            const filterHeader = document.querySelector('#data-table .filter-row th[data-column-key="Nova Rank"]');
-            const tbody = document.getElementById('data-body');
-            if (header) header.style.display = 'none';
-            if (filterHeader) filterHeader.style.display = 'none';
-            if (tbody) {
-                const cells = tbody.querySelectorAll('td[data-column-key="Nova Rank"]');
-                cells.forEach(cell => {
-                    cell.style.display = 'none';
-                });
-            }
-        }
-
-        function resetNovaRanking() {
-            // Clear Object search filter
-            const objectFilterInput = document.querySelector('#data-table .filter-row th[data-column-key="Object"] input');
-            if (objectFilterInput) {
-                objectFilterInput.value = '';
-                localStorage.removeItem("dso_filter_col_key_Object");
-            }
-
-            // Clear module-level novaRankMap
-            novaRankMap = {};
-
-            // Clear cache
-            clearNovaCache();
-
-            // Hide Nova Rank column
-            hideNovaRankColumn();
-
-            // Re-render with original full dataset (if available)
-            if (originalTableData && originalTableData.length > 0) {
-                renderRows(originalTableData);
-                filterTable();
-            } else if (window.latestDSOData && window.latestDSOData.length > 0) {
-                renderRows(window.latestDSOData);
-                filterTable();
-            }
-
-            // Reset sort to default
-            sortTable('Altitude Current', false);
-            currentSort.ascending = false;
-
-            // Update button visibility
-            updateRemoveFiltersButtonVisibility();
-
-            // Remove active state from Ask Nova button
-            const askNovaBtn = document.getElementById('ask-nova-btn');
-            if (askNovaBtn) {
-                askNovaBtn.classList.remove('active');
-                askNovaBtn.innerHTML = `
-                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
-                        <path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/>
-                    </svg>
-                    ${window.t ? window.t('ask_nova') : 'Ask Nova'}
-                `;
-            }
-
-            // Clear error
-            const errorDiv = document.getElementById('ask-nova-error');
-            if (errorDiv) {
-                errorDiv.style.display = 'none';
-            }
-        }
-        // ========================================================================
-        // End Nova Cache Helper Functions
-        // ========================================================================
         function updateRemoveFiltersButtonVisibility() {
             const btnContainer = document.getElementById('remove-filters-container');
             if (!btnContainer) return;
@@ -1063,8 +923,7 @@
         const cachedData = _checkFetchCache(CACHE_KEY, CACHE_EXPIRY);
         if (cachedData) {
             if (signal.aborted) return;
-            const sortedData = applyNovaRankSorting(cachedData);
-            renderRows(sortedData);
+            renderRows(cachedData);
             if (signal.aborted) return;
             finalizeFetch();
             return;
@@ -1149,8 +1008,7 @@
 
             // If background refresh, replace table now
             if (!shouldShowLoader) {
-                const sortedData = applyNovaRankSorting(allData);
-                renderRows(sortedData);
+                renderRows(allData);
             }
             // Logic for triggering inspiration update moved to finalizeFetch
             // to ensure filters are applied first.
@@ -1190,42 +1048,6 @@
      * @param {Array} data - Array of object data
      * @returns {Array} Sorted array of object data
      */
-    function applyNovaRankSorting(data) {
-        // If novaRankMap is empty, return data unchanged
-        if (Object.keys(novaRankMap).length === 0) {
-            return data;
-        }
-
-        // Separate ranked and unranked objects
-        const rankedObjects = [];
-        const unrankedObjects = [];
-
-        data.forEach(obj => {
-            // Normalize object name to uppercase for lookup
-            const objectNameUpper = (obj.Object || '').trim().toUpperCase();
-            const rankData = novaRankMap[objectNameUpper];
-
-            if (rankData) {
-                rankedObjects.push({
-                    obj: obj,
-                    rank: rankData.rank
-                });
-            } else {
-                unrankedObjects.push(obj);
-            }
-        });
-
-        // Sort ranked objects by rank ascending (ensure numeric comparison)
-        rankedObjects.sort((a, b) => {
-            const rankA = parseInt(a.rank, 10);
-            const rankB = parseInt(b.rank, 10);
-            return rankA - rankB;
-        });
-
-        // Return all objects: ranked first, unranked after
-        return [...rankedObjects.map(item => item.obj), ...unrankedObjects];
-    }
-
     /**
      * Show modal with Nova ranking details
      * @param {string} objectName - The object name
@@ -1306,66 +1128,94 @@
     }
 
     /**
+     * Show Nova Rank column (both th and td elements)
+     */
+    function showNovaRankColumn() {
+        document.querySelectorAll('[data-column-key="Nova Rank"]')
+            .forEach(el => el.style.display = 'table-cell');
+    }
+
+    /**
+     * Hide Nova Rank column (both th and td elements)
+     */
+    function hideNovaRankColumn() {
+        document.querySelectorAll('[data-column-key="Nova Rank"]')
+            .forEach(el => el.style.display = 'none');
+    }
+
+    /**
+     * Reset table to original sorting and remove Nova ranking
+     */
+    function resetRanking() {
+        // Clear Object search filter
+        const objectFilterInput = document.querySelector('#data-table .filter-row th[data-column-key="Object"] input');
+        if (objectFilterInput) {
+            objectFilterInput.value = '';
+            localStorage.removeItem("dso_filter_col_key_Object");
+        }
+
+        // Clear module-level novaRankMap
+        novaRankMap = {};
+        novaRankCache = null;
+
+        // Re-render with full dataset
+        if (window.latestDSOData && window.latestDSOData.length > 0) {
+            renderRows(window.latestDSOData);
+            filterTable();
+        }
+
+        // Hide Nova Rank column
+        hideNovaRankColumn();
+
+        // Update button visibility
+        updateRemoveFiltersButtonVisibility();
+
+        // Remove active state from Ask Nova button
+        const askNovaBtn = document.getElementById('ask-nova-btn');
+        if (askNovaBtn) {
+            askNovaBtn.classList.remove('active');
+        }
+
+        // Clear error
+        const errorDiv = document.getElementById('ask-nova-error');
+        if (errorDiv) {
+            errorDiv.style.display = 'none';
+        }
+
+        // Reset to default sort if currently sorted by Nova Rank
+        if (currentSort.columnKey === 'Nova Rank') {
+            currentSort.columnKey = 'Altitude Current';
+            currentSort.ascending = false;
+            localStorage.setItem("dso_sortOrder", "desc");
+            localStorage.setItem("dso_sortColumnKey", 'Altitude Current');
+            sortTable('Altitude Current', false);
+        }
+    }
+
+    /**
      * Handle Ask Nova button click
      */
     async function askNova() {
-        console.log('[Nova] askNova started, controller state:',
-            askNovaController ? 'exists' : 'null',
-            'signal aborted:', askNovaController?.signal?.aborted)
-        console.log('askNova triggered');
         const askNovaBtn = document.getElementById('ask-nova-btn');
         const errorDiv = document.getElementById('ask-nova-error');
 
         if (!askNovaBtn) return;
 
-        // Reset button state
-        errorDiv.style.display = 'none';
-
-        // Toggle: If ranking is already active, clear it instead of calling API
-        if (Object.keys(novaRankMap).length > 0 && askNovaBtn.classList.contains('active')) {
-            resetNovaRanking();
-            return;
-        }
-
-        // Check cache for current location+date and restore if valid
-        const locationName = sessionStorage.getItem('selectedLocation') || document.getElementById('location-select')?.value;
-        const simModeOn = document.getElementById('sim-mode-toggle')?.checked;
-        const simDateVal = document.getElementById('sim-date-input')?.value;
-        const effectiveDate = simModeOn && simDateVal ? simDateVal : null;
-
-        if (locationName && isNovaCacheValid(locationName, effectiveDate)) {
-            console.log('[Nova] Restoring from cache');
-            const cache = getNovaCache(locationName, effectiveDate);
-            novaRankMap = cache.novaRankMap;
-
-            // Re-render with ranked data
-            const sortedData = applyNovaRankSorting(window.latestDSOData);
-            renderRows(sortedData);
-            showNovaRankColumn();
-
-            // Auto-sort table by Nova Rank ascending
-            sortTable('Nova Rank', false);
-            currentSort.ascending = true;
-
-            // Set Object search filter to "#" to show only ranked objects
-            const objectFilterInput = document.querySelector('#data-table .filter-row th[data-column-key="Object"] input');
-            if (objectFilterInput) {
-                objectFilterInput.value = '#';
-                saveFilter(objectFilterInput, 'Object', 'dso');
-            }
-            filterTable();
-
-            // Show Remove Filters button and mark Ask Nova button as active
-            updateRemoveFiltersButtonVisibility();
-            askNovaBtn.classList.add('active');
+        // Check if Nova ranking is active - if so, clear it
+        if (Object.keys(novaRankMap).length > 0) {
+            resetRanking();
+            // Update button to default state
             askNovaBtn.innerHTML = `
                 <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
                     <path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/>
                 </svg>
-                ${window.t ? window.t('nova_ranking') || 'Nova Ranking' : 'Nova Ranking'}
+                ${window.t ? window.t('ask_nova') : 'Ask Nova'}
             `;
             return;
         }
+
+        // Reset button state
+        errorDiv.style.display = 'none';
 
         // Get current data and filters
         const allData = window.latestDSOData || [];
@@ -1384,8 +1234,6 @@
         const filteredObjects = allData.filter(obj => {
             const obsDuration = parseFloat(obj['Observable Duration (min)'] || 0);
             const maxAlt = parseFloat(obj['Max Altitude (°)'] || 0);
-
-            // Check if object meets minimum criteria
             return obsDuration >= minObservableMinutes && maxAlt >= minMaxAltitude;
         });
 
@@ -1395,16 +1243,47 @@
             return;
         }
 
+        // Get current location and sim date for cache validation
+        const locationName = sessionStorage.getItem('selectedLocation') || document.getElementById('location-select')?.value;
+        const simModeOn = document.getElementById('sim-mode-toggle')?.checked;
+        const simDateVal = document.getElementById('sim-date-input')?.value;
+        const effectiveDate = simModeOn && simDateVal ? simDateVal : null;
+
         if (!locationName) {
             errorDiv.textContent = 'Please select a location first.';
             errorDiv.style.display = 'block';
             return;
         }
 
+        // Check cache
+        const cacheKey = `nova_cache_${locationName}_${effectiveDate || 'realtime'}`;
+        if (novaRankCache &&
+            novaRankCache.locationName === locationName &&
+            novaRankCache.simDate === effectiveDate) {
+            console.log('[Nova] Using cached ranking');
+            // Restore from cache
+            novaRankMap = {...novaRankCache.novaRankMap};
+            // Re-render with ranked data
+            renderRows(allData);
+            // Show Nova Rank column
+            showNovaRankColumn();
+            // Auto-sort by Nova Rank
+            sortTable('Nova Rank', false);
+            // Update button state
+            askNovaBtn.classList.add('active');
+            askNovaBtn.innerHTML = `
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+                    <path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/>
+                </svg>
+                ${window.t ? window.t('nova_ranking') : 'Nova Ranking'}
+            `;
+            return;
+        }
+
         // Set loading state with alternating messages
         askNovaBtn.disabled = true;
 
-        // Build message sequence with location name
+        // Build message sequence
         const novaMessages = [
             window.t('consulting_charts'),
             window.t('checking_rigs'),
@@ -1435,7 +1314,7 @@
         try {
             console.log('[Nova] Sending to AI:', filteredObjects.length, 'objects');
 
-            // Abort any previous Ask Nova request
+            // Abort any previous request
             if (askNovaController) {
                 askNovaController.abort();
             }
@@ -1448,8 +1327,6 @@
             askNovaTimeoutId = setTimeout(() => askNovaController.abort(), 180000);
 
             // Call the API
-            console.log('[Nova] About to fetch, signal aborted:',
-                askNovaController.signal.aborted)
             const response = await fetch('/api/ai/best_objects', {
                 method: 'POST',
                 headers: {
@@ -1463,7 +1340,6 @@
                 signal: askNovaController.signal
             });
 
-            console.log('[Nova] Fetch returned, status:', response.status)
             clearTimeout(askNovaTimeoutId);
 
             if (response.status === 404) {
@@ -1479,45 +1355,37 @@
             console.log('[Nova] AI response received');
             const rankedObjects = result.ranked_objects || [];
 
-            // Save original data before applying Nova ranking (for resetRanking)
-            originalTableData = [...(window.latestDSOData || [])];
-
             // Populate module-level novaRankMap (case-insensitive, stored as uppercase)
             novaRankMap = {};
             rankedObjects.forEach(ranked => {
                 const objectNameUpper = (ranked.Object || '').trim().toUpperCase();
                 novaRankMap[objectNameUpper] = {
-                    rank: parseInt(ranked.rank, 10), // Ensure rank is stored as number
+                    rank: parseInt(ranked.rank, 10),
                     reason: ranked.reason || '',
                     recommendedRigs: Array.isArray(ranked.recommended_rigs) ? ranked.recommended_rigs : []
                 };
             });
 
-            // Store in module-level cache (not sessionStorage)
-            setNovaCache(locationName, effectiveDate, rankedObjects, novaRankMap);
+            // Update cache
+            novaRankCache = {
+                locationName: locationName,
+                simDate: effectiveDate,
+                novaRankMap: {...novaRankMap},
+                timestamp: Date.now()
+            };
 
-            // Re-render with ranked data (data-level sorting, not DOM manipulation)
-            const sortedData = applyNovaRankSorting(window.latestDSOData);
-            renderRows(sortedData);
+            // Re-render table
+            renderRows(allData);
 
             // Show Nova Rank column
             showNovaRankColumn();
 
-            // Auto-sort table by Nova Rank ascending
+            // Auto-sort by Nova Rank ascending
             sortTable('Nova Rank', false);
-            currentSort.ascending = true; // Ensure ascending order
 
-            // Set Object search filter to "#" to show only ranked objects
-            const objectFilterInput = document.querySelector('#data-table .filter-row th[data-column-key="Object"] input');
-            if (objectFilterInput) {
-                objectFilterInput.value = '#';
-                saveFilter(objectFilterInput, 'Object', 'dso');
-            }
-            filterTable();
-
-            // Show Remove Filters button and mark Ask Nova button as active
-            updateRemoveFiltersButtonVisibility();
+            // Update button state
             askNovaBtn.classList.add('active');
+            updateRemoveFiltersButtonVisibility();
 
         } catch (error) {
             console.error('Error asking Nova:', error);
@@ -1528,35 +1396,20 @@
             }
             errorDiv.style.display = 'block';
         } finally {
-            // Stop message animation
             clearInterval(msgInterval);
-
-            // Reset button state (remove loading, restore to default or active state)
             askNovaBtn.disabled = false;
             askNovaController = null;
             askNovaTimeoutId = null;
-            // Use innerHTML to preserve the SVG icon
-            const activeClass = askNovaBtn.classList.contains('active') ? ' active' : '';
+            // Update button text
+            const isActive = Object.keys(novaRankMap).length > 0;
             askNovaBtn.innerHTML = `
                 <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
                     <path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/>
                 </svg>
-                ${activeClass ? (window.t ? window.t('nova_ranking') || 'Nova Ranking' : 'Nova Ranking') : (window.t ? window.t('ask_nova') : 'Ask Nova')}
+                ${isActive ? (window.t ? window.t('nova_ranking') : 'Nova Ranking') : (window.t ? window.t('ask_nova') : 'Ask Nova')}
             `;
-            // Restore the active class if it was added (the innerHTML replacement removes all attributes)
-            if (activeClass) {
-                askNovaBtn.classList.add('active');
-            }
         }
     }
-
-    /**
-     * Reset table to original sorting and remove rank badges
-     */
-    function resetRanking() {
-        resetNovaRanking();
-    }
-
 
     // --- Helper: Render All (Replaces Table) ---
     function renderRows(data) {
@@ -1590,7 +1443,12 @@
     
             // Store impossible status for sorting logic
             row.dataset.impossible = objectData.is_geometrically_impossible ? 'true' : 'false';
-    
+
+            // Store Nova rank for this row (uppercase object name for lookup)
+            const objectNameUpper = (objectData.Object || '').trim().toUpperCase();
+            const rankValue = novaRankMap[objectNameUpper];
+            row.dataset.novaRank = rankValue ? rankValue.rank : '';
+
             if (objectData.error === true || (objectData['Common Name'] && String(objectData['Common Name']).startsWith("Error:"))) {
                 row.style.backgroundColor = getDangerBgColor();
                 row.style.color = getDangerTextColor();
@@ -1611,42 +1469,75 @@
             columnOrder.forEach(columnKey => {
                 const config = columnConfig[columnKey];
                 if (!config) return;
-
+    
                 const td = document.createElement('td');
                 td.dataset.columnKey = columnKey;
                 td.style.textAlign = (columnKey === 'Object' || columnKey === 'Common Name') ? 'left' : 'center';
+    
+                let rawValue, displayValue;
 
                 if (columnKey === 'Nova Rank') {
-                    // Populate Nova Rank column with rank number from novaRankMap
-                    const objectName = objectData.Object || '';
-                    const objectNameUpper = objectName.trim().toUpperCase();
-                    const rankData = novaRankMap[objectNameUpper];
+                    // Special handling for Nova Rank column
+                    const rankValue = novaRankMap[objectNameUpper];
+                    if (rankValue) {
+                        rawValue = rankValue.rank;
+                        displayValue = '#' + rankValue.rank;
 
-                    if (rankData) {
-                        td.textContent = rankData.rank;
-                        td.style.cursor = 'pointer';
-                        td.style.fontWeight = 'bold';
+                        const td = document.createElement('td');
+                        td.dataset.columnKey = columnKey;
+                        td.style.textAlign = 'center';
+                        td.dataset.rawValue = parseInt(rankValue.rank, 10);
 
-                        // Add data-nova-rank attribute to the row
-                        row.dataset.novaRank = rankData.rank;
+                        // Store rank data for modal
+                        td.dataset.reason = rankValue.reason || '';
+                        td.dataset.rigs = JSON.stringify(rankValue.recommendedRigs || []);
+                        td.dataset.objectName = objectData.Object || '';
 
-                        // Add click handler to show modal with details
-                        td.addEventListener('click', function(e) {
-                            e.stopPropagation(); // Prevent row click from opening graph
-                            showNovaRankModal(objectName, rankData.rank, rankData.reason, rankData.recommendedRigs);
+                        // Click handler to show modal
+                        const rankSpan = document.createElement('span');
+                        rankSpan.textContent = displayValue;
+                        rankSpan.style.cursor = 'pointer';
+                        rankSpan.style.fontWeight = 'bold';
+                        rankSpan.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            const rigs = JSON.parse(this.parentElement.dataset.rigs || '[]');
+                            showNovaRankModal(
+                                this.parentElement.dataset.objectName,
+                                rankValue.rank,
+                                this.parentElement.dataset.reason,
+                                rigs
+                            );
                         });
+                        td.appendChild(rankSpan);
+
+                        // Visibility: show only when nova ranking is active
+                        const isVisible = Object.keys(novaRankMap).length > 0;
+                        td.style.display = isVisible ? 'table-cell' : 'none';
+
+                        row.appendChild(td);
+                        return; // Skip rest of column processing
                     } else {
-                        td.textContent = '';
+                        // No rank - create empty cell
+                        rawValue = null;
+                        displayValue = 'N/A';
+
+                        const td = document.createElement('td');
+                        td.dataset.columnKey = columnKey;
+                        td.style.textAlign = 'center';
+                        td.dataset.rawValue = 'N/A';
+                        td.textContent = 'N/A';
+                        td.style.display = Object.keys(novaRankMap).length > 0 ? 'table-cell' : 'none';
+                        row.appendChild(td);
+                        return; // Skip rest of column processing
                     }
-                    td.style.display = 'none'; // Hidden by default, shown when Nova ranking is active
-                    row.appendChild(td);
                 } else {
-                    const rawValue = objectData[config.dataKey];
-                    const displayValue = (rawValue === null || rawValue === undefined || String(rawValue).trim() === '')
+                    rawValue = objectData[config.dataKey];
+                    displayValue = (rawValue === null || rawValue === undefined || String(rawValue).trim() === '')
                                          ? 'N/A'
                                          : (config.format ? config.format(rawValue) : rawValue);
+                }
 
-                    if (columnKey === 'Common Name') {
+                if (columnKey === 'Common Name') {
                     // Create flex container to hold text and icon side-by-side
                     const container = document.createElement('div');
                     container.style.display = 'flex';
@@ -1744,18 +1635,16 @@
                 _applyRowHighlights(td, columnKey, rawValue, objectData, altitudeThreshold);
     
                 // Sort helpers
-                const numericSortKeys = ['Nova Rank', 'Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
+                const numericSortKeys = ['Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
                                          'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)',
                                          'Magnitude', 'Size', 'SB', 'Max Altitude'];
     
                 if (numericSortKeys.includes(columnKey)) {
-                    if (rawValue === 'N/A' || rawValue == null) {
-                        td.dataset.rawValue = 'N/A';
-                    } else if (!isNaN(parseFloat(rawValue))) {
-                        td.dataset.rawValue = parseFloat(rawValue);
-                    } else {
-                        td.dataset.rawValue = rawValue;
-                    }
+                    if (rawValue === 'N/A' || rawValue == null) td.dataset.rawValue = 'N/A';
+                    else if (!isNaN(parseFloat(rawValue))) td.dataset.rawValue = parseFloat(rawValue);
+                    else td.dataset.rawValue = rawValue;
+                } else if (rawValue === 'N/A' || rawValue == null) {
+                    td.dataset.rawValue = 'N/A';
                 }
     
                 row.appendChild(td);
@@ -1769,29 +1658,16 @@
         const loadingDiv = document.getElementById("table-loading");
         _hideFetchLoader(loadingDiv);
         applyDsoColumnVisibility();
-        if (Object.keys(novaRankMap).length === 0) {
-            sortTable(currentSort.columnKey, false);
-        }
 
-        // 1. Apply filters (calculates window.currentFilteredData)
+        // Apply filters (calculates window.currentFilteredData)
         filterTable();
 
         tbody.dataset.loading = 'false';
         fetchSunEvents();
 
-        // 2. NOW it is safe to update the Inspiration grid with filtered data
+        // NOW it is safe to update the Inspiration grid with filtered data
         if (activeTab === 'inspiration' && typeof renderInspirationGrid === 'function') {
             renderInspirationGrid();
-        }
-
-        // 3. Restore Object filter to "#" if Nova ranking is active
-        if (Object.keys(novaRankMap).length > 0) {
-            const objectFilterInput = document.querySelector('#data-table .filter-row th[data-column-key="Object"] input');
-            if (objectFilterInput) {
-                objectFilterInput.value = '#';
-                saveFilter(objectFilterInput, 'Object', 'dso');
-                filterTable();
-            }
         }
 
         // REMOVED: Location change check was causing duplicate fetch on initial page load
@@ -2155,9 +2031,9 @@
         outlookDataLoaded = false; // Reset outlook flag for the new location
         if (typeof resetHeatmapState === 'function') resetHeatmapState();
 
-        // Clear Nova cache on location change
-        clearNovaCache();
-        hideNovaRankColumn();
+        // Clear Nova ranking cache on location change
+        novaRankMap = {};
+        novaRankCache = null;
 
         // Persist the location server-side so it's remembered across page navigations
         fetch('/set_location', {
@@ -3277,26 +3153,6 @@
 
             if (askNovaBtn) {
                 askNovaBtn.addEventListener('click', askNova);
-            }
-
-            // --- Restore Nova ranking from cache on page load ---
-            const locationName = sessionStorage.getItem('selectedLocation') || document.getElementById('location-select')?.value;
-            const simModeOn = document.getElementById('sim-mode-toggle')?.checked;
-            const simDateVal = document.getElementById('sim-date-input')?.value;
-            const effectiveDate = simModeOn && simDateVal ? simDateVal : null;
-
-            if (locationName && isNovaCacheValid(locationName, effectiveDate)) {
-                console.log('[Nova] Restoring ranking from cache');
-                const cache = getNovaCache(locationName, effectiveDate);
-                novaRankMap = cache.novaRankMap;
-                showNovaRankColumn();
-                askNovaBtn.classList.add('active');
-                askNovaBtn.innerHTML = `
-                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
-                        <path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/>
-                    </svg>
-                    ${window.t ? window.t('nova_ranking') || 'Nova Ranking' : 'Nova Ranking'}
-                `;
             }
 
             // --- Event delegation for data-action attributes ---
