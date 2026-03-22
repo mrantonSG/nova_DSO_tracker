@@ -711,6 +711,93 @@
               </div>
               <button type="submit" class="action-button">{{ _('Change Password') }}</button>
           </form>
+
+          <hr style="margin: 40px 0;">
+
+          <h3>{{ _('API Keys') }}</h3>
+          <p style="color: var(--text-secondary); margin-bottom: 20px;">
+              {{ _('API keys allow programmatic access to Nova via the REST API. Use the') }}
+              <code>X-API-Key</code> {{ _('header or') }} <code>Authorization: Bearer &lt;key&gt;</code>.
+          </p>
+
+          {% if new_api_key %}
+          <div class="api-key-reveal-banner">
+              <p style="margin: 0 0 0.25rem; font-weight: bold; color: var(--text-primary);">
+                  {{ _('New API Key Generated') }}
+              </p>
+              <p class="reveal-warning">
+                  ⚠️ {{ _('Copy this key now. It will not be shown again after you leave this page.') }}
+              </p>
+              <div class="api-key-reveal-key-row">
+                  <code id="new-api-key-value">{{ new_api_key }}</code>
+                  <button type="button" class="api-key-btn secondary" onclick="novaCopyApiKey(this, 'new-api-key-value')">
+                      {{ _('Copy') }}
+                  </button>
+              </div>
+          </div>
+          {% endif %}
+
+          {% if api_keys %}
+          <table class="api-keys-table">
+              <thead>
+                  <tr>
+                      <th>{{ _('Name') }}</th>
+                      <th>{{ _('Prefix') }}</th>
+                      <th>{{ _('Created') }}</th>
+                      <th>{{ _('Last Used') }}</th>
+                      <th>{{ _('Status') }}</th>
+                      <th>{{ _('Actions') }}</th>
+                  </tr>
+              </thead>
+              <tbody>
+              {% for key in api_keys %}
+                  <tr>
+                      <td>{{ key.name }}</td>
+                      <td><code>{{ key.key_prefix }}…</code></td>
+                      <td>{{ key.created_at.strftime('%Y-%m-%d') if key.created_at else '—' }}</td>
+                      <td>{{ key.last_used_at.strftime('%Y-%m-%d') if key.last_used_at else _('Never') }}</td>
+                      <td>
+                          {% if key.is_active %}
+                          <span class="status-active">{{ _('Active') }}</span>
+                          {% else %}
+                          <span class="status-revoked">{{ _('Revoked') }}</span>
+                          {% endif %}
+                      </td>
+                      <td class="key-actions">
+                          {% if key.is_active %}
+                          <form method="post" action="{{ url_for('core.regenerate_api_key_web', key_id=key.id) }}"
+                                style="display:inline;"
+                                onsubmit="return confirm('{{ _('Regenerate this key? The existing key will stop working immediately.') }}')">
+                              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                              <button type="submit" class="api-key-btn secondary">{{ _('Regenerate') }}</button>
+                          </form>
+                          <form method="post" action="{{ url_for('core.revoke_api_key_web', key_id=key.id) }}"
+                                style="display:inline;"
+                                onsubmit="return confirm('{{ _('Revoke this API key? This cannot be undone.') }}')">
+                              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                              <button type="submit" class="api-key-btn danger">{{ _('Revoke') }}</button>
+                          </form>
+                          {% endif %}
+                      </td>
+                  </tr>
+              {% endfor %}
+              </tbody>
+          </table>
+          {% else %}
+          <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">{{ _('No API keys yet.') }}</p>
+          {% endif %}
+
+          <h4 style="margin-top: 1rem; margin-bottom: 0.75rem;">{{ _('Create New Key') }}</h4>
+          <form method="post" action="{{ url_for('core.create_api_key_web') }}"
+                style="max-width: 420px; display: flex; gap: 10px; align-items: flex-end;">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div class="form-group" style="margin-bottom: 0; flex: 1;">
+                  <label for="new_key_name">{{ _('Key Name') }}</label>
+                  <input type="text" name="key_name" id="new_key_name" maxlength="128"
+                         class="form-control" placeholder="{{ _('e.g. Home Assistant') }}">
+              </div>
+              <button type="submit" class="action-button">{{ _('Create Key') }}</button>
+          </form>
       </div>
   </div>
   {% endif %}
@@ -754,6 +841,39 @@
     let rigsData = {}; // Store all rig data globally
     let rigsDataLoaded = false;
     let rigSort = localStorage.getItem('rigSort') || 'name-asc';    console.log('Inline script loaded, rigsData:', typeof rigsData, rigsData);
+
+    function novaCopyApiKey(btn, elementId) {
+        const text = document.getElementById(elementId).textContent.trim();
+        const originalText = btn.textContent;
+
+        function onSuccess() {
+            btn.textContent = '✓ {{ _("Copied!") }}';
+            btn.disabled = true;
+            setTimeout(function() {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }, 2000);
+        }
+
+        function fallbackCopy(t) {
+            const ta = document.createElement('textarea');
+            ta.value = t;
+            ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            try { document.execCommand('copy'); onSuccess(); } catch (e) {}
+            document.body.removeChild(ta);
+        }
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(onSuccess).catch(function() {
+                fallbackCopy(text);
+            });
+        } else {
+            fallbackCopy(text);
+        }
+    }
 
     // --- Theme Preference Live Preview ---
     document.addEventListener('DOMContentLoaded', function() {

@@ -196,7 +196,11 @@ from nova.blueprints.tools import tools_bp
 from nova.blueprints.rest_api import rest_api_bp
 from nova.blueprints.weather import weather_bp
 from nova.blueprints.blog import blog_bp
-from nova.api_auth import ensure_single_user_api_key, api_key_or_login_required
+from nova.api_auth import (
+    ensure_single_user_api_key,
+    api_key_or_login_required,
+    create_api_key,
+)
 
 
 # =============================================================================
@@ -4035,6 +4039,130 @@ def change_username():
     return redirect(url_for("core.config_form") + "#account")
 
 
+# =============================================================================
+# API KEY MANAGEMENT (WEB UI)
+# =============================================================================
+
+
+@core_bp.route("/account/api-keys/create", methods=["POST"])
+@login_required
+@permission_required("api_keys.manage")
+def create_api_key_web():
+    """Create a new API key from the web UI."""
+    if SINGLE_USER_MODE:
+        flash(_("API key management is not available in single-user mode."), "error")
+        return redirect(url_for("core.config_form"))
+
+    name = request.form.get("key_name", "").strip() or "unnamed"
+    db_sess = SessionLocal()
+    try:
+        active_count = (
+            db_sess.query(ApiKey)
+            .filter(ApiKey.user_id == current_user.id, ApiKey.is_active.is_(True))
+            .count()
+        )
+        if active_count >= 25:
+            flash(
+                _(
+                    "Maximum 25 active API keys reached. Revoke one before creating a new key."
+                ),
+                "error",
+            )
+            return redirect(url_for("core.config_form") + "#account")
+
+        raw_key = create_api_key(db_sess, current_user.id, name=name)
+        session["new_api_key"] = raw_key
+        flash(
+            _("API key created. Copy it now — it will not be shown again."), "success"
+        )
+    except Exception:
+        db_sess.rollback()
+        logging.exception("Error creating API key")
+        flash(_("An error occurred while creating the API key."), "error")
+    finally:
+        db_sess.close()
+
+    return redirect(url_for("core.config_form") + "#account")
+
+
+@core_bp.route("/account/api-keys/<int:key_id>/revoke", methods=["POST"])
+@login_required
+@permission_required("api_keys.manage")
+def revoke_api_key_web(key_id):
+    """Revoke (soft-delete) an API key from the web UI."""
+    if SINGLE_USER_MODE:
+        flash(_("API key management is not available in single-user mode."), "error")
+        return redirect(url_for("core.config_form"))
+
+    db_sess = SessionLocal()
+    try:
+        key = (
+            db_sess.query(ApiKey)
+            .filter(ApiKey.id == key_id, ApiKey.user_id == current_user.id)
+            .first()
+        )
+        if not key:
+            flash(_("API key not found."), "error")
+        elif not key.is_active:
+            flash(_("This API key has already been revoked."), "error")
+        else:
+            key.is_active = False
+            db_sess.commit()
+            flash(_("API key revoked."), "success")
+    except Exception:
+        db_sess.rollback()
+        logging.exception("Error revoking API key")
+        flash(_("An error occurred while revoking the API key."), "error")
+    finally:
+        db_sess.close()
+
+    return redirect(url_for("core.config_form") + "#account")
+
+
+@core_bp.route("/account/api-keys/<int:key_id>/regenerate", methods=["POST"])
+@login_required
+@permission_required("api_keys.manage")
+def regenerate_api_key_web(key_id):
+    """Rotate an API key: revoke old one, create new one with the same name."""
+    if SINGLE_USER_MODE:
+        flash(_("API key management is not available in single-user mode."), "error")
+        return redirect(url_for("core.config_form"))
+
+    db_sess = SessionLocal()
+    try:
+        old_key = (
+            db_sess.query(ApiKey)
+            .filter(ApiKey.id == key_id, ApiKey.user_id == current_user.id)
+            .first()
+        )
+        if not old_key:
+            flash(_("API key not found."), "error")
+            return redirect(url_for("core.config_form") + "#account")
+
+        if not old_key.is_active:
+            flash(_("Cannot regenerate a revoked key."), "error")
+            return redirect(url_for("core.config_form") + "#account")
+
+        name = old_key.name
+        old_key.is_active = False
+        db_sess.commit()  # Revoke first — don't exceed active limit
+
+        raw_key = create_api_key(db_sess, current_user.id, name=name)
+        session["new_api_key"] = raw_key
+        flash(
+            _("API key regenerated. Copy the new key — it will not be shown again."),
+            "success",
+        )
+    except Exception:
+        db_sess.rollback()
+        logging.exception("Error regenerating API key")
+        flash(_("An error occurred while regenerating the API key."), "error")
+    finally:
+        db_sess.close()
+
+    return redirect(url_for("core.config_form") + "#account")
+
+
 @core_bp.route("/sso/login")
 def sso_login():
     # First, check if the app is in single-user mode. SSO is not applicable here.
@@ -4434,6 +4562,2620 @@ from nova.helpers import get_all_mobile_up_now_data
 from nova.blueprints.api import get_hybrid_weather_forecast
 
 
+        return jsonify(
+            {
+                "status": "success",
+                "data": {
+                    "Type": clean_data.get("Type") or "",
+                    "Magnitude": clean_data.get("Magnitude") or "",
+                    "Size": clean_data.get("Size") or "",
+                    "SB": clean_data.get("SB") or "",
+                },
+            }
+        )
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# This helper function (which I sent before) is still needed.
+def _parse_float_from_request(value, field_name="field"):
+    """Helper to convert request values to float, raising a clear ValueError."""
+    if value is None:
+        raise ValueError(f"{field_name} is required and cannot be empty.")
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        raise ValueError(
+            f"Invalid non-numeric value '{value}' received for {field_name}."
+        )
+
+
+@core_bp.route("/confirm_object", methods=["POST"])
+@login_required
+@permission_required("objects.create")
+def confirm_object():
+    req = request.get_json()
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
+    try:
+        app_db_user = db.query(DbUser).filter_by(username=username).one()
+
+        raw_object_name = req.get("object")
+        if not raw_object_name or not raw_object_name.strip():
+            raise ValueError("Object ID is required and cannot be empty.")
+
+        # --- NEW: Normalize the name ---
+        object_name = normalize_object_name(raw_object_name)
+
+        common_name = req.get("name")
+        if not common_name or not common_name.strip():
+            # If common name is blank, use the raw (pretty) object name as a fallback
+            common_name = raw_object_name.strip()
+
+        ra_float = _parse_float_from_request(req.get("ra"), "RA")
+        dec_float = _parse_float_from_request(req.get("dec"), "DEC")
+
+        # --- START: Rich Text Logic for Notes ---
+        # Get the raw HTML directly from the JS payload
+        private_notes_html = req.get("project", "") or ""
+        shared_notes_html = req.get("shared_notes", "") or ""
+        # --- END: Rich Text Logic ---
+
+        existing = (
+            db.query(AstroObject)
+            .filter_by(user_id=app_db_user.id, object_name=object_name)
+            .one_or_none()
+        )
+
+        # Get other fields
+        constellation = req.get("constellation")
+        obj_type = convert_to_native_python(req.get("type"))
+        magnitude = str(convert_to_native_python(req.get("magnitude")) or "")
+        size = str(convert_to_native_python(req.get("size")) or "")
+        sb = str(convert_to_native_python(req.get("sb")) or "")
+        is_shared = req.get("is_shared") == True
+        active_project = req.get("is_active") == True
+
+        # Inspiration Fields
+        image_url = req.get("image_url")
+        image_credit = req.get("image_credit")
+        image_source_link = req.get("image_source_link")
+        description_text = req.get("description_text")
+        description_credit = req.get("description_credit")
+        description_source_link = req.get("description_source_link")
+
+        if existing:
+            existing.common_name = common_name
+            existing.ra_hours = ra_float
+            existing.dec_deg = dec_float
+            existing.project_name = private_notes_html
+            existing.constellation = constellation
+            existing.type = obj_type
+            existing.magnitude = magnitude
+            existing.size = size
+            existing.sb = sb
+            existing.shared_notes = shared_notes_html
+            existing.is_shared = is_shared
+            existing.active_project = active_project
+            # Update inspiration fields if provided (or clear them if empty string passed)
+            if image_url is not None:
+                existing.image_url = image_url
+            if image_credit is not None:
+                existing.image_credit = image_credit
+            if image_source_link is not None:
+                existing.image_source_link = image_source_link
+            if description_text is not None:
+                existing.description_text = description_text
+            if description_credit is not None:
+                existing.description_credit = description_credit
+            if description_source_link is not None:
+                existing.description_source_link = description_source_link
+        else:
+            new_obj = AstroObject(
+                user_id=app_db_user.id,
+                object_name=object_name,
+                common_name=common_name,
+                ra_hours=ra_float,
+                dec_deg=dec_float,
+                project_name=private_notes_html,
+                constellation=constellation,
+                type=obj_type,
+                magnitude=magnitude,
+                size=size,
+                sb=sb,
+                shared_notes=shared_notes_html,
+                is_shared=is_shared,
+                active_project=active_project,
+                image_url=image_url,
+                image_credit=image_credit,
+                image_source_link=image_source_link,
+                description_text=description_text,
+                description_credit=description_credit,
+                description_source_link=description_source_link,
+            )
+            db.add(new_obj)
+
+        db.commit()
+        return jsonify({"status": "success"})
+
+    except ValueError as ve:
+        db.rollback()
+        return jsonify({"status": "error", "message": str(ve)}), 400
+    except Exception as e:
+        db.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@api_bp.route("/api/update_object", methods=["POST"])
+@login_required
+@permission_required("objects.edit")
+def update_object():
+    """
+    API endpoint to update a single AstroObject from the config form.
+    Expects a JSON payload with all object fields.
+    """
+    db = get_db()
+    try:
+        data = request.get_json()
+        object_name = data.get("object_id")
+        username = "default" if SINGLE_USER_MODE else current_user.username
+
+        user = db.query(DbUser).filter_by(username=username).one()
+        obj = (
+            db.query(AstroObject)
+            .filter_by(user_id=user.id, object_name=object_name)
+            .one_or_none()
+        )
+
+        if not obj:
+            return jsonify({"status": "error", "message": _("Object not found")}), 404
+
+        # Update all fields from the payload
+        obj.common_name = data.get("name")
+        obj.ra_hours = float(data.get("ra"))
+        obj.dec_deg = float(data.get("dec"))
+        obj.constellation = data.get("constellation")
+        obj.type = data.get("type")
+        obj.magnitude = data.get("magnitude")
+        obj.size = data.get("size")
+        obj.sb = data.get("sb")
+        obj.active_project = data.get("is_active")
+        # Update notes (JS sends the raw HTML from Trix)
+        obj.project_name = data.get("project_notes")
+
+        # --- Curation Fields ---
+        obj.image_url = data.get("image_url")
+        obj.image_credit = data.get("image_credit")
+        obj.image_source_link = data.get("image_source_link")
+        obj.description_text = data.get("description_text")
+        obj.description_credit = data.get("description_credit")
+        obj.description_source_link = data.get("description_source_link")
+        # -----------------------
+
+        if not SINGLE_USER_MODE:
+            # Only update sharing if it's not an imported item
+            if not obj.original_user_id:
+                obj.is_shared = data.get("is_shared")
+                obj.shared_notes = data.get("shared_notes")
+
+        db.commit()
+        return jsonify(
+            {"status": "success", "message": f"Object '{object_name}' updated."}
+        )
+
+    except Exception as e:
+        db.rollback()
+        print(f"--- ERROR in /api/update_object ---")
+        traceback.print_exc()
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@core_bp.route("/stream_fetch_details")
+@login_required
+@permission_required("objects.view")
+def stream_fetch_details():
+    """
+    Streams progress of fetching object details via Server-Sent Events (SSE).
+    """
+
+    @stream_with_context
+    def generate():
+        username = "default" if SINGLE_USER_MODE else current_user.username
+        db = SessionLocal()  # Use a dedicated session for this generator
+        try:
+            app_db_user = db.query(DbUser).filter_by(username=username).one()
+            objects_to_check = (
+                db.query(AstroObject).filter_by(user_id=app_db_user.id).all()
+            )
+
+            total_count = len(objects_to_check)
+            modified_count = 0
+
+            # Send initial open event
+            yield f"data: {json.dumps({'progress': 0, 'message': 'Starting analysis...'})}\n\n"
+
+            refetch_triggers = [None, "", "N/A", "Not Found", "Fetch Error"]
+
+            for i, obj in enumerate(objects_to_check):
+                # Calculate percentage
+                pct = int((i / total_count) * 100)
+                yield f"data: {json.dumps({'progress': pct, 'message': f'Checking {obj.object_name}...'})}\n\n"
+
+                needs_update = (
+                    obj.type in refetch_triggers
+                    or obj.magnitude in refetch_triggers
+                    or obj.size in refetch_triggers
+                    or obj.sb in refetch_triggers
+                    or obj.constellation in refetch_triggers
+                )
+
+                if needs_update:
+                    item_modified = False
+                    try:
+                        # 1. Constellation Auto-Calc
+                        if (
+                            obj.constellation in refetch_triggers
+                            and obj.ra_hours is not None
+                            and obj.dec_deg is not None
+                        ):
+                            coords = SkyCoord(
+                                ra=obj.ra_hours * u.hourangle, dec=obj.dec_deg * u.deg
+                            )
+                            obj.constellation = get_constellation(
+                                coords, short_name=True
+                            )
+                            item_modified = True
+
+                        # 2. External API Fetch
+                        yield f"data: {json.dumps({'progress': pct, 'message': f'Fetching data for {obj.object_name}...'})}\n\n"
+                        fetched_data = nova_data_fetcher.get_astronomical_data(
+                            obj.object_name
+                        )
+
+                        if fetched_data.get("object_type"):
+                            obj.type = fetched_data["object_type"]
+                            item_modified = True
+                        if fetched_data.get("magnitude"):
+                            obj.magnitude = str(fetched_data["magnitude"])
+                            item_modified = True
+                        if fetched_data.get("size_arcmin"):
+                            obj.size = str(fetched_data["size_arcmin"])
+                            item_modified = True
+                        if fetched_data.get("surface_brightness"):
+                            obj.sb = str(fetched_data["surface_brightness"])
+                            item_modified = True
+
+                        if item_modified:
+                            modified_count += 1
+                            time.sleep(0.5)  # Polite delay
+
+                    except Exception as e:
+                        print(f"Failed details fetch for {obj.object_name}: {e}")
+                        # Continue stream despite individual object error
+
+            if modified_count > 0:
+                yield f"data: {json.dumps({'progress': 99, 'message': 'Saving changes...'})}\n\n"
+                db.commit()
+
+            # Send final done signal
+            yield f"data: {json.dumps({'progress': 100, 'message': 'Complete!', 'done': True, 'modified': modified_count})}\n\n"
+
+        except Exception as e:
+            print(f"Stream Fetch Error: {e}")
+            db.rollback()
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        finally:
+            db.close()
+
+    # --- FIX FOR NGINX BUFFERING ---
+    response = Response(generate(), mimetype="text/event-stream")
+    response.headers["X-Accel-Buffering"] = "no"  # Disable Nginx buffering
+    response.headers["Cache-Control"] = "no-cache"  # Prevent browser caching
+    response.headers["Connection"] = "keep-alive"  # Keep connection open
+    return response
+
+
+@core_bp.route("/fetch_all_details", methods=["POST"])
+@login_required
+@permission_required("objects.view")
+def fetch_all_details():
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
+    try:
+        app_db_user = db.query(DbUser).filter_by(username=username).one()
+        objects_to_check = db.query(AstroObject).filter_by(user_id=app_db_user.id).all()
+
+        modified = False
+        refetch_triggers = [None, "", "N/A", "Not Found", "Fetch Error"]
+
+        for obj in objects_to_check:
+            needs_update = (
+                obj.type in refetch_triggers
+                or obj.magnitude in refetch_triggers
+                or obj.size in refetch_triggers
+                or obj.sb in refetch_triggers
+                or obj.constellation in refetch_triggers
+            )
+            if needs_update:
+                try:
+                    # Auto-calculate Constellation if missing
+                    if (
+                        obj.constellation in refetch_triggers
+                        and obj.ra_hours is not None
+                        and obj.dec_deg is not None
+                    ):
+                        coords = SkyCoord(
+                            ra=obj.ra_hours * u.hourangle, dec=obj.dec_deg * u.deg
+                        )
+                        obj.constellation = get_constellation(coords, short_name=True)
+                        modified = True
+
+                    # Fetch other details from external API
+                    fetched_data = nova_data_fetcher.get_astronomical_data(
+                        obj.object_name
+                    )
+                    if fetched_data.get("object_type"):
+                        obj.type = fetched_data["object_type"]
+                    if fetched_data.get("magnitude"):
+                        obj.magnitude = str(fetched_data["magnitude"])
+                    if fetched_data.get("size_arcmin"):
+                        obj.size = str(fetched_data["size_arcmin"])
+                    if fetched_data.get("surface_brightness"):
+                        obj.sb = str(fetched_data["surface_brightness"])
+                    modified = True
+                    time.sleep(0.5)  # Be kind to external APIs
+                except Exception as e:
+                    print(f"Failed to fetch details for {obj.object_name}: {e}")
+
+        if modified:
+            db.commit()
+            flash(_("Fetched and saved missing object details."), "success")
+        else:
+            flash(_("No missing data found or no updates needed."), "info")
+
+    except Exception as e:
+        db.rollback()
+        flash(_("An error occurred during data fetching: %(error)s", error=e), "error")
+
+    return redirect(url_for("core.config_form"))
+
+
+@api_bp.route("/api/get_object_list")
+@permission_required("objects.view")
+def get_object_list():
+    load_full_astro_context()
+    """
+    A new, very fast endpoint that just returns the list of object names.
+    """
+    # Filter g.objects_list to return only enabled object names
+    enabled_names = [o["Object"] for o in g.objects_list if o.get("enabled", True)]
+    return jsonify({"objects": enabled_names})
+
+
+@api_bp.route("/api/journal/objects")
+@login_required
+@permission_required("journal.view")
+def get_journal_objects():
+    """
+    Returns a list of all objects that have journal sessions with any imaging data,
+    sorted by most recent session date. Used by the journal object switcher.
+    Includes first_session_date, first_session_id, and first_session_location for navigation.
+    """
+    db = get_db()
+    user_id = g.db_user.id
+
+    # Query all sessions with any imaging data (light subs > 0 OR calculated integration > 0)
+    # This captures sessions with mono filter data that don't use number_of_subs_light
+    sessions_with_data = (
+        db.query(
+            JournalSession.id,
+            JournalSession.object_name,
+            JournalSession.date_utc,
+            JournalSession.calculated_integration_time_minutes,
+            JournalSession.location_name,
+            AstroObject.common_name,
+            AstroObject.id.label("astro_id"),
+        )
+        .outerjoin(
+            AstroObject,
+            and_(
+                AstroObject.user_id == user_id,
+                AstroObject.object_name == JournalSession.object_name,
+            ),
+        )
+        .filter(
+            JournalSession.user_id == user_id,
+            or_(
+                JournalSession.number_of_subs_light > 0,
+                JournalSession.calculated_integration_time_minutes > 0,
+            ),
+        )
+        .order_by(JournalSession.object_name, JournalSession.date_utc.desc())
+        .all()
+    )
+
+    # Aggregate by object_name
+    objects_map = {}
+    for session in sessions_with_data:
+        object_name = session.object_name
+        if not object_name:
+            continue
+
+        if object_name not in objects_map:
+            objects_map[object_name] = {
+                "id": session.astro_id,
+                "name": session.common_name or object_name,
+                "catalog_id": object_name,
+                "total_minutes": 0,
+                "last_session": None,
+                "first_session_date": None,
+                "first_session_id": None,
+                "first_session_location": None,
+            }
+
+        # Accumulate integration time
+        if session.calculated_integration_time_minutes:
+            objects_map[object_name]["total_minutes"] += (
+                session.calculated_integration_time_minutes
+            )
+
+        # Track most recent session date (for sorting)
+        if session.date_utc:
+            if (
+                objects_map[object_name]["last_session"] is None
+                or session.date_utc > objects_map[object_name]["last_session"]
+            ):
+                objects_map[object_name]["last_session"] = session.date_utc
+
+        # Track first (oldest) session date, id, and location (for navigation)
+        if session.date_utc:
+            if (
+                objects_map[object_name]["first_session_date"] is None
+                or session.date_utc < objects_map[object_name]["first_session_date"]
+            ):
+                objects_map[object_name]["first_session_date"] = session.date_utc
+                objects_map[object_name]["first_session_id"] = session.id
+                objects_map[object_name]["first_session_location"] = (
+                    session.location_name
+                )
+
+    # Convert to list and sort by last_session DESC
+    result = []
+    for obj in objects_map.values():
+        total_hours = (
+            round(obj["total_minutes"] / 60.0, 1) if obj["total_minutes"] else 0.0
+        )
+        first_session_id = obj["first_session_id"]
+        first_session_location = obj["first_session_location"]
+
+        # Only include location if it's a non-empty string
+        first_session_location = (
+            first_session_location.strip() if first_session_location else None
+        )
+
+        # Build URL with location parameter if available
+        url_params = {"object_name": obj["catalog_id"], "tab": "journal"}
+        if first_session_id:
+            url_params["session_id"] = first_session_id
+        if first_session_location:
+            url_params["location"] = first_session_location
+
+        result.append(
+            {
+                "id": obj["id"],
+                "name": obj["name"],
+                "catalog_id": obj["catalog_id"],
+                "total_hours": total_hours,
+                "last_session": obj["last_session"].strftime("%Y-%m-%d")
+                if obj["last_session"]
+                else None,
+                "first_session_date": obj["first_session_date"].strftime("%Y-%m-%d")
+                if obj["first_session_date"]
+                else None,
+                "first_session_location": first_session_location,
+                "url": url_for("core.graph_dashboard", **url_params, _external=False),
+            }
+        )
+
+    # Sort by last_session descending (most recent first)
+    result.sort(key=lambda x: x["last_session"] or "0000-00-00", reverse=True)
+
+    return jsonify(result)
+
+
+@api_bp.route("/api/bulk_update_objects", methods=["POST"])
+@login_required
+@permission_required("objects.bulk_edit")
+def bulk_update_objects():
+    data = request.get_json()
+    action = data.get("action")  # 'enable', 'disable', 'delete'
+    object_ids = data.get("object_ids", [])
+
+    if not action or not object_ids:
+        return jsonify(
+            {"status": "error", "message": "Missing action or object_ids"}
+        ), 400
+
+    db = get_db()
+    try:
+        user_id = g.db_user.id
+
+        query = db.query(AstroObject).filter(
+            AstroObject.user_id == user_id, AstroObject.object_name.in_(object_ids)
+        )
+
+        if action == "delete":
+            # Check for dependencies (Journals or Projects) before deleting
+            safe_to_delete = []
+            skipped_count = 0
+
+            # We need to iterate to check relationships since bulk delete bypasses Python-level checks
+            objects_to_check = query.all()
+
+            for obj in objects_to_check:
+                # Check for journal sessions using this object name
+                has_journals = (
+                    db.query(JournalSession)
+                    .filter_by(user_id=user_id, object_name=obj.object_name)
+                    .first()
+                )
+
+                # Check for projects targeting this object
+                has_projects = (
+                    db.query(Project)
+                    .filter_by(user_id=user_id, target_object_name=obj.object_name)
+                    .first()
+                )
+
+                if has_journals or has_projects:
+                    skipped_count += 1
+                else:
+                    safe_to_delete.append(obj.object_name)
+
+            if safe_to_delete:
+                # Perform the delete only on safe IDs
+                delete_q = db.query(AstroObject).filter(
+                    AstroObject.user_id == user_id,
+                    AstroObject.object_name.in_(safe_to_delete),
+                )
+                count = delete_q.delete(synchronize_session=False)
+            else:
+                count = 0
+
+            msg = f"Deleted {count} objects."
+            if skipped_count > 0:
+                msg += f" (Skipped {skipped_count} objects used in Journals/Projects)"
+        elif action == "enable":
+            count = query.update({AstroObject.enabled: True}, synchronize_session=False)
+            msg = f"Enabled {count} objects."
+        elif action == "disable":
+            count = query.update(
+                {AstroObject.enabled: False}, synchronize_session=False
+            )
+            msg = f"Disabled {count} objects."
+        else:
+            return jsonify({"status": "error", "message": "Invalid action"}), 400
+
+        db.commit()
+        return jsonify({"status": "success", "message": msg})
+    except Exception as e:
+        db.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@api_bp.route("/api/bulk_fetch_details", methods=["POST"])
+@login_required
+@permission_required("objects.view")
+def bulk_fetch_details():
+    """Fetch missing details (type, magnitude, size, SB, constellation) for selected objects."""
+    data = request.get_json()
+    object_ids = data.get("object_ids", [])
+
+    if not object_ids:
+        return jsonify({"status": "error", "message": "No objects selected"}), 400
+
+    db = get_db()
+    try:
+        user_id = g.db_user.id
+
+        # Query only the selected objects for this user
+        objects_to_check = (
+            db.query(AstroObject)
+            .filter(
+                AstroObject.user_id == user_id, AstroObject.object_name.in_(object_ids)
+            )
+            .all()
+        )
+
+        if not objects_to_check:
+            return jsonify(
+                {"status": "error", "message": "No valid objects found"}
+            ), 400
+
+        updated_count = 0
+        error_count = 0
+        refetch_triggers = [None, "", "N/A", "Not Found", "Fetch Error"]
+
+        for obj in objects_to_check:
+            needs_update = (
+                obj.type in refetch_triggers
+                or obj.magnitude in refetch_triggers
+                or obj.size in refetch_triggers
+                or obj.sb in refetch_triggers
+                or obj.constellation in refetch_triggers
+            )
+            if needs_update:
+                try:
+                    # Auto-calculate Constellation if missing
+                    if (
+                        obj.constellation in refetch_triggers
+                        and obj.ra_hours is not None
+                        and obj.dec_deg is not None
+                    ):
+                        coords = SkyCoord(
+                            ra=obj.ra_hours * u.hourangle, dec=obj.dec_deg * u.deg
+                        )
+                        obj.constellation = get_constellation(coords, short_name=True)
+
+                    # Fetch other details from external API
+                    fetched_data = nova_data_fetcher.get_astronomical_data(
+                        obj.object_name
+                    )
+                    if fetched_data.get("object_type"):
+                        obj.type = fetched_data["object_type"]
+                    if fetched_data.get("magnitude"):
+                        obj.magnitude = str(fetched_data["magnitude"])
+                    if fetched_data.get("size_arcmin"):
+                        obj.size = str(fetched_data["size_arcmin"])
+                    if fetched_data.get("surface_brightness"):
+                        obj.sb = str(fetched_data["surface_brightness"])
+                    updated_count += 1
+                    time.sleep(0.5)  # Be kind to external APIs
+                except Exception as e:
+                    print(f"Failed to fetch details for {obj.object_name}: {e}")
+                    error_count += 1
+
+        db.commit()
+
+        msg = f"Updated details for {updated_count} object(s)."
+        if error_count > 0:
+            msg += f" ({error_count} failed)"
+        if updated_count == 0 and error_count == 0:
+            msg = "No missing data found - all selected objects already have complete details."
+
+        return jsonify(
+            {
+                "status": "success",
+                "message": msg,
+                "updated": updated_count,
+                "errors": error_count,
+            }
+        )
+
+    except Exception as e:
+        db.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@api_bp.route("/api/find_duplicates")
+@login_required
+@permission_required("objects.merge")
+def find_duplicates():
+    load_full_astro_context()
+    user_id = g.db_user.id
+
+    # 1. Get all objects with valid coordinates
+    all_objects = [
+        o
+        for o in g.objects_list
+        if o.get("RA (hours)") is not None and o.get("DEC (degrees)") is not None
+    ]
+
+    if len(all_objects) < 2:
+        return jsonify({"status": "success", "duplicates": []})
+
+    # 2. Create SkyCoord objects
+    ra_vals = [o["RA (hours)"] * 15.0 for o in all_objects]  # Convert to degrees
+    dec_vals = [o["DEC (degrees)"] for o in all_objects]
+
+    coords = SkyCoord(ra=ra_vals * u.deg, dec=dec_vals * u.deg)
+
+    # 3. Find matches within 2.5 arcminutes
+    # search_around_sky finds all pairs (i, j) where distance < limit
+    # This includes (i, i) self-matches and (i, j) + (j, i) duplicates
+    idx1, idx2, d2d, d3d = search_around_sky(coords, coords, seplimit=2.5 * u.arcmin)
+
+    potential_duplicates = []
+    seen_pairs = set()
+
+    for i, j, dist in zip(idx1, idx2, d2d):
+        if i >= j:
+            continue  # Skip self-matches and reverse duplicates
+
+        obj_a = all_objects[i]
+        obj_b = all_objects[j]
+
+        # Create a unique key for this pair
+        pair_key = tuple(sorted([obj_a["Object"], obj_b["Object"]]))
+        if pair_key in seen_pairs:
+            continue
+        seen_pairs.add(pair_key)
+
+        potential_duplicates.append(
+            {
+                "object_a": obj_a,
+                "object_b": obj_b,
+                "separation_arcmin": round(dist.to(u.arcmin).value, 2),
+            }
+        )
+
+    return jsonify({"status": "success", "duplicates": potential_duplicates})
+
+
+@api_bp.route("/api/merge_objects", methods=["POST"])
+@login_required
+@permission_required("objects.merge")
+def merge_objects():
+    data = request.get_json()
+    keep_id = data.get("keep_id")
+    merge_id = data.get("merge_id")
+
+    if not keep_id or not merge_id:
+        return jsonify({"status": "error", "message": "Missing object IDs"}), 400
+
+    db = get_db()
+    try:
+        user_id = g.db_user.id
+
+        # 1. Fetch Objects
+        obj_keep = (
+            db.query(AstroObject)
+            .filter_by(user_id=user_id, object_name=keep_id)
+            .one_or_none()
+        )
+        obj_merge = (
+            db.query(AstroObject)
+            .filter_by(user_id=user_id, object_name=merge_id)
+            .one_or_none()
+        )
+
+        if not obj_keep or not obj_merge:
+            return jsonify(
+                {"status": "error", "message": "One or both objects not found."}
+            ), 404
+
+        print(f"[MERGE] Merging '{merge_id}' INTO '{keep_id}'...")
+
+        # 2. Re-link Journals
+        journals = (
+            db.query(JournalSession)
+            .filter_by(user_id=user_id, object_name=merge_id)
+            .all()
+        )
+        for j in journals:
+            j.object_name = keep_id
+        print(f"   -> Moved {len(journals)} journal sessions.")
+
+        # 3. Re-link Projects
+        projects = (
+            db.query(Project)
+            .filter_by(user_id=user_id, target_object_name=merge_id)
+            .all()
+        )
+        for p in projects:
+            p.target_object_name = keep_id
+        print(f"   -> Updated {len(projects)} projects.")
+
+        # 4. Handle Framings
+        framing_keep = (
+            db.query(SavedFraming)
+            .filter_by(user_id=user_id, object_name=keep_id)
+            .one_or_none()
+        )
+        framing_merge = (
+            db.query(SavedFraming)
+            .filter_by(user_id=user_id, object_name=merge_id)
+            .one_or_none()
+        )
+
+        if framing_merge:
+            if not framing_keep:
+                # Move framing to the kept object
+                framing_merge.object_name = keep_id
+                print(f"   -> Moved framing from {merge_id} to {keep_id}.")
+            else:
+                # Conflict: Keep existing framing on target, delete merged one
+                db.delete(framing_merge)
+                print(f"   -> Deleted conflicting framing from {merge_id}.")
+
+        # 5. Merge Notes (Append if different)
+        if obj_merge.project_name:
+            if not obj_keep.project_name:
+                obj_keep.project_name = obj_merge.project_name
+            elif obj_merge.project_name not in obj_keep.project_name:
+                obj_keep.project_name += f"<br><hr><strong>Merged Notes ({merge_id}):</strong><br>{obj_merge.project_name}"
+
+        # 6. Delete the Merged Object
+        db.delete(obj_merge)
+
+        db.commit()
+        return jsonify(
+            {
+                "status": "success",
+                "message": f"Successfully merged '{merge_id}' into '{keep_id}'.",
+            }
+        )
+
+    except Exception as e:
+        db.rollback()
+        print(f"[MERGE ERROR] {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@api_bp.route("/api/help/img/<path:filename>")
+@permission_required("settings.view")
+def get_help_image(filename):
+    """Serves images located in the help_docs directory."""
+    return send_from_directory(os.path.join(_project_root, "help_docs"), filename)
+
+
+@api_bp.route("/api/help/<topic_id>")
+@permission_required("settings.view")
+def get_help_content(topic_id):
+    """
+    Reads a markdown file from help_docs/{locale}/, converts it to HTML, and returns it.
+    Falls back to English if the localized file doesn't exist.
+    """
+    # 1. Sanitize input to prevent directory traversal
+    safe_topic = "".join([c for c in topic_id if c.isalnum() or c in "_-"])
+
+    # 2. Build file path
+    file_path = os.path.join(_project_root, "help_docs", f"{safe_topic}.md")
+
+    # 3. Fallback to English if localized file doesn't exist
+    if not os.path.exists(file_path):
+        file_path = os.path.join(_project_root, "help_docs", "en", f"{safe_topic}.md")
+
+    # 4. Check if file exists (even after fallback)
+    if not os.path.exists(file_path):
+        return jsonify(
+            {
+                "error": True,
+                "html": f"<h3>Topic Not Found</h3><p>No help file found for ID: <code>{safe_topic}</code></p>",
+            }
+        ), 404
+
+    # 5. Read and convert
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            text = f.read()
+            # Extensions: 'fenced_code' adds support for ```code blocks```
+            html_content = markdown.markdown(text, extensions=["fenced_code", "tables"])
+            return jsonify({"status": "success", "html": html_content})
+    except Exception as e:
+        return jsonify(
+            {"error": True, "html": f"<p>Error reading help file: {str(e)}</p>"}
+        ), 500
+
+
+@api_bp.route("/api/get_object_data/<path:object_name>")
+@permission_required("objects.view")
+def get_object_data(object_name):
+    # --- 1. Determine User (No change needed here) ---
+    if SINGLE_USER_MODE:
+        username = "default"
+    elif current_user.is_authenticated:
+        username = current_user.username
+    elif request.args.get("location"):  # Allow guest if location provided
+        username = "guest_user"
+    else:
+        # Deny guest if no location specified (cannot determine defaults)
+        return jsonify(
+            {
+                "Object": object_name,
+                "Common Name": "Error: Authentication required.",
+                "error": True,
+            }
+        ), 401
+
+    db = get_db()
+    try:
+        # --- 2. Get User Record (No change needed here) ---
+        user = db.query(DbUser).filter_by(username=username).one_or_none()
+        if not user:
+            return jsonify(
+                {
+                    "Object": object_name,
+                    "Common Name": "Error: User not found.",
+                    "error": True,
+                }
+            ), 404
+
+        # --- 3. Determine Location to Use (Modified: Query DB directly) ---
+        requested_location_name = request.args.get("location")
+        selected_location = None
+        current_location_config = {}
+
+        if requested_location_name:
+            # Try to load the specific location requested
+            selected_location = (
+                db.query(Location)
+                .filter_by(user_id=user.id, name=requested_location_name)
+                .options(selectinload(Location.horizon_points))
+                .one_or_none()
+            )
+            if not selected_location:
+                return jsonify(
+                    {
+                        "Object": object_name,
+                        "Common Name": "Error: Requested location not found.",
+                        "error": True,
+                    }
+                ), 404
+        else:
+            # Fallback to the user's default location
+            selected_location = (
+                db.query(Location)
+                .filter_by(user_id=user.id, is_default=True)
+                .options(selectinload(Location.horizon_points))
+                .one_or_none()
+            )
+            # If no default, try the first active one
+            if not selected_location:
+                selected_location = (
+                    db.query(Location)
+                    .filter_by(user_id=user.id, active=True)
+                    .options(selectinload(Location.horizon_points))
+                    .order_by(Location.id)
+                    .first()
+                )
+
+        if not selected_location:
+            return jsonify(
+                {
+                    "Object": object_name,
+                    "Common Name": "Error: No valid location configured or selected.",
+                    "error": True,
+                }
+            ), 400
+
+        # Extract details from the selected location object
+        lat = selected_location.lat
+        lon = selected_location.lon
+        tz_name = selected_location.timezone
+        selected_location_name = selected_location.name
+        # Build the config-like dict for horizon mask etc.
+        horizon_mask = [
+            [hp.az_deg, hp.alt_min_deg]
+            for hp in sorted(selected_location.horizon_points, key=lambda p: p.az_deg)
+        ]
+        current_location_config = {
+            "lat": lat,
+            "lon": lon,
+            "timezone": tz_name,
+            "altitude_threshold": selected_location.altitude_threshold,
+            "horizon_mask": horizon_mask,
+            # Add other fields if needed by calculations below
+        }
+        # --- End Location Determination ---
+
+        # --- 4. Query ONLY the specific object ---
+        obj_record = (
+            db.query(AstroObject)
+            .filter_by(user_id=user.id, object_name=object_name)
+            .one_or_none()
+        )
+
+        # Handle case where object isn't found for this user
+        if not obj_record:
+            # Optionally try SIMBAD as a fallback *here* if desired,
+            # or just return not found. Let's return not found for now.
+            return jsonify(
+                {
+                    "Object": object_name,
+                    "Common Name": f"Error: Object '{object_name}' not found in your config.",
+                    "error": True,
+                }
+            ), 404
+
+        # Extract necessary details
+        ra = obj_record.ra_hours
+        dec = obj_record.dec_deg
+        if ra is None or dec is None:
+            return jsonify(
+                {
+                    "Object": object_name,
+                    "Common Name": f"Error: RA/DEC missing for '{object_name}'.",
+                    "error": True,
+                }
+            ), 400
+
+        # --- 5. Perform Calculations (FIXED DATE LOGIC) ---
+        local_tz = pytz.timezone(tz_name)
+        current_datetime_local = datetime.now(local_tz)
+
+        # Determine "Observing Night" Date
+        # If it's before noon, we associate this time with the previous night's session
+        # to ensure the time array (which starts at noon) covers the current moment.
+        if current_datetime_local.hour < 12:
+            local_date = (current_datetime_local.date() - timedelta(days=1)).strftime(
+                "%Y-%m-%d"
+            )
+        else:
+            local_date = current_datetime_local.strftime("%Y-%m-%d")
+
+        # Load UI Prefs specifically for altitude_threshold and sampling_interval
+        prefs_record = db.query(UiPref).filter_by(user_id=user.id).first()
+        user_prefs_dict = {}
+        if prefs_record and prefs_record.json_blob:
+            try:
+                user_prefs_dict = json.loads(prefs_record.json_blob)
+            except:
+                pass
+        altitude_threshold = user_prefs_dict.get("altitude_threshold", 20)
+        # Use location-specific threshold if available
+        if selected_location.altitude_threshold is not None:
+            altitude_threshold = selected_location.altitude_threshold
+
+        # Determine sampling interval based on mode
+        sampling_interval = 15  # Default
+        if SINGLE_USER_MODE:
+            sampling_interval = user_prefs_dict.get("sampling_interval_minutes") or 15
+        else:
+            sampling_interval = int(os.environ.get("CALCULATION_PRECISION", 15))
+
+        cache_key = f"{object_name.lower()}_{local_date}_{selected_location_name.lower().replace(' ', '_')}"
+
+        # Calculate or retrieve cached nightly data (logic remains similar)
+        if cache_key not in nightly_curves_cache:
+            times_local, times_utc = get_common_time_arrays(
+                tz_name, local_date, sampling_interval
+            )
+            location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+            sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+            altaz_frame = AltAz(obstime=times_utc, location=location)
+            altitudes = sky_coord.transform_to(altaz_frame).alt.deg
+            azimuths = sky_coord.transform_to(altaz_frame).az.deg
+            transit_time = calculate_transit_time(
+                ra, dec, lat, lon, tz_name, local_date
+            )
+            obs_duration, max_alt, _, _ = calculate_observable_duration_vectorized(
+                ra,
+                dec,
+                lat,
+                lon,
+                local_date,
+                tz_name,
+                altitude_threshold,
+                sampling_interval,
+                horizon_mask=horizon_mask,  # Pass the specific mask
+            )
+            fixed_time_utc_str = get_utc_time_for_local_11pm(tz_name)
+            alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, lat, lon, fixed_time_utc_str)
+            is_obstructed_at_11pm = False
+            if horizon_mask and len(horizon_mask) > 1:
+                sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
+                required_altitude_11pm = interpolate_horizon(
+                    az_11pm, sorted_mask, altitude_threshold
+                )
+                if alt_11pm >= altitude_threshold and alt_11pm < required_altitude_11pm:
+                    is_obstructed_at_11pm = True
+
+            nightly_curves_cache[cache_key] = {
+                "times_local": times_local,
+                "altitudes": altitudes,
+                "azimuths": azimuths,
+                "transit_time": transit_time,
+                "obs_duration_minutes": int(obs_duration.total_seconds() / 60)
+                if obs_duration
+                else 0,
+                "max_altitude": round(max_alt, 1) if max_alt is not None else "N/A",
+                "alt_11pm": f"{alt_11pm:.2f}",
+                "az_11pm": f"{az_11pm:.2f}",
+                "is_obstructed_at_11pm": is_obstructed_at_11pm,
+            }
+
+        cached_night_data = nightly_curves_cache[cache_key]
+
+        # Calculate current position and trend (logic remains similar)
+        now_utc = datetime.now(pytz.utc)
+        time_diffs = [
+            abs((t - now_utc).total_seconds()) for t in cached_night_data["times_local"]
+        ]
+        current_index = np.argmin(time_diffs)
+        current_alt = cached_night_data["altitudes"][current_index]
+        current_az = cached_night_data["azimuths"][current_index]
+        next_index = min(current_index + 1, len(cached_night_data["altitudes"]) - 1)
+        next_alt = cached_night_data["altitudes"][next_index]
+        trend = "–"
+        if abs(next_alt - current_alt) > 0.01:
+            trend = "↑" if next_alt > current_alt else "↓"
+
+        # Check obstruction now
+        is_obstructed_now = False
+        if horizon_mask and len(horizon_mask) > 1:
+            sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
+            required_altitude_now = interpolate_horizon(
+                current_az, sorted_mask, altitude_threshold
+            )
+            if (
+                current_alt >= altitude_threshold
+                and current_alt < required_altitude_now
+            ):
+                is_obstructed_now = True
+
+        # Calculate Moon separation (logic remains similar)
+        time_obj = Time(datetime.now(pytz.utc))
+        location_for_moon = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+        moon_coord = get_body("moon", time_obj, location_for_moon)
+        obj_coord_sky = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+        frame = AltAz(obstime=time_obj, location=location_for_moon)
+        angular_sep = (
+            obj_coord_sky.transform_to(frame)
+            .separation(moon_coord.transform_to(frame))
+            .deg
+        )
+
+        is_obstructed_at_11pm = cached_night_data.get("is_obstructed_at_11pm", False)
+
+        # --- START OF NEW CALCULATIONS ---
+        # 1. Calculate Best Month from RA
+        # (RA 0h -> Oct, RA 2h -> Nov, ... RA 22h -> Sep)
+        RA_to_Month_Opposition = [
+            "Oct",
+            "Nov",
+            "Dec",
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+        ]
+        best_month_idx = int(ra / 2) % 12  # Simple floor(ra/2)
+        best_month_str = RA_to_Month_Opposition[best_month_idx]
+
+        # 2. Calculate Max Culmination Altitude from Dec and Lat
+        max_culmination_alt = 90.0 - abs(lat - dec)
+        # --- END OF NEW CALCULATIONS ---
+
+        # --- 6. Assemble JSON using the single object record ---
+
+        # 1. Get all static data from the model's to_dict() method
+        single_object_data = obj_record.to_dict()
+
+        # 2. Add all dynamic (calculated) data to that dictionary
+        single_object_data.update(
+            {
+                "Altitude Current": f"{current_alt:.2f}",
+                "Azimuth Current": f"{current_az:.2f}",
+                "Trend": trend,
+                "Altitude 11PM": cached_night_data["alt_11pm"],
+                "Azimuth 11PM": cached_night_data["az_11pm"],
+                "Transit Time": cached_night_data["transit_time"],
+                "Observable Duration (min)": cached_night_data["obs_duration_minutes"],
+                "Max Altitude (°)": cached_night_data["max_altitude"],
+                "Angular Separation (°)": round(angular_sep),
+                "Time": current_datetime_local.strftime("%Y-%m-%d %H:%M:%S"),
+                "is_obstructed_now": is_obstructed_now,
+                "is_obstructed_at_11pm": is_obstructed_at_11pm,
+                "best_month_ra": best_month_str,
+                "max_culmination_alt": max_culmination_alt,
+                "error": False,
+            }
+        )
+
+        # 3. Ensure 'Project' key has a fallback for the UI
+        single_object_data.setdefault("Project", "none")
+
+        return jsonify(single_object_data)
+
+    except Exception as e:
+        print(f"ERROR in get_object_data for '{object_name}': {e}")
+        traceback.print_exc()
+        # Return a generic error structure
+        return jsonify(
+            {
+                "Object": object_name,
+                "Common Name": "Error processing request.",
+                "error": True,
+            }
+        ), 500
+
+
+@api_bp.route("/api/get_desktop_data_batch")
+@permission_required("dashboard.view")
+def get_desktop_data_batch():
+    # --- Manual Auth Check for Guest Support ---
+    if not (
+        current_user.is_authenticated
+        or SINGLE_USER_MODE
+        or getattr(g, "is_guest", False)
+    ):
+        return jsonify({"error": "Unauthorized"}), 401
+    """
+    Batch processor for the desktop dashboard.
+    Calculates data for 50 objects internally to prevent HTTP request flooding.
+    """
+    load_full_astro_context()
+
+    # 1. Get Pagination Params
+    try:
+        offset = int(request.args.get("offset", 0))
+        limit = int(request.args.get("limit", 50))
+    except ValueError:
+        offset = 0
+        limit = 50
+
+    user = g.db_user
+    if not user:
+        return jsonify({"error": "User not found", "results": []}), 404
+
+    # 2. Determine Location
+    requested_loc_name = request.args.get("location")
+    # Fallback logic: Request Param -> Session (g) -> Default
+    if not requested_loc_name:
+        requested_loc_name = g.selected_location
+
+    db = get_db()
+    try:
+        location_obj = (
+            db.query(Location)
+            .options(selectinload(Location.horizon_points))
+            .filter_by(user_id=user.id, name=requested_loc_name)
+            .one_or_none()
+        )
+
+        if not location_obj:
+            return jsonify({"error": "Location not found", "results": []}), 404
+
+        # 3. Get Object Slice (Only Enabled Objects)
+        # OPTIMIZATION: Fetch batch first to determine if there are more results
+        batch_objects = (
+            db.query(AstroObject)
+            .filter_by(user_id=user.id, enabled=True)
+            .order_by(AstroObject.object_name)
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
+
+        # Determine has_more flag based on whether we got a full page
+        has_more = len(batch_objects) == limit
+
+        # Only fetch total_count if offset is 0 (first page) to avoid double query on pagination
+        # For subsequent pages, client can rely on has_more flag
+        total_count = None
+        if offset == 0:
+            total_count = (
+                db.query(func.count(AstroObject.id))
+                .filter_by(user_id=user.id, enabled=True)
+                .scalar()
+                or 0
+            )
+
+        # 4. Prepare Calculation Variables
+        results = []
+        lat, lon, tz_name = location_obj.lat, location_obj.lon, location_obj.timezone
+        horizon_mask = [
+            [hp.az_deg, hp.alt_min_deg]
+            for hp in sorted(location_obj.horizon_points, key=lambda p: p.az_deg)
+        ]
+        altitude_threshold = (
+            location_obj.altitude_threshold
+            if location_obj.altitude_threshold is not None
+            else g.user_config.get("altitude_threshold", 20)
+        )
+
+        try:
+            local_tz = pytz.timezone(tz_name)
+        except:
+            local_tz = pytz.utc
+
+            # --- SIMULATION MODE ---
+        sim_date_str = request.args.get("sim_date")
+        if sim_date_str:
+            try:
+                # Use current wall-clock time combined with simulated date
+                sim_date = datetime.strptime(sim_date_str, "%Y-%m-%d").date()
+                now_time = datetime.now(local_tz).time()
+                current_datetime_local = local_tz.localize(
+                    datetime.combine(sim_date, now_time)
+                )
+            except ValueError:
+                current_datetime_local = datetime.now(local_tz)
+        else:
+            current_datetime_local = datetime.now(local_tz)
+
+        # Determine "Observing Night" Date
+        # If it's before noon, we associate this time with the previous night's session
+        # to ensure the time array (which starts at noon) covers the current moment.
+        if current_datetime_local.hour < 12:
+            local_date = (current_datetime_local.date() - timedelta(days=1)).strftime(
+                "%Y-%m-%d"
+            )
+        else:
+            local_date = current_datetime_local.strftime("%Y-%m-%d")
+
+        sampling_interval = (
+            15 if SINGLE_USER_MODE else int(os.environ.get("CALCULATION_PRECISION", 15))
+        )
+        fixed_time_utc_str = get_utc_time_for_local_11pm(tz_name)
+
+        # Moon / Ephem Prep
+        time_obj_now = Time(current_datetime_local.astimezone(pytz.utc))
+        loc_earth = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+        moon_coord = get_body("moon", time_obj_now, loc_earth)
+        frame_now = AltAz(obstime=time_obj_now, location=loc_earth)
+        moon_in_frame = moon_coord.transform_to(frame_now)
+        location_key = location_obj.name.lower().replace(" ", "_")
+
+        # 5. Process Batch
+        for obj in batch_objects:
+            try:
+                item = obj.to_dict()
+                ra, dec = obj.ra_hours, obj.dec_deg
+
+                if ra is None or dec is None:
+                    item.update({"error": True, "Common Name": "Error: Missing RA/DEC"})
+                    results.append(item)
+                    continue
+
+                    # --- GEOMETRIC PRE-FILTER (Live Request) ---
+                calc_invisible = g.user_config.get("calc_invisible", False)
+
+                if not calc_invisible:
+                    max_culm_geo = 90.0 - abs(lat - dec)
+                    if max_culm_geo < altitude_threshold:
+                        # Skip heavy math, return "greyed out" state immediately
+                        item.update(
+                            {
+                                "Altitude Current": "N/A",
+                                "Azimuth Current": "N/A",
+                                "Trend": "–",
+                                "Altitude 11PM": "N/A",
+                                "Azimuth 11PM": "N/A",
+                                "Transit Time": "N/A",
+                                "Observable Duration (min)": 0,
+                                "Max Altitude (°)": round(max_culm_geo, 1),
+                                "Angular Separation (°)": "N/A",
+                                "is_obstructed_now": False,
+                                "is_geometrically_impossible": True,
+                                "best_month_ra": [
+                                    "Oct",
+                                    "Nov",
+                                    "Dec",
+                                    "Jan",
+                                    "Feb",
+                                    "Mar",
+                                    "Apr",
+                                    "May",
+                                    "Jun",
+                                    "Jul",
+                                    "Aug",
+                                    "Sep",
+                                ][int(ra / 2) % 12],
+                                "max_culmination_alt": round(max_culm_geo, 1),
+                                "error": False,
+                            }
+                        )
+                        results.append(item)
+                        continue
+
+                # Calculate / Cache
+                cache_key = f"{obj.object_name.lower()}_{local_date}_{location_key}"
+
+                cached = None
+                if cache_key in nightly_curves_cache:
+                    cached = nightly_curves_cache[cache_key]
+                else:
+                    obs_duration, max_alt, _, _ = (
+                        calculate_observable_duration_vectorized(
+                            ra,
+                            dec,
+                            lat,
+                            lon,
+                            local_date,
+                            tz_name,
+                            altitude_threshold,
+                            sampling_interval,
+                            horizon_mask,
+                        )
+                    )
+                    transit = calculate_transit_time(
+                        ra, dec, lat, lon, tz_name, local_date
+                    )
+                    alt_11, az_11 = ra_dec_to_alt_az(
+                        ra, dec, lat, lon, fixed_time_utc_str
+                    )
+
+                    is_obst_11 = False
+                    if horizon_mask:
+                        req_alt = interpolate_horizon(
+                            az_11,
+                            sorted(horizon_mask, key=lambda p: p[0]),
+                            altitude_threshold,
+                        )
+                        if alt_11 >= altitude_threshold and alt_11 < req_alt:
+                            is_obst_11 = True
+
+                    times_local, times_utc = get_common_time_arrays(
+                        tz_name, local_date, sampling_interval
+                    )
+                    sky_c = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+                    aa_frame = AltAz(obstime=times_utc, location=loc_earth)
+                    alts = sky_c.transform_to(aa_frame).alt.deg
+                    azs = sky_c.transform_to(aa_frame).az.deg
+
+                    cached = {
+                        "times_local": times_local,
+                        "altitudes": alts,
+                        "azimuths": azs,
+                        "transit_time": transit,
+                        "obs_duration_minutes": int(obs_duration.total_seconds() / 60)
+                        if obs_duration
+                        else 0,
+                        "max_altitude": round(max_alt, 1)
+                        if max_alt is not None
+                        else "N/A",
+                        "alt_11pm": f"{alt_11:.2f}",
+                        "az_11pm": f"{az_11:.2f}",
+                        "is_obstructed_at_11pm": is_obst_11,
+                    }
+                    nightly_curves_cache[cache_key] = cached
+
+                # Current Position (Fast Interpolation)
+                # Use the effective simulation time converted to UTC
+                now_utc = current_datetime_local.astimezone(pytz.utc)
+                idx = np.argmin(
+                    [abs((t - now_utc).total_seconds()) for t in cached["times_local"]]
+                )
+                cur_alt = cached["altitudes"][idx]
+                cur_az = cached["azimuths"][idx]
+
+                next_idx = min(idx + 1, len(cached["altitudes"]) - 1)
+                trend = "–"
+                if abs(cached["altitudes"][next_idx] - cur_alt) > 0.01:
+                    trend = "↑" if cached["altitudes"][next_idx] > cur_alt else "↓"
+
+                is_obst_now = False
+                if horizon_mask:
+                    req = interpolate_horizon(
+                        cur_az,
+                        sorted(horizon_mask, key=lambda p: p[0]),
+                        altitude_threshold,
+                    )
+                    if cur_alt >= altitude_threshold and cur_alt < req:
+                        is_obst_now = True
+
+                sep = "N/A"
+                try:
+                    sky_c = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+                    sep = round(
+                        sky_c.transform_to(frame_now).separation(moon_in_frame).deg
+                    )
+                except:
+                    pass
+
+                best_m = [
+                    "Oct",
+                    "Nov",
+                    "Dec",
+                    "Jan",
+                    "Feb",
+                    "Mar",
+                    "Apr",
+                    "May",
+                    "Jun",
+                    "Jul",
+                    "Aug",
+                    "Sep",
+                ][int(ra / 2) % 12]
+                max_culm = 90.0 - abs(lat - dec)
+
+                item.update(
+                    {
+                        "Altitude Current": f"{cur_alt:.2f}",
+                        "Azimuth Current": f"{cur_az:.2f}",
+                        "Trend": trend,
+                        "Altitude 11PM": cached["alt_11pm"],
+                        "Azimuth 11PM": cached["az_11pm"],
+                        "Transit Time": cached["transit_time"],
+                        "Observable Duration (min)": cached["obs_duration_minutes"],
+                        "Max Altitude (°)": cached["max_altitude"],
+                        "Angular Separation (°)": sep,
+                        "is_obstructed_now": is_obst_now,
+                        "is_obstructed_at_11pm": cached["is_obstructed_at_11pm"],
+                        "best_month_ra": best_m,
+                        "max_culmination_alt": max_culm,
+                        "error": False,
+                    }
+                )
+                results.append(item)
+
+            except Exception as e:
+                print(f"Batch Error {obj.object_name}: {e}")
+                results.append(
+                    {
+                        "Object": obj.object_name,
+                        "Common Name": "Error: Calc failed",
+                        "error": True,
+                    }
+                )
+
+        response_data = {
+            "results": results,
+            "total": total_count,
+            "has_more": has_more,
+            "offset": offset,
+            "limit": limit,
+        }
+
+        return jsonify(response_data)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@core_bp.route("/")
+@permission_required("dashboard.view")
+def index():
+    load_full_astro_context()
+    if not (
+        current_user.is_authenticated
+        or SINGLE_USER_MODE
+        or getattr(g, "is_guest", False)
+    ):
+        return redirect(url_for("core.login"))
+
+    username = (
+        "default"
+        if SINGLE_USER_MODE
+        else current_user.username
+        if current_user.is_authenticated
+        else "guest_user"
+    )
+    db = get_db()
+    user = db.query(DbUser).filter_by(username=username).one_or_none()
+    if not user:
+        # Handle case where user is authenticated but not yet in app.db
+        return render_template("index.html", journal_sessions=[])
+
+    sessions = (
+        db.query(JournalSession)
+        .filter_by(user_id=user.id)
+        .order_by(JournalSession.date_utc.desc())
+        .all()
+    )
+    all_projects = db.query(Project).filter_by(user_id=user.id).all()
+    project_map = {p.id: p.name for p in all_projects}
+    objects_from_db = db.query(AstroObject).filter_by(user_id=user.id).all()
+    object_names_lookup = {o.object_name: o.common_name for o in objects_from_db}
+
+    # --- THIS IS THE CRITICAL FIX ---
+    # Convert the list of objects into a list of JSON-safe dictionaries
+    sessions_for_template = []
+    for session in sessions:
+        # Create a dictionary from the database object's columns
+        session_dict = {
+            c.name: getattr(session, c.name) for c in session.__table__.columns
+        }
+
+        # Convert the date object to an ISO string for JavaScript
+        if isinstance(session_dict.get("date_utc"), (datetime, date)):
+            session_dict["date_utc"] = session_dict["date_utc"].isoformat()
+
+        # Add the common name for convenience in the template
+        session_dict["target_common_name"] = object_names_lookup.get(
+            session.object_name, session.object_name
+        )
+
+        if session.project_id:
+            session_dict["project_name"] = project_map.get(
+                session.project_id, "Unknown Project"
+            )
+        else:
+            session_dict["project_name"] = "-"  # Or "Standalone"
+
+        sessions_for_template.append(session_dict)
+    # --- END OF FIX ---
+
+    local_tz = pytz.timezone(g.tz_name or "UTC")
+    now_local = datetime.now(local_tz)
+
+    # --- START FIX: Determine "Observing Night" Date ---
+    # If it's before noon, we're still on the "night of" the previous day.
+    if now_local.hour < 12:
+        observing_date_for_calcs = now_local.date() - timedelta(days=1)
+    else:
+        observing_date_for_calcs = now_local.date()
+    # --- END FIX ---
+
+    # Get hiding preference (safe default False)
+    hide_invisible_pref = g.user_config.get("hide_invisible", True)
+
+    record_event("dashboard_load")
+    return render_template(
+        "index.html",
+        journal_sessions=sessions_for_template,
+        selected_day=observing_date_for_calcs.day,
+        selected_month=observing_date_for_calcs.month,
+        selected_year=observing_date_for_calcs.year,
+        hide_invisible=hide_invisible_pref,
+    )
+
+
+# =============================================================================
+# MOBILE COMPANION ROUTES
+# =============================================================================
+@mobile_bp.route("/m/up_now")
+@login_required
+@permission_required("mobile.access")
+def mobile_up_now():
+    """Renders the mobile 'Up Now' dashboard skeleton (data fetched via API)."""
+    load_full_astro_context()
+    # Render template immediately with empty data; JS will fetch it.
+    return render_template("mobile_up_now.html")
+
+
+@api_bp.route("/api/mobile_data_chunk")
+@login_required
+@permission_required("mobile.access")
+def api_mobile_data_chunk():
+    """Fetches a specific slice of object data for the mobile progress bar."""
+    load_full_astro_context()
+
+    offset = int(request.args.get("offset", 0))
+    limit = int(request.args.get("limit", 10))
+
+    user = g.db_user
+    location_name = g.selected_location
+    user_prefs = g.user_config or {}
+
+    results = []
+    total_count = 0
+
+    if user and location_name:
+        db = get_db()
+        # 1. Get Location
+        location_db_obj = (
+            db.query(Location)
+            .options(selectinload(Location.horizon_points))
+            .filter_by(user_id=user.id, name=location_name)
+            .one_or_none()
+        )
+
+        if location_db_obj:
+            # 2. Get All Objects (to count and slice)
+            all_objects_query = (
+                db.query(AstroObject)
+                .filter_by(user_id=user.id)
+                .order_by(AstroObject.id)
+            )
+            total_count = all_objects_query.count()
+
+            # 3. Get Slice
+            sliced_objects = all_objects_query.offset(offset).limit(limit).all()
+
+            # 4. Calculate Data for this slice
+            results = get_all_mobile_up_now_data(
+                user,
+                location_db_obj,
+                user_prefs,
+                sliced_objects,
+                db,  # Pass DB session
+            )
+
+    return jsonify(
+        {"data": results, "total": total_count, "offset": offset, "limit": limit}
+    )
+
+
+@mobile_bp.route("/m/location")
+@login_required
+@permission_required("mobile.access")
+def mobile_location():
+    """Renders the mobile location selector."""
+    load_full_astro_context()  # <-- ADD THIS LINE
+    return render_template(
+        "mobile_location.html",
+        locations=g.active_locations,
+        selected_location_name=g.selected_location,
+    )
+
+
+@mobile_bp.route("/m")
+@mobile_bp.route("/m/add_object")
+@login_required
+@permission_required("mobile.access")
+def mobile_add_object():
+    """Renders the mobile 'Add Object' page."""
+    load_full_astro_context()  # <-- ADD THIS LINE
+    record_event("mobile_view_accessed")
+    return render_template("mobile_add_object.html")
+
+
+@mobile_bp.route("/m/outlook")
+@login_required
+@permission_required("mobile.access")
+def mobile_outlook():
+    """Renders the mobile 'Outlook' page."""
+    load_full_astro_context()  # <-- ADD THIS LINE
+    return render_template("mobile_outlook.html")
+
+
+@mobile_bp.route("/m/edit_notes/<path:object_name>")
+@login_required
+@permission_required("mobile.access")
+def mobile_edit_notes(object_name):
+    """Renders the mobile 'Edit Notes' page for a specific object."""
+    load_full_astro_context()  # Ensures g.db_user is loaded
+
+    # Get the current user
+    if SINGLE_USER_MODE:
+        username = "default"
+    else:
+        username = current_user.username
+
+    db = get_db()
+    user = db.query(DbUser).filter_by(username=username).one_or_none()
+    if not user:
+        flash("User not found.", "error")
+        return redirect(url_for("mobile.mobile_up_now"))
+
+    # Get the specific object
+    obj_record = (
+        db.query(AstroObject)
+        .filter_by(user_id=user.id, object_name=object_name)
+        .one_or_none()
+    )
+
+    if not obj_record:
+        flash(f"Object '{object_name}' not found.", "error")
+        return redirect(url_for("mobile.mobile_up_now"))
+
+    # Handle Trix/HTML conversion for old plain text notes
+    raw_project_notes = obj_record.project_name or ""
+    if not raw_project_notes.strip().startswith(
+        (
+            "<p>",
+            "<div>",
+            "<ul>",
+            "<ol>",
+            "<figure>",
+            "<blockquote>",
+            "<h1>",
+            "<h2>",
+            "<h3>",
+            "<h4>",
+            "<h5>",
+            "<h6>",
+        )
+    ):
+        escaped_text = bleach.clean(raw_project_notes, tags=[], strip=True)
+        project_notes_for_editor = escaped_text.replace("\n", "<br>")
+    else:
+        project_notes_for_editor = raw_project_notes
+
+    return render_template(
+        "mobile_edit_notes.html",
+        object_name=obj_record.object_name,
+        common_name=obj_record.common_name,
+        project_notes_html=project_notes_for_editor,
+        is_project_active=obj_record.active_project,
+    )
+
+
+def get_all_mobile_up_now_data(user, location, user_prefs_dict, objects_list, db=None):
+    """
+    Server-side function to get all data for the mobile 'Up Now' page in one pass.
+    """
+    # Pre-fetch framing status for the user
+    framed_objects = set()
+    if db:
+        try:
+            rows = db.query(SavedFraming.object_name).filter_by(user_id=user.id).all()
+            framed_objects = {r[0] for r in rows}
+        except Exception:
+            pass
+
+    # --- 1. Get Location & Time Details ---
+    try:
+        lat = location.lat
+        lon = location.lon
+        tz_name = location.timezone
+        local_tz = pytz.timezone(tz_name)
+    except Exception as e:
+        print(f"[Mobile Helper] Error getting location details: {e}")
+        return []  # Return empty on location error
+
+    current_datetime_local = datetime.now(local_tz)
+
+    # Determine "Observing Night" Date (Noon-to-Noon Logic)
+    # Fixes bug where morning observations were snapping to the wrong day's noon
+    if current_datetime_local.hour < 12:
+        local_date = (current_datetime_local - timedelta(days=1)).strftime("%Y-%m-%d")
+    else:
+        local_date = current_datetime_local.strftime("%Y-%m-%d")
+
+    # --- 2. Get Calculation Settings ---
+    altitude_threshold = user_prefs_dict.get("altitude_threshold", 20)
+    if location.altitude_threshold is not None:
+        altitude_threshold = location.altitude_threshold
+
+    sampling_interval = 15  # Default
+    if SINGLE_USER_MODE:
+        sampling_interval = user_prefs_dict.get("sampling_interval_minutes") or 15
+    else:
+        sampling_interval = int(os.environ.get("CALCULATION_PRECISION", 15))
+
+    horizon_mask = [
+        [hp.az_deg, hp.alt_min_deg]
+        for hp in sorted(location.horizon_points, key=lambda p: p.az_deg)
+    ]
+    location_name_key = location.name.lower().replace(" ", "_")
+
+    # --- 3. Pre-calculate Moon Position ---
+    try:
+        time_obj_now = Time(datetime.now(pytz.utc))
+        location_for_moon = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+        moon_coord = get_body("moon", time_obj_now, location_for_moon)
+        frame_now = AltAz(obstime=time_obj_now, location=location_for_moon)
+        moon_in_frame = moon_coord.transform_to(frame_now)
+    except Exception:
+        moon_in_frame = None  # Handle moon calc failure
+
+    # --- 4. Loop Through All Objects ---
+    all_objects_data = []
+
+    for obj_record in objects_list:
+        try:
+            object_name = obj_record.object_name
+            ra = obj_record.ra_hours
+            dec = obj_record.dec_deg
+
+            if ra is None or dec is None:
+                continue  # Skip objects with no coordinates
+
+            # --- 5. Get Nightly Cached Data ---
+            cache_key = f"{object_name.lower()}_{local_date}_{location_name_key}"
+            if cache_key not in nightly_curves_cache:
+                # Cache miss - calculate it now
+                times_local, times_utc = get_common_time_arrays(
+                    tz_name, local_date, sampling_interval
+                )
+                location_ephem = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+                sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+                altaz_frame = AltAz(obstime=times_utc, location=location_ephem)
+                altitudes = sky_coord.transform_to(altaz_frame).alt.deg
+                azimuths = sky_coord.transform_to(altaz_frame).az.deg
+                transit_time = calculate_transit_time(
+                    ra, dec, lat, lon, tz_name, local_date
+                )
+                obs_duration, max_alt, _, _ = calculate_observable_duration_vectorized(
+                    ra,
+                    dec,
+                    lat,
+                    lon,
+                    local_date,
+                    tz_name,
+                    altitude_threshold,
+                    sampling_interval,
+                    horizon_mask=horizon_mask,
+                )
+                fixed_time_utc_str = get_utc_time_for_local_11pm(tz_name)
+                alt_11pm, az_11pm = ra_dec_to_alt_az(
+                    ra, dec, lat, lon, fixed_time_utc_str
+                )
+                is_obstructed_at_11pm = False
+                if horizon_mask and len(horizon_mask) > 1:
+                    sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
+                    required_altitude_11pm = interpolate_horizon(
+                        az_11pm, sorted_mask, altitude_threshold
+                    )
+                    if (
+                        alt_11pm >= altitude_threshold
+                        and alt_11pm < required_altitude_11pm
+                    ):
+                        is_obstructed_at_11pm = True
+
+                nightly_curves_cache[cache_key] = {
+                    "times_local": times_local,
+                    "altitudes": altitudes,
+                    "azimuths": azimuths,
+                    "transit_time": transit_time,
+                    "obs_duration_minutes": int(obs_duration.total_seconds() / 60)
+                    if obs_duration
+                    else 0,
+                    "max_altitude": round(max_alt, 1) if max_alt is not None else "N/A",
+                    "alt_11pm": f"{alt_11pm:.2f}",
+                    "az_11pm": f"{az_11pm:.2f}",
+                    "is_obstructed_at_11pm": is_obstructed_at_11pm,
+                }
+
+            cached_night_data = nightly_curves_cache[cache_key]
+
+            # --- 6. Calculate Current Position ---
+            now_utc = datetime.now(pytz.utc)
+            time_diffs = [
+                abs((t - now_utc).total_seconds())
+                for t in cached_night_data["times_local"]
+            ]
+            current_index = np.argmin(time_diffs)
+            current_alt = cached_night_data["altitudes"][current_index]
+            current_az = cached_night_data["azimuths"][current_index]
+            next_index = min(current_index + 1, len(cached_night_data["altitudes"]) - 1)
+            next_alt = cached_night_data["altitudes"][next_index]
+            trend = "–"
+            if abs(next_alt - current_alt) > 0.01:
+                trend = "↑" if next_alt > current_alt else "↓"
+
+            # --- 7. Calculate Moon Separation ---
+            angular_sep = "N/A"
+            if moon_in_frame:
+                try:
+                    obj_coord_sky = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+                    obj_in_frame = obj_coord_sky.transform_to(frame_now)
+                    angular_sep = round(obj_in_frame.separation(moon_in_frame).deg)
+                except Exception:
+                    pass  # Keep N/A
+
+            # --- 8. Assemble Final Dictionary ---
+            all_objects_data.append(
+                {
+                    # Static data from the object record
+                    "Object": obj_record.object_name,
+                    "Common Name": obj_record.common_name or obj_record.object_name,
+                    "ActiveProject": obj_record.active_project,
+                    "has_framing": obj_record.object_name in framed_objects,
+                    # Calculated data
+                    "Altitude Current": f"{current_alt:.2f}",
+                    "Azimuth Current": f"{current_az:.2f}",
+                    "Trend": trend,
+                    "Observable Duration (min)": cached_night_data[
+                        "obs_duration_minutes"
+                    ],
+                    "Max Altitude (°)": cached_night_data["max_altitude"],
+                    "Angular Separation (°)": angular_sep,
+                }
+            )
+        except Exception as e:
+            print(
+                f"[Mobile Helper] Failed to process object {obj_record.object_name}: {e}"
+            )
+            continue  # Skip this object
+
+    return all_objects_data
+
+
+@core_bp.route("/sun_events")
+@permission_required("dashboard.sun_events")
+def sun_events():
+    """
+    API endpoint to calculate and return sun event times (dusk, dawn, etc.)
+    and the current moon phase for a specific location. Uses the location
+    specified in the 'location' query parameter or falls back to the
+    user's default location.
+    """
+    load_full_astro_context()
+    # --- Determine location to use ---
+    requested_location_name = request.args.get("location")
+    lat, lon, tz_name = g.lat, g.lon, g.tz_name  # Defaults from flask global 'g'
+
+    # Prioritize the location passed in the query parameter
+    if requested_location_name and requested_location_name in g.locations:
+        loc_cfg = g.locations[requested_location_name]
+        lat = loc_cfg.get("lat")
+        lon = loc_cfg.get("lon")
+        tz_name = loc_cfg.get("timezone", "UTC")
+        # print(f"[API Sun Events] Using requested location: {requested_location_name}") # Optional debug print
+    elif g.selected_location and g.selected_location in g.locations:
+        # Fallback to default location if request param is missing/invalid but default exists
+        loc_cfg = g.locations[g.selected_location]
+        lat = loc_cfg.get(
+            "lat", g.lat
+        )  # Use default g value if key missing in specific config
+        lon = loc_cfg.get("lon", g.lon)
+        tz_name = loc_cfg.get(
+            "timezone", g.tz_name or "UTC"
+        )  # Use g.tz_name as fallback if timezone missing
+        # print(f"[API Sun Events] Using default location: {g.selected_location}") # Optional debug print
+    else:
+        # print(f"[API Sun Events] Warning: No location specified or default found.") # Optional debug print
+        # lat, lon, tz_name remain the initial g values (which might be None)
+        pass  # Proceed, error handled below
+
+    # If after checks, we don't have valid coordinates, return an error immediately
+    if lat is None or lon is None:
+        # print("[API Sun Events] Error: Invalid coordinates (lat or lon is None).") # Optional debug print
+        return jsonify(
+            {
+                "date": datetime.now().strftime("%Y-%m-%d"),
+                "time": datetime.now().strftime("%H:%M"),
+                "phase": 0,  # Default phase
+                "error": "No location set or location has invalid coordinates.",
+            }
+        ), 400  # Bad request status
+    # --- END Location Determination ---
+
+    # --- Use the determined (valid) lat, lon, tz_name variables below ---
+    try:
+        local_tz = pytz.timezone(tz_name)  # Use determined tz_name
+    except pytz.UnknownTimeZoneError:
+        # Handle invalid timezone string
+        # print(f"[API Sun Events] Error: Invalid timezone '{tz_name}'. Falling back to UTC.") # Optional debug print
+        tz_name = "UTC"
+        local_tz = pytz.utc
+
+        # --- SIMULATION MODE ---
+    sim_date_str = request.args.get("sim_date")
+    if sim_date_str:
+        try:
+            sim_date = datetime.strptime(sim_date_str, "%Y-%m-%d").date()
+            now_time = datetime.now(local_tz).time()
+            now_local = local_tz.localize(datetime.combine(sim_date, now_time))
+        except ValueError:
+            now_local = datetime.now(local_tz)
+    else:
+        now_local = datetime.now(local_tz)
+
+    local_date = now_local.strftime("%Y-%m-%d")
+
+    # Calculate sun events using determined variables
+    events = calculate_sun_events_cached(local_date, tz_name, lat, lon)
+
+    # Calculate moon phase using determined variables
+    try:
+        moon = ephem.Moon()
+        observer = ephem.Observer()
+        observer.lat = str(lat)  # Use determined lat (ephem needs string)
+        observer.lon = str(lon)  # Use determined lon (ephem needs string)
+        observer.date = now_local.astimezone(
+            pytz.utc
+        )  # Use current time converted to UTC
+        moon.compute(observer)
+        moon_phase = round(moon.phase, 1)
+    except Exception as e:
+        # Handle potential errors during ephem calculation
+        print(f"[API Sun Events] Error calculating moon phase: {e}")  # Log error
+        moon_phase = "N/A"  # Indicate error in response
+
+    # Add all data to the response JSON
+    events["date"] = local_date
+    events["time"] = now_local.strftime("%H:%M")
+    events["phase"] = moon_phase  # Use calculated (or N/A) phase
+    # Add error field if moon phase calculation failed
+    if moon_phase == "N/A":
+        events["error"] = events.get("error", "") + " Moon phase calculation failed."
+
+    return jsonify(events)
+
+
+@api_bp.route("/telemetry/ping", methods=["POST"])
+@permission_required("settings.edit")
+def telemetry_ping():
+    # Respect opt-out as usual
+    try:
+        username = (
+            "default"
+            if SINGLE_USER_MODE
+            else (
+                current_user.username
+                if getattr(current_user, "is_authenticated", False)
+                else "guest_user"
+            )
+        )
+    except Exception:
+        username = "default"
+
+    try:
+        # === START REFACTOR ===
+        # Use the g.user_config, which is already loaded from the DB
+        cfg = g.user_config if hasattr(g, "user_config") else {}
+        # === END REFACTOR ===
+    except Exception:
+        cfg = {}
+
+    tcfg = cfg.get("telemetry") or {}
+    if not tcfg.get("enabled", True):
+        return jsonify({"status": "disabled"}), 200
+
+    # Parse client-provided UA (optional) and also store the request header UA as fallback
+    payload = request.get_json(silent=True) or {}
+    ua_client = payload.get("browser_user_agent") or ""
+    ua_header = request.headers.get("User-Agent", "") or ""
+    ua_final = ua_client or ua_header
+
+    # Cache UA for scheduled sends (so daily pings outside a request still include it)
+    try:
+        current_app.config["_LAST_UA"] = ua_final
+    except Exception:
+        pass
+
+    # DO NOT force a send here; avoid doubling the startup/daily sends.
+    # Only trigger a send if the 24h gate says it's okay right now.
+    try:
+        state_dir = Path(os.environ.get("NOVA_STATE_DIR", CACHE_DIR))
+        if telemetry_should_send(state_dir):
+            send_telemetry_async(cfg, browser_user_agent=ua_final, force=False)
+        # else: silently skip; scheduler or next allowed window will send
+    except Exception:
+        pass
+
+    return jsonify({"status": "ok"}), 200
+
+
+@core_bp.route("/config_form", methods=["GET", "POST"])
+@login_required
+@permission_required("settings.edit")
+def config_form():
+    load_full_astro_context()
+    error = None
+    message = None
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
+    try:
+        app_db_user = db.query(DbUser).filter_by(username=username).one_or_none()
+        if not app_db_user:
+            flash(f"Could not find user '{username}' in the database.", "error")
+            return redirect(url_for("core.index"))
+
+        if request.method == "POST":
+            # --- General Settings Tab ---
+            if "submit_general" in request.form:
+                prefs = db.query(UiPref).filter_by(user_id=app_db_user.id).first()
+                if not prefs:
+                    prefs = UiPref(user_id=app_db_user.id, json_blob="{}")
+                    db.add(prefs)
+                try:
+                    settings = json.loads(prefs.json_blob or "{}")
+                except json.JSONDecodeError:
+                    settings = {}
+                settings["altitude_threshold"] = int(
+                    request.form.get("altitude_threshold", 20)
+                )
+                settings["default_location"] = request.form.get(
+                    "default_location", settings.get("default_location")
+                )
+                # Settings available to ALL users
+                settings["calc_invisible"] = bool(request.form.get("calc_invisible"))
+                settings["hide_invisible"] = bool(request.form.get("hide_invisible"))
+                # Theme preference: 'follow_system', 'always_light', 'always_dark'
+                theme_value = request.form.get("theme_preference", "follow_system")
+                if theme_value in ("follow_system", "always_light", "always_dark"):
+                    settings["theme_preference"] = theme_value
+
+                if SINGLE_USER_MODE:
+                    settings["sampling_interval_minutes"] = int(
+                        request.form.get("sampling_interval", 15)
+                    )
+                    settings.setdefault("telemetry", {})["enabled"] = bool(
+                        request.form.get("telemetry_enabled")
+                    )
+
+                imaging_criteria = settings.setdefault("imaging_criteria", {})
+                imaging_criteria["min_observable_minutes"] = int(
+                    request.form.get("min_observable_minutes", 60)
+                )
+                imaging_criteria["min_max_altitude"] = int(
+                    request.form.get("min_max_altitude", 30)
+                )
+                imaging_criteria["max_moon_illumination"] = int(
+                    request.form.get("max_moon_illumination", 20)
+                )
+                imaging_criteria["min_angular_separation"] = int(
+                    request.form.get("min_angular_separation", 30)
+                )
+                imaging_criteria["search_horizon_months"] = int(
+                    request.form.get("search_horizon_months", 6)
+                )
+                prefs.json_blob = json.dumps(settings)
+                message = "General settings updated."
+
+            # --- Add New Location ---
+            elif "submit_new_location" in request.form:
+                new_name = request.form.get("new_location").strip()
+                new_tz = request.form.get("new_timezone")  # Get the timezone
+
+                existing = (
+                    db.query(Location)
+                    .filter_by(user_id=app_db_user.id, name=new_name)
+                    .first()
+                )
+                if existing:
+                    error = f"A location named '{new_name}' already exists."
+                elif not all(
+                    [
+                        new_name,
+                        request.form.get("new_lat"),
+                        request.form.get("new_lon"),
+                        new_tz,
+                    ]
+                ):
+                    error = "Name, Latitude, Longitude, and Timezone are required."
+
+                elif new_tz not in pytz.all_timezones:
+                    error = f"Invalid timezone: '{new_tz}'. Please select a valid option from the list."
+
+                else:
+                    new_loc = Location(
+                        user_id=app_db_user.id,
+                        name=new_name,
+                        lat=float(request.form.get("new_lat")),
+                        lon=float(request.form.get("new_lon")),
+                        timezone=request.form.get("new_timezone"),
+                        active=request.form.get("new_active") == "on",
+                        comments=request.form.get("new_comments", "").strip()[:500],
+                    )
+                    db.add(new_loc)
+                    db.flush()
+                    mask_str = request.form.get("new_horizon_mask", "").strip()
+                    if mask_str:
+                        try:
+                            mask_data = yaml.safe_load(mask_str)
+                            if isinstance(mask_data, list):
+                                for point in mask_data:
+                                    db.add(
+                                        HorizonPoint(
+                                            location_id=new_loc.id,
+                                            az_deg=float(point[0]),
+                                            alt_min_deg=float(point[1]),
+                                        )
+                                    )
+                        except (yaml.YAMLError, ValueError, TypeError):
+                            flash(
+                                "Warning: Horizon Mask was invalid and was ignored.",
+                                "warning",
+                            )
+                    message = "New location added."
+
+            # --- Update Existing Locations ---
+            elif "submit_locations" in request.form:
+                locs_to_update = (
+                    db.query(Location).filter_by(user_id=app_db_user.id).all()
+                )
+                total_locs = len(locs_to_update)
+
+                # Guard: Count locations marked for deletion and check active status after update
+                locs_marked_for_deletion = 0
+                active_locations_after_update = 0
+                for loc in locs_to_update:
+                    if request.form.get(f"delete_loc_{loc.name}") == "on":
+                        locs_marked_for_deletion += 1
+                    else:
+                        # This location survives - check if it will be active
+                        will_be_active = request.form.get(f"active_{loc.name}") == "on"
+                        if will_be_active:
+                            active_locations_after_update += 1
+
+                # Prevent deleting the last location
+                if locs_marked_for_deletion >= total_locs:
+                    flash(
+                        "Cannot delete your last location. You must have at least one location configured.",
+                        "error",
+                    )
+                    return redirect(url_for("core.config_form"))
+
+                # Prevent having zero active locations
+                if active_locations_after_update == 0:
+                    flash(
+                        "Cannot deactivate your only active location. You must keep at least one active location.",
+                        "error",
+                    )
+                    return redirect(url_for("core.config_form"))
+
+                # Safe to proceed with deletions and updates
+                for loc in locs_to_update:
+                    if request.form.get(f"delete_loc_{loc.name}") == "on":
+                        db.delete(loc)
+                        continue
+
+                    tz_name_from_form = request.form.get(f"timezone_{loc.name}")
+                    if tz_name_from_form not in pytz.all_timezones:
+                        error = f"Invalid timezone for {loc.name}: '{tz_name_from_form}'. Please select a valid option."
+                        break  # Stop processing immediately on the first error
+
+                    loc.lat = float(request.form.get(f"lat_{loc.name}"))
+                    loc.lon = float(request.form.get(f"lon_{loc.name}"))
+                    loc.timezone = request.form.get(f"timezone_{loc.name}")
+                    loc.active = request.form.get(f"active_{loc.name}") == "on"
+                    loc.comments = request.form.get(f"comments_{loc.name}", "").strip()[
+                        :500
+                    ]
+
+                    # --- START FIX: Use relationship assignment for cascade ---
+                    # 1. Create a new, empty list for this location's points.
+                    new_horizon_points = []
+                    mask_str = request.form.get(f"horizon_mask_{loc.name}", "").strip()
+
+                    if mask_str:
+                        try:
+                            mask_data = yaml.safe_load(mask_str)
+                            if isinstance(mask_data, list):
+                                # 2. Create new HorizonPoint objects and add them to the new list.
+                                for point in mask_data:
+                                    new_horizon_points.append(
+                                        HorizonPoint(
+                                            location_id=loc.id,
+                                            az_deg=float(point[0]),
+                                            alt_min_deg=float(point[1]),
+                                        )
+                                    )
+                        except Exception:
+                            flash(
+                                f"Warning: Horizon Mask for '{loc.name}' was invalid and ignored.",
+                                "warning",
+                            )
+
+                    # 3. Assign the new list directly to the relationship.
+                    # SQLAlchemy will now compare the old list with the new one.
+                    # It will automatically delete any points not in the new list (due to 'delete-orphan')
+                    # and add any new points. This avoids the bulk-delete conflict.
+                    loc.horizon_points = new_horizon_points
+                    # --- END FIX ---
+
+                message = "Locations"
+
+            # --- Update Existing Objects ---
+            elif "submit_objects" in request.form:
+                # 1. Fetch all objects for the current user
+                objs_to_update = (
+                    db.query(AstroObject).filter_by(user_id=app_db_user.id).all()
+                )
+
+                # 2. Loop through each object and process its form data
+                for obj in objs_to_update:
+                    # Handle deletion first
+                    if request.form.get(f"delete_{obj.object_name}") == "on":
+                        db.delete(obj)
+                        continue
+
+                    # Update standard fields
+                    obj.common_name = request.form.get(f"name_{obj.object_name}")
+                    obj.ra_hours = float(request.form.get(f"ra_{obj.object_name}"))
+                    obj.dec_deg = float(request.form.get(f"dec_{obj.object_name}"))
+                    obj.constellation = request.form.get(
+                        f"constellation_{obj.object_name}"
+                    )
+                    obj.project_name = request.form.get(
+                        f"project_{obj.object_name}"
+                    )  # Private notes
+                    obj.type = request.form.get(f"type_{obj.object_name}")
+                    obj.magnitude = request.form.get(f"magnitude_{obj.object_name}")
+                    obj.size = request.form.get(f"size_{obj.object_name}")
+                    obj.sb = request.form.get(f"sb_{obj.object_name}")
+
+                    # --- START NEW LOGIC ---
+                    # Update the 'ActiveProject' status based on the checkbox being 'on'
+                    obj.active_project = (
+                        request.form.get(f"active_project_{obj.object_name}") == "on"
+                    )
+                    # --- END NEW LOGIC ---
+
+                    if not obj.original_user_id:
+                        obj.is_shared = (
+                            request.form.get(f"is_shared_{obj.object_name}") == "on"
+                        )
+                        obj.shared_notes = request.form.get(
+                            f"shared_notes_{obj.object_name}"
+                        )
+
+                message = "Objects updated."
+
+            if not error:
+                db.commit()
+                flash(f"{message or 'Configuration'} updated successfully.", "success")
+                return redirect(url_for("core.config_form"))
+            else:
+                db.rollback()
+                flash(error, "error")
+
+        # --- GET Request: Populate Template Context from DB ---
+        config_for_template = {}
+        prefs = db.query(UiPref).filter_by(user_id=app_db_user.id).first()
+        if prefs and prefs.json_blob:
+            try:
+                config_for_template = json.loads(prefs.json_blob)
+            except json.JSONDecodeError:
+                pass
+
+        # --- START FIX ---
+        # Ensure nested dicts are not None, so template .get() calls don't fail
+        if config_for_template.get("telemetry") is None:
+            config_for_template["telemetry"] = {}
+        if config_for_template.get("imaging_criteria") is None:
+            config_for_template["imaging_criteria"] = {}
+        # --- END FIX ---
+
+        locations_for_template = {}
+        db_locations = (
+            db.query(Location)
+            .options(selectinload(Location.horizon_points))
+            .filter_by(user_id=app_db_user.id)
+            .order_by(Location.name)
+            .all()
+        )
+        for loc in db_locations:
+            locations_for_template[loc.name] = {
+                "lat": loc.lat,
+                "lon": loc.lon,
+                "timezone": loc.timezone,
+                "active": loc.active,
+                "comments": loc.comments,
+                "horizon_mask": [
+                    [hp.az_deg, hp.alt_min_deg]
+                    for hp in sorted(loc.horizon_points, key=lambda p: p.az_deg)
+                ],
+            }
+            if loc.is_default:
+                config_for_template["default_location"] = loc.name
+
+        db_objects = (
+            db.query(AstroObject)
+            .filter_by(user_id=app_db_user.id)
+            .order_by(AstroObject.object_name)
+            .all()
+        )
+        config_for_template["objects"] = []
+        for o in db_objects:
+            # --- START: Rich Text Upgrade for Private Notes ---
+            raw_private_notes = o.project_name or ""
+            if not raw_private_notes.strip().startswith(
+                (
+                    "<p>",
+                    "<div>",
+                    "<ul>",
+                    "<ol>",
+                    "<figure>",
+                    "<blockquote>",
+                    "<h1>",
+                    "<h2>",
+                    "<h3>",
+                    "<h4>",
+                    "<h5>",
+                    "<h6>",
+                )
+            ):
+                escaped_text = bleach.clean(raw_private_notes, tags=[], strip=True)
+                private_notes_html = escaped_text.replace("\n", "<br>")
+            else:
+                private_notes_html = raw_private_notes
+            # --- END: Rich Text Upgrade ---
+
+            # --- START: Rich Text Upgrade for SHARED Notes ---
+            raw_shared_notes = o.shared_notes or ""
+            if not raw_shared_notes.strip().startswith(
+                ("<p>", "<div>", "<ul>", "<ol>")
+            ):
+                escaped_text = bleach.clean(raw_shared_notes, tags=[], strip=True)
+                shared_notes_html = escaped_text.replace("\n", "<br>")
+            else:
+                shared_notes_html = raw_shared_notes
+            # --- END: Rich Text Upgrade for SHARED Notes ---
+
+            # 1. Get all standard fields from the new method
+            obj_data_dict = o.to_dict()
+
+            # 2. Overwrite the note fields with our editor-safe HTML
+            obj_data_dict["Project"] = private_notes_html
+            obj_data_dict["shared_notes"] = shared_notes_html
+
+            # 3. Append the final dictionary
+            config_for_template["objects"].append(obj_data_dict)
+
+        catalog_packs = discover_catalog_packs()
+
+        # --- API Keys (multi-user only) ---
+        new_api_key = session.pop("new_api_key", None)
+        if not SINGLE_USER_MODE:
+            user_api_keys = (
+                db.query(ApiKey)
+                .filter(ApiKey.user_id == app_db_user.id)
+                .order_by(ApiKey.created_at.desc())
+                .all()
+            )
+        else:
+            user_api_keys = []
+
+        return render_template(
+            "config_form.html",
+            config=config_for_template,
+            locations=locations_for_template,
+            all_timezones=pytz.all_timezones,
+            catalog_packs=catalog_packs,
+            api_keys=user_api_keys,
+            new_api_key=new_api_key,
+        )
+
+    except Exception as e:
+        db.rollback()
+        flash(_("A database error occurred: %(error)s", error=e), "error")
+        traceback.print_exc()
+        return redirect(url_for("core.index"))
+
+
+@core_bp.route("/update_project", methods=["POST"])
+@login_required
+@permission_required("projects.edit")
+def update_project():
+    data = request.get_json()
+    object_name = data.get("object")
+
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
+    try:
+        user = db.query(DbUser).filter_by(username=username).one()
+        obj_to_update = (
+            db.query(AstroObject)
+            .filter_by(user_id=user.id, object_name=object_name)
+            .one_or_none()
+        )
+
+        if obj_to_update:
+            did_change_active_status = False
+
+            # --- START OF FIX ---
+            # 1. Update notes if the 'project' key was sent
+            if "project" in data:
+                new_project_notes_html = data.get("project")
+                obj_to_update.project_name = new_project_notes_html
+
+            # 2. RESTORED: Update Active Status if 'is_active' key was sent
+            # This is required for the 'Save Project' button in the graph dashboard
+            if "is_active" in data:
+                new_active_status = bool(data.get("is_active"))
+                if obj_to_update.active_project != new_active_status:
+                    obj_to_update.active_project = new_active_status
+                    did_change_active_status = True
+            # --- END OF FIX ---
+
+            db.commit()
+
+            # Only trigger the expensive outlook update if the status actually changed
+            if did_change_active_status:
+                trigger_outlook_update_for_user(username)
+
+            return jsonify({"status": "success"})
+        else:
+            return jsonify({"status": "error", "error": _("Object not found.")}), 404
+
+    except Exception as e:
+        db.rollback()
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
+@core_bp.route("/update_project_active", methods=["POST"])
+@login_required
+@permission_required("projects.edit")
+def update_project_active():
+    data = request.get_json()
+    object_name = data.get("object")
+    is_active = data.get("active")
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
+    try:
+        user = db.query(DbUser).filter_by(username=username).one()
+        obj_to_update = (
+            db.query(AstroObject)
+            .filter_by(user_id=user.id, object_name=object_name)
+            .one_or_none()
+        )
+
+        if obj_to_update:
+            obj_to_update.active_project = bool(is_active)
+            db.commit()
+            trigger_outlook_update_for_user(username)
+            return jsonify(
+                {"status": "success", "active": obj_to_update.active_project}
+            )
+        else:
+            return jsonify({"status": "error", "error": _("Object not found.")}), 404
+    except Exception as e:
+        db.rollback()
+        return jsonify({"status": "error", "error": str(e)}), 500
 
 
 def get_object_list_from_config():

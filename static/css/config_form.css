@@ -1692,3 +1692,127 @@
     #sampling_interval {
       font-size: var(--font-size-md);
     }
+
+/* ===================================================================
+   API KEY MANAGEMENT — compact action buttons & components
+   =================================================================== */
+
+.api-key-btn {
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 5px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    display: inline-block;
+    line-height: 1.4;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+}
+
+/* Secondary — neutral (Regenerate) */
+.api-key-btn.secondary {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border-color: var(--border-color, #d0cdc8);
+}
+.api-key-btn.secondary:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+[data-theme="dark"] .api-key-btn.secondary {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.6);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+[data-theme="dark"] .api-key-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.85);
+}
+
+/* Danger — muted red (Revoke) */
+.api-key-btn.danger {
+    background: rgba(180, 60, 60, 0.08);
+    color: #a04040;
+    border-color: rgba(180, 60, 60, 0.18);
+}
+.api-key-btn.danger:hover {
+    background: rgba(180, 60, 60, 0.18);
+}
+[data-theme="dark"] .api-key-btn.danger {
+    background: rgba(200, 80, 80, 0.1);
+    color: #d06060;
+    border-color: rgba(200, 80, 80, 0.2);
+}
+[data-theme="dark"] .api-key-btn.danger:hover {
+    background: rgba(200, 80, 80, 0.2);
+}
+
+/* One-time key reveal banner */
+.api-key-reveal-banner {
+    border: 2px solid var(--warning-color, #f59e0b);
+    background: rgba(245, 158, 11, 0.06);
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+[data-theme="dark"] .api-key-reveal-banner {
+    background: rgba(245, 158, 11, 0.08);
+}
+.api-key-reveal-banner .reveal-warning {
+    color: var(--danger-color);
+    margin: 0.25rem 0 0.75rem;
+    font-size: 0.875rem;
+}
+.api-key-reveal-key-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--bg-code, #1e1e1e);
+    border-radius: 6px;
+    padding: 0.6rem 1rem;
+}
+.api-key-reveal-key-row code {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.875rem;
+    color: var(--text-code, #d4d4d4);
+    flex: 1;
+    word-break: break-all;
+    user-select: all;
+}
+
+/* Keys table */
+.api-keys-table {
+    width: 100%;
+    margin-bottom: 1.5rem;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+.api-keys-table th {
+    text-align: left;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+.api-keys-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border-color-subtle, rgba(0,0,0,0.06));
+    vertical-align: middle;
+}
+[data-theme="dark"] .api-keys-table td {
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+.api-keys-table .status-active {
+    color: var(--success-color);
+    font-weight: 600;
+}
+.api-keys-table .status-revoked {
+    color: var(--text-tertiary);
+    font-style: italic;
+}
+.api-keys-table .key-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
