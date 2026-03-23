@@ -664,10 +664,19 @@
             sortTable(currentSort.columnKey, false);
             updateTabDisplay();
             updateRemoveFiltersButtonVisibility();
-    
+
             // If on Inspiration tab, refresh the grid
             if (activeTab === 'inspiration' && typeof renderInspirationGrid === 'function') {
-                renderInspirationGrid();
+                // If Nova ranking is active, show ranked objects in Inspiration tab
+                const novaSortedData = buildNovaSortedInspirationData();
+                if (novaSortedData) {
+                    const originalFilteredData = window.currentFilteredData;
+                    window.currentFilteredData = novaSortedData;
+                    renderInspirationGrid();
+                    window.currentFilteredData = originalFilteredData;
+                } else {
+                    renderInspirationGrid();
+                }
             }
         }
     
@@ -793,7 +802,16 @@
             } else if (activeTab === 'inspiration') { // NEW BLOCK
                 if (inspirationWrapper) inspirationWrapper.style.display = 'block';
                 if (typeof renderInspirationGrid === 'function') {
-                    renderInspirationGrid();
+                    // If Nova ranking is active, show ranked objects in Inspiration tab
+                    const novaSortedData = buildNovaSortedInspirationData();
+                    if (novaSortedData) {
+                        const originalFilteredData = window.currentFilteredData;
+                        window.currentFilteredData = novaSortedData;
+                        renderInspirationGrid();
+                        window.currentFilteredData = originalFilteredData;
+                    } else {
+                        renderInspirationGrid();
+                    }
                 }
             }
     
@@ -1217,6 +1235,41 @@
     }
 
     /**
+     * Build Nova-sorted array for Inspiration tab
+     * Returns only ranked objects from latestDSOData, sorted by rank ascending
+     * @returns {Array} Array of DSO objects sorted by Nova rank
+     */
+    function buildNovaSortedInspirationData() {
+        if (Object.keys(novaRankMap).length === 0 || !window.latestDSOData) {
+            return null;
+        }
+
+        const rankedObjects = [];
+
+        window.latestDSOData.forEach(obj => {
+            const objectNameUpper = (obj.Object || '').trim().toUpperCase();
+            const rankData = novaRankMap[objectNameUpper];
+
+            if (rankData) {
+                rankedObjects.push({
+                    obj: obj,
+                    rank: rankData.rank
+                });
+            }
+        });
+
+        // Sort by rank ascending
+        rankedObjects.sort((a, b) => {
+            const rankA = parseInt(a.rank, 10);
+            const rankB = parseInt(b.rank, 10);
+            return rankA - rankB;
+        });
+
+        // Return just the objects, not the wrapper
+        return rankedObjects.map(item => item.obj);
+    }
+
+    /**
      * Apply Nova rank badges to all rows in the table
 
     /**
@@ -1600,6 +1653,11 @@
         if (errorDiv) {
             errorDiv.style.display = 'none';
         }
+
+        // If Inspiration tab is active, re-render to show normal content
+        if (activeTab === 'inspiration' && typeof renderInspirationGrid === 'function') {
+            renderInspirationGrid();
+        }
     }
 
 
@@ -1824,7 +1882,16 @@
 
         // 2. NOW it is safe to update the Inspiration grid with filtered data
         if (activeTab === 'inspiration' && typeof renderInspirationGrid === 'function') {
-            renderInspirationGrid();
+            // If Nova ranking is active, show ranked objects in Inspiration tab
+            const novaSortedData = buildNovaSortedInspirationData();
+            if (novaSortedData) {
+                const originalFilteredData = window.currentFilteredData;
+                window.currentFilteredData = novaSortedData;
+                renderInspirationGrid();
+                window.currentFilteredData = originalFilteredData;
+            } else {
+                renderInspirationGrid();
+            }
         }
 
         // Update Ask Nova button state based on cache availability for the new location/date
