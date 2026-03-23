@@ -10246,8 +10246,22 @@ def get_desktop_data_batch():
 
 
 @core_bp.route("/")
-@permission_required("dashboard.view")
 def index():
+    """Landing page with hero section and latest blog posts."""
+    db = get_db()
+    posts = (
+        db.query(BlogPost)
+        .options(selectinload(BlogPost.images), selectinload(BlogPost.user))
+        .order_by(BlogPost.created_at.desc())
+        .limit(6)
+        .all()
+    )
+    return render_template("index.html", posts=posts)
+
+
+@core_bp.route("/dashboard")
+@permission_required("dashboard.view")
+def dashboard():
     load_full_astro_context()
     if not (
         current_user.is_authenticated
@@ -10267,7 +10281,7 @@ def index():
     user = db.query(DbUser).filter_by(username=username).one_or_none()
     if not user:
         # Handle case where user is authenticated but not yet in app.db
-        return render_template("index.html", journal_sessions=[])
+        return render_template("dashboard.html", journal_sessions=[])
 
     sessions = (
         db.query(JournalSession)
@@ -10324,7 +10338,7 @@ def index():
 
     record_event("dashboard_load")
     return render_template(
-        "index.html",
+        "dashboard.html",
         journal_sessions=sessions_for_template,
         selected_day=observing_date_for_calcs.day,
         selected_month=observing_date_for_calcs.month,
