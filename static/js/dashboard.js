@@ -321,7 +321,7 @@
                 }
             }
     
-            function updateDataForSim() {
+            async function updateDataForSim() {
                 const currentSelectedLocation = sessionStorage.getItem('selectedLocation');
                 // Clear current cache keys to force fresh calculation with the simulated date
                 for (let i = 0; i < sessionStorage.length; i++) {
@@ -333,11 +333,45 @@
                 // Reset outlook flag so it re-calculates for the new reference date
                 outlookDataLoaded = false;
                 fetchData();
-                fetchSunEvents();
+                // Await fetchSunEvents to ensure DOM date element is updated before computing cache key
+                await fetchSunEvents();
 
                 // Fix 2: Reset Nova ranking if simulation date changed
-                const newCacheKey = getNovaCacheKey();
-                if (novaRankMapCacheKey && novaRankMapCacheKey !== newCacheKey) {
+                const simModeOn = document.getElementById('sim-mode-toggle')?.checked;
+                const simDateVal = document.getElementById('sim-date-input')?.value;
+                console.log('[Nova updateDataForSim] simModeOn:', simModeOn);
+                console.log('[Nova updateDataForSim] simDateVal:', simDateVal);
+                console.log('[Nova updateDataForSim] novaRankMap entries:', Object.keys(novaRankMap).length);
+
+                if (Object.keys(novaRankMap).length > 0) {
+                    // There's an active ranking, compute the cache key for the new date
+                    // and clear it so updateNovaButtonState() won't find it
+                    const selectVal = document.getElementById('location-select')?.value;
+                    const locNameVal = document.getElementById('location-name')?.textContent?.trim();
+                    const loc = selectVal || locNameVal || 'unknown';
+                    let date;
+                    if (simModeOn && simDateVal) {
+                        // Simulation mode: use the sim-date-input value (already updated)
+                        date = simDateVal;
+                    } else {
+                        // Normal mode: read the date from DOM (now updated after await)
+                        const dateEl = document.getElementById('date');
+                        if (dateEl) {
+                            const euDate = dateEl.textContent.trim();
+                            const parts = euDate.split('.');
+                            if (parts.length === 3) {
+                                const [day, month, year] = parts;
+                                date = `${year}-${month}-${day}`;
+                            } else {
+                                date = new Date().toISOString().slice(0, 10);
+                            }
+                        } else {
+                            date = new Date().toISOString().slice(0, 10);
+                        }
+                    }
+                    const newCacheKey = `novaCache_${loc}_${date}`;
+                    console.log('[Nova updateDataForSim] newCacheKey:', newCacheKey);
+                    sessionStorage.removeItem(newCacheKey);
                     resetRanking();
                     updateNovaButtonState();
                 }
@@ -358,7 +392,8 @@
                 applySimState(isChecked, simDateInput.value);
                 // Only trigger data fetch if a date was already set (e.g., from previous session).
                 // If we just auto-filled today's date, wait for the user to set their desired date.
-                if (hadExistingDate) {
+                // Always trigger updateDataForSim when turning sim mode OFF (effective date changes)
+                if (hadExistingDate || !isChecked) {
                     updateDataForSim();
                 }
             });
@@ -1583,6 +1618,7 @@
 
         console.log('[Nova updateNovaButtonState] Key:', cacheKey);
         console.log('[Nova updateNovaButtonState] Entry exists:', !!cacheData);
+        console.log('[Nova updateNovaButtonState] hasValidCache:', hasValidCache);
         console.log('[Nova updateNovaButtonState] location-select.value:', document.getElementById('location-select')?.value);
         console.log('[Nova updateNovaButtonState] selectedLocation sessionStorage:', sessionStorage.getItem('selectedLocation'));
 
@@ -2300,7 +2336,7 @@
             if (effectiveDate) {
                 url += `&sim_date=${effectiveDate}`;
             }
-            fetch(url)
+            return fetch(url)
             .then(response => response.json())
             .then(data => {
               document.getElementById('dawn').textContent = data.astronomical_dawn;
