@@ -3320,6 +3320,8 @@
             if (reaskLink) {
                 reaskLink.addEventListener('click', function(e) {
                     e.preventDefault();
+                    // Reset ranking state to clean before re-asking
+                    resetRanking();
                     // Clear cache and trigger askNova
                     sessionStorage.removeItem(getNovaCacheKey());
                     askNova();

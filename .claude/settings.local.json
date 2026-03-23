@@ -108,7 +108,8 @@
       "Bash(npx --yes typescript@5/bin/tsc:*)",
       "Bash(git -C /Users/antongutscher/Documents/NovaApp/nova_DSO_tracker add static/js/dashboard.js)",
       "Bash(git -C /Users/antongutscher/Documents/NovaApp/nova_DSO_tracker commit -m \"$\\(cat <<''EOF''\nfix\\(dashboard\\): re-apply filters after nova ranking completes\nEOF\n\\)\")",
-      "Bash(git -C /Users/antongutscher/Documents/NovaApp/nova_DSO_tracker log --oneline -3)"
+      "Bash(git -C /Users/antongutscher/Documents/NovaApp/nova_DSO_tracker log --oneline -3)",
+      "Bash(git revert:*)"
     ]
   }
 }
