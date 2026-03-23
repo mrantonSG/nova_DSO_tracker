@@ -123,6 +123,7 @@
         window.latestDSOData = []; // <--- EXPOSE DATA GLOBALLY for Inspiration Tab
         let currentOutlookSort = { columnKey: 'date', ascending: true };
         let novaRankMap = {}; // <--- NOVA RANKING PERSISTENCE - stores object names (uppercase) to rank data
+        let novaRankMapCacheKey = null; // <--- Track the cache key for the current novaRankMap (for date/location change detection)
 
         /**
          * Get the cache key for Nova ranking based on location + date
@@ -177,6 +178,7 @@
             try {
                 const cache = JSON.parse(_savedCache);
                 novaRankMap = cache.rankMap || {};
+                novaRankMapCacheKey = cacheKey; // Track the cache key for this ranking
             } catch(e) { novaRankMap = {}; }
         }
 
@@ -332,6 +334,13 @@
                 outlookDataLoaded = false;
                 fetchData();
                 fetchSunEvents();
+
+                // Fix 2: Reset Nova ranking if simulation date changed
+                const newCacheKey = getNovaCacheKey();
+                if (novaRankMapCacheKey && novaRankMapCacheKey !== newCacheKey) {
+                    resetRanking();
+                    updateNovaButtonState();
+                }
             }
     
             simModeToggle.addEventListener('change', function() {
@@ -1389,6 +1398,7 @@
             };
             const writtenKey = getNovaCacheKey();
             sessionStorage.setItem(writtenKey, JSON.stringify(cacheData));
+            novaRankMapCacheKey = writtenKey; // Track the cache key for this ranking
             console.log('[Nova Cache Write] Key:', writtenKey);
             console.log('[Nova Cache Write] Entry exists after write:', !!sessionStorage.getItem(writtenKey));
             console.log('[Nova Cache Write] location-select.value:', document.getElementById('location-select')?.value);
@@ -1405,9 +1415,6 @@
             updateRemoveFiltersButtonVisibility();
             askNovaBtn.classList.add('active');
             document.getElementById('data-table').classList.add('nova-active');
-
-            // Update Nova button state after fresh AI call
-            updateNovaButtonState();
 
         } catch (error) {
             console.error('Error asking Nova:', error);
@@ -1441,6 +1448,8 @@
             if (activeClass) {
                 askNovaBtn.classList.add('active');
             }
+            // Update Nova button state after fresh AI call (must be after innerHTML reset)
+            updateNovaButtonState();
         }
     }
 
@@ -1525,8 +1534,9 @@
             localStorage.removeItem("dso_filter_col_key_Object");
         }
 
-        // Clear module-level novaRankMap
+        // Clear module-level novaRankMap and its cache key tracker
         novaRankMap = {};
+        novaRankMapCacheKey = null;
 
         // Re-render with original full dataset (if available)
         if (originalTableData && originalTableData.length > 0) {
@@ -1622,6 +1632,7 @@
 
             // Populate novaRankMap from cache
             novaRankMap = cache.rankMap;
+            novaRankMapCacheKey = cacheKey; // Track the cache key for this ranking
 
             // Save original data before applying Nova ranking (for resetRanking)
             originalTableData = [...(window.latestDSOData || [])];
