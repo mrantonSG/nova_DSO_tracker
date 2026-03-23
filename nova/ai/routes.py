@@ -910,7 +910,6 @@ def get_best_objects():
 
     # Compress objects for AI prompt
     compressed_objects = compress_objects_for_prompt(objects_for_prompt)
-    logger.warning(f"[AI DEBUG] Compressed payload ({len(compressed_objects)} chars):\n{compressed_objects[:500]}")
 
     try:
         # Build single AI ranking prompt with compressed format
