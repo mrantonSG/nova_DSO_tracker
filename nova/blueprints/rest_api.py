@@ -36,8 +36,16 @@ from nova.models import (
     UiPref,
     Role,
     Permission,
+    BlogPost,
+    BlogImage,
+    BlogComment,
 )
-from nova.config import SINGLE_USER_MODE
+from nova.config import SINGLE_USER_MODE, BLOG_UPLOAD_FOLDER
+from nova.helpers import (
+    _save_blog_image,
+    _delete_blog_image_files,
+    BLOG_COMMENT_MAX_LEN,
+)
 
 rest_api_bp = Blueprint("rest_api", __name__)
 
@@ -337,6 +345,71 @@ def _serialize_ui_pref(p):
         "id": p.id,
         "json_blob": p.json_blob,
     }
+
+
+# ──────────────────────────────────────────────────────────
+#  Blog Serializers
+# ──────────────────────────────────────────────────────────
+
+
+def _serialize_blog_image(img, user_id: int) -> dict:
+    """Serialize a BlogImage to dict with constructed URLs."""
+    return {
+        "id": img.id,
+        "post_id": img.post_id,
+        "filename": img.filename,
+        "thumb_filename": img.thumb_filename,
+        "caption": img.caption,
+        "display_order": img.display_order,
+        "image_url": f"/blog/uploads/{user_id}/{img.filename}",
+        "thumb_url": f"/blog/uploads/{user_id}/{img.thumb_filename}"
+        if img.thumb_filename
+        else None,
+    }
+
+
+def _serialize_blog_comment(c) -> dict:
+    """Serialize a BlogComment to dict with username."""
+    return {
+        "id": c.id,
+        "post_id": c.post_id,
+        "user_id": c.user_id,
+        "username": c.user.username if c.user else None,
+        "content": c.content,
+        "created_at": c.created_at.isoformat() if c.created_at else None,
+    }
+
+
+def _serialize_blog_post(post, include_full: bool = False) -> dict:
+    """
+    Serialize a BlogPost to dict.
+
+    Args:
+        post: BlogPost instance (with images and optionally comments loaded)
+        include_full: If True, include comments; if False, omit comments (for list view)
+    """
+    base = {
+        "id": post.id,
+        "user_id": post.user_id,
+        "username": post.user.username if post.user else None,
+        "title": post.title,
+        "content": post.content,
+        "created_at": post.created_at.isoformat() if post.created_at else None,
+        "updated_at": post.updated_at.isoformat() if post.updated_at else None,
+        "images": [_serialize_blog_image(img, post.user_id) for img in post.images],
+    }
+    if include_full:
+        base["comments"] = [_serialize_blog_comment(c) for c in post.comments]
+    return base
+
+
+def _apply_blog_post_fields(post, data: dict) -> None:
+    """Apply title and content from data dict to BlogPost (partial updates OK)."""
+    if "title" in data:
+        title = str(data["title"])[:256]  # enforce max length
+        post.title = title
+    if "content" in data:
+        post.content = str(data["content"])
 
 
 # ──────────────────────────────────────────────────────────
@@ -2711,6 +2784,526 @@ def admin_revoke_role_from_user(user_id, role_id):
                 "roles": [_serialize_role(r) for r in user.roles],
             }
         )
+    except Exception as e:
+        db.rollback()
+        return _err(str(e), 500)
+    finally:
+        db.remove()
+
+
+# ──────────────────────────────────────────────────────────
+#  BLOG POSTS  (BlogPost CRUD)
+# ──────────────────────────────────────────────────────────
+
+
+@rest_api_bp.route("/blog/posts", methods=["GET"])
+@api_key_required
+@api_permission_required("blog.view")
+def api_list_blog_posts():
+    """List all blog posts with pagination and optional search."""
+    db = _db()
+    try:
+        q = (
+            db.query(BlogPost)
+            .options(
+                selectinload(BlogPost.images),
+                selectinload(BlogPost.user),
+            )
+            .order_by(BlogPost.created_at.desc())
+        )
+
+        # Optional search filter (title ilike)
+        search = request.args.get("search")
+        if search:
+            pattern = f"%{search}%"
+            q = q.filter(BlogPost.title.ilike(pattern))
+
+        items, meta = _paginate(q)
+        return _ok([_serialize_blog_post(p, include_full=False) for p in items], meta)
+    finally:
+        db.remove()
+
+
+@rest_api_bp.route("/blog/posts/<int:post_id>", methods=["GET"])
+@api_key_required
+@api_permission_required("blog.view")
+def api_get_blog_post(post_id):
+    """Get a single blog post with images and comments."""
+    db = _db()
+    try:
+        post = (
+            db.query(BlogPost)
+            .options(
+                selectinload(BlogPost.images),
+                selectinload(BlogPost.comments).selectinload(BlogComment.user),
+                selectinload(BlogPost.user),
+            )
+            .filter(BlogPost.id == post_id)
+            .first()
+        )
+        if not post:
+            return _err("Blog post not found", 404)
+
+        return _ok(_serialize_blog_post(post, include_full=True))
+    finally:
+        db.remove()
+
+
+@rest_api_bp.route("/blog/posts", methods=["POST"])
+@api_key_required
+@api_permission_required("blog.create")
+def api_create_blog_post():
+    """
+    Create a new blog post.
+
+    Supports both JSON and multipart/form-data:
+    - JSON: {"title": "...", "content": "..."}
+    - Multipart: title, content in form fields; images[] as file uploads
+    """
+    db = _db()
+    try:
+        # Detect content type
+        is_multipart = (
+            request.content_type and "multipart/form-data" in request.content_type
+        )
+
+        if is_multipart:
+            title = (request.form.get("title") or "").strip()
+            content = request.form.get("content") or ""
+            captions = request.form.getlist("captions[]")
+            files = request.files.getlist("images[]")
+        else:
+            data = request.get_json(silent=True) or {}
+            title = (data.get("title") or "").strip()
+            content = data.get("content") or ""
+            captions = []
+            files = []
+
+        # Validation
+        if not title:
+            return _err("title is required", 400)
+        if len(title) > 256:
+            return _err("title must be 256 characters or fewer", 400)
+
+        # Create post
+        post = BlogPost(
+            user_id=_user_id(),
+            title=title,
+            content=content,
+        )
+        db.add(post)
+        db.flush()  # get post.id for image association
+
+        # Handle image uploads (multipart only)
+        for i, file in enumerate(files):
+            caption = captions[i] if i < len(captions) else ""
+            img = _save_blog_image(file, _user_id(), post.id, i, caption)
+            if img:
+                db.add(img)
+
+        db.commit()
+        db.refresh(post)
+
+        # Re-query with eager loading for response
+        post = (
+            db.query(BlogPost)
+            .options(selectinload(BlogPost.images), selectinload(BlogPost.user))
+            .filter(BlogPost.id == post.id)
+            .first()
+        )
+
+        return _ok(_serialize_blog_post(post, include_full=False), status=201)
+    except Exception as e:
+        db.rollback()
+        return _err(str(e), 500)
+    finally:
+        db.remove()
+
+
+@rest_api_bp.route("/blog/posts/<int:post_id>", methods=["PUT"])
+@api_key_required
+@api_permission_required("blog.edit")
+def api_update_blog_post(post_id):
+    """Update an existing blog post (owner or admin only)."""
+    db = _db()
+    try:
+        post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
+        if not post:
+            return _err("Blog post not found", 404)
+
+        # Ownership check
+        if (
+            not SINGLE_USER_MODE
+            and post.user_id != _user_id()
+            and not g.db_user.is_admin
+        ):
+            return _err("Forbidden", 403)
+
+        data = request.get_json(silent=True) or {}
+
+        # Validate title length if provided
+        if "title" in data:
+            title = str(data["title"])
+            if len(title) > 256:
+                return _err("title must be 256 characters or fewer", 400)
+
+        _apply_blog_post_fields(post, data)
+        post.updated_at = datetime.utcnow()
+
+        db.commit()
+        db.refresh(post)
+
+        # Re-query with eager loading
+        post = (
+            db.query(BlogPost)
+            .options(selectinload(BlogPost.images), selectinload(BlogPost.user))
+            .filter(BlogPost.id == post.id)
+            .first()
+        )
+
+        return _ok(_serialize_blog_post(post, include_full=False))
+    except Exception as e:
+        db.rollback()
+        return _err(str(e), 500)
+    finally:
+        db.remove()
+
+
+@rest_api_bp.route("/blog/posts/<int:post_id>", methods=["DELETE"])
+@api_key_required
+@api_permission_required("blog.delete")
+def api_delete_blog_post(post_id):
+    """Delete a blog post (owner or admin only). Also deletes image files from disk."""
+    db = _db()
+    try:
+        post = (
+            db.query(BlogPost)
+            .options(selectinload(BlogPost.images))
+            .filter(BlogPost.id == post_id)
+            .first()
+        )
+        if not post:
+            return _err("Blog post not found", 404)
+
+        # Ownership check
+        if (
+            not SINGLE_USER_MODE
+            and post.user_id != _user_id()
+            and not g.db_user.is_admin
+        ):
+            return _err("Forbidden", 403)
+
+        # Delete image files from disk before removing from DB
+        for img in post.images:
+            _delete_blog_image_files(img, post.user_id)
+
+        db.delete(post)  # cascade handles BlogImage and BlogComment rows
+        db.commit()
+
+        return _ok({"deleted": True})
+    except Exception as e:
+        db.rollback()
+        return _err(str(e), 500)
+    finally:
+        db.remove()
+
+
+# ──────────────────────────────────────────────────────────
+#  BLOG IMAGES  (Image management for posts)
+# ──────────────────────────────────────────────────────────
+
+
+@rest_api_bp.route("/blog/posts/<int:post_id>/images", methods=["POST"])
+@api_key_required
+@api_permission_required("blog.edit")
+def api_add_blog_images(post_id):
+    """Add images to an existing blog post (owner or admin only)."""
+    db = _db()
+    try:
+        post = (
+            db.query(BlogPost)
+            .options(selectinload(BlogPost.images))
+            .filter(BlogPost.id == post_id)
+            .first()
+        )
+        if not post:
+            return _err("Blog post not found", 404)
+
+        # Ownership check
+        if (
+            not SINGLE_USER_MODE
+            and post.user_id != _user_id()
+            and not g.db_user.is_admin
+        ):
+            return _err("Forbidden", 403)
+
+        files = request.files.getlist("images[]")
+        captions = request.form.getlist("captions[]")
+
+        if not files:
+            return _err("No images provided", 400)
+
+        # Calculate starting display_order
+        max_order = max((img.display_order for img in post.images), default=-1)
+
+        new_images = []
+        for i, file in enumerate(files):
+            order = max_order + 1 + i
+            caption = captions[i] if i < len(captions) else ""
+            img = _save_blog_image(file, post.user_id, post.id, order, caption)
+            if img:
+                db.add(img)
+                new_images.append(img)
+
+        if not new_images:
+            return _err("No valid images could be saved", 400)
+
+        db.commit()
+        for img in new_images:
+            db.refresh(img)
+
+        return _ok(
+            [_serialize_blog_image(img, post.user_id) for img in new_images],
+            status=201,
+        )
+    except Exception as e:
+        db.rollback()
+        return _err(str(e), 500)
+    finally:
+        db.remove()
+
+
+@rest_api_bp.route(
+    "/blog/posts/<int:post_id>/images/<int:image_id>", methods=["DELETE"]
+)
+@api_key_required
+@api_permission_required("blog.edit")
+def api_delete_blog_image(post_id, image_id):
+    """Delete a single image from a blog post (owner or admin only)."""
+    db = _db()
+    try:
+        post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
+        if not post:
+            return _err("Blog post not found", 404)
+
+        # Ownership check
+        if (
+            not SINGLE_USER_MODE
+            and post.user_id != _user_id()
+            and not g.db_user.is_admin
+        ):
+            return _err("Forbidden", 403)
+
+        image = db.query(BlogImage).filter(BlogImage.id == image_id).first()
+        if not image:
+            return _err("Image not found", 404)
+
+        # Verify image belongs to this post
+        if image.post_id != post_id:
+            return _err("Image does not belong to this post", 400)
+
+        # Delete files from disk
+        _delete_blog_image_files(image, post.user_id)
+
+        db.delete(image)
+        db.commit()
+
+        return _ok({"deleted": True})
+    except Exception as e:
+        db.rollback()
+        return _err(str(e), 500)
+    finally:
+        db.remove()
+
+
+@rest_api_bp.route("/blog/posts/<int:post_id>/images/reorder", methods=["PUT"])
+@api_key_required
+@api_permission_required("blog.edit")
+def api_reorder_blog_images(post_id):
+    """
+    Reorder images for a blog post.
+
+    Body: [{"id": 3, "display_order": 0}, {"id": 7, "display_order": 1}, ...]
+    """
+    db = _db()
+    try:
+        post = (
+            db.query(BlogPost)
+            .options(selectinload(BlogPost.images))
+            .filter(BlogPost.id == post_id)
+            .first()
+        )
+        if not post:
+            return _err("Blog post not found", 404)
+
+        # Ownership check
+        if (
+            not SINGLE_USER_MODE
+            and post.user_id != _user_id()
+            and not g.db_user.is_admin
+        ):
+            return _err("Forbidden", 403)
+
+        data = request.get_json(silent=True)
+        if not data or not isinstance(data, list):
+            return _err("Body must be a list of {id, display_order} objects", 400)
+
+        # Build order map and validate
+        order_map = {}
+        post_image_ids = {img.id for img in post.images}
+
+        for item in data:
+            img_id = item.get("id")
+            display_order = item.get("display_order")
+
+            if img_id is None or display_order is None:
+                return _err("Each item must have 'id' and 'display_order'", 400)
+
+            if img_id not in post_image_ids:
+                return _err(f"Image ID {img_id} does not belong to this post", 400)
+
+            order_map[img_id] = display_order
+
+        # Apply new order
+        for img in post.images:
+            if img.id in order_map:
+                img.display_order = order_map[img.id]
+
+        db.commit()
+
+        # Re-fetch with updated order
+        post = (
+            db.query(BlogPost)
+            .options(selectinload(BlogPost.images))
+            .filter(BlogPost.id == post_id)
+            .first()
+        )
+
+        return _ok([_serialize_blog_image(img, post.user_id) for img in post.images])
+    except Exception as e:
+        db.rollback()
+        return _err(str(e), 500)
+    finally:
+        db.remove()
+
+
+# ──────────────────────────────────────────────────────────
+#  BLOG COMMENTS  (Comment CRUD for posts)
+# ──────────────────────────────────────────────────────────
+
+
+@rest_api_bp.route("/blog/posts/<int:post_id>/comments", methods=["GET"])
+@api_key_required
+@api_permission_required("blog.view")
+def api_list_blog_comments(post_id):
+    """List comments for a blog post with pagination."""
+    db = _db()
+    try:
+        post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
+        if not post:
+            return _err("Blog post not found", 404)
+
+        q = (
+            db.query(BlogComment)
+            .options(selectinload(BlogComment.user))
+            .filter(BlogComment.post_id == post_id)
+            .order_by(BlogComment.created_at.asc())
+        )
+
+        items, meta = _paginate(q)
+        return _ok([_serialize_blog_comment(c) for c in items], meta)
+    finally:
+        db.remove()
+
+
+@rest_api_bp.route("/blog/posts/<int:post_id>/comments", methods=["POST"])
+@api_key_required
+@api_permission_required("blog.comment")
+def api_create_blog_comment(post_id):
+    """Add a comment to a blog post."""
+    db = _db()
+    try:
+        post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
+        if not post:
+            return _err("Blog post not found", 404)
+
+        data = request.get_json(silent=True) or {}
+        content = (data.get("content") or "").strip()
+
+        if not content:
+            return _err("content is required", 400)
+        if len(content) > BLOG_COMMENT_MAX_LEN:
+            return _err(
+                f"content must be {BLOG_COMMENT_MAX_LEN} characters or fewer", 400
+            )
+
+        comment = BlogComment(
+            post_id=post_id,
+            user_id=_user_id(),
+            content=content,
+        )
+        db.add(comment)
+        db.commit()
+        db.refresh(comment)
+
+        # Re-query with user for username
+        comment = (
+            db.query(BlogComment)
+            .options(selectinload(BlogComment.user))
+            .filter(BlogComment.id == comment.id)
+            .first()
+        )
+
+        return _ok(_serialize_blog_comment(comment), status=201)
+    except Exception as e:
+        db.rollback()
+        return _err(str(e), 500)
+    finally:
+        db.remove()
+
+
+@rest_api_bp.route(
+    "/blog/posts/<int:post_id>/comments/<int:comment_id>", methods=["DELETE"]
+)
+@api_key_required
+@api_permission_required("blog.comment")
+def api_delete_blog_comment(post_id, comment_id):
+    """
+    Delete a comment from a blog post.
+
+    Allowed if:
+    - Comment author (user_id matches)
+    - Post owner (post.user_id matches)
+    - Admin
+    """
+    db = _db()
+    try:
+        post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
+        if not post:
+            return _err("Blog post not found", 404)
+
+        comment = db.query(BlogComment).filter(BlogComment.id == comment_id).first()
+        if not comment:
+            return _err("Comment not found", 404)
+
+        # Verify comment belongs to this post
+        if comment.post_id != post_id:
+            return _err("Comment does not belong to this post", 400)
+
+        # Three-way ownership check
+        is_comment_author = comment.user_id == _user_id()
+        is_post_owner = post.user_id == _user_id()
+        is_admin = g.db_user.is_admin if hasattr(g.db_user, "is_admin") else False
+
+        if not SINGLE_USER_MODE and not (
+            is_comment_author or is_post_owner or is_admin
+        ):
+            return _err("Forbidden", 403)
+
+        db.delete(comment)
+        db.commit()
+
+        return _ok({"deleted": True})
     except Exception as e:
         db.rollback()
         return _err(str(e), 500)
