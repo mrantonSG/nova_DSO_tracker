@@ -123,63 +123,11 @@
         window.latestDSOData = []; // <--- EXPOSE DATA GLOBALLY for Inspiration Tab
         let currentOutlookSort = { columnKey: 'date', ascending: true };
         let novaRankMap = {}; // <--- NOVA RANKING PERSISTENCE - stores object names (uppercase) to rank data
-        let novaRankMapCacheKey = null; // <--- Track the cache key for the current novaRankMap (for date/location change detection)
 
-        /**
-         * Get the cache key for Nova ranking based on location + date
-         * @returns {string} Cache key in format: novaCache_${location}_${date}
-         */
-        function getNovaCacheKey() {
-            const selectVal = document.getElementById('location-select')?.value;
-            const locNameVal = document.getElementById('location-name')?.textContent?.trim();
-            const loc = selectVal || locNameVal || 'unknown';
-
-            // Get the effective date: simulation date if active, otherwise dashboard display date
-            let date;
-            const simModeOn = document.getElementById('sim-mode-toggle')?.checked;
-            const simDateVal = document.getElementById('sim-date-input')?.value;
-
-            if (simModeOn && simDateVal) {
-                // Simulation mode: use the sim-date-input value (already in YYYY-MM-DD format)
-                date = simDateVal;
-            } else {
-                // Normal mode: try to read from the dashboard date display
-                const dateEl = document.getElementById('date');
-                if (dateEl) {
-                    // The date is displayed in European format (DD.MM.YYYY), need to convert to ISO (YYYY-MM-DD)
-                    const euDate = dateEl.textContent.trim();
-                    const parts = euDate.split('.');
-                    if (parts.length === 3) {
-                        const [day, month, year] = parts;
-                        date = `${year}-${month}-${day}`;
-                    } else {
-                        // Failed to parse, fall back to current date
-                        date = new Date().toISOString().slice(0, 10);
-                    }
-                } else {
-                    // Element not found, fall back to current date
-                    date = new Date().toISOString().slice(0, 10);
-                }
-            }
-
-            console.log('[Nova getNovaCacheKey] select.value:', selectVal);
-            console.log('[Nova getNovaCacheKey] location-name.textContent:', locNameVal);
-            console.log('[Nova getNovaCacheKey] Final location:', loc);
-            console.log('[Nova getNovaCacheKey] Date:', date);
-            console.log('[Nova getNovaCacheKey] Sim mode:', simModeOn);
-            console.log('[Nova getNovaCacheKey] Sim date input:', simDateVal);
-            return `novaCache_${loc}_${date}`;
-        }
-
-        // Restore novaRankMap from location+date keyed sessionStorage on page load
-        const cacheKey = getNovaCacheKey();
-        const _savedCache = sessionStorage.getItem(cacheKey);
-        if (_savedCache) {
-            try {
-                const cache = JSON.parse(_savedCache);
-                novaRankMap = cache.rankMap || {};
-                novaRankMapCacheKey = cacheKey; // Track the cache key for this ranking
-            } catch(e) { novaRankMap = {}; }
+        // Restore novaRankMap from sessionStorage on page load
+        const _savedRankMap = sessionStorage.getItem('novaRankMap');
+        if (_savedRankMap) {
+            try { novaRankMap = JSON.parse(_savedRankMap); } catch(e) { novaRankMap = {}; }
         }
 
         const outlookColumnConfig = {
@@ -321,7 +269,7 @@
                 }
             }
     
-            async function updateDataForSim() {
+            function updateDataForSim() {
                 const currentSelectedLocation = sessionStorage.getItem('selectedLocation');
                 // Clear current cache keys to force fresh calculation with the simulated date
                 for (let i = 0; i < sessionStorage.length; i++) {
@@ -333,49 +281,7 @@
                 // Reset outlook flag so it re-calculates for the new reference date
                 outlookDataLoaded = false;
                 fetchData();
-                // Await fetchSunEvents to ensure DOM date element is updated before computing cache key
-                await fetchSunEvents();
-
-                // Fix 2: Reset Nova ranking if simulation date changed
-                const simModeOn = document.getElementById('sim-mode-toggle')?.checked;
-                const simDateVal = document.getElementById('sim-date-input')?.value;
-                console.log('[Nova updateDataForSim] simModeOn:', simModeOn);
-                console.log('[Nova updateDataForSim] simDateVal:', simDateVal);
-                console.log('[Nova updateDataForSim] novaRankMap entries:', Object.keys(novaRankMap).length);
-
-                if (Object.keys(novaRankMap).length > 0) {
-                    // There's an active ranking, compute the cache key for the new date
-                    // and clear it so updateNovaButtonState() won't find it
-                    const selectVal = document.getElementById('location-select')?.value;
-                    const locNameVal = document.getElementById('location-name')?.textContent?.trim();
-                    const loc = selectVal || locNameVal || 'unknown';
-                    let date;
-                    if (simModeOn && simDateVal) {
-                        // Simulation mode: use the sim-date-input value (already updated)
-                        date = simDateVal;
-                    } else {
-                        // Normal mode: read the date from DOM (now updated after await)
-                        const dateEl = document.getElementById('date');
-                        if (dateEl) {
-                            const euDate = dateEl.textContent.trim();
-                            const parts = euDate.split('.');
-                            if (parts.length === 3) {
-                                const [day, month, year] = parts;
-                                date = `${year}-${month}-${day}`;
-                            } else {
-                                date = new Date().toISOString().slice(0, 10);
-                            }
-                        } else {
-                            date = new Date().toISOString().slice(0, 10);
-                        }
-                    }
-                    const newCacheKey = `novaCache_${loc}_${date}`;
-                    console.log('[Nova updateDataForSim] newCacheKey:', newCacheKey);
-                    sessionStorage.removeItem(newCacheKey);
-                    resetRanking();
-                }
-                // Always update Nova button state when simulation date changes
-                updateNovaButtonState();
+                fetchSunEvents();
             }
     
             simModeToggle.addEventListener('change', function() {
@@ -393,8 +299,7 @@
                 applySimState(isChecked, simDateInput.value);
                 // Only trigger data fetch if a date was already set (e.g., from previous session).
                 // If we just auto-filled today's date, wait for the user to set their desired date.
-                // Always trigger updateDataForSim when turning sim mode OFF (effective date changes)
-                if (hadExistingDate || !isChecked) {
+                if (hadExistingDate) {
                     updateDataForSim();
                 }
             });
@@ -1311,9 +1216,6 @@
 
         // Get current location and sim date
         const locationName = sessionStorage.getItem('selectedLocation') || document.getElementById('location-select')?.value;
-        console.log('[Nova askNova] Using locationName:', locationName);
-        console.log('[Nova askNova] selectedLocation sessionStorage:', sessionStorage.getItem('selectedLocation'));
-        console.log('[Nova askNova] location-select.value:', document.getElementById('location-select')?.value);
         const simModeOn = document.getElementById('sim-mode-toggle')?.checked;
         const simDateVal = document.getElementById('sim-date-input')?.value;
         const effectiveDate = simModeOn && simDateVal ? simDateVal : null;
@@ -1402,6 +1304,9 @@
             console.log('[Nova] AI response received');
             const rankedObjects = result.ranked_objects || [];
 
+            // Save original data before applying Nova ranking (for resetRanking)
+            originalTableData = [...(window.latestDSOData || [])];
+
             // Populate module-level novaRankMap (case-insensitive, stored as uppercase)
             novaRankMap = {};
             rankedObjects.forEach(ranked => {
@@ -1413,32 +1318,9 @@
                 };
             });
 
-            // Guard nova-active class behind successful parse — only proceed if novaRankMap has at least one entry
-            const hasRankedEntries = Object.keys(novaRankMap).length > 0;
-            if (!hasRankedEntries) {
-                console.warn('[Nova] No ranked objects received or parsing failed');
-                resetRanking();
-                updateRemoveFiltersButtonVisibility();
-                errorDiv.textContent = 'Nova ranking failed — please try again';
-                errorDiv.style.display = 'block';
-                return;
-            }
-
-            // Save original data before applying Nova ranking (for resetRanking)
-            originalTableData = [...(window.latestDSOData || [])];
-
-            // Persist novaRankMap to location+date keyed sessionStorage for navigation persistence
-            const cacheData = {
-                rankMap: novaRankMap,
-                size: originalTableData.length
-            };
-            const writtenKey = getNovaCacheKey();
-            sessionStorage.setItem(writtenKey, JSON.stringify(cacheData));
-            novaRankMapCacheKey = writtenKey; // Track the cache key for this ranking
-            console.log('[Nova Cache Write] Key:', writtenKey);
-            console.log('[Nova Cache Write] Entry exists after write:', !!sessionStorage.getItem(writtenKey));
-            console.log('[Nova Cache Write] location-select.value:', document.getElementById('location-select')?.value);
-            console.log('[Nova Cache Write] selectedLocation sessionStorage:', sessionStorage.getItem('selectedLocation'));
+            // Persist novaRankMap to sessionStorage for navigation persistence
+            sessionStorage.setItem('novaRankMap', JSON.stringify(novaRankMap));
+            sessionStorage.setItem('novaRankMapSize', originalTableData.length);
 
             // Re-render with ranked data (data-level sorting, not DOM manipulation)
             const sortedData = applyNovaRankSorting(window.latestDSOData);
@@ -1452,9 +1334,6 @@
             askNovaBtn.classList.add('active');
             document.getElementById('data-table').classList.add('nova-active');
 
-            // Hide unranked rows
-            applyNovaVisibility();
-
         } catch (error) {
             console.error('Error asking Nova:', error);
             if (error.name === 'AbortError') {
@@ -1463,18 +1342,26 @@
                 errorDiv.textContent = window.t ? window.t('error_ask_nova') : error.message;
             }
             errorDiv.style.display = 'block';
-            // Show Remove Filters button on failure path
-            updateRemoveFiltersButtonVisibility();
         } finally {
             // Stop message animation
             clearInterval(msgInterval);
 
-            // Reset button state (remove loading)
+            // Reset button state (remove loading, restore to default or active state)
             askNovaBtn.disabled = false;
             askNovaController = null;
             askNovaTimeoutId = null;
-            // Update Nova button state
-            updateNovaButtonState();
+            // Use innerHTML to preserve the SVG icon
+            const activeClass = askNovaBtn.classList.contains('active') ? ' active' : '';
+            askNovaBtn.innerHTML = `
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+                    <path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/>
+                </svg>
+                ${window.t ? window.t('ask_nova') : 'Ask Nova'}
+            `;
+            // Restore the active class if it was added (the innerHTML replacement removes all attributes)
+            if (activeClass) {
+                askNovaBtn.classList.add('active');
+            }
         }
     }
 
@@ -1549,31 +1436,6 @@
     }
 
     /**
-     * Apply Nova visibility: hide unranked rows when nova-active is present
-     * When nova-active class is on #data-table, only show rows that have a rank entry
-     */
-    function applyNovaVisibility() {
-        const dataTable = document.getElementById('data-table');
-        if (!dataTable || !dataTable.classList.contains('nova-active')) {
-            return; // Nova not active, do nothing
-        }
-
-        const tbody = document.getElementById('data-body');
-        if (!tbody) return;
-
-        const rows = tbody.querySelectorAll('tr');
-        rows.forEach(row => {
-            const novaRankCell = row.querySelector('.col-nova-rank');
-            // Hide rows with no rank (empty novaRankCell or textContent is '')
-            if (!novaRankCell || novaRankCell.textContent.trim() === '') {
-                row.style.display = 'none';
-            } else {
-                row.style.display = '';
-            }
-        });
-    }
-
-    /**
      * Reset table to original sorting and remove rank badges
      */
     function resetRanking() {
@@ -1584,18 +1446,12 @@
             localStorage.removeItem("dso_filter_col_key_Object");
         }
 
-        // Clear module-level novaRankMap and its cache key tracker
+        // Clear module-level novaRankMap
         novaRankMap = {};
-        novaRankMapCacheKey = null;
 
-        // Restore all rows to visible before re-rendering (in case nova-active was hiding some)
-        const tbody = document.getElementById('data-body');
-        if (tbody) {
-            const rows = tbody.querySelectorAll('tr');
-            rows.forEach(row => {
-                row.style.display = '';
-            });
-        }
+        // Clear sessionStorage persistence
+        sessionStorage.removeItem('novaRankMap');
+        sessionStorage.removeItem('novaRankMapSize');
 
         // Re-render with original full dataset (if available)
         if (originalTableData && originalTableData.length > 0) {
@@ -1620,115 +1476,6 @@
         const errorDiv = document.getElementById('ask-nova-error');
         if (errorDiv) {
             errorDiv.style.display = 'none';
-        }
-
-        // Update button state
-        updateNovaButtonState();
-    }
-
-    /**
-     * Update Nova button state based on cache existence
-     * - No valid cache for today + location: Show "★ Ask Nova" button only
-     * - Valid cache exists: Change button label to "★ Restore Nova", add "↺ Re-ask" link
-     */
-    function updateNovaButtonState() {
-        const askNovaBtn = document.getElementById('ask-nova-btn');
-        const reaskLink = document.getElementById('nova-reask-link');
-        if (!askNovaBtn || !reaskLink) return;
-
-        const cacheKey = getNovaCacheKey();
-        const cacheData = sessionStorage.getItem(cacheKey);
-        const hasValidCache = !!cacheData;
-        const hasNovaRankings = Object.keys(novaRankMap).length > 0;
-
-        console.log('[Nova updateNovaButtonState] Key:', cacheKey);
-        console.log('[Nova updateNovaButtonState] Entry exists:', !!cacheData);
-        console.log('[Nova updateNovaButtonState] hasValidCache:', hasValidCache);
-        console.log('[Nova updateNovaButtonState] hasNovaRankings:', hasNovaRankings);
-        console.log('[Nova updateNovaButtonState] location-select.value:', document.getElementById('location-select')?.value);
-        console.log('[Nova updateNovaButtonState] selectedLocation sessionStorage:', sessionStorage.getItem('selectedLocation'));
-
-        if (hasValidCache) {
-            // Change button to "Restore Nova"
-            askNovaBtn.innerHTML = `
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
-                    <path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/>
-                </svg>
-                ${window.t ? window.t('restore_nova') : 'Restore Nova'}
-            `;
-            // Show re-ask link
-            reaskLink.style.display = 'inline';
-        } else {
-            // Show "Ask Nova" button only
-            askNovaBtn.innerHTML = `
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
-                    <path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/>
-                </svg>
-                ${window.t ? window.t('ask_nova') : 'Ask Nova'}
-            `;
-            // Hide re-ask link
-            reaskLink.style.display = 'none';
-        }
-
-        // Add active class if has valid cache or nova rankings
-        if (hasValidCache || hasNovaRankings) {
-            askNovaBtn.classList.add('active');
-        } else {
-            askNovaBtn.classList.remove('active');
-        }
-    }
-
-    /**
-     * Restore Nova ranking from cache
-     * Reads the cache entry, populates novaRankMap, calls rank-application + filter-reapply flow
-     * No AI call, no loading spinner
-     */
-    function restoreNovaFromCache() {
-        const cacheKey = getNovaCacheKey();
-        const cacheDataStr = sessionStorage.getItem(cacheKey);
-
-        if (!cacheDataStr) {
-            console.warn('[Nova] No cache found for key:', cacheKey);
-            return;
-        }
-
-        try {
-            const cache = JSON.parse(cacheDataStr);
-            if (!cache.rankMap) {
-                console.warn('[Nova] Invalid cache structure:', cache);
-                return;
-            }
-
-            // Populate novaRankMap from cache
-            novaRankMap = cache.rankMap;
-            novaRankMapCacheKey = cacheKey; // Track the cache key for this ranking
-
-            // Save original data before applying Nova ranking (for resetRanking)
-            originalTableData = [...(window.latestDSOData || [])];
-
-            // Re-render with ranked data (data-level sorting, not DOM manipulation)
-            const sortedData = applyNovaRankSorting(window.latestDSOData);
-            renderRows(sortedData);
-
-            // Re-apply all active column filters after ranking completes
-            filterTable();
-
-            // Show Remove Filters button and mark Ask Nova button as active
-            updateRemoveFiltersButtonVisibility();
-            const askNovaBtn = document.getElementById('ask-nova-btn');
-            if (askNovaBtn) {
-                askNovaBtn.classList.add('active');
-            }
-            document.getElementById('data-table').classList.add('nova-active');
-
-            // Hide unranked rows
-            applyNovaVisibility();
-
-            // Update button state
-            updateNovaButtonState();
-
-        } catch (e) {
-            console.error('[Nova] Error restoring from cache:', e);
         }
     }
 
@@ -1948,9 +1695,6 @@
 
         // 1. Apply filters (calculates window.currentFilteredData)
         filterTable();
-
-        // 2. Apply Nova visibility (hide unranked rows if nova-active)
-        applyNovaVisibility();
 
         tbody.dataset.loading = 'false';
         fetchSunEvents();
@@ -2375,7 +2119,7 @@
             if (effectiveDate) {
                 url += `&sim_date=${effectiveDate}`;
             }
-            return fetch(url)
+            fetch(url)
             .then(response => response.json())
             .then(data => {
               document.getElementById('dawn').textContent = data.astronomical_dawn;
@@ -2978,9 +2722,6 @@
            filterTable();
            filterJournalTable();
            updateRemoveFiltersButtonVisibility();
-
-           // Update Nova button state based on cached data
-           updateNovaButtonState();
         };
     
         function renderOutlookTable() {
@@ -3438,34 +3179,10 @@
 
             // --- Event listeners for "Ask Nova" feature ---
             const askNovaBtn = document.getElementById('ask-nova-btn');
-            const reaskLink = document.getElementById('nova-reask-link');
             console.log('ask-nova-btn found:', askNovaBtn);
 
             if (askNovaBtn) {
-                askNovaBtn.addEventListener('click', function(e) {
-                    // Check if button is in "Restore Nova" state (has cached data)
-                    const cacheKey = getNovaCacheKey();
-                    const hasValidCache = !!sessionStorage.getItem(cacheKey);
-
-                    if (hasValidCache) {
-                        // Restore from cache
-                        e.preventDefault();
-                        restoreNovaFromCache();
-                    } else {
-                        // Ask Nova (fresh AI call)
-                        askNova();
-                    }
-                });
-            }
-
-            if (reaskLink) {
-                reaskLink.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    // Clear cache and trigger fresh AI call
-                    const cacheKey = getNovaCacheKey();
-                    sessionStorage.removeItem(cacheKey);
-                    askNova();
-                });
+                askNovaBtn.addEventListener('click', askNova);
             }
 
             // --- Event delegation for data-action attributes ---
