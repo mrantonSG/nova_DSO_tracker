@@ -364,15 +364,8 @@ def generate_dso_notes():
             time_11pm_local = local_tz.localize(datetime.combine(date_obj, time(23, 0)))
             dt_utc = time_11pm_local.astimezone(pytz.utc)
 
-            # DEBUG: Print timezone conversion for 11 PM
-            print(f"[NOVA NOTES DEBUG] ===== TIMEZONE DEBUG: 11 PM calculation =====")
-            print(f"[NOVA NOTES DEBUG] Location timezone: {tz_name}")
-            print(f"[NOVA NOTES DEBUG] 11 PM local time: {time_11pm_local}")
-            print(f"[NOVA NOTES DEBUG] 11 PM UTC time: {dt_utc}")
-
             # Moon Phase
             moon_phase = round(ephem.Moon(dt_utc).phase, 1)
-            print(f"[NOVA NOTES DEBUG] Moon phase at 11 PM UTC: {moon_phase}")
 
             # Angular Separation between moon and target object at 11 PM local
             time_obj_sep = Time(dt_utc)
@@ -383,13 +376,11 @@ def generate_dso_notes():
 
             sep_val = obj_coord_sep.transform_to(frame_sep).separation(moon_coord_sep.transform_to(frame_sep)).deg
             moon_separation = round(sep_val)
-            print(f"[NOVA NOTES DEBUG] Moon separation at 11 PM UTC: {moon_separation}°")
 
             # Calculate target transit time first (needed for max altitude)
             target_transit_time = calculate_transit_time(
                 obj.ra_hours, obj.dec_deg, lat, lon, tz_name, date_str
             )
-            print(f"[NOVA NOTES DEBUG] Transit time (LOCAL from calculate_transit_time): {target_transit_time}")
 
             # Calculate max altitude using calculate_observable_duration_vectorized (same as dashboard)
             # This is the same value the dashboard shows in the MAX ALTITUDE column
@@ -399,8 +390,6 @@ def generate_dso_notes():
                 obj.ra_hours, obj.dec_deg, lat, lon, date_str, tz_name, altitude_threshold
             )
             target_altitude_deg = round(target_altitude_deg, 1) if target_altitude_deg is not None else None
-            print(f"[NOVA NOTES DEBUG] Target max altitude (from calculate_observable_duration_vectorized): {target_altitude_deg}°")
-            print(f"[NOVA NOTES DEBUG] ===== END TIMEZONE DEBUG =====")
         except Exception as e:
             logger.warning(f"Failed to calculate moon phase/separation/target data: {e}")
             moon_phase = None
@@ -499,13 +488,6 @@ def generate_dso_notes():
         )
 
         # Get AI response
-        # Temporary debug logging
-        print(f"[NOVA NOTES DEBUG] ========== PROMPT START ==========")
-        print(f"[NOVA NOTES DEBUG] System prompt:\n{prompt['system']}")
-        print(f"[NOVA NOTES DEBUG] ----------")
-        print(f"[NOVA NOTES DEBUG] User message:\n{prompt['user']}")
-        print(f"[NOVA NOTES DEBUG] ========== PROMPT END ==========")
-
         notes = get_ai_response(prompt["user"], system=prompt["system"], max_tokens=1500)
 
         # Convert plain text to HTML paragraphs for Trix editor
