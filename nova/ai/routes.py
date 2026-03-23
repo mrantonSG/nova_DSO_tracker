@@ -488,7 +488,7 @@ def generate_dso_notes():
         )
 
         # Get AI response
-        notes = get_ai_response(prompt["user"], system=prompt["system"], max_tokens=1500)
+        notes = get_ai_response(prompt["user"], system=prompt["system"], max_tokens=2500)
 
         # Convert plain text to HTML paragraphs for Trix editor
         import re
@@ -695,7 +695,7 @@ def generate_session_summary():
             full_content = []
             buffer = ""
 
-            for chunk in get_ai_response(prompt["user"], system=prompt["system"], stream=True, max_tokens=3000):
+            for chunk in get_ai_response(prompt["user"], system=prompt["system"], stream=True, max_tokens=5000):
                 if not chunk:
                     continue
 
@@ -926,7 +926,7 @@ def get_best_objects():
         )
 
         # Get AI response for ranking (increased timeout for large JSON response)
-        ranking_response = get_ai_response(ranking_prompt["user"], system=ranking_prompt["system"], max_tokens=4000, timeout=300)
+        ranking_response = get_ai_response(ranking_prompt["user"], system=ranking_prompt["system"], max_tokens=6000, timeout=300)
 
         # Parse ranking response to extract ranked objects
         # Expected format: JSON array with objects having "Object" key
