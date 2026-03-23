@@ -613,3 +613,17 @@
         display: none;
     }
 }
+
+/* --- Nova Re-ask Link --- */
+#nova-reask-link {
+    font-size: 0.75rem;
+    margin-left: 8px;
+    color: var(--text-muted, #6b7280);
+    display: none;
+    cursor: pointer;
+    user-select: none;
+}
+
+#nova-reask-link:hover {
+    color: var(--primary-color);
+}

@@ -124,10 +124,24 @@
         let currentOutlookSort = { columnKey: 'date', ascending: true };
         let novaRankMap = {}; // <--- NOVA RANKING PERSISTENCE - stores object names (uppercase) to rank data
 
-        // Restore novaRankMap from sessionStorage on page load
-        const _savedRankMap = sessionStorage.getItem('novaRankMap');
-        if (_savedRankMap) {
-            try { novaRankMap = JSON.parse(_savedRankMap); } catch(e) { novaRankMap = {}; }
+        /**
+         * Get the cache key for Nova ranking based on location + date
+         * @returns {string} Cache key in format: novaCache_${location}_${date}
+         */
+        function getNovaCacheKey() {
+            const loc = document.getElementById('location-select')?.value || document.getElementById('location-name')?.textContent?.trim() || 'unknown';
+            const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+            return `novaCache_${loc}_${date}`;
+        }
+
+        // Restore novaRankMap from location+date keyed sessionStorage on page load
+        const cacheKey = getNovaCacheKey();
+        const _savedCache = sessionStorage.getItem(cacheKey);
+        if (_savedCache) {
+            try {
+                const cache = JSON.parse(_savedCache);
+                novaRankMap = cache.rankMap || {};
+            } catch(e) { novaRankMap = {}; }
         }
 
         const outlookColumnConfig = {
@@ -1318,9 +1332,12 @@
                 };
             });
 
-            // Persist novaRankMap to sessionStorage for navigation persistence
-            sessionStorage.setItem('novaRankMap', JSON.stringify(novaRankMap));
-            sessionStorage.setItem('novaRankMapSize', originalTableData.length);
+            // Persist novaRankMap to location+date keyed sessionStorage for navigation persistence
+            const cacheData = {
+                rankMap: novaRankMap,
+                size: originalTableData.length
+            };
+            sessionStorage.setItem(getNovaCacheKey(), JSON.stringify(cacheData));
 
             // Re-render with ranked data (data-level sorting, not DOM manipulation)
             const sortedData = applyNovaRankSorting(window.latestDSOData);
@@ -1333,6 +1350,9 @@
             updateRemoveFiltersButtonVisibility();
             askNovaBtn.classList.add('active');
             document.getElementById('data-table').classList.add('nova-active');
+
+            // Update Nova button state after fresh AI call
+            updateNovaButtonState();
 
         } catch (error) {
             console.error('Error asking Nova:', error);
@@ -1449,10 +1469,6 @@
         // Clear module-level novaRankMap
         novaRankMap = {};
 
-        // Clear sessionStorage persistence
-        sessionStorage.removeItem('novaRankMap');
-        sessionStorage.removeItem('novaRankMapSize');
-
         // Re-render with original full dataset (if available)
         if (originalTableData && originalTableData.length > 0) {
             renderRows(originalTableData);
@@ -1476,6 +1492,96 @@
         const errorDiv = document.getElementById('ask-nova-error');
         if (errorDiv) {
             errorDiv.style.display = 'none';
+        }
+
+        // Update button state
+        updateNovaButtonState();
+    }
+
+    /**
+     * Update Nova button state based on cache existence
+     * - No valid cache for today + location: Show "★ Ask Nova" button only
+     * - Valid cache exists: Change button label to "★ Restore Nova", add "↺ Re-ask" link
+     */
+    function updateNovaButtonState() {
+        const askNovaBtn = document.getElementById('ask-nova-btn');
+        const reaskLink = document.getElementById('nova-reask-link');
+        if (!askNovaBtn || !reaskLink) return;
+
+        const cacheKey = getNovaCacheKey();
+        const cacheData = sessionStorage.getItem(cacheKey);
+        const hasValidCache = !!cacheData;
+
+        if (hasValidCache) {
+            // Change button to "Restore Nova"
+            askNovaBtn.innerHTML = `
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+                    <path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/>
+                </svg>
+                ${window.t ? window.t('restore_nova') : 'Restore Nova'}
+            `;
+            // Show re-ask link
+            reaskLink.style.display = 'inline';
+        } else {
+            // Show "Ask Nova" button only
+            askNovaBtn.innerHTML = `
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+                    <path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/>
+                </svg>
+                ${window.t ? window.t('ask_nova') : 'Ask Nova'}
+            `;
+            // Hide re-ask link
+            reaskLink.style.display = 'none';
+        }
+    }
+
+    /**
+     * Restore Nova ranking from cache
+     * Reads the cache entry, populates novaRankMap, calls rank-application + filter-reapply flow
+     * No AI call, no loading spinner
+     */
+    function restoreNovaFromCache() {
+        const cacheKey = getNovaCacheKey();
+        const cacheDataStr = sessionStorage.getItem(cacheKey);
+
+        if (!cacheDataStr) {
+            console.warn('[Nova] No cache found for key:', cacheKey);
+            return;
+        }
+
+        try {
+            const cache = JSON.parse(cacheDataStr);
+            if (!cache.rankMap) {
+                console.warn('[Nova] Invalid cache structure:', cache);
+                return;
+            }
+
+            // Populate novaRankMap from cache
+            novaRankMap = cache.rankMap;
+
+            // Save original data before applying Nova ranking (for resetRanking)
+            originalTableData = [...(window.latestDSOData || [])];
+
+            // Re-render with ranked data (data-level sorting, not DOM manipulation)
+            const sortedData = applyNovaRankSorting(window.latestDSOData);
+            renderRows(sortedData);
+
+            // Re-apply all active column filters after ranking completes
+            filterTable();
+
+            // Show Remove Filters button and mark Ask Nova button as active
+            updateRemoveFiltersButtonVisibility();
+            const askNovaBtn = document.getElementById('ask-nova-btn');
+            if (askNovaBtn) {
+                askNovaBtn.classList.add('active');
+            }
+            document.getElementById('data-table').classList.add('nova-active');
+
+            // Update button state
+            updateNovaButtonState();
+
+        } catch (e) {
+            console.error('[Nova] Error restoring from cache:', e);
         }
     }
 
@@ -2722,6 +2828,9 @@
            filterTable();
            filterJournalTable();
            updateRemoveFiltersButtonVisibility();
+
+           // Update Nova button state based on cached data
+           updateNovaButtonState();
         };
     
         function renderOutlookTable() {
@@ -3179,10 +3288,34 @@
 
             // --- Event listeners for "Ask Nova" feature ---
             const askNovaBtn = document.getElementById('ask-nova-btn');
+            const reaskLink = document.getElementById('nova-reask-link');
             console.log('ask-nova-btn found:', askNovaBtn);
 
             if (askNovaBtn) {
-                askNovaBtn.addEventListener('click', askNova);
+                askNovaBtn.addEventListener('click', function(e) {
+                    // Check if button is in "Restore Nova" state (has cached data)
+                    const cacheKey = getNovaCacheKey();
+                    const hasValidCache = !!sessionStorage.getItem(cacheKey);
+
+                    if (hasValidCache) {
+                        // Restore from cache
+                        e.preventDefault();
+                        restoreNovaFromCache();
+                    } else {
+                        // Ask Nova (fresh AI call)
+                        askNova();
+                    }
+                });
+            }
+
+            if (reaskLink) {
+                reaskLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    // Clear cache and trigger fresh AI call
+                    const cacheKey = getNovaCacheKey();
+                    sessionStorage.removeItem(cacheKey);
+                    askNova();
+                });
             }
 
             // --- Event delegation for data-action attributes ---
