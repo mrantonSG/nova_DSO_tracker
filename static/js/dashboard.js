@@ -129,8 +129,44 @@
          * @returns {string} Cache key in format: novaCache_${location}_${date}
          */
         function getNovaCacheKey() {
-            const loc = document.getElementById('location-select')?.value || document.getElementById('location-name')?.textContent?.trim() || 'unknown';
-            const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+            const selectVal = document.getElementById('location-select')?.value;
+            const locNameVal = document.getElementById('location-name')?.textContent?.trim();
+            const loc = selectVal || locNameVal || 'unknown';
+
+            // Get the effective date: simulation date if active, otherwise dashboard display date
+            let date;
+            const simModeOn = document.getElementById('sim-mode-toggle')?.checked;
+            const simDateVal = document.getElementById('sim-date-input')?.value;
+
+            if (simModeOn && simDateVal) {
+                // Simulation mode: use the sim-date-input value (already in YYYY-MM-DD format)
+                date = simDateVal;
+            } else {
+                // Normal mode: try to read from the dashboard date display
+                const dateEl = document.getElementById('date');
+                if (dateEl) {
+                    // The date is displayed in European format (DD.MM.YYYY), need to convert to ISO (YYYY-MM-DD)
+                    const euDate = dateEl.textContent.trim();
+                    const parts = euDate.split('.');
+                    if (parts.length === 3) {
+                        const [day, month, year] = parts;
+                        date = `${year}-${month}-${day}`;
+                    } else {
+                        // Failed to parse, fall back to current date
+                        date = new Date().toISOString().slice(0, 10);
+                    }
+                } else {
+                    // Element not found, fall back to current date
+                    date = new Date().toISOString().slice(0, 10);
+                }
+            }
+
+            console.log('[Nova getNovaCacheKey] select.value:', selectVal);
+            console.log('[Nova getNovaCacheKey] location-name.textContent:', locNameVal);
+            console.log('[Nova getNovaCacheKey] Final location:', loc);
+            console.log('[Nova getNovaCacheKey] Date:', date);
+            console.log('[Nova getNovaCacheKey] Sim mode:', simModeOn);
+            console.log('[Nova getNovaCacheKey] Sim date input:', simDateVal);
             return `novaCache_${loc}_${date}`;
         }
 
@@ -1230,6 +1266,9 @@
 
         // Get current location and sim date
         const locationName = sessionStorage.getItem('selectedLocation') || document.getElementById('location-select')?.value;
+        console.log('[Nova askNova] Using locationName:', locationName);
+        console.log('[Nova askNova] selectedLocation sessionStorage:', sessionStorage.getItem('selectedLocation'));
+        console.log('[Nova askNova] location-select.value:', document.getElementById('location-select')?.value);
         const simModeOn = document.getElementById('sim-mode-toggle')?.checked;
         const simDateVal = document.getElementById('sim-date-input')?.value;
         const effectiveDate = simModeOn && simDateVal ? simDateVal : null;
@@ -1337,7 +1376,12 @@
                 rankMap: novaRankMap,
                 size: originalTableData.length
             };
-            sessionStorage.setItem(getNovaCacheKey(), JSON.stringify(cacheData));
+            const writtenKey = getNovaCacheKey();
+            sessionStorage.setItem(writtenKey, JSON.stringify(cacheData));
+            console.log('[Nova Cache Write] Key:', writtenKey);
+            console.log('[Nova Cache Write] Entry exists after write:', !!sessionStorage.getItem(writtenKey));
+            console.log('[Nova Cache Write] location-select.value:', document.getElementById('location-select')?.value);
+            console.log('[Nova Cache Write] selectedLocation sessionStorage:', sessionStorage.getItem('selectedLocation'));
 
             // Re-render with ranked data (data-level sorting, not DOM manipulation)
             const sortedData = applyNovaRankSorting(window.latestDSOData);
@@ -1370,6 +1414,7 @@
             askNovaBtn.disabled = false;
             askNovaController = null;
             askNovaTimeoutId = null;
+            console.log('[Nova finally block] Before innerHTML reset');
             // Use innerHTML to preserve the SVG icon
             const activeClass = askNovaBtn.classList.contains('active') ? ' active' : '';
             askNovaBtn.innerHTML = `
@@ -1378,6 +1423,7 @@
                 </svg>
                 ${window.t ? window.t('ask_nova') : 'Ask Nova'}
             `;
+            console.log('[Nova finally block] After innerHTML reset (always "Ask Nova")');
             // Restore the active class if it was added (the innerHTML replacement removes all attributes)
             if (activeClass) {
                 askNovaBtn.classList.add('active');
@@ -1511,6 +1557,11 @@
         const cacheKey = getNovaCacheKey();
         const cacheData = sessionStorage.getItem(cacheKey);
         const hasValidCache = !!cacheData;
+
+        console.log('[Nova updateNovaButtonState] Key:', cacheKey);
+        console.log('[Nova updateNovaButtonState] Entry exists:', !!cacheData);
+        console.log('[Nova updateNovaButtonState] location-select.value:', document.getElementById('location-select')?.value);
+        console.log('[Nova updateNovaButtonState] selectedLocation sessionStorage:', sessionStorage.getItem('selectedLocation'));
 
         if (hasValidCache) {
             // Change button to "Restore Nova"
