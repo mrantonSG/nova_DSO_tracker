@@ -931,8 +931,8 @@ def get_best_objects():
             compressed_objects=compressed_objects,
         )
 
-        # Get AI response for ranking (increased timeout for large JSON response)
-        ranking_response = get_ai_response(ranking_prompt["user"], system=ranking_prompt["system"], max_tokens=4096, timeout=300)
+        # Get AI response for ranking (increased timeout and max_tokens for large JSON response)
+        ranking_response = get_ai_response(ranking_prompt["user"], system=ranking_prompt["system"], max_tokens=8000, timeout=300)
 
         # Parse ranking response to extract ranked objects
         # Expected format: JSON array with objects having "Object" key

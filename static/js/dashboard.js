@@ -1357,9 +1357,6 @@
             console.log('[Nova] AI response received');
             const rankedObjects = result.ranked_objects || [];
 
-            // Save original data before applying Nova ranking (for resetRanking)
-            originalTableData = [...(window.latestDSOData || [])];
-
             // Populate module-level novaRankMap (case-insensitive, stored as uppercase)
             novaRankMap = {};
             rankedObjects.forEach(ranked => {
@@ -1370,6 +1367,20 @@
                     recommendedRigs: Array.isArray(ranked.recommended_rigs) ? ranked.recommended_rigs : []
                 };
             });
+
+            // Guard nova-active class behind successful parse — only proceed if novaRankMap has at least one entry
+            const hasRankedEntries = Object.keys(novaRankMap).length > 0;
+            if (!hasRankedEntries) {
+                console.warn('[Nova] No ranked objects received or parsing failed');
+                resetRanking();
+                updateRemoveFiltersButtonVisibility();
+                errorDiv.textContent = 'Nova ranking failed — please try again';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            // Save original data before applying Nova ranking (for resetRanking)
+            originalTableData = [...(window.latestDSOData || [])];
 
             // Persist novaRankMap to location+date keyed sessionStorage for navigation persistence
             const cacheData = {
@@ -1406,6 +1417,8 @@
                 errorDiv.textContent = window.t ? window.t('error_ask_nova') : error.message;
             }
             errorDiv.style.display = 'block';
+            // Show Remove Filters button on failure path
+            updateRemoveFiltersButtonVisibility();
         } finally {
             // Stop message animation
             clearInterval(msgInterval);
