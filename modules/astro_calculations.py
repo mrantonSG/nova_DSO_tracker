@@ -105,7 +105,6 @@ def calculate_transit_time(ra, dec, lat, lon, tz_name, local_date_str):
         # This part of the logic can be complex; let's stick to the primary fix for now.
         return "N/A"
     except Exception as e:
-            print(f"DEBUG: Error in calculate_transit_time: {e}")  # Add this line to see the error
             return "N/A"
 
 def get_utc_time_for_local_11pm(tz_name):
