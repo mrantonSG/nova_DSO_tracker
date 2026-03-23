@@ -1827,6 +1827,9 @@
             renderInspirationGrid();
         }
 
+        // Update Ask Nova button state based on cache availability for the new location/date
+        updateNovaButtonState();
+
         // REMOVED: Location change check was causing duplicate fetch on initial page load
         // The fetchLocations() call in window.onload sets sessionStorage before fetchData() runs,
         // and location-select change event handles user-triggered changes. No need to re-check here.
@@ -2208,6 +2211,9 @@
         // --- (Removed blocking check) Always process the latest user request ---
         // fetchData handles aborting previous requests automatically via AbortController.
         console.log(`Triggering fetch for new location: ${selectedLocation}`);
+
+        // Reset Nova ranking when location changes (before clearing data)
+        resetRanking();
 
         // Clear existing data immediately
         document.getElementById('data-body').innerHTML = '';
