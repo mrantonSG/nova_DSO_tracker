@@ -3305,15 +3305,11 @@
             console.log('ask-nova-btn found:', askNovaBtn);
 
             if (askNovaBtn) {
-                askNovaBtn.addEventListener('click', function(e) {
-                    // Check if cache exists - if so, restore instead of asking
+                askNovaBtn.addEventListener('click', () => {
                     const cached = sessionStorage.getItem(getNovaCacheKey());
-                    if (cached && !askNovaBtn.classList.contains('active')) {
-                        // User clicked "Restore Nova" button
-                        e.preventDefault();
+                    if (cached) {
                         restoreNovaFromCache();
                     } else {
-                        // User clicked "Ask Nova" button (or re-asking after clear)
                         askNova();
                     }
                 });
