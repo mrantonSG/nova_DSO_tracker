@@ -124,12 +124,6 @@
         let currentOutlookSort = { columnKey: 'date', ascending: true };
         let novaRankMap = {}; // <--- NOVA RANKING PERSISTENCE - stores object names (uppercase) to rank data
 
-        // Restore novaRankMap from sessionStorage on page load
-        const _savedRankMap = sessionStorage.getItem('novaRankMap');
-        if (_savedRankMap) {
-            try { novaRankMap = JSON.parse(_savedRankMap); } catch(e) { novaRankMap = {}; }
-        }
-
         const outlookColumnConfig = {
             'object_name':  { dataKey: 'object_name',  sortable: true, filterable: true, numeric: false },
             'common_name':  { dataKey: 'common_name',  sortable: true, filterable: true, numeric: false },
@@ -302,13 +296,21 @@
                 if (hadExistingDate) {
                     updateDataForSim();
                 }
+                // Reset Nova ranking when simulation mode changes
+                // DOM date is updated by applySimState() above
+                resetRanking();
+                updateNovaButtonState();
             });
-    
+
             simDateInput.addEventListener('change', function() {
                 if (simModeToggle.checked) {
                     localStorage.setItem('simDate', this.value);
                     applySimState(true, this.value);
                     updateDataForSim();
+                    // Reset Nova ranking when simulation date changes
+                    // DOM date is updated by applySimState() above
+                    resetRanking();
+                    updateNovaButtonState();
                 }
             });
     
@@ -335,6 +337,132 @@
           const [h, m] = timeStr.split(':').map(Number);
           return h * 60 + m;
         }
+
+        // ========================================================================
+        // Nova Cache Functions
+        // ========================================================================
+        /**
+         * Get cache key for Nova ranking based on location and date
+         * @returns {string} Cache key in format: novaCache_{location}_{date}
+         */
+        function getNovaCacheKey() {
+            // Get location name from select or storage
+            const loc = document.getElementById('location-select')?.value?.trim() ||
+                       sessionStorage.getItem('selectedLocation')?.trim() || 'unknown';
+
+            // Get date: use sim date if in simulation mode, otherwise use current display date
+            const simModeOn = document.getElementById('sim-mode-toggle')?.checked;
+            const simDateVal = document.getElementById('sim-date-input')?.value;
+
+            if (simModeOn && simDateVal) {
+                // In simulation mode, use the selected sim date (YYYY-MM-DD)
+                return `novaCache_${loc}_${simDateVal}`;
+            } else {
+                // Use the date shown in the status bar (European format DD.MM.YYYY)
+                const dateEl = document.getElementById('date');
+                const displayDate = dateEl?.textContent?.trim() || new Date().toISOString().slice(0, 10);
+                return `novaCache_${loc}_${displayDate}`;
+            }
+        }
+
+        /**
+         * Update Ask Nova button state based on cache availability
+         * Single source of truth for button label and re-ask link visibility
+         */
+        function updateNovaButtonState() {
+            const btn = document.getElementById('ask-nova-btn');
+            const reask = document.getElementById('nova-reask-link');
+            if (!btn || !reask) return;
+
+            const cached = sessionStorage.getItem(getNovaCacheKey());
+            if (cached) {
+                btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+                    <path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/>
+                </svg> Restore Nova`;
+                btn.classList.add('active');
+                reask.style.display = 'inline';
+            } else {
+                btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+                    <path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/>
+                </svg> Ask Nova`;
+                btn.classList.remove('active');
+                reask.style.display = 'none';
+            }
+        }
+
+        /**
+         * Hide unranked rows when nova ranking is active
+         * @param {boolean} hide - If true, hide rows not in novaRankMap; if false, show all rows
+         */
+        function hideUnrankedRows(hide = true) {
+            const tbody = document.getElementById('data-body');
+            if (!tbody) return;
+            const rows = tbody.getElementsByTagName('tr');
+
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const objectCell = row.querySelector('td[data-column-key="Object"]');
+                if (!objectCell) continue;
+
+                const objectName = objectCell.textContent.trim();
+                const objectNameUpper = objectName.toUpperCase();
+                const hasRank = novaRankMap[objectNameUpper];
+
+                if (hide && !hasRank) {
+                    row.style.display = 'none';
+                } else if (!hide && row.style.display === 'none') {
+                    // Only restore rows that were hidden by Nova, not by filters
+                    row.style.display = '';
+                }
+            }
+        }
+
+        /**
+         * Restore Nova ranking from cache
+         */
+        function restoreNovaFromCache() {
+            const cached = sessionStorage.getItem(getNovaCacheKey());
+            if (!cached) return;
+
+            try {
+                const { rankMap } = JSON.parse(cached);
+                novaRankMap = rankMap;
+
+                // Save original data before applying Nova ranking (for resetRanking)
+                originalTableData = [...(window.latestDSOData || [])];
+
+                // Re-render with ranked data (data-level sorting, not DOM manipulation)
+                const sortedData = applyNovaRankSorting(window.latestDSOData);
+                renderRows(sortedData);
+
+                // Re-apply all active column filters after ranking completes
+                filterTable();
+
+                // Hide unranked rows
+                hideUnrankedRows(true);
+
+                // Show Remove Filters button and mark table as nova-active
+                updateRemoveFiltersButtonVisibility();
+                document.getElementById('data-table').classList.add('nova-active');
+
+                // Update button state to show Re-ask link
+                updateNovaButtonState();
+
+                // Clear error
+                const errorDiv = document.getElementById('ask-nova-error');
+                if (errorDiv) {
+                    errorDiv.style.display = 'none';
+                }
+            } catch (e) {
+                console.error('Error restoring Nova from cache:', e);
+                // Clear corrupted cache
+                sessionStorage.removeItem(getNovaCacheKey());
+                updateNovaButtonState();
+            }
+        }
+        // ========================================================================
+        // End Nova Cache Functions
+        // ========================================================================
         function updateRemoveFiltersButtonVisibility() {
             const btnContainer = document.getElementById('remove-filters-container');
             if (!btnContainer) return;
@@ -1318,9 +1446,8 @@
                 };
             });
 
-            // Persist novaRankMap to sessionStorage for navigation persistence
-            sessionStorage.setItem('novaRankMap', JSON.stringify(novaRankMap));
-            sessionStorage.setItem('novaRankMapSize', originalTableData.length);
+            // Write cache after successful AI parse with >=1 entry
+            sessionStorage.setItem(getNovaCacheKey(), JSON.stringify({ rankMap: novaRankMap, size: originalTableData.length }));
 
             // Re-render with ranked data (data-level sorting, not DOM manipulation)
             const sortedData = applyNovaRankSorting(window.latestDSOData);
@@ -1329,10 +1456,15 @@
             // Re-apply all active column filters after ranking completes
             filterTable();
 
-            // Show Remove Filters button and mark Ask Nova button as active
+            // Hide unranked rows
+            hideUnrankedRows(true);
+
+            // Show Remove Filters button and mark table as nova-active
             updateRemoveFiltersButtonVisibility();
-            askNovaBtn.classList.add('active');
             document.getElementById('data-table').classList.add('nova-active');
+
+            // Update button state (shows Re-ask link)
+            updateNovaButtonState();
 
         } catch (error) {
             console.error('Error asking Nova:', error);
@@ -1346,22 +1478,12 @@
             // Stop message animation
             clearInterval(msgInterval);
 
-            // Reset button state (remove loading, restore to default or active state)
+            // Reset button state
             askNovaBtn.disabled = false;
             askNovaController = null;
             askNovaTimeoutId = null;
-            // Use innerHTML to preserve the SVG icon
-            const activeClass = askNovaBtn.classList.contains('active') ? ' active' : '';
-            askNovaBtn.innerHTML = `
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
-                    <path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/>
-                </svg>
-                ${window.t ? window.t('ask_nova') : 'Ask Nova'}
-            `;
-            // Restore the active class if it was added (the innerHTML replacement removes all attributes)
-            if (activeClass) {
-                askNovaBtn.classList.add('active');
-            }
+            // Update button state based on cache availability
+            updateNovaButtonState();
         }
     }
 
@@ -1446,12 +1568,17 @@
             localStorage.removeItem("dso_filter_col_key_Object");
         }
 
-        // Clear module-level novaRankMap
+        // Clear module-level novaRankMap (in-memory only)
         novaRankMap = {};
 
-        // Clear sessionStorage persistence
-        sessionStorage.removeItem('novaRankMap');
-        sessionStorage.removeItem('novaRankMapSize');
+        // DO NOT delete sessionStorage cache entries - preserve for restore capability
+        // Cache is keyed by location+date, so it persists across resets
+
+        // Restore all hidden rows to visible state
+        hideUnrankedRows(false);
+
+        // Remove nova-active class from table
+        document.getElementById('data-table').classList.remove('nova-active');
 
         // Re-render with original full dataset (if available)
         if (originalTableData && originalTableData.length > 0) {
@@ -1465,12 +1592,8 @@
         // Update button visibility
         updateRemoveFiltersButtonVisibility();
 
-        // Remove active state from Ask Nova button
-        const askNovaBtn = document.getElementById('ask-nova-btn');
-        if (askNovaBtn) {
-            askNovaBtn.classList.remove('active');
-        }
-        document.getElementById('data-table').classList.remove('nova-active');
+        // Update button state based on cache availability
+        updateNovaButtonState();
 
         // Clear error
         const errorDiv = document.getElementById('ask-nova-error');
@@ -3182,8 +3305,34 @@
             console.log('ask-nova-btn found:', askNovaBtn);
 
             if (askNovaBtn) {
-                askNovaBtn.addEventListener('click', askNova);
+                askNovaBtn.addEventListener('click', function(e) {
+                    // Check if cache exists - if so, restore instead of asking
+                    const cached = sessionStorage.getItem(getNovaCacheKey());
+                    if (cached && !askNovaBtn.classList.contains('active')) {
+                        // User clicked "Restore Nova" button
+                        e.preventDefault();
+                        restoreNovaFromCache();
+                    } else {
+                        // User clicked "Ask Nova" button (or re-asking after clear)
+                        askNova();
+                    }
+                });
             }
+
+            // --- Re-ask link handler ---
+            const reaskLink = document.getElementById('nova-reask-link');
+            if (reaskLink) {
+                reaskLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    // Clear cache and trigger askNova
+                    sessionStorage.removeItem(getNovaCacheKey());
+                    askNova();
+                });
+            }
+
+            // --- Update button state on page load (after initial render) ---
+            // If cache exists, show "Restore Nova" button - do NOT auto-restore
+            updateNovaButtonState();
 
             // --- Event delegation for data-action attributes ---
             document.addEventListener('click', function(e) {

@@ -548,6 +548,21 @@
    DARK MODE OVERRIDES
    ================================================================ */
 
+/* --- Nova Re-ask Link Style --- */
+#nova-reask-link {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-left: 8px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#nova-reask-link:hover {
+    color: var(--primary-color);
+}
+
+/* --- End Nova Re-ask Link Style --- */
+
 /* Filter row inputs */
 [data-theme="dark"] .filter-row input {
     background-color: var(--bg-medium);
