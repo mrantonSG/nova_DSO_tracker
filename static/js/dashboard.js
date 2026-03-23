@@ -1451,6 +1451,9 @@
             askNovaBtn.classList.add('active');
             document.getElementById('data-table').classList.add('nova-active');
 
+            // Hide unranked rows
+            applyNovaVisibility();
+
         } catch (error) {
             console.error('Error asking Nova:', error);
             if (error.name === 'AbortError') {
@@ -1559,6 +1562,31 @@
     }
 
     /**
+     * Apply Nova visibility: hide unranked rows when nova-active is present
+     * When nova-active class is on #data-table, only show rows that have a rank entry
+     */
+    function applyNovaVisibility() {
+        const dataTable = document.getElementById('data-table');
+        if (!dataTable || !dataTable.classList.contains('nova-active')) {
+            return; // Nova not active, do nothing
+        }
+
+        const tbody = document.getElementById('data-body');
+        if (!tbody) return;
+
+        const rows = tbody.querySelectorAll('tr');
+        rows.forEach(row => {
+            const novaRankCell = row.querySelector('.col-nova-rank');
+            // Hide rows with no rank (empty novaRankCell or textContent is '')
+            if (!novaRankCell || novaRankCell.textContent.trim() === '') {
+                row.style.display = 'none';
+            } else {
+                row.style.display = '';
+            }
+        });
+    }
+
+    /**
      * Reset table to original sorting and remove rank badges
      */
     function resetRanking() {
@@ -1572,6 +1600,15 @@
         // Clear module-level novaRankMap and its cache key tracker
         novaRankMap = {};
         novaRankMapCacheKey = null;
+
+        // Restore all rows to visible before re-rendering (in case nova-active was hiding some)
+        const tbody = document.getElementById('data-body');
+        if (tbody) {
+            const rows = tbody.querySelectorAll('tr');
+            rows.forEach(row => {
+                row.style.display = '';
+            });
+        }
 
         // Re-render with original full dataset (if available)
         if (originalTableData && originalTableData.length > 0) {
@@ -1687,6 +1724,9 @@
                 askNovaBtn.classList.add('active');
             }
             document.getElementById('data-table').classList.add('nova-active');
+
+            // Hide unranked rows
+            applyNovaVisibility();
 
             // Update button state
             updateNovaButtonState();
@@ -1912,6 +1952,9 @@
 
         // 1. Apply filters (calculates window.currentFilteredData)
         filterTable();
+
+        // 2. Apply Nova visibility (hide unranked rows if nova-active)
+        applyNovaVisibility();
 
         tbody.dataset.loading = 'false';
         fetchSunEvents();
