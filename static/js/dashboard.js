@@ -1530,6 +1530,7 @@
             // Nova Rank cell — always created, CSS controls visibility
             const novaRankTd = document.createElement('td');
             novaRankTd.dataset.columnKey = 'Nova Rank';
+            novaRankTd.className = 'col-nova-rank';
             novaRankTd.style.textAlign = 'center';
             const objectNameUpper = String(objectData.Object || '').trim().toUpperCase();
             const rankData = novaRankMap[objectNameUpper];
