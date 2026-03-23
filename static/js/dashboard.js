@@ -373,8 +373,9 @@
                     console.log('[Nova updateDataForSim] newCacheKey:', newCacheKey);
                     sessionStorage.removeItem(newCacheKey);
                     resetRanking();
-                    updateNovaButtonState();
                 }
+                // Always update Nova button state when simulation date changes
+                updateNovaButtonState();
             }
     
             simModeToggle.addEventListener('change', function() {
@@ -1468,25 +1469,11 @@
             // Stop message animation
             clearInterval(msgInterval);
 
-            // Reset button state (remove loading, restore to default or active state)
+            // Reset button state (remove loading)
             askNovaBtn.disabled = false;
             askNovaController = null;
             askNovaTimeoutId = null;
-            console.log('[Nova finally block] Before innerHTML reset');
-            // Use innerHTML to preserve the SVG icon
-            const activeClass = askNovaBtn.classList.contains('active') ? ' active' : '';
-            askNovaBtn.innerHTML = `
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
-                    <path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/>
-                </svg>
-                ${window.t ? window.t('ask_nova') : 'Ask Nova'}
-            `;
-            console.log('[Nova finally block] After innerHTML reset (always "Ask Nova")');
-            // Restore the active class if it was added (the innerHTML replacement removes all attributes)
-            if (activeClass) {
-                askNovaBtn.classList.add('active');
-            }
-            // Update Nova button state after fresh AI call (must be after innerHTML reset)
+            // Update Nova button state
             updateNovaButtonState();
         }
     }
@@ -1652,10 +1639,12 @@
         const cacheKey = getNovaCacheKey();
         const cacheData = sessionStorage.getItem(cacheKey);
         const hasValidCache = !!cacheData;
+        const hasNovaRankings = Object.keys(novaRankMap).length > 0;
 
         console.log('[Nova updateNovaButtonState] Key:', cacheKey);
         console.log('[Nova updateNovaButtonState] Entry exists:', !!cacheData);
         console.log('[Nova updateNovaButtonState] hasValidCache:', hasValidCache);
+        console.log('[Nova updateNovaButtonState] hasNovaRankings:', hasNovaRankings);
         console.log('[Nova updateNovaButtonState] location-select.value:', document.getElementById('location-select')?.value);
         console.log('[Nova updateNovaButtonState] selectedLocation sessionStorage:', sessionStorage.getItem('selectedLocation'));
 
@@ -1679,6 +1668,13 @@
             `;
             // Hide re-ask link
             reaskLink.style.display = 'none';
+        }
+
+        // Add active class if has valid cache or nova rankings
+        if (hasValidCache || hasNovaRankings) {
+            askNovaBtn.classList.add('active');
+        } else {
+            askNovaBtn.classList.remove('active');
         }
     }
 
