@@ -120,6 +120,8 @@
         font-weight: 600;
         color: var(--primary-color);
         min-width: 48px;
+        max-width: 56px;
+        width: 56px;
     }
 
     #data-table td[data-column-key="Nova Rank"]:hover {
