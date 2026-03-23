@@ -1326,6 +1326,9 @@
             const sortedData = applyNovaRankSorting(window.latestDSOData);
             renderRows(sortedData);
 
+            // Re-apply all active column filters after ranking completes
+            filterTable();
+
             // Show Remove Filters button and mark Ask Nova button as active
             updateRemoveFiltersButtonVisibility();
             askNovaBtn.classList.add('active');
