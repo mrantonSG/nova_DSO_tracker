@@ -24,7 +24,7 @@ import bleach
 from bleach.css_sanitizer import CSSSanitizer
 from flask import (
     Blueprint, render_template, redirect, url_for, flash,
-    request, g, make_response, session
+    request, g, make_response, session, jsonify
 )
 from flask_login import login_required, current_user
 from flask_babel import gettext as _
@@ -318,11 +318,23 @@ def journal_add():
                 new_session.nina_log_content = path
             if asiair_content or phd2_content or nina_content:
                 db.commit()
-            flash(_("New journal entry added successfully!"), "success")
-            record_event('journal_session_created')
-            # Fix: Pass the session's location to the redirect so the dashboard loads the correct context
-            return redirect(url_for('core.graph_dashboard', object_name=new_session.object_name, session_id=new_session.id,
-                                    location=new_session.location_name))
+
+            # --- Handle action field (save_draft vs save_close) ---
+            action = request.form.get("form_action")
+            if action == "save_draft":
+                # Save as draft, return JSON without redirect
+                new_session.draft = True
+                db.commit()
+                return jsonify({"status": "ok", "session_id": new_session.id})
+            else:
+                # save_close or no action (legacy): save as non-draft and redirect
+                new_session.draft = False
+                db.commit()
+                flash(_("New journal entry added successfully!"), "success")
+                record_event('journal_session_created')
+                # Fix: Pass the session's location to the redirect so the dashboard loads the correct context
+                return redirect(url_for('core.graph_dashboard', object_name=new_session.object_name, session_id=new_session.id,
+                                        location=new_session.location_name))
         except Exception as e:
             db.rollback()
             raise e
@@ -608,14 +620,24 @@ def journal_edit(session_id):
         if invalidate_cache:
             session_to_edit.log_analysis_cache = None
 
-        db.commit()
-        if not request.files.get('nina_log') or request.files['nina_log'].filename == '':
-            flash(_("Journal entry updated successfully!"), "success")
-        record_event('journal_session_edited')
-        # Fix: Pass the session's location to the redirect so the dashboard loads the correct context
-        return redirect(
-            url_for('core.graph_dashboard', object_name=session_to_edit.object_name, session_id=session_id,
-                    location=session_to_edit.location_name))
+        # --- Handle action field (save_draft vs save_close) ---
+        action = request.form.get("form_action")
+        if action == "save_draft":
+            # Save as draft, return JSON without redirect
+            session_to_edit.draft = True
+            db.commit()
+            return jsonify({"status": "ok", "session_id": session_id})
+        else:
+            # save_close or no action (legacy): save as non-draft and redirect
+            session_to_edit.draft = False
+            db.commit()
+            if not request.files.get('nina_log') or request.files['nina_log'].filename == '':
+                flash(_("Journal entry updated successfully!"), "success")
+            record_event('journal_session_edited')
+            # Fix: Pass the session's location to the redirect so the dashboard loads the correct context
+            return redirect(
+                url_for('core.graph_dashboard', object_name=session_to_edit.object_name, session_id=session_id,
+                        location=session_to_edit.location_name))
 
     # --- GET Request Logic ---
     if not session_to_edit.object_name:

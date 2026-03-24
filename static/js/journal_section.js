@@ -329,7 +329,6 @@
             console.error('[setupEditMode] No selectedSessionData found!');
         }
 
-        submitButton.textContent = window.t('save_changes');
         submitButton.style.backgroundColor = 'var(--info-color-alt2)';
         cancelButton.onclick = cancelForm;
     }

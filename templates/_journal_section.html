@@ -14,6 +14,7 @@
     button[data-action="toggle-project-edit"],
     #form-submit-button,
     .detail-header .action-button-group button[type="submit"][data-action="download-report"],
+    .detail-header .journal-form-actions button[type="submit"][data-action="download-report"],
     .report-toolbar button[type="submit"][data-action="download-report"],
     button[data-action="edit-project"] {
         background: var(--primary-color) !important;
@@ -32,6 +33,7 @@
     button[data-action="toggle-project-edit"]:hover,
     #form-submit-button:hover,
     .detail-header .action-button-group button[type="submit"][data-action="download-report"]:hover,
+    .detail-header .journal-form-actions button[type="submit"][data-action="download-report"]:hover,
     .report-toolbar button[type="submit"][data-action="download-report"]:hover {
         filter: brightness(0.9);
     }
@@ -43,6 +45,7 @@
     .btn-secondary[data-cancel-url],
     /* Targeting inline-styled Duplicate button */
     .action-button-group form[action*="duplicate"] button,
+    .journal-form-actions form[action*="duplicate"] button,
     /* Targeting inline-styled Download buttons */
     .report-toolbar a.inline-button {
         background: transparent !important;
@@ -64,6 +67,7 @@
     #form-cancel-button:hover,
     .btn-secondary[data-cancel-url]:hover,
     .action-button-group form[action*="duplicate"] button:hover,
+    .journal-form-actions form[action*="duplicate"] button:hover,
     .report-toolbar a.inline-button:hover {
         background: var(--bg-light-gray) !important;
         border-color: var(--border-medium) !important;
@@ -72,6 +76,7 @@
     /* DANGER Button - Delete This Session, Delete Project */
     .journal-btn-danger,
     .action-button-group form[action*="delete"] button,
+    .journal-form-actions form[action*="delete"] button,
     form[data-confirm] button {
         background: rgba(180,60,60,0.08) !important;
         color: #a04040 !important;
@@ -86,6 +91,7 @@
     }
     .journal-btn-danger:hover,
     .action-button-group form[action*="delete"] button:hover,
+    .journal-form-actions form[action*="delete"] button:hover,
     form[data-confirm] button:hover {
         background: rgba(180,60,60,0.15) !important;
     }
@@ -174,6 +180,7 @@
     [data-theme="dark"] button[data-action="toggle-project-edit"],
     [data-theme="dark"] #form-submit-button,
     [data-theme="dark"] .detail-header .action-button-group button[type="submit"][data-action="download-report"],
+    [data-theme="dark"] .detail-header .journal-form-actions button[type="submit"][data-action="download-report"],
     [data-theme="dark"] .report-toolbar button[type="submit"][data-action="download-report"],
     [data-theme="dark"] .inline-button[style*="var(--primary-color)"],
     [data-theme="dark"] .inline-button[style*="var(--success-color)"],
@@ -187,6 +194,7 @@
     [data-theme="dark"] #form-cancel-button,
     [data-theme="dark"] .btn-secondary[data-cancel-url],
     [data-theme="dark"] .action-button-group form[action*="duplicate"] button,
+    [data-theme="dark"] .journal-form-actions form[action*="duplicate"] button,
     [data-theme="dark"] .report-toolbar a.inline-button,
     [data-theme="dark"] .inline-button[style*="accent-gray-medium"],
     [data-theme="dark"] .inline-button[style*="var(--info-color)"],
@@ -199,6 +207,7 @@
     [data-theme="dark"] #form-cancel-button:hover,
     [data-theme="dark"] .btn-secondary[data-cancel-url]:hover,
     [data-theme="dark"] .action-button-group form[action*="duplicate"] button:hover,
+    [data-theme="dark"] .journal-form-actions form[action*="duplicate"] button:hover,
     [data-theme="dark"] .report-toolbar a.inline-button:hover,
     [data-theme="dark"] .inline-button[style*="accent-gray-medium"]:hover,
     [data-theme="dark"] .inline-button[style*="var(--info-color)"]:hover,
@@ -209,6 +218,7 @@
     /* DANGER buttons in dark mode */
     [data-theme="dark"] .journal-btn-danger,
     [data-theme="dark"] .action-button-group form[action*="delete"] button,
+    [data-theme="dark"] .journal-form-actions form[action*="delete"] button,
     [data-theme="dark"] form[data-confirm] button,
     [data-theme="dark"] .inline-button[style*="var(--danger-color)"] {
         background: rgba(200,80,80,0.1) !important;
@@ -217,6 +227,7 @@
     }
     [data-theme="dark"] .journal-btn-danger:hover,
     [data-theme="dark"] .action-button-group form[action*="delete"] button:hover,
+    [data-theme="dark"] .journal-form-actions form[action*="delete"] button:hover,
     [data-theme="dark"] form[data-confirm] button:hover,
     [data-theme="dark"] .inline-button[style*="var(--danger-color)"]:hover {
         background: rgba(200,80,80,0.18) !important;
@@ -389,6 +400,50 @@
 
     .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em; }
     .detail-header .action-button-group { margin: 0; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+
+    /* Journal Form Actions Grid (Draft Support) */
+    .journal-form-actions {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 8px;
+        align-items: center;
+    }
+    .journal-form-actions h4 {
+        grid-column: 1 / -1;
+        margin: 0;
+    }
+    .journal-form-actions button {
+        grid-column: auto;
+    }
+    /* Align SaveDraft to the left, Cancel to the right */
+    .journal-form-actions button[data-action="save-draft"] {
+        justify-self: start;
+        background: var(--primary-color);
+        color: #ffffff;
+        border: none;
+    }
+    .journal-form-actions button[data-action="save-draft"]:hover {
+        filter: brightness(0.9);
+    }
+    [data-theme="dark"] .journal-form-actions button[data-action="save-draft"] {
+        box-shadow: 0 0 14px rgba(122,175,192,0.2);
+    }
+    /* Cancel button stays on the right */
+    .journal-form-actions #form-cancel-button {
+        justify-self: end;
+    }
+    /* Primary button (Save) styling for grid */
+    .journal-form-actions button[data-action="save-close"] {
+        background: var(--primary-color);
+        color: #ffffff;
+        border: none;
+    }
+    .journal-form-actions button[data-action="save-close"]:hover {
+        filter: brightness(0.9);
+    }
+    [data-theme="dark"] .journal-form-actions button[data-action="save-close"] {
+        box-shadow: 0 0 14px rgba(122,175,192,0.2);
+    }
     .form-group.full-width { flex-basis: 100%; }
     .form-group.full-width label { width: auto; }
 
@@ -2193,13 +2248,15 @@
                   data-object-dec="{{ object_main_details['DEC (degrees)'] | default('', True) }}">
                  <div class="detail-header">
                     <h4 id="form-detail-title">{{ _('Edit Session') }}</h4>
-                    <div class="action-button-group">
-                        <button id="form-submit-button" type="submit" form="journal-detail-form" class="inline-button">{{ _('Save Changes') }}</button>
+                    <div class="journal-form-actions">
+                        <button type="button" data-action="save-draft" class="inline-button">{{ _('Save Draft') }}</button>
+                        <button type="submit" id="form-submit-button" data-action="save-close" class="inline-button">{{ _('Save & Close') }}</button>
                         <button id="form-cancel-button" type="button" class="inline-button" style="background-color:var(--accent-gray-medium);" data-action="cancel-form">{{ _('Cancel') }}</button>
                     </div>
                 </div>
                 <input type="hidden" name="target_object_id" value="{{ object_name }}">
                 <input type="hidden" name="session_id" value="{{ selected_session_data.id if selected_session_data else '' }}">
+                <input type="hidden" id="form-action-hidden" name="form_action" value="save_close">
                 <div class="form-row">
                     {{ form_group('session_date', _('Session Date:'), type='date', value=today_date) }}
                     <div class="form-group"><label for="location_name">{{ _('Location:') }}</label><select id="location_name" name="location_name">{% for loc in available_locations %}<option value="{{ loc.name }}" data-lat="{{ loc.lat }}" data-lon="{{ loc.lon }}" data-tz="{{ loc.timezone }}">{{ loc.name }}{{ _(' (Inactive)') if not loc.active else '' }}</option>{% endfor %}</select></div>
@@ -2479,6 +2536,7 @@ const journalI18n = {
   append:                '{{ _("Append") }}',
   cancel:                '{{ _("Cancel") }}',
   novaError:             '{{ _("Nova error") }}',
+  draftSaved:            '{{ _("Draft saved") }}',
 };
 
 (function() {
@@ -2795,6 +2853,94 @@ const journalI18n = {
 })();
 </script>
 
+{# --- Journal Form Action Handlers (Draft Support) --- #}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle Save Draft button click
+    var saveDraftBtn = document.querySelector('button[data-action="save-draft"]');
+    if (saveDraftBtn) {
+        saveDraftBtn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            var form = document.getElementById('journal-detail-form');
+            if (!form) return;
+
+            // Store original button text
+            var originalText = saveDraftBtn.textContent;
+            saveDraftBtn.textContent = 'Saving...';
+            saveDraftBtn.disabled = true;
+
+            // Create FormData
+            var formData = new FormData(form);
+            formData.append('action', 'save_draft');
+
+            try {
+                var response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to save draft');
+                }
+
+                var data = await response.json();
+
+                // Show feedback
+                saveDraftBtn.textContent = journalI18n.draftSaved;
+                setTimeout(function() {
+                    saveDraftBtn.textContent = originalText;
+                    saveDraftBtn.disabled = false;
+                }, 2000);
+
+                // Update session_id with returned id
+                if (data.session_id) {
+                    var sessionIdInput = form.querySelector('input[name="session_id"]');
+                    if (sessionIdInput) {
+                        sessionIdInput.value = data.session_id;
+                    }
+
+                    // Switch form action to edit URL if it was on add URL
+                    var currentAction = form.action;
+                    if (currentAction.includes('/journal/add/')) {
+                        form.action = '/journal/edit/' + data.session_id;
+                    }
+                }
+            } catch (error) {
+                console.error('Error saving draft:', error);
+                saveDraftBtn.textContent = originalText;
+                saveDraftBtn.disabled = false;
+                alert('Failed to save draft. Please try again.');
+            }
+        });
+    }
+
+    // Handle Save & Close button click
+    var saveCloseBtn = document.getElementById('form-submit-button');
+    if (saveCloseBtn) {
+        saveCloseBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            var actionInput = document.getElementById('form-action-hidden');
+            if (actionInput) {
+                actionInput.value = 'save_close';
+            }
+            // Submit form programmatically
+            var form = document.getElementById('journal-detail-form');
+            if (form) {
+                if (!actionInput) {
+                    actionInput = document.createElement('input');
+                    actionInput.type = 'hidden';
+                    actionInput.name = 'form_action';
+                    actionInput.value = 'save_close';
+                    actionInput.id = 'form-action-hidden';
+                    form.appendChild(actionInput);
+                }
+                form.submit();
+            }
+        });
+    }
+});
+</script>
+
 {# --- AI Session Summary Script --- #}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -2821,7 +2967,6 @@ document.addEventListener('DOMContentLoaded', function() {
     btn.addEventListener('click', function() {
         var trixEditor = document.getElementById('journal-notes-editor');
         var sessionId = document.querySelector('input[name="session_id"]').value;
-        if (!sessionId) return;
 
         var hasContent = trixEditor && trixEditor.editor &&
             trixEditor.editor.getDocument().toString().trim().length > 1;
@@ -2877,10 +3022,51 @@ function novaSessionFetch(mode) {
 
     btn.style.display = '';
 
+    // Build request payload based on whether we have a session_id (saved session) or not (draft session)
+    var requestBody = {};
+    if (sessionId && parseInt(sessionId) > 0) {
+        // Saved session: send session_id
+        requestBody.session_id = parseInt(sessionId);
+    } else {
+        // Draft session: collect form data and send as form_content
+        var form = document.getElementById('journal-detail-form');
+        if (form) {
+            var formData = new FormData(form);
+            requestBody.form_content = {
+                object_name: formData.get('target_object_id') || formData.get('object_name') || '',
+                date: formData.get('session_date') || '',
+                location: formData.get('location_name') || '',
+                calculated_integration_time_minutes: null,  // Will be calculated server-side
+                number_of_subs_light: formData.get('number_of_subs_light') ? parseInt(formData.get('number_of_subs_light')) : null,
+                exposure_time_per_sub_sec: formData.get('exposure_time_per_sub_sec') ? parseInt(formData.get('exposure_time_per_sub_sec')) : null,
+                filter_used_session: formData.get('filter_used_session') || '',
+                rig_name: formData.get('rig_id_snapshot') ? document.querySelector('#rig-selector-edit option:checked')?.text : '',
+                telescope_name: '',
+                camera_name: '',
+                image_scale: null,
+                seeing_observed_fwhm: formData.get('seeing_observed_fwhm') ? parseFloat(formData.get('seeing_observed_fwhm')) : null,
+                sky_sqm_observed: formData.get('sky_sqm_observed') ? parseFloat(formData.get('sky_sqm_observed')) : null,
+                guiding_rms_avg_arcsec: formData.get('guiding_rms_avg_arcsec') ? parseFloat(formData.get('guiding_rms_avg_arcsec')) : null,
+                moon_illumination_session: formData.get('moon_illumination_session') ? parseInt(formData.get('moon_illumination_session')) : null,
+                moon_angular_separation_session: formData.get('moon_angular_separation_session') ? parseFloat(formData.get('moon_angular_separation_session')) : null,
+                camera_temp_actual_avg_c: formData.get('camera_temp_actual_avg_c') ? parseFloat(formData.get('camera_temp_actual_avg_c')) : null,
+                gain_setting: formData.get('gain_setting') ? parseInt(formData.get('gain_setting')) : null,
+                session_rating_subjective: formData.get('session_rating_subjective') ? parseInt(formData.get('session_rating_subjective')) : null,
+                transparency_observed_scale: formData.get('transparency_observed_scale') || '',
+                weather_notes: formData.get('weather_notes') || '',
+                telescope_setup_notes: formData.get('telescope_setup_notes') || '',
+                dither_notes: formData.get('dither_notes') || '',
+                darks_strategy: formData.get('darks_strategy') || '',
+                flats_strategy: formData.get('flats_strategy') || '',
+                notes: trixEditor ? trixEditor.editor.getDocument().toString() : ''
+            };
+        }
+    }
+
     fetch('/api/ai/session-summary', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({session_id: parseInt(sessionId)})
+        body: JSON.stringify(requestBody)
     })
     .then(function(response) {
         if (!response.ok) {
