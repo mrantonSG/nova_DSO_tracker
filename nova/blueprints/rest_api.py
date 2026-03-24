@@ -5,9 +5,12 @@ Full CRUD API for all data models, secured by API-key authentication.
 Prefix: /api/v1  (set during blueprint registration)
 """
 
-from datetime import datetime
+from __future__ import annotations
+
+from datetime import datetime, date
+from typing import Any
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask import Blueprint, request, jsonify, g
+from flask import Blueprint, request, jsonify, g, current_app
 import uuid
 
 from nova.api_auth import (
@@ -54,7 +57,7 @@ rest_api_bp = Blueprint("rest_api", __name__)
 # ──────────────────────────────────────────────────────────
 
 
-def _db():
+def _db() -> Any:
     """Return the scoped SQLAlchemy session registry.
 
     Call .remove() to release the session back to the pool.
@@ -62,7 +65,7 @@ def _db():
     return SessionLocal
 
 
-def _paginate(query):
+def _paginate(query: Any) -> tuple[list, dict]:
     """Apply pagination from query-string ?page=&per_page= and return (items, meta)."""
     page = max(1, request.args.get("page", 1, type=int))
     per_page = min(200, max(1, request.args.get("per_page", 50, type=int)))
@@ -76,23 +79,35 @@ def _paginate(query):
     }
 
 
-def _ok(data, meta=None, status=200):
+def _ok(data: Any, meta: dict | None = None, status: int = 200) -> tuple[Any, int]:
     body = {"data": data}
     if meta is not None:
         body["meta"] = meta
     return jsonify(body), status
 
 
-def _err(message, status=400):
+def _err(message: str, status: int = 400) -> tuple[Any, int]:
     return jsonify({"error": message}), status
 
 
-def _user_id():
+def _user_id() -> int:
     """Return the authenticated DbUser.id."""
     return g.db_user.id
 
 
-def _to_date(val):
+def _get_owned_or_404(
+    db: Any, Model: Any, record_id: int, user_id: int, label: str
+) -> tuple[Any, Any]:
+    """Query owned record; return (obj, None) or (None, _err 404 tuple)."""
+    obj = (
+        db.query(Model).filter(Model.id == record_id, Model.user_id == user_id).first()
+    )
+    if obj is None:
+        return None, _err(f"{label} not found", 404)
+    return obj, None
+
+
+def _to_date(val: Any) -> date | None:
     """Parse a date string (YYYY-MM-DD) or return None."""
     if val is None:
         return None
@@ -104,7 +119,7 @@ def _to_date(val):
     return val
 
 
-def _to_float(val):
+def _to_float(val: Any) -> float | None:
     if val is None:
         return None
     try:
@@ -113,7 +128,7 @@ def _to_float(val):
         return None
 
 
-def _to_int(val):
+def _to_int(val: Any) -> int | None:
     if val is None:
         return None
     try:
@@ -122,7 +137,7 @@ def _to_int(val):
         return None
 
 
-def _to_bool(val):
+def _to_bool(val: Any) -> bool | None:
     if val is None:
         return None
     if isinstance(val, bool):
@@ -137,7 +152,7 @@ def _to_bool(val):
 # ──────────────────────────────────────────────────────────
 
 
-def _serialize_object(obj):
+def _serialize_object(obj) -> dict:
     return {
         "id": obj.id,
         "object_name": obj.object_name,
@@ -165,7 +180,7 @@ def _serialize_object(obj):
     }
 
 
-def _serialize_project(p):
+def _serialize_project(p) -> dict:
     return {
         "id": p.id,
         "name": p.name,
@@ -179,7 +194,7 @@ def _serialize_project(p):
     }
 
 
-def _serialize_location(loc):
+def _serialize_location(loc) -> dict:
     return {
         "id": loc.id,
         "stable_uid": loc.stable_uid,
@@ -194,7 +209,7 @@ def _serialize_location(loc):
     }
 
 
-def _serialize_horizon_point(hp):
+def _serialize_horizon_point(hp) -> dict:
     return {
         "id": hp.id,
         "az_deg": hp.az_deg,
@@ -202,7 +217,7 @@ def _serialize_horizon_point(hp):
     }
 
 
-def _serialize_component(c):
+def _serialize_component(c) -> dict:
     return {
         "id": c.id,
         "stable_uid": c.stable_uid,
@@ -218,7 +233,7 @@ def _serialize_component(c):
     }
 
 
-def _serialize_rig(r):
+def _serialize_rig(r) -> dict:
     return {
         "id": r.id,
         "stable_uid": r.stable_uid,
@@ -236,7 +251,7 @@ def _serialize_rig(r):
     }
 
 
-def _serialize_session(s):
+def _serialize_session(s) -> dict:
     return {
         "id": s.id,
         "project_id": s.project_id,
@@ -290,7 +305,7 @@ def _serialize_session(s):
     }
 
 
-def _serialize_saved_view(v):
+def _serialize_saved_view(v) -> dict:
     return {
         "id": v.id,
         "name": v.name,
@@ -300,7 +315,7 @@ def _serialize_saved_view(v):
     }
 
 
-def _serialize_framing(f):
+def _serialize_framing(f) -> dict:
     return {
         "id": f.id,
         "object_name": f.object_name,
@@ -320,7 +335,7 @@ def _serialize_framing(f):
     }
 
 
-def _serialize_custom_filter(cf):
+def _serialize_custom_filter(cf) -> dict:
     return {
         "id": cf.id,
         "filter_key": cf.filter_key,
@@ -329,7 +344,7 @@ def _serialize_custom_filter(cf):
     }
 
 
-def _serialize_api_key(k):
+def _serialize_api_key(k) -> dict:
     return {
         "id": k.id,
         "key_prefix": k.key_prefix,
@@ -340,7 +355,7 @@ def _serialize_api_key(k):
     }
 
 
-def _serialize_ui_pref(p):
+def _serialize_ui_pref(p) -> dict:
     return {
         "id": p.id,
         "json_blob": p.json_blob,
@@ -479,9 +494,10 @@ def create_object():
         db.commit()
         db.refresh(obj)
         return _ok(_serialize_object(obj), status=201)
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -492,16 +508,10 @@ def create_object():
 def get_object(object_id):
     db = _db()
     try:
-        obj = (
-            db.query(AstroObject)
-            .filter(
-                AstroObject.id == object_id,
-                AstroObject.user_id == _user_id(),
-            )
-            .first()
-        )
-        if obj is None:
-            return _err("Object not found", 404)
+        obj, err = _get_owned_or_404(db, AstroObject, object_id, _user_id(), "Object")
+
+        if err:
+            return err
         return _ok(_serialize_object(obj))
     finally:
         db.remove()
@@ -514,23 +524,18 @@ def update_object(object_id):
     data = request.get_json(silent=True) or {}
     db = _db()
     try:
-        obj = (
-            db.query(AstroObject)
-            .filter(
-                AstroObject.id == object_id,
-                AstroObject.user_id == _user_id(),
-            )
-            .first()
-        )
-        if obj is None:
-            return _err("Object not found", 404)
+        obj, err = _get_owned_or_404(db, AstroObject, object_id, _user_id(), "Object")
+
+        if err:
+            return err
         _apply_object_fields(obj, data)
         db.commit()
         db.refresh(obj)
         return _ok(_serialize_object(obj))
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -541,45 +546,32 @@ def update_object(object_id):
 def delete_object(object_id):
     db = _db()
     try:
-        obj = (
-            db.query(AstroObject)
-            .filter(
-                AstroObject.id == object_id,
-                AstroObject.user_id == _user_id(),
-            )
-            .first()
-        )
-        if obj is None:
-            return _err("Object not found", 404)
+        obj, err = _get_owned_or_404(db, AstroObject, object_id, _user_id(), "Object")
+
+        if err:
+            return err
         db.delete(obj)
         db.commit()
         return _ok({"deleted": True})
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
 
-def _apply_object_fields(obj, data):
+def _apply_object_fields(obj, data) -> None:
     """Apply writable fields from request data to an AstroObject."""
-    _fields = [
+    str_fields = [
         "object_name",
         "common_name",
-        "ra_hours",
-        "dec_deg",
         "type",
         "constellation",
-        "magnitude",
-        "size",
-        "sb",
-        "active_project",
         "project_name",
-        "is_shared",
         "shared_notes",
         "catalog_sources",
         "catalog_info",
-        "enabled",
         "image_url",
         "image_credit",
         "image_source_link",
@@ -587,9 +579,27 @@ def _apply_object_fields(obj, data):
         "description_credit",
         "description_source_link",
     ]
-    for f in _fields:
+    for f in str_fields:
         if f in data:
             setattr(obj, f, data[f])
+    float_fields = {
+        "ra_hours": "ra_hours",
+        "dec_deg": "dec_deg",
+        "magnitude": "magnitude",
+        "size": "size",
+        "sb": "sb",
+    }
+    for jf, mf in float_fields.items():
+        if jf in data:
+            setattr(obj, mf, _to_float(data[jf]))
+    bool_fields = {
+        "active_project": "active_project",
+        "is_shared": "is_shared",
+        "enabled": "enabled",
+    }
+    for jf, mf in bool_fields.items():
+        if jf in data:
+            setattr(obj, mf, _to_bool(data[jf]))
 
 
 # ──────────────────────────────────────────────────────────
@@ -633,9 +643,10 @@ def create_project():
         db.commit()
         db.refresh(p)
         return _ok(_serialize_project(p), status=201)
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -646,16 +657,10 @@ def create_project():
 def get_project(project_id):
     db = _db()
     try:
-        p = (
-            db.query(Project)
-            .filter(
-                Project.id == project_id,
-                Project.user_id == _user_id(),
-            )
-            .first()
-        )
-        if p is None:
-            return _err("Project not found", 404)
+        p, err = _get_owned_or_404(db, Project, project_id, _user_id(), "Project")
+
+        if err:
+            return err
         return _ok(_serialize_project(p))
     finally:
         db.remove()
@@ -668,23 +673,18 @@ def update_project(project_id):
     data = request.get_json(silent=True) or {}
     db = _db()
     try:
-        p = (
-            db.query(Project)
-            .filter(
-                Project.id == project_id,
-                Project.user_id == _user_id(),
-            )
-            .first()
-        )
-        if p is None:
-            return _err("Project not found", 404)
+        p, err = _get_owned_or_404(db, Project, project_id, _user_id(), "Project")
+
+        if err:
+            return err
         _apply_project_fields(p, data)
         db.commit()
         db.refresh(p)
         return _ok(_serialize_project(p))
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -695,27 +695,22 @@ def update_project(project_id):
 def delete_project(project_id):
     db = _db()
     try:
-        p = (
-            db.query(Project)
-            .filter(
-                Project.id == project_id,
-                Project.user_id == _user_id(),
-            )
-            .first()
-        )
-        if p is None:
-            return _err("Project not found", 404)
+        p, err = _get_owned_or_404(db, Project, project_id, _user_id(), "Project")
+
+        if err:
+            return err
         db.delete(p)
         db.commit()
         return _ok({"deleted": True})
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
 
-def _apply_project_fields(p, data):
+def _apply_project_fields(p, data) -> None:
     for f in [
         "name",
         "target_object_name",
@@ -767,9 +762,10 @@ def create_location():
         db.commit()
         db.refresh(loc)
         return _ok(_serialize_location(loc), status=201)
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -780,16 +776,10 @@ def create_location():
 def get_location(location_id):
     db = _db()
     try:
-        loc = (
-            db.query(Location)
-            .filter(
-                Location.id == location_id,
-                Location.user_id == _user_id(),
-            )
-            .first()
-        )
-        if loc is None:
-            return _err("Location not found", 404)
+        loc, err = _get_owned_or_404(db, Location, location_id, _user_id(), "Location")
+
+        if err:
+            return err
         result = _serialize_location(loc)
         result["horizon_points"] = [
             _serialize_horizon_point(hp) for hp in loc.horizon_points
@@ -806,23 +796,18 @@ def update_location(location_id):
     data = request.get_json(silent=True) or {}
     db = _db()
     try:
-        loc = (
-            db.query(Location)
-            .filter(
-                Location.id == location_id,
-                Location.user_id == _user_id(),
-            )
-            .first()
-        )
-        if loc is None:
-            return _err("Location not found", 404)
+        loc, err = _get_owned_or_404(db, Location, location_id, _user_id(), "Location")
+
+        if err:
+            return err
         _apply_location_fields(loc, data)
         db.commit()
         db.refresh(loc)
         return _ok(_serialize_location(loc))
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -833,39 +818,38 @@ def update_location(location_id):
 def delete_location(location_id):
     db = _db()
     try:
-        loc = (
-            db.query(Location)
-            .filter(
-                Location.id == location_id,
-                Location.user_id == _user_id(),
-            )
-            .first()
-        )
-        if loc is None:
-            return _err("Location not found", 404)
+        loc, err = _get_owned_or_404(db, Location, location_id, _user_id(), "Location")
+
+        if err:
+            return err
         db.delete(loc)
         db.commit()
         return _ok({"deleted": True})
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
 
-def _apply_location_fields(loc, data):
-    for f in [
-        "name",
-        "lat",
-        "lon",
-        "timezone",
-        "altitude_threshold",
-        "is_default",
-        "active",
-        "comments",
-    ]:
+def _apply_location_fields(loc, data) -> None:
+    str_fields = ["name", "timezone", "comments"]
+    for f in str_fields:
         if f in data:
             setattr(loc, f, data[f])
+    float_fields = {
+        "lat": "lat",
+        "lon": "lon",
+        "altitude_threshold": "altitude_threshold",
+    }
+    for jf, mf in float_fields.items():
+        if jf in data:
+            setattr(loc, mf, _to_float(data[jf]))
+    bool_fields = {"is_default": "is_default", "active": "active"}
+    for jf, mf in bool_fields.items():
+        if jf in data:
+            setattr(loc, mf, _to_bool(data[jf]))
 
 
 # ──── Horizon points (sub-resource) ────
@@ -877,16 +861,10 @@ def _apply_location_fields(loc, data):
 def get_horizon(location_id):
     db = _db()
     try:
-        loc = (
-            db.query(Location)
-            .filter(
-                Location.id == location_id,
-                Location.user_id == _user_id(),
-            )
-            .first()
-        )
-        if loc is None:
-            return _err("Location not found", 404)
+        loc, err = _get_owned_or_404(db, Location, location_id, _user_id(), "Location")
+
+        if err:
+            return err
         points = (
             db.query(HorizonPoint)
             .filter(
@@ -909,16 +887,10 @@ def set_horizon(location_id):
     points_data = data.get("points", [])
     db = _db()
     try:
-        loc = (
-            db.query(Location)
-            .filter(
-                Location.id == location_id,
-                Location.user_id == _user_id(),
-            )
-            .first()
-        )
-        if loc is None:
-            return _err("Location not found", 404)
+        loc, err = _get_owned_or_404(db, Location, location_id, _user_id(), "Location")
+
+        if err:
+            return err
         # Delete existing
         db.query(HorizonPoint).filter(HorizonPoint.location_id == loc.id).delete()
         # Insert new
@@ -939,9 +911,10 @@ def set_horizon(location_id):
             .all()
         )
         return _ok([_serialize_horizon_point(hp) for hp in new_points])
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -988,9 +961,10 @@ def create_component():
         db.commit()
         db.refresh(c)
         return _ok(_serialize_component(c), status=201)
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -1001,16 +975,10 @@ def create_component():
 def get_component(component_id):
     db = _db()
     try:
-        c = (
-            db.query(Component)
-            .filter(
-                Component.id == component_id,
-                Component.user_id == _user_id(),
-            )
-            .first()
-        )
-        if c is None:
-            return _err("Component not found", 404)
+        c, err = _get_owned_or_404(db, Component, component_id, _user_id(), "Component")
+
+        if err:
+            return err
         return _ok(_serialize_component(c))
     finally:
         db.remove()
@@ -1023,23 +991,18 @@ def update_component(component_id):
     data = request.get_json(silent=True) or {}
     db = _db()
     try:
-        c = (
-            db.query(Component)
-            .filter(
-                Component.id == component_id,
-                Component.user_id == _user_id(),
-            )
-            .first()
-        )
-        if c is None:
-            return _err("Component not found", 404)
+        c, err = _get_owned_or_404(db, Component, component_id, _user_id(), "Component")
+
+        if err:
+            return err
         _apply_component_fields(c, data)
         db.commit()
         db.refresh(c)
         return _ok(_serialize_component(c))
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -1050,40 +1013,39 @@ def update_component(component_id):
 def delete_component(component_id):
     db = _db()
     try:
-        c = (
-            db.query(Component)
-            .filter(
-                Component.id == component_id,
-                Component.user_id == _user_id(),
-            )
-            .first()
-        )
-        if c is None:
-            return _err("Component not found", 404)
+        c, err = _get_owned_or_404(db, Component, component_id, _user_id(), "Component")
+
+        if err:
+            return err
         db.delete(c)
         db.commit()
         return _ok({"deleted": True})
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
 
-def _apply_component_fields(c, data):
-    for f in [
-        "kind",
-        "name",
-        "aperture_mm",
-        "focal_length_mm",
-        "sensor_width_mm",
-        "sensor_height_mm",
-        "pixel_size_um",
-        "factor",
-        "is_shared",
-    ]:
+def _apply_component_fields(c, data) -> None:
+    str_fields = ["kind", "name"]
+    for f in str_fields:
         if f in data:
             setattr(c, f, data[f])
+    float_fields = {
+        "aperture_mm": "aperture_mm",
+        "focal_length_mm": "focal_length_mm",
+        "sensor_width_mm": "sensor_width_mm",
+        "sensor_height_mm": "sensor_height_mm",
+        "pixel_size_um": "pixel_size_um",
+        "factor": "factor",
+    }
+    for jf, mf in float_fields.items():
+        if jf in data:
+            setattr(c, mf, _to_float(data[jf]))
+    if "is_shared" in data:
+        c.is_shared = _to_bool(data["is_shared"])
 
 
 # ──────────────────────────────────────────────────────────
@@ -1123,9 +1085,10 @@ def create_rig():
         db.commit()
         db.refresh(r)
         return _ok(_serialize_rig(r), status=201)
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -1136,16 +1099,10 @@ def create_rig():
 def get_rig(rig_id):
     db = _db()
     try:
-        r = (
-            db.query(Rig)
-            .filter(
-                Rig.id == rig_id,
-                Rig.user_id == _user_id(),
-            )
-            .first()
-        )
-        if r is None:
-            return _err("Rig not found", 404)
+        r, err = _get_owned_or_404(db, Rig, rig_id, _user_id(), "Rig")
+
+        if err:
+            return err
         return _ok(_serialize_rig(r))
     finally:
         db.remove()
@@ -1158,23 +1115,18 @@ def update_rig(rig_id):
     data = request.get_json(silent=True) or {}
     db = _db()
     try:
-        r = (
-            db.query(Rig)
-            .filter(
-                Rig.id == rig_id,
-                Rig.user_id == _user_id(),
-            )
-            .first()
-        )
-        if r is None:
-            return _err("Rig not found", 404)
+        r, err = _get_owned_or_404(db, Rig, rig_id, _user_id(), "Rig")
+
+        if err:
+            return err
         _apply_rig_fields(r, data)
         db.commit()
         db.refresh(r)
         return _ok(_serialize_rig(r))
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -1185,42 +1137,45 @@ def update_rig(rig_id):
 def delete_rig(rig_id):
     db = _db()
     try:
-        r = (
-            db.query(Rig)
-            .filter(
-                Rig.id == rig_id,
-                Rig.user_id == _user_id(),
-            )
-            .first()
-        )
-        if r is None:
-            return _err("Rig not found", 404)
+        r, err = _get_owned_or_404(db, Rig, rig_id, _user_id(), "Rig")
+
+        if err:
+            return err
         db.delete(r)
         db.commit()
         return _ok({"deleted": True})
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
 
-def _apply_rig_fields(r, data):
-    for f in [
-        "rig_name",
-        "telescope_id",
-        "camera_id",
-        "reducer_extender_id",
-        "effective_focal_length",
-        "f_ratio",
-        "image_scale",
-        "fov_w_arcmin",
-        "guide_telescope_id",
-        "guide_camera_id",
-        "guide_is_oag",
-    ]:
-        if f in data:
-            setattr(r, f, data[f])
+def _apply_rig_fields(r, data) -> None:
+    if "rig_name" in data:
+        r.rig_name = data["rig_name"]
+    float_fields = {
+        "effective_focal_length": "effective_focal_length",
+        "f_ratio": "f_ratio",
+        "image_scale": "image_scale",
+        "fov_w_arcmin": "fov_w_arcmin",
+    }
+    for jf, mf in float_fields.items():
+        if jf in data:
+            setattr(r, mf, _to_float(data[jf]))
+    int_fk_fields = {
+        "telescope_id": "telescope_id",
+        "camera_id": "camera_id",
+        "reducer_extender_id": "reducer_extender_id",
+        "guide_telescope_id": "guide_telescope_id",
+        "guide_camera_id": "guide_camera_id",
+    }
+    for jf, mf in int_fk_fields.items():
+        if jf in data:
+            setattr(r, mf, _to_int(data[jf]))
+    if "guide_is_oag" in data:
+        r.guide_is_oag = _to_bool(data["guide_is_oag"])
 
 
 # ──────────────────────────────────────────────────────────
@@ -1273,9 +1228,10 @@ def create_session():
         db.commit()
         db.refresh(s)
         return _ok(_serialize_session(s), status=201)
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -1286,16 +1242,12 @@ def create_session():
 def get_session(session_id):
     db = _db()
     try:
-        s = (
-            db.query(JournalSession)
-            .filter(
-                JournalSession.id == session_id,
-                JournalSession.user_id == _user_id(),
-            )
-            .first()
+        s, err = _get_owned_or_404(
+            db, JournalSession, session_id, _user_id(), "Session"
         )
-        if s is None:
-            return _err("Session not found", 404)
+
+        if err:
+            return err
         return _ok(_serialize_session(s))
     finally:
         db.remove()
@@ -1308,23 +1260,20 @@ def update_session(session_id):
     data = request.get_json(silent=True) or {}
     db = _db()
     try:
-        s = (
-            db.query(JournalSession)
-            .filter(
-                JournalSession.id == session_id,
-                JournalSession.user_id == _user_id(),
-            )
-            .first()
+        s, err = _get_owned_or_404(
+            db, JournalSession, session_id, _user_id(), "Session"
         )
-        if s is None:
-            return _err("Session not found", 404)
+
+        if err:
+            return err
         _apply_session_fields(s, data)
         db.commit()
         db.refresh(s)
         return _ok(_serialize_session(s))
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -1335,27 +1284,24 @@ def update_session(session_id):
 def delete_session(session_id):
     db = _db()
     try:
-        s = (
-            db.query(JournalSession)
-            .filter(
-                JournalSession.id == session_id,
-                JournalSession.user_id == _user_id(),
-            )
-            .first()
+        s, err = _get_owned_or_404(
+            db, JournalSession, session_id, _user_id(), "Session"
         )
-        if s is None:
-            return _err("Session not found", 404)
+
+        if err:
+            return err
         db.delete(s)
         db.commit()
         return _ok({"deleted": True})
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
 
-def _apply_session_fields(s, data):
+def _apply_session_fields(s, data) -> None:
     # Date needs special handling
     if "date_utc" in data:
         s.date_utc = _to_date(data["date_utc"])
@@ -1469,9 +1415,10 @@ def create_view():
         db.commit()
         db.refresh(v)
         return _ok(_serialize_saved_view(v), status=201)
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -1482,16 +1429,10 @@ def create_view():
 def get_view(view_id):
     db = _db()
     try:
-        v = (
-            db.query(SavedView)
-            .filter(
-                SavedView.id == view_id,
-                SavedView.user_id == _user_id(),
-            )
-            .first()
-        )
-        if v is None:
-            return _err("View not found", 404)
+        v, err = _get_owned_or_404(db, SavedView, view_id, _user_id(), "View")
+
+        if err:
+            return err
         return _ok(_serialize_saved_view(v))
     finally:
         db.remove()
@@ -1504,23 +1445,18 @@ def update_view(view_id):
     data = request.get_json(silent=True) or {}
     db = _db()
     try:
-        v = (
-            db.query(SavedView)
-            .filter(
-                SavedView.id == view_id,
-                SavedView.user_id == _user_id(),
-            )
-            .first()
-        )
-        if v is None:
-            return _err("View not found", 404)
+        v, err = _get_owned_or_404(db, SavedView, view_id, _user_id(), "View")
+
+        if err:
+            return err
         _apply_view_fields(v, data)
         db.commit()
         db.refresh(v)
         return _ok(_serialize_saved_view(v))
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -1531,30 +1467,28 @@ def update_view(view_id):
 def delete_view(view_id):
     db = _db()
     try:
-        v = (
-            db.query(SavedView)
-            .filter(
-                SavedView.id == view_id,
-                SavedView.user_id == _user_id(),
-            )
-            .first()
-        )
-        if v is None:
-            return _err("View not found", 404)
+        v, err = _get_owned_or_404(db, SavedView, view_id, _user_id(), "View")
+
+        if err:
+            return err
         db.delete(v)
         db.commit()
         return _ok({"deleted": True})
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
 
-def _apply_view_fields(v, data):
-    for f in ["name", "description", "settings_json", "is_shared"]:
+def _apply_view_fields(v, data) -> None:
+    str_fields = ["name", "description", "settings_json"]
+    for f in str_fields:
         if f in data:
             setattr(v, f, data[f])
+    if "is_shared" in data:
+        v.is_shared = _to_bool(data["is_shared"])
 
 
 # ──────────────────────────────────────────────────────────
@@ -1591,9 +1525,10 @@ def create_framing():
         db.commit()
         db.refresh(f)
         return _ok(_serialize_framing(f), status=201)
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -1604,16 +1539,10 @@ def create_framing():
 def get_framing(framing_id):
     db = _db()
     try:
-        f = (
-            db.query(SavedFraming)
-            .filter(
-                SavedFraming.id == framing_id,
-                SavedFraming.user_id == _user_id(),
-            )
-            .first()
-        )
-        if f is None:
-            return _err("Framing not found", 404)
+        f, err = _get_owned_or_404(db, SavedFraming, framing_id, _user_id(), "Framing")
+
+        if err:
+            return err
         return _ok(_serialize_framing(f))
     finally:
         db.remove()
@@ -1626,23 +1555,18 @@ def update_framing(framing_id):
     data = request.get_json(silent=True) or {}
     db = _db()
     try:
-        f = (
-            db.query(SavedFraming)
-            .filter(
-                SavedFraming.id == framing_id,
-                SavedFraming.user_id == _user_id(),
-            )
-            .first()
-        )
-        if f is None:
-            return _err("Framing not found", 404)
+        f, err = _get_owned_or_404(db, SavedFraming, framing_id, _user_id(), "Framing")
+
+        if err:
+            return err
         _apply_framing_fields(f, data)
         db.commit()
         db.refresh(f)
         return _ok(_serialize_framing(f))
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -1653,48 +1577,46 @@ def update_framing(framing_id):
 def delete_framing(framing_id):
     db = _db()
     try:
-        f = (
-            db.query(SavedFraming)
-            .filter(
-                SavedFraming.id == framing_id,
-                SavedFraming.user_id == _user_id(),
-            )
-            .first()
-        )
-        if f is None:
-            return _err("Framing not found", 404)
+        f, err = _get_owned_or_404(db, SavedFraming, framing_id, _user_id(), "Framing")
+
+        if err:
+            return err
         db.delete(f)
         db.commit()
         return _ok({"deleted": True})
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
 
-def _apply_framing_fields(f, data):
+def _apply_framing_fields(f, data) -> None:
     if "object_name" in data:
         f.object_name = data["object_name"]
     if "rig_id" in data:
-        f.rig_id = data["rig_id"]
-
-    mapped_fields = {
-        "survey_name": "survey",
+        f.rig_id = _to_int(data["rig_id"])
+    if "survey_name" in data:
+        f.survey = data["survey_name"]
+    float_fields = {
         "survey_ra_hours": "ra",
         "survey_dec_deg": "dec",
         "survey_rotation_deg": "rotation",
-        "mosaic_panels_x": "mosaic_cols",
-        "mosaic_panels_y": "mosaic_rows",
         "mosaic_overlap_pct": "mosaic_overlap",
         "image_brightness": "img_brightness",
         "image_contrast": "img_contrast",
         "image_saturation": "img_saturation",
-        "geo_belt_enabled": "geo_belt_enabled",
     }
-    for json_field, model_field in mapped_fields.items():
-        if json_field in data:
-            setattr(f, model_field, data[json_field])
+    for jf, mf in float_fields.items():
+        if jf in data:
+            setattr(f, mf, _to_float(data[jf]))
+    int_fields = {"mosaic_panels_x": "mosaic_cols", "mosaic_panels_y": "mosaic_rows"}
+    for jf, mf in int_fields.items():
+        if jf in data:
+            setattr(f, mf, _to_int(data[jf]))
+    if "geo_belt_enabled" in data:
+        f.geo_belt_enabled = _to_bool(data["geo_belt_enabled"])
     f.updated_at = datetime.utcnow()
 
 
@@ -1735,9 +1657,10 @@ def create_custom_filter():
         db.commit()
         db.refresh(cf)
         return _ok(_serialize_custom_filter(cf), status=201)
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -1748,22 +1671,19 @@ def create_custom_filter():
 def delete_custom_filter(filter_id):
     db = _db()
     try:
-        cf = (
-            db.query(UserCustomFilter)
-            .filter(
-                UserCustomFilter.id == filter_id,
-                UserCustomFilter.user_id == _user_id(),
-            )
-            .first()
+        cf, err = _get_owned_or_404(
+            db, UserCustomFilter, filter_id, _user_id(), "Custom filter"
         )
-        if cf is None:
-            return _err("Custom filter not found", 404)
+
+        if err:
+            return err
         db.delete(cf)
         db.commit()
         return _ok({"deleted": True})
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -1805,9 +1725,10 @@ def update_preferences():
         db.commit()
         db.refresh(pref)
         return _ok(_serialize_ui_pref(pref))
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -1896,9 +1817,10 @@ def update_stellarium_settings():
             pref.json_blob = new_blob
         db.commit()
         return _ok(blob["stellarium"])
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -1953,9 +1875,10 @@ def register():
             },
             status=201,
         )
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.close()
 
@@ -1999,9 +1922,10 @@ def login():
                 "api_key": raw_key,
             }
         )
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.close()
 
@@ -2062,9 +1986,10 @@ def create_api_key_endpoint():
         result = _serialize_api_key(new_key)
         result["key"] = raw_key  # Only time the full key is revealed
         return _ok(result, status=201)
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -2094,9 +2019,10 @@ def revoke_api_key(key_id):
         api_key.is_active = False
         db.commit()
         return _ok({"revoked": True})
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -2161,7 +2087,7 @@ def api_status():
 # ──────────────────────────────────────────────────────────
 
 
-def _serialize_shared_object(obj, owner_username=None):
+def _serialize_shared_object(obj, owner_username=None) -> dict:
     """Serialize a shared object with owner info."""
     data = _serialize_object(obj)
     data["owner_username"] = owner_username or "unknown"
@@ -2169,7 +2095,7 @@ def _serialize_shared_object(obj, owner_username=None):
     return data
 
 
-def _serialize_shared_component(comp, owner_username=None):
+def _serialize_shared_component(comp, owner_username=None) -> dict:
     """Serialize a shared component with owner info."""
     data = _serialize_component(comp)
     data["owner_username"] = owner_username or "unknown"
@@ -2177,7 +2103,7 @@ def _serialize_shared_component(comp, owner_username=None):
     return data
 
 
-def _serialize_shared_view(view, owner_username=None):
+def _serialize_shared_view(view, owner_username=None) -> dict:
     """Serialize a shared view with owner info."""
     data = _serialize_saved_view(view)
     data["owner_username"] = owner_username or "unknown"
@@ -2264,6 +2190,26 @@ def get_shared_views():
         db.remove()
 
 
+def _unique_fork_name(
+    db, Model, user_id: int, base_name: str, name_col: str = "name"
+) -> str:
+    """Return base_name, or base_name_copy[N] to avoid name collision for user."""
+    if not db.query(Model).filter_by(user_id=user_id, **{name_col: base_name}).first():
+        return base_name
+    counter = 1
+    while True:
+        candidate = (
+            f"{base_name}_copy" if counter == 1 else f"{base_name}_copy{counter}"
+        )
+        if (
+            not db.query(Model)
+            .filter_by(user_id=user_id, **{name_col: candidate})
+            .first()
+        ):
+            return candidate
+        counter += 1
+
+
 # ──────────────────────────────────────────────────────────
 #  SHARING: Fork Endpoints
 # ──────────────────────────────────────────────────────────
@@ -2284,30 +2230,9 @@ def fork_shared_object(object_id):
             return _err("Object is not shared", 403)
 
         user_id = _user_id()
-
-        # Check for existing object with same name
-        existing = (
-            db.query(AstroObject)
-            .filter_by(user_id=user_id, object_name=source.object_name)
-            .first()
+        new_name = _unique_fork_name(
+            db, AstroObject, user_id, source.object_name, name_col="object_name"
         )
-        new_name = source.object_name
-        if existing:
-            # Append _copy suffix to avoid collision
-            suffix = "_copy"
-            counter = 1
-            while True:
-                new_name = f"{source.object_name}{suffix}"
-                if counter > 1:
-                    new_name = f"{source.object_name}{suffix}{counter}"
-                check = (
-                    db.query(AstroObject)
-                    .filter_by(user_id=user_id, object_name=new_name)
-                    .first()
-                )
-                if not check:
-                    break
-                counter += 1
 
         # Create the fork
         forked = AstroObject(
@@ -2341,9 +2266,10 @@ def fork_shared_object(object_id):
         db.commit()
         db.refresh(forked)
         return _ok(_serialize_object(forked), status=201)
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -2363,26 +2289,7 @@ def fork_shared_component(component_id):
 
         user_id = _user_id()
 
-        # Check for existing component with same name
-        existing = (
-            db.query(Component).filter_by(user_id=user_id, name=source.name).first()
-        )
-        new_name = source.name
-        if existing:
-            suffix = "_copy"
-            counter = 1
-            while True:
-                new_name = f"{source.name}{suffix}"
-                if counter > 1:
-                    new_name = f"{source.name}{suffix}{counter}"
-                check = (
-                    db.query(Component)
-                    .filter_by(user_id=user_id, name=new_name)
-                    .first()
-                )
-                if not check:
-                    break
-                counter += 1
+        new_name = _unique_fork_name(db, Component, user_id, source.name)
 
         # Create the fork (generate new stable_uid)
         import uuid as uuid_mod
@@ -2406,9 +2313,10 @@ def fork_shared_component(component_id):
         db.commit()
         db.refresh(forked)
         return _ok(_serialize_component(forked), status=201)
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -2428,26 +2336,7 @@ def fork_shared_view(view_id):
 
         user_id = _user_id()
 
-        # Check for existing view with same name
-        existing = (
-            db.query(SavedView).filter_by(user_id=user_id, name=source.name).first()
-        )
-        new_name = source.name
-        if existing:
-            suffix = "_copy"
-            counter = 1
-            while True:
-                new_name = f"{source.name}{suffix}"
-                if counter > 1:
-                    new_name = f"{source.name}{suffix}{counter}"
-                check = (
-                    db.query(SavedView)
-                    .filter_by(user_id=user_id, name=new_name)
-                    .first()
-                )
-                if not check:
-                    break
-                counter += 1
+        new_name = _unique_fork_name(db, SavedView, user_id, source.name)
 
         forked = SavedView(
             user_id=user_id,
@@ -2462,9 +2351,10 @@ def fork_shared_view(view_id):
         db.commit()
         db.refresh(forked)
         return _ok(_serialize_saved_view(forked), status=201)
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -2474,12 +2364,12 @@ def fork_shared_view(view_id):
 # ──────────────────────────────────────────────────────────
 
 
-def _serialize_permission(p):
+def _serialize_permission(p) -> dict:
     """Serialize a Permission object."""
     return {"id": p.id, "name": p.name, "description": p.description}
 
 
-def _serialize_role(r):
+def _serialize_role(r) -> dict:
     """Serialize a Role object with its permissions."""
     return {
         "id": r.id,
@@ -2548,9 +2438,10 @@ def admin_create_role():
         db.commit()
         db.refresh(role)
         return _ok(_serialize_role(role), status=201)
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -2601,9 +2492,10 @@ def admin_update_role(role_id):
         db.commit()
         db.refresh(role)
         return _ok(_serialize_role(role))
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -2625,9 +2517,10 @@ def admin_delete_role(role_id):
         db.delete(role)
         db.commit()
         return _ok({"message": f"Role '{role.name}' deleted"})
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -2659,9 +2552,10 @@ def admin_assign_permission_to_role(role_id, perm_id):
         db.commit()
         db.refresh(role)
         return _ok(_serialize_role(role))
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -2690,9 +2584,10 @@ def admin_revoke_permission_from_role(role_id, perm_id):
         db.commit()
         db.refresh(role)
         return _ok(_serialize_role(role))
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -2749,9 +2644,10 @@ def admin_assign_role_to_user(user_id, role_id):
                 "roles": [_serialize_role(r) for r in user.roles],
             }
         )
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -2784,9 +2680,10 @@ def admin_revoke_role_from_user(user_id, role_id):
                 "roles": [_serialize_role(r) for r in user.roles],
             }
         )
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -2913,11 +2810,19 @@ def api_create_blog_post():
         )
 
         return _ok(_serialize_blog_post(post, include_full=False), status=201)
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
+
+
+def _assert_blog_post_owner(post) -> tuple:
+    """Return _err('Forbidden', 403) if caller doesn't own post and isn't admin, else None."""
+    if post.user_id != _user_id() and not g.db_user.is_admin:
+        return _err("Forbidden", 403)
+    return None
 
 
 @rest_api_bp.route("/blog/posts/<int:post_id>", methods=["PUT"])
@@ -2931,13 +2836,9 @@ def api_update_blog_post(post_id):
         if not post:
             return _err("Blog post not found", 404)
 
-        # Ownership check
-        if (
-            not SINGLE_USER_MODE
-            and post.user_id != _user_id()
-            and not g.db_user.is_admin
-        ):
-            return _err("Forbidden", 403)
+        err = _assert_blog_post_owner(post)
+        if err:
+            return err
 
         data = request.get_json(silent=True) or {}
 
@@ -2962,9 +2863,10 @@ def api_update_blog_post(post_id):
         )
 
         return _ok(_serialize_blog_post(post, include_full=False))
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -2985,13 +2887,9 @@ def api_delete_blog_post(post_id):
         if not post:
             return _err("Blog post not found", 404)
 
-        # Ownership check
-        if (
-            not SINGLE_USER_MODE
-            and post.user_id != _user_id()
-            and not g.db_user.is_admin
-        ):
-            return _err("Forbidden", 403)
+        err = _assert_blog_post_owner(post)
+        if err:
+            return err
 
         # Delete image files from disk before removing from DB
         for img in post.images:
@@ -3001,9 +2899,10 @@ def api_delete_blog_post(post_id):
         db.commit()
 
         return _ok({"deleted": True})
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -3029,13 +2928,9 @@ def api_add_blog_images(post_id):
         if not post:
             return _err("Blog post not found", 404)
 
-        # Ownership check
-        if (
-            not SINGLE_USER_MODE
-            and post.user_id != _user_id()
-            and not g.db_user.is_admin
-        ):
-            return _err("Forbidden", 403)
+        err = _assert_blog_post_owner(post)
+        if err:
+            return err
 
         files = request.files.getlist("images[]")
         captions = request.form.getlist("captions[]")
@@ -3066,9 +2961,10 @@ def api_add_blog_images(post_id):
             [_serialize_blog_image(img, post.user_id) for img in new_images],
             status=201,
         )
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -3086,13 +2982,9 @@ def api_delete_blog_image(post_id, image_id):
         if not post:
             return _err("Blog post not found", 404)
 
-        # Ownership check
-        if (
-            not SINGLE_USER_MODE
-            and post.user_id != _user_id()
-            and not g.db_user.is_admin
-        ):
-            return _err("Forbidden", 403)
+        err = _assert_blog_post_owner(post)
+        if err:
+            return err
 
         image = db.query(BlogImage).filter(BlogImage.id == image_id).first()
         if not image:
@@ -3109,9 +3001,10 @@ def api_delete_blog_image(post_id, image_id):
         db.commit()
 
         return _ok({"deleted": True})
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -3136,13 +3029,9 @@ def api_reorder_blog_images(post_id):
         if not post:
             return _err("Blog post not found", 404)
 
-        # Ownership check
-        if (
-            not SINGLE_USER_MODE
-            and post.user_id != _user_id()
-            and not g.db_user.is_admin
-        ):
-            return _err("Forbidden", 403)
+        err = _assert_blog_post_owner(post)
+        if err:
+            return err
 
         data = request.get_json(silent=True)
         if not data or not isinstance(data, list):
@@ -3180,9 +3069,10 @@ def api_reorder_blog_images(post_id):
         )
 
         return _ok([_serialize_blog_image(img, post.user_id) for img in post.images])
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -3255,9 +3145,10 @@ def api_create_blog_comment(post_id):
         )
 
         return _ok(_serialize_blog_comment(comment), status=201)
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()
 
@@ -3304,8 +3195,9 @@ def api_delete_blog_comment(post_id, comment_id):
         db.commit()
 
         return _ok({"deleted": True})
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return _err(str(e), 500)
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
     finally:
         db.remove()

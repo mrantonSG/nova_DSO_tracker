@@ -372,7 +372,7 @@ def _is_api_request() -> bool:
 def _abort_forbidden(message: str = "Permission denied"):
     """Abort with 403, returning JSON for API requests."""
     if _is_api_request():
-        return jsonify({"error": message, "status": "forbidden"}), 403
+        return jsonify({"error": message}), 403
     abort(403, description=message)
 
 

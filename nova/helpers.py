@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 
 from flask import g, jsonify
 from PIL import Image as _PILImage
+from werkzeug.utils import secure_filename
 
 from nova.models import SessionLocal
 from nova.config import (
@@ -70,15 +71,6 @@ def get_current_username() -> str:
     from flask_login import current_user
 
     return "default" if SINGLE_USER_MODE else current_user.username
-
-
-def error_response(message: str, status_code: int = 400):
-    """
-    Standard JSON error response: {"error": message}
-
-    Use for consistent error formatting across routes.
-    """
-    return jsonify({"error": message}), status_code
 
 
 def get_user_log_string(user_id, username):
@@ -142,7 +134,7 @@ def _backup_with_rotation(src_path: str, keep: int = 10):
         for p in siblings[keep:]:
             try:
                 p.unlink()
-            except:
+            except OSError:
                 pass
         return dst
     except Exception as e:
@@ -525,10 +517,12 @@ def _save_blog_image(
 
     if not file or file.filename == "":
         return None
-    if not allowed_file(file.filename):
+    # Sanitize filename for extension extraction
+    safe_name = secure_filename(file.filename)
+    if not safe_name or not allowed_file(safe_name):
         return None
 
-    ext = file.filename.rsplit(".", 1)[1].lower()
+    ext = safe_name.rsplit(".", 1)[1].lower()
     uid = uuid.uuid4().hex
     orig_name = f"blog_{uid}.{ext}"
     thumb_name = f"blog_thumb_{uid}.jpg"

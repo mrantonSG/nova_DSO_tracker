@@ -83,7 +83,6 @@ iers.conf.auto_max_age = None  # Allow using old IERS data without errors
 from flask_wtf.csrf import CSRFProtect
 from sqlalchemy import text, func
 from sqlalchemy.orm import selectinload, joinedload
-import getpass
 import jwt
 
 from modules.astro_calculations import (
@@ -1805,6 +1804,1235 @@ def _iter_candidate_users():
         names.add(Path(p).stem.replace("journal_", ""))
     names.update(["default", "guest_user"])
     return sorted(n for n in names if n)
+
+
+def _upsert_user(db, username: str) -> DbUser:
+    u = db.query(DbUser).filter_by(username=username).one_or_none()
+    if not u:
+        u = DbUser(username=username, active=True)
+        db.add(u)
+        db.flush()
+    return u
+
+
+def normalize_object_name(name: str) -> str:
+    """
+    Converts messy object names into a standard primary key.
+    This function is designed to handle user input and convert it
+    to the canonical format.
+    """
+    if not name:
+        return None
+    name_str = str(name).strip().upper()
+    if not name_str:
+        return None  # Catches whitespace-only input
+
+    # --- 1. Fix known "corrupt" inputs (add spaces/hyphens) ---
+    # This list should mirror the rules from the Python repair script.
+
+    # SH 2-155 -> SH2155 (Fix: SH2 + 1 or more digits)
+    match = re.match(r"^(SH2)(\d+)$", name_str)
+    if match:
+        return f"SH 2-{match.group(2)}"
+
+    # SH 2-155 -> SH2-155 (Fix: SH2- + 1 or more digits)
+    match = re.match(r"^(SH2)-(\d+)$", name_str)
+    if match:
+        return f"SH 2-{match.group(2)}"
+
+    # NGC 1976 -> NGC1976 (Fix: NGC + 1 or more digits)
+    match = re.match(r"^(NGC)(\d+)$", name_str)
+    if match:
+        return f"NGC {match.group(2)}"
+
+    # IC 1805 -> IC1805 (Fix: IC + 1 or more digits)
+    match = re.match(r"^(IC)(\d+)$", name_str)
+    if match:
+        return f"IC {match.group(2)}"
+
+    # VDB 1 -> VDB1
+    match = re.match(r"^(VDB)(\d+)$", name_str)
+    if match:
+        return f"VDB {match.group(2)}"
+
+    # GUM 16 -> GUM16
+    match = re.match(r"^(GUM)(\d+)$", name_str)
+    if match:
+        return f"GUM {match.group(2)}"
+
+    # TGU H1867 -> TGUH1867
+    match = re.match(r"^(TGUH)(\d+)$", name_str)
+    if match:
+        return f"TGU H{match.group(2)}"
+
+    # LHA 120-N 70 -> LHA120N70
+    # The regex now splits 'N' and '70' into separate groups
+    match = re.match(r"^(LHA)(\d+)(N)(\d+)$", name_str)
+    if match:
+        return f"LHA {match.group(2)}-{match.group(3)} {match.group(4)}"
+
+    # SNR G180.0-01.7 -> SNRG180.001.7
+    # Made first decimal match non-greedy with +?
+    match = re.match(r"^(SNRG)(\d+\.\d+?)(\d+\.\d+)$", name_str)
+    if match:
+        return f"SNR G{match.group(2)}-{match.group(3)}"
+
+    # CTA 1 -> CTA1
+    match = re.match(r"^(CTA)(\d+)$", name_str)
+    if match:
+        return f"CTA {match.group(2)}"
+
+    # HB 3 -> HB3
+    match = re.match(r"^(HB)(\d+)$", name_str)
+    if match:
+        return f"HB {match.group(2)}"
+
+    # PN ARO 121 -> PNARO121
+    match = re.match(r"^(PNARO)(\d+)$", name_str)
+    if match:
+        return f"PN ARO {match.group(2)}"
+
+    # LIESTO 1 -> LIESTO1
+    match = re.match(r"^(LIESTO)(\d+)$", name_str)
+    if match:
+        return f"LIESTO {match.group(2)}"
+
+    # PK 081-14.1 -> PK08114.1
+    match = re.match(r"^(PK)(\d+)(\d{2}\.\d+)$", name_str)
+    if match:
+        return f"PK {match.group(2)}-{match.group(3)}"
+
+    # PN G093.3-02.4 -> PNG093.302.4
+    # Made first decimal match non-greedy with +?
+    match = re.match(r"^(PNG)(\d+\.\d+?)(\d+\.\d+)$", name_str)
+    if match:
+        return f"PN G{match.group(2)}-{match.group(3)}"
+
+    # WR 134 -> WR134
+    match = re.match(r"^(WR)(\d+)$", name_str)
+    if match:
+        return f"WR {match.group(2)}"
+
+    # ABELL 21 -> ABELL21
+    match = re.match(r"^(ABELL)(\d+)$", name_str)
+    if match:
+        return f"ABELL {match.group(2)}"
+
+    # BARNARD 33 -> BARNARD33
+    match = re.match(r"^(BARNARD)(\d+)$", name_str)
+    if match:
+        return f"BARNARD {match.group(2)}"
+
+    # --- 2. Fix simple space removal (M, IC, etc.) ---
+    # This rule handles user input like "M 42"
+    match = re.match(r"^(M)\s+(.*)$", name_str)
+    if match:
+        prefix = match.group(1)
+        number_part = match.group(2).replace(" ", "")
+        return prefix + number_part
+
+    # --- 3. Default Fallback ---
+    # For names that are already correct (e.g., "M42", "NGC 1976", "SH 2-155")
+    # just collapse whitespace.
+    return " ".join(name_str.split())
+
+
+def _migrate_locations(db, user: DbUser, config: dict):
+    """
+    Idempotent import of locations:
+      - Upsert per (user_id, name)
+      - Replace horizon points on update
+      - Ensure only default_location has is_default=True
+    """
+    locs = (config or {}).get("locations", {}) or {}
+    default_name = (config or {}).get("default_location")
+
+    # First, clear default flags for this user's locations. We'll set the correct one below.
+    db.query(Location).filter_by(user_id=user.id).update({Location.is_default: False})
+    db.flush()
+
+    for name, loc in locs.items():
+        try:
+            lat = float(loc.get("lat"))
+            lon = float(loc.get("lon"))
+            tz = loc.get("timezone", "UTC")
+            alt_thr_val = loc.get("altitude_threshold")
+            alt_thr = float(alt_thr_val) if alt_thr_val is not None else None
+            new_is_default = name == default_name
+
+            existing = (
+                db.query(Location).filter_by(user_id=user.id, name=name).one_or_none()
+            )
+            if existing:
+                # --- UPDATE existing row
+                existing.lat = lat
+                existing.lon = lon
+                existing.timezone = tz
+                existing.altitude_threshold = alt_thr
+                existing.is_default = new_is_default
+                existing.active = loc.get("active", True)
+
+                # --- START FIX: Replace horizon points using relationship cascade ---
+                new_horizon_points = []
+                hm = loc.get("horizon_mask")
+                if isinstance(hm, list):
+                    for pair in hm:
+                        try:
+                            az, altmin = float(pair[0]), float(pair[1])
+                            # Create the object, but don't add it to the session.
+                            # Appending to the list handles the relationship.
+                            new_horizon_points.append(
+                                HorizonPoint(az_deg=az, alt_min_deg=altmin)
+                            )
+                        except (ValueError, TypeError, IndexError) as hp_err:
+                            app.logger.warning(
+                                f"[MIGRATION] Invalid horizon point skipped for location '{name}': {pair} - {hp_err}"
+                            )
+
+                # Assigning the new list triggers the 'delete-orphan' cascade.
+                # All old points are deleted, all new points are added.
+                existing.horizon_points = new_horizon_points
+                # --- END FIX ---
+
+            else:
+                # --- INSERT new row
+                row = Location(
+                    user_id=user.id,
+                    name=name,
+                    lat=lat,
+                    lon=lon,
+                    timezone=tz,
+                    altitude_threshold=alt_thr,
+                    is_default=new_is_default,
+                    active=loc.get("active", True),
+                )
+                db.add(row)
+                db.flush()  # Flush to get the row.id
+
+                # --- START REFACTOR: Use the same pattern for consistency ---
+                new_horizon_points = []
+                hm = loc.get("horizon_mask")
+                if isinstance(hm, list):
+                    for pair in hm:
+                        try:
+                            az, altmin = float(pair[0]), float(pair[1])
+                            new_horizon_points.append(
+                                HorizonPoint(az_deg=az, alt_min_deg=altmin)
+                            )
+                        except (ValueError, TypeError, IndexError) as hp_err:
+                            app.logger.warning(
+                                f"[MIGRATION] Invalid horizon point skipped for new location '{name}': {pair} - {hp_err}"
+                            )
+
+                # Assign the new list to the new row object
+                row.horizon_points = new_horizon_points
+                # --- END REFACTOR ---
+        except Exception as e:
+            print(f"[MIGRATION] Skip/repair location '{name}': {e}")
+
+
+def _heal_saved_framings(db, user: DbUser):
+    """
+    Scans for SavedFraming records that have a rig_name but no rig_id
+    (orphaned because config was imported before rigs) and tries to link them.
+    """
+    try:
+        orphans = (
+            db.query(SavedFraming)
+            .filter(
+                SavedFraming.user_id == user.id,
+                SavedFraming.rig_name != None,
+                SavedFraming.rig_id == None,
+            )
+            .all()
+        )
+
+        # Pre-load all user's rigs into a dict to avoid N+1 queries
+        rig_map = {
+            r.rig_name: r for r in db.query(Rig).filter(Rig.user_id == user.id).all()
+        }
+
+        count = 0
+        for f in orphans:
+            # Lookup rig from pre-loaded map instead of querying each time
+            rig = rig_map.get(f.rig_name)
+            if rig:
+                f.rig_id = rig.id
+                count += 1
+
+        if count > 0:
+            print(
+                f"[MIGRATION] Healed {count} saved framing links (connected to newly imported rigs)."
+            )
+            db.flush()
+    except Exception as e:
+        db.rollback()
+        print(f"[MIGRATION] Error healing saved framings: {e}")
+
+
+def _migrate_saved_framings(db, user: DbUser, config: dict):
+    framings = config.get("saved_framings", []) or []
+
+    for f in framings:
+        try:
+            obj_name = f.get("object_name")
+            if not obj_name:
+                continue
+
+            # Resolve rig_id from rig_name if possible
+            rig_name_str = f.get("rig_name")
+            rig_id = None
+            if rig_name_str:
+                rig = (
+                    db.query(Rig)
+                    .filter_by(user_id=user.id, rig_name=rig_name_str)
+                    .one_or_none()
+                )
+                if rig:
+                    rig_id = rig.id
+
+            # Upsert Logic
+            existing = (
+                db.query(SavedFraming)
+                .filter_by(user_id=user.id, object_name=obj_name)
+                .one_or_none()
+            )
+
+            if existing:
+                existing.rig_id = rig_id
+                existing.rig_name = rig_name_str  # <-- Always save the name
+                existing.ra = f.get("ra")
+                existing.dec = f.get("dec")
+                existing.rotation = f.get("rotation")
+                existing.survey = f.get("survey")
+                existing.blend_survey = f.get("blend_survey")
+                existing.blend_opacity = f.get("blend_opacity")
+                # Mosaic Data (legacy safe with .get() and defaults)
+                existing.mosaic_cols = f.get("mosaic_cols", 1)
+                existing.mosaic_rows = f.get("mosaic_rows", 1)
+                existing.mosaic_overlap = f.get("mosaic_overlap", 10.0)
+                # Image Adjustment Data (legacy safe with .get() and defaults)
+                existing.img_brightness = f.get("img_brightness", 0.0)
+                existing.img_contrast = f.get("img_contrast", 0.0)
+                existing.img_gamma = f.get("img_gamma", 1.0)
+                existing.img_saturation = f.get("img_saturation", 0.0)
+                # Overlay Preferences (legacy safe with .get() and default)
+                existing.geo_belt_enabled = f.get("geo_belt_enabled", True)
+            else:
+                new_sf = SavedFraming(
+                    user_id=user.id,
+                    object_name=obj_name,
+                    rig_id=rig_id,
+                    rig_name=rig_name_str,  # <-- Always save the name
+                    ra=f.get("ra"),
+                    dec=f.get("dec"),
+                    rotation=f.get("rotation"),
+                    survey=f.get("survey"),
+                    blend_survey=f.get("blend_survey"),
+                    blend_opacity=f.get("blend_opacity"),
+                    # Mosaic Data (legacy safe with .get() and defaults)
+                    mosaic_cols=f.get("mosaic_cols", 1),
+                    mosaic_rows=f.get("mosaic_rows", 1),
+                    mosaic_overlap=f.get("mosaic_overlap", 10.0),
+                    # Image Adjustment Data (legacy safe with .get() and defaults)
+                    img_brightness=f.get("img_brightness", 0.0),
+                    img_contrast=f.get("img_contrast", 0.0),
+                    img_gamma=f.get("img_gamma", 1.0),
+                    img_saturation=f.get("img_saturation", 0.0),
+                    # Overlay Preferences (legacy safe with .get() and default)
+                    geo_belt_enabled=f.get("geo_belt_enabled", True),
+                )
+                db.add(new_sf)
+
+        except Exception as e:
+            db.rollback()
+            print(
+                f"[MIGRATION] Error migrating saved framing for {f.get('object_name')}: {e}"
+            )
+
+    db.flush()
+
+
+def _migrate_objects(db, user: DbUser, config: dict):
+    """
+    Idempotently migrates astronomical objects from a YAML configuration dictionary to the database.
+
+    This function performs an "upsert" (update or insert) for each object based on its
+    unique name for a given user. It prevents duplicates, handles various legacy key names,
+    and automatically calculates the constellation if it's missing but coordinates are present.
+
+    *** V2: Automatically rewrites '/uploads/...' image links in notes to point to
+    *** the importing user's directory.
+    """
+
+    # === START: Link Rewriting Logic ===
+    # Get the target username (e.g., 'default' or 'mrantonSG')
+    target_username = user.username
+    # This regex finds '/uploads/', captures the (old) username, and the rest of the path
+    link_pattern = re.compile(r'(/uploads/)([^/]+)(/.*?["\'])')
+    # This builds the replacement string, e.g., '/uploads/default/image.jpg"'
+    replacement_str = r"\1" + re.escape(target_username) + r"\3"
+    # === END: Link Rewriting Logic ===
+
+    # Safely get the list of objects, defaulting to an empty list if missing.
+    objs = (config or {}).get("objects", []) or []
+
+    for o in objs:
+        try:
+            # --- 1. Robustly Parse Object Data from Dictionary ---
+            # Use .get() with fallbacks to handle different key names found in older YAML files.
+            ra_val = o.get("RA") if o.get("RA") is not None else o.get("RA (hours)")
+            dec_val = (
+                o.get("DEC") if o.get("DEC") is not None else o.get("DEC (degrees)")
+            )
+
+            # The canonical object identifier is crucial. Skip if it's missing or blank.
+            raw_obj_name = o.get("Object") or o.get("object") or o.get("object_name")
+            if not raw_obj_name or not str(raw_obj_name).strip():
+                print(
+                    f"[MIGRATION][OBJECT SKIP] Entry is missing an 'Object' identifier: {o}"
+                )
+                continue
+            object_name = normalize_object_name(raw_obj_name)
+
+            common_name = o.get("Common Name") or o.get("Name") or o.get("common_name")
+            # If common_name is still blank, use the raw (pretty) object name as a fallback
+            if not common_name or not str(common_name).strip():
+                common_name = str(raw_obj_name).strip()
+
+            obj_type = o.get("Type") or o.get("type")
+            constellation = o.get("Constellation") or o.get("constellation")
+            magnitude = (
+                o.get("Magnitude")
+                if o.get("Magnitude") is not None
+                else o.get("magnitude")
+            )
+            size = o.get("Size") if o.get("Size") is not None else o.get("size")
+            sb = o.get("SB") if o.get("SB") is not None else o.get("sb")
+            active_project = bool(
+                o.get("ActiveProject") or o.get("active_project") or False
+            )
+
+            # === START: Link Rewriting Application ===
+            project_name = o.get("Project") or o.get("project_name")
+            shared_notes = o.get("shared_notes")
+
+            # Rewrite image links to point to the *importer's* directory
+            if project_name:
+                project_name = link_pattern.sub(replacement_str, project_name)
+            if shared_notes:
+                shared_notes = link_pattern.sub(replacement_str, shared_notes)
+            # === END: Link Rewriting Application ===
+
+            # Default to True for backward compatibility with old backups
+            enabled = bool(o.get("enabled", True))
+            is_shared = bool(o.get("is_shared", False))
+            original_user_id = _as_int(o.get("original_user_id"))
+            original_item_id = _as_int(o.get("original_item_id"))
+            catalog_sources = o.get("catalog_sources")
+            catalog_info = o.get("catalog_info")
+
+            # --- Curation Fields (Backup/Restore Support) ---
+            image_url = o.get("image_url")
+            image_credit = o.get("image_credit")
+            image_source_link = o.get("image_source_link")
+            description_text = o.get("description_text")
+            description_credit = o.get("description_credit")
+            description_source_link = o.get("description_source_link")
+
+            ra_f = float(ra_val) if ra_val is not None else None
+            dec_f = float(dec_val) if dec_val is not None else None
+
+            # --- 2. Enrich Data: Calculate Constellation if Missing ---
+            # This integrates the logic from the old `backfill_missing_fields` function.
+            if (not constellation) and (ra_f is not None) and (dec_f is not None):
+                try:
+                    # Create a coordinate object and use Astropy to find its constellation.
+                    coords = SkyCoord(ra=ra_f * u.hourangle, dec=dec_f * u.deg)
+                    constellation = get_constellation(coords)
+                except Exception:
+                    constellation = None  # Avoid crashing if coordinates are invalid.
+
+            # --- 3. Perform the Idempotent "Upsert" ---
+            # Query for an existing object with the normalized name.
+            existing = (
+                db.query(AstroObject)
+                .filter_by(user_id=user.id, object_name=object_name)
+                .one_or_none()
+            )
+            if existing:
+                # UPDATE PATH: The object already exists, so we update its fields.
+                # This overwrites existing data with what's in the YAML, ensuring the
+                # migration reflects the source of truth.
+                existing.common_name = common_name
+                existing.ra_hours = ra_f
+                existing.dec_deg = dec_f
+                existing.type = obj_type
+                existing.constellation = constellation
+                existing.magnitude = str(magnitude) if magnitude is not None else None
+                existing.size = str(size) if size is not None else None
+                existing.sb = str(sb) if sb is not None else None
+                existing.active_project = active_project
+
+                # --- START NEW ROBUST MERGE LOGIC ---
+                existing_notes = existing.project_name or ""
+                new_notes = project_name or ""  # Use the *fixed* project_name
+
+                # Define what counts as "empty"
+                is_existing_empty = (
+                    not existing_notes
+                    or existing_notes.lower().strip()
+                    in ("none", "<div>none</div>", "null")
+                )
+                is_new_empty = not new_notes or new_notes.lower().strip() in (
+                    "none",
+                    "<div>none</div>",
+                    "null",
+                )
+
+                if is_new_empty:
+                    # New notes are empty, so do nothing. Keep the existing notes.
+                    pass
+                elif is_existing_empty:
+                    # Existing notes are empty, so just replace them with the new notes.
+                    existing.project_name = new_notes
+                elif new_notes not in existing_notes:
+                    # Both have notes, and they are different. Append them.
+                    existing.project_name = (
+                        existing_notes + f"<br>---<br><em>(Merged)</em><br>{new_notes}"
+                    )
+                # --- END NEW ROBUST MERGE LOGIC ---
+
+                existing.is_shared = is_shared
+                existing.shared_notes = shared_notes  # Use the *fixed* shared_notes
+                existing.original_user_id = original_user_id
+                existing.original_item_id = original_item_id
+                existing.catalog_sources = catalog_sources
+                existing.catalog_info = catalog_info
+                existing.enabled = enabled
+
+                # Restore Curation
+                existing.image_url = image_url
+                existing.image_credit = image_credit
+                existing.image_source_link = image_source_link
+                existing.description_text = description_text
+                existing.description_credit = description_credit
+                existing.description_source_link = description_source_link
+            else:
+                # INSERT PATH: The object is new, so we create a new database record.
+                new_object = AstroObject(
+                    user_id=user.id,
+                    object_name=object_name,
+                    common_name=common_name,
+                    ra_hours=ra_f,
+                    dec_deg=dec_f,
+                    type=obj_type,
+                    constellation=constellation,
+                    magnitude=str(magnitude) if magnitude is not None else None,
+                    size=str(size) if size is not None else None,
+                    sb=str(sb) if sb is not None else None,
+                    active_project=active_project,
+                    project_name=project_name,  # Use the *fixed* project_name
+                    is_shared=is_shared,
+                    shared_notes=shared_notes,  # Use the *fixed* shared_notes
+                    original_user_id=original_user_id,
+                    original_item_id=original_item_id,
+                    catalog_sources=catalog_sources,
+                    catalog_info=catalog_info,
+                    enabled=enabled,
+                    # Restore Curation
+                    image_url=image_url,
+                    image_credit=image_credit,
+                    image_source_link=image_source_link,
+                    description_text=description_text,
+                    description_credit=description_credit,
+                    description_source_link=description_source_link,
+                )
+                db.add(new_object)
+                db.flush()
+
+        except Exception as e:
+            # If one object entry is malformed, log the error and continue with the rest.
+            db.rollback()
+            print(f"[MIGRATION] Could not process object entry '{o}'. Error: {e}")
+
+
+def _try_float(v):
+    try:
+        return float(v) if v is not None else None
+    except:
+        return None
+
+
+def _as_int(v):
+    try:
+        return int(str(v)) if v is not None else None
+    except:
+        return None
+
+
+def _norm_name(s: str | None) -> str | None:
+    """
+    Normalize names for consistent lookups:
+    - strip outer whitespace
+    - collapse internal whitespace to single spaces
+    - casefold for case-insensitive matching
+    """
+    if not s:
+        return None
+    s2 = " ".join(str(s).strip().split())
+    return s2.casefold()
+
+
+def _compute_rig_metrics_from_components(
+    telescope: Component | None, camera: Component | None, reducer: Component | None
+):
+    """
+    Compute (effective_focal_length_mm, f_ratio, image_scale_arcsec_per_px, fov_w_arcmin)
+    based on Component columns.
+    telescope: uses focal_length_mm and aperture_mm
+    camera: uses pixel_size_um and sensor_width_mm
+    reducer: uses factor (e.g., 0.8 for reducer, 2.0 for extender)
+    """
+    try:
+        if not telescope or not camera:
+            return (None, None, None, None)
+        fl = telescope.focal_length_mm
+        ap = telescope.aperture_mm
+        px = camera.pixel_size_um
+        sw = camera.sensor_width_mm
+        fac = reducer.factor if (reducer and reducer.factor is not None) else 1.0
+        if fl is None or ap is None:
+            return (None, None, None, None)
+        efl = fl * fac if fl is not None else None
+        f_ratio = (efl / ap) if (efl and ap) else None
+        image_scale = (206.265 * px / efl) if (efl and px) else None
+        fov_w_arcmin = (
+            (degrees(2 * atan((sw / 2.0) / efl)) * 60.0) if (sw and efl) else None
+        )
+        return (efl, f_ratio, image_scale, fov_w_arcmin)
+    except Exception as calc_err:
+        app.logger.warning(
+            f"[RIG METRICS] Failed to compute metrics for telescope={telescope.name if telescope else None}, camera={camera.name if camera else None}: {calc_err}"
+        )
+        return (None, None, None, None)
+
+
+def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: str):
+    """
+    Idempotent import for components and rigs that unifies all logic.
+    - UPSERTS components by (user_id, kind, normalized_name), preventing duplicates.
+    - Creates components on-the-fly if referenced by a rig but not explicitly defined.
+    - UPSERTS rigs by (user_id, rig_name).
+    - Skips creating rigs if a valid telescope or camera cannot be found/created.
+    - Removes the need for post-migration deduplication or cleanup.
+    """
+    if not isinstance(rigs_yaml, dict):
+        return
+
+    comps = rigs_yaml.get("components", {}) or {}
+    rig_list = rigs_yaml.get("rigs", []) or []
+
+    # --- Internal Helper Functions ---
+
+    def _coerce_float(x):
+        try:
+            return float(x) if x is not None else None
+        except (ValueError, TypeError):
+            return None
+
+    # This helper function is already correct from our previous step.
+    def _get_or_create_component(kind: str, name: str, **fields) -> Component | None:
+        if not kind or not name:
+            return None
+        trimmed_name = " ".join(str(name).strip().split())
+        existing_row = (
+            db.query(Component)
+            .filter(
+                Component.user_id == user.id,
+                Component.kind == kind,
+                Component.name.collate("NOCASE") == trimmed_name,
+            )
+            .one_or_none()
+        )
+
+        # --- NEW: Get sharing fields from the 'fields' dict ---
+        is_shared = bool(fields.get("is_shared", False))
+        original_user_id = _as_int(fields.get("original_user_id"))
+        original_item_id = _as_int(fields.get("original_item_id"))
+
+        if existing_row:
+            if existing_row.aperture_mm is None:
+                existing_row.aperture_mm = _coerce_float(fields.get("aperture_mm"))
+            if existing_row.focal_length_mm is None:
+                existing_row.focal_length_mm = _coerce_float(
+                    fields.get("focal_length_mm")
+                )
+            if existing_row.sensor_width_mm is None:
+                existing_row.sensor_width_mm = _coerce_float(
+                    fields.get("sensor_width_mm")
+                )
+            if existing_row.sensor_height_mm is None:
+                existing_row.sensor_height_mm = _coerce_float(
+                    fields.get("sensor_height_mm")
+                )
+            if existing_row.pixel_size_um is None:
+                existing_row.pixel_size_um = _coerce_float(fields.get("pixel_size_um"))
+            if existing_row.factor is None:
+                existing_row.factor = _coerce_float(fields.get("factor"))
+
+            # We only set them if they're not already set, to avoid overwriting original import data
+            if existing_row.is_shared is False:
+                existing_row.is_shared = is_shared
+            if existing_row.original_user_id is None:
+                existing_row.original_user_id = original_user_id
+            if existing_row.original_item_id is None:
+                existing_row.original_item_id = original_item_id
+            # --- END OF BLOCK ---
+
+            db.flush()
+            return existing_row
+
+        new_row = Component(
+            user_id=user.id,
+            kind=kind,
+            name=trimmed_name,
+            aperture_mm=_coerce_float(fields.get("aperture_mm")),
+            focal_length_mm=_coerce_float(fields.get("focal_length_mm")),
+            sensor_width_mm=_coerce_float(fields.get("sensor_width_mm")),
+            sensor_height_mm=_coerce_float(fields.get("sensor_height_mm")),
+            pixel_size_um=_coerce_float(fields.get("pixel_size_um")),
+            factor=_coerce_float(fields.get("factor")),
+            is_shared=is_shared,
+            original_user_id=original_user_id,
+            original_item_id=original_item_id,
+        )
+        db.add(new_row)
+        db.flush()
+        return new_row
+
+    # Use a string-keyed dictionary for the legacy IDs.
+    legacy_id_to_component_id: dict[tuple[str, str], int] = {}
+    name_to_component_id: dict[tuple[str, str | None], int] = {}
+
+    def _remember_component(row: Component | None, kind: str, name: str, legacy_id):
+        if row is None or legacy_id is None:
+            return
+        legacy_id_to_component_id[(kind, str(legacy_id))] = row.id
+        if name:
+            name_to_component_id[(kind, _norm_name(name))] = row.id
+
+    def _get_alias(d: dict, key: str, *aliases):
+        if key in d and d.get(key) is not None:
+            return d.get(key)
+        for a in aliases:
+            if a in d and d.get(a) is not None:
+                return d.get(a)
+        return None
+
+    # --- 1. Process Components Section ---
+    for t in comps.get("telescopes", []):
+        row = _get_or_create_component(
+            "telescope",
+            _get_alias(t, "name"),
+            aperture_mm=_get_alias(t, "aperture_mm"),
+            focal_length_mm=_get_alias(t, "focal_length_mm"),
+            is_shared=t.get("is_shared"),
+            original_user_id=t.get("original_user_id"),
+            original_item_id=t.get("original_item_id"),
+        )
+        _remember_component(row, "telescope", _get_alias(t, "name"), t.get("id"))
+    for c in comps.get("cameras", []):
+        row = _get_or_create_component(
+            "camera",
+            _get_alias(c, "name"),
+            sensor_width_mm=_get_alias(c, "sensor_width_mm"),
+            sensor_height_mm=_get_alias(c, "sensor_height_mm"),
+            pixel_size_um=_get_alias(c, "pixel_size_um"),
+            is_shared=c.get("is_shared"),
+            original_user_id=c.get("original_user_id"),
+            original_item_id=c.get("original_item_id"),
+        )
+        _remember_component(row, "camera", _get_alias(c, "name"), c.get("id"))
+    for r in comps.get("reducers_extenders", []):
+        row = _get_or_create_component(
+            "reducer_extender",
+            _get_alias(r, "name"),
+            factor=_get_alias(r, "factor"),
+            is_shared=r.get("is_shared"),
+            original_user_id=r.get("original_user_id"),
+            original_item_id=r.get("original_item_id"),
+        )
+        _remember_component(row, "reducer_extender", _get_alias(r, "name"), r.get("id"))
+
+    def _resolve_component_id(kind: str, legacy_id, name) -> int | None:
+        if legacy_id is not None:
+            legacy_id_str = str(legacy_id)
+            # --- START FIX: Look up the namespaced (kind, id) key ---
+            if (kind, legacy_id_str) in legacy_id_to_component_id:
+                return legacy_id_to_component_id[(kind, legacy_id_str)]
+            # --- END FIX ---
+            # (The old lookup for just legacy_id_str is removed)
+
+        # This part for name-based lookup is still correct and needed
+        if name:
+            norm_key = (kind, _norm_name(name))
+            if norm_key in name_to_component_id:
+                return name_to_component_id[norm_key]
+            row = _get_or_create_component(kind, str(name))
+            if row:
+                name_to_component_id[norm_key] = row.id
+                return row.id
+        return None
+
+    # --- 2. Process Rigs Section ---
+    for r in rig_list:
+        try:
+            rig_name = _get_alias(r, "rig_name", "name")
+            if not rig_name:
+                continue
+
+            tel_name = _get_alias(r, "telescope", "telescope_name")
+            cam_name = _get_alias(r, "camera", "camera_name")
+            red_name = _get_alias(r, "reducer_extender", "reducer_extender_name")
+
+            if (
+                (not tel_name or not cam_name)
+                and isinstance(rig_name, str)
+                and "+" in rig_name
+            ):
+                parts = [p.strip() for p in rig_name.split("+")]
+                if len(parts) >= 2:
+                    tel_name = tel_name or parts[0]
+                    cam_name = cam_name or parts[-1]
+                    if len(parts) == 3:
+                        red_name = red_name or parts[1]
+
+            tel_id = _resolve_component_id("telescope", r.get("telescope_id"), tel_name)
+            cam_id = _resolve_component_id("camera", r.get("camera_id"), cam_name)
+            red_id = _resolve_component_id(
+                "reducer_extender", r.get("reducer_extender_id"), red_name
+            )
+
+            # Guide optics fields
+            guide_tel_name = r.get("guide_telescope_name")
+            guide_cam_name = r.get("guide_camera_name")
+            guide_tel_id = _resolve_component_id(
+                "telescope", r.get("guide_telescope_id"), guide_tel_name
+            )
+            guide_cam_id = _resolve_component_id(
+                "camera", r.get("guide_camera_id"), guide_cam_name
+            )
+            guide_is_oag = bool(r.get("guide_is_oag", False))
+
+            if not (tel_id and cam_id):
+                print(
+                    f"[MIGRATION][RIG SKIP] Rig '{rig_name}' for user '{username}' is missing a valid telescope or camera link. Skipping."
+                )
+                continue
+
+            eff_fl, f_ratio, scale, fov_w = (
+                _coerce_float(r.get(k))
+                for k in [
+                    "effective_focal_length",
+                    "f_ratio",
+                    "image_scale",
+                    "fov_w_arcmin",
+                ]
+            )
+            if any(v is None for v in [eff_fl, f_ratio, scale, fov_w]):
+                tel_obj, cam_obj = db.get(Component, tel_id), db.get(Component, cam_id)
+                red_obj = db.get(Component, red_id) if red_id else None
+                ce_fl, cf_ratio, c_scale, c_fovw = _compute_rig_metrics_from_components(
+                    tel_obj, cam_obj, red_obj
+                )
+                eff_fl, f_ratio, scale, fov_w = (
+                    ce_fl if eff_fl is None else eff_fl,
+                    cf_ratio if f_ratio is None else f_ratio,
+                    c_scale if scale is None else scale,
+                    c_fovw if fov_w is None else fov_w,
+                )
+
+            existing_rig = (
+                db.query(Rig)
+                .filter_by(user_id=user.id, rig_name=rig_name)
+                .one_or_none()
+            )
+            if existing_rig:
+                (
+                    existing_rig.telescope_id,
+                    existing_rig.camera_id,
+                    existing_rig.reducer_extender_id,
+                ) = tel_id, cam_id, red_id
+                (
+                    existing_rig.effective_focal_length,
+                    existing_rig.f_ratio,
+                    existing_rig.image_scale,
+                    existing_rig.fov_w_arcmin,
+                ) = eff_fl, f_ratio, scale, fov_w
+                (
+                    existing_rig.guide_telescope_id,
+                    existing_rig.guide_camera_id,
+                    existing_rig.guide_is_oag,
+                ) = guide_tel_id, guide_cam_id, guide_is_oag
+            else:
+                db.add(
+                    Rig(
+                        user_id=user.id,
+                        rig_name=rig_name,
+                        telescope_id=tel_id,
+                        camera_id=cam_id,
+                        reducer_extender_id=red_id,
+                        effective_focal_length=eff_fl,
+                        f_ratio=f_ratio,
+                        image_scale=scale,
+                        fov_w_arcmin=fov_w,
+                        guide_telescope_id=guide_tel_id,
+                        guide_camera_id=guide_cam_id,
+                        guide_is_oag=guide_is_oag,
+                    )
+                )
+            db.flush()
+
+        except Exception as e:
+            db.rollback()
+            print(f"[MIGRATION] Skip/repair rig '{r}': {e}")
+
+    _heal_saved_framings(db, user)
+
+
+def _migrate_saved_views(db, user: DbUser, config: dict):
+    """
+    Idempotent import of saved views. Deletes all existing views and replaces them.
+    Now includes description and sharing status.
+    """
+    # 1. Delete all existing views for this user
+    db.query(SavedView).filter_by(user_id=user.id).delete()
+    db.flush()
+
+    # 2. Add new views from the config
+    views_list = (config or {}).get("saved_views", []) or []
+    if not isinstance(views_list, list):
+        print("[MIGRATION] 'saved_views' is not a list, skipping.")
+        return
+
+    for view_entry in views_list:
+        try:
+            name = view_entry.get("name")
+            settings = view_entry.get("settings")
+
+            # --- New Fields ---
+            description = view_entry.get("description")
+            is_shared = bool(view_entry.get("is_shared", False))
+
+            if not name or not settings:
+                print(
+                    f"[MIGRATION] Skipping invalid saved view (missing name or settings): {view_entry}"
+                )
+                continue
+
+            # Ensure settings are stored as a JSON string
+            settings_str = json.dumps(settings)
+
+            new_view = SavedView(
+                user_id=user.id,
+                name=name,
+                description=description,  # <-- Added
+                is_shared=is_shared,  # <-- Added
+                settings_json=settings_str,
+            )
+            db.add(new_view)
+        except Exception as e:
+            db.rollback()
+            print(
+                f"[MIGRATION] Could not process saved view '{view_entry.get('name')}'. Error: {e}"
+            )
+
+    db.flush()
+
+
+def _migrate_journal(db, user: DbUser, journal_yaml: dict):
+    data = journal_yaml or {}
+    # Normalize old list-based journals to the new dict structure
+    if isinstance(data, list):
+        data = {"projects": [], "sessions": data}
+    else:
+        # Ensure 'projects' and 'sessions' keys exist, handle legacy 'entries' key
+        data.setdefault("projects", [])
+        data.setdefault(
+            "sessions", data.get("entries", [])
+        )  # Use 'entries' as fallback
+
+    # === START: Link Rewriting Logic ===
+    # Get the target username (e.g., 'default' or 'mrantonSG')
+    target_username = user.username
+    # This regex finds '/uploads/', captures the (old) username, and the rest of the path
+    link_pattern = re.compile(r'(/uploads/)([^/]+)(/.*?["\'])')
+    # This builds the replacement string, e.g., '/uploads/default/image.jpg"'
+    replacement_str = r"\1" + re.escape(target_username) + r"\3"
+    # === END: Link Rewriting Logic ===
+
+    # --- 1. Migrate Projects & Track Valid IDs ---
+    valid_project_ids = set()
+
+    for p in data.get("projects") or []:
+        # Check if both project_id and project_name are present and non-empty
+        project_id_val = p.get("project_id")
+        project_name_val = p.get("project_name")
+
+        if project_id_val and str(project_id_val).strip():
+            valid_project_ids.add(
+                str(project_id_val)
+            )  # Track valid IDs from the import file
+
+            # Check if project already exists by ID
+            existing_project = (
+                db.query(Project).filter_by(id=str(project_id_val)).one_or_none()
+            )
+
+            # --- NEW: Fields to set/update (Safely defaults to None if key missing) ---
+            project_data = {
+                "user_id": user.id,
+                "name": str(project_name_val).strip()
+                if project_name_val
+                else "Unnamed Project",
+                "target_object_name": p.get("target_object_id"),
+                "description_notes": p.get("description_notes"),
+                "framing_notes": p.get("framing_notes"),
+                "processing_notes": p.get("processing_notes"),
+                "final_image_file": p.get("final_image_file"),
+                "goals": p.get("goals"),
+                "status": p.get("status", "In Progress"),
+            }
+
+            if existing_project:
+                # Update existing project
+                for key, value in project_data.items():
+                    if value is not None:
+                        setattr(existing_project, key, value)
+            else:
+                # Check if a project with the same name already exists for the user (to avoid name duplicates if ID differs)
+                existing_by_name = (
+                    db.query(Project)
+                    .filter_by(user_id=user.id, name=project_data["name"])
+                    .one_or_none()
+                )
+                if not existing_by_name:
+                    new_project = Project(id=str(project_id_val), **project_data)
+                    db.add(new_project)
+
+    db.flush()  # Flush after adding all valid projects from the YAML
+
+    # --- 2. Migrate Sessions with ALL fields ---
+    for s in data.get("sessions") or []:
+        # Get external ID, preferring 'session_id' then 'id'
+        ext_id = s.get("session_id") or s.get("id")
+        # Get date, preferring 'session_date' then 'date'
+        date_str = s.get("session_date") or s.get("date")
+        if not date_str:
+            continue  # Skip if no date
+
+        # Try parsing date (ISO or YYYY-MM-DD)
+        try:
+            dt = datetime.fromisoformat(date_str).date()
+        except:
+            try:
+                dt = datetime.strptime(date_str, "%Y-%m-%d").date()
+            except:
+                print(
+                    f"[MIGRATION][SESSION SKIP] Invalid date format '{date_str}' for session with external_id '{ext_id}'. Skipping."
+                )
+                continue  # Skip if date parsing fails
+
+        # === START: Link Rewriting Application ===
+        # Get the raw HTML notes from the YAML
+        notes_html = s.get("general_notes_problems_learnings") or s.get("notes")
+
+        # Rewrite image links to point to the *importer's* directory
+        if notes_html:
+            notes_html = link_pattern.sub(replacement_str, notes_html)
+        # === END: Link Rewriting Application ===
+
+        # === START: Orphan Project Check ===
+        sess_project_id = s.get("project_id")
+        if sess_project_id:
+            sess_project_id = str(sess_project_id)
+            # If this ID wasn't in the YAML projects block...
+            if sess_project_id not in valid_project_ids:
+                # ...check if it exists in the DB (maybe from a previous import)
+                exists_in_db = db.query(Project).filter_by(id=sess_project_id).first()
+
+                if not exists_in_db:
+                    # ORPHAN DETECTED: Auto-create a placeholder project to satisfy Foreign Key
+                    print(
+                        f"[MIGRATION] Auto-creating missing project {sess_project_id} for session."
+                    )
+                    placeholder_project = Project(
+                        id=sess_project_id,
+                        user_id=user.id,
+                        name=s.get("project_name")
+                        or f"Legacy Project {sess_project_id[:8]}",
+                        status="Completed",  # Assume legacy projects are done
+                    )
+                    db.add(placeholder_project)
+                    db.flush()  # Commit immediately so the session insert works
+                    valid_project_ids.add(sess_project_id)
+        # === END: Orphan Project Check ===
+
+        # Map all YAML keys to DB columns
+        row_values = {
+            "user_id": user.id,
+            "project_id": sess_project_id,  # Use the stringified/checked ID
+            "date_utc": dt,
+            "object_name": normalize_object_name(
+                s.get("target_object_id") or s.get("object_name")
+            ),
+            "notes": notes_html,  # <-- USE THE FIXED HTML
+            "session_image_file": s.get("session_image_file"),
+            "location_name": s.get("location_name"),
+            "seeing_observed_fwhm": _try_float(s.get("seeing_observed_fwhm")),
+            "sky_sqm_observed": _try_float(s.get("sky_sqm_observed")),
+            "moon_illumination_session": _as_int(s.get("moon_illumination_session")),
+            "moon_angular_separation_session": _try_float(
+                s.get("moon_angular_separation_session")
+            ),
+            "weather_notes": s.get("weather_notes"),
+            "telescope_setup_notes": s.get("telescope_setup_notes"),
+            "filter_used_session": s.get("filter_used_session"),
+            "guiding_rms_avg_arcsec": _try_float(s.get("guiding_rms_avg_arcsec")),
+            "guiding_equipment": s.get("guiding_equipment"),
+            "dither_details": s.get("dither_details"),
+            "dither_pixels": _as_int(s.get("dither_pixels")),  # None for old backups
+            "dither_every_n": _as_int(s.get("dither_every_n")),  # None for old backups
+            "dither_notes": s.get("dither_notes"),  # None for old backups
+            "acquisition_software": s.get("acquisition_software"),
+            "gain_setting": _as_int(s.get("gain_setting")),
+            "offset_setting": _as_int(s.get("offset_setting")),
+            "camera_temp_setpoint_c": _try_float(s.get("camera_temp_setpoint_c")),
+            "camera_temp_actual_avg_c": _try_float(s.get("camera_temp_actual_avg_c")),
+            "binning_session": s.get("binning_session"),
+            "darks_strategy": s.get("darks_strategy"),
+            "flats_strategy": s.get("flats_strategy"),
+            "bias_darkflats_strategy": s.get("bias_darkflats_strategy"),
+            "session_rating_subjective": _as_int(s.get("session_rating_subjective")),
+            "transparency_observed_scale": s.get("transparency_observed_scale"),
+            "number_of_subs_light": _as_int(s.get("number_of_subs_light")),
+            "exposure_time_per_sub_sec": _as_int(s.get("exposure_time_per_sub_sec")),
+            "filter_L_subs": _as_int(s.get("filter_L_subs")),
+            "filter_L_exposure_sec": _as_int(s.get("filter_L_exposure_sec")),
+            "filter_R_subs": _as_int(s.get("filter_R_subs")),
+            "filter_R_exposure_sec": _as_int(s.get("filter_R_exposure_sec")),
+            "filter_G_subs": _as_int(s.get("filter_G_subs")),
+            "filter_G_exposure_sec": _as_int(s.get("filter_G_exposure_sec")),
+            "filter_B_subs": _as_int(s.get("filter_B_subs")),
+            "filter_B_exposure_sec": _as_int(s.get("filter_B_exposure_sec")),
+            "filter_Ha_subs": _as_int(s.get("filter_Ha_subs")),
+            "filter_Ha_exposure_sec": _as_int(s.get("filter_Ha_exposure_sec")),
+            "filter_OIII_subs": _as_int(s.get("filter_OIII_subs")),
+            "filter_OIII_exposure_sec": _as_int(s.get("filter_OIII_exposure_sec")),
+            "filter_SII_subs": _as_int(s.get("filter_SII_subs")),
+            "filter_SII_exposure_sec": _as_int(s.get("filter_SII_exposure_sec")),
+            "rig_id_snapshot": _as_int(s.get("rig_id_snapshot")),
+            "rig_name_snapshot": s.get("rig_name_snapshot"),
+            "rig_efl_snapshot": _try_float(s.get("rig_efl_snapshot")),
+            "rig_fr_snapshot": _try_float(s.get("rig_fr_snapshot")),
+            "rig_scale_snapshot": _try_float(s.get("rig_scale_snapshot")),
+            "rig_fov_w_snapshot": _try_float(s.get("rig_fov_w_snapshot")),
+            "rig_fov_h_snapshot": _try_float(s.get("rig_fov_h_snapshot")),
+            "telescope_name_snapshot": s.get("telescope_name_snapshot"),
+            "reducer_name_snapshot": s.get("reducer_name_snapshot"),
+            "camera_name_snapshot": s.get("camera_name_snapshot"),
+            "calculated_integration_time_minutes": _try_float(
+                s.get("calculated_integration_time_minutes")
+            ),
+            # Ensure external_id is stored as string if it exists
+            "external_id": str(ext_id) if ext_id else None,
+            # Custom filter data (JSON string for user-defined filters)
+            "custom_filter_data": s.get("custom_filter_data"),
+            "asiair_log_content": s.get("asiair_log_content"),
+            "phd2_log_content": s.get("phd2_log_content"),
+            "log_analysis_cache": s.get("log_analysis_cache"),
+        }
+        # *** START: Simplified Upsert Logic ***
+        if ext_id:
+            # Try to find an existing session with this external_id for this user
+            existing_session = (
+                db.query(JournalSession)
+                .filter_by(user_id=user.id, external_id=str(ext_id))
+                .one_or_none()
+            )
+
+            if existing_session:
+                # UPDATE: Session found, update its fields
+                for k, v in row_values.items():
+                    # Only update if the new value is not None
+                    if v is not None:
+                        setattr(existing_session, k, v)
+                # No need to db.add() here
+            else:
+                # INSERT: Session not found, create a new one
+                new_session = JournalSession(**row_values)
+                db.add(new_session)
+        else:
+            # INSERT (No external ID provided): Always create a new session
+            new_session = JournalSession(**row_values)
+            db.add(new_session)
+
+        # *** START: Legacy dither migration ***
+        # If new structured fields are absent but old dither_details is present,
+        # migrate the old text into dither_notes
+        if row_values.get("dither_pixels") is None and row_values.get("dither_details"):
+            # Get the session object (either existing_session or new_session)
+            session_obj = existing_session if existing_session else new_session
+            session_obj.dither_notes = row_values.get("dither_details")
+        # *** END: Legacy dither migration ***
+        # *** END: Simplified Upsert Logic ***
+
+    # --- Import custom filter definitions ---
+    for cf_def in data.get("custom_mono_filters", []):
+        key = (cf_def.get("key") or "").strip()
+        label = (cf_def.get("label") or "").strip()
+        if not key or not label:
+            continue
+        if (
+            not db.query(UserCustomFilter)
+            .filter_by(user_id=user.id, filter_key=key)
+            .first()
+        ):
+            db.add(
+                UserCustomFilter(user_id=user.id, filter_key=key, filter_label=label)
+            )
+    db.flush()
+
+
+def _migrate_ui_prefs(db, user: DbUser, config: dict):
+    """
+    Saves all general, user-specific settings from the config YAML
+    into a single JSON blob in the ui_prefs table.
+    """
+    # Gather all the top-level settings we want to save
+    settings_to_save = {
+        "altitude_threshold": config.get("altitude_threshold"),
+        "default_location": config.get("default_location"),
+        "imaging_criteria": config.get("imaging_criteria"),
+        "sampling_interval_minutes": config.get("sampling_interval_minutes"),
+        "telemetry": config.get("telemetry"),
+        "rig_sort": (config.get("ui") or {}).get("rig_sort"),
+    }
+
+    # Only create a record if there's at least one setting to save
+    if any(v is not None for v in settings_to_save.values()):
+        # Upsert logic: find existing pref or create a new one
+        existing_pref = db.query(UiPref).filter_by(user_id=user.id).one_or_none()
+
+        blob = json.dumps(settings_to_save, ensure_ascii=False)
+
+        if existing_pref:
+            existing_pref.json_blob = blob
+        else:
+            new_pref = UiPref(user_id=user.id, json_blob=blob)
+            db.add(new_pref)
+
 
 def build_user_config_from_db(username: str) -> dict:
     """
@@ -5360,6 +6588,7 @@ def get_outlook_data():
 
 
 @api_bp.route("/api/latest_version")
+@login_required
 @permission_required("settings.view")
 def get_latest_version():
     """An API endpoint for the frontend to check for updates."""
@@ -7203,6 +8432,7 @@ def get_static_nightly_values(
 
 
 @core_bp.route("/trigger_update", methods=["POST"])
+@login_required
 @permission_required("settings.edit")
 def trigger_update():
     try:
@@ -7236,11 +8466,8 @@ def login():
                     flash("Account is deactivated.", "error")
                     return render_template("login.html")
                 db_sess.expunge(user)
-                print(
-                    f"[DEBUG login] Calling login_user for user.id={user.id}, username={user.username}"
-                )
+                session.regenerate()  # Prevent session fixation attacks
                 login_user(user, remember=True)
-                print(f"[DEBUG login] After login_user, session={dict(session)}")
                 record_login()
                 session.modified = True
                 flash("Logged in successfully!", "success")
@@ -7531,6 +8758,7 @@ def sso_login():
             user = db_sess.query(DbUser).filter_by(username=username).first()
             if user and user.is_active:
                 db_sess.expunge(user)
+                session.regenerate()  # Prevent session fixation attacks
                 login_user(user)  # Log the user in using Flask-Login
                 record_login()
                 session.modified = True  # Force session save before redirect
@@ -7557,6 +8785,7 @@ def sso_login():
 
 
 @core_bp.route("/proxy_focus", methods=["POST"])
+@login_required
 @permission_required("settings.stellarium")
 def proxy_focus():
     payload = request.form
@@ -9236,23 +10465,34 @@ def bulk_update_objects():
 
             # We need to iterate to check relationships since bulk delete bypasses Python-level checks
             objects_to_check = query.all()
+            object_names = [obj.object_name for obj in objects_to_check]
+
+            # Batch query: get all object_names that have journals
+            names_with_journals = set(
+                r[0]
+                for r in db.query(JournalSession.object_name)
+                .filter(
+                    JournalSession.user_id == user_id,
+                    JournalSession.object_name.in_(object_names),
+                )
+                .all()
+            )
+
+            # Batch query: get all object_names that have projects
+            names_with_projects = set(
+                r[0]
+                for r in db.query(Project.target_object_name)
+                .filter(
+                    Project.user_id == user_id,
+                    Project.target_object_name.in_(object_names),
+                )
+                .all()
+            )
+
+            blocked_names = names_with_journals | names_with_projects
 
             for obj in objects_to_check:
-                # Check for journal sessions using this object name
-                has_journals = (
-                    db.query(JournalSession)
-                    .filter_by(user_id=user_id, object_name=obj.object_name)
-                    .first()
-                )
-
-                # Check for projects targeting this object
-                has_projects = (
-                    db.query(Project)
-                    .filter_by(user_id=user_id, target_object_name=obj.object_name)
-                    .first()
-                )
-
-                if has_journals or has_projects:
+                if obj.object_name in blocked_names:
                     skipped_count += 1
                 else:
                     safe_to_delete.append(obj.object_name)
@@ -9538,6 +10778,7 @@ def merge_objects():
 
 
 @api_bp.route("/api/help/img/<path:filename>")
+@login_required
 @permission_required("settings.view")
 def get_help_image(filename):
     """Serves images located in the help_docs directory."""
@@ -9545,6 +10786,7 @@ def get_help_image(filename):
 
 
 @api_bp.route("/api/help/<topic_id>")
+@login_required
 @permission_required("settings.view")
 def get_help_content(topic_id):
     """
@@ -13595,8 +14837,800 @@ register_cli(app)
 
 from nova.helpers import enable_user, disable_user, delete_user
 
+@api_bp.route("/api/internal/provision_user", methods=["POST"])
+@login_required
+@permission_required("settings.edit")
+def provision_user():
+    data = request.get_json()
+    provided_key = request.headers.get("X-Api-Key")
+    expected_key = os.environ.get("PROVISIONING_API_KEY")
+
+    if not expected_key or not secrets.compare_digest(provided_key or "", expected_key):
+        return jsonify({"status": "error", "message": "Unauthorized"}), 401
+
+    username = data.get("username")
+    password = data.get("password")
+    if not username or not password:
+        return jsonify(
+            {"status": "error", "message": "Username and password required"}
+        ), 400
+
+    with app.app_context():
+        # Check if the user already exists
+        existing_user = db.session.scalar(
+            db.select(User).where(User.username == username)
+        )
+
+        if existing_user:
+            # If the user exists, UPDATE their password
+            existing_user.set_password(password)
+            db.session.commit()
+            print(f"✅ Password updated for user '{username}' via API.")
+            return jsonify(
+                {"status": "success", "message": f"User {username} password updated"}
+            ), 200
+        else:
+            # If the user does not exist, CREATE them
+            new_user = User(username=username)
+            new_user.set_password(password)
+            db.session.add(new_user)
+            db.session.commit()
+            print(f"✅ User '{username}' provisioned in database via API.")
+            return jsonify(
+                {"status": "success", "message": f"User {username} provisioned"}
+            ), 201
 
 
+def disable_user(username: str) -> bool:
+    """
+    Mark a user as inactive/disabled without deleting them.
+    Returns True if the user was found and disabled, False otherwise.
+    """
+    with app.app_context():
+        user = db.session.scalar(db.select(User).where(User.username == username))
+        if not user:
+            return False
+        try:
+            user.active = False
+            db.session.commit()
+            print(f"✅ Disabled user '{username}'.")
+            return True
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ Failed to disable user '{username}': {e}")
+            return False
+
+
+def enable_user(username: str) -> bool:
+    """
+    Re-enable a previously disabled user.
+    """
+    with app.app_context():
+        user = db.session.scalar(db.select(User).where(User.username == username))
+        if not user:
+            return False
+        try:
+            user.active = True
+            db.session.commit()
+            print(f"✅ Enabled user '{username}'.")
+            return True
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ Failed to enable user '{username}': {e}")
+            return False
+
+
+def delete_user(username: str) -> bool:
+    """
+    Hard-delete a user record. Optionally remove that user's on-disk files if you add that logic.
+    """
+    with app.app_context():
+        user = db.session.scalar(db.select(User).where(User.username == username))
+        if not user:
+            return False
+        try:
+            db.session.delete(user)
+            db.session.commit()
+            print(f"✅ Deleted user '{username}' from DB.")
+            # If you also want to remove YAML/journal/config files, call your remover here.
+            return True
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ Failed to delete user '{username}': {e}")
+            return False
+
+
+@api_bp.route("/api/internal/deprovision_user", methods=["POST"])
+@login_required
+@permission_required("settings.edit")
+def deprovision_user():
+    api_key = request.headers.get("X-Api-Key")
+    expected_key = os.environ.get("PROVISIONING_API_KEY") or ""
+    if not expected_key or not secrets.compare_digest(api_key or "", expected_key):
+        return jsonify({"status": "error", "message": "unauthorized"}), 401
+
+    data = request.get_json(force=True) or {}
+    username = data.get("username")
+    action = (data.get("action") or "disable").lower()  # 'disable' or 'delete'
+
+    if not username:
+        return jsonify({"status": "error", "message": "missing username"}), 400
+
+    if action == "delete":
+        ok = delete_user(username)
+        return (
+            (jsonify({"status": "success", "message": "deleted"}), 200)
+            if ok
+            else (jsonify({"status": "not_found"}), 404)
+        )
+    else:
+        ok = disable_user(username)
+        return (
+            (jsonify({"status": "success", "message": "disabled"}), 200)
+            if ok
+            else (jsonify({"status": "not_found"}), 404)
+        )
+
+
+@core_bp.route("/uploads/<path:username>/<path:filename>")
+@login_required
+@permission_required("journal.view")
+def get_uploaded_image(username, filename):
+    """
+    Serve uploaded images.
+
+    Compatible with:
+    - Legacy notes where Trix stored /uploads/<old_username>/...
+    - Photo ZIP imports that always extract into the *current* user's directory
+    - Single-user installs that store everything under 'default'
+    """
+
+    candidate_dirs = []
+
+    # 1) Directory that matches the URL segment (legacy behaviour)
+    candidate_dirs.append(os.path.join(UPLOAD_FOLDER, username))
+
+    # 2) In multi-user mode, also try the current user's directory.
+    #    This fixes MU→MU migrations where the username changed:
+    #    old HTML: /uploads/mrantonsG/..., new files: uploads/anton/...
+    if not SINGLE_USER_MODE:
+        current_name = getattr(current_user, "username", None)
+        if current_name and current_name != username:
+            candidate_dirs.append(os.path.join(UPLOAD_FOLDER, current_name))
+
+    # 3) In single-user mode, fall back to "default" for legacy paths.
+    if SINGLE_USER_MODE and username != "default":
+        candidate_dirs.append(os.path.join(UPLOAD_FOLDER, "default"))
+
+    for user_upload_dir in candidate_dirs:
+        base_dir = os.path.abspath(user_upload_dir)
+        target_path = os.path.abspath(os.path.join(user_upload_dir, filename))
+
+        # Prevent path traversal
+        if not target_path.startswith(base_dir + os.sep):
+            continue
+
+        if os.path.exists(target_path):
+            return send_from_directory(user_upload_dir, filename)
+
+    return "Not Found", 404
+
+
+@api_bp.route("/api/get_shared_items")
+@login_required
+@permission_required("settings.view")
+def get_shared_items():
+    if SINGLE_USER_MODE:
+        return jsonify(
+            {
+                "objects": [],
+                "components": [],
+                "views": [],
+                "imported_object_ids": [],
+                "imported_component_ids": [],
+                "imported_view_ids": [],
+            }
+        )
+
+    db = get_db()
+    try:
+        current_user_id = g.db_user.id
+
+        # --- 1. Get ALL Shared Objects (Including own) ---
+        shared_objects_db = (
+            db.query(AstroObject, DbUser.username)
+            .join(DbUser, AstroObject.user_id == DbUser.id)
+            .filter(
+                AstroObject.is_shared == True
+                # Removed: AstroObject.user_id != current_user_id
+            )
+            .all()
+        )
+
+        shared_objects_list = []
+        for obj, username in shared_objects_db:
+            shared_objects_list.append(
+                {
+                    "id": obj.id,
+                    "object_name": obj.object_name,
+                    "common_name": obj.common_name,
+                    "type": obj.type,
+                    "constellation": obj.constellation,
+                    "ra": obj.ra_hours,
+                    "dec": obj.dec_deg,
+                    "shared_by_user": username,
+                    "shared_notes": obj.shared_notes or "",
+                    # --- Inspiration Metadata ---
+                    "image_url": obj.image_url,
+                    "image_credit": obj.image_credit,
+                    "image_source_link": obj.image_source_link,
+                    "description_text": obj.description_text,
+                    "description_credit": obj.description_credit,
+                    "description_source_link": obj.description_source_link,
+                }
+            )
+
+        # --- 2. Get ALL Shared Components (Including own) ---
+        shared_components_db = (
+            db.query(Component, DbUser.username)
+            .join(DbUser, Component.user_id == DbUser.id)
+            .filter(
+                Component.is_shared == True
+                # Removed: Component.user_id != current_user_id
+            )
+            .all()
+        )
+
+        shared_components_list = []
+        for comp, username in shared_components_db:
+            shared_components_list.append(
+                {
+                    "id": comp.id,
+                    "name": comp.name,
+                    "kind": comp.kind,
+                    "shared_by_user": username,
+                }
+            )
+
+        # --- 3. Get ALL Shared Views (Including own) ---
+        shared_views_db = (
+            db.query(SavedView, DbUser.username)
+            .join(DbUser, SavedView.user_id == DbUser.id)
+            .filter(
+                SavedView.is_shared == True
+                # Removed: SavedView.user_id != current_user_id
+            )
+            .all()
+        )
+
+        shared_views_list = []
+        for view, username in shared_views_db:
+            shared_views_list.append(
+                {
+                    "id": view.id,
+                    "name": view.name,
+                    "description": view.description,
+                    "shared_by_user": username,
+                }
+            )
+
+        # --- 4. Get IDs of items ALREADY imported by CURRENT user ---
+        imported_objects = (
+            db.query(AstroObject.original_item_id)
+            .filter(
+                AstroObject.user_id == current_user_id,
+                AstroObject.original_item_id != None,
+            )
+            .all()
+        )
+        imported_object_ids = {item_id for (item_id,) in imported_objects}
+
+        imported_components = (
+            db.query(Component.original_item_id)
+            .filter(
+                Component.user_id == current_user_id, Component.original_item_id != None
+            )
+            .all()
+        )
+        imported_component_ids = {item_id for (item_id,) in imported_components}
+
+        imported_views = (
+            db.query(SavedView.original_item_id)
+            .filter(
+                SavedView.user_id == current_user_id, SavedView.original_item_id != None
+            )
+            .all()
+        )
+        imported_view_ids = {item_id for (item_id,) in imported_views}
+
+        return jsonify(
+            {
+                "objects": shared_objects_list,
+                "components": shared_components_list,
+                "views": shared_views_list,
+                "imported_object_ids": list(imported_object_ids),
+                "imported_component_ids": list(imported_component_ids),
+                "imported_view_ids": list(imported_view_ids),
+            }
+        )
+    except Exception as e:
+        print(f"ERROR in get_shared_items: {e}")
+        import traceback
+
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/api/import_item", methods=["POST"])
+@login_required
+@permission_required("settings.edit")
+def import_item():
+    if SINGLE_USER_MODE:
+        return jsonify(
+            {"status": "error", "message": "Sharing is disabled in single-user mode"}
+        ), 400
+
+    db = get_db()
+    try:
+        data = request.get_json()
+        item_id = data.get("id")
+        item_type = data.get("type")  # 'object' or 'component'
+
+        if not item_id or not item_type:
+            return jsonify(
+                {"status": "error", "message": "Missing item ID or type"}
+            ), 400
+
+        current_user_id = g.db_user.id
+
+        if item_type == "object":
+            # --- Import an Object ---
+            original_obj = (
+                db.query(AstroObject)
+                .filter_by(id=item_id, is_shared=True)
+                .one_or_none()
+            )
+            if not original_obj or original_obj.user_id == current_user_id:
+                return jsonify(
+                    {
+                        "status": "error",
+                        "message": "Object not found or cannot import your own item",
+                    }
+                ), 404
+
+            existing = (
+                db.query(AstroObject)
+                .filter_by(
+                    user_id=current_user_id, object_name=original_obj.object_name
+                )
+                .one_or_none()
+            )
+            if existing:
+                return jsonify(
+                    {
+                        "status": "error",
+                        "message": f"You already have an object named '{original_obj.object_name}'",
+                    }
+                ), 409
+
+            new_obj = AstroObject(
+                user_id=current_user_id,
+                object_name=original_obj.object_name,
+                common_name=original_obj.common_name,
+                ra_hours=original_obj.ra_hours,
+                dec_deg=original_obj.dec_deg,
+                type=original_obj.type,
+                constellation=original_obj.constellation,
+                magnitude=original_obj.magnitude,
+                size=original_obj.size,
+                sb=original_obj.sb,
+                shared_notes=original_obj.shared_notes,
+                original_user_id=original_obj.user_id,
+                original_item_id=original_obj.id,  # <-- THE FIX
+                is_shared=False,
+                project_name="",
+                # --- Inspiration Fields Transfer ---
+                image_url=original_obj.image_url,
+                image_credit=original_obj.image_credit,
+                image_source_link=original_obj.image_source_link,
+                description_text=original_obj.description_text,
+                description_credit=original_obj.description_credit,
+                description_source_link=original_obj.description_source_link,
+            )
+            db.add(new_obj)
+
+        elif item_type == "component":
+            # --- Import a Component ---
+            original_comp = (
+                db.query(Component).filter_by(id=item_id, is_shared=True).one_or_none()
+            )
+            if not original_comp or original_comp.user_id == current_user_id:
+                return jsonify(
+                    {
+                        "status": "error",
+                        "message": "Component not found or cannot import your own item",
+                    }
+                ), 404
+
+            existing = (
+                db.query(Component)
+                .filter_by(
+                    user_id=current_user_id,
+                    kind=original_comp.kind,
+                    name=original_comp.name,
+                )
+                .one_or_none()
+            )
+            if existing:
+                return jsonify(
+                    {
+                        "status": "error",
+                        "message": f"You already have a {original_comp.kind} named '{original_comp.name}'",
+                    }
+                ), 409
+
+            new_comp = Component(
+                user_id=current_user_id,
+                kind=original_comp.kind,
+                name=original_comp.name,
+                aperture_mm=original_comp.aperture_mm,
+                focal_length_mm=original_comp.focal_length_mm,
+                sensor_width_mm=original_comp.sensor_width_mm,
+                sensor_height_mm=original_comp.sensor_height_mm,
+                pixel_size_um=original_comp.pixel_size_um,
+                factor=original_comp.factor,
+                is_shared=False,
+                original_user_id=original_comp.user_id,
+                original_item_id=original_comp.id,  # <-- THE FIX
+            )
+            db.add(new_comp)
+
+        elif item_type == "view":
+            # --- Import a View ---
+            original_view = (
+                db.query(SavedView).filter_by(id=item_id, is_shared=True).one_or_none()
+            )
+            if not original_view:
+                return jsonify({"status": "error", "message": "View not found"}), 404
+
+            existing = (
+                db.query(SavedView)
+                .filter_by(user_id=current_user_id, name=original_view.name)
+                .one_or_none()
+            )
+            if existing:
+                return jsonify(
+                    {
+                        "status": "error",
+                        "message": f"You already have a view named '{original_view.name}'",
+                    }
+                ), 409
+
+            new_view = SavedView(
+                user_id=current_user_id,
+                name=original_view.name,
+                description=original_view.description,
+                settings_json=original_view.settings_json,
+                is_shared=False,
+                original_user_id=original_view.user_id,
+                original_item_id=original_view.id,
+            )
+            db.add(new_view)
+
+        else:
+            return jsonify({"status": "error", "message": "Invalid item type"}), 400
+
+        db.commit()
+        return jsonify(
+            {
+                "status": "success",
+                "message": f"{item_type.capitalize()} imported successfully!",
+            }
+        )
+
+    except Exception as e:
+        db.rollback()
+        print(f"ERROR in import_item: {e}")
+        traceback.print_exc()
+        return jsonify(
+            {"status": "error", "message": "An internal error occurred."}
+        ), 500
+
+
+@tools_bp.route("/upload_editor_image", methods=["POST"])
+@login_required
+@permission_required("journal.edit")
+def upload_editor_image():
+    """
+    Handles file uploads from the Trix editor.
+    Saves the file to the user's upload directory and returns
+    a JSON response with the file's public URL.
+    """
+    if "file" not in request.files:
+        return jsonify({"error": "No file part in request."}), 400
+
+    file = request.files["file"]
+    if file.filename == "":
+        return jsonify({"error": "No selected file."}), 400
+
+    # Determine username
+    if SINGLE_USER_MODE:
+        username = "default"
+    else:
+        username = current_user.username
+
+    if file and allowed_file(file.filename):
+        try:
+            # Get the file extension
+            file_extension = file.filename.rsplit(".", 1)[1].lower()
+
+            # Generate a new, unique filename
+            # e.g., "note_img_a1b2c3d4.jpg"
+            new_filename = f"note_img_{uuid.uuid4().hex[:12]}.{file_extension}"
+
+            # Create the user's upload directory if it doesn't exist
+            user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+            os.makedirs(user_upload_dir, exist_ok=True)
+
+            # Save the file
+            save_path = os.path.join(user_upload_dir, new_filename)
+            file.save(save_path)
+
+            # Create the public URL for the image
+            # This must match the `get_uploaded_image` route
+            public_url = url_for(
+                "core.get_uploaded_image", username=username, filename=new_filename
+            )
+
+            # Trix expects a JSON response with a 'url' key
+            return jsonify({"url": public_url})
+
+        except Exception as e:
+            print(f"Error uploading editor image: {e}")
+            return jsonify({"error": f"Server error during upload: {e}"}), 500
+
+    return jsonify({"error": "File type not allowed."}), 400
+
+
+# --- YAML Portability Routes -----------------------------------------------
+@tools_bp.route("/tools/export/<username>", methods=["GET"])
+@login_required
+@permission_required("data.export")
+def export_yaml_for_user(username):
+    # Only allow exporting self in multi-user; admin can export anyone
+    if (
+        not SINGLE_USER_MODE
+        and current_user.username != username
+        and not current_user.is_admin
+    ):
+        flash("Not authorized to export another user's data.", "error")
+        return redirect(url_for("core.index"))
+    ok = export_user_to_yaml(username, out_dir=CONFIG_DIR)
+    if not ok:
+        flash(_("Export failed (no such user or empty data)."), "error")
+        return redirect(url_for("core.index"))
+    # Package into a ZIP so users get all three files at once
+    ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+    zip_name = f"nova_export_{username}_{ts}.zip"
+    zip_path = os.path.join(INSTANCE_PATH, zip_name)
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+        cfg_file = (
+            "config_default.yaml"
+            if (SINGLE_USER_MODE and username == "default")
+            else f"config_{username}.yaml"
+        )
+        jrn_file = (
+            "journal_default.yaml"
+            if (SINGLE_USER_MODE and username == "default")
+            else f"journal_{username}.yaml"
+        )
+        rigs_file = "rigs_default.yaml"
+        for fn in [cfg_file, jrn_file, rigs_file]:
+            full = os.path.join(CONFIG_DIR, fn)
+            if os.path.exists(full):
+                zf.write(full, arcname=fn)
+    return send_file(zip_path, as_attachment=True, download_name=zip_name)
+
+
+@tools_bp.route("/tools/import", methods=["POST"])
+@login_required
+@permission_required("data.import")
+def import_yaml_for_user():
+    """
+    Expect multipart form-data with fields:
+      - username (optional in single-user; otherwise required)
+      - config_file
+      - rigs_file
+      - journal_file
+      - clear_existing = 'true'|'false'
+    """
+    username = request.form.get("username") or ("default" if SINGLE_USER_MODE else None)
+    if not username:
+        flash(_("Username is required in multi-user mode."), "error")
+        return redirect(url_for("core.index"))
+
+    # Basic guard: only allow importing for self unless admin
+    if (
+        not SINGLE_USER_MODE
+        and current_user.username != username
+        and not current_user.is_admin
+    ):
+        flash("Not authorized to import for another user.", "error")
+        return redirect(url_for("core.index"))
+
+    try:
+        cfg = request.files.get("config_file")
+        rigs = request.files.get("rigs_file")
+        jrn = request.files.get("journal_file")
+        if not (cfg and rigs and jrn):
+            flash(_("Please provide config, rigs, and journal YAML files."), "error")
+            return redirect(url_for("core.index"))
+
+        # Persist to temp paths
+        tmp_dir = os.path.join(INSTANCE_PATH, "tmp_import")
+        os.makedirs(tmp_dir, exist_ok=True)
+        cfg_path = os.path.join(tmp_dir, f"cfg_{uuid.uuid4().hex}.yaml")
+        rigs_path = os.path.join(tmp_dir, f"rigs_{uuid.uuid4().hex}.yaml")
+        jrn_path = os.path.join(tmp_dir, f"jrn_{uuid.uuid4().hex}.yaml")
+        cfg.save(cfg_path)
+        rigs.save(rigs_path)
+        jrn.save(jrn_path)
+
+        clear_existing = request.form.get("clear_existing", "false").lower() == "true"
+        ok = import_user_from_yaml(
+            username, cfg_path, rigs_path, jrn_path, clear_existing=clear_existing
+        )
+
+        # Cleanup temp
+        for p in [cfg_path, rigs_path, jrn_path]:
+            try:
+                os.remove(p)
+            except Exception:
+                pass
+
+        if ok:
+            flash(_("Import completed successfully!"), "success")
+        else:
+            flash(_("Import failed. See server logs for details."), "error")
+    except Exception as e:
+        print(f"[IMPORT] ERROR: {e}")
+        flash(_("Import crashed. Check logs."), "error")
+    return redirect(url_for("core.index"))
+
+
+# Admin-only repair route for deduplication and backfill
+@tools_bp.route("/tools/repair_db", methods=["POST"])
+@login_required
+@admin_required
+def repair_db_now():
+    try:
+        repair_journals(dry_run=False)
+        flash(_("Database repair completed."), "success")
+    except Exception as e:
+        flash(_("Repair failed: %(error)s", error=e), "error")
+    return redirect(url_for("core.index"))
+
+
+# =============================================================================
+# Admin User Management Panel
+# =============================================================================
+if not SINGLE_USER_MODE:
+
+    @tools_bp.before_request
+    def csrf_protect_admin():
+        """Enforce CSRF on admin POST routes."""
+        if request.method == "POST" and request.path.startswith("/admin/"):
+            csrf.protect()
+
+    @tools_bp.route("/admin/users")
+    @login_required
+    @admin_required
+    def admin_users():
+        db_sess = SessionLocal()
+        try:
+            users = db_sess.query(DbUser).order_by(DbUser.id).all()
+            roles = db_sess.query(Role).order_by(Role.name).all()
+            return render_template("admin_users.html", users=users, roles=roles)
+        finally:
+            db_sess.close()
+
+    @tools_bp.route("/admin/users/create", methods=["POST"])
+    @login_required
+    @admin_required
+    def admin_create_user():
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        if not username or not password:
+            flash(_("Username and password are required."), "error")
+            return redirect(url_for("tools.admin_users"))
+        db_sess = SessionLocal()
+        try:
+            if db_sess.query(DbUser).filter_by(username=username).first():
+                flash(f"User '{username}' already exists.", "error")
+                return redirect(url_for("tools.admin_users"))
+            user = DbUser(username=username)
+            user.set_password(password)
+            db_sess.add(user)
+            db_sess.flush()  # Get user.id before seeding
+            # Seed with default data (locations, objects, etc.)
+            _seed_user_from_guest_data(db_sess, user)
+            db_sess.commit()
+            flash(f"User '{username}' created successfully.", "success")
+            return redirect(url_for("tools.admin_users"))
+        finally:
+            db_sess.close()
+
+    @tools_bp.route("/admin/users/<int:user_id>/toggle", methods=["POST"])
+    @login_required
+    @admin_required
+    def admin_toggle_user(user_id):
+        db_sess = SessionLocal()
+        try:
+            user = db_sess.query(DbUser).get(user_id)
+            if not user:
+                flash("User not found.", "error")
+                return redirect(url_for("tools.admin_users"))
+            if user.is_admin:
+                flash("Cannot deactivate an admin account.", "error")
+                return redirect(url_for("tools.admin_users"))
+            user.active = not user.active
+            db_sess.commit()
+            status = "activated" if user.active else "deactivated"
+            flash(f"User '{user.username}' {status}.", "success")
+            return redirect(url_for("tools.admin_users"))
+        finally:
+            db_sess.close()
+
+    @tools_bp.route("/admin/users/<int:user_id>/reset-password", methods=["POST"])
+    @login_required
+    @admin_required
+    def admin_reset_password(user_id):
+        db_sess = SessionLocal()
+        try:
+            user = db_sess.query(DbUser).get(user_id)
+            if not user:
+                flash("User not found.", "error")
+                return redirect(url_for("tools.admin_users"))
+            new_password = request.form.get("new_password", "")
+            if not new_password:
+                flash("Password cannot be empty.", "error")
+                return redirect(url_for("tools.admin_users"))
+            user.set_password(new_password)
+            db_sess.commit()
+            flash(f"Password reset for '{user.username}'.", "success")
+            return redirect(url_for("tools.admin_users"))
+        finally:
+            db_sess.close()
+
+    @tools_bp.route("/admin/users/<int:user_id>/delete", methods=["POST"])
+    @login_required
+    @admin_required
+    def admin_delete_user(user_id):
+        db_sess = SessionLocal()
+        try:
+            user = db_sess.query(DbUser).get(user_id)
+            if not user:
+                flash("User not found.", "error")
+                return redirect(url_for("tools.admin_users"))
+            if user.is_admin:
+                flash("Cannot delete an admin account.", "error")
+                return redirect(url_for("tools.admin_users"))
+            uname = user.username
+            db_sess.delete(user)
+            db_sess.commit()
+            flash(f"User '{uname}' deleted.", "success")
+            return redirect(url_for("tools.admin_users"))
+        finally:
+            db_sess.close()
+
+    @tools_bp.route("/admin/roles")
+    @login_required
+    @admin_required
+    def admin_roles():
+        return render_template(
+            "admin_roles.html",
+            permission_categories=PERMISSION_CATEGORIES,
+        )
 
 
 @api_bp.route("/api/save_framing", methods=["POST"])
@@ -14449,3 +16483,4 @@ app.register_blueprint(rest_api_bp, url_prefix="/api/v1")
 app.register_blueprint(weather_bp, url_prefix="/api/v1/weather")
 app.register_blueprint(blog_bp, url_prefix="/blog")
 
+# ── API-key bootstrap (single-use) ──────────────────────────────────────────

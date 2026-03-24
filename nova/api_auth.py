@@ -6,17 +6,17 @@ Supports two modes:
 - Single-user: a key is auto-generated on first startup and printed to console
 """
 
-import hashlib
+import hmac
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 
-from flask import request, jsonify, g, current_app
+from flask import request, jsonify, g
 from flask_login import current_user
 from sqlalchemy.orm import selectinload
 
-from nova.models import SessionLocal, ApiKey, DbUser
-from nova.config import SINGLE_USER_MODE
+from nova.models import SessionLocal, ApiKey, DbUser, Role
+from nova.config import SINGLE_USER_MODE, SECRET_KEY
 
 
 def generate_api_key() -> str:
@@ -28,8 +28,10 @@ def generate_api_key() -> str:
 
 
 def hash_api_key(raw_key: str) -> str:
-    """Hash an API key for storage using SHA-256."""
-    return hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
+    """Hash an API key for storage using HMAC-SHA256 with server secret."""
+    return hmac.new(
+        SECRET_KEY.encode("utf-8"), raw_key.encode("utf-8"), "sha256"
+    ).hexdigest()
 
 
 def key_prefix(raw_key: str) -> str:
@@ -57,31 +59,38 @@ def verify_api_key(raw_key: str):
 
     The DbUser is returned with roles eagerly loaded to avoid DetachedInstanceError
     when checking permissions after the session is removed.
+
+    Uses prefix-based lookup + constant-time hash comparison to prevent timing attacks.
     """
-    hashed = hash_api_key(raw_key)
+    computed_hash = hash_api_key(raw_key)
+    prefix = key_prefix(raw_key)
     db = SessionLocal()
     try:
+        # Fetch by prefix (indexed), not by hash — prevents timing side-channel
         api_key = (
             db.query(ApiKey)
             .filter(
-                ApiKey.key_hash == hashed,
+                ApiKey.key_prefix == prefix,
                 ApiKey.is_active.is_(True),
             )
             .first()
         )
         if api_key is None:
             return None, None
-        # Eagerly load roles to avoid DetachedInstanceError when checking permissions
+        # Constant-time comparison to prevent timing attacks
+        if not secrets.compare_digest(api_key.key_hash, computed_hash):
+            return None, None
+        # Eagerly load roles and permissions to avoid DetachedInstanceError
         db_user = (
             db.query(DbUser)
-            .options(selectinload(DbUser.roles))
+            .options(selectinload(DbUser.roles).selectinload(Role.permissions))
             .filter(DbUser.id == api_key.user_id)
             .first()
         )
         if db_user is None:
             return None, None
         # Update last-used timestamp (fire-and-forget)
-        api_key.last_used_at = datetime.utcnow()
+        api_key.last_used_at = datetime.now(timezone.utc)
         db.commit()
         return api_key, db_user
     finally:
@@ -162,6 +171,18 @@ def api_key_or_login_required(f):
 
         # Fall through to session auth
         if current_user.is_authenticated:
+            # Set g.db_user for session-auth path so routes can use it identically to API-key path
+            if not hasattr(g, "db_user") or g.db_user is None:
+                db = SessionLocal()
+                try:
+                    g.db_user = (
+                        db.query(DbUser)
+                        .options(selectinload(DbUser.roles))
+                        .filter(DbUser.id == current_user.id)
+                        .first()
+                    )
+                finally:
+                    db.close()
             return f(*args, **kwargs)
 
         return jsonify(
