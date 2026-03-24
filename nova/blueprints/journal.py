@@ -95,28 +95,43 @@ def journal_list_view():
 @journal_bp.route('/journal/add', methods=['GET', 'POST'])
 @login_required
 def journal_add():
+    print(f"[DEBUG] journal_add called, form keys: {list(request.form.keys())}, form_action={request.form.get('form_action')}")
     load_full_astro_context()
     username = "default" if SINGLE_USER_MODE else current_user.username
     db = get_db()
     user = db.query(DbUser).filter_by(username=username).one()
 
     if request.method == 'POST':
-        try:
-            # --- START FIX: Validate the date ---
-            session_date_str = request.form.get("session_date")
-            try:
-                parsed_date_utc = datetime.strptime(session_date_str, '%Y-%m-%d').date()
-            except (ValueError, TypeError):
-                # This is the new error handling: flash and redirect
-                flash(_("Invalid date format."), "error")
-                target_object_id = request.form.get("target_object_id")
+        # DIAGNOSTIC: Log what we received at the very top of POST handler
+        print(f"[DRAFT] journal_add POST received: form_action={request.form.get('form_action')} all_keys={list(request.form.keys())[:20]}")
+        # --- Handle action field (save_draft vs save_close) ---
+        # Check action BEFORE try block so it's available in exception handler
+        action = request.form.get("form_action")
 
-                # Redirect back to the object's page where the form was
-                if target_object_id:
-                    return redirect(url_for('core.graph_dashboard', object_name=target_object_id))
-                else:
-                    # Fallback if no object was specified
-                    return redirect(url_for('journal.journal_list_view'))
+        try:
+            # --- START FIX: Validate the date (only for non-draft saves) ---
+            session_date_str = request.form.get("session_date")
+            if action != "save_draft":
+                # Only validate date for non-draft submissions
+                try:
+                    parsed_date_utc = datetime.strptime(session_date_str, '%Y-%m-%d').date()
+                except (ValueError, TypeError):
+                    # This is the new error handling: flash and redirect
+                    flash(_("Invalid date format."), "error")
+                    target_object_id = request.form.get("target_object_id")
+
+                    # Redirect back to the object's page where the form was
+                    if target_object_id:
+                        return redirect(url_for('core.graph_dashboard', object_name=target_object_id))
+                    else:
+                        # Fallback if no object was specified
+                        return redirect(url_for('journal.journal_list_view'))
+            else:
+                # For drafts, use a default date or empty if not provided
+                try:
+                    parsed_date_utc = datetime.strptime(session_date_str, '%Y-%m-%d').date() if session_date_str else datetime.now().date()
+                except (ValueError, TypeError):
+                    parsed_date_utc = datetime.now().date()
             # --- END FIX ---
 
             # --- Handle Project Creation/Selection (This logic is still valid) ---
@@ -320,8 +335,10 @@ def journal_add():
                 db.commit()
 
             # --- Handle action field (save_draft vs save_close) ---
-            action = request.form.get("form_action")
             if action == "save_draft":
+                # DIAGNOSTIC: Log what we received
+                print(f"[DRAFT] journal_add: form_action={request.form.get('form_action')} all_keys={list(request.form.keys())}")
+                print("DRAFT BRANCH REACHED in journal_add")
                 # Save as draft, return JSON without redirect
                 new_session.draft = True
                 db.commit()
@@ -337,7 +354,17 @@ def journal_add():
                                         location=new_session.location_name))
         except Exception as e:
             db.rollback()
-            raise e
+            import traceback
+            traceback.print_exc()
+            # Return JSON error for draft saves, re-raise for normal saves
+            if action == "save_draft":
+                return jsonify({
+                    "status": "error",
+                    "message": str(e),
+                    "type": type(e).__name__
+                }), 500
+            else:
+                raise e
 
     # --- GET Request Logic ---
     target_object = request.args.get('target')
@@ -353,6 +380,7 @@ def journal_add():
 @journal_bp.route('/journal/edit/<int:session_id>', methods=['GET', 'POST'])
 @login_required
 def journal_edit(session_id):
+    print(f"[DEBUG] journal_edit called, form keys: {list(request.form.keys())}, form_action={request.form.get('form_action')}")
     load_full_astro_context()
     username = "default" if SINGLE_USER_MODE else current_user.username
     db = get_db()
@@ -364,280 +392,311 @@ def journal_edit(session_id):
         return redirect(url_for('core.index'))
 
     if request.method == 'POST':
-        # --- START FIX: Validate the date ---
-        session_date_str = request.form.get("session_date")
-        try:
-            parsed_date_utc = datetime.strptime(session_date_str, '%Y-%m-%d').date()
-        except (ValueError, TypeError):
-            flash(_("Invalid date format."), "error")
-
-            # Redirect back to the graph view for this session
-            return redirect(url_for('core.graph_dashboard',
-                                    object_name=session_to_edit.object_name,
-                                    session_id=session_id))
-        # --- END FIX ---
-
-        # --- NEW: Get Rig Snapshot Specs and Component Names ---
-        rig_id_str = request.form.get("rig_id_snapshot")
-        rig_id_snap, rig_name_snap, efl_snap, fr_snap, scale_snap, fov_w_snap, fov_h_snap = None, None, None, None, None, None, None
-        tel_name_snap, reducer_name_snap, camera_name_snap = None, None, None  # Initialize new snapshots
-
-        if rig_id_str:
-            try:
-                rig_id = int(rig_id_str)
-                rig = db.query(Rig).options(
-                    selectinload(Rig.telescope), selectinload(Rig.camera), selectinload(Rig.reducer_extender)
-                ).filter_by(id=rig_id, user_id=user.id).one_or_none()
-
-                if rig:
-                    rig_id_snap = rig.id  # <-- SAVE THE ID
-                    rig_name_snap = rig.rig_name
-                    efl_snap, fr_snap, scale_snap, fov_w_snap = _compute_rig_metrics_from_components(
-                        rig.telescope, rig.camera, rig.reducer_extender
-                    )
-                    if rig.camera and rig.camera.sensor_height_mm and efl_snap:
-                        fov_h_snap = (degrees(2 * atan((rig.camera.sensor_height_mm / 2.0) / efl_snap)) * 60.0)
-
-                    # --- GET AND SAVE COMPONENT NAMES ---
-                    tel_name_snap = rig.telescope.name if rig.telescope else None
-                    reducer_name_snap = rig.reducer_extender.name if rig.reducer_extender else None
-                    camera_name_snap = rig.camera.name if rig.camera else None
-                    # --- END COMPONENT NAMES ---
-            except (ValueError, TypeError):
-                pass
-
-        # --- Update ALL fields from the form ---
-        session_to_edit.date_utc = parsed_date_utc
-        session_to_edit.object_name = request.form.get("target_object_id", "").strip()
-        # Fix: Update location name from form
-        session_to_edit.location_name = request.form.get("location_name")
-        session_to_edit.notes = request.form.get("general_notes_problems_learnings")
-
-        form = request.form
-        session_to_edit.seeing_observed_fwhm = safe_float(form.get("seeing_observed_fwhm"))
-        session_to_edit.sky_sqm_observed = safe_float(form.get("sky_sqm_observed"))
-        session_to_edit.moon_illumination_session = safe_int(form.get("moon_illumination_session"))
-        session_to_edit.moon_angular_separation_session = safe_float(form.get("moon_angular_separation_session"))
-        session_to_edit.telescope_setup_notes = form.get("telescope_setup_notes", "").strip()
-        session_to_edit.guiding_rms_avg_arcsec = safe_float(form.get("guiding_rms_avg_arcsec"))
-        session_to_edit.exposure_time_per_sub_sec = safe_int(form.get("exposure_time_per_sub_sec"))
-        session_to_edit.number_of_subs_light = safe_int(form.get("number_of_subs_light"))
-        session_to_edit.filter_used_session = form.get("filter_used_session", "").strip()
-        session_to_edit.gain_setting = safe_int(form.get("gain_setting"))
-        session_to_edit.offset_setting = safe_int(form.get("offset_setting"))
-        session_to_edit.session_rating_subjective = safe_int(form.get("session_rating_subjective"))
-        session_to_edit.filter_L_subs = safe_int(form.get("filter_L_subs"))
-        session_to_edit.filter_L_exposure_sec = safe_int(form.get("filter_L_exposure_sec"))
-        session_to_edit.filter_R_subs = safe_int(form.get("filter_R_subs"))
-        session_to_edit.filter_R_exposure_sec = safe_int(form.get("filter_R_exposure_sec"))
-        session_to_edit.filter_G_subs = safe_int(form.get("filter_G_subs"))
-        session_to_edit.filter_G_exposure_sec = safe_int(form.get("filter_G_exposure_sec"))
-        session_to_edit.filter_B_subs = safe_int(form.get("filter_B_subs"))
-        session_to_edit.filter_B_exposure_sec = safe_int(form.get("filter_B_exposure_sec"))
-        session_to_edit.filter_Ha_subs = safe_int(form.get("filter_Ha_subs"))
-        session_to_edit.filter_Ha_exposure_sec = safe_int(form.get("filter_Ha_exposure_sec"))
-        session_to_edit.filter_OIII_subs = safe_int(form.get("filter_OIII_subs"))
-        session_to_edit.filter_OIII_exposure_sec = safe_int(form.get("filter_OIII_exposure_sec"))
-        session_to_edit.filter_SII_subs = safe_int(form.get("filter_SII_subs"))
-        session_to_edit.filter_SII_exposure_sec = safe_int(form.get("filter_SII_exposure_sec"))
-        session_to_edit.weather_notes = form.get("weather_notes", "").strip() or None
-        session_to_edit.guiding_equipment = form.get("guiding_equipment", "").strip() or None
-        session_to_edit.dither_details = form.get("dither_details", "").strip() or None
-        session_to_edit.dither_pixels = safe_int(form.get("dither_pixels"))
-        session_to_edit.dither_every_n = safe_int(form.get("dither_every_n"))
-        session_to_edit.dither_notes = form.get("dither_notes", "").strip() or None
-        session_to_edit.acquisition_software = form.get("acquisition_software", "").strip() or None
-        session_to_edit.camera_temp_setpoint_c = safe_float(form.get("camera_temp_setpoint_c"))
-        session_to_edit.camera_temp_actual_avg_c = safe_float(form.get("camera_temp_actual_avg_c"))
-        session_to_edit.binning_session = form.get("binning_session", "").strip() or None
-        session_to_edit.darks_strategy = form.get("darks_strategy", "").strip() or None
-        session_to_edit.flats_strategy = form.get("flats_strategy", "").strip() or None
-        session_to_edit.bias_darkflats_strategy = form.get("bias_darkflats_strategy", "").strip() or None
-        session_to_edit.transparency_observed_scale = form.get("transparency_observed_scale", "").strip() or None
-
-        # --- START: Update Rig Snapshot Fields (Crucial Assignment) ---
-        session_to_edit.rig_id_snapshot = rig_id_snap
-        session_to_edit.rig_name_snapshot = rig_name_snap
-        session_to_edit.rig_efl_snapshot = efl_snap
-        session_to_edit.rig_fr_snapshot = fr_snap
-        session_to_edit.rig_scale_snapshot = scale_snap
-        session_to_edit.rig_fov_w_snapshot = fov_w_snap
-        session_to_edit.rig_fov_h_snapshot = fov_h_snap
-
-        # --- ASSIGN NEW COMPONENT NAME SNAPSHOTS ---
-        session_to_edit.telescope_name_snapshot = tel_name_snap
-        session_to_edit.reducer_name_snapshot = reducer_name_snap
-        session_to_edit.camera_name_snapshot = camera_name_snap
-        # --- END: Update Rig Snapshot Fields ---
-
-        # --- Custom filter data (user-defined filters stored as JSON) ---
-        custom_data = {}
-        for cf in db.query(UserCustomFilter).filter_by(user_id=user.id).all():
-            subs = request.form.get(f'filter_{cf.filter_key}_subs')
-            exp = request.form.get(f'filter_{cf.filter_key}_exposure_sec')
-            if subs or exp:
-                custom_data[f'filter_{cf.filter_key}_subs'] = int(subs) if subs else None
-                custom_data[f'filter_{cf.filter_key}_exposure_sec'] = int(exp) if exp else None
-        session_to_edit.custom_filter_data = json.dumps(custom_data) if custom_data else None
-
-        # Project logic
-        project_id_for_session = None
-        project_selection = request.form.get("project_selection")
-        new_project_name = request.form.get("new_project_name", "").strip()
-
-        # The object being viewed/edited (use this consistently)
-        target_object_id = session_to_edit.object_name
-
-        if project_selection == "new_project" and new_project_name:
-            new_project = Project(id=uuid.uuid4().hex, user_id=user.id, name=new_project_name)
-            db.add(new_project)
-            db.flush()
-            project_id_for_session = new_project.id
-
-            # Link the NEW project to the object
-            if target_object_id:
-                new_project.target_object_name = target_object_id
-
-        elif project_selection and project_selection not in ["standalone", "new_project"]:
-            project_id_for_session = project_selection
-
-            # Link the EXISTING project to the object
-            project_to_link = db.query(Project).filter_by(id=project_id_for_session, user_id=user.id).one_or_none()
-            if project_to_link and target_object_id:
-                project_to_link.target_object_name = target_object_id
-
-        session_to_edit.project_id = project_id_for_session
-
-        # --- Total exposure calculation (fixed + custom filters) ---
-        FIXED_FILTER_KEYS = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII']
-        total_seconds = 0
-
-        # Main light subs
-        total_seconds += (session_to_edit.number_of_subs_light or 0) * (session_to_edit.exposure_time_per_sub_sec or 0)
-
-        for fk in FIXED_FILTER_KEYS:
-            subs = getattr(session_to_edit, f'filter_{fk}_subs', None) or 0
-            exp = getattr(session_to_edit, f'filter_{fk}_exposure_sec', None) or 0
-            total_seconds += int(subs) * int(exp)
-
-        if session_to_edit.custom_filter_data:
-            custom_data_parsed = json.loads(session_to_edit.custom_filter_data)
-            for cf in db.query(UserCustomFilter).filter_by(user_id=user.id).all():
-                subs = custom_data_parsed.get(f'filter_{cf.filter_key}_subs') or 0
-                exp = custom_data_parsed.get(f'filter_{cf.filter_key}_exposure_sec') or 0
-                total_seconds += int(subs) * int(exp)
-
-        session_to_edit.calculated_integration_time_minutes = round(total_seconds / 60.0,
-                                                                    1) if total_seconds > 0 else None
-        # File Handling (Delete Image)
-        if request.form.get('delete_session_image') == '1':
-            old_image = session_to_edit.session_image_file
-            if old_image:
-                user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
-                old_image_path = os.path.join(user_upload_dir, old_image)
-                if os.path.exists(old_image_path):
-                    try:
-                        os.remove(old_image_path)
-                    except Exception as e:
-                        print(f"Error deleting file: {e}")
-                session_to_edit.session_image_file = None
-
-        # File Handling (New Image Upload)
-        if 'session_image' in request.files:
-            file = request.files['session_image']
-            if file and file.filename != '' and allowed_file(file.filename):
-                file_extension = file.filename.rsplit('.', 1)[1].lower()
-                new_filename = f"{session_to_edit.id}.{file_extension}"
-                user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
-                os.makedirs(user_upload_dir, exist_ok=True)
-                file.save(os.path.join(user_upload_dir, new_filename))
-                session_to_edit.session_image_file = new_filename
-
-        # --- Log file handling (stored as TEXT in DB) ---
-        # Track if we need to invalidate the analysis cache
-        invalidate_cache = False
-
-        # Log file uploads (stored on filesystem, path in DB)
-        if 'asiair_log' in request.files:
-            log_file = request.files['asiair_log']
-            if log_file and log_file.filename != '':
-                content = log_file.read().decode('utf-8', errors='ignore')
-                path = save_log_to_filesystem(session_to_edit.id, 'asiair', content, log_file.filename)
-                session_to_edit.asiair_log_content = path
-                invalidate_cache = True
-
-        if 'phd2_log' in request.files:
-            log_file = request.files['phd2_log']
-            if log_file and log_file.filename != '':
-                content = log_file.read().decode('utf-8', errors='ignore')
-                path = save_log_to_filesystem(session_to_edit.id, 'phd2', content, log_file.filename)
-                session_to_edit.phd2_log_content = path
-                invalidate_cache = True
-
-        # NINA log upload with validation
-        if 'nina_log' in request.files:
-            log_file = request.files['nina_log']
-            if log_file and log_file.filename != '':
-                # Validate file extension
-                if not log_file.filename.lower().endswith('.log'):
-                    flash(_("NINA log file must be a .log file."), "error")
-                    return redirect(
-                        url_for('core.graph_dashboard', object_name=session_to_edit.object_name,
-                                session_id=session_id, location=session_to_edit.location_name))
-
-                # Validate file size (10 MB max)
-                log_file.seek(0, os.SEEK_END)
-                file_size = log_file.tell()
-                log_file.seek(0)  # Reset to beginning for reading
-
-                MAX_SIZE = 10 * 1024 * 1024  # 10 MB
-                if file_size > MAX_SIZE:
-                    flash(_("NINA log file is too large. Maximum size is 10 MB."), "error")
-                    return redirect(
-                        url_for('core.graph_dashboard', object_name=session_to_edit.object_name,
-                                session_id=session_id, location=session_to_edit.location_name))
-
-                content = log_file.read().decode('utf-8', errors='ignore')
-                path = save_log_to_filesystem(session_to_edit.id, 'nina', content, log_file.filename)
-                session_to_edit.nina_log_content = path
-                invalidate_cache = True
-                flash(_("NINA log imported successfully."), "success")
-
-        # Log deletion via checkbox
-        if request.form.get('delete_asiair_log') == '1':
-            session_to_edit.asiair_log_content = None
-            invalidate_cache = True
-
-        if request.form.get('delete_phd2_log') == '1':
-            session_to_edit.phd2_log_content = None
-            invalidate_cache = True
-
-        if request.form.get('delete_nina_log') == '1':
-            session_to_edit.nina_log_content = None
-            invalidate_cache = True
-
-        # Invalidate analysis cache if logs changed
-        if invalidate_cache:
-            session_to_edit.log_analysis_cache = None
-
+        # DIAGNOSTIC: Log what we received at the very top of POST handler
+        print(f"[DRAFT] journal_edit POST received: form_action={request.form.get('form_action')} all_keys={list(request.form.keys())[:20]}")
         # --- Handle action field (save_draft vs save_close) ---
+        # Check action FIRST so it's available in exception handler
         action = request.form.get("form_action")
-        if action == "save_draft":
-            # Save as draft, return JSON without redirect
-            session_to_edit.draft = True
-            db.commit()
-            return jsonify({"status": "ok", "session_id": session_id})
-        else:
-            # save_close or no action (legacy): save as non-draft and redirect
-            session_to_edit.draft = False
-            db.commit()
-            if not request.files.get('nina_log') or request.files['nina_log'].filename == '':
-                flash(_("Journal entry updated successfully!"), "success")
-            record_event('journal_session_edited')
-            # Fix: Pass the session's location to the redirect so the dashboard loads the correct context
-            return redirect(
-                url_for('core.graph_dashboard', object_name=session_to_edit.object_name, session_id=session_id,
-                        location=session_to_edit.location_name))
+
+        try:
+            # --- START FIX: Validate the date (only for non-draft saves) ---
+            session_date_str = request.form.get("session_date")
+            if action != "save_draft":
+                # Only validate date for non-draft submissions
+                try:
+                    parsed_date_utc = datetime.strptime(session_date_str, '%Y-%m-%d').date()
+                except (ValueError, TypeError):
+                    flash(_("Invalid date format."), "error")
+
+                    # Redirect back to the graph view for this session
+                    return redirect(url_for('core.graph_dashboard',
+                                            object_name=session_to_edit.object_name,
+                                            session_id=session_id))
+            else:
+                # For drafts, use a default date or keep existing if not provided
+                try:
+                    parsed_date_utc = datetime.strptime(session_date_str, '%Y-%m-%d').date() if session_date_str else session_to_edit.date_utc
+                except (ValueError, TypeError):
+                    parsed_date_utc = session_to_edit.date_utc if session_to_edit.date_utc else datetime.now().date()
+            # --- END FIX ---
+
+            # --- NEW: Get Rig Snapshot Specs and Component Names ---
+            rig_id_str = request.form.get("rig_id_snapshot")
+            rig_id_snap, rig_name_snap, efl_snap, fr_snap, scale_snap, fov_w_snap, fov_h_snap = None, None, None, None, None, None, None
+            tel_name_snap, reducer_name_snap, camera_name_snap = None, None, None  # Initialize new snapshots
+    
+            if rig_id_str:
+                try:
+                    rig_id = int(rig_id_str)
+                    rig = db.query(Rig).options(
+                        selectinload(Rig.telescope), selectinload(Rig.camera), selectinload(Rig.reducer_extender)
+                    ).filter_by(id=rig_id, user_id=user.id).one_or_none()
+    
+                    if rig:
+                        rig_id_snap = rig.id  # <-- SAVE THE ID
+                        rig_name_snap = rig.rig_name
+                        efl_snap, fr_snap, scale_snap, fov_w_snap = _compute_rig_metrics_from_components(
+                            rig.telescope, rig.camera, rig.reducer_extender
+                        )
+                        if rig.camera and rig.camera.sensor_height_mm and efl_snap:
+                            fov_h_snap = (degrees(2 * atan((rig.camera.sensor_height_mm / 2.0) / efl_snap)) * 60.0)
+    
+                        # --- GET AND SAVE COMPONENT NAMES ---
+                        tel_name_snap = rig.telescope.name if rig.telescope else None
+                        reducer_name_snap = rig.reducer_extender.name if rig.reducer_extender else None
+                        camera_name_snap = rig.camera.name if rig.camera else None
+                        # --- END COMPONENT NAMES ---
+                except (ValueError, TypeError):
+                    pass
+    
+            # --- Update ALL fields from the form ---
+            session_to_edit.date_utc = parsed_date_utc
+            session_to_edit.object_name = request.form.get("target_object_id", "").strip()
+            # Fix: Update location name from form
+            session_to_edit.location_name = request.form.get("location_name")
+            session_to_edit.notes = request.form.get("general_notes_problems_learnings")
+    
+            form = request.form
+            session_to_edit.seeing_observed_fwhm = safe_float(form.get("seeing_observed_fwhm"))
+            session_to_edit.sky_sqm_observed = safe_float(form.get("sky_sqm_observed"))
+            session_to_edit.moon_illumination_session = safe_int(form.get("moon_illumination_session"))
+            session_to_edit.moon_angular_separation_session = safe_float(form.get("moon_angular_separation_session"))
+            session_to_edit.telescope_setup_notes = form.get("telescope_setup_notes", "").strip()
+            session_to_edit.guiding_rms_avg_arcsec = safe_float(form.get("guiding_rms_avg_arcsec"))
+            session_to_edit.exposure_time_per_sub_sec = safe_int(form.get("exposure_time_per_sub_sec"))
+            session_to_edit.number_of_subs_light = safe_int(form.get("number_of_subs_light"))
+            session_to_edit.filter_used_session = form.get("filter_used_session", "").strip()
+            session_to_edit.gain_setting = safe_int(form.get("gain_setting"))
+            session_to_edit.offset_setting = safe_int(form.get("offset_setting"))
+            session_to_edit.session_rating_subjective = safe_int(form.get("session_rating_subjective"))
+            session_to_edit.filter_L_subs = safe_int(form.get("filter_L_subs"))
+            session_to_edit.filter_L_exposure_sec = safe_int(form.get("filter_L_exposure_sec"))
+            session_to_edit.filter_R_subs = safe_int(form.get("filter_R_subs"))
+            session_to_edit.filter_R_exposure_sec = safe_int(form.get("filter_R_exposure_sec"))
+            session_to_edit.filter_G_subs = safe_int(form.get("filter_G_subs"))
+            session_to_edit.filter_G_exposure_sec = safe_int(form.get("filter_G_exposure_sec"))
+            session_to_edit.filter_B_subs = safe_int(form.get("filter_B_subs"))
+            session_to_edit.filter_B_exposure_sec = safe_int(form.get("filter_B_exposure_sec"))
+            session_to_edit.filter_Ha_subs = safe_int(form.get("filter_Ha_subs"))
+            session_to_edit.filter_Ha_exposure_sec = safe_int(form.get("filter_Ha_exposure_sec"))
+            session_to_edit.filter_OIII_subs = safe_int(form.get("filter_OIII_subs"))
+            session_to_edit.filter_OIII_exposure_sec = safe_int(form.get("filter_OIII_exposure_sec"))
+            session_to_edit.filter_SII_subs = safe_int(form.get("filter_SII_subs"))
+            session_to_edit.filter_SII_exposure_sec = safe_int(form.get("filter_SII_exposure_sec"))
+            session_to_edit.weather_notes = form.get("weather_notes", "").strip() or None
+            session_to_edit.guiding_equipment = form.get("guiding_equipment", "").strip() or None
+            session_to_edit.dither_details = form.get("dither_details", "").strip() or None
+            session_to_edit.dither_pixels = safe_int(form.get("dither_pixels"))
+            session_to_edit.dither_every_n = safe_int(form.get("dither_every_n"))
+            session_to_edit.dither_notes = form.get("dither_notes", "").strip() or None
+            session_to_edit.acquisition_software = form.get("acquisition_software", "").strip() or None
+            session_to_edit.camera_temp_setpoint_c = safe_float(form.get("camera_temp_setpoint_c"))
+            session_to_edit.camera_temp_actual_avg_c = safe_float(form.get("camera_temp_actual_avg_c"))
+            session_to_edit.binning_session = form.get("binning_session", "").strip() or None
+            session_to_edit.darks_strategy = form.get("darks_strategy", "").strip() or None
+            session_to_edit.flats_strategy = form.get("flats_strategy", "").strip() or None
+            session_to_edit.bias_darkflats_strategy = form.get("bias_darkflats_strategy", "").strip() or None
+            session_to_edit.transparency_observed_scale = form.get("transparency_observed_scale", "").strip() or None
+    
+            # --- START: Update Rig Snapshot Fields (Crucial Assignment) ---
+            session_to_edit.rig_id_snapshot = rig_id_snap
+            session_to_edit.rig_name_snapshot = rig_name_snap
+            session_to_edit.rig_efl_snapshot = efl_snap
+            session_to_edit.rig_fr_snapshot = fr_snap
+            session_to_edit.rig_scale_snapshot = scale_snap
+            session_to_edit.rig_fov_w_snapshot = fov_w_snap
+            session_to_edit.rig_fov_h_snapshot = fov_h_snap
+    
+            # --- ASSIGN NEW COMPONENT NAME SNAPSHOTS ---
+            session_to_edit.telescope_name_snapshot = tel_name_snap
+            session_to_edit.reducer_name_snapshot = reducer_name_snap
+            session_to_edit.camera_name_snapshot = camera_name_snap
+            # --- END: Update Rig Snapshot Fields ---
+    
+            # --- Custom filter data (user-defined filters stored as JSON) ---
+            custom_data = {}
+            for cf in db.query(UserCustomFilter).filter_by(user_id=user.id).all():
+                subs = request.form.get(f'filter_{cf.filter_key}_subs')
+                exp = request.form.get(f'filter_{cf.filter_key}_exposure_sec')
+                if subs or exp:
+                    custom_data[f'filter_{cf.filter_key}_subs'] = int(subs) if subs else None
+                    custom_data[f'filter_{cf.filter_key}_exposure_sec'] = int(exp) if exp else None
+            session_to_edit.custom_filter_data = json.dumps(custom_data) if custom_data else None
+    
+            # Project logic
+            project_id_for_session = None
+            project_selection = request.form.get("project_selection")
+            new_project_name = request.form.get("new_project_name", "").strip()
+    
+            # The object being viewed/edited (use this consistently)
+            target_object_id = session_to_edit.object_name
+    
+            if project_selection == "new_project" and new_project_name:
+                new_project = Project(id=uuid.uuid4().hex, user_id=user.id, name=new_project_name)
+                db.add(new_project)
+                db.flush()
+                project_id_for_session = new_project.id
+    
+                # Link the NEW project to the object
+                if target_object_id:
+                    new_project.target_object_name = target_object_id
+    
+            elif project_selection and project_selection not in ["standalone", "new_project"]:
+                project_id_for_session = project_selection
+    
+                # Link the EXISTING project to the object
+                project_to_link = db.query(Project).filter_by(id=project_id_for_session, user_id=user.id).one_or_none()
+                if project_to_link and target_object_id:
+                    project_to_link.target_object_name = target_object_id
+    
+            session_to_edit.project_id = project_id_for_session
+    
+            # --- Total exposure calculation (fixed + custom filters) ---
+            FIXED_FILTER_KEYS = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII']
+            total_seconds = 0
+    
+            # Main light subs
+            total_seconds += (session_to_edit.number_of_subs_light or 0) * (session_to_edit.exposure_time_per_sub_sec or 0)
+    
+            for fk in FIXED_FILTER_KEYS:
+                subs = getattr(session_to_edit, f'filter_{fk}_subs', None) or 0
+                exp = getattr(session_to_edit, f'filter_{fk}_exposure_sec', None) or 0
+                total_seconds += int(subs) * int(exp)
+    
+            if session_to_edit.custom_filter_data:
+                custom_data_parsed = json.loads(session_to_edit.custom_filter_data)
+                for cf in db.query(UserCustomFilter).filter_by(user_id=user.id).all():
+                    subs = custom_data_parsed.get(f'filter_{cf.filter_key}_subs') or 0
+                    exp = custom_data_parsed.get(f'filter_{cf.filter_key}_exposure_sec') or 0
+                    total_seconds += int(subs) * int(exp)
+    
+            session_to_edit.calculated_integration_time_minutes = round(total_seconds / 60.0,
+                                                                        1) if total_seconds > 0 else None
+            # File Handling (Delete Image)
+            if request.form.get('delete_session_image') == '1':
+                old_image = session_to_edit.session_image_file
+                if old_image:
+                    user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+                    old_image_path = os.path.join(user_upload_dir, old_image)
+                    if os.path.exists(old_image_path):
+                        try:
+                            os.remove(old_image_path)
+                        except Exception as e:
+                            print(f"Error deleting file: {e}")
+                    session_to_edit.session_image_file = None
+    
+            # File Handling (New Image Upload)
+            if 'session_image' in request.files:
+                file = request.files['session_image']
+                if file and file.filename != '' and allowed_file(file.filename):
+                    file_extension = file.filename.rsplit('.', 1)[1].lower()
+                    new_filename = f"{session_to_edit.id}.{file_extension}"
+                    user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+                    os.makedirs(user_upload_dir, exist_ok=True)
+                    file.save(os.path.join(user_upload_dir, new_filename))
+                    session_to_edit.session_image_file = new_filename
+    
+            # --- Log file handling (stored as TEXT in DB) ---
+            # Track if we need to invalidate the analysis cache
+            invalidate_cache = False
+    
+            # Log file uploads (stored on filesystem, path in DB)
+            if 'asiair_log' in request.files:
+                log_file = request.files['asiair_log']
+                if log_file and log_file.filename != '':
+                    content = log_file.read().decode('utf-8', errors='ignore')
+                    path = save_log_to_filesystem(session_to_edit.id, 'asiair', content, log_file.filename)
+                    session_to_edit.asiair_log_content = path
+                    invalidate_cache = True
+    
+            if 'phd2_log' in request.files:
+                log_file = request.files['phd2_log']
+                if log_file and log_file.filename != '':
+                    content = log_file.read().decode('utf-8', errors='ignore')
+                    path = save_log_to_filesystem(session_to_edit.id, 'phd2', content, log_file.filename)
+                    session_to_edit.phd2_log_content = path
+                    invalidate_cache = True
+    
+            # NINA log upload with validation
+            if 'nina_log' in request.files:
+                log_file = request.files['nina_log']
+                if log_file and log_file.filename != '':
+                    # Validate file extension
+                    if not log_file.filename.lower().endswith('.log'):
+                        flash(_("NINA log file must be a .log file."), "error")
+                        return redirect(
+                            url_for('core.graph_dashboard', object_name=session_to_edit.object_name,
+                                    session_id=session_id, location=session_to_edit.location_name))
+    
+                    # Validate file size (10 MB max)
+                    log_file.seek(0, os.SEEK_END)
+                    file_size = log_file.tell()
+                    log_file.seek(0)  # Reset to beginning for reading
+    
+                    MAX_SIZE = 10 * 1024 * 1024  # 10 MB
+                    if file_size > MAX_SIZE:
+                        flash(_("NINA log file is too large. Maximum size is 10 MB."), "error")
+                        return redirect(
+                            url_for('core.graph_dashboard', object_name=session_to_edit.object_name,
+                                    session_id=session_id, location=session_to_edit.location_name))
+    
+                    content = log_file.read().decode('utf-8', errors='ignore')
+                    path = save_log_to_filesystem(session_to_edit.id, 'nina', content, log_file.filename)
+                    session_to_edit.nina_log_content = path
+                    invalidate_cache = True
+                    flash(_("NINA log imported successfully."), "success")
+    
+            # Log deletion via checkbox
+            if request.form.get('delete_asiair_log') == '1':
+                session_to_edit.asiair_log_content = None
+                invalidate_cache = True
+    
+            if request.form.get('delete_phd2_log') == '1':
+                session_to_edit.phd2_log_content = None
+                invalidate_cache = True
+    
+            if request.form.get('delete_nina_log') == '1':
+                session_to_edit.nina_log_content = None
+                invalidate_cache = True
+    
+            # Invalidate analysis cache if logs changed
+            if invalidate_cache:
+                session_to_edit.log_analysis_cache = None
+    
+            # --- Handle action field (save_draft vs save_close) ---
+            if action == "save_draft":
+                # DIAGNOSTIC: Log what we received
+                print(f"[DRAFT] journal_edit: form_action={request.form.get('form_action')} all_keys={list(request.form.keys())}")
+                print("DRAFT BRANCH REACHED in journal_edit")
+                # Save as draft, return JSON without redirect
+                session_to_edit.draft = True
+                db.commit()
+                return jsonify({"status": "ok", "session_id": session_id})
+            else:
+                # save_close or no action (legacy): save as non-draft and redirect
+                session_to_edit.draft = False
+                db.commit()
+                if not request.files.get('nina_log') or request.files['nina_log'].filename == '':
+                    flash(_("Journal entry updated successfully!"), "success")
+                record_event('journal_session_edited')
+                # Fix: Pass the session's location to the redirect so the dashboard loads the correct context
+                return redirect(
+                    url_for('core.graph_dashboard', object_name=session_to_edit.object_name, session_id=session_id,
+                            location=session_to_edit.location_name))
+
+        except Exception as e:
+            db.rollback()
+            import traceback
+            traceback.print_exc()
+            # Return JSON error for draft saves, re-raise for normal saves
+            if action == "save_draft":
+                return jsonify({
+                    "status": "error",
+                    "message": str(e),
+                    "type": type(e).__name__
+                }), 500
+            else:
+                raise e
 
     # --- GET Request Logic ---
     if not session_to_edit.object_name:

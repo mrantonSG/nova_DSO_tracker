@@ -352,6 +352,9 @@ class JournalSession(Base):
     nina_log_content = Column(Text, nullable=True)        # Raw NINA log
     log_analysis_cache = Column(Text, nullable=True)     # Cached JSON from parse-once
 
+    # --- Draft session support ---
+    draft = Column(Boolean, nullable=False, default=False, index=True)
+
     user = relationship("DbUser", back_populates="sessions")
     project = relationship("Project", back_populates="sessions")
     rig_snapshot = relationship("Rig", foreign_keys=[rig_id_snapshot]) # <-- ADDED THIS

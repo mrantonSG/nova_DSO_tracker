@@ -518,7 +518,14 @@ def generate_session_summary():
     """Generate AI-assisted summary for a journal session (streaming).
 
     Request body:
-        JSON: {"session_id": int}
+        JSON: {"session_id": int} or {"form_content": {...}}
+
+        When session_id is provided:
+            - Fetches session from DB and builds prompt from DB data
+
+        When session_id is absent or 0:
+            - Accepts form_content dict containing raw form field values
+            - Builds prompt directly from that data (for draft sessions)
 
     Returns:
         SSE stream: "data: <chunk>\n\n" for each text chunk
@@ -538,80 +545,254 @@ def generate_session_summary():
         return jsonify({"error": "Request body is required"}), 400
 
     session_id = data.get("session_id")
-    if not session_id:
-        return jsonify({"error": "session_id is required"}), 400
+    form_content = data.get("form_content")
 
-    # Fetch the session from database
-    db = get_db()
-    session = db.query(JournalSession).filter(JournalSession.id == session_id).first()
+    session_data = None
 
-    if not session:
-        return jsonify({"error": "Session not found"}), 404
+    # If session_id is provided and valid, fetch from DB
+    if session_id and session_id != 0:
+        # Fetch the session from database
+        db = get_db()
+        session = db.query(JournalSession).filter(JournalSession.id == session_id).first()
 
-    # Verify session belongs to current user
-    if session.user_id != g.db_user.id:
-        return jsonify({"error": "Session not found"}), 404
+        if not session:
+            return jsonify({"error": "Session not found"}), 404
 
-    # Build session_data dict from session fields
-    session_data = {
-        "object_name": session.object_name,
-        "date_utc": session.date_utc.isoformat() if session.date_utc else None,
-        "location_name": session.location_name,
-        "calculated_integration_time_minutes": session.calculated_integration_time_minutes,
-        "number_of_subs_light": session.number_of_subs_light,
-        "exposure_time_per_sub_sec": session.exposure_time_per_sub_sec,
-        "filter_used_session": session.filter_used_session,
-        "rig_name_snapshot": session.rig_name_snapshot,
-        "telescope_name_snapshot": session.telescope_name_snapshot,
-        "camera_name_snapshot": session.camera_name_snapshot,
-        "rig_efl_snapshot": session.rig_efl_snapshot,
-        "rig_fr_snapshot": session.rig_fr_snapshot,
-        "imaging_scale_arcsec_px": session.rig_scale_snapshot,
-        "seeing_observed_fwhm": session.seeing_observed_fwhm,
-        "sky_sqm_observed": session.sky_sqm_observed,
-        "guiding_rms_avg_arcsec": session.guiding_rms_avg_arcsec,
-        "moon_illumination_session": session.moon_illumination_session,
-        "moon_angular_separation_session": session.moon_angular_separation_session,
-        "camera_temp_actual_avg_c": session.camera_temp_actual_avg_c,
-        "gain_setting": session.gain_setting,
-        "session_rating_subjective": session.session_rating_subjective,
-        "transparency_observed_scale": session.transparency_observed_scale,
-        "weather_notes": session.weather_notes,
-        "telescope_setup_notes": session.telescope_setup_notes,
-        "dither_notes": session.dither_notes,
-        "darks_strategy": session.darks_strategy,
-        "flats_strategy": session.flats_strategy,
-        "general_notes_problems_learnings": session.notes,  # stored in 'notes' column
-    }
+        # Verify session belongs to current user
+        if session.user_id != g.db_user.id:
+            return jsonify({"error": "Session not found"}), 404
 
-    # Fetch guide hardware data from rig snapshot if available
-    guide_pixel_um = None
-    guide_FL_mm = None
+        # Build session_data dict from session fields
+        session_data = {
+            "object_name": session.object_name,
+            "date_utc": session.date_utc.isoformat() if session.date_utc else None,
+            "location_name": session.location_name,
+            "calculated_integration_time_minutes": session.calculated_integration_time_minutes,
+            "number_of_subs_light": session.number_of_subs_light,
+            "exposure_time_per_sub_sec": session.exposure_time_per_sub_sec,
+            "filter_used_session": session.filter_used_session,
+            "rig_name_snapshot": session.rig_name_snapshot,
+            "telescope_name_snapshot": session.telescope_name_snapshot,
+            "camera_name_snapshot": session.camera_name_snapshot,
+            "rig_efl_snapshot": session.rig_efl_snapshot,
+            "rig_fr_snapshot": session.rig_fr_snapshot,
+            "imaging_scale_arcsec_px": session.rig_scale_snapshot,
+            "seeing_observed_fwhm": session.seeing_observed_fwhm,
+            "sky_sqm_observed": session.sky_sqm_observed,
+            "guiding_rms_avg_arcsec": session.guiding_rms_avg_arcsec,
+            "moon_illumination_session": session.moon_illumination_session,
+            "moon_angular_separation_session": session.moon_angular_separation_session,
+            "camera_temp_actual_avg_c": session.camera_temp_actual_avg_c,
+            "gain_setting": session.gain_setting,
+            "session_rating_subjective": session.session_rating_subjective,
+            "transparency_observed_scale": session.transparency_observed_scale,
+            "weather_notes": session.weather_notes,
+            "telescope_setup_notes": session.telescope_setup_notes,
+            "dither_notes": session.dither_notes,
+            "darks_strategy": session.darks_strategy,
+            "flats_strategy": session.flats_strategy,
+            "general_notes_problems_learnings": session.notes,  # stored in 'notes' column
+        }
 
-    if session.rig_id_snapshot:
-        rig = db.query(Rig).filter(Rig.id == session.rig_id_snapshot).first()
-        if rig and (not rig.guide_camera_id or not rig.guide_telescope_id):
-            # Fallback: try to find rig by partial name match if guide hardware IDs are missing
-            rig = db.query(Rig).filter(
-                Rig.rig_name.ilike(f"%{session.rig_name_snapshot}%"),
-                Rig.guide_camera_id.isnot(None)
-            ).first()
+        # Fetch guide hardware data from rig snapshot if available
+        guide_pixel_um = None
+        guide_FL_mm = None
 
-        if rig:
-            guide_pixel_um = rig.guide_camera.pixel_size_um if rig.guide_camera else None
+        if session.rig_id_snapshot:
+            rig = db.query(Rig).filter(Rig.id == session.rig_id_snapshot).first()
+            if rig and (not rig.guide_camera_id or not rig.guide_telescope_id):
+                # Fallback: try to find rig by partial name match if guide hardware IDs are missing
+                rig = db.query(Rig).filter(
+                    Rig.rig_name.ilike(f"%{session.rig_name_snapshot}%"),
+                    Rig.guide_camera_id.isnot(None)
+                ).first()
 
-            if rig.guide_is_oag:
-                guide_FL_mm = rig.effective_focal_length
-            elif rig.guide_telescope:
-                guide_FL_mm = rig.guide_telescope.focal_length_mm
+            if rig:
+                guide_pixel_um = rig.guide_camera.pixel_size_um if rig.guide_camera else None
 
-    session_data["guide_pixel_um"] = guide_pixel_um
-    session_data["guide_FL_mm"] = guide_FL_mm
+                if rig.guide_is_oag:
+                    guide_FL_mm = rig.effective_focal_length
+                elif rig.guide_telescope:
+                    guide_FL_mm = rig.guide_telescope.focal_length_mm
 
-    # Guide binning is not tracked in the data model
-    session_data["guide_binning_note"] = "Binning not tracked — check PHD2/ASIAIR config manually"
+        session_data["guide_pixel_um"] = guide_pixel_um
+        session_data["guide_FL_mm"] = guide_FL_mm
 
-    # Process log_analysis_cache
+        # Guide binning is not tracked in the data model
+        session_data["guide_binning_note"] = "Binning not tracked — check PHD2/ASIAIR config manually"
+
+        # Process log_analysis_cache
+        log_analysis_summary = {}
+        if session.log_analysis_cache:
+            try:
+                import json
+                cached = json.loads(session.log_analysis_cache)
+
+                # Extract ASIAIR stats
+                asiair = cached.get("asiair")
+                if asiair and asiair.get("stats"):
+                    log_analysis_summary["asiair_stats"] = asiair["stats"]
+                    # Calculate dither statistics
+                    dithers = asiair.get("dithers", [])
+                    if dithers:
+                        successful_dithers = [d for d in dithers if d.get("ok")]
+                        timeout_dithers = [d for d in dithers if not d.get("ok")]
+                        if successful_dithers:
+                            avg_settle_seconds = sum(d.get("dur", 0) for d in successful_dithers) / len(successful_dithers)
+                            log_analysis_summary["asiair_stats"]["avg_settle_seconds"] = round(avg_settle_seconds, 1)
+                        total_dither_time = sum(d.get("dur", 0) for d in dithers)
+                        log_analysis_summary["asiair_stats"]["total_dither_time_sec"] = round(total_dither_time, 1)
+                        if timeout_dithers:
+                            log_analysis_summary["asiair_stats"]["avg_timeout_duration_sec"] = round(
+                                sum(d.get("dur", 0) for d in timeout_dithers) / len(timeout_dithers), 1
+                            )
+
+                # Extract PHD2 stats
+                phd2 = cached.get("phd2")
+                if phd2 and phd2.get("stats"):
+                    log_analysis_summary["phd2_stats"] = phd2["stats"]
+                    # Calculate dither/settle statistics
+                    settles = phd2.get("settle", [])
+                    if settles:
+                        successful_settles = [s for s in settles if s.get("ok")]
+                        timeout_settles = [s for s in settles if not s.get("ok")]
+                        if successful_settles:
+                            avg_settle_seconds = sum(s.get("dur", 0) for s in successful_settles) / len(successful_settles)
+                            log_analysis_summary["phd2_stats"]["avg_settle_seconds"] = round(avg_settle_seconds, 1)
+                        total_settle_time = sum(s.get("dur", 0) for s in settles)
+                        log_analysis_summary["phd2_stats"]["total_settle_time_sec"] = round(total_settle_time, 1)
+                        if timeout_settles:
+                            log_analysis_summary["phd2_stats"]["avg_timeout_duration_sec"] = round(
+                                sum(s.get("dur", 0) for s in timeout_settles) / len(timeout_settles), 1
+                            )
+
+                # Extract NINA summary
+                nina = cached.get("nina")
+                if nina:
+                    nina_summary = {
+                        "autofocus_runs": len(nina.get("autofocus_runs", [])),
+                        "error_count": nina.get("error_count", len(nina.get("errors", []))),
+                        "warning_count": nina.get("warning_count", len(nina.get("warnings", []))),
+                    }
+                    # Count failed autofocus runs
+                    failed_af = sum(1 for af in nina.get("autofocus_runs", []) if af.get("status") == "failed")
+                    if failed_af > 0:
+                        nina_summary["failed_autofocus"] = failed_af
+                    log_analysis_summary["nina_summary"] = nina_summary
+            except (json.JSONDecodeError, KeyError, AttributeError):
+                # If cache is invalid, just skip log analysis
+                pass
+
+        session_data["log_analysis_summary"] = log_analysis_summary
+    elif form_content:
+        # Build session_data directly from form content (for draft sessions)
+        session_data = {
+            "object_name": form_content.get("object_name"),
+            "date_utc": form_content.get("date"),
+            "location_name": form_content.get("location"),
+            "calculated_integration_time_minutes": form_content.get("calculated_integration_time_minutes"),
+            "number_of_subs_light": form_content.get("number_of_subs_light"),
+            "exposure_time_per_sub_sec": form_content.get("exposure_time_per_sub_sec"),
+            "filter_used_session": form_content.get("filter_used_session"),
+            "rig_name_snapshot": form_content.get("rig_name"),
+            "telescope_name_snapshot": form_content.get("telescope_name"),
+            "camera_name_snapshot": form_content.get("camera_name"),
+            "imaging_scale_arcsec_px": form_content.get("image_scale"),
+            "seeing_observed_fwhm": form_content.get("seeing_observed_fwhm"),
+            "sky_sqm_observed": form_content.get("sky_sqm_observed"),
+            "guiding_rms_avg_arcsec": form_content.get("guiding_rms_avg_arcsec"),
+            "moon_illumination_session": form_content.get("moon_illumination_session"),
+            "moon_angular_separation_session": form_content.get("moon_angular_separation_session"),
+            "camera_temp_actual_avg_c": form_content.get("camera_temp_actual_avg_c"),
+            "gain_setting": form_content.get("gain_setting"),
+            "session_rating_subjective": form_content.get("session_rating_subjective"),
+            "transparency_observed_scale": form_content.get("transparency_observed_scale"),
+            "weather_notes": form_content.get("weather_notes"),
+            "telescope_setup_notes": form_content.get("telescope_setup_notes"),
+            "dither_notes": form_content.get("dither_notes"),
+            "darks_strategy": form_content.get("darks_strategy"),
+            "flats_strategy": form_content.get("flats_strategy"),
+            "general_notes_problems_learnings": form_content.get("notes"),
+            "log_analysis_summary": {},  # No log analysis for draft sessions
+        }
+        # For draft sessions, we don't have rig info, so use defaults
+        session_data["guide_pixel_um"] = None
+        session_data["guide_FL_mm"] = None
+        session_data["guide_binning_note"] = "Binning not tracked — check PHD2/ASIAIR config manually"
+    else:
+        return jsonify({"error": "session_id or form_content is required"}), 400
+
+    # Strip HTML tags from general_notes_problems_learnings before passing to prompt
+    notes = session_data.get("general_notes_problems_learnings")
+    if notes:
+        # Remove HTML tags but preserve content
+        session_data["general_notes_problems_learnings"] = re.sub(r'<[^>]+>', ' ', notes).strip()
+
+    # Get current locale using lazy import to avoid circular dependency
+    from nova import get_locale
+    locale = get_locale()
+
+    # Build the prompt
+    prompt = build_session_summary_prompt(session_data, locale=locale)
+
+    def generate():
+        """Generate SSE stream from AI provider chunks."""
+        try:
+            # Buffer to accumulate all streamed content for post-processing
+            full_content = []
+            buffer = ""
+
+            for chunk in get_ai_response(prompt["user"], system=prompt["system"], stream=True, max_tokens=5000):
+                if not chunk:
+                    continue
+
+                buffer += chunk
+
+                # When we have newlines, convert completed paragraphs to HTML and emit
+                while "\n" in buffer:
+                    line, buffer = buffer.split("\n", 1)
+                    line = line.strip()
+                    STRAY_QUOTES = {'"', '\u201c', '\u201d', '`', "'"}
+                    if line and line not in STRAY_QUOTES:
+                        # Emit paragraph and also store for post-processing
+                        full_content.append(f"<p>{line}</p>")
+                        yield f"data: <p>{line}</p>\n\n"
+                    else:
+                        # Empty line just emits a paragraph break
+                        yield f"data: \n\n"
+
+            # Emit any remaining content in the buffer
+            remaining = buffer.strip()
+            STRAY_QUOTES = {'"', '\u201c', '\u201d', '`', "'"}
+            if remaining and remaining not in STRAY_QUOTES:
+                full_content.append(f"<p>{remaining}</p>")
+                yield f"data: <p>{remaining}</p>\n\n"
+
+            complete_text = "".join(full_content)
+            fixed_text = '\n'.join(
+                f'<p>{l.strip()}</p>'
+                for l in complete_text.split('\n')
+                if l.strip()
+            )
+            if fixed_text:
+                yield f"data: [CORRECT]{fixed_text}\n\n"
+            yield "data: [DONE]\n\n"
+
+        except AIServiceError as e:
+            logger.error(f"AIServiceError in /api/ai/session-summary: {str(e)}")
+            yield f"data: [ERROR]{str(e)}\n\n"
+        except Exception as e:
+            logger.exception("Unexpected error generating session summary")
+            yield f"data: [ERROR]An unexpected error occurred\n\n"
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",  # Disable nginx buffering
+        },
+    )
     log_analysis_summary = {}
     if session.log_analysis_cache:
         try:

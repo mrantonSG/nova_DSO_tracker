@@ -42,6 +42,12 @@ def check_for_updates(app):
 
             print("[UPDATE WORKER] Sleeping for 24 hours.")
             time.sleep(24 * 60 * 60)
+        except (requests.exceptions.ConnectionError,
+                requests.exceptions.Timeout,
+                requests.exceptions.RequestException) as e:
+            # Network unavailable — skip silently, worker will retry on next cycle
+            print(f"[UPDATE WORKER] Network unavailable (offline/dev/VPN), retrying in 24 hours.")
+            time.sleep(24 * 60 * 60)
         except Exception as e:
             print(f"[UPDATE WORKER] Unhandled exception, restarting in 60s: {e}")
             traceback.print_exc()

@@ -598,6 +598,11 @@ def _run_schema_patches(conn):
         conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN log_analysis_cache TEXT;")
         print("[DB PATCH] Added missing column journal_sessions.log_analysis_cache")
 
+    # --- Draft session support ---
+    if "draft" not in colnames_journal:
+        conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN draft BOOLEAN DEFAULT 0;")
+        print("[DB PATCH] Added missing column journal_sessions.draft")
+
     # --- Drop old global unique index on external_id ---
     # This index made external_id globally unique, but it should be unique per user
     try:
