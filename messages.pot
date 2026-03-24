@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-24 11:24+0800\n"
+"POT-Creation-Date: 2026-03-24 16:46+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -544,88 +544,88 @@ msgstr ""
 msgid "User session error, please log in again."
 msgstr ""
 
-#: nova/blueprints/journal.py:111 nova/blueprints/journal.py:372
+#: nova/blueprints/journal.py:120 nova/blueprints/journal.py:409
 #: nova/blueprints/mobile.py:532
 msgid "Invalid date format."
 msgstr ""
 
-#: nova/blueprints/journal.py:333 nova/blueprints/mobile.py:685
+#: nova/blueprints/journal.py:350 nova/blueprints/mobile.py:685
 msgid "New journal entry added successfully!"
 msgstr ""
 
-#: nova/blueprints/journal.py:349
+#: nova/blueprints/journal.py:376
 msgid "To add a new session, please select an object first."
 msgstr ""
 
-#: nova/blueprints/journal.py:363
+#: nova/blueprints/journal.py:391
 msgid "Journal entry not found or you do not have permission to edit it."
 msgstr ""
 
-#: nova/blueprints/journal.py:583
+#: nova/blueprints/journal.py:626
 msgid "NINA log file must be a .log file."
 msgstr ""
 
-#: nova/blueprints/journal.py:595
+#: nova/blueprints/journal.py:638
 msgid "NINA log file is too large. Maximum size is 10 MB."
 msgstr ""
 
-#: nova/blueprints/journal.py:604
+#: nova/blueprints/journal.py:647
 msgid "NINA log imported successfully."
 msgstr ""
 
-#: nova/blueprints/journal.py:635
+#: nova/blueprints/journal.py:680
 msgid "Journal entry updated successfully!"
 msgstr ""
 
-#: nova/blueprints/journal.py:644
+#: nova/blueprints/journal.py:703
 msgid "Cannot edit session: associated object name is missing."
 msgstr ""
 
-#: nova/blueprints/journal.py:670
+#: nova/blueprints/journal.py:729
 msgid "Project name is required."
 msgstr ""
 
-#: nova/blueprints/journal.py:676
+#: nova/blueprints/journal.py:735
 #, python-format
 msgid "A project named '%(project_name)s' already exists."
 msgstr ""
 
-#: nova/blueprints/journal.py:703
+#: nova/blueprints/journal.py:762
 #, python-format
 msgid "Project '%(project_name)s' created successfully."
 msgstr ""
 
-#: nova/blueprints/journal.py:719
+#: nova/blueprints/journal.py:778
 #, python-format
 msgid "Error creating project: %(error)s"
 msgstr ""
 
-#: nova/blueprints/journal.py:734
+#: nova/blueprints/journal.py:793
 msgid "Session to duplicate not found."
 msgstr ""
 
-#: nova/blueprints/journal.py:759
+#: nova/blueprints/journal.py:818
 msgid "Session duplicated successfully."
 msgstr ""
 
-#: nova/blueprints/journal.py:770
+#: nova/blueprints/journal.py:829
 #, python-format
 msgid "Error duplicating session: %(error)s"
 msgstr ""
 
-#: nova/blueprints/journal.py:792
+#: nova/blueprints/journal.py:851
 msgid "Journal entry deleted successfully."
 msgstr ""
 
-#: nova/blueprints/journal.py:798
+#: nova/blueprints/journal.py:857
 msgid "Journal entry not found or you do not have permission to delete it."
 msgstr ""
 
-#: nova/blueprints/journal.py:815 nova/blueprints/journal.py:969
+#: nova/blueprints/journal.py:874 nova/blueprints/journal.py:1028
 msgid "Session not found."
 msgstr ""
 
-#: nova/blueprints/journal.py:977 nova/blueprints/projects.py:267
+#: nova/blueprints/journal.py:1036 nova/blueprints/projects.py:267
 msgid "Project not found."
 msgstr ""
 

@@ -2986,9 +2986,9 @@ document.addEventListener('DOMContentLoaded', function() {
             confirmDiv.id = 'ai-session-confirm';
             confirmDiv.style.cssText = 'padding:8px; margin:6px 0; border:1px solid var(--border-color,#ccc); border-radius:4px; font-size:13px;';
             confirmDiv.innerHTML = journalI18n.novaSummaryReady + ' ' +
-                '<button type="button" onclick="novaSessionFetch(\'overwrite\')">' + journalI18n.overwrite + '</button> ' +
-                '<button type="button" onclick="novaSessionFetch(\'append\')">' + journalI18n.append + '</button> ' +
-                '<button type="button" onclick="document.getElementById(\'ai-session-confirm\').remove(); document.getElementById(\'ai-session-summary-btn\').disabled=false; document.getElementById(\'ai-session-summary-btn\').style.display=\'\';">' + journalI18n.cancel + '</button>';
+                '<button type="button" class="inline-button" onclick="novaSessionFetch(\'overwrite\')">' + journalI18n.overwrite + '</button> ' +
+                '<button type="button" class="inline-button" onclick="novaSessionFetch(\'append\')">' + journalI18n.append + '</button> ' +
+                '<button type="button" class="inline-button-ghost" onclick="document.getElementById(\'ai-session-confirm\').remove(); document.getElementById(\'ai-session-summary-btn\').disabled=false; document.getElementById(\'ai-session-summary-btn\').style.display=\'\';">' + journalI18n.cancel + '</button>';
             btn.parentNode.insertBefore(confirmDiv, btn.parentNode.querySelector('trix-editor'));
             btn.disabled = true;
             btn.style.display = 'none';
