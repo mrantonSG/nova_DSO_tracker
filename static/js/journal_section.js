@@ -289,7 +289,6 @@
         if (titleText) formDetailTitle.textContent = titleText;
         else formDetailTitle.textContent = window.t('add_new_session');
 
-        submitButton.textContent = window.t('add_session');
         submitButton.style.backgroundColor = 'var(--success-color)';
         cancelButton.onclick = () => window.location.reload();
 

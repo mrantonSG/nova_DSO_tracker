@@ -1957,7 +1957,7 @@ msgstr "Passwort"
 
 #: templates/_journal_section.html:2534
 msgid "Nova has a summary ready. What would you like to do?"
-msgstr "Nova has a summary ready. What would you like to do?"
+msgstr "Nova hat eine Zusammenfassung bereit. Was möchtest du tun?"
 
 #: templates/_journal_section.html:2535 templates/graph_view.html:447
 msgid "Overwrite"

@@ -1953,7 +1953,7 @@ msgstr "Contraseña"
 
 #: templates/_journal_section.html:2534
 msgid "Nova has a summary ready. What would you like to do?"
-msgstr "Nova has a summary ready. What would you like to do?"
+msgstr "Nova tiene un resumen listo. ¿Qué te gustaría hacer?"
 
 #: templates/_journal_section.html:2535 templates/graph_view.html:447
 msgid "Overwrite"
