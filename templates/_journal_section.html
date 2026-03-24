@@ -2537,6 +2537,7 @@ const journalI18n = {
   cancel:                '{{ _("Cancel") }}',
   novaError:             '{{ _("Nova error") }}',
   draftSaved:            '{{ _("Draft saved") }}',
+  askNovaSaveFirst:      '{{ _("Please save the session first before asking Nova.") }}',
 };
 
 (function() {
@@ -2871,10 +2872,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Create FormData
             var formData = new FormData(form);
-            formData.append('action', 'save_draft');
+            formData.set('form_action', 'save_draft');
+
+            // Determine correct save URL
+            var sessionId = form.elements['session_id'].value;
+            var saveUrl = sessionId
+                ? '/journal/edit/' + sessionId          // edit path
+                : "{{ url_for('journal.journal_add') }}"; // new session path — always /journal/add
 
             try {
-                var response = await fetch(form.action, {
+                var response = await fetch(saveUrl, {
                     method: 'POST',
                     body: formData
                 });
@@ -2899,9 +2906,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         sessionIdInput.value = data.session_id;
                     }
 
-                    // Switch form action to edit URL if it was on add URL
-                    var currentAction = form.action;
-                    if (currentAction.includes('/journal/add/')) {
+                    // Switch form action to edit URL if this was a new session
+                    if (!sessionId) {
                         form.action = '/journal/edit/' + data.session_id;
                     }
                 }
@@ -2998,6 +3004,12 @@ function novaSessionFetch(mode) {
     var btn = document.getElementById('ai-session-summary-btn');
     var sessionId = document.querySelector('input[name="session_id"]').value;
     var trixEditor = document.getElementById('journal-notes-editor');
+
+    if (!sessionId) {
+        alert(journalI18n.askNovaSaveFirst || 'Please save the session first before asking Nova.');
+        return;
+    }
+
     var novaMessages = [
         journalI18n.analyzingSession,
         journalI18n.reviewingConditions,
@@ -3022,46 +3034,10 @@ function novaSessionFetch(mode) {
 
     btn.style.display = '';
 
-    // Build request payload based on whether we have a session_id (saved session) or not (draft session)
-    var requestBody = {};
-    if (sessionId && parseInt(sessionId) > 0) {
-        // Saved session: send session_id
-        requestBody.session_id = parseInt(sessionId);
-    } else {
-        // Draft session: collect form data and send as form_content
-        var form = document.getElementById('journal-detail-form');
-        if (form) {
-            var formData = new FormData(form);
-            requestBody.form_content = {
-                object_name: formData.get('target_object_id') || formData.get('object_name') || '',
-                date: formData.get('session_date') || '',
-                location: formData.get('location_name') || '',
-                calculated_integration_time_minutes: null,  // Will be calculated server-side
-                number_of_subs_light: formData.get('number_of_subs_light') ? parseInt(formData.get('number_of_subs_light')) : null,
-                exposure_time_per_sub_sec: formData.get('exposure_time_per_sub_sec') ? parseInt(formData.get('exposure_time_per_sub_sec')) : null,
-                filter_used_session: formData.get('filter_used_session') || '',
-                rig_name: formData.get('rig_id_snapshot') ? document.querySelector('#rig-selector-edit option:checked')?.text : '',
-                telescope_name: '',
-                camera_name: '',
-                image_scale: null,
-                seeing_observed_fwhm: formData.get('seeing_observed_fwhm') ? parseFloat(formData.get('seeing_observed_fwhm')) : null,
-                sky_sqm_observed: formData.get('sky_sqm_observed') ? parseFloat(formData.get('sky_sqm_observed')) : null,
-                guiding_rms_avg_arcsec: formData.get('guiding_rms_avg_arcsec') ? parseFloat(formData.get('guiding_rms_avg_arcsec')) : null,
-                moon_illumination_session: formData.get('moon_illumination_session') ? parseInt(formData.get('moon_illumination_session')) : null,
-                moon_angular_separation_session: formData.get('moon_angular_separation_session') ? parseFloat(formData.get('moon_angular_separation_session')) : null,
-                camera_temp_actual_avg_c: formData.get('camera_temp_actual_avg_c') ? parseFloat(formData.get('camera_temp_actual_avg_c')) : null,
-                gain_setting: formData.get('gain_setting') ? parseInt(formData.get('gain_setting')) : null,
-                session_rating_subjective: formData.get('session_rating_subjective') ? parseInt(formData.get('session_rating_subjective')) : null,
-                transparency_observed_scale: formData.get('transparency_observed_scale') || '',
-                weather_notes: formData.get('weather_notes') || '',
-                telescope_setup_notes: formData.get('telescope_setup_notes') || '',
-                dither_notes: formData.get('dither_notes') || '',
-                darks_strategy: formData.get('darks_strategy') || '',
-                flats_strategy: formData.get('flats_strategy') || '',
-                notes: trixEditor ? trixEditor.editor.getDocument().toString() : ''
-            };
-        }
-    }
+    // Build request payload
+    var requestBody = {
+        session_id: parseInt(sessionId)
+    };
 
     fetch('/api/ai/session-summary', {
         method: 'POST',
