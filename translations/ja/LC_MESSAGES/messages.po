@@ -1551,14 +1551,12 @@ msgid "Edit Session"
 msgstr "このセッションを編集"
 
 #: templates/_journal_section.html:2252
-#, fuzzy
 msgid "Save Draft"
-msgstr "保存"
+msgstr "下書き保存"
 
 #: templates/_journal_section.html:2253
-#, fuzzy
 msgid "Save & Close"
-msgstr "メモを保存"
+msgstr "保存して閉じる"
 
 #: templates/_journal_section.html:2261 templates/journal_form.html:27
 msgid "Session Date:"

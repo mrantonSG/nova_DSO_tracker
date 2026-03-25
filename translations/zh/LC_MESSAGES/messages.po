@@ -1551,14 +1551,12 @@ msgid "Edit Session"
 msgstr "编辑会话"
 
 #: templates/_journal_section.html:2252
-#, fuzzy
 msgid "Save Draft"
-msgstr "保存"
+msgstr "保存草稿"
 
 #: templates/_journal_section.html:2253
-#, fuzzy
 msgid "Save & Close"
-msgstr "保存备注"
+msgstr "保存并关闭"
 
 #: templates/_journal_section.html:2261 templates/journal_form.html:27
 msgid "Session Date:"

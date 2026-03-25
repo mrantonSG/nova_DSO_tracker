@@ -1591,14 +1591,12 @@ msgid "Edit Session"
 msgstr "Editar sesión"
 
 #: templates/_journal_section.html:2252
-#, fuzzy
 msgid "Save Draft"
-msgstr "Guardar"
+msgstr "Guardar borrador"
 
 #: templates/_journal_section.html:2253
-#, fuzzy
 msgid "Save & Close"
-msgstr "Guardar notas"
+msgstr "Guardar y cerrar"
 
 #: templates/_journal_section.html:2261 templates/journal_form.html:27
 msgid "Session Date:"
