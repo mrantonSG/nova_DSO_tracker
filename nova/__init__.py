@@ -8466,7 +8466,6 @@ def login():
                     flash("Account is deactivated.", "error")
                     return render_template("login.html")
                 db_sess.expunge(user)
-                session.regenerate()  # Prevent session fixation attacks
                 login_user(user, remember=True)
                 record_login()
                 session.modified = True
@@ -8758,7 +8757,6 @@ def sso_login():
             user = db_sess.query(DbUser).filter_by(username=username).first()
             if user and user.is_active:
                 db_sess.expunge(user)
-                session.regenerate()  # Prevent session fixation attacks
                 login_user(user)  # Log the user in using Flask-Login
                 record_login()
                 session.modified = True  # Force session save before redirect

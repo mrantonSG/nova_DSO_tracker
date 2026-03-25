@@ -121,6 +121,7 @@ SYSTEM_PERMISSIONS = [
     ("settings.view", "View application settings"),
     ("settings.edit", "Edit application settings"),
     ("settings.stellarium", "Configure Stellarium integration"),
+    ("settings.nina", "Configure N.I.N.A. integration"),
     # =========================================================================
     # API Keys
     # =========================================================================
@@ -217,7 +218,12 @@ PERMISSION_CATEGORIES = {
         "filters.delete",
     ],
     "Data Import/Export": ["data.export", "data.import"],
-    "Settings": ["settings.view", "settings.edit", "settings.stellarium"],
+    "Settings": [
+        "settings.view",
+        "settings.edit",
+        "settings.stellarium",
+        "settings.nina",
+    ],
     "API Keys": ["api_keys.view", "api_keys.manage"],
     "Shared Content": [
         "shared.objects.view",
@@ -291,6 +297,7 @@ DEFAULT_ROLE_PERMISSIONS = {
         "settings.view",
         "settings.edit",
         "settings.stellarium",
+        "settings.nina",
         # API keys
         "api_keys.view",
         "api_keys.manage",

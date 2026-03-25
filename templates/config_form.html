@@ -58,10 +58,12 @@
 
   <div class="tab-container">
         <div class="tabs-left">
-            <button class="tab-button" data-tab="general">{{ _('General') }}</button>
-            <button class="tab-button" data-tab="locations">{{ _('Locations') }}</button>
-            <button class="tab-button" data-tab="objects">{{ _('Objects') }}</button>
-            <button class="tab-button" data-tab="rigs">{{ _('Rigs') }}</button>
+            <button class="tab-button" data-tab="general">General</button>
+            <button class="tab-button" data-tab="locations">Locations</button>
+            <button class="tab-button" data-tab="objects">Objects</button>
+            <button class="tab-button" data-tab="rigs">Rigs</button>
+            <button class="tab-button" data-tab="stellarium">Stellarium</button>
+            <button class="tab-button" data-tab="nina">N.I.N.A.</button>
             {% if not SINGLE_USER_MODE %}
             <button class="tab-button" data-tab="shared">{{ _('Shared Items') }}</button>
             <button class="tab-button" data-tab="account">{{ _('Account') }}</button>
@@ -554,6 +556,107 @@
         </div>
     </div>
   </div>
+<!-- ─── Stellarium tab ─── -->
+<div id="stellarium-tab-content" class="tab-content">
+  <div class="config-section">
+    <h2>Stellarium Remote Control</h2>
+    <p>Connect to <a href="https://stellarium.org" target="_blank">Stellarium</a>'s
+       <strong>Remote Control</strong> plugin running on your computer.
+       This lets you click "GoTo in Stellarium" on any object to centre Stellarium's view on it.</p>
+
+    <div class="form-group" style="margin-top:20px">
+      <label for="stel-enabled" style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="stel-enabled" style="width:auto">
+        Enable Stellarium integration
+      </label>
+    </div>
+
+    <div id="stel-fields" style="margin-top:16px">
+      <div class="form-group">
+        <label for="stel-host">Stellarium Host</label>
+        <input type="text" id="stel-host" placeholder="localhost" value="localhost"
+               style="max-width:280px">
+        <small style="color:var(--text-tertiary)">IP or hostname where Stellarium runs (usually <code>localhost</code>)</small>
+      </div>
+      <div class="form-group">
+        <label for="stel-port">Stellarium Port</label>
+        <input type="number" id="stel-port" placeholder="8090" value="8090"
+               min="1" max="65535" style="max-width:140px">
+        <small style="color:var(--text-tertiary)">Remote Control plugin port (default <code>8090</code>)</small>
+      </div>
+
+      <div style="display:flex;gap:12px;margin-top:18px;flex-wrap:wrap">
+        <button type="button" id="stel-save" class="btn btn-primary">Save Settings</button>
+        <button type="button" id="stel-test" class="btn btn-secondary">Test Connection</button>
+      </div>
+      <div id="stel-status" style="margin-top:12px;padding:8px 12px;border-radius:6px;display:none"></div>
+    </div>
+
+    <details style="margin-top:28px">
+      <summary style="cursor:pointer;font-weight:600">Setup Instructions</summary>
+      <ol style="margin-top:10px;line-height:1.7">
+        <li>Open <strong>Stellarium</strong> on your computer.</li>
+        <li>Go to <strong>Configuration → Plugins → Remote Control</strong>.</li>
+        <li>Check <strong>"Load at startup"</strong> and click <strong>"configure"</strong>.</li>
+        <li>Enable the server and note the port (default 8090).</li>
+        <li>Optionally enable <strong>CORS</strong> for full connection-test support.</li>
+        <li>Enter the host and port above, save, and test the connection.</li>
+      </ol>
+    </details>
+
+  </div>
+</div>
+
+<!-- ─── N.I.N.A. tab ─── -->
+<div id="nina-tab-content" class="tab-content">
+  <div class="config-section">
+    <h2>N.I.N.A. Remote Control</h2>
+    <p>Connect to <a href="https://nighttime-imaging.eu/" target="_blank">N.I.N.A.</a>'s
+       <strong>Advanced API</strong> plugin running on your computer.
+       This lets you send targets from Nova directly to N.I.N.A.'s Framing Assistant.</p>
+
+    <div class="form-group" style="margin-top:20px">
+      <label for="nina-enabled" style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="nina-enabled" style="width:auto">
+        Enable N.I.N.A. integration
+      </label>
+    </div>
+
+    <div id="nina-fields" style="margin-top:16px">
+      <div class="form-group">
+        <label for="nina-host">N.I.N.A. Host</label>
+        <input type="text" id="nina-host" placeholder="localhost" value="localhost"
+               style="max-width:280px">
+        <small style="color:var(--text-tertiary)">IP or hostname where N.I.N.A. runs (usually <code>localhost</code>)</small>
+      </div>
+      <div class="form-group">
+        <label for="nina-port">N.I.N.A. Port</label>
+        <input type="number" id="nina-port" placeholder="1888" value="1888"
+               min="1" max="65535" style="max-width:140px">
+        <small style="color:var(--text-tertiary)">Advanced API plugin port (default <code>1888</code>)</small>
+      </div>
+
+      <div style="display:flex;gap:12px;margin-top:18px;flex-wrap:wrap">
+        <button type="button" id="nina-save" class="btn btn-primary">Save Settings</button>
+        <button type="button" id="nina-test" class="btn btn-secondary">Test Connection</button>
+      </div>
+      <div id="nina-status" style="margin-top:12px;padding:8px 12px;border-radius:6px;display:none"></div>
+    </div>
+
+    <details style="margin-top:28px">
+      <summary style="cursor:pointer;font-weight:600">Setup Instructions</summary>
+      <ol style="margin-top:10px;line-height:1.7">
+        <li>Open <strong>N.I.N.A.</strong> on your Windows computer.</li>
+        <li>Go to <strong>Plugins</strong> and install the <strong>Advanced API</strong> plugin by Christian Palmiero.</li>
+        <li>In the plugin settings, enable the API server and note the port (default 1888).</li>
+        <li>Ensure N.I.N.A. is running before testing the connection from Nova.</li>
+        <li>Enter the host and port above, save, and test the connection.</li>
+      </ol>
+    </details>
+
+  </div>
+</div>
+
 <div id="shared-tab-content" class="tab-content">
       <div class="config-section">
           <h2 style="display: flex; align-items: center; gap: 10px;">
@@ -922,7 +1025,9 @@
 
 </script>
 
-    <script src="{{ url_for('static', filename='js/config_form.js') }}?v={{ version }}" defer></script>
+    <script src="{{ url_for('static', filename='js/stellarium.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/nina.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/config_form.js') }}" defer></script>
 {% endblock %}
 </body>
 </html>

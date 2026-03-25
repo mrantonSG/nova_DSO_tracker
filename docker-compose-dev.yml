@@ -9,5 +9,17 @@ services:
     ports:
       - "127.0.0.1:5001:5001"
     volumes:
-      - ./nova_data:/app/instance  # Relative bind mount
+      - ./nova_data:/app/instance
+      # Hot reload: mount source code
+      - ./nova:/app/nova:ro
+      - ./templates:/app/templates:ro
+      - ./static:/app/static:ro
+    env_file:
+      - .env
+    environment:
+      - SINGLE_USER_MODE=${SINGLE_USER_MODE:-True}
+      - SECRET_KEY=${SECRET_KEY:-}
+      - FLASK_APP=nova:app
+      - FLASK_DEBUG=1
+    command: ["flask", "run", "--host=0.0.0.0", "--port=5001", "--reload"]
     restart: unless-stopped

@@ -1826,6 +1826,98 @@ def update_stellarium_settings():
 
 
 # ──────────────────────────────────────────────────────────
+#  NINA SETTINGS  (per-user, stored in UiPref blob)
+# ──────────────────────────────────────────────────────────
+
+
+_NINA_DEFAULTS = {
+    "host": "localhost",
+    "port": 1888,
+    "enabled": False,
+}
+
+
+def _get_nina_settings(db, user_id):
+    """Extract NINA settings from UiPref json_blob."""
+    import json as _json
+
+    pref = db.query(UiPref).filter(UiPref.user_id == user_id).first()
+    if pref and pref.json_blob:
+        try:
+            blob = _json.loads(pref.json_blob)
+            nina = blob.get("nina", {})
+            return {
+                "host": nina.get("host", _NINA_DEFAULTS["host"]),
+                "port": int(nina.get("port", _NINA_DEFAULTS["port"])),
+                "enabled": bool(nina.get("enabled", _NINA_DEFAULTS["enabled"])),
+            }
+        except (ValueError, TypeError):
+            pass
+    return dict(_NINA_DEFAULTS)
+
+
+@rest_api_bp.route("/nina/settings", methods=["GET"])
+@api_key_or_login_required
+def get_nina_settings():
+    db = _db()
+    try:
+        return _ok(_get_nina_settings(db, _user_id()))
+    finally:
+        db.remove()
+
+
+@rest_api_bp.route("/nina/settings", methods=["PUT"])
+@api_key_or_login_required
+def update_nina_settings():
+    import json as _json
+
+    data = request.get_json(silent=True) or {}
+    host = data.get("host", "").strip()
+    port = data.get("port")
+    enabled = data.get("enabled")
+
+    if not host:
+        return _err("host is required")
+    try:
+        port = int(port)
+        if not (1 <= port <= 65535):
+            raise ValueError
+    except (TypeError, ValueError):
+        return _err("port must be a valid number (1-65535)")
+
+    db = _db()
+    try:
+        pref = db.query(UiPref).filter(UiPref.user_id == _user_id()).first()
+        blob = {}
+        if pref and pref.json_blob:
+            try:
+                blob = _json.loads(pref.json_blob)
+            except (ValueError, TypeError):
+                blob = {}
+
+        blob["nina"] = {
+            "host": host,
+            "port": port,
+            "enabled": bool(enabled),
+        }
+
+        new_blob = _json.dumps(blob)
+        if pref is None:
+            pref = UiPref(user_id=_user_id(), json_blob=new_blob)
+            db.add(pref)
+        else:
+            pref.json_blob = new_blob
+        db.commit()
+        return _ok(blob["nina"])
+    except Exception:
+        db.rollback()
+        current_app.logger.exception("Unhandled exception in REST API")
+        return _err("An internal error occurred", 500)
+    finally:
+        db.remove()
+
+
+# ──────────────────────────────────────────────────────────
 #  AUTH  (register / login — multi-user mode only)
 # ──────────────────────────────────────────────────────────
 

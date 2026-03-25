@@ -2640,7 +2640,56 @@
     function copyFramingUrl() { try { const q = buildFramingQuery(), url = location.origin + location.pathname + q; navigator.clipboard.writeText(url); console.log("[Framing] Copied URL:", url); } catch (e) { console.warn("[Framing] copyFramingUrl failed:", e); } }
     function loadImagingOpportunities() { document.getElementById("opportunities-section").style.display = "block"; const tbody = document.getElementById("opportunities-body"); tbody.innerHTML = `<tr><td colspan="9">Searching...</td></tr>`; const objectName = NOVA_GRAPH_DATA.objectName; fetch(`/get_imaging_opportunities/${encodeURIComponent(objectName)}`).then(response => response.json()).then(data => { if (data.status === "success") { if (data.results.length === 0) { tbody.innerHTML = `<tr><td colspan="9">No good dates found matching your criteria.</td></tr>`; return; } let htmlRows = ""; const selectedDateStr = `${document.getElementById('year-select').value.padStart(4, '0')}-${document.getElementById('month-select').value.padStart(2, '0')}-${document.getElementById('day-select').value.padStart(2, '0')}`, plotLat = NOVA_GRAPH_DATA.plotLat, plotLon = NOVA_GRAPH_DATA.plotLon; data.results.forEach(r => { const isSelected = r.date === selectedDateStr, formattedDate = formatDateISOtoEuropean(r.date), ics_url = `/generate_ics/${encodeURIComponent(objectName)}?date=${r.date}&tz=${encodeURIComponent(plotTz)}&lat=${plotLat}&lon=${plotLon}&max_alt=${r.max_alt}&moon_illum=${r.moon_illumination}&obs_dur=${r.obs_minutes}&from_time=${r.from_time}&to_time=${r.to_time}`, filename = `imaging_${objectName.replace(/\s+/g, '_')}_${r.date}.ics`; htmlRows += `<tr class="${isSelected ? 'highlight' : ''}" data-date="${r.date}" onclick="selectSuggestedDate('${r.date}')" style="cursor: pointer;"><td>${formattedDate}</td><td>${r.from_time}</td><td>${r.to_time}</td><td>${r.obs_minutes}</td><td>${r.max_alt}</td><td>${r.moon_illumination}</td><td>${r.moon_separation}</td><td>${r.rating || ""}</td><td onclick="event.stopPropagation();"><a href="${ics_url}" download="${filename}" title="Add to calendar" style="font-size: 1.5em; text-decoration: none;">🗓️</a></td></tr>`; }); tbody.innerHTML = htmlRows; } else tbody.innerHTML = `<tr><td colspan="9">Error: ${data.message}</td></tr>`; }); }
     function selectSuggestedDate(dateStr) { const [year, month, day] = dateStr.split('-').map(Number); document.getElementById('year-select').value = year; document.getElementById('month-select').value = month; document.getElementById('day-select').value = day; changeView('day'); setTimeout(() => { const rows = document.getElementById("opportunities-body").querySelectorAll("tr"); rows.forEach(row => { row.classList.toggle("highlight", row.getAttribute("data-date") === dateStr); }); }, 100); }
-    function openInStellarium() { document.getElementById('stellarium-status').textContent = "Sending object to Stellarium..."; document.getElementById('stellarium-status').style.color = "#666"; const objectName = NOVA_GRAPH_DATA.objectName; fetch("/proxy_focus", { method: "POST", headers: {"Content-Type": "application/x-www-form-urlencoded"}, body: new URLSearchParams({target: objectName, mode: "center"}) }).then(async response => { let data; try { data = await response.json(); } catch (e) { data = {message: "Could not parse server response."}; } if (response.ok && data.status === "success") { document.getElementById('stellarium-status').textContent = "Stellarium view updated!"; document.getElementById('stellarium-status').style.color = "#83b4c5"; } else document.getElementById('stellarium-status').innerHTML = `<p style="color:red; margin:0;">Error: ${data.message || "Unknown error"}</p>`; }); }
+    function openInStellarium() {
+        var status = document.getElementById('stellarium-status');
+        if (!window.NovaStellarium || !NovaStellarium.isEnabled()) {
+            if (status) { status.textContent = 'Stellarium integration is not enabled. Configure it in Settings → Stellarium.'; status.style.color = 'var(--error-color, red)'; }
+            return;
+        }
+        var objectName = NOVA_GRAPH_DATA.objectName;
+        if (status) { status.textContent = 'Sending "' + objectName + '" to Stellarium…'; status.style.color = 'var(--text-tertiary, #666)'; }
+        NovaStellarium.focusObject(objectName).then(function (res) {
+            if (!status) return;
+            if (res.success) {
+                status.textContent = res.message;
+                status.style.color = 'var(--success-color, #83b4c5)';
+            } else {
+                status.textContent = res.message;
+                status.style.color = 'var(--error-color, red)';
+            }
+        });
+    }
+    window.openInStellarium = openInStellarium;
+
+    function sendToNINA() {
+        var status = document.getElementById('nina-status');
+        if (!window.NovaNINA || !NovaNINA.isEnabled()) {
+            if (status) { status.textContent = 'NINA integration is not enabled. Configure it in Settings → NINA.'; status.style.color = 'var(--error-color, red)'; }
+            return;
+        }
+        var objectName = NOVA_GRAPH_DATA.objectName;
+        var raDeg = NOVA_GRAPH_DATA.objectRADeg;
+        var decDeg = NOVA_GRAPH_DATA.objectDECDeg;
+        if (raDeg === null || decDeg === null) {
+            if (status) { status.textContent = 'No coordinates available for this object.'; status.style.color = 'var(--error-color, red)'; }
+            return;
+        }
+        // Convert RA from degrees back to hours for NINA API (our helper expects hours)
+        var raHours = raDeg / 15.0;
+        if (status) { status.textContent = 'Sending "' + objectName + '" to NINA…'; status.style.color = 'var(--text-tertiary, #666)'; }
+        NovaNINA.sendToFramingAssistant(raHours, decDeg, objectName).then(function (res) {
+            if (!status) return;
+            if (res.success) {
+                status.textContent = res.message;
+                status.style.color = 'var(--success-color, #83b4c5)';
+            } else {
+                status.textContent = res.message;
+                status.style.color = 'var(--error-color, red)';
+            }
+        });
+    }
+    window.sendToNINA = sendToNINA;
+
     function startCurrentTimeUpdater(chartInstance) {
         if (!chartInstance) return;
         if (currentTimeUpdateInterval) clearInterval(currentTimeUpdateInterval);

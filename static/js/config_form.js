@@ -891,7 +891,10 @@
             locations: document.getElementById('locations-tab-content'),
             objects: document.getElementById('objects-tab-content'),
             rigs: document.getElementById('rigs-tab-content'),
-            shared: document.getElementById('shared-tab-content')
+            shared: document.getElementById('shared-tab-content'),
+            stellarium: document.getElementById('stellarium-tab-content'),
+            nina: document.getElementById('nina-tab-content'),
+            account: document.getElementById('account-tab-content')
         };
         let activeTab = localStorage.getItem('activeConfigTab') || 'general';
 
@@ -929,6 +932,8 @@
 
             if (activeTab === 'rigs') fetchRigsData();
             if (activeTab === 'shared' && contentPanels['shared']) { fetchSharedItems(); }
+            if (activeTab === 'stellarium') initStellariumTab();
+            if (activeTab === 'nina') initNINATab();
             localStorage.setItem('activeConfigTab', activeTab);
         }
         tabs.forEach(tab => tab.addEventListener('click', () => { activeTab = tab.dataset.tab; updateTabDisplay(); }));
@@ -1182,3 +1187,109 @@
         };
         reader.readAsText(file);
     }
+
+/* ── Stellarium Settings Tab ─────────────────────────────── */
+
+var _stelTabInitialized = false;
+
+function initStellariumTab() {
+    if (!window.NovaStellarium) return;
+    if (_stelTabInitialized) return;
+    _stelTabInitialized = true;
+
+    NovaStellarium.loadSettings().then(function (s) {
+        document.getElementById('stel-host').value = s.host || 'localhost';
+        document.getElementById('stel-port').value = s.port || 8090;
+        document.getElementById('stel-enabled').checked = !!s.enabled;
+    });
+
+    document.getElementById('stel-save').addEventListener('click', function () {
+        var host = document.getElementById('stel-host').value.trim();
+        var port = document.getElementById('stel-port').value;
+        var enabled = document.getElementById('stel-enabled').checked;
+        _stelStatus('Saving…', '#888');
+        NovaStellarium.saveSettings(host, port, enabled).then(function (res) {
+            if (res.success) {
+                _stelStatus('Settings saved.', 'var(--success-color, #5a9)');
+            } else {
+                _stelStatus(res.message || 'Save failed.', 'var(--error-color, red)');
+            }
+        });
+    });
+
+    document.getElementById('stel-test').addEventListener('click', function () {
+        var host = document.getElementById('stel-host').value.trim();
+        var port = document.getElementById('stel-port').value;
+        _stelStatus('Testing connection…', '#888');
+        NovaStellarium.testConnection(host, port).then(function (res) {
+            if (res.success) {
+                var msg = res.message;
+                if (res.corsWarning) msg = '⚠ ' + msg;
+                _stelStatus(msg, res.corsWarning ? 'var(--warning-color, orange)' : 'var(--success-color, #5a9)');
+            } else {
+                _stelStatus(res.message, 'var(--error-color, red)');
+            }
+        });
+    });
+}
+
+function _stelStatus(msg, color) {
+    var el = document.getElementById('stel-status');
+    if (!el) return;
+    el.style.display = 'block';
+    el.textContent = msg;
+    el.style.color = color || '';
+    el.style.backgroundColor = 'var(--bg-secondary, #f5f5f5)';
+}
+
+var _ninaTabInitialized = false;
+
+function initNINATab() {
+    if (!window.NovaNINA) return;
+    if (_ninaTabInitialized) return;
+    _ninaTabInitialized = true;
+
+    NovaNINA.loadSettings().then(function (s) {
+        document.getElementById('nina-host').value = s.host || 'localhost';
+        document.getElementById('nina-port').value = s.port || 1888;
+        document.getElementById('nina-enabled').checked = !!s.enabled;
+    });
+
+    document.getElementById('nina-save').addEventListener('click', function () {
+        var host = document.getElementById('nina-host').value.trim();
+        var port = document.getElementById('nina-port').value;
+        var enabled = document.getElementById('nina-enabled').checked;
+        _ninaStatus('Saving…', '#888');
+        NovaNINA.saveSettings(host, port, enabled).then(function (res) {
+            if (res.success) {
+                _ninaStatus('Settings saved.', 'var(--success-color, #5a9)');
+            } else {
+                _ninaStatus(res.message || 'Save failed.', 'var(--error-color, red)');
+            }
+        });
+    });
+
+    document.getElementById('nina-test').addEventListener('click', function () {
+        var host = document.getElementById('nina-host').value.trim();
+        var port = document.getElementById('nina-port').value;
+        _ninaStatus('Testing connection…', '#888');
+        NovaNINA.testConnection(host, port).then(function (res) {
+            if (res.success) {
+                var msg = res.message;
+                if (res.corsWarning) msg = '⚠ ' + msg;
+                _ninaStatus(msg, res.corsWarning ? 'var(--warning-color, orange)' : 'var(--success-color, #5a9)');
+            } else {
+                _ninaStatus(res.message, 'var(--error-color, red)');
+            }
+        });
+    });
+}
+
+function _ninaStatus(msg, color) {
+    var el = document.getElementById('nina-status');
+    if (!el) return;
+    el.style.display = 'block';
+    el.textContent = msg;
+    el.style.color = color || '';
+    el.style.backgroundColor = 'var(--bg-secondary, #f5f5f5)';
+}
