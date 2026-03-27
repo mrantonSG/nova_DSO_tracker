@@ -604,21 +604,28 @@ body.sheet-open {
 /* ── Bottom sheet ── */
 .m-sheet {
     position: fixed;
-    top: 15vh;
+    top: auto;
     bottom: 64px;
     left: 0;
     right: 0;
+    max-height: 85vh;
     background: var(--bg-secondary, #fff);
     border-radius: 16px 16px 0 0;
     z-index: 201;
-    transform: translateY(100%);
-    transition: transform 0.28s cubic-bezier(0.32, 0, 0.15, 1);
-    display: flex;
+    display: none;                  /* hidden by default */
     flex-direction: column;
     padding-bottom: env(safe-area-inset-bottom);
+    transform: translateY(100%);
+    transition: transform 0.28s cubic-bezier(0.32, 0, 0.15, 1);
 }
 
-.m-sheet.open { transform: translateY(0); }
+.m-sheet.open {
+    display: flex;
+}
+
+.m-sheet.open.visible {
+    transform: translateY(0);
+}
 
 .m-sheet-handle-area {
     padding: 10px 0 4px;
@@ -1232,13 +1239,23 @@ body.sheet-open {
         const filterCountEl = document.getElementById('filter-count');
 
         function openSheet() {
+            // Show the sheet first (display:flex), then animate transform
             filterSheet.classList.add('open');
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    filterSheet.classList.add('visible');
+                });
+            });
             filterOverlay.classList.add('open');
             document.body.classList.add('sheet-open');
         }
 
         function closeSheet() {
-            filterSheet.classList.remove('open');
+            filterSheet.classList.remove('visible');
+            filterSheet.addEventListener('transitionend', function handler() {
+                filterSheet.classList.remove('open');
+                filterSheet.removeEventListener('transitionend', handler);
+            });
             filterOverlay.classList.remove('open');
             document.body.classList.remove('sheet-open');
         }
