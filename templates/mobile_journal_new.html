@@ -4,6 +4,202 @@
 {% block header_title %}{{ _("New Session") }}{% endblock %}
 
 {% block content %}
+<style>
+/* ── Journal form wrapper ── */
+.journal-form-wrapper {
+    padding-bottom: 88px; /* clear sticky save bar (64px nav + 24px gap) */
+}
+
+/* ── Form sections ── */
+.form-section {
+    margin-bottom: var(--space-6, 24px);
+}
+.form-section-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--text-faint, #aaaaaa);
+    margin-bottom: var(--space-3, 12px);
+    padding-left: var(--space-1, 4px);
+}
+
+/* ── Sky conditions row ── */
+.sky-conditions-row {
+    display: flex;
+    gap: var(--space-2, 8px);
+}
+.sky-field {
+    flex: 1;
+    min-width: 0;
+}
+.sky-field label {
+    display: block;
+    margin-bottom: var(--space-1, 4px);
+    font-weight: var(--font-weight-bold, 700);
+    font-size: 0.9rem;
+}
+
+/* ── Filter grid ── */
+.filter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2, 8px);
+}
+.filter-cell {
+    background: var(--bg-secondary, #ffffff);
+    border: 1px solid var(--border-color, #e5e2dc);
+    border-radius: var(--radius-md, 8px);
+    padding: var(--space-2, 8px);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1-5, 6px);
+}
+.filter-cell-label {
+    font-size: var(--font-size-xs, 11px);
+    font-weight: 700;
+    color: var(--text-muted, #666666);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.filter-cell-input {
+    width: 100%;
+    padding: var(--space-1-5, 6px) var(--space-2, 8px);
+    font-size: var(--font-size-sm, 14px);
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    border: 1px solid var(--border-color, #e5e2dc);
+    border-radius: var(--radius-sm, 5px);
+    background: var(--bg-tertiary, #f7f5f2);
+    color: var(--text-primary, #141414);
+    box-sizing: border-box;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+.filter-cell-input:focus {
+    outline: none;
+    border-color: var(--primary-color, #83b4c5);
+    box-shadow: 0 0 0 2px var(--primary-bg, rgba(131, 180, 197, 0.15));
+}
+
+/* ── Star rating ── */
+.star-rating-row {
+    display: flex;
+    gap: var(--space-1, 4px);
+    align-items: center;
+}
+.star {
+    font-size: 28px;
+    line-height: 1;
+    color: var(--border-color, #e5e2dc);
+    cursor: pointer;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    transition: color 0.15s;
+}
+.star.active {
+    color: var(--primary-color, #83b4c5);
+}
+
+/* ── Mobile save bar ── */
+.mobile-save-bar {
+    position: fixed;
+    bottom: 64px; /* above .mobile-nav */
+    left: 0;
+    right: 0;
+    display: flex;
+    gap: var(--space-2, 8px);
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+    padding-bottom: calc(var(--space-3, 12px) + env(safe-area-inset-bottom, 0px));
+    background: var(--bg-secondary, #ffffff);
+    border-top: 1px solid var(--border-color, #e5e2dc);
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+    z-index: 99;
+}
+.save-bar-btn {
+    flex: 1;
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+    border-radius: var(--radius-md, 8px);
+    font-size: var(--font-size-sm, 14px);
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    -webkit-tap-highlight-color: transparent;
+    border: none;
+    font-family: inherit;
+}
+.save-bar-btn.ghost {
+    background: transparent;
+    color: var(--text-secondary, #4a4a4a);
+    border: 1px solid var(--border-color, #d0cdc8);
+}
+.save-bar-btn.primary {
+    background: var(--primary-color, #83b4c5);
+    color: var(--text-white, #ffffff);
+    box-shadow: var(--shadow-sm);
+}
+
+/* ── Styled select ── */
+.form-select {
+    width: 100%;
+    padding: var(--space-3, 12px);
+    font-size: 1rem;
+    border: var(--input-border-width, 1px) solid var(--input-border-color);
+    border-radius: var(--radius-lg, 12px);
+    box-sizing: border-box;
+    color: var(--text-primary, #141414);
+    background-color: var(--bg-secondary, #ffffff);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23aaa'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 10px 6px;
+    padding-right: 32px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+.form-select:focus {
+    outline: none;
+    border-color: var(--primary-color, #83b4c5);
+    box-shadow: 0 0 0 2px var(--primary-bg, rgba(131, 180, 197, 0.15));
+}
+
+/* ── Dark mode adjustments ── */
+:root[data-theme="dark"] .filter-cell {
+    background: var(--bg-secondary, #161b24);
+    border-color: var(--border-color, rgba(255,255,255,0.07));
+}
+:root[data-theme="dark"] .filter-cell-input {
+    background: var(--bg-tertiary, #1c2230);
+    border-color: var(--border-color, rgba(255,255,255,0.07));
+    color: var(--text-primary, rgba(255,255,255,0.92));
+}
+:root[data-theme="dark"] .star {
+    color: rgba(255, 255, 255, 0.12);
+}
+:root[data-theme="dark"] .star.active {
+    color: var(--primary-color, #8ec8da);
+}
+:root[data-theme="dark"] .save-bar-btn.ghost {
+    color: rgba(255, 255, 255, 0.55);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+:root[data-theme="dark"] .mobile-save-bar {
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.25);
+}
+:root[data-theme="dark"] .form-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+    background-color: var(--bg-secondary, #161b24);
+    border-color: var(--border-color, rgba(255,255,255,0.07));
+    color: var(--text-primary, rgba(255,255,255,0.92));
+}
+</style>
+
     <div class="journal-form-wrapper">
         <form id="journal-form" method="POST" action="{{ url_for('mobile.mobile_journal_new') }}">
             <!-- Session Info -->
@@ -17,7 +213,12 @@
 
                 <div class="form-group">
                     <label for="target_object_id">{{ _("Target Object") }}</label>
-                    <input type="text" id="target_object_id" name="target_object_id" value="{{ prefill_object }}" placeholder="{{ _("e.g., M42") }}">
+                    <input type="text" id="target_object_id" name="target_object_id" value="{{ prefill_object }}" placeholder="{{ _("e.g., M42") }}" list="objects-list" autocomplete="off">
+                    <datalist id="objects-list">
+                        {% for obj_name in objects_list %}
+                            <option value="{{ obj_name }}">
+                        {% endfor %}
+                    </datalist>
                 </div>
 
                 <div class="form-group">
@@ -63,6 +264,18 @@
                     <div class="form-group sky-field">
                         <label for="transparency_observed_scale">Transparency</label>
                         <input type="text" id="transparency_observed_scale" name="transparency_observed_scale" placeholder="Excellent">
+                    </div>
+                </div>
+
+                <div class="sky-conditions-row">
+                    <div class="form-group sky-field">
+                        <label for="moon_illumination_session">{{ _("Moon Illum") }}</label>
+                        <input type="number" id="moon_illumination_session" name="moon_illumination_session" min="0" max="100" {% if moon_illumination is not none %}value="{{ moon_illumination }}"{% endif %} placeholder="%">
+                    </div>
+
+                    <div class="form-group sky-field">
+                        <label for="moon_angular_separation_session">{{ _("Moon Sep") }}</label>
+                        <input type="number" id="moon_angular_separation_session" name="moon_angular_separation_session" step="0.1" placeholder="°">
                     </div>
                 </div>
             </div>
@@ -119,6 +332,35 @@
                         <div class="filter-cell-label">B</div>
                         <input type="number" class="filter-cell-input" name="filter_B_subs" placeholder="0" min="0">
                         <input type="number" class="filter-cell-input" name="filter_B_exposure_sec" placeholder="exp" min="1">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Acquisition -->
+            <div class="form-section">
+                <div class="form-section-label">ACQUISITION</div>
+
+                <div class="sky-conditions-row">
+                    <div class="form-group sky-field">
+                        <label for="gain_setting">{{ _("Gain") }}</label>
+                        <input type="number" id="gain_setting" name="gain_setting" placeholder="0">
+                    </div>
+
+                    <div class="form-group sky-field">
+                        <label for="offset_setting">{{ _("Offset") }}</label>
+                        <input type="number" id="offset_setting" name="offset_setting" placeholder="0">
+                    </div>
+                </div>
+
+                <div class="sky-conditions-row">
+                    <div class="form-group sky-field">
+                        <label for="exposure_time_per_sub_sec">{{ _("Sub Exp") }}</label>
+                        <input type="number" id="exposure_time_per_sub_sec" name="exposure_time_per_sub_sec" min="1" placeholder="sec">
+                    </div>
+
+                    <div class="form-group sky-field">
+                        <label for="camera_temp_setpoint_c">{{ _("Cam Temp") }}</label>
+                        <input type="number" id="camera_temp_setpoint_c" name="camera_temp_setpoint_c" step="0.5" placeholder="°C">
                     </div>
                 </div>
             </div>

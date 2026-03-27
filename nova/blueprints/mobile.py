@@ -516,11 +516,29 @@ def mobile_journal_new():
         prefill_object = request.args.get('object', '')
         today = datetime.now().strftime('%Y-%m-%d')
 
+        # Fetch tracked objects for datalist
+        tracked_objects = db.query(AstroObject.object_name)\
+            .filter_by(user_id=user.id)\
+            .order_by(AstroObject.object_name)\
+            .all()
+        objects_list = [obj.object_name for obj in tracked_objects]
+
+        # Compute current moon illumination for pre-fill
+        moon_illum = None
+        try:
+            import ephem as _ephem
+            _now = pytz.utc.localize(datetime.utcnow())
+            moon_illum = int(round(_ephem.Moon(_now).phase))
+        except Exception:
+            pass
+
         return render_template('mobile_journal_new.html',
                            locations=g.active_locations,
                            rigs=rigs_from_db,
                            prefill_object=prefill_object,
-                           today=today)
+                           today=today,
+                           objects_list=objects_list,
+                           moon_illumination=moon_illum)
 
     # POST request - save journal entry directly
     try:
