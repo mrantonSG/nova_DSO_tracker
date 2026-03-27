@@ -1897,6 +1897,11 @@
         // Update Ask Nova button state based on cache availability for the new location/date
         updateNovaButtonState();
 
+        // Re-apply Nova filter state if active after DOM rebuild
+        if (novaRankMap && Object.keys(novaRankMap).length > 0) {
+            hideUnrankedRows(true);
+        }
+
         // REMOVED: Location change check was causing duplicate fetch on initial page load
         // The fetchLocations() call in window.onload sets sessionStorage before fetchData() runs,
         // and location-select change event handles user-triggered changes. No need to re-check here.
