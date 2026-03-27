@@ -165,21 +165,34 @@ body {
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
 }
 .location-item {
-    background-color: var(--bg-white);
-    border: var(--input-border-width) solid var(--border-medium);
-    padding: var(--space-5) 15px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    padding: 14px 16px;
     border-radius: var(--radius-xl);
-    font-size: 1.1rem;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-primary);
     cursor: pointer;
     user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+.location-item:active {
+    background-color: var(--bg-tertiary);
 }
 .location-item.active {
-    background-color: var(--primary-dark);
-    color: var(--text-white);
-    border-color: var(--primary-dark);
+    background-color: var(--primary-bg);
+    color: var(--primary-hover);
+    border-color: var(--primary-color);
+    font-weight: 600;
+}
+.location-item.active::before {
+    content: '✓';
+    margin-right: 8px;
+    font-weight: 700;
+    color: var(--primary-color);
 }
 
 /* --- Add Object Form --- */
