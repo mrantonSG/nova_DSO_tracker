@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2026-03-24 11:24+0800\n"
-"PO-Revision-Date: 2026-03-25 08:58+0800\n"
+"PO-Revision-Date: 2026-03-27 13:26+0800\n"
 "Last-Translator: \n"
 "Language-Team: de <LL@li.org>\n"
 "Language: de\n"
@@ -263,8 +263,8 @@ msgstr "Keine Datei für den Import von Rigs ausgewählt."
 #: nova/__init__.py:8462
 msgid "Rigs configuration imported and synced to database successfully!"
 msgstr ""
-"Die Konfiguration der Bohrinseln wurde erfolgreich importiert und mit der "
-"Datenbank synchronisiert!"
+"Die Konfiguration der Rigs wurde erfolgreich importiert und mit der Datenbank "
+"synchronisiert!"
 
 #: nova/__init__.py:8470
 #, python-format

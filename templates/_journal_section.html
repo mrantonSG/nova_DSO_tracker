@@ -404,39 +404,15 @@
     /* Journal Form Actions Grid (Draft Support) */
     .journal-form-actions {
         display: grid;
-        grid-template-columns: 1fr auto 1fr;
+        grid-template-columns: repeat(3, 1fr);
         gap: 8px;
-        align-items: center;
-    }
-    .journal-form-actions h4 {
-        grid-column: 1 / -1;
-        margin: 0;
-    }
-    .journal-form-actions button {
-        grid-column: auto;
-    }
-    /* Align SaveDraft to the left, Cancel to the right */
-    .journal-form-actions button[data-action="save-draft"] {
-        justify-self: start;
-        background: var(--primary-color);
-        color: #ffffff;
-        border: none;
+        margin-top: 12px;
     }
     .journal-form-actions button[data-action="save-draft"]:hover {
         filter: brightness(0.9);
     }
     [data-theme="dark"] .journal-form-actions button[data-action="save-draft"] {
         box-shadow: 0 0 14px rgba(122,175,192,0.2);
-    }
-    /* Cancel button stays on the right */
-    .journal-form-actions #form-cancel-button {
-        justify-self: end;
-    }
-    /* Primary button (Save) styling for grid */
-    .journal-form-actions button[data-action="save-close"] {
-        background: var(--primary-color);
-        color: #ffffff;
-        border: none;
     }
     .journal-form-actions button[data-action="save-close"]:hover {
         filter: brightness(0.9);
@@ -2249,7 +2225,7 @@
                  <div class="detail-header">
                     <h4 id="form-detail-title">{{ _('Edit Session') }}</h4>
                     <div class="journal-form-actions">
-                        <button type="button" data-action="save-draft" class="inline-button">{{ _('Save Draft') }}</button>
+                        <button type="button" id="form-save-draft-button" data-action="save-draft" class="inline-button">{{ _('Save Draft') }}</button>
                         <button type="submit" id="form-submit-button" data-action="save-close" class="inline-button">{{ _('Save & Close') }}</button>
                         <button id="form-cancel-button" type="button" class="inline-button" style="background-color:var(--accent-gray-medium);" data-action="cancel-form">{{ _('Cancel') }}</button>
                     </div>
