@@ -117,13 +117,11 @@
         } else if (path.includes('/m/journal')) {
             // Journal is accessed from Up Now
             document.getElementById('nav-up-now').classList.add('active');
-        } else if (path === '/m' || path === '/m/') {
-            // Root /m page activates Up Now
-            document.getElementById('nav-up-now').classList.add('active');
+        } else if (path === '/m' || path === '/m/' || path.includes('/m/add_object')) {
+            // /m and /m/add_object serve the Add Object page
+            document.getElementById('nav-add-object').classList.add('active');
         } else {
-            // Default to 'Add Object' for /m/add_object or other pages
-            const btn = document.getElementById('nav-add-object');
-            if (btn) btn.classList.add('active');
+            // No matching page — don't highlight any tab
         }
     });
 </script>
