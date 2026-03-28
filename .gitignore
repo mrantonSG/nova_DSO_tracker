@@ -19,3 +19,4 @@ __pycache__/
 CLAUDE.md
 seafile-ignore.txt
 scripts/
+/docs/archive/

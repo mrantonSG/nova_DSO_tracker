@@ -1,3 +1,7 @@
+---
+render_with_liquid: false
+---
+
 # Macros & Inline Event Handler Refactor Summary
 
 ## Completed: 2026-02-13

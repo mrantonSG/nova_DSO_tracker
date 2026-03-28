@@ -1,3 +1,7 @@
+---
+render_with_liquid: false
+---
+
 # STATUS 9.0 - Surgical Polish Complete
 
 ## Stability Score: 9.0 ✓

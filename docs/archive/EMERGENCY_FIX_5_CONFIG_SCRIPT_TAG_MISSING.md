@@ -1,3 +1,7 @@
+---
+render_with_liquid: false
+---
+
 # Emergency Fix #5: Config Form Script Tag Missing
 
 **Date:** 2026-02-13
