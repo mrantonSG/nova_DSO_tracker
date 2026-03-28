@@ -15,3 +15,6 @@ instance/logs/
 __pycache__/
 *.pyc
 /.claude/
+/scratch/
+CLAUDE.md
+seafile-ignore.txt

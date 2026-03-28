@@ -1,1 +1,0 @@
-    'banner': re.compile(r'\*{8,}\s*([A-Z][A-Z\s]*)\*{5,}'),
