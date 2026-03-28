@@ -550,10 +550,10 @@ body {
 
 {% block scripts %}
 <!-- Load Chart.js libraries FIRST - before inline JS -->
-<script src="{{ url_for('static', filename='js/chart/chart.umd.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/chart/luxon.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/chart/chartjs-adapter-luxon.umd.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/chart/chartjs-plugin-annotation.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chart/chart.umd.min.js') }}?v={{ version }}"></script>
+<script src="{{ url_for('static', filename='js/chart/luxon.min.js') }}?v={{ version }}"></script>
+<script src="{{ url_for('static', filename='js/chart/chartjs-adapter-luxon.umd.min.js') }}?v={{ version }}"></script>
+<script src="{{ url_for('static', filename='js/chart/chartjs-plugin-annotation.min.js') }}?v={{ version }}"></script>
 
 <script>
     // Data passed from Python

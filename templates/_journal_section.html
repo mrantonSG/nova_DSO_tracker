@@ -2457,7 +2457,7 @@
 </div>
 
 {# --- Log Analysis Charts Initialization --- #}
-<script src="{{ url_for('static', filename='js/session_log_charts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/session_log_charts.js') }}?v={{ version }}"></script>
 <script>
 // Initialize log analysis when Logs tab is shown
 document.addEventListener('click', function(e) {

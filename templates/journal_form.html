@@ -4,7 +4,7 @@
 {% block title %}{{ form_title | default(_('Journal Entry')) }} - {{ _('Nova DSO Tracker') }}{% endblock %}
 
 {% block head_extra %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/journal_form.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/journal_form.css') }}?v={{ version }}">
 {% endblock %}
 
 {% block body %}

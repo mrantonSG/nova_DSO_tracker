@@ -2,7 +2,7 @@
 {% block title %}{{ _('Nova – User Management') }}{% endblock %}
 
 {% block head_extra %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_users.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_users.css') }}?v={{ version }}">
 {% endblock %}
 
 {% block page_title %}

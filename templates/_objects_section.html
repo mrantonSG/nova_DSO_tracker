@@ -1,7 +1,7 @@
 {% from "macros.html" import form_group, help_badge %}
 <div id="objects-tab-content" class="tab-content">
 
-<link rel="stylesheet" href="{{ url_for('static', filename='css/objects_section.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/objects_section.css') }}?v={{ version }}">
 
     <div class="config-section" style="padding-top: 1em;">
         <div class="detail-tabs-container">
@@ -443,6 +443,6 @@
         </div>
     </div>
 </div>
-<script src="{{ url_for('static', filename='js/objects_section.js') }}?v=2" defer></script>
+<script src="{{ url_for('static', filename='js/objects_section.js') }}?v={{ version }}" defer></script>
 
 </div>

@@ -7,7 +7,7 @@
 <script>
     const IS_GUEST_USER = {{ is_guest | tojson }};
 </script>
-<script src="{{ url_for('static', filename='js/aladin.js') }}" charset="utf-8" defer></script>
+<script src="{{ url_for('static', filename='js/aladin.js') }}?v={{ version }}" charset="utf-8" defer></script>
 <script>
     // Safely convert the Python object to a JavaScript object
     window.selectedSessionData = {{ selected_session_data_dict | tojson }};
@@ -27,8 +27,8 @@
         window.location.href = url;
     };
 </script>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/graph_view.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/journal_form.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/graph_view.css') }}?v={{ version }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/journal_form.css') }}?v={{ version }}">
 {% endblock %}
 
 {% block page_title %}
@@ -400,10 +400,10 @@
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/chart/chart.umd.min.js') }}" defer></script>
-<script src="{{ url_for('static', filename='js/chart/luxon.min.js') }}" defer></script>
-<script src="{{ url_for('static', filename='js/chart/chartjs-adapter-luxon.umd.min.js') }}" defer></script>
-<script src="{{ url_for('static', filename='js/chart/chartjs-plugin-annotation.min.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/chart/chart.umd.min.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/chart/luxon.min.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/chart/chartjs-adapter-luxon.umd.min.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/chart/chartjs-plugin-annotation.min.js') }}?v={{ version }}" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
 <script>
@@ -427,10 +427,10 @@
         allObjects: {{ framing_objects | tojson }}
     };
 </script>
-<script src="{{ url_for('static', filename='js/framing-utils.js') }}" defer></script>
-<script src="{{ url_for('static', filename='js/graph_view_chart.js') }}?v=dark_theme_v3" defer></script>
-<script src="{{ url_for('static', filename='js/graph_view.js') }}" defer></script>
-<script src="{{ url_for('static', filename='js/journal_section.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/framing-utils.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/graph_view_chart.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/graph_view.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/journal_section.js') }}?v={{ version }}" defer></script>
 
 {# AI Notes button - desktop only #}
 <script>

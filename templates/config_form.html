@@ -8,7 +8,7 @@
 
   <meta charset="UTF-8">
   <title>{{ _('Configuration Form') }}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/config_form.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/config_form.css') }}?v={{ version }}">
 {% endblock %}
 </head>
 <body>
@@ -722,7 +722,7 @@
 
 </script>
 
-    <script src="{{ url_for('static', filename='js/config_form.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/config_form.js') }}?v={{ version }}" defer></script>
 {% endblock %}
 </body>
 </html>

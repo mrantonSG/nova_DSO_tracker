@@ -2,7 +2,7 @@
 {% block demo_banner %}{% endblock %} {% block title %}{{ _('Login') }} – {{ _('DSO Altitude Tracker') }}{% endblock %}
 
 {% block head_extra %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}?v={{ version }}">
 {% endblock %}
 
 {% block body %}
