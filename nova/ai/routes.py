@@ -371,7 +371,7 @@ def generate_dso_notes():
         except Exception as e:
             logger.warning(f"Failed to calculate altitudes: {e}")
 
-    if sim_mode and selected_day and selected_month and selected_year and active_location:
+    if selected_day and selected_month and selected_year and active_location:
         try:
             from modules.astro_calculations import calculate_transit_time
 

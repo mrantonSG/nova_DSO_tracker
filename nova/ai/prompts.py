@@ -190,31 +190,26 @@ Respond in the language of this ISO locale code: {locale}. Use informal address 
         import calendar
         month_name = calendar.month_name[int(selected_month)]
         date_str = f"{int(selected_day)} {month_name} {int(selected_year)}"
-        if sim_mode:
-            # Build planning data string with explicit values
-            if moon_phase is not None:
-                context_str = (
-                    f"Moon illumination: {moon_phase}%. "
-                    f"Moon separation from target: {moon_separation}°. "
-                    f"Target max altitude from {active_location.get('name', 'your location')} (at transit {target_transit_time} local): {target_altitude_deg}°. "
-                    f"When assessing moon impact, you MUST reason in this order: "
-                    f"1) State the moon conditions factually. "
-                    f"2) Assess broadband viability. "
-                    f"3) Assess OSC dual-band filter viability. "
-                    f"4) Assess mono narrowband (Ha, OIII, SII separately) viability. "
-                    f"5) Give a single, definitive recommendation — do NOT hedge or present "
-                    f"contradictory conclusions. Use ONLY the provided moon values."
-                )
-            else:
-                context_str = (
-                    "Lead paragraph 3 with specific advice for this exact date — "
-                    "target altitude, whether it is worth attempting."
-                )
-            prompt_lines.append(f"PLANNING DATE (simulation mode): {date_str}. {context_str}")
-        else:
-            prompt_lines.append(
-                f"Selected date: {date_str}. Use for seasonal and visibility context in paragraph 3."
+        if moon_phase is not None:
+            context_str = (
+                f"Moon illumination: {moon_phase}%. "
+                f"Moon separation from target: {moon_separation}°. "
+                f"Target max altitude from {active_location.get('name', 'your location')} (at transit {target_transit_time} local): {target_altitude_deg}°. "
+                f"When assessing moon impact, you MUST reason in this order: "
+                f"1) State the moon conditions factually. "
+                f"2) Assess broadband viability. "
+                f"3) Assess OSC dual-band filter viability. "
+                f"4) Assess mono narrowband (Ha, OIII, SII separately) viability. "
+                f"5) Give a single, definitive recommendation — do NOT hedge or present "
+                f"contradictory conclusions. Use ONLY the provided moon values."
             )
+        else:
+            context_str = (
+                "Lead paragraph 3 with specific advice for this exact date — "
+                "target altitude, whether it is worth attempting."
+            )
+        date_label = "PLANNING DATE (simulation mode)" if sim_mode else "PLANNING DATE"
+        prompt_lines.append(f"{date_label}: {date_str}. {context_str}")
 
     # Rig context
     if rigs:
