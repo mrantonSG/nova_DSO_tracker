@@ -1,0 +1,1214 @@
+{% extends "mobile_base.html" %}
+
+{% set hide_header = true %}
+
+{% block title %}{{ common_name }} ({{ object_name }}){% endblock %}
+{% block header_title %}{{ common_name }}{% endblock %}
+
+{% block head %}
+<style>
+/* Object detail overrides the base .container scroll behaviour */
+.container {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
+}
+
+/* Mobile Object Detail - Nova Design System */
+:root {
+    --m-bg: var(--bg-primary);
+    --m-surface: var(--bg-secondary);
+    --m-surface2: var(--bg-tertiary);
+    --m-border: var(--border-color);
+    --m-accent: var(--primary-color);
+    --m-accent-dark: var(--primary-hover);
+    --m-accent-bg: var(--primary-bg);
+    --m-text: var(--text-primary);
+    --m-text-muted: var(--text-muted);
+    --m-text-faint: var(--text-faint);
+    --m-green: #3d8a55;
+    --m-red: #b84040;
+}
+
+/* Page background */
+body {
+    background: var(--m-bg);
+}
+
+/* Back Bar */
+.back-bar {
+    background: var(--m-surface);
+    border-bottom: 1px solid var(--m-border);
+    height: 44px;
+    padding: 0 16px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.back-bar a {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--m-accent-dark);
+    text-decoration: none;
+    flex-shrink: 0;
+}
+
+.back-bar .object-title {
+    flex: 1;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--m-text);
+    letter-spacing: -0.02em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.2;
+    gap: 1px;
+}
+
+.back-bar .object-title .object-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--m-text);
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.back-bar .object-title .object-id {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--m-text-muted, #888888);
+    letter-spacing: 0.02em;
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Stats Strip */
+.stats-strip {
+    background: var(--m-surface);
+    border-bottom: 1px solid var(--m-border);
+    padding: 10px 16px;
+    display: flex;
+    flex-direction: row;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.stat-label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--m-text-faint);
+}
+
+.stat-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--m-text);
+    font-family: var(--font-mono);
+}
+
+.stat-value.primary {
+    color: var(--m-accent-dark);
+}
+
+.stat-divider {
+    width: 1px;
+    height: 28px;
+    background: var(--m-border);
+    margin: 0 12px;
+    flex-shrink: 0;
+    align-self: center;
+}
+
+/* Trend colors */
+.stat-value[data-trend="up"],
+.stat-value:has(.trend-up) {
+    color: var(--m-green);
+}
+.stat-value[data-trend="down"],
+.stat-value:has(.trend-down) {
+    color: var(--m-red);
+}
+
+/* Chart Container */
+.chart-container {
+    background: var(--m-surface);
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--m-border);
+}
+
+.chart-canvas,
+#altitudeChartCanvas {
+    height: 200px;
+    width: 100%;
+}
+
+/* Chart Controls */
+.chart-controls {
+    padding: 6px 16px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    background: var(--m-surface);
+    border-bottom: 1px solid var(--m-border);
+}
+
+.segmented-control {
+    background: var(--m-surface2);
+    border-radius: 8px;
+    padding: 2px;
+    display: flex;
+    gap: 2px;
+}
+
+.segmented-control button {
+    padding: 5px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    color: var(--m-text-muted);
+    background: transparent;
+}
+
+.segmented-control button.active {
+    background: var(--m-surface);
+    color: var(--m-accent-dark);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+#date-pill {
+    margin-left: auto;
+    background: var(--m-surface2);
+    border: 1px solid var(--border-color, #d0cdc8);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--m-text-muted);
+    font-family: var(--font-mono);
+}
+
+/* Action Row */
+.action-row {
+    padding: 6px 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    background: var(--m-surface);
+    border-bottom: 1px solid var(--m-border);
+}
+
+.action-btn {
+    padding: 7px 8px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    display: block;
+}
+
+.action-btn:hover {
+    filter: brightness(0.95);
+}
+
+.action-btn.primary {
+    background: var(--m-accent);
+    color: #ffffff;
+    border: none;
+}
+
+.action-btn.ghost-teal {
+    background: var(--m-accent-bg);
+    color: var(--m-accent-dark);
+    border: 1px solid var(--m-accent, #83b4c5);
+}
+
+.action-btn.ghost {
+    background: transparent;
+    color: var(--m-text-muted);
+    border: 1px solid var(--border-color, #d0cdc8);
+}
+
+/* Tab Strip */
+.tab-strip {
+    background: var(--m-surface);
+    border-bottom: 1px solid var(--m-border);
+    padding: 0 16px;
+    display: flex;
+    gap: 0;
+}
+
+.tab-strip button {
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--m-text-muted);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+}
+
+.tab-strip button.active {
+    color: var(--m-accent-dark);
+    font-weight: 600;
+    border-bottom-color: var(--m-accent);
+}
+
+.tab-content {
+    display: none;
+    background: var(--m-bg);
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Opportunities List */
+#opportunities-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.opportunity-card {
+    background: var(--m-surface);
+    border-radius: 10px;
+    border: 1px solid var(--m-border);
+    padding: 12px 14px;
+    margin: 0 16px 10px;
+    list-style: none;
+}
+
+.opp-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.opp-date {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--m-text);
+}
+
+.opp-rating {
+    font-size: 13px;
+    color: #c09030;
+}
+
+.opp-window-inline {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--m-text-muted, #888888);
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    white-space: nowrap;
+}
+
+.opp-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+.opp-stat {
+    display: flex;
+    flex-direction: column;
+}
+
+.opp-stat-label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--m-text-faint);
+}
+
+.opp-stat-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--m-text);
+    font-family: var(--font-mono);
+}
+
+/* Legacy opportunity card styles for compatibility */
+.opportunity-date {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--m-text);
+}
+
+.opportunity-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.opportunity-window {
+    font-size: 13px;
+    font-family: var(--font-mono);
+    color: var(--m-text-muted);
+    background: var(--m-surface2);
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+}
+
+.opportunity-rating {
+    font-size: 13px;
+    color: #c09030;
+}
+
+.opportunity-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.opportunity-stat {
+    display: flex;
+    flex-direction: column;
+}
+
+.opportunity-stat strong {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--m-text-faint);
+}
+
+/* Notes Tab */
+.notes-content {
+    padding: 16px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--m-text);
+}
+
+.notes-edit-link {
+    display: block;
+    margin: 0 16px 16px;
+    font-size: 13px;
+    color: var(--m-accent-dark);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.form-hint {
+    color: var(--m-text-faint);
+    font-size: 13px;
+    font-style: italic;
+}
+
+/* Loading message */
+.loading,
+.message {
+    padding: 16px;
+    text-align: center;
+    color: var(--m-text-muted);
+    font-size: 14px;
+}
+
+/* Sticky chart region — does not scroll */
+.chart-container,
+.chart-controls,
+.action-row,
+.tab-strip {
+    flex-shrink: 0;
+}
+
+/* Scrollable tab content — fills remaining height */
+.tab-scroll {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: env(safe-area-inset-bottom, 80px);
+    /* 80px clears the fixed bottom nav */
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Back Bar -->
+<div class="back-bar">
+    <a href="{{ url_for('mobile.mobile_up_now') }}">‹ Dashboard</a>
+    <span class="object-title">
+        <span class="object-name">{{ common_name }}</span>
+        {% if object_name != common_name %}
+        <span class="object-id">{{ object_name }}</span>
+        {% endif %}
+    </span>
+</div>
+
+<!-- Stats Strip -->
+<div class="stats-strip">
+    <div class="stat-item">
+        <div class="stat-label" id="stat-label-now">{{ _('Now') }}</div>
+        <div class="stat-value primary data-mono" id="stat-val-now">{{ current_alt }}°</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+        <div class="stat-label" id="stat-label-trend">{{ _('Trend') }}</div>
+        <div class="stat-value data-mono" id="stat-val-trend">{{ trend }}</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+        <div class="stat-label">{{ _('Moon Sep') }}</div>
+        <div class="stat-value data-mono" id="stat-val-moon">{{ moon_sep }}°</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+        <div class="stat-label">{{ _('Obs') }}</div>
+        <div class="stat-value data-mono" id="stat-val-obs">{{ obs_duration }}m</div>
+    </div>
+</div>
+
+<!-- Altitude Chart -->
+<div class="chart-container">
+    <canvas id="altitudeChartCanvas" class="chart-canvas"></canvas>
+</div>
+
+<!-- Chart Controls -->
+<div class="chart-controls">
+    <div class="segmented-control">
+        <button id="view-day" class="active" data-view="day">{{ _('Day') }}</button>
+        <button id="view-month" data-view="month">{{ _('Month') }}</button>
+        <button id="view-year" data-view="year">{{ _('Year') }}</button>
+    </div>
+    <div class="date-pill data-mono" id="date-pill">{{ _('Today') }}</div>
+</div>
+
+<!-- Action Row -->
+<div class="action-row">
+    <a href="{{ url_for('mobile.mobile_framing_coords', object_name=object_name) }}?ra={{ ra }}&dec={{ dec }}" class="action-btn ghost-teal">{{ _('Framing') }}</a>
+    <a href="/m/journal/new?object={{ object_name }}" class="action-btn primary">{{ _('Log Session') }}</a>
+    <a href="https://simbad.cds.unistra.fr/simbad/sim-id?Ident={{ object_name }}" target="_blank" class="action-btn ghost">{{ _('SIMBAD') }}</a>
+</div>
+
+<!-- Tab Strip -->
+<div class="tab-strip">
+    <button id="tab-opportunities" class="active" data-tab="opportunities">{{ _('Opportunities') }}</button>
+    <button id="tab-notes" data-tab="notes">{{ _('Notes') }}</button>
+</div>
+
+<!-- Opportunities Tab Content -->
+<div id="content-opportunities" class="tab-content tab-scroll active">
+    <ul class="item-list" id="opportunities-list">
+        <li class="loading" id="opportunities-loading">
+            {{ _('Loading opportunities...') }}
+        </li>
+    </ul>
+</div>
+
+<!-- Notes Tab Content -->
+<div id="content-notes" class="tab-content tab-scroll">
+    <div class="notes-content">
+        {% if notes_html %}
+            {{ notes_html | safe }}
+        {% else %}
+            <p class="form-hint">
+                {{ _('No notes for this object.') }}
+            </p>
+        {% endif %}
+    </div>
+    <div>
+        <a href="{{ url_for('mobile.mobile_edit_notes', object_name=object_name) }}" class="notes-edit-link">
+            {{ _('Edit Notes') }} →
+        </a>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- Load Chart.js libraries FIRST - before inline JS -->
+<script src="{{ url_for('static', filename='js/chart/chart.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chart/luxon.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chart/chartjs-adapter-luxon.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chart/chartjs-plugin-annotation.min.js') }}"></script>
+
+<script>
+    // Data passed from Python
+    const OBJECT_DATA = {
+        name: {{ object_name | tojson }},
+        commonName: {{ common_name | tojson }},
+        plotLat: {{ plot_lat | tojson }},
+        plotLon: {{ plot_lon | tojson }},
+        plotTz: {{ plot_tz | tojson }},
+        plotLocName: {{ plot_loc_name | tojson }},
+        ra: {{ ra | tojson }},
+        dec: {{ dec | tojson }}
+    };
+
+    // Translated strings
+    const i18n = {
+        loading: "{{ _('Loading...') }}",
+        noOpportunities: "{{ _('No imaging opportunities found.') }}",
+        errorLoading: "{{ _('Error loading opportunities.') }}",
+        rating: "{{ _('Rating:') }}",
+        maxAlt: "{{ _('Max Alt:') }}",
+        duration: "{{ _('Duration:') }}",
+        moon: "{{ _('Moon:') }}",
+        addCalendar: "{{ _('Add to calendar') }}"
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- Tab Switching ---
+        const tabButtons = document.querySelectorAll('.tab-strip button');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tabId = button.dataset.tab;
+
+                // Update buttons
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+
+                // Update content
+                tabContents.forEach(content => content.classList.remove('active'));
+                document.getElementById(`content-${tabId}`).classList.add('active');
+
+                // Load opportunities when tab is first opened
+                if (tabId === 'opportunities' && !opportunitiesLoaded) {
+                    loadOpportunities();
+                }
+            });
+        });
+
+        // --- Chart View Switching ---
+        const viewButtons = document.querySelectorAll('.segmented-control button');
+        viewButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                viewButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                changeView(button.dataset.view);
+            });
+        });
+
+        // --- Load Chart ---
+        loadAltitudeChart('day');
+
+        // --- Load Opportunities ---
+        loadOpportunities();
+
+        // --- Set date pill ---
+        const today = new Date();
+        const datePill = document.getElementById('date-pill');
+        datePill.textContent = today.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    });
+
+    // --- Chart Loading ---
+    let chartInstance = null;
+    let opportunitiesLoaded = false;
+
+    async function loadAltitudeChart(view, dateStr) {
+        // dateStr: optional "YYYY-MM-DD" — only used for day view.
+        // When omitted, API uses server-side today (existing behaviour).
+        const canvas = document.getElementById('altitudeChartCanvas');
+
+        try {
+            let data;
+
+            if (view === 'day') {
+                // Day view: use existing get_plot_data endpoint
+                const params = new URLSearchParams({
+                    plot_lat: OBJECT_DATA.plotLat,
+                    plot_lon: OBJECT_DATA.plotLon,
+                    plot_tz: OBJECT_DATA.plotTz,
+                    view: 'day'
+                });
+                // If a specific date was requested, pass day/month/year to the API.
+                // The API accepts these as separate integer params (nova/__init__.py:3857-3859).
+                if (dateStr) {
+                    const parts = dateStr.split('-');
+                    params.set('year',  parts[0]);
+                    params.set('month', String(parseInt(parts[1], 10)));
+                    params.set('day',   String(parseInt(parts[2], 10)));
+                }
+
+                const url = `/api/get_plot_data/${encodeURIComponent(OBJECT_DATA.name)}?${params.toString()}`;
+                const response = await fetch(url);
+                data = await response.json();
+
+                if (data.error) {
+                    console.error('Chart error:', data.error);
+                    return;
+                }
+            } else if (view === 'month') {
+                // Month view: fetch monthly data for the current month
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+
+                const params = new URLSearchParams({
+                    plot_lat: OBJECT_DATA.plotLat,
+                    plot_lon: OBJECT_DATA.plotLon,
+                    plot_tz: OBJECT_DATA.plotTz,
+                    year: year,
+                    month: month
+                });
+
+                const url = `/api/get_monthly_plot_data/${encodeURIComponent(OBJECT_DATA.name)}?${params.toString()}`;
+                const response = await fetch(url);
+                const monthlyData = await response.json();
+
+                // Convert monthly API response to chart format
+                data = {
+                    times: monthlyData.dates,
+                    object_alt: monthlyData.object_alt,
+                    moon_alt: monthlyData.moon_alt,
+                    // No sun_events/horizon_mask for month view - grey shading not needed
+                };
+            } else if (view === 'year') {
+                // Year view: fetch monthly data for all 12 months
+                const today = new Date();
+                const year = today.getFullYear();
+                const months = [...Array(12)].map((_, i) => String(i + 1).padStart(2, '0'));
+
+                // Fetch all 12 months in parallel
+                const monthUrls = months.map(m => {
+                    const params = new URLSearchParams({
+                        plot_lat: OBJECT_DATA.plotLat,
+                        plot_lon: OBJECT_DATA.plotLon,
+                        plot_tz: OBJECT_DATA.plotTz,
+                        year: year,
+                        month: m
+                    });
+                    return `/api/get_monthly_plot_data/${encodeURIComponent(OBJECT_DATA.name)}?${params.toString()}`;
+                });
+
+                const responses = await Promise.all(monthUrls.map(url => fetch(url)));
+                const monthlyData = await Promise.all(responses.map(r => r.json()));
+
+                // Flatten all daily values across all 12 months into one dataset
+                const labels = [];
+                const objectAlt = [];
+                const moonAlt = [];
+
+                monthlyData.forEach((monthData, i) => {
+                    const dates   = monthData.dates && monthData.dates.length
+                        ? monthData.dates : [];
+                    const objArr  = monthData.object_alt && monthData.object_alt.length
+                        ? monthData.object_alt : [];
+                    const moonArr = monthData.moon_alt && monthData.moon_alt.length
+                        ? monthData.moon_alt : [];
+
+                    const len = Math.max(dates.length, objArr.length, moonArr.length);
+                    for (let j = 0; j < len; j++) {
+                        labels.push(dates[j] || `${year}-${String(i + 1).padStart(2, '0')}-${String(j + 1).padStart(2, '0')}`);
+                        objectAlt.push(objArr[j] !== undefined ? objArr[j] : null);
+                        moonAlt.push(moonArr[j] !== undefined ? moonArr[j] : null);
+                    }
+                });
+
+                data = {
+                    times: labels,
+                    object_alt: objectAlt,
+                    moon_alt: moonAlt
+                    // No sun_events/horizon_mask for year view - grey shading not needed
+                };
+            }
+
+            renderChart(data, view);
+        } catch (error) {
+            console.error('Failed to load chart:', error);
+        }
+    }
+
+    // Night shade plugin - shades daylight hours (only for day view)
+    const createNightShadePlugin = (duskTime, dawnTime) => ({
+        id: 'nightShade',
+        beforeDraw(chart) {
+            const {ctx, chartArea, scales} = chart;
+            if (!chartArea) return;
+            const { left, top, right, bottom } = chartArea;
+            const height = bottom - top;
+
+            // Parse dusk and dawn times from data
+            const duskDate = duskTime ? new Date(duskTime) : null;
+            const dawnDate = dawnTime ? new Date(dawnTime) : null;
+
+            ctx.save();
+            ctx.fillStyle = 'rgba(211, 211, 211, 0.7)'; // Light gray for daylight - match desktop
+
+            if (duskDate && dawnDate && scales.x.type === 'time') {
+                // Only shade on time scale (day view)
+                const duskX = scales.x.getPixelForValue(duskDate);
+                const dawnX = scales.x.getPixelForValue(dawnDate);
+
+                // Left daytime: chart left edge → dusk
+                if (duskX > left) {
+                    ctx.fillRect(left, top, duskX - left, height);
+                }
+
+                // Right daytime: dawn → chart right edge
+                if (dawnX < right) {
+                    ctx.fillRect(dawnX, top, right - dawnX, height);
+                }
+            }
+            ctx.restore();
+        }
+    });
+
+    function renderChart(data, view) {
+        const canvas = document.getElementById('altitudeChartCanvas');
+        const ctx = canvas.getContext('2d');
+        const isDayView = view === 'day';
+
+        // Destroy existing chart
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+
+        // For month/year views, use raw date strings as labels
+        // For day view, use actual Date objects for time scale
+        let labels, xMin, xMax;
+
+        if (view === 'day') {
+            // Day view: use time scale with actual Date objects
+            labels = data.times.map(t => new Date(t));
+            xMin = labels[0].getTime();
+            xMax = labels[labels.length - 1].getTime();
+        } else {
+            // Month/year views: use category scale with formatted date strings
+            labels = data.times.map((t, i) => {
+                // Parse date string manually to avoid UTC→local shift.
+                // "2026-03-15" must render as "15 Mar", not "14 Mar" in UTC+8.
+                const parts = String(t).substring(0, 10).split('-');
+                const day   = parseInt(parts[2], 10);
+                const month = parseInt(parts[1], 10) - 1; // 0-indexed
+                const year  = parseInt(parts[0], 10);
+                const date  = new Date(year, month, day); // local midnight, no shift
+                if (view === 'month') {
+                    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                } else {
+                    return date.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
+                }
+            });
+            // No xMin/xMax for category scale - Chart.js handles it
+            xMin = undefined;
+            xMax = undefined;
+        }
+
+        // Create gradient for object altitude line
+        // Use a fixed gradient height fallback: after destroy(), canvas.height
+        // may be 0 before Chart.js resizes it, producing an invisible gradient.
+        const gradientHeight = canvas.height > 0 ? canvas.height : 300;
+        const gradient = ctx.createLinearGradient(0, 0, 0, gradientHeight);
+        gradient.addColorStop(0, 'rgba(131, 180, 197, 0.3)');
+        gradient.addColorStop(1, 'rgba(131, 180, 197, 0)');
+
+        // Get dusk/dawn times from sun_events - ensure proper ISO format for luxon parsing
+        let duskTime = null;
+        let dawnTime = null;
+        let sunsetTime = null;
+        let sunriseTime = null;
+
+        // Compute next-day date from data.date — only valid for day view.
+        // Month/year API responses do not include a date field; guard required.
+        let nextDateStr = null;
+        if (isDayView && data.date) {
+            const currentDate = new Date(data.date);
+            const nextDate = new Date(currentDate);
+            nextDate.setDate(nextDate.getDate() + 1);
+            nextDateStr = nextDate.toISOString().split('T')[0];
+        }
+
+        // Helper to create ISO timestamp from date + time string
+        const createIsoTimestamp = (dateStr, timeStr) => {
+            if (!timeStr || !timeStr.includes(':')) return null;
+            return `${dateStr}T${timeStr}`;
+        };
+
+        if (data.sun_events?.current?.astronomical_dusk) {
+            duskTime = createIsoTimestamp(data.date, data.sun_events.current.astronomical_dusk);
+        }
+        if (isDayView && nextDateStr && data.sun_events?.next?.astronomical_dawn) {
+            dawnTime = createIsoTimestamp(nextDateStr, data.sun_events.next.astronomical_dawn);
+        }
+        if (data.sun_events?.current?.sunset) {
+            sunsetTime = createIsoTimestamp(data.date, data.sun_events.current.sunset);
+        }
+        if (isDayView && nextDateStr && data.sun_events?.next?.sunrise) {
+            sunriseTime = createIsoTimestamp(nextDateStr, data.sun_events.next.sunrise);
+        }
+
+        // Build sun event annotations (vertical lines)
+        const annotations = {};
+        const labelConfig = {
+            display: true,
+            position: 'start',
+            rotation: 90,
+            font: { size: 10, weight: '400' },
+            color: '#222',
+            backgroundColor: 'rgba(255,255,255,0.92)',
+            borderColor: 'rgba(0,0,0,0.15)',
+            borderWidth: 1,
+            yAdjust: -10 // Move label slightly above the chart area
+        };
+
+        if (sunsetTime) {
+            annotations.sunsetLine = {
+                type: 'line',
+                xMin: sunsetTime,
+                xMax: sunsetTime,
+                borderColor: 'black',
+                borderWidth: 1,
+                label: { ...labelConfig, content: 'Sunset' }
+            };
+        }
+        if (duskTime) {
+            annotations.duskLine = {
+                type: 'line',
+                xMin: duskTime,
+                xMax: duskTime,
+                borderColor: 'black',
+                borderWidth: 1,
+                label: { ...labelConfig, content: 'Ast. dusk' }
+            };
+        }
+        if (dawnTime) {
+            annotations.dawnLine = {
+                type: 'line',
+                xMin: dawnTime,
+                xMax: dawnTime,
+                borderColor: 'black',
+                borderWidth: 1,
+                label: { ...labelConfig, content: 'Ast. dawn' }
+            };
+        }
+        if (sunriseTime) {
+            annotations.sunriseLine = {
+                type: 'line',
+                xMin: sunriseTime,
+                xMax: sunriseTime,
+                borderColor: 'black',
+                borderWidth: 1,
+                label: { ...labelConfig, content: 'Sunrise' }
+            };
+        }
+
+        // --- X-axis centering on midnight (day view only) ---
+        // Note: Computed values not currently used in chart options.
+        // Kept for potential future use or reference.
+        if (isDayView && data.date) {
+            const labelsInMs = labels.map(l => new Date(l).getTime());
+            const firstMs = labelsInMs[0];
+            const lastMs = labelsInMs[labelsInMs.length - 1];
+            const originalWindowMs = lastMs - firstMs;
+
+            // Calculate midnight for the chart date
+            const midnightDate = new Date(data.date);
+            midnightDate.setHours(0, 0, 0, 0);
+            const midnightMs = midnightDate.getTime();
+
+            // Shift window to center on midnight
+            const currentCenterMs = (firstMs + lastMs) / 2;
+            const delta = midnightMs - currentCenterMs;
+            const xMinCentered = firstMs + delta;
+            const xMaxCentered = xMinCentered + originalWindowMs;
+        }
+
+        const nightShade = createNightShadePlugin(duskTime, dawnTime);
+
+        // Build datasets array
+        const datasets = [
+            {
+                label: 'Altitude',
+                data: data.object_alt,
+                borderColor: '#83b4c5',
+                backgroundColor: gradient,
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3,
+                pointRadius: 0
+            },
+            {
+                label: 'Moon Altitude',
+                data: data.moon_alt,
+                borderColor: 'rgba(180, 160, 100, 0.7)',
+                borderWidth: 2,
+                borderDash: [4, 4],
+                pointRadius: 0
+            }
+        ];
+
+        // Add horizon mask dataset if available
+        if (data.horizon_mask_alt && data.horizon_mask_alt.length > 0) {
+            datasets.push({
+                label: 'Horizon Mask',
+                data: data.horizon_mask_alt,
+                borderColor: '#636e72',
+                backgroundColor: 'rgba(99, 110, 114, 0.3)',
+                borderWidth: 2,
+                pointRadius: 0,
+                tension: 0.1,
+                fill: false
+            });
+        }
+
+        // Add horizon line at 0°
+        datasets.push({
+            label: 'Horizon',
+            data: Array(labels.length).fill(0),
+            borderColor: '#333',
+            borderWidth: 2,
+            pointRadius: 0
+        });
+
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        titleColor: '#333',
+                        bodyColor: '#666',
+                        borderColor: '#ddd',
+                        borderWidth: 1
+                    },
+                    annotation: isDayView ? {
+                        annotations: annotations
+                    } : undefined
+                },
+                scales: {
+                    x: {
+                        type: isDayView ? 'time' : 'category',
+                        min: xMin,
+                        max: xMax,
+                        time: isDayView ? {
+                            unit: 'hour',
+                            displayFormats: {
+                                hour: 'HH:mm'
+                            }
+                        } : undefined,
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            maxTicksLimit: 8,
+                            maxRotation: 0,
+                            autoSkip: true
+                        }
+                    },
+                    y: {
+                        min: -90,
+                        max: 90,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            callback: value => value + '°'
+                        }
+                    }
+                }
+            },
+            plugins: isDayView ? [nightShade] : []
+        });
+    }
+
+    function changeView(view) {
+        loadAltitudeChart(view);
+
+        // Update date pill text
+        const datePill = document.getElementById('date-pill');
+        const today = new Date();
+        if (view === 'day') {
+            datePill.textContent = today.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        } else if (view === 'month') {
+            datePill.textContent = today.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+        } else { // year view
+            datePill.textContent = today.getFullYear().toString();
+        }
+    }
+
+    // --- Opportunities Loading ---
+    async function loadOpportunities() {
+        if (opportunitiesLoaded) return;
+
+        const list = document.getElementById('opportunities-list');
+        const loading = document.getElementById('opportunities-loading');
+
+        try {
+            const params = new URLSearchParams({
+                plot_lat: OBJECT_DATA.plotLat,
+                plot_lon: OBJECT_DATA.plotLon,
+                plot_tz: OBJECT_DATA.plotTz
+            });
+
+            const fetchUrl = `/get_imaging_opportunities/${encodeURIComponent(OBJECT_DATA.name)}?${params.toString()}`;
+
+            const response = await fetch(fetchUrl);
+
+            if (!response.ok) {
+                throw new Error('HTTP error! status: ' + response.status);
+            }
+
+            const data = await response.json();
+
+            if (data.status === 'success' && data.results && data.results.length > 0) {
+                renderOpportunities(data.results);
+            } else {
+                list.innerHTML = '<li class="message">' + i18n.noOpportunities + '</li>';
+            }
+            opportunitiesLoaded = true;
+        } catch (error) {
+            console.error('Error loading opportunities:', error);
+            loading.textContent = i18n.errorLoading;
+            opportunitiesLoaded = true;
+        }
+    }
+
+    function renderOpportunities(opportunities) {
+        const list = document.getElementById('opportunities-list');
+        list.innerHTML = '';
+
+        opportunities.forEach(opp => {
+            const li = document.createElement('li');
+            li.className = 'opportunity-card';
+            li.dataset.date = opp.date;
+            li.dataset.maxAlt = opp.max_alt;
+            li.dataset.moon = opp.moon_illumination;
+            li.dataset.moonSep = opp.moon_separation !== undefined ? Math.round(opp.moon_separation) : '';
+            li.dataset.obs = opp.obs_minutes;
+
+            const parts = opp.date.split('-');
+            const year = parts[0], month = parts[1], day = parts[2];
+            const formattedDate = `${day}.${month}.${year}`;
+
+            // Rating is already a string with stars (e.g., "★★★☆☆")
+            const rating = opp.rating || '';
+
+            li.innerHTML = `
+                <div class="opp-header">
+                    <span class="opp-date">${formattedDate}</span>
+                    <span class="opp-window-inline">${opp.from_time} – ${opp.to_time}</span>
+                    <span class="opp-rating">${rating}</span>
+                </div>
+                <div class="opp-stats">
+                    <div class="opp-stat">
+                        <span class="opp-stat-label">MAX ALT</span>
+                        <span class="opp-stat-value">${opp.max_alt}°</span>
+                    </div>
+                    <div class="opp-stat">
+                        <span class="opp-stat-label">MOON</span>
+                        <span class="opp-stat-value">${opp.moon_illumination}%</span>
+                    </div>
+                    <div class="opp-stat">
+                        <span class="opp-stat-label">MOON SEP</span>
+                        <span class="opp-stat-value">${opp.moon_separation !== undefined ? Math.round(opp.moon_separation) + '°' : '—'}</span>
+                    </div>
+                    <div class="opp-stat">
+                        <span class="opp-stat-label">DURATION</span>
+                        <span class="opp-stat-value">${opp.obs_minutes}m</span>
+                    </div>
+                </div>
+            `;
+
+            list.appendChild(li);
+        });
+
+        // Store original live values for restore on Day-view reset
+        const LIVE_STATS = {
+            now:   document.getElementById('stat-val-now').textContent,
+            trend: document.getElementById('stat-val-trend').textContent,
+            moon:  document.getElementById('stat-val-moon').textContent,
+            obs:   document.getElementById('stat-val-obs').textContent,
+            nowLabel:   document.getElementById('stat-label-now').textContent,
+            trendLabel: document.getElementById('stat-label-trend').textContent,
+        };
+
+        // Opportunity card tap → switch chart to that date (Day view)
+        document.getElementById('opportunities-list').addEventListener('click', function(e) {
+            const card = e.target.closest('.opportunity-card');
+            if (!card || !card.dataset.date) return;
+
+            const dateStr = card.dataset.date; // "YYYY-MM-DD"
+
+            // Update segmented control visual state
+            document.querySelectorAll('.segmented-control button')
+                .forEach(btn => btn.classList.remove('active'));
+            document.getElementById('view-day').classList.add('active');
+
+            // Update date pill to reflect the tapped card's date.
+            // Parse manually to avoid UTC→local shift (same pattern as renderChart).
+            const parts = dateStr.split('-');
+            const cardDate = new Date(
+                parseInt(parts[0], 10),
+                parseInt(parts[1], 10) - 1,
+                parseInt(parts[2], 10)
+            );
+            document.getElementById('date-pill').textContent =
+                cardDate.toLocaleDateString('en-GB', {
+                    day: 'numeric', month: 'short', year: 'numeric'
+                });
+
+            // Update stats strip with card's own data
+            // card carries: data-max-alt, data-moon, data-moon-sep, data-obs
+            document.getElementById('stat-label-now').textContent    = 'Max Alt';
+            document.getElementById('stat-val-now').textContent      = (card.dataset.maxAlt || '—') + '°';
+            document.getElementById('stat-label-trend').textContent  = 'Moon';
+            document.getElementById('stat-val-trend').textContent    = (card.dataset.moon || '—') + '%';
+            document.getElementById('stat-val-moon').textContent    =
+                (card.dataset.moonSep ? card.dataset.moonSep + '°' : '—');
+            document.getElementById('stat-val-obs').textContent      = (card.dataset.obs || '—') + 'm';
+
+            // Load Day view for the tapped date
+            loadAltitudeChart('day', dateStr);
+        });
+
+        // Restore live stats when Day button clicked manually (not via card)
+        document.getElementById('view-day').addEventListener('click', function() {
+            document.getElementById('stat-label-now').textContent   = LIVE_STATS.nowLabel;
+            document.getElementById('stat-val-now').textContent     = LIVE_STATS.now;
+            document.getElementById('stat-label-trend').textContent = LIVE_STATS.trendLabel;
+            document.getElementById('stat-val-trend').textContent   = LIVE_STATS.trend;
+            document.getElementById('stat-val-moon').textContent    = LIVE_STATS.moon;
+            document.getElementById('stat-val-obs').textContent     = LIVE_STATS.obs;
+        });
+    }
+
+</script>
+{% endblock %}

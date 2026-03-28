@@ -26,3 +26,4 @@ README.md
 # Pytest files
 tests/
 .pytest_cache/
+/.claude/

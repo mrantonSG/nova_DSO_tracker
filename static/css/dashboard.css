@@ -99,8 +99,33 @@
         color: #7aafc0 !important;
     }
 
-    #data-table th:not([data-column-key="Object"]):not([data-column-key="Common Name"]),
-    #data-table td:not([data-column-key="Object"]):not([data-column-key="Common Name"]) {
+    /* --- Nova Rank Column Style --- */
+
+    /* Nova Rank column hidden by default, shown when table has nova-active class */
+    #data-table th.col-nova-rank,
+    #data-table td.col-nova-rank {
+        display: none !important;
+    }
+
+    #data-table.nova-active th.col-nova-rank,
+    #data-table.nova-active td.col-nova-rank {
+        display: table-cell !important;
+        text-align: center;
+        font-weight: 600;
+        color: var(--primary-color);
+        min-width: 48px;
+        max-width: 56px;
+        width: 56px;
+    }
+
+    #data-table.nova-active td.col-nova-rank:hover {
+        background-color: var(--primary-light);
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+
+    #data-table th:not([data-column-key="Object"]):not([data-column-key="Common Name"]):not(.col-nova-rank),
+    #data-table td:not([data-column-key="Object"]):not([data-column-key="Common Name"]):not(.col-nova-rank) {
         text-align: center;
     }
 
@@ -522,6 +547,21 @@
 /* ===================================================================
    DARK MODE OVERRIDES
    ================================================================ */
+
+/* --- Nova Re-ask Link Style --- */
+#nova-reask-link {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-left: 8px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#nova-reask-link:hover {
+    color: var(--primary-color);
+}
+
+/* --- End Nova Re-ask Link Style --- */
 
 /* Filter row inputs */
 [data-theme="dark"] .filter-row input {

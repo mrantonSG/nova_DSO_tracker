@@ -1,36 +1,33 @@
 # Nova DSO Tracker
 
-A Flask-based web application designed specifically for astrophotographers, providing essential data for tracking deep-sky objects (DSOs), planning imaging projects, and logging sessions.
+A Flask-based web application for astrophotographers — track deep-sky objects, plan imaging sessions, and log your results.
 
 ---
 
 ## Features
 
+* **Ask Nova AI:** AI-powered target ranking that analyzes your object list against current sky conditions, moon phase, and equipment to recommend the best targets for tonight. Supports Anthropic, OpenAI, Ollama, and any OpenAI-compatible provider. Entirely optional — works without AI.
+* **Log File Analysis:** Import and analyze session logs from ASIAIR, PHD2, and N.I.N.A. Reports include guiding performance, autofocus V-curves, exposure stats, and session swimlane timelines.
 * **Multi-Language Support:** Available in English, German, French, Spanish, Japanese, and Chinese Simplified. Language selector in the header with persistent preference per user.
+* **Mobile Companion:** Full planning on the go — object detail, altitude charts, filtering, outlook, journal entry creation, and framing assistant from your phone.
 * **User Management (Multi-User Mode):** Web-based admin panel to create, activate/deactivate, reset passwords, and delete users — no command line required.
 * **Guide Optics & Dither Recommendations:** Configure guiding equipment per rig and get dither pixel recommendations based on your guide camera pixel scale.
 * **Custom Mono Filters:** Define custom mono filters in the journal with per-session tracking and full YAML export/import support.
-* **Journal Object Switcher:** Navigate between observed DSO objects directly from the journal without returning to the dashboard.
-* **Log File Analysis in Reports:** PDF reports include charts from imported ASIAIR and PHD2 log files — guiding performance, exposure stats, and environmental data.
-* **Visual Facelift:** Nova's signature teal (#83b4c5) brand color with a refined design system, dark mode polish, and consistent styling across all views.
-* **Theme Preference:** Choose Light, Dark, or Follow System. Your preference persists across sessions.
 * **Night Explorer (Inspiration Tab):** Visual gallery of targets currently observable from your location, sorted by altitude and visibility duration.
-* **Advanced Object Management:** Bulk actions, filtering by catalog source, flexible range expressions for Magnitude and Size filters, and enable/disable toggles without deleting objects.
-* **Duplicate Management:** Scan for objects with similar coordinates and merge them into a single entry.
-* **Mosaic Planning & Export:** Plan multi-pane mosaics in the Framing Assistant and export as CSV for ASIAIR or N.I.N.A.
 * **Yearly Heatmap:** Waterfall visualization of target visibility over 12 months with moon period indicators.
-* **Project Management:** Group imaging sessions into Projects, track total integration time, and monitor status.
-* **Rig Snapshots:** Equipment specs recorded at session log time, preserving historical accuracy.
+* **Project Management & Journal:** Group imaging sessions into Projects, track integration time, generate PDF reports with embedded log charts.
+* **Mosaic Planning & Export:** Plan multi-pane mosaics in the Framing Assistant and export as CSV for ASIAIR or N.I.N.A.
 * **Real-time Tracking:** Altitude and azimuth tracking for DSOs updated every minute.
-* **Visibility Forecasts:** Outlook calculations based on altitude, moon illumination, and angular separation.
-* **NSNS V2 Support:** The Framing Assistant includes the Northern Sky Narrowband Survey (V2).
+* **Theme Preference:** Choose Light, Dark, or Follow System. Your preference persists across sessions.
+* **Duplicate Management:** Scan for objects with similar coordinates and merge them into a single entry.
 
 ## Technologies Used
 
 * **Backend:** Python (Flask, SQLAlchemy, AstroPy, Ephem)
-* **Database:** SQLite
+* **Database:** SQLite (with Alembic migrations)
 * **Frontend:** HTML5, JavaScript, Aladin Lite
 * **Integrations:** SIMBAD (Object data), Stellarium (Planetarium control)
+* **AI (optional):** Anthropic, OpenAI, or Ollama for Ask Nova features
 
 ---
 
@@ -53,6 +50,20 @@ When opening Nova, you see a list of DSOs sorted by default by their current alt
 ![Dashboard overview](docs/Screenshot%202026-02-27%20at%2014.07.27.jpg)
 ![Dashboard detail](docs/Screenshot%202026-02-27%20at%2014.07.46.jpg)
 
+### Ask Nova AI
+
+Ask Nova is an optional AI assistant that ranks your visible objects to recommend the best targets for tonight. It considers altitude curves, transit times, moon phase and separation, and your equipment specs.
+
+* **Ask Nova button** on the dashboard toolbar triggers an AI ranking. Objects are re-sorted with a dedicated Nova Rank column.
+* **Restore Nova** reloads a cached ranking instantly (cached per location and day). **Re-ask** forces a fresh AI query.
+* **Inspiration Tab** also respects Nova rankings — when active, tiles are ordered by AI recommendation.
+* **Journal AI features:** Generate observation notes for any target, or stream a full session summary (weather, conditions, equipment, targets) directly from the journal form.
+
+Ask Nova is disabled by default. To enable it, see [AI Configuration](#ai-configuration-optional).
+
+![Screenshot 2026-03-28 at 13.57.23.jpg](docs/Screenshot%202026-03-28%20at%2013.57.23.jpg)
+![Screenshot 2026-03-28 at 13.58.23.jpg](docs/Screenshot%202026-03-28%20at%2013.58.23.jpg)
+
 ### Multi-Language Support
 
 Nova is available in 6 languages. Use the language selector in the header to switch at any time — your preference is saved per user account.
@@ -70,11 +81,14 @@ Nova is available in 6 languages. Use the language selector in the header to swi
 
 ### Mobile Companion
 
-Nova includes a streamlined, mobile-first interface for essential planning on the go. Access it by navigating to `/m/up_now` on your instance.
+Nova includes a mobile-first interface for essential planning on the go. Access it at `/m/up_now` on your instance.
 
-* **Up Now:** A responsive list of currently visible objects.
-* **Outlook:** Check upcoming imaging opportunities.
+* **Up Now:** Responsive list of currently visible objects with slider-based altitude/size/magnitude filters, sort dropdown, and tap-to-navigate opportunity cards.
+* **Outlook:** Upcoming imaging opportunities grouped by date with click-to-navigate to the altitude chart.
+* **Object Detail:** Full target info, altitude charts, moon separation, and framing assistant.
+* **Journal:** Create new session entries from your phone with rig and filter selection.
 * **Quick Add:** Add new objects to your database directly from your mobile device.
+
 
 ### Sorting, Filtering, and Saved Views
 
@@ -92,7 +106,7 @@ Nova includes a streamlined, mobile-first interface for essential planning on th
 
 The Inspiration Tab offers a visual way to browse potential targets. Instead of a data table, this view presents tiles for objects that are currently observable.
 
-* **Smart Sorting:** Objects are prioritized based on their current altitude and visibility duration.
+* **Smart Sorting:** Objects are prioritized based on their current altitude and visibility duration (or by AI recommendation when Ask Nova is active).
 * **Imagery:** Tiles display survey images (DSS2) by default. If you have uploaded your own astrophoto for an object, it will be displayed here.
 * **Quick Info:** Each tile displays the object's type, current altitude, and constellation. Clicking a tile opens a detail modal with a summary and a link to the full charts.
 
@@ -140,15 +154,15 @@ The Journal is a full **Project Management System**.
 
 7. **Reports:** Generate PDF reports for a specific night (Session Report) or a full target summary (Project Report).
 
-    * **Log File Charts:** Imported ASIAIR or PHD2 log files automatically appear in reports as guiding performance graphs, RMS deviation charts, exposure statistics, and environmental data.
+8. **Log File Import & Analysis:** Upload and analyze log files from ASIAIR, PHD2, and N.I.N.A.
 
+    * **ASIAIR Logs:** Capture counts, exposure times, filter usage, and dithering data.
+    * **PHD2 Logs:** Guiding RMS, corrections, and drift analysis.
+    * **N.I.N.A. Logs:** Full session swimlane (equipment startup, guiding, imaging, platesolving, flats), autofocus analysis with V-curve plots, and error tracking.
+
+![Screenshot 2026-03-28 at 14.01.14.jpg](docs/Screenshot%202026-03-28%20at%2014.01.14.jpg)
+![Screenshot 2026-03-28 at 14.02.25.jpg](docs/Screenshot%202026-03-28%20at%2014.02.25.jpg)
 ![Reports](docs/Screenshot%202026-02-27%20at%2014.11.42.jpg)
-
-8. **Log File Import:** Upload and analyze log files from ASIAIR and PHD2.
-
-    * **ASIAIR Logs:** Imports capture counts, exposure times, filter usage, and dithering data.
-    * **PHD2 Logs:** Imports guiding RMS, corrections, and drift analysis.
-
 ![Log file import](docs/Screenshot%202026-02-27%20at%2014.12.11.jpg)
 
 ### Detailed Object Information
@@ -158,6 +172,7 @@ Clicking a DSO in the main list opens the Detailed View.
 * **Altitude Graphs:** Shows the object's path for the current night.
 * **Moon Separation:** Displays angular separation from the moon on the main graph.
 * **Imaging Opportunities:** Click "Find Imaging Opportunities" to calculate the best dates based on your horizon and moon constraints.
+* **AI Observation Notes:** Generate contextual notes about the target directly from the graph view.
 
 ![Object detail](docs/Screenshot%202026-02-27%20at%2014.12.55.jpg)
 
@@ -272,6 +287,40 @@ flask run
 Access the application at `http://localhost:5001`.
 
 ---
+
+### AI Configuration (Optional)
+
+Ask Nova is disabled by default. To enable it, add the following to your `instance/.env`:
+
+```bash
+# AI provider: anthropic, openai, openai-compatible, or ollama
+AI_PROVIDER=anthropic
+
+# API key for your provider (leave empty to keep AI disabled)
+AI_API_KEY=sk-ant-...
+
+# Model name (must match your provider)
+#   Anthropic: claude-sonnet-4-20250514, claude-haiku-4-5-20251001
+#   OpenAI:    gpt-4o, gpt-4o-mini
+#   Ollama:    llama3, mistral, qwen2.5
+AI_MODEL=claude-sonnet-4-20250514
+
+# Base URL — required for openai-compatible and ollama, ignored otherwise
+#   Ollama (local):  http://localhost:11434
+#   MiniMax:         https://api.minimax.io/v1
+AI_BASE_URL=
+
+# Who can use AI features: 'all', or comma-separated usernames
+AI_ALLOWED_USERS=all
+```
+
+**Provider notes:**
+- **Anthropic** — good ranking quality, no base URL needed.
+- **OpenAI** — works out of the box, no base URL needed.
+- **OpenAI-compatible** — for Z.AI, MiniMax, or any custom endpoint. Requires `AI_BASE_URL`.
+- **Ollama** — free, runs locally. Requires `AI_BASE_URL` (default `http://localhost:11434`). No API key needed.
+
+In multi-user mode, set `AI_ALLOWED_USERS` to specific usernames to restrict access. Leave `AI_API_KEY` or `AI_ALLOWED_USERS` empty to hide all AI UI completely.
 
 ### User Modes
 

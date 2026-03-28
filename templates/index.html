@@ -12,7 +12,8 @@
       isGuest: {{ is_guest | tojson }},
       hideInvisible: {{ hide_invisible | tojson }},
       journalSessions: {{ journal_sessions | tojson | safe }},
-      altitudeThreshold: {{ g.altitude_threshold | default(20) }}
+      altitudeThreshold: {{ g.altitude_threshold | default(20) }},
+      imagingCriteria: {{ imaging_criteria | tojson | safe }}
     };
   </script>
 
@@ -101,6 +102,21 @@
             <input type="checkbox" id="global-active-toggle" style="margin-right:5px;">
             {{ _('Active Only') }}
         </label>
+
+        {% if ai_enabled %}
+        <div style="display: flex; align-items: center; gap: 5px; margin-left: 10px;">
+            <button id="ask-nova-btn" class="btn-nova-ai" type="button" title="{{ _('Ask Nova to rank and recommend best objects') }}">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+                    <path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/>
+                </svg>
+                {{ _('Ask Nova') }}
+            </button>
+            <span class="help-badge" data-help-topic="nova_ai" title="{{ _('About Nova AI') }}" style="margin-left: 5px; cursor: pointer;">?</span>
+            <a id="nova-reask-link" href="#" style="display: none;">↺ Re-ask</a>
+        </div>
+        {% endif %}
+
+        <div id="ask-nova-error" style="display: none; color: var(--danger-color); font-size: 12px; margin-left: 10px;"></div>
     </div>
     <div id="remove-filters-container" style="display: none; margin-left: auto;"> <button type="button" id="remove-filters-btn">
        {{ _('Remove Filter') }}
@@ -112,6 +128,7 @@
         <table id="data-table" data-sort-order="asc">
           <thead>
             <tr> {# Main Headers for DSO Table #}
+              <th data-column-key="Nova Rank" id="nova-rank-column-header" class="col-nova-rank sortable"><span>★</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
               <th data-column-key="Object" class="col-always-visible sortable"><span>{{ _('Object') }}</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
               <th data-column-key="Common Name" class="col-always-visible sortable"><span>{{ _('Common Name') }}</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
               <th data-column-key="Altitude Current" class="col-position sortable"><span>{{ _('Altitude') }}<br><span class="subtext">({{ _('Current') }})</span></span><span class="sort-indicator"></span></th>
@@ -132,6 +149,7 @@
               <th data-column-key="Max Altitude" class="col-properties sortable"><span>{{ _('Max Alt') }}</span><span class="subtext">({{ _('Culm.') }})</span><span class="sort-indicator"></span></th>
             </tr>
             <tr class="filter-row"> {# Filter Row for DSO Table #}
+              <th data-column-key="Nova Rank" class="col-nova-rank"><input type="text" placeholder="" disabled style="visibility: hidden;" /></th>
               <th data-column-key="Object" class="col-always-visible"><input type="text" placeholder="{{ _('Search Object') }}" /></th>
               <th data-column-key="Common Name" class="col-always-visible"><input type="text" placeholder="{{ _('Search Common Name') }}" /></th>
               <th data-column-key="Altitude Current" class="col-position"><input type="text" placeholder="{{ _('Altitude °') }}" /></th>

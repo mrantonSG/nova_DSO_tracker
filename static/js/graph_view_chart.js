@@ -3044,7 +3044,7 @@
                     // 1. OPEN SAVED FRAMING BUTTON (insert after Show Framing)
                     const btn = document.createElement('button');
                     btn.className = 'inline-button inline-button-ghost';
-                    btn.textContent = 'Open Saved Framing';
+                    btn.textContent = window.t('open_saved_framing');
                     btn.setAttribute('data-saved-framing', 'true');
 
                     btn.onclick = () => {
@@ -3085,8 +3085,8 @@
                     // 2. DELETE SAVED FRAMING BUTTON
                     const delBtn = document.createElement('button');
                     delBtn.className = 'inline-button inline-button-danger';
-                    delBtn.textContent = 'Delete Saved Framing';
-                    delBtn.title = "Delete Saved Framing";
+                    delBtn.textContent = window.t('delete_saved_framing');
+                    delBtn.title = window.t('delete_saved_framing');
                     delBtn.setAttribute('data-saved-framing', 'true');
 
                     delBtn.onclick = deleteSavedFraming;

@@ -298,7 +298,8 @@
             <div style="display:flex; align-items:center; gap:6px; margin-left:12px; padding-left:12px; border-left:1px solid var(--border-medium-alt);">
                 <label for="framing-rig-select" style="font-weight:bold;">{{ _('Rig') }}:</label>
                 <select id="framing-rig-select" data-action="update-framing-rig" style="max-width:240px; font-size:14px;">
-                    {% if available_rigs %}{% for rig in available_rigs %}
+                    {% if available_rigs %}
+                    {% for rig in available_rigs %}
                     <option value="{{ rig.rig_id }}" data-fovw="{{ rig.fov_w_arcmin }}" data-fovh="{{ rig.fov_h_arcmin }}">{{ rig.rig_name }}</option>
                     {% endfor %}{% else %}<option value="">{{ _('No rigs configured') }}</option>{% endif %}
                 </select>
@@ -408,12 +409,16 @@
 <script>
     // Data object to pass server-side variables to the external script
     window.NOVA_GRAPH_DATA = {
+        objectId: {{ object_id | default(0) }},
         objectName: {{ object_name | tojson }},
         altName: {{ alt_name | default(object_name, True) | tojson }},
         plotLat: "{{ graph_lat_param | default('', True) }}",
         plotLon: "{{ graph_lon_param | default('', True) }}",
         plotTz: "{{ graph_tz_name_param | default('UTC', true) }}",
         plotLocName: {{ header_location_name | tojson }},
+        selectedDay: {{ selected_day }},
+        selectedMonth: {{ selected_month }},
+        selectedYear: {{ selected_year }},
 
         // We pass RA in DEGREES (RA_Hours * 15) and DEC in DEGREES
         // 'null' is passed if the database has no value.
@@ -426,5 +431,205 @@
 <script src="{{ url_for('static', filename='js/graph_view_chart.js') }}?v=dark_theme_v3" defer></script>
 <script src="{{ url_for('static', filename='js/graph_view.js') }}" defer></script>
 <script src="{{ url_for('static', filename='js/journal_section.js') }}" defer></script>
+
+{# AI Notes button - desktop only #}
+<script>
+const graphI18n = {
+    askNova:             {{ _("Ask Nova") | tojson }},
+    askNovaTitle:        {{ _("Ask Nova for observing notes") | tojson }},
+    consultingCharts:    {{ _("Consulting the star charts...") | tojson }},
+    checkingRigs:        {{ _("Checking your rigs...") | tojson }},
+    scanningCosmos:      {{ _("Scanning the cosmos...") | tojson }},
+    calculatingFrom:     {{ _("Calculating from") | tojson }},
+    almostThere:         {{ _("Almost there...") | tojson }},
+    yourLocation:        {{ _("your location") | tojson }},
+    novaNotesReady:      {{ _("Nova has notes ready. What would you like to do?") | tojson }},
+    overwrite:           {{ _("Overwrite") | tojson }},
+    append:              {{ _("Append") | tojson }},
+    cancel:              {{ _("Cancel") | tojson }},
+    novaError:           {{ _("Nova couldn't load notes") | tojson }},
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Desktop only check
+    if (window.innerWidth < 768) return;
+
+    fetch('/api/ai/status')
+        .then(function(resp) { return resp.json(); })
+        .then(function(data) {
+            if (!data || data.enabled !== true) return;
+
+            var editorEl = document.getElementById('project-field-editor');
+            if (!editorEl) return;
+
+            // Inject button into the title row (right-aligned)
+            var btn = document.createElement('button');
+            btn.id = 'ai-notes-btn';
+            btn.className = 'btn-nova-ai';
+            btn.title = graphI18n.askNovaTitle;
+            btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;font-style:normal"><path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/></svg> ' + graphI18n.askNova;
+
+            var cardTitle = editorEl.closest('.content-section')?.querySelector('h3');
+            if (cardTitle) {
+                cardTitle.style.display = 'flex';
+                cardTitle.style.justifyContent = 'space-between';
+                cardTitle.style.alignItems = 'center';
+                btn.style.cssText = 'margin-left: auto;';
+                cardTitle.appendChild(btn);
+            } else {
+                // fallback: keep existing injection
+                btn.style.cssText = 'float: right; margin-bottom: 4px;';
+                editorEl.parentNode.insertBefore(btn, editorEl);
+            }
+
+            // Helper to remove any existing confirmation UI
+            function removeConfirmUI() {
+                var existingConfirm = document.getElementById('ai-notes-confirm');
+                if (existingConfirm) existingConfirm.remove();
+            }
+
+            // Helper to execute the fetch with a specific mode
+            function fetchNotes(mode) {
+                btn.disabled = true;
+
+                // Build message sequence with location name
+                var locName = (window.NOVA_GRAPH_DATA && window.NOVA_GRAPH_DATA.activeLoc) || graphI18n.yourLocation;
+                var novaMessages = [
+                    graphI18n.consultingCharts,
+                    graphI18n.checkingRigs,
+                    graphI18n.scanningCosmos,
+                    graphI18n.calculatingFrom + ' ' + locName + '...',
+                    graphI18n.almostThere
+                ];
+
+                // Start message animation
+                var msgIndex = 0;
+                btn.style.fontStyle = 'italic';
+                btn.innerHTML = novaMessages[msgIndex];
+                var msgInterval = setInterval(function() {
+                    msgIndex = (msgIndex + 1) % novaMessages.length;
+                    btn.innerHTML = novaMessages[msgIndex];
+                }, 2500);
+
+                // Remove any previous error
+                var prevErr = document.getElementById('ai-notes-error');
+                if (prevErr) prevErr.remove();
+
+                fetch('/api/ai/notes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        object_id: window.NOVA_GRAPH_DATA.objectId,
+                        mode: mode,
+                        selected_day: window.NOVA_GRAPH_DATA.selectedDay,
+                        selected_month: window.NOVA_GRAPH_DATA.selectedMonth,
+                        selected_year: window.NOVA_GRAPH_DATA.selectedYear,
+                        sim_mode: localStorage.getItem('simModeActive') === 'true',
+                    })
+                })
+                .then(function(resp) {
+                    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                    return resp.json();
+                })
+                .then(function(data) {
+                    clearInterval(msgInterval);
+                    var trixEditor = document.querySelector('trix-editor#project-field-editor');
+                    if (trixEditor && trixEditor.editor) {
+                        if (mode === 'overwrite') {
+                            trixEditor.editor.loadHTML(data.notes || '');
+                        } else if (mode === 'append') {
+                            var current = trixEditor.innerHTML;
+                            trixEditor.editor.loadHTML(current + (data.notes || ''));
+                        }
+                    }
+                    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;font-style:normal"><path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/></svg> ' + graphI18n.askNova;
+                    btn.disabled = false;
+                    btn.style.fontStyle = '';
+                })
+                .catch(function(err) {
+                    clearInterval(msgInterval);
+                    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;font-style:normal"><path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/></svg> ' + graphI18n.askNova;
+                    btn.disabled = false;
+                    btn.style.fontStyle = '';
+
+                    // Create error div after the trix-editor
+                    var trixEl = document.getElementById('project-field-editor');
+                    var errDiv = document.createElement('div');
+                    errDiv.id = 'ai-notes-error';
+                    errDiv.style.cssText = 'color: var(--danger-color, #c00); font-size: 13px; margin-top: 6px;';
+                    errDiv.innerHTML = graphI18n.novaError + ': ' + err.message + ' <button style="margin-left:6px;cursor:pointer;border:none;background:none;font-weight:bold;">[x]</button>';
+
+                    var closeBtn = errDiv.querySelector('button');
+                    closeBtn.addEventListener('click', function() { errDiv.remove(); });
+
+                    trixEl.parentNode.insertBefore(errDiv, trixEl.nextSibling);
+
+                    // Auto-dismiss error after 5 seconds
+                    setTimeout(function() {
+                        if (errDiv && errDiv.parentNode) errDiv.remove();
+                    }, 5000);
+                });
+            }
+
+            btn.addEventListener('click', function() {
+                // Remove any existing confirmation UI first
+                removeConfirmUI();
+
+                // Check if the Trix editor has existing content
+                var trixEditor = document.querySelector('trix-editor#project-field-editor');
+                var hasContent = trixEditor &&
+                    trixEditor.editor &&
+                    trixEditor.editor.getDocument().toString().trim().length > 1;
+                // Note: Trix always has at least '\n' in empty state, hence > 1
+
+                if (hasContent) {
+                    // Disable button immediately
+                    btn.disabled = true;
+
+                    // Create confirmation UI
+                    var confirmDiv = document.createElement('div');
+                    confirmDiv.id = 'ai-notes-confirm';
+                    confirmDiv.style.cssText = 'padding: 8px; margin-bottom: 6px; border: 1px solid var(--border-color, #ccc); border-radius: 4px; font-size: 13px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;';
+
+                    confirmDiv.innerHTML = '<span>' + graphI18n.novaNotesReady + '</span>' +
+                        '<button class="inline-button ai-confirm-overwrite">' + graphI18n.overwrite + '</button>' +
+                        '<button class="inline-button ai-confirm-append">' + graphI18n.append + '</button>';
+
+                    // Create cancel button separately
+                    var cancelBtn = document.createElement('button');
+                    cancelBtn.className = 'inline-button-ghost ai-confirm-cancel';
+                    cancelBtn.textContent = graphI18n.cancel;
+                    cancelBtn.onclick = function() {
+                        removeConfirmUI();
+                        btn.disabled = false;
+                            btn.style.fontStyle = '';
+                    };
+                    confirmDiv.appendChild(cancelBtn);
+
+                    // Insert before the trix-editor
+                    editorEl.parentNode.insertBefore(confirmDiv, editorEl);
+
+                    // Overwrite button
+                    confirmDiv.querySelector('.ai-confirm-overwrite').addEventListener('click', function() {
+                        removeConfirmUI();
+                        fetchNotes('overwrite');
+                    });
+
+                    // Append button
+                    confirmDiv.querySelector('.ai-confirm-append').addEventListener('click', function() {
+                        removeConfirmUI();
+                        fetchNotes('append');
+                    });
+                } else {
+                    // No existing content, proceed directly
+                    fetchNotes('overwrite');
+                }
+            });
+        })
+        .catch(function() {
+            // Silently ignore fetch failures
+        });
+});
+</script>
 
 {% endblock %}

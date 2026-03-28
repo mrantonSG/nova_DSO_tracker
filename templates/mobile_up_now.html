@@ -5,108 +5,1004 @@
 
 {% block head %}
 <style>
-    /* --- Search Bar --- */
-    .search-bar {
-        padding: 10px 20px 0 20px;
-    }
-    .search-bar input {
-        width: 100%;
-        padding: 12px;
-        font-size: 1rem;
-        border: 1px solid var(--border-color);
-        border-radius: 5px;
-        box-sizing: border-box;
-    }
+/* nova-mobile v2 — 2026-03-17 */
+/* ===================================================================
+   NOVA MOBILE UP NOW - PAGE SPECIFIC STYLES
+   Uses Nova Design System tokens from tokens.css and base.css
+   =================================================================== */
 
-    /* --- Sort Bar --- */
-    .sort-bar {
-        display: flex;
-        gap: 8px;
-        padding: 10px 20px 0 20px;
-    }
-    .sort-button {
-        flex: 1; /* Equal width */
-        padding: 10px 5px; /* Reduced horizontal padding for small screens */
-        font-size: 0.85rem; /* Slightly smaller font */
-        white-space: nowrap; /* Prevent text wrap */
-        overflow: hidden;
-        text-overflow: ellipsis; /* Handle overflow gracefully */
-        border: 1px solid var(--border-color);
-        background-color: var(--card-bg);
-        border-radius: 5px;
-        text-align: center;
-        color: var(--text-color);
-    }
-    .sort-button {
-        padding: 10px;
-        font-size: 0.9rem;
-        border: 1px solid var(--border-color);
-        background-color: var(--card-bg);
-        border-radius: 5px;
-        text-align: center;
-        color: var(--text-color);
-    }
-    .sort-button.active {
-        background-color: var(--primary-dark);
-        color: var(--text-white);
-        border-color: var(--primary-dark);
-    }
+/* === Page Background === */
+body {
+    background-color: var(--bg-primary, #f2f0ed);
+}
 
-    /* ASIAIR Button Style */
-    .asiair-btn {
-        background-color: var(--primary-dark);
-        color: var(--text-white);
-        padding: 6px 10px;
-        border-radius: 4px;
-        text-decoration: none;
-        font-size: 0.8rem;
-        font-weight: bold;
-    }
+body.sheet-open {
+    position: fixed;
+    width: 100%;
+    overflow-y: scroll;
+}
 
-    /* Container to fix overlap */
-    .card-actions {
-        position: absolute;
-        top: 12px;
-        right: 12px;
-        display: flex;
-        gap: 8px;
-        align-items: center;
-    }
+/* === Header Override === */
+.header {
+    background-color: var(--bg-secondary, #fff);
+    border-bottom: 1px solid var(--border-color, var(--border-light, #eeebe5));
+    color: var(--text-primary, #141414);
+    padding: 0;
+}
 
-    /* Reset individual positioning */
-    .item-card .edit-button {
-        position: static;
-        float: none;
-        margin: 0;
+/* === Search Bar === */
+.m-search-bar {
+    margin: var(--space-2-5, 10px) var(--space-4, 16px);
+}
+
+.m-search-input {
+    width: 100%;
+    padding: 10px 14px;
+    background-color: var(--bg-secondary, #fff);
+    border: 1px solid var(--border-color, #d0cdc8);
+    border-radius: 8px;
+    font-size: 16px;
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--text-primary, #141414);
+    box-sizing: border-box;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.m-search-input::placeholder {
+    color: var(--text-faint, #aaaaaa);
+}
+
+.m-search-input:focus {
+    outline: none;
+    border-color: var(--primary-color, #83b4c5);
+    box-shadow: 0 0 0 3px rgba(131, 180, 197, 0.15);
+}
+
+/* === Filter/Sort Toolbar === */
+.m-toolbar {
+    background-color: var(--bg-tertiary, var(--bg-light, #f7f5f2));
+    border-bottom: 1px solid var(--border-color, var(--border-light, #eeebe5));
+    padding: var(--space-2, 8px) var(--space-4, 16px);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2, 8px);
+    overflow-x: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+}
+
+.m-toolbar::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+}
+
+.m-toolbar-spacer {
+    flex: 1;
+    flex-shrink: 0;
+}
+
+.m-chip {
+    background-color: var(--bg-secondary, #fff);
+    border: 1px solid var(--border-color, #d0cdc8);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--text-muted, #888888);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    flex-shrink: 0;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.m-chip:hover {
+    background-color: var(--bg-tertiary, var(--bg-light, #f7f5f2));
+    border-color: var(--border-medium, #e5e2dc);
+}
+
+.m-chip.active {
+    background-color: var(--primary-color, #83b4c5);
+    border-color: var(--primary-color, #83b4c5);
+    color: #ffffff;
+}
+
+.m-chip:active {
+    transform: scale(0.96);
+}
+
+.m-result-count {
+    font-size: 13px;
+    font-weight: 500;
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    color: var(--text-faint, #aaaaaa);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* === Loading State === */
+.m-loading {
+    text-align: center;
+    padding: var(--space-8, 32px) var(--space-4, 16px);
+}
+
+.m-loading-label {
+    font-size: 15px;
+    color: var(--text-muted, #888888);
+    font-weight: 400;
+    margin-bottom: var(--space-2-5, 10px);
+}
+
+.m-progress-bar {
+    height: 3px;
+    background-color: var(--primary-color, #83b4c5);
+    border-radius: 2px;
+    max-width: 240px;
+    margin: 0 auto;
+    transition: width 0.3s ease;
+}
+
+.m-progress-track {
+    width: 100%;
+    height: 3px;
+    background-color: var(--bg-medium-alt, #eee);
+    border-radius: 2px;
+    max-width: 240px;
+    margin: 0 auto;
+    overflow: hidden;
+}
+
+.m-loading-percent {
+    font-size: 11px;
+    color: var(--text-faint, #aaaaaa);
+    text-align: center;
+    margin-top: var(--space-2, 8px);
+}
+
+/* === Object Cards === */
+.m-card-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.m-card {
+    background-color: var(--bg-secondary, #fff);
+    border-bottom: 1px solid var(--border-color, var(--border-light, #eeebe5));
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2-5, 10px);
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.15s ease;
+}
+
+.m-card:active {
+    background-color: var(--bg-primary, #f2f0ed);
+}
+
+/* Altitude Badge */
+.m-card-badge {
+    width: 52px;
+    height: 40px;
+    border-radius: 8px;
+    font-family: 'DM Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 15px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #fff;
+}
+
+.m-card-badge.badge-high {
+    background-color: #4a8fa0;
+}
+
+.m-card-badge.badge-med {
+    background-color: var(--primary-color, #83b4c5);
+}
+
+.m-card-badge.badge-low {
+    background-color: var(--primary-bg, #eaf4f8);
+    color: var(--text-secondary, #4a4a4a);
+}
+
+/* Card Body */
+.m-card-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.m-card-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+    line-height: 1.3;
+}
+
+.m-card-name {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary, #141414);
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.m-card-id {
+    font-family: 'DM Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 13px;
+    color: var(--text-faint, #aaaaaa);
+    margin-left: 6px;
+    flex-shrink: 0;
+}
+
+.m-card-active-dot {
+    width: 6px;
+    height: 6px;
+    background-color: var(--primary-color, #83b4c5);
+    display: inline-block;
+    border-radius: 50%;
+    margin-left: 4px;
+    flex-shrink: 0;
+}
+
+/* Card Meta Row */
+.m-card-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2-5, 10px);
+    margin-top: 4px;
+}
+
+.m-trend {
+    font-size: 14px;
+    font-weight: 500;
+    flex-shrink: 0;
+}
+
+.m-trend.trend-up {
+    color: #4a9060;
+}
+
+.m-trend.trend-down {
+    color: #c0504a;
+}
+
+.m-trend.trend-flat {
+    color: var(--text-faint, #aaaaaa);
+}
+
+.m-meta-item {
+    font-size: 13px;
+    color: var(--text-muted, #888888);
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+
+.m-meta-item b {
+    font-weight: 500;
+    color: var(--text-secondary, #4a4a4a);
+    font-family: 'DM Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 14px;
+}
+
+/* Chevron */
+.m-card-chevron {
+    font-size: 18px;
+    color: var(--text-faint, #aaaaaa);
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+/* === Empty/No Results === */
+.m-empty {
+    text-align: center;
+    padding: var(--space-10, 40px) var(--space-4, 16px);
+    color: var(--text-muted, #888888);
+    font-size: 13px;
+    font-weight: 400;
+}
+
+
+/* === Hide old styles === */
+.search-bar,
+.sort-bar {
+    display: none;
+}
+
+/* Dark Mode Adjustments */
+[data-theme="dark"] body {
+    background-color: var(--bg-white, #0f1118);
+}
+
+[data-theme="dark"] .m-search-input {
+    background-color: var(--bg-secondary, #161b24);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.92);
+}
+
+[data-theme="dark"] .m-search-input::placeholder {
+    color: rgba(255, 255, 255, 0.18);
+}
+
+[data-theme="dark"] .m-search-input:focus {
+    border-color: var(--primary-color, #8ec8da);
+    box-shadow: 0 0 0 3px rgba(142, 200, 218, 0.15);
+}
+
+[data-theme="dark"] .m-toolbar {
+    background-color: var(--bg-light, #161b24);
+    border-bottom-color: var(--border-medium, rgba(255, 255, 255, 0.07));
+}
+
+[data-theme="dark"] .m-chip {
+    background-color: var(--bg-secondary, #1a1f28);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.30);
+}
+
+[data-theme="dark"] .m-chip:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+[data-theme="dark"] .m-chip.active {
+    background-color: var(--primary-color, #8ec8da);
+    border-color: var(--primary-color, #8ec8da);
+    color: #ffffff;
+}
+
+[data-theme="dark"] .m-loading-label {
+    color: rgba(255, 255, 255, 0.30);
+}
+
+[data-theme="dark"] .m-progress-track {
+    background-color: rgba(255, 255, 255, 0.10);
+}
+
+[data-theme="dark"] .m-loading-percent {
+    color: rgba(255, 255, 255, 0.18);
+}
+
+[data-theme="dark"] .m-card {
+    background-color: var(--bg-secondary, #161b24);
+    border-bottom-color: var(--border-medium, rgba(255, 255, 255, 0.07));
+}
+
+[data-theme="dark"] .m-card:active {
+    background-color: var(--bg-white, #0f1118);
+}
+
+[data-theme="dark"] .m-card-badge.badge-low {
+    background-color: rgba(142, 200, 218, 0.1);
+    color: rgba(255, 255, 255, 0.55);
+}
+
+[data-theme="dark"] .m-card-name {
+    color: rgba(255, 255, 255, 0.92);
+}
+
+[data-theme="dark"] .m-card-id {
+    color: rgba(255, 255, 255, 0.18);
+}
+
+[data-theme="dark"] .m-card-active-dot {
+    background-color: var(--primary-color, #8ec8da);
+}
+
+[data-theme="dark"] .m-meta-item {
+    color: rgba(255, 255, 255, 0.30);
+}
+
+[data-theme="dark"] .m-meta-item b {
+    color: rgba(255, 255, 255, 0.55);
+}
+
+[data-theme="dark"] .m-card-chevron {
+    color: rgba(255, 255, 255, 0.18);
+}
+
+[data-theme="dark"] .m-result-count {
+    color: rgba(255, 255, 255, 0.18);
+}
+
+[data-theme="dark"] .m-sort-btn {
+    background: var(--bg-secondary, #1a1f28);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.30);
+}
+
+[data-theme="dark"] .m-sort-btn #sort-label {
+    color: var(--primary-color, #8ec8da);
+}
+
+[data-theme="dark"] .m-sort-arrow {
+    color: rgba(255, 255, 255, 0.18);
+}
+
+[data-theme="dark"] .m-sort-dropdown {
+    background: var(--bg-secondary, #1a1f28);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .m-sort-option {
+    color: rgba(255, 255, 255, 0.70);
+    border-bottom-color: rgba(255, 255, 255, 0.07);
+}
+
+[data-theme="dark"] .m-sort-option.active {
+    color: var(--primary-color, #8ec8da);
+}
+
+[data-theme="dark"] .m-sort-option:active {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .m-empty {
+    color: rgba(255, 255, 255, 0.30);
+}
+
+/* ── Filters button ── */
+.m-filter-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    background: var(--bg-secondary, #fff);
+    border: 1px solid var(--border-color, #e5e2dc);
+    border-radius: 20px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-secondary, #4a4a4a);
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-family: 'DM Sans', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.m-filter-btn.has-filters {
+    background: var(--primary-bg, #eaf4f8);
+    border-color: var(--primary-color, #83b4c5);
+    color: var(--primary-hover, #6a9eb0);
+}
+
+.m-filter-count {
+    background: var(--primary-color, #83b4c5);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Mono', monospace;
+}
+
+/* ── Result count ── */
+.m-result-count {
+    font-size: 11px;
+    font-weight: 500;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-faint, #aaaaaa);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Search row with inline result count */
+.m-search-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.m-search-row .m-search-input {
+    flex: 1;
+    min-width: 0;
+}
+
+.m-search-row .m-result-count {
+    font-size: 11px;
+    font-weight: 500;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-faint, #aaaaaa);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Sort dropdown */
+.m-sort-wrapper {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.m-sort-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    background: var(--bg-secondary, #fff);
+    border: 1px solid var(--border-color, #e5e2dc);
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted, #888);
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: 'DM Sans', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.m-sort-btn #sort-label {
+    color: var(--primary-hover, #6a9eb0);
+}
+
+.m-sort-arrow {
+    font-size: 11px;
+    color: var(--text-faint, #aaa);
+}
+
+.m-sort-dropdown {
+    display: none;
+    position: fixed;
+    background: var(--bg-secondary, #fff);
+    border: 1px solid var(--border-color, #e5e2dc);
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    z-index: 500;
+    min-width: 140px;
+    overflow: hidden;
+}
+
+.m-sort-dropdown.open { display: block; }
+
+.m-sort-option {
+    padding: 11px 16px;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-secondary, #4a4a4a);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    border-bottom: 1px solid var(--border-light, #eeebe5);
+}
+
+.m-sort-option:last-child { border-bottom: none; }
+
+.m-sort-option.active {
+    color: var(--primary-hover, #6a9eb0);
+    font-weight: 700;
+}
+
+.m-sort-option:active {
+    background: var(--bg-tertiary, #f7f5f2);
+}
+
+/* ── Bottom sheet overlay ── */
+.m-sheet-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    bottom: 64px;
+    background: rgba(0,0,0,0.3);
+    z-index: 200;
+}
+
+.m-sheet-overlay.open { display: block; }
+
+/* ── Bottom sheet ── */
+.m-sheet {
+    position: fixed;
+    top: auto;
+    bottom: 64px;
+    left: 0;
+    right: 0;
+    max-height: 85vh;
+    background: var(--bg-secondary, #fff);
+    border-radius: 16px 16px 0 0;
+    z-index: 201;
+    display: none;                  /* hidden by default */
+    flex-direction: column;
+    padding-bottom: env(safe-area-inset-bottom);
+    transform: translateY(100%);
+    transition: transform 0.28s cubic-bezier(0.32, 0, 0.15, 1);
+}
+
+.m-sheet.open {
+    display: flex;
+}
+
+.m-sheet.open.visible {
+    transform: translateY(0);
+}
+
+.m-sheet-handle-area {
+    padding: 10px 0 4px;
+    display: flex;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.m-sheet-handle {
+    width: 36px;
+    height: 4px;
+    background: var(--border-color, #e5e2dc);
+    border-radius: 2px;
+}
+
+.m-sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 20px 12px;
+    border-bottom: 1px solid var(--border-color, #e5e2dc);
+    flex-shrink: 0;
+}
+
+.m-sheet-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-primary, #141414);
+}
+
+.m-sheet-reset {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--primary-hover, #6a9eb0);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 0;
+    font-family: 'DM Sans', sans-serif;
+}
+
+.m-sheet-body {
+    overflow-y: scroll;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding: 8px 20px 24px;
+    flex: 1;
+    min-height: 0;
+}
+
+.m-sheet-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-light, #eeebe5);
+    gap: 12px;
+}
+
+.m-sheet-row:last-child { border-bottom: none; }
+
+.m-sheet-label {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary, #141414);
+    flex-shrink: 0;
+}
+
+.m-sheet-input-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.m-sheet-prefix,
+.m-sheet-suffix {
+    font-size: 12px;
+    color: var(--text-muted, #888);
+    font-family: 'DM Mono', monospace;
+    flex-shrink: 0;
+}
+
+.m-sheet-input {
+    width: 64px;
+    padding: 6px 8px;
+    border: 1px solid var(--border-color, #e5e2dc);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-primary, #141414);
+    background: var(--bg-tertiary, #f7f5f2);
+    text-align: center;
+}
+
+.m-sheet-input:focus {
+    outline: none;
+    border-color: var(--primary-color, #83b4c5);
+}
+
+.m-sheet-input-full {
+    flex: 1;
+    padding: 6px 10px;
+    border: 1px solid var(--border-color, #e5e2dc);
+    border-radius: 6px;
+    font-size: 15px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text-primary, #141414);
+    background: var(--bg-tertiary, #f7f5f2);
+    min-width: 0;
+}
+
+.m-sheet-input-full:focus {
+    outline: none;
+    border-color: var(--primary-color, #83b4c5);
+}
+
+.m-sheet-footer {
+    padding: 16px 20px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border-color, #e5e2dc);
+    flex-shrink: 0;
+    background: var(--bg-secondary, #fff);
+}
+
+.m-sheet-apply {
+    width: 100%;
+    padding: 13px;
+    background: var(--primary-color, #83b4c5);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+}
+
+.m-sheet-apply:active {
+    filter: brightness(0.9);
+}
+
+/* ── Slider rows ── */
+.m-sheet-slider-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.m-sheet-slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.m-slider-value {
+    font-size: 15px;
+    font-weight: 600;
+    font-family: 'DM Mono', monospace;
+    color: var(--primary-hover, #6a9eb0);
+}
+
+.m-slider {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border-color, #e5e2dc);
+    outline: none;
+    cursor: pointer;
+}
+
+.m-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--primary-color, #83b4c5);
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    border: 2px solid #fff;
+}
+
+.m-slider::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--primary-color, #83b4c5);
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+
+/* ── Type/Constellation chip grid ── */
+.m-sheet-chips-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+}
+
+.m-type-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.m-type-chip {
+    padding: 4px 10px;
+    border: 1px solid var(--border-color, #e5e2dc);
+    border-radius: 14px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-muted, #888);
+    background: var(--bg-tertiary, #f7f5f2);
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.12s;
+}
+
+.m-type-chip.selected {
+    background: var(--primary-bg, #eaf4f8);
+    border-color: var(--primary-color, #83b4c5);
+    color: var(--primary-hover, #6a9eb0);
+}
+
+.m-sheet-op {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-faint, #aaaaaa);
+    font-family: 'DM Mono', monospace;
+    margin-left: 2px;
+}
+
+    @media not all and (display-mode: standalone) {
+        .m-sheet { bottom: 114px; }
+        .m-sheet-overlay { bottom: 114px; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-    <div id="mobile-loading" style="padding: 20px; text-align: center;">
-        <div style="font-weight: bold; color: var(--primary-dark); margin-bottom: 10px;">{{ _('Scanning Sky...') }}</div>
-        <div style="width: 100%; height: 8px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden;">
-            <div id="progress-fill" style="width: 0%; height: 100%; background: var(--primary-dark); transition: width 0.3s ease;"></div>
+<!-- Loading State -->
+<div id="mobile-loading" class="m-loading" style="display: none;">
+    <div class="m-loading-label">{{ _('Scanning Sky...') }}</div>
+    <div class="m-progress-track">
+        <div id="progress-fill" class="m-progress-bar" style="width: 0%;"></div>
+    </div>
+    <div id="loading-text" class="m-loading-percent">{{ _('Initializing...') }}</div>
+</div>
+
+<!-- Search Bar -->
+<div class="m-search-bar">
+    <div class="m-search-row">
+        <input type="text" id="search-input" class="m-search-input"
+               placeholder="{{ _('Search objects...') }}">
+        <span class="m-result-count" id="result-count"></span>
+    </div>
+</div>
+
+<!-- Filter/Sort Toolbar -->
+<div class="m-toolbar">
+    <button class="m-filter-btn" id="open-filters">
+        {{ _('Filters') }}
+        <span class="m-filter-count" id="filter-count" style="display:none;">0</span>
+    </button>
+    <button class="m-chip" id="filter-active">{{ _('Active') }}</button>
+    <button class="m-chip" id="filter-framing">{{ _('Framing') }}</button>
+    <div class="m-toolbar-spacer"></div>
+    <div class="m-sort-wrapper">
+        <button class="m-sort-btn" id="sort-btn">
+          {{ _('Sort') }}: <span id="sort-label">{{ _('Altitude') }}</span>
+          <span class="m-sort-arrow" id="sort-arrow">↓</span>
+        </button>
+    </div>
+</div>
+
+<!-- Object List -->
+<ul class="m-card-list" id="object-list">
+    <li id="loading-indicator" class="m-empty" style="display: none;">
+        {{ _('No objects match your filters') }}
+    </li>
+</ul>
+
+<!-- Sort dropdown (body-level to escape stacking contexts) -->
+<div class="m-sort-dropdown" id="sort-dropdown">
+  <div class="m-sort-option active" data-sort="alt">{{ _('Altitude') }}</div>
+  <div class="m-sort-option" data-sort="dur">{{ _('Duration') }}</div>
+</div>
+
+<!-- Filter bottom sheet -->
+<div class="m-sheet-overlay" id="filter-overlay"></div>
+<div class="m-sheet" id="filter-sheet">
+    <div class="m-sheet-handle-area">
+        <div class="m-sheet-handle"></div>
+    </div>
+    <div class="m-sheet-header">
+        <span class="m-sheet-title">{{ _('Filters') }}</span>
+        <button class="m-sheet-reset" id="filter-reset">{{ _('Reset') }}</button>
+    </div>
+
+    <div class="m-sheet-body">
+
+        <!-- Min Altitude slider -->
+        <div class="m-sheet-row m-sheet-slider-row">
+            <div class="m-sheet-slider-header">
+                <label class="m-sheet-label">{{ _('Alt Now') }} <span class="m-sheet-op">&ge;</span></label>
+                <span class="m-slider-value" id="val-min-alt">0°</span>
+            </div>
+            <input type="range" class="m-slider" id="f-min-alt"
+                   min="0" max="90" step="5" value="0">
         </div>
-        <small id="loading-text" style="display: block; margin-top: 8px; color: var(--text-muted);">{{ _('Initializing...') }}</small>
+
+        <!-- Max Altitude slider -->
+        <div class="m-sheet-row m-sheet-slider-row">
+            <div class="m-sheet-slider-header">
+                <label class="m-sheet-label">{{ _('Alt Max') }} <span class="m-sheet-op">&ge;</span></label>
+                <span class="m-slider-value" id="val-max-alt">0°</span>
+            </div>
+            <input type="range" class="m-slider" id="f-max-alt"
+                   min="0" max="90" step="5" value="0">
+        </div>
+
+        <!-- Min Duration slider -->
+        <div class="m-sheet-row m-sheet-slider-row">
+            <div class="m-sheet-slider-header">
+                <label class="m-sheet-label">{{ _('Duration') }} <span class="m-sheet-op">&ge;</span></label>
+                <span class="m-slider-value" id="val-min-dur">0m</span>
+            </div>
+            <input type="range" class="m-slider" id="f-min-dur"
+                   min="0" max="600" step="15" value="0">
+        </div>
+
+        <!-- Min Moon Sep slider -->
+        <div class="m-sheet-row m-sheet-slider-row">
+            <div class="m-sheet-slider-header">
+                <label class="m-sheet-label">{{ _('Moon Sep') }} <span class="m-sheet-op">&ge;</span></label>
+                <span class="m-slider-value" id="val-min-moon">0°</span>
+            </div>
+            <input type="range" class="m-slider" id="f-min-moon"
+                   min="0" max="180" step="10" value="0">
+        </div>
+
+        <!-- Type chip grid -->
+        <div class="m-sheet-row m-sheet-chips-row">
+            <label class="m-sheet-label">{{ _('Type') }}</label>
+            <div class="m-type-chips" id="type-chips">
+                <div class="m-type-chip" data-type="PN">PN</div>
+                <div class="m-type-chip" data-type="SNR">SNR</div>
+                <div class="m-type-chip" data-type="HII">HII</div>
+                <div class="m-type-chip" data-type="GX">GX</div>
+                <div class="m-type-chip" data-type="GC">GC</div>
+                <div class="m-type-chip" data-type="OC">OC</div>
+                <div class="m-type-chip" data-type="BN">BN</div>
+                <div class="m-type-chip" data-type="RN">RN</div>
+                <div class="m-type-chip" data-type="EmN">EmN</div>
+                <div class="m-type-chip" data-type="DRN">DRN</div>
+                <div class="m-type-chip" data-type="DSO">DSO</div>
+            </div>
+        </div>
+
+        <!-- Constellation text filter -->
+        <div class="m-sheet-row m-sheet-chips-row">
+            <label class="m-sheet-label">{{ _('Constellation') }}</label>
+            <input type="text" class="m-sheet-input-full" id="f-const"
+                   placeholder="{{ _('or type name...') }}"
+                   style="margin-top: 4px;">
+        </div>
+
     </div>
 
-    <div class="search-bar">
-        <input type="text" id="search-input" placeholder="{{ _('Search by name (e.g., M42 or Orion)...') }}">
+    <div class="m-sheet-footer">
+        <button class="m-sheet-apply" id="filter-apply">{{ _('Apply') }}</button>
     </div>
-
-    <div class="sort-bar">
-        <button class="sort-button active" id="sort-alt">{{ _('Altitude') }}</button>
-        <button class="sort-button" id="sort-dur">{{ _('Duration') }}</button>
-        <button class="sort-button" id="filter-active">{{ _('Active') }}</button>
-        <button class="sort-button" id="filter-framing">{{ _('Framing') }}</button>
-    </div>
-
-    <ul class="item-list" id="object-list" style="margin-top: 15px; display: none;">
-        <li class="message" id="loading-indicator" style="display: none;">
-            {{ _('No objects found.') }}
-        </li>
-    </ul>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -117,15 +1013,7 @@
         noSearchMatch: "{{ _('No objects match your search.') }}",
         noFilterMatch: "{{ _('No objects match your filter.') }}",
         calculatedOf: "{{ _('Calculated %%(count)d of %%(total)d objects...') }}",
-        errorLoading: "{{ _('Error loading data.') }}",
-        duration: "{{ _('Duration:') }}",
-        notVisible: "{{ _('Not visible') }}",
-        edit: "{{ _('Edit') }}",
-        framing: "{{ _('Framing') }}",
-        altitude: "{{ _('Altitude:') }}",
-        azimuth: "{{ _('Azimuth:') }}",
-        maxAlt: "{{ _('Max Alt:') }}",
-        min: "{{ _('min') }}"
+        errorLoading: "{{ _('Error loading data.') }}"
     };
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -134,8 +1022,6 @@
         const progressFill = document.getElementById('progress-fill');
         const loadingText = document.getElementById('loading-text');
 
-        const sortAltButton = document.getElementById('sort-alt');
-        const sortDurButton = document.getElementById('sort-dur');
         const filterActiveButton = document.getElementById('filter-active');
         const filterFramingButton = document.getElementById('filter-framing');
         const searchInput = document.getElementById('search-input');
@@ -144,6 +1030,80 @@
 
         // Items are now stored here after fetching
         let allItems = [];
+
+        // ── Filter state ──
+        const FILTERS = {
+            minAlt:   0,
+            maxAlt:   0,   // >= semantics: 0 means no filter
+            minDur:   0,
+            minMoon:  0,
+            type:     '',
+            const:    '',
+        };
+
+        // ── Slider live value display ──
+        function initSlider(id, valId, suffix) {
+            const slider = document.getElementById(id);
+            const valEl  = document.getElementById(valId);
+            if (!slider || !valEl) return;
+            slider.addEventListener('input', () => {
+                valEl.textContent = slider.value + suffix;
+            });
+        }
+        initSlider('f-min-alt',  'val-min-alt',  '°');
+        initSlider('f-max-alt',  'val-max-alt',  '°');
+        initSlider('f-min-dur',  'val-min-dur',  'm');
+        initSlider('f-min-moon', 'val-min-moon', '°');
+
+        // ── Type chip selection (multi-select) ──
+        document.getElementById('type-chips')
+            ?.addEventListener('click', (e) => {
+                const chip = e.target.closest('.m-type-chip');
+                if (!chip) return;
+                chip.classList.toggle('selected');
+            });
+
+        // ── Constellation chip population (from loaded data) ──
+        function populateConstChips() {
+            const container = document.getElementById('const-chips');
+            if (!container) return;
+
+            // Collect all raw constellation values from loaded items
+            const raw = [...new Set(
+                allItems
+                    .map(i => i.dataset.constellation)
+                    .filter(c => c && c.trim() !== '')
+            )];
+
+            // Separate into full names (>4 chars) and abbreviations (<=4 chars)
+            const fullNames = raw.filter(c => c.length > 4);
+            const abbrevs   = raw.filter(c => c.length <= 4);
+
+            // Build a set of normalised full-name prefixes for dedup lookup
+            // e.g. "orion" → first 3 chars = "ori" — drop any abbrev that
+            // matches first 3 chars of an existing full name
+            const fullPrefixes = new Set(fullNames.map(n => n.slice(0, 3)));
+
+            // Keep abbreviation only if no matching full name exists
+            const kept = [
+                ...fullNames,
+                ...abbrevs.filter(a => !fullPrefixes.has(a.slice(0, 3)))
+            ];
+
+            // Sort alphabetically
+            kept.sort((a, b) => a.localeCompare(b));
+
+            container.innerHTML = '';
+            kept.forEach(c => {
+                const chip = document.createElement('div');
+                chip.className = 'm-type-chip';
+                chip.dataset.const = c;
+                // Capitalise first letter for display
+                chip.textContent = c.charAt(0).toUpperCase() + c.slice(1);
+                chip.addEventListener('click', () => chip.classList.toggle('selected'));
+                container.appendChild(chip);
+            });
+        }
 
         let currentSort = 'alt';
         let filterActive = false;
@@ -177,23 +1137,29 @@
                 itemsToShow.sort((a, b) => {
                     return parseFloat(b.dataset.sortAlt) - parseFloat(a.dataset.sortAlt);
                 });
-                sortAltButton.classList.add('active');
-                sortDurButton.classList.remove('active');
             } else { // 'dur'
                 itemsToShow.sort((a, b) => {
                     return parseFloat(b.dataset.sortDur) - parseFloat(a.dataset.sortDur);
                 });
-                sortDurButton.classList.add('active');
-                sortAltButton.classList.remove('active');
             }
 
             // 4. Update DOM
             allItems.forEach(item => item.style.display = 'none'); // Hide all first
 
             itemsToShow.forEach(item => {
-                item.style.display = 'block';
+                item.style.display = 'flex';
                 list.appendChild(item); // Re-append in order
             });
+
+            // Update result count display
+            const countEl = document.getElementById('result-count');
+            if (countEl) {
+                const total = allItems.length;
+                const visible = allItems.filter(item => item.style.display !== 'none').length;
+                countEl.textContent = visible < total
+                    ? `${visible} / ${total}`
+                    : `${total}`;
+            }
 
             // 5. Update Message
             if (noObjectsMessage) {
@@ -224,20 +1190,6 @@
             renderList();
         });
 
-        sortAltButton.addEventListener('click', () => {
-            if (currentSort !== 'alt') {
-                currentSort = 'alt';
-                renderList();
-            }
-        });
-
-        sortDurButton.addEventListener('click', () => {
-            if (currentSort !== 'dur') {
-                currentSort = 'dur';
-                renderList();
-            }
-        });
-
         filterActiveButton.addEventListener('click', () => {
             filterActive = !filterActive;
             renderList();
@@ -248,6 +1200,123 @@
             renderList();
         });
 
+        // ── Sort dropdown ──
+        const sortBtn      = document.getElementById('sort-btn');
+        const sortDropdown = document.getElementById('sort-dropdown');
+        const sortLabelEl  = document.getElementById('sort-label');
+
+        sortBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = sortDropdown.classList.contains('open');
+            if (!isOpen) {
+                // Position dropdown below the button using fixed coords
+                const rect = sortBtn.getBoundingClientRect();
+                sortDropdown.style.top  = (rect.bottom + 6) + 'px';
+                sortDropdown.style.right = (window.innerWidth - rect.right) + 'px';
+            }
+            sortDropdown.classList.toggle('open');
+        });
+
+        document.addEventListener('click', () => {
+            sortDropdown?.classList.remove('open');
+        });
+
+        sortDropdown?.addEventListener('click', (e) => {
+            const option = e.target.closest('.m-sort-option');
+            if (!option) return;
+            currentSort = option.dataset.sort;
+            sortDropdown.querySelectorAll('.m-sort-option')
+                .forEach(o => o.classList.toggle('active', o.dataset.sort === currentSort));
+            sortLabelEl.textContent = option.textContent.trim();
+            sortDropdown.classList.remove('open');
+            refreshListItemsAndSort();
+        });
+
+        // ── Filter sheet ──
+        const filterSheet   = document.getElementById('filter-sheet');
+        const filterOverlay = document.getElementById('filter-overlay');
+        const filterBtn     = document.getElementById('open-filters');
+        const filterCountEl = document.getElementById('filter-count');
+
+        function openSheet() {
+            // Show the sheet first (display:flex), then animate transform
+            filterSheet.classList.add('open');
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    filterSheet.classList.add('visible');
+                });
+            });
+            filterOverlay.classList.add('open');
+            document.body.classList.add('sheet-open');
+        }
+
+        function closeSheet() {
+            filterSheet.classList.remove('visible');
+            filterSheet.addEventListener('transitionend', function handler() {
+                filterSheet.classList.remove('open');
+                filterSheet.removeEventListener('transitionend', handler);
+            });
+            filterOverlay.classList.remove('open');
+            document.body.classList.remove('sheet-open');
+        }
+
+        function countActiveFilters() {
+            let n = 0;
+            if (FILTERS.minAlt > 0)    n++;
+            if (FILTERS.maxAlt > 0)    n++;
+            if (FILTERS.minDur > 0)    n++;
+            if (FILTERS.minMoon > 0)   n++;
+            if (FILTERS.type)          n++;
+            if (FILTERS.const)         n++;
+            return n;
+        }
+
+        function updateFilterBadge() {
+            const n = countActiveFilters();
+            filterCountEl.textContent = n;
+            filterCountEl.style.display = n > 0 ? 'flex' : 'none';
+            filterBtn.classList.toggle('has-filters', n > 0);
+        }
+
+        filterBtn?.addEventListener('click', openSheet);
+        filterOverlay?.addEventListener('click', closeSheet);
+
+        document.getElementById('filter-apply')?.addEventListener('click', () => {
+            FILTERS.minAlt  = parseInt(document.getElementById('f-min-alt').value)  || 0;
+            FILTERS.maxAlt  = parseInt(document.getElementById('f-max-alt').value)  || 0;
+            FILTERS.minDur  = parseInt(document.getElementById('f-min-dur').value)  || 0;
+            FILTERS.minMoon = parseInt(document.getElementById('f-min-moon').value) || 0;
+            // Type chips (multi-select)
+            const typeChips = document.querySelectorAll('#type-chips .m-type-chip.selected');
+            FILTERS.type    = Array.from(typeChips).map(c => c.dataset.type).join(',');
+            // Constellation text input
+            FILTERS.const = document.getElementById('f-const').value.trim();
+            updateFilterBadge();
+            closeSheet();
+            refreshListItemsAndSort();
+        });
+
+        document.getElementById('filter-reset')?.addEventListener('click', () => {
+            FILTERS.minAlt = 0; FILTERS.maxAlt = 0;
+            FILTERS.minDur = 0; FILTERS.minMoon = 0;
+            FILTERS.type = ''; FILTERS.const = '';
+            // Reset sliders to defaults
+            document.getElementById('f-min-alt').value  = 0;
+            document.getElementById('f-max-alt').value  = 0;
+            document.getElementById('f-min-dur').value  = 0;
+            document.getElementById('f-min-moon').value = 0;
+            document.getElementById('val-min-alt').textContent = '0°';
+            document.getElementById('val-max-alt').textContent = '0°';
+            document.getElementById('val-min-dur').textContent = '0m';
+            document.getElementById('val-min-moon').textContent = '0°';
+            // Deselect all chips
+            document.querySelectorAll('.m-type-chip.selected').forEach(c => c.classList.remove('selected'));
+            // Clear const text input
+            document.getElementById('f-const').value = '';
+            updateFilterBadge();
+            refreshListItemsAndSort();
+        });
+
         // --- Chunked Data Fetching & Caching ---
         const CHUNK_SIZE = 5;
 
@@ -255,6 +1324,28 @@
         const activeLoc = sessionStorage.getItem('nova_mobile_location') || 'default';
         const CACHE_KEY = `nova_mobile_cache_${activeLoc}`;
         const CACHE_EXPIRY = 5 * 60 * 1000; // 5 Minutes
+
+        // Helper function to determine trend class
+        function getTrendClass(trend) {
+            if (trend && trend.includes('↑')) return 'trend-up';
+            if (trend && trend.includes('↓')) return 'trend-down';
+            return 'trend-flat';
+        }
+
+        // Helper function to determine badge class
+        function getBadgeClass(alt) {
+            const altVal = parseFloat(alt);
+            if (altVal >= 45) return 'badge-high';
+            if (altVal >= 20) return 'badge-med';
+            return 'badge-low';
+        }
+
+        // Helper function to format duration
+        function formatDuration(mins) {
+            const val = parseInt(mins);
+            if (val === 0) return '0m';
+            return val + 'm';
+        }
 
         async function fetchMobileData() {
             // 1. Try loading from Cache first
@@ -269,6 +1360,7 @@
                         list.style.display = 'block';
 
                         cached.data.forEach(obj => createListItem(obj));
+                        populateConstChips();
                         refreshListItemsAndSort();
                         return; // Exit early, no fetching needed
                     }
@@ -314,6 +1406,7 @@
                 setTimeout(() => {
                     loadingContainer.style.display = 'none';
                     list.style.display = 'block';
+                    populateConstChips();
                     refreshListItemsAndSort();
                 }, 500);
 
@@ -325,61 +1418,160 @@
 
         function createListItem(obj) {
             const li = document.createElement('li');
-            li.className = 'item-card';
+            li.className = 'm-card';
 
-            li.dataset.sortAlt = parseFloat(obj['Altitude Current']) || 0;
-            li.dataset.sortDur = parseInt(obj['Observable Duration (min)']) || 0;
-            li.dataset.isActive = obj.ActiveProject ? 'true' : 'false';
-            li.dataset.hasFraming = obj.has_framing ? 'true' : 'false';
+            const alt = parseFloat(obj['Altitude Current']) || 0;
+            const dur = parseInt(obj['Observable Duration (min)']) || 0;
+            const isActive = obj.ActiveProject ? 'true' : 'false';
+            const hasFraming = obj.has_framing ? 'true' : 'false';
+
+            li.dataset.sortAlt = alt;
+            li.dataset.sortDur = dur;
+            li.dataset.maxAlt = parseFloat(obj['Max Altitude (°)']) || 0;
+            li.dataset.isActive = isActive;
+            li.dataset.hasFraming = hasFraming;
             li.dataset.searchText = (obj['Common Name'] + ' ' + obj['Object']).toLowerCase();
-            li.style.display = 'block';
+            li.dataset.moonSep       = parseFloat(obj['Angular Separation (°)']) || 999;
+            li.dataset.type          = (obj['Type'] || '').toLowerCase();
+            li.dataset.constellation = (obj['Constellation'] || '').toLowerCase();
+            li.style.display = 'none';
+            allItems.push(li);
 
-            // Construct URLs
+            // Construct URL for navigation
             const safeObj = encodeURIComponent(obj.Object);
-            const baseEditUrl = "{{ url_for('mobile.mobile_edit_notes', object_name='__OBJ__') }}";
-            const editUrl = baseEditUrl.replace('__OBJ__', safeObj);
 
-            const baseMosaicUrl = "{{ url_for('mobile.mobile_mosaic_view', object_name='__OBJ__') }}";
-            // Append source param
-            const mosaicUrl = baseMosaicUrl.replace('__OBJ__', safeObj) + "?from=up_now";
+            // Determine badge class and trend class
+            const badgeClass = getBadgeClass(alt);
+            const trendClass = getTrendClass(obj['Trend']);
 
-            let durHtml = `<div><strong>${i18n.duration}</strong> ${obj['Observable Duration (min)']} ${i18n.min}</div>`;
-            if (obj['Observable Duration (min)'] == 0) {
-                durHtml = `<div><strong>${i18n.duration}</strong> ${i18n.notVisible}</div>`;
-            }
+            // Build HTML
+            const trendSymbol = obj['Trend'] && obj['Trend'].includes('↑') ? '↑' :
+                             obj['Trend'] && obj['Trend'].includes('↓') ? '↓' : '–';
 
-            let actionsHtml = `<a href="${editUrl}" class="edit-button">${i18n.edit}</a>`;
-
-            // Only show ASIAIR button if framing exists
-            if (obj.has_framing) {
-                actionsHtml = `<a href="${mosaicUrl}" class="asiair-btn">${i18n.framing}</a>` + actionsHtml;
-            }
+            const activeDotHtml = isActive === 'true' ? '<span class="m-card-active-dot"></span>' : '';
 
             li.innerHTML = `
-                <div class="card-actions">
-                    ${actionsHtml}
+                <div class="m-card-badge ${badgeClass}">${Math.round(alt)}°</div>
+                <div class="m-card-body">
+                    <div class="m-card-title">
+                        <span class="m-card-name">${obj['Common Name']}</span>
+                        <span class="m-card-id">${obj['Object']}</span>
+                        ${activeDotHtml}
+                    </div>
+                    <div class="m-card-meta">
+                        <span class="m-trend ${trendClass}">${trendSymbol}</span>
+                        <span class="m-meta-item">AZ <b>${obj['Azimuth Current']}°</b></span>
+                        <span class="m-meta-item">MAX <b>${obj['Max Altitude (°)']}°</b></span>
+                        <span class="m-meta-item">DUR <b>${formatDuration(dur)}</b></span>
+                    </div>
                 </div>
-                <h3 style="margin-right: 130px;">${obj['Common Name']} (${obj['Object']})</h3>
-                <div class="item-card-grid">
-                    <div><strong>${i18n.altitude}</strong> ${obj['Altitude Current']}° ${obj['Trend']}</div>
-                    <div><strong>${i18n.azimuth}</strong> ${obj['Azimuth Current']}°</div>
-                    <div><strong>${i18n.maxAlt}</strong> ${obj['Max Altitude (°)']}°</div>
-                    ${durHtml}
-                </div>
+                <span class="m-card-chevron">›</span>
             `;
+
+            // Make the card clickable to navigate to object detail
+            li.addEventListener('click', () => {
+                window.location.href = `/m/object/${safeObj}`;
+            });
 
             list.appendChild(li);
         }
 
         function refreshListItemsAndSort() {
-            // Grab the newly created elements from DOM and put them in our array
-            const currentItems = Array.from(list.querySelectorAll('.item-card'));
-            allItems = currentItems;
-            renderList();
+            const searchTerm    = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
+            const filterActive  = document.getElementById('filter-active')?.classList.contains('active') || false;
+            const filterFraming = document.getElementById('filter-framing')?.classList.contains('active') || false;
+
+            let visibleCount = 0;
+
+            allItems.forEach(item => {
+                const alt     = parseFloat(item.dataset.sortAlt) || 0;
+                const maxAlt  = parseFloat(item.dataset.maxAlt) || 0;
+                const dur     = parseInt(item.dataset.sortDur) || 0;
+                const moon    = parseFloat(item.dataset.moonSep ?? 999);
+                const type    = (item.dataset.type || '').toLowerCase();
+                const cons    = (item.dataset.constellation || '').toLowerCase();
+
+                const matchSearch   = !searchTerm  || item.dataset.searchText.includes(searchTerm);
+                const matchActive   = !filterActive  || item.dataset.isActive === 'true';
+                const matchFraming  = !filterFraming || item.dataset.hasFraming === 'true';
+                const matchMinAlt   = alt    >= FILTERS.minAlt;
+                const matchMaxAlt   = FILTERS.maxAlt === 0 || maxAlt >= FILTERS.maxAlt;
+                const matchDur      = dur  >= FILTERS.minDur;
+                const matchMoon     = moon >= FILTERS.minMoon;
+                const matchType     = !FILTERS.type  ||
+                    FILTERS.type.split(',').map(t => t.trim().toLowerCase())
+                        .some(t => type.includes(t));
+                const matchConst    = !FILTERS.const ||
+                    FILTERS.const.split(',').map(c => c.trim()).some(filterVal => {
+                        // Match if either value starts with the other's first 3 chars
+                        // handles "orion" ↔ "ori", "cygnus" ↔ "cyg" etc.
+                        const f3 = filterVal.slice(0, 3);
+                        const c3 = cons.slice(0, 3);
+                        return f3 === c3;
+                    });
+
+                const visible = matchSearch && matchActive && matchFraming &&
+                                matchMinAlt && matchMaxAlt && matchDur &&
+                                matchMoon && matchType && matchConst;
+
+                item.style.display = visible ? 'flex' : 'none';
+                if (visible) visibleCount++;
+            });
+
+            // Sort visible items
+            const sorted = allItems.filter(i => i.style.display !== 'none');
+            const sortByAlt = currentSort === 'alt';
+            sorted.sort((a, b) => sortByAlt
+                ? parseFloat(b.dataset.sortAlt) - parseFloat(a.dataset.sortAlt)
+                : parseInt(b.dataset.sortDur)   - parseInt(a.dataset.sortDur));
+            const list = document.getElementById('object-list');
+            sorted.forEach(item => list.appendChild(item));
+
+            // Result count
+            const countEl = document.getElementById('result-count');
+            if (countEl) {
+                const total = allItems.length;
+                countEl.textContent = visibleCount < total
+                    ? `${visibleCount} / ${total}`
+                    : `${total}`;
+            }
+
+            // Status strip object count (null-guarded)
+            const objectsEl = document.getElementById('status-objects');
+            if (objectsEl) objectsEl.textContent = allItems.length + ' objects';
+
+            // No-results indicator
+            const emptyEl = document.getElementById('loading-indicator');
+            if (emptyEl) emptyEl.style.display = visibleCount === 0 ? 'block' : 'none';
         }
 
-        // Start the process
+        // Fetch moon phase and dusk/dawn data
+        async function fetchMobileStatus() {
+            try {
+                const response = await fetch('{{ url_for("api.api_mobile_status") }}');
+                const data = await response.json();
+
+                if (data.moon_phase !== undefined) {
+                    const moonEl = document.getElementById('status-moon');
+                    if (moonEl) {
+                        moonEl.textContent = data.moon_phase + '%';
+                    }
+                }
+
+                if (data.dusk_dawn) {
+                    const duskDawnEl = document.getElementById('status-dusk-dawn');
+                    if (duskDawnEl) {
+                        duskDawnEl.textContent = data.dusk_dawn;
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to fetch mobile status:', e);
+            }
+        }
+
+        // Start the processes
         fetchMobileData();
+        fetchMobileStatus();
     });
 </script>
 {% endblock %}

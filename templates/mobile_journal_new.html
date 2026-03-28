@@ -1,0 +1,452 @@
+{% extends "mobile_base.html" %}
+
+{% block title %}{{ _("New Session") }}{% endblock %}
+{% block header_title %}{{ _("New Session") }}{% endblock %}
+
+{% block content %}
+<style>
+/* ── Journal form wrapper ── */
+.journal-form-wrapper {
+    padding-bottom: 88px; /* clear sticky save bar (64px nav + 24px gap) */
+}
+
+/* ── Form sections ── */
+.form-section {
+    margin-bottom: var(--space-6, 24px);
+}
+.form-section-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--text-faint, #aaaaaa);
+    margin-bottom: var(--space-3, 12px);
+    padding-left: var(--space-1, 4px);
+}
+
+/* ── Sky conditions row ── */
+.sky-conditions-row {
+    display: flex;
+    gap: var(--space-2, 8px);
+}
+.sky-field {
+    flex: 1;
+    min-width: 0;
+}
+.sky-field label {
+    display: block;
+    margin-bottom: var(--space-1, 4px);
+    font-weight: var(--font-weight-bold, 700);
+    font-size: 0.9rem;
+}
+
+/* ── Filter grid ── */
+.filter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2, 8px);
+}
+.filter-cell {
+    background: var(--bg-secondary, #ffffff);
+    border: 1px solid var(--border-color, #e5e2dc);
+    border-radius: var(--radius-md, 8px);
+    padding: var(--space-2, 8px);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1-5, 6px);
+}
+.filter-cell-label {
+    font-size: var(--font-size-xs, 11px);
+    font-weight: 700;
+    color: var(--text-muted, #666666);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.filter-cell-input {
+    width: 100%;
+    padding: var(--space-1-5, 6px) var(--space-2, 8px);
+    font-size: var(--font-size-sm, 14px);
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    border: 1px solid var(--border-color, #e5e2dc);
+    border-radius: var(--radius-sm, 5px);
+    background: var(--bg-tertiary, #f7f5f2);
+    color: var(--text-primary, #141414);
+    box-sizing: border-box;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+.filter-cell-input:focus {
+    outline: none;
+    border-color: var(--primary-color, #83b4c5);
+    box-shadow: 0 0 0 2px var(--primary-bg, rgba(131, 180, 197, 0.15));
+}
+
+/* ── Star rating ── */
+.star-rating-row {
+    display: flex;
+    gap: var(--space-1, 4px);
+    align-items: center;
+}
+.star {
+    font-size: 28px;
+    line-height: 1;
+    color: var(--border-color, #e5e2dc);
+    cursor: pointer;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    transition: color 0.15s;
+}
+.star.active {
+    color: var(--primary-color, #83b4c5);
+}
+
+/* ── Mobile save bar ── */
+.mobile-save-bar {
+    position: fixed;
+    bottom: 64px; /* above .mobile-nav */
+    left: 0;
+    right: 0;
+    display: flex;
+    gap: var(--space-2, 8px);
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+    padding-bottom: calc(var(--space-3, 12px) + env(safe-area-inset-bottom, 0px));
+    background: var(--bg-secondary, #ffffff);
+    border-top: 1px solid var(--border-color, #e5e2dc);
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+    z-index: 99;
+}
+.save-bar-btn {
+    flex: 1;
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+    border-radius: var(--radius-md, 8px);
+    font-size: var(--font-size-sm, 14px);
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    -webkit-tap-highlight-color: transparent;
+    border: none;
+    font-family: inherit;
+}
+.save-bar-btn.ghost {
+    background: transparent;
+    color: var(--text-secondary, #4a4a4a);
+    border: 1px solid var(--border-color, #d0cdc8);
+}
+.save-bar-btn.primary {
+    background: var(--primary-color, #83b4c5);
+    color: var(--text-white, #ffffff);
+    box-shadow: var(--shadow-sm);
+}
+
+/* ── Styled select ── */
+.form-select {
+    width: 100%;
+    padding: var(--space-3, 12px);
+    font-size: 1rem;
+    border: var(--input-border-width, 1px) solid var(--input-border-color);
+    border-radius: var(--radius-lg, 12px);
+    box-sizing: border-box;
+    color: var(--text-primary, #141414);
+    background-color: var(--bg-secondary, #ffffff);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23aaa'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 10px 6px;
+    padding-right: 32px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+.form-select:focus {
+    outline: none;
+    border-color: var(--primary-color, #83b4c5);
+    box-shadow: 0 0 0 2px var(--primary-bg, rgba(131, 180, 197, 0.15));
+}
+
+/* ── Dark mode adjustments ── */
+:root[data-theme="dark"] .filter-cell {
+    background: var(--bg-secondary, #161b24);
+    border-color: var(--border-color, rgba(255,255,255,0.07));
+}
+:root[data-theme="dark"] .filter-cell-input {
+    background: var(--bg-tertiary, #1c2230);
+    border-color: var(--border-color, rgba(255,255,255,0.07));
+    color: var(--text-primary, rgba(255,255,255,0.92));
+}
+:root[data-theme="dark"] .star {
+    color: rgba(255, 255, 255, 0.12);
+}
+:root[data-theme="dark"] .star.active {
+    color: var(--primary-color, #8ec8da);
+}
+:root[data-theme="dark"] .save-bar-btn.ghost {
+    color: rgba(255, 255, 255, 0.55);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+:root[data-theme="dark"] .mobile-save-bar {
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.25);
+}
+:root[data-theme="dark"] .form-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+    background-color: var(--bg-secondary, #161b24);
+    border-color: var(--border-color, rgba(255,255,255,0.07));
+    color: var(--text-primary, rgba(255,255,255,0.92));
+}
+</style>
+
+    <div class="journal-form-wrapper">
+        <form id="journal-form" method="POST" action="{{ url_for('mobile.mobile_journal_new') }}">
+            <!-- Session Info -->
+            <div class="form-section">
+                <div class="form-section-label">SESSION INFO</div>
+
+                <div class="form-group">
+                    <label for="session_date">{{ _("Date") }}</label>
+                    <input type="date" id="session_date" name="session_date" value="{{ today }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="target_object_id">{{ _("Target Object") }}</label>
+                    <input type="text" id="target_object_id" name="target_object_id" value="{{ prefill_object }}" placeholder="{{ _("e.g., M42") }}" list="objects-list" autocomplete="off">
+                    <datalist id="objects-list">
+                        {% for obj_name in objects_list %}
+                            <option value="{{ obj_name }}">
+                        {% endfor %}
+                    </datalist>
+                </div>
+
+                <div class="form-group">
+                    <label for="location_name">{{ _("Location") }}</label>
+                    <select id="location_name" name="location_name" class="form-select">
+                        <option value="">{{ _("Select Location") }}</option>
+                        {% for loc_name, loc_data in locations.items() %}
+                            <option value="{{ loc_name }}" {% if loc_name == g.selected_location %}selected{% endif %}>
+                                {{ loc_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="rig_id_snapshot">{{ _("Rig") }}</label>
+                    <select id="rig_id_snapshot" name="rig_id_snapshot" class="form-select">
+                        <option value="">{{ _("Select Rig") }}</option>
+                        {% for rig in rigs %}
+                            <option value="{{ rig.rig_id }}">
+                                {{ rig.rig_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Sky Conditions -->
+            <div class="form-section">
+                <div class="form-section-label">SKY CONDITIONS</div>
+
+                <div class="sky-conditions-row">
+                    <div class="form-group sky-field">
+                        <label for="seeing_observed_fwhm">Seeing</label>
+                        <input type="number" id="seeing_observed_fwhm" name="seeing_observed_fwhm" min="1" max="5" step="0.1" placeholder="1-5">
+                    </div>
+
+                    <div class="form-group sky-field">
+                        <label for="sky_sqm_observed">SQM</label>
+                        <input type="number" id="sky_sqm_observed" name="sky_sqm_observed" step="0.01" placeholder="21.5">
+                    </div>
+
+                    <div class="form-group sky-field">
+                        <label for="transparency_observed_scale">Transparency</label>
+                        <input type="text" id="transparency_observed_scale" name="transparency_observed_scale" placeholder="Excellent">
+                    </div>
+                </div>
+
+                <div class="sky-conditions-row">
+                    <div class="form-group sky-field">
+                        <label for="moon_illumination_session">{{ _("Moon Illum") }}</label>
+                        <input type="number" id="moon_illumination_session" name="moon_illumination_session" min="0" max="100" {% if moon_illumination is not none %}value="{{ moon_illumination }}"{% endif %} placeholder="%">
+                    </div>
+
+                    <div class="form-group sky-field">
+                        <label for="moon_angular_separation_session">{{ _("Moon Sep") }}</label>
+                        <input type="number" id="moon_angular_separation_session" name="moon_angular_separation_session" step="0.1" placeholder="°">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter Exposures -->
+            <div class="form-section">
+                <div class="form-section-label">FILTER EXPOSURES</div>
+
+                <div class="filter-grid">
+                    <!-- Ha -->
+                    <div class="filter-cell">
+                        <div class="filter-cell-label">Ha</div>
+                        <input type="number" class="filter-cell-input" name="filter_Ha_subs" placeholder="0" min="0">
+                        <input type="number" class="filter-cell-input" name="filter_Ha_exposure_sec" placeholder="exp" min="1">
+                    </div>
+
+                    <!-- OIII -->
+                    <div class="filter-cell">
+                        <div class="filter-cell-label">OIII</div>
+                        <input type="number" class="filter-cell-input" name="filter_OIII_subs" placeholder="0" min="0">
+                        <input type="number" class="filter-cell-input" name="filter_OIII_exposure_sec" placeholder="exp" min="1">
+                    </div>
+
+                    <!-- SII -->
+                    <div class="filter-cell">
+                        <div class="filter-cell-label">SII</div>
+                        <input type="number" class="filter-cell-input" name="filter_SII_subs" placeholder="0" min="0">
+                        <input type="number" class="filter-cell-input" name="filter_SII_exposure_sec" placeholder="exp" min="1">
+                    </div>
+
+                    <!-- L -->
+                    <div class="filter-cell">
+                        <div class="filter-cell-label">L</div>
+                        <input type="number" class="filter-cell-input" name="filter_L_subs" placeholder="0" min="0">
+                        <input type="number" class="filter-cell-input" name="filter_L_exposure_sec" placeholder="exp" min="1">
+                    </div>
+
+                    <!-- R -->
+                    <div class="filter-cell">
+                        <div class="filter-cell-label">R</div>
+                        <input type="number" class="filter-cell-input" name="filter_R_subs" placeholder="0" min="0">
+                        <input type="number" class="filter-cell-input" name="filter_R_exposure_sec" placeholder="exp" min="1">
+                    </div>
+
+                    <!-- G -->
+                    <div class="filter-cell">
+                        <div class="filter-cell-label">G</div>
+                        <input type="number" class="filter-cell-input" name="filter_G_subs" placeholder="0" min="0">
+                        <input type="number" class="filter-cell-input" name="filter_G_exposure_sec" placeholder="exp" min="1">
+                    </div>
+
+                    <!-- B -->
+                    <div class="filter-cell">
+                        <div class="filter-cell-label">B</div>
+                        <input type="number" class="filter-cell-input" name="filter_B_subs" placeholder="0" min="0">
+                        <input type="number" class="filter-cell-input" name="filter_B_exposure_sec" placeholder="exp" min="1">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Acquisition -->
+            <div class="form-section">
+                <div class="form-section-label">ACQUISITION</div>
+
+                <div class="sky-conditions-row">
+                    <div class="form-group sky-field">
+                        <label for="gain_setting">{{ _("Gain") }}</label>
+                        <input type="number" id="gain_setting" name="gain_setting" placeholder="0">
+                    </div>
+
+                    <div class="form-group sky-field">
+                        <label for="offset_setting">{{ _("Offset") }}</label>
+                        <input type="number" id="offset_setting" name="offset_setting" placeholder="0">
+                    </div>
+                </div>
+
+                <div class="sky-conditions-row">
+                    <div class="form-group sky-field">
+                        <label for="exposure_time_per_sub_sec">{{ _("Sub Exp") }}</label>
+                        <input type="number" id="exposure_time_per_sub_sec" name="exposure_time_per_sub_sec" min="1" placeholder="sec">
+                    </div>
+
+                    <div class="form-group sky-field">
+                        <label for="camera_temp_setpoint_c">{{ _("Cam Temp") }}</label>
+                        <input type="number" id="camera_temp_setpoint_c" name="camera_temp_setpoint_c" step="0.5" placeholder="°C">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rating -->
+            <div class="form-section">
+                <div class="form-section-label">RATING</div>
+
+                <div class="star-rating-row">
+                    <input type="hidden" id="rating-value" name="session_rating_subjective" value="0">
+                    <span class="star" data-value="1">★</span>
+                    <span class="star" data-value="2">★</span>
+                    <span class="star" data-value="3">★</span>
+                    <span class="star" data-value="4">★</span>
+                    <span class="star" data-value="5">★</span>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="form-section">
+                <div class="form-group">
+                    <label for="general_notes_problems_learnings">{{ _("Notes") }}</label>
+                    <textarea id="general_notes_problems_learnings" name="general_notes_problems_learnings" rows="4" placeholder="{{ _("Add any notes about this session...") }}"></textarea>
+                </div>
+            </div>
+
+            <!-- Hidden field for standalone session -->
+            <input type="hidden" name="project_selection" value="standalone">
+        </form>
+
+        <!-- Sticky Save Bar -->
+        <div class="mobile-save-bar">
+            <button type="button" class="save-bar-btn ghost" id="discard-btn">{{ _("Discard") }}</button>
+            <button type="submit" form="journal-form" class="save-bar-btn primary">{{ _("Save Session") }}</button>
+        </div>
+    </div>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div id="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Discard button - go back
+        const discardBtn = document.getElementById('discard-btn');
+        if (discardBtn) {
+            discardBtn.addEventListener('click', () => {
+                if (history.length > 1) {
+                    history.back();
+                } else {
+                    window.location.href = "{{ url_for('mobile.mobile_up_now') }}";
+                }
+            });
+        }
+
+        // Star rating
+        const stars = document.querySelectorAll('.star');
+        const ratingInput = document.getElementById('rating-value');
+
+        stars.forEach(star => {
+            star.addEventListener('click', () => {
+                const value = parseInt(star.dataset.value);
+                ratingInput.value = value;
+                updateStars(value);
+            });
+        });
+
+        function updateStars(value) {
+            stars.forEach(star => {
+                const starValue = parseInt(star.dataset.value);
+                if (starValue <= value) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

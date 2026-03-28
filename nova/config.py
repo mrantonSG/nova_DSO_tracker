@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from nova.models import INSTANCE_PATH
 
 # --- App version ---
-APP_VERSION = "5.3.0"
+APP_VERSION = "5.4.0"
 
 # --- Directories ---
 TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config_templates")
@@ -39,6 +39,9 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 # --- Limits ---
 MAX_ACTIVE_LOCATIONS = 5
+
+# --- Timeouts ---
+SIMBAD_TIMEOUT = 60  # SIMBAD queries can be slow
 
 # --- Dither defaults ---
 DEFAULT_DITHER_MAIN_SHIFT_PX = 10  # Default desired shift on main camera sensor (pixels)
@@ -80,6 +83,13 @@ TRANSLATION_STATUS = {
     'ja': 'auto',       # Japanese translations auto-generated
     'es': 'auto',       # Spanish translations auto-generated
 }
+
+# --- AI Configuration ---
+AI_PROVIDER = config('AI_PROVIDER', default='anthropic')
+AI_API_KEY = config('AI_API_KEY', default='')
+AI_MODEL = config('AI_MODEL', default='claude-sonnet-4-20250514')
+AI_BASE_URL = config('AI_BASE_URL', default='')
+AI_ALLOWED_USERS = config('AI_ALLOWED_USERS', default='')
 
 # --- Telemetry state ---
 _telemetry_startup_once = threading.Event()

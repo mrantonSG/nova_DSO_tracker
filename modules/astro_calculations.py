@@ -41,6 +41,7 @@ def calculate_transit_time(ra, dec, lat, lon, tz_name, local_date_str):
         body._ra = ephem.hours(str(ra))
         body._dec = ephem.degrees(str(dec))
 
+        upper_transit = None  # Store upper transit (highest point) for fallback
         crossings = []
         # Calculate meridian crossings (Upper and Lower) within the 24h plot window [Noon to Noon]
         # 1. Upper Transit (Highest point)
@@ -48,6 +49,7 @@ def calculate_transit_time(ra, dec, lat, lon, tz_name, local_date_str):
             ut_utc = observer.next_transit(body).datetime()
             ut_local = ut_utc.replace(tzinfo=pytz.utc).astimezone(local_tz)
             if noon_local <= ut_local < noon_local + timedelta(hours=24):
+                upper_transit = ut_local  # Store for fallback
                 crossings.append(ut_local)
         except Exception:
             pass
@@ -91,8 +93,10 @@ def calculate_transit_time(ra, dec, lat, lon, tz_name, local_date_str):
             if night_crossings:
                 return ", ".join([nc.strftime('%H:%M') for nc in night_crossings])
 
-        # Fallback: if no night transits found or polar day/night, return the earliest crossing
-        return crossings[0].strftime('%H:%M') if crossings else "N/A"
+        # Fallback: if no night transits found or polar day/night, return the upper transit
+        # The upper transit (highest point in sky) is more useful for planning than
+        # the lower transit (nadir, daylight), even if it occurs just outside the night window
+        return upper_transit.strftime('%H:%M') if upper_transit else "N/A"
 
     except (ephem.AlwaysUpError, ephem.NeverUpError):
         # For circumpolar or never-rising objects, we can calculate the highest point differently.
@@ -101,7 +105,6 @@ def calculate_transit_time(ra, dec, lat, lon, tz_name, local_date_str):
         # This part of the logic can be complex; let's stick to the primary fix for now.
         return "N/A"
     except Exception as e:
-            print(f"DEBUG: Error in calculate_transit_time: {e}")  # Add this line to see the error
             return "N/A"
 
 def get_utc_time_for_local_11pm(tz_name):
