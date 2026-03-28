@@ -86,16 +86,16 @@
     <!-- Trix CSS loaded first so our dark mode overrides work -->
     <link rel="stylesheet" type="text/css" href="https://unpkg.com/trix@2.0.0/dist/trix.css">
     <!-- Design system tokens (must load before base.css) -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/nova-theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}?v={{ version }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}?v={{ version }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ version }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/nova-theme.css') }}?v={{ version }}">
     <link rel="preload" href="{{ url_for('static', filename='fonts/roboto-v49-latin-regular.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="{{ url_for('static', filename='fonts/roboto-v49-latin-700.woff2') }}" as="font" type="font/woff2" crossorigin>
     <script type="text/javascript" src="https://unpkg.com/trix@2.0.0/dist/trix.umd.min.js" defer></script>
-    <script src="{{ url_for('static', filename='js/utils.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/modal-manager.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/styling-utils.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/utils.js') }}?v={{ version }}" defer></script>
+    <script src="{{ url_for('static', filename='js/modal-manager.js') }}?v={{ version }}" defer></script>
+    <script src="{{ url_for('static', filename='js/styling-utils.js') }}?v={{ version }}" defer></script>
 
     <!-- ── Nova i18n — single Babel source ───────────────────────────────────── -->
     <script>
@@ -392,7 +392,7 @@
 
     {% block body %}{% endblock %}
 
-    <script src="{{ url_for('static', filename='js/base.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/base.js') }}?v={{ version }}" defer></script>
 
     {% block scripts %}{% endblock %}
 
