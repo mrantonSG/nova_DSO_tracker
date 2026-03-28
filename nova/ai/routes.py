@@ -4,6 +4,7 @@ Flask blueprint for AI-related API endpoints. Only registers if AI_API_KEY
 is present in app.config.
 """
 
+import json
 import logging
 import re
 from datetime import datetime, time, timedelta
@@ -347,6 +348,29 @@ def generate_dso_notes():
     moon_separation = None
     target_altitude_deg = None
     target_transit_time = None
+
+    # Calculate max altitude for ALL active locations (always when date available)
+    if selected_day and selected_month and selected_year and active_location and locations:
+        try:
+            from modules.astro_calculations import calculate_observable_duration_vectorized
+            date_obj_alt = datetime(int(selected_year), int(selected_month), int(selected_day))
+            date_str_alt = date_obj_alt.strftime('%Y-%m-%d')
+            for loc in locations:
+                try:
+                    _, max_alt, _, _ = calculate_observable_duration_vectorized(
+                        obj.ra_hours, obj.dec_deg,
+                        loc["lat"], loc["lon"],
+                        date_str_alt, loc["timezone"],
+                        loc.get("altitude_threshold", 20)
+                    )
+                    loc["max_altitude_deg"] = round(max_alt, 1) if max_alt is not None else None
+                except Exception:
+                    loc["max_altitude_deg"] = None
+            active_loc = next((l for l in locations if l["is_default"]), locations[0] if locations else None)
+            target_altitude_deg = active_loc["max_altitude_deg"] if active_loc else None
+        except Exception as e:
+            logger.warning(f"Failed to calculate altitudes: {e}")
+
     if sim_mode and selected_day and selected_month and selected_year and active_location:
         try:
             from modules.astro_calculations import calculate_transit_time
@@ -382,14 +406,6 @@ def generate_dso_notes():
                 obj.ra_hours, obj.dec_deg, lat, lon, tz_name, date_str
             )
 
-            # Calculate max altitude using calculate_observable_duration_vectorized (same as dashboard)
-            # This is the same value the dashboard shows in the MAX ALTITUDE column
-            from modules.astro_calculations import calculate_observable_duration_vectorized
-            altitude_threshold = active_location.get("altitude_threshold", 20)
-            _, target_altitude_deg, _, _ = calculate_observable_duration_vectorized(
-                obj.ra_hours, obj.dec_deg, lat, lon, date_str, tz_name, altitude_threshold
-            )
-            target_altitude_deg = round(target_altitude_deg, 1) if target_altitude_deg is not None else None
         except Exception as e:
             logger.warning(f"Failed to calculate moon phase/separation/target data: {e}")
             moon_phase = None

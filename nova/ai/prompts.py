@@ -68,12 +68,12 @@ Best months from the observer's location(s) with rough altitude context. If sim_
 
 CRITICAL rules:
 - aperture_mm = mirror/lens diameter (light gathering). focal_length_mm = optical path (scale/magnification). Never swap these.
-- OSC cameras: never recommend LRGB or filter wheels. Narrowband only as luminance blend.
+- OSC cameras: never recommend LRGB or filter wheels. For emission nebulae (Ha, OIII, SII emitters), dual-narrowband filters (e.g. Optolong L-eXtreme, L-eNhance, Antlia ALP-T) are the PRIMARY recommendation — they dramatically improve contrast and moon tolerance. Always recommend them for OSC on emission targets. For broadband targets (galaxies, reflection nebulae, star clusters), no filter or light pollution filter only.
 - Mono cameras: LRGB and narrowband both valid.
 - Always derive filter advice from object composition, not just object type label.
 - Dark nebulae: no emission lines, no narrowband. Need dark skies and high contrast broadband or luminance only.
 - Reflection nebulae: broadband only, no narrowband benefit.
-- Emission nebulae: narrowband highly effective, moon-tolerant with Ha filter.
+- Emission nebulae: for OSC, dual-narrowband filter (Ha+OIII passband) is the primary recommendation — not optional, not secondary. For mono, full narrowband sequence (Ha/OIII/SII). Both are highly moon-tolerant. State this clearly and first in filter advice.
 - Galaxies: broadband primary, Ha blend for star-forming regions only if mono.
 - Never list all rigs — pick the best 1-2 and explain the choice.
 - Min recommended integration time must be rig-specific (faster f-ratio = less time needed).
@@ -164,21 +164,25 @@ Respond in the language of this ISO locale code: {locale}. Use informal address 
     if active_location:
         lat = active_location.get("lat")
         loc_name = active_location.get("name", "their primary location")
+        active_max_alt = active_location.get("max_altitude_deg")
         if lat is not None:
             hemisphere = "southern hemisphere" if lat < 0 else "northern hemisphere"
+            alt_str = f", max altitude {active_max_alt}°" if active_max_alt is not None else ""
             prompt_lines.append(
-                f"Primary observing location: {loc_name} (latitude {lat:.1f}°, {hemisphere})."
+                f"Primary observing location: {loc_name} (latitude {lat:.1f}°, {hemisphere}{alt_str}). State this exact altitude in your response, do not approximate it."
             )
         if locations and len(locations) > 1:
             other_locs = [l for l in locations if l != active_location]
-            loc_list = ", ".join(
-                f"{l['name']} ({l['lat']:.1f}°)"
-                for l in other_locs
-                if l.get("lat") is not None
-            )
-            if loc_list:
+            loc_parts = []
+            for l in other_locs:
+                if l.get("lat") is not None:
+                    alt = l.get("max_altitude_deg")
+                    alt_str = f", max alt {alt}°" if alt is not None else ""
+                    loc_parts.append(f"{l['name']} ({l['lat']:.1f}°{alt_str})")
+            if loc_parts:
+                loc_list = ", ".join(loc_parts)
                 prompt_lines.append(
-                    f"Additional locations: {loc_list}. Mention if any offers a significantly better view of this target."
+                    f"Additional locations: {loc_list}. Use ONLY these provided altitudes — do NOT calculate or estimate altitudes yourself. Recommend the location with the highest max altitude for this target."
                 )
 
     # Date and simulation context
@@ -192,7 +196,7 @@ Respond in the language of this ISO locale code: {locale}. Use informal address 
                 context_str = (
                     f"Moon illumination: {moon_phase}%. "
                     f"Moon separation from target: {moon_separation}°. "
-                    f"Target max altitude (at transit {target_transit_time} local): {target_altitude_deg}°. "
+                    f"Target max altitude from {active_location.get('name', 'your location')} (at transit {target_transit_time} local): {target_altitude_deg}°. "
                     f"When assessing moon impact, you MUST reason in this order: "
                     f"1) State the moon conditions factually. "
                     f"2) Assess broadband viability. "
@@ -611,7 +615,7 @@ CRITICAL rules:
 - Always derive filter advice from object composition, not just object type label.
 - Dark nebulae: no emission lines, no narrowband. Need dark skies and high contrast broadband or luminance only.
 - Reflection nebulae: broadband only, no narrowband benefit.
-- Emission nebulae: narrowband highly effective, moon-tolerant with Ha filter.
+- Emission nebulae: for OSC, dual-narrowband filter (Ha+OIII passband) is the primary recommendation — not optional, not secondary. For mono, full narrowband sequence (Ha/OIII/SII). Both are highly moon-tolerant. State this clearly and first in filter advice.
 - Galaxies are primarily broadband targets. However, galaxies with significant star-forming regions or emission nebulae (e.g. M31, M33, NGC 300, Centaurus A) benefit from Ha and OIII blending with a mono camera. Under bright moon, a mono rig with narrowband filters can still image emission-rich galaxies effectively.
 
 "Viable" means this target will produce a useful astrophotograph tonight — not just that it is visually detectable or bright enough to see. Ask yourself: will the finished image have acceptable contrast and detail given tonight's moon and the available equipment?
@@ -789,7 +793,7 @@ CRITICAL rules:
 - Always derive filter advice from object composition, not just object type label.
 - Dark nebulae: no emission lines, no narrowband. Need dark skies and high contrast broadband or luminance only.
 - Reflection nebulae: broadband only, no narrowband benefit.
-- Emission nebulae: narrowband highly effective, moon-tolerant with Ha filter.
+- Emission nebulae: for OSC, dual-narrowband filter (Ha+OIII passband) is the primary recommendation — not optional, not secondary. For mono, full narrowband sequence (Ha/OIII/SII). Both are highly moon-tolerant. State this clearly and first in filter advice.
 - Galaxies are primarily broadband targets. However, galaxies with significant star-forming regions or emission nebulae (e.g. M31, M33, NGC 300, Centaurus A) benefit from Ha and OIII blending with a mono camera. Under bright moon, a mono rig with narrowband filters can still image emission-rich galaxies effectively.
 
 You are an experienced astrophotographer advising a fellow astronomer on what to image tonight.
