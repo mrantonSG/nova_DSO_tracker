@@ -3,8 +3,8 @@
 {% block title %}{{ _('DSO Altitude Tracker') }}{% endblock %}
 
 {% block head_extra %}
-  <script src="{{ url_for('static', filename='js/plotly-2.27.0.min.js') }}" defer></script>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+  <script src="{{ url_for('static', filename='js/plotly-2.27.0.min.js') }}?v={{ version }}" defer></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}?v={{ version }}">
 
   <script>
     // Configuration object for dashboard JavaScript
@@ -17,7 +17,7 @@
     };
   </script>
 
-  <script src="{{ url_for('static', filename='js/dashboard.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/dashboard.js') }}?v={{ version }}" defer></script>
 {% endblock %}
 
 {% block page_title %}
