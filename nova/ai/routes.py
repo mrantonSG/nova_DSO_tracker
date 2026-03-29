@@ -306,6 +306,25 @@ def generate_dso_notes():
     if not obj:
         return jsonify({"error": "Object not found"}), 404
 
+    # Classify filter strategy from SIMBAD type code
+    NARROWBAND_TYPES = {'HII', 'PN', 'SNR', 'ISM', 'GNe', 'H2G', 'EmN', 'Ne'}
+    BROADBAND_GALAXY_TYPES = {'G', 'GiG', 'GiP', 'LIN', 'Sy1', 'Sy2', 'SA', 'SB', 'SAB', 'S0', 'E', 'cG', 'IG', 'PaG', 'GrG', 'CGG', 'ClG', 'SCG', 'BiC', 'Bla', 'BLL', 'QSO', 'AGN', 'Seyfert'}
+    BROADBAND_CLUSTER_TYPES = {'OpC', 'GlC', 'Cl*', 'As*', 'StA'}
+    BROADBAND_STAR_TYPES = {'S', 'WR*', 'be*', 'RR*', 'Ce*', 'No*', 'Pl', 'V*'}
+    BROADBAND_REFLECTION_TYPES = {'RNe', 'DNe', 'MoC'}
+
+    obj_type_code = getattr(obj, 'type', None) or ''
+    if obj_type_code in NARROWBAND_TYPES:
+        filter_strategy = "NARROWBAND: This is an emission target. For OSC use dual-narrowband filter (Ha+OIII passband) as primary strategy. For mono use Ha/OIII/SII sequence. Both are highly moon-tolerant. If moon conditions are poor, narrowband still works — say so."
+    elif obj_type_code in BROADBAND_GALAXY_TYPES:
+        filter_strategy = "BROADBAND ONLY: This is a galaxy. Never recommend narrowband filters (Ha, OIII, SII, dual-narrowband) under any circumstances. If moon illumination exceeds ~40% or separation is below 40°, state clearly that this object cannot be imaged usefully tonight and advise waiting for better conditions. A light pollution filter (e.g. L-Pro) is acceptable for OSC under LP skies only."
+    elif obj_type_code in BROADBAND_REFLECTION_TYPES:
+        filter_strategy = "BROADBAND ONLY: Reflection or dark nebula — no narrowband benefit. If moon conditions are poor, state that this object requires dark skies and cannot be imaged usefully tonight."
+    elif obj_type_code in BROADBAND_CLUSTER_TYPES or obj_type_code in BROADBAND_STAR_TYPES:
+        filter_strategy = "BROADBAND ONLY: Star cluster or stellar target — no filter needed. Moon-tolerant for cluster core, but faint halo detail needs darker skies."
+    else:
+        filter_strategy = "UNKNOWN TARGET TYPE: Use your best judgment based on the object description. If the object name or description suggests emission nebula, apply narrowband strategy. If it suggests a galaxy, apply broadband-only strategy."
+
     # Build object_data dict from fetched object
     object_data = {
         "name": getattr(obj, "object_name", None) or getattr(obj, "common_name", None),
@@ -501,6 +520,7 @@ def generate_dso_notes():
             target_altitude_deg=target_altitude_deg,
             target_transit_time=target_transit_time,
             framing_context=framing_context,
+            filter_strategy=filter_strategy,
         )
 
         # Get AI response

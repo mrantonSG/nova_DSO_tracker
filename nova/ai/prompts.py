@@ -47,6 +47,7 @@ def build_dso_notes_prompt(
     target_altitude_deg: float = None,
     target_transit_time: str = None,
     framing_context: dict = None,
+    filter_strategy: str = "",
 ) -> dict:
     """Build system and user prompts for generating DSO observing notes."""
 
@@ -68,24 +69,18 @@ Best months from the observer's location(s) with rough altitude context. If sim_
 
 CRITICAL rules:
 - aperture_mm = mirror/lens diameter (light gathering). focal_length_mm = optical path (scale/magnification). Never swap these.
-- OSC cameras: never recommend LRGB or filter wheels. For emission nebulae (Ha, OIII, SII emitters), dual-narrowband filters (e.g. Optolong L-eXtreme, L-eNhance, Antlia ALP-T) are the PRIMARY recommendation — they dramatically improve contrast and moon tolerance. Always recommend them for OSC on emission targets. For broadband targets (galaxies, reflection nebulae, star clusters), no filter or light pollution filter only.
+- FILTER STRATEGY (LOCKED): You will receive a FILTER STRATEGY line in the user prompt. This is a hard constraint derived from the object type — you MUST follow it exactly. Never override it. If the strategy says broadband-only, never mention narrowband filters. If conditions make the target unimageable tonight (per the strategy), say so directly and clearly — do not invent workarounds.
 - Mono cameras: LRGB and narrowband both valid.
-- Always derive filter advice from object composition, not just object type label.
-- Dark nebulae: no emission lines, no narrowband. Need dark skies and high contrast broadband or luminance only.
-- Reflection nebulae: broadband only, no narrowband benefit.
-- Emission nebulae: for OSC, dual-narrowband filter (Ha+OIII passband) is the primary recommendation — not optional, not secondary. For mono, full narrowband sequence (Ha/OIII/SII). Both are highly moon-tolerant. State this clearly and first in filter advice.
-- Galaxies: broadband primary, Ha blend for star-forming regions only if mono.
 - Never list all rigs — pick the best 1-2 and explain the choice.
 - Min recommended integration time must be rig-specific (faster f-ratio = less time needed).
-- MANDATORY SUMMARY BLOCK: After the "— Nova" sign-off, on a new line, output the summary in this exact pipe-separated format. No headers, no extra text, just these 7 lines:
-Emission lines | [Ha / OIII / SII / broadband]
+- MANDATORY SUMMARY BLOCK: After the "— Nova" sign-off, on a new line, output the summary in this exact pipe-separated format. No headers, no extra text, just these 7 lines. This block is ALWAYS required — even when conditions are poor or imaging is not recommended tonight. In that case, fill the fields with what would be needed under good conditions:
+Emission lines | [Ha / OIII / SII / broadband — or "n/a" for clusters/stars]
 Recommended rig | [exact rig name as provided]
-Filter | [exact recommendation or "none"]
+Filter | [recommendation under good conditions, or "none"]
 Sub exposure | [e.g. 90-120s]
 Integration minimum | [e.g. 2.5h]
 Integration ideal | [e.g. 5h+]
-Best window | [e.g. Transit 01:30, image 22:00-03:00]
-This block MUST appear after the sign-off, every response, no exceptions.
+Best window | [e.g. late April, moon below 40%]
 
 Respond in the language of this ISO locale code: {locale}. Use informal address (du/tu/jij, never Sie/vous). Write like you genuinely love this — but respect the observer's time.""".format(locale=locale)
 
@@ -168,6 +163,10 @@ Respond in the language of this ISO locale code: {locale}. Use informal address 
         prompt_lines.append(f"{object_intro}.")
     else:
         prompt_lines = [f"{object_intro}."]
+
+    # Inject filter strategy at the top of the user prompt
+    if filter_strategy:
+        prompt_lines.insert(0, f"FILTER STRATEGY: {filter_strategy}")
 
     # Location context
     if active_location:
