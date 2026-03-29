@@ -506,16 +506,50 @@ def generate_dso_notes():
         # Get AI response
         notes = get_ai_response(prompt["user"], system=prompt["system"], max_tokens=2500)
 
-        # Convert plain text to HTML paragraphs for Trix editor
         import re
         notes = notes.strip()
+
+        # Parse pipe-separated summary block after — Nova sign-off
+        summary_html = ''
+        lines = notes.strip().splitlines()
+        summary_rows = []
+        prose_lines = []
+        for line in lines:
+            stripped = line.strip()
+            if '|' in stripped and not stripped.startswith('<'):
+                parts = stripped.split('|', 1)
+                if len(parts) == 2:
+                    summary_rows.append((parts[0].strip(), parts[1].strip()))
+            else:
+                prose_lines.append(line)
+
+        if summary_rows:
+            rows_html = ''.join(
+                f'<tr>'
+                f'<td style="padding:3px 12px 3px 0;color:var(--text-muted);white-space:nowrap;vertical-align:top;font-size:0.85em;">{label}</td>'
+                f'<td style="padding:3px 0;vertical-align:top;font-size:0.85em;">{value}</td>'
+                f'</tr>'
+                for label, value in summary_rows
+            )
+            summary_html = (
+                '<table style="border-collapse:collapse;margin:12px 0 4px 0;width:100%;">'
+                + rows_html
+                + '</table>'
+            )
+            notes = '\n'.join(prose_lines).strip()
+
+        # Split into paragraphs and wrap in <p> tags
         raw_paragraphs = [p.strip() for p in re.split(r'\n+', notes) if p.strip()]
         html_parts = []
         for p in raw_paragraphs:
-            if p.startswith('<p>'):
+            if p.startswith('<'):
                 html_parts.append(p)
             else:
                 html_parts.append(f'<p>{p}</p>')
+
+        if summary_html:
+            html_parts.append(summary_html)
+
         notes = ''.join(html_parts)
 
         return jsonify({"notes": notes})

@@ -77,6 +77,15 @@ CRITICAL rules:
 - Galaxies: broadband primary, Ha blend for star-forming regions only if mono.
 - Never list all rigs — pick the best 1-2 and explain the choice.
 - Min recommended integration time must be rig-specific (faster f-ratio = less time needed).
+- MANDATORY SUMMARY BLOCK: After the "— Nova" sign-off, on a new line, output the summary in this exact pipe-separated format. No headers, no extra text, just these 7 lines:
+Emission lines | [Ha / OIII / SII / broadband]
+Recommended rig | [exact rig name as provided]
+Filter | [exact recommendation or "none"]
+Sub exposure | [e.g. 90-120s]
+Integration minimum | [e.g. 2.5h]
+Integration ideal | [e.g. 5h+]
+Best window | [e.g. Transit 01:30, image 22:00-03:00]
+This block MUST appear after the sign-off, every response, no exceptions.
 
 Respond in the language of this ISO locale code: {locale}. Use informal address (du/tu/jij, never Sie/vous). Write like you genuinely love this — but respect the observer's time.""".format(locale=locale)
 
