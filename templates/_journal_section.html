@@ -2367,6 +2367,7 @@
                         </div>
                         <input type="hidden" id="journal-notes-hidden" name="general_notes_problems_learnings">
                         <trix-editor input="journal-notes-hidden" id="journal-notes-editor" style="min-height: 120px; height: auto; background-color: var(--bg-white);"></trix-editor>
+                        <div id="journal-nova-disclaimer" style="display:none;margin-top:4px;"></div>
                     </div>
                     {% if selected_session_data and selected_session_data.session_image_file %}<div class="form-group full-width"><label>{{ _('Current Image:') }}</label><div style="display: flex; align-items: center; gap: 15px;"><span style="font-family: monospace; font-size: 13px;">{{ selected_session_data.session_image_file }}</span><label style="color: var(--danger-color); cursor: pointer; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;"><input type="checkbox" name="delete_session_image" value="1"> {{ _('Delete Image') }}</label></div></div>{% endif %}
                     <div class="form-group full-width"><label for="session_image">{{ _('Upload New or Replace Image (optional, max 5MB)') }}</label><input type="file" id="session_image" name="session_image" accept="image/jpeg, image/png, image/gif"></div>
@@ -3054,6 +3055,11 @@ function novaSessionFetch(mode) {
                             btn.style.fontStyle = '';
                             btn.disabled = false;
                             btn.style.display = '';
+                            var disclaimer = document.getElementById('journal-nova-disclaimer');
+                            if (disclaimer) {
+                                disclaimer.style.display = 'block';
+                                disclaimer.innerHTML = '<span style="font-size:0.78em;color:var(--text-muted);">Nova AI can make mistakes — verify conditions before your session.</span>';
+                            }
                             return;
                         }
 
@@ -3065,6 +3071,8 @@ function novaSessionFetch(mode) {
                             btn.style.fontStyle = '';
                             btn.disabled = false;
                             btn.style.display = '';
+                            var disclaimer = document.getElementById('journal-nova-disclaimer');
+                            if (disclaimer) { disclaimer.style.display = 'none'; disclaimer.innerHTML = ''; }
                             var errDiv = document.createElement('div');
                             errDiv.style.cssText = 'color:var(--danger-color,#c00);font-size:13px;margin-top:6px;';
                             errDiv.textContent = journalI18n.novaError + ': ' + errorMsg;
@@ -3109,6 +3117,8 @@ function novaSessionFetch(mode) {
         btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/></svg> Ask Nova';
         btn.style.fontStyle = '';
         btn.disabled = false;
+        var disclaimer = document.getElementById('journal-nova-disclaimer');
+        if (disclaimer) { disclaimer.style.display = 'none'; disclaimer.innerHTML = ''; }
         var errDiv = document.createElement('div');
         errDiv.style.cssText = 'color:var(--danger-color,#c00);font-size:13px;margin-top:6px;';
         errDiv.textContent = journalI18n.novaError + ': ' + err.message;
