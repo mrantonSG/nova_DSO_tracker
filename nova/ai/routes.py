@@ -524,18 +524,11 @@ def generate_dso_notes():
                 prose_lines.append(line)
 
         if summary_rows:
-            rows_html = ''.join(
-                f'<tr>'
-                f'<td style="padding:3px 12px 3px 0;color:var(--text-muted);white-space:nowrap;vertical-align:top;font-size:0.85em;">{label}</td>'
-                f'<td style="padding:3px 0;vertical-align:top;font-size:0.85em;">{value}</td>'
-                f'</tr>'
+            rows_html = '<br>'.join(
+                f'<strong>{label}</strong>&nbsp;&nbsp;{value}'
                 for label, value in summary_rows
             )
-            summary_html = (
-                '<table style="border-collapse:collapse;margin:12px 0 4px 0;width:100%;">'
-                + rows_html
-                + '</table>'
-            )
+            summary_html = f'<p>{rows_html}</p>'
             notes = '\n'.join(prose_lines).strip()
 
         # Split into paragraphs and wrap in <p> tags
