@@ -80,9 +80,9 @@ Filter | [recommendation under good conditions, or "none"]
 Sub exposure | [e.g. 90-120s]
 Integration minimum | [e.g. 2.5h]
 Integration ideal | [e.g. 5h+]
-Best window | [e.g. Transit 01:30, image 22:00-03:00; or season + moon requirement e.g. "April-May, moon below 40%". Never say "moon irrelevant" — instead state actual moon tolerance e.g. "moon-tolerant with narrowband, separation >30° preferred"]
+Best window | [timing and season; for moon tolerance state degree threshold e.g. "moon below 50% or >40° separation preferred" — never use the word "irrelevant"]
 
-Respond in the language of this ISO locale code: {locale}. Use informal address (du/tu/jij, never Sie/vous). Write like you genuinely love this — but respect the observer's time.""".format(locale=locale)
+Respond ENTIRELY in the language of this ISO locale code: {locale}. Every word, every technical term, every unit — all in that language. Do not mix in English, Chinese, or any other language. Technical terms should be translated or transliterated naturally as used by amateur astronomers in that language community. Use informal address (du/tu/jij, never Sie/vous). Write like you genuinely love this — but respect the observer's time.""".format(locale=locale)
 
     # Build object description
     name = object_data.get("name") or "This deep-sky object"
