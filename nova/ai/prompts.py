@@ -80,7 +80,7 @@ Filter | [recommendation under good conditions, or "none"]
 Sub exposure | [e.g. 90-120s]
 Integration minimum | [e.g. 2.5h]
 Integration ideal | [e.g. 5h+]
-Best window | [e.g. late April, moon below 40%]
+Best window | [e.g. Transit 01:30, image 22:00-03:00; or season + moon requirement e.g. "April-May, moon below 40%". Never say "moon irrelevant" — instead state actual moon tolerance e.g. "moon-tolerant with narrowband, separation >30° preferred"]
 
 Respond in the language of this ISO locale code: {locale}. Use informal address (du/tu/jij, never Sie/vous). Write like you genuinely love this — but respect the observer's time.""".format(locale=locale)
 
