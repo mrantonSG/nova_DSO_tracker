@@ -545,12 +545,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;font-style:normal"><path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/></svg> ' + graphI18n.askNova;
                     btn.disabled = false;
                     btn.style.fontStyle = '';
+
+                    var quickLink = document.getElementById('project-quick-link');
+                    if (quickLink) {
+                        quickLink.style.display = 'block';
+                        quickLink.innerHTML = '<span style="font-size:0.78em;color:var(--text-muted);">Nova AI can make mistakes — verify conditions before your session.</span>';
+                    }
                 })
                 .catch(function(err) {
                     clearInterval(msgInterval);
                     btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;font-style:normal"><path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/></svg> ' + graphI18n.askNova;
                     btn.disabled = false;
                     btn.style.fontStyle = '';
+
+                    var quickLink = document.getElementById('project-quick-link');
+                    if (quickLink) { quickLink.style.display = 'none'; quickLink.innerHTML = ''; }
 
                     // Create error div after the trix-editor
                     var trixEl = document.getElementById('project-field-editor');
