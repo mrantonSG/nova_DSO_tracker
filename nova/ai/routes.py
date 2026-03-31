@@ -341,7 +341,9 @@ def generate_dso_notes():
     locale = get_locale()
 
     # Gather location context
-    loc_rows = db.query(Location).filter_by(
+    loc_rows = db.query(Location).options(
+        selectinload(Location.horizon_points)
+    ).filter_by(
         user_id=g.db_user.id, active=True
     ).order_by(Location.id).all()
 
@@ -353,6 +355,8 @@ def generate_dso_notes():
             "timezone": loc.timezone,
             "is_default": loc.is_default,
             "altitude_threshold": loc.altitude_threshold,
+            "bortle_scale": loc.bortle_scale,
+            "has_horizon_mask": bool(loc.horizon_points),
         }
         for loc in loc_rows
     ]
@@ -1044,7 +1048,9 @@ def get_best_objects():
 
     # Fetch location details
     db = get_db()
-    location = db.query(Location).filter_by(
+    location = db.query(Location).options(
+        selectinload(Location.horizon_points)
+    ).filter_by(
         user_id=g.db_user.id, name=location_name
     ).first()
 
@@ -1167,6 +1173,8 @@ def get_best_objects():
             locale=locale,
             sim_date=sim_date,
             compressed_objects=compressed_objects,
+            bortle_scale=location.bortle_scale,
+            has_horizon_mask=bool(location.horizon_points),
         )
 
         # Get AI response for ranking (increased timeout for large JSON response)

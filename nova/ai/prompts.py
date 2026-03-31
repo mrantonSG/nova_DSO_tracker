@@ -31,6 +31,18 @@ Locale handling in Nova:
 
 from typing import Dict, List, Optional
 
+BORTLE_LABELS = {
+    1: "Exceptional dark sky",
+    2: "Truly dark sky",
+    3: "Rural sky",
+    4: "Rural/suburban transition",
+    5: "Suburban sky",
+    6: "Bright suburban sky",
+    7: "Suburban/urban transition",
+    8: "City sky",
+    9: "Inner-city sky",
+}
+
 
 def build_dso_notes_prompt(
     object_data: dict,
@@ -206,12 +218,19 @@ Respond ENTIRELY in the language of this ISO locale code: {locale}. Every word, 
         lat = active_location.get("lat")
         loc_name = active_location.get("name", "their primary location")
         active_max_alt = active_location.get("max_altitude_deg")
+        active_bortle = active_location.get("bortle_scale")
+        active_has_mask = active_location.get("has_horizon_mask")
         if lat is not None:
             hemisphere = "southern hemisphere" if lat < 0 else "northern hemisphere"
             alt_str = f", max altitude {active_max_alt}°" if active_max_alt is not None else ""
             prompt_lines.append(
                 f"Primary observing location: {loc_name} (latitude {lat:.1f}°, {hemisphere}{alt_str}). State this exact altitude in your response, do not approximate it."
             )
+        if active_bortle:
+            bortle_label = BORTLE_LABELS.get(active_bortle, str(active_bortle))
+            prompt_lines.append(f"Bortle {active_bortle} ({bortle_label}).")
+        if active_has_mask:
+            prompt_lines.append("A custom horizon mask is defined for this location.")
         if locations and len(locations) > 1:
             other_locs = [l for l in locations if l != active_location]
             loc_parts = []
@@ -219,7 +238,13 @@ Respond ENTIRELY in the language of this ISO locale code: {locale}. Every word, 
                 if l.get("lat") is not None:
                     alt = l.get("max_altitude_deg")
                     alt_str = f", max alt {alt}°" if alt is not None else ""
-                    loc_parts.append(f"{l['name']} ({l['lat']:.1f}°{alt_str})")
+                    bortle_str = ""
+                    l_bortle = l.get("bortle_scale")
+                    if l_bortle:
+                        bortle_label = BORTLE_LABELS.get(l_bortle, str(l_bortle))
+                        bortle_str = f", Bortle {l_bortle} ({bortle_label})"
+                    mask_str = ", horizon mask defined" if l.get("has_horizon_mask") else ""
+                    loc_parts.append(f"{l['name']} ({l['lat']:.1f}°{alt_str}{bortle_str}{mask_str})")
             if loc_parts:
                 loc_list = ", ".join(loc_parts)
                 prompt_lines.append(
@@ -765,6 +790,8 @@ def build_best_objects_prompt(
     locale: str = "en",
     sim_date: str = None,
     compressed_objects: str = None,
+    bortle_scale: int = None,
+    has_horizon_mask: bool = False,
 ) -> dict:
     """Build system and user prompts for ranking best objects.
 
@@ -782,6 +809,8 @@ def build_best_objects_prompt(
         sim_date: Date in YYYY-MM-DD format (None for live mode)
         compressed_objects: Optional string of pipe-delimited object data.
                           If provided, objects list is ignored and this is used.
+        bortle_scale: Bortle scale value (1-9) for the location, if set.
+        has_horizon_mask: Whether the location has a custom horizon mask defined.
 
     Returns:
         dict with "system" and "user" keys containing prompt strings.
@@ -858,6 +887,11 @@ Respond in the language of this ISO locale code: {locale}."""
     # Location context
     hemisphere = "southern hemisphere" if location_lat < 0 else "northern hemisphere"
     prompt_lines.append(f"Observing location: {location_name} (latitude {location_lat:.1f}°, longitude {location_lon:.1f}°, {hemisphere}).")
+    if bortle_scale:
+        bortle_label = BORTLE_LABELS.get(bortle_scale, str(bortle_scale))
+        prompt_lines.append(f"Bortle {bortle_scale} ({bortle_label}).")
+    if has_horizon_mask:
+        prompt_lines.append("A custom horizon mask is defined for this location.")
 
     # Date and moon context
     if sim_date:
