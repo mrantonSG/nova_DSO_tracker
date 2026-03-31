@@ -772,6 +772,13 @@ TONIGHT: Moon is {moon_str} illuminated.
 
 Use your astrophotography knowledge to assess each object's narrowband capability and moon sensitivity individually. Rank accordingly.
 
+MOON PENALTY RULES — apply these BEFORE scoring:
+
+- LSB targets (large diffuse galaxies, extended emission nebulae, objects with angular size >60 arcmin, or known very low surface brightness): if moon illumination is >60%, apply a severe score penalty regardless of angular separation. These targets are fundamentally unviable — scattered moonlight floods the sky background and destroys SNR on faint extended structure. Large separation (even 90°+) does NOT protect them. Demote them to the bottom of the ranking and note "moon-limited" in the reason field.
+- Bright emission nebulae with narrowband: exempt from this penalty — narrowband filters block scattered moonlight effectively regardless of moon brightness.
+- Standard broadband targets (galaxies <60 arcmin, reflection nebulae, globular clusters): use existing angular separation thresholds as normal. Separation still matters for these compact targets.
+
+
 CRITICAL OUTPUT FORMAT:
 You MUST respond with ONLY a valid JSON array. No markdown, no code blocks, no explanations before or after. The JSON must be parseable directly.
 
