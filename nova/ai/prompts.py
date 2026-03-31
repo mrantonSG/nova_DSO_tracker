@@ -105,6 +105,12 @@ If VIABLE or MARGINAL:
   What makes this target interesting or challenging. Then: what does it consist of (emission nebula, reflection nebula, dark nebula, galaxy with dust lanes, globular, open cluster etc) — this determines the filter strategy and moon tolerance. State explicitly: moon sensitivity (e.g. "needs moon below 30% and min 40° separation" or "moon-tolerant, image through gibbous") and the reason why (surface brightness, contrast against background, emission-line vs broadband nature). If narrowband filters apply, say which ones and why.
   For MARGINAL: open paragraph 1 by stating the verdict and the limiting factor. State clearly what the imager must accept or sacrifice.
 
+BORTLE SCALE CONTEXT — read from the user prompt. If a Bortle value is provided for the observing location, factor it into your notes:
+- Bortle 1–4: light pollution is not a limiting factor. Describe the object normally, noting that conditions favour contrast and detail. No special filter caveats needed beyond object-type logic.
+- Bortle 5–6: raised sky background will erode contrast on low-surface-brightness targets. Mention this when relevant — faint galaxies will need more integration, reflection nebulae will suffer. For emission nebulae, explicitly recommend narrowband (mono) or dual-band (OSC) as the primary strategy. A light pollution filter (L-Pro, IDAS) helps for broadband targets.
+- Bortle 7–9: sky quality is a serious constraint. Faint DSOs will not produce usable images regardless of integration time. For emission nebulae, narrowband or dual-band filters are mandatory — state this directly. For OSC cameras, explicitly recommend a dual-band filter (L-eXtreme, L-Ultimate, Radian Triad etc.). For broadband-only targets (faint galaxies, reflection nebulae), flag the challenge honestly — note what the observer is up against and whether the result is likely worth the effort.
+If no Bortle value is provided, ignore this section entirely.
+
 Paragraph 2 — Rig and filter strategy:
 Rank the user's rigs 1-2 for this target. For each: say why it suits or doesn't suit this object (FOV fit vs object size, aperture for surface brightness, f-ratio for sub length). Give concrete sub exposure length and estimated total integration time. For mono rigs: recommend filter sequence and approximate ratio (e.g. Ha 60% / OIII 30% / SII 10%). For OSC rigs: broadband only unless Ha blend makes sense — say so explicitly. Never recommend LRGB for OSC. Never confuse aperture_mm (light gathering) with focal_length_mm (magnification/scale). Use the full rig name exactly as provided.
 
@@ -840,6 +846,18 @@ MOON PENALTY RULES — apply these BEFORE scoring:
 - Bright emission nebulae with narrowband: exempt from this penalty — narrowband filters block scattered moonlight effectively regardless of moon brightness.
 - Standard broadband targets (galaxies <60 arcmin, reflection nebulae, globular clusters): use existing angular separation thresholds as normal. Separation still matters for these compact targets.
 
+
+BORTLE SCALE REASONING — apply when a Bortle value is provided in the user prompt context. If no Bortle value is present, ignore this section entirely and rank normally.
+
+Bortle 1–4 (dark to rural/suburban transition): Light pollution is not a limiting factor. All object types are viable. Prioritise by altitude, moon compatibility, and personal interest. No filter restrictions beyond normal object-type logic.
+
+Bortle 5–6 (suburban): Favour emission nebulae, planetary nebulae, open clusters, and bright galaxies with compact cores. Faint galaxies and reflection nebulae will struggle — raised sky background erodes contrast. When ranking, penalise low-surface-brightness targets. For emission nebulae, recommend narrowband or dual-band filters regardless of camera type (mono or OSC). A light pollution filter (L-Pro, IDAS) helps for broadband targets.
+
+Bortle 7–9 (bright suburban to inner-city): Strongly favour emission nebulae with narrowband or Ha filters (mono), or dual-band filters (OSC). Bright open clusters remain viable. Explicitly demote faint DSOs — they will not produce usable images regardless of integration time. For OSC cameras at Bortle 7 and above, note that a dual-band filter (L-eXtreme, L-Ultimate, Radian Triad etc.) is strongly recommended for any emission target.
+
+Bortle reasoning must be reflected in each object's "reason" field — mention the sky quality constraint when it influenced the ranking.
+
+When a Bortle value is provided, open your response with one sentence acknowledging what is and isn't achievable tonight at that sky quality. Keep it factual and direct — no lectures.
 
 CRITICAL OUTPUT FORMAT:
 You MUST respond with ONLY a valid JSON array. No markdown, no code blocks, no explanations before or after. The JSON must be parseable directly.
