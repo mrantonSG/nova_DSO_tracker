@@ -3,7 +3,7 @@ from datetime import datetime
 
 from sqlalchemy import (
     create_engine, Column, Integer, Float, String, Boolean, Date,
-    ForeignKey, Text, UniqueConstraint
+    ForeignKey, Text, UniqueConstraint, CheckConstraint
 )
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker, scoped_session
 
@@ -89,9 +89,13 @@ class Location(Base):
     is_default = Column(Boolean, nullable=False, default=False, index=True)
     active = Column(Boolean, nullable=False, default=True, index=True)
     comments = Column(String(500), nullable=True)
+    bortle_scale = Column(Integer, nullable=True)
     user = relationship("DbUser", back_populates="locations")
     horizon_points = relationship("HorizonPoint", back_populates="location", cascade="all, delete-orphan")
-    __table_args__ = (UniqueConstraint('user_id', 'name', name='uq_user_location_name'),)
+    __table_args__ = (
+        UniqueConstraint('user_id', 'name', name='uq_user_location_name'),
+        CheckConstraint('bortle_scale IS NULL OR (bortle_scale >= 1 AND bortle_scale <= 9)', name='ck_bortle_scale_range'),
+    )
 
 
 class SavedFraming(Base):

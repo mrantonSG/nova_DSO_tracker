@@ -508,11 +508,16 @@ def config_form():
                     error = f"Invalid timezone: '{new_tz}'. Please select a valid option from the list."
 
                 else:
+                    _bortle = request.form.get("new_bortle_scale", "")
+                    bortle_scale_val = int(_bortle) if _bortle else None
+                    if bortle_scale_val is not None and not (1 <= bortle_scale_val <= 9):
+                        bortle_scale_val = None
                     new_loc = Location(
                         user_id=app_db_user.id, name=new_name,
                         lat=float(request.form.get("new_lat")), lon=float(request.form.get("new_lon")),
                         timezone=request.form.get("new_timezone"), active=request.form.get("new_active") == "on",
-                        comments=request.form.get("new_comments", "").strip()[:500]
+                        comments=request.form.get("new_comments", "").strip()[:500],
+                        bortle_scale=bortle_scale_val
                     )
                     db.add(new_loc);
                     db.flush()
@@ -571,6 +576,11 @@ def config_form():
                     loc.timezone = request.form.get(f"timezone_{loc.name}")
                     loc.active = request.form.get(f"active_{loc.name}") == "on"
                     loc.comments = request.form.get(f"comments_{loc.name}", "").strip()[:500]
+
+                    _bortle = request.form.get(f"bortle_scale_{loc.name}", "")
+                    loc.bortle_scale = int(_bortle) if _bortle else None
+                    if loc.bortle_scale is not None and not (1 <= loc.bortle_scale <= 9):
+                        loc.bortle_scale = None
 
                     # --- START FIX: Use relationship assignment for cascade ---
                     # 1. Create a new, empty list for this location's points.
@@ -664,6 +674,7 @@ def config_form():
             locations_for_template[loc.name] = {
                 "lat": loc.lat, "lon": loc.lon, "timezone": loc.timezone,
                 "active": loc.active, "comments": loc.comments,
+                "bortle_scale": loc.bortle_scale,
                 "horizon_mask": [[hp.az_deg, hp.alt_min_deg] for hp in
                                  sorted(loc.horizon_points, key=lambda p: p.az_deg)]
             }

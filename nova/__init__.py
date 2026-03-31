@@ -730,6 +730,9 @@ def _run_schema_patches(conn):
     if "stable_uid" not in colnames_locations:
         conn.exec_driver_sql("ALTER TABLE locations ADD COLUMN stable_uid VARCHAR(36);")
         print("[DB PATCH] Added missing column locations.stable_uid")
+    if "bortle_scale" not in colnames_locations:
+        conn.exec_driver_sql("ALTER TABLE locations ADD COLUMN bortle_scale INTEGER;")
+        print("[DB PATCH] Added missing column locations.bortle_scale")
 
     # --- Add new columns to 'components' table ---
     cols_components = conn.exec_driver_sql("PRAGMA table_info(components);").fetchall()
@@ -1190,6 +1193,17 @@ def _migrate_locations(db, user: DbUser, config: dict):
             alt_thr = float(alt_thr_val) if alt_thr_val is not None else None
             new_is_default = (name == default_name)
 
+            # Bortle scale: validate 1-9 if present, ignore silently if absent
+            raw_bortle = loc.get("bortle_scale")
+            bortle_val = None
+            if raw_bortle is not None:
+                try:
+                    bortle_int = int(raw_bortle)
+                    if 1 <= bortle_int <= 9:
+                        bortle_val = bortle_int
+                except (ValueError, TypeError):
+                    pass
+
             existing = db.query(Location).filter_by(user_id=user.id, name=name).one_or_none()
             if existing:
                 # --- UPDATE existing row
@@ -1199,6 +1213,7 @@ def _migrate_locations(db, user: DbUser, config: dict):
                 existing.altitude_threshold = alt_thr
                 existing.is_default = new_is_default
                 existing.active = loc.get("active", True)
+                existing.bortle_scale = bortle_val
 
                 # --- START FIX: Replace horizon points using relationship cascade ---
                 new_horizon_points = []
@@ -1230,7 +1245,8 @@ def _migrate_locations(db, user: DbUser, config: dict):
                     timezone=tz,
                     altitude_threshold=alt_thr,
                     is_default=new_is_default,
-                    active=loc.get("active", True)
+                    active=loc.get("active", True),
+                    bortle_scale=bortle_val
                 )
                 db.add(row);
                 db.flush()  # Flush to get the row.id
@@ -2197,9 +2213,12 @@ def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
         "default_location": default_loc,
         "locations": {
             l.name: {
-                "lat": l.lat, "lon": l.lon, "timezone": l.timezone,
-                "altitude_threshold": l.altitude_threshold,
-                "horizon_mask": [[hp.az_deg, hp.alt_min_deg] for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)]
+                **{
+                    "lat": l.lat, "lon": l.lon, "timezone": l.timezone,
+                    "altitude_threshold": l.altitude_threshold,
+                    "horizon_mask": [[hp.az_deg, hp.alt_min_deg] for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)]
+                },
+                **({"bortle_scale": l.bortle_scale} if l.bortle_scale is not None else {})
             } for l in locs
         },
         "objects": [
@@ -6142,11 +6161,14 @@ def download_config():
         config_doc["default_location"] = default_loc_name
         config_doc["locations"] = {
             l.name: {
-                "lat": l.lat, "lon": l.lon, "timezone": l.timezone,
-                "altitude_threshold": l.altitude_threshold,
-                "active": l.active,
-                "comments": l.comments,
-                "horizon_mask": [[hp.az_deg, hp.alt_min_deg] for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)]
+                **{
+                    "lat": l.lat, "lon": l.lon, "timezone": l.timezone,
+                    "altitude_threshold": l.altitude_threshold,
+                    "active": l.active,
+                    "comments": l.comments,
+                    "horizon_mask": [[hp.az_deg, hp.alt_min_deg] for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)]
+                },
+                **({"bortle_scale": l.bortle_scale} if l.bortle_scale is not None else {})
             } for l in locs
         }
 
