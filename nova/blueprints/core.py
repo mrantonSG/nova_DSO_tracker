@@ -1324,7 +1324,11 @@ def sun_events():
     else:
         now_local = datetime.now(local_tz)
 
-    local_date = now_local.strftime('%Y-%m-%d')
+    if now_local.hour < 12:
+        observing_date = (now_local - timedelta(days=1)).date()
+    else:
+        observing_date = now_local.date()
+    local_date = observing_date.strftime('%Y-%m-%d')
 
     # Calculate sun events using determined variables
     events = calculate_sun_events_cached(local_date, tz_name, lat, lon)
@@ -1335,7 +1339,13 @@ def sun_events():
         observer = ephem.Observer()
         observer.lat = str(lat) # Use determined lat (ephem needs string)
         observer.lon = str(lon) # Use determined lon (ephem needs string)
-        observer.date = now_local.astimezone(pytz.utc) # Use current time converted to UTC
+        dusk_str = events.get("astronomical_dusk")
+        if dusk_str:
+            dusk_time_obj = datetime.strptime(dusk_str, "%H:%M").time()
+            dusk_dt = local_tz.localize(datetime.combine(observing_date, dusk_time_obj))
+            observer.date = dusk_dt.astimezone(pytz.utc)
+        else:
+            observer.date = now_local.astimezone(pytz.utc)  # fallback
         moon.compute(observer)
         moon_phase = round(moon.phase, 1)
     except Exception as e:
@@ -1824,7 +1834,13 @@ def graph_dashboard(object_name):
             dt_utc_astropy = dt_for_moon_local.astimezone(pytz.utc)
 
             # Moon Phase
-            moon_phase_for_effective_date = round(ephem.Moon(dt_utc_astropy).phase, 1)
+            _moon_obs = ephem.Observer()
+            _moon_obs.lat = str(effective_lat)
+            _moon_obs.lon = str(effective_lon)
+            _moon_obs.date = dt_utc_astropy
+            _moon = ephem.Moon()
+            _moon.compute(_moon_obs)
+            moon_phase_for_effective_date = round(_moon.phase, 1)
 
             # Angular Separation
             time_obj_sep = Time(dt_utc_astropy)
@@ -2032,12 +2048,25 @@ def get_date_info(object_name):
     _, days_in_month = calendar.monthrange(year, month)
     day = min(max(day, 1), days_in_month)
 
-    # Use same time-of-day as index: current hour/minute
-    local_time = tz.localize(datetime(year, month, day, now.hour, now.minute))
-    phase = round(ephem.Moon(local_time).phase)
-
     local_date_str = f"{year}-{month:02d}-{day:02d}"
     sun_events = calculate_sun_events_cached(local_date_str, g.tz_name, g.lat, g.lon)
+
+    local_time = tz.localize(datetime(year, month, day, now.hour, now.minute))
+
+    dusk_str = sun_events.get("astronomical_dusk")
+    if dusk_str:
+        dusk_time_obj = datetime.strptime(dusk_str, "%H:%M").time()
+        _moon_ref_dt = tz.localize(datetime.combine(datetime(year, month, day).date(), dusk_time_obj))
+    else:
+        _moon_ref_dt = tz.localize(datetime(year, month, day, now.hour, now.minute))
+
+    _moon_obs = ephem.Observer()
+    _moon_obs.lat = str(g.lat)
+    _moon_obs.lon = str(g.lon)
+    _moon_obs.date = _moon_ref_dt.astimezone(pytz.utc)
+    _moon_ephem = ephem.Moon()
+    _moon_ephem.compute(_moon_obs)
+    phase = round(_moon_ephem.phase)
 
     # Calculate display string for the UI (e.g. "11.12.2025 - 12.12.2025")
     curr_dt = datetime(year, month, day)

@@ -2525,12 +2525,14 @@
     }
     function updateReadoutFromCenter() { let center; if (lockToObject) { const rc = aladin.getRaDec(); center = { ra: rc[0], dec: rc[1] }; } else if (fovCenter && isFinite(fovCenter.ra) && isFinite(fovCenter.dec)) center = fovCenter; else { const rc = aladin.getRaDec(); center = { ra: rc[0], dec: rc[1] }; } updateReadout(center.ra, center.dec); }
     function copyRaDec() { const text = `${document.getElementById('ra-readout').value} ${document.getElementById('dec-readout').value}`; navigator.clipboard.writeText(text); }
-    function changeView(view) {
+    function changeView(view, skipPhaseUpdate = false) {
         const day = document.getElementById('day-select').value, month = document.getElementById('month-select').value, year = document.getElementById('year-select').value, objectName = NOVA_GRAPH_DATA.objectName;
         fetch(`/get_date_info/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}`)
             .then(response => response.json())
             .then(data => {
-                document.getElementById("phase-display").innerText = data.phase + "%";
+                if (!skipPhaseUpdate) {
+                    document.getElementById("phase-display").innerText = data.phase + "%";
+                }
                 document.getElementById("dusk-display").innerText = data.astronomical_dusk;
                 document.getElementById("dawn-display").innerText = data.astronomical_dawn;
                 if (data.date_display) document.getElementById("date-display").innerText = data.date_display;
@@ -3099,7 +3101,7 @@
     window.addEventListener('load', () => {
         if (window['chartjs-plugin-annotation']) Chart.register(window['chartjs-plugin-annotation']);
 
-        changeView('day');
+        changeView('day', true);
 
         // Initialize secondary object comparison selector
         initSecondaryObjectSelector();
