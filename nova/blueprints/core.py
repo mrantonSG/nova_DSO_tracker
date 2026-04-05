@@ -53,6 +53,7 @@ from nova.config import CACHE_DIR, UPLOAD_FOLDER, cache_worker_status
 from nova.helpers import (
     _parse_float_from_request,
     convert_to_native_python,
+    dither_display,
     get_db,
     get_ra_dec,
     get_user_log_string,
@@ -1666,6 +1667,7 @@ def graph_dashboard(object_name):
             if selected_session_data:
                 selected_session_data_dict = {c.name: getattr(selected_session_data, c.name) for c in
                                               selected_session_data.__table__.columns}
+                selected_session_data_dict['dither_display'] = dither_display(selected_session_data)
                 # ... (Session Note Sanitization Logic - same as before) ...
                 raw_journal_notes = selected_session_data_dict.get('notes') or ""
                 # FIX: Added <figure>, <blockquote>, and headers to HTML detection
