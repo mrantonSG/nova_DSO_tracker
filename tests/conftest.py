@@ -106,6 +106,7 @@ def db_session(monkeypatch):
 def su_client_logged_in(db_session, monkeypatch):
     # ... (content remains unchanged) ...
     monkeypatch.setattr('nova.SINGLE_USER_MODE', True)
+    monkeypatch.setattr('nova.auth.SINGLE_USER_MODE', True)
 
     class SingleUserTest(UserMixin):
         def __init__(self, user_id, username):
@@ -113,6 +114,7 @@ def su_client_logged_in(db_session, monkeypatch):
             self.username = username
 
     monkeypatch.setattr('nova.User', SingleUserTest)
+    monkeypatch.setattr('nova.auth.User', SingleUserTest)
 
     app.config['TESTING'] = True
     app.config['SECRET_KEY'] = 'test-secret-key'
@@ -150,6 +152,7 @@ def su_client_logged_in(db_session, monkeypatch):
 def su_client_logged_out(db_session, monkeypatch):
     # ... (content remains unchanged) ...
     monkeypatch.setattr('nova.SINGLE_USER_MODE', False)
+    monkeypatch.setattr('nova.auth.SINGLE_USER_MODE', False)
 
     app.config['TESTING'] = True
     app.config['SECRET_KEY'] = 'test-secret-key'
@@ -218,9 +221,12 @@ def multi_user_client(db_session, monkeypatch):
 
     # --- FIX: Inject the mock 'db' object into the nova module's namespace to solve NameError/AttributeError ---
     import nova
+    import nova.auth
 
     # Patch the User model with the mock columns required by db.select(User).where(User.username == ...)
     monkeypatch.setattr(nova, 'User', MockAuthDbUser)
+    monkeypatch.setattr(nova.auth, 'User', MockAuthDbUser)
+    monkeypatch.setattr(nova.auth, 'SINGLE_USER_MODE', False)
 
     mock_db_object = types.SimpleNamespace()
     mock_db_object.session = MockAuthDbSession()
@@ -228,6 +234,7 @@ def multi_user_client(db_session, monkeypatch):
 
     # WORKAROUND: Force the 'db' variable into the module's global dict
     nova.__dict__['db'] = mock_db_object
+    nova.auth.__dict__['db'] = mock_db_object
     # --- END FIX ---
 
     # 3. Configure the app
@@ -305,9 +312,12 @@ def mu_client_logged_out(db_session, monkeypatch):
 
     # --- FIX: Inject the mock 'db' object into the nova module's namespace to solve NameError/AttributeError ---
     import nova
+    import nova.auth
 
     # Patch the User model with the mock columns required by db.select(User).where(User.username == ...)
     monkeypatch.setattr(nova, 'User', MockAuthDbUser)
+    monkeypatch.setattr(nova.auth, 'User', MockAuthDbUser)
+    monkeypatch.setattr(nova.auth, 'SINGLE_USER_MODE', False)
 
     mock_db_object = types.SimpleNamespace()
     mock_db_object.session = MockAuthDbSession()
@@ -315,6 +325,7 @@ def mu_client_logged_out(db_session, monkeypatch):
 
     # WORKAROUND: Force the 'db' variable into the module's global dict
     nova.__dict__['db'] = mock_db_object
+    nova.auth.__dict__['db'] = mock_db_object
     # --- END FIX ---
 
     # 3. Configure the app
@@ -336,6 +347,7 @@ def mu_client_logged_out(db_session, monkeypatch):
 @pytest.fixture
 def su_client_not_logged_in(db_session, monkeypatch):
     monkeypatch.setattr('nova.SINGLE_USER_MODE', True)
+    monkeypatch.setattr('nova.auth.SINGLE_USER_MODE', True)
 
     class SingleUserTest(UserMixin):
         def __init__(self, user_id, username):
@@ -343,6 +355,7 @@ def su_client_not_logged_in(db_session, monkeypatch):
             self.username = username
 
     monkeypatch.setattr('nova.User', SingleUserTest)
+    monkeypatch.setattr('nova.auth.User', SingleUserTest)
 
     app.config['TESTING'] = True
     app.config['SECRET_KEY'] = 'test-secret-key'

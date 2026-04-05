@@ -46,7 +46,7 @@ import markdown
 import csv
 from math import atan, degrees
 from flask import render_template, jsonify, request, send_file, redirect, url_for, flash, g, current_app, make_response, Response, stream_with_context
-from flask_login import LoginManager, UserMixin, login_user, login_required, current_user, logout_user
+from flask_login import login_user, login_required, current_user, logout_user
 from flask import session
 from flask import Flask, send_from_directory, has_request_context
 from flask_babel import Babel, gettext as _
@@ -63,10 +63,8 @@ iers.conf.auto_download = False
 iers.conf.auto_max_age = None  # Allow using old IERS data without errors
 
 from flask_wtf.csrf import CSRFProtect
-from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text, func
 from sqlalchemy.orm import selectinload
-from werkzeug.security import generate_password_hash, check_password_hash
 import getpass
 import jwt
 
@@ -143,6 +141,7 @@ from nova.workers.updates import check_for_updates
 from nova.workers.heatmap import heatmap_background_worker
 from nova.workers.iers import iers_refresh_worker
 from nova.analytics import record_event, record_login
+from nova.auth import db, User, login_manager, init_auth, UserMixin  # noqa: F401
 
 from nova.blueprints.core import core_bp
 from nova.blueprints.api import api_bp
@@ -3031,10 +3030,6 @@ def cleanup_db_session(exception=None):
     SessionLocal.remove()
 
 
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'core.login'
-
 if not SINGLE_USER_MODE:
     # --- Sentry Error Reporting (multi-user mode only) ---
     if SENTRY_DSN:
@@ -3054,72 +3049,8 @@ if not SINGLE_USER_MODE:
             release=APP_VERSION,
         )
 
-    # --- MULTI-USER MODE SETUP ---
-    db_path = os.path.join(INSTANCE_PATH, 'users.db')
-    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    db = SQLAlchemy(app)
-
-    class User(UserMixin, db.Model):
-        id = db.Column(db.Integer, primary_key=True)
-        username = db.Column(db.String(80), unique=True, nullable=False)
-        password_hash = db.Column(db.String(256), nullable=False)
-
-        # NEW: user is active by default
-        active = db.Column(db.Boolean, nullable=False, default=True)
-
-        def set_password(self, password):
-            self.password_hash = generate_password_hash(password)
-
-        def check_password(self, password):
-            return check_password_hash(self.password_hash, password)
-
-        @property
-        def is_active(self):
-            # Flask-Login uses this to decide if the user can authenticate
-            return bool(self.active)
-
-    # Ensure DB tables exist on first run / after switching modes
-    def ensure_db_initialized():
-        with app.app_context():
-            try:
-                # Probe the user table; if it fails, create all tables
-                db.session.execute(text("SELECT 1 FROM user LIMIT 1"))
-            except Exception:
-                try:
-                    print("[MIGRATION] User table missing. Creating all tables...")
-                    db.create_all()
-                    print("✅ [MIGRATION] Database initialized.")
-                except Exception as e:
-                    print(f"❌ [MIGRATION] Failed to initialize DB: {e}")
-
-    # Run the DB initialization once at startup
-    ensure_db_initialized()
-else:
-    # --- SINGLE-USER MODE SETUP ---
-    class User(UserMixin):
-        def __init__(self, user_id, username):
-            self.id = user_id
-            self.username = username
-
-# --- SINGLE, UNIFIED USER LOADER ---
-# This one function now correctly handles both modes, and guards against stale session IDs.
-@login_manager.user_loader
-def load_user(user_id):
-    """
-    Unified loader:
-    - SINGLE_USER_MODE: expect the sentinel 'default'
-    - Multi-user: only accept integer IDs; any other value is considered stale and ignored
-    """
-    if SINGLE_USER_MODE:
-        return User(user_id="default", username="default") if user_id == "default" else None
-
-    # Multi-user path: guard against stale 'default' / non-integer IDs in session cookies
-    try:
-        uid = int(user_id)
-    except (TypeError, ValueError):
-        return None
-    return db.session.get(User, uid)
+# --- Auth setup (db, User, login_manager live in nova.auth) ---
+init_auth(app)
 
 
 @app.before_request

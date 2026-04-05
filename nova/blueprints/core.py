@@ -175,7 +175,7 @@ def login():
         return redirect(url_for('core.index'))
     else:
         # --- MULTI-USER MODE LOGIC ---
-        from nova import db, User  # Lazy import: db and User only exist in multi-user mode
+        from nova.auth import db, User
 
         if request.method == 'POST':
             username = request.form.get('username')
