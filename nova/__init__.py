@@ -5041,7 +5041,7 @@ def warm_main_cache(username, location_name, user_config, sampling_interval):
 
                     if max_culm < altitude_threshold:
                         # Object never rises above threshold. Cache immediately as impossible.
-                        cache_key = f"{obj_name.lower()}_{local_date}_{location_name.lower()}"
+                        cache_key = f"{username}_{obj_name.lower().replace(' ', '_')}_{local_date}_{lat:.4f}_{lon:.4f}_{altitude_threshold}_{sampling_interval}"
                         nightly_curves_cache[cache_key] = {
                             "times_local": [],
                             "altitudes": [],
@@ -5130,7 +5130,7 @@ def warm_main_cache(username, location_name, user_config, sampling_interval):
             ra = ra_list[i]
             dec = dec_list[i]
 
-            cache_key = f"{obj_name.lower()}_{local_date}_{location_name.lower()}"
+            cache_key = f"{username}_{obj_name.lower().replace(' ', '_')}_{local_date}_{lat:.4f}_{lon:.4f}_{altitude_threshold}_{sampling_interval}"
             if cache_key in nightly_curves_cache:
                 continue
 
@@ -5206,7 +5206,7 @@ def warm_main_cache(username, location_name, user_config, sampling_interval):
             obj_name = obj_entry.get("Object")
             if not obj_name: continue
 
-            cache_key = f"{obj_name.lower()}_{local_date}_{location_name.lower()}"
+            cache_key = f"{username}_{obj_name.lower().replace(' ', '_')}_{local_date}_{lat:.4f}_{lon:.4f}_{altitude_threshold}_{sampling_interval}"
             if cache_key in nightly_curves_cache:
                 continue
 
@@ -7302,7 +7302,7 @@ def get_object_data(object_name):
         else:
             sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
 
-        cache_key = f"{object_name.lower()}_{local_date}_{selected_location_name.lower().replace(' ', '_')}"
+        cache_key = f"{username}_{object_name.lower().replace(' ', '_')}_{local_date}_{lat:.4f}_{lon:.4f}_{altitude_threshold}_{sampling_interval}"
 
         # Calculate or retrieve cached nightly data (logic remains similar)
         if cache_key not in nightly_curves_cache:
@@ -7549,7 +7549,7 @@ def get_desktop_data_batch():
                         continue
 
                 # Calculate / Cache
-                cache_key = f"{obj.object_name.lower()}_{local_date}_{location_key}"
+                cache_key = f"{user.username}_{obj.object_name.lower().replace(' ', '_')}_{local_date}_{lat:.4f}_{lon:.4f}_{altitude_threshold}_{sampling_interval}"
 
                 cached = None
                 if cache_key in nightly_curves_cache:
@@ -7825,7 +7825,7 @@ def get_all_mobile_up_now_data(user, location, user_prefs_dict, objects_list, db
                 continue  # Skip objects with no coordinates
 
             # --- 5. Get Nightly Cached Data ---
-            cache_key = f"{object_name.lower()}_{local_date}_{location_name_key}"
+            cache_key = f"{user.username}_{object_name.lower().replace(' ', '_')}_{local_date}_{lat:.4f}_{lon:.4f}_{altitude_threshold}_{sampling_interval}"
             if cache_key not in nightly_curves_cache:
                 # Cache miss - calculate it now
                 times_local, times_utc = get_common_time_arrays(tz_name, local_date, sampling_interval)
