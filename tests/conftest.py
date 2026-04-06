@@ -28,6 +28,10 @@ from nova import (
     UserMixin,
     User
 )
+from nova.config import (
+    observable_objects_cache, static_cache, nightly_curves_cache,
+    config_cache, journal_cache
+)
 
 
 # --- MOCK COLUMN CLASSES (The definitive fix is here) ---
@@ -93,6 +97,12 @@ def db_session(monkeypatch):
     try:
         yield session
     finally:
+        # Clear module-level caches to prevent cross-test leakage
+        observable_objects_cache.clear()
+        static_cache.clear()
+        nightly_curves_cache.clear()
+        config_cache.clear()
+        journal_cache.clear()
         # Explicitly rollback any pending changes before cleanup
         try:
             session.rollback()

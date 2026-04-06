@@ -1203,7 +1203,8 @@ def index():
     user = db.query(DbUser).filter_by(username=username).one_or_none()
     if not user:
         # Handle case where user is authenticated but not yet in app.db
-        return render_template('index.html', journal_sessions=[], hide_invisible=False)
+        return render_template('index.html', journal_sessions=[], hide_invisible=False,
+                               imaging_criteria={})
 
     sessions = db.query(JournalSession).filter_by(user_id=user.id).order_by(JournalSession.date_utc.desc()).all()
     all_projects = db.query(Project).filter_by(user_id=user.id).all()
@@ -1324,10 +1325,18 @@ def sun_events():
     else:
         now_local = datetime.now(local_tz)
 
-    if now_local.hour < 12:
-        observing_date = (now_local - timedelta(days=1)).date()
+    if sim_date_str:
+        # When an explicit sim_date is provided, use it directly —
+        # the past-midnight adjustment is only for "live" mode.
+        try:
+            observing_date = datetime.strptime(sim_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            observing_date = now_local.date()
     else:
-        observing_date = now_local.date()
+        if now_local.hour < 12:
+            observing_date = (now_local - timedelta(days=1)).date()
+        else:
+            observing_date = now_local.date()
     local_date = observing_date.strftime('%Y-%m-%d')
 
     # Calculate sun events using determined variables
