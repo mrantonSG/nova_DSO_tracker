@@ -113,7 +113,7 @@ from nova.config import (
     UPLOAD_FOLDER, ENV_FILE, FIRST_RUN_ENV_CREATED, SINGLE_USER_MODE,
     SECRET_KEY, STELLARIUM_ERROR_MESSAGE, NOVA_CATALOG_URL,
     ALLOWED_EXTENSIONS, MAX_ACTIVE_LOCATIONS, SENTRY_DSN,
-    static_cache, moon_separation_cache, nightly_curves_cache,
+    static_cache, moon_separation_cache, nightly_curves_cache, observable_objects_cache,
     cache_worker_status, monthly_top_targets_cache, config_cache,
     config_mtime, journal_cache, journal_mtime, LATEST_VERSION_INFO,
     rig_data_cache, weather_cache, CATALOG_MANIFEST_CACHE,
@@ -4104,8 +4104,8 @@ def get_observable_objects():
             f":{altitude_threshold}:{location_key_for_cache}"
         )
 
-        if obs_cache_key in nightly_curves_cache:
-            full_list = nightly_curves_cache[obs_cache_key]
+        if obs_cache_key in observable_objects_cache:
+            full_list = observable_objects_cache[obs_cache_key]
         else:
             full_list = []
             for obj in active_objects:
@@ -4134,7 +4134,7 @@ def get_observable_objects():
                     print(f"[API Observable Objects] Error calculating "
                           f"for {obj.object_name}: {e}")
                     continue
-            nightly_curves_cache[obs_cache_key] = full_list
+            observable_objects_cache[obs_cache_key] = full_list
 
         # Post-filter: exclude primary object, sort, limit
         observable_list = [

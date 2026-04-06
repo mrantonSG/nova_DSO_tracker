@@ -63,6 +63,7 @@ class BoundedCache(dict):
 static_cache = BoundedCache(2000)
 moon_separation_cache = BoundedCache(1000)
 nightly_curves_cache = BoundedCache(2000)
+observable_objects_cache = BoundedCache(200)
 cache_worker_status = BoundedCache(500)
 monthly_top_targets_cache = BoundedCache(500)
 config_cache = BoundedCache(500)
