@@ -13,7 +13,7 @@ from pathlib import Path
 from math import atan, degrees
 from typing import Optional
 
-from flask import g, has_request_context
+from flask import g, has_request_context, current_app, session, request
 from sqlalchemy.orm import selectinload
 from astroquery.simbad import Simbad
 from astropy.coordinates import SkyCoord, get_constellation
@@ -888,3 +888,25 @@ def sort_rigs(rigs, sort_key: str):
         return (v is None, v)
 
     return sorted(rigs, key=none_safe, reverse=reverse)
+
+
+def get_locale():
+    """
+    Locale selector for Flask-Babel.
+    Reads language preference from user config or session, falls back to browser preference or 'en'.
+    """
+    # Try user preference first (set by load_global_request_context)
+    if hasattr(g, 'user_config') and g.user_config:
+        user_lang = g.user_config.get('language')
+        if user_lang and user_lang in current_app.config['BABEL_SUPPORTED_LOCALES']:
+            return user_lang
+    # Try session (for guest users)
+    session_lang = session.get('language')
+    if session_lang and session_lang in current_app.config['BABEL_SUPPORTED_LOCALES']:
+        return session_lang
+    # Fall back to browser preference
+    browser_locale = request.accept_languages.best_match(current_app.config['BABEL_SUPPORTED_LOCALES'])
+    if browser_locale:
+        return browser_locale
+    # Default
+    return 'en'
