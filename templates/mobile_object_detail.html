@@ -454,13 +454,24 @@ body {
 }
 
 #content-notes .notes-edit-link {
-    display: block;
-    padding: 12px 16px;
-    border-top: 1px solid var(--m-border);
-    margin: 0;
-    position: sticky;
+    display: none;
+}
+
+#notes-edit-btn-fixed {
+    display: none;
+    position: fixed;
     bottom: calc(env(safe-area-inset-bottom, 0px) + 80px);
+    left: 16px;
+    right: 16px;
+    padding: 12px 16px;
     background: var(--m-bg);
+    border-top: 1px solid var(--m-border);
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--m-accent-dark);
+    text-decoration: none;
+    z-index: 50;
 }
 
 </style>
@@ -554,6 +565,10 @@ body {
     </a>
 </div>
 
+<a id="notes-edit-btn-fixed" href="{{ url_for('mobile.mobile_edit_notes', object_name=object_name) }}">
+    {{ _('Edit Notes') }} →
+</a>
+
 {% endblock %}
 
 {% block scripts %}
@@ -604,6 +619,12 @@ body {
                 // Update content
                 tabContents.forEach(content => content.classList.remove('active'));
                 document.getElementById(`content-${tabId}`).classList.add('active');
+
+                // Show/hide fixed edit-notes button
+                const notesBtn = document.getElementById('notes-edit-btn-fixed');
+                if (notesBtn) {
+                    notesBtn.style.display = (tabId === 'notes') ? 'block' : 'none';
+                }
 
                 // Load opportunities when tab is first opened
                 if (tabId === 'opportunities' && !opportunitiesLoaded) {
