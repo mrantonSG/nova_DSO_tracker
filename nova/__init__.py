@@ -4098,44 +4098,52 @@ def get_observable_objects():
                     location_key_for_cache = loc_name.lower().replace(' ', '_')
                     break
 
-        # Calculate observability for each object
-        observable_list = []
-        for obj in active_objects:
-            # Skip the excluded primary object
-            if obj.object_name == exclude_name:
-                continue
+        # Cache key: username + date + location + threshold uniquely identify the computation
+        obs_cache_key = (
+            f"obs_objects:{username}:{calc_date}:{lat:.4f}:{lon:.4f}"
+            f":{altitude_threshold}:{location_key_for_cache}"
+        )
 
-            try:
-                duration_td, max_alt, _, _ = calculate_observable_duration_vectorized(
-                    ra=obj.ra_hours,
-                    dec=obj.dec_deg,
-                    lat=lat,
-                    lon=lon,
-                    local_date=calc_date,
-                    tz_name=tz_name,
-                    altitude_threshold=altitude_threshold,
-                    horizon_mask=horizon_mask
-                )
+        if obs_cache_key in nightly_curves_cache:
+            full_list = nightly_curves_cache[obs_cache_key]
+        else:
+            full_list = []
+            for obj in active_objects:
+                try:
+                    duration_td, max_alt, _, _ = calculate_observable_duration_vectorized(
+                        ra=obj.ra_hours,
+                        dec=obj.dec_deg,
+                        lat=lat,
+                        lon=lon,
+                        local_date=calc_date,
+                        tz_name=tz_name,
+                        altitude_threshold=altitude_threshold,
+                        horizon_mask=horizon_mask
+                    )
 
-                observable_minutes = int(duration_td.total_seconds() / 60)
+                    observable_minutes = int(duration_td.total_seconds() / 60)
 
-                # Only include if observable
-                if observable_minutes > 0:
-                    observable_list.append({
-                        "object_name": obj.object_name,
-                        "common_name": obj.common_name or obj.object_name,
-                        "observable_minutes": observable_minutes,
-                        "max_altitude": round(max_alt, 1)
-                    })
-            except Exception as e:
-                # Skip objects with calculation errors
-                print(f"[API Observable Objects] Error calculating for {obj.object_name}: {e}")
-                continue
+                    if observable_minutes > 0:
+                        full_list.append({
+                            "object_name": obj.object_name,
+                            "common_name": obj.common_name or obj.object_name,
+                            "observable_minutes": observable_minutes,
+                            "max_altitude": round(max_alt, 1)
+                        })
+                except Exception as e:
+                    print(f"[API Observable Objects] Error calculating "
+                          f"for {obj.object_name}: {e}")
+                    continue
+            nightly_curves_cache[obs_cache_key] = full_list
 
-        # Sort by observable duration descending
-        observable_list.sort(key=lambda x: x['observable_minutes'], reverse=True)
-
-        # Limit to top 20
+        # Post-filter: exclude primary object, sort, limit
+        observable_list = [
+            o for o in full_list
+            if o["object_name"] != exclude_name
+        ]
+        observable_list.sort(
+            key=lambda x: x['observable_minutes'], reverse=True
+        )
         observable_list = observable_list[:20]
 
         return jsonify({"objects": observable_list})
