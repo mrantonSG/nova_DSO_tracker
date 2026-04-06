@@ -461,7 +461,7 @@ def mobile_object_detail(object_name):
         has_framing = False
 
     # Get object notes
-    notes = obj_record.get('project_name', '')
+    notes = obj_record.get('Project', '')
     if notes and not notes.strip().startswith(("<p>", "<div>", "<ul>", "<ol>", "<figure>", "<blockquote>", "<h1>", "<h2>", "<h3>", "<h4>", "<h5>", "<h6>")):
         # Convert plain text to HTML for display
         escaped_text = bleach.clean(notes, tags=[], strip=True)

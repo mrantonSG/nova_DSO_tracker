@@ -13,6 +13,7 @@
     flex-direction: column;
     overflow: hidden;
     padding: 0;
+    height: 100dvh;
 }
 
 /* Mobile Object Detail - Nova Design System */
@@ -450,7 +451,16 @@ body {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding-bottom: env(safe-area-inset-bottom, 80px);
-    /* 80px clears the fixed bottom nav */
+}
+
+#content-notes .notes-edit-link {
+    display: block;
+    padding: 12px 16px;
+    border-top: 1px solid var(--m-border);
+    margin: 0;
+    position: sticky;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 80px);
+    background: var(--m-bg);
 }
 
 </style>
@@ -539,11 +549,9 @@ body {
             </p>
         {% endif %}
     </div>
-    <div>
-        <a href="{{ url_for('mobile.mobile_edit_notes', object_name=object_name) }}" class="notes-edit-link">
-            {{ _('Edit Notes') }} →
-        </a>
-    </div>
+    <a href="{{ url_for('mobile.mobile_edit_notes', object_name=object_name) }}" class="notes-edit-link">
+        {{ _('Edit Notes') }} →
+    </a>
 </div>
 
 {% endblock %}

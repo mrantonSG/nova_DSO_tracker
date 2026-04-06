@@ -108,7 +108,7 @@
                     saveButton.textContent = "{{ _('Save Notes') }}";
 
                     setTimeout(() => {
-                        window.location.href = "{{ url_for('mobile.mobile_up_now') }}";
+                        window.location.href = "{{ url_for('mobile.mobile_object_detail', object_name=object_name) }}";
                     }, 1500);
 
                 } else {
