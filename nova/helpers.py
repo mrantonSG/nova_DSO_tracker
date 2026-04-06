@@ -8,7 +8,7 @@ import traceback
 import yaml
 import numpy as np
 import pytz
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from math import atan, degrees
 from typing import Optional
@@ -16,15 +16,19 @@ from typing import Optional
 from flask import g, has_request_context, current_app, session, request
 from sqlalchemy.orm import selectinload
 from astroquery.simbad import Simbad
-from astropy.coordinates import SkyCoord, get_constellation
+from astropy.coordinates import SkyCoord, get_constellation, EarthLocation, AltAz, get_body
+from astropy.time import Time
 import astropy.units as u
 
-from nova.models import SessionLocal, Location, AstroObject, Component
+from nova.models import SessionLocal, Location, AstroObject, Component, SavedFraming
 from nova.config import (
-    INSTANCE_PATH, BACKUP_DIR, ALLOWED_EXTENSIONS, SINGLE_USER_MODE, SIMBAD_TIMEOUT
+    INSTANCE_PATH, BACKUP_DIR, ALLOWED_EXTENSIONS, SINGLE_USER_MODE, SIMBAD_TIMEOUT,
+    nightly_curves_cache
 )
 from modules.astro_calculations import (
-    get_common_time_arrays, hms_to_hours, dms_to_degrees
+    get_common_time_arrays, hms_to_hours, dms_to_degrees,
+    calculate_transit_time, calculate_observable_duration_vectorized,
+    ra_dec_to_alt_az, get_utc_time_for_local_11pm, interpolate_horizon
 )
 
 logger = logging.getLogger(__name__)
@@ -910,3 +914,215 @@ def get_locale():
         return browser_locale
     # Default
     return 'en'
+
+
+def get_all_mobile_up_now_data(user, location, user_prefs_dict, objects_list, db=None):
+    """
+    Server-side function to get all data for the mobile 'Up Now' page in one pass.
+    """
+    # Pre-fetch framing status for the user
+    framed_objects = set()
+    if db:
+        try:
+            rows = db.query(SavedFraming.object_name).filter_by(user_id=user.id).all()
+            framed_objects = {r[0] for r in rows}
+        except Exception:
+            pass
+
+    # --- 1. Get Location & Time Details ---
+    try:
+        lat = location.lat
+        lon = location.lon
+        tz_name = location.timezone
+        local_tz = pytz.timezone(tz_name)
+    except Exception as e:
+        print(f"[Mobile Helper] Error getting location details: {e}")
+        return []  # Return empty on location error
+
+    current_datetime_local = datetime.now(local_tz)
+
+    # Determine "Observing Night" Date (Noon-to-Noon Logic)
+    # Fixes bug where morning observations were snapping to the wrong day's noon
+    if current_datetime_local.hour < 12:
+        local_date = (current_datetime_local - timedelta(days=1)).strftime('%Y-%m-%d')
+    else:
+        local_date = current_datetime_local.strftime('%Y-%m-%d')
+
+    # --- 2. Get Calculation Settings ---
+    altitude_threshold = user_prefs_dict.get("altitude_threshold", 20)
+    if location.altitude_threshold is not None:
+        altitude_threshold = location.altitude_threshold
+
+    sampling_interval = 15  # Default
+    if SINGLE_USER_MODE:
+        sampling_interval = user_prefs_dict.get('sampling_interval_minutes') or 15
+    else:
+        sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
+
+    horizon_mask = [[hp.az_deg, hp.alt_min_deg] for hp in sorted(location.horizon_points, key=lambda p: p.az_deg)]
+    location_name_key = location.name.lower().replace(' ', '_')
+
+    # --- 3. Pre-calculate Moon Position ---
+    try:
+        time_obj_now = Time(datetime.now(pytz.utc))
+        location_for_moon = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+        moon_coord = get_body('moon', time_obj_now, location_for_moon)
+        frame_now = AltAz(obstime=time_obj_now, location=location_for_moon)
+        moon_in_frame = moon_coord.transform_to(frame_now)
+    except Exception:
+        moon_in_frame = None  # Handle moon calc failure
+
+    # --- 4. Loop Through All Objects ---
+    all_objects_data = []
+
+    for obj_record in objects_list:
+        try:
+            object_name = obj_record.object_name
+            ra = obj_record.ra_hours
+            dec = obj_record.dec_deg
+
+            if ra is None or dec is None:
+                continue  # Skip objects with no coordinates
+
+            # --- 5. Get Nightly Cached Data ---
+            cache_key = f"{user.username}_{object_name.lower().replace(' ', '_')}_{local_date}_{lat:.4f}_{lon:.4f}_{altitude_threshold}_{sampling_interval}"
+            if cache_key not in nightly_curves_cache:
+                # Cache miss - calculate it now
+                times_local, times_utc = get_common_time_arrays(tz_name, local_date, sampling_interval)
+                location_ephem = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+                sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+                altaz_frame = AltAz(obstime=times_utc, location=location_ephem)
+                altitudes = sky_coord.transform_to(altaz_frame).alt.deg
+                azimuths = sky_coord.transform_to(altaz_frame).az.deg
+                transit_time = calculate_transit_time(ra, dec, lat, lon, tz_name, local_date)
+                obs_duration, max_alt, _, _ = calculate_observable_duration_vectorized(
+                    ra, dec, lat, lon, local_date, tz_name, altitude_threshold, sampling_interval,
+                    horizon_mask=horizon_mask
+                )
+                fixed_time_utc_str = get_utc_time_for_local_11pm(tz_name)
+                alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, lat, lon, fixed_time_utc_str)
+                is_obstructed_at_11pm = False
+                if horizon_mask and len(horizon_mask) > 1:
+                    sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
+                    required_altitude_11pm = interpolate_horizon(az_11pm, sorted_mask, altitude_threshold)
+                    if alt_11pm >= altitude_threshold and alt_11pm < required_altitude_11pm:
+                        is_obstructed_at_11pm = True
+
+                nightly_curves_cache[cache_key] = {
+                    "times_local": times_local, "altitudes": altitudes, "azimuths": azimuths,
+                    "transit_time": transit_time,
+                    "obs_duration_minutes": int(obs_duration.total_seconds() / 60) if obs_duration else 0,
+                    "max_altitude": round(max_alt, 1) if max_alt is not None else "N/A",
+                    "alt_11pm": f"{alt_11pm:.2f}", "az_11pm": f"{az_11pm:.2f}",
+                    "is_obstructed_at_11pm": is_obstructed_at_11pm
+                }
+
+            cached_night_data = nightly_curves_cache[cache_key]
+
+            # --- 6. Calculate Current Position ---
+            now_utc = datetime.now(pytz.utc)
+            time_diffs = [abs((t - now_utc).total_seconds()) for t in cached_night_data["times_local"]]
+            current_index = np.argmin(time_diffs)
+            current_alt = cached_night_data["altitudes"][current_index]
+            current_az = cached_night_data["azimuths"][current_index]
+            next_index = min(current_index + 1, len(cached_night_data["altitudes"]) - 1)
+            next_alt = cached_night_data["altitudes"][next_index]
+            trend = '–'
+            if abs(next_alt - current_alt) > 0.01: trend = '↑' if next_alt > current_alt else '↓'
+
+            # --- 7. Calculate Moon Separation ---
+            angular_sep = "N/A"
+            if moon_in_frame:
+                try:
+                    obj_coord_sky = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+                    obj_in_frame = obj_coord_sky.transform_to(frame_now)
+                    angular_sep = round(obj_in_frame.separation(moon_in_frame).deg)
+                except Exception:
+                    pass  # Keep N/A
+
+            # --- 8. Assemble Final Dictionary ---
+            all_objects_data.append({
+                # Static data from the object record
+                "Object": obj_record.object_name,
+                "Common Name": obj_record.common_name or obj_record.object_name,
+                "ActiveProject": obj_record.active_project,
+                "has_framing": obj_record.object_name in framed_objects,
+
+                # Calculated data
+                'Altitude Current': f"{current_alt:.2f}",
+                'Azimuth Current': f"{current_az:.2f}",
+                'Trend': trend,
+                'Observable Duration (min)': cached_night_data['obs_duration_minutes'],
+                'Max Altitude (°)': cached_night_data['max_altitude'],
+                'Angular Separation (°)': angular_sep,
+                "Type": obj_record.type or "N/A",
+                "Constellation": obj_record.constellation or "",
+            })
+        except Exception as e:
+            print(f"[Mobile Helper] Failed to process object {obj_record.object_name}: {e}")
+            continue  # Skip this object
+
+    return all_objects_data
+
+
+def enable_user(username: str) -> bool:
+    """
+    Re-enable a previously disabled user.
+    Returns True if the user was found and enabled, False otherwise.
+    """
+    from nova.auth import db as auth_db, User
+    with current_app.app_context():
+        user = auth_db.session.scalar(auth_db.select(User).where(User.username == username))
+        if not user:
+            return False
+        try:
+            user.active = True
+            auth_db.session.commit()
+            print(f"✅ Enabled user '{username}'.")
+            return True
+        except Exception as e:
+            auth_db.session.rollback()
+            print(f"❌ Failed to enable user '{username}': {e}")
+            return False
+
+
+def disable_user(username: str) -> bool:
+    """
+    Mark a user as inactive/disabled without deleting them.
+    Returns True if the user was found and disabled, False otherwise.
+    """
+    from nova.auth import db as auth_db, User
+    with current_app.app_context():
+        user = auth_db.session.scalar(auth_db.select(User).where(User.username == username))
+        if not user:
+            return False
+        try:
+            user.active = False
+            auth_db.session.commit()
+            print(f"✅ Disabled user '{username}'.")
+            return True
+        except Exception as e:
+            auth_db.session.rollback()
+            print(f"❌ Failed to disable user '{username}': {e}")
+            return False
+
+
+def delete_user(username: str) -> bool:
+    """
+    Hard-delete a user record. Optionally remove that user's on-disk files if you add that logic.
+    """
+    from nova.auth import db as auth_db, User
+    with current_app.app_context():
+        user = auth_db.session.scalar(auth_db.select(User).where(User.username == username))
+        if not user:
+            return False
+        try:
+            auth_db.session.delete(user)
+            auth_db.session.commit()
+            print(f"✅ Deleted user '{username}' from DB.")
+            # If you also want to remove YAML/journal/config files, call your remover here.
+            return True
+        except Exception as e:
+            auth_db.session.rollback()
+            print(f"❌ Failed to delete user '{username}': {e}")
+            return False
