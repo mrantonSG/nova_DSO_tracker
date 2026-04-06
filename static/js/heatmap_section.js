@@ -75,71 +75,72 @@
         let totalChunks = 12;
         let completedChunks = 0;
 
-        function fetchChunk(index) {
-            if (loadingText) loadingText.textContent = window.t('calculating_month').replace('{0}', index + 1).replace('{1}', totalChunks);
-
-            fetch(`/api/get_yearly_heatmap_chunk?chunk_index=${index}&location_name=${encodeURIComponent(currentLoc)}`)
+        // Fetch all chunks in parallel
+        const chunkPromises = Array.from({ length: totalChunks }, (_, index) => {
+            return fetch(`/api/get_yearly_heatmap_chunk?chunk_index=${index}&location_name=${encodeURIComponent(currentLoc)}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.error) throw new Error(data.error);
+                    completedChunks++;
+                    const percent = Math.round((completedChunks / totalChunks) * 100);
+                    if (progressBar) progressBar.style.width = `${percent}%`;
+                    if (loadingText) loadingText.textContent = window.t('calculating_month')
+                        .replace('{current}', completedChunks)
+                        .replace('{total}', totalChunks);
+                    return data;
+                });
+        });
 
-                    // Append Columns (Time data)
+        Promise.all(chunkPromises)
+            .then(chunks => {
+                // Stitch x-axis columns (concat in chunk order)
+                chunks.forEach(data => {
                     stitchedData.x = stitchedData.x.concat(data.x);
                     stitchedData.dates = stitchedData.dates.concat(data.dates);
                     stitchedData.moon_phases = stitchedData.moon_phases.concat(data.moon_phases);
+                });
 
-                    // Metadata (Take from last chunk, assuming consistency)
-                    stitchedData.y = data.y;
-                    stitchedData.ids = data.ids;
-                    stitchedData.active = data.active;
-                    stitchedData.types = data.types;
-                    stitchedData.cons = data.cons;
-                    stitchedData.mags = data.mags;
-                    stitchedData.sizes = data.sizes;
-                    stitchedData.sbs = data.sbs;
+                // Metadata (take from last chunk — consistent across all)
+                const last = chunks[chunks.length - 1];
+                stitchedData.y = last.y;
+                stitchedData.ids = last.ids;
+                stitchedData.active = last.active;
+                stitchedData.types = last.types;
+                stitchedData.cons = last.cons;
+                stitchedData.mags = last.mags;
+                stitchedData.sizes = last.sizes;
+                stitchedData.sbs = last.sbs;
 
-                    // Append Z Columns to Rows
-                    if (index === 0) {
+                // Stitch z rows from z_chunk arrays (row-by-row concat)
+                chunks.forEach((data, chunkIdx) => {
+                    if (chunkIdx === 0) {
                         stitchedData.z = data.z_chunk;
                     } else {
                         for (let i = 0; i < data.z_chunk.length; i++) {
-                            // Safety check for row count mismatch
                             if (stitchedData.z[i]) {
                                 stitchedData.z[i] = stitchedData.z[i].concat(data.z_chunk[i]);
                             }
                         }
                     }
-
-                    completedChunks++;
-                    const percent = Math.round((completedChunks / totalChunks) * 100);
-                    if (progressBar) progressBar.style.width = `${percent}%`;
-
-                    if (completedChunks < totalChunks) {
-                        fetchChunk(index + 1);
-                    } else {
-                        // Finished
-                        globalHeatmapData = stitchedData;
-                        isFetching = false;
-
-                        // Save to Browser Cache
-                        try {
-                            const cachePayload = { timestamp: Date.now(), data: stitchedData };
-                            localStorage.setItem(cacheKey, JSON.stringify(cachePayload));
-                        } catch (e) { console.warn("LocalStorage quota exceeded", e); }
-
-                        if (loadingDiv) loadingDiv.style.display = "none";
-                        renderHeatmapFromCache();
-                    }
-                })
-                .catch(err => {
-                    console.error(err);
-                    isFetching = false;
-                    if (loadingDiv) loadingDiv.style.display = "none";
-                    plotDiv.innerHTML = `<div style="color:red; text-align:center; padding:20px;">Error: ${err.message}</div>`;
                 });
-        }
 
-        fetchChunk(0);
+                globalHeatmapData = stitchedData;
+                isFetching = false;
+
+                try {
+                    const cachePayload = { timestamp: Date.now(), data: stitchedData };
+                    localStorage.setItem(cacheKey, JSON.stringify(cachePayload));
+                } catch (e) { console.warn("LocalStorage quota exceeded", e); }
+
+                if (loadingDiv) loadingDiv.style.display = "none";
+                renderHeatmapFromCache();
+            })
+            .catch(err => {
+                console.error(err);
+                isFetching = false;
+                if (loadingDiv) loadingDiv.style.display = "none";
+                plotDiv.innerHTML = `<div style="color:red; text-align:center; padding:20px;">Error: ${err.message}</div>`;
+            });
     }
 
     function renderHeatmapFromCache() {
