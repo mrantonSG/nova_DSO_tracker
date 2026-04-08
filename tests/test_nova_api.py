@@ -179,7 +179,7 @@ def test_api_get_weather_forecast(client, monkeypatch):
 
     # This line replaces the real function with a fake one (a lambda)
     # that just returns our mock data.
-    monkeypatch.setattr('nova.get_hybrid_weather_forecast',
+    monkeypatch.setattr('nova.blueprints.api.get_hybrid_weather_forecast',
                         lambda lat, lon: mock_forecast_data)
 
     # 2. ACT
