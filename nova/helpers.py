@@ -1,11 +1,14 @@
 import os
 import re
+import json
 import uuid
 import logging
 import tempfile
 import shutil
 import traceback
+import time
 import yaml
+import requests
 import numpy as np
 import pytz
 from datetime import datetime, timedelta
@@ -23,7 +26,7 @@ import astropy.units as u
 from nova.models import SessionLocal, Location, AstroObject, Component, SavedFraming
 from nova.config import (
     INSTANCE_PATH, BACKUP_DIR, ALLOWED_EXTENSIONS, SINGLE_USER_MODE, SIMBAD_TIMEOUT,
-    nightly_curves_cache
+    nightly_curves_cache, NOVA_CATALOG_URL, CATALOG_MANIFEST_CACHE, DEFAULT_HTTP_TIMEOUT
 )
 from modules.astro_calculations import (
     get_common_time_arrays, hms_to_hours, dms_to_degrees,
@@ -1126,3 +1129,90 @@ def delete_user(username: str) -> bool:
             auth_db.session.rollback()
             print(f"❌ Failed to delete user '{username}': {e}")
             return False
+
+
+def _read_yaml(path: str) -> tuple[dict | None, str | None]:
+    """
+    Safely reads and parses a YAML file, returning data and any error.
+
+    Returns:
+        A tuple of (data, error_message).
+        - On success: (dict, None)
+        - If file not found: ({}, None) -> Non-fatal, treated as empty.
+        - On parsing/other error: (None, str) -> Fatal error with a message.
+    """
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            # Successfully parse the file. An empty file will correctly result in `None`.
+            data = yaml.safe_load(f) or {}
+            return (data, None)
+
+    except FileNotFoundError:
+        # This is a normal, non-fatal condition. The user just doesn't have this file.
+        return ({}, None)
+
+    except yaml.YAMLError as e:
+        # This is a FATAL syntax error in the YAML file.
+        # We return None for the data to signal a hard failure.
+        error_msg = f"Invalid YAML syntax in '{os.path.basename(path)}': {e}"
+        print(f"[MIGRATION] {error_msg}")
+        return (None, error_msg)
+
+    except Exception as e:
+        # Catch any other unexpected errors during file reading.
+        error_msg = f"Cannot read file '{os.path.basename(path)}': {e}"
+        print(f"[MIGRATION] {error_msg}")
+        return (None, error_msg)
+
+def discover_catalog_packs() -> list[dict]:
+    """Scan the central web repository for catalog packs."""
+    global CATALOG_MANIFEST_CACHE
+    now = time.time()
+
+    # 1. Check if cache is valid
+    if CATALOG_MANIFEST_CACHE["data"] is not None and now < CATALOG_MANIFEST_CACHE["expires"]:
+        return CATALOG_MANIFEST_CACHE["data"]
+
+    # --- THIS IS THE NEW LOGIC ---
+    # Get the URL from the (possibly empty) config
+    url_to_use = NOVA_CATALOG_URL
+    if not url_to_use:
+        # If it's not in the config, use the hardcoded default
+        url_to_use = "https://catalogs.nova-tracker.com"
+    # --- END NEW LOGIC ---
+
+    # 2. Check if a URL is available (from either source)
+    if not url_to_use:
+        print("[CATALOG DISCOVER] No Catalog URL is configured. Catalog import is disabled.")
+        return [] # Return empty list
+
+    manifest_url = f"{url_to_use.rstrip('/')}/manifest.json"
+
+    try:
+        # 3. Fetch new manifest
+        print(f"[CATALOG DISCOVER] Fetching new manifest from {manifest_url}")
+        # Timeout reduced to 2.0s to prevent page load blocking if catalog server is slow/unreachable
+        r = requests.get(manifest_url, timeout=DEFAULT_HTTP_TIMEOUT)
+        r.raise_for_status()  # Raise error for bad status (404, 500)
+        packs = r.json()
+
+        if not isinstance(packs, list):
+            print(f"[CATALOG DISCOVER] Error: Manifest is not a valid JSON list.")
+            return []
+
+        # 4. Update cache (e.g., for 1 hour)
+        CATALOG_MANIFEST_CACHE = {
+            "data": packs,
+            "expires": now + 3600 # 1 hour cache
+        }
+        return packs
+
+    except requests.exceptions.RequestException as e:
+        print(f"[CATALOG DISCOVER] Failed to fetch manifest: {e}")
+        return CATALOG_MANIFEST_CACHE["data"] or [] # Return old cache on error
+    except json.JSONDecodeError as e:
+        print(f"[CATALOG DISCOVER] Failed to parse manifest JSON: {e}")
+        return CATALOG_MANIFEST_CACHE["data"] or []
+    except Exception as e:
+        print(f"[CATALOG DISCOVER] Error: {e}")
+        return []

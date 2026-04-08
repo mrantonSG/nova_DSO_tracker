@@ -74,6 +74,7 @@ LATEST_VERSION_INFO = BoundedCache(10)
 rig_data_cache = BoundedCache(500)
 weather_cache = BoundedCache(1000)
 CATALOG_MANIFEST_CACHE = {"data": None, "expires": 0}
+DEFAULT_HTTP_TIMEOUT = 10  # Standard timeout for HTTP requests
 
 # --- Translation status ---
 TRANSLATION_STATUS = {

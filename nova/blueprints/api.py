@@ -27,7 +27,7 @@ import pytz
 from nova.config import (
     SINGLE_USER_MODE, TELEMETRY_DEBUG_STATE, LATEST_VERSION_INFO,
     nightly_curves_cache, observable_objects_cache,
-    weather_cache, CACHE_DIR,
+    weather_cache, CACHE_DIR, DEFAULT_HTTP_TIMEOUT,
 )
 from nova.helpers import (
     get_db, load_full_astro_context, get_locale,
@@ -1914,7 +1914,6 @@ def deprovision_user():
 # Weather Helper Chain (co-migrated from nova/__init__.py)
 # =============================================================================
 
-DEFAULT_HTTP_TIMEOUT = 10  # Standard timeout for most HTTP requests
 
 
 def get_weather_data_single_attempt(url: str, lat: float, lon: float) -> dict | None:

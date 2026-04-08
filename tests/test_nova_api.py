@@ -393,6 +393,7 @@ def test_upload_editor_image(client, monkeypatch, tmp_path):
     mock_upload_folder = tmp_path / "uploads"
     # Tell the app to use this temporary folder instead of the real one
     monkeypatch.setattr('nova.UPLOAD_FOLDER', str(mock_upload_folder))
+    monkeypatch.setattr('nova.blueprints.tools.UPLOAD_FOLDER', str(mock_upload_folder))
 
     # Create a mock file in memory
     mock_file = io.BytesIO(b'fake-image-data-bytes')
