@@ -1295,7 +1295,6 @@ app.secret_key = SECRET_KEY
 csrf = CSRFProtect()
 csrf.init_app(app)
 app.config['WTF_CSRF_CHECK_DEFAULT'] = False  # Don't enforce globally; protect routes explicitly
-app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024  # 32 MB upload limit
 
 # --- AI Configuration (loaded from .env via nova.config) ---
 app.config['AI_PROVIDER'] = AI_PROVIDER
