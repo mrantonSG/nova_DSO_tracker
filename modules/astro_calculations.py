@@ -348,6 +348,26 @@ def calculate_sun_events_cached(date_str, tz_name, lat, lon):
     SUN_EVENTS_CACHE[key] = events
     return events
 
+MOON_PHASE_CACHE = {}
+
+def calculate_moon_phase_cached(date_str, lat, lon):
+    """Return moon illumination % (0–100, one decimal) for a given date and location.
+    Deterministic per (date, lat, lon) — no TTL needed.
+    """
+    key = (date_str, str(lat), str(lon))
+    if key in MOON_PHASE_CACHE:
+        return MOON_PHASE_CACHE[key]
+
+    observer = ephem.Observer()
+    observer.lat = str(lat)
+    observer.lon = str(lon)
+    observer.date = ephem.Date(date_str + " 12:00:00")
+    moon = ephem.Moon()
+    moon.compute(observer)
+    phase = round(moon.phase, 1)
+    MOON_PHASE_CACHE[key] = phase
+    return phase
+
 
 def calculate_max_observable_altitude(ra, dec, lat, lon, local_date, tz_name, altitude_threshold):
     """

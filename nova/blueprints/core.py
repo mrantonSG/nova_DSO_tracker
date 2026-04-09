@@ -78,7 +78,7 @@ from nova.models import (
 from datetime import date, datetime, timedelta
 import calendar
 
-from modules.astro_calculations import calculate_sun_events_cached, calculate_observable_duration_vectorized
+from modules.astro_calculations import calculate_sun_events_cached, calculate_moon_phase_cached, calculate_observable_duration_vectorized
 import requests
 import modules.nova_data_fetcher as nova_data_fetcher
 
@@ -1344,23 +1344,10 @@ def sun_events():
 
     # Calculate moon phase using determined variables
     try:
-        moon = ephem.Moon()
-        observer = ephem.Observer()
-        observer.lat = str(lat) # Use determined lat (ephem needs string)
-        observer.lon = str(lon) # Use determined lon (ephem needs string)
-        dusk_str = events.get("astronomical_dusk")
-        if dusk_str:
-            dusk_time_obj = datetime.strptime(dusk_str, "%H:%M").time()
-            dusk_dt = local_tz.localize(datetime.combine(observing_date, dusk_time_obj))
-            observer.date = dusk_dt.astimezone(pytz.utc)
-        else:
-            observer.date = now_local.astimezone(pytz.utc)  # fallback
-        moon.compute(observer)
-        moon_phase = round(moon.phase, 1)
+        moon_phase = calculate_moon_phase_cached(local_date, lat, lon)
     except Exception as e:
-        # Handle potential errors during ephem calculation
-        print(f"[API Sun Events] Error calculating moon phase: {e}") # Log error
-        moon_phase = "N/A" # Indicate error in response
+        print(f"[API Sun Events] Error calculating moon phase: {e}")
+        moon_phase = "N/A"
 
     # Add all data to the response JSON
     events["date"] = local_date
@@ -1843,13 +1830,7 @@ def graph_dashboard(object_name):
             dt_utc_astropy = dt_for_moon_local.astimezone(pytz.utc)
 
             # Moon Phase
-            _moon_obs = ephem.Observer()
-            _moon_obs.lat = str(effective_lat)
-            _moon_obs.lon = str(effective_lon)
-            _moon_obs.date = dt_utc_astropy
-            _moon = ephem.Moon()
-            _moon.compute(_moon_obs)
-            moon_phase_for_effective_date = round(_moon.phase, 1)
+            moon_phase_for_effective_date = calculate_moon_phase_cached(effective_date_str, effective_lat, effective_lon)
 
             # Angular Separation
             time_obj_sep = Time(dt_utc_astropy)
@@ -2062,20 +2043,7 @@ def get_date_info(object_name):
 
     local_time = tz.localize(datetime(year, month, day, now.hour, now.minute))
 
-    dusk_str = sun_events.get("astronomical_dusk")
-    if dusk_str:
-        dusk_time_obj = datetime.strptime(dusk_str, "%H:%M").time()
-        _moon_ref_dt = tz.localize(datetime.combine(datetime(year, month, day).date(), dusk_time_obj))
-    else:
-        _moon_ref_dt = tz.localize(datetime(year, month, day, now.hour, now.minute))
-
-    _moon_obs = ephem.Observer()
-    _moon_obs.lat = str(g.lat)
-    _moon_obs.lon = str(g.lon)
-    _moon_obs.date = _moon_ref_dt.astimezone(pytz.utc)
-    _moon_ephem = ephem.Moon()
-    _moon_ephem.compute(_moon_obs)
-    phase = round(_moon_ephem.phase)
+    phase = calculate_moon_phase_cached(local_date_str, g.lat, g.lon)
 
     # Calculate display string for the UI (e.g. "11.12.2025 - 12.12.2025")
     curr_dt = datetime(year, month, day)
