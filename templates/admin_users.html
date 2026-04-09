@@ -47,7 +47,7 @@
     <!-- Create User Card -->
     <div class="admin-card">
       <h3>{{ _('Create New User') }}</h3>
-      <form method="POST" action="{{ url_for('tools.admin_create_user') }}" class="create-user-form">
+      <form method="POST" action="{{ url_for('admin.admin_create_user') }}" class="create-user-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-row">
           <label for="new-username">{{ _('Username') }}</label>
@@ -91,7 +91,7 @@
             <td class="actions-cell">
               {% if user.username != 'admin' %}
                 <!-- Toggle active/inactive -->
-                <form method="POST" action="{{ url_for('tools.admin_toggle_user', user_id=user.id) }}" style="display:inline;">
+                <form method="POST" action="{{ url_for('admin.admin_toggle_user', user_id=user.id) }}" style="display:inline;">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button type="submit" class="btn-small {{ 'btn-warn' if user.active else 'btn-success' }}" title="{{ _('Deactivate') if user.active else _('Activate') }}">
                     {{ _('Deactivate') if user.active else _('Activate') }}
@@ -104,7 +104,7 @@
 
               {% if user.username != 'admin' %}
                 <!-- Delete -->
-                <form method="POST" action="{{ url_for('tools.admin_delete_user', user_id=user.id) }}" style="display:inline;"
+                <form method="POST" action="{{ url_for('admin.admin_delete_user', user_id=user.id) }}" style="display:inline;"
                       onsubmit="return confirm({{ _('Delete user \'%(username)s\'? This removes their login credentials. Their observing data in app.db is NOT deleted.', username=user.username) }});">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button type="submit" class="btn-small btn-danger">{{ _('Delete') }}</button>
@@ -113,7 +113,7 @@
 
               <!-- Hidden reset-password form -->
               <div id="reset-form-{{ user.id }}" class="reset-password-form" style="display:none;">
-                <form method="POST" action="{{ url_for('tools.admin_reset_password', user_id=user.id) }}">
+                <form method="POST" action="{{ url_for('admin.admin_reset_password', user_id=user.id) }}">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <input type="password" name="new_password" required placeholder="{{ _('New password') }}" minlength="4" autocomplete="new-password">
                   <button type="submit" class="btn-small btn-primary">{{ _('Save') }}</button>

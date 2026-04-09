@@ -3609,6 +3609,8 @@ app.register_blueprint(journal_bp)
 app.register_blueprint(mobile_bp)
 app.register_blueprint(projects_bp)
 app.register_blueprint(tools_bp)
+from nova.blueprints.admin import admin_bp
+app.register_blueprint(admin_bp)
 
 # Register AI blueprint (conditional on AI_API_KEY being set)
 register_ai_blueprint(app)

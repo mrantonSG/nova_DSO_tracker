@@ -356,7 +356,7 @@
             {% elif not SINGLE_USER_MODE and current_user.is_authenticated %}
                 {{ current_user.username }}
                 {% if current_user.username == 'admin' %}
-                <a href="{{ url_for('tools.admin_users') }}" style="margin-left: 8px; color: var(--primary-color); font-size: 12px; text-decoration: underline;">{{ _('Users') }}</a>
+                <a href="{{ url_for('admin.admin_users') }}" style="margin-left: 8px; color: var(--primary-color); font-size: 12px; text-decoration: underline;">{{ _('Users') }}</a>
                 {% endif %}
                 <form action="{{ url_for('core.logout') }}" method="post" style="display:inline; margin-left:5px;" onsubmit="sessionStorage.removeItem('selectedLocation');">
                     <button type="submit" style="background:none; border:none; color:var(--primary-color); cursor:pointer; padding:0; text-decoration:underline; font-size:12px;">{{ _('Logout') }}</button>
