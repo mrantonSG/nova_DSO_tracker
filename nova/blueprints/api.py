@@ -1,6 +1,7 @@
 import json
 import os
 import time
+from pathlib import Path
 import calendar
 import traceback
 import re
@@ -58,7 +59,10 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(_
 
 # --- Telemetry diagnostics route ---
 @api_bp.route('/telemetry/debug', methods=['GET'])
+@login_required
 def telemetry_debug():
+    if not SINGLE_USER_MODE and (not current_user.is_authenticated or current_user.username != "admin"):
+        return jsonify({"error": "Not authorized"}), 403
     # Report current telemetry config and last attempt
     try:
         username = "default" if SINGLE_USER_MODE else (current_user.username if current_user.is_authenticated else "guest_user")
@@ -77,6 +81,52 @@ def telemetry_debug():
         'last_error': TELEMETRY_DEBUG_STATE.get('last_error'),
         'last_ts': TELEMETRY_DEBUG_STATE.get('last_ts')
     })
+
+
+@api_bp.route("/telemetry/ping", methods=["POST"])
+def telemetry_ping():
+    # Respect opt-out as usual
+    try:
+        username = "default" if SINGLE_USER_MODE else (
+            current_user.username if getattr(current_user, "is_authenticated", False) else "guest_user"
+        )
+    except Exception:
+        username = "default"
+
+    try:
+        # Use the g.user_config, which is already loaded from the DB
+        cfg = g.user_config if hasattr(g, "user_config") else {}
+    except Exception:
+        cfg = {}
+
+    tcfg = (cfg.get("telemetry") or {})
+    if not tcfg.get("enabled", True):
+        return jsonify({"status": "disabled"}), 200
+
+    # Parse client-provided UA (optional) and also store the request header UA as fallback
+    payload = request.get_json(silent=True) or {}
+    ua_client = payload.get("browser_user_agent") or ""
+    ua_header = request.headers.get("User-Agent", "") or ""
+    ua_final = ua_client or ua_header
+
+    # Cache UA for scheduled sends (so daily pings outside a request still include it)
+    try:
+        current_app.config["_LAST_UA"] = ua_final
+    except Exception:
+        pass
+
+    # DO NOT force a send here; avoid doubling the startup/daily sends.
+    # Only trigger a send if the 24h gate says it's okay right now.
+    try:
+        from nova import telemetry_should_send, send_telemetry_async  # lazy to avoid circular import
+        state_dir = Path(os.environ.get('NOVA_STATE_DIR', CACHE_DIR))
+        if telemetry_should_send(state_dir):
+            send_telemetry_async(cfg, browser_user_agent=ua_final, force=False)
+        # else: silently skip; scheduler or next allowed window will send
+    except Exception:
+        pass
+
+    return jsonify({"status": "ok"}), 200
 
 
 @api_bp.route('/api/latest_version')
