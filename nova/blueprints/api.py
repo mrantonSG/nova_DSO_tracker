@@ -3,7 +3,6 @@ import os
 import time
 import calendar
 import traceback
-import threading
 import re
 import requests
 import numpy as np
@@ -49,7 +48,6 @@ from modules.astro_calculations import (
     interpolate_horizon,
     get_common_time_arrays,
 )
-from nova import log_parser as nova_log_parser
 import modules.nova_data_fetcher as nova_data_fetcher
 import markdown
 

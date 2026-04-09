@@ -1,7 +1,6 @@
 import io
 import json
 import os
-import re
 import uuid
 import zipfile
 import threading
@@ -10,7 +9,7 @@ import traceback
 import yaml
 from flask import (
     Blueprint, request, jsonify, redirect, url_for,
-    render_template, flash, send_file, current_app, g
+    flash, send_file
 )
 from flask_login import login_required, current_user
 from flask_babel import gettext as _
@@ -21,14 +20,14 @@ from sqlalchemy.orm import selectinload
 
 from nova.config import (
     SINGLE_USER_MODE, UPLOAD_FOLDER, INSTANCE_PATH,
-    CONFIG_DIR, APP_VERSION, CACHE_DIR,
+    CONFIG_DIR, CACHE_DIR,
     DEFAULT_DITHER_MAIN_SHIFT_PX,
 )
 from nova.helpers import (
     get_db, allowed_file, get_user_log_string,
     calculate_dither_recommendation,
     safe_int, _compute_rig_metrics_from_components,
-    dither_display, sort_rigs,
+    sort_rigs,
 )
 from nova.models import (
     DbUser, AstroObject, Component, Rig, Location,

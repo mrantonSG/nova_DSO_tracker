@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 import bleach
 from flask import (
     Blueprint, render_template, redirect, url_for, flash,
-    request, g, session, current_app, jsonify
+    request, g, current_app
 )
 
 from flask_login import login_required, current_user
@@ -29,7 +29,7 @@ from sqlalchemy.orm import selectinload
 # =============================================================================
 from nova import SINGLE_USER_MODE  # Import from nova for test patching compatibility
 from nova.models import (
-    DbUser, AstroObject, SavedFraming, Rig, Location, Project, JournalSession, UserCustomFilter
+    DbUser, AstroObject, SavedFraming, Rig, Project, JournalSession, UserCustomFilter
 )
 from nova.helpers import (
     get_db, load_full_astro_context, safe_float, safe_int, generate_session_id, _compute_rig_metrics_from_components

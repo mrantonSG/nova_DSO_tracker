@@ -468,7 +468,7 @@ def parse_phd2_log(content: str) -> Dict[str, Any]:
             ts_str = match.group(1).strip() if match else None
             try:
                 dt = _parse_phd2_timestamp(ts_str) if ts_str else None
-            except:
+            except (ValueError, AttributeError):
                 dt = None
 
             # Track the first session's start time for relative hours

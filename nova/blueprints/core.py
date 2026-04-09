@@ -40,7 +40,6 @@ from flask import abort, jsonify, redirect, Response, stream_with_context
 from flask_login import current_user, login_required
 from sqlalchemy import func
 from sqlalchemy.orm import selectinload
-import numpy as np
 import time
 from astropy.coordinates import SkyCoord, get_constellation, EarthLocation, AltAz, get_body
 from astropy.time import Time
@@ -64,7 +63,6 @@ from nova.models import (
     AnalyticsEvent,
     AnalyticsLogin,
     AstroObject,
-    Component,
     DbUser,
     HorizonPoint,
     JournalSession,

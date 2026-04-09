@@ -2839,10 +2839,8 @@ def telemetry_ping():
         username = "default"
 
     try:
-        # === START REFACTOR ===
         # Use the g.user_config, which is already loaded from the DB
         cfg = g.user_config if hasattr(g, "user_config") else {}
-        # === END REFACTOR ===
     except Exception:
         cfg = {}
 

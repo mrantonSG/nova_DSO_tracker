@@ -36,7 +36,7 @@ from sqlalchemy.orm import selectinload
 from nova import SINGLE_USER_MODE  # Import from nova for test patching compatibility
 from nova.config import UPLOAD_FOLDER
 from nova.models import (
-    DbUser, Project, JournalSession, Rig, Component,
+    DbUser, Project, JournalSession, Rig,
     AstroObject, UserCustomFilter
 )
 from nova.helpers import (
@@ -665,9 +665,6 @@ def journal_edit(session_id):
     
             # --- Handle action field (save_draft vs save_close) ---
             if action == "save_draft":
-                # DIAGNOSTIC: Log what we received
-                print(f"[DRAFT] journal_edit: form_action={request.form.get('form_action')} all_keys={list(request.form.keys())}")
-                print("DRAFT BRANCH REACHED in journal_edit")
                 # Save as draft, return JSON without redirect
                 session_to_edit.draft = True
                 db.commit()

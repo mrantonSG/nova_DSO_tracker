@@ -10,7 +10,7 @@ import numpy as np
 import ephem
 import pytz
 from datetime import datetime, timedelta
-from astropy.coordinates import EarthLocation, AltAz, SkyCoord, get_body
+from astropy.coordinates import EarthLocation, AltAz, SkyCoord
 from astropy.time import Time
 from astropy.utils import iers
 import astropy.units as u

@@ -115,7 +115,9 @@ def _backup_with_rotation(src_path: str, keep: int = 10):
                           key=lambda p: p.stat().st_mtime, reverse=True)
         for p in siblings[keep:]:
             try: p.unlink()
-            except: pass
+            except OSError as e:
+                import logging
+                logging.getLogger(__name__).warning("[BACKUP] failed to delete old backup %s: %s", p, e)
         return dst
     except Exception as e:
         print(f"[BACKUP] warning: {e}")
