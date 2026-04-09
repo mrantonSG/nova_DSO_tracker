@@ -55,7 +55,7 @@ import markdown
 
 api_bp = Blueprint('api', __name__)
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 # --- Telemetry diagnostics route ---
