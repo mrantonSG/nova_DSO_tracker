@@ -5,6 +5,7 @@ This module contains all the astronomical calculation functions used by the Nova
 
 """
 
+from nova.config import BoundedCache
 import numpy as np
 import ephem
 import pytz
@@ -332,7 +333,7 @@ def calculate_sun_events(date_str, tz_name, lat, lon):
     }
 
 # Global cache for sun events: key = (date_str, tz_name, lat, lon)
-SUN_EVENTS_CACHE = {}
+SUN_EVENTS_CACHE = BoundedCache(maxsize=1000)
 
 def calculate_sun_events_cached(date_str, tz_name, lat, lon):
     """
@@ -348,7 +349,7 @@ def calculate_sun_events_cached(date_str, tz_name, lat, lon):
     SUN_EVENTS_CACHE[key] = events
     return events
 
-MOON_PHASE_CACHE = {}
+MOON_PHASE_CACHE = BoundedCache(maxsize=1000)
 
 def calculate_moon_phase_cached(date_str, lat, lon):
     """Return moon illumination % (0–100, one decimal) for a given date and location.
