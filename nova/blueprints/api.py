@@ -2645,7 +2645,6 @@ def get_observable_objects():
 
         # Get horizon mask from database with proper Location lookup
         horizon_mask = None
-        location_key_for_cache = "default"
 
         # Priority 1: Use location name if provided (most accurate)
         if location_name_param:
@@ -2656,7 +2655,6 @@ def get_observable_objects():
                 if location_obj:
                     horizon_mask = [[hp.az_deg, hp.alt_min_deg] for hp in
                                     sorted(location_obj.horizon_points, key=lambda p: p.az_deg)]
-                    location_key_for_cache = location_obj.name.lower().replace(' ', '_')
                     # Ensure lat/lon/tz match the location's configured values
                     lat = location_obj.lat
                     lon = location_obj.lon
@@ -2673,13 +2671,12 @@ def get_observable_objects():
                     abs(loc_details.get('lon', 999) - lon) < 0.001 and
                     loc_details.get('timezone') == tz_name):
                     horizon_mask = loc_details.get('horizon_mask')
-                    location_key_for_cache = loc_name.lower().replace(' ', '_')
                     break
 
         # Cache key: username + date + location + threshold uniquely identify the computation
         obs_cache_key = (
             f"obs_objects:{username}:{calc_date}:{lat:.4f}:{lon:.4f}"
-            f":{altitude_threshold}:{location_key_for_cache}"
+            f":{altitude_threshold}"
         )
 
         if obs_cache_key in observable_objects_cache:
