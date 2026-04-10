@@ -12,6 +12,7 @@ import os
 from datetime import date
 from flask import current_app
 from flask_login import current_user
+from nova.config import SINGLE_USER_MODE
 
 
 def _is_excluded() -> bool:
@@ -30,8 +31,7 @@ def _is_excluded() -> bool:
 
 def _is_enabled() -> bool:
     """Analytics only runs in multi-user mode."""
-    single_user = os.getenv('SINGLE_USER_MODE', 'True').strip().lower()
-    return single_user == 'false'
+    return not SINGLE_USER_MODE
 
 
 def record_event(event_name: str) -> None:
