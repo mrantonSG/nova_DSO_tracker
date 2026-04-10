@@ -133,6 +133,7 @@ def _migrate_locations(db, user: DbUser, config: dict):
                 existing.is_default = new_is_default
                 existing.active = loc.get("active", True)
                 existing.bortle_scale = bortle_val
+                existing.comments = loc.get("comments")
 
                 # --- START FIX: Replace horizon points using relationship cascade ---
                 new_horizon_points = []
@@ -165,7 +166,8 @@ def _migrate_locations(db, user: DbUser, config: dict):
                     altitude_threshold=alt_thr,
                     is_default=new_is_default,
                     active=loc.get("active", True),
-                    bortle_scale=bortle_val
+                    bortle_scale=bortle_val,
+                    comments=loc.get("comments")
                 )
                 db.add(row);
                 db.flush()  # Flush to get the row.id
@@ -1023,7 +1025,8 @@ def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
                     "altitude_threshold": l.altitude_threshold,
                     "horizon_mask": [[hp.az_deg, hp.alt_min_deg] for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)]
                 },
-                **({"bortle_scale": l.bortle_scale} if l.bortle_scale is not None else {})
+                **({"bortle_scale": l.bortle_scale} if l.bortle_scale is not None else {}),
+                **({"comments": l.comments} if l.comments else {})
             } for l in locs
         },
         "objects": [
