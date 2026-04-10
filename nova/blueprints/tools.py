@@ -812,10 +812,7 @@ def import_catalog(pack_id):
     catalog_sources bookkeeping handled in the helper).
     """
     # Determine which username to use for DB lookups
-    try:
-        single_user_mode = bool(globals().get('SINGLE_USER_MODE', True))
-    except Exception:
-        single_user_mode = True
+    single_user_mode = SINGLE_USER_MODE
 
     if single_user_mode:
         username = "default"

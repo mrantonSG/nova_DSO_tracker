@@ -1442,7 +1442,7 @@ def repair_journals(dry_run: bool = False):
 
             # Backfill missing object_name where possible from YAML (by date)
             # YAML path: per user -> journal_<username>.yaml, single-user -> journal_default.yaml
-            s_mode = bool(globals().get("SINGLE_USER_MODE", True))
+            s_mode = SINGLE_USER_MODE
             jfile = os.path.join(CONFIG_DIR, "journal_default.yaml" if (s_mode and u.username == "default") else f"journal_{u.username}.yaml")
             by_date = {}
             if os.path.exists(jfile):
