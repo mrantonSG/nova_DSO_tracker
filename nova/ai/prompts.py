@@ -323,7 +323,9 @@ Respond ENTIRELY in the language of this ISO locale code: {locale}. Every word, 
         "\nWrite observing notes following the paragraph structure above. "
         "Be specific: name filters, give exposure ranges and integration time estimates per rig, "
         "state moon tolerance with minimum separation in degrees, "
-        "rank rigs explicitly. End with the poetic sign-off."
+        "rank rigs explicitly. End with the poetic sign-off. "
+        "Do not include structural labels such as 'Paragraph 1', 'Paragraph 2', "
+        "'STEP 1', 'STEP 2', or similar numbering in your response."
     )
 
     user_prompt = "\n".join(prompt_lines)
@@ -629,7 +631,7 @@ Respond in the language of this ISO locale code: {locale}. Use informal address 
 
     # Final instruction
     prompt_lines.append("")
-    prompt_lines.append("Write a session summary based on the above data. Tell the story of the night, analyze technical performance, and give concrete recommendations for next time.")
+    prompt_lines.append("Write a session summary based on the above data. Tell the story of the night, analyze technical performance, and give concrete recommendations for next time. Do not include structural labels such as 'Paragraph 1', 'Paragraph 2', 'STEP 1', 'STEP 2', or similar numbering in your response.")
 
     user_prompt = "\n".join(prompt_lines)
 
@@ -1002,6 +1004,7 @@ Respond in the language of this ISO locale code: {locale}."""
     )
     # CRITICAL: This is the LAST instruction - model's first token must be the opening bracket
     prompt_lines.append("Respond with ONLY a JSON array. No preamble, no explanation. Start with [")
+    prompt_lines.append("Do not include structural labels such as 'Paragraph 1', 'Paragraph 2', 'STEP 1', 'STEP 2', or similar numbering in your response.")
 
     user_prompt = "\n".join(prompt_lines)
 
