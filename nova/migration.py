@@ -187,7 +187,6 @@ def _migrate_locations(db, user: DbUser, config: dict):
 
                 # Assign the new list to the new row object
                 row.horizon_points = new_horizon_points
-                # --- END REFACTOR ---
         except Exception as e:
             print(f"[MIGRATION] Skip/repair location '{name}': {e}")
 
