@@ -292,42 +292,36 @@
                         <input type="number" class="filter-cell-input" name="filter_Ha_exposure_sec" placeholder="exp" min="1">
                     </div>
 
-                    <!-- OIII -->
                     <div class="filter-cell">
                         <div class="filter-cell-label">OIII</div>
                         <input type="number" class="filter-cell-input" name="filter_OIII_subs" placeholder="0" min="0">
                         <input type="number" class="filter-cell-input" name="filter_OIII_exposure_sec" placeholder="exp" min="1">
                     </div>
 
-                    <!-- SII -->
                     <div class="filter-cell">
                         <div class="filter-cell-label">SII</div>
                         <input type="number" class="filter-cell-input" name="filter_SII_subs" placeholder="0" min="0">
                         <input type="number" class="filter-cell-input" name="filter_SII_exposure_sec" placeholder="exp" min="1">
                     </div>
 
-                    <!-- L -->
                     <div class="filter-cell">
                         <div class="filter-cell-label">L</div>
                         <input type="number" class="filter-cell-input" name="filter_L_subs" placeholder="0" min="0">
                         <input type="number" class="filter-cell-input" name="filter_L_exposure_sec" placeholder="exp" min="1">
                     </div>
 
-                    <!-- R -->
                     <div class="filter-cell">
                         <div class="filter-cell-label">R</div>
                         <input type="number" class="filter-cell-input" name="filter_R_subs" placeholder="0" min="0">
                         <input type="number" class="filter-cell-input" name="filter_R_exposure_sec" placeholder="exp" min="1">
                     </div>
 
-                    <!-- G -->
                     <div class="filter-cell">
                         <div class="filter-cell-label">G</div>
                         <input type="number" class="filter-cell-input" name="filter_G_subs" placeholder="0" min="0">
                         <input type="number" class="filter-cell-input" name="filter_G_exposure_sec" placeholder="exp" min="1">
                     </div>
 
-                    <!-- B -->
                     <div class="filter-cell">
                         <div class="filter-cell-label">B</div>
                         <input type="number" class="filter-cell-input" name="filter_B_subs" placeholder="0" min="0">
@@ -336,7 +330,6 @@
                 </div>
             </div>
 
-            <!-- Acquisition -->
             <div class="form-section">
                 <div class="form-section-label">ACQUISITION</div>
 
@@ -365,7 +358,6 @@
                 </div>
             </div>
 
-            <!-- Rating -->
             <div class="form-section">
                 <div class="form-section-label">RATING</div>
 
@@ -379,7 +371,6 @@
                 </div>
             </div>
 
-            <!-- Notes -->
             <div class="form-section">
                 <div class="form-group">
                     <label for="general_notes_problems_learnings">{{ _("Notes") }}</label>
@@ -387,18 +378,15 @@
                 </div>
             </div>
 
-            <!-- Hidden field for standalone session -->
             <input type="hidden" name="project_selection" value="standalone">
         </form>
 
-        <!-- Sticky Save Bar -->
         <div class="mobile-save-bar">
             <button type="button" class="save-bar-btn ghost" id="discard-btn">{{ _("Discard") }}</button>
             <button type="submit" form="journal-form" class="save-bar-btn primary">{{ _("Save Session") }}</button>
         </div>
     </div>
 
-    <!-- Flash messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             <div id="flash-messages">

@@ -478,7 +478,6 @@ body {
 {% endblock %}
 
 {% block content %}
-<!-- Back Bar -->
 <div class="back-bar">
     <a href="{{ url_for('mobile.mobile_up_now') }}">‹ Dashboard</a>
     <span class="object-title">
@@ -489,7 +488,6 @@ body {
     </span>
 </div>
 
-<!-- Stats Strip -->
 <div class="stats-strip">
     <div class="stat-item">
         <div class="stat-label" id="stat-label-now">{{ _('Now') }}</div>
@@ -512,12 +510,10 @@ body {
     </div>
 </div>
 
-<!-- Altitude Chart -->
 <div class="chart-container">
     <canvas id="altitudeChartCanvas" class="chart-canvas"></canvas>
 </div>
 
-<!-- Chart Controls -->
 <div class="chart-controls">
     <div class="segmented-control">
         <button id="view-day" class="active" data-view="day">{{ _('Day') }}</button>
@@ -527,20 +523,17 @@ body {
     <div class="date-pill data-mono" id="date-pill">{{ _('Today') }}</div>
 </div>
 
-<!-- Action Row -->
 <div class="action-row">
     <a href="{{ url_for('mobile.mobile_framing_coords', object_name=object_name) }}?ra={{ ra }}&dec={{ dec }}" class="action-btn ghost-teal">{{ _('Framing') }}</a>
     <a href="/m/journal/new?object={{ object_name }}" class="action-btn primary">{{ _('Log Session') }}</a>
     <a href="https://simbad.cds.unistra.fr/simbad/sim-id?Ident={{ object_name }}" target="_blank" class="action-btn ghost">{{ _('SIMBAD') }}</a>
 </div>
 
-<!-- Tab Strip -->
 <div class="tab-strip">
     <button id="tab-opportunities" class="active" data-tab="opportunities">{{ _('Opportunities') }}</button>
     <button id="tab-notes" data-tab="notes">{{ _('Notes') }}</button>
 </div>
 
-<!-- Opportunities Tab Content -->
 <div id="content-opportunities" class="tab-content tab-scroll active">
     <ul class="item-list" id="opportunities-list">
         <li class="loading" id="opportunities-loading">
@@ -549,7 +542,6 @@ body {
     </ul>
 </div>
 
-<!-- Notes Tab Content -->
 <div id="content-notes" class="tab-content tab-scroll">
     <div class="notes-content">
         {% if notes_html %}

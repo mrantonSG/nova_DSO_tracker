@@ -870,7 +870,6 @@ body.sheet-open {
 {% endblock %}
 
 {% block content %}
-<!-- Loading State -->
 <div id="mobile-loading" class="m-loading" style="display: none;">
     <div class="m-loading-label">{{ _('Scanning Sky...') }}</div>
     <div class="m-progress-track">
@@ -879,7 +878,6 @@ body.sheet-open {
     <div id="loading-text" class="m-loading-percent">{{ _('Initializing...') }}</div>
 </div>
 
-<!-- Search Bar -->
 <div class="m-search-bar">
     <div class="m-search-row">
         <input type="text" id="search-input" class="m-search-input"
@@ -888,7 +886,6 @@ body.sheet-open {
     </div>
 </div>
 
-<!-- Filter/Sort Toolbar -->
 <div class="m-toolbar">
     <button class="m-filter-btn" id="open-filters">
         {{ _('Filters') }}
@@ -905,20 +902,17 @@ body.sheet-open {
     </div>
 </div>
 
-<!-- Object List -->
 <ul class="m-card-list" id="object-list">
     <li id="loading-indicator" class="m-empty" style="display: none;">
         {{ _('No objects match your filters') }}
     </li>
 </ul>
 
-<!-- Sort dropdown (body-level to escape stacking contexts) -->
 <div class="m-sort-dropdown" id="sort-dropdown">
   <div class="m-sort-option active" data-sort="alt">{{ _('Altitude') }}</div>
   <div class="m-sort-option" data-sort="dur">{{ _('Duration') }}</div>
 </div>
 
-<!-- Filter bottom sheet -->
 <div class="m-sheet-overlay" id="filter-overlay"></div>
 <div class="m-sheet" id="filter-sheet">
     <div class="m-sheet-handle-area">
@@ -931,7 +925,6 @@ body.sheet-open {
 
     <div class="m-sheet-body">
 
-        <!-- Min Altitude slider -->
         <div class="m-sheet-row m-sheet-slider-row">
             <div class="m-sheet-slider-header">
                 <label class="m-sheet-label">{{ _('Alt Now') }} <span class="m-sheet-op">&ge;</span></label>
@@ -941,7 +934,6 @@ body.sheet-open {
                    min="0" max="90" step="5" value="0">
         </div>
 
-        <!-- Max Altitude slider -->
         <div class="m-sheet-row m-sheet-slider-row">
             <div class="m-sheet-slider-header">
                 <label class="m-sheet-label">{{ _('Alt Max') }} <span class="m-sheet-op">&ge;</span></label>
@@ -951,7 +943,6 @@ body.sheet-open {
                    min="0" max="90" step="5" value="0">
         </div>
 
-        <!-- Min Duration slider -->
         <div class="m-sheet-row m-sheet-slider-row">
             <div class="m-sheet-slider-header">
                 <label class="m-sheet-label">{{ _('Duration') }} <span class="m-sheet-op">&ge;</span></label>
@@ -961,7 +952,6 @@ body.sheet-open {
                    min="0" max="600" step="15" value="0">
         </div>
 
-        <!-- Min Moon Sep slider -->
         <div class="m-sheet-row m-sheet-slider-row">
             <div class="m-sheet-slider-header">
                 <label class="m-sheet-label">{{ _('Moon Sep') }} <span class="m-sheet-op">&ge;</span></label>
@@ -971,7 +961,6 @@ body.sheet-open {
                    min="0" max="180" step="10" value="0">
         </div>
 
-        <!-- Type chip grid -->
         <div class="m-sheet-row m-sheet-chips-row">
             <label class="m-sheet-label">{{ _('Type') }}</label>
             <div class="m-type-chips" id="type-chips">
@@ -989,7 +978,6 @@ body.sheet-open {
             </div>
         </div>
 
-        <!-- Constellation text filter -->
         <div class="m-sheet-row m-sheet-chips-row">
             <label class="m-sheet-label">{{ _('Constellation') }}</label>
             <input type="text" class="m-sheet-input-full" id="f-const"
