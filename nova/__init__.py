@@ -3375,24 +3375,6 @@ def seed_guest_account_command():
     finally:
         db.close()
 
-# --- Mobile Mosaic Helper ---
-def _format_ra_asiair(ra_deg):
-    total_sec = (ra_deg / 15.0) * 3600
-    h = int(total_sec // 3600)
-    m = int((total_sec % 3600) // 60)
-    s = total_sec % 60
-    return f"{h}h {m}m {s:.2f}s"
-
-
-def _format_dec_asiair(dec_deg):
-    sign = '+' if dec_deg >= 0 else '-'
-    abs_dec = abs(dec_deg)
-    d = int(abs_dec)
-    m = int((abs_dec - d) * 60)
-    s = ((abs_dec - d) * 60 - m) * 60
-    return f"{sign}{d}° {m}' {s:.2f}\""
-
-
 # =============================================================================
 # Main Entry Point
 # =============================================================================
