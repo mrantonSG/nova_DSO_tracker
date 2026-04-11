@@ -1358,7 +1358,6 @@
         console.log('[Nova] askNova started, controller state:',
             askNovaController ? 'exists' : 'null',
             'signal aborted:', askNovaController?.signal?.aborted)
-        console.log('askNova triggered');
         const askNovaBtn = document.getElementById('ask-nova-btn');
         const errorDiv = document.getElementById('ask-nova-error');
 

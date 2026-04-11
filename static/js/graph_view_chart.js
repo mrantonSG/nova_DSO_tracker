@@ -552,7 +552,7 @@
             return;
         }
     
-        console.log("Fetching weather data asynchronously...");
+
         try {
             const apiUrl = `/api/get_weather_forecast?lat=${lat}&lon=${lon}&tz=${encodeURIComponent(tz)}`;
             const resp = await fetch(apiUrl);
@@ -597,8 +597,6 @@
     
             // Redraw the chart to show the weather overlay
             chartInstance.update('none'); // Use 'none' to avoid animation
-            console.log("Weather data fetched and chart updated.");
-    
         } catch (err) {
             console.error('Could not fetch or apply weather data:', err);
             chartInstance.__weather.isLoading = false;

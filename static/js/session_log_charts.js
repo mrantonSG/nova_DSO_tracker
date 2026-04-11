@@ -799,17 +799,12 @@
         // DEBUG: Log the first phase structure to see what properties exist
         if (phases.length > 0) {
             console.log('[SWIMLANE_ROWS] First phase properties:', Object.keys(phases[0]));
-            console.log('[SWIMLANE_ROWS] First phase:', phases[0]);
         }
 
-        console.log('[SWIMLANE_ROWS] badgeClasses:', badgeClasses);
-        console.log('[SWIMLANE_ROWS] byClass:', byClass);
 
         // Check if badge_class property exists on phases
         const phasesWithoutBadge = phases.filter(p => !p.badge_class);
         if (phasesWithoutBadge.length > 0) {
-            console.log('[SWIMLANE_ROWS] WARNING:', phasesWithoutBadge.length, 'phases without badge_class');
-            console.log('[SWIMLANE_ROWS] Example phase without badge:', phasesWithoutBadge[0]);
         }
 
         // Prepare rows: one per badge_class
@@ -831,8 +826,6 @@
         const chartWidth = containerWidth - labelWidth - chartPadding.left - chartPadding.right;
 
         // DEBUG: Log canvas dimensions
-        console.log('[SWIMLANE_DIMS] containerWidth:', containerWidth, 'chartWidth:', chartWidth);
-        console.log('[SWIMLANE_DIMS] labelWidth:', labelWidth, 'chartPadding:', chartPadding);
 
         // Set SVG dimensions
         svg.setAttribute('width', containerWidth);
@@ -1325,9 +1318,7 @@
 
         // Debug: log session start for troubleshooting
         if (sessionStart) {
-            console.log('Guiding chart: session_start =', sessionStartStr, '→', sessionStart.toLocaleString());
         } else {
-            console.log('Guiding chart: No session_start available, using hours offset');
         }
 
         // Helper to convert hours to clock time string
