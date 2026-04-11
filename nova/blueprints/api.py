@@ -275,7 +275,6 @@ def get_journal_objects():
                 objects_map[object_name]['first_session_id'] = session.id
                 objects_map[object_name]['first_session_location'] = session.location_name
 
-    # Convert to list and sort by last_session DESC
     result = []
     for obj in objects_map.values():
         total_hours = round(obj['total_minutes'] / 60.0, 1) if obj['total_minutes'] else 0.0
@@ -1579,7 +1578,6 @@ def find_duplicates():
         obj_a = all_objects[i]
         obj_b = all_objects[j]
 
-        # Create a unique key for this pair
         pair_key = tuple(sorted([obj_a['Object'], obj_b['Object']]))
         if pair_key in seen_pairs: continue
         seen_pairs.add(pair_key)

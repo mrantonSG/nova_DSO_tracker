@@ -1466,7 +1466,7 @@ def _fix_mode_switch_sessions():
 def python_format_date_eu(value_iso_str):
     """Jinja filter to convert YYYY-MM-DD string to DD.MM.YYYY string."""
     if not value_iso_str or not isinstance(value_iso_str, str):
-        return value_iso_str  # Return as is if not a valid string
+        return value_iso_str
     try:
         # If it's already DD.MM.YYYY (e.g. from form input passed back on error)
         if '.' in value_iso_str and len(value_iso_str.split('.')[0]) <= 2:
@@ -1481,7 +1481,7 @@ def python_format_date_eu(value_iso_str):
         date_obj = datetime.strptime(value_iso_str, '%Y-%m-%d')
         return date_obj.strftime('%d.%m.%Y')
     except ValueError:
-        return value_iso_str  # Return original if any parsing fails
+        return value_iso_str
 
 app.jinja_env.filters['date_eu'] = python_format_date_eu
 

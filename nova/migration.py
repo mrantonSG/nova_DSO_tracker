@@ -185,7 +185,6 @@ def _migrate_locations(db, user: DbUser, config: dict):
                         except (ValueError, TypeError, IndexError) as hp_err:
                             current_app.logger.warning(f"[MIGRATION] Invalid horizon point skipped for new location '{name}': {pair} - {hp_err}")
 
-                # Assign the new list to the new row object
                 row.horizon_points = new_horizon_points
         except Exception as e:
             print(f"[MIGRATION] Skip/repair location '{name}': {e}")

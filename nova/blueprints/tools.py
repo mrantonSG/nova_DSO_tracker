@@ -971,7 +971,6 @@ def download_journal_photos():
         # Walk through the user's directory and add all files to the ZIP
         for root, dirs, files in os.walk(user_upload_dir):
             for file in files:
-                # Create the full path to the file
                 file_path = os.path.join(root, file)
                 # Add the file to the zip, using just the filename as the archive name
                 zf.write(file_path, arcname=file)
@@ -980,7 +979,6 @@ def download_journal_photos():
     # Move the buffer's cursor to the beginning.
     memory_file.seek(0)
 
-    # Create a dynamic filename for the download
     timestamp = datetime.now().strftime('%Y-%m-%d')
     download_name = f"nova_journal_photos_{username}_{timestamp}.zip"
 
@@ -1158,7 +1156,6 @@ def upload_editor_image():
             save_path = os.path.join(user_upload_dir, new_filename)
             file.save(save_path)
 
-            # Create the public URL for the image
             # This must match the `get_uploaded_image` route
             public_url = url_for('core.get_uploaded_image', username=username, filename=new_filename)
 

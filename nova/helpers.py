@@ -942,7 +942,7 @@ def get_all_mobile_up_now_data(user, location, user_prefs_dict, objects_list, db
         local_tz = pytz.timezone(tz_name)
     except Exception as e:
         print(f"[Mobile Helper] Error getting location details: {e}")
-        return []  # Return empty on location error
+        return []
 
     current_datetime_local = datetime.now(local_tz)
 
@@ -1186,7 +1186,7 @@ def discover_catalog_packs() -> list[dict]:
     # 2. Check if a URL is available (from either source)
     if not url_to_use:
         print("[CATALOG DISCOVER] No Catalog URL is configured. Catalog import is disabled.")
-        return [] # Return empty list
+        return []
 
     manifest_url = f"{url_to_use.rstrip('/')}/manifest.json"
 
@@ -1211,7 +1211,7 @@ def discover_catalog_packs() -> list[dict]:
 
     except requests.exceptions.RequestException as e:
         print(f"[CATALOG DISCOVER] Failed to fetch manifest: {e}")
-        return CATALOG_MANIFEST_CACHE["data"] or [] # Return old cache on error
+        return CATALOG_MANIFEST_CACHE["data"] or []
     except json.JSONDecodeError as e:
         print(f"[CATALOG DISCOVER] Failed to parse manifest JSON: {e}")
         return CATALOG_MANIFEST_CACHE["data"] or []

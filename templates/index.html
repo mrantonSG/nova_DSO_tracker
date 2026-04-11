@@ -127,7 +127,7 @@
     <div class="table-wrapper" id="dso-table-wrapper">
         <table id="data-table" data-sort-order="asc">
           <thead>
-            <tr> {# Main Headers for DSO Table #}
+            <tr>
               <th data-column-key="Nova Rank" id="nova-rank-column-header" class="col-nova-rank sortable"><span>★</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
               <th data-column-key="Object" class="col-always-visible sortable"><span>{{ _('Object') }}</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
               <th data-column-key="Common Name" class="col-always-visible sortable"><span>{{ _('Common Name') }}</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
@@ -148,7 +148,7 @@
               <th data-column-key="Best Month" class="col-properties sortable"><span>{{ _('Best Month') }}</span><span class="subtext">({{ _('Opp.') }})</span><span class="sort-indicator"></span></th>
               <th data-column-key="Max Altitude" class="col-properties sortable"><span>{{ _('Max Alt') }}</span><span class="subtext">({{ _('Culm.') }})</span><span class="sort-indicator"></span></th>
             </tr>
-            <tr class="filter-row"> {# Filter Row for DSO Table #}
+            <tr class="filter-row">
               <th data-column-key="Nova Rank" class="col-nova-rank"><input type="text" placeholder="" disabled style="visibility: hidden;" /></th>
               <th data-column-key="Object" class="col-always-visible"><input type="text" placeholder="{{ _('Search Object') }}" /></th>
               <th data-column-key="Common Name" class="col-always-visible"><input type="text" placeholder="{{ _('Search Common Name') }}" /></th>

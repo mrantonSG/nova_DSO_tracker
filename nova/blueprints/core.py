@@ -599,7 +599,6 @@ def config_form():
                         except Exception:
                             flash(_("Warning: Horizon Mask for '%(location_name)s' was invalid and ignored.", location_name=loc.name), "warning")
 
-                    # 3. Assign the new list directly to the relationship.
                     # SQLAlchemy will now compare the old list with the new one.
                     # It will automatically delete any points not in the new list (due to 'delete-orphan')
                     # and add any new points. This avoids the bulk-delete conflict.

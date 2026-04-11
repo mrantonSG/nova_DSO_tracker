@@ -1636,7 +1636,6 @@
             {% if selected_session_data %}
                 {% set entry = selected_session_data_dict %}
 
-                {# --- Macro to safely display a value or a dash, handling 'None' string explicitly --- #}
                 {% macro display_safe_value(value) -%}
                     {% if value is number or (value is string and value|lower != 'none' and value|length > 0) -%}
                         {{ value }}
