@@ -304,6 +304,19 @@ function openHelp(topicId) {
         closeBtn.dataset.helpCloseWired = 'true';
     }
 
+    // Wire up close-X button
+    const closeX = document.getElementById('help-modal-close-x');
+    if (closeX && !closeX.dataset.helpCloseWired) {
+        closeX.addEventListener('click', () => {
+            if (window.novaState.fn.helpModal) {
+                window.novaState.fn.helpModal.close();
+            } else {
+                modalElement.classList.remove('is-visible');
+            }
+        });
+        closeX.dataset.helpCloseWired = 'true';
+    }
+
     // Fetch content
     fetch('/api/help/' + topicId)
         .then(response => {

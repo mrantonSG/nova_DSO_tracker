@@ -466,17 +466,48 @@
 #universal-help-modal .modal-content {
     position: relative;
     background: var(--bg-white);
-    padding: var(--space-6);
     width: 90%;
-    max-width: 700px;
-    border-radius: var(--radius-xl);
+    max-width: 680px;
+    border-radius: 16px;
     box-shadow: var(--shadow-modal);
-    max-height: 85vh;
-    overflow-y: auto;
+    overflow: hidden;
     margin: 0;
     top: auto;
     left: auto;
     transform: none;
+}
+
+#universal-help-modal .help-modal-scroll {
+    padding: 28px 32px 24px;
+    max-height: 82vh;
+    overflow-y: auto;
+}
+
+/* dark-mode parity with config_form.css */
+[data-theme="dark"] #universal-help-modal .modal-content {
+    background: var(--nova-surface, var(--bg-light));
+    box-shadow: var(--nova-shadow-modal, var(--shadow-modal));
+    border: 1px solid var(--nova-border, var(--border-medium));
+}
+
+/* close-X button */
+#universal-help-modal .modal-close-x {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    transition: color 0.15s, background 0.15s;
+}
+#universal-help-modal .modal-close-x:hover {
+    color: var(--text-primary);
+    background: var(--bg-light);
 }
 
 .help-body h1 { font-size: 1.5em; border-bottom: 1px solid var(--border-light); padding-bottom: var(--space-2-5); margin-top: 0; }

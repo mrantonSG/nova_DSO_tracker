@@ -397,11 +397,14 @@
     {% block scripts %}{% endblock %}
 
     <div id="universal-help-modal" aria-labelledby="help-modal-title">
-        <div class="modal-content">
+        <div class="modal-content help-modal-content">
+            <button class="modal-close-x" id="help-modal-close-x" aria-label="{{ _('Close') }}">&times;</button>
             <h2 id="help-modal-title" class="sr-only">{{ _('Help') }}</h2>
-            <div id="help-modal-body" class="help-body"></div>
-            <div style="margin-top: 20px; text-align: right;">
-                <button class="action-button" id="help-modal-close-btn">{{ _('Close') }}</button>
+            <div class="help-modal-scroll">
+                <div id="help-modal-body" class="help-body"></div>
+                <div style="margin-top: 20px; text-align: right;">
+                    <button class="action-button" id="help-modal-close-btn">{{ _('Close') }}</button>
+                </div>
             </div>
         </div>
     </div>
