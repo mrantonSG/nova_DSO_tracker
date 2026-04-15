@@ -5,6 +5,12 @@
 {% block head_extra %}
   <script src="{{ url_for('static', filename='js/plotly-2.27.0.min.js') }}" defer></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+  
+  {# Chart.js for weather charts #}
+  <script src="{{ url_for('static', filename='js/chart/chart.umd.min.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/chart/luxon.min.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/chart/chartjs-adapter-luxon.umd.min.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/chart/chartjs-plugin-annotation.min.js') }}" defer></script>
 
   <script>
     // Configuration object for dashboard JavaScript
@@ -12,7 +18,8 @@
       isGuest: {{ is_guest | tojson }},
       hideInvisible: {{ hide_invisible | tojson }},
       journalSessions: {{ journal_sessions | tojson | safe }},
-      altitudeThreshold: {{ g.altitude_threshold | default(20) }}
+      altitudeThreshold: {{ g.altitude_threshold | default(20) }},
+      minImagingWindowHours: {{ min_imaging_window_hours | default(3) }}
     };
   </script>
 
@@ -20,6 +27,7 @@
   
   {# Weather feature #}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/weather.css') }}">
+  <script src="{{ url_for('static', filename='js/weather_charts.js') }}" defer></script>
   <script src="{{ url_for('static', filename='js/weather.js') }}" defer></script>
 {% endblock %}
 

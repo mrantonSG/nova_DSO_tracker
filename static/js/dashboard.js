@@ -2755,11 +2755,12 @@
           // This is the 60-second interval to fetch data
           dataUpdateIntervalId = setInterval(() => {
             if (document.getElementById('sim-mode-toggle')?.checked) return;
-            fetchData(true); // <--- TRUE enables background mode (no progress bar)
+            fetchData(true);
             fetchSunEvents();
-            timeToNextUpdate = updateIntervalInSeconds; // Reset the timer
-            if (timerSpan) timerSpan.textContent = timeToNextUpdate + 's'; // Update text immediately
-          }, updateIntervalInSeconds * 1000); // 60000ms
+            if (typeof refreshWeatherData === 'function') refreshWeatherData();
+            timeToNextUpdate = updateIntervalInSeconds;
+            if (timerSpan) timerSpan.textContent = timeToNextUpdate + 's';
+          }, updateIntervalInSeconds * 1000);
 
           // This is the new 1-second interval to update the countdown display
           timerUpdateIntervalId = setInterval(() => {

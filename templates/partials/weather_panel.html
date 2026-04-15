@@ -66,16 +66,6 @@
         {{ _('Satellite') }}
       </button>
     </nav>
-
-    <button
-      class="weather-panel__refresh"
-      type="button"
-      aria-label="{{ _('Refresh weather data') }}"
-      title="{{ _('Refresh') }}"
-      data-weather-refresh
-    >
-      &#8635;
-    </button>
   </header>
 
   {# ─── Loading overlay ──────────────────────────────────────────────────── #}
@@ -121,6 +111,9 @@
     tabindex="0"
     data-weather-view="hourly"
   >
+    {# Imaging score summary card #}
+    <div id="weather-score-card-container" data-weather-score-card></div>
+
     {# Legend / colour-scale help text #}
     <aside class="weather-legend" aria-label="{{ _('Colour scale legend') }}">
       <dl class="weather-legend__scale">
@@ -150,7 +143,11 @@
 
     {# Scrollable hourly grid — JS will render table dynamically #}
     <div id="weather-grid-container" class="weather-grid-wrapper" data-weather-grid-wrapper></div>
-    {# End of hourly grid #}
+
+    {# Hourly chart #}
+    <div id="weather-chart-container" class="weather-chart-container" data-weather-chart-container>
+      <canvas id="weather-hourly-chart" aria-label="{{ _('Hourly weather conditions chart') }}"></canvas>
+    </div>
   </div>
   {# End #weather-hourly #}
 
@@ -164,26 +161,37 @@
     hidden
     data-weather-view="daily"
   >
-    <ol
-      class="weather-daily-list"
-      id="weather-daily-list"
-      aria-label="{{ _('7-day forecast') }}"
-      data-weather-daily-list
-    >
-      {#
-        JS will render each day as a <li class="weather-day-card"> with:
-          .weather-day-card__date       — weekday + date
-          .weather-day-card__icon       — weather icon glyph
-          .weather-day-card__summary    — short text summary
-          .weather-day-card__high-low   — high / low temp
-          .weather-day-card__cloud      — cloud cover %
-          .weather-day-card__precip     — precip probability %
-          .weather-day-card__rating     — ★ imaging suitability badge
-      #}
-      <li class="weather-day-card weather-day-card--placeholder" aria-hidden="true">
-        <span class="weather-day-card__skeleton"></span>
-      </li>
-    </ol>
+    {# Imaging score summary card for daily #}
+    <div id="weather-daily-score-card-container" data-weather-daily-score-card></div>
+
+    {# Daily cards grid view #}
+    <div id="weather-daily-grid-container" class="weather-daily-grid-container" data-weather-daily-grid>
+      <ol
+        class="weather-daily-list"
+        id="weather-daily-list"
+        aria-label="{{ _('7-day forecast') }}"
+        data-weather-daily-list
+      >
+        {#
+          JS will render each day as a <li class="weather-day-card"> with:
+            .weather-day-card__date       — weekday + date
+            .weather-day-card__icon       — weather icon glyph
+            .weather-day-card__summary    — short text summary
+            .weather-day-card__high-low   — high / low temp
+            .weather-day-card__cloud      — cloud cover %
+            .weather-day-card__precip     — precip probability %
+            .weather-day-card__rating     — ★ imaging suitability badge
+        #}
+        <li class="weather-day-card weather-day-card--placeholder" aria-hidden="true">
+          <span class="weather-day-card__skeleton"></span>
+        </li>
+      </ol>
+    </div>
+
+    {# Daily chart #}
+    <div id="weather-daily-chart-container" class="weather-chart-container" data-weather-daily-chart-container>
+      <canvas id="weather-daily-chart" aria-label="{{ _('7-day weather conditions chart') }}"></canvas>
+    </div>
   </div>
   {# End #weather-daily #}
 

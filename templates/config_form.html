@@ -179,6 +179,11 @@
                   <input type="number" name="search_horizon_months" id="search_horizon_months"
                          value="{{ (config.imaging_criteria | default({}, true)).get('search_horizon_months', 6) }}" min="1" max="12">
                 </div>
+                <div>
+                  <label class="verylong-label" for="min_imaging_window_hours">{{ _('Min Window (h):') }}</label>
+                  <input type="number" name="min_imaging_window_hours" id="min_imaging_window_hours"
+                         value="{{ (config.imaging_criteria | default({}, true)).get('min_imaging_window_hours', 3) }}" min="1" max="8">
+                </div>
               </div>
               <hr>
               <div class="inline-fields">

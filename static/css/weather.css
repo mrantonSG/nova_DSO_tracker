@@ -85,22 +85,6 @@
   font-weight: var(--font-weight-semibold);
 }
 
-.weather-panel__refresh {
-  padding: 6px 10px;
-  border: none;
-  background: transparent;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-size: var(--font-size-base);
-  color: var(--text-muted);
-  transition: background 0.15s ease, color 0.15s ease;
-}
-
-.weather-panel__refresh:hover {
-  background: var(--bg-dark-secondary);
-  color: var(--nova-accent);
-}
-
 .weather-panel__meta {
   font-size: var(--font-size-xs);
   color: var(--text-muted);
@@ -1235,15 +1219,6 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-:root:not([data-theme="dark"]) .weather-panel__refresh {
-  color: #5a5a5a;
-}
-
-:root:not([data-theme="dark"]) .weather-panel__refresh:hover {
-  background: rgba(0, 0, 0, 0.05);
-  color: #2a6a80;
-}
-
 :root:not([data-theme="dark"]) .weather-legend {
   background: #f5f3ef;
   border-top-color: var(--border-light, #e5e2dc);
@@ -1534,4 +1509,218 @@
   background: rgba(255, 193, 7, 0.1);
   border-color: rgba(255, 193, 7, 0.3);
   color: #8a6d00;
+}
+
+/* =============================================================================
+   20. WEATHER CHARTS & IMAGING SCORE
+   - Chart container and canvas
+   - Grid/Chart view toggle buttons
+   - Imaging score summary card
+   ============================================================================= */
+
+/* --- Chart Container --- */
+.weather-chart-container {
+  position: relative;
+  width: 100%;
+  padding: var(--spacing-md, 1rem);
+  background: var(--bg-secondary, #1a1a1a);
+  border-radius: var(--radius-md, 8px);
+  margin-top: var(--spacing-sm, 0.5rem);
+}
+
+.weather-chart-container canvas {
+  width: 100% !important;
+  height: 280px !important;
+  max-height: 280px;
+}
+
+/* Hidden state for toggle */
+.weather-chart-container.hidden,
+.weather-grid-container.hidden {
+  display: none;
+}
+
+/* --- View Toggle Controls --- */
+.weather-hourly-controls,
+.weather-daily-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.75rem;
+}
+
+.weather-view-toggle {
+  display: inline-flex;
+  gap: 2px;
+  background: var(--bg-tertiary, #252525);
+  border-radius: var(--radius-sm, 4px);
+  padding: 2px;
+  margin-left: auto;
+}
+
+.weather-view-toggle-btn {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.025em;
+  color: var(--text-secondary, #a0a0a0);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-xs, 3px);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-transform: uppercase;
+}
+
+.weather-view-toggle-btn:hover {
+  color: var(--text-primary, #e0e0e0);
+  background: var(--bg-hover, rgba(255, 255, 255, 0.05));
+}
+
+.weather-view-toggle-btn.active {
+  color: var(--text-primary, #e0e0e0);
+  background: var(--accent-primary, #83b4c5);
+  color: #1a1a1a;
+}
+
+/* --- Imaging Score Card --- */
+.weather-score-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 1rem);
+  padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 1rem);
+  background: var(--bg-tertiary, #252525);
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
+  margin-bottom: var(--spacing-sm, 0.5rem);
+}
+
+.weather-score-card.hidden {
+  display: none;
+}
+
+.weather-score-card__icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 1rem;
+}
+
+.weather-score-card__icon.excellent {
+  background: rgba(94, 181, 112, 0.2);
+  color: #5eb570;
+}
+
+.weather-score-card__icon.good {
+  background: rgba(131, 180, 197, 0.2);
+  color: #83b4c5;
+}
+
+.weather-score-card__icon.marginal {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+}
+
+.weather-score-card__icon.poor {
+  background: rgba(224, 144, 144, 0.2);
+  color: #e09090;
+}
+
+.weather-score-card__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.weather-score-card__title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary, #e0e0e0);
+  margin: 0 0 0.15rem;
+}
+
+.weather-score-card__subtitle {
+  font-size: 0.7rem;
+  color: var(--text-muted, #808080);
+  margin: 0;
+}
+
+.weather-score-card__score {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary, #e0e0e0);
+  font-variant-numeric: tabular-nums;
+}
+
+.weather-score-card__score-label {
+  font-size: 0.65rem;
+  color: var(--text-muted, #808080);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* --- Light Theme Overrides --- */
+:root:not([data-theme="dark"]) .weather-chart-container {
+  background: #f8f6f2;
+}
+
+:root:not([data-theme="dark"]) .weather-view-toggle {
+  background: #e5e2dc;
+}
+
+:root:not([data-theme="dark"]) .weather-view-toggle-btn {
+  color: #6a6a6a;
+}
+
+:root:not([data-theme="dark"]) .weather-view-toggle-btn:hover {
+  color: #3a3a3a;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+:root:not([data-theme="dark"]) .weather-view-toggle-btn.active {
+  background: #2a6a80;
+  color: #fff;
+}
+
+:root:not([data-theme="dark"]) .weather-score-card {
+  background: #f5f3ef;
+  border-color: #e5e2dc;
+}
+
+:root:not([data-theme="dark"]) .weather-score-card__title {
+  color: #3a3a3a;
+}
+
+:root:not([data-theme="dark"]) .weather-score-card__subtitle {
+  color: #6a6a6a;
+}
+
+:root:not([data-theme="dark"]) .weather-score-card__score {
+  color: #2a2a2a;
+}
+
+/* ============================================
+   Section 21: Imaging Window Highlighting
+   ============================================ */
+.imaging-window {
+  background: rgba(39, 174, 96, 0.15) !important;
+  box-shadow: inset 0 0 0 1px rgba(39, 174, 96, 0.3);
+}
+
+.weather-cell--time.imaging-window,
+.weather-cell--date-label.imaging-window {
+  background: rgba(39, 174, 96, 0.2) !important;
+  border-bottom: 2px solid rgba(39, 174, 96, 0.6);
+}
+
+:root:not([data-theme="dark"]) .imaging-window {
+  background: rgba(39, 174, 96, 0.12) !important;
+  box-shadow: inset 0 0 0 1px rgba(39, 174, 96, 0.25);
+}
+
+:root:not([data-theme="dark"]) .weather-cell--time.imaging-window,
+:root:not([data-theme="dark"]) .weather-cell--date-label.imaging-window {
+  background: rgba(39, 174, 96, 0.18) !important;
+  border-bottom: 2px solid rgba(39, 174, 96, 0.5);
 }

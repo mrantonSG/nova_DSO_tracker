@@ -472,6 +472,14 @@
      * added to the DOM.  Sets up location reading, view-toggle buttons,
      * and kicks off the first data load.
      */
+    var _chartInitialized = false;
+    var _lastHourlyData = null;
+    var _lastInitTime = null;
+    
+    var _dailyChartInitialized = false;
+    var _lastDailyData = null;
+    var _lastDailyInitTime = null;
+
     function initWeatherPanel() {
         _getLocationFromPage();
         _setupLocationListener();
@@ -484,6 +492,53 @@
         } else {
             _showError('No location selected. Please choose a location to see the weather forecast.');
         }
+    }
+
+    function _initChartIfNeeded() {
+        if (_chartInitialized || !_lastHourlyData || !window.WeatherCharts) return;
+
+        var initTime = _lastInitTime || new Date();
+        var minDuration = (window.NOVA_INDEX && window.NOVA_INDEX.minImagingWindowHours) || 3;
+        window.WeatherCharts.create('weather-hourly-chart', _lastHourlyData, { initTime: initTime, minDuration: minDuration });
+        _chartInitialized = true;
+
+        var threshold = 70;
+        var windows = window.WeatherCharts.findWindows(_lastHourlyData, threshold, initTime, minDuration);
+        var cardContainer = document.getElementById('weather-score-card-container');
+        window.WeatherCharts.renderScoreCard(cardContainer, windows);
+    }
+
+    function _initDailyChartIfNeeded() {
+        if (_dailyChartInitialized || !_lastDailyData || !window.WeatherCharts) return;
+
+        var initTime = _lastDailyInitTime || new Date();
+        window.WeatherCharts.createDaily('weather-daily-chart', _lastDailyData, { initTime: initTime });
+        _dailyChartInitialized = true;
+
+        var threshold = 60;
+        var nights = window.WeatherCharts.findBestNights(_lastDailyData, threshold, initTime);
+        var cardContainer = document.getElementById('weather-daily-score-card-container');
+        window.WeatherCharts.renderDailyScoreCard(cardContainer, nights);
+    }
+
+    function _storeDailyDataForChart(apiData) {
+        var dailyArray = apiData && apiData.data;
+        if (!dailyArray) return;
+        _lastDailyData = Array.isArray(dailyArray) ? dailyArray : Object.values(dailyArray);
+        
+        var initStr = (apiData.meta && apiData.meta.init) || apiData.init;
+        if (initStr && initStr.length >= 8) {
+            var yr = parseInt(initStr.substring(0, 4), 10);
+            var mo = parseInt(initStr.substring(4, 6), 10) - 1;
+            var dy = parseInt(initStr.substring(6, 8), 10);
+            var hr = initStr.length >= 10 ? parseInt(initStr.substring(8, 10), 10) : 0;
+            _lastDailyInitTime = new Date(Date.UTC(yr, mo, dy, hr));
+        } else {
+            _lastDailyInitTime = new Date();
+        }
+
+        _dailyChartInitialized = false;
+        _initDailyChartIfNeeded();
     }
 
     function _updateSimModeNotice() {
@@ -624,14 +679,14 @@
             let hour    = 0;
             if (initDate) {
                 colDate = new Date(initDate.getTime() + d.timepoint * 3600 * 1000);
-                hour    = colDate.getUTCHours();
+                hour    = colDate.getHours();
             }
             return {
                 hour:    hour,
                 label:   formatHour(hour),
                 date:    colDate,
                 isNight: isNightHour(hour),
-                isNewDay: colDate ? colDate.getUTCHours() === 0 : false,
+                isNewDay: colDate ? colDate.getHours() === 0 : false,
                 data:    d
             };
         });
@@ -640,6 +695,28 @@
         function isNightStart(i) {
             if (i === 0) return columns[0].isNight;
             return columns[i].isNight && !columns[i - 1].isNight;
+        }
+
+        var imagingWindowSet = new Set();
+        if (window.WeatherCharts && window.WeatherCharts.findWindows) {
+            var minDuration = (window.NOVA_INDEX && window.NOVA_INDEX.minImagingWindowHours) || 3;
+            var windows = window.WeatherCharts.findWindows(dataseries, 70, initDate, minDuration);
+            windows.forEach(function(win) {
+                var startTime = win.start.getTime();
+                var endTime = win.end.getTime() + 3600000;
+                columns.forEach(function(col, idx) {
+                    if (col.date) {
+                        var colTime = col.date.getTime();
+                        if (colTime >= startTime && colTime < endTime) {
+                            imagingWindowSet.add(idx);
+                        }
+                    }
+                });
+            });
+        }
+
+        function isImagingWindow(i) {
+            return imagingWindowSet.has(i);
         }
 
         var nowIndex = -1;
@@ -678,8 +755,9 @@
                 const ns   = isNightStart(i) ? ' night-start-border' : '';
                 const cls  = col.isNight ? ' night-hour' : '';
                 const nw   = isNowColumn(i) ? ' now-marker' : '';
+                const iw   = isImagingWindow(i) ? ' imaging-window' : '';
                 const text = col.isNewDay && col.date ? _fmtShortDate(col.date) : '';
-                html += `<th class="weather-cell--date-label${cls}${ns}${nw}">${text}</th>`;
+                html += `<th class="weather-cell--date-label${cls}${ns}${nw}${iw}">${text}</th>`;
             });
             html += '</tr>';
         }
@@ -693,11 +771,12 @@
             const ns  = isNightStart(i) ? ' night-start-border' : '';
             const cls = col.isNight ? ' night-hour' : '';
             const nw  = isNowColumn(i) ? ' now-marker' : '';
+            const iw  = isImagingWindow(i) ? ' imaging-window' : '';
             const nowLabel = isNowColumn(i) ? '<div class="now-label">NOW</div>' : '';
             const ttl = col.date
                 ? `${_fmtShortDate(col.date)} ${col.label}`
                 : col.label;
-            html += `<th class="weather-cell--time${cls}${ns}${nw}" title="${ttl}">${col.label}${nowLabel}</th>`;
+            html += `<th class="weather-cell--time${cls}${ns}${nw}${iw}" title="${ttl}">${col.label}${nowLabel}</th>`;
         });
         html += '</tr></thead><tbody>';
 
@@ -706,17 +785,19 @@
             const cls = getConditionClass(val, 'cloudcover');
             const ns  = isNightStart(i) ? ' night-start-border' : '';
             const nw  = isNowColumn(i) ? ' now-marker' : '';
+            const iw  = isImagingWindow(i) ? ' imaging-window' : '';
             const sym = _cloudCoverSymbol(val);
             const tip = (lbl.cloudCover || 'Cloud cover') + `: ${_cloudCoverText(val)} (${val}/9)`;
-            return `<td class="weather-cell ${cls}${ns}${nw}" title="${tip}"><span class="cell-value">${sym}</span></td>`;
+            return `<td class="weather-cell ${cls}${ns}${nw}${iw}" title="${tip}"><span class="cell-value">${sym}</span></td>`;
         });
 
         html += _buildRow('★', lbl.seeing || 'Seeing', columns, function (d, i) {
             const raw = d.seeing;
             const ns  = isNightStart(i) ? ' night-start-border' : '';
             const nw  = isNowColumn(i) ? ' now-marker' : '';
+            const iw  = isImagingWindow(i) ? ' imaging-window' : '';
             if (raw === -9999 || raw === undefined || raw === null) {
-                return `<td class="weather-cell condition-na${ns}${nw}" title="${lbl.seeing || 'Seeing'}: ${na}"><span class="cell-value na">–</span></td>`;
+                return `<td class="weather-cell condition-na${ns}${nw}${iw}" title="${lbl.seeing || 'Seeing'}: ${na}"><span class="cell-value na">–</span></td>`;
             }
             const isEst = raw < 0 && raw !== -9999;
             const val = Math.abs(raw);
@@ -724,15 +805,16 @@
             const estCls = isEst ? ' estimated' : '';
             const estNote = isEst ? ' (est.)' : '';
             const tip = (lbl.seeing || 'Seeing') + `: ${_seeingText(val)} (${val}/8)${estNote}`;
-            return `<td class="weather-cell ${cls}${estCls}${ns}${nw}" title="${tip}"><span class="cell-value">${val}</span></td>`;
+            return `<td class="weather-cell ${cls}${estCls}${ns}${nw}${iw}" title="${tip}"><span class="cell-value">${val}</span></td>`;
         });
 
         html += _buildRow('◈', lbl.transparency || 'Trans', columns, function (d, i) {
             const raw = d.transparency;
             const ns  = isNightStart(i) ? ' night-start-border' : '';
             const nw  = isNowColumn(i) ? ' now-marker' : '';
+            const iw  = isImagingWindow(i) ? ' imaging-window' : '';
             if (raw === -9999 || raw === undefined || raw === null) {
-                return `<td class="weather-cell condition-na${ns}${nw}" title="${lbl.transparency || 'Trans'}: ${na}"><span class="cell-value na">–</span></td>`;
+                return `<td class="weather-cell condition-na${ns}${nw}${iw}" title="${lbl.transparency || 'Trans'}: ${na}"><span class="cell-value na">–</span></td>`;
             }
             const isEst = raw < 0 && raw !== -9999;
             const val = Math.abs(raw);
@@ -740,7 +822,7 @@
             const estCls = isEst ? ' estimated' : '';
             const estNote = isEst ? ' (est.)' : '';
             const tip = (lbl.transparency || 'Trans') + `: ${_transparencyText(val)} (${val}/8)${estNote}`;
-            return `<td class="weather-cell ${cls}${estCls}${ns}${nw}" title="${tip}"><span class="cell-value">${val}</span></td>`;
+            return `<td class="weather-cell ${cls}${estCls}${ns}${nw}${iw}" title="${tip}"><span class="cell-value">${val}</span></td>`;
         });
 
         html += _buildRow('〜', lbl.wind || 'Wind', columns, function (d, i) {
@@ -751,32 +833,35 @@
             const dir   = (wind && wind.direction) ? wind.direction : '';
             const ns    = isNightStart(i) ? ' night-start-border' : '';
             const nw    = isNowColumn(i) ? ' now-marker' : '';
+            const iw    = isImagingWindow(i) ? ' imaging-window' : '';
             if (speed === null || speed === undefined) {
-                return `<td class="weather-cell condition-na${ns}${nw}" title="${lbl.wind || 'Wind'}: ${na}"><span class="cell-value na">–</span></td>`;
+                return `<td class="weather-cell condition-na${ns}${nw}${iw}" title="${lbl.wind || 'Wind'}: ${na}"><span class="cell-value na">–</span></td>`;
             }
             const cls = getConditionClass(speed, 'wind');
             const tip = (lbl.wind || 'Wind') + `: ${speed} m/s${dir ? ' ' + dir : ''}`;
-            return `<td class="weather-cell ${cls}${ns}${nw}" title="${tip}"><span class="cell-value" style="font-size:9px">${speed}</span></td>`;
+            return `<td class="weather-cell ${cls}${ns}${nw}${iw}" title="${tip}"><span class="cell-value" style="font-size:9px">${speed}</span></td>`;
         });
 
         html += _buildRow('💧', lbl.humidity || 'Humid', columns, function (d, i) {
             const val = d.rh2m;
             const ns  = isNightStart(i) ? ' night-start-border' : '';
             const nw  = isNowColumn(i) ? ' now-marker' : '';
+            const iw  = isImagingWindow(i) ? ' imaging-window' : '';
             if (val === null || val === undefined) {
-                return `<td class="weather-cell condition-na${ns}${nw}" title="${lbl.humidity || 'Humid'}: ${na}"><span class="cell-value na">–</span></td>`;
+                return `<td class="weather-cell condition-na${ns}${nw}${iw}" title="${lbl.humidity || 'Humid'}: ${na}"><span class="cell-value na">–</span></td>`;
             }
             const cls = getConditionClass(val, 'humidity');
             const tip = (lbl.humidity || 'Humidity') + `: ${val}%`;
-            return `<td class="weather-cell ${cls}${ns}${nw}" title="${tip}"><span class="cell-value" style="font-size:9px">${val}%</span></td>`;
+            return `<td class="weather-cell ${cls}${ns}${nw}${iw}" title="${tip}"><span class="cell-value" style="font-size:9px">${val}%</span></td>`;
         });
 
         html += _buildRow('°C', lbl.temp || 'Temp', columns, function (d, i) {
             const val = d.temp2m;
             const ns  = isNightStart(i) ? ' night-start-border' : '';
             const nw  = isNowColumn(i) ? ' now-marker' : '';
+            const iw  = isImagingWindow(i) ? ' imaging-window' : '';
             const disp = (val !== null && val !== undefined) ? `${val}°` : '—';
-            return `<td class="weather-cell${ns}${nw}" title="${lbl.temp || 'Temp'}: ${disp}C" style="color:var(--text-secondary,#4a4a4a)"><span class="cell-value" style="font-size:9px">${disp}</span></td>`;
+            return `<td class="weather-cell${ns}${nw}${iw}" title="${lbl.temp || 'Temp'}: ${disp}C" style="color:var(--text-secondary,#4a4a4a)"><span class="cell-value" style="font-size:9px">${disp}</span></td>`;
         });
 
         html += '</tbody></table></div>';
@@ -1088,24 +1173,6 @@
             });
         });
 
-        // Setup refresh button
-        const refreshBtn = document.querySelector('[data-weather-refresh]');
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', function() {
-                // Clear cache for current location
-                if (currentLat !== null && currentLon !== null) {
-                    const hourlyKey = `nova_weather_hourly_${currentLat.toFixed(3)}_${currentLon.toFixed(3)}`;
-                    const dailyKey = `nova_weather_daily_${currentLat.toFixed(3)}_${currentLon.toFixed(3)}`;
-                    sessionStorage.removeItem(hourlyKey);
-                    sessionStorage.removeItem(dailyKey);
-                }
-                if (currentView === 'satellite') {
-                    _loadSatelliteView();
-                } else {
-                    _loadWeatherForCurrentView();
-                }
-            });
-        }
     }
 
     function _loadSatelliteView() {
@@ -1175,14 +1242,38 @@
             if (currentView === 'hourly') {
                 const data = await fetchHourlyWeather(currentLat, currentLon);
                 renderHourlyGrid(data);
+                _storeHourlyDataForChart(data);
             } else {
                 const data = await fetchDailyWeather(currentLat, currentLon);
                 renderDailyCards(data);
+                _storeDailyDataForChart(data);
             }
         } catch (err) {
             console.error('[WeatherPanel]', err);
             _showError(`Failed to load weather data: ${err.message}`);
         }
+    }
+
+    function _storeHourlyDataForChart(apiData) {
+        var hourlyArray = apiData && (apiData.data || apiData.dataseries);
+        if (!hourlyArray) {
+            console.warn('[WeatherCharts] No hourly array in apiData:', apiData);
+            return;
+        }
+        _lastHourlyData = Array.isArray(hourlyArray) ? hourlyArray : Object.values(hourlyArray);
+        console.log('[WeatherCharts] Stored', _lastHourlyData.length, 'hourly entries');
+        var initStr = (apiData.meta && apiData.meta.init) || apiData.init;
+        if (initStr) {
+            var y = parseInt(initStr.substring(0, 4), 10);
+            var m = parseInt(initStr.substring(4, 6), 10) - 1;
+            var d = parseInt(initStr.substring(6, 8), 10);
+            var h = parseInt(initStr.substring(8, 10), 10);
+            _lastInitTime = new Date(Date.UTC(y, m, d, h, 0, 0));
+        } else {
+            _lastInitTime = new Date();
+        }
+        _chartInitialized = false;
+        _initChartIfNeeded();
     }
 
     function _showLoading() {
@@ -1498,12 +1589,42 @@
         }
     })();
 
-    window.initWeatherPanel   = initWeatherPanel;
-    window.fetchHourlyWeather = fetchHourlyWeather;
-    window.fetchDailyWeather  = fetchDailyWeather;
-    window.renderHourlyGrid   = renderHourlyGrid;
-    window.renderDailyCards   = renderDailyCards;
-    window.getConditionClass  = getConditionClass;
-    window.formatHour         = formatHour;
-    window.isNightHour        = isNightHour;
+    // ================================================================
+    // PUBLIC — refreshWeatherData()
+    // ================================================================
+    /**
+     * Clear weather cache and reload data for the current view.
+     * Called by the dashboard's periodic refresh timer.
+     */
+    function refreshWeatherData() {
+        // Only refresh if weather panel is currently visible
+        var weatherWrapper = document.getElementById('weather-tab-content');
+        if (!weatherWrapper || weatherWrapper.style.display === 'none') {
+            return;
+        }
+
+        // Clear cache for current location
+        if (currentLat !== null && currentLon !== null) {
+            const hourlyKey = `nova_weather_hourly_${currentLat.toFixed(3)}_${currentLon.toFixed(3)}`;
+            const dailyKey = `nova_weather_daily_${currentLat.toFixed(3)}_${currentLon.toFixed(3)}`;
+            sessionStorage.removeItem(hourlyKey);
+            sessionStorage.removeItem(dailyKey);
+        }
+
+        // Reload based on current view
+        if (currentView === 'satellite') {
+            _loadSatelliteView();
+        } else {
+            _loadWeatherForCurrentView();
+        }
+    }
+
+    window.initWeatherPanel    = initWeatherPanel;
+    window.fetchHourlyWeather  = fetchHourlyWeather;
+    window.fetchDailyWeather   = fetchDailyWeather;
+    window.renderHourlyGrid    = renderHourlyGrid;
+    window.renderDailyCards    = renderDailyCards;
+    window.getConditionClass   = getConditionClass;
+    window.formatHour          = formatHour;
+    window.isNightHour         = isNightHour;
 })();

@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Imaging Journal') }} - {{ _('Nova DSO Tracker') }}{% endblock %}
+
+{% block head_extra %}
+<style>
+    .journal-list-container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 24px 20px;
+    }
+    
+    .journal-list-header {
+        margin-bottom: 24px;
+    }
+    
+    .journal-list-header h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--nova-text, var(--text-primary));
+        margin: 0 0 8px 0;
+    }
+    
+    .journal-list-subtitle {
+        font-size: 0.9rem;
+        color: var(--nova-text-2, var(--text-secondary));
+        margin: 0;
+    }
+    
+    .journal-list-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .journal-session-card {
+        display: grid;
+        grid-template-columns: 1fr auto auto auto;
+        gap: 16px;
+        align-items: center;
+        padding: 16px 20px;
+        background: var(--nova-surface, var(--bg-white));
+        border: 1px solid var(--nova-border, var(--border-medium));
+        border-radius: var(--radius-md, 8px);
+        text-decoration: none;
+        color: inherit;
+        transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    
+    .journal-session-card:hover {
+        background: var(--nova-surface-hover, var(--bg-light-gray));
+        border-color: var(--nova-accent-mid, var(--primary-light));
+    }
+    
+    .session-object {
+        min-width: 0;
+    }
+    
+    .session-object-name {
+        font-family: 'DM Mono', monospace;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--nova-text, var(--text-primary));
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .session-object-common {
+        font-size: 0.85rem;
+        color: var(--nova-text-2, var(--text-secondary));
+        margin-top: 2px;
+    }
+    
+    .session-date {
+        font-size: 0.9rem;
+        color: var(--nova-text-2, var(--text-secondary));
+        white-space: nowrap;
+    }
+    
+    .session-integration {
+        font-family: 'DM Mono', monospace;
+        font-size: 0.9rem;
+        color: var(--nova-accent, var(--primary-color));
+        font-weight: 500;
+        white-space: nowrap;
+        min-width: 80px;
+        text-align: right;
+    }
+    
+    .session-rating {
+        font-size: 0.9rem;
+        color: var(--nova-text-3, var(--text-tertiary));
+        white-space: nowrap;
+        min-width: 50px;
+        text-align: center;
+    }
+    
+    .session-rating .stars {
+        color: #f5c518;
+    }
+    
+    .journal-empty {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--nova-text-2, var(--text-secondary));
+    }
+    
+    .journal-empty svg {
+        width: 48px;
+        height: 48px;
+        margin-bottom: 16px;
+        opacity: 0.4;
+    }
+    
+    .journal-empty p {
+        margin: 0 0 8px 0;
+        font-size: 1rem;
+    }
+    
+    .journal-empty .hint {
+        font-size: 0.85rem;
+        color: var(--nova-text-3, var(--text-tertiary));
+    }
+    
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+        .journal-session-card {
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+        
+        .session-date,
+        .session-integration,
+        .session-rating {
+            text-align: left;
+        }
+        
+        .session-meta-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+    }
+    
+    /* Dark mode */
+    [data-theme="dark"] .journal-session-card {
+        background: var(--nova-surface, #1c2230);
+        border-color: var(--nova-border, rgba(255,255,255,0.07));
+    }
+    
+    [data-theme="dark"] .journal-session-card:hover {
+        background: var(--nova-surface-hover, rgba(122,175,192,0.06));
+        border-color: var(--nova-accent-mid, rgba(142,200,218,0.3));
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="journal-list-container">
+    <div class="journal-list-header">
+        <h2>{{ _('Imaging Journal') }}</h2>
+        <p class="journal-list-subtitle">{{ _('All your imaging sessions across all targets') }}</p>
+    </div>
+    
+    {% if journal_sessions %}
+    <div class="journal-list-grid">
+        {% for session in journal_sessions %}
+        <a href="{{ url_for('core.graph_dashboard', object_name=session.object_name, session_id=session.id, tab='journal') }}" 
+           class="journal-session-card">
+            <div class="session-object">
+                <p class="session-object-name">{{ session.object_name | upper }}</p>
+                {% if session.target_common_name and session.target_common_name != session.object_name %}
+                <p class="session-object-common">{{ session.target_common_name }}</p>
+                {% endif %}
+            </div>
+            
+            <div class="session-date">
+                {{ session.date_utc.strftime('%Y-%m-%d') if session.date_utc else '-' }}
+            </div>
+            
+            <div class="session-integration">
+                {% if session.calculated_integration_time_minutes %}
+                {{ session.calculated_integration_time_minutes | round(0) | int }} {{ _('min') }}
+                {% else %}
+                -
+                {% endif %}
+            </div>
+            
+            <div class="session-rating">
+                {% if session.session_rating_subjective %}
+                <span class="stars">{{ '★' * session.session_rating_subjective }}{{ '☆' * (5 - session.session_rating_subjective) }}</span>
+                {% else %}
+                -
+                {% endif %}
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="journal-empty">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+        </svg>
+        <p>{{ _('No imaging sessions yet') }}</p>
+        <p class="hint">{{ _('Add your first session from any object\'s detail page') }}</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
