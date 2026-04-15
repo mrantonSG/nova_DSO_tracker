@@ -55,19 +55,7 @@
             // 5. Save the selected location to browser's session storage
             sessionStorage.setItem('nova_mobile_location', locName);
 
-            // 6. Persist to server (updates DB default, affects all devices)
-            fetch('/set_location', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({location: locName})
-            }).then(response => response.json())
-              .then(data => {
-                  if (data.status !== 'success') {
-                      console.warn('[Mobile] Failed to persist location:', data.message);
-                  }
-              }).catch(error => console.error('[Mobile] Error persisting location:', error));
-
-            // 7. Update the UI to give feedback
+            // 6. Update the UI to give feedback
             updateActiveHighlight();
         });
 

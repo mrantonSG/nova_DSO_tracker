@@ -2,7 +2,7 @@
 {% block title %}{{ _('Nova – User Management') }}{% endblock %}
 
 {% block head_extra %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_users.css') }}?v={{ version }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_users.css') }}">
 {% endblock %}
 
 {% block page_title %}
@@ -10,7 +10,8 @@
 {% endblock %}
 
 {% block header_actions %}
-    <button class="action-button" data-nav-url="{{ url_for('core.index') }}">&#8592; {{ _('Back to Dashboard') }}</button>
+    <button class="action-button" data-nav-url="{{ url_for('tools.admin_roles') }}">&#127994; Role Editor</button>
+    <button class="action-button" data-nav-url="{{ url_for('core.index') }}">&#8592; Back to Dashboard</button>
 {% endblock %}
 
 {% block body %}
@@ -47,7 +48,7 @@
     <!-- Create User Card -->
     <div class="admin-card">
       <h3>{{ _('Create New User') }}</h3>
-      <form method="POST" action="{{ url_for('admin.admin_create_user') }}" class="create-user-form">
+      <form method="POST" action="{{ url_for('tools.admin_create_user') }}" class="create-user-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-row">
           <label for="new-username">{{ _('Username') }}</label>
@@ -67,10 +68,11 @@
       <table class="users-table">
         <thead>
           <tr>
-            <th>{{ _('ID') }}</th>
-            <th>{{ _('Username') }}</th>
-            <th>{{ _('Status') }}</th>
-            <th>{{ _('Actions') }}</th>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Roles</th>
+            <th>Status</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -79,7 +81,36 @@
             <td>{{ user.id }}</td>
             <td>
               {{ user.username }}
-              {% if user.username == 'admin' %}<span class="badge badge-admin">{{ _('admin') }}</span>{% endif %}
+              {% if user.is_admin %}<span class="badge badge-admin">admin</span>{% endif %}
+            </td>
+            <td class="roles-cell">
+              <div class="user-roles">
+                {% for role in user.roles %}
+                  <span class="badge badge-role" data-role-id="{{ role.id }}">{{ role.name }}</span>
+                {% else %}
+                  <span class="no-roles">No roles</span>
+                {% endfor %}
+              </div>
+              <button type="button" class="btn-small btn-secondary" onclick="toggleRoleAssign({{ user.id }})">Manage</button>
+              <div id="role-assign-{{ user.id }}" class="role-assign-form" style="display:none;">
+                <select id="role-select-{{ user.id }}" class="role-select">
+                  <option value="">Select role...</option>
+                  {% for role in roles %}
+                    {% if role not in user.roles %}
+                      <option value="{{ role.id }}">{{ role.name }}</option>
+                    {% endif %}
+                  {% endfor %}
+                </select>
+                <button type="button" class="btn-small btn-success" onclick="assignRole({{ user.id }})">Add</button>
+                <button type="button" class="btn-small btn-secondary" onclick="toggleRoleAssign({{ user.id }})">Cancel</button>
+                <div class="remove-roles">
+                  {% for role in user.roles %}
+                    <button type="button" class="btn-small btn-danger btn-remove-role" onclick="removeRole({{ user.id }}, {{ role.id }})" title="Remove {{ role.name }}">
+                      &times; {{ role.name }}
+                    </button>
+                  {% endfor %}
+                </div>
+              </div>
             </td>
             <td>
               {% if user.active %}
@@ -89,9 +120,9 @@
               {% endif %}
             </td>
             <td class="actions-cell">
-              {% if user.username != 'admin' %}
+              {% if not user.is_admin %}
                 <!-- Toggle active/inactive -->
-                <form method="POST" action="{{ url_for('admin.admin_toggle_user', user_id=user.id) }}" style="display:inline;">
+                <form method="POST" action="{{ url_for('tools.admin_toggle_user', user_id=user.id) }}" style="display:inline;">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button type="submit" class="btn-small {{ 'btn-warn' if user.active else 'btn-success' }}" title="{{ _('Deactivate') if user.active else _('Activate') }}">
                     {{ _('Deactivate') if user.active else _('Activate') }}
@@ -102,9 +133,9 @@
               <!-- Reset password (for all users including admin) -->
               <button type="button" class="btn-small btn-secondary" onclick="toggleResetForm({{ user.id }})">{{ _('Reset Password') }}</button>
 
-              {% if user.username != 'admin' %}
+              {% if not user.is_admin %}
                 <!-- Delete -->
-                <form method="POST" action="{{ url_for('admin.admin_delete_user', user_id=user.id) }}" style="display:inline;"
+                <form method="POST" action="{{ url_for('tools.admin_delete_user', user_id=user.id) }}" style="display:inline;"
                       onsubmit="return confirm({{ _('Delete user \'%(username)s\'? This removes their login credentials. Their observing data in app.db is NOT deleted.', username=user.username) }});">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button type="submit" class="btn-small btn-danger">{{ _('Delete') }}</button>
@@ -113,7 +144,7 @@
 
               <!-- Hidden reset-password form -->
               <div id="reset-form-{{ user.id }}" class="reset-password-form" style="display:none;">
-                <form method="POST" action="{{ url_for('admin.admin_reset_password', user_id=user.id) }}">
+                <form method="POST" action="{{ url_for('tools.admin_reset_password', user_id=user.id) }}">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <input type="password" name="new_password" required placeholder="{{ _('New password') }}" minlength="4" autocomplete="new-password">
                   <button type="submit" class="btn-small btn-primary">{{ _('Save') }}</button>
@@ -133,6 +164,58 @@
     function toggleResetForm(userId) {
       var el = document.getElementById('reset-form-' + userId);
       el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+    }
+
+    function toggleRoleAssign(userId) {
+      var el = document.getElementById('role-assign-' + userId);
+      el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    }
+
+    async function assignRole(userId) {
+      var selectEl = document.getElementById('role-select-' + userId);
+      var roleId = selectEl.value;
+      if (!roleId) {
+        alert('Please select a role.');
+        return;
+      }
+      try {
+        var resp = await fetch('/api/v1/admin/users/' + userId + '/roles/' + roleId, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+          }
+        });
+        var data = await resp.json();
+        if (resp.ok) {
+          location.reload();
+        } else {
+          alert('Error: ' + (data.error || 'Failed to assign role'));
+        }
+      } catch (err) {
+        alert('Network error: ' + err.message);
+      }
+    }
+
+    async function removeRole(userId, roleId) {
+      if (!confirm('Remove this role from the user?')) return;
+      try {
+        var resp = await fetch('/api/v1/admin/users/' + userId + '/roles/' + roleId, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+          }
+        });
+        var data = await resp.json();
+        if (resp.ok) {
+          location.reload();
+        } else {
+          alert('Error: ' + (data.error || 'Failed to remove role'));
+        }
+      } catch (err) {
+        alert('Network error: ' + err.message);
+      }
     }
   </script>
 

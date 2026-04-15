@@ -289,6 +289,8 @@
         if (titleText) formDetailTitle.textContent = titleText;
         else formDetailTitle.textContent = window.t('add_new_session');
 
+        submitButton.textContent = window.t('add_session');
+        submitButton.style.backgroundColor = 'var(--success-color)';
         cancelButton.onclick = () => window.location.reload();
 
         updateMoonData();
@@ -327,6 +329,8 @@
             console.error('[setupEditMode] No selectedSessionData found!');
         }
 
+        submitButton.textContent = window.t('save_changes');
+        submitButton.style.backgroundColor = 'var(--info-color-alt2)';
         cancelButton.onclick = cancelForm;
     }
 

@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from nova.models import INSTANCE_PATH
 
 # --- App version ---
-APP_VERSION = "5.6.0"
+APP_VERSION = "5.3.0"
 
 # --- Directories ---
 TEMPLATE_DIR = os.path.join(
@@ -66,9 +66,6 @@ ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
 # --- Limits ---
 MAX_ACTIVE_LOCATIONS = 5
 
-# --- Timeouts ---
-SIMBAD_TIMEOUT = 60  # SIMBAD queries can be slow
-
 # --- Dither defaults ---
 DEFAULT_DITHER_MAIN_SHIFT_PX = (
     10  # Default desired shift on main camera sensor (pixels)
@@ -95,7 +92,6 @@ class BoundedCache(dict):
 static_cache = BoundedCache(2000)
 moon_separation_cache = BoundedCache(1000)
 nightly_curves_cache = BoundedCache(2000)
-observable_objects_cache = BoundedCache(200)
 cache_worker_status = BoundedCache(500)
 monthly_top_targets_cache = BoundedCache(500)
 config_cache = BoundedCache(500)
@@ -106,7 +102,6 @@ LATEST_VERSION_INFO = BoundedCache(10)
 rig_data_cache = BoundedCache(500)
 weather_cache = BoundedCache(1000)
 CATALOG_MANIFEST_CACHE = {"data": None, "expires": 0}
-DEFAULT_HTTP_TIMEOUT = 10  # Standard timeout for HTTP requests
 
 # --- Translation status ---
 TRANSLATION_STATUS = {
@@ -117,13 +112,6 @@ TRANSLATION_STATUS = {
     "ja": "auto",  # Japanese translations auto-generated
     "es": "auto",  # Spanish translations auto-generated
 }
-
-# --- AI Configuration ---
-AI_PROVIDER = config('AI_PROVIDER', default='anthropic')
-AI_API_KEY = config('AI_API_KEY', default='')
-AI_MODEL = config('AI_MODEL', default='claude-sonnet-4-20250514')
-AI_BASE_URL = config('AI_BASE_URL', default='')
-AI_ALLOWED_USERS = config('AI_ALLOWED_USERS', default='')
 
 # --- Telemetry state ---
 _telemetry_startup_once = threading.Event()

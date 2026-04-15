@@ -4,16 +4,19 @@
 {% block title %}{{ form_title | default(_('Journal Entry')) }} - {{ _('Nova DSO Tracker') }}{% endblock %}
 
 {% block head_extra %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/journal_form.css') }}?v={{ version }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/journal_form.css') }}">
 {% endblock %}
 
 {% block body %}
 
 
+{# --- NEW: Title for this specific form --- #}
 <h2 style="font-weight: normal; margin-top: 30px; margin-bottom: 20px; color: var(--text-primary);">{{ form_title | default(_('Journal Entry')) }}</h2>
 
+{# The form container itself now starts after the new h2 title #}
 <div class="form-container">
     <form method="POST" action="{{ form_action_url }}">
+        {# Hidden field for session_id if editing, not present for add #}
         {% if entry and entry.session_id %}
             <input type="hidden" name="session_id" value="{{ entry.session_id }}">
         {% endif %}
@@ -22,6 +25,8 @@
         <div class="form-row">
             <div class="form-group">
                 <label for="session_date">{{ _('Session Date:') }}</label>
+                {# Removed 'required' from here and other fields as per earlier discussions to make them optional #}
+                {# If you want specific fields to be mandatory, add 'required' back to them #}
                 <input type="date" id="session_date" name="session_date" value="{{ entry.session_date if entry and entry.session_date else today_date }}">
             </div>
             <div class="form-group">
@@ -64,7 +69,7 @@
                 <label for="sky_sqm_observed">{{ _('SQM Reading:') }}</label>
                 <input type="number" step="0.01" id="sky_sqm_observed" name="sky_sqm_observed" value="{{ entry.sky_sqm_observed if entry.sky_sqm_observed is not none else '' }}">
             </div>
-             <div class="form-group"> </div>
+             <div class="form-group"> </div> {# Placeholder for alignment #}
         </div>
         <div class="form-group">
             <label for="weather_notes">{{ _('Weather Notes:') }}</label>
@@ -160,7 +165,7 @@
         {% set filters = [('L', 'Luminance'), ('R', 'Red'), ('G', 'Green'), ('B', 'Blue'), ('Ha', 'H-alpha'), ('OIII', 'OIII'), ('SII', 'SII')] %}
         {% for filt_key, filt_name in filters %}
         <div class="form-row">
-            <div class="form-group" style="flex: 0 0 200px;">
+            <div class="form-group" style="flex: 0 0 200px;"> {# Fixed width for label part #}
                 <label>{{ filt_name }} ({{ filt_key }}) {{ _('Filter:') }}</label>
             </div>
             <div class="form-group">

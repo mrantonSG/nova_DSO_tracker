@@ -230,6 +230,59 @@ body {
   color: var(--text-primary);
 }
 
+/* --- Roles Cell --- */
+.roles-cell {
+  min-width: 180px;
+}
+
+.user-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-bottom: var(--space-1);
+}
+
+.badge-role {
+  background: rgba(108, 99, 255, 0.12);
+  color: #6c63ff;
+}
+
+.no-roles {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.role-assign-form {
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  background: var(--gray-50);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-medium);
+}
+
+.role-select {
+  padding: 4px 8px;
+  border: var(--input-border-width) solid var(--input-border-color);
+  border-radius: var(--input-border-radius);
+  font-size: var(--font-size-xs);
+  background: var(--bg-white);
+  color: var(--text-primary);
+  margin-right: var(--space-1);
+}
+
+.remove-roles {
+  margin-top: var(--space-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.btn-remove-role {
+  font-size: 10px;
+  padding: 2px 6px;
+}
+
 /* --- Responsive --- */
 @media (max-width: 600px) {
   .admin-container {
@@ -244,5 +297,8 @@ body {
   .actions-cell {
     flex-direction: column;
     align-items: flex-start;
+  }
+  .roles-cell {
+    min-width: auto;
   }
 }

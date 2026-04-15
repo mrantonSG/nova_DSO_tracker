@@ -1,6 +1,5 @@
 import pytest
 import sys, os
-import http.cookiejar
 from datetime import date
 import types
 from sqlalchemy.sql.elements import BinaryExpression, ColumnElement
@@ -12,7 +11,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 
 from nova import (
     app,
@@ -27,10 +25,6 @@ from nova import (
     SessionLocal,
     UserMixin,
     User
-)
-from nova.config import (
-    observable_objects_cache, static_cache, nightly_curves_cache,
-    config_cache, journal_cache
 )
 
 
@@ -97,26 +91,14 @@ def db_session(monkeypatch):
     try:
         yield session
     finally:
-        # Clear module-level caches to prevent cross-test leakage
-        observable_objects_cache.clear()
-        static_cache.clear()
-        nightly_curves_cache.clear()
-        config_cache.clear()
-        journal_cache.clear()
-        # Explicitly rollback any pending changes before cleanup
-        try:
-            session.rollback()
-        except:
-            pass
         TestSessionLocal.remove()
         Base.metadata.drop_all(engine)
 
 
 @pytest.fixture
-def su_client_logged_in(db_session, monkeypatch):
+def client(db_session, monkeypatch):
     # ... (content remains unchanged) ...
     monkeypatch.setattr('nova.SINGLE_USER_MODE', True)
-    monkeypatch.setattr('nova.auth.SINGLE_USER_MODE', True)
 
     class SingleUserTest(UserMixin):
         def __init__(self, user_id, username):
@@ -124,7 +106,6 @@ def su_client_logged_in(db_session, monkeypatch):
             self.username = username
 
     monkeypatch.setattr('nova.User', SingleUserTest)
-    monkeypatch.setattr('nova.auth.User', SingleUserTest)
 
     app.config['TESTING'] = True
     app.config['SECRET_KEY'] = 'test-secret-key'
@@ -159,10 +140,9 @@ def su_client_logged_in(db_session, monkeypatch):
 
 
 @pytest.fixture
-def su_client_logged_out(db_session, monkeypatch):
+def client_logged_out(db_session, monkeypatch):
     # ... (content remains unchanged) ...
     monkeypatch.setattr('nova.SINGLE_USER_MODE', False)
-    monkeypatch.setattr('nova.auth.SINGLE_USER_MODE', False)
 
     app.config['TESTING'] = True
     app.config['SECRET_KEY'] = 'test-secret-key'
@@ -180,8 +160,6 @@ def su_client_logged_out(db_session, monkeypatch):
     db_session.commit()
 
     with app.test_client() as client:
-        # Clear any existing cookies to prevent session leakage
-        client.cookie_jar = http.cookiejar.CookieJar()
         yield client
 
 
@@ -231,12 +209,9 @@ def multi_user_client(db_session, monkeypatch):
 
     # --- FIX: Inject the mock 'db' object into the nova module's namespace to solve NameError/AttributeError ---
     import nova
-    import nova.auth
 
     # Patch the User model with the mock columns required by db.select(User).where(User.username == ...)
     monkeypatch.setattr(nova, 'User', MockAuthDbUser)
-    monkeypatch.setattr(nova.auth, 'User', MockAuthDbUser)
-    monkeypatch.setattr(nova.auth, 'SINGLE_USER_MODE', False)
 
     mock_db_object = types.SimpleNamespace()
     mock_db_object.session = MockAuthDbSession()
@@ -244,7 +219,6 @@ def multi_user_client(db_session, monkeypatch):
 
     # WORKAROUND: Force the 'db' variable into the module's global dict
     nova.__dict__['db'] = mock_db_object
-    nova.auth.__dict__['db'] = mock_db_object
     # --- END FIX ---
 
     # 3. Configure the app
@@ -322,12 +296,9 @@ def mu_client_logged_out(db_session, monkeypatch):
 
     # --- FIX: Inject the mock 'db' object into the nova module's namespace to solve NameError/AttributeError ---
     import nova
-    import nova.auth
 
     # Patch the User model with the mock columns required by db.select(User).where(User.username == ...)
     monkeypatch.setattr(nova, 'User', MockAuthDbUser)
-    monkeypatch.setattr(nova.auth, 'User', MockAuthDbUser)
-    monkeypatch.setattr(nova.auth, 'SINGLE_USER_MODE', False)
 
     mock_db_object = types.SimpleNamespace()
     mock_db_object.session = MockAuthDbSession()
@@ -335,7 +306,6 @@ def mu_client_logged_out(db_session, monkeypatch):
 
     # WORKAROUND: Force the 'db' variable into the module's global dict
     nova.__dict__['db'] = mock_db_object
-    nova.auth.__dict__['db'] = mock_db_object
     # --- END FIX ---
 
     # 3. Configure the app
@@ -349,15 +319,13 @@ def mu_client_logged_out(db_session, monkeypatch):
 
     # 5. Create the client *without* a session cookie
     with app.test_client() as client:
-        # Clear any existing cookies to prevent session leakage
-        client.cookie_jar = http.cookiejar.CookieJar()
         yield client
 
 
 @pytest.fixture
-def su_client_not_logged_in(db_session, monkeypatch):
+def client(db_session, monkeypatch):
+    # ... (content remains unchanged) ...
     monkeypatch.setattr('nova.SINGLE_USER_MODE', True)
-    monkeypatch.setattr('nova.auth.SINGLE_USER_MODE', True)
 
     class SingleUserTest(UserMixin):
         def __init__(self, user_id, username):
@@ -365,7 +333,6 @@ def su_client_not_logged_in(db_session, monkeypatch):
             self.username = username
 
     monkeypatch.setattr('nova.User', SingleUserTest)
-    monkeypatch.setattr('nova.auth.User', SingleUserTest)
 
     app.config['TESTING'] = True
     app.config['SECRET_KEY'] = 'test-secret-key'
@@ -396,6 +363,33 @@ def su_client_not_logged_in(db_session, monkeypatch):
         client.get('/')
         yield client
 
-# Alias for backward compatibility - some tests may use this name
-client = su_client_logged_in
-client_logged_out = su_client_logged_out
+
+@pytest.fixture
+def su_client_not_logged_in(db_session, monkeypatch):
+    # ... (content remains unchanged) ...
+    monkeypatch.setattr('nova.SINGLE_USER_MODE', True)
+
+    class SingleUserTest(UserMixin):
+        def __init__(self, user_id, username):
+            self.id = user_id
+            self.username = username
+
+    monkeypatch.setattr('nova.User', SingleUserTest)
+
+    app.config['TESTING'] = True
+    app.config['SECRET_KEY'] = 'test-secret-key'
+
+    user = get_or_create_db_user(db_session, "default")
+    location = Location(
+        user_id=user.id,
+        name="Default Test Loc",
+        lat=50,
+        lon=10,
+        timezone="UTC",
+        is_default=True
+    )
+    db_session.add(location)
+    db_session.commit()
+
+    with app.test_client() as client:
+        yield client

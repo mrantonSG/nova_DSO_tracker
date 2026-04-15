@@ -1,0 +1,611 @@
+{% extends "base.html" %}
+{% block title %}Nova – Role Editor{% endblock %}
+
+{% block head_extra %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_roles.css') }}">
+{% endblock %}
+
+{% block page_title %}
+    <h2>Role Editor <span class="subtitle">(Admin)</span></h2>
+{% endblock %}
+
+{% block header_actions %}
+    <button class="action-button" data-nav-url="{{ url_for('tools.admin_users') }}">&#8592; User Management</button>
+{% endblock %}
+
+{% block body %}
+
+<!-- Toast notification -->
+<div id="toast" class="toast" role="alert" aria-live="polite"></div>
+
+<div class="roles-layout">
+
+  <!-- ================================================================
+       LEFT: Role list + create form
+       ================================================================ -->
+  <aside class="role-list-sidebar">
+    <div class="admin-card">
+      <h3>Roles</h3>
+
+      <ul class="role-list" id="role-list">
+        <!-- Populated by JS -->
+        <li style="color: var(--text-muted); font-size: var(--font-size-sm); padding: var(--space-2);">
+          <span class="spinner"></span> Loading…
+        </li>
+      </ul>
+
+      <!-- Create new role -->
+      <div class="create-role-form">
+        <h3 style="margin:0 0 var(--space-3) 0; font-size: var(--font-size-base);">New Role</h3>
+        <div class="form-group">
+          <label for="new-role-name">Name</label>
+          <input type="text" id="new-role-name" placeholder="e.g. observer" autocomplete="off" maxlength="64">
+        </div>
+        <div class="form-group">
+          <label for="new-role-desc">Description</label>
+          <textarea id="new-role-desc" rows="2" placeholder="Optional description…" maxlength="255"></textarea>
+        </div>
+        <button class="btn-primary" id="btn-create-role" style="width:100%;">Create Role</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ================================================================
+       RIGHT: Permission editor
+       ================================================================ -->
+  <main class="permission-editor" id="permission-editor">
+
+    <!-- Placeholder shown until a role is selected -->
+    <div class="admin-card" id="editor-placeholder">
+      <div class="empty-state">
+        <div class="empty-state-icon">&#128275;</div>
+        <p>Select a role on the left to view and edit its permissions.</p>
+      </div>
+    </div>
+
+    <!-- Actual editor (hidden until role selected) -->
+    <div class="admin-card" id="editor-panel" style="display:none;">
+      <div class="editor-header">
+        <div class="editor-role-info">
+          <h2 class="editor-role-name" id="editor-role-name">–</h2>
+          <p class="editor-role-desc" id="editor-role-desc"></p>
+          <div class="editor-role-meta" id="editor-role-meta"></div>
+        </div>
+        <div class="editor-actions">
+          <button class="btn-secondary" id="btn-expand-all">Expand All</button>
+          <button class="btn-secondary" id="btn-collapse-all">Collapse All</button>
+          <button class="btn-danger" id="btn-delete-role" style="display:none;">Delete Role</button>
+        </div>
+      </div>
+
+      <!-- Permission categories -->
+      <div class="categories-list" id="categories-list">
+        {%- for category_name, perm_names in permission_categories.items() %}
+        <div class="category-section" data-category="{{ category_name }}">
+          <button type="button" class="category-header" aria-expanded="false">
+            <div class="category-title-row">
+              <span class="category-name">{{ category_name }}</span>
+              <span class="category-count">{{ perm_names | length }}</span>
+              <span class="category-selected-count" data-cat="{{ category_name }}"></span>
+            </div>
+            <span class="category-chevron">&#9660;</span>
+          </button>
+          <div class="category-body">
+            <div class="permissions-grid">
+              {%- for perm_name in perm_names %}
+              <label class="permission-item">
+                <input type="checkbox"
+                       class="perm-checkbox"
+                       data-perm="{{ perm_name }}"
+                       data-category="{{ category_name }}">
+                <span class="permission-item-text">
+                  <span class="permission-name">{{ perm_name }}</span>
+                  <span class="permission-desc" id="desc-{{ perm_name | replace('.', '-') }}"></span>
+                </span>
+              </label>
+              {%- endfor %}
+            </div>
+          </div>
+        </div>
+        {%- endfor %}
+      </div>
+    </div>
+
+    <!-- Save bar -->
+    <div class="save-bar" id="save-bar" style="display:none;">
+      <span class="save-bar-status" id="save-bar-status">No unsaved changes.</span>
+      <div style="display:flex; gap: var(--space-2);">
+        <button class="btn-secondary" id="btn-discard">Discard</button>
+        <button class="btn-primary" id="btn-save" disabled>Save Changes</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ====================================================================
+  // Permission descriptions (from permissions.py SYSTEM_PERMISSIONS)
+  // ====================================================================
+  const PERM_DESCRIPTIONS = {
+    {% for perm_name, perm_desc in [
+      ("admin.users.view", "View all users in admin panel"),
+      ("admin.users.manage", "Create, edit, deactivate, and delete users"),
+      ("admin.roles.view", "View roles and their permissions"),
+      ("admin.roles.manage", "Create, edit, and delete roles"),
+      ("admin.db.repair", "Run database repair tools"),
+      ("admin.data.export", "Export any user's data (admin export)"),
+      ("admin.data.import", "Import data for any user (admin import)"),
+      ("dashboard.view", "View main dashboard with DSO list"),
+      ("dashboard.analytics", "View analytics and graphs"),
+      ("dashboard.weather", "View weather forecast data"),
+      ("dashboard.sun_events", "View sun/twilight events"),
+      ("objects.view", "View DSO objects list and details"),
+      ("objects.create", "Add new DSO objects"),
+      ("objects.edit", "Edit DSO object details and notes"),
+      ("objects.delete", "Delete DSO objects"),
+      ("objects.bulk_edit", "Perform bulk operations on objects"),
+      ("objects.merge", "Merge duplicate objects"),
+      ("journal.view", "View observation journal sessions"),
+      ("journal.create", "Add new observation sessions"),
+      ("journal.edit", "Edit observation sessions"),
+      ("journal.delete", "Delete observation sessions"),
+      ("journal.export", "Export journal to CSV/PDF"),
+      ("projects.view", "View imaging projects"),
+      ("projects.create", "Create new projects"),
+      ("projects.edit", "Edit project details"),
+      ("projects.delete", "Delete projects"),
+      ("projects.report", "Generate project reports"),
+      ("equipment.view", "View equipment components and rigs"),
+      ("equipment.create", "Add new equipment"),
+      ("equipment.edit", "Edit equipment details"),
+      ("equipment.delete", "Delete equipment"),
+      ("locations.view", "View observation locations"),
+      ("locations.create", "Add new locations"),
+      ("locations.edit", "Edit location details"),
+      ("locations.delete", "Delete locations"),
+      ("locations.set_active", "Change active location"),
+      ("views.view", "View saved views"),
+      ("views.create", "Create saved views"),
+      ("views.edit", "Edit saved views"),
+      ("views.delete", "Delete saved views"),
+      ("framings.view", "View framing data"),
+      ("framings.create", "Create framing overlays"),
+      ("framings.edit", "Edit framing data"),
+      ("framings.delete", "Delete framing data"),
+      ("filters.view", "View custom filters"),
+      ("filters.create", "Create custom filters"),
+      ("filters.edit", "Edit custom filters"),
+      ("filters.delete", "Delete custom filters"),
+      ("data.export", "Export own data (YAML/CSV)"),
+      ("data.import", "Import data (YAML/catalogs)"),
+      ("settings.view", "View application settings"),
+      ("settings.edit", "Edit application settings"),
+      ("settings.stellarium", "Configure Stellarium integration"),
+      ("api_keys.view", "View own API keys"),
+      ("api_keys.manage", "Create and delete API keys"),
+      ("shared.objects.view", "View shared DSO objects from others"),
+      ("shared.views.view", "View shared saved views from others"),
+      ("shared.components.view", "View shared equipment from others"),
+      ("shared.objects.fork", "Copy shared items to own collection"),
+      ("mobile.access", "Access mobile interface")
+    ] %}
+    "{{ perm_name }}": "{{ perm_desc }}",
+    {% endfor %}
+  };
+
+  // ====================================================================
+  // State
+  // ====================================================================
+  let allRoles = [];
+  let allPermsById = {};       // id -> permission object
+  let permsByName = {};        // name -> permission object
+  let currentRole = null;
+  let originalPermSet = new Set();  // perm names the role had on load
+  let pendingAdd = new Set();        // names to POST
+  let pendingRemove = new Set();     // names to DELETE
+
+  const csrfToken = '{{ csrf_token() }}';
+
+  // ====================================================================
+  // DOM refs
+  // ====================================================================
+  const roleListEl      = document.getElementById('role-list');
+  const editorPlaceholder = document.getElementById('editor-placeholder');
+  const editorPanel     = document.getElementById('editor-panel');
+  const editorRoleName  = document.getElementById('editor-role-name');
+  const editorRoleDesc  = document.getElementById('editor-role-desc');
+  const editorRoleMeta  = document.getElementById('editor-role-meta');
+  const btnDeleteRole   = document.getElementById('btn-delete-role');
+  const saveBar         = document.getElementById('save-bar');
+  const saveBarStatus   = document.getElementById('save-bar-status');
+  const btnSave         = document.getElementById('btn-save');
+  const btnDiscard      = document.getElementById('btn-discard');
+  const btnExpandAll    = document.getElementById('btn-expand-all');
+  const btnCollapseAll  = document.getElementById('btn-collapse-all');
+  const btnCreateRole   = document.getElementById('btn-create-role');
+
+  // ====================================================================
+  // Toast
+  // ====================================================================
+  const toastEl = document.getElementById('toast');
+  let toastTimer = null;
+  function showToast(msg, type = 'success') {
+    toastEl.textContent = msg;
+    toastEl.className = `toast toast-${type} show`;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toastEl.classList.remove('show'); }, 3500);
+  }
+
+  // ====================================================================
+  // API helpers
+  // ====================================================================
+  async function apiFetch(url, method = 'GET', body = null) {
+    const opts = {
+      method,
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+    };
+    if (body !== null) opts.body = JSON.stringify(body);
+    const resp = await fetch(url, opts);
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+    return data;
+  }
+
+  // ====================================================================
+  // Load data
+  // ====================================================================
+  async function init() {
+    // Populate description spans in the DOM (static HTML already rendered)
+    document.querySelectorAll('.permission-desc[id]').forEach(el => {
+      const permName = el.id.replace(/^desc-/, '').replace(/-/g, '.');
+      el.textContent = PERM_DESCRIPTIONS[permName] || '';
+    });
+
+    // Wire up category accordions
+    document.querySelectorAll('.category-header').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const section = btn.closest('.category-section');
+        const isOpen = section.classList.toggle('open');
+        btn.setAttribute('aria-expanded', isOpen);
+      });
+    });
+
+    // Wire up checkboxes -> track changes
+    document.querySelectorAll('.perm-checkbox').forEach(cb => {
+      cb.addEventListener('change', onPermChange);
+    });
+
+    // Expand/collapse all
+    btnExpandAll.addEventListener('click', () => {
+      document.querySelectorAll('.category-section').forEach(s => {
+        s.classList.add('open');
+        s.querySelector('.category-header').setAttribute('aria-expanded', 'true');
+      });
+    });
+    btnCollapseAll.addEventListener('click', () => {
+      document.querySelectorAll('.category-section').forEach(s => {
+        s.classList.remove('open');
+        s.querySelector('.category-header').setAttribute('aria-expanded', 'false');
+      });
+    });
+
+    // Save / discard
+    btnSave.addEventListener('click', saveChanges);
+    btnDiscard.addEventListener('click', discardChanges);
+    btnDeleteRole.addEventListener('click', deleteRole);
+    btnCreateRole.addEventListener('click', createRole);
+
+    // Fetch roles and permissions in parallel
+    try {
+      const [rolesData, permsData] = await Promise.all([
+        apiFetch('/api/v1/admin/roles'),
+        apiFetch('/api/v1/admin/permissions')
+      ]);
+
+      allRoles = (rolesData.data || rolesData).roles || [];
+
+      // Index permissions
+      ((permsData.data || permsData).permissions || []).forEach(p => {
+        allPermsById[p.id] = p;
+        permsByName[p.name] = p;
+      });
+
+      renderRoleList();
+    } catch (err) {
+      roleListEl.innerHTML = `<li style="color:var(--danger-color);font-size:var(--font-size-sm);padding:var(--space-2);">Failed to load roles: ${err.message}</li>`;
+    }
+  }
+
+  // ====================================================================
+  // Render role list
+  // ====================================================================
+  function renderRoleList() {
+    roleListEl.innerHTML = '';
+    if (allRoles.length === 0) {
+      roleListEl.innerHTML = '<li style="color:var(--text-muted);font-size:var(--font-size-sm);padding:var(--space-2);">No roles found.</li>';
+      return;
+    }
+    allRoles.forEach(role => {
+      const li = document.createElement('li');
+      li.className = 'role-list-item' + (currentRole && currentRole.id === role.id ? ' active' : '');
+      li.dataset.roleId = role.id;
+      li.innerHTML = `
+        <span class="role-item-name" title="${escHtml(role.name)}">${escHtml(role.name)}</span>
+        <span class="role-item-badges">
+          ${role.is_system
+            ? '<span class="badge badge-system">system</span>'
+            : '<span class="badge badge-custom">custom</span>'}
+        </span>`;
+      li.addEventListener('click', () => selectRole(role));
+      roleListEl.appendChild(li);
+    });
+  }
+
+  // ====================================================================
+  // Select a role -> load its permissions
+  // ====================================================================
+  async function selectRole(role) {
+    if (pendingAdd.size > 0 || pendingRemove.size > 0) {
+      if (!confirm('You have unsaved changes. Discard them?')) return;
+    }
+
+    currentRole = role;
+    pendingAdd.clear();
+    pendingRemove.clear();
+
+    // Highlight in list
+    document.querySelectorAll('.role-list-item').forEach(li => {
+      li.classList.toggle('active', parseInt(li.dataset.roleId) === role.id);
+    });
+
+    // Update header
+    editorRoleName.textContent = role.name;
+    editorRoleDesc.textContent = role.description || '';
+    editorRoleMeta.innerHTML = role.is_system
+      ? '<span class="badge badge-system">System Role</span><span style="font-size:var(--font-size-xs);color:var(--text-muted);margin-left:var(--space-2);">Permissions are managed by the system for the admin role.</span>'
+      : '<span class="badge badge-custom">Custom Role</span>';
+
+    // Show/hide delete button (never for system roles)
+    btnDeleteRole.style.display = role.is_system ? 'none' : '';
+
+    // Show panels
+    editorPlaceholder.style.display = 'none';
+    editorPanel.style.display = '';
+    saveBar.style.display = '';
+
+    // Disable all checkboxes for system 'admin' role (has wildcard)
+    const isAdminRole = role.name === 'admin';
+
+    // Reset all checkboxes
+    document.querySelectorAll('.perm-checkbox').forEach(cb => {
+      cb.checked = false;
+      cb.disabled = isAdminRole;
+    });
+
+    // Fetch this role's current permissions
+    try {
+      const rawData = await apiFetch(`/api/v1/admin/roles/${role.id}`);
+      const data = rawData.data || rawData;
+      const rolePerms = data.permissions || [];
+      originalPermSet = new Set(rolePerms.map(p => p.name));
+
+      if (isAdminRole) {
+        // Admin has all permissions - check everything
+        document.querySelectorAll('.perm-checkbox').forEach(cb => {
+          cb.checked = true;
+        });
+        originalPermSet = new Set(Object.keys(permsByName));
+      } else {
+        originalPermSet.forEach(name => {
+          const cb = document.querySelector(`.perm-checkbox[data-perm="${name}"]`);
+          if (cb) cb.checked = true;
+        });
+      }
+
+      updateCategoryCounts();
+      updateSaveBar();
+    } catch (err) {
+      showToast('Failed to load role permissions: ' + err.message, 'error');
+    }
+  }
+
+  // ====================================================================
+  // Checkbox change handler
+  // ====================================================================
+  function onPermChange(e) {
+    const cb = e.target;
+    const name = cb.dataset.perm;
+    const wasInOriginal = originalPermSet.has(name);
+
+    if (cb.checked) {
+      // Adding
+      if (!wasInOriginal) {
+        pendingAdd.add(name);
+        pendingRemove.delete(name);
+      } else {
+        // Reverting a remove
+        pendingRemove.delete(name);
+      }
+    } else {
+      // Removing
+      if (wasInOriginal) {
+        pendingRemove.add(name);
+        pendingAdd.delete(name);
+      } else {
+        // Reverting an add
+        pendingAdd.delete(name);
+      }
+    }
+
+    updateCategoryCounts();
+    updateSaveBar();
+  }
+
+  // ====================================================================
+  // Update counts in category headers
+  // ====================================================================
+  function updateCategoryCounts() {
+    document.querySelectorAll('.category-section').forEach(section => {
+      const catName = section.dataset.category;
+      const checkboxes = section.querySelectorAll('.perm-checkbox');
+      const checked = section.querySelectorAll('.perm-checkbox:checked').length;
+      const countEl = section.querySelector(`.category-selected-count[data-cat="${catName}"]`);
+      if (countEl) {
+        countEl.textContent = checked > 0 ? `${checked} selected` : '';
+      }
+    });
+  }
+
+  // ====================================================================
+  // Save bar state
+  // ====================================================================
+  function updateSaveBar() {
+    const total = pendingAdd.size + pendingRemove.size;
+    if (total === 0) {
+      saveBarStatus.textContent = 'No unsaved changes.';
+      saveBarStatus.classList.remove('has-changes');
+      btnSave.disabled = true;
+    } else {
+      saveBarStatus.textContent = `${total} unsaved change${total === 1 ? '' : 's'} (${pendingAdd.size} added, ${pendingRemove.size} removed)`;
+      saveBarStatus.classList.add('has-changes');
+      btnSave.disabled = false;
+    }
+  }
+
+  // ====================================================================
+  // Save changes
+  // ====================================================================
+  async function saveChanges() {
+    if (!currentRole) return;
+    btnSave.disabled = true;
+    btnSave.innerHTML = '<span class="spinner"></span>Saving…';
+
+    const adds = [...pendingAdd];
+    const removes = [...pendingRemove];
+    const errors = [];
+
+    // POST to add permissions
+    for (const name of adds) {
+      const perm = permsByName[name];
+      if (!perm) continue;
+      try {
+        await apiFetch(`/api/v1/admin/roles/${currentRole.id}/permissions/${perm.id}`, 'POST');
+      } catch (err) {
+        errors.push(`Add ${name}: ${err.message}`);
+      }
+    }
+
+    // DELETE to remove permissions
+    for (const name of removes) {
+      const perm = permsByName[name];
+      if (!perm) continue;
+      try {
+        await apiFetch(`/api/v1/admin/roles/${currentRole.id}/permissions/${perm.id}`, 'DELETE');
+      } catch (err) {
+        errors.push(`Remove ${name}: ${err.message}`);
+      }
+    }
+
+    if (errors.length > 0) {
+      showToast('Some changes failed: ' + errors.join('; '), 'error');
+    } else {
+      showToast(`Permissions for "${currentRole.name}" saved.`, 'success');
+    }
+
+    // Reload role to get fresh state
+    pendingAdd.clear();
+    pendingRemove.clear();
+    await selectRole(currentRole);
+
+    btnSave.innerHTML = 'Save Changes';
+  }
+
+  // ====================================================================
+  // Discard changes
+  // ====================================================================
+  function discardChanges() {
+    if (!currentRole) return;
+    pendingAdd.clear();
+    pendingRemove.clear();
+    selectRole(currentRole);
+  }
+
+  // ====================================================================
+  // Delete role
+  // ====================================================================
+  async function deleteRole() {
+    if (!currentRole || currentRole.is_system) return;
+    if (!confirm(`Delete role "${currentRole.name}"? This cannot be undone.`)) return;
+
+    try {
+      await apiFetch(`/api/v1/admin/roles/${currentRole.id}`, 'DELETE');
+      showToast(`Role "${currentRole.name}" deleted.`, 'success');
+
+      // Remove from list and reset UI
+      allRoles = allRoles.filter(r => r.id !== currentRole.id);
+      currentRole = null;
+      pendingAdd.clear();
+      pendingRemove.clear();
+      editorPanel.style.display = 'none';
+      saveBar.style.display = 'none';
+      editorPlaceholder.style.display = '';
+      renderRoleList();
+    } catch (err) {
+      showToast('Delete failed: ' + err.message, 'error');
+    }
+  }
+
+  // ====================================================================
+  // Create role
+  // ====================================================================
+  async function createRole() {
+    const name = document.getElementById('new-role-name').value.trim();
+    const desc = document.getElementById('new-role-desc').value.trim();
+    if (!name) {
+      showToast('Role name is required.', 'error');
+      document.getElementById('new-role-name').focus();
+      return;
+    }
+
+    btnCreateRole.disabled = true;
+    btnCreateRole.innerHTML = '<span class="spinner"></span>Creating…';
+
+    try {
+      const rawData = await apiFetch('/api/v1/admin/roles', 'POST', { name, description: desc });
+      const data = rawData.data || rawData;
+      const newRole = data.role || data;
+      allRoles.push(newRole);
+      renderRoleList();
+      document.getElementById('new-role-name').value = '';
+      document.getElementById('new-role-desc').value = '';
+      showToast(`Role "${newRole.name}" created.`, 'success');
+      selectRole(newRole);
+    } catch (err) {
+      showToast('Create failed: ' + err.message, 'error');
+    } finally {
+      btnCreateRole.disabled = false;
+      btnCreateRole.textContent = 'Create Role';
+    }
+  }
+
+  // ====================================================================
+  // Utility
+  // ====================================================================
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // Boot
+  document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+
+{% endblock %}

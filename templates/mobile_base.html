@@ -6,44 +6,18 @@
     <title>{% block title %}{{ _('Nova Companion') }}{% endblock %}</title>
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='nova-touch-icon.png') }}">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}?v={{ version }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}?v={{ version }}">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/mobile.css">
     <link rel="stylesheet" type="text/css" href="https://unpkg.com/trix@2.0.0/dist/trix.css">
     <script type="text/javascript" src="https://unpkg.com/trix@2.0.0/dist/trix.umd.min.js" defer></script>
     {% block head %}{% endblock %}
 </head>
 <body>
 
-{% if not hide_header %}
 <header class="header">
-    <div class="m-header">
-        <div class="m-header-top">
-            <div class="m-header-brand">
-                <span class="m-header-wordmark">Nova DSO Tracker</span>
-                <span class="m-header-page-title">{% block header_title %}{{ _('Up Now') }}{% endblock %}</span>
-            </div>
-            <a href="{{ url_for('core.index') }}" class="m-header-link">{{ _('Main Site') }}</a>
-        </div>
-        <div class="m-status-strip">
-            <div class="m-status-item">
-                <span class="m-status-label">{{ _('Location') }}</span>
-                <span class="m-status-value" id="status-location">—</span>
-            </div>
-            <div class="m-status-divider"></div>
-            <div class="m-status-item">
-                <span class="m-status-label">{{ _('Moon') }}</span>
-                <span class="m-status-value" id="status-moon">—</span>
-            </div>
-            <div class="m-status-divider"></div>
-            <div class="m-status-item">
-                <span class="m-status-label">{{ _('Dusk/Dawn') }}</span>
-                <span class="m-status-value" id="status-dusk-dawn">—</span>
-            </div>
-        </div>
-    </div>
+    <a href="{{ url_for('core.index') }}" class="header-link">{{ _('Main Site') }}</a>
+    <h1>{{ _('Nova Pocket') }}</h1>
+    <p class="header-subtitle">{% block header_title %}{{ _('Up Now') }}{% endblock %}</p>
 </header>
-{% endif %}
 
 <main class="container">
     {% block content %}{% endblock %}
@@ -52,24 +26,24 @@
 <nav class="mobile-nav">
     {% if current_user.is_authenticated %}
         <a href="{{ url_for('mobile.mobile_up_now') }}" id="nav-up-now">
-            <span class="nav-bar"></span>
+            <span>🌌</span>
             {{ _('Up Now') }}
         </a>
         <a href="{{ url_for('mobile.mobile_outlook') }}" id="nav-outlook">
-            <span class="nav-bar"></span>
+            <span>🗓️</span>
             {{ _('Outlook') }}
         </a>
         <a href="{{ url_for('mobile.mobile_add_object') }}" id="nav-add-object">
-            <span class="nav-bar"></span>
+            <span>✨</span>
             {{ _('Add Object') }}
         </a>
         <a href="{{ url_for('mobile.mobile_location') }}" id="nav-location">
-            <span class="nav-bar"></span>
+            <span>🌍</span>
             {{ _('Location') }}
         </a>
     {% else %}
         <a href="{{ url_for('core.login', next=request.path) }}" id="nav-login">
-            <span class="nav-bar"></span>
+            <span>🔑</span>
             {{ _('Log In') }}
         </a>
     {% endif %}
@@ -108,76 +82,18 @@
             } else {
                 document.getElementById('nav-up-now').classList.add('active');
             }
-        } else if (path.includes('/m/object/')) {
-            // Object detail page is accessed from Up Now
-            document.getElementById('nav-up-now').classList.add('active');
         } else if (path.includes('/m/edit_notes/')) {
             // Edit notes is accessed from Up Now
             document.getElementById('nav-up-now').classList.add('active');
-        } else if (path.includes('/m/journal')) {
-            // Journal is accessed from Up Now
-            document.getElementById('nav-up-now').classList.add('active');
-        } else if (path === '/m' || path === '/m/' || path.includes('/m/add_object')) {
-            // /m and /m/add_object serve the Add Object page
-            document.getElementById('nav-add-object').classList.add('active');
         } else {
-            // No matching page — don't highlight any tab
+            // Default to 'Add Object' only for /m or /m/add_object
+            const btn = document.getElementById('nav-add-object');
+            if (btn) btn.classList.add('active');
         }
     });
 </script>
 
 {% block scripts %}{% endblock %}
-
-{% block base_scripts %}{% endblock %}
-
-<script>
-// Base header status strip — runs on all pages except those
-// that hide the header (mobile_object_detail.html)
-(function() {
-    const locationEl  = document.getElementById('status-location');
-    const moonEl      = document.getElementById('status-moon');
-    const duskDawnEl  = document.getElementById('status-dusk-dawn');
-    if (!locationEl && !moonEl && !duskDawnEl) return; // header hidden
-
-    // Location from sessionStorage (same pattern as mobile_up_now.html)
-    if (locationEl) {
-        const serverLocation = "{{ g.selected_location | default('') }}";
-        if (serverLocation && !sessionStorage.getItem('nova_mobile_location')) {
-            sessionStorage.setItem('nova_mobile_location', serverLocation);
-        }
-        const loc = sessionStorage.getItem('nova_mobile_location') || '—';
-        locationEl.textContent = loc;
-    }
-
-    // Moon + dusk/dawn from API
-    fetch('{{ url_for("api.api_mobile_status") }}')
-        .then(r => r.json())
-        .then(data => {
-            if (moonEl && data.moon_phase !== undefined) {
-                moonEl.textContent = data.moon_phase + '%';
-            }
-            if (duskDawnEl && data.dusk_dawn) {
-                duskDawnEl.textContent = data.dusk_dawn;
-            }
-        })
-        .catch(() => {}); // silent fail — status strip is non-critical
-})();
-</script>
-
-<script>
-    // Service Worker Registration
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js')
-                .then((registration) => {
-                    // Service worker registered successfully
-                })
-                .catch((error) => {
-                    // Silently fail on registration errors
-                });
-        });
-    }
-</script>
 
 </body>
 </html>

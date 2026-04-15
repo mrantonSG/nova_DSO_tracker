@@ -41,10 +41,18 @@
   --space-3: 12px;
   --space-4: 16px;
   --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+
   /* =================================================================
      SHADOW SCALE
      Tiered shadows for elevation hierarchy
      ================================================================ */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);     /* Subtle: cards, items */
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);      /* Medium: headers, dropdowns */
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.15);   /* Large: elevated panels */
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.2);    /* Extra large: notifications */
 
   /* Semantic shadow tokens */
   --shadow-modal: 0 5px 15px rgba(0, 0, 0, 0.3);      /* Standard modals */
@@ -105,30 +113,15 @@
    Increased opacity for visibility against dark backgrounds
    ===================================================================== */
 :root[data-theme="dark"] {
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.30);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.40);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.5);
 
   /* Semantic shadows - stronger in dark mode */
   --shadow-modal: 0 5px 15px rgba(0, 0, 0, 0.5);
   --shadow-float: 0 10px 25px rgba(0, 0, 0, 0.4);
   --shadow-overlay: 0 12px 32px rgba(0, 0, 0, 0.5);
-
-  /* Mobile interface variables - dark theme overrides */
-  --primary-color: #8ec8da;
-  --primary-hover: #a8d8e8;
-  --primary-bg: rgba(142, 200, 218, 0.15);
-  --bg-light-gray-alt4: #1e2430;
-  --text-primary: rgba(255, 255, 255, 0.92);
-  --text-muted: rgba(255, 255, 255, 0.6);
-  --text-faint: rgba(255, 255, 255, 0.45);
-  --text-white: #ffffff;
-
-  /* Background surfaces - dark theme */
-  --bg-primary: #0f1118;
-  --bg-secondary: #161b24;
-  --bg-tertiary: #1c2230;
-
-  /* Borders - dark theme */
-  --border-color: rgba(255, 255, 255, 0.07);
-  --border-light: rgba(255, 255, 255, 0.04);
 }
 
 /* =====================================================================

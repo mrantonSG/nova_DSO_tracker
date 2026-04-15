@@ -86,13 +86,8 @@
             const objectName = searchInput.value;
             if (!objectName) return;
 
-            // Set loading state on the search button
-            const originalText = searchButton.textContent;
-            searchButton.textContent = i18n.searchingFor.replace('%(name)s', objectName);
-            searchButton.classList.add('loading');
-
-            messageArea.textContent = '';
-            messageArea.style.display = 'none';
+            messageArea.textContent = i18n.searchingFor.replace('%(name)s', objectName);
+            messageArea.style.display = 'block';
             addForm.style.display = 'none';
 
             try {
@@ -111,18 +106,13 @@
                     raInput.value = data.data['RA (hours)'];
                     decInput.value = data.data['DEC (degrees)'];
 
+                    messageArea.style.display = 'none';
                     addForm.style.display = 'block';
                 } else {
                     messageArea.textContent = data.message || i18n.objectNotFound;
-                    messageArea.style.display = 'block';
                 }
             } catch (e) {
                 messageArea.textContent = i18n.errorConnecting;
-                messageArea.style.display = 'block';
-            } finally {
-                // Restore the search button
-                searchButton.textContent = originalText;
-                searchButton.classList.remove('loading');
             }
         });
 

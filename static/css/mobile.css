@@ -1,108 +1,24 @@
 /* static/css/mobile.css */
 /* A mobile-first stylesheet for the companion app */
 
-/* ── Base mobile header ── */
+/* Update header styles for new two-line title */
 .header {
-    background: var(--bg-secondary, #ffffff);
-    border-bottom: 1px solid var(--border-color, #e5e2dc);
-    flex-shrink: 0;
-    z-index: 50;
+    padding: 12px 20px; /* Make header a bit shorter */
 }
-
-.m-header {
-    padding: 10px 16px 0;
+.header h1 {
+    margin: 0;
+    font-size: 1.3rem; /* Main title */
 }
-
-.m-header-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 40px;
-}
-
-.m-header-brand {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-}
-
-.m-header-wordmark {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--primary-hover, #6a9eb0);
-    letter-spacing: -0.03em;
-}
-
-.m-header-page-title {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-muted, #888888);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-left: 8px;
-    padding-left: 8px;
-    border-left: 1px solid var(--border-color, #e5e2dc);
-}
-
-.m-header-link {
-    height: 26px;
-    padding: 0 10px;
-    border-radius: 13px;
-    background: var(--bg-tertiary, #f7f5f2);
-    border: 1px solid var(--border-color, #e5e2dc);
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-secondary, #4a4a4a);
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    white-space: nowrap;
-}
-
-/* ── Status strip ── */
-.m-status-strip {
-    display: flex;
-    align-items: center;
-    padding: 6px 0 8px;
-    gap: 0;
-}
-
-.m-status-item {
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-}
-
-.m-status-label {
-    font-size: 9px;
-    font-weight: 700;
-    color: var(--text-faint, #aaaaaa);
-    text-transform: uppercase;
-    letter-spacing: 0.09em;
-}
-
-.m-status-value {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text-primary, #141414);
-    white-space: nowrap;
-}
-
-.m-status-divider {
-    width: 1px;
-    height: 24px;
-    background: var(--border-color, #e5e2dc);
-    margin: 0 10px;
-    flex-shrink: 0;
-}
-
-.m-status-spacer {
-    flex: 1;
+.header .header-subtitle {
+    margin: 2px 0 0 0; /* Subtitle */
+    font-size: 1.5rem;
+    font-weight: normal;
+    opacity: 0.9;
 }
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     margin: 0;
-    padding: 0;
+    padding: 0 0 100px 0; /* Add padding at the bottom for the nav bar */
     background-color: var(--bg-light-gray-alt4);
     color: var(--text-primary);
     height: 100%; /* Make body fill the html */
@@ -111,12 +27,26 @@ body {
     flex-direction: column;
 }
 
+.header {
+    background-color: var(--primary-color);
+    color: var(--text-white);
+    padding: 18px 20px;
+    box-shadow: var(--shadow-md);
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+}
 
 .container {
-    flex: 1;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 100px);
+    padding: 20px;
+    flex: 1; /* Make it fill the space between header and nav */
+    overflow-y: auto; /* Make THIS element scroll */
+    -webkit-overflow-scrolling: touch; /* Smooth iOS scrolling */
+
+    /* Add padding so content scrolls clear of the nav bar */
+    padding-bottom: 100px;
 }
 
 /* --- Loading / Messages --- */
@@ -165,34 +95,21 @@ body {
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
 }
 .location-item {
-    background-color: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    padding: 14px 16px;
+    background-color: var(--bg-white);
+    border: var(--input-border-width) solid var(--border-medium);
+    padding: var(--space-5) 15px;
     border-radius: var(--radius-xl);
-    font-size: 1rem;
-    font-weight: 500;
-    color: var(--text-primary);
+    font-size: 1.1rem;
     cursor: pointer;
     user-select: none;
-    -webkit-tap-highlight-color: transparent;
-}
-.location-item:active {
-    background-color: var(--bg-tertiary);
 }
 .location-item.active {
-    background-color: var(--primary-bg);
-    color: var(--primary-hover);
-    border-color: var(--primary-color);
-    font-weight: 600;
-}
-.location-item.active::before {
-    content: '✓';
-    margin-right: 8px;
-    font-weight: 700;
-    color: var(--primary-color);
+    background-color: var(--primary-dark);
+    color: var(--text-white);
+    border-color: var(--primary-dark);
 }
 
 /* --- Add Object Form --- */
@@ -238,78 +155,55 @@ trix-editor {
     text-align: center;
     cursor: pointer;
     text-decoration: none;
-    -webkit-tap-highlight-color: transparent;
 }
 .button:hover {
-    background-color: var(--primary-dark, var(--primary-hover));
-}
-.button:focus {
-    background-color: var(--primary-color);
-    outline: 2px solid var(--primary-hover);
-    outline-offset: 2px;
-}
-.button:active {
-    background-color: var(--primary-dark, var(--primary-hover));
-    opacity: 0.9;
+    background-color: var(--primary-dark);
 }
 .button:disabled {
-    background-color: var(--border-medium-alt, #ccc);
-    color: var(--text-muted, #999);
+    background-color: var(--border-medium-alt);
     cursor: not-allowed;
-    opacity: 1;
-}
-.button.loading {
-    background-color: var(--primary-color);
-    color: var(--text-white);
-    cursor: wait;
-    opacity: 1;
 }
 
-/* --- Bottom Navigation (Nova Design System) --- */
+/* --- Navigation Menu (Button Style) --- */
 .mobile-nav {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
     display: flex;
-    flex-direction: row;
-    background: var(--bg-secondary, #ffffff);
-    border-top: 1px solid var(--border-color, #e5e2dc);
-    padding-bottom: env(safe-area-inset-bottom, 8px);
-    z-index: 100;
+    background-color: var(--bg-light-gray-alt4); /* Use main page background */
+    border-top: var(--input-border-width) solid var(--border-medium);
+    box-shadow: var(--shadow-sm);
+    padding: var(--space-1); /* Add padding around the bar */
+    gap: var(--space-1); /* Add a small gap between buttons */
+    padding-bottom: env(safe-area-inset-bottom);
     transform: translateZ(0);
 }
-
 .mobile-nav a {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 10px 4px;
-    height: 64px;
+    flex: 1; /* Each item takes equal width */
     text-align: center;
-    color: var(--text-faint, #aaaaaa);
+    padding: 14px var(--space-1); /* Make buttons taller */
+    color: var(--text-primary);
     text-decoration: none;
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.01em;
-    border: none;
-    border-top: 2px solid transparent;
-    border-radius: 0;
-    background: transparent;
-    transition: all 0.15s;
-    -webkit-tap-highlight-color: transparent;
+    font-size: 0.9rem; /* Slightly larger text */
+    font-weight: var(--font-weight-medium);
+    border-radius: var(--radius-xl); /* Rounded corners for buttons */
+    background-color: var(--bg-white);
+    border: var(--input-border-width) solid var(--border-medium);
+    transition: background-color 0.2s, color 0.2s;
 }
 
-.mobile-nav a .nav-bar {
-    display: none; /* No longer needed - using border-top */
-}
-
+/* This is the "nova-green" active button */
 .mobile-nav a.active {
-    color: var(--primary-color, #83b4c5);
-    font-weight: 700;
-    border-top-color: var(--primary-color, #83b4c5);
+    background-color: var(--primary-dark); /* Your app's green color */
+    color: var(--text-white);
+    font-weight: var(--font-weight-bold);
+    border-color: var(--primary-dark);
+}
+
+/* This hides the old emoji <span> tags */
+.mobile-nav a span {
+   display: none;
 }
 .form-group input[readonly] {
     font-size: 1.1rem;
@@ -349,286 +243,29 @@ trix-editor {
 .edit-button:hover {
     background-color: var(--border-medium);
 }
+/* --- Link in Header to Main Site --- */
+.header {
+    /* This is needed for the link's positioning */
+    position: relative;
+}
+
+.header-link {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    text-decoration: none;
+    color: var(--text-white);
+    font-size: 0.8rem;
+    font-weight: 500;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 5px 8px;
+    border-radius: 5px;
+    transition: background-color 0.2s;
+}
+.header-link:hover {
+    background: rgba(0, 0, 0, 0.4);
+}
 html {
     height: 100%;
     overflow: hidden;
-}
-
-/* --- Mobile Object Detail Page --- */
-
-/* Back Bar */
-.back-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 15px 20px;
-    background-color: var(--primary-color);
-    color: var(--text-white);
-}
-
-.back-bar a {
-    color: var(--text-white);
-    text-decoration: none;
-    font-size: 1.1rem;
-}
-
-.back-bar .object-title {
-    flex: 1;
-    text-align: center;
-    font-weight: bold;
-    font-size: 1.2rem;
-}
-
-.back-bar .menu-btn {
-    color: var(--text-white);
-    font-size: 1.5rem;
-    text-decoration: none;
-    width: 30px;
-    text-align: center;
-}
-
-/* Stats Strip */
-.stats-strip {
-    display: flex;
-    align-items: center;
-    justify-content: space-around;
-    background-color: var(--primary-dark);
-    color: var(--text-white);
-    padding: 12px 0;
-    margin-bottom: 15px;
-}
-
-.stat-item {
-    text-align: center;
-    flex: 1;
-}
-
-.stat-label {
-    font-size: 0.75rem;
-    opacity: 0.8;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.stat-value {
-    font-size: 1.3rem;
-    font-weight: bold;
-}
-
-.stat-value.primary {
-    color: #83b4c5;
-}
-
-.stat-divider {
-    width: 1px;
-    height: 40px;
-    background-color: rgba(255, 255, 255, 0.3);
-}
-
-/* Chart Container */
-.chart-container {
-    margin-bottom: 15px;
-    border-radius: var(--radius-xl);
-    overflow: hidden;
-    border: var(--input-border-width) solid var(--border-medium);
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-}
-
-.chart-canvas {
-    height: 200px;
-    width: 100%;
-}
-
-/* Chart Controls */
-.chart-controls {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 15px;
-    background-color: var(--bg-white);
-    border-bottom: var(--input-border-width) solid var(--border-medium);
-}
-
-.segmented-control {
-    display: flex;
-    background-color: var(--bg-light-gray-alt3);
-    border-radius: 8px;
-    padding: 3px;
-}
-
-.segmented-control button {
-    padding: 8px 16px;
-    border: none;
-    background-color: transparent;
-    color: var(--text-primary);
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    border-radius: 6px;
-    transition: all 0.2s;
-}
-
-.segmented-control button.active {
-    background-color: var(--bg-white);
-    color: var(--primary-dark);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.date-pill {
-    background-color: var(--primary-color);
-    color: var(--text-white);
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    font-weight: 500;
-}
-
-/* Action Row */
-.action-row {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 15px;
-}
-
-.action-btn {
-    flex: 1;
-    padding: 12px 10px;
-    border: none;
-    border-radius: var(--radius-lg);
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    text-align: center;
-    text-decoration: none;
-    display: inline-block;
-    box-sizing: border-box;
-}
-
-.action-btn.primary {
-    background-color: var(--primary-color);
-    color: var(--text-white);
-}
-
-.action-btn.ghost {
-    background-color: transparent;
-    border: var(--input-border-width) solid var(--primary-color);
-    color: var(--primary-color);
-}
-
-.action-btn.ghost-teal {
-    background-color: transparent;
-    border: var(--input-border-width) solid var(--primary-color);
-    color: var(--primary-color);
-}
-
-/* Tab Strip */
-.tab-strip {
-    display: flex;
-    border-bottom: var(--input-border-width) solid var(--border-medium);
-    margin-bottom: 15px;
-}
-
-.tab-strip button {
-    flex: 1;
-    padding: 12px 0;
-    border: none;
-    background-color: transparent;
-    color: var(--text-secondary);
-    font-size: 0.95rem;
-    font-weight: 500;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: all 0.2s;
-}
-
-.tab-strip button.active {
-    color: var(--primary-dark);
-    border-bottom-color: var(--primary-dark);
-}
-
-.tab-strip button:disabled {
-    color: var(--text-muted);
-    cursor: not-allowed;
-}
-
-/* Tab Content */
-.tab-content {
-    display: none;
-}
-
-.tab-content.active {
-    display: block;
-}
-
-/* Opportunity Cards */
-.opportunity-card {
-    background-color: var(--bg-white);
-    border-radius: var(--radius-xl);
-    border: var(--input-border-width) solid var(--border-medium);
-    padding: 15px;
-    margin-bottom: 12px;
-}
-
-.opportunity-date {
-    font-weight: bold;
-    color: var(--primary-dark);
-    margin-bottom: 8px;
-}
-
-.opportunity-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 10px;
-}
-
-.opportunity-rating {
-    color: var(--warning-color-alt);
-    font-size: 1.2rem;
-}
-
-.opportunity-window {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-    margin-bottom: 10px;
-}
-
-.opportunity-stats {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 8px;
-    font-size: 0.85rem;
-}
-
-.opportunity-stat strong {
-    color: var(--text-secondary);
-    font-size: 0.75rem;
-    text-transform: uppercase;
-}
-
-/* Notes Content */
-.notes-content {
-    background-color: var(--bg-white);
-    border-radius: var(--radius-xl);
-    border: var(--input-border-width) solid var(--border-medium);
-    padding: 15px;
-    margin-bottom: 15px;
-    line-height: 1.6;
-    color: var(--text-primary);
-}
-
-.notes-edit-link {
-    display: inline-block;
-    text-align: center;
-    padding: 12px 20px;
-    background-color: var(--primary-color);
-    color: var(--text-white);
-    border-radius: var(--radius-lg);
-    text-decoration: none;
-    font-weight: 600;
-}
-
-/* Monospace for data */
-.data-mono {
-    font-family: 'DM Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
 }

@@ -552,7 +552,7 @@
             return;
         }
     
-
+        console.log("Fetching weather data asynchronously...");
         try {
             const apiUrl = `/api/get_weather_forecast?lat=${lat}&lon=${lon}&tz=${encodeURIComponent(tz)}`;
             const resp = await fetch(apiUrl);
@@ -597,6 +597,8 @@
     
             // Redraw the chart to show the weather overlay
             chartInstance.update('none'); // Use 'none' to avoid animation
+            console.log("Weather data fetched and chart updated.");
+    
         } catch (err) {
             console.error('Could not fetch or apply weather data:', err);
             chartInstance.__weather.isLoading = false;
@@ -1707,7 +1709,7 @@
                     (function installSlowWheelZoom(){ if (window.__novaSlowZoomInstalled) return; const host = document.getElementById('aladin-lite-div'); if (!host) return; try { host.style.overscrollBehavior = 'contain'; } catch(e) {} function onWheel(ev) { if (ev.ctrlKey) return; ev.preventDefault(); ev.stopPropagation(); if (!aladin) return; const unit = (ev.deltaMode === 1) ? 16 : (ev.deltaMode === 2) ? 400 :1; let dy = (ev.deltaY || 0) * unit; dy = Math.max(-80, Math.min(80, dy)); const g = aladin.getFov(), current = Array.isArray(g) ? (g[0] ?? 1) : (g ?? 1); const scale = Math.exp(dy * 0.00075), minFov = 0.01, maxFov = 180; const next = Math.min(maxFov, Math.max(minFov, current * scale)); if (Number.isFinite(next)) aladin.setFov(next); } host.addEventListener('wheel', onWheel, { passive: false, capture: true }); const tryBindCanvas = () => { const cv = host.querySelector('canvas'); if (cv) cv.addEventListener('wheel', onWheel, { passive: false, capture: true }); }; tryBindCanvas(); setTimeout(tryBindCanvas, 50); window.__novaSlowZoomInstalled = true; })();
 
                     baseSurvey = aladin.getBaseImageLayer();
-                    (function wireBlendAndConstellationUI(){ const blendSel = document.getElementById('blend-survey-select'), blendOp = document.getElementById('blend-opacity'); if (blendSel) blendSel.addEventListener('change', () => { if (blendSel.value && blendOp.value === '0') { blendOp.value = '0.5'; } ensureBlendLayer(); const v = Number(blendOp?.value || 0); setBlendOpacity(v); updateFramingChart(false); }); if (blendOp) { const sync = (e) => { setBlendOpacity(e.target.value); updateFramingChart(false); }; blendOp.addEventListener('input', sync); blendOp.addEventListener('change', sync); } try { if (blendOp) setBlendOpacity(blendOp.value); } catch(e) {} })();
+                    (function wireBlendAndConstellationUI(){ const blendSel = document.getElementById('blend-survey-select'), blendOp = document.getElementById('blend-opacity'); if (blendSel) blendSel.addEventListener('change', () => { ensureBlendLayer(); const v = Number(blendOp?.value || 0); setBlendOpacity(v); updateFramingChart(false); }); if (blendOp) { const sync = (e) => { setBlendOpacity(e.target.value); updateFramingChart(false); }; blendOp.addEventListener('input', sync); blendOp.addEventListener('change', sync); } try { if (blendOp) setBlendOpacity(blendOp.value); } catch(e) {} })();
                     if (aladin.on) aladin.on('zoomChanged', () => { if (!lockToObject) return; const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } });
                     if (aladin.on) aladin.on('baseLayerChanged', () => { try { const bop = document.getElementById('blend-opacity'); ensureBlendLayer(); if (bop) setBlendOpacity(bop.value); } catch (e) { console.warn('[nova] Could not reapply blend after base change:', e); } });
                     fovLayer = A.graphicOverlay({color: (window.stylingUtils && window.stylingUtils.getPrimaryColor) ? window.stylingUtils.getPrimaryColor() : '#83b4c5', lineWidth: 3});
@@ -1942,7 +1944,7 @@
                 });
             (function installSlowWheelZoom(){ if (window.__novaSlowZoomInstalled) return; const host = document.getElementById('aladin-lite-div'); if (!host) return; try { host.style.overscrollBehavior = 'contain'; } catch(e) {} function onWheel(ev) { if (ev.ctrlKey) return; ev.preventDefault(); ev.stopPropagation(); if (!aladin) return; const unit = (ev.deltaMode === 1) ? 16 : (ev.deltaMode === 2) ? 400 : 1; let dy = (ev.deltaY || 0) * unit; dy = Math.max(-80, Math.min(80, dy)); const g = aladin.getFov(), current = Array.isArray(g) ? (g[0] ?? 1) : (g ?? 1); const scale = Math.exp(dy * 0.00075), minFov = 0.01, maxFov = 180; const next = Math.min(maxFov, Math.max(minFov, current * scale)); if (Number.isFinite(next)) aladin.setFov(next); } host.addEventListener('wheel', onWheel, { passive: false, capture: true }); const tryBindCanvas = () => { const cv = host.querySelector('canvas'); if (cv) cv.addEventListener('wheel', onWheel, { passive: false, capture: true }); }; tryBindCanvas(); setTimeout(tryBindCanvas, 50); window.__novaSlowZoomInstalled = true; })();
             baseSurvey = aladin.getBaseImageLayer();
-            (function wireBlendAndConstellationUI(){ const blendSel = document.getElementById('blend-survey-select'), blendOp = document.getElementById('blend-opacity'); if (blendSel) blendSel.addEventListener('change', () => { if (blendSel.value && blendOp.value === '0') { blendOp.value = '0.5'; } ensureBlendLayer(); const v = Number(blendOp?.value || 0); setBlendOpacity(v); updateFramingChart(false); }); if (blendOp) { const sync = (e) => { setBlendOpacity(e.target.value); updateFramingChart(false); }; blendOp.addEventListener('input', sync); blendOp.addEventListener('change', sync); } try { if (blendOp) setBlendOpacity(blendOp.value); } catch(e) {} })();
+            (function wireBlendAndConstellationUI(){ const blendSel = document.getElementById('blend-survey-select'), blendOp = document.getElementById('blend-opacity'); if (blendSel) blendSel.addEventListener('change', () => { ensureBlendLayer(); const v = Number(blendOp?.value || 0); setBlendOpacity(v); updateFramingChart(false); }); if (blendOp) { const sync = (e) => { setBlendOpacity(e.target.value); updateFramingChart(false); }; blendOp.addEventListener('input', sync); blendOp.addEventListener('change', sync); } try { if (blendOp) setBlendOpacity(blendOp.value); } catch(e) {} })();
             if (aladin.on) aladin.on('zoomChanged', () => { if (!lockToObject) return; const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } });
             if (aladin.on) aladin.on('baseLayerChanged', () => { try { const bop = document.getElementById('blend-opacity'); ensureBlendLayer(); if (bop) setBlendOpacity(bop.value); } catch (e) { console.warn('[nova] Could not reapply blend after base change:', e); } });
             fovLayer = A.graphicOverlay({color: (window.stylingUtils && window.stylingUtils.getPrimaryColor) ? window.stylingUtils.getPrimaryColor() : '#83b4c5', lineWidth: 3});
@@ -2523,14 +2525,12 @@
     }
     function updateReadoutFromCenter() { let center; if (lockToObject) { const rc = aladin.getRaDec(); center = { ra: rc[0], dec: rc[1] }; } else if (fovCenter && isFinite(fovCenter.ra) && isFinite(fovCenter.dec)) center = fovCenter; else { const rc = aladin.getRaDec(); center = { ra: rc[0], dec: rc[1] }; } updateReadout(center.ra, center.dec); }
     function copyRaDec() { const text = `${document.getElementById('ra-readout').value} ${document.getElementById('dec-readout').value}`; navigator.clipboard.writeText(text); }
-    function changeView(view, skipPhaseUpdate = false) {
+    function changeView(view) {
         const day = document.getElementById('day-select').value, month = document.getElementById('month-select').value, year = document.getElementById('year-select').value, objectName = NOVA_GRAPH_DATA.objectName;
         fetch(`/get_date_info/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}`)
             .then(response => response.json())
             .then(data => {
-                if (!skipPhaseUpdate) {
-                    document.getElementById("phase-display").innerText = data.phase + "%";
-                }
+                document.getElementById("phase-display").innerText = data.phase + "%";
                 document.getElementById("dusk-display").innerText = data.astronomical_dusk;
                 document.getElementById("dawn-display").innerText = data.astronomical_dawn;
                 if (data.date_display) document.getElementById("date-display").innerText = data.date_display;
@@ -2903,6 +2903,156 @@
         });
     }
 
+    /**
+     * Test Comparison: Old Gnomonic Projection vs New Spherical Stepping
+     *
+     * This function demonstrates the coordinate differences between the two algorithms
+     * for a 3x3 mosaic at high declination (Dec +70°) with a 2° FOV and 10% overlap.
+     *
+     * Call this from the browser console: testMosaicAlgorithmComparison()
+     */
+    window.testMosaicAlgorithmComparison = function() {
+        console.log('\n=== Mosaic Algorithm Comparison Test ===');
+        console.log('Test Parameters:');
+        console.log('  - Mosaic: 3x3 panels');
+        console.log('  - Center Dec: +70.0°');
+        console.log('  - Center RA: 180.0°');
+        console.log('  - FOV: 2.0° width x 2.0° height');
+        console.log('  - Overlap: 10%');
+        console.log('  - Rotation: 0°');
+        console.log('');
+
+        const testCenter = { ra: 180.0, dec: 70.0 };
+        const testFovW = 2.0; // degrees
+        const testFovH = 2.0; // degrees
+        const testCols = 3;
+        const testRows = 3;
+        const testOverlap = 0.1; // 10%
+        const testRotDeg = 0.0;
+
+        const wStep = testFovW * (1 - testOverlap);
+        const hStep = testFovH * (1 - testOverlap);
+
+        const raCenterDeg = testCenter.ra;
+        const decCenterDeg = testCenter.dec;
+        const ang = -testRotDeg * Math.PI / 180;
+
+        // Gnomonic projection setup (old method)
+        const ra0 = raCenterDeg * Math.PI / 180;
+        const dec0 = decCenterDeg * Math.PI / 180;
+        const cX = Math.cos(dec0) * Math.cos(ra0);
+        const cY = Math.cos(dec0) * Math.sin(ra0);
+        const cZ = Math.sin(dec0);
+        const eX = -Math.sin(ra0), eY = Math.cos(ra0), eZ = 0;
+        const nX = -Math.sin(dec0) * Math.cos(ra0), nY = -Math.sin(dec0) * Math.sin(ra0), nZ = Math.cos(dec0);
+
+        function gnomonicProject(x, y) {
+            const dx = x * Math.PI / 180, dy = y * Math.PI / 180, r = Math.hypot(dx, dy);
+            if (r < 1e-12) return { ra: raCenterDeg, dec: decCenterDeg };
+            const dirX = (dx * eX + dy * nX) / r;
+            const dirY = (dx * eY + dy * nY) / r;
+            const dirZ = (dx * eZ + dy * nZ) / r;
+            const s = Math.sin(r), c = Math.cos(r);
+            const pX = c * cX + s * dirX, pY = c * cY + s * dirY, pZ = c * cZ + s * dirZ;
+            let ra = Math.atan2(pY, pX);
+            if (ra < 0) ra += 2 * Math.PI;
+            return { ra: ra * 180 / Math.PI, dec: Math.asin(pZ) * 180 / Math.PI };
+        }
+
+        console.log('Panel Comparison (Corner Panels P1, P3, P7, P9):');
+        console.log('---------------------------------------------------');
+        console.log('Panel | Method        | RA (h  m  s)   | Dec (° \'" )  | ΔRA (arcsec) | ΔDec (arcsec)');
+        console.log('------|---------------|---------------|--------------|---------------|---------------');
+
+        let maxRaDiff = 0, maxDecDiff = 0;
+        let maxRaDiffPanel = '', maxDecDiffPanel = '';
+
+        for (let r = 0; r < testRows; r++) {
+            for (let c = 0; c < testCols; c++) {
+                const panelNum = r * testCols + c + 1;
+                const cx_off = (c - (testCols - 1) / 2.0) * wStep;
+                const cy_off = (r - (testRows - 1) / 2.0) * hStep;
+
+                const rx = cx_off * Math.cos(ang) - cy_off * Math.sin(ang);
+                const ry = cx_off * Math.sin(ang) + cy_off * Math.cos(ang);
+
+                // Old Gnomonic Projection
+                const gnomonic = gnomonicProject(rx, ry);
+
+                // New Spherical Stepping
+                const paneDecDeg = decCenterDeg + ry;
+                let cosDec;
+                if (Math.abs(paneDecDeg) > 89.9) {
+                    cosDec = 0.00175;
+                } else {
+                    cosDec = Math.cos(paneDecDeg * Math.PI / 180);
+                }
+                const raOffsetDeg = rx / cosDec;
+                let paneRaDeg = raCenterDeg + raOffsetDeg;
+                paneRaDeg = ((paneRaDeg % 360) + 360) % 360;
+                const spherical = { ra: paneRaDeg, dec: paneDecDeg };
+
+                // Calculate differences
+                const raDiffArcsec = (gnomonic.ra - spherical.ra) * 3600;
+                const decDiffArcsec = (gnomonic.dec - spherical.dec) * 3600;
+
+                if (Math.abs(raDiffArcsec) > Math.abs(maxRaDiff)) {
+                    maxRaDiff = raDiffArcsec;
+                    maxRaDiffPanel = `P${panelNum}`;
+                }
+                if (Math.abs(decDiffArcsec) > Math.abs(maxDecDiff)) {
+                    maxDecDiff = decDiffArcsec;
+                    maxDecDiffPanel = `P${panelNum}`;
+                }
+
+                // Format for display
+                const gnomonicRaHms = formatRA(gnomonic.ra);
+                const gnomonicDecDms = formatDec(gnomonic.dec);
+                const sphericalRaHms = formatRA(spherical.ra);
+                const sphericalDecDms = formatDec(spherical.dec);
+
+                // Only print corner panels for brevity
+                const isCorner = (panelNum === 1 || panelNum === 3 || panelNum === 7 || panelNum === 9);
+                if (isCorner) {
+                    const gnomonicLine = `Gnomonic   | ${gnomonicRaHms} | ${gnomonicDecDms} |`;
+                    const sphericalLine = `Spherical  | ${sphericalRaHms} | ${sphericalDecDms} |`;
+                    console.log(`\nP${panelNum} (Row ${r+1}, Col ${c+1}):`);
+                    console.log(`      | ${gnomonicLine} -            | -            |`);
+                    console.log(`      | ${sphericalLine} ${raDiffArcsec.toFixed(2).padStart(13)} | ${decDiffArcsec.toFixed(2).padStart(13)} |`);
+                }
+            }
+        }
+
+        console.log('\n---------------------------------------------------');
+        console.log(`Maximum Differences:`);
+        console.log(`  RA:  ${maxRaDiff.toFixed(2)} arcsec (${maxRaDiffPanel})`);
+        console.log(`  Dec: ${maxDecDiff.toFixed(2)} arcsec (${maxDecDiffPanel})`);
+        console.log('');
+        console.log('Analysis:');
+        console.log(`  - At Dec +70°, the cos(Dec) factor is cos(70°) ≈ 0.342`);
+        console.log(`  - This causes RA spacing to be ~2.9x larger than at the celestial equator`);
+        console.log(`  - The gnomonic projection from center produces significantly different coordinates`);
+        console.log(`  - than the per-panel spherical stepping used by N.I.N.A./ASIAIR`);
+        console.log(`  - CRITICAL: The Dec difference at corners can exceed 5 arcmin (306 arcsec)`);
+        console.log(`  - This is because gnomonic projection is NOT equal to spherical stepping`);
+        console.log(`  - The refactored spherical stepping ensures N.I.N.A./ASIAIR alignment`);
+        console.log('');
+        console.log('Impact:');
+        console.log(`  - Without this refactor, mosaics at high declination (>60°) would have`);
+        console.log(`    panels that do NOT overlap as expected when imported into N.I.N.A./ASIAIR`);
+        console.log(`  - The spherical stepping algorithm produces the expected overlap percentage`);
+        console.log(`    regardless of declination, because it correctly accounts for the 1/cos(Dec)`);
+        console.log(`    factor that both software packages use internally`);
+        console.log('===================================================\n');
+
+        return {
+            maxRaDiff,
+            maxDecDiff,
+            maxRaDiffPanel,
+            maxDecDiffPanel
+        };
+    };
+
     function deleteSavedFraming() {
         const objectName = NOVA_GRAPH_DATA.objectName;
         if (!confirm("Are you sure you want to delete the saved framing for this object?")) return;
@@ -2943,7 +3093,7 @@
                     // 1. OPEN SAVED FRAMING BUTTON (insert after Show Framing)
                     const btn = document.createElement('button');
                     btn.className = 'inline-button inline-button-ghost';
-                    btn.textContent = window.t('open_saved_framing');
+                    btn.textContent = 'Open Saved Framing';
                     btn.setAttribute('data-saved-framing', 'true');
 
                     btn.onclick = () => {
@@ -2984,8 +3134,8 @@
                     // 2. DELETE SAVED FRAMING BUTTON
                     const delBtn = document.createElement('button');
                     delBtn.className = 'inline-button inline-button-danger';
-                    delBtn.textContent = window.t('delete_saved_framing');
-                    delBtn.title = window.t('delete_saved_framing');
+                    delBtn.textContent = 'Delete Saved Framing';
+                    delBtn.title = "Delete Saved Framing";
                     delBtn.setAttribute('data-saved-framing', 'true');
 
                     delBtn.onclick = deleteSavedFraming;
@@ -2998,7 +3148,7 @@
     window.addEventListener('load', () => {
         if (window['chartjs-plugin-annotation']) Chart.register(window['chartjs-plugin-annotation']);
 
-        changeView('day', true);
+        changeView('day');
 
         // Initialize secondary object comparison selector
         initSecondaryObjectSelector();

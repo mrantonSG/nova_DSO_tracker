@@ -337,7 +337,6 @@ def test_import_journal_photos_zip(client, monkeypatch, tmp_path):  # <-- Add fi
     mock_upload_folder = tmp_path / "uploads"
     # Tell the app to use this temporary folder
     monkeypatch.setattr('nova.UPLOAD_FOLDER', str(mock_upload_folder))
-    monkeypatch.setattr('nova.blueprints.tools.UPLOAD_FOLDER', str(mock_upload_folder))
     # --- END FIX ---
 
     # Create a mock zip file in memory
@@ -384,7 +383,6 @@ def test_download_journal_photos_zip(client, monkeypatch, tmp_path):  # <-- Add 
     mock_upload_folder = tmp_path / "uploads"
     # Tell the app to use this temporary folder
     monkeypatch.setattr('nova.UPLOAD_FOLDER', str(mock_upload_folder))
-    monkeypatch.setattr('nova.blueprints.tools.UPLOAD_FOLDER', str(mock_upload_folder))
 
     # Create mock files in the 'default' user's *temporary* upload directory
     upload_dir = os.path.join(mock_upload_folder, 'default')
@@ -542,7 +540,6 @@ def test_import_catalog_pack(client, monkeypatch):
 
     # Patch the app's 'load_catalog_pack' function to use our mock
     monkeypatch.setattr('nova.load_catalog_pack', mock_load)
-    monkeypatch.setattr('nova.blueprints.tools.load_catalog_pack', mock_load)
 
     # 2. ACT (First import)
     response_first = client.post(

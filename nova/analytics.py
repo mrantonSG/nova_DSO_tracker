@@ -13,7 +13,6 @@ import os
 from datetime import date
 from flask import current_app
 from flask_login import current_user
-from nova.config import SINGLE_USER_MODE
 
 
 def _is_excluded() -> bool:

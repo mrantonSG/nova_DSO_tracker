@@ -137,6 +137,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 skipFocus: true // Don't auto-focus any element when opening
             });
             helpModalInitialized = true;
+            console.log('[base.js] Help modal controller initialized successfully');
         } catch (err) {
             console.error('[base.js] Error initializing help modal:', err);
         }
@@ -172,6 +173,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 skipFocus: true
             });
             aboutModalInitialized = true;
+            console.log('[base.js] About modal controller initialized successfully');
         } catch (err) {
             console.error('[base.js] Error initializing about modal:', err);
         }
@@ -230,6 +232,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 ariaLabelledBy: 'translation-feedback-modal-title',
                 skipFocus: true
             });
+            console.log('[base.js] Translation feedback modal controller initialized successfully');
         } catch (err) {
             console.error('[base.js] Error initializing translation feedback modal:', err);
         }
@@ -302,19 +305,6 @@ function openHelp(topicId) {
             }
         });
         closeBtn.dataset.helpCloseWired = 'true';
-    }
-
-    // Wire up close-X button
-    const closeX = document.getElementById('help-modal-close-x');
-    if (closeX && !closeX.dataset.helpCloseWired) {
-        closeX.addEventListener('click', () => {
-            if (window.novaState.fn.helpModal) {
-                window.novaState.fn.helpModal.close();
-            } else {
-                modalElement.classList.remove('is-visible');
-            }
-        });
-        closeX.dataset.helpCloseWired = 'true';
     }
 
     // Fetch content

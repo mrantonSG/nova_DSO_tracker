@@ -7,7 +7,7 @@
 <script>
     const IS_GUEST_USER = {{ is_guest | tojson }};
 </script>
-<script src="{{ url_for('static', filename='js/aladin.js') }}?v={{ version }}" charset="utf-8" defer></script>
+<script src="{{ url_for('static', filename='js/aladin.js') }}" charset="utf-8" defer></script>
 <script>
     // Safely convert the Python object to a JavaScript object
     window.selectedSessionData = {{ selected_session_data_dict | tojson }};
@@ -27,8 +27,8 @@
         window.location.href = url;
     };
 </script>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/graph_view.css') }}?v={{ version }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/journal_form.css') }}?v={{ version }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/graph_view.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/journal_form.css') }}">
 {% endblock %}
 
 {% block page_title %}
@@ -300,8 +300,7 @@
             <div style="display:flex; align-items:center; gap:6px; margin-left:12px; padding-left:12px; border-left:1px solid var(--border-medium-alt);">
                 <label for="framing-rig-select" style="font-weight:bold;">{{ _('Rig') }}:</label>
                 <select id="framing-rig-select" data-action="update-framing-rig" style="max-width:240px; font-size:14px;">
-                    {% if available_rigs %}
-                    {% for rig in available_rigs %}
+                    {% if available_rigs %}{% for rig in available_rigs %}
                     <option value="{{ rig.rig_id }}" data-fovw="{{ rig.fov_w_arcmin }}" data-fovh="{{ rig.fov_h_arcmin }}">{{ rig.rig_name }}</option>
                     {% endfor %}{% else %}<option value="">{{ _('No rigs configured') }}</option>{% endif %}
                 </select>
@@ -402,25 +401,21 @@
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/chart/chart.umd.min.js') }}?v={{ version }}" defer></script>
-<script src="{{ url_for('static', filename='js/chart/luxon.min.js') }}?v={{ version }}" defer></script>
-<script src="{{ url_for('static', filename='js/chart/chartjs-adapter-luxon.umd.min.js') }}?v={{ version }}" defer></script>
-<script src="{{ url_for('static', filename='js/chart/chartjs-plugin-annotation.min.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/chart/chart.umd.min.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/chart/luxon.min.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/chart/chartjs-adapter-luxon.umd.min.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/chart/chartjs-plugin-annotation.min.js') }}" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
 <script>
     // Data object to pass server-side variables to the external script
     window.NOVA_GRAPH_DATA = {
-        objectId: {{ object_id | default(0) }},
         objectName: {{ object_name | tojson }},
         altName: {{ alt_name | default(object_name, True) | tojson }},
         plotLat: "{{ graph_lat_param | default('', True) }}",
         plotLon: "{{ graph_lon_param | default('', True) }}",
         plotTz: "{{ graph_tz_name_param | default('UTC', true) }}",
         plotLocName: {{ header_location_name | tojson }},
-        selectedDay: {{ selected_day }},
-        selectedMonth: {{ selected_month }},
-        selectedYear: {{ selected_year }},
 
         // We pass RA in DEGREES (RA_Hours * 15) and DEC in DEGREES
         // 'null' is passed if the database has no value.

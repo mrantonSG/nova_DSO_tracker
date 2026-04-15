@@ -111,8 +111,6 @@
         let activeFetchController = null; // Controls network cancellation
         let dataUpdateIntervalId = null; // 60-second interval for data updates
         let timerUpdateIntervalId = null; // 1-second interval for countdown display
-        let askNovaController = null; // AbortController for Ask Nova requests
-        let askNovaTimeoutId = null; // Timeout ID for Ask Nova requests
     
         // --- ADDED FOR SAVED VIEWS ---
         let savedViewsDropdown, saveViewBtn, deleteViewBtn;
@@ -122,8 +120,6 @@
         let allOutlookOpportunities = [];
         window.latestDSOData = []; // <--- EXPOSE DATA GLOBALLY for Inspiration Tab
         let currentOutlookSort = { columnKey: 'date', ascending: true };
-        let novaRankMap = {}; // <--- NOVA RANKING PERSISTENCE - stores object names (uppercase) to rank data
-
         const outlookColumnConfig = {
             'object_name':  { dataKey: 'object_name',  sortable: true, filterable: true, numeric: false },
             'common_name':  { dataKey: 'common_name',  sortable: true, filterable: true, numeric: false },
@@ -142,7 +138,6 @@
         // --- DSO Table Configuration ---
         let currentSort = { columnKey: 'Altitude Current', ascending: false };
         const columnConfig = {
-            'Nova Rank':        { header: '★<br><span class="subtext">&nbsp;</span>', dataKey: 'Nova Rank', type: 'always-visible', filterable: false, sortable: true },
             'Object':           { header: 'Object<br><span class="subtext">&nbsp;</span>', dataKey: 'Object', type: 'always-visible', filterable: true, sortable: true },
             'Common Name':      { header: 'Common Name<br><span class="subtext">&nbsp;</span>', dataKey: 'Common Name', type: 'always-visible', filterable: true, sortable: true },
             'Altitude Current': { header: 'Altitude<br><span class="subtext">(Current)</span>', dataKey: 'Altitude Current', type: 'position', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined) ? 'N/A' : `${parseFloat(val).toFixed(2)}°` },
@@ -296,21 +291,13 @@
                 if (hadExistingDate) {
                     updateDataForSim();
                 }
-                // Reset Nova ranking when simulation mode changes
-                // DOM date is updated by applySimState() above
-                resetRanking();
-                updateNovaButtonState();
             });
-
+    
             simDateInput.addEventListener('change', function() {
                 if (simModeToggle.checked) {
                     localStorage.setItem('simDate', this.value);
                     applySimState(true, this.value);
                     updateDataForSim();
-                    // Reset Nova ranking when simulation date changes
-                    // DOM date is updated by applySimState() above
-                    resetRanking();
-                    updateNovaButtonState();
                 }
             });
     
@@ -337,159 +324,27 @@
           const [h, m] = timeStr.split(':').map(Number);
           return h * 60 + m;
         }
-
-        // ========================================================================
-        // Nova Cache Functions
-        // ========================================================================
-        /**
-         * Get cache key for Nova ranking based on location and date
-         * @returns {string} Cache key in format: novaCache_{location}_{date}
-         */
-        function getNovaCacheKey() {
-            // Get location name from select or storage
-            const loc = document.getElementById('location-select')?.value?.trim() ||
-                       sessionStorage.getItem('selectedLocation')?.trim() || 'unknown';
-
-            // Get date: use sim date if in simulation mode, otherwise use current display date
-            const simModeOn = document.getElementById('sim-mode-toggle')?.checked;
-            const simDateVal = document.getElementById('sim-date-input')?.value;
-
-            if (simModeOn && simDateVal) {
-                // In simulation mode, use the selected sim date (YYYY-MM-DD)
-                return `novaCache_${loc}_${simDateVal}`;
-            } else {
-                // Use the date shown in the status bar (European format DD.MM.YYYY)
-                const dateEl = document.getElementById('date');
-                const displayDate = dateEl?.textContent?.trim() || new Date().toISOString().slice(0, 10);
-                return `novaCache_${loc}_${displayDate}`;
-            }
-        }
-
-        /**
-         * Update Ask Nova button state based on cache availability
-         * Single source of truth for button label and re-ask link visibility
-         */
-        function updateNovaButtonState() {
-            const btn = document.getElementById('ask-nova-btn');
-            const reask = document.getElementById('nova-reask-link');
-            if (!btn || !reask) return;
-
-            const cached = sessionStorage.getItem(getNovaCacheKey());
-            if (cached) {
-                btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
-                    <path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/>
-                </svg> Restore Nova`;
-                btn.classList.add('active');
-                reask.style.display = 'inline';
-            } else {
-                btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
-                    <path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/>
-                </svg> Ask Nova`;
-                btn.classList.remove('active');
-                reask.style.display = 'none';
-            }
-        }
-
-        /**
-         * Hide unranked rows when nova ranking is active
-         * @param {boolean} hide - If true, hide rows not in novaRankMap; if false, show all rows
-         */
-        function hideUnrankedRows(hide = true) {
-            const tbody = document.getElementById('data-body');
-            if (!tbody) return;
-            const rows = tbody.getElementsByTagName('tr');
-
-            for (let i = 0; i < rows.length; i++) {
-                const row = rows[i];
-                const objectCell = row.querySelector('td[data-column-key="Object"]');
-                if (!objectCell) continue;
-
-                const objectName = objectCell.textContent.trim();
-                const objectNameUpper = objectName.toUpperCase();
-                const hasRank = novaRankMap[objectNameUpper];
-
-                if (hide && !hasRank) {
-                    row.style.display = 'none';
-                } else if (!hide && row.style.display === 'none') {
-                    // Only restore rows that were hidden by Nova, not by filters
-                    row.style.display = '';
-                }
-            }
-        }
-
-        /**
-         * Restore Nova ranking from cache
-         */
-        function restoreNovaFromCache() {
-            const cached = sessionStorage.getItem(getNovaCacheKey());
-            if (!cached) return;
-
-            try {
-                const { rankMap } = JSON.parse(cached);
-                novaRankMap = rankMap;
-
-                // Save original data before applying Nova ranking (for resetRanking)
-                originalTableData = [...(window.latestDSOData || [])];
-
-                // Re-render with ranked data (data-level sorting, not DOM manipulation)
-                const sortedData = applyNovaRankSorting(window.latestDSOData);
-                renderRows(sortedData);
-
-                // Re-apply all active column filters after ranking completes
-                filterTable();
-
-                // Hide unranked rows
-                hideUnrankedRows(true);
-
-                // Show Remove Filters button and mark table as nova-active
-                updateRemoveFiltersButtonVisibility();
-                document.getElementById('data-table').classList.add('nova-active');
-
-                // Update button state to show Re-ask link
-                updateNovaButtonState();
-
-                // Clear error
-                const errorDiv = document.getElementById('ask-nova-error');
-                if (errorDiv) {
-                    errorDiv.style.display = 'none';
-                }
-            } catch (e) {
-                console.error('Error restoring Nova from cache:', e);
-                // Clear corrupted cache
-                sessionStorage.removeItem(getNovaCacheKey());
-                updateNovaButtonState();
-            }
-        }
-        // ========================================================================
-        // End Nova Cache Functions
-        // ========================================================================
         function updateRemoveFiltersButtonVisibility() {
             const btnContainer = document.getElementById('remove-filters-container');
             if (!btnContainer) return;
-
+    
             let isAnyFilterActive = false;
             const allFilterInputs = document.querySelectorAll('#data-table .filter-row input, #journal-filter-row input');
-
+    
             for (const input of allFilterInputs) {
                 if (input.value.trim() !== '') {
                     isAnyFilterActive = true;
                     break;
                 }
             }
-
+    
             // --- FIX: Also show button if a Saved View is active ---
             const svDropdown = document.getElementById('saved-views-dropdown');
             if (svDropdown && svDropdown.value !== "") {
                 isAnyFilterActive = true;
             }
             // --- END FIX ---
-
-            // --- FIX: Also show button if Nova ranking is active ---
-            if (Object.keys(novaRankMap).length > 0) {
-                isAnyFilterActive = true;
-            }
-            // --- END FIX ---
-
+    
             btnContainer.style.display = isAnyFilterActive ? 'block' : 'none';
         }
     
@@ -522,17 +377,12 @@
                 updateHeatmapFilter();
             }
             // --- END FIX ---
-
+    
             // Refresh the tables to reflect the cleared filters
             filterTable();
             filterJournalTable();
-
-            // --- Clear Nova ranking if badges are present ---
-            if (Object.keys(novaRankMap).length > 0) {
-                resetRanking();
-            }
-
-            // Ensure button state updates immediately (after clearing)
+    
+            // Ensure button state updates immediately
             updateRemoveFiltersButtonVisibility();
         }
     
@@ -664,19 +514,10 @@
             sortTable(currentSort.columnKey, false);
             updateTabDisplay();
             updateRemoveFiltersButtonVisibility();
-
+    
             // If on Inspiration tab, refresh the grid
             if (activeTab === 'inspiration' && typeof renderInspirationGrid === 'function') {
-                // If Nova ranking is active, show ranked objects in Inspiration tab
-                const novaSortedData = buildNovaSortedInspirationData();
-                if (novaSortedData) {
-                    const originalFilteredData = window.currentFilteredData;
-                    window.currentFilteredData = novaSortedData;
-                    renderInspirationGrid();
-                    window.currentFilteredData = originalFilteredData;
-                } else {
-                    renderInspirationGrid();
-                }
+                renderInspirationGrid();
             }
         }
     
@@ -804,16 +645,7 @@
             } else if (activeTab === 'inspiration') { // NEW BLOCK
                 if (inspirationWrapper) inspirationWrapper.style.display = 'block';
                 if (typeof renderInspirationGrid === 'function') {
-                    // If Nova ranking is active, show ranked objects in Inspiration tab
-                    const novaSortedData = buildNovaSortedInspirationData();
-                    if (novaSortedData) {
-                        const originalFilteredData = window.currentFilteredData;
-                        window.currentFilteredData = novaSortedData;
-                        renderInspirationGrid();
-                        window.currentFilteredData = originalFilteredData;
-                    } else {
-                        renderInspirationGrid();
-                    }
+                    renderInspirationGrid();
                 }
             } else if (activeTab === 'weather') {
                 if (weatherWrapper) weatherWrapper.style.display = 'block';
@@ -1078,8 +910,7 @@
         const cachedData = _checkFetchCache(CACHE_KEY, CACHE_EXPIRY);
         if (cachedData) {
             if (signal.aborted) return;
-            const sortedData = applyNovaRankSorting(cachedData);
-            renderRows(sortedData);
+            renderRows(cachedData);
             if (signal.aborted) return;
             finalizeFetch();
             return;
@@ -1161,11 +992,10 @@
     
             // CRITICAL FIX: Ensure global data is always updated for other tabs
             window.latestDSOData = allData;
-
+    
             // If background refresh, replace table now
             if (!shouldShowLoader) {
-                const sortedData = applyNovaRankSorting(allData);
-                renderRows(sortedData);
+                renderRows(allData);
             }
             // Logic for triggering inspiration update moved to finalizeFetch
             // to ensure filters are applied first.
@@ -1190,795 +1020,272 @@
                 finalizeFetch();
             }
         }
-    }  // closes fetchData
-
-    // ========================================================================
-    // "Ask Nova" Best Objects Feature
-    // ========================================================================
-
-    let originalTableData = null;
-    let originalSortState = null;
-
-    /**
-     * Apply Nova rank sorting to data array before rendering
-     * Returns sorted data with ranked objects first (by rank ascending), unranked objects follow in original order
-     * @param {Array} data - Array of object data
-     * @returns {Array} Sorted array of object data
-     */
-    function applyNovaRankSorting(data) {
-        // If novaRankMap is empty, return data unchanged
-        if (Object.keys(novaRankMap).length === 0) {
-            return data;
-        }
-
-        // Separate ranked and unranked objects
-        const rankedObjects = [];
-        const unrankedObjects = [];
-
-        data.forEach(obj => {
-            // Normalize object name to uppercase for lookup
-            const objectNameUpper = (obj.Object || '').trim().toUpperCase();
-            const rankData = novaRankMap[objectNameUpper];
-
-            if (rankData) {
-                rankedObjects.push({
-                    obj: obj,
-                    rank: rankData.rank
-                });
-            } else {
-                unrankedObjects.push(obj);
-            }
-        });
-
-        // Sort ranked objects by rank ascending (ensure numeric comparison)
-        rankedObjects.sort((a, b) => {
-            const rankA = parseInt(a.rank, 10);
-            const rankB = parseInt(b.rank, 10);
-            return rankA - rankB;
-        });
-
-        // Return all objects: ranked first, unranked after
-        return [...rankedObjects.map(item => item.obj), ...unrankedObjects];
-    }
-
-    /**
-     * Build Nova-sorted array for Inspiration tab
-     * Returns only ranked objects from latestDSOData, sorted by rank ascending
-     * @returns {Array} Array of DSO objects sorted by Nova rank
-     */
-    function buildNovaSortedInspirationData() {
-        if (Object.keys(novaRankMap).length === 0 || !window.latestDSOData) {
-            return null;
-        }
-
-        const rankedObjects = [];
-
-        window.latestDSOData.forEach(obj => {
-            const objectNameUpper = (obj.Object || '').trim().toUpperCase();
-            const rankData = novaRankMap[objectNameUpper];
-
-            if (rankData) {
-                rankedObjects.push({
-                    obj: obj,
-                    rank: rankData.rank
-                });
-            }
-        });
-
-        // Sort by rank ascending
-        rankedObjects.sort((a, b) => {
-            const rankA = parseInt(a.rank, 10);
-            const rankB = parseInt(b.rank, 10);
-            return rankA - rankB;
-        });
-
-        // Return just the objects, not the wrapper
-        return rankedObjects.map(item => item.obj);
-    }
-
-    /**
-     * Apply Nova rank badges to all rows in the table
-
-    /**
-     * Show modal with Nova ranking details
-     * @param {string} objectName - The object name
-     * @param {number} rank - The rank number
-     * @param {string} reason - The reason for the ranking
-     * @param {Array} recommendedRigs - Array of recommended rig names
-     */
-    function showNovaRankModal(objectName, rank, reason, recommendedRigs) {
-        // Ensure recommendedRigs is an array
-        const rigs = Array.isArray(recommendedRigs) ? recommendedRigs : [];
-
-        // Create modal element if it doesn't exist
-        let modal = document.getElementById('nova-rank-modal');
-        if (!modal) {
-            modal = document.createElement('div');
-            modal.id = 'nova-rank-modal';
-            modal.className = 'modal-backdrop';
-            modal.style.cssText = 'display:none; position:fixed; inset:0; background:var(--overlay-dark); z-index:3000;';
-
-            const content = document.createElement('div');
-            content.className = 'modal-content';
-            content.style.cssText = 'position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:var(--bg-white); padding:20px; border-radius:8px; width:400px; max-width:90%;';
-
-            content.innerHTML = `
-                <h3 style="margin-top:0; color:var(--primary-color);">Nova Ranking</h3>
-                <div style="margin-bottom:15px;">
-                    <strong>Object:</strong> <span id="nova-rank-object"></span>
-                </div>
-                <div style="margin-bottom:15px;">
-                    <strong>Rank:</strong> <span id="nova-rank-rank"></span>
-                </div>
-                <div style="margin-bottom:15px;">
-                    <strong>Reason:</strong> <p id="nova-rank-reason" style="margin:5px 0 0 0; line-height:1.4;"></p>
-                </div>
-                <div style="margin-bottom:15px;">
-                    <strong>${window.t ? window.t('recommended_rigs') : 'Recommended Rigs'}:</strong>
-                    <div id="nova-rank-rigs" style="margin:5px 0 0 0; line-height:1.4;"></div>
-                </div>
-                <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
-                    <button id="nova-rank-close-btn" style="background:var(--accent-gray-medium); color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">Close</button>
-                </div>
-            `;
-
-            modal.appendChild(content);
-            document.body.appendChild(modal);
-
-            // Add click handler for close button
-            document.getElementById('nova-rank-close-btn').addEventListener('click', function() {
-                modal.style.display = 'none';
-            });
-
-            // Close on backdrop click
-            modal.addEventListener('click', function(e) {
-                if (e.target === modal) {
-                    modal.style.display = 'none';
-                }
-            });
-        }
-
-        // Populate modal content
-        document.getElementById('nova-rank-object').textContent = objectName;
-        document.getElementById('nova-rank-rank').textContent = '#' + rank;
-        const shortReason = reason.length > 200 ? reason.substring(0, 200) + '…' : reason;
-        document.getElementById('nova-rank-reason').textContent = shortReason;
-
-        // Display rigs as numbered list
-        const rigsElement = document.getElementById('nova-rank-rigs');
-        if (rigs.length > 0) {
-            rigsElement.innerHTML = rigs.map((rig, index) => {
-                return `${index + 1}. ${rig}`;
-            }).join('<br>');
-        } else {
-            rigsElement.textContent = 'N/A';
-        }
-
-        // Show modal
-        modal.style.display = 'block';
-    }
-
-    /**
-     * Handle Ask Nova button click
-     */
-    async function askNova() {
-        console.log('[Nova] askNova started, controller state:',
-            askNovaController ? 'exists' : 'null',
-            'signal aborted:', askNovaController?.signal?.aborted)
-        const askNovaBtn = document.getElementById('ask-nova-btn');
-        const errorDiv = document.getElementById('ask-nova-error');
-
-        if (!askNovaBtn) return;
-
-        // Reset button state
-        errorDiv.style.display = 'none';
-
-        // Get current data and filters
-        const allData = window.latestDSOData || [];
-        if (allData.length === 0) {
-            errorDiv.textContent = window.t ? window.t('no_data_available') : 'No data available';
-            errorDiv.style.display = 'block';
-            return;
-        }
-
-        // Pre-filter by imaging criteria
-        const imagingCriteria = window.NOVA_INDEX.imagingCriteria || {};
-        const minObservableMinutes = imagingCriteria.min_observable_minutes || 60;
-        const minMaxAltitude = imagingCriteria.min_max_altitude || 30;
-
-        // Filter objects that meet the imaging criteria
-        const filteredObjects = allData.filter(obj => {
-            const obsDuration = parseFloat(obj['Observable Duration (min)'] || 0);
-            const maxAlt = parseFloat(obj['Max Altitude (°)'] || 0);
-
-            // Check if object meets minimum criteria
-            return obsDuration >= minObservableMinutes && maxAlt >= minMaxAltitude;
-        });
-
-        if (filteredObjects.length === 0) {
-            errorDiv.textContent = window.t ? window.t('no_targets_found') : 'No targets found matching your criteria.';
-            errorDiv.style.display = 'block';
-            return;
-        }
-
-        // Get current location and sim date
-        const locationName = sessionStorage.getItem('selectedLocation') || document.getElementById('location-select')?.value;
-        const simModeOn = document.getElementById('sim-mode-toggle')?.checked;
-        const simDateVal = document.getElementById('sim-date-input')?.value;
-        const effectiveDate = simModeOn && simDateVal ? simDateVal : null;
-
-        if (!locationName) {
-            errorDiv.textContent = 'Please select a location first.';
-            errorDiv.style.display = 'block';
-            return;
-        }
-
-        // Set loading state with alternating messages
-        askNovaBtn.disabled = true;
-
-        // Build message sequence with location name
-        const novaMessages = [
-            window.t('consulting_charts'),
-            window.t('checking_rigs'),
-            window.t('scanning_cosmos'),
-            window.t('almost_there')
-        ];
-
-        // Start message animation
-        let msgIndex = 0;
-        const msgInterval = setInterval(() => {
-            msgIndex = (msgIndex + 1) % novaMessages.length;
-            askNovaBtn.innerHTML = `
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
-                    <path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/>
-                </svg>
-                ${novaMessages[msgIndex]}
-            `;
-        }, 2500);
-
-        // Set initial message
-        askNovaBtn.innerHTML = `
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
-                <path d="M8 1L9.5 6H14.5L10.5 9L12 14L8 11L4 14L5.5 9L1.5 6H6.5L8 1Z" fill="currentColor"/>
-            </svg>
-            ${novaMessages[0]}
-        `;
-
-        try {
-            console.log('[Nova] Sending to AI:', filteredObjects.length, 'objects');
-
-            // Abort any previous Ask Nova request
-            if (askNovaController) {
-                askNovaController.abort();
-            }
-            if (askNovaTimeoutId) {
-                clearTimeout(askNovaTimeoutId);
-            }
-
-            // AbortController for timeout
-            askNovaController = new AbortController();
-            askNovaTimeoutId = setTimeout(() => askNovaController.abort(), 180000);
-
-            // Call the API
-            console.log('[Nova] About to fetch, signal aborted:',
-                askNovaController.signal.aborted)
-            const response = await fetch('/api/ai/best_objects', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    object_list: filteredObjects,
-                    location_name: locationName,
-                    sim_date: effectiveDate
-                }),
-                signal: askNovaController.signal
-            });
-
-            console.log('[Nova] Fetch returned, status:', response.status)
-            clearTimeout(askNovaTimeoutId);
-
-            if (response.status === 404) {
-                throw new Error('Nova AI endpoint not available. Check AI_API_KEY configuration.');
-            }
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'API request failed');
-            }
-
-            const result = await response.json();
-            console.log('[Nova] AI response received');
-            const rankedObjects = result.ranked_objects || [];
-
-            // Save original data before applying Nova ranking (for resetRanking)
-            originalTableData = [...(window.latestDSOData || [])];
-
-            // Populate module-level novaRankMap (case-insensitive, stored as uppercase)
-            novaRankMap = {};
-            rankedObjects.forEach(ranked => {
-                const objectNameUpper = (ranked.Object || '').trim().toUpperCase();
-                novaRankMap[objectNameUpper] = {
-                    rank: parseInt(ranked.rank, 10), // Ensure rank is stored as number
-                    reason: ranked.reason || '',
-                    recommendedRigs: Array.isArray(ranked.recommended_rigs) ? ranked.recommended_rigs : []
-                };
-            });
-
-            // Write cache after successful AI parse with >=1 entry
-            sessionStorage.setItem(getNovaCacheKey(), JSON.stringify({ rankMap: novaRankMap, size: originalTableData.length }));
-
-            // Re-render with ranked data (data-level sorting, not DOM manipulation)
-            const sortedData = applyNovaRankSorting(window.latestDSOData);
-            renderRows(sortedData);
-
-            // Re-apply all active column filters after ranking completes
-            filterTable();
-
-            // Hide unranked rows
-            hideUnrankedRows(true);
-
-            // Show Remove Filters button and mark table as nova-active
-            updateRemoveFiltersButtonVisibility();
-            document.getElementById('data-table').classList.add('nova-active');
-
-            // Update button state (shows Re-ask link)
-            updateNovaButtonState();
-
-        } catch (error) {
-            console.error('Error asking Nova:', error);
-            if (error.name === 'AbortError') {
-                errorDiv.textContent = 'Nova took too long to respond. Please try again.';
-            } else {
-                errorDiv.textContent = window.t ? window.t('error_ask_nova') : error.message;
-            }
-            errorDiv.style.display = 'block';
-        } finally {
-            // Stop message animation
-            clearInterval(msgInterval);
-
-            // Reset button state
-            askNovaBtn.disabled = false;
-            askNovaController = null;
-            askNovaTimeoutId = null;
-            // Update button state based on cache availability
-            updateNovaButtonState();
-        }
-    }
-
-    /**
-     * Re-sort table rows based on Nova's ranking
-     * @param {Object} rankMap - Map of object names to rank data
-     */
-    function reSortTableByRank(rankMap) {
-        const tbody = document.getElementById('data-body');
-        const rows = Array.from(tbody.querySelectorAll('tr'));
-
-        // Separate ranked and unranked rows
-        const rankedRows = [];
-        const unrankedRows = [];
-
-        rows.forEach(row => {
-            // Find object name in first cell
-            const objectCell = row.querySelector('td[data-column-key="Object"]');
-            if (!objectCell) return;
-
-            // Use case-insensitive matching (uppercase for lookup)
-            const objectName = objectCell.textContent.trim();
-            const objectNameUpper = objectName.toUpperCase();
-            const rankData = rankMap[objectNameUpper];
-
-            if (rankData) {
-                rankedRows.push({
-                    row: row,
-                    rank: rankData.rank,
-                    reason: rankData.reason,
-                    recommendedRig: rankData.recommendedRig
-                });
-            } else {
-                unrankedRows.push(row);
-            }
-        });
-
-        // Sort ranked rows by rank
-        rankedRows.sort((a, b) => a.rank - b.rank);
-
-        // Clear table and re-append in new order
-        tbody.innerHTML = '';
-
-        // Add ranked rows with badges
-        rankedRows.forEach(({row, rank, reason, recommendedRig}) => {
-            // Find the Object cell and add badge
-            const objectCell = row.querySelector('td[data-column-key="Object"]');
-            if (objectCell) {
-                // Remove any existing badge
-                const existingBadge = objectCell.querySelector('.nova-rank-badge');
-                if (existingBadge) existingBadge.remove();
-
-                // Create rank badge
-                const badge = document.createElement('span');
-                badge.className = 'nova-rank-badge';
-                badge.textContent = '#' + rank;
-
-                // Add tooltip with reason
-                badge.title = reason;
-
-                // Insert badge before the object name
-                objectCell.insertBefore(badge, objectCell.firstChild);
-            }
-
-            tbody.appendChild(row);
-        });
-
-        // Add unranked rows at the bottom
-        unrankedRows.forEach(row => {
-            tbody.appendChild(row);
-        });
-    }
-
-    /**
-     * Reset table to original sorting and remove rank badges
-     */
-    function resetRanking() {
-        // Clear Object search filter
-        const objectFilterInput = document.querySelector('#data-table .filter-row th[data-column-key="Object"] input');
-        if (objectFilterInput) {
-            objectFilterInput.value = '';
-            localStorage.removeItem("dso_filter_col_key_Object");
-        }
-
-        // Clear module-level novaRankMap (in-memory only)
-        novaRankMap = {};
-
-        // DO NOT delete sessionStorage cache entries - preserve for restore capability
-        // Cache is keyed by location+date, so it persists across resets
-
-        // Restore all hidden rows to visible state
-        hideUnrankedRows(false);
-
-        // Remove nova-active class from table
-        document.getElementById('data-table').classList.remove('nova-active');
-
-        // Re-render with original full dataset (if available)
-        if (originalTableData && originalTableData.length > 0) {
-            renderRows(originalTableData);
-            filterTable();
-        } else if (window.latestDSOData && window.latestDSOData.length > 0) {
-            renderRows(window.latestDSOData);
-            filterTable();
-        }
-
-        // Update button visibility
-        updateRemoveFiltersButtonVisibility();
-
-        // Update button state based on cache availability
-        updateNovaButtonState();
-
-        // Clear error
-        const errorDiv = document.getElementById('ask-nova-error');
-        if (errorDiv) {
-            errorDiv.style.display = 'none';
-        }
-
-        // If Inspiration tab is active, re-render to show normal content
-        if (activeTab === 'inspiration' && typeof renderInspirationGrid === 'function') {
-            renderInspirationGrid();
-        }
-    }
-
-
-    // --- Helper: Render All (Replaces Table) ---
-    function renderRows(data) {
-        const tbody = document.getElementById("data-body");
-        window.latestDSOData = data; // <--- CAPTURE DATA HERE
-        tbody.innerHTML = '';
+    
+        // --- Helper: Render All (Replaces Table) ---
+        function renderRows(data) {
+            window.latestDSOData = data; // <--- CAPTURE DATA HERE
+            tbody.innerHTML = '';
             appendRows(data);
     
             // NOTE: Auto-refresh for Inspiration tab removed to prevent jarring shuffles.
             // The user must click "Refresh" to see new suggestions.
         }
-
-    // --- Helper: Append Rows (Adds to existing) ---
-    function appendRows(data) {
-        const tbody = document.getElementById("data-body");
-        const altitudeThreshold = window.NOVA_INDEX.altitudeThreshold;
-        const columnOrder = [
-            'Object', 'Common Name', 'Altitude Current', 'Azimuth Current', 'Trend', 'Altitude 11PM',
-            'Azimuth 11PM', 'Transit Time', 'Observable Duration (min)', 'Max Altitude (°)',
-            'Angular Separation (°)', 'Constellation', 'Type', 'Magnitude', 'Size', 'SB',
-            'Best Month', 'Max Altitude'
-        ];
     
-        data.forEach(objectData => {
-            if (!objectData) return;
+        // --- Helper: Append Rows (Adds to existing) ---
+        function appendRows(data) {
+            const altitudeThreshold = window.NOVA_INDEX.altitudeThreshold;
+            const columnOrder = [
+                'Object', 'Common Name', 'Altitude Current', 'Azimuth Current', 'Trend', 'Altitude 11PM',
+                'Azimuth 11PM', 'Transit Time', 'Observable Duration (min)', 'Max Altitude (°)',
+                'Angular Separation (°)', 'Constellation', 'Type', 'Magnitude', 'Size', 'SB',
+                'Best Month', 'Max Altitude'
+            ];
     
-            const sanitizedId = String(objectData.Object || 'unknown').replace(/\s+/g, '-');
-            const row = document.createElement('tr');
-            row.id = `row-${sanitizedId}`;
-            row.className = 'clickable-row';
+            data.forEach(objectData => {
+                if (!objectData) return;
     
-            // Store impossible status for sorting logic
-            row.dataset.impossible = objectData.is_geometrically_impossible ? 'true' : 'false';
+                const sanitizedId = String(objectData.Object || 'unknown').replace(/\s+/g, '-');
+                const row = document.createElement('tr');
+                row.id = `row-${sanitizedId}`;
+                row.className = 'clickable-row';
     
-            if (objectData.error === true || (objectData['Common Name'] && String(objectData['Common Name']).startsWith("Error:"))) {
-                row.style.backgroundColor = getDangerBgColor();
-                row.style.color = getDangerTextColor();
-                row.style.cursor = 'default';
-            } else if (objectData.is_geometrically_impossible) {
-                // Apply "Greyed Out" styling
-                row.classList.add('geometrically-impossible');
-                row.title = "Object never rises above your altitude threshold.";
-                row.onclick = () => { showGraph(objectData.Object); }; // Still allow click to verify graph
-            } else {
-                const ap = objectData.ActiveProject;
-                if ((ap === true) || (ap === 1) || (ap === '1') || (ap === 'true')) {
-                    row.classList.add('active-project-row');
+                // Store impossible status for sorting logic
+                row.dataset.impossible = objectData.is_geometrically_impossible ? 'true' : 'false';
+    
+                if (objectData.error === true || (objectData['Common Name'] && String(objectData['Common Name']).startsWith("Error:"))) {
+                    row.style.backgroundColor = getDangerBgColor();
+                    row.style.color = getDangerTextColor();
+                    row.style.cursor = 'default';
+                } else if (objectData.is_geometrically_impossible) {
+                    // Apply "Greyed Out" styling
+                    row.classList.add('geometrically-impossible');
+                    row.title = "Object never rises above your altitude threshold.";
+                    row.onclick = () => { showGraph(objectData.Object); }; // Still allow click to verify graph
+                } else {
+                    const ap = objectData.ActiveProject;
+                    if ((ap === true) || (ap === 1) || (ap === '1') || (ap === 'true')) {
+                        row.classList.add('active-project-row');
+                    }
+                    row.onclick = () => { showGraph(objectData.Object); };
                 }
-                row.onclick = () => { showGraph(objectData.Object); };
-            }
-
-            // Nova Rank cell — always created, CSS controls visibility
-            const novaRankTd = document.createElement('td');
-            novaRankTd.dataset.columnKey = 'Nova Rank';
-            novaRankTd.className = 'col-nova-rank';
-            novaRankTd.style.textAlign = 'center';
-            const objectNameUpper = String(objectData.Object || '').trim().toUpperCase();
-            const rankData = novaRankMap[objectNameUpper];
-            novaRankTd.dataset.rawValue = rankData ? rankData.rank : 9999;
-            novaRankTd.textContent = rankData ? rankData.rank : '';
-
-            if (rankData) {
-                novaRankTd.style.cursor = 'pointer';
-                novaRankTd.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    showNovaRankModal(
-                        objectData.Object,
-                        rankData.rank,
-                        rankData.reason,
-                        rankData.recommendedRigs
-                    );
-                });
-            }
-
-            row.appendChild(novaRankTd);
-
-            columnOrder.forEach(columnKey => {
-                const config = columnConfig[columnKey];
-                if (!config) return;
     
-                const td = document.createElement('td');
-                td.dataset.columnKey = columnKey;
-                td.style.textAlign = (columnKey === 'Object' || columnKey === 'Common Name') ? 'left' : 'center';
+                columnOrder.forEach(columnKey => {
+                    const config = columnConfig[columnKey];
+                    if (!config) return;
     
-                const rawValue = objectData[config.dataKey];
-                const displayValue = (rawValue === null || rawValue === undefined || String(rawValue).trim() === '')
-                                     ? 'N/A'
-                                     : (config.format ? config.format(rawValue) : rawValue);
+                    const td = document.createElement('td');
+                    td.dataset.columnKey = columnKey;
+                    td.style.textAlign = (columnKey === 'Object' || columnKey === 'Common Name') ? 'left' : 'center';
     
-                if (columnKey === 'Common Name') {
-                    // Create flex container to hold text and icon side-by-side
-                    const container = document.createElement('div');
-                    container.style.display = 'flex';
-                    container.style.alignItems = 'center';
-                    container.style.justifyContent = 'space-between';
-                    container.style.width = '100%';
+                    const rawValue = objectData[config.dataKey];
+                    const displayValue = (rawValue === null || rawValue === undefined || String(rawValue).trim() === '')
+                                         ? 'N/A'
+                                         : (config.format ? config.format(rawValue) : rawValue);
     
-                    // Text Span (Handles ellipsis)
-                    const spanText = document.createElement('span');
-                    spanText.textContent = displayValue;
-                    spanText.style.flex = '1';
-                    spanText.style.whiteSpace = 'nowrap';
-                    spanText.style.overflow = 'hidden';
-                    spanText.style.textOverflow = 'ellipsis';
-                    container.appendChild(spanText);
+                    if (columnKey === 'Common Name') {
+                        // Create flex container to hold text and icon side-by-side
+                        const container = document.createElement('div');
+                        container.style.display = 'flex';
+                        container.style.alignItems = 'center';
+                        container.style.justifyContent = 'space-between';
+                        container.style.width = '100%';
     
-                    // Check for available inspiration content (Custom Image OR Desc)
-                    const hasCustomContent = (objectData.image_url && objectData.image_url.trim() !== "") || (objectData.description_text && objectData.description_text.trim() !== "");
+                        // Text Span (Handles ellipsis)
+                        const spanText = document.createElement('span');
+                        spanText.textContent = displayValue;
+                        spanText.style.flex = '1';
+                        spanText.style.whiteSpace = 'nowrap';
+                        spanText.style.overflow = 'hidden';
+                        spanText.style.textOverflow = 'ellipsis';
+                        container.appendChild(spanText);
     
-                    // Only show the icon if there is CUSTOM content (ignore coordinates/fallbacks for the table view)
-                    if (hasCustomContent) {
-                        // Inspiration Icon
-                        const icon = document.createElement('span');
-                        icon.innerHTML = '&#9432;'; // Circled i
-                    icon.style.cursor = 'pointer';
-                    icon.style.marginLeft = '8px';
-                    icon.style.color = getPrimaryColor();
-                    icon.style.fontSize = '1.2em';
-                    icon.style.lineHeight = '1';
-                    icon.title = "View Inspiration";
+                        // Check for available inspiration content (Custom Image OR Desc)
+                        const hasCustomContent = (objectData.image_url && objectData.image_url.trim() !== "") || (objectData.description_text && objectData.description_text.trim() !== "");
     
-                    // Click Handler: Stop propagation to prevent opening the graph
-                    icon.onclick = function(e) {
-                        e.stopPropagation();
+                        // Only show the icon if there is CUSTOM content (ignore coordinates/fallbacks for the table view)
+                        if (hasCustomContent) {
+                            // Inspiration Icon
+                            const icon = document.createElement('span');
+                            icon.innerHTML = '&#9432;'; // Circled i
+                        icon.style.cursor = 'pointer';
+                        icon.style.marginLeft = '8px';
+                        icon.style.color = getPrimaryColor();
+                        icon.style.fontSize = '1.2em';
+                        icon.style.lineHeight = '1';
+                        icon.title = "View Inspiration";
     
-                        // 1. Resolve Image (Custom > DSS2 Fallback)
-                        let finalImg = objectData.image_url;
-                        let finalSource = objectData.image_credit || "Catalog";
-                        let finalLink = objectData.image_source_link || "";
+                        // Click Handler: Stop propagation to prevent opening the graph
+                        icon.onclick = function(e) {
+                            e.stopPropagation();
     
-                        // If no custom image, try calculating DSS2 URL using helper from _inspiration_section.html
-                        if (!finalImg && typeof getAladinFallbackUrl === 'function') {
-                            const raDeg = (parseFloat(objectData['RA (hours)']) || 0) * 15;
-                            const decDeg = parseFloat(objectData['DEC (degrees)']) || 0;
-                            if (objectData['RA (hours)'] != null) {
-                                finalImg = getAladinFallbackUrl(raDeg, decDeg, objectData.Size);
-                                finalSource = "DSS2";
+                            // 1. Resolve Image (Custom > DSS2 Fallback)
+                            let finalImg = objectData.image_url;
+                            let finalSource = objectData.image_credit || "Catalog";
+                            let finalLink = objectData.image_source_link || "";
+    
+                            // If no custom image, try calculating DSS2 URL using helper from _inspiration_section.html
+                            if (!finalImg && typeof getAladinFallbackUrl === 'function') {
+                                const raDeg = (parseFloat(objectData['RA (hours)']) || 0) * 15;
+                                const decDeg = parseFloat(objectData['DEC (degrees)']) || 0;
+                                if (objectData['RA (hours)'] != null) {
+                                    finalImg = getAladinFallbackUrl(raDeg, decDeg, objectData.Size);
+                                    finalSource = "DSS2";
+                                }
                             }
-                        }
     
-                        // 2. Resolve Description Text
-                        let finalText = objectData.description_text;
-                        if (!finalText) {
-                             finalText = `Type: ${objectData.Type || 'DSO'}. Located in ${objectData.Constellation || 'unknown'}.`;
-                        }
+                            // 2. Resolve Description Text
+                            let finalText = objectData.description_text;
+                            if (!finalText) {
+                                 finalText = `Type: ${objectData.Type || 'DSO'}. Located in ${objectData.Constellation || 'unknown'}.`;
+                            }
     
-                        // 3. Open Modal
-                        if (typeof openInspirationModal === 'function') {
-                            openInspirationModal(objectData, finalImg, finalText, finalSource, finalLink);
-                            // Graph load is now handled automatically by the global hook in window.onload
-                        } else {
-                            console.warn("Inspiration modal function not found.");
-                        }
-                    };
+                            // 3. Open Modal
+                            if (typeof openInspirationModal === 'function') {
+                                openInspirationModal(objectData, finalImg, finalText, finalSource, finalLink);
+                                // Graph load is now handled automatically by the global hook in window.onload
+                            } else {
+                                console.warn("Inspiration modal function not found.");
+                            }
+                        };
     
-                    container.appendChild(icon);
-                } // End if (hasCustomContent || hasCoordinates)
+                        container.appendChild(icon);
+                    } // End if (hasCustomContent || hasCoordinates)
     
-                td.innerHTML = ''; // Clear any existing text
-                td.appendChild(container);
-            } else if (columnKey === 'Trend') {
-                // Trend column - wrap in span with appropriate class for coloring
-                const trendSpan = document.createElement('span');
-                if (rawValue === '↑') {
-                    trendSpan.className = 'trend-up';
-                } else if (rawValue === '↓') {
-                    trendSpan.className = 'trend-down';
-                }
-                trendSpan.textContent = displayValue;
-                td.appendChild(trendSpan);
-            } else {
-                    td.textContent = displayValue;
-                }
+                    td.innerHTML = ''; // Clear any existing text
+                    td.appendChild(container);
+                } else if (columnKey === 'Trend') {
+                    // Trend column - wrap in span with appropriate class for coloring
+                    const trendSpan = document.createElement('span');
+                    if (rawValue === '↑') {
+                        trendSpan.className = 'trend-up';
+                    } else if (rawValue === '↓') {
+                        trendSpan.className = 'trend-down';
+                    }
+                    trendSpan.textContent = displayValue;
+                    td.appendChild(trendSpan);
+                } else {
+                        td.textContent = displayValue;
+                    }
     
-                // Add tooltip for both Object and Common Name so truncated text can be read
-                if ((columnKey === 'Common Name' || columnKey === 'Object') && rawValue) {
-                    td.setAttribute('title', String(rawValue));
-                }
+                    // Add tooltip for both Object and Common Name so truncated text can be read
+                    if ((columnKey === 'Common Name' || columnKey === 'Object') && rawValue) {
+                        td.setAttribute('title', String(rawValue));
+                    }
     
-                // Immediate Visibility Check (Prevents flash of hidden columns during loading)
-                const isVisible = (config.type === 'always-visible' || config.type === activeTab);
-                td.style.display = isVisible ? 'table-cell' : 'none';
+                    // Immediate Visibility Check (Prevents flash of hidden columns during loading)
+                    const isVisible = (config.type === 'always-visible' || config.type === activeTab);
+                    td.style.display = isVisible ? 'table-cell' : 'none';
     
-                // Highlights
-                _applyRowHighlights(td, columnKey, rawValue, objectData, altitudeThreshold);
+                    // Highlights
+                    _applyRowHighlights(td, columnKey, rawValue, objectData, altitudeThreshold);
     
-                // Sort helpers
-                const numericSortKeys = ['Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
-                                         'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)',
-                                         'Magnitude', 'Size', 'SB', 'Max Altitude', 'Nova Rank'];
+                    // Sort helpers
+                    const numericSortKeys = ['Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
+                                             'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)',
+                                             'Magnitude', 'Size', 'SB', 'Max Altitude'];
     
-                if (numericSortKeys.includes(columnKey)) {
-                    if (rawValue === 'N/A' || rawValue == null) td.dataset.rawValue = 'N/A';
-                    else if (!isNaN(parseFloat(rawValue))) td.dataset.rawValue = parseFloat(rawValue);
-                    else td.dataset.rawValue = rawValue;
-                } else if (rawValue === 'N/A' || rawValue == null) {
-                    td.dataset.rawValue = 'N/A';
-                }
+                    if (numericSortKeys.includes(columnKey)) {
+                        if (rawValue === 'N/A' || rawValue == null) td.dataset.rawValue = 'N/A';
+                        else if (!isNaN(parseFloat(rawValue))) td.dataset.rawValue = parseFloat(rawValue);
+                        else td.dataset.rawValue = rawValue;
+                    } else if (rawValue === 'N/A' || rawValue == null) {
+                        td.dataset.rawValue = 'N/A';
+                    }
     
-                row.appendChild(td);
+                    row.appendChild(td);
+                });
+                tbody.appendChild(row);
             });
-            tbody.appendChild(row);
-        });
-    }
+        }
     
-    function finalizeFetch() {
-        const tbody = document.getElementById("data-body");
-        const loadingDiv = document.getElementById("table-loading");
-        _hideFetchLoader(loadingDiv);
-        applyDsoColumnVisibility();
-        if (Object.keys(novaRankMap).length === 0) {
+        function finalizeFetch() {
+            _hideFetchLoader(loadingDiv);
+            applyDsoColumnVisibility();
             sortTable(currentSort.columnKey, false);
-        }
-
-        // 1. Apply filters (calculates window.currentFilteredData)
-        filterTable();
-
-        tbody.dataset.loading = 'false';
-        fetchSunEvents();
-
-        // 2. NOW it is safe to update the Inspiration grid with filtered data
-        if (activeTab === 'inspiration' && typeof renderInspirationGrid === 'function') {
-            // If Nova ranking is active, show ranked objects in Inspiration tab
-            const novaSortedData = buildNovaSortedInspirationData();
-            if (novaSortedData) {
-                const originalFilteredData = window.currentFilteredData;
-                window.currentFilteredData = novaSortedData;
-                renderInspirationGrid();
-                window.currentFilteredData = originalFilteredData;
-            } else {
+    
+            // 1. Apply filters (calculates window.currentFilteredData)
+            filterTable();
+    
+            tbody.dataset.loading = 'false';
+            fetchSunEvents();
+    
+            // 2. NOW it is safe to update the Inspiration grid with filtered data
+            if (activeTab === 'inspiration' && typeof renderInspirationGrid === 'function') {
                 renderInspirationGrid();
             }
+
+            // REMOVED: Location change check was causing duplicate fetch on initial page load
+            // The fetchLocations() call in window.onload sets sessionStorage before fetchData() runs,
+            // and location-select change event handles user-triggered changes. No need to re-check here.
         }
-
-        // Update Ask Nova button state based on cache availability for the new location/date
-        updateNovaButtonState();
-
-        // Re-apply Nova filter state if active after DOM rebuild
-        if (novaRankMap && Object.keys(novaRankMap).length > 0) {
-            hideUnrankedRows(true);
-        }
-
-        // REMOVED: Location change check was causing duplicate fetch on initial page load
-        // The fetchLocations() call in window.onload sets sessionStorage before fetchData() runs,
-        // and location-select change event handles user-triggered changes. No need to re-check here.
     }
-
-    function sortOutlookTable(columnKey, toggle = true) {
-        if (toggle) {
-            if (currentOutlookSort.columnKey === columnKey) {
-                currentOutlookSort.ascending = !currentOutlookSort.ascending;
+    
+        function sortOutlookTable(columnKey, toggle = true) {
+            if (toggle) {
+                if (currentOutlookSort.columnKey === columnKey) {
+                    currentOutlookSort.ascending = !currentOutlookSort.ascending;
+                } else {
+                    currentOutlookSort.columnKey = columnKey;
+                    currentOutlookSort.ascending = (columnKey === 'date');
+                }
+            }
+    
+            const config = outlookColumnConfig[columnKey];
+            if (!config) return;
+    
+            allOutlookOpportunities.sort((a, b) => {
+                let valA = a[config.dataKey];
+                let valB = b[config.dataKey];
+    
+                if (config.dataKey === 'date') {
+                     return currentOutlookSort.ascending ? new Date(valA) - new Date(valB) : new Date(valB) - new Date(valA);
+                }
+    
+                if (config.numeric) {
+                    valA = parseFloat(valA) || 0;
+                    valB = parseFloat(valB) || 0;
+                    return currentOutlookSort.ascending ? valA - valB : valB - valA;
+                } else {
+                    return currentOutlookSort.ascending ? String(valA).localeCompare(String(valB)) : String(valB).localeCompare(String(valA));
+                }
+            });
+    
+            document.querySelectorAll('#outlook-table th .sort-indicator').forEach(span => span.innerHTML = '');
+            const activeTh = document.querySelector(`#outlook-table th[data-outlook-column-key="${columnKey}"] .sort-indicator`);
+            if (activeTh) activeTh.innerHTML = currentOutlookSort.ascending ? '▲' : '▼';
+    
+            renderOutlookTable();
+        }
+    
+        function filterOutlookTable() {
+            renderOutlookTable(); // The render function will handle filtering
+        }
+    
+        function sortTable(columnKey, toggle = true) { // DSO Table Sort
+            const table = document.getElementById("data-table");
+            if (!table) return;
+            let sortOrder;
+            if (toggle) {
+                if (currentSort.columnKey === columnKey) { currentSort.ascending = !currentSort.ascending; }
+                else { currentSort.columnKey = columnKey; currentSort.ascending = true; }
+                localStorage.setItem("dso_sortOrder", currentSort.ascending ? "asc" : "desc");
+                localStorage.setItem("dso_sortColumnKey", columnKey);
             } else {
-                currentOutlookSort.columnKey = columnKey;
-                currentOutlookSort.ascending = (columnKey === 'date');
+                const storedSortOrder = localStorage.getItem("dso_sortOrder");
+                const storedSortColumnKey = localStorage.getItem("dso_sortColumnKey");
+                if (storedSortColumnKey) {
+                    currentSort.columnKey = storedSortColumnKey;
+                    currentSort.ascending = (storedSortOrder === "asc");
+                }
             }
-        }
+            sortOrder = currentSort.ascending ? "asc" : "desc";
+            table.setAttribute("data-sort-order", sortOrder);
+            const tbody = document.getElementById("data-body");
+            if (!tbody) return;
+            const rows = Array.from(tbody.getElementsByTagName("tr"));
+            const config = columnConfig[currentSort.columnKey];
     
-        const config = outlookColumnConfig[columnKey];
-        if (!config) return;
-    
-        allOutlookOpportunities.sort((a, b) => {
-            let valA = a[config.dataKey];
-            let valB = b[config.dataKey];
-    
-            if (config.dataKey === 'date') {
-                 return currentOutlookSort.ascending ? new Date(valA) - new Date(valB) : new Date(valB) - new Date(valA);
-            }
-    
-            if (config.numeric) {
-                valA = parseFloat(valA) || 0;
-                valB = parseFloat(valB) || 0;
-                return currentOutlookSort.ascending ? valA - valB : valB - valA;
-            } else {
-                return currentOutlookSort.ascending ? String(valA).localeCompare(String(valB)) : String(valB).localeCompare(String(valA));
-            }
-        });
-    
-        document.querySelectorAll('#outlook-table th .sort-indicator').forEach(span => span.innerHTML = '');
-        const activeTh = document.querySelector(`#outlook-table th[data-outlook-column-key="${columnKey}"] .sort-indicator`);
-        if (activeTh) activeTh.innerHTML = currentOutlookSort.ascending ? '▲' : '▼';
-    
-        renderOutlookTable();
-    }
-    
-    function filterOutlookTable() {
-        renderOutlookTable(); // The render function will handle filtering
-    }
-    
-    function sortTable(columnKey, toggle = true) { // DSO Table Sort
-        const table = document.getElementById("data-table");
-        if (!table) return;
-        let sortOrder;
-        if (toggle) {
-            if (currentSort.columnKey === columnKey) { currentSort.ascending = !currentSort.ascending; }
-            else { currentSort.columnKey = columnKey; currentSort.ascending = true; }
-            localStorage.setItem("dso_sortOrder", currentSort.ascending ? "asc" : "desc");
-            localStorage.setItem("dso_sortColumnKey", columnKey);
-        } else {
-            const storedSortOrder = localStorage.getItem("dso_sortOrder");
-            const storedSortColumnKey = localStorage.getItem("dso_sortColumnKey");
-            if (storedSortColumnKey) {
-                currentSort.columnKey = storedSortColumnKey;
-                currentSort.ascending = (storedSortOrder === "asc");
-            }
-        }
-        sortOrder = currentSort.ascending ? "asc" : "desc";
-        table.setAttribute("data-sort-order", sortOrder);
-        const tbody = document.getElementById("data-body");
-        if (!tbody) return;
-        const rows = Array.from(tbody.getElementsByTagName("tr"));
-        const config = columnConfig[currentSort.columnKey];
-    
-        rows.sort((a, b) => {
+            rows.sort((a, b) => {
                 // Priority Sort: Push "Geometrically Impossible" (greyed out) rows to the bottom always
                 const impA = a.dataset.impossible === 'true';
                 const impB = b.dataset.impossible === 'true';
@@ -1999,7 +1306,7 @@
                 const numericSortKeys = [
                     'Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
                     'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)',
-                    'Magnitude', 'Size', 'SB', 'Max Altitude', 'Nova Rank'
+                    'Magnitude', 'Size', 'SB', 'Max Altitude'
                 ];
                 // --- END MODIFICATION ---
                 if (config && numericSortKeys.includes(currentSort.columnKey)) { valA = parseFloat(valA_str); valB = parseFloat(valB_str); }
@@ -2295,9 +1602,6 @@
         // --- (Removed blocking check) Always process the latest user request ---
         // fetchData handles aborting previous requests automatically via AbortController.
         console.log(`Triggering fetch for new location: ${selectedLocation}`);
-
-        // Reset Nova ranking when location changes (before clearing data)
-        resetRanking();
 
         // Clear existing data immediately
         document.getElementById('data-body').innerHTML = '';
@@ -3391,38 +2695,6 @@
                 locationSelect.addEventListener('change', setLocation);
             }
 
-            // --- Event listeners for "Ask Nova" feature ---
-            const askNovaBtn = document.getElementById('ask-nova-btn');
-            console.log('ask-nova-btn found:', askNovaBtn);
-
-            if (askNovaBtn) {
-                askNovaBtn.addEventListener('click', () => {
-                    const cached = sessionStorage.getItem(getNovaCacheKey());
-                    if (cached) {
-                        restoreNovaFromCache();
-                    } else {
-                        askNova();
-                    }
-                });
-            }
-
-            // --- Re-ask link handler ---
-            const reaskLink = document.getElementById('nova-reask-link');
-            if (reaskLink) {
-                reaskLink.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    // Reset ranking state to clean before re-asking
-                    resetRanking();
-                    // Clear cache and trigger askNova
-                    sessionStorage.removeItem(getNovaCacheKey());
-                    askNova();
-                });
-            }
-
-            // --- Update button state on page load (after initial render) ---
-            // If cache exists, show "Restore Nova" button - do NOT auto-restore
-            updateNovaButtonState();
-
             // --- Event delegation for data-action attributes ---
             document.addEventListener('click', function(e) {
                 const target = e.target.closest('[data-action]');
@@ -3463,6 +2735,4 @@
     window.fetchData = fetchData;
     window.fetchSunEvents = fetchSunEvents;
     window.showGraph = showGraph;
-    window.askNova = askNova;
-    window.resetRanking = resetRanking;
 })();

@@ -1,17 +1,11 @@
 import os
 import re
-import json
-import uuid
-import logging
 import tempfile
 import shutil
-import traceback
-import time
 import yaml
 import uuid
 import numpy as np
-import pytz
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -213,7 +207,6 @@ def _ensure_log_dirs():
     """Ensure log directories exist."""
     os.makedirs(ASIAIR_LOGS_DIR, exist_ok=True)
     os.makedirs(PHD2_LOGS_DIR, exist_ok=True)
-    os.makedirs(NINA_LOGS_DIR, exist_ok=True)
 
 
 def save_log_to_filesystem(
@@ -224,7 +217,7 @@ def save_log_to_filesystem(
 
     Args:
         session_id: The session ID
-        log_type: 'asiair', 'phd2', or 'nina'
+        log_type: 'asiair' or 'phd2'
         content: The raw log content
         original_filename: Optional original filename for reference
 
@@ -242,12 +235,8 @@ def save_log_to_filesystem(
 
     if log_type == "asiair":
         filepath = os.path.join(ASIAIR_LOGS_DIR, filename)
-    elif log_type == 'phd2':
-        filepath = os.path.join(PHD2_LOGS_DIR, filename)
-    elif log_type == 'nina':
-        filepath = os.path.join(NINA_LOGS_DIR, filename)
     else:
-        raise ValueError(f"Unknown log_type: {log_type}")
+        filepath = os.path.join(PHD2_LOGS_DIR, filename)
 
     with open(filepath, "w", encoding="utf-8", errors="ignore") as f:
         f.write(content)

@@ -8,7 +8,7 @@
 
   <meta charset="UTF-8">
   <title>{{ _('Configuration Form') }}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/config_form.css') }}?v={{ version }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/config_form.css') }}">
 {% endblock %}
 </head>
 <body>
@@ -281,21 +281,6 @@
                   <label class="short-label" for="new_active">{{ _('Active:') }}</label>
                   <input type="checkbox" name="new_active" id="new_active" class="active-location-checkbox" checked>
               </div>
-              <div>
-                  <label class="short-label" for="new_bortle_scale">{{ _('Bortle:') }}</label>
-                  <select name="new_bortle_scale" id="new_bortle_scale" style="width: 210px;">
-                      <option value="">{{ _('Not set') }}</option>
-                      <option value="1">1 – {{ _('Exceptional dark sky') }}</option>
-                      <option value="2">2 – {{ _('Truly dark sky') }}</option>
-                      <option value="3">3 – {{ _('Rural sky') }}</option>
-                      <option value="4">4 – {{ _('Rural/suburban transition') }}</option>
-                      <option value="5">5 – {{ _('Suburban sky') }}</option>
-                      <option value="6">6 – {{ _('Bright suburban sky') }}</option>
-                      <option value="7">7 – {{ _('Suburban/urban transition') }}</option>
-                      <option value="8">8 – {{ _('City sky') }}</option>
-                      <option value="9">9 – {{ _('Inner-city sky') }}</option>
-                  </select>
-              </div>
             </div>
 
             <div class="inline-fields">
@@ -353,21 +338,6 @@
                 <div>
                     <label class="short-label" for="active_{{ loc_key }}">{{ _('Active:') }}</label>
                     <input type="checkbox" name="active_{{ loc_key }}" id="active_{{ loc_key }}" class="active-location-checkbox" {% if loc_val.get('active', True) %}checked{% endif %}>
-                </div>
-                <div>
-                    <label class="short-label" for="bortle_scale_{{ loc_key }}">{{ _('Bortle:') }}</label>
-                    <select name="bortle_scale_{{ loc_key }}" id="bortle_scale_{{ loc_key }}" style="width: 210px;">
-                        <option value="">{{ _('Not set') }}</option>
-                        <option value="1" {% if loc_val.get('bortle_scale') == 1 %}selected{% endif %}>1 – {{ _('Exceptional dark sky') }}</option>
-                        <option value="2" {% if loc_val.get('bortle_scale') == 2 %}selected{% endif %}>2 – {{ _('Truly dark sky') }}</option>
-                        <option value="3" {% if loc_val.get('bortle_scale') == 3 %}selected{% endif %}>3 – {{ _('Rural sky') }}</option>
-                        <option value="4" {% if loc_val.get('bortle_scale') == 4 %}selected{% endif %}>4 – {{ _('Rural/suburban transition') }}</option>
-                        <option value="5" {% if loc_val.get('bortle_scale') == 5 %}selected{% endif %}>5 – {{ _('Suburban sky') }}</option>
-                        <option value="6" {% if loc_val.get('bortle_scale') == 6 %}selected{% endif %}>6 – {{ _('Bright suburban sky') }}</option>
-                        <option value="7" {% if loc_val.get('bortle_scale') == 7 %}selected{% endif %}>7 – {{ _('Suburban/urban transition') }}</option>
-                        <option value="8" {% if loc_val.get('bortle_scale') == 8 %}selected{% endif %}>8 – {{ _('City sky') }}</option>
-                        <option value="9" {% if loc_val.get('bortle_scale') == 9 %}selected{% endif %}>9 – {{ _('Inner-city sky') }}</option>
-                    </select>
                 </div>
                 <div>
                   <label class="short-label" for="delete_loc_{{ loc_key }}">{{ _('Del:') }}</label>

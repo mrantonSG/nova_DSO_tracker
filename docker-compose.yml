@@ -5,5 +5,10 @@ services:
     ports:
       - "127.0.0.1:5001:5001"
     volumes:
-      - ./nova_data:/app/instance  # Relative bind mount
+      - ./nova_data:/app/instance
+    env_file:
+      - .env
+    environment:
+      - SINGLE_USER_MODE=${SINGLE_USER_MODE:-True}
+      - SECRET_KEY=${SECRET_KEY:-}
     restart: unless-stopped

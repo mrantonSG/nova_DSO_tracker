@@ -156,11 +156,6 @@
         console.log('[GRAPH_VIEW] Click action triggered:', action, actionBtn);
 
         switch(action) {
-            // Journal form actions - handled by inline script in _journal_section.html
-            case 'save-draft':
-            case 'save-close':
-                // Let these events propagate to the inline script handlers
-                return;
             case 'show-tab':
                 console.log('[GRAPH_VIEW] show-tab:', actionBtn.dataset.tab);
                 if (actionBtn.dataset.tab) {

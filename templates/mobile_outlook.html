@@ -5,162 +5,29 @@
 
 {% block head %}
 <style>
-  /* ── Local token map ── */
-  :root {
-    --m-bg:           var(--bg-primary,    #f2f0ed);
-    --m-surface:      var(--bg-secondary,  #ffffff);
-    --m-surface-alt:  var(--bg-tertiary,   #f7f5f2);
-    --m-border:       var(--border-color,  #e5e2dc);
-    --m-border-light: var(--border-light,  #eeebe5);
-    --m-text:         var(--text-primary,  #141414);
-    --m-text-secondary: var(--text-secondary, #4a4a4a);
-    --m-text-muted:   var(--text-muted,   #888888);
-    --m-primary:      var(--primary-color, #83b4c5);
-    --m-primary-bg:   var(--primary-bg,    #eaf4f8);
-    --m-primary-hover: var(--primary-hover, #6a9eb0);
-    --m-shadow:       var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.08));
-    --m-radius:       10px;
-    --m-radius-sm:    6px;
-    --font-mono:      'DM Mono', monospace;
-  }
+    .asiair-btn {
+        background-color: var(--primary-dark);
+        color: var(--text-white);
+        padding: 6px 10px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
 
-  /* ── Page background ── */
-  .container {
-    background: var(--m-bg);
-    padding: 12px 16px 100px;
-  }
+    /* Container to fix overlap */
+    .card-actions {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
 
-  /* ── Loading / empty state ── */
-  .loading {
-    text-align: center;
-    padding: 48px 24px;
-    font-size: 13px;
-    color: var(--m-text-muted);
-  }
-
-  /* ── Opportunity card ── */
-  .item-card {
-    background: var(--m-surface);
-    border: 1px solid var(--m-border);
-    border-radius: var(--m-radius);
-    padding: 14px 16px;
-    margin-bottom: 10px;
-    box-shadow: var(--m-shadow);
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  /* ── Card header row: date + time window + framing button ── */
-  .opp-card-header {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    margin-bottom: 4px;
-  }
-
-  .opp-card-date {
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--m-text);
-    letter-spacing: -0.01em;
-    font-family: var(--font-mono);
-  }
-
-  .opp-card-object {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--m-text-muted);
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  /* ── Object name row ── */
-  .opp-card-name {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--m-text);
-    margin-bottom: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .opp-card-id {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--m-text-muted);
-    font-family: var(--font-mono);
-    margin-left: 6px;
-  }
-
-  /* ── Rating row ── */
-  .opp-card-rating {
-    font-size: 12px;
-    color: #b8960a;
-    margin-bottom: 10px;
-    letter-spacing: 0.05em;
-  }
-
-  /* ── Stats grid ── */
-  .opp-card-stats {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0;
-    border-top: 1px solid var(--m-border-light);
-    padding-top: 10px;
-  }
-
-  .opp-card-stat {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .opp-card-stat-label {
-    font-size: 9px;
-    font-weight: 700;
-    color: var(--m-text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.09em;
-  }
-
-  .opp-card-stat-value {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--m-text);
-    font-family: var(--font-mono);
-  }
-
-  /* ── Framing button ── */
-  .opp-framing-btn {
-    display: inline-block;
-    padding: 3px 10px;
-    background: var(--m-primary-bg);
-    color: var(--m-primary-hover);
-    border: 1px solid var(--m-primary);
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 600;
-    text-decoration: none;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-
-  /* ── Section date header ── */
-  .opp-date-header {
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--m-text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.09em;
-    padding: 16px 0 6px;
-  }
-
-  .opp-date-header:first-child {
-    padding-top: 4px;
-  }
+    .item-card {
+        position: relative;
+    }
 </style>
 {% endblock %}
 
@@ -229,70 +96,33 @@
                 }
                 loading.style.display = 'none';
 
-                let lastDate = null;
-
                 for (const item of results) {
-                    // ── Date section header (group by date) ──
-                    if (item.date !== lastDate) {
-                        const header = document.createElement('li');
-                        header.className = 'opp-date-header';
-                        header.textContent = formatDate(item.date);
-                        list.appendChild(header);
-                        lastDate = item.date;
-                    }
+                    const li = document.createElement('li');
 
-                    // ── Mosaic URL (preserve existing logic exactly) ──
+                    // Construct Mosaic URL
                     const safeObj = encodeURIComponent(item.object_name);
                     const baseMosaicUrl = "{{ url_for('mobile.mobile_mosaic_view', object_name='__OBJ__') }}";
+                    // Append source param
                     const mosaicUrl = baseMosaicUrl.replace('__OBJ__', safeObj) + "?from=outlook";
 
-                    // ── Card ──
-                    const li = document.createElement('li');
+                    let actionsHtml = '';
+                    if (item.has_framing) {
+                        actionsHtml = `<a href="${mosaicUrl}" class="asiair-btn">${i18n.framing}</a>`;
+                    }
+
                     li.className = 'item-card';
-
-                    // Object name: show common_name; if it differs from object_name show ID too
-                    const nameHtml = item.common_name !== item.object_name
-                        ? `${item.common_name}<span class="opp-card-id">${item.object_name}</span>`
-                        : item.object_name;
-
-                    const framingHtml = item.has_framing
-                        ? `<a href="${mosaicUrl}" class="opp-framing-btn"
-                              onclick="event.stopPropagation()">${i18n.framing}</a>`
-                        : '';
-
                     li.innerHTML = `
-                        <div class="opp-card-header">
-                            <span class="opp-card-object">${nameHtml}</span>
-                            ${framingHtml}
+                        <div class="card-actions">
+                            ${actionsHtml}
                         </div>
-                        <div class="opp-card-rating">${item.rating}</div>
-                        <div class="opp-card-stats">
-                            <div class="opp-card-stat">
-                                <span class="opp-card-stat-label">${i18n.maxAlt}</span>
-                                <span class="opp-card-stat-value">${item.max_alt}°</span>
-                            </div>
-                            <div class="opp-card-stat">
-                                <span class="opp-card-stat-label">${i18n.moon}</span>
-                                <span class="opp-card-stat-value">${item.moon_illumination}%</span>
-                            </div>
-                            <div class="opp-card-stat">
-                                <span class="opp-card-stat-label">${i18n.duration}</span>
-                                <span class="opp-card-stat-value">${item.obs_dur}m</span>
-                            </div>
-                            <div class="opp-card-stat">
-                                <span class="opp-card-stat-label">TYPE</span>
-                                <span class="opp-card-stat-value" style="font-family:var(--font-mono);font-size:11px;">${item.type}</span>
-                            </div>
+                        <h3 style="margin-right: 80px;">${item.common_name} (${formatDate(item.date)})</h3>
+                        <div class="item-card-grid">
+                            <div><strong>${i18n.rating}</strong> ${item.rating}</div>
+                            <div><strong>${i18n.maxAlt}</strong> ${item.max_alt}°</div>
+                            <div><strong>${i18n.duration}</strong> ${item.obs_dur} min</div>
+                            <div><strong>${i18n.moon}</strong> ${item.moon_illumination}%</div>
                         </div>
                     `;
-
-                    // Tap card → object detail page
-                    li.addEventListener('click', () => {
-                        window.location.href =
-                            "{{ url_for('mobile.mobile_object_detail', object_name='__OBJ__') }}"
-                            .replace('__OBJ__', safeObj);
-                    });
-
                     list.appendChild(li);
                 }
             }

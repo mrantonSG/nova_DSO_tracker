@@ -179,7 +179,7 @@ def test_api_get_weather_forecast(client, monkeypatch):
 
     # This line replaces the real function with a fake one (a lambda)
     # that just returns our mock data.
-    monkeypatch.setattr('nova.blueprints.api.get_hybrid_weather_forecast',
+    monkeypatch.setattr('nova.get_hybrid_weather_forecast',
                         lambda lat, lon: mock_forecast_data)
 
     # 2. ACT
@@ -393,7 +393,6 @@ def test_upload_editor_image(client, monkeypatch, tmp_path):
     mock_upload_folder = tmp_path / "uploads"
     # Tell the app to use this temporary folder instead of the real one
     monkeypatch.setattr('nova.UPLOAD_FOLDER', str(mock_upload_folder))
-    monkeypatch.setattr('nova.blueprints.tools.UPLOAD_FOLDER', str(mock_upload_folder))
 
     # Create a mock file in memory
     mock_file = io.BytesIO(b'fake-image-data-bytes')
@@ -473,7 +472,7 @@ def test_mobile_pages_load_when_logged_in(client, route):
 
     assert response.status_code == 200
     # Check for the header from mobile_base.html
-    assert b"Nova DSO Tracker" in response.data
+    assert b"Nova Pocket" in response.data
 
 def test_mobile_up_now_renders_via_api(client):
     """

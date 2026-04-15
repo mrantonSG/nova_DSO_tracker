@@ -1,23 +1,22 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from nova.helpers import get_ra_dec
-from nova import app
+from nova import get_ra_dec, app
 
 
 @pytest.fixture
 def mock_app_context():
     with app.app_context():
-        with patch('nova.helpers.get_db') as mock_get_db:
+        with patch('nova.get_db') as mock_get_db:
             mock_db_session = MagicMock()
             mock_get_db.return_value = mock_db_session
             mock_db_session.query.return_value.filter_by.return_value.one_or_none.return_value = None
 
-            with patch('nova.helpers.get_constellation', return_value="Cas"):
+            with patch('nova.get_constellation', return_value="Cas"):
                 yield
 
 
 def test_simbad_small_degree_value_is_converted_to_hours(mock_app_context):
-    with patch('nova.helpers.Simbad') as MockSimbad:
+    with patch('nova.Simbad') as MockSimbad:
         mock_instance = MockSimbad.return_value
 
         mock_table = MagicMock()
@@ -46,7 +45,7 @@ def test_simbad_small_degree_value_is_converted_to_hours(mock_app_context):
 
 
 def test_simbad_large_degree_value(mock_app_context):
-    with patch('nova.helpers.Simbad') as MockSimbad:
+    with patch('nova.Simbad') as MockSimbad:
         mock_instance = MockSimbad.return_value
         mock_table = MagicMock()
         # FIX: Define __len__

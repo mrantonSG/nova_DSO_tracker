@@ -2,22 +2,3 @@ instance
 nova_data
 AGENTS.md
 
-/scratches/
-/venv/
-/cache/
-# PyCharm/IntelliJ IDE files
-.idea/
-*.iml
-/instance/
-/tests/instance/
-/.run/
-instance/logs/
-
-__pycache__/
-*.pyc
-/.claude/
-/scratch/
-CLAUDE.md
-seafile-ignore.txt
-scripts/
-/docs/archive/

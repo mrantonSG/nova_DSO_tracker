@@ -1532,21 +1532,6 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     background-color: var(--nova-bg, var(--gray-50));
 }
 
-/* "Show Framing" button — teal ghost variant */
-#project-framing-buttons .inline-button-ghost[data-action="open-framing-assistant"] {
-    background: transparent;
-    color: var(--primary-color);
-    border: 1px solid var(--primary-color);
-    border-radius: 6px;
-    padding: 6px 14px;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-}
-#project-framing-buttons .inline-button-ghost[data-action="open-framing-assistant"]:hover {
-    background: var(--primary-bg);
-}
-
 /* Ensure framing tab uses proper background */
 #framing-tab {
     background-color: var(--nova-bg, var(--gray-50));
