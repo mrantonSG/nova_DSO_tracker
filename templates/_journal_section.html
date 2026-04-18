@@ -2136,7 +2136,7 @@
 
                             <div class="journal-project-notes-section">
                                 <div class="form-group trix-editor-container"><label>{{ _('Goals & Status:') }}</label>
-                                    <input type="hidden" id="goals-hidden-journal" name="goals" value="{{ project_journal_html_fields.goals | sanitize_html | safe }}">
+                                    <input type="hidden" id="goals-hidden-journal" name="goals" value="{{ project_journal_html_fields.goals | safe }}">
                                     <trix-editor input="goals-hidden-journal" id="goals-editor-journal" style="min-height: 100px;"></trix-editor>
                                 </div>
                             </div>

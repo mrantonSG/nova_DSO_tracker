@@ -2582,10 +2582,14 @@ def sanitize_html_filter(html_content):
 
     SAFE_TAGS = ['p', 'strong', 'em', 'b', 'i', 'u', 'del', 'strike', 'sub', 'sup',
                  'ul', 'ol', 'li', 'br', 'div', 'img', 'a', 'figure', 'figcaption', 'span',
-                 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre', 'code']
+                 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre', 'code',
+                 'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td', 'caption']
     SAFE_ATTRS = {
         'img': ['src', 'alt', 'width', 'height', 'style'],
         'a': ['href', 'title'],
+        'td': ['colspan', 'rowspan', 'style', 'class'],
+        'th': ['colspan', 'rowspan', 'style', 'class', 'scope'],
+        'table': ['style', 'class'],
         '*': ['style', 'class']
     }
     SAFE_CSS = ['text-align', 'width', 'height', 'max-width', 'float', 'margin', 'margin-left', 'margin-right']

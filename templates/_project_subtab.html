@@ -254,7 +254,7 @@
                                 </select>
                             </div>
                             <div class="form-group trix-editor-container"><label for="goals-editor-edit">{{ _('Goals & Status:') }}</label>
-                                <input type="hidden" id="goals-hidden" name="goals" value="{{ goals_html | sanitize_html | safe }}">
+                                <input type="hidden" id="goals-hidden" name="goals" value="{{ goals_html | safe }}">
                                 <trix-editor input="goals-hidden" id="goals-editor-edit" style="min-height: 100px;"></trix-editor>
                             </div>
 
@@ -273,17 +273,17 @@
 
                     <div class="project-main-column">
                         <div class="notes-section form-group full-width trix-editor-container"><label for="description-editor-edit">{{ _('Project Story & Learnings:') }}</label>
-                            <input type="hidden" id="description-hidden" name="description_notes" value="{{ description_notes_html | sanitize_html | safe }}">
+                            <input type="hidden" id="description-hidden" name="description_notes" value="{{ description_notes_html | safe }}">
                             <trix-editor input="description-hidden" id="description-editor-edit" style="min-height: 150px;"></trix-editor>
                         </div>
 
                         <div class="notes-section form-group full-width trix-editor-container"><label for="framing-editor-edit">{{ _('Framing Notes (Composition/FoV):') }}</label>
-                            <input type="hidden" id="framing-hidden" name="framing_notes" value="{{ framing_notes_html | sanitize_html | safe }}">
+                            <input type="hidden" id="framing-hidden" name="framing_notes" value="{{ framing_notes_html | safe }}">
                             <trix-editor input="framing-hidden" id="framing-editor-edit" style="min-height: 150px;"></trix-editor>
                         </div>
 
                         <div class="notes-section form-group full-width trix-editor-container"><label for="processing-editor-edit">{{ _('Processing Notes & Workflow:') }}</label>
-                            <input type="hidden" id="processing-hidden" name="processing_notes" value="{{ processing_notes_html | sanitize_html | safe }}">
+                            <input type="hidden" id="processing-hidden" name="processing_notes" value="{{ processing_notes_html | safe }}">
                             <trix-editor input="processing-hidden" id="processing-editor-edit" style="min-height: 150px;"></trix-editor>
                         </div>
                     </div>
