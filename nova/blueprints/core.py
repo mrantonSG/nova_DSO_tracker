@@ -1606,8 +1606,16 @@ def graph_dashboard(object_name):
 
         def _sanitize_for_display(html_content):
             if not html_content: return ""
-            SAFE_TAGS = ['p', 'strong', 'em', 'ul', 'ol', 'li', 'br', 'div', 'img', 'a', 'figure', 'figcaption', 'span']
-            SAFE_ATTRS = {'img': ['src', 'alt', 'width', 'height', 'style'], 'a': ['href'], '*': ['style', 'class']}
+            SAFE_TAGS = ['p', 'strong', 'em', 'b', 'i', 'u', 'del', 'ul', 'ol', 'li',
+                         'br', 'div', 'img', 'a', 'figure', 'figcaption', 'span',
+                         'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre', 'code',
+                         'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td', 'caption']
+            SAFE_ATTRS = {'img': ['src', 'alt', 'width', 'height', 'style'],
+                          'a': ['href', 'title'],
+                          'td': ['colspan', 'rowspan', 'style', 'class'],
+                          'th': ['colspan', 'rowspan', 'style', 'class', 'scope'],
+                          'table': ['style', 'class'],
+                          '*': ['style', 'class']}
             SAFE_CSS = ['text-align', 'width', 'height', 'max-width', 'float', 'margin', 'margin-left',
                         'margin-right']
             css_sanitizer = CSSSanitizer(allowed_css_properties=SAFE_CSS)
@@ -1723,7 +1731,11 @@ def graph_dashboard(object_name):
                     'goals': _sanitize_for_display(selected_project_data_journal.goals),
                     'description': _sanitize_for_display(selected_project_data_journal.description_notes),
                     'framing': _sanitize_for_display(selected_project_data_journal.framing_notes),
-                    'processing': _sanitize_for_display(selected_project_data_journal.processing_notes)
+                    'processing': _sanitize_for_display(selected_project_data_journal.processing_notes),
+                    'goals_raw': selected_project_data_journal.goals or '',
+                    'description_raw': selected_project_data_journal.description_notes or '',
+                    'framing_raw': selected_project_data_journal.framing_notes or '',
+                    'processing_raw': selected_project_data_journal.processing_notes or '',
                 }
 
                 # --- NEW: Fetch all sessions for this project to explain the integration time ---

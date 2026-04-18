@@ -2136,7 +2136,7 @@
 
                             <div class="journal-project-notes-section">
                                 <div class="form-group trix-editor-container"><label>{{ _('Goals & Status:') }}</label>
-                                    <input type="hidden" id="goals-hidden-journal" name="goals" value="{{ project_journal_html_fields.goals | safe }}">
+                                    <input type="hidden" id="goals-hidden-journal" name="goals" value="{{ project_journal_html_fields.goals_raw | safe }}">
                                     <trix-editor input="goals-hidden-journal" id="goals-editor-journal" style="min-height: 100px;"></trix-editor>
                                 </div>
                             </div>
@@ -2156,21 +2156,21 @@
 
                             <div class="journal-project-notes-section">
                                 <div class="form-group trix-editor-container"><label>{{ _('Project Story & Learnings:') }}</label>
-                                    <input type="hidden" id="description-hidden-journal" name="description_notes" value="{{ project_journal_html_fields.description | e }}">
+                                    <input type="hidden" id="description-hidden-journal" name="description_notes" value="{{ project_journal_html_fields.description_raw | safe }}">
                                     <trix-editor input="description-hidden-journal" id="description-editor-journal" style="min-height: 150px;"></trix-editor>
                                 </div>
                             </div>
 
                             <div class="journal-project-notes-section">
                                 <div class="form-group trix-editor-container"><label>{{ _('Framing Notes:') }}</label>
-                                    <input type="hidden" id="framing-hidden-journal" name="framing_notes" value="{{ project_journal_html_fields.framing | e }}">
+                                    <input type="hidden" id="framing-hidden-journal" name="framing_notes" value="{{ project_journal_html_fields.framing_raw | safe }}">
                                     <trix-editor input="framing-hidden-journal" id="framing-editor-journal" style="min-height: 150px;"></trix-editor>
                                 </div>
                             </div>
 
                             <div class="journal-project-notes-section">
                                 <div class="form-group trix-editor-container"><label>{{ _('Processing Notes:') }}</label>
-                                    <input type="hidden" id="processing-hidden-journal" name="processing_notes" value="{{ project_journal_html_fields.processing | e }}">
+                                    <input type="hidden" id="processing-hidden-journal" name="processing_notes" value="{{ project_journal_html_fields.processing_raw | safe }}">
                                     <trix-editor input="processing-hidden-journal" id="processing-editor-journal" style="min-height: 150px;"></trix-editor>
                                 </div>
                             </div>
