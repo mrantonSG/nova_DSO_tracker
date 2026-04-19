@@ -1550,15 +1550,21 @@ def graph_dashboard(object_name):
 
         # Only use URL location if it's a non-empty string
         if requested_location_name_from_url:
-            selected_location_db = db.query(Location).filter_by(user_id=user.id,
-                                                                name=requested_location_name_from_url).one_or_none()
+            selected_location_db = db.query(Location).options(
+                selectinload(Location.horizon_points)
+            ).filter_by(user_id=user.id,
+                        name=requested_location_name_from_url).one_or_none()
             if not selected_location_db:
                 flash(_("Requested location '%(location_name)s' not found, using default.", location_name=requested_location_name_from_url), "warning")
 
         if not selected_location_db:
-            selected_location_db = db.query(Location).filter_by(user_id=user.id, is_default=True).one_or_none()
+            selected_location_db = db.query(Location).options(
+                selectinload(Location.horizon_points)
+            ).filter_by(user_id=user.id, is_default=True).one_or_none()
             if not selected_location_db:
-                selected_location_db = db.query(Location).filter_by(user_id=user.id, active=True).order_by(
+                selected_location_db = db.query(Location).options(
+                    selectinload(Location.horizon_points)
+                ).filter_by(user_id=user.id, active=True).order_by(
                     Location.id).first()
 
         if selected_location_db:
@@ -2021,7 +2027,10 @@ def graph_dashboard(object_name):
                                stellarium_api_url_base=STELLARIUM_API_URL_BASE,
                                today_date=datetime.now().strftime('%Y-%m-%d'),
                                is_guest=g.is_guest,
-                               object_id=obj_record.id
+                               object_id=obj_record.id,
+                               horizon_mask=[[hp.az_deg, hp.alt_min_deg] for hp in
+                                              sorted(selected_location_db.horizon_points, key=lambda p: p.az_deg)]
+                               if selected_location_db else []
                                )
         record_event('graph_view_open')
 

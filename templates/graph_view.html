@@ -134,6 +134,15 @@
                     <span class="help-badge" data-help-topic="secondary_object_comparison" title="{{ _('How objects are ranked') }}">?</span>
                 </span>
             </div>
+            <div id="calibration-star-card" style="margin-top: 16px; padding: 12px 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: var(--shadow-sm); max-width: 480px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-faint);">{{ _('Calibration Star') }}</span>
+                    <button id="calibration-star-refresh" type="button" title="{{ _('Refresh') }}" style="background: transparent; border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-muted); cursor: pointer; padding: 2px 6px; font-size: 13px; line-height: 1; transition: all 0.15s ease;">↻</button>
+                </div>
+                <div id="calibration-star-body">
+                    <span style="color: var(--text-muted); font-size: 12px;">{{ _('Loading...') }}</span>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -424,7 +433,8 @@
         // 'null' is passed if the database has no value.
         objectRADeg: {{ (object_main_details['RA (hours)'] * 15) if object_main_details['RA (hours)'] is not none else 'null' }},
         objectDECDeg: {{ object_main_details['DEC (degrees)'] if object_main_details['DEC (degrees)'] is not none else 'null' }},
-        allObjects: {{ framing_objects | tojson }}
+        allObjects: {{ framing_objects | tojson }},
+        horizonMask: {{ horizon_mask | tojson }}
     };
 </script>
 <script src="{{ url_for('static', filename='js/framing-utils.js') }}?v={{ version }}" defer></script>
@@ -639,6 +649,88 @@ document.addEventListener('DOMContentLoaded', function() {
             // Silently ignore fetch failures
         });
 });
+</script>
+
+{# Calibration Star widget logic #}
+<script>
+(function() {
+    var calI18n = {
+        calibrationStar: {{ _("Calibration Star") | tojson }},
+        noStar: {{ _("No calibration star available near meridian") | tojson }},
+        loading: {{ _("Loading...") | tojson }}
+    };
+
+    var calBody = document.getElementById('calibration-star-body');
+    var calRefresh = document.getElementById('calibration-star-refresh');
+    if (!calBody || !calRefresh) return;
+
+    function formatRA(raStr) {
+        var parts = raStr.split(/\s+/);
+        if (parts.length >= 2) return parts[0] + 'h ' + parts[1] + 'm';
+        return raStr;
+    }
+
+    function formatDec(decStr) {
+        var parts = decStr.split(/\s+/);
+        if (parts.length >= 2) return parts[0] + '\u00B0 ' + parts[1] + '\u2032';
+        return decStr;
+    }
+
+    function formatHA(haHours) {
+        var sign = haHours >= 0 ? '+' : '';
+        return sign + haHours.toFixed(1) + 'h';
+    }
+
+    function renderCalibrationStar(data) {
+        if (!data || !data.found) {
+            calBody.innerHTML = '<span style="color: var(--text-muted); font-size: 12px;">' + calI18n.noStar + '</span>';
+            return;
+        }
+        calBody.innerHTML =
+            '<div style="display: flex; justify-content: space-between; align-items: baseline;">' +
+                '<span style="font-size: 15px; color: var(--text-primary); font-weight: 600;">' + data.name + '</span>' +
+                '<span style="font-size: 12px; font-family: var(--font-mono, \'DM Mono\', monospace); color: var(--text-secondary);">Alt: ' + data.altitude.toFixed(1) + '\u00B0</span>' +
+            '</div>' +
+            '<div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">' +
+                '<span style="font-size: 12px; font-family: var(--font-mono, \'DM Mono\', monospace); color: var(--text-secondary);">RA ' + formatRA(data.ra) + ' \u00B7 Dec ' + formatDec(data.dec) + '</span>' +
+                '<span style="font-size: 12px; font-family: var(--font-mono, \'DM Mono\', monospace); color: var(--text-secondary);">Az: ' + data.azimuth.toFixed(1) + '\u00B0</span>' +
+            '</div>' +
+            '<div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">' +
+                '{{ _("HA") }}: ' + formatHA(data.ha_hours) + ' {{ _("from meridian") }}' +
+            '</div>';
+    }
+
+    function fetchCalibrationStar() {
+        var gd = window.NOVA_GRAPH_DATA;
+        if (!gd || !gd.plotLat || !gd.plotLon) return;
+
+        calBody.innerHTML = '<span style="color: var(--text-muted); font-size: 12px;">' + calI18n.loading + '</span>';
+
+        var params = 'lat=' + encodeURIComponent(gd.plotLat) + '&lon=' + encodeURIComponent(gd.plotLon);
+        if (gd.horizonMask && gd.horizonMask.length >= 2) {
+            params += '&horizon=' + encodeURIComponent(JSON.stringify(gd.horizonMask));
+        }
+
+        fetch('/api/calibration_star?' + params)
+            .then(function(resp) { return resp.json(); })
+            .then(function(data) {
+                renderCalibrationStar(data);
+            })
+            .catch(function() {
+                renderCalibrationStar({found: false});
+            });
+    }
+
+    calRefresh.addEventListener('click', fetchCalibrationStar);
+
+    // Fetch on initial load (chart tab is default active)
+    document.addEventListener('DOMContentLoaded', function() {
+        fetchCalibrationStar();
+    });
+
+    // Expose for tab activation hook
+    window._fetchCalibrationStar = fetchCalibrationStar;
+})();
 </script>
 
 {% endblock %}

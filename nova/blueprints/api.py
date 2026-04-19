@@ -3466,3 +3466,113 @@ def get_yearly_heatmap_chunk():
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
+
+# --- Calibration Star Recommender ---
+@api_bp.route('/api/calibration_star', methods=['GET'])
+def get_calibration_star():
+    """Recommend the best PHD2 calibration star near the meridian for current location/time."""
+    lat_str = request.args.get('lat', '').strip()
+    lon_str = request.args.get('lon', '').strip()
+    dt_str = request.args.get('dt', '').strip()
+    horizon_str = request.args.get('horizon', '').strip()
+
+    lat = safe_float(lat_str)
+    lon = safe_float(lon_str)
+    if lat is None or lon is None:
+        return jsonify({"error": _("Missing or invalid lat/lon parameters")}), 400
+
+    # Parse optional datetime (defaults to now UTC)
+    if dt_str:
+        try:
+            dt = datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=UTC)
+        except (ValueError, TypeError):
+            return jsonify({"error": _("Invalid datetime format")}), 400
+    else:
+        dt = datetime.now(UTC)
+
+    # Parse optional horizon mask
+    horizon_mask = None
+    if horizon_str:
+        try:
+            parsed = json.loads(horizon_str)
+            if isinstance(parsed, list) and len(parsed) >= 2:
+                horizon_mask = parsed
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    # Load star catalog
+    catalog_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'calibration_stars.json')
+    try:
+        with open(catalog_path, 'r') as f:
+            catalog = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return jsonify({"error": _("Calibration star catalog not found")}), 500
+
+    # Set up ephem observer
+    observer = ephem.Observer()
+    observer.lat = str(lat)
+    observer.lon = str(lon)
+    observer.date = dt.strftime('%Y-%m-%d %H:%M:%S')
+
+    best_candidate = None
+    best_ha = float('inf')
+
+    for star_entry in catalog:
+        try:
+            star = ephem.FixedBody()
+            star._ra = ephem.hours(star_entry['ra'])
+            star._dec = ephem.degrees(star_entry['dec'])
+            star.compute(observer)
+
+            alt_deg = float(star.alt) * 180.0 / 3.141592653589793
+            az_deg = float(star.az) * 180.0 / 3.141592653589793
+
+            # Filter: altitude > 30°
+            if alt_deg <= 30.0:
+                continue
+
+            # Compute HA (hours): LST - RA
+            lst = observer.sidereal_time()
+            ra_rad = float(star._ra)
+            ha_rad = float(lst) - ra_rad
+            # Normalize to [-pi, pi]
+            while ha_rad > 3.141592653589793:
+                ha_rad -= 2 * 3.141592653589793
+            while ha_rad < -3.141592653589793:
+                ha_rad += 2 * 3.141592653589793
+            ha_hours = ha_rad * 12.0 / 3.141592653589793
+
+            # Filter: |HA| < 1.5 hours
+            if abs(ha_hours) >= 1.5:
+                continue
+
+            # Apply horizon mask if provided
+            if horizon_mask:
+                mask_alt = interpolate_horizon(az_deg, horizon_mask, 0.0)
+                if alt_deg <= mask_alt:
+                    continue
+
+            # Best candidate = smallest |HA|
+            if abs(ha_hours) < best_ha:
+                best_ha = abs(ha_hours)
+                ra_h = float(star._ra) * 12.0 / 3.141592653589793
+                dec_deg = float(star._dec) * 180.0 / 3.141592653589793
+                best_candidate = {
+                    "name": star_entry['name'],
+                    "ra": star_entry['ra'],
+                    "dec": star_entry['dec'],
+                    "altitude": round(alt_deg, 1),
+                    "azimuth": round(az_deg, 1),
+                    "ha_hours": round(ha_hours, 2),
+                    "found": True,
+                }
+        except Exception:
+            continue
+
+    if best_candidate:
+        return jsonify(best_candidate)
+    else:
+        return jsonify({"found": False})

@@ -7,347 +7,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-24 11:24+0800\n"
+"POT-Creation-Date: 2026-04-19 10:47+0200\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: zh <LL@li.org>\n"
 "Language: zh\n"
+"Language-Team: zh <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
 "Generated-By: Babel 2.18.0\n"
-
-#: nova/__init__.py:3690
-msgid "No file uploaded"
-msgstr "未上传文件"
-
-#: nova/__init__.py:3694
-msgid "Empty filename"
-msgstr "文件名为空"
-
-#: nova/__init__.py:3737 nova/__init__.py:4107
-msgid "User not found"
-msgstr "未找到用户"
-
-#: nova/__init__.py:3741
-msgid "Session not found"
-msgstr "未找到会话"
-
-#: nova/__init__.py:3806
-msgid "Object data not found or invalid."
-msgstr "未找到对象数据或数据无效。"
-
-#: nova/__init__.py:3810
-msgid "RA/DEC missing for object."
-msgstr "缺少对象的RA/DEC。"
-
-#: nova/__init__.py:3815
-msgid "Invalid RA/DEC format for object."
-msgstr "对象的RA/DEC格式无效。"
-
-#: nova/__init__.py:3969
-msgid "Could not generate time series for plot."
-msgstr "无法生成图表的时间序列。"
-
-#: nova/__init__.py:4071
-msgid "Location not configured"
-msgstr "未配置位置"
-
-#: nova/__init__.py:5684
-#, python-format
-msgid "Error: Unknown component type '%(component_type)s'."
-msgstr "错误：未知的组件类型'%(component_type)s'。"
-
-#: nova/__init__.py:5705
-#, python-format
-msgid "Component '%(component_name)s' added successfully."
-msgstr "组件'%(component_name)s'添加成功。"
-
-#: nova/__init__.py:5708
-#, python-format
-msgid "Error adding component: %(error)s"
-msgstr "添加组件时出错：%(error)s"
-
-#: nova/__init__.py:5723
-msgid "Authorization error."
-msgstr "授权错误。"
-
-#: nova/__init__.py:5745
-#, python-format
-msgid "Component '%(component_name)s' updated successfully."
-msgstr "组件'%(component_name)s'更新成功。"
-
-#: nova/__init__.py:5748
-#, python-format
-msgid "Error updating component: %(error)s"
-msgstr "更新组件时出错：%(error)s"
-
-#: nova/__init__.py:5791
-#, python-format
-msgid "Rig '%(rig_name)s' updated successfully."
-msgstr "Rig'%(rig_name)s'更新成功。"
-
-#: nova/__init__.py:5803
-#, python-format
-msgid "Rig '%(rig_name)s' created successfully."
-msgstr "Rig'%(rig_name)s'创建成功。"
-
-#: nova/__init__.py:5822
-#, python-format
-msgid "Error saving rig: %(error)s"
-msgstr "保存rig时出错：%(error)s"
-
-#: nova/__init__.py:5839
-msgid "Cannot delete component: It is used in at least one rig."
-msgstr "无法删除组件：它至少在一个rig中使用。"
-
-#: nova/__init__.py:5844
-msgid "Component deleted successfully."
-msgstr "组件删除成功。"
-
-#: nova/__init__.py:5847
-#, python-format
-msgid "Error deleting component: %(error)s"
-msgstr "删除组件时出错：%(error)s"
-
-#: nova/__init__.py:5859
-msgid "Rig deleted successfully."
-msgstr "Rig删除成功。"
-
-#: nova/__init__.py:5862
-#, python-format
-msgid "Error deleting rig: %(error)s"
-msgstr "删除rig时出错：%(error)s"
-
-#: nova/__init__.py:6127 nova/__init__.py:6217 nova/__init__.py:8113
-#: nova/__init__.py:9423 nova/__init__.py:9442 nova/__init__.py:9461
-#: nova/blueprints/mobile.py:104 nova/blueprints/mobile.py:506
-msgid "User not found."
-msgstr "未找到用户。"
-
-#: nova/__init__.py:6204
-#, python-format
-msgid "Error generating config file: %(error)s"
-msgstr "生成配置文件时出错：%(error)s"
-
-#: nova/__init__.py:6323
-#, python-format
-msgid "Error generating journal file: %(error)s"
-msgstr "生成日记文件时出错：%(error)s"
-
-#: nova/__init__.py:6354 nova/__init__.py:6359
-msgid "No file selected for journal import."
-msgstr "未选择文件用于导入日记。"
-
-#: nova/__init__.py:6373
-#, python-format
-msgid "Invalid journal file structure: %(message)s"
-msgstr "日记文件结构无效：%(message)s"
-
-#: nova/__init__.py:6397
-msgid "Journal imported successfully! (Previous journal data was replaced)"
-msgstr "日记导入成功！（之前的日记数据已被替换）"
-
-#: nova/__init__.py:6409
-#, python-format
-msgid "Import failed: Invalid YAML format in the journal file. %(error)s"
-msgstr "导入失败：日记文件中的 YAML 格式无效。%(error)s"
-
-#: nova/__init__.py:6417 nova/__init__.py:6548
-#, python-format
-msgid "Import failed: %(error)s"
-msgstr "导入失败：%(error)s"
-
-#: nova/__init__.py:6420
-msgid "Invalid file type. Please upload a .yaml journal file."
-msgstr "文件类型无效。请上传.yaml日记文件。"
-
-#: nova/__init__.py:6432
-msgid "Authentication error during import."
-msgstr "导入期间身份验证错误。"
-
-#: nova/__init__.py:6437 nova/__init__.py:6442
-msgid "No file selected for import."
-msgstr "未选择文件用于导入。"
-
-#: nova/__init__.py:6464
-msgid "Cannot import: Configuration must contain at least one location."
-msgstr "无法导入：配置必须包含至少一个位置。"
-
-#: nova/__init__.py:6472
-msgid ""
-"Cannot import: Configuration must contain at least one active location."
-msgstr "无法导入：配置必须包含至少一个活动位置。"
-
-#: nova/__init__.py:6503
-msgid "Config imported successfully! (Previous config was replaced)"
-msgstr "配置导入成功！（之前的配置已被替换）"
-
-#: nova/__init__.py:6545
-#, python-format
-msgid "Import failed: Invalid YAML. (%(error)s)"
-msgstr "导入失败：YAML无效。（%(error)s）"
-
-#: nova/__init__.py:6570
-msgid "Authentication error during catalog import."
-msgstr "导入目录期间身份验证错误。"
-
-#: nova/__init__.py:6580
-msgid "Catalog pack not found or invalid."
-msgstr "未找到目录包或无效。"
-
-#: nova/__init__.py:6592
-msgid "Catalog import failed due to an internal error."
-msgstr "目录导入失败，原因：内部错误。"
-
-#: nova/__init__.py:6783
-msgid "Object not found"
-msgstr "未找到对象"
-
-#: nova/__init__.py:7232
-#, python-format
-msgid "<p>Error reading help file: %(error)s</p>"
-msgstr "<p>读取帮助文件时出错：%(error)s</p>"
-
-#: nova/__init__.py:8202
-#, python-format
-msgid "Error generating rig config: %(error)s"
-msgstr "生成rig配置时出错：%(error)s"
-
-#: nova/__init__.py:8222
-msgid "No journal photos found to download."
-msgstr "未找到要下载的日记照片。"
-
-#: nova/__init__.py:8267
-msgid "No file selected for photo import."
-msgstr "未选择文件用于照片导入。"
-
-#: nova/__init__.py:8272
-msgid "Please select a valid .zip file to import."
-msgstr "请选择有效的.zip文件进行导入。"
-
-#: nova/__init__.py:8285
-msgid "Import failed: The uploaded file is not a valid ZIP archive."
-msgstr "导入失败：上传的文件不是有效的ZIP存档。"
-
-#: nova/__init__.py:8319
-#, python-format
-msgid "Journal photos imported successfully! Extracted %(count)d files."
-msgstr "日记照片导入成功！已解压%(count)d个文件。"
-
-#: nova/__init__.py:8322
-msgid "Import failed: The ZIP file appears to be corrupted."
-msgstr "导入失败：ZIP文件似乎已损坏。"
-
-#: nova/__init__.py:8324
-#, python-format
-msgid "An unexpected error occurred during import: %(error)s"
-msgstr "导入期间发生意外错误：%(error)s"
-
-#: nova/__init__.py:8427 nova/__init__.py:8432
-msgid "No file selected for rigs import."
-msgstr "未选择文件用于rigs导入。"
-
-#: nova/__init__.py:8462
-msgid "Rigs configuration imported and synced to database successfully!"
-msgstr "Rigs配置导入并成功同步到数据库！"
-
-#: nova/__init__.py:8470
-#, python-format
-msgid "Error importing rigs file: %(error)s"
-msgstr "导入rigs文件时出错：%(error)s"
-
-#: nova/__init__.py:8473
-msgid "Invalid file type. Please upload a .yaml or .yml file."
-msgstr "文件类型无效。请上传.yaml或.yml文件。"
-
-#: nova/__init__.py:9287
-msgid "Not authorized to export another user's data."
-msgstr "无权导出其他用户的数据。"
-
-#: nova/__init__.py:9291
-msgid "Export failed (no such user or empty data)."
-msgstr "导出失败（无此用户或数据为空）。"
-
-#: nova/__init__.py:9320
-msgid "Username is required in multi-user mode."
-msgstr "多用户模式下用户名为必填项。"
-
-#: nova/__init__.py:9325
-msgid "Not authorized to import for another user."
-msgstr "无权为其他用户导入。"
-
-#: nova/__init__.py:9333
-msgid "Please provide config, rigs, and journal YAML files."
-msgstr "请提供config、rigs和journal YAML文件。"
-
-#: nova/__init__.py:9353
-msgid "Import completed successfully!"
-msgstr "导入完成成功！"
-
-#: nova/__init__.py:9355
-msgid "Import failed. See server logs for details."
-msgstr "导入失败。请查看服务器日志以了解详细信息。"
-
-#: nova/__init__.py:9358
-msgid "Import crashed. Check logs."
-msgstr "导入崩溃。检查日志。"
-
-#: nova/__init__.py:9365 nova/__init__.py:9389 nova/__init__.py:9398
-#: nova/__init__.py:9419 nova/__init__.py:9438 nova/__init__.py:9457
-msgid "Not authorized."
-msgstr "未授权。"
-
-#: nova/__init__.py:9369
-msgid "Database repair completed."
-msgstr "数据库修复完成。"
-
-#: nova/__init__.py:9371
-#, python-format
-msgid "Repair failed: %(error)s"
-msgstr "修复失败：%(error)s"
-
-#: nova/__init__.py:9403
-msgid "Username and password are required."
-msgstr "用户名和密码为必填项。"
-
-#: nova/__init__.py:9406
-#, python-format
-msgid "User '%(username)s' already exists."
-msgstr "用户'%(username)s'已存在。"
-
-#: nova/__init__.py:9412
-#, python-format
-msgid "User '%(username)s' created successfully."
-msgstr "用户'%(username)s'创建成功。"
-
-#: nova/__init__.py:9426
-msgid "Cannot deactivate the admin account."
-msgstr "无法停用管理员账户。"
-
-#: nova/__init__.py:9431
-#, python-format
-msgid "User '%(username)s' %(status)s."
-msgstr "用户'%(username)s'%(status)s。"
-
-#: nova/__init__.py:9446
-msgid "Password cannot be empty."
-msgstr "密码不能为空。"
-
-#: nova/__init__.py:9450
-#, python-format
-msgid "Password reset for '%(username)s'."
-msgstr "已为'%(username)s'重置密码。"
-
-#: nova/__init__.py:9464
-msgid "Cannot delete the admin account."
-msgstr "无法删除管理员账户。"
-
-#: nova/__init__.py:9469
-#, python-format
-msgid "User '%(username)s' deleted."
-msgstr "用户'%(username)s'已删除。"
 
 #: nova/log_parser.py:931
 #, fuzzy
@@ -400,152 +69,262 @@ msgstr "自动对焦"
 msgid "Log parsed but no structured data found."
 msgstr "日志已解析，但未找到结构化数据。"
 
-#: nova/blueprints/core.py:121
+#: nova/blueprints/admin.py:15 nova/blueprints/tools.py:1254
+msgid "Not authorized."
+msgstr "未授权。"
+
+#: nova/blueprints/admin.py:50
+msgid "Username and password are required."
+msgstr "用户名和密码为必填项。"
+
+#: nova/blueprints/admin.py:53
+#, python-format
+msgid "User '%(username)s' already exists."
+msgstr "用户'%(username)s'已存在。"
+
+#: nova/blueprints/admin.py:59
+#, python-format
+msgid "User '%(username)s' created successfully."
+msgstr "用户'%(username)s'创建成功。"
+
+#: nova/blueprints/admin.py:72 nova/blueprints/admin.py:93
+#: nova/blueprints/admin.py:114 nova/blueprints/mobile.py:104
+#: nova/blueprints/mobile.py:506 nova/blueprints/tools.py:399
+#: nova/blueprints/tools.py:491 nova/blueprints/tools.py:855
+msgid "User not found."
+msgstr "未找到用户。"
+
+#: nova/blueprints/admin.py:75
+msgid "Cannot deactivate the admin account."
+msgstr "无法停用管理员账户。"
+
+#: nova/blueprints/admin.py:80
+#, python-format
+msgid "User '%(username)s' %(status)s."
+msgstr "用户'%(username)s'%(status)s。"
+
+#: nova/blueprints/admin.py:97
+msgid "Password cannot be empty."
+msgstr "密码不能为空。"
+
+#: nova/blueprints/admin.py:101
+#, python-format
+msgid "Password reset for '%(username)s'."
+msgstr "已为'%(username)s'重置密码。"
+
+#: nova/blueprints/admin.py:117
+msgid "Cannot delete the admin account."
+msgstr "无法删除管理员账户。"
+
+#: nova/blueprints/admin.py:122
+#, python-format
+msgid "User '%(username)s' deleted."
+msgstr "用户'%(username)s'已删除。"
+
+#: nova/blueprints/api.py:155
+msgid "Object not found"
+msgstr "未找到对象"
+
+#: nova/blueprints/api.py:421
+#, python-format
+msgid "<p>Error reading help file: %(error)s</p>"
+msgstr "<p>读取帮助文件时出错：%(error)s</p>"
+
+#: nova/blueprints/api.py:1380
+msgid "No file uploaded"
+msgstr "未上传文件"
+
+#: nova/blueprints/api.py:1384
+msgid "Empty filename"
+msgstr "文件名为空"
+
+#: nova/blueprints/api.py:1427 nova/blueprints/api.py:2633
+msgid "User not found"
+msgstr "未找到用户"
+
+#: nova/blueprints/api.py:1431
+msgid "Session not found"
+msgstr "未找到会话"
+
+#: nova/blueprints/api.py:2331
+msgid "Object data not found or invalid."
+msgstr "未找到对象数据或数据无效。"
+
+#: nova/blueprints/api.py:2335
+msgid "RA/DEC missing for object."
+msgstr "缺少对象的RA/DEC。"
+
+#: nova/blueprints/api.py:2340
+msgid "Invalid RA/DEC format for object."
+msgstr "对象的RA/DEC格式无效。"
+
+#: nova/blueprints/api.py:2494
+msgid "Could not generate time series for plot."
+msgstr "无法生成图表的时间序列。"
+
+#: nova/blueprints/api.py:2597
+msgid "Location not configured"
+msgstr "未配置位置"
+
+#: nova/blueprints/api.py:3483
+msgid "Missing or invalid lat/lon parameters"
+msgstr ""
+
+#: nova/blueprints/api.py:3492
+#, fuzzy
+msgid "Invalid datetime format"
+msgstr "日期格式无效。"
+
+#: nova/blueprints/api.py:3512
+#, fuzzy
+msgid "Calibration star catalog not found"
+msgstr "校准策略"
+
+#: nova/blueprints/core.py:120
 msgid "Logged out successfully!"
 msgstr "退出登录成功！"
 
-#: nova/blueprints/core.py:131
+#: nova/blueprints/core.py:130
 #, python-format
 msgid "Language '%(lang)s' is not supported."
 msgstr "不支持'%(lang)s'语言。"
 
-#: nova/blueprints/core.py:187
+#: nova/blueprints/core.py:186
 msgid "Logged in successfully!"
 msgstr "登录成功！"
 
-#: nova/blueprints/core.py:203
+#: nova/blueprints/core.py:202
 msgid "Invalid username or password."
 msgstr "用户名或密码无效。"
 
-#: nova/blueprints/core.py:211
+#: nova/blueprints/core.py:210
 msgid "Single Sign-On is not applicable in single-user mode."
 msgstr "单用户模式下不适用单点登录。"
 
-#: nova/blueprints/core.py:219
+#: nova/blueprints/core.py:218
 msgid "SSO Error: No token provided."
 msgstr "SSO错误：未提供令牌。"
 
-#: nova/blueprints/core.py:225
+#: nova/blueprints/core.py:224
 msgid "SSO Error: SSO is not configured on the server."
 msgstr "SSO错误：服务器上未配置SSO。"
 
-#: nova/blueprints/core.py:243
+#: nova/blueprints/core.py:242
 #, python-format
 msgid "Welcome back, %(username)s!"
 msgstr "欢迎回来，%(username)s！"
 
-#: nova/blueprints/core.py:246
+#: nova/blueprints/core.py:245
 #, python-format
 msgid "SSO Error: User '%(username)s' not found or is disabled in Nova."
 msgstr "SSO错误：未找到用户'%(username)s'或已在Nova中禁用。"
 
-#: nova/blueprints/core.py:250
-msgid ""
-"SSO Error: The login link has expired. Please try again from WordPress."
+#: nova/blueprints/core.py:249
+msgid "SSO Error: The login link has expired. Please try again from WordPress."
 msgstr "SSO错误：登录链接已过期。请从WordPress重试。"
 
-#: nova/blueprints/core.py:253
+#: nova/blueprints/core.py:252
 msgid "SSO Error: Invalid login token."
 msgstr "SSO错误：登录令牌无效。"
 
-#: nova/blueprints/core.py:459
+#: nova/blueprints/core.py:458
 #, python-format
 msgid "Could not find user '%(username)s' in the database."
 msgstr "在数据库中找不到用户'%(username)s'。"
 
-#: nova/blueprints/core.py:528
+#: nova/blueprints/core.py:532
 msgid "Warning: Horizon Mask was invalid and was ignored."
 msgstr "警告：地平线掩码无效，已忽略。"
 
-#: nova/blueprints/core.py:550
+#: nova/blueprints/core.py:554
 msgid ""
 "Cannot delete your last location. You must have at least one location "
 "configured."
 msgstr "无法删除您的最后一个位置。您必须至少配置一个位置。"
 
-#: nova/blueprints/core.py:555
+#: nova/blueprints/core.py:559
 msgid ""
 "Cannot deactivate your only active location. You must keep at least one "
 "active location."
 msgstr "无法停用您唯一的活动位置。您必须保持至少一个活动位置。"
 
-#: nova/blueprints/core.py:591
+#: nova/blueprints/core.py:600
 #, python-format
 msgid "Warning: Horizon Mask for '%(location_name)s' was invalid and ignored."
 msgstr "警告：'%(location_name)s'的地平线掩码无效，已忽略。"
 
-#: nova/blueprints/core.py:638
+#: nova/blueprints/core.py:646
 #, python-format
 msgid "%(message)s updated successfully."
 msgstr "%(message)s更新成功。"
 
-#: nova/blueprints/core.py:711
+#: nova/blueprints/core.py:720
 #, python-format
 msgid "A database error occurred: %(error)s"
 msgstr "发生数据库错误：%(error)s"
 
-#: nova/blueprints/core.py:829
+#: nova/blueprints/core.py:838
 msgid "Label required"
 msgstr "标签为必填项"
 
-#: nova/blueprints/core.py:839
+#: nova/blueprints/core.py:848
 msgid "Filter already exists"
 msgstr "过滤器已存在"
 
-#: nova/blueprints/core.py:856
+#: nova/blueprints/core.py:865
 msgid "Filter not found"
 msgstr "未找到过滤器"
 
-#: nova/blueprints/core.py:883 nova/blueprints/core.py:903
+#: nova/blueprints/core.py:892 nova/blueprints/core.py:912
 msgid "No object specified."
 msgstr "未指定对象。"
 
-#: nova/blueprints/core.py:890 nova/blueprints/core.py:1385
-#: nova/blueprints/core.py:1411 templates/mobile_add_object.html:57
+#: nova/blueprints/core.py:899 nova/blueprints/core.py:1400
+#: nova/blueprints/core.py:1426 templates/mobile_add_object.html:57
 msgid "Object not found."
 msgstr "未找到对象。"
 
-#: nova/blueprints/core.py:1168
+#: nova/blueprints/core.py:1177
 msgid "Fetched and saved missing object details."
 msgstr "获取并保存了缺失的对象详细信息。"
 
-#: nova/blueprints/core.py:1170
+#: nova/blueprints/core.py:1179
 msgid "No missing data found or no updates needed."
 msgstr "未找到缺失数据或无需更新。"
 
-#: nova/blueprints/core.py:1174
+#: nova/blueprints/core.py:1183
 #, python-format
 msgid "An error occurred during data fetching: %(error)s"
 msgstr "数据获取期间发生错误：%(error)s"
 
-#: nova/blueprints/core.py:1512
+#: nova/blueprints/core.py:1527
 msgid "Please log in to view object details."
 msgstr "请登录以查看对象详细信息。"
 
-#: nova/blueprints/core.py:1527
+#: nova/blueprints/core.py:1542
 #, python-format
 msgid "User '%(username)s' not found."
 msgstr "未找到用户'%(username)s'。"
 
-#: nova/blueprints/core.py:1541
+#: nova/blueprints/core.py:1558
 #, python-format
 msgid "Requested location '%(location_name)s' not found, using default."
 msgstr "请求的位置'%(location_name)s'未找到，使用默认值。"
 
-#: nova/blueprints/core.py:1555
+#: nova/blueprints/core.py:1576
 msgid "Error: No valid location configured or selected for this user."
 msgstr "错误：此用户未配置或选择有效的位置。"
 
-#: nova/blueprints/core.py:1573
+#: nova/blueprints/core.py:1594
 #, python-format
 msgid "Object '%(object_name)s' not found in your configuration."
 msgstr "在您的配置中未找到对象'%(object_name)s'。"
 
-#: nova/blueprints/core.py:1800
+#: nova/blueprints/core.py:1834
 msgid "Invalid date components provided, defaulting to current date."
 msgstr "提供的日期组件无效，默认为当前日期。"
 
-#: nova/blueprints/core.py:2004
+#: nova/blueprints/core.py:2041
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
 msgstr "加载%(object_name)s的详细信息时发生错误。"
@@ -554,89 +333,89 @@ msgstr "加载%(object_name)s的详细信息时发生错误。"
 msgid "User session error, please log in again."
 msgstr "用户会话错误，请重新登录。"
 
-#: nova/blueprints/journal.py:111 nova/blueprints/journal.py:372
-#: nova/blueprints/mobile.py:532
+#: nova/blueprints/journal.py:120 nova/blueprints/journal.py:409
+#: nova/blueprints/mobile.py:550
 msgid "Invalid date format."
 msgstr "日期格式无效。"
 
-#: nova/blueprints/journal.py:333 nova/blueprints/mobile.py:685
+#: nova/blueprints/journal.py:350 nova/blueprints/mobile.py:703
 msgid "New journal entry added successfully!"
 msgstr "新日记条目添加成功！"
 
-#: nova/blueprints/journal.py:349
+#: nova/blueprints/journal.py:376
 msgid "To add a new session, please select an object first."
 msgstr "要添加新会话，请先选择一个对象。"
 
-#: nova/blueprints/journal.py:363
+#: nova/blueprints/journal.py:391
 msgid "Journal entry not found or you do not have permission to edit it."
 msgstr "未找到日记条目或您没有权限编辑它。"
 
-#: nova/blueprints/journal.py:583
+#: nova/blueprints/journal.py:626
 msgid "NINA log file must be a .log file."
 msgstr "NINA 日志文件必须是 .log 文件。"
 
-#: nova/blueprints/journal.py:595
+#: nova/blueprints/journal.py:638
 msgid "NINA log file is too large. Maximum size is 10 MB."
 msgstr "NINA 日志文件过大。最大为 10 MB。"
 
-#: nova/blueprints/journal.py:604
+#: nova/blueprints/journal.py:647
 #, fuzzy
 msgid "NINA log imported successfully."
 msgstr "Rig删除成功。"
 
-#: nova/blueprints/journal.py:635
+#: nova/blueprints/journal.py:677
 msgid "Journal entry updated successfully!"
 msgstr "日记条目更新成功！"
 
-#: nova/blueprints/journal.py:644
+#: nova/blueprints/journal.py:700
 msgid "Cannot edit session: associated object name is missing."
 msgstr "无法编辑会话：关联的对象名称缺失。"
 
-#: nova/blueprints/journal.py:670
+#: nova/blueprints/journal.py:726
 msgid "Project name is required."
 msgstr "项目名称为必填项。"
 
-#: nova/blueprints/journal.py:676
+#: nova/blueprints/journal.py:732
 #, python-format
 msgid "A project named '%(project_name)s' already exists."
 msgstr "名为'%(project_name)s'的项目已存在。"
 
-#: nova/blueprints/journal.py:703
+#: nova/blueprints/journal.py:759
 #, python-format
 msgid "Project '%(project_name)s' created successfully."
 msgstr "项目'%(project_name)s'创建成功。"
 
-#: nova/blueprints/journal.py:719
+#: nova/blueprints/journal.py:775
 #, python-format
 msgid "Error creating project: %(error)s"
 msgstr "创建项目时出错：%(error)s"
 
-#: nova/blueprints/journal.py:734
+#: nova/blueprints/journal.py:790
 msgid "Session to duplicate not found."
 msgstr "未找到要复制的会话。"
 
-#: nova/blueprints/journal.py:759
+#: nova/blueprints/journal.py:815
 msgid "Session duplicated successfully."
 msgstr "会话复制成功。"
 
-#: nova/blueprints/journal.py:770
+#: nova/blueprints/journal.py:826
 #, python-format
 msgid "Error duplicating session: %(error)s"
 msgstr "复制会话时出错：%(error)s"
 
-#: nova/blueprints/journal.py:792
+#: nova/blueprints/journal.py:848
 msgid "Journal entry deleted successfully."
 msgstr "日记条目删除成功。"
 
-#: nova/blueprints/journal.py:798
+#: nova/blueprints/journal.py:854
 msgid "Journal entry not found or you do not have permission to delete it."
 msgstr "未找到日记条目或您没有权限删除它。"
 
-#: nova/blueprints/journal.py:815 nova/blueprints/journal.py:969
+#: nova/blueprints/journal.py:871 nova/blueprints/journal.py:1025
 msgid "Session not found."
 msgstr "未找到会话。"
 
-#: nova/blueprints/journal.py:977 nova/blueprints/projects.py:267
+#: nova/blueprints/journal.py:1033 nova/blueprints/projects.py:267
 msgid "Project not found."
 msgstr "未找到项目。"
 
@@ -654,7 +433,7 @@ msgstr "未找到对象。"
 msgid "Object coordinates not available."
 msgstr "物体坐标不详。"
 
-#: nova/blueprints/mobile.py:701
+#: nova/blueprints/mobile.py:719
 #, fuzzy, python-format
 msgid "Error saving journal entry: %(error)s"
 msgstr "生成日记文件时出错：%(error)s"
@@ -682,11 +461,244 @@ msgstr "项目'%(project_name)s'已删除。会话现在是独立的。"
 msgid "Error deleting project: %(error)s"
 msgstr "删除项目时出错：%(error)s"
 
+#: nova/blueprints/tools.py:69
+#, python-format
+msgid "Error: Unknown component type '%(component_type)s'."
+msgstr "错误：未知的组件类型'%(component_type)s'。"
+
+#: nova/blueprints/tools.py:90
+#, python-format
+msgid "Component '%(component_name)s' added successfully."
+msgstr "组件'%(component_name)s'添加成功。"
+
+#: nova/blueprints/tools.py:93
+#, python-format
+msgid "Error adding component: %(error)s"
+msgstr "添加组件时出错：%(error)s"
+
+#: nova/blueprints/tools.py:108
+msgid "Authorization error."
+msgstr "授权错误。"
+
+#: nova/blueprints/tools.py:130
+#, python-format
+msgid "Component '%(component_name)s' updated successfully."
+msgstr "组件'%(component_name)s'更新成功。"
+
+#: nova/blueprints/tools.py:133
+#, python-format
+msgid "Error updating component: %(error)s"
+msgstr "更新组件时出错：%(error)s"
+
+#: nova/blueprints/tools.py:175
+#, python-format
+msgid "Rig '%(rig_name)s' updated successfully."
+msgstr "Rig'%(rig_name)s'更新成功。"
+
+#: nova/blueprints/tools.py:187
+#, python-format
+msgid "Rig '%(rig_name)s' created successfully."
+msgstr "Rig'%(rig_name)s'创建成功。"
+
+#: nova/blueprints/tools.py:206
+#, python-format
+msgid "Error saving rig: %(error)s"
+msgstr "保存rig时出错：%(error)s"
+
+#: nova/blueprints/tools.py:223
+msgid "Cannot delete component: It is used in at least one rig."
+msgstr "无法删除组件：它至少在一个rig中使用。"
+
+#: nova/blueprints/tools.py:228
+msgid "Component deleted successfully."
+msgstr "组件删除成功。"
+
+#: nova/blueprints/tools.py:231
+#, python-format
+msgid "Error deleting component: %(error)s"
+msgstr "删除组件时出错：%(error)s"
+
+#: nova/blueprints/tools.py:243
+msgid "Rig deleted successfully."
+msgstr "Rig删除成功。"
+
+#: nova/blueprints/tools.py:246
+#, python-format
+msgid "Error deleting rig: %(error)s"
+msgstr "删除rig时出错：%(error)s"
+
+#: nova/blueprints/tools.py:479
+#, python-format
+msgid "Error generating config file: %(error)s"
+msgstr "生成配置文件时出错：%(error)s"
+
+#: nova/blueprints/tools.py:600
+#, python-format
+msgid "Error generating journal file: %(error)s"
+msgstr "生成日记文件时出错：%(error)s"
+
+#: nova/blueprints/tools.py:608 nova/blueprints/tools.py:613
+msgid "No file selected for journal import."
+msgstr "未选择文件用于导入日记。"
+
+#: nova/blueprints/tools.py:627
+#, python-format
+msgid "Invalid journal file structure: %(message)s"
+msgstr "日记文件结构无效：%(message)s"
+
+#: nova/blueprints/tools.py:651
+msgid "Journal imported successfully! (Previous journal data was replaced)"
+msgstr "日记导入成功！（之前的日记数据已被替换）"
+
+#: nova/blueprints/tools.py:663
+#, python-format
+msgid "Import failed: Invalid YAML format in the journal file. %(error)s"
+msgstr "导入失败：日记文件中的 YAML 格式无效。%(error)s"
+
+#: nova/blueprints/tools.py:671 nova/blueprints/tools.py:802
+#, python-format
+msgid "Import failed: %(error)s"
+msgstr "导入失败：%(error)s"
+
+#: nova/blueprints/tools.py:674
+msgid "Invalid file type. Please upload a .yaml journal file."
+msgstr "文件类型无效。请上传.yaml日记文件。"
+
+#: nova/blueprints/tools.py:686
+msgid "Authentication error during import."
+msgstr "导入期间身份验证错误。"
+
+#: nova/blueprints/tools.py:691 nova/blueprints/tools.py:696
+msgid "No file selected for import."
+msgstr "未选择文件用于导入。"
+
+#: nova/blueprints/tools.py:718
+msgid "Cannot import: Configuration must contain at least one location."
+msgstr "无法导入：配置必须包含至少一个位置。"
+
+#: nova/blueprints/tools.py:726
+msgid "Cannot import: Configuration must contain at least one active location."
+msgstr "无法导入：配置必须包含至少一个活动位置。"
+
+#: nova/blueprints/tools.py:757
+msgid "Config imported successfully! (Previous config was replaced)"
+msgstr "配置导入成功！（之前的配置已被替换）"
+
+#: nova/blueprints/tools.py:799
+#, python-format
+msgid "Import failed: Invalid YAML. (%(error)s)"
+msgstr "导入失败：YAML无效。（%(error)s）"
+
+#: nova/blueprints/tools.py:821
+msgid "Authentication error during catalog import."
+msgstr "导入目录期间身份验证错误。"
+
+#: nova/blueprints/tools.py:831
+msgid "Catalog pack not found or invalid."
+msgstr "未找到目录包或无效。"
+
+#: nova/blueprints/tools.py:843
+msgid "Catalog import failed due to an internal error."
+msgstr "目录导入失败，原因：内部错误。"
+
+#: nova/blueprints/tools.py:944
+#, python-format
+msgid "Error generating rig config: %(error)s"
+msgstr "生成rig配置时出错：%(error)s"
+
+#: nova/blueprints/tools.py:964
+msgid "No journal photos found to download."
+msgstr "未找到要下载的日记照片。"
+
+#: nova/blueprints/tools.py:1006
+msgid "No file selected for photo import."
+msgstr "未选择文件用于照片导入。"
+
+#: nova/blueprints/tools.py:1011
+msgid "Please select a valid .zip file to import."
+msgstr "请选择有效的.zip文件进行导入。"
+
+#: nova/blueprints/tools.py:1024
+msgid "Import failed: The uploaded file is not a valid ZIP archive."
+msgstr "导入失败：上传的文件不是有效的ZIP存档。"
+
+#: nova/blueprints/tools.py:1058
+#, python-format
+msgid "Journal photos imported successfully! Extracted %(count)d files."
+msgstr "日记照片导入成功！已解压%(count)d个文件。"
+
+#: nova/blueprints/tools.py:1061
+msgid "Import failed: The ZIP file appears to be corrupted."
+msgstr "导入失败：ZIP文件似乎已损坏。"
+
+#: nova/blueprints/tools.py:1063
+#, python-format
+msgid "An unexpected error occurred during import: %(error)s"
+msgstr "导入期间发生意外错误：%(error)s"
+
+#: nova/blueprints/tools.py:1071 nova/blueprints/tools.py:1076
+msgid "No file selected for rigs import."
+msgstr "未选择文件用于rigs导入。"
+
+#: nova/blueprints/tools.py:1106
+msgid "Rigs configuration imported and synced to database successfully!"
+msgstr "Rigs配置导入并成功同步到数据库！"
+
+#: nova/blueprints/tools.py:1114
+#, python-format
+msgid "Error importing rigs file: %(error)s"
+msgstr "导入rigs文件时出错：%(error)s"
+
+#: nova/blueprints/tools.py:1117
+msgid "Invalid file type. Please upload a .yaml or .yml file."
+msgstr "文件类型无效。请上传.yaml或.yml文件。"
+
+#: nova/blueprints/tools.py:1176
+msgid "Not authorized to export another user's data."
+msgstr "无权导出其他用户的数据。"
+
+#: nova/blueprints/tools.py:1180
+msgid "Export failed (no such user or empty data)."
+msgstr "导出失败（无此用户或数据为空）。"
+
+#: nova/blueprints/tools.py:1209
+msgid "Username is required in multi-user mode."
+msgstr "多用户模式下用户名为必填项。"
+
+#: nova/blueprints/tools.py:1214
+msgid "Not authorized to import for another user."
+msgstr "无权为其他用户导入。"
+
+#: nova/blueprints/tools.py:1222
+msgid "Please provide config, rigs, and journal YAML files."
+msgstr "请提供config、rigs和journal YAML文件。"
+
+#: nova/blueprints/tools.py:1242
+msgid "Import completed successfully!"
+msgstr "导入完成成功！"
+
+#: nova/blueprints/tools.py:1244
+msgid "Import failed. See server logs for details."
+msgstr "导入失败。请查看服务器日志以了解详细信息。"
+
+#: nova/blueprints/tools.py:1247
+msgid "Import crashed. Check logs."
+msgstr "导入崩溃。检查日志。"
+
+#: nova/blueprints/tools.py:1258
+msgid "Database repair completed."
+msgstr "数据库修复完成。"
+
+#: nova/blueprints/tools.py:1260
+#, python-format
+msgid "Repair failed: %(error)s"
+msgstr "修复失败：%(error)s"
+
 #: templates/_heatmap_section.html:5
 msgid "Generating Heatmap..."
 msgstr "生成热图中..."
 
-#: templates/_heatmap_section.html:12 templates/mobile_up_now.html:872
+#: templates/_heatmap_section.html:12 templates/mobile_up_now.html:878
 msgid "Initializing..."
 msgstr "初始化中..."
 
@@ -710,8 +722,8 @@ msgstr "点击查看项目详细信息"
 #: templates/_heatmap_section.html:23
 #, fuzzy
 msgid ""
-"* Vertical bands = Full Moon. Darker teal = Best visibility. Click any cell "
-"to view details."
+"* Vertical bands = Full Moon. Darker teal = Best visibility. Click any "
+"cell to view details."
 msgstr "* 垂直光带 = 满月（被冲刷）。深绿色 = 最佳质量。点击天体名称查看详情。"
 
 #: templates/_inspiration_section.html:470
@@ -730,13 +742,13 @@ msgstr "最大高度"
 msgid "Transit Time"
 msgstr "中天时间"
 
-#: templates/_inspiration_section.html:497 templates/mobile_up_now.html:911
-#: templates/mobile_up_now.html:950
+#: templates/_inspiration_section.html:497 templates/mobile_up_now.html:913
+#: templates/mobile_up_now.html:948
 msgid "Duration"
 msgstr "持续时间"
 
-#: templates/_inspiration_section.html:498 templates/config_form.html:543
-#: templates/index.html:143 templates/mobile_up_now.html:987
+#: templates/_inspiration_section.html:498 templates/config_form.html:573
+#: templates/index.html:143 templates/mobile_up_now.html:982
 msgid "Constellation"
 msgstr "星座"
 
@@ -744,11 +756,11 @@ msgstr "星座"
 msgid "Source: Wiki"
 msgstr "来源：Wiki"
 
-#: templates/_inspiration_section.html:504
-#: templates/_journal_section.html:2477 templates/_objects_section.html:427
-#: templates/_objects_section.html:442 templates/base.html:384
-#: templates/base.html:404 templates/base.html:412 templates/base.html:450
-#: templates/config_form.html:643 templates/graph_view.html:281
+#: templates/_inspiration_section.html:504 templates/_journal_section.html:2453
+#: templates/_objects_section.html:427 templates/_objects_section.html:442
+#: templates/base.html:384 templates/base.html:401 templates/base.html:406
+#: templates/base.html:415 templates/base.html:453
+#: templates/config_form.html:673 templates/graph_view.html:290
 msgid "Close"
 msgstr "关闭"
 
@@ -761,7 +773,7 @@ msgid "Analyzing targets..."
 msgstr "分析目标中..."
 
 #: templates/_inspiration_section.html:517 templates/journal_report.html:706
-#: templates/project_report.html:1081
+#: templates/project_report.html:1069
 msgid "No Image"
 msgstr "无图像"
 
@@ -827,9 +839,10 @@ msgid "h"
 msgstr "h"
 
 #: templates/_inspiration_section.html:536 templates/base.html:105
-#: templates/config_form.html:566 templates/config_form.html:595
-#: templates/config_form.html:631 templates/graph_view.html:132
-#: templates/mobile_object_detail.html:573
+#: templates/config_form.html:596 templates/config_form.html:625
+#: templates/config_form.html:661 templates/graph_view.html:132
+#: templates/graph_view.html:143 templates/graph_view.html:660
+#: templates/mobile_object_detail.html:588
 msgid "Loading..."
 msgstr "加载中..."
 
@@ -893,1042 +906,1042 @@ msgstr "数据库修复完成。"
 msgid "No objects found in your configuration."
 msgstr "在您的配置中未找到对象。"
 
-#: templates/_journal_section.html:1608
+#: templates/_journal_section.html:1584
 msgid "Session History"
 msgstr "会话历史"
 
-#: templates/_journal_section.html:1612
+#: templates/_journal_section.html:1588
 msgid "Switch Object"
 msgstr "切换对象"
 
-#: templates/_journal_section.html:1614 templates/_journal_section.html:2218
+#: templates/_journal_section.html:1590 templates/_journal_section.html:2193
 msgid "Add New Project"
 msgstr "添加新项目"
 
-#: templates/_journal_section.html:1615 templates/base.html:182
+#: templates/_journal_section.html:1591 templates/base.html:182
 msgid "Add New Session"
 msgstr "添加新会话"
 
-#: templates/_journal_section.html:1620
+#: templates/_journal_section.html:1596
 msgid "Date & Location"
 msgstr "日期和位置"
 
-#: templates/_journal_section.html:1620 templates/project_report.html:866
+#: templates/_journal_section.html:1596 templates/project_report.html:861
 msgid "Integ."
 msgstr "积分"
 
-#: templates/_journal_section.html:1620
+#: templates/_journal_section.html:1596
 #: templates/_opportunities_section.html:42 templates/_project_subtab.html:196
 #: templates/index.html:188 templates/index.html:215
-#: templates/journal_report.html:692 templates/project_report.html:867
-#: templates/project_report.html:1101
+#: templates/journal_report.html:692 templates/project_report.html:862
+#: templates/project_report.html:1089
 msgid "Rating"
 msgstr "评分"
 
-#: templates/_journal_section.html:1631
+#: templates/_journal_section.html:1607
 msgid "Click to view project details"
 msgstr "点击查看项目详细信息"
 
-#: templates/_journal_section.html:1635 templates/_journal_section.html:2057
+#: templates/_journal_section.html:1611 templates/_journal_section.html:2032
 #: templates/_project_subtab.html:150
 msgid "Project:"
 msgstr "项目："
 
-#: templates/_journal_section.html:1636 templates/_journal_section.html:1956
+#: templates/_journal_section.html:1612 templates/_journal_section.html:1931
 msgid "Total:"
 msgstr "总计："
 
-#: templates/_journal_section.html:1645 templates/_project_subtab.html:209
+#: templates/_journal_section.html:1621 templates/_project_subtab.html:209
 msgid "min"
 msgstr "分钟"
 
-#: templates/_journal_section.html:1653
+#: templates/_journal_section.html:1629
 msgid "Loading history..."
 msgstr "加载历史中..."
 
-#: templates/_journal_section.html:1673
+#: templates/_journal_section.html:1648
 msgid "Details for Session:"
 msgstr "会话详细信息："
 
-#: templates/_journal_section.html:1675
+#: templates/_journal_section.html:1650
 msgid "Edit This Session"
 msgstr "编辑此会话"
 
-#: templates/_journal_section.html:1677
+#: templates/_journal_section.html:1652
 msgid "Create a copy of this session"
 msgstr "创建此会话的副本"
 
-#: templates/_journal_section.html:1677
+#: templates/_journal_section.html:1652
 msgid "Duplicate"
 msgstr "复制"
 
-#: templates/_journal_section.html:1679
+#: templates/_journal_section.html:1654
 msgid "Are you sure you want to delete this session permanently?"
 msgstr "您确定要永久删除此会话吗？"
 
-#: templates/_journal_section.html:1680
+#: templates/_journal_section.html:1655
 msgid "Delete This Session"
 msgstr "删除此会话"
 
-#: templates/_journal_section.html:1687
+#: templates/_journal_section.html:1662
 msgid "Summary"
 msgstr "摘要"
 
-#: templates/_journal_section.html:1688 templates/journal_report.html:752
+#: templates/_journal_section.html:1663 templates/journal_report.html:752
 msgid "Equipment & Acquisition"
 msgstr "设备和采集"
 
-#: templates/_journal_section.html:1689
+#: templates/_journal_section.html:1664
 msgid "Calibration & Outcome"
 msgstr "校准和结果"
 
-#: templates/_journal_section.html:1691
+#: templates/_journal_section.html:1666
 msgid "Logs"
 msgstr "日志"
 
-#: templates/_journal_section.html:1693 templates/journal_report.html:6
+#: templates/_journal_section.html:1668 templates/journal_report.html:6
 #: templates/journal_report.html:679
 msgid "Session Report"
 msgstr "会话报告"
 
-#: templates/_journal_section.html:1699
+#: templates/_journal_section.html:1674
 msgid "SEEING (FWHM)"
 msgstr "视宁（FWHM）"
 
-#: templates/_journal_section.html:1700
+#: templates/_journal_section.html:1675
 msgid "GUIDING (RMS)"
 msgstr "导星（RMS）"
 
-#: templates/_journal_section.html:1701
+#: templates/_journal_section.html:1676
 msgid "SKY QUALITY (SQM)"
 msgstr "天空质量（SQM）"
 
-#: templates/_journal_section.html:1712
+#: templates/_journal_section.html:1687
 msgid "Multiple"
 msgstr "多重"
 
-#: templates/_journal_section.html:1714
+#: templates/_journal_section.html:1689
 msgid "x"
 msgstr "x"
 
-#: templates/_journal_section.html:1714
+#: templates/_journal_section.html:1689
 msgid "s"
 msgstr "秒"
 
-#: templates/_journal_section.html:1716
+#: templates/_journal_section.html:1691
 msgid "EXPOSURES"
 msgstr "曝光"
 
-#: templates/_journal_section.html:1720 templates/_journal_section.html:1791
-#: templates/journal_form.html:169
+#: templates/_journal_section.html:1695 templates/_journal_section.html:1766
+#: templates/journal_form.html:164
 msgid "Filter:"
 msgstr "滤镜："
 
-#: templates/_journal_section.html:1724 templates/_journal_section.html:1768
+#: templates/_journal_section.html:1699 templates/_journal_section.html:1743
 msgid "Rig Used:"
 msgstr "使用的rig："
 
-#: templates/_journal_section.html:1725 templates/_journal_section.html:1774
+#: templates/_journal_section.html:1700 templates/_journal_section.html:1749
 msgid "Rig Specs:"
 msgstr "Rig规格："
 
-#: templates/_journal_section.html:1727 templates/_journal_section.html:1769
-#: templates/config_form.html:452 templates/journal_report.html:757
+#: templates/_journal_section.html:1702 templates/_journal_section.html:1744
+#: templates/config_form.html:482 templates/journal_report.html:757
 msgid "Telescope:"
 msgstr "望远镜："
 
-#: templates/_journal_section.html:1728 templates/_journal_section.html:1773
-#: templates/config_form.html:458 templates/journal_report.html:767
+#: templates/_journal_section.html:1703 templates/_journal_section.html:1748
+#: templates/config_form.html:488 templates/journal_report.html:767
 msgid "Camera:"
 msgstr "相机："
 
-#: templates/_journal_section.html:1729
+#: templates/_journal_section.html:1704
 msgid "FL:"
 msgstr "焦距："
 
-#: templates/_journal_section.html:1730 templates/_journal_section.html:1777
+#: templates/_journal_section.html:1705 templates/_journal_section.html:1752
 msgid "Scale:"
 msgstr "比例："
 
-#: templates/_journal_section.html:1733 templates/_journal_section.html:1780
+#: templates/_journal_section.html:1708 templates/_journal_section.html:1755
 msgid "Setup Notes:"
 msgstr "设置说明："
 
-#: templates/_journal_section.html:1736 templates/_journal_section.html:1782
+#: templates/_journal_section.html:1711 templates/_journal_section.html:1757
 msgid "Telescope Setup:"
 msgstr "望远镜设置："
 
-#: templates/_journal_section.html:1740
+#: templates/_journal_section.html:1715
 msgid "Session Image:"
 msgstr "会话图像："
 
-#: templates/_journal_section.html:1743
+#: templates/_journal_section.html:1718
 msgid "Click to view full size"
 msgstr "点击查看全尺寸"
 
-#: templates/_journal_section.html:1744 templates/journal_report.html:700
-#: templates/journal_report.html:703 templates/project_report.html:1075
-#: templates/project_report.html:1079
+#: templates/_journal_section.html:1719 templates/journal_report.html:700
+#: templates/journal_report.html:703 templates/project_report.html:1063
+#: templates/project_report.html:1067
 msgid "Session Image"
 msgstr "会话图像"
 
-#: templates/_journal_section.html:1753 templates/journal_report.html:718
+#: templates/_journal_section.html:1728 templates/journal_report.html:718
 msgid "Statistics & Conditions"
 msgstr "统计和条件"
 
-#: templates/_journal_section.html:1755
+#: templates/_journal_section.html:1730
 msgid "Seeing (FWHM):"
 msgstr "视宁度（FWHM）："
 
-#: templates/_journal_section.html:1756
+#: templates/_journal_section.html:1731
 msgid "Guiding RMS:"
 msgstr "导星RMS："
 
-#: templates/_journal_section.html:1757
+#: templates/_journal_section.html:1732
 msgid "SQM:"
 msgstr "SQM："
 
-#: templates/_journal_section.html:1758 templates/_journal_section.html:2268
-#: templates/journal_form.html:63
+#: templates/_journal_section.html:1733 templates/_journal_section.html:2243
+#: templates/journal_form.html:58
 msgid "Transparency Scale:"
 msgstr "透明度比例："
 
-#: templates/_journal_section.html:1759
+#: templates/_journal_section.html:1734
 msgid "Moon Illum/Sep:"
 msgstr "月球照度/分离："
 
-#: templates/_journal_section.html:1760 templates/_journal_section.html:2270
-#: templates/journal_form.html:75
+#: templates/_journal_section.html:1735 templates/_journal_section.html:2245
+#: templates/journal_form.html:70
 msgid "Weather Notes:"
 msgstr "天气说明："
 
-#: templates/_journal_section.html:1765
+#: templates/_journal_section.html:1740
 msgid "Equipment & Acquisition Details"
 msgstr "设备和采集详细信息"
 
-#: templates/_journal_section.html:1771 templates/journal_report.html:762
+#: templates/_journal_section.html:1746 templates/journal_report.html:762
 msgid "Reducer/Ext.:"
 msgstr "减焦/增焦器："
 
-#: templates/_journal_section.html:1776
+#: templates/_journal_section.html:1751
 msgid "FL/Ratio:"
 msgstr "焦距/比例："
 
-#: templates/_journal_section.html:1778
+#: templates/_journal_section.html:1753
 msgid "FOV:"
 msgstr "视场："
 
-#: templates/_journal_section.html:1785 templates/_journal_section.html:2288
+#: templates/_journal_section.html:1760 templates/_journal_section.html:2263
 msgid "Guiding Equipment:"
 msgstr "导星设备："
 
-#: templates/_journal_section.html:1786
+#: templates/_journal_section.html:1761
 msgid "Acquisition Sw:"
 msgstr "采集软件："
 
-#: templates/_journal_section.html:1787 templates/journal_form.html:119
+#: templates/_journal_section.html:1762 templates/journal_form.html:114
 msgid "Dither Settings:"
 msgstr "抖动设置："
 
-#: templates/_journal_section.html:1788 templates/_journal_section.html:2317
-#: templates/journal_form.html:159
+#: templates/_journal_section.html:1763 templates/_journal_section.html:2292
+#: templates/journal_form.html:154
 msgid "Binning:"
 msgstr "合并："
 
-#: templates/_journal_section.html:1789 templates/journal_report.html:771
+#: templates/_journal_section.html:1764 templates/journal_report.html:771
 msgid "Gain / Offset:"
 msgstr "增益/偏移："
 
-#: templates/_journal_section.html:1790
+#: templates/_journal_section.html:1765
 msgid "Camera Temp (Set/Avg):"
 msgstr "相机温度（设置/平均）："
 
-#: templates/_journal_section.html:1792
+#: templates/_journal_section.html:1767
 msgid "Sub Exposure:"
 msgstr "子帧曝光："
 
-#: templates/_journal_section.html:1793
+#: templates/_journal_section.html:1768
 msgid "# Light Subs:"
 msgstr "亮帧子帧数："
 
-#: templates/_journal_section.html:1813
+#: templates/_journal_section.html:1788
 msgid "Monochrome Exposures"
 msgstr "单色曝光"
 
-#: templates/_journal_section.html:1819 templates/_journal_section.html:1829
+#: templates/_journal_section.html:1794 templates/_journal_section.html:1804
 msgid "subs x "
 msgstr "子帧 x "
 
-#: templates/_journal_section.html:1839 templates/_journal_section.html:2373
-#: templates/journal_form.html:181 templates/journal_report.html:803
+#: templates/_journal_section.html:1814 templates/_journal_section.html:2348
+#: templates/journal_form.html:176 templates/journal_report.html:803
 msgid "Calibration Strategy"
 msgstr "校准策略"
 
-#: templates/_journal_section.html:1841 templates/_journal_section.html:2374
-#: templates/journal_form.html:183
+#: templates/_journal_section.html:1816 templates/_journal_section.html:2349
+#: templates/journal_form.html:178
 msgid "Darks:"
 msgstr "暗场："
 
-#: templates/_journal_section.html:1842 templates/_journal_section.html:2375
-#: templates/journal_form.html:187
+#: templates/_journal_section.html:1817 templates/_journal_section.html:2350
+#: templates/journal_form.html:182
 msgid "Flats:"
 msgstr "平场："
 
-#: templates/_journal_section.html:1843
+#: templates/_journal_section.html:1818
 msgid "Bias/DarkFlats:"
 msgstr "偏置/暗平场："
 
-#: templates/_journal_section.html:1848 templates/_journal_section.html:2377
-#: templates/journal_form.html:195
+#: templates/_journal_section.html:1823 templates/_journal_section.html:2352
+#: templates/journal_form.html:190
 msgid "Outcome & Reflections"
 msgstr "结果和反思"
 
-#: templates/_journal_section.html:1850
+#: templates/_journal_section.html:1825
 msgid "Session Rating:"
 msgstr "会话评分："
 
-#: templates/_journal_section.html:1851 templates/project_report.html:893
+#: templates/_journal_section.html:1826 templates/project_report.html:888
 msgid "Notes:"
 msgstr "说明："
 
-#: templates/_journal_section.html:1859 templates/_journal_section.html:2128
+#: templates/_journal_section.html:1834 templates/_journal_section.html:2103
 msgid "Download CSV"
 msgstr "下载CSV"
 
-#: templates/_journal_section.html:1865 templates/_journal_section.html:2134
+#: templates/_journal_section.html:1840 templates/_journal_section.html:2109
 msgid "Download PDF"
 msgstr "下载PDF"
 
-#: templates/_journal_section.html:1876 templates/_journal_section.html:2069
+#: templates/_journal_section.html:1851 templates/_journal_section.html:2044
 msgid "Overview"
 msgstr "概览"
 
-#: templates/_journal_section.html:1877 templates/base.html:144
+#: templates/_journal_section.html:1852 templates/base.html:144
 msgid "Guiding"
 msgstr "导星"
 
-#: templates/_journal_section.html:1878
+#: templates/_journal_section.html:1853
 msgid "Dithering"
 msgstr "抖动"
 
-#: templates/_journal_section.html:1879 templates/journal_report.html:934
-#: templates/journal_report.html:951 templates/project_report.html:939
-#: templates/project_report.html:956
+#: templates/_journal_section.html:1854 templates/journal_report.html:934
+#: templates/journal_report.html:951 templates/project_report.html:932
+#: templates/project_report.html:949
 msgid "AutoFocus"
 msgstr "自动对焦"
 
-#: templates/_journal_section.html:1880
+#: templates/_journal_section.html:1855
 msgid "NINA"
 msgstr "尼娜"
 
-#: templates/_journal_section.html:1888 templates/journal_report.html:823
+#: templates/_journal_section.html:1863 templates/journal_report.html:823
 #: templates/journal_report.html:930 templates/journal_report.html:947
-#: templates/journal_report.html:1031 templates/project_report.html:935
-#: templates/project_report.html:952 templates/project_report.html:1159
+#: templates/journal_report.html:1031 templates/project_report.html:928
+#: templates/project_report.html:945 templates/project_report.html:1147
 msgid "Exposures"
 msgstr "曝光"
 
-#: templates/_journal_section.html:1892 templates/journal_report.html:1035
+#: templates/_journal_section.html:1867 templates/journal_report.html:1035
 msgid "Total Time"
 msgstr "总时间"
 
-#: templates/_journal_section.html:1896 templates/project_report.html:992
-#: templates/project_report.html:1111
+#: templates/_journal_section.html:1871 templates/project_report.html:984
+#: templates/project_report.html:1099
 msgid "Guiding RMS"
 msgstr "导星RMS"
 
-#: templates/_journal_section.html:1900 templates/journal_report.html:938
-#: templates/journal_report.html:955 templates/project_report.html:943
-#: templates/project_report.html:960
+#: templates/_journal_section.html:1875 templates/journal_report.html:938
+#: templates/journal_report.html:955 templates/project_report.html:936
+#: templates/project_report.html:953
 msgid "Dithers"
 msgstr "抖动"
 
-#: templates/_journal_section.html:1904
+#: templates/_journal_section.html:1879
 msgid "AF Runs"
 msgstr "对焦运行"
 
-#: templates/_journal_section.html:1908 templates/journal_report.html:999
+#: templates/_journal_section.html:1883 templates/journal_report.html:999
 msgid "Pixel Scale"
 msgstr "像素比例"
 
-#: templates/_journal_section.html:1917 templates/journal_report.html:1064
+#: templates/_journal_section.html:1892 templates/journal_report.html:1064
 msgid "Plate Solve Results"
 msgstr "拼板求解结果"
 
-#: templates/_journal_section.html:1921
+#: templates/_journal_section.html:1896
 msgid "#"
 msgstr "#"
 
-#: templates/_journal_section.html:1922 templates/journal_report.html:1068
+#: templates/_journal_section.html:1897 templates/journal_report.html:1068
 #: templates/journal_report.html:1098 templates/journal_report.html:1177
-#: templates/project_report.html:1012
+#: templates/project_report.html:1003
 msgid "Time"
 msgstr "时间"
 
-#: templates/_journal_section.html:1923 templates/journal_report.html:1069
+#: templates/_journal_section.html:1898 templates/journal_report.html:1069
 msgid "RA"
 msgstr "RA"
 
-#: templates/_journal_section.html:1924 templates/journal_report.html:1070
+#: templates/_journal_section.html:1899 templates/journal_report.html:1070
 msgid "Dec"
 msgstr "Dec"
 
-#: templates/_journal_section.html:1925 templates/journal_report.html:1071
+#: templates/_journal_section.html:1900 templates/journal_report.html:1071
 msgid "Angle"
 msgstr "角度"
 
-#: templates/_journal_section.html:1926 templates/journal_report.html:1072
+#: templates/_journal_section.html:1901 templates/journal_report.html:1072
 msgid "Stars"
 msgstr "恒星"
 
-#: templates/_journal_section.html:1927 templates/_journal_section.html:2085
+#: templates/_journal_section.html:1902 templates/_journal_section.html:2060
 #: templates/_objects_section.html:46 templates/_project_subtab.html:154
 #: templates/admin_users.html:72 templates/journal_report.html:1179
 msgid "Status"
 msgstr "状态"
 
-#: templates/_journal_section.html:1936
+#: templates/_journal_section.html:1911
 msgid "Autocenter Accuracy Over Time"
 msgstr "自动居中精度随时间变化"
 
-#: templates/_journal_section.html:1937
+#: templates/_journal_section.html:1912
 msgid "Distance from target center per centering attempt"
 msgstr "每次居中尝试距离目标中心的距离"
 
-#: templates/_journal_section.html:1948
+#: templates/_journal_section.html:1923
 msgid "RA RMS:"
 msgstr "RA RMS："
 
-#: templates/_journal_section.html:1949
+#: templates/_journal_section.html:1924
 msgid "Dec RMS:"
 msgstr "Dec RMS："
 
-#: templates/_journal_section.html:1950
+#: templates/_journal_section.html:1925
 msgid "Total RMS:"
 msgstr "总RMS："
 
-#: templates/_journal_section.html:1951
+#: templates/_journal_section.html:1926
 msgid "Imaging Frames:"
 msgstr "成像帧："
 
-#: templates/_journal_section.html:1954
+#: templates/_journal_section.html:1929
 msgid "Including dithers — RA:"
 msgstr "包括抖动 — RA："
 
-#: templates/_journal_section.html:1955 templates/journal_report.html:991
+#: templates/_journal_section.html:1930 templates/journal_report.html:991
 msgid "Dec:"
 msgstr "Dec："
 
-#: templates/_journal_section.html:1959 templates/base.html:208
+#: templates/_journal_section.html:1934 templates/base.html:208
 msgid "Zoom"
 msgstr "缩放"
 
-#: templates/_journal_section.html:1964
+#: templates/_journal_section.html:1939
 msgid "Avg RA Pulse:"
 msgstr "平均RA脉冲："
 
-#: templates/_journal_section.html:1965
+#: templates/_journal_section.html:1940
 msgid "Avg Dec Pulse:"
 msgstr "平均Dec脉冲："
 
-#: templates/_journal_section.html:1966
+#: templates/_journal_section.html:1941
 msgid "Avg RA Dur:"
 msgstr "平均RA持续："
 
-#: templates/_journal_section.html:1967
+#: templates/_journal_section.html:1942
 msgid "Avg Dec Dur:"
 msgstr "平均Dec持续："
 
-#: templates/_journal_section.html:1968
+#: templates/_journal_section.html:1943
 msgid "RA Dir:"
 msgstr "RA方向："
 
-#: templates/_journal_section.html:1969
+#: templates/_journal_section.html:1944
 msgid "Dec Dir:"
 msgstr "Dec方向："
 
-#: templates/_journal_section.html:1988
+#: templates/_journal_section.html:1963
 msgid "Total Dithers:"
 msgstr "总抖动："
 
-#: templates/_journal_section.html:1989
+#: templates/_journal_section.html:1964
 msgid "Settle Success:"
 msgstr "稳定成功："
 
-#: templates/_journal_section.html:1990
+#: templates/_journal_section.html:1965
 msgid "Settle Timeout:"
 msgstr "稳定超时："
 
-#: templates/_journal_section.html:2000
+#: templates/_journal_section.html:1975
 msgid "AF Runs:"
 msgstr "对焦运行："
 
-#: templates/_journal_section.html:2010
+#: templates/_journal_section.html:1985
 msgid "Autofocus V-Curves – EAF Position vs Star Size"
 msgstr "自动对焦V曲线 — EAF位置与恒星大小对比"
 
-#: templates/_journal_section.html:2016
+#: templates/_journal_section.html:1991
 msgid "Focus Position Drift Over Night"
 msgstr "整晚焦点位置漂移"
 
-#: templates/_journal_section.html:2024
+#: templates/_journal_section.html:1999
 msgid "Individual V-Curves"
 msgstr "单独V曲线"
 
-#: templates/_journal_section.html:2038
+#: templates/_journal_section.html:2013
 msgid "Expand all"
 msgstr "全部展开"
 
-#: templates/_journal_section.html:2040
+#: templates/_journal_section.html:2015
 msgid "Collapse all"
 msgstr "全部折叠"
 
-#: templates/_journal_section.html:2059 templates/_project_subtab.html:147
+#: templates/_journal_section.html:2034 templates/_project_subtab.html:147
 msgid "Edit Project"
 msgstr "编辑项目"
 
-#: templates/_journal_section.html:2061
+#: templates/_journal_section.html:2036
 msgid ""
-"Are you sure you want to delete this project? Linked sessions will become "
-"standalone."
+"Are you sure you want to delete this project? Linked sessions will become"
+" standalone."
 msgstr "您确定要删除此项目吗？关联的会话将变为独立的。"
 
-#: templates/_journal_section.html:2063
+#: templates/_journal_section.html:2038
 msgid "Delete Project"
 msgstr "删除项目"
 
-#: templates/_journal_section.html:2070 templates/project_report.html:6
-#: templates/project_report.html:795
+#: templates/_journal_section.html:2045 templates/project_report.html:6
+#: templates/project_report.html:794
 msgid "Project Report"
 msgstr "项目报告"
 
-#: templates/_journal_section.html:2079 templates/project_report.html:808
+#: templates/_journal_section.html:2054 templates/project_report.html:805
 msgid "Total Integration"
 msgstr "总积分"
 
-#: templates/_journal_section.html:2091 templates/_project_subtab.html:158
+#: templates/_journal_section.html:2066 templates/_project_subtab.html:158
 msgid "Goals & Status"
 msgstr "目标和状态"
 
-#: templates/_journal_section.html:2092
+#: templates/_journal_section.html:2067
 msgid "No goals defined."
 msgstr "未定义目标。"
 
-#: templates/_journal_section.html:2100 templates/_project_subtab.html:166
+#: templates/_journal_section.html:2075 templates/_project_subtab.html:166
 msgid "Final Project Image"
 msgstr "最终项目图像"
 
-#: templates/_journal_section.html:2103 templates/_journal_section.html:2171
+#: templates/_journal_section.html:2078 templates/_journal_section.html:2146
 #: templates/_project_subtab.html:168 templates/_project_subtab.html:262
 msgid "Final Image"
 msgstr "最终图像"
 
-#: templates/_journal_section.html:2108 templates/_project_subtab.html:175
+#: templates/_journal_section.html:2083 templates/_project_subtab.html:175
 msgid "Project Story & Learnings"
 msgstr "项目故事和心得"
 
-#: templates/_journal_section.html:2109
+#: templates/_journal_section.html:2084
 msgid "No description added."
 msgstr "未添加说明。"
 
-#: templates/_journal_section.html:2113 templates/_project_subtab.html:180
+#: templates/_journal_section.html:2088 templates/_project_subtab.html:180
 msgid "Framing Notes"
 msgstr "构图说明"
 
-#: templates/_journal_section.html:2114 templates/_project_subtab.html:181
+#: templates/_journal_section.html:2089 templates/_project_subtab.html:181
 msgid "No framing notes added."
 msgstr "未添加构图说明。"
 
-#: templates/_journal_section.html:2118 templates/_project_subtab.html:185
+#: templates/_journal_section.html:2093 templates/_project_subtab.html:185
 msgid "Processing Notes"
 msgstr "处理说明"
 
-#: templates/_journal_section.html:2119 templates/_project_subtab.html:186
+#: templates/_journal_section.html:2094 templates/_project_subtab.html:186
 msgid "No processing workflow recorded."
 msgstr "未记录处理工作流程。"
 
-#: templates/_journal_section.html:2148
+#: templates/_journal_section.html:2123
 msgid "Editing Project"
 msgstr "编辑项目"
 
-#: templates/_journal_section.html:2150 templates/_project_subtab.html:231
+#: templates/_journal_section.html:2125 templates/_project_subtab.html:231
 msgid "Save Project"
 msgstr "保存项目"
 
-#: templates/_journal_section.html:2151 templates/_journal_section.html:2221
-#: templates/_journal_section.html:2254 templates/_journal_section.html:2537
+#: templates/_journal_section.html:2126 templates/_journal_section.html:2196
+#: templates/_journal_section.html:2229 templates/_journal_section.html:2513
 #: templates/_objects_section.html:347 templates/_project_subtab.html:232
-#: templates/admin_users.html:120 templates/base.html:483
-#: templates/graph_view.html:449 templates/index.html:266
-#: templates/journal_form.html:210
+#: templates/admin_users.html:120 templates/base.html:486
+#: templates/graph_view.html:459 templates/index.html:266
+#: templates/journal_form.html:205
 msgid "Cancel"
 msgstr "取消"
 
-#: templates/_journal_section.html:2156 templates/_journal_section.html:2227
+#: templates/_journal_section.html:2131 templates/_journal_section.html:2202
 #: templates/_project_subtab.html:239
 msgid "Metadata"
 msgstr "元数据"
 
-#: templates/_journal_section.html:2157 templates/_journal_section.html:2228
+#: templates/_journal_section.html:2132 templates/_journal_section.html:2203
 #: templates/_project_subtab.html:240
 msgid "Project Name:"
 msgstr "项目名称："
 
-#: templates/_journal_section.html:2159 templates/_journal_section.html:2229
-#: templates/_project_subtab.html:249 templates/project_report.html:801
+#: templates/_journal_section.html:2134 templates/_journal_section.html:2204
+#: templates/_project_subtab.html:249 templates/project_report.html:799
 msgid "Status:"
 msgstr "状态："
 
-#: templates/_journal_section.html:2163 templates/_journal_section.html:2233
+#: templates/_journal_section.html:2138 templates/_journal_section.html:2208
 #: templates/_project_subtab.html:256
 msgid "Goals & Status:"
 msgstr "目标和状态："
 
-#: templates/_journal_section.html:2173 templates/_project_subtab.html:264
+#: templates/_journal_section.html:2148 templates/_project_subtab.html:264
 msgid "Current file:"
 msgstr "当前文件："
 
-#: templates/_journal_section.html:2174 templates/_project_subtab.html:265
+#: templates/_journal_section.html:2149 templates/_project_subtab.html:265
 msgid "Delete Current Image"
 msgstr "删除当前图像"
 
-#: templates/_journal_section.html:2177 templates/_project_subtab.html:268
+#: templates/_journal_section.html:2152 templates/_project_subtab.html:268
 msgid "Upload New Final Image (optional, max 5MB)"
 msgstr "上传新的最终图像（可选，最大5MB）"
 
-#: templates/_journal_section.html:2183 templates/_project_subtab.html:275
+#: templates/_journal_section.html:2158 templates/_project_subtab.html:275
 msgid "Project Story & Learnings:"
 msgstr "项目故事和心得："
 
-#: templates/_journal_section.html:2190
+#: templates/_journal_section.html:2165
 msgid "Framing Notes:"
 msgstr "构图说明："
 
-#: templates/_journal_section.html:2197
+#: templates/_journal_section.html:2172
 msgid "Processing Notes:"
 msgstr "处理说明："
 
-#: templates/_journal_section.html:2208
+#: templates/_journal_section.html:2183
 msgid "No session selected"
 msgstr "未选择会话"
 
-#: templates/_journal_section.html:2210
+#: templates/_journal_section.html:2185
 msgid ""
-"Select a session or project from the list on the left to view details, or "
-"click 'Add New Session'."
+"Select a session or project from the list on the left to view details, or"
+" click 'Add New Session'."
 msgstr "从左侧列表中选择会话或项目查看详细信息，或点击'添加新会话'。"
 
-#: templates/_journal_section.html:2220
+#: templates/_journal_section.html:2195
 msgid "Create Project"
 msgstr "创建项目"
 
-#: templates/_journal_section.html:2228
+#: templates/_journal_section.html:2203
 msgid "e.g., M31 Broadband"
 msgstr "例如：M31 宽波段"
 
-#: templates/_journal_section.html:2229
+#: templates/_journal_section.html:2204
 msgid "In Progress"
 msgstr "进行中"
 
-#: templates/_journal_section.html:2229
+#: templates/_journal_section.html:2204
 msgid "On Hold"
 msgstr "暂停"
 
-#: templates/_journal_section.html:2229
+#: templates/_journal_section.html:2204
 msgid "Completed"
 msgstr "已完成"
 
-#: templates/_journal_section.html:2229
+#: templates/_journal_section.html:2204
 msgid "Abandoned"
 msgstr "已放弃"
 
-#: templates/_journal_section.html:2246
+#: templates/_journal_section.html:2221
 msgid "Add New Session for"
 msgstr "为...添加新会话"
 
-#: templates/_journal_section.html:2250
+#: templates/_journal_section.html:2225
 msgid "Edit Session"
 msgstr "编辑会话"
 
-#: templates/_journal_section.html:2252
+#: templates/_journal_section.html:2227
 msgid "Save Draft"
 msgstr "保存草稿"
 
-#: templates/_journal_section.html:2253
+#: templates/_journal_section.html:2228
 msgid "Save & Close"
 msgstr "保存并关闭"
 
-#: templates/_journal_section.html:2261 templates/journal_form.html:27
+#: templates/_journal_section.html:2236 templates/journal_form.html:24
 msgid "Session Date:"
 msgstr "会话日期："
 
-#: templates/_journal_section.html:2262 templates/journal_form.html:45
+#: templates/_journal_section.html:2237 templates/journal_form.html:40
 msgid "Location:"
 msgstr "位置："
 
-#: templates/_journal_section.html:2262
+#: templates/_journal_section.html:2237
 msgid " (Inactive)"
 msgstr "（未激活）"
 
-#: templates/_journal_section.html:2264
+#: templates/_journal_section.html:2239
 msgid "Link to Project (Optional)"
 msgstr "关联项目（可选）"
 
-#: templates/_journal_section.html:2264
+#: templates/_journal_section.html:2239
 msgid "-- Standalone Session --"
 msgstr "-- 独立会话 --"
 
-#: templates/_journal_section.html:2264
+#: templates/_journal_section.html:2239
 msgid "-- Create New Project --"
 msgstr "-- 创建新项目 --"
 
-#: templates/_journal_section.html:2265
+#: templates/_journal_section.html:2240
 msgid "New Project Name:"
 msgstr "新项目名称："
 
-#: templates/_journal_section.html:2265
+#: templates/_journal_section.html:2240
 msgid "e.g., M31 Galaxy - 2025"
 msgstr "例如：M31 星系 - 2025"
 
-#: templates/_journal_section.html:2267 templates/journal_form.html:56
+#: templates/_journal_section.html:2242 templates/journal_form.html:51
 msgid "Sky Conditions (Observed)"
 msgstr "天空条件（观测）"
 
-#: templates/_journal_section.html:2268 templates/journal_form.html:59
+#: templates/_journal_section.html:2243 templates/journal_form.html:54
 msgid "Seeing (FWHM, arcsec):"
 msgstr "视宁度（FWHM，arcsec）："
 
-#: templates/_journal_section.html:2268 templates/journal_form.html:64
+#: templates/_journal_section.html:2243 templates/journal_form.html:59
 msgid "e.g., Good (4/5), Clear"
 msgstr "例如：良好（4/5），晴朗"
 
-#: templates/_journal_section.html:2269 templates/journal_form.html:69
+#: templates/_journal_section.html:2244 templates/journal_form.html:64
 msgid "SQM Reading:"
 msgstr "SQM读数："
 
-#: templates/_journal_section.html:2271
+#: templates/_journal_section.html:2246
 #, python-format
 msgid "Moon Illumination (%%):"
 msgstr "月球照度（%%）："
 
-#: templates/_journal_section.html:2271
+#: templates/_journal_section.html:2246
 msgid "Auto-fills on date/loc change"
 msgstr "日期/位置更改时自动填充"
 
-#: templates/_journal_section.html:2271
+#: templates/_journal_section.html:2246
 msgid "Moon Angular Separation (°):"
 msgstr "月球角分离（°）："
 
-#: templates/_journal_section.html:2272 templates/journal_form.html:89
+#: templates/_journal_section.html:2247 templates/journal_form.html:84
 msgid "Equipment & Guiding"
 msgstr "设备和导星"
 
-#: templates/_journal_section.html:2274
+#: templates/_journal_section.html:2249
 msgid "Select a Rig (Optional - Overwrites notes below)"
 msgstr "选择设备配置（可选 - 覆盖以下说明）"
 
-#: templates/_journal_section.html:2277
+#: templates/_journal_section.html:2252
 msgid "-- Manually Enter Below --"
 msgstr "-- 在下方手动输入 --"
 
-#: templates/_journal_section.html:2282
+#: templates/_journal_section.html:2257
 msgid "View rig details"
 msgstr "查看设备配置详情"
 
-#: templates/_journal_section.html:2287 templates/journal_form.html:101
+#: templates/_journal_section.html:2262 templates/journal_form.html:96
 msgid "Telescope Setup Notes:"
 msgstr "望远镜设置说明："
 
-#: templates/_journal_section.html:2288
+#: templates/_journal_section.html:2263
 msgid "e.g., OAG + ASI174MM"
 msgstr "例如：OAG + ASI174MM"
 
-#: templates/_journal_section.html:2289 templates/journal_form.html:110
+#: templates/_journal_section.html:2264 templates/journal_form.html:105
 msgid "Guiding RMS (avg, arcsec):"
 msgstr "导星RMS（平均，arcsec）："
 
-#: templates/_journal_section.html:2292 templates/journal_form.html:127
+#: templates/_journal_section.html:2267 templates/journal_form.html:122
 msgid "Acquisition Details"
 msgstr "采集详细信息"
 
-#: templates/_journal_section.html:2293 templates/journal_form.html:123
+#: templates/_journal_section.html:2268 templates/journal_form.html:118
 msgid "Acquisition Software:"
 msgstr "采集软件："
 
-#: templates/_journal_section.html:2293
+#: templates/_journal_section.html:2268
 msgid "e.g., N.I.N.A."
 msgstr "例如：N.I.N.A."
 
-#: templates/_journal_section.html:2297
+#: templates/_journal_section.html:2272
 msgid "Dither Pixels:"
 msgstr "抖动像素："
 
-#: templates/_journal_section.html:2300
+#: templates/_journal_section.html:2275
 msgid "e.g. 7"
 msgstr "例如：7"
 
-#: templates/_journal_section.html:2304
+#: templates/_journal_section.html:2279
 msgid "Dither every ___ subs:"
 msgstr "每___个子帧抖动："
 
-#: templates/_journal_section.html:2307
+#: templates/_journal_section.html:2282
 msgid "e.g. 3"
 msgstr "例如：3"
 
-#: templates/_journal_section.html:2310
+#: templates/_journal_section.html:2285
 msgid "Dither Notes (optional):"
 msgstr "抖动说明（可选）："
 
-#: templates/_journal_section.html:2312
+#: templates/_journal_section.html:2287
 msgid "Sub Exposure (sec):"
 msgstr "子帧曝光（秒）："
 
-#: templates/_journal_section.html:2313
+#: templates/_journal_section.html:2288
 msgid "# Light Subs"
 msgstr "# 亮帧子帧"
 
-#: templates/_journal_section.html:2315 templates/journal_form.html:140
+#: templates/_journal_section.html:2290 templates/journal_form.html:135
 msgid "Gain:"
 msgstr "增益："
 
-#: templates/_journal_section.html:2315 templates/journal_form.html:144
+#: templates/_journal_section.html:2290 templates/journal_form.html:139
 msgid "Offset:"
 msgstr "偏移："
 
-#: templates/_journal_section.html:2316 templates/journal_form.html:150
+#: templates/_journal_section.html:2291 templates/journal_form.html:145
 msgid "Camera Temp Setpoint (°C):"
 msgstr "相机温度设定值（°C）："
 
-#: templates/_journal_section.html:2316 templates/journal_form.html:154
+#: templates/_journal_section.html:2291 templates/journal_form.html:149
 msgid "Camera Temp Actual Avg (°C):"
 msgstr "相机温度实际平均值（°C）："
 
-#: templates/_journal_section.html:2317
+#: templates/_journal_section.html:2292
 msgid "e.g., 1x1"
 msgstr "例如：1x1"
 
-#: templates/_journal_section.html:2318
+#: templates/_journal_section.html:2293
 msgid "Filter Used (if broadband/single):"
 msgstr "使用的滤镜（如果是宽波段/单色）："
 
-#: templates/_journal_section.html:2318
+#: templates/_journal_section.html:2293
 msgid "e.g., L-Pro, None"
 msgstr "例如：L-Pro, 无"
 
-#: templates/_journal_section.html:2319 templates/journal_form.html:162
+#: templates/_journal_section.html:2294 templates/journal_form.html:157
 msgid "Monochrome Filter Exposures"
 msgstr "单色滤镜曝光"
 
-#: templates/_journal_section.html:2324 templates/_journal_section.html:2342
-#: templates/_journal_section.html:2515
+#: templates/_journal_section.html:2299 templates/_journal_section.html:2317
+#: templates/_journal_section.html:2491
 msgid "# Subs"
 msgstr "# 子帧"
 
-#: templates/_journal_section.html:2324 templates/_journal_section.html:2345
-#: templates/_journal_section.html:2516 templates/journal_form.html:173
+#: templates/_journal_section.html:2299 templates/_journal_section.html:2320
+#: templates/_journal_section.html:2492 templates/journal_form.html:168
 msgid "Count"
 msgstr "数量"
 
-#: templates/_journal_section.html:2325 templates/_journal_section.html:2349
-#: templates/_journal_section.html:2517 templates/journal_form.html:176
+#: templates/_journal_section.html:2300 templates/_journal_section.html:2324
+#: templates/_journal_section.html:2493 templates/journal_form.html:171
 msgid "Exp (sec/sub):"
 msgstr "曝光时间（秒/帧）："
 
-#: templates/_journal_section.html:2325 templates/_journal_section.html:2352
-#: templates/_journal_section.html:2518 templates/journal_form.html:177
+#: templates/_journal_section.html:2300 templates/_journal_section.html:2327
+#: templates/_journal_section.html:2494 templates/journal_form.html:172
 msgid "Seconds"
 msgstr "秒"
 
-#: templates/_journal_section.html:2339 templates/_journal_section.html:2514
+#: templates/_journal_section.html:2314 templates/_journal_section.html:2490
 msgid "Remove filter"
 msgstr "移除滤镜"
 
-#: templates/_journal_section.html:2361
+#: templates/_journal_section.html:2336
 msgid "Filter name (e.g. NB-II)"
 msgstr "滤镜名称（例如 NB-II）"
 
-#: templates/_journal_section.html:2367
+#: templates/_journal_section.html:2342
 msgid "+ Add Filter"
 msgstr "+ 添加滤镜"
 
-#: templates/_journal_section.html:2374 templates/journal_form.html:184
+#: templates/_journal_section.html:2349 templates/journal_form.html:179
 msgid "e.g., Library match, Taken post-session"
 msgstr "例如：库匹配，会后拍摄"
 
-#: templates/_journal_section.html:2375 templates/journal_form.html:188
+#: templates/_journal_section.html:2350 templates/journal_form.html:183
 msgid "e.g., Morning sky, Panel"
 msgstr "例如：晨光天空，平场"
 
-#: templates/_journal_section.html:2376 templates/journal_form.html:191
+#: templates/_journal_section.html:2351 templates/journal_form.html:186
 msgid "Bias / Dark Flats:"
 msgstr "偏置 / 暗平场："
 
-#: templates/_journal_section.html:2376 templates/journal_form.html:192
+#: templates/_journal_section.html:2351 templates/journal_form.html:187
 msgid "e.g., Library match"
 msgstr "例如：库匹配"
 
-#: templates/_journal_section.html:2378 templates/journal_form.html:198
+#: templates/_journal_section.html:2353 templates/journal_form.html:193
 msgid "Session Rating (1-5 ★):"
 msgstr "会话评分（1-5 星）："
 
-#: templates/_journal_section.html:2381 templates/journal_form.html:205
+#: templates/_journal_section.html:2356 templates/journal_form.html:200
 msgid "General Notes, Problems, Learnings:"
 msgstr "常规说明、问题、心得："
 
-#: templates/_journal_section.html:2384 templates/_journal_section.html:2527
+#: templates/_journal_section.html:2359 templates/_journal_section.html:2503
 msgid "Ask Nova for session summary"
 msgstr "Ask Nova for session summary"
 
-#: templates/_journal_section.html:2395
+#: templates/_journal_section.html:2371
 msgid "Current Image:"
 msgstr "当前图片："
 
-#: templates/_journal_section.html:2395
+#: templates/_journal_section.html:2371
 msgid "Delete Image"
 msgstr "删除图片"
 
-#: templates/_journal_section.html:2396
+#: templates/_journal_section.html:2372
 msgid "Upload New or Replace Image (optional, max 5MB)"
 msgstr "上传新图片或替换图片（可选，最大 5MB）"
 
-#: templates/_journal_section.html:2399
+#: templates/_journal_section.html:2375
 msgid "Session Logs (Optional)"
 msgstr "会话日志（可选）"
 
-#: templates/_journal_section.html:2402
+#: templates/_journal_section.html:2378
 #, fuzzy
 msgid "ASIAIR Log"
 msgstr "ASIAIR 日志："
 
-#: templates/_journal_section.html:2405 templates/_journal_section.html:2418
-#: templates/_journal_section.html:2431
+#: templates/_journal_section.html:2381 templates/_journal_section.html:2394
+#: templates/_journal_section.html:2407
 msgid "Uploaded"
 msgstr "已上传"
 
-#: templates/_journal_section.html:2407 templates/_journal_section.html:2420
-#: templates/_journal_section.html:2433 templates/_objects_section.html:88
+#: templates/_journal_section.html:2383 templates/_journal_section.html:2396
+#: templates/_journal_section.html:2409 templates/_objects_section.html:88
 #: templates/admin_users.html:110 templates/base.html:112
 #: templates/index.html:99
 msgid "Delete"
 msgstr "删除"
 
-#: templates/_journal_section.html:2415
+#: templates/_journal_section.html:2391
 #, fuzzy
 msgid "PHD2 Guide Log"
 msgstr "PHD2 导星日志："
 
-#: templates/_journal_section.html:2428
+#: templates/_journal_section.html:2404
 #, fuzzy
 msgid "NINA Log"
 msgstr "Nova 徽标"
 
-#: templates/_journal_section.html:2465
+#: templates/_journal_section.html:2441
 msgid "Search objects…"
 msgstr "搜索天体…"
 
-#: templates/_journal_section.html:2466
+#: templates/_journal_section.html:2442
 msgid "Sort order"
 msgstr "排序方式"
 
-#: templates/_journal_section.html:2467
+#: templates/_journal_section.html:2443
 msgid "Recent"
 msgstr "最近"
 
-#: templates/_journal_section.html:2468
+#: templates/_journal_section.html:2444
 msgid "Most Hours"
 msgstr "最多时长"
 
-#: templates/_journal_section.html:2512
+#: templates/_journal_section.html:2488
 msgid "Failed to fetch objects"
 msgstr "获取天体失败"
 
-#: templates/_journal_section.html:2513
+#: templates/_journal_section.html:2489
 msgid "No objects found"
 msgstr "未找到天体"
 
-#: templates/_journal_section.html:2519
+#: templates/_journal_section.html:2495
 msgid "Enter a filter name."
 msgstr "请输入滤镜名称。"
 
-#: templates/_journal_section.html:2520
+#: templates/_journal_section.html:2496
 msgid "Error adding filter."
 msgstr "添加滤镜时出错。"
 
-#: templates/_journal_section.html:2521
+#: templates/_journal_section.html:2497
 #, python-brace-format
 msgid "{label} added."
 msgstr "{label} 已添加。"
 
-#: templates/_journal_section.html:2522
+#: templates/_journal_section.html:2498
 msgid "Network error."
 msgstr "网络错误。"
 
-#: templates/_journal_section.html:2523
+#: templates/_journal_section.html:2499
 #, python-brace-format
 msgid "Remove \"{label}\"? Historical session data for this filter is kept."
 msgstr "删除\"{label}\"？此滤镜的历史会话数据将被保留。"
 
-#: templates/_journal_section.html:2524
+#: templates/_journal_section.html:2500
 msgid "Error removing filter."
 msgstr "删除滤镜时出错。"
 
-#: templates/_journal_section.html:2525
+#: templates/_journal_section.html:2501
 #, python-brace-format
 msgid "{label} removed."
 msgstr "{label} 已删除。"
 
-#: templates/_journal_section.html:2526 templates/base.html:244
-#: templates/graph_view.html:438 templates/index.html:112
+#: templates/_journal_section.html:2502 templates/base.html:244
+#: templates/graph_view.html:448 templates/index.html:112
 msgid "Ask Nova"
 msgstr "Ask Nova"
 
-#: templates/_journal_section.html:2528
+#: templates/_journal_section.html:2504
 msgid "Analyzing your session..."
 msgstr "分析目标中..."
 
-#: templates/_journal_section.html:2529
+#: templates/_journal_section.html:2505
 msgid "Reviewing conditions..."
 msgstr "审查条件..."
 
-#: templates/_journal_section.html:2530
+#: templates/_journal_section.html:2506
 msgid "Checking guiding data..."
 msgstr "更新数据中..."
 
-#: templates/_journal_section.html:2531 templates/base.html:256
-#: templates/graph_view.html:444
+#: templates/_journal_section.html:2507 templates/base.html:256
+#: templates/graph_view.html:454
 msgid "Almost there..."
 msgstr "快到了..."
 
-#: templates/_journal_section.html:2532
+#: templates/_journal_section.html:2508
 msgid "Nova writing…"
 msgstr "Nova writing…"
 
-#: templates/_journal_section.html:2533
+#: templates/_journal_section.html:2509
 msgid "words"
 msgstr "密码"
 
-#: templates/_journal_section.html:2534
+#: templates/_journal_section.html:2510
 msgid "Nova has a summary ready. What would you like to do?"
 msgstr "Nova 已准备好摘要。你想怎么做？"
 
-#: templates/_journal_section.html:2535 templates/graph_view.html:447
+#: templates/_journal_section.html:2511 templates/graph_view.html:457
 msgid "Overwrite"
 msgstr "概览"
 
-#: templates/_journal_section.html:2536 templates/graph_view.html:448
+#: templates/_journal_section.html:2512 templates/graph_view.html:458
 msgid "Append"
 msgstr "附加"
 
-#: templates/_journal_section.html:2538
+#: templates/_journal_section.html:2514
 msgid "Nova error"
 msgstr "Nova error"
 
-#: templates/_journal_section.html:2539
+#: templates/_journal_section.html:2515
 #, fuzzy
 msgid "Draft saved"
 msgstr "保存"
 
-#: templates/_journal_section.html:2540
+#: templates/_journal_section.html:2516
 msgid "Please save the session first before asking Nova."
 msgstr "请先保存观测记录，再使用 Nova 功能。"
 
@@ -1952,7 +1965,7 @@ msgstr "查找重复项"
 msgid "Filter ID"
 msgstr "筛选 ID"
 
-#: templates/_objects_section.html:31 templates/mobile_journal_new.html:20
+#: templates/_objects_section.html:31 templates/mobile_journal_new.html:216
 msgid "e.g., M42"
 msgstr "例如：M42"
 
@@ -1975,9 +1988,9 @@ msgid "e.g., Cyg"
 msgstr "例如：Cyg"
 
 #: templates/_objects_section.html:42 templates/_objects_section.html:138
-#: templates/_objects_section.html:290 templates/config_form.html:542
-#: templates/config_form.html:606 templates/index.html:144
-#: templates/mobile_up_now.html:969
+#: templates/_objects_section.html:290 templates/config_form.html:572
+#: templates/config_form.html:636 templates/index.html:144
+#: templates/mobile_up_now.html:965
 msgid "Type"
 msgstr "类型"
 
@@ -2006,13 +2019,13 @@ msgid "Shared by Me"
 msgstr "我分享的"
 
 #: templates/_objects_section.html:54 templates/_objects_section.html:111
-#: templates/base.html:120 templates/config_form.html:560
-#: templates/config_form.html:589 templates/config_form.html:625
+#: templates/base.html:120 templates/config_form.html:590
+#: templates/config_form.html:619 templates/config_form.html:655
 msgid "Imported"
 msgstr "已导入"
 
 #: templates/_objects_section.html:58 templates/_objects_section.html:158
-#: templates/graph_view.html:210
+#: templates/graph_view.html:219
 msgid "Source"
 msgstr "来源"
 
@@ -2020,9 +2033,9 @@ msgstr "来源"
 msgid "e.g., messier (use = for exact)"
 msgstr "例如：messier（使用 = 表示精确匹配）"
 
-#: templates/_objects_section.html:63 templates/config_form.html:545
-#: templates/graph_view.html:162 templates/mobile_journal_new.html:143
-#: templates/mobile_object_detail.html:519 templates/project_report.html:1086
+#: templates/_objects_section.html:63 templates/config_form.html:575
+#: templates/graph_view.html:171 templates/mobile_journal_new.html:376
+#: templates/mobile_object_detail.html:534 templates/project_report.html:1074
 msgid "Notes"
 msgstr "备注"
 
@@ -2101,7 +2114,7 @@ msgid "Enabled"
 msgstr "已启用"
 
 #: templates/_objects_section.html:172 templates/_objects_section.html:309
-#: templates/graph_view.html:177
+#: templates/graph_view.html:186
 msgid "Active Project"
 msgstr "活跃项目"
 
@@ -2109,7 +2122,7 @@ msgstr "活跃项目"
 msgid "Update"
 msgstr "更新"
 
-#: templates/_objects_section.html:184 templates/graph_view.html:187
+#: templates/_objects_section.html:184 templates/graph_view.html:196
 msgid "Inspiration Content"
 msgstr "灵感内容"
 
@@ -2158,7 +2171,7 @@ msgid "Personal notes... (not shared)"
 msgstr "个人备注...（不共享）"
 
 #: templates/_objects_section.html:236 templates/_objects_section.html:425
-#: templates/config_form.html:640
+#: templates/config_form.html:670
 msgid "Shared Notes"
 msgstr "共享备注"
 
@@ -2174,7 +2187,7 @@ msgstr "与其他用户分享此天体"
 msgid "Update Objects"
 msgstr "更新天体"
 
-#: templates/_objects_section.html:265 templates/config_form.html:540
+#: templates/_objects_section.html:265 templates/config_form.html:570
 #: templates/index.html:191 templates/mobile_add_object.html:17
 msgid "Object ID"
 msgstr "天体 ID"
@@ -2258,8 +2271,8 @@ msgid ""
 "overwritten, and overlapping objects are skipped."
 msgstr "星表包是服务器提供的天体集合，您可以将其导入到您的库中。导入不会破坏性修改：现有天体永远不会被覆盖，重叠的天体将被跳过。"
 
-#: templates/_objects_section.html:386 templates/config_form.html:577
-#: templates/graph_view.html:206
+#: templates/_objects_section.html:386 templates/config_form.html:607
+#: templates/graph_view.html:215
 msgid "Description"
 msgstr "描述"
 
@@ -2271,8 +2284,8 @@ msgstr "标签"
 msgid "Objects"
 msgstr "天体"
 
-#: templates/_objects_section.html:389 templates/config_form.html:546
-#: templates/config_form.html:579 templates/config_form.html:608
+#: templates/_objects_section.html:389 templates/config_form.html:576
+#: templates/config_form.html:609 templates/config_form.html:638
 msgid "Action"
 msgstr "操作"
 
@@ -2291,13 +2304,12 @@ msgstr "可能的重复项"
 
 #: templates/_objects_section.html:435
 msgid ""
-"These pairs are located within 2.5 arcminutes of each other. Merging will "
-"move all journals, projects, and framings to the \"Kept\" object and delete "
-"the other. Please note that objects from different catalogs might have "
-"slightly different RA / DEC and will therefore not be considered as "
+"These pairs are located within 2.5 arcminutes of each other. Merging will"
+" move all journals, projects, and framings to the \"Kept\" object and "
+"delete the other. Please note that objects from different catalogs might "
+"have slightly different RA / DEC and will therefore not be considered as "
 "duplicates."
-msgstr ""
-"这些对彼此位于2.5角分之内。合并将所有日记、项目和构图移至\"保留\"天体，并删除另一个天体。请注意，来自不同星表的天体可能具有略有不同的RA/DEC，因此不会被视为重复项。"
+msgstr "这些对彼此位于2.5角分之内。合并将所有日记、项目和构图移至\"保留\"天体，并删除另一个天体。请注意，来自不同星表的天体可能具有略有不同的RA/DEC，因此不会被视为重复项。"
 
 #: templates/_objects_section.html:438
 msgid "Scanning catalog... (this may take a few seconds)"
@@ -2309,8 +2321,8 @@ msgstr "成像机会"
 
 #: templates/_opportunities_section.html:35 templates/index.html:184
 #: templates/index.html:194 templates/index.html:212
-#: templates/journal_report.html:686 templates/mobile_journal_new.html:14
-#: templates/project_report.html:864
+#: templates/journal_report.html:686 templates/mobile_journal_new.html:210
+#: templates/project_report.html:859
 msgid "Date"
 msgstr "日期"
 
@@ -2345,9 +2357,9 @@ msgstr "添加到日历"
 
 #: templates/_project_subtab.html:145
 msgid ""
-"This object is not currently linked to a Project. The **Project Details** "
-"sub-tab will only appear if the object is the primary target of an existing "
-"project."
+"This object is not currently linked to a Project. The **Project Details**"
+" sub-tab will only appear if the object is the primary target of an "
+"existing project."
 msgstr "此天体当前未关联到项目。仅当天体是现有项目的主要目标时，才会显示**项目详细信息**子选项卡。"
 
 #: templates/_project_subtab.html:153
@@ -2378,8 +2390,8 @@ msgstr "日期（UTC）"
 #: templates/_project_subtab.html:195 templates/graph_view.html:52
 #: templates/index.html:36 templates/index.html:185 templates/index.html:195
 #: templates/journal_report.html:688 templates/mobile_base.html:30
-#: templates/mobile_base.html:68 templates/mobile_journal_new.html:24
-#: templates/project_report.html:865
+#: templates/mobile_base.html:68 templates/mobile_journal_new.html:225
+#: templates/project_report.html:860
 msgid "Location"
 msgstr "位置"
 
@@ -2387,11 +2399,11 @@ msgstr "位置"
 msgid "Integ. Time"
 msgstr "积分时间"
 
-#: templates/_project_subtab.html:198 templates/project_report.html:1121
+#: templates/_project_subtab.html:198 templates/project_report.html:1109
 msgid "SQM"
 msgstr "SQM"
 
-#: templates/_project_subtab.html:199 templates/project_report.html:1107
+#: templates/_project_subtab.html:199 templates/project_report.html:1095
 msgid "Seeing"
 msgstr "视宁度"
 
@@ -2480,7 +2492,7 @@ msgstr "操作"
 msgid "admin"
 msgstr "管理员"
 
-#: templates/admin_users.html:86 templates/mobile_up_now.html:890
+#: templates/admin_users.html:86 templates/mobile_up_now.html:894
 msgid "Active"
 msgstr "活跃"
 
@@ -2690,13 +2702,13 @@ msgstr "-- 选择望远镜 --"
 msgid "Select Camera"
 msgstr "-- 选择相机 --"
 
-#: templates/base.html:141 templates/config_form.html:615
-#: templates/project_report.html:1139
+#: templates/base.html:141 templates/config_form.html:645
+#: templates/project_report.html:1127
 msgid "Telescope"
 msgstr "望远镜"
 
-#: templates/base.html:142 templates/config_form.html:616
-#: templates/project_report.html:1143
+#: templates/base.html:142 templates/config_form.html:646
+#: templates/project_report.html:1131
 msgid "Camera"
 msgstr "相机"
 
@@ -2821,7 +2833,7 @@ msgstr "剪贴板复制失败。"
 msgid "selected"
 msgstr "已选 0 项"
 
-#: templates/base.html:176 templates/mobile_object_detail.html:574
+#: templates/base.html:176 templates/mobile_object_detail.html:589
 msgid "No imaging opportunities found."
 msgstr "成像机会"
 
@@ -2863,7 +2875,7 @@ msgstr "SIMBAD 需要连接互联网才能加载数据。"
 msgid "SIMBAD requires an active internet connection."
 msgstr "SIMBAD 需要连接互联网。"
 
-#: templates/base.html:191 templates/mobile_object_detail.html:580
+#: templates/base.html:191 templates/mobile_object_detail.html:595
 msgid "Add to calendar"
 msgstr "添加到日历"
 
@@ -2875,7 +2887,8 @@ msgstr "添加组件时出错：%(error)s"
 #: templates/base.html:193
 #, python-format
 msgid ""
-"Failed to load imaging opportunities. Check console for details. (%(error)s)"
+"Failed to load imaging opportunities. Check console for details. "
+"(%(error)s)"
 msgstr "加载成像机会失败。请查看控制台了解详情。(%(error)s)"
 
 #: templates/base.html:194
@@ -3066,7 +3079,7 @@ msgstr "询问Nova时出错。请再试一次。"
 msgid "Consulting star charts..."
 msgstr "查阅星图..."
 
-#: templates/base.html:254 templates/graph_view.html:441
+#: templates/base.html:254 templates/graph_view.html:451
 msgid "Checking your rigs..."
 msgstr "查看当地图书馆..."
 
@@ -3141,86 +3154,86 @@ msgstr "该语言的翻译是机器生成的，可能不准确。请帮助我们
 msgid "Submit feedback"
 msgstr "提交反馈"
 
-#: templates/base.html:401 templates/config_form.html:283
-#: templates/config_form.html:351
+#: templates/base.html:402 templates/config_form.html:298
+#: templates/config_form.html:381
 msgid "Help"
 msgstr "帮助"
 
-#: templates/base.html:419
+#: templates/base.html:422
 msgid "Nova DSO Tracker Logo"
 msgstr "Nova DSO Tracker Logo"
 
-#: templates/base.html:421
+#: templates/base.html:424
 msgid "Version"
 msgstr "版本"
 
-#: templates/base.html:422
-msgid ""
-"A personal project born from a passion for astronomy and astrophotography."
+#: templates/base.html:425
+msgid "A personal project born from a passion for astronomy and astrophotography."
 msgstr "一个因对天文学和天体摄影的热情而诞生的个人项目。"
 
-#: templates/base.html:423
+#: templates/base.html:426
 msgid ""
 "Nova DSO Tracker helps amateur astronomers plan observation sessions, "
 "calculating and visualizing altitude and azimuth of deep-sky objects, "
-"tracking Moon position and phase, and identifying optimal viewing windows."
+"tracking Moon position and phase, and identifying optimal viewing "
+"windows."
 msgstr "Nova DSO Tracker 帮助业余天文学家规划观测会话，计算和可视化深空天体的高度和方位，跟踪月球位置和相位，并确定最佳观测窗口。"
 
-#: templates/base.html:424
+#: templates/base.html:427
 msgid "Data sourced from SIMBAD; calculations powered by Astropy and Ephem."
 msgstr "数据来源于 SIMBAD；计算由 Astropy 和 Ephem 驱动。"
 
-#: templates/base.html:432
+#: templates/base.html:435
 msgid "Visit nova-tracker.com"
 msgstr "访问 nova-tracker.com"
 
-#: templates/base.html:442
+#: templates/base.html:445
 msgid "Built by Anton Gutscher"
 msgstr "由 Anton Gutscher 构建"
 
-#: templates/base.html:457
+#: templates/base.html:460
 msgid "Translation Feedback"
 msgstr "翻译反馈"
 
-#: templates/base.html:458
+#: templates/base.html:461
 msgid "Help us improve the translations for this language."
 msgstr "帮助我们改进此语言的翻译。"
 
-#: templates/base.html:462
+#: templates/base.html:465
 msgid "Locale"
 msgstr "语言环境"
 
-#: templates/base.html:467
+#: templates/base.html:470
 msgid "Term / Phrase"
 msgstr "术语 / 短语"
 
-#: templates/base.html:468
+#: templates/base.html:471
 msgid "The translated term that seems wrong..."
 msgstr "似乎有误的翻译术语..."
 
-#: templates/base.html:472
+#: templates/base.html:475
 msgid "Suggested Correction"
 msgstr "建议修正"
 
-#: templates/base.html:473
+#: templates/base.html:476
 msgid "Your suggested translation..."
 msgstr "您的建议翻译..."
 
-#: templates/base.html:477
+#: templates/base.html:480
 msgid "Context / Notes"
 msgstr "上下文 / 备注"
 
-#: templates/base.html:477
+#: templates/base.html:480
 msgid "optional"
 msgstr "(可选)"
 
-#: templates/base.html:478
+#: templates/base.html:481
 msgid ""
 "Additional context about where this appears or why the correction is "
 "needed..."
 msgstr "关于其出现位置或为何需要修正的附加上下文..."
 
-#: templates/base.html:482
+#: templates/base.html:485
 msgid "Submit"
 msgstr "提交"
 
@@ -3338,8 +3351,8 @@ msgstr "计算不可见天体："
 #: templates/config_form.html:188
 msgid ""
 "If checked, Nova will calculate curves for ALL objects, even those "
-"geometrically impossible to see from your location (disabling the \"Smart "
-"Skip\" optimization)."
+"geometrically impossible to see from your location (disabling the \"Smart"
+" Skip\" optimization)."
 msgstr "如果选中，Nova将计算所有天体的曲线，包括从您的位置几何上不可能看到的天体（禁用\"智能跳过\"优化）。"
 
 #: templates/config_form.html:194
@@ -3348,9 +3361,9 @@ msgstr "隐藏不可见天体："
 
 #: templates/config_form.html:199
 msgid ""
-"If checked, objects that are geometrically impossible to see will be hidden "
-"from the main list by default. They will still appear if you specifically "
-"search for them."
+"If checked, objects that are geometrically impossible to see will be "
+"hidden from the main list by default. They will still appear if you "
+"specifically search for them."
 msgstr "如果选中，几何上不可能看到的天体将默认从主列表中隐藏。如果您专门搜索它们，它们仍会显示。"
 
 #: templates/config_form.html:206
@@ -3381,8 +3394,8 @@ msgstr "最快（60 分钟采样）"
 msgid ""
 "Note: Your 'Current Altitude' is always calculated in real-time. This "
 "setting only refines the accuracy of the nightly overview values (Max "
-"Altitude, Observable Duration, etc.). 'Fast' is recommended for low-power "
-"devices."
+"Altitude, Observable Duration, etc.). 'Fast' is recommended for low-power"
+" devices."
 msgstr "注意：您的'当前高度'始终实时计算。此设置仅优化夜览概览值的准确性（最大高度、可观测持续时间等）。对于低功耗设备，建议使用'快速'。"
 
 #: templates/config_form.html:224
@@ -3391,12 +3404,11 @@ msgstr "匿名遥测："
 
 #: templates/config_form.html:229
 msgid ""
-"Nova sends a small anonymous heartbeat (app version, system type, and counts"
-" of your data entries like objects, rigs, locations, and journals). No "
-"personal details are ever collected, and you can opt out anytime. Allowing "
-"it really helps me improve Nova."
-msgstr ""
-"Nova会发送一个小的匿名心跳（应用版本、系统类型和您的数据条目计数，如天体、设备配置、位置和日记）。绝不会收集个人详细信息，您可以随时选择退出。允许它确实有助于我改进Nova。"
+"Nova sends a small anonymous heartbeat (app version, system type, and "
+"counts of your data entries like objects, rigs, locations, and journals)."
+" No personal details are ever collected, and you can opt out anytime. "
+"Allowing it really helps me improve Nova."
+msgstr "Nova会发送一个小的匿名心跳（应用版本、系统类型和您的数据条目计数，如天体、设备配置、位置和日记）。绝不会收集个人详细信息，您可以随时选择退出。允许它确实有助于我改进Nova。"
 
 #: templates/config_form.html:234
 msgid "Save Settings"
@@ -3410,8 +3422,8 @@ msgstr "位置配置"
 msgid "Add New Location"
 msgstr "添加新位置"
 
-#: templates/config_form.html:252 templates/config_form.html:392
-#: templates/config_form.html:411 templates/config_form.html:431
+#: templates/config_form.html:252 templates/config_form.html:422
+#: templates/config_form.html:441 templates/config_form.html:461
 #: templates/index.html:257
 msgid "Name:"
 msgstr "名称："
@@ -3420,15 +3432,15 @@ msgstr "名称："
 msgid "e.g., Home Observatory"
 msgstr "例如：家庭天文台"
 
-#: templates/config_form.html:256 templates/config_form.html:315
+#: templates/config_form.html:256 templates/config_form.html:330
 msgid "Lat:"
 msgstr "纬度："
 
-#: templates/config_form.html:260 templates/config_form.html:319
+#: templates/config_form.html:260 templates/config_form.html:334
 msgid "Lon:"
 msgstr "经度："
 
-#: templates/config_form.html:264 templates/config_form.html:323
+#: templates/config_form.html:264 templates/config_form.html:338
 msgid "Timezone:"
 msgstr "时区："
 
@@ -3436,448 +3448,504 @@ msgstr "时区："
 msgid "Type to search..."
 msgstr "输入以搜索..."
 
-#: templates/config_form.html:273 templates/config_form.html:331
+#: templates/config_form.html:273 templates/config_form.html:346
 msgid "Active:"
 msgstr "活跃："
 
-#: templates/config_form.html:282 templates/config_form.html:350
+#: templates/config_form.html:277 templates/config_form.html:350
+#, fuzzy
+msgid "Bortle:"
+msgstr "说明："
+
+#: templates/config_form.html:279 templates/config_form.html:352
+#, fuzzy
+msgid "Not set"
+msgstr "备注"
+
+#: templates/config_form.html:280 templates/config_form.html:353
+msgid "Exceptional dark sky"
+msgstr ""
+
+#: templates/config_form.html:281 templates/config_form.html:354
+msgid "Truly dark sky"
+msgstr ""
+
+#: templates/config_form.html:282 templates/config_form.html:355
+msgid "Rural sky"
+msgstr ""
+
+#: templates/config_form.html:283 templates/config_form.html:356
+msgid "Rural/suburban transition"
+msgstr ""
+
+#: templates/config_form.html:284 templates/config_form.html:357
+msgid "Suburban sky"
+msgstr ""
+
+#: templates/config_form.html:285 templates/config_form.html:358
+msgid "Bright suburban sky"
+msgstr ""
+
+#: templates/config_form.html:286 templates/config_form.html:359
+msgid "Suburban/urban transition"
+msgstr ""
+
+#: templates/config_form.html:287 templates/config_form.html:360
+msgid "City sky"
+msgstr ""
+
+#: templates/config_form.html:288 templates/config_form.html:361
+msgid "Inner-city sky"
+msgstr ""
+
+#: templates/config_form.html:297 templates/config_form.html:380
 msgid "Horizon Mask:"
 msgstr "地平线遮罩："
 
-#: templates/config_form.html:286 templates/config_form.html:354
+#: templates/config_form.html:301 templates/config_form.html:384
 msgid "Optional. e.g., [[0, 35], [90, 15]]"
 msgstr "可选。例如：[[0, 35], [90, 15]]"
 
-#: templates/config_form.html:288 templates/config_form.html:356
+#: templates/config_form.html:303 templates/config_form.html:386
 msgid "Import a Stellarium .hzn horizon file"
 msgstr "导入 Stellarium .hzn 地平线文件"
 
-#: templates/config_form.html:288 templates/config_form.html:356
+#: templates/config_form.html:303 templates/config_form.html:386
 msgid "Import .hzn"
 msgstr "导入 .hzn"
 
-#: templates/config_form.html:298 templates/config_form.html:365
+#: templates/config_form.html:313 templates/config_form.html:395
 msgid "Comments:"
 msgstr "备注："
 
-#: templates/config_form.html:299 templates/config_form.html:366
+#: templates/config_form.html:314 templates/config_form.html:396
 msgid "Notes on sky quality, obstructions, etc."
 msgstr "关于天空质量、遮挡等的备注。"
 
-#: templates/config_form.html:304
+#: templates/config_form.html:319
 msgid "Add"
 msgstr "添加"
 
-#: templates/config_form.html:335
+#: templates/config_form.html:365
 msgid "Del:"
 msgstr "删除："
 
-#: templates/config_form.html:337
+#: templates/config_form.html:367
 msgid "Cannot delete your only location"
 msgstr "无法删除您的唯一位置"
 
-#: templates/config_form.html:341
+#: templates/config_form.html:371
 msgid "View on Google Maps"
 msgstr "在 Google 地图上查看"
 
-#: templates/config_form.html:342
+#: templates/config_form.html:372
 msgid "Open Map"
 msgstr "打开地图"
 
-#: templates/config_form.html:373
+#: templates/config_form.html:403
 msgid "Update Locations"
 msgstr "更新位置"
 
-#: templates/config_form.html:384
+#: templates/config_form.html:414
 msgid "1. Define Your Components"
 msgstr "1. 定义您的组件"
 
-#: templates/config_form.html:385
+#: templates/config_form.html:415
 msgid "Help with Rigs"
 msgstr "设备帮助"
 
-#: templates/config_form.html:387
+#: templates/config_form.html:417
 msgid ""
-"Add or update your equipment here. To edit an item, click \"Edit\" to load "
-"its details into the form, make your changes, and click the \"Update\" "
-"button."
+"Add or update your equipment here. To edit an item, click \"Edit\" to "
+"load its details into the form, make your changes, and click the "
+"\"Update\" button."
 msgstr "在此处添加或更新您的设备。要编辑项目，请点击\"编辑\"将其详细信息加载到表单中，进行更改，然后点击\"更新\"按钮。"
 
-#: templates/config_form.html:388
+#: templates/config_form.html:418
 msgid "Telescopes"
 msgstr "望远镜"
 
-#: templates/config_form.html:392
+#: templates/config_form.html:422
 msgid "e.g., Celestron EdgeHD 11"
 msgstr "例如：Celestron EdgeHD 11"
 
-#: templates/config_form.html:393
+#: templates/config_form.html:423
 msgid "Aperture (mm):"
 msgstr "口径（mm）："
 
-#: templates/config_form.html:394
+#: templates/config_form.html:424
 msgid "Focal Length (mm):"
 msgstr "焦距（mm）："
 
-#: templates/config_form.html:398 templates/config_form.html:418
-#: templates/config_form.html:436
+#: templates/config_form.html:428 templates/config_form.html:448
+#: templates/config_form.html:466
 msgid "Share this component"
 msgstr "分享此组件"
 
-#: templates/config_form.html:401
+#: templates/config_form.html:431
 msgid "Add Telescope"
 msgstr "添加望远镜"
 
-#: templates/config_form.html:407
+#: templates/config_form.html:437
 msgid "Cameras"
 msgstr "相机"
 
-#: templates/config_form.html:411
+#: templates/config_form.html:441
 msgid "e.g., ZWO ASI2600MC Pro"
 msgstr "例如：ZWO ASI2600MC Pro"
 
-#: templates/config_form.html:412
+#: templates/config_form.html:442
 msgid "Sensor Width (mm):"
 msgstr "传感器宽度（mm）："
 
-#: templates/config_form.html:413
+#: templates/config_form.html:443
 msgid "Sensor Height (mm):"
 msgstr "传感器高度（mm）："
 
-#: templates/config_form.html:414
+#: templates/config_form.html:444
 msgid "Pixel Size (μm):"
 msgstr "像素大小（μm）："
 
-#: templates/config_form.html:421
+#: templates/config_form.html:451
 msgid "Add Camera"
 msgstr "添加相机"
 
-#: templates/config_form.html:427
+#: templates/config_form.html:457
 msgid "Reducers / Extenders"
 msgstr "减焦镜 / 增距镜"
 
-#: templates/config_form.html:431
+#: templates/config_form.html:461
 msgid "e.g., Celestron 0.7x Reducer"
 msgstr "例如：Celestron 0.7x 减焦镜"
 
-#: templates/config_form.html:432
+#: templates/config_form.html:462
 msgid "Factor:"
 msgstr "系数："
 
-#: templates/config_form.html:432
+#: templates/config_form.html:462
 msgid "e.g., 0.7 for reducer"
 msgstr "例如：0.7 表示减焦镜"
 
-#: templates/config_form.html:439
+#: templates/config_form.html:469
 msgid "Add Reducer/Extender"
 msgstr "添加减焦镜/增距镜"
 
-#: templates/config_form.html:446
+#: templates/config_form.html:476
 msgid "2. Configure Your Rigs"
 msgstr "2. 配置您的设备"
 
-#: templates/config_form.html:447
+#: templates/config_form.html:477
 msgid ""
-"Combine your components into a complete imaging rig. To edit, click \"Edit\""
-" to load the rig into the form below."
+"Combine your components into a complete imaging rig. To edit, click "
+"\"Edit\" to load the rig into the form below."
 msgstr "将您的组件组合成完整的成像设备。要编辑，请点击\"编辑\"将设备加载到下方的表单中。"
 
-#: templates/config_form.html:450
+#: templates/config_form.html:480
 msgid "Rig Name:"
 msgstr "设备名称："
 
-#: templates/config_form.html:450
+#: templates/config_form.html:480
 msgid "e.g., C11 Deep Sky Rig"
 msgstr "例如：C11 深空设备"
 
-#: templates/config_form.html:454
+#: templates/config_form.html:484
 msgid "-- Select a Telescope --"
 msgstr "-- 选择望远镜 --"
 
-#: templates/config_form.html:460
+#: templates/config_form.html:490
 msgid "-- Select a Camera --"
 msgstr "-- 选择相机 --"
 
-#: templates/config_form.html:464
+#: templates/config_form.html:494
 msgid "Reducer / Extender (Optional):"
 msgstr "减焦镜 / 增距镜（可选）："
 
-#: templates/config_form.html:466 templates/config_form.html:482
-#: templates/config_form.html:488
+#: templates/config_form.html:496 templates/config_form.html:512
+#: templates/config_form.html:518
 msgid "-- None --"
 msgstr "-- 无 --"
 
-#: templates/config_form.html:471
+#: templates/config_form.html:501
 msgid "Guide Optics"
 msgstr "导星光学系统"
 
-#: templates/config_form.html:471
+#: templates/config_form.html:501
 msgid "Optional — for dither recommendations"
 msgstr "可选 — 用于抖动建议"
 
-#: templates/config_form.html:476
+#: templates/config_form.html:506
 msgid "Off-Axis Guider (OAG) — uses main scope focal length"
 msgstr "偏轴导星器（OAG）— 使用主镜焦距"
 
-#: templates/config_form.html:480
+#: templates/config_form.html:510
 msgid "Guide Scope:"
 msgstr "导星镜："
 
-#: templates/config_form.html:486
+#: templates/config_form.html:516
 msgid "Guide Camera:"
 msgstr "导星相机："
 
-#: templates/config_form.html:492
+#: templates/config_form.html:522
 msgid "Create Rig"
 msgstr "创建设备"
 
-#: templates/config_form.html:496
+#: templates/config_form.html:526
 msgid "Select Your Typical Seeing:"
 msgstr "选择您的典型视宁度："
 
-#: templates/config_form.html:498
+#: templates/config_form.html:528
 msgid "-- Select Seeing to Assess Rigs --"
 msgstr "-- 选择视宁度以评估设备 --"
 
-#: templates/config_form.html:499
+#: templates/config_form.html:529
 msgid "Excellent Seeing (1.0\" - 2.0\" FWHM)"
 msgstr "优秀视宁度（1.0\" - 2.0\" FWHM）"
 
-#: templates/config_form.html:500
+#: templates/config_form.html:530
 msgid "Good Seeing (2.0\" - 4.0\" FWHM)"
 msgstr "良好视宁度（2.0\" - 4.0\" FWHM）"
 
-#: templates/config_form.html:501
+#: templates/config_form.html:531
 msgid "Poor Seeing (> 4.0\" FWHM)"
 msgstr "较差视宁度（> 4.0\" FWHM）"
 
-#: templates/config_form.html:505
+#: templates/config_form.html:535
 msgid "Sort rigs by:"
 msgstr "设备排序方式："
 
-#: templates/config_form.html:507
+#: templates/config_form.html:537
 msgid "Name (A→Z)"
 msgstr "名称（A→Z）"
 
-#: templates/config_form.html:508
+#: templates/config_form.html:538
 msgid "Name (Z→A)"
 msgstr "名称（Z→A）"
 
-#: templates/config_form.html:509
+#: templates/config_form.html:539
 msgid "Effective Focal Length (low→high)"
 msgstr "有效焦距（低→高）"
 
-#: templates/config_form.html:510
+#: templates/config_form.html:540
 msgid "Effective Focal Length (high→low)"
 msgstr "有效焦距（高→低）"
 
-#: templates/config_form.html:511
+#: templates/config_form.html:541
 msgid "f/ratio (low→high)"
 msgstr "焦比（低→高）"
 
-#: templates/config_form.html:512
+#: templates/config_form.html:542
 msgid "f/ratio (high→low)"
 msgstr "焦比（高→低）"
 
-#: templates/config_form.html:513
+#: templates/config_form.html:543
 msgid "Image Scale (low→high)"
 msgstr "图像比例（低→高）"
 
-#: templates/config_form.html:514
+#: templates/config_form.html:544
 msgid "Image Scale (high→low)"
 msgstr "图像比例（高→低）"
 
-#: templates/config_form.html:515
+#: templates/config_form.html:545
 msgid "FOV Width (low→high)"
 msgstr "视场宽度（低→高）"
 
-#: templates/config_form.html:516
+#: templates/config_form.html:546
 msgid "FOV Width (high→low)"
 msgstr "视场宽度（高→低）"
 
-#: templates/config_form.html:517
+#: templates/config_form.html:547
 msgid "Recently Added (newest first)"
 msgstr "最近添加（最新的在前）"
 
-#: templates/config_form.html:518
+#: templates/config_form.html:548
 msgid "Recently Added (oldest first)"
 msgstr "最近添加（最旧的在前）"
 
-#: templates/config_form.html:521
+#: templates/config_form.html:551
 msgid "Existing Rigs"
 msgstr "现有设备"
 
-#: templates/config_form.html:529
+#: templates/config_form.html:559
 msgid "Shared Items from Other Users"
 msgstr "其他用户共享的项"
 
-#: templates/config_form.html:530
+#: templates/config_form.html:560
 msgid "Help with Shared Items"
 msgstr "共享项帮助"
 
-#: templates/config_form.html:532
+#: templates/config_form.html:562
 msgid ""
 "Here you can find Objects and Components shared by other users in the "
 "system. Click \"Import\" to add a copy to your own configuration."
 msgstr "在此处您可以找到系统中其他用户共享的天体和组件。点击\"导入\"将副本添加到您自己的配置中。"
 
-#: templates/config_form.html:534
+#: templates/config_form.html:564
 msgid "Shared Objects"
 msgstr "共享的天体"
 
-#: templates/config_form.html:539
+#: templates/config_form.html:569
 msgid "Img"
 msgstr "图片"
 
-#: templates/config_form.html:541 templates/index.html:133
+#: templates/config_form.html:571 templates/index.html:133
 #: templates/index.html:182 templates/index.html:211
 #: templates/mobile_add_object.html:21
 msgid "Common Name"
 msgstr "通用名称"
 
-#: templates/config_form.html:544 templates/config_form.html:578
-#: templates/config_form.html:607
+#: templates/config_form.html:574 templates/config_form.html:608
+#: templates/config_form.html:637
 msgid "Shared By"
 msgstr "共享者"
 
-#: templates/config_form.html:550
+#: templates/config_form.html:580
 msgid "Filter ID..."
 msgstr "筛选 ID..."
 
-#: templates/config_form.html:551 templates/config_form.html:582
-#: templates/config_form.html:611
+#: templates/config_form.html:581 templates/config_form.html:612
+#: templates/config_form.html:641
 msgid "Filter name..."
 msgstr "筛选名称..."
 
-#: templates/config_form.html:552
+#: templates/config_form.html:582
 msgid "Filter type..."
 msgstr "筛选类型..."
 
-#: templates/config_form.html:553
+#: templates/config_form.html:583
 msgid "Filter con..."
 msgstr "筛选星座..."
 
-#: templates/config_form.html:554 templates/config_form.html:584
-#: templates/config_form.html:620
+#: templates/config_form.html:584 templates/config_form.html:614
+#: templates/config_form.html:650
 msgid "Filter user..."
 msgstr "筛选用户..."
 
-#: templates/config_form.html:558 templates/config_form.html:587
-#: templates/config_form.html:623
+#: templates/config_form.html:588 templates/config_form.html:617
+#: templates/config_form.html:653
 msgid "All"
 msgstr "全部"
 
-#: templates/config_form.html:559 templates/config_form.html:588
-#: templates/config_form.html:624
+#: templates/config_form.html:589 templates/config_form.html:618
+#: templates/config_form.html:654
 msgid "Not Imported"
 msgstr "未导入"
 
-#: templates/config_form.html:571
+#: templates/config_form.html:601
 msgid "Shared Views"
 msgstr "共享视图"
 
-#: templates/config_form.html:576
+#: templates/config_form.html:606
 msgid "View Name"
 msgstr "视图名称"
 
-#: templates/config_form.html:583
+#: templates/config_form.html:613
 msgid "Filter desc..."
 msgstr "筛选描述..."
 
-#: templates/config_form.html:600
+#: templates/config_form.html:630
 msgid "Shared Components"
 msgstr "共享的组件"
 
-#: templates/config_form.html:605
+#: templates/config_form.html:635
 msgid "Component Name"
 msgstr "组件名称"
 
-#: templates/config_form.html:614
+#: templates/config_form.html:644
 msgid "All Types"
 msgstr "所有类型"
 
-#: templates/config_form.html:617
+#: templates/config_form.html:647
 msgid "Reducer/Extender"
 msgstr "减焦镜/增距镜"
 
-#: templates/config_form.html:649
+#: templates/config_form.html:679
 msgid "Fetching Details..."
 msgstr "获取详情中..."
 
-#: templates/config_form.html:653
+#: templates/config_form.html:683
 msgid "Please wait, communicating with SIMBAD..."
 msgstr "请稍候，正在与 SIMBAD 通信..."
 
 #: templates/graph_view.html:4 templates/journal_form.html:4
 #: templates/journal_report.html:6 templates/journal_report.html:1210
-#: templates/project_report.html:6 templates/project_report.html:1200
+#: templates/project_report.html:6 templates/project_report.html:1187
 msgid "Nova DSO Tracker"
 msgstr "Nova DSO Tracker"
 
 #: templates/graph_view.html:47
+#, fuzzy
 msgid "← Back to Dashboard"
-msgstr "← 返回仪表板"
+msgstr "返回仪表板"
 
 #: templates/graph_view.html:53
+#, fuzzy
 msgid "Graph Date"
-msgstr "图表日期"
+msgstr "搜索日期"
 
 #: templates/graph_view.html:54 templates/index.html:44
-#: templates/mobile_base.html:35 templates/project_report.html:1117
+#: templates/mobile_base.html:35 templates/project_report.html:1105
 msgid "Moon"
 msgstr "月球"
 
 #: templates/graph_view.html:55
+#, fuzzy
 msgid "Moon Sep."
 msgstr "月球角距。"
 
 #: templates/graph_view.html:57
+#, fuzzy
 msgid "ASTR. DUSK / DAWN"
 msgstr "天文黄昏 / 黎明"
 
 #: templates/graph_view.html:92
+#, fuzzy
 msgid "Chart"
-msgstr "图表"
+msgstr "查看图表"
 
-#: templates/graph_view.html:93 templates/graph_view.html:148
+#: templates/graph_view.html:93 templates/graph_view.html:157
+#, fuzzy
 msgid "Notes & Framing"
-msgstr "备注和构图"
+msgstr "保存构图"
 
-#: templates/graph_view.html:94 templates/mobile_object_detail.html:518
+#: templates/graph_view.html:94 templates/mobile_object_detail.html:533
 msgid "Opportunities"
 msgstr "机会"
 
-#: templates/graph_view.html:96 templates/mobile_object_detail.html:513
+#: templates/graph_view.html:96 templates/mobile_object_detail.html:529
 msgid "SIMBAD"
 msgstr "SIMBAD"
 
 #: templates/graph_view.html:110
+#, fuzzy
 msgid "Loading Chart"
-msgstr "加载图表中"
+msgstr "导星 RMS 图表"
 
-#: templates/graph_view.html:116 templates/mobile_object_detail.html:502
+#: templates/graph_view.html:116 templates/mobile_object_detail.html:519
 msgid "Day"
 msgstr "日"
 
-#: templates/graph_view.html:118 templates/mobile_object_detail.html:503
+#: templates/graph_view.html:118 templates/mobile_object_detail.html:520
 msgid "Month"
 msgstr "月"
 
-#: templates/graph_view.html:124 templates/mobile_object_detail.html:504
+#: templates/graph_view.html:124 templates/mobile_object_detail.html:521
 msgid "Year"
 msgstr "年"
 
 #: templates/graph_view.html:126
+#, fuzzy
 msgid "Day View"
-msgstr "日视图"
+msgstr "已保存的视图"
 
 #: templates/graph_view.html:127
+#, fuzzy
 msgid "Month View"
-msgstr "月视图"
+msgstr "月"
 
 #: templates/graph_view.html:128
+#, fuzzy
 msgid "Year View"
-msgstr "年视图"
+msgstr "概览"
 
 #: templates/graph_view.html:130 templates/mobile_add_object.html:3
 #: templates/mobile_add_object.html:4 templates/mobile_base.html:64
@@ -3885,268 +3953,327 @@ msgid "Add Object"
 msgstr "添加天体"
 
 #: templates/graph_view.html:134
+#, fuzzy
 msgid "How objects are ranked"
-msgstr "天体如何排名"
+msgstr "未找到天体"
 
-#: templates/graph_view.html:149 templates/index.html:90
+#: templates/graph_view.html:139 templates/graph_view.html:658
+#, fuzzy
+msgid "Calibration Star"
+msgstr "校准策略"
+
+#: templates/graph_view.html:140
+#, fuzzy
+msgid "Refresh"
+msgstr "帧"
+
+#: templates/graph_view.html:158 templates/index.html:90
 msgid "Inspiration"
 msgstr "灵感"
 
-#: templates/graph_view.html:150
+#: templates/graph_view.html:159
+#, fuzzy
 msgid "Rig Data"
-msgstr "设备数据"
+msgstr "日志数据"
 
-#: templates/graph_view.html:156
+#: templates/graph_view.html:165
+#, fuzzy
 msgid "Show Framing"
-msgstr "显示构图"
+msgstr "构图"
 
-#: templates/graph_view.html:157
+#: templates/graph_view.html:166
 msgid "Open in Stellarium"
-msgstr "在 Stellarium 中打开"
+msgstr ""
 
-#: templates/graph_view.html:173 templates/mobile_edit_notes.html:17
+#: templates/graph_view.html:182 templates/mobile_edit_notes.html:17
 #: templates/mobile_edit_notes.html:108 templates/mobile_edit_notes.html:122
 msgid "Save Notes"
 msgstr "保存备注"
 
-#: templates/graph_view.html:189
+#: templates/graph_view.html:198
 msgid "Edit Object to Add Content"
-msgstr "编辑天体以添加内容"
+msgstr ""
 
-#: templates/graph_view.html:197
+#: templates/graph_view.html:206
+#, fuzzy
 msgid "Inspiration Image for"
-msgstr "灵感图片用于"
-
-#: templates/graph_view.html:210
-msgid "External Source"
-msgstr "外部来源"
-
-#: templates/graph_view.html:218
-msgid ""
-"No inspiration content (custom image or description) has been added for this"
-" object yet."
-msgstr "尚未为此天体添加灵感内容（自定义图像或描述）。"
+msgstr "灵感"
 
 #: templates/graph_view.html:219
-msgid "Go to <strong>Configuration > Manage Objects</strong> to add one."
-msgstr "转到<strong>配置 > 管理天体</strong>以添加一个。"
+#, fuzzy
+msgid "External Source"
+msgstr "文字来源链接"
+
+#: templates/graph_view.html:227
+msgid ""
+"No inspiration content (custom image or description) has been added for "
+"this object yet."
+msgstr ""
 
 #: templates/graph_view.html:228
+#, fuzzy
+msgid "Go to <strong>Configuration > Manage Objects</strong> to add one."
+msgstr "转到<strong>配置 > 管理天体</strong>为您的目标添加「灵感内容」（图像URL、署名、描述）。"
+
+#: templates/graph_view.html:237
+#, fuzzy
 msgid "Framing With Your Rigs"
-msgstr "使用您的设备构图"
+msgstr "查看当地图书馆..."
 
-#: templates/graph_view.html:229
+#: templates/graph_view.html:238
 msgid ""
-"Assessment is based on the object's largest dimension and may not reflect "
-"framing of specific features."
-msgstr "评估基于天体的最大尺寸，可能不反映特定特征的构图。"
+"Assessment is based on the object's largest dimension and may not reflect"
+" framing of specific features."
+msgstr ""
 
-#: templates/graph_view.html:233
+#: templates/graph_view.html:242
+#, fuzzy
 msgid "Rig Name"
-msgstr "设备名称"
+msgstr "设备名称："
 
-#: templates/graph_view.html:234
+#: templates/graph_view.html:243
+#, fuzzy
 msgid "Rig FOV"
-msgstr "设备视场"
+msgstr "设备"
 
-#: templates/graph_view.html:235
+#: templates/graph_view.html:244
+#, fuzzy
 msgid "Object Size"
-msgstr "天体尺寸"
-
-#: templates/graph_view.html:236
-msgid "Fit Assessment"
-msgstr "匹配评估"
+msgstr "天体 ID"
 
 #: templates/graph_view.html:245
+#, fuzzy
+msgid "Fit Assessment"
+msgstr "编辑会话"
+
+#: templates/graph_view.html:254
+#, fuzzy
 msgid "Mosaic Required"
-msgstr "需要拼接"
+msgstr "项目名称为必填项。"
 
-#: templates/graph_view.html:246
+#: templates/graph_view.html:255
+#, fuzzy
 msgid "Fits with Rotation"
-msgstr "适合旋转"
+msgstr "灵感"
 
-#: templates/graph_view.html:248
+#: templates/graph_view.html:257
+#, fuzzy
 msgid "Small Target"
-msgstr "小目标"
+msgstr "主要目标"
 
-#: templates/graph_view.html:249
+#: templates/graph_view.html:258
 msgid "Wide Field"
-msgstr "宽视场"
+msgstr ""
 
-#: templates/graph_view.html:250
+#: templates/graph_view.html:259
 msgid "Good Fit"
-msgstr "匹配良好"
+msgstr ""
 
-#: templates/graph_view.html:282
+#: templates/graph_view.html:291
+#, fuzzy
 msgid "Framing Assistant"
-msgstr "构图助手"
-
-#: templates/graph_view.html:287
-msgid "Help with Framing"
-msgstr "构图帮助"
-
-#: templates/graph_view.html:292
-msgid "Lock FOV"
-msgstr "锁定视场"
-
-#: templates/graph_view.html:293
-msgid ""
-"Displays the approximate location of geostationary satellites (corrected for"
-" your latitude)"
-msgstr "显示地球静止轨道卫星的大致位置（针对您的纬度进行了校正）"
-
-#: templates/graph_view.html:293
-msgid "Geo Belt"
-msgstr "地球静止轨道带"
-
-#: templates/graph_view.html:294
-msgid "Flip 90°"
-msgstr "翻转 90°"
-
-#: templates/graph_view.html:295
-msgid "Copy framing URL"
-msgstr "复制构图 URL"
+msgstr "构图说明"
 
 #: templates/graph_view.html:296
+#, fuzzy
+msgid "Help with Framing"
+msgstr "设备帮助"
+
+#: templates/graph_view.html:301
+msgid "Lock FOV"
+msgstr ""
+
+#: templates/graph_view.html:302
+msgid ""
+"Displays the approximate location of geostationary satellites (corrected "
+"for your latitude)"
+msgstr ""
+
+#: templates/graph_view.html:302
+msgid "Geo Belt"
+msgstr ""
+
+#: templates/graph_view.html:303
+#, fuzzy
+msgid "Flip 90°"
+msgstr "翻转"
+
+#: templates/graph_view.html:304
+#, fuzzy
+msgid "Copy framing URL"
+msgstr "构图"
+
+#: templates/graph_view.html:305
+#, fuzzy
 msgid "Save Framing"
 msgstr "保存构图"
 
-#: templates/graph_view.html:299 templates/mobile_journal_new.html:36
-#: templates/project_report.html:1132
+#: templates/graph_view.html:308 templates/mobile_journal_new.html:237
+#: templates/project_report.html:1120
 msgid "Rig"
 msgstr "设备"
 
-#: templates/graph_view.html:304
+#: templates/graph_view.html:313
+#, fuzzy
 msgid "No rigs configured"
-msgstr "未配置设备"
+msgstr "未配置位置"
 
-#: templates/graph_view.html:309
+#: templates/graph_view.html:318
 msgid "Position Angle (0°=North, 90°=East)"
-msgstr "位置角（0°=北，90°=东）"
+msgstr ""
 
-#: templates/graph_view.html:309
+#: templates/graph_view.html:318
 msgid "Rotation (PA)"
-msgstr "旋转（PA）"
+msgstr ""
 
-#: templates/graph_view.html:317
+#: templates/graph_view.html:326
 msgid "Mosaic (Col x Row)"
-msgstr "拼接（列 × 行）"
+msgstr ""
 
-#: templates/graph_view.html:319
+#: templates/graph_view.html:328
+#, fuzzy
 msgid "Columns"
-msgstr "列"
+msgstr "数量"
 
-#: templates/graph_view.html:321
+#: templates/graph_view.html:330
 msgid "Rows"
-msgstr "行"
+msgstr ""
 
-#: templates/graph_view.html:325
+#: templates/graph_view.html:334
 #, python-format
 msgid "Overlap %%"
-msgstr "重叠 %%"
+msgstr ""
 
-#: templates/graph_view.html:328
+#: templates/graph_view.html:337
 msgid ""
-"Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., and "
-"Telescopius."
-msgstr "生成与ASIAIR（计划导入）、N.I.N.A.和Telescopius兼容的CSV格式。"
+"Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., "
+"and Telescopius."
+msgstr ""
 
-#: templates/graph_view.html:328
+#: templates/graph_view.html:337
+#, fuzzy
 msgid "Copy Plan (CSV)"
 msgstr "复制计划（CSV）"
 
-#: templates/graph_view.html:331
+#: templates/graph_view.html:340
+#, fuzzy
 msgid "Survey"
-msgstr "巡天"
+msgstr "来源"
 
-#: templates/graph_view.html:351
+#: templates/graph_view.html:360
 msgid "Blend with"
-msgstr "混合与"
-
-#: templates/graph_view.html:369
-msgid "Blend opacity"
-msgstr "混合与"
-
-#: templates/graph_view.html:373
-msgid "Brightness"
-msgstr "亮度"
-
-#: templates/graph_view.html:374
-msgid "Contrast"
-msgstr "对比度"
-
-#: templates/graph_view.html:375
-msgid "Gamma"
-msgstr "伽马"
-
-#: templates/graph_view.html:376
-msgid "Saturation"
-msgstr "饱和度"
+msgstr ""
 
 #: templates/graph_view.html:378
-msgid ""
-"Coordinates are JNow (Real Time / Mean Equinox of Date) to match your mount."
-msgstr "坐标为JNow（实时/日期平均分点），以匹配您的赤道仪。"
+msgid "Blend opacity"
+msgstr ""
+
+#: templates/graph_view.html:382
+msgid "Brightness"
+msgstr ""
 
 #: templates/graph_view.html:383
-msgid "Copy"
-msgstr "复制"
+#, fuzzy
+msgid "Contrast"
+msgstr "中天"
 
-#: templates/graph_view.html:386
-msgid "Tip: Click on the sky to move the FOV center."
-msgstr "提示：点击天空以移动视场中心。"
+#: templates/graph_view.html:384
+msgid "Gamma"
+msgstr ""
+
+#: templates/graph_view.html:385
+#, fuzzy
+msgid "Saturation"
+msgstr "持续时间"
 
 #: templates/graph_view.html:387
-msgid "Recenter to object"
-msgstr "重新居中到天体"
-
-#: templates/graph_view.html:389
-msgid "Nudge Up"
-msgstr "向上微调"
-
-#: templates/graph_view.html:391
-msgid "Nudge Left"
-msgstr "向左微调"
+msgid ""
+"Coordinates are JNow (Real Time / Mean Equinox of Date) to match your "
+"mount."
+msgstr ""
 
 #: templates/graph_view.html:392
-msgid "Nudge Right"
-msgstr "向右微调"
-
-#: templates/graph_view.html:394
-msgid "Nudge Down"
-msgstr "向下微调"
+#, fuzzy
+msgid "Copy"
+msgstr "复制计划（CSV）"
 
 #: templates/graph_view.html:395
+msgid "Tip: Click on the sky to move the FOV center."
+msgstr ""
+
+#: templates/graph_view.html:396
+#, fuzzy
+msgid "Recenter to object"
+msgstr "目标天体："
+
+#: templates/graph_view.html:398
+msgid "Nudge Up"
+msgstr ""
+
+#: templates/graph_view.html:400
+#, fuzzy
+msgid "Nudge Left"
+msgstr "删除"
+
+#: templates/graph_view.html:401
+msgid "Nudge Right"
+msgstr ""
+
+#: templates/graph_view.html:403
+msgid "Nudge Down"
+msgstr ""
+
+#: templates/graph_view.html:404
+#, fuzzy
 msgid "steps"
 msgstr "步"
 
-#: templates/graph_view.html:439
+#: templates/graph_view.html:449
 msgid "Ask Nova for observing notes"
-msgstr "Ask Nova for observing notes"
+msgstr ""
 
-#: templates/graph_view.html:440
+#: templates/graph_view.html:450
+#, fuzzy
 msgid "Consulting the star charts..."
 msgstr "查阅星图..."
 
-#: templates/graph_view.html:442
+#: templates/graph_view.html:452
+#, fuzzy
 msgid "Scanning the cosmos..."
 msgstr "扫描天空中..."
 
-#: templates/graph_view.html:443
+#: templates/graph_view.html:453
+#, fuzzy
 msgid "Calculating from"
 msgstr "加载中..."
 
-#: templates/graph_view.html:445
+#: templates/graph_view.html:455
+#, fuzzy
 msgid "your location"
 msgstr "位置"
 
-#: templates/graph_view.html:446
+#: templates/graph_view.html:456
+#, fuzzy
 msgid "Nova has notes ready. What would you like to do?"
-msgstr "Nova has notes ready. What would you like to do?"
+msgstr "Nova 已准备好摘要。你想怎么做？"
 
-#: templates/graph_view.html:450
+#: templates/graph_view.html:460
 msgid "Nova couldn't load notes"
-msgstr "Nova couldn't load notes"
+msgstr ""
+
+#: templates/graph_view.html:659
+#, fuzzy
+msgid "No calibration star available near meridian"
+msgstr "校准策略"
+
+#: templates/graph_view.html:699
+#, fuzzy
+msgid "HA"
+msgstr "h"
+
+#: templates/graph_view.html:699
+msgid "from meridian"
+msgstr ""
 
 #: templates/index.html:3 templates/login.html:2
 msgid "DSO Altitude Tracker"
@@ -4228,7 +4355,7 @@ msgid "Object"
 msgstr "天体"
 
 #: templates/index.html:134 templates/index.html:137
-#: templates/mobile_up_now.html:895 templates/mobile_up_now.html:910
+#: templates/mobile_up_now.html:899 templates/mobile_up_now.html:912
 msgid "Altitude"
 msgstr "高度"
 
@@ -4241,7 +4368,7 @@ msgid "Azimuth"
 msgstr "方位角"
 
 #: templates/index.html:136 templates/index.html:157
-#: templates/mobile_object_detail.html:479
+#: templates/mobile_object_detail.html:498
 msgid "Trend"
 msgstr "趋势"
 
@@ -4362,7 +4489,7 @@ msgid "Telescope Setup"
 msgstr "望远镜设置"
 
 #: templates/index.html:187 templates/journal_report.html:722
-#: templates/project_report.html:1097
+#: templates/project_report.html:1085
 msgid "Integration"
 msgstr "积分"
 
@@ -4426,106 +4553,106 @@ msgstr "描述此筛选的作用..."
 msgid "Share this view with others"
 msgstr "与其他用户分享此视图"
 
-#: templates/journal_form.html:4 templates/journal_form.html:14
+#: templates/journal_form.html:4 templates/journal_form.html:13
 msgid "Journal Entry"
 msgstr "日志条目"
 
-#: templates/journal_form.html:24
+#: templates/journal_form.html:21
 msgid "Core Info"
 msgstr "核心信息"
 
-#: templates/journal_form.html:33
+#: templates/journal_form.html:28
 msgid "Target Object:"
 msgstr "目标天体："
 
-#: templates/journal_form.html:35
+#: templates/journal_form.html:30
 msgid "Select Target (Optional)"
 msgstr "选择目标（可选）"
 
-#: templates/journal_form.html:47
+#: templates/journal_form.html:42
 msgid "Select Location (Optional)"
 msgstr "选择位置（可选）"
 
-#: templates/journal_form.html:80
+#: templates/journal_form.html:75
 #, python-format
 msgid "Moon Illumination at Session (%%):"
 msgstr "会话时的月亮相位（%%）："
 
-#: templates/journal_form.html:81
+#: templates/journal_form.html:76
 msgid "e.g., 34"
 msgstr "例如 34"
 
-#: templates/journal_form.html:84
+#: templates/journal_form.html:79
 msgid "Moon Angular Separation from Target (°):"
 msgstr "与目标的月球角距（°）："
 
-#: templates/journal_form.html:85
+#: templates/journal_form.html:80
 msgid "e.g., 45.5"
 msgstr "例如 45.5"
 
-#: templates/journal_form.html:92
+#: templates/journal_form.html:87
 msgid "Select a Rig (Optional)"
 msgstr "选择设备（可选）"
 
-#: templates/journal_form.html:94
+#: templates/journal_form.html:89
 msgid "Manually Enter Setup Below"
 msgstr "在下方手动输入设置"
 
-#: templates/journal_form.html:102
+#: templates/journal_form.html:97
 msgid "e.g., C11+Reducer+ASI2600"
 msgstr "例如 C11+减焦镜+ASI2600"
 
-#: templates/journal_form.html:106
+#: templates/journal_form.html:101
 msgid "Filter Used:"
 msgstr "使用的滤镜："
 
-#: templates/journal_form.html:107
+#: templates/journal_form.html:102
 msgid "e.g., L-Pro, Ha 7nm"
 msgstr "例如 L-Pro, Ha 7nm"
 
-#: templates/journal_form.html:115
+#: templates/journal_form.html:110
 msgid "Guiding Equipment (Scope, Camera, Software):"
 msgstr "导星设备（导星镜、相机、软件）："
 
-#: templates/journal_form.html:116
+#: templates/journal_form.html:111
 msgid "e.g., 50mm guidescope + ASI120MM Mini, PHD2"
 msgstr "例如 50mm 导星镜 + ASI120MM Mini, PHD2"
 
-#: templates/journal_form.html:120
+#: templates/journal_form.html:115
 msgid "e.g., Yes, 3px every 2 subs"
 msgstr "例如 是，每 2 帧抖动 3px"
 
-#: templates/journal_form.html:124
+#: templates/journal_form.html:119
 msgid "e.g., N.I.N.A., Sequence Generator Pro, Astroberry"
 msgstr "例如 N.I.N.A., Sequence Generator Pro, Astroberry"
 
-#: templates/journal_form.html:130
+#: templates/journal_form.html:125
 msgid "Sub Exposure (seconds):"
 msgstr "子帧曝光时间（秒）："
 
-#: templates/journal_form.html:134
+#: templates/journal_form.html:129
 msgid "Number of Light Subs:"
 msgstr "亮帧数量："
 
-#: templates/journal_form.html:160
+#: templates/journal_form.html:155
 msgid "e.g., 1x1, 2x2"
 msgstr "例如 1x1, 2x2"
 
-#: templates/journal_form.html:163
+#: templates/journal_form.html:158
 msgid ""
-"Enter number of subframes and exposure time (in seconds) per subframe for "
-"each filter used. Leave blank if not used."
+"Enter number of subframes and exposure time (in seconds) per subframe for"
+" each filter used. Leave blank if not used."
 msgstr "输入每个使用的滤镜的子帧数量和每个子帧的曝光时间（秒）。如果未使用，请留空。"
 
-#: templates/journal_form.html:172
+#: templates/journal_form.html:167
 msgid "# Subs:"
 msgstr "帧数："
 
-#: templates/journal_form.html:211
+#: templates/journal_form.html:206
 msgid "Save Entry"
 msgstr "保存条目"
 
-#: templates/journal_report.html:673 templates/project_report.html:789
+#: templates/journal_report.html:673 templates/project_report.html:788
 msgid "Nova Logo"
 msgstr "Nova Logo"
 
@@ -4565,7 +4692,7 @@ msgstr "月亮相位/角距。"
 msgid "Transparency"
 msgstr "透明度"
 
-#: templates/journal_report.html:755 templates/project_report.html:892
+#: templates/journal_report.html:755 templates/project_report.html:887
 msgid "Rig:"
 msgstr "设备："
 
@@ -4609,11 +4736,11 @@ msgstr "平场"
 msgid "Bias / Dark Flats"
 msgstr "偏置 / 暗平场"
 
-#: templates/journal_report.html:827 templates/project_report.html:1163
+#: templates/journal_report.html:827 templates/project_report.html:1151
 msgid "Filter"
 msgstr "滤镜"
 
-#: templates/journal_report.html:828 templates/project_report.html:1164
+#: templates/journal_report.html:828 templates/project_report.html:1152
 msgid "Subs"
 msgstr "帧"
 
@@ -4646,7 +4773,7 @@ msgid "Log Analysis"
 msgstr "日志分析"
 
 #: templates/journal_report.html:911 templates/journal_report.html:920
-#: templates/project_report.html:916 templates/project_report.html:925
+#: templates/project_report.html:909 templates/project_report.html:918
 msgid "Total RMS"
 msgstr "总 RMS"
 
@@ -4659,11 +4786,11 @@ msgstr "导星帧"
 msgid "Meridian Flips"
 msgstr "中天翻转"
 
-#: templates/journal_report.html:967 templates/project_report.html:972
+#: templates/journal_report.html:967 templates/project_report.html:964
 msgid "PHD2 Guiding Performance"
 msgstr "PHD2 导星性能"
 
-#: templates/journal_report.html:971 templates/project_report.html:975
+#: templates/journal_report.html:971 templates/project_report.html:967
 msgid "Imaging RMS"
 msgstr "成像 RMS"
 
@@ -4671,7 +4798,7 @@ msgstr "成像 RMS"
 msgid "frames"
 msgstr "帧"
 
-#: templates/journal_report.html:988 templates/project_report.html:985
+#: templates/journal_report.html:988 templates/project_report.html:977
 msgid "All Frames RMS"
 msgstr "所有帧 RMS"
 
@@ -4680,7 +4807,7 @@ msgid "RA:"
 msgstr "RA："
 
 #: templates/journal_report.html:1003 templates/journal_report.html:1055
-#: templates/journal_report.html:1134 templates/project_report.html:1040
+#: templates/journal_report.html:1134 templates/project_report.html:1030
 msgid "Dither Events"
 msgstr "抖动事件"
 
@@ -4701,11 +4828,11 @@ msgid "Plate Solves"
 msgstr "板星求解"
 
 #: templates/journal_report.html:1051 templates/journal_report.html:1093
-#: templates/project_report.html:1007
+#: templates/project_report.html:998
 msgid "AutoFocus Runs"
 msgstr "自动对焦运行"
 
-#: templates/journal_report.html:1097 templates/project_report.html:1011
+#: templates/journal_report.html:1097 templates/project_report.html:1002
 msgid "Run"
 msgstr "运行"
 
@@ -4749,7 +4876,7 @@ msgstr "成功率"
 msgid "Dither Settle Times"
 msgstr "抖动稳定时间"
 
-#: templates/journal_report.html:1172 templates/project_report.html:1052
+#: templates/journal_report.html:1172 templates/project_report.html:1041
 msgid "Autocenter Results"
 msgstr "自动居中结果"
 
@@ -4765,7 +4892,7 @@ msgstr "距离"
 msgid "Centered"
 msgstr "已居中"
 
-#: templates/journal_report.html:1189
+#: templates/journal_report.html:1189 templates/mobile_journal_new.html:343
 msgid "Offset"
 msgstr "偏移"
 
@@ -4773,7 +4900,7 @@ msgstr "偏移"
 msgid "Autocenter Accuracy"
 msgstr "自动居中精度"
 
-#: templates/journal_report.html:1210 templates/project_report.html:1200
+#: templates/journal_report.html:1210 templates/project_report.html:1187
 msgid "Generated by"
 msgstr "生成者"
 
@@ -4852,7 +4979,8 @@ msgstr "主站点"
 msgid "Dusk/Dawn"
 msgstr "天文黄昏 / 黎明"
 
-#: templates/mobile_edit_notes.html:3 templates/mobile_object_detail.html:544
+#: templates/mobile_edit_notes.html:3 templates/mobile_object_detail.html:556
+#: templates/mobile_object_detail.html:561
 msgid "Edit Notes"
 msgstr "编辑备注"
 
@@ -4869,8 +4997,8 @@ msgid "Notes saved successfully!"
 msgstr "备注保存成功！"
 
 #: templates/mobile_framing_coords.html:2
-#: templates/mobile_object_detail.html:511 templates/mobile_outlook.html:183
-#: templates/mobile_up_now.html:891
+#: templates/mobile_object_detail.html:527 templates/mobile_outlook.html:183
+#: templates/mobile_up_now.html:895
 msgid "Framing"
 msgstr "构图"
 
@@ -4890,8 +5018,7 @@ msgid "View full mosaic plan"
 msgstr "查看完整马赛克平面图"
 
 #: templates/mobile_framing_coords.html:45
-#: templates/mobile_framing_coords.html:55
-#: templates/mobile_mosaic_copy.html:24
+#: templates/mobile_framing_coords.html:55 templates/mobile_mosaic_copy.html:24
 msgid "Copied!"
 msgstr "已复制！"
 
@@ -4900,31 +5027,57 @@ msgstr "已复制！"
 msgid "New Session"
 msgstr "添加新会话"
 
-#: templates/mobile_journal_new.html:19
+#: templates/mobile_journal_new.html:215
 #, fuzzy
 msgid "Target Object"
 msgstr "目标天体："
 
-#: templates/mobile_journal_new.html:26
+#: templates/mobile_journal_new.html:227
 #, fuzzy
 msgid "Select Location"
 msgstr "设置位置"
 
-#: templates/mobile_journal_new.html:38
+#: templates/mobile_journal_new.html:239
 #, fuzzy
 msgid "Select Rig"
 msgstr "-- 选择相机 --"
 
-#: templates/mobile_journal_new.html:144
+#: templates/mobile_journal_new.html:272
+#, fuzzy
+msgid "Moon Illum"
+msgstr "月球照度/分离："
+
+#: templates/mobile_journal_new.html:277
+#: templates/mobile_object_detail.html:503 templates/mobile_up_now.html:957
+#, fuzzy
+msgid "Moon Sep"
+msgstr "月球角距。"
+
+#: templates/mobile_journal_new.html:338
+#, fuzzy
+msgid "Gain"
+msgstr "增益："
+
+#: templates/mobile_journal_new.html:350
+#, fuzzy
+msgid "Sub Exp"
+msgstr "子帧 x "
+
+#: templates/mobile_journal_new.html:355
+#, fuzzy
+msgid "Cam Temp"
+msgstr "温度"
+
+#: templates/mobile_journal_new.html:377
 msgid "Add any notes about this session..."
 msgstr "添加任何有关本环节的说明..."
 
-#: templates/mobile_journal_new.html:154
+#: templates/mobile_journal_new.html:385
 #, fuzzy
 msgid "Discard"
 msgstr "已禁用"
 
-#: templates/mobile_journal_new.html:155
+#: templates/mobile_journal_new.html:386
 #, fuzzy
 msgid "Save Session"
 msgstr "添加新会话"
@@ -4965,59 +5118,54 @@ msgstr "复制到剪贴板"
 msgid "Clipboard copy failed."
 msgstr "剪贴板复制失败。"
 
-#: templates/mobile_object_detail.html:474
+#: templates/mobile_object_detail.html:493
 #, fuzzy
 msgid "Now"
 msgstr "现在观测"
 
-#: templates/mobile_object_detail.html:484 templates/mobile_up_now.html:960
-#, fuzzy
-msgid "Moon Sep"
-msgstr "月球角距。"
-
-#: templates/mobile_object_detail.html:489
+#: templates/mobile_object_detail.html:508
 #, fuzzy
 msgid "Obs"
 msgstr "天体"
 
-#: templates/mobile_object_detail.html:506
+#: templates/mobile_object_detail.html:523
 #, fuzzy
 msgid "Today"
 msgstr "日"
 
-#: templates/mobile_object_detail.html:512
+#: templates/mobile_object_detail.html:528
 #, fuzzy
 msgid "Log Session"
 msgstr "会话："
 
-#: templates/mobile_object_detail.html:526
+#: templates/mobile_object_detail.html:540
 #, fuzzy
 msgid "Loading opportunities..."
 msgstr "成像机会"
 
-#: templates/mobile_object_detail.html:538
+#: templates/mobile_object_detail.html:551
 #, fuzzy
 msgid "No notes for this object."
 msgstr "重新居中到天体"
 
-#: templates/mobile_object_detail.html:575
+#: templates/mobile_object_detail.html:590
 #, fuzzy
 msgid "Error loading opportunities."
 msgstr "添加组件时出错：%(error)s"
 
-#: templates/mobile_object_detail.html:576 templates/mobile_outlook.html:184
+#: templates/mobile_object_detail.html:591 templates/mobile_outlook.html:184
 msgid "Rating:"
 msgstr "评分："
 
-#: templates/mobile_object_detail.html:577 templates/mobile_outlook.html:185
+#: templates/mobile_object_detail.html:592 templates/mobile_outlook.html:185
 msgid "Max Alt:"
 msgstr "最大高度："
 
-#: templates/mobile_object_detail.html:578 templates/mobile_outlook.html:186
+#: templates/mobile_object_detail.html:593 templates/mobile_outlook.html:186
 msgid "Duration:"
 msgstr "持续时间："
 
-#: templates/mobile_object_detail.html:579 templates/mobile_outlook.html:187
+#: templates/mobile_object_detail.html:594 templates/mobile_outlook.html:187
 msgid "Moon:"
 msgstr "月球："
 
@@ -5041,31 +5189,31 @@ msgstr "展望缓存正在生成中。请在一分钟后查看。"
 msgid "No imaging opportunities found for your active projects."
 msgstr "未为您的活跃项目找到成像机会。"
 
-#: templates/mobile_up_now.html:868
+#: templates/mobile_up_now.html:874
 msgid "Scanning Sky..."
 msgstr "扫描天空中..."
 
-#: templates/mobile_up_now.html:879
+#: templates/mobile_up_now.html:884
 #, fuzzy
 msgid "Search objects..."
 msgstr "搜索天体…"
 
-#: templates/mobile_up_now.html:887 templates/mobile_up_now.html:921
+#: templates/mobile_up_now.html:891 templates/mobile_up_now.html:922
 #, fuzzy
 msgid "Filters"
 msgstr "滤镜"
 
-#: templates/mobile_up_now.html:895
+#: templates/mobile_up_now.html:899
 #, fuzzy
 msgid "Sort"
 msgstr "来源"
 
-#: templates/mobile_up_now.html:904
+#: templates/mobile_up_now.html:907
 #, fuzzy
 msgid "No objects match your filters"
 msgstr "没有天体匹配您的筛选。"
 
-#: templates/mobile_up_now.html:922
+#: templates/mobile_up_now.html:923
 #, fuzzy
 msgid "Reset"
 msgstr "最近"
@@ -5075,152 +5223,153 @@ msgstr "最近"
 msgid "Alt Now"
 msgstr "现在观测"
 
-#: templates/mobile_up_now.html:940
+#: templates/mobile_up_now.html:939
 msgid "Alt Max"
 msgstr "Alt 最大值"
 
-#: templates/mobile_up_now.html:989
+#: templates/mobile_up_now.html:984
 #, fuzzy
 msgid "or type name..."
 msgstr "筛选名称..."
 
-#: templates/mobile_up_now.html:996
+#: templates/mobile_up_now.html:991
 msgid "Apply"
 msgstr "申请"
 
-#: templates/mobile_up_now.html:1005
+#: templates/mobile_up_now.html:1000
 msgid "No objects found. Try adding one!"
 msgstr "未找到天体。尝试添加一个！"
 
-#: templates/mobile_up_now.html:1006
+#: templates/mobile_up_now.html:1001
 msgid "No objects match your search."
 msgstr "没有天体匹配您的搜索。"
 
-#: templates/mobile_up_now.html:1007
+#: templates/mobile_up_now.html:1002
 msgid "No objects match your filter."
 msgstr "没有天体匹配您的筛选。"
 
-#: templates/mobile_up_now.html:1008
+#: templates/mobile_up_now.html:1003
 #, python-format
 msgid "Calculated %%(count)d of %%(total)d objects..."
 msgstr "已计算 %%(total)d 个天体中的 %(count)d 个..."
 
-#: templates/mobile_up_now.html:1009
+#: templates/mobile_up_now.html:1004
 msgid "Error loading data."
 msgstr "加载数据时出错。"
 
-#: templates/project_report.html:801
+#: templates/project_report.html:799
 msgid "Target:"
 msgstr "目标："
 
-#: templates/project_report.html:801
+#: templates/project_report.html:799
 msgid "Various"
 msgstr "各种"
 
-#: templates/project_report.html:812
+#: templates/project_report.html:809
 msgid "Total Sessions"
 msgstr "总会话数"
 
-#: templates/project_report.html:819
+#: templates/project_report.html:816
 msgid "Date Range"
 msgstr "日期范围"
 
-#: templates/project_report.html:826
+#: templates/project_report.html:822
 msgid "Final Result"
 msgstr "最终结果"
 
-#: templates/project_report.html:832
+#: templates/project_report.html:828
 msgid "Goals"
 msgstr "目标"
 
-#: templates/project_report.html:839
+#: templates/project_report.html:835
 msgid "Project Story"
 msgstr "项目故事"
 
-#: templates/project_report.html:846
+#: templates/project_report.html:842
 msgid "Framing & Composition"
 msgstr "构图和组合"
 
-#: templates/project_report.html:853
+#: templates/project_report.html:849
 msgid "Processing Workflow"
 msgstr "处理工作流程"
 
-#: templates/project_report.html:860
+#: templates/project_report.html:855
 msgid "Session Chronicles"
 msgstr "会话编年史"
 
-#: templates/project_report.html:868
+#: templates/project_report.html:863
 msgid "Log Data"
 msgstr "日志数据"
 
-#: templates/project_report.html:869
+#: templates/project_report.html:864
 msgid "Configuration & Notes"
 msgstr "配置和备注"
 
-#: templates/project_report.html:920 templates/project_report.html:929
+#: templates/project_report.html:913 templates/project_report.html:922
 msgid "Frames"
 msgstr "帧"
 
-#: templates/project_report.html:947 templates/project_report.html:964
+#: templates/project_report.html:940 templates/project_report.html:957
 msgid "Flips"
 msgstr "翻转"
 
-#: templates/project_report.html:998
+#: templates/project_report.html:990
 msgid "Guide Pulse"
 msgstr "导星脉冲"
 
-#: templates/project_report.html:1013
+#: templates/project_report.html:1004
 msgid "Focus Pos"
 msgstr "对焦位置"
 
-#: templates/project_report.html:1014 templates/project_report.html:1153
+#: templates/project_report.html:1005 templates/project_report.html:1141
 msgid "Temp"
 msgstr "温度"
 
-#: templates/project_report.html:1031
+#: templates/project_report.html:1022
 msgid "V-Curves"
 msgstr "V 曲线"
 
-#: templates/project_report.html:1043
+#: templates/project_report.html:1033
 msgid "Dither Settle"
 msgstr "抖动稳定"
 
-#: templates/project_report.html:1055
+#: templates/project_report.html:1044
 msgid "Autocenter"
 msgstr "自动居中"
 
-#: templates/project_report.html:1069
+#: templates/project_report.html:1057
 msgid "Session:"
 msgstr "会话："
 
-#: templates/project_report.html:1070
+#: templates/project_report.html:1058
 msgid "Location not specified"
 msgstr "未指定位置"
 
-#: templates/project_report.html:1083
+#: templates/project_report.html:1071
 msgid "Integration:"
 msgstr "积分："
 
-#: templates/project_report.html:1093
+#: templates/project_report.html:1081
 msgid "Statistics"
 msgstr "统计"
 
-#: templates/project_report.html:1127
+#: templates/project_report.html:1115
 msgid "Equipment"
 msgstr "设备"
 
-#: templates/project_report.html:1149
+#: templates/project_report.html:1137
 msgid "Gain/Offset"
 msgstr "增益/偏移"
 
-#: templates/project_report.html:1165
+#: templates/project_report.html:1153
 msgid "Exp"
 msgstr "曝光"
 
 #~ msgid ""
-#~ "Go to %(strong_start)sConfiguration &gt; Manage Objects%(strong_end)s to add"
-#~ " \"Inspiration Content\" (Image URLs, Credits, Descriptions) to your "
-#~ "targets."
+#~ "Go to %(strong_start)sConfiguration &gt; "
+#~ "Manage Objects%(strong_end)s to add "
+#~ "\"Inspiration Content\" (Image URLs, Credits,"
+#~ " Descriptions) to your targets."
 #~ msgstr "前往%(strong_start)s配置 > 管理对象%(strong_end)s，为您的目标添加「灵感内容」（图片URL、来源、描述）。"
 
 #~ msgid "Add own inspiration"
@@ -5565,3 +5714,229 @@ msgstr "曝光"
 
 #~ msgid "Azimuth:"
 #~ msgstr "方位角："
+
+#~ msgid "← Back to Dashboard"
+#~ msgstr "← 返回仪表板"
+
+#~ msgid "Graph Date"
+#~ msgstr "图表日期"
+
+#~ msgid "Moon Sep."
+#~ msgstr "月球角距。"
+
+#~ msgid "ASTR. DUSK / DAWN"
+#~ msgstr "天文黄昏 / 黎明"
+
+#~ msgid "Chart"
+#~ msgstr "图表"
+
+#~ msgid "Notes & Framing"
+#~ msgstr "备注和构图"
+
+#~ msgid "Loading Chart"
+#~ msgstr "加载图表中"
+
+#~ msgid "Day View"
+#~ msgstr "日视图"
+
+#~ msgid "Month View"
+#~ msgstr "月视图"
+
+#~ msgid "Year View"
+#~ msgstr "年视图"
+
+#~ msgid "How objects are ranked"
+#~ msgstr "天体如何排名"
+
+#~ msgid "Rig Data"
+#~ msgstr "设备数据"
+
+#~ msgid "Show Framing"
+#~ msgstr "显示构图"
+
+#~ msgid "Open in Stellarium"
+#~ msgstr "在 Stellarium 中打开"
+
+#~ msgid "Edit Object to Add Content"
+#~ msgstr "编辑天体以添加内容"
+
+#~ msgid "Inspiration Image for"
+#~ msgstr "灵感图片用于"
+
+#~ msgid "External Source"
+#~ msgstr "外部来源"
+
+#~ msgid ""
+#~ "No inspiration content (custom image or"
+#~ " description) has been added for this"
+#~ " object yet."
+#~ msgstr "尚未为此天体添加灵感内容（自定义图像或描述）。"
+
+#~ msgid "Go to <strong>Configuration > Manage Objects</strong> to add one."
+#~ msgstr "转到<strong>配置 > 管理天体</strong>以添加一个。"
+
+#~ msgid "Framing With Your Rigs"
+#~ msgstr "使用您的设备构图"
+
+#~ msgid ""
+#~ "Assessment is based on the object's "
+#~ "largest dimension and may not reflect"
+#~ " framing of specific features."
+#~ msgstr "评估基于天体的最大尺寸，可能不反映特定特征的构图。"
+
+#~ msgid "Rig Name"
+#~ msgstr "设备名称"
+
+#~ msgid "Rig FOV"
+#~ msgstr "设备视场"
+
+#~ msgid "Object Size"
+#~ msgstr "天体尺寸"
+
+#~ msgid "Fit Assessment"
+#~ msgstr "匹配评估"
+
+#~ msgid "Mosaic Required"
+#~ msgstr "需要拼接"
+
+#~ msgid "Fits with Rotation"
+#~ msgstr "适合旋转"
+
+#~ msgid "Small Target"
+#~ msgstr "小目标"
+
+#~ msgid "Wide Field"
+#~ msgstr "宽视场"
+
+#~ msgid "Good Fit"
+#~ msgstr "匹配良好"
+
+#~ msgid "Framing Assistant"
+#~ msgstr "构图助手"
+
+#~ msgid "Help with Framing"
+#~ msgstr "构图帮助"
+
+#~ msgid "Lock FOV"
+#~ msgstr "锁定视场"
+
+#~ msgid ""
+#~ "Displays the approximate location of "
+#~ "geostationary satellites (corrected for your"
+#~ " latitude)"
+#~ msgstr "显示地球静止轨道卫星的大致位置（针对您的纬度进行了校正）"
+
+#~ msgid "Geo Belt"
+#~ msgstr "地球静止轨道带"
+
+#~ msgid "Flip 90°"
+#~ msgstr "翻转 90°"
+
+#~ msgid "Copy framing URL"
+#~ msgstr "复制构图 URL"
+
+#~ msgid "Save Framing"
+#~ msgstr "保存构图"
+
+#~ msgid "No rigs configured"
+#~ msgstr "未配置设备"
+
+#~ msgid "Position Angle (0°=North, 90°=East)"
+#~ msgstr "位置角（0°=北，90°=东）"
+
+#~ msgid "Rotation (PA)"
+#~ msgstr "旋转（PA）"
+
+#~ msgid "Mosaic (Col x Row)"
+#~ msgstr "拼接（列 × 行）"
+
+#~ msgid "Columns"
+#~ msgstr "列"
+
+#~ msgid "Rows"
+#~ msgstr "行"
+
+#~ msgid "Overlap %%"
+#~ msgstr "重叠 %%"
+
+#~ msgid ""
+#~ "Generates a CSV format compatible with"
+#~ " ASIAIR (Plan Import), N.I.N.A., and "
+#~ "Telescopius."
+#~ msgstr "生成与ASIAIR（计划导入）、N.I.N.A.和Telescopius兼容的CSV格式。"
+
+#~ msgid "Copy Plan (CSV)"
+#~ msgstr "复制计划（CSV）"
+
+#~ msgid "Survey"
+#~ msgstr "巡天"
+
+#~ msgid "Blend with"
+#~ msgstr "混合与"
+
+#~ msgid "Blend opacity"
+#~ msgstr "混合与"
+
+#~ msgid "Brightness"
+#~ msgstr "亮度"
+
+#~ msgid "Contrast"
+#~ msgstr "对比度"
+
+#~ msgid "Gamma"
+#~ msgstr "伽马"
+
+#~ msgid "Saturation"
+#~ msgstr "饱和度"
+
+#~ msgid ""
+#~ "Coordinates are JNow (Real Time / "
+#~ "Mean Equinox of Date) to match "
+#~ "your mount."
+#~ msgstr "坐标为JNow（实时/日期平均分点），以匹配您的赤道仪。"
+
+#~ msgid "Copy"
+#~ msgstr "复制"
+
+#~ msgid "Tip: Click on the sky to move the FOV center."
+#~ msgstr "提示：点击天空以移动视场中心。"
+
+#~ msgid "Recenter to object"
+#~ msgstr "重新居中到天体"
+
+#~ msgid "Nudge Up"
+#~ msgstr "向上微调"
+
+#~ msgid "Nudge Left"
+#~ msgstr "向左微调"
+
+#~ msgid "Nudge Right"
+#~ msgstr "向右微调"
+
+#~ msgid "Nudge Down"
+#~ msgstr "向下微调"
+
+#~ msgid "steps"
+#~ msgstr "步"
+
+#~ msgid "Ask Nova for observing notes"
+#~ msgstr "Ask Nova for observing notes"
+
+#~ msgid "Consulting the star charts..."
+#~ msgstr "查阅星图..."
+
+#~ msgid "Scanning the cosmos..."
+#~ msgstr "扫描天空中..."
+
+#~ msgid "Calculating from"
+#~ msgstr "加载中..."
+
+#~ msgid "your location"
+#~ msgstr "位置"
+
+#~ msgid "Nova has notes ready. What would you like to do?"
+#~ msgstr "Nova has notes ready. What would you like to do?"
+
+#~ msgid "Nova couldn't load notes"
+#~ msgstr "Nova couldn't load notes"
+

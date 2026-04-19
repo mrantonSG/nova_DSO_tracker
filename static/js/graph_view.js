@@ -481,6 +481,10 @@
         if (tabName === 'framing') {
             showProjectSubTab('notes');
         }
+
+        if (tabName === 'chart' && typeof window._fetchCalibrationStar === 'function') {
+            window._fetchCalibrationStar();
+        }
     };
 
     function loadSimbadInfo() {

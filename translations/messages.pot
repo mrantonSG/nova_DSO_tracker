@@ -1,760 +1,746 @@
-# Japanese translations for PROJECT.
+# Translations template for PROJECT.
 # Copyright (C) 2026 ORGANIZATION
 # This file is distributed under the same license as the PROJECT project.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
+#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2026-04-19 10:47+0200\n"
-"PO-Revision-Date: 2026-03-03 16:04+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language: ja\n"
-"Language-Team: ja <LL@li.org>\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
 #: nova/log_parser.py:931
-#, fuzzy
 msgid "Empty log file."
-msgstr "ファイル名が空です"
+msgstr ""
 
 #: nova/log_parser.py:936
-#, fuzzy
 msgid "Log file is very large, truncated for performance."
-msgstr "インポートするファイルが選択されていません。"
+msgstr ""
 
 #: nova/log_parser.py:945
 msgid "File does not appear to be a NINA log."
-msgstr "ファイルはNINAログではないようだ。"
+msgstr ""
 
 #: nova/log_parser.py:1132
-#, fuzzy
 msgid "After Filter Change"
-msgstr "フィルター名を入力してください。"
+msgstr ""
 
 #: nova/log_parser.py:1134
-#, fuzzy
 msgid "Manual"
-msgstr "最大値"
+msgstr ""
 
 #: nova/log_parser.py:1136
 msgid "Automatic"
-msgstr "自動"
+msgstr ""
 
 #: nova/log_parser.py:1175
-#, fuzzy
 msgid "AutoFocus Run"
-msgstr "オートフォーカス実行中"
+msgstr ""
 
 #: nova/log_parser.py:1295
-#, fuzzy
 msgid "AutoFocus Complete"
-msgstr "オートフォーカス Vカーブ"
+msgstr ""
 
 #: nova/log_parser.py:1325
 msgid "R squared value below threshold"
-msgstr "R2乗値がしきい値以下"
+msgstr ""
 
 #: nova/log_parser.py:1337
-#, fuzzy
 msgid "AutoFocus Failed"
-msgstr "オートフォーカス"
+msgstr ""
 
 #: nova/log_parser.py:1672
 msgid "Log parsed but no structured data found."
-msgstr "ログは解析されましたが、構造化データは見つかりませんでした。"
+msgstr ""
 
 #: nova/blueprints/admin.py:15 nova/blueprints/tools.py:1254
 msgid "Not authorized."
-msgstr "許可されていません。"
+msgstr ""
 
 #: nova/blueprints/admin.py:50
 msgid "Username and password are required."
-msgstr "ユーザー名とパスワードが必要です。"
+msgstr ""
 
 #: nova/blueprints/admin.py:53
 #, python-format
 msgid "User '%(username)s' already exists."
-msgstr "ユーザー '%(username)s' は既に存在します。"
+msgstr ""
 
 #: nova/blueprints/admin.py:59
 #, python-format
 msgid "User '%(username)s' created successfully."
-msgstr "ユーザー '%(username)s' の作成に成功しました。"
+msgstr ""
 
 #: nova/blueprints/admin.py:72 nova/blueprints/admin.py:93
 #: nova/blueprints/admin.py:114 nova/blueprints/mobile.py:104
 #: nova/blueprints/mobile.py:506 nova/blueprints/tools.py:399
 #: nova/blueprints/tools.py:491 nova/blueprints/tools.py:855
 msgid "User not found."
-msgstr "ユーザーが見つかりません。"
+msgstr ""
 
 #: nova/blueprints/admin.py:75
 msgid "Cannot deactivate the admin account."
-msgstr "管理者アカウントを無効化できません。"
+msgstr ""
 
 #: nova/blueprints/admin.py:80
 #, python-format
 msgid "User '%(username)s' %(status)s."
-msgstr "ユーザー '%(username)s' は %(status)s です。"
+msgstr ""
 
 #: nova/blueprints/admin.py:97
 msgid "Password cannot be empty."
-msgstr "パスワードは空欄にできません。"
+msgstr ""
 
 #: nova/blueprints/admin.py:101
 #, python-format
 msgid "Password reset for '%(username)s'."
-msgstr "'%(username)s' のパスワードリセット"
+msgstr ""
 
 #: nova/blueprints/admin.py:117
 msgid "Cannot delete the admin account."
-msgstr "管理者アカウントを削除できません。"
+msgstr ""
 
 #: nova/blueprints/admin.py:122
 #, python-format
 msgid "User '%(username)s' deleted."
-msgstr "ユーザー '%(username)s' が削除されました。"
+msgstr ""
 
 #: nova/blueprints/api.py:155
 msgid "Object not found"
-msgstr "オブジェクトが見つかりません"
+msgstr ""
 
 #: nova/blueprints/api.py:421
 #, python-format
 msgid "<p>Error reading help file: %(error)s</p>"
-msgstr "<p>ヘルプファイルの読み込みエラー: %(error)s</p>"
+msgstr ""
 
 #: nova/blueprints/api.py:1380
 msgid "No file uploaded"
-msgstr "ファイルがアップロードされていません"
+msgstr ""
 
 #: nova/blueprints/api.py:1384
 msgid "Empty filename"
-msgstr "ファイル名が空です"
+msgstr ""
 
 #: nova/blueprints/api.py:1427 nova/blueprints/api.py:2633
 msgid "User not found"
-msgstr "ユーザーが見つかりません"
+msgstr ""
 
 #: nova/blueprints/api.py:1431
 msgid "Session not found"
-msgstr "セッションが見つかりません"
+msgstr ""
 
 #: nova/blueprints/api.py:2331
 msgid "Object data not found or invalid."
-msgstr "オブジェクトデータが見つからないか無効です。"
+msgstr ""
 
 #: nova/blueprints/api.py:2335
 msgid "RA/DEC missing for object."
-msgstr "オブジェクトのRA/DECがありません。"
+msgstr ""
 
 #: nova/blueprints/api.py:2340
 msgid "Invalid RA/DEC format for object."
-msgstr "オブジェクトのRA/DEC形式が無効です。"
+msgstr ""
 
 #: nova/blueprints/api.py:2494
 msgid "Could not generate time series for plot."
-msgstr "プロットの時系列を生成できませんでした。"
+msgstr ""
 
 #: nova/blueprints/api.py:2597
 msgid "Location not configured"
-msgstr "場所が設定されていません"
+msgstr ""
 
 #: nova/blueprints/api.py:3483
 msgid "Missing or invalid lat/lon parameters"
 msgstr ""
 
 #: nova/blueprints/api.py:3492
-#, fuzzy
 msgid "Invalid datetime format"
-msgstr "無効な日付形式です。"
+msgstr ""
 
 #: nova/blueprints/api.py:3512
-#, fuzzy
 msgid "Calibration star catalog not found"
-msgstr "校正戦略"
+msgstr ""
 
 #: nova/blueprints/core.py:120
 msgid "Logged out successfully!"
-msgstr "ログアウトに成功しました！"
+msgstr ""
 
 #: nova/blueprints/core.py:130
 #, python-format
 msgid "Language '%(lang)s' is not supported."
-msgstr "言語 '%(lang)s' はサポートされていません。"
+msgstr ""
 
 #: nova/blueprints/core.py:186
 msgid "Logged in successfully!"
-msgstr "ログインに成功しました！"
+msgstr ""
 
 #: nova/blueprints/core.py:202
 msgid "Invalid username or password."
-msgstr "ユーザー名またはパスワードが無効です。"
+msgstr ""
 
 #: nova/blueprints/core.py:210
 msgid "Single Sign-On is not applicable in single-user mode."
-msgstr "シングルサインオンはシングルユーザーモードでは適用されません。"
+msgstr ""
 
 #: nova/blueprints/core.py:218
 msgid "SSO Error: No token provided."
-msgstr "SSO エラー: トークンが提供されていません。"
+msgstr ""
 
 #: nova/blueprints/core.py:224
 msgid "SSO Error: SSO is not configured on the server."
-msgstr "SSO エラー: サーバーで SSO が設定されていません。"
+msgstr ""
 
 #: nova/blueprints/core.py:242
 #, python-format
 msgid "Welcome back, %(username)s!"
-msgstr "おかえりなさい、%(username)sさん！"
+msgstr ""
 
 #: nova/blueprints/core.py:245
 #, python-format
 msgid "SSO Error: User '%(username)s' not found or is disabled in Nova."
-msgstr "SSO エラー: Nova でユーザー '%(username)s' が見つかりません、または無効になっています。"
+msgstr ""
 
 #: nova/blueprints/core.py:249
 msgid "SSO Error: The login link has expired. Please try again from WordPress."
-msgstr "SSOエラー：ログインリンクの有効期限が切れています。WordPressから再度お試しください。"
+msgstr ""
 
 #: nova/blueprints/core.py:252
 msgid "SSO Error: Invalid login token."
-msgstr "SSO エラー: 無効なログイン トークンです。"
+msgstr ""
 
 #: nova/blueprints/core.py:458
 #, python-format
 msgid "Could not find user '%(username)s' in the database."
-msgstr "データベースにユーザー '%(username)s' が見つかりませんでした。"
+msgstr ""
 
 #: nova/blueprints/core.py:532
 msgid "Warning: Horizon Mask was invalid and was ignored."
-msgstr "警告: ホライゾンマスクが無効であったため無視されました。"
+msgstr ""
 
 #: nova/blueprints/core.py:554
 msgid ""
 "Cannot delete your last location. You must have at least one location "
 "configured."
-msgstr "最後の位置情報を削除できません。少なくとも1つの位置情報を設定する必要があります。"
+msgstr ""
 
 #: nova/blueprints/core.py:559
 msgid ""
 "Cannot deactivate your only active location. You must keep at least one "
 "active location."
-msgstr "唯一の有効な位置情報を無効化できません。少なくとも1つの有効な位置情報を保持する必要があります。"
+msgstr ""
 
 #: nova/blueprints/core.py:600
 #, python-format
 msgid "Warning: Horizon Mask for '%(location_name)s' was invalid and ignored."
-msgstr "警告: '%(location_name)s' のホライズンマスクが無効なため無視されました。"
+msgstr ""
 
 #: nova/blueprints/core.py:646
 #, python-format
 msgid "%(message)s updated successfully."
-msgstr "%(message)s が正常に更新されました。"
+msgstr ""
 
 #: nova/blueprints/core.py:720
 #, python-format
 msgid "A database error occurred: %(error)s"
-msgstr "データベースエラーが発生しました: %(error)s"
+msgstr ""
 
 #: nova/blueprints/core.py:838
 msgid "Label required"
-msgstr "ラベルが必要です"
+msgstr ""
 
 #: nova/blueprints/core.py:848
 msgid "Filter already exists"
-msgstr "フィルターは既に存在します"
+msgstr ""
 
 #: nova/blueprints/core.py:865
 msgid "Filter not found"
-msgstr "フィルターが見つかりません"
+msgstr ""
 
 #: nova/blueprints/core.py:892 nova/blueprints/core.py:912
 msgid "No object specified."
-msgstr "オブジェクトが指定されていません。"
+msgstr ""
 
 #: nova/blueprints/core.py:899 nova/blueprints/core.py:1400
 #: nova/blueprints/core.py:1426 templates/mobile_add_object.html:57
 msgid "Object not found."
-msgstr "オブジェクトが見つかりません。"
+msgstr ""
 
 #: nova/blueprints/core.py:1177
 msgid "Fetched and saved missing object details."
-msgstr "不足していたオブジェクトの詳細を取得して保存しました。"
+msgstr ""
 
 #: nova/blueprints/core.py:1179
 msgid "No missing data found or no updates needed."
-msgstr "欠落データは見つかりませんでした、または更新の必要はありません。"
+msgstr ""
 
 #: nova/blueprints/core.py:1183
 #, python-format
 msgid "An error occurred during data fetching: %(error)s"
-msgstr "データ取得中にエラーが発生しました: %(error)s"
+msgstr ""
 
 #: nova/blueprints/core.py:1527
 msgid "Please log in to view object details."
-msgstr "オブジェクトの詳細を表示するにはログインしてください。"
+msgstr ""
 
 #: nova/blueprints/core.py:1542
 #, python-format
 msgid "User '%(username)s' not found."
-msgstr "ユーザー '%(username)s' は見つかりませんでした。"
+msgstr ""
 
 #: nova/blueprints/core.py:1558
 #, python-format
 msgid "Requested location '%(location_name)s' not found, using default."
-msgstr "指定された場所 '%(location_name)s' が見つかりません。デフォルトを使用します。"
+msgstr ""
 
 #: nova/blueprints/core.py:1576
 msgid "Error: No valid location configured or selected for this user."
-msgstr "エラー: このユーザーに対して有効な場所が設定または選択されていません。"
+msgstr ""
 
 #: nova/blueprints/core.py:1594
 #, python-format
 msgid "Object '%(object_name)s' not found in your configuration."
-msgstr "オブジェクト '%(object_name)s' が設定に見つかりません。"
+msgstr ""
 
 #: nova/blueprints/core.py:1834
 msgid "Invalid date components provided, defaulting to current date."
-msgstr "無効な日付コンポーネントが指定されました。デフォルトで現在の日付を使用します。"
+msgstr ""
 
 #: nova/blueprints/core.py:2041
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
-msgstr "%(object_name)s の詳細を読み込む際にエラーが発生しました。"
+msgstr ""
 
 #: nova/blueprints/journal.py:70
 msgid "User session error, please log in again."
-msgstr "ユーザーセッションエラーが発生しました。再度ログインしてください。"
+msgstr ""
 
 #: nova/blueprints/journal.py:120 nova/blueprints/journal.py:409
 #: nova/blueprints/mobile.py:550
 msgid "Invalid date format."
-msgstr "無効な日付形式です。"
+msgstr ""
 
 #: nova/blueprints/journal.py:350 nova/blueprints/mobile.py:703
 msgid "New journal entry added successfully!"
-msgstr "新しい日記の投稿が正常に追加されました！"
+msgstr ""
 
 #: nova/blueprints/journal.py:376
 msgid "To add a new session, please select an object first."
-msgstr "新しいセッションを追加するには、まずオブジェクトを選択してください。"
+msgstr ""
 
 #: nova/blueprints/journal.py:391
 msgid "Journal entry not found or you do not have permission to edit it."
-msgstr "ジャーナルエントリが見つかりません、または編集する権限がありません。"
+msgstr ""
 
 #: nova/blueprints/journal.py:626
 msgid "NINA log file must be a .log file."
-msgstr "NINAログファイルは.logファイルでなければならない。"
+msgstr ""
 
 #: nova/blueprints/journal.py:638
 msgid "NINA log file is too large. Maximum size is 10 MB."
-msgstr "NINAログファイルが大きすぎる。最大サイズは10MBです。"
+msgstr ""
 
 #: nova/blueprints/journal.py:647
-#, fuzzy
 msgid "NINA log imported successfully."
-msgstr "リグの削除に成功しました。"
+msgstr ""
 
 #: nova/blueprints/journal.py:677
 msgid "Journal entry updated successfully!"
-msgstr "日記の更新に成功しました！"
+msgstr ""
 
 #: nova/blueprints/journal.py:700
 msgid "Cannot edit session: associated object name is missing."
-msgstr "セッションを編集できません: 関連付けられたオブジェクト名が欠落しています。"
+msgstr ""
 
 #: nova/blueprints/journal.py:726
 msgid "Project name is required."
-msgstr "プロジェクト名は必須です。"
+msgstr ""
 
 #: nova/blueprints/journal.py:732
 #, python-format
 msgid "A project named '%(project_name)s' already exists."
-msgstr "「%(project_name)s」という名前のプロジェクトが既に存在します。"
+msgstr ""
 
 #: nova/blueprints/journal.py:759
 #, python-format
 msgid "Project '%(project_name)s' created successfully."
-msgstr "プロジェクト '%(project_name)s' が正常に作成されました。"
+msgstr ""
 
 #: nova/blueprints/journal.py:775
 #, python-format
 msgid "Error creating project: %(error)s"
-msgstr "プロジェクト作成エラー: %(error)s"
+msgstr ""
 
 #: nova/blueprints/journal.py:790
 msgid "Session to duplicate not found."
-msgstr "セッションの複製が見つかりません。"
+msgstr ""
 
 #: nova/blueprints/journal.py:815
 msgid "Session duplicated successfully."
-msgstr "セッションの複製に成功しました。"
+msgstr ""
 
 #: nova/blueprints/journal.py:826
 #, python-format
 msgid "Error duplicating session: %(error)s"
-msgstr "セッションの複製中にエラーが発生しました: %(error)s"
+msgstr ""
 
 #: nova/blueprints/journal.py:848
 msgid "Journal entry deleted successfully."
-msgstr "日記の投稿を正常に削除しました。"
+msgstr ""
 
 #: nova/blueprints/journal.py:854
 msgid "Journal entry not found or you do not have permission to delete it."
-msgstr "ジャーナルエントリが見つかりません、または削除する権限がありません。"
+msgstr ""
 
 #: nova/blueprints/journal.py:871 nova/blueprints/journal.py:1025
 msgid "Session not found."
-msgstr "セッションが見つかりません。"
+msgstr ""
 
 #: nova/blueprints/journal.py:1033 nova/blueprints/projects.py:267
 msgid "Project not found."
-msgstr "プロジェクトが見つかりません。"
+msgstr ""
 
 #: nova/blueprints/mobile.py:111 nova/blueprints/mobile.py:340
 #, python-format
 msgid "Object '%(object_name)s' not found."
-msgstr "オブジェクト '%(object_name)s' が見つかりません。"
+msgstr ""
 
 #: nova/blueprints/mobile.py:357
-#, fuzzy
 msgid "Location not found."
-msgstr "オブジェクトが見つかりません。"
+msgstr ""
 
 #: nova/blueprints/mobile.py:366
 msgid "Object coordinates not available."
-msgstr "オブジェクトの座標が利用できません。"
+msgstr ""
 
 #: nova/blueprints/mobile.py:719
-#, fuzzy, python-format
+#, python-format
 msgid "Error saving journal entry: %(error)s"
-msgstr "ジャーナルファイルの生成中にエラーが発生しました: %(error)s"
+msgstr ""
 
 #: nova/blueprints/projects.py:64 nova/blueprints/projects.py:91
 msgid "Error deleting old image."
-msgstr "古い画像の削除に失敗しました。"
+msgstr ""
 
 #: nova/blueprints/projects.py:127
 msgid "Project updated successfully."
-msgstr "プロジェクトの更新に成功しました。"
+msgstr ""
 
 #: nova/blueprints/projects.py:148
 #, python-format
 msgid "An error occurred: %(error)s"
-msgstr "エラーが発生しました: %(error)s"
+msgstr ""
 
 #: nova/blueprints/projects.py:282
 #, python-format
 msgid "Project '%(project_name)s' deleted. Sessions are now standalone."
-msgstr "プロジェクト '%(project_name)s' が削除されました。セッションは現在スタンドアロンです。"
+msgstr ""
 
 #: nova/blueprints/projects.py:290
 #, python-format
 msgid "Error deleting project: %(error)s"
-msgstr "プロジェクト削除エラー: %(error)s"
+msgstr ""
 
 #: nova/blueprints/tools.py:69
 #, python-format
 msgid "Error: Unknown component type '%(component_type)s'."
-msgstr "エラー: 未知のコンポーネントタイプ '%(component_type)s'。"
+msgstr ""
 
 #: nova/blueprints/tools.py:90
 #, python-format
 msgid "Component '%(component_name)s' added successfully."
-msgstr "コンポーネント '%(component_name)s' が正常に追加されました。"
+msgstr ""
 
 #: nova/blueprints/tools.py:93
 #, python-format
 msgid "Error adding component: %(error)s"
-msgstr "コンポーネントの追加中にエラーが発生しました: %(error)s"
+msgstr ""
 
 #: nova/blueprints/tools.py:108
 msgid "Authorization error."
-msgstr "認証エラー。"
+msgstr ""
 
 #: nova/blueprints/tools.py:130
 #, python-format
 msgid "Component '%(component_name)s' updated successfully."
-msgstr "コンポーネント '%(component_name)s' の更新に成功しました。"
+msgstr ""
 
 #: nova/blueprints/tools.py:133
 #, python-format
 msgid "Error updating component: %(error)s"
-msgstr "コンポーネントの更新中にエラーが発生しました: %(error)s"
+msgstr ""
 
 #: nova/blueprints/tools.py:175
 #, python-format
 msgid "Rig '%(rig_name)s' updated successfully."
-msgstr "リグ '%(rig_name)s' の更新に成功しました。"
+msgstr ""
 
 #: nova/blueprints/tools.py:187
 #, python-format
 msgid "Rig '%(rig_name)s' created successfully."
-msgstr "リグ '%(rig_name)s' の作成に成功しました。"
+msgstr ""
 
 #: nova/blueprints/tools.py:206
 #, python-format
 msgid "Error saving rig: %(error)s"
-msgstr "リグの保存中にエラーが発生しました: %(error)s"
+msgstr ""
 
 #: nova/blueprints/tools.py:223
 msgid "Cannot delete component: It is used in at least one rig."
-msgstr "コンポーネントを削除できません: 少なくとも1つのリグで使用されています。"
+msgstr ""
 
 #: nova/blueprints/tools.py:228
 msgid "Component deleted successfully."
-msgstr "コンポーネントの削除に成功しました。"
+msgstr ""
 
 #: nova/blueprints/tools.py:231
 #, python-format
 msgid "Error deleting component: %(error)s"
-msgstr "コンポーネントの削除中にエラーが発生しました: %(error)s"
+msgstr ""
 
 #: nova/blueprints/tools.py:243
 msgid "Rig deleted successfully."
-msgstr "リグの削除に成功しました。"
+msgstr ""
 
 #: nova/blueprints/tools.py:246
 #, python-format
 msgid "Error deleting rig: %(error)s"
-msgstr "リグの削除中にエラーが発生しました: %(error)s"
+msgstr ""
 
 #: nova/blueprints/tools.py:479
 #, python-format
 msgid "Error generating config file: %(error)s"
-msgstr "設定ファイルの生成中にエラーが発生しました: %(error)s"
+msgstr ""
 
 #: nova/blueprints/tools.py:600
 #, python-format
 msgid "Error generating journal file: %(error)s"
-msgstr "ジャーナルファイルの生成中にエラーが発生しました: %(error)s"
+msgstr ""
 
 #: nova/blueprints/tools.py:608 nova/blueprints/tools.py:613
 msgid "No file selected for journal import."
-msgstr "ジャーナルインポート用のファイルが選択されていません。"
+msgstr ""
 
 #: nova/blueprints/tools.py:627
 #, python-format
 msgid "Invalid journal file structure: %(message)s"
-msgstr "無効なジャーナルファイル構造: %(message)s"
+msgstr ""
 
 #: nova/blueprints/tools.py:651
 msgid "Journal imported successfully! (Previous journal data was replaced)"
-msgstr "ジャーナルのインポートに成功しました！（以前のジャーナルデータは上書きされました）"
+msgstr ""
 
 #: nova/blueprints/tools.py:663
 #, python-format
 msgid "Import failed: Invalid YAML format in the journal file. %(error)s"
-msgstr "インポートに失敗しました: ジャーナルファイルのYAML形式が無効です。 %(error)s"
+msgstr ""
 
 #: nova/blueprints/tools.py:671 nova/blueprints/tools.py:802
 #, python-format
 msgid "Import failed: %(error)s"
-msgstr "インポートに失敗しました: %(error)s"
+msgstr ""
 
 #: nova/blueprints/tools.py:674
 msgid "Invalid file type. Please upload a .yaml journal file."
-msgstr "無効なファイル形式です。.yaml形式のジャーナルファイルをアップロードしてください。"
+msgstr ""
 
 #: nova/blueprints/tools.py:686
 msgid "Authentication error during import."
-msgstr "インポート中に認証エラーが発生しました。"
+msgstr ""
 
 #: nova/blueprints/tools.py:691 nova/blueprints/tools.py:696
 msgid "No file selected for import."
-msgstr "インポートするファイルが選択されていません。"
+msgstr ""
 
 #: nova/blueprints/tools.py:718
 msgid "Cannot import: Configuration must contain at least one location."
-msgstr "インポートできません: 構成には少なくとも1つの場所が含まれている必要があります。"
+msgstr ""
 
 #: nova/blueprints/tools.py:726
 msgid "Cannot import: Configuration must contain at least one active location."
-msgstr "インポートできません: 構成には少なくとも1つのアクティブな場所が含まれている必要があります。"
+msgstr ""
 
 #: nova/blueprints/tools.py:757
 msgid "Config imported successfully! (Previous config was replaced)"
-msgstr "設定のインポートに成功しました！（以前の設定は上書きされました）"
+msgstr ""
 
 #: nova/blueprints/tools.py:799
 #, python-format
 msgid "Import failed: Invalid YAML. (%(error)s)"
-msgstr "インポートに失敗しました: 無効なYAMLです。(%(error)s)"
+msgstr ""
 
 #: nova/blueprints/tools.py:821
 msgid "Authentication error during catalog import."
-msgstr "カタログインポート中の認証エラー。"
+msgstr ""
 
 #: nova/blueprints/tools.py:831
 msgid "Catalog pack not found or invalid."
-msgstr "カタログパックが見つかりません、または無効です。"
+msgstr ""
 
 #: nova/blueprints/tools.py:843
 msgid "Catalog import failed due to an internal error."
-msgstr "カタログのインポートが内部エラーにより失敗しました。"
+msgstr ""
 
 #: nova/blueprints/tools.py:944
 #, python-format
 msgid "Error generating rig config: %(error)s"
-msgstr "リグ設定の生成中にエラーが発生しました: %(error)s"
+msgstr ""
 
 #: nova/blueprints/tools.py:964
 msgid "No journal photos found to download."
-msgstr "ダウンロード可能なジャーナル写真は見つかりませんでした。"
+msgstr ""
 
 #: nova/blueprints/tools.py:1006
 msgid "No file selected for photo import."
-msgstr "写真インポート用のファイルが選択されていません。"
+msgstr ""
 
 #: nova/blueprints/tools.py:1011
 msgid "Please select a valid .zip file to import."
-msgstr "インポートする有効な .zip ファイルを選択してください。"
+msgstr ""
 
 #: nova/blueprints/tools.py:1024
 msgid "Import failed: The uploaded file is not a valid ZIP archive."
-msgstr "インポートに失敗しました: アップロードされたファイルは有効なZIPアーカイブではありません。"
+msgstr ""
 
 #: nova/blueprints/tools.py:1058
 #, python-format
 msgid "Journal photos imported successfully! Extracted %(count)d files."
-msgstr "ジャーナル写真が正常にインポートされました！%(count)dファイルを抽出しました。"
+msgstr ""
 
 #: nova/blueprints/tools.py:1061
 msgid "Import failed: The ZIP file appears to be corrupted."
-msgstr "インポートに失敗しました: ZIPファイルが破損しているようです。"
+msgstr ""
 
 #: nova/blueprints/tools.py:1063
 #, python-format
 msgid "An unexpected error occurred during import: %(error)s"
-msgstr "インポート中に予期しないエラーが発生しました: %(error)s"
+msgstr ""
 
 #: nova/blueprints/tools.py:1071 nova/blueprints/tools.py:1076
 msgid "No file selected for rigs import."
-msgstr "リグのインポート用にファイルが選択されていません。"
+msgstr ""
 
 #: nova/blueprints/tools.py:1106
 msgid "Rigs configuration imported and synced to database successfully!"
-msgstr "リグ構成のインポートとデータベースへの同期が正常に完了しました！"
+msgstr ""
 
 #: nova/blueprints/tools.py:1114
 #, python-format
 msgid "Error importing rigs file: %(error)s"
-msgstr "リグファイルのインポート中にエラーが発生しました: %(error)s"
+msgstr ""
 
 #: nova/blueprints/tools.py:1117
 msgid "Invalid file type. Please upload a .yaml or .yml file."
-msgstr "無効なファイル形式です。.yaml または .yml ファイルをアップロードしてください。"
+msgstr ""
 
 #: nova/blueprints/tools.py:1176
 msgid "Not authorized to export another user's data."
-msgstr "他のユーザーのデータを出力する権限がありません。"
+msgstr ""
 
 #: nova/blueprints/tools.py:1180
 msgid "Export failed (no such user or empty data)."
-msgstr "エクスポートに失敗しました（該当ユーザーが存在しないか、データが空です）。"
+msgstr ""
 
 #: nova/blueprints/tools.py:1209
 msgid "Username is required in multi-user mode."
-msgstr "マルチユーザーモードではユーザー名が必要です。"
+msgstr ""
 
 #: nova/blueprints/tools.py:1214
 msgid "Not authorized to import for another user."
-msgstr "他のユーザーのために輸入する権限がありません。"
+msgstr ""
 
 #: nova/blueprints/tools.py:1222
 msgid "Please provide config, rigs, and journal YAML files."
-msgstr "設定ファイル、リグ、およびジャーナルのYAMLファイルを提供してください。"
+msgstr ""
 
 #: nova/blueprints/tools.py:1242
 msgid "Import completed successfully!"
-msgstr "インポートが正常に完了しました！"
+msgstr ""
 
 #: nova/blueprints/tools.py:1244
 msgid "Import failed. See server logs for details."
-msgstr "インポートに失敗しました。詳細はサーバーログを参照してください。"
+msgstr ""
 
 #: nova/blueprints/tools.py:1247
 msgid "Import crashed. Check logs."
-msgstr "インポートがクラッシュしました。ログを確認してください。"
+msgstr ""
 
 #: nova/blueprints/tools.py:1258
 msgid "Database repair completed."
-msgstr "データベースの修復が完了しました。"
+msgstr ""
 
 #: nova/blueprints/tools.py:1260
 #, python-format
 msgid "Repair failed: %(error)s"
-msgstr "修復に失敗しました: %(error)s"
+msgstr ""
 
 #: templates/_heatmap_section.html:5
 msgid "Generating Heatmap..."
-msgstr "ヒートマップを生成中..."
+msgstr ""
 
 #: templates/_heatmap_section.html:12 templates/mobile_up_now.html:878
 msgid "Initializing..."
-msgstr "初期化中..."
+msgstr ""
 
 #: templates/_heatmap_section.html:19
 msgid "Vertical bands = Full Moon"
-msgstr "縦帯 = 満月"
+msgstr ""
 
 #: templates/_heatmap_section.html:20
 msgid "Darker teal = Best visibility"
-msgstr "濃い青緑色 = 最も視認性が高い"
+msgstr ""
 
 #: templates/_heatmap_section.html:21
 msgid "Brighter teal = Best visibility"
-msgstr "明るい青緑色 = 最高の視認性"
+msgstr ""
 
 #: templates/_heatmap_section.html:22
-#, fuzzy
 msgid "Click any cell to view details"
-msgstr "オブジェクトの詳細を表示するにはログインしてください。"
+msgstr ""
 
 #: templates/_heatmap_section.html:23
-#, fuzzy
 msgid ""
 "* Vertical bands = Full Moon. Darker teal = Best visibility. Click any "
 "cell to view details."
-msgstr "* 縦方向の明るい帯 = 満月（白飛び）。濃い緑色 = 最良の品質。オブジェクト名をクリックすると詳細が表示されます。"
+msgstr ""
 
 #: templates/_inspiration_section.html:470
 msgid "Refresh Suggestions"
-msgstr "更新提案"
+msgstr ""
 
 #: templates/_inspiration_section.html:477
 msgid "Processing targets..."
-msgstr "処理対象を処理中..."
+msgstr ""
 
 #: templates/_inspiration_section.html:495 templates/index.html:141
 msgid "Max Altitude"
-msgstr "最高高度"
+msgstr ""
 
 #: templates/_inspiration_section.html:496
 msgid "Transit Time"
-msgstr "南中時刻"
+msgstr ""
 
 #: templates/_inspiration_section.html:497 templates/mobile_up_now.html:913
 #: templates/mobile_up_now.html:948
 msgid "Duration"
-msgstr "期間"
+msgstr ""
 
 #: templates/_inspiration_section.html:498 templates/config_form.html:573
 #: templates/index.html:143 templates/mobile_up_now.html:982
 msgid "Constellation"
-msgstr "星座"
+msgstr ""
 
 #: templates/_inspiration_section.html:502
 msgid "Source: Wiki"
-msgstr "出典: Wiki"
+msgstr ""
 
 #: templates/_inspiration_section.html:504 templates/_journal_section.html:2453
 #: templates/_objects_section.html:427 templates/_objects_section.html:442
@@ -762,81 +748,76 @@ msgstr "出典: Wiki"
 #: templates/base.html:415 templates/base.html:453
 #: templates/config_form.html:673 templates/graph_view.html:290
 msgid "Close"
-msgstr "閉じる"
+msgstr ""
 
 #: templates/_inspiration_section.html:505
 msgid "View Charts"
-msgstr "チャートを見る"
+msgstr ""
 
 #: templates/_inspiration_section.html:516
 msgid "Analyzing targets..."
-msgstr "ターゲットを分析中..."
+msgstr ""
 
 #: templates/_inspiration_section.html:517 templates/journal_report.html:706
 #: templates/project_report.html:1069
 msgid "No Image"
-msgstr "画像なし"
+msgstr ""
 
 #: templates/_inspiration_section.html:518
 msgid "unknown"
-msgstr "不明"
+msgstr ""
 
 #: templates/_inspiration_section.html:519
 msgid "Error rendering grid. Check console."
-msgstr "グリッドのレンダリングエラー。コンソールを確認してください。"
+msgstr ""
 
 #: templates/_inspiration_section.html:520
 msgid "Image unavailable"
-msgstr "画像は利用できません"
+msgstr ""
 
 #: templates/_inspiration_section.html:523
 msgid "How to populate this gallery:"
-msgstr "このギャラリーの入力方法"
+msgstr ""
 
 #: templates/_inspiration_section.html:524
-#, fuzzy
 msgid "Check Filters:"
-msgstr "フィルター："
+msgstr ""
 
 #: templates/_inspiration_section.html:525
 msgid "Clear filters on the Position tab."
-msgstr "ポジションタブのフィルターをクリアする。"
+msgstr ""
 
 #: templates/_inspiration_section.html:526
 msgid "Check Database:"
-msgstr "データベースをチェックする："
+msgstr ""
 
 #: templates/_inspiration_section.html:527
-#, fuzzy
 msgid "Ensure you have objects in Configuration."
-msgstr "設定にオブジェクトが見つかりません。"
+msgstr ""
 
 #: templates/_inspiration_section.html:528
 msgid "Visibility:"
-msgstr "視認性："
+msgstr ""
 
 #: templates/_inspiration_section.html:529
 msgid "We only show objects observable during tonight's session."
-msgstr "今夜のセッションで観測可能なものだけをお見せします。"
+msgstr ""
 
 #: templates/_inspiration_section.html:532
-#, fuzzy
 msgid "Alt:"
-msgstr "緯度:"
+msgstr ""
 
 #: templates/_inspiration_section.html:533
-#, fuzzy
 msgid "Dur:"
-msgstr "期間："
+msgstr ""
 
 #: templates/_inspiration_section.html:534
-#, fuzzy
 msgid "hrs"
-msgstr "ディザリング"
+msgstr ""
 
 #: templates/_inspiration_section.html:535
 msgid "h"
-msgstr "h"
+msgstr ""
 
 #: templates/_inspiration_section.html:536 templates/base.html:105
 #: templates/config_form.html:596 templates/config_form.html:625
@@ -844,91 +825,88 @@ msgstr "h"
 #: templates/graph_view.html:143 templates/graph_view.html:660
 #: templates/mobile_object_detail.html:588
 msgid "Loading..."
-msgstr "読み込み中..."
+msgstr ""
 
 #: templates/_inspiration_section.html:539
-#, fuzzy
 msgid "Type:"
-msgstr "タイプ"
+msgstr ""
 
 #: templates/_inspiration_section.html:540
 msgid "DSO"
-msgstr "DSO"
+msgstr ""
 
 #: templates/_inspiration_section.html:541
-#, fuzzy
 msgid "Located in"
-msgstr "場所"
+msgstr ""
 
 #: templates/_inspiration_section.html:542
 msgid "N/A"
-msgstr "N/A"
+msgstr ""
 
 #: templates/_inspiration_section.html:545
-#, fuzzy
 msgid "Source:"
-msgstr "ソース"
+msgstr ""
 
 #: templates/_inspiration_section.html:546
 msgid "Wikipedia"
-msgstr "Wikipedia"
+msgstr ""
 
 #: templates/_inspiration_section.html:547
 msgid "NASA"
-msgstr "NASA"
+msgstr ""
 
 #: templates/_inspiration_section.html:548
 msgid "Aladin Sky Atlas / DSS2"
-msgstr "Aladin Sky Atlas / DSS2"
+msgstr ""
 
 #: templates/_inspiration_section.html:623
 #: templates/_inspiration_section.html:624
 msgid "No Matching Targets"
-msgstr "処理対象を処理中..."
+msgstr ""
 
 #: templates/_inspiration_section.html:625
 msgid "Your current filters (Position Tab) are too restrictive."
-msgstr "現在のフィルター（ポジションタブ）は制限が多すぎます。"
+msgstr ""
 
 #: templates/_inspiration_section.html:631
 msgid "Loading Object Database..."
-msgstr "履歴を読み込み中..."
+msgstr ""
 
 #: templates/_inspiration_section.html:632
 msgid "Please wait while we calculate visibility and fetch data."
-msgstr "視認性の計算とデータの取得を行いますので、しばらくお待ちください。"
+msgstr ""
 
 #: templates/_inspiration_section.html:635
 msgid "Database Empty"
-msgstr "データベースの修復が完了しました。"
+msgstr ""
 
 #: templates/_inspiration_section.html:636
 msgid "No objects found in your configuration."
-msgstr "設定にオブジェクトが見つかりません。"
+msgstr ""
 
 #: templates/_journal_section.html:1584
 msgid "Session History"
-msgstr "セッション履歴"
+msgstr ""
 
 #: templates/_journal_section.html:1588
 msgid "Switch Object"
-msgstr "オブジェクトを切り替える"
+msgstr ""
 
 #: templates/_journal_section.html:1590 templates/_journal_section.html:2193
 msgid "Add New Project"
-msgstr "新規プロジェクトを追加"
+msgstr ""
 
 #: templates/_journal_section.html:1591 templates/base.html:182
 msgid "Add New Session"
-msgstr "新しいセッションを追加"
+msgstr ""
 
 #: templates/_journal_section.html:1596
 msgid "Date & Location"
-msgstr "場所を更新"
+msgstr ""
 
 #: templates/_journal_section.html:1596 templates/project_report.html:861
 msgid "Integ."
-msgstr "誠実さ。"
+msgstr ""
 
 #: templates/_journal_section.html:1596
 #: templates/_opportunities_section.html:42 templates/_project_subtab.html:196
@@ -936,537 +914,537 @@ msgstr "誠実さ。"
 #: templates/journal_report.html:692 templates/project_report.html:862
 #: templates/project_report.html:1089
 msgid "Rating"
-msgstr "評価"
+msgstr ""
 
 #: templates/_journal_section.html:1607
 msgid "Click to view project details"
-msgstr "オブジェクトの詳細を表示するにはログインしてください。"
+msgstr ""
 
 #: templates/_journal_section.html:1611 templates/_journal_section.html:2032
 #: templates/_project_subtab.html:150
 msgid "Project:"
-msgstr "プロジェクト："
+msgstr ""
 
 #: templates/_journal_section.html:1612 templates/_journal_section.html:1931
 msgid "Total:"
-msgstr "合計："
+msgstr ""
 
 #: templates/_journal_section.html:1621 templates/_project_subtab.html:209
 msgid "min"
-msgstr "私は持っている"
+msgstr ""
 
 #: templates/_journal_section.html:1629
 msgid "Loading history..."
-msgstr "履歴を読み込み中..."
+msgstr ""
 
 #: templates/_journal_section.html:1648
 msgid "Details for Session:"
-msgstr "セッションの詳細："
+msgstr ""
 
 #: templates/_journal_section.html:1650
 msgid "Edit This Session"
-msgstr "このセッションを編集"
+msgstr ""
 
 #: templates/_journal_section.html:1652
 msgid "Create a copy of this session"
-msgstr "このセッションのコピーを作成する"
+msgstr ""
 
 #: templates/_journal_section.html:1652
 msgid "Duplicate"
-msgstr "重複"
+msgstr ""
 
 #: templates/_journal_section.html:1654
 msgid "Are you sure you want to delete this session permanently?"
-msgstr "このセッションを完全に削除してもよろしいですか？"
+msgstr ""
 
 #: templates/_journal_section.html:1655
 msgid "Delete This Session"
-msgstr "このセッションを削除"
+msgstr ""
 
 #: templates/_journal_section.html:1662
 msgid "Summary"
-msgstr "要約"
+msgstr ""
 
 #: templates/_journal_section.html:1663 templates/journal_report.html:752
 msgid "Equipment & Acquisition"
-msgstr "設備と取得"
+msgstr ""
 
 #: templates/_journal_section.html:1664
 msgid "Calibration & Outcome"
-msgstr "校正と結果"
+msgstr ""
 
 #: templates/_journal_section.html:1666
 msgid "Logs"
-msgstr "ログ"
+msgstr ""
 
 #: templates/_journal_section.html:1668 templates/journal_report.html:6
 #: templates/journal_report.html:679
 msgid "Session Report"
-msgstr "セッション報告書"
+msgstr ""
 
 #: templates/_journal_section.html:1674
 msgid "SEEING (FWHM)"
-msgstr "可視化（FWHM）"
+msgstr ""
 
 #: templates/_journal_section.html:1675
 msgid "GUIDING (RMS)"
-msgstr "ガイディング（RMS）"
+msgstr ""
 
 #: templates/_journal_section.html:1676
 msgid "SKY QUALITY (SQM)"
-msgstr "空の質 (SQM)"
+msgstr ""
 
 #: templates/_journal_section.html:1687
 msgid "Multiple"
-msgstr "複数"
+msgstr ""
 
 #: templates/_journal_section.html:1689
 msgid "x"
-msgstr "いいえ"
+msgstr ""
 
 #: templates/_journal_section.html:1689
 msgid "s"
-msgstr "表面輝度"
+msgstr ""
 
 #: templates/_journal_section.html:1691
 msgid "EXPOSURES"
-msgstr "露出"
+msgstr ""
 
 #: templates/_journal_section.html:1695 templates/_journal_section.html:1766
 #: templates/journal_form.html:164
 msgid "Filter:"
-msgstr "フィルター："
+msgstr ""
 
 #: templates/_journal_section.html:1699 templates/_journal_section.html:1743
 msgid "Rig Used:"
-msgstr "リグ名:"
+msgstr ""
 
 #: templates/_journal_section.html:1700 templates/_journal_section.html:1749
 msgid "Rig Specs:"
-msgstr "リグ・スナップショット"
+msgstr ""
 
 #: templates/_journal_section.html:1702 templates/_journal_section.html:1744
 #: templates/config_form.html:482 templates/journal_report.html:757
 msgid "Telescope:"
-msgstr "望遠鏡："
+msgstr ""
 
 #: templates/_journal_section.html:1703 templates/_journal_section.html:1748
 #: templates/config_form.html:488 templates/journal_report.html:767
 msgid "Camera:"
-msgstr "部屋："
+msgstr ""
 
 #: templates/_journal_section.html:1704
 msgid "FL:"
-msgstr "アパート："
+msgstr ""
 
 #: templates/_journal_section.html:1705 templates/_journal_section.html:1752
 msgid "Scale:"
-msgstr "スケール／視野角："
+msgstr ""
 
 #: templates/_journal_section.html:1708 templates/_journal_section.html:1755
 msgid "Setup Notes:"
-msgstr "セットアップに関する注意事項"
+msgstr ""
 
 #: templates/_journal_section.html:1711 templates/_journal_section.html:1757
 msgid "Telescope Setup:"
-msgstr "望遠鏡の設置"
+msgstr ""
 
 #: templates/_journal_section.html:1715
 msgid "Session Image:"
-msgstr "セッション画像"
+msgstr ""
 
 #: templates/_journal_section.html:1718
 msgid "Click to view full size"
-msgstr "クリックしてフルサイズで表示"
+msgstr ""
 
 #: templates/_journal_section.html:1719 templates/journal_report.html:700
 #: templates/journal_report.html:703 templates/project_report.html:1063
 #: templates/project_report.html:1067
 msgid "Session Image"
-msgstr "セッション画像"
+msgstr ""
 
 #: templates/_journal_section.html:1728 templates/journal_report.html:718
 msgid "Statistics & Conditions"
-msgstr "統計と条件"
+msgstr ""
 
 #: templates/_journal_section.html:1730
 msgid "Seeing (FWHM):"
-msgstr "見ること（FWHM）:"
+msgstr ""
 
 #: templates/_journal_section.html:1731
 msgid "Guiding RMS:"
-msgstr "ガイディングRMS:"
+msgstr ""
 
 #: templates/_journal_section.html:1732
 msgid "SQM:"
-msgstr "SQM:"
+msgstr ""
 
 #: templates/_journal_section.html:1733 templates/_journal_section.html:2243
 #: templates/journal_form.html:58
 msgid "Transparency Scale:"
-msgstr "透明度尺度："
+msgstr ""
 
 #: templates/_journal_section.html:1734
 msgid "Moon Illum/Sep:"
-msgstr "月光/分離："
+msgstr ""
 
 #: templates/_journal_section.html:1735 templates/_journal_section.html:2245
 #: templates/journal_form.html:70
 msgid "Weather Notes:"
-msgstr "天気メモ："
+msgstr ""
 
 #: templates/_journal_section.html:1740
 msgid "Equipment & Acquisition Details"
-msgstr "装備品及び取得の詳細"
+msgstr ""
 
 #: templates/_journal_section.html:1746 templates/journal_report.html:762
 msgid "Reducer/Ext.:"
-msgstr "縮小/拡張："
+msgstr ""
 
 #: templates/_journal_section.html:1751
 msgid "FL/Ratio:"
-msgstr "FL / 比率:"
+msgstr ""
 
 #: templates/_journal_section.html:1753
 msgid "FOV:"
-msgstr "視野："
+msgstr ""
 
 #: templates/_journal_section.html:1760 templates/_journal_section.html:2263
 msgid "Guiding Equipment:"
-msgstr "ガイディング装備："
+msgstr ""
 
 #: templates/_journal_section.html:1761
 msgid "Acquisition Sw:"
-msgstr "買収ソフトウェア："
+msgstr ""
 
 #: templates/_journal_section.html:1762 templates/journal_form.html:114
 msgid "Dither Settings:"
-msgstr "ディザ設定："
+msgstr ""
 
 #: templates/_journal_section.html:1763 templates/_journal_section.html:2292
 #: templates/journal_form.html:154
 msgid "Binning:"
-msgstr "ビンニング:"
+msgstr ""
 
 #: templates/_journal_section.html:1764 templates/journal_report.html:771
 msgid "Gain / Offset:"
-msgstr "ゲイン／オフセット："
+msgstr ""
 
 #: templates/_journal_section.html:1765
 msgid "Camera Temp (Set/Avg):"
-msgstr "温度（設定/平均）："
+msgstr ""
 
 #: templates/_journal_section.html:1767
 msgid "Sub Exposure:"
-msgstr "露出"
+msgstr ""
 
 #: templates/_journal_section.html:1768
 msgid "# Light Subs:"
-msgstr "ライトサブの数："
+msgstr ""
 
 #: templates/_journal_section.html:1788
 msgid "Monochrome Exposures"
-msgstr "モノクローム・エクスポージャー"
+msgstr ""
 
 #: templates/_journal_section.html:1794 templates/_journal_section.html:1804
 msgid "subs x "
-msgstr "サブ"
+msgstr ""
 
 #: templates/_journal_section.html:1814 templates/_journal_section.html:2348
 #: templates/journal_form.html:176 templates/journal_report.html:803
 msgid "Calibration Strategy"
-msgstr "校正戦略"
+msgstr ""
 
 #: templates/_journal_section.html:1816 templates/_journal_section.html:2349
 #: templates/journal_form.html:178
 msgid "Darks:"
-msgstr "ダークス："
+msgstr ""
 
 #: templates/_journal_section.html:1817 templates/_journal_section.html:2350
 #: templates/journal_form.html:182
 msgid "Flats:"
-msgstr "アパート："
+msgstr ""
 
 #: templates/_journal_section.html:1818
 msgid "Bias/DarkFlats:"
-msgstr "バイアス/ダークフラット："
+msgstr ""
 
 #: templates/_journal_section.html:1823 templates/_journal_section.html:2352
 #: templates/journal_form.html:190
 msgid "Outcome & Reflections"
-msgstr "成果と考察"
+msgstr ""
 
 #: templates/_journal_section.html:1825
 msgid "Session Rating:"
-msgstr "セッション評価："
+msgstr ""
 
 #: templates/_journal_section.html:1826 templates/project_report.html:888
 msgid "Notes:"
-msgstr "注記："
+msgstr ""
 
 #: templates/_journal_section.html:1834 templates/_journal_section.html:2103
 msgid "Download CSV"
-msgstr "CSVをダウンロード"
+msgstr ""
 
 #: templates/_journal_section.html:1840 templates/_journal_section.html:2109
 msgid "Download PDF"
-msgstr "PDFをダウンロード"
+msgstr ""
 
 #: templates/_journal_section.html:1851 templates/_journal_section.html:2044
 msgid "Overview"
-msgstr "概要"
+msgstr ""
 
 #: templates/_journal_section.html:1852 templates/base.html:144
 msgid "Guiding"
-msgstr "ガイディング"
+msgstr ""
 
 #: templates/_journal_section.html:1853
 msgid "Dithering"
-msgstr "ディザリング"
+msgstr ""
 
 #: templates/_journal_section.html:1854 templates/journal_report.html:934
 #: templates/journal_report.html:951 templates/project_report.html:932
 #: templates/project_report.html:949
 msgid "AutoFocus"
-msgstr "オートフォーカス"
+msgstr ""
 
 #: templates/_journal_section.html:1855
 msgid "NINA"
-msgstr "NINA"
+msgstr ""
 
 #: templates/_journal_section.html:1863 templates/journal_report.html:823
 #: templates/journal_report.html:930 templates/journal_report.html:947
 #: templates/journal_report.html:1031 templates/project_report.html:928
 #: templates/project_report.html:945 templates/project_report.html:1147
 msgid "Exposures"
-msgstr "露出"
+msgstr ""
 
 #: templates/_journal_section.html:1867 templates/journal_report.html:1035
 msgid "Total Time"
-msgstr "合計時間"
+msgstr ""
 
 #: templates/_journal_section.html:1871 templates/project_report.html:984
 #: templates/project_report.html:1099
 msgid "Guiding RMS"
-msgstr "ガイディングRMS"
+msgstr ""
 
 #: templates/_journal_section.html:1875 templates/journal_report.html:938
 #: templates/journal_report.html:955 templates/project_report.html:936
 #: templates/project_report.html:953
 msgid "Dithers"
-msgstr "ディザリング"
+msgstr ""
 
 #: templates/_journal_section.html:1879
 msgid "AF Runs"
-msgstr "AFランズ"
+msgstr ""
 
 #: templates/_journal_section.html:1883 templates/journal_report.html:999
 msgid "Pixel Scale"
-msgstr "ピクセルスケール"
+msgstr ""
 
 #: templates/_journal_section.html:1892 templates/journal_report.html:1064
 msgid "Plate Solve Results"
-msgstr "プレートソルブ結果"
+msgstr ""
 
 #: templates/_journal_section.html:1896
 msgid "#"
-msgstr "#"
+msgstr ""
 
 #: templates/_journal_section.html:1897 templates/journal_report.html:1068
 #: templates/journal_report.html:1098 templates/journal_report.html:1177
 #: templates/project_report.html:1003
 msgid "Time"
-msgstr "時間"
+msgstr ""
 
 #: templates/_journal_section.html:1898 templates/journal_report.html:1069
 msgid "RA"
-msgstr "RA"
+msgstr ""
 
 #: templates/_journal_section.html:1899 templates/journal_report.html:1070
 msgid "Dec"
-msgstr "12月"
+msgstr ""
 
 #: templates/_journal_section.html:1900 templates/journal_report.html:1071
 msgid "Angle"
-msgstr "角度"
+msgstr ""
 
 #: templates/_journal_section.html:1901 templates/journal_report.html:1072
 msgid "Stars"
-msgstr "星"
+msgstr ""
 
 #: templates/_journal_section.html:1902 templates/_journal_section.html:2060
 #: templates/_objects_section.html:46 templates/_project_subtab.html:154
 #: templates/admin_users.html:72 templates/journal_report.html:1179
 msgid "Status"
-msgstr "ステータス"
+msgstr ""
 
 #: templates/_journal_section.html:1911
 msgid "Autocenter Accuracy Over Time"
-msgstr "オートセンター精度経時変化"
+msgstr ""
 
 #: templates/_journal_section.html:1912
 msgid "Distance from target center per centering attempt"
-msgstr "目標中心からの距離（センタリング試行ごと）"
+msgstr ""
 
 #: templates/_journal_section.html:1923
 msgid "RA RMS:"
-msgstr "総RMS"
+msgstr ""
 
 #: templates/_journal_section.html:1924
 msgid "Dec RMS:"
-msgstr "12月:"
+msgstr ""
 
 #: templates/_journal_section.html:1925
 msgid "Total RMS:"
-msgstr "総RMS"
+msgstr ""
 
 #: templates/_journal_section.html:1926
 msgid "Imaging Frames:"
-msgstr "イメージングRMS"
+msgstr ""
 
 #: templates/_journal_section.html:1929
 msgid "Including dithers — RA:"
-msgstr "ディザを含む — RA:"
+msgstr ""
 
 #: templates/_journal_section.html:1930 templates/journal_report.html:991
 msgid "Dec:"
-msgstr "12月:"
+msgstr ""
 
 #: templates/_journal_section.html:1934 templates/base.html:208
 msgid "Zoom"
-msgstr "ズーム"
+msgstr ""
 
 #: templates/_journal_section.html:1939
 msgid "Avg RA Pulse:"
-msgstr "平均RAパルス："
+msgstr ""
 
 #: templates/_journal_section.html:1940
 msgid "Avg Dec Pulse:"
-msgstr "ガイドパルス"
+msgstr ""
 
 #: templates/_journal_section.html:1941
 msgid "Avg RA Dur:"
-msgstr "平均RA持続時間："
+msgstr ""
 
 #: templates/_journal_section.html:1942
 msgid "Avg Dec Dur:"
-msgstr "平均、減少、期間："
+msgstr ""
 
 #: templates/_journal_section.html:1943
 msgid "RA Dir:"
-msgstr "RA："
+msgstr ""
 
 #: templates/_journal_section.html:1944
 msgid "Dec Dir:"
-msgstr "12月:"
+msgstr ""
 
 #: templates/_journal_section.html:1963
 msgid "Total Dithers:"
-msgstr "総ディザ数"
+msgstr ""
 
 #: templates/_journal_section.html:1964
 msgid "Settle Success:"
-msgstr "成功を収める："
+msgstr ""
 
 #: templates/_journal_section.html:1965
 msgid "Settle Timeout:"
-msgstr "ディザ・セトル・タイムアウト"
+msgstr ""
 
 #: templates/_journal_section.html:1975
 msgid "AF Runs:"
-msgstr "AFランズ"
+msgstr ""
 
 #: templates/_journal_section.html:1985
 msgid "Autofocus V-Curves – EAF Position vs Star Size"
-msgstr "オートフォーカスVカーブ – EAF位置と星の大きさの関係"
+msgstr ""
 
 #: templates/_journal_section.html:1991
 msgid "Focus Position Drift Over Night"
-msgstr "焦点位置のずれ"
+msgstr ""
 
 #: templates/_journal_section.html:1999
 msgid "Individual V-Curves"
-msgstr "個々のVカーブ"
+msgstr ""
 
 #: templates/_journal_section.html:2013
 msgid "Expand all"
-msgstr "すべてを拡大する"
+msgstr ""
 
 #: templates/_journal_section.html:2015
 msgid "Collapse all"
-msgstr "すべてを折りたたむ"
+msgstr ""
 
 #: templates/_journal_section.html:2034 templates/_project_subtab.html:147
 msgid "Edit Project"
-msgstr "プロジェクトを編集"
+msgstr ""
 
 #: templates/_journal_section.html:2036
 msgid ""
 "Are you sure you want to delete this project? Linked sessions will become"
 " standalone."
-msgstr "このセッションを完全に削除してもよろしいですか？"
+msgstr ""
 
 #: templates/_journal_section.html:2038
 msgid "Delete Project"
-msgstr "プロジェクトを編集"
+msgstr ""
 
 #: templates/_journal_section.html:2045 templates/project_report.html:6
 #: templates/project_report.html:794
 msgid "Project Report"
-msgstr "プロジェクト報告書"
+msgstr ""
 
 #: templates/_journal_section.html:2054 templates/project_report.html:805
 msgid "Total Integration"
-msgstr "完全統合"
+msgstr ""
 
 #: templates/_journal_section.html:2066 templates/_project_subtab.html:158
 msgid "Goals & Status"
-msgstr "目標と現状"
+msgstr ""
 
 #: templates/_journal_section.html:2067
 msgid "No goals defined."
-msgstr "目標は設定されていません。"
+msgstr ""
 
 #: templates/_journal_section.html:2075 templates/_project_subtab.html:166
 msgid "Final Project Image"
-msgstr "最終プロジェクト画像"
+msgstr ""
 
 #: templates/_journal_section.html:2078 templates/_journal_section.html:2146
 #: templates/_project_subtab.html:168 templates/_project_subtab.html:262
 msgid "Final Image"
-msgstr "最終画像"
+msgstr ""
 
 #: templates/_journal_section.html:2083 templates/_project_subtab.html:175
 msgid "Project Story & Learnings"
-msgstr "プロジェクトの経緯と学び"
+msgstr ""
 
 #: templates/_journal_section.html:2084
 msgid "No description added."
-msgstr "プロジェクトの説明は追加されていません。"
+msgstr ""
 
 #: templates/_journal_section.html:2088 templates/_project_subtab.html:180
 msgid "Framing Notes"
-msgstr "フレーミングに関する注記"
+msgstr ""
 
 #: templates/_journal_section.html:2089 templates/_project_subtab.html:181
 msgid "No framing notes added."
-msgstr "フレームに関する注記は追加されていません。"
+msgstr ""
 
 #: templates/_journal_section.html:2093 templates/_project_subtab.html:185
 msgid "Processing Notes"
-msgstr "処理に関する注意事項"
+msgstr ""
 
 #: templates/_journal_section.html:2094 templates/_project_subtab.html:186
 msgid "No processing workflow recorded."
-msgstr "処理ワークフローは記録されていません。"
+msgstr ""
 
 #: templates/_journal_section.html:2123
 msgid "Editing Project"
-msgstr "編集プロジェクト："
+msgstr ""
 
 #: templates/_journal_section.html:2125 templates/_project_subtab.html:231
 msgid "Save Project"
-msgstr "プロジェクトを保存"
+msgstr ""
 
 #: templates/_journal_section.html:2126 templates/_journal_section.html:2196
 #: templates/_journal_section.html:2229 templates/_journal_section.html:2513
@@ -1475,832 +1453,828 @@ msgstr "プロジェクトを保存"
 #: templates/graph_view.html:459 templates/index.html:266
 #: templates/journal_form.html:205
 msgid "Cancel"
-msgstr "キャンセル"
+msgstr ""
 
 #: templates/_journal_section.html:2131 templates/_journal_section.html:2202
 #: templates/_project_subtab.html:239
 msgid "Metadata"
-msgstr "メタデータ"
+msgstr ""
 
 #: templates/_journal_section.html:2132 templates/_journal_section.html:2203
 #: templates/_project_subtab.html:240
 msgid "Project Name:"
-msgstr "プロジェクト名："
+msgstr ""
 
 #: templates/_journal_section.html:2134 templates/_journal_section.html:2204
 #: templates/_project_subtab.html:249 templates/project_report.html:799
 msgid "Status:"
-msgstr "ステータス:"
+msgstr ""
 
 #: templates/_journal_section.html:2138 templates/_journal_section.html:2208
 #: templates/_project_subtab.html:256
 msgid "Goals & Status:"
-msgstr "目標と状況："
+msgstr ""
 
 #: templates/_journal_section.html:2148 templates/_project_subtab.html:264
 msgid "Current file:"
-msgstr "現在のファイル:"
+msgstr ""
 
 #: templates/_journal_section.html:2149 templates/_project_subtab.html:265
 msgid "Delete Current Image"
-msgstr "現在の画像を削除"
+msgstr ""
 
 #: templates/_journal_section.html:2152 templates/_project_subtab.html:268
 msgid "Upload New Final Image (optional, max 5MB)"
-msgstr "新しい最終画像をアップロード（任意、最大5MB）"
+msgstr ""
 
 #: templates/_journal_section.html:2158 templates/_project_subtab.html:275
 msgid "Project Story & Learnings:"
-msgstr "プロジェクトの経緯と学び："
+msgstr ""
 
 #: templates/_journal_section.html:2165
 msgid "Framing Notes:"
-msgstr "フレーミングに関する注記"
+msgstr ""
 
 #: templates/_journal_section.html:2172
 msgid "Processing Notes:"
-msgstr "処理に関する注意事項"
+msgstr ""
 
 #: templates/_journal_section.html:2183
 msgid "No session selected"
-msgstr "セッション終了"
+msgstr ""
 
 #: templates/_journal_section.html:2185
 msgid ""
 "Select a session or project from the list on the left to view details, or"
 " click 'Add New Session'."
-msgstr "左側のリストからセッションまたはプロジェクトを選択して詳細を表示するか、「新規セッションを追加」をクリックしてください。"
+msgstr ""
 
 #: templates/_journal_section.html:2195
 msgid "Create Project"
-msgstr "進行中のプロジェクト"
+msgstr ""
 
 #: templates/_journal_section.html:2203
 msgid "e.g., M31 Broadband"
-msgstr "例：M31 ブロードバンド"
+msgstr ""
 
 #: templates/_journal_section.html:2204
 msgid "In Progress"
-msgstr "進行中"
+msgstr ""
 
 #: templates/_journal_section.html:2204
 msgid "On Hold"
-msgstr "保留中"
+msgstr ""
 
 #: templates/_journal_section.html:2204
 msgid "Completed"
-msgstr "コピーしました！"
+msgstr ""
 
 #: templates/_journal_section.html:2204
 msgid "Abandoned"
-msgstr "放棄された"
+msgstr ""
 
 #: templates/_journal_section.html:2221
 msgid "Add New Session for"
-msgstr "新しいセッションを追加"
+msgstr ""
 
 #: templates/_journal_section.html:2225
 msgid "Edit Session"
-msgstr "このセッションを編集"
+msgstr ""
 
 #: templates/_journal_section.html:2227
 msgid "Save Draft"
-msgstr "下書き保存"
+msgstr ""
 
 #: templates/_journal_section.html:2228
 msgid "Save & Close"
-msgstr "保存して閉じる"
+msgstr ""
 
 #: templates/_journal_section.html:2236 templates/journal_form.html:24
 msgid "Session Date:"
-msgstr "セッション日付："
+msgstr ""
 
 #: templates/_journal_section.html:2237 templates/journal_form.html:40
 msgid "Location:"
-msgstr "場所:"
+msgstr ""
 
 #: templates/_journal_section.html:2237
 msgid " (Inactive)"
-msgstr "非アクティブ"
+msgstr ""
 
 #: templates/_journal_section.html:2239
 msgid "Link to Project (Optional)"
-msgstr "インスピレーションコンテンツ（任意）"
+msgstr ""
 
 #: templates/_journal_section.html:2239
 msgid "-- Standalone Session --"
-msgstr "新しいセッションを追加"
+msgstr ""
 
 #: templates/_journal_section.html:2239
 msgid "-- Create New Project --"
-msgstr "新規プロジェクトを追加"
+msgstr ""
 
 #: templates/_journal_section.html:2240
 msgid "New Project Name:"
-msgstr "プロジェクト名："
+msgstr ""
 
 #: templates/_journal_section.html:2240
 msgid "e.g., M31 Galaxy - 2025"
-msgstr "例：ギャラクシー"
+msgstr ""
 
 #: templates/_journal_section.html:2242 templates/journal_form.html:51
 msgid "Sky Conditions (Observed)"
-msgstr "空の状態（観測値）"
+msgstr ""
 
 #: templates/_journal_section.html:2243 templates/journal_form.html:54
 msgid "Seeing (FWHM, arcsec):"
-msgstr "視覚的解像度（FWHM、秒角）："
+msgstr ""
 
 #: templates/_journal_section.html:2243 templates/journal_form.html:59
 msgid "e.g., Good (4/5), Clear"
-msgstr "例：良い（4/5）、明確"
+msgstr ""
 
 #: templates/_journal_section.html:2244 templates/journal_form.html:64
 msgid "SQM Reading:"
-msgstr "SQM 測定値："
+msgstr ""
 
 #: templates/_journal_section.html:2246
 #, python-format
 msgid "Moon Illumination (%%):"
-msgstr "セッション時の月光照度 (%%):"
+msgstr ""
 
 #: templates/_journal_section.html:2246
 msgid "Auto-fills on date/loc change"
-msgstr "日付/場所変更時の自動入力"
+msgstr ""
 
 #: templates/_journal_section.html:2246
 msgid "Moon Angular Separation (°):"
-msgstr "対象物からの月の角距離（°）："
+msgstr ""
 
 #: templates/_journal_section.html:2247 templates/journal_form.html:84
 msgid "Equipment & Guiding"
-msgstr "装備とガイド"
+msgstr ""
 
 #: templates/_journal_section.html:2249
 msgid "Select a Rig (Optional - Overwrites notes below)"
-msgstr "リグを選択（任意）"
+msgstr ""
 
 #: templates/_journal_section.html:2252
 msgid "-- Manually Enter Below --"
-msgstr "以下の設定を手動で入力してください"
+msgstr ""
 
 #: templates/_journal_section.html:2257
 msgid "View rig details"
-msgstr "ディザの詳細："
+msgstr ""
 
 #: templates/_journal_section.html:2262 templates/journal_form.html:96
 msgid "Telescope Setup Notes:"
-msgstr "望遠鏡のセットアップに関する注意事項："
+msgstr ""
 
 #: templates/_journal_section.html:2263
 msgid "e.g., OAG + ASI174MM"
-msgstr "例：OAG + ASI174MM"
+msgstr ""
 
 #: templates/_journal_section.html:2264 templates/journal_form.html:105
 msgid "Guiding RMS (avg, arcsec):"
-msgstr "ガイドRMS（平均、角秒）："
+msgstr ""
 
 #: templates/_journal_section.html:2267 templates/journal_form.html:122
 msgid "Acquisition Details"
-msgstr "取得の詳細"
+msgstr ""
 
 #: templates/_journal_section.html:2268 templates/journal_form.html:118
 msgid "Acquisition Software:"
-msgstr "取得ソフトウェア："
+msgstr ""
 
 #: templates/_journal_section.html:2268
 msgid "e.g., N.I.N.A."
-msgstr "例：オリオン"
+msgstr ""
 
 #: templates/_journal_section.html:2272
 msgid "Dither Pixels:"
-msgstr "ディザの詳細："
+msgstr ""
 
 #: templates/_journal_section.html:2275
 msgid "e.g. 7"
-msgstr "例：PN"
+msgstr ""
 
 #: templates/_journal_section.html:2279
 msgid "Dither every ___ subs:"
-msgstr "ディザイベント"
+msgstr ""
 
 #: templates/_journal_section.html:2282
 msgid "e.g. 3"
-msgstr "例：34"
+msgstr ""
 
 #: templates/_journal_section.html:2285
 msgid "Dither Notes (optional):"
-msgstr "リデューサー／エクステンダー（オプション）："
+msgstr ""
 
 #: templates/_journal_section.html:2287
 msgid "Sub Exposure (sec):"
-msgstr "露出時間（秒）："
+msgstr ""
 
 #: templates/_journal_section.html:2288
 msgid "# Light Subs"
-msgstr "ライトサブの数："
+msgstr ""
 
 #: templates/_journal_section.html:2290 templates/journal_form.html:135
 msgid "Gain:"
-msgstr "さらに："
+msgstr ""
 
 #: templates/_journal_section.html:2290 templates/journal_form.html:139
 msgid "Offset:"
-msgstr "オフセット:"
+msgstr ""
 
 #: templates/_journal_section.html:2291 templates/journal_form.html:145
 msgid "Camera Temp Setpoint (°C):"
-msgstr "室温設定値（°C）："
+msgstr ""
 
 #: templates/_journal_section.html:2291 templates/journal_form.html:149
 msgid "Camera Temp Actual Avg (°C):"
-msgstr "カメラ温度 実測 平均 (°C):"
+msgstr ""
 
 #: templates/_journal_section.html:2292
 msgid "e.g., 1x1"
-msgstr "例：1×1、2×2"
+msgstr ""
 
 #: templates/_journal_section.html:2293
 msgid "Filter Used (if broadband/single):"
-msgstr "使用フィルター（ブロードバンド/シングルの場合）："
+msgstr ""
 
 #: templates/_journal_section.html:2293
 msgid "e.g., L-Pro, None"
-msgstr "例：L-Pro、Ha 7nm"
+msgstr ""
 
 #: templates/_journal_section.html:2294 templates/journal_form.html:157
 msgid "Monochrome Filter Exposures"
-msgstr "モノクロームフィルターによる露出"
+msgstr ""
 
 #: templates/_journal_section.html:2299 templates/_journal_section.html:2317
 #: templates/_journal_section.html:2491
 msgid "# Subs"
-msgstr "枚数"
+msgstr ""
 
 #: templates/_journal_section.html:2299 templates/_journal_section.html:2320
 #: templates/_journal_section.html:2492 templates/journal_form.html:168
 msgid "Count"
-msgstr "カウント"
+msgstr ""
 
 #: templates/_journal_section.html:2300 templates/_journal_section.html:2324
 #: templates/_journal_section.html:2493 templates/journal_form.html:171
 msgid "Exp (sec/sub):"
-msgstr "Exp (秒/サブ):"
+msgstr ""
 
 #: templates/_journal_section.html:2300 templates/_journal_section.html:2327
 #: templates/_journal_section.html:2494 templates/journal_form.html:172
 msgid "Seconds"
-msgstr "秒"
+msgstr ""
 
 #: templates/_journal_section.html:2314 templates/_journal_section.html:2490
 msgid "Remove filter"
-msgstr "フィルターを削除"
+msgstr ""
 
 #: templates/_journal_section.html:2336
 msgid "Filter name (e.g. NB-II)"
-msgstr "名前でフィルター..."
+msgstr ""
 
 #: templates/_journal_section.html:2342
 msgid "+ Add Filter"
-msgstr "フィルターの追加エラー。"
+msgstr ""
 
 #: templates/_journal_section.html:2349 templates/journal_form.html:179
 msgid "e.g., Library match, Taken post-session"
-msgstr "例：ライブラリ一致、セッション終了後に取得"
+msgstr ""
 
 #: templates/_journal_section.html:2350 templates/journal_form.html:183
 msgid "e.g., Morning sky, Panel"
-msgstr "例：朝の空、パネル"
+msgstr ""
 
 #: templates/_journal_section.html:2351 templates/journal_form.html:186
 msgid "Bias / Dark Flats:"
-msgstr "バイアス／ダークフラット："
+msgstr ""
 
 #: templates/_journal_section.html:2351 templates/journal_form.html:187
 msgid "e.g., Library match"
-msgstr "例：ライブラリ一致"
+msgstr ""
 
 #: templates/_journal_section.html:2353 templates/journal_form.html:193
 msgid "Session Rating (1-5 ★):"
-msgstr "セッション評価（1～5★）："
+msgstr ""
 
 #: templates/_journal_section.html:2356 templates/journal_form.html:200
 msgid "General Notes, Problems, Learnings:"
-msgstr "一般的な注意事項、問題点、学び："
+msgstr ""
 
 #: templates/_journal_section.html:2359 templates/_journal_section.html:2503
 msgid "Ask Nova for session summary"
-msgstr "Ask Nova for session summary"
+msgstr ""
 
 #: templates/_journal_section.html:2371
 msgid "Current Image:"
-msgstr "現在のファイル:"
+msgstr ""
 
 #: templates/_journal_section.html:2371
 msgid "Delete Image"
-msgstr "現在の画像を削除"
+msgstr ""
 
 #: templates/_journal_section.html:2372
 msgid "Upload New or Replace Image (optional, max 5MB)"
-msgstr "新しい最終画像をアップロード（任意、最大5MB）"
+msgstr ""
 
 #: templates/_journal_section.html:2375
 msgid "Session Logs (Optional)"
-msgstr "場所を選択（任意）"
+msgstr ""
 
 #: templates/_journal_section.html:2378
-#, fuzzy
 msgid "ASIAIR Log"
-msgstr "ASIAIR ログ:"
+msgstr ""
 
 #: templates/_journal_section.html:2381 templates/_journal_section.html:2394
 #: templates/_journal_section.html:2407
 msgid "Uploaded"
-msgstr "アップロード"
+msgstr ""
 
 #: templates/_journal_section.html:2383 templates/_journal_section.html:2396
 #: templates/_journal_section.html:2409 templates/_objects_section.html:88
 #: templates/admin_users.html:110 templates/base.html:112
 #: templates/index.html:99
 msgid "Delete"
-msgstr "削除"
+msgstr ""
 
 #: templates/_journal_section.html:2391
-#, fuzzy
 msgid "PHD2 Guide Log"
-msgstr "PHD2ガイドログ："
+msgstr ""
 
 #: templates/_journal_section.html:2404
-#, fuzzy
 msgid "NINA Log"
-msgstr "新ロゴ"
+msgstr ""
 
 #: templates/_journal_section.html:2441
 msgid "Search objects…"
-msgstr "検索対象"
+msgstr ""
 
 #: templates/_journal_section.html:2442
 msgid "Sort order"
-msgstr "ゲストモード"
+msgstr ""
 
 #: templates/_journal_section.html:2443
 msgid "Recent"
-msgstr "プロジェクト"
+msgstr ""
 
 #: templates/_journal_section.html:2444
 msgid "Most Hours"
-msgstr "RA（時間）"
+msgstr ""
 
 #: templates/_journal_section.html:2488
 msgid "Failed to fetch objects"
-msgstr "オブジェクトの取得に失敗しました"
+msgstr ""
 
 #: templates/_journal_section.html:2489
 msgid "No objects found"
-msgstr "オブジェクトが見つかりません"
+msgstr ""
 
 #: templates/_journal_section.html:2495
 msgid "Enter a filter name."
-msgstr "フィルター名を入力してください。"
+msgstr ""
 
 #: templates/_journal_section.html:2496
 msgid "Error adding filter."
-msgstr "フィルターの追加エラー。"
+msgstr ""
 
 #: templates/_journal_section.html:2497
 #, python-brace-format
 msgid "{label} added."
-msgstr "{label} を追加しました。"
+msgstr ""
 
 #: templates/_journal_section.html:2498
 msgid "Network error."
-msgstr "ネットワークエラー。"
+msgstr ""
 
 #: templates/_journal_section.html:2499
 #, python-brace-format
 msgid "Remove \"{label}\"? Historical session data for this filter is kept."
-msgstr "「{label}」を削除しますか？このフィルターの履歴セッションデータは保持されます。"
+msgstr ""
 
 #: templates/_journal_section.html:2500
 msgid "Error removing filter."
-msgstr "フィルターの削除エラー。"
+msgstr ""
 
 #: templates/_journal_section.html:2501
 #, python-brace-format
 msgid "{label} removed."
-msgstr "{label} を削除しました。"
+msgstr ""
 
 #: templates/_journal_section.html:2502 templates/base.html:244
 #: templates/graph_view.html:448 templates/index.html:112
 msgid "Ask Nova"
-msgstr "Ask Nova"
+msgstr ""
 
 #: templates/_journal_section.html:2504
 msgid "Analyzing your session..."
-msgstr "ターゲットを分析中..."
+msgstr ""
 
 #: templates/_journal_section.html:2505
 msgid "Reviewing conditions..."
-msgstr "コンディションの見直し..."
+msgstr ""
 
 #: templates/_journal_section.html:2506
 msgid "Checking guiding data..."
-msgstr "データを更新中..."
+msgstr ""
 
 #: templates/_journal_section.html:2507 templates/base.html:256
 #: templates/graph_view.html:454
 msgid "Almost there..."
-msgstr "もう少しだ..."
+msgstr ""
 
 #: templates/_journal_section.html:2508
 msgid "Nova writing…"
-msgstr "Nova writing…"
+msgstr ""
 
 #: templates/_journal_section.html:2509
 msgid "words"
-msgstr "パスワード"
+msgstr ""
 
 #: templates/_journal_section.html:2510
 msgid "Nova has a summary ready. What would you like to do?"
-msgstr "Nova がサマリーを用意しました。どうしますか？"
+msgstr ""
 
 #: templates/_journal_section.html:2511 templates/graph_view.html:457
 msgid "Overwrite"
-msgstr "概要"
+msgstr ""
 
 #: templates/_journal_section.html:2512 templates/graph_view.html:458
 msgid "Append"
-msgstr "追加"
+msgstr ""
 
 #: templates/_journal_section.html:2514
 msgid "Nova error"
-msgstr "Nova error"
+msgstr ""
 
 #: templates/_journal_section.html:2515
-#, fuzzy
 msgid "Draft saved"
-msgstr "保存"
+msgstr ""
 
 #: templates/_journal_section.html:2516
 msgid "Please save the session first before asking Nova."
-msgstr "Nova に質問する前に、セッションを保存してください。"
+msgstr ""
 
 #: templates/_objects_section.html:9
 msgid "Manage My Objects"
-msgstr "マイオブジェクトを管理する"
+msgstr ""
 
 #: templates/_objects_section.html:13 templates/_objects_section.html:260
 msgid "Add New Object"
-msgstr "新しいオブジェクトを追加"
+msgstr ""
 
 #: templates/_objects_section.html:17
 msgid "Import from Catalog"
-msgstr "カタログからインポート"
+msgstr ""
 
 #: templates/_objects_section.html:21
 msgid "Find Duplicates"
-msgstr "重複を検索"
+msgstr ""
 
 #: templates/_objects_section.html:30
 msgid "Filter ID"
-msgstr "フィルターID"
+msgstr ""
 
 #: templates/_objects_section.html:31 templates/mobile_journal_new.html:216
 msgid "e.g., M42"
-msgstr "例：M42"
+msgstr ""
 
 #: templates/_objects_section.html:34 templates/_objects_section.html:117
 #: templates/_objects_section.html:269 templates/_objects_section.html:385
 msgid "Name"
-msgstr "名前"
+msgstr ""
 
 #: templates/_objects_section.html:35
 msgid "e.g., Orion"
-msgstr "例：オリオン"
+msgstr ""
 
 #: templates/_objects_section.html:38 templates/_objects_section.html:134
 #: templates/_objects_section.html:286
 msgid "Con"
-msgstr "コン"
+msgstr ""
 
 #: templates/_objects_section.html:39 templates/_objects_section.html:287
 msgid "e.g., Cyg"
-msgstr "例：Cyg"
+msgstr ""
 
 #: templates/_objects_section.html:42 templates/_objects_section.html:138
 #: templates/_objects_section.html:290 templates/config_form.html:572
 #: templates/config_form.html:636 templates/index.html:144
 #: templates/mobile_up_now.html:965
 msgid "Type"
-msgstr "タイプ"
+msgstr ""
 
 #: templates/_objects_section.html:43
 msgid "e.g., PN"
-msgstr "例：PN"
+msgstr ""
 
 #: templates/_objects_section.html:48
 msgid "All Statuses"
-msgstr "すべてのステータス"
+msgstr ""
 
 #: templates/_objects_section.html:49
 msgid "Enabled Only"
-msgstr "有効のみ"
+msgstr ""
 
 #: templates/_objects_section.html:50
 msgid "Disabled Only"
-msgstr "障害者専用"
+msgstr ""
 
 #: templates/_objects_section.html:52
 msgid "Private"
-msgstr "非公開"
+msgstr ""
 
 #: templates/_objects_section.html:53
 msgid "Shared by Me"
-msgstr "私によって共有されました"
+msgstr ""
 
 #: templates/_objects_section.html:54 templates/_objects_section.html:111
 #: templates/base.html:120 templates/config_form.html:590
 #: templates/config_form.html:619 templates/config_form.html:655
 msgid "Imported"
-msgstr "輸入品"
+msgstr ""
 
 #: templates/_objects_section.html:58 templates/_objects_section.html:158
 #: templates/graph_view.html:219
 msgid "Source"
-msgstr "ソース"
+msgstr ""
 
 #: templates/_objects_section.html:59
 msgid "e.g., messier (use = for exact)"
-msgstr "例：メシエ（正確には「＝」を使用）"
+msgstr ""
 
 #: templates/_objects_section.html:63 templates/config_form.html:575
 #: templates/graph_view.html:171 templates/mobile_journal_new.html:376
 #: templates/mobile_object_detail.html:534 templates/project_report.html:1074
 msgid "Notes"
-msgstr "注記"
+msgstr ""
 
 #: templates/_objects_section.html:64
 msgid "Search notes (use * for all)..."
-msgstr "検索ノート（すべて検索するには * を使用）..."
+msgstr ""
 
 #: templates/_objects_section.html:68 templates/_objects_section.html:142
 #: templates/_objects_section.html:294
 msgid "Mag"
-msgstr "五月"
+msgstr ""
 
 #: templates/_objects_section.html:69
 msgid "e.g., <15, >8, >8 <12"
-msgstr "例：<15、>8、>8 <12"
+msgstr ""
 
 #: templates/_objects_section.html:72 templates/_objects_section.html:147
 #: templates/_objects_section.html:298
 msgid "Size"
-msgstr "あなたに"
+msgstr ""
 
 #: templates/_objects_section.html:73
 msgid "e.g., >5, <30, >5 <30"
-msgstr "例：300以上"
+msgstr ""
 
 #: templates/_objects_section.html:79
 msgid "Select Visible"
-msgstr "表示を選択"
+msgstr ""
 
 #: templates/_objects_section.html:80
 msgid "Deselect All"
-msgstr "すべて選択解除"
+msgstr ""
 
 #: templates/_objects_section.html:81
 msgid "0 Selected"
-msgstr "0 選択済み"
+msgstr ""
 
 #: templates/_objects_section.html:84
 msgid "Selection Actions"
-msgstr "選択アクション"
+msgstr ""
 
 #: templates/_objects_section.html:85
 msgid "Enable"
-msgstr "有効にする"
+msgstr ""
 
 #: templates/_objects_section.html:86
 msgid "Disable"
-msgstr "無効化"
+msgstr ""
 
 #: templates/_objects_section.html:87
 msgid "Fetch Details"
-msgstr "詳細を取得"
+msgstr ""
 
 #: templates/_objects_section.html:108 templates/_objects_section.html:166
 msgid "Disabled"
-msgstr "障害のある"
+msgstr ""
 
 #: templates/_objects_section.html:111
 msgid "Imported from another user"
-msgstr "別のユーザーからインポートされました"
+msgstr ""
 
 #: templates/_objects_section.html:113
 msgid "You are sharing this item"
-msgstr "このアイテムを共有しています"
+msgstr ""
 
 #: templates/_objects_section.html:113
 msgid "Shared"
-msgstr "共有"
+msgstr ""
 
 #: templates/_objects_section.html:152
 msgid "SB:"
-msgstr "表面輝度"
+msgstr ""
 
 #: templates/_objects_section.html:166
 msgid "Enabled"
-msgstr "有効"
+msgstr ""
 
 #: templates/_objects_section.html:172 templates/_objects_section.html:309
 #: templates/graph_view.html:186
 msgid "Active Project"
-msgstr "進行中のプロジェクト"
+msgstr ""
 
 #: templates/_objects_section.html:177 templates/base.html:113
 msgid "Update"
-msgstr "更新"
+msgstr ""
 
 #: templates/_objects_section.html:184 templates/graph_view.html:196
 msgid "Inspiration Content"
-msgstr "インスピレーションコンテンツ"
+msgstr ""
 
 #: templates/_objects_section.html:189 templates/_objects_section.html:319
 msgid "Image URL (https://...)"
-msgstr "画像URL (https://...)"
+msgstr ""
 
 #: templates/_objects_section.html:190
 msgid "Upload a personal image (Protects against catalog updates)"
-msgstr "個人用画像をアップロード（カタログ更新から保護します）"
+msgstr ""
 
 #: templates/_objects_section.html:190 templates/_objects_section.html:320
 msgid "Upload"
-msgstr "アップロード"
+msgstr ""
 
 #: templates/_objects_section.html:194 templates/_objects_section.html:324
 msgid "Img Credit"
-msgstr "画像クレジット"
+msgstr ""
 
 #: templates/_objects_section.html:198 templates/_objects_section.html:328
 msgid "Image Source Link (e.g. APOD URL)"
-msgstr "画像ソースリンク（例：APOD URL）"
+msgstr ""
 
 #: templates/_objects_section.html:201 templates/_objects_section.html:331
 msgid "Short description for the tile..."
-msgstr "タイルの短い説明..."
+msgstr ""
 
 #: templates/_objects_section.html:205
 msgid "Text Credit (e.g. Wikipedia)"
-msgstr "テキストクレジット（例：Wikipedia）"
+msgstr ""
 
 #: templates/_objects_section.html:208 templates/_objects_section.html:338
 msgid "Text Source Link"
-msgstr "テキストソースリンク"
+msgstr ""
 
 #: templates/_objects_section.html:215
 msgid "Catalog Info"
-msgstr "カタログ情報"
+msgstr ""
 
 #: templates/_objects_section.html:223
 msgid "Private Notes"
-msgstr "プライベートノート"
+msgstr ""
 
 #: templates/_objects_section.html:225 templates/_objects_section.html:229
 msgid "Personal notes... (not shared)"
-msgstr "個人的なメモ…（非公開）"
+msgstr ""
 
 #: templates/_objects_section.html:236 templates/_objects_section.html:425
 #: templates/config_form.html:670
 msgid "Shared Notes"
-msgstr "共有ノート"
+msgstr ""
 
 #: templates/_objects_section.html:238 templates/_objects_section.html:242
 msgid "Public notes... (will be shared)"
-msgstr "公開メモ…（共有されます）"
+msgstr ""
 
 #: templates/_objects_section.html:248 templates/_objects_section.html:366
 msgid "Share this object with other users"
-msgstr "このオブジェクトを他のユーザーと共有する"
+msgstr ""
 
 #: templates/_objects_section.html:254
 msgid "Update Objects"
-msgstr "オブジェクトの更新"
+msgstr ""
 
 #: templates/_objects_section.html:265 templates/config_form.html:570
 #: templates/index.html:191 templates/mobile_add_object.html:17
 msgid "Object ID"
-msgstr "オブジェクトID"
+msgstr ""
 
 #: templates/_objects_section.html:266
 msgid "e.g., NGC 1234"
-msgstr "例：NGC 1234"
+msgstr ""
 
 #: templates/_objects_section.html:270
 msgid "Enter common name"
-msgstr "一般名を入力してください"
+msgstr ""
 
 #: templates/_objects_section.html:275
 msgid "RA (Hours)"
-msgstr "RA（時間）"
+msgstr ""
 
 #: templates/_objects_section.html:276
 msgid "e.g. 12.34 or 12:30:00"
-msgstr "例：12.34 または 12:30:00"
+msgstr ""
 
 #: templates/_objects_section.html:279
 msgid "DEC (Deg)"
-msgstr "十年"
+msgstr ""
 
 #: templates/_objects_section.html:280
 msgid "e.g. +40.85 or 40:51:00"
-msgstr "例：+40.85 または 40:51:00"
+msgstr ""
 
 #: templates/_objects_section.html:291
 msgid "e.g., Galaxy"
-msgstr "例：ギャラクシー"
+msgstr ""
 
 #: templates/_objects_section.html:314
 msgid "Inspiration Content (Optional)"
-msgstr "インスピレーションコンテンツ（任意）"
+msgstr ""
 
 #: templates/_objects_section.html:320
 msgid "Upload a personal image"
-msgstr "個人用画像をアップロードする"
+msgstr ""
 
 #: templates/_objects_section.html:335
 msgid "Text Credit"
-msgstr "テキストクレジット"
+msgstr ""
 
 #: templates/_objects_section.html:344
 msgid "Search"
-msgstr "検索"
+msgstr ""
 
 #: templates/_objects_section.html:345
 msgid "Confirm Add"
-msgstr "追加を確認"
+msgstr ""
 
 #: templates/_objects_section.html:346 templates/base.html:111
 msgid "Edit"
-msgstr "編集"
+msgstr ""
 
 #: templates/_objects_section.html:353
 msgid "Private Notes:"
-msgstr "プライベートメモ:"
+msgstr ""
 
 #: templates/_objects_section.html:355
 msgid "Personal notes, framing ideas... (not shared)"
-msgstr "個人メモ、構図アイデア...（非共有）"
+msgstr ""
 
 #: templates/_objects_section.html:360
 msgid "Shared Notes:"
-msgstr "共有メモ:"
+msgstr ""
 
 #: templates/_objects_section.html:362
 msgid "Public notes, acquisition advice... (will be shared)"
-msgstr "公開メモ、撮影アドバイス...（共有されます）"
+msgstr ""
 
 #: templates/_objects_section.html:375
 msgid "Catalog Packs"
-msgstr "カタログパック"
+msgstr ""
 
 #: templates/_objects_section.html:378
 msgid ""
 "Catalog packs are server-provided object collections you can import into "
 "your library. Importing is non-destructive: existing objects are never "
 "overwritten, and overlapping objects are skipped."
-msgstr "カタログパックは、ライブラリにインポートできるサーバー提供のオブジェクトコレクションです。インポートは非破壊的であり、既存のオブジェクトは上書きされることはなく、重複するオブジェクトはスキップされます。"
+msgstr ""
 
 #: templates/_objects_section.html:386 templates/config_form.html:607
 #: templates/graph_view.html:215
 msgid "Description"
-msgstr "説明"
+msgstr ""
 
 #: templates/_objects_section.html:387
 msgid "Tags"
-msgstr "タグ"
+msgstr ""
 
 #: templates/_objects_section.html:388 templates/config_form.html:63
 msgid "Objects"
-msgstr "オブジェクト"
+msgstr ""
 
 #: templates/_objects_section.html:389 templates/config_form.html:576
 #: templates/config_form.html:609 templates/config_form.html:638
 msgid "Action"
-msgstr "アクション"
+msgstr ""
 
 #: templates/_objects_section.html:409 templates/base.html:118
 #: templates/config_form.html:82
 msgid "Import"
-msgstr "インポート"
+msgstr ""
 
 #: templates/_objects_section.html:417
 msgid "No catalog packs are available on this server yet."
-msgstr "このサーバーではまだカタログパックは利用できません。"
+msgstr ""
 
 #: templates/_objects_section.html:433
 msgid "Potential Duplicates"
-msgstr "重複の可能性"
+msgstr ""
 
 #: templates/_objects_section.html:435
 msgid ""
@@ -2309,83 +2283,83 @@ msgid ""
 "delete the other. Please note that objects from different catalogs might "
 "have slightly different RA / DEC and will therefore not be considered as "
 "duplicates."
-msgstr "これらのペアは互いに2.5分角以内に位置しています。マージすると、すべてのジャーナル、プロジェクト、フレーミングが「保持」オブジェクトに移動され、もう一方は削除されます。異なるカタログのオブジェクトはRA/DECがわずかに異なる場合があるため、重複とは見なされない点にご注意ください。"
+msgstr ""
 
 #: templates/_objects_section.html:438
 msgid "Scanning catalog... (this may take a few seconds)"
-msgstr "カタログをスキャン中...（数秒かかる場合があります）"
+msgstr ""
 
 #: templates/_opportunities_section.html:27
 msgid "Imaging Opportunities"
-msgstr "イメージングの機会"
+msgstr ""
 
 #: templates/_opportunities_section.html:35 templates/index.html:184
 #: templates/index.html:194 templates/index.html:212
 #: templates/journal_report.html:686 templates/mobile_journal_new.html:210
 #: templates/project_report.html:859
 msgid "Date"
-msgstr "データ"
+msgstr ""
 
 #: templates/_opportunities_section.html:36
 msgid "From"
-msgstr "開始"
+msgstr ""
 
 #: templates/_opportunities_section.html:37
 msgid "To"
-msgstr "～へ"
+msgstr ""
 
 #: templates/_opportunities_section.html:38
 msgid "Obs Duration (min)"
-msgstr "注 持続時間（分）"
+msgstr ""
 
 #: templates/_opportunities_section.html:39
 msgid "Max Alt (°)"
-msgstr "最大高度（°）"
+msgstr ""
 
 #: templates/_opportunities_section.html:40
 #, python-format
 msgid "Moon Illum (%%)"
-msgstr "月光照度 (%%)"
+msgstr ""
 
 #: templates/_opportunities_section.html:41
 msgid "Ang Sep (°)"
-msgstr "セプ（°）"
+msgstr ""
 
 #: templates/_opportunities_section.html:43
 msgid "Add to Cal"
-msgstr "カレンダーに追加"
+msgstr ""
 
 #: templates/_project_subtab.html:145
 msgid ""
 "This object is not currently linked to a Project. The **Project Details**"
 " sub-tab will only appear if the object is the primary target of an "
 "existing project."
-msgstr "このオブジェクトは現在、プロジェクトに関連付けられていません。**プロジェクト詳細**サブタブは、このオブジェクトが既存プロジェクトの主要な対象である場合にのみ表示されます。"
+msgstr ""
 
 #: templates/_project_subtab.html:153
 msgid "Total Integration Time"
-msgstr "総積分時間"
+msgstr ""
 
 #: templates/_project_subtab.html:155
 msgid "Primary Target"
-msgstr "主要ターゲット"
+msgstr ""
 
 #: templates/_project_subtab.html:159
 msgid "No goals set."
-msgstr "目標は設定されていません。"
+msgstr ""
 
 #: templates/_project_subtab.html:176
 msgid "No project description added."
-msgstr "プロジェクトの説明は追加されていません。"
+msgstr ""
 
 #: templates/_project_subtab.html:190
 #, python-format
 msgid "Linked Sessions (%(count)s nights)"
-msgstr "リンクされたセッション (%(count)s 晩)"
+msgstr ""
 
 #: templates/_project_subtab.html:194
 msgid "Date (UTC)"
-msgstr "日付 (UTC)"
+msgstr ""
 
 #: templates/_project_subtab.html:195 templates/graph_view.html:52
 #: templates/index.html:36 templates/index.html:185 templates/index.html:195
@@ -2393,124 +2367,124 @@ msgstr "日付 (UTC)"
 #: templates/mobile_base.html:68 templates/mobile_journal_new.html:225
 #: templates/project_report.html:860
 msgid "Location"
-msgstr "場所"
+msgstr ""
 
 #: templates/_project_subtab.html:197
 msgid "Integ. Time"
-msgstr "積分時間"
+msgstr ""
 
 #: templates/_project_subtab.html:198 templates/project_report.html:1109
 msgid "SQM"
-msgstr "SQM"
+msgstr ""
 
 #: templates/_project_subtab.html:199 templates/project_report.html:1095
 msgid "Seeing"
-msgstr "見る"
+msgstr ""
 
 #: templates/_project_subtab.html:200
 msgid "Rig Snapshot"
-msgstr "リグ・スナップショット"
+msgstr ""
 
 #: templates/_project_subtab.html:218
 msgid "No sessions have been linked to this project yet."
-msgstr "このプロジェクトにはまだセッションがリンクされていません。"
+msgstr ""
 
 #: templates/_project_subtab.html:229
 msgid "Editing Project:"
-msgstr "編集プロジェクト："
+msgstr ""
 
 #: templates/_project_subtab.html:241
 msgid "Primary Target:"
-msgstr "主要ターゲット："
+msgstr ""
 
 #: templates/_project_subtab.html:243
 msgid "Select Primary Target"
-msgstr "プライマリターゲットを選択"
+msgstr ""
 
 #: templates/_project_subtab.html:280
 msgid "Framing Notes (Composition/FoV):"
-msgstr "フレーミングに関する注記（構図／視野角）："
+msgstr ""
 
 #: templates/_project_subtab.html:285
 msgid "Processing Notes & Workflow:"
-msgstr "処理に関する注意事項とワークフロー："
+msgstr ""
 
 #: templates/admin_users.html:2
 msgid "Nova – User Management"
-msgstr "Nova – ユーザー管理"
+msgstr ""
 
 #: templates/admin_users.html:9
 msgid "User Management"
-msgstr "ユーザー管理"
+msgstr ""
 
 #: templates/admin_users.html:9
 msgid "Admin"
-msgstr "管理者"
+msgstr ""
 
 #: templates/admin_users.html:13 templates/config_form.html:26
 msgid "Back to Dashboard"
-msgstr "ダッシュボードに戻る"
+msgstr ""
 
 #: templates/admin_users.html:49
 msgid "Create New User"
-msgstr "新規ユーザーを作成"
+msgstr ""
 
 #: templates/admin_users.html:53 templates/admin_users.html:71
 #: templates/login.html:20
 msgid "Username"
-msgstr "ユーザー名"
+msgstr ""
 
 #: templates/admin_users.html:54
 msgid "e.g. alice"
-msgstr "例：アリス"
+msgstr ""
 
 #: templates/admin_users.html:57 templates/login.html:23
 msgid "Password"
-msgstr "パスワード"
+msgstr ""
 
 #: templates/admin_users.html:58
 msgid "Min 4 characters"
-msgstr "最低4文字"
+msgstr ""
 
 #: templates/admin_users.html:60
 msgid "Create User"
-msgstr "ユーザーを作成する"
+msgstr ""
 
 #: templates/admin_users.html:66
 msgid "Existing Users"
-msgstr "既存ユーザー"
+msgstr ""
 
 #: templates/admin_users.html:70
 msgid "ID"
-msgstr "アイデンティティ"
+msgstr ""
 
 #: templates/admin_users.html:73
 msgid "Actions"
-msgstr "アクション"
+msgstr ""
 
 #: templates/admin_users.html:82
 msgid "admin"
-msgstr "管理者"
+msgstr ""
 
 #: templates/admin_users.html:86 templates/mobile_up_now.html:894
 msgid "Active"
-msgstr "アクティブ"
+msgstr ""
 
 #: templates/admin_users.html:88
 msgid "Inactive"
-msgstr "非アクティブ"
+msgstr ""
 
 #: templates/admin_users.html:96 templates/admin_users.html:97
 msgid "Deactivate"
-msgstr "無効化"
+msgstr ""
 
 #: templates/admin_users.html:96 templates/admin_users.html:97
 msgid "Activate"
-msgstr "アクティベート"
+msgstr ""
 
 #: templates/admin_users.html:103
 msgid "Reset Password"
-msgstr "パスワードをリセット"
+msgstr ""
 
 #: templates/admin_users.html:108
 #, python-format
@@ -2518,662 +2492,653 @@ msgid ""
 "Delete user '%(username)s'? This removes their login credentials. Their "
 "observing data in app.db is NOT deleted."
 msgstr ""
-"ユーザー '%(username)s' を削除しますか？これにより、そのユーザーのログイン認証情報が削除されます。app.db "
-"内のそのユーザーの観測データは削除されません。"
 
 #: templates/admin_users.html:118
 msgid "New password"
-msgstr "新しいパスワード"
+msgstr ""
 
 #: templates/admin_users.html:119 templates/index.html:98
 #: templates/index.html:265
 msgid "Save"
-msgstr "保存"
+msgstr ""
 
 #: templates/analytics.html:6
 msgid "Nova Analytics"
-msgstr "Nova Analytics"
+msgstr ""
 
 #: templates/analytics.html:250
 msgid "Analytics Dashboard"
-msgstr "アナリティクスダッシュボード"
+msgstr ""
 
 #: templates/analytics.html:251
 #, python-format
 msgid "Anonymous usage insights — Last %(days_count)s days"
-msgstr "匿名の利用状況 — 過去 %(days_count)s日間"
+msgstr ""
 
 #: templates/analytics.html:256
 msgid "User Activity"
-msgstr "ユーザー活動"
+msgstr ""
 
 #: templates/analytics.html:261
 msgid "Total Users"
-msgstr "総ユーザー数"
+msgstr ""
 
 #: templates/analytics.html:265
 msgid "Active Login Days"
-msgstr "アクティブなログイン日数"
+msgstr ""
 
 #: templates/analytics.html:269
 msgid "Total Logins"
-msgstr "総ログイン数"
+msgstr ""
 
 #: templates/analytics.html:274
 msgid "Daily Logins (90 days)"
-msgstr "デイリーログイン（90日間）"
+msgstr ""
 
 #: templates/analytics.html:279
 msgid "login(s)"
-msgstr "ログイン"
+msgstr ""
 
 #: templates/analytics.html:281
 msgid "logins"
-msgstr "ログイン"
+msgstr ""
 
 #: templates/analytics.html:290
 msgid "No login data available yet"
-msgstr "ログインデータはまだ利用できません"
+msgstr ""
 
 #: templates/analytics.html:297
 msgid "Feature Usage"
-msgstr "機能の使用方法"
+msgstr ""
 
 #: templates/analytics.html:303
 msgid "Feature"
-msgstr "機能"
+msgstr ""
 
 #: templates/analytics.html:304
 msgid "Total Uses"
-msgstr "総使用回数"
+msgstr ""
 
 #: templates/analytics.html:305
 msgid "Active Days"
-msgstr "アクティブ・デイズ"
+msgstr ""
 
 #: templates/analytics.html:319
 msgid "No feature usage data available yet"
-msgstr "機能の使用状況データはまだ利用できません"
+msgstr ""
 
 #: templates/analytics.html:324
 msgid "Nova DSO Tracker Analytics — GDPR compliant, no PII stored"
-msgstr "Nova DSO Tracker Analytics — GDPR準拠、個人識別情報（PII）は保存されません"
+msgstr ""
 
 #: templates/base.html:106
 msgid "Calculating..."
-msgstr "読み込み中..."
+msgstr ""
 
 #: templates/base.html:107
 msgid "Fetching..."
-msgstr "詳細を取得中..."
+msgstr ""
 
 #: templates/base.html:108 templates/mobile_add_object.html:59
 #: templates/mobile_edit_notes.html:78
 msgid "Saving..."
-msgstr "保存中..."
+msgstr ""
 
 #: templates/base.html:109
 msgid "Saved"
-msgstr "保存"
+msgstr ""
 
 #: templates/base.html:110
 msgid "Error"
-msgstr "エラー:"
+msgstr ""
 
 #: templates/base.html:114
 msgid "None"
-msgstr "注記"
+msgstr ""
 
 #: templates/base.html:115
 msgid "Mode"
-msgstr "モード"
+msgstr ""
 
 #: templates/base.html:116 templates/index.html:24
 msgid "Simulated"
-msgstr "シミュレートされた"
+msgstr ""
 
 #: templates/base.html:117
 msgid "sep"
-msgstr "ステップ"
+msgstr ""
 
 #: templates/base.html:119
 msgid "Importing..."
-msgstr "インポート"
+msgstr ""
 
 #: templates/base.html:123
 msgid "Name is required"
-msgstr "プロジェクト名は必須です。"
+msgstr ""
 
 #: templates/base.html:124
 msgid "Data Load Failed"
-msgstr "データのロードに失敗"
+msgstr ""
 
 #: templates/base.html:125
 msgid "No targets found matching your filters."
-msgstr "フィルターに一致するオブジェクトはありません。"
+msgstr ""
 
 #: templates/base.html:126
 msgid "Updating location..."
-msgstr "データを更新中..."
+msgstr ""
 
 #: templates/base.html:127
 msgid "No imaging opportunities found matching the criteria."
-msgstr "アクティブなプロジェクトに対して画像取得の機会が見つかりませんでした。"
+msgstr ""
 
 #: templates/base.html:128
 msgid "Waiting for background task..."
-msgstr "バックグラウンド・タスク待ち..."
+msgstr ""
 
 #: templates/base.html:129
 msgid "No data available or error. Check server logs."
-msgstr "このサーバーではまだカタログパックは利用できません。"
+msgstr ""
 
 #: templates/base.html:130
 msgid "Error fetching data. Check console for details."
-msgstr "グリッドのレンダリングエラー。コンソールを確認してください。"
+msgstr ""
 
 #: templates/base.html:131
 msgid "Loading altitude data..."
-msgstr "履歴を読み込み中..."
+msgstr ""
 
 #: templates/base.html:132
 msgid "Altitude data unavailable."
-msgstr "画像は利用できません"
+msgstr ""
 
 #: templates/base.html:133
 msgid "Select a saved view..."
-msgstr "選択したビューを削除"
+msgstr ""
 
 #: templates/base.html:134
 msgid "Error loading views"
-msgstr "データを読み込めませんでした。"
+msgstr ""
 
 #: templates/base.html:135 templates/index.html:65
 msgid "Update in"
-msgstr "更新まで"
+msgstr ""
 
 #: templates/base.html:136
 msgid "Latest version"
-msgstr "バージョン"
+msgstr ""
 
 #: templates/base.html:139
 msgid "Select Telescope"
-msgstr "-- 望遠鏡を選択 --"
+msgstr ""
 
 #: templates/base.html:140
 msgid "Select Camera"
-msgstr "-- カメラを選択 --"
+msgstr ""
 
 #: templates/base.html:141 templates/config_form.html:645
 #: templates/project_report.html:1127
 msgid "Telescope"
-msgstr "望遠鏡"
+msgstr ""
 
 #: templates/base.html:142 templates/config_form.html:646
 #: templates/project_report.html:1131
 msgid "Camera"
-msgstr "部屋"
+msgstr ""
 
 #: templates/base.html:143
 msgid "Reducer / Extender"
-msgstr "レデューサー/エクステンダー"
+msgstr ""
 
 #: templates/base.html:145
 msgid "Oversampled"
-msgstr "コピーしました！"
+msgstr ""
 
 #: templates/base.html:146
 msgid "Well sampled"
-msgstr "ピクセルスケール"
+msgstr ""
 
 #: templates/base.html:147
 msgid "Undersampled"
-msgstr "ユーザー名"
+msgstr ""
 
 #: templates/base.html:148
 msgid "No telescopes defined."
-msgstr "目標は設定されていません。"
+msgstr ""
 
 #: templates/base.html:149
 msgid "No cameras defined."
-msgstr "目標は設定されていません。"
+msgstr ""
 
 #: templates/base.html:150
 msgid "Error loading shared items."
-msgstr "データを読み込めませんでした。"
+msgstr ""
 
 #: templates/base.html:151
 msgid "Import failed. See console for details."
-msgstr "インポートに失敗しました。詳細はサーバーログを参照してください。"
+msgstr ""
 
 #: templates/base.html:152
 msgid "Upload failed. See console."
-msgstr "アップロードに失敗しました。コンソールを参照してください。"
+msgstr ""
 
 #: templates/base.html:153
 msgid "Network error saving object."
-msgstr "ネットワークエラー。"
+msgstr ""
 
 #: templates/base.html:154
 msgid "Image upload failed: Network error."
-msgstr "インポートに失敗しました: ネットワークエラー"
+msgstr ""
 
 #: templates/base.html:155
 msgid "Error: Could not find the horizon mask field."
-msgstr "エラー：水平マスクフィールドが見つかりません。"
+msgstr ""
 
 #: templates/base.html:156
 msgid "Error reading file. Please try again."
-msgstr "フィルターの追加エラー。"
+msgstr ""
 
 #: templates/base.html:157
 msgid "No valid horizon data found."
-msgstr "有効な水平線データが見つかりません。"
+msgstr ""
 
 #: templates/base.html:158
 msgid "Shared Notes for"
-msgstr "共有ノート"
+msgstr ""
 
 #: templates/base.html:161
 msgid "No objects selected."
-msgstr "オブジェクトが指定されていません。"
+msgstr ""
 
 #: templates/base.html:162
 msgid "Bulk action failed."
-msgstr "一括処理に失敗した。"
+msgstr ""
 
 #: templates/base.html:163
 msgid "Bulk fetch details failed."
-msgstr "詳細を取得"
+msgstr ""
 
 #: templates/base.html:164
 msgid "No potential duplicates found."
-msgstr "重複の可能性"
+msgstr ""
 
 #: templates/base.html:165
 msgid "Keep A, merge B into A"
-msgstr "Aを維持し、BをAに統合する"
+msgstr ""
 
 #: templates/base.html:166
 msgid "Keep B, merge A into B"
-msgstr "Bを維持し、AをBに統合する"
+msgstr ""
 
 #: templates/base.html:167
 msgid "Error scanning duplicates."
-msgstr "データを読み込めませんでした。"
+msgstr ""
 
 #: templates/base.html:168
 msgid "Confirm merge?"
-msgstr "追加を確認"
+msgstr ""
 
 #: templates/base.html:169
 msgid "All duplicates resolved."
-msgstr "プレートが解決する"
+msgstr ""
 
 #: templates/base.html:170
 msgid "Please enter an object identifier."
-msgstr "オブジェクトの詳細を表示するにはログインしてください。"
+msgstr ""
 
 #: templates/base.html:171
 msgid "Checking your local library..."
-msgstr "お近くの図書館を調べてみると...。"
+msgstr ""
 
 #: templates/base.html:172
 msgid "Object found in your library."
-msgstr "オブジェクトデータが見つからないか無効です。"
+msgstr ""
 
 #: templates/base.html:173
 #, python-format
 msgid "Found: %(name)s. Details loaded from SIMBAD\\."
-msgstr "見つかりました: %(name)s。詳細は SIMBAD から読み込まれました。"
+msgstr ""
 
 #: templates/base.html:174
 msgid "SIMBAD lookup failed."
-msgstr "クリップボードへのコピーに失敗しました。"
+msgstr ""
 
 #: templates/base.html:175
 msgid "selected"
-msgstr "0 選択済み"
+msgstr ""
 
 #: templates/base.html:176 templates/mobile_object_detail.html:589
 msgid "No imaging opportunities found."
-msgstr "イメージングの機会"
+msgstr ""
 
 #: templates/base.html:179
 msgid "Report frame not found."
-msgstr "ユーザーが見つかりません。"
+msgstr ""
 
 #: templates/base.html:180
 msgid "Preparing Print View..."
-msgstr "プリントビューの準備..."
+msgstr ""
 
 #: templates/base.html:181
 #, python-format
 msgid "Merging Session %(current)d/%(total)d..."
-msgstr "セッション%(current)d/%(total)dのマージ..."
+msgstr ""
 
 #: templates/base.html:183
 msgid "Add Session"
-msgstr "新しいセッションを追加"
+msgstr ""
 
 #: templates/base.html:184
 msgid "Editing Session"
-msgstr "このセッションを編集"
+msgstr ""
 
 #: templates/base.html:185
 msgid "Save Changes"
-msgstr "メモを保存"
+msgstr ""
 
 #: templates/base.html:188
 #, python-format
 msgid "Failed to update Active Project: %(error)s"
-msgstr "プロジェクト作成エラー: %(error)s"
+msgstr ""
 
 #: templates/base.html:189
 msgid "SIMBAD requires an active internet connection to load data."
-msgstr "SIMBADは、データをロードするためにアクティブなインターネット接続が必要です。"
+msgstr ""
 
 #: templates/base.html:190
 msgid "SIMBAD requires an active internet connection."
-msgstr "SIMBADはアクティブなインターネット接続を必要とします。"
+msgstr ""
 
 #: templates/base.html:191 templates/mobile_object_detail.html:595
 msgid "Add to calendar"
-msgstr "カレンダーに追加"
+msgstr ""
 
 #: templates/base.html:192
 #, python-format
 msgid "Error loading opportunities: %(error)s"
-msgstr "コンポーネントの追加中にエラーが発生しました: %(error)s"
+msgstr ""
 
 #: templates/base.html:193
 #, python-format
 msgid ""
 "Failed to load imaging opportunities. Check console for details. "
 "(%(error)s)"
-msgstr "イメージング機会のロードに失敗しました。コンソールで詳細を確認してください。(%(error)s)"
+msgstr ""
 
 #: templates/base.html:194
 msgid "Please configure at least one rig on the Configuration page first."
-msgstr "まず、設定ページで少なくとも1つのリグを設定してください。"
+msgstr ""
 
 #: templates/base.html:195
 msgid "Could not load external survey. See console for details."
-msgstr "外部アンケートをロードできませんでした。詳細はコンソールを参照してください。"
+msgstr ""
 
 #: templates/base.html:196
 msgid "Framing settings saved to database."
-msgstr "フレーミング設定をデータベースに保存。"
+msgstr ""
 
 #: templates/base.html:197
 msgid "Error saving"
-msgstr "データを読み込めませんでした。"
+msgstr ""
 
 #: templates/base.html:198
 msgid "Please select a rig first."
-msgstr "インポートする有効な .zip ファイルを選択してください。"
+msgstr ""
 
 #: templates/base.html:199
 msgid "Failed to copy to clipboard. See console."
-msgstr "クリップボードへのコピーに失敗しました。コンソールを参照してください。"
+msgstr ""
 
 #: templates/base.html:200
 msgid "Open Saved Framing"
-msgstr "フレーム保存"
+msgstr ""
 
 #: templates/base.html:201
 msgid "Delete Saved Framing"
-msgstr "フレーム保存"
+msgstr ""
 
 #: templates/base.html:202
 msgid "Image upload failed. See console for details."
-msgstr "インポートに失敗しました。詳細はサーバーログを参照してください。"
+msgstr ""
 
 #: templates/base.html:205
 msgid "No timeline data to display."
-msgstr "表示するタイムラインデータがない。"
+msgstr ""
 
 #: templates/base.html:206
 msgid "No PHD2 guide log data available."
-msgstr "ログインデータはまだ利用できません"
+msgstr ""
 
 #: templates/base.html:207
 msgid "Full"
-msgstr "フル"
+msgstr ""
 
 #: templates/base.html:209
 msgid "No dither data available."
-msgstr "ログインデータはまだ利用できません"
+msgstr ""
 
 #: templates/base.html:210
 msgid "No autofocus data available."
-msgstr "ログインデータはまだ利用できません"
+msgstr ""
 
 #: templates/base.html:213
 #, python-format
 msgid "Calculating month %(current)d of %(total)d..."
-msgstr "%%(total)d個中%%(current)d個のオブジェクトを計算済み..."
+msgstr ""
 
 #: templates/base.html:214
 msgid "No projects found. Adjust filters or add projects."
-msgstr "オブジェクトが見つかりません。追加してみてください！"
+msgstr ""
 
 #: templates/base.html:215
 msgid "Plotly library not loaded. Please refresh."
-msgstr "Plotly ライブラリが読み込まれません。更新してください。"
+msgstr ""
 
 #: templates/base.html:218
 msgid "Loading help content..."
-msgstr "履歴を読み込み中..."
+msgstr ""
 
 #: templates/base.html:219
 msgid "Error: Help content returned empty."
-msgstr "エラー：ヘルプの内容が空で返されました。"
+msgstr ""
 
 #: templates/base.html:220
 msgid "Network Error: Could not load help topic."
-msgstr "ネットワークエラー：ヘルプトピックをロードできませんでした。"
+msgstr ""
 
 #: templates/base.html:223
 #, python-format
 msgid "Showing %(count)d objects"
-msgstr "(数)個のオブジェクトを表示%(count)d"
+msgstr ""
 
 #: templates/base.html:224
 #, python-format
 msgid "Showing %(shown)d of %(total)d objects"
-msgstr "%%(total)d個中%%(shown)d個のオブジェクトを計算済み..."
+msgstr ""
 
 #: templates/base.html:225
 #, python-format
 msgid "Are you sure you want to %(action)s %(count)d objects?"
-msgstr "本当に%(action)s %(count)d個のオブジェクトが欲しいのですか？"
+msgstr ""
 
 #: templates/base.html:226
 #, python-format
 msgid "Fetching details for %(name)s..."
-msgstr "%%(name)sを検索中..."
+msgstr ""
 
 #: templates/base.html:229
 msgid "Effective FL"
-msgstr "アクティブのみ"
+msgstr ""
 
 #: templates/base.html:230
 msgid "Field of View"
-msgstr "視野"
+msgstr ""
 
 #: templates/base.html:231
 msgid "Good sampling"
-msgstr "良いサンプリング"
+msgstr ""
 
 #: templates/base.html:232
 msgid "Image Scale"
-msgstr "ピクセルスケール"
+msgstr ""
 
 #: templates/base.html:233
 msgid "No reducers defined."
-msgstr "目標は設定されていません。"
+msgstr ""
 
 #: templates/base.html:234
 msgid "Slightly oversampled"
-msgstr "コピーしました！"
+msgstr ""
 
 #: templates/base.html:235
 msgid "Slightly undersampled"
-msgstr "ユーザー名"
+msgstr ""
 
 #: templates/base.html:238
 msgid "Add Your Own Inspiration!"
-msgstr "自分のインスピレーションを追加！"
+msgstr ""
 
 #: templates/base.html:239
 msgid "You are currently seeing automated survey images (DSS2)."
-msgstr "現在、自動調査画像（DSS2）が表示されています。"
+msgstr ""
 
 #: templates/base.html:240
 msgid ""
 "Did you know you can display your own astrophotos or favorite reference "
 "images here?"
-msgstr "ここで自分の天体写真やお気に入りの参照画像を表示できることをご存知ですか？"
+msgstr ""
 
 #: templates/base.html:241
 msgid ""
 "Go to Configuration - Manage Objects to add Inspiration Content to your "
 "targets."
 msgstr ""
-"<strong>設定 > "
-"オブジェクトの管理</strong>に移動して、ターゲットに「インスピレーションコンテンツ」（画像URL、クレジット、説明）を追加してください。"
 
 #: templates/base.html:245
 msgid "Asking Nova..."
-msgstr "Novaに質問中..."
+msgstr ""
 
 #: templates/base.html:246
-#, fuzzy
 msgid "Nova Ranking"
-msgstr "Nova writing…"
+msgstr ""
 
 #: templates/base.html:247
 msgid "Nova Recommended"
-msgstr "Novaのおすすめ"
+msgstr ""
 
 #: templates/base.html:248
 msgid "Reset Ranking"
-msgstr "ランキングをリセット"
+msgstr ""
 
 #: templates/base.html:249
 msgid "Nova recommends this object"
-msgstr "Novaがこのオブジェクトをおすすめ"
+msgstr ""
 
 #: templates/base.html:250
 #, python-format
 msgid "#%(rank)d"
-msgstr "#%(rank)d"
+msgstr ""
 
 #: templates/base.html:251
 msgid "Reason"
-msgstr "理由"
+msgstr ""
 
 #: templates/base.html:252
 msgid "Error asking Nova. Please try again."
-msgstr "Novaへの質問でエラーが発生しました。もう一度お試しください。"
+msgstr ""
 
 #: templates/base.html:253
-#, fuzzy
 msgid "Consulting star charts..."
-msgstr "星図を見ながら..."
+msgstr ""
 
 #: templates/base.html:254 templates/graph_view.html:451
 msgid "Checking your rigs..."
-msgstr "お近くの図書館を調べてみると...。"
+msgstr ""
 
 #: templates/base.html:255
-#, fuzzy
 msgid "Scanning cosmos..."
-msgstr "空をスキャン中..."
+msgstr ""
 
 #: templates/base.html:257
-#, fuzzy
 msgid "Recommended Rig"
-msgstr "Novaのおすすめ"
+msgstr ""
 
 #: templates/base.html:258
-#, fuzzy
 msgid "Recommended Rigs"
-msgstr "Novaのおすすめ"
+msgstr ""
 
 #: templates/base.html:290
 msgid "Demo Mode:"
-msgstr "デモモード:"
+msgstr ""
 
 #: templates/base.html:290
 msgid ""
 "You are viewing a read-only demo. Full functionality (like saving) is "
 "enabled for registered users."
-msgstr "ご覧になっているのは読み取り専用デモです。保存などの全機能は登録ユーザー向けに有効化されています。"
+msgstr ""
 
 #: templates/base.html:314
 msgid "About Nova DSO Tracker"
-msgstr "Nova DSO Trackerについて"
+msgstr ""
 
 #: templates/base.html:314
 msgid "About"
-msgstr "について"
+msgstr ""
 
 #: templates/base.html:322
 msgid "Toggle dark/light theme"
-msgstr "ダーク/ライトテーマを切り替える"
+msgstr ""
 
 #: templates/base.html:322
 msgid "Toggle theme"
-msgstr "テーマを切り替える"
+msgstr ""
 
 #: templates/base.html:342
 msgid "Select language"
-msgstr "言語を選択"
+msgstr ""
 
 #: templates/base.html:354
 msgid "Guest Mode"
-msgstr "ゲストモード"
+msgstr ""
 
 #: templates/base.html:355 templates/login.html:2
 msgid "Login"
-msgstr "ログイン"
+msgstr ""
 
 #: templates/base.html:359
 msgid "Users"
-msgstr "ユーザー"
+msgstr ""
 
 #: templates/base.html:362
 msgid "Logout"
-msgstr "ログアウト"
+msgstr ""
 
 #: templates/base.html:381
 msgid ""
 "The translations for this language are machine-generated and may not be "
 "accurate. Help improve them!"
-msgstr "この言語の翻訳は機械翻訳であり、正確ではない可能性があります。改善にご協力ください！"
+msgstr ""
 
 #: templates/base.html:382
 msgid "Submit feedback"
-msgstr "フィードバックを送信"
+msgstr ""
 
 #: templates/base.html:402 templates/config_form.html:298
 #: templates/config_form.html:381
 msgid "Help"
-msgstr "助けて"
+msgstr ""
 
 #: templates/base.html:422
 msgid "Nova DSO Tracker Logo"
-msgstr "Nova DSO Tracker Logo"
+msgstr ""
 
 #: templates/base.html:424
 msgid "Version"
-msgstr "バージョン"
+msgstr ""
 
 #: templates/base.html:425
 msgid "A personal project born from a passion for astronomy and astrophotography."
-msgstr "天文学と天体写真への情熱から生まれた個人的なプロジェクト。"
+msgstr ""
 
 #: templates/base.html:426
 msgid ""
@@ -3182,219 +3147,217 @@ msgid ""
 "tracking Moon position and phase, and identifying optimal viewing "
 "windows."
 msgstr ""
-"Nova DSO "
-"Trackerは、アマチュア天文学者が観測セッションを計画するのを支援します。深宇宙天体の高度と方位角を計算・可視化し、月の位置と満ち欠けを追跡し、最適な観測時間帯を特定します。"
 
 #: templates/base.html:427
 msgid "Data sourced from SIMBAD; calculations powered by Astropy and Ephem."
-msgstr "データはSIMBADから取得；計算はAstropyおよびEphemによって実行。"
+msgstr ""
 
 #: templates/base.html:435
 msgid "Visit nova-tracker.com"
-msgstr "nova-tracker.comをご覧ください"
+msgstr ""
 
 #: templates/base.html:445
 msgid "Built by Anton Gutscher"
-msgstr "アントン・グッチャーによって構築"
+msgstr ""
 
 #: templates/base.html:460
 msgid "Translation Feedback"
-msgstr "翻訳フィードバック"
+msgstr ""
 
 #: templates/base.html:461
 msgid "Help us improve the translations for this language."
-msgstr "この言語の翻訳を改善するのを手伝ってください。"
+msgstr ""
 
 #: templates/base.html:465
 msgid "Locale"
-msgstr "ロケール"
+msgstr ""
 
 #: templates/base.html:470
 msgid "Term / Phrase"
-msgstr "用語 / フレーズ"
+msgstr ""
 
 #: templates/base.html:471
 msgid "The translated term that seems wrong..."
-msgstr "間違っているように見える翻訳用語..."
+msgstr ""
 
 #: templates/base.html:475
 msgid "Suggested Correction"
-msgstr "推奨修正"
+msgstr ""
 
 #: templates/base.html:476
 msgid "Your suggested translation..."
-msgstr "ご推奨翻訳..."
+msgstr ""
 
 #: templates/base.html:480
 msgid "Context / Notes"
-msgstr "コンテキスト / メモ"
+msgstr ""
 
 #: templates/base.html:480
 msgid "optional"
-msgstr "(任意)"
+msgstr ""
 
 #: templates/base.html:481
 msgid ""
 "Additional context about where this appears or why the correction is "
 "needed..."
-msgstr "それがどこに表示されるか、なぜ修正が必要かについての付加コンテキスト..."
+msgstr ""
 
 #: templates/base.html:485
 msgid "Submit"
-msgstr "送信"
+msgstr ""
 
 #: templates/config_form.html:4
 msgid "Nova – Configuration"
-msgstr "Nova – 設定"
+msgstr ""
 
 #: templates/config_form.html:10
 msgid "Configuration Form"
-msgstr "設定フォーム"
+msgstr ""
 
 #: templates/config_form.html:22 templates/config_form.html:74
 #: templates/config_form.html:85 templates/index.html:29
 msgid "Configuration"
-msgstr "設定"
+msgstr ""
 
 #: templates/config_form.html:22
 msgid "System Settings"
-msgstr "システム設定"
+msgstr ""
 
 #: templates/config_form.html:61
 msgid "General"
-msgstr "一般"
+msgstr ""
 
 #: templates/config_form.html:62
 msgid "Locations"
-msgstr "場所"
+msgstr ""
 
 #: templates/config_form.html:64 templates/config_form.html:76
 #: templates/config_form.html:93
 msgid "Rigs"
-msgstr "リグス"
+msgstr ""
 
 #: templates/config_form.html:66
 msgid "Shared Items"
-msgstr "共有アイテム"
+msgstr ""
 
 #: templates/config_form.html:72
 msgid "Download"
-msgstr "ダウンロード"
+msgstr ""
 
 #: templates/config_form.html:75 templates/config_form.html:89
 #: templates/graph_view.html:95 templates/index.html:90
 msgid "Journal"
-msgstr "日誌"
+msgstr ""
 
 #: templates/config_form.html:77 templates/config_form.html:97
 msgid "Journal Photos"
-msgstr "写真日記"
+msgstr ""
 
 #: templates/config_form.html:103
 msgid "Help with Data Tools"
-msgstr "データツールのサポート"
+msgstr ""
 
 #: templates/config_form.html:110
 msgid "General Settings"
-msgstr "一般設定"
+msgstr ""
 
 #: templates/config_form.html:111 templates/config_form.html:243
 #: templates/macros.html:79
 msgid "Click for help"
-msgstr "ヘルプを表示"
+msgstr ""
 
 #: templates/config_form.html:116
 msgid "Altitude Threshold (°):"
-msgstr "高度閾値（°）："
+msgstr ""
 
 #: templates/config_form.html:125
 msgid "Theme:"
-msgstr "テーマ："
+msgstr ""
 
 #: templates/config_form.html:131
 msgid "Follow System"
-msgstr "フォローシステム"
+msgstr ""
 
 #: templates/config_form.html:136
 msgid "Light"
-msgstr "光"
+msgstr ""
 
 #: templates/config_form.html:141
 msgid "Dark"
-msgstr "闇"
+msgstr ""
 
 #: templates/config_form.html:146
 msgid ""
 "Choose how Nova appears. \"Follow System\" matches your OS setting and "
 "updates automatically."
-msgstr "Novaの表示方法を選択してください。「システムに合わせる」はOSの設定に合わせ、自動的に更新されます。"
+msgstr ""
 
 #: templates/config_form.html:153
 msgid "Min Observable (min):"
-msgstr "最小観測可能時間 (分):"
+msgstr ""
 
 #: templates/config_form.html:158
 msgid "Min Max Altitude (°):"
-msgstr "最小最大高度 (°):"
+msgstr ""
 
 #: templates/config_form.html:165
 #, python-format
 msgid "Max Moon Illum (%%):"
-msgstr "最大月光照度 (%%):"
+msgstr ""
 
 #: templates/config_form.html:170
 msgid "Min Moon Sep (°):"
-msgstr "最小月間隔 (°):"
+msgstr ""
 
 #: templates/config_form.html:175
 msgid "Search months:"
-msgstr "月を検索:"
+msgstr ""
 
 #: templates/config_form.html:183
 msgid "Calc. Invisible Objects:"
-msgstr "計算。見えない物体："
+msgstr ""
 
 #: templates/config_form.html:188
 msgid ""
 "If checked, Nova will calculate curves for ALL objects, even those "
 "geometrically impossible to see from your location (disabling the \"Smart"
 " Skip\" optimization)."
-msgstr "チェックすると、Novaはすべての天体の軌道計算を行います。これは、あなたの位置から幾何学的に見えなくとも計算対象となります（「スマートスキップ」最適化を無効化）。"
+msgstr ""
 
 #: templates/config_form.html:194
 msgid "Hide Invisible Objects:"
-msgstr "見えないオブジェクトを隠す:"
+msgstr ""
 
 #: templates/config_form.html:199
 msgid ""
 "If checked, objects that are geometrically impossible to see will be "
 "hidden from the main list by default. They will still appear if you "
 "specifically search for them."
-msgstr "チェックすると、視覚的に表示不可能なオブジェクトはデフォルトでメインリストから非表示になります。ただし、それらを直接検索した場合は表示されます。"
+msgstr ""
 
 #: templates/config_form.html:206
 msgid "Calculation Precision:"
-msgstr "計算精度："
+msgstr ""
 
 #: templates/config_form.html:209
 msgid "High (10 min samples)"
-msgstr "高（10分サンプル）"
+msgstr ""
 
 #: templates/config_form.html:210
 msgid "Default (15 min samples)"
-msgstr "デフォルト（15分間隔のサンプル）"
+msgstr ""
 
 #: templates/config_form.html:211
 msgid "Balanced (20 min samples)"
-msgstr "バランス調整済み（20分サンプル）"
+msgstr ""
 
 #: templates/config_form.html:212
 msgid "Fast (30 min samples)"
-msgstr "高速（30分サンプル）"
+msgstr ""
 
 #: templates/config_form.html:213
 msgid "Fastest (60 min samples)"
-msgstr "最速（60分サンプル）"
+msgstr ""
 
 #: templates/config_form.html:216
 msgid ""
@@ -3402,11 +3365,11 @@ msgid ""
 "setting only refines the accuracy of the nightly overview values (Max "
 "Altitude, Observable Duration, etc.). 'Fast' is recommended for low-power"
 " devices."
-msgstr "注：現在の高度は常にリアルタイムで計算されます。この設定は夜間概要値（最高高度、観測可能時間など）の精度を向上させるだけです。「高速」は低電力デバイスに推奨されます。"
+msgstr ""
 
 #: templates/config_form.html:224
 msgid "Anonymous Telemetry:"
-msgstr "匿名テレメトリ："
+msgstr ""
 
 #: templates/config_form.html:229
 msgid ""
@@ -3414,59 +3377,57 @@ msgid ""
 "counts of your data entries like objects, rigs, locations, and journals)."
 " No personal details are ever collected, and you can opt out anytime. "
 "Allowing it really helps me improve Nova."
-msgstr "Novaは小さな匿名のハートビート（アプリバージョン、システムタイプ、オブジェクト・リグ・ロケーション・ジャーナルなどのデータ入力件数）を送信します。個人情報は一切収集されず、いつでもオプトアウト可能です。許可いただくことで、Novaの改善に大変役立ちます。"
+msgstr ""
 
 #: templates/config_form.html:234
 msgid "Save Settings"
-msgstr "設定を保存"
+msgstr ""
 
 #: templates/config_form.html:242
 msgid "Locations Configuration"
-msgstr "場所の設定"
+msgstr ""
 
 #: templates/config_form.html:248
 msgid "Add New Location"
-msgstr "新しい場所を追加"
+msgstr ""
 
 #: templates/config_form.html:252 templates/config_form.html:422
 #: templates/config_form.html:441 templates/config_form.html:461
 #: templates/index.html:257
 msgid "Name:"
-msgstr "名前:"
+msgstr ""
 
 #: templates/config_form.html:253
 msgid "e.g., Home Observatory"
-msgstr "例：ホーム天文台"
+msgstr ""
 
 #: templates/config_form.html:256 templates/config_form.html:330
 msgid "Lat:"
-msgstr "緯度:"
+msgstr ""
 
 #: templates/config_form.html:260 templates/config_form.html:334
 msgid "Lon:"
-msgstr "経度:"
+msgstr ""
 
 #: templates/config_form.html:264 templates/config_form.html:338
 msgid "Timezone:"
-msgstr "タイムゾーン:"
+msgstr ""
 
 #: templates/config_form.html:266
 msgid "Type to search..."
-msgstr "検索するには入力してください..."
+msgstr ""
 
 #: templates/config_form.html:273 templates/config_form.html:346
 msgid "Active:"
-msgstr "有効:"
+msgstr ""
 
 #: templates/config_form.html:277 templates/config_form.html:350
-#, fuzzy
 msgid "Bortle:"
-msgstr "注記："
+msgstr ""
 
 #: templates/config_form.html:279 templates/config_form.html:352
-#, fuzzy
 msgid "Not set"
-msgstr "注記"
+msgstr ""
 
 #: templates/config_form.html:280 templates/config_form.html:353
 msgid "Exceptional dark sky"
@@ -3506,486 +3467,471 @@ msgstr ""
 
 #: templates/config_form.html:297 templates/config_form.html:380
 msgid "Horizon Mask:"
-msgstr "ホライゾンマスク："
+msgstr ""
 
 #: templates/config_form.html:301 templates/config_form.html:384
 msgid "Optional. e.g., [[0, 35], [90, 15]]"
-msgstr "任意。例：[[0, 35], [90, 15]]"
+msgstr ""
 
 #: templates/config_form.html:303 templates/config_form.html:386
 msgid "Import a Stellarium .hzn horizon file"
-msgstr "Stellarium .hzn 水平線ファイルのインポート"
+msgstr ""
 
 #: templates/config_form.html:303 templates/config_form.html:386
 msgid "Import .hzn"
-msgstr ".hznをインポート"
+msgstr ""
 
 #: templates/config_form.html:313 templates/config_form.html:395
 msgid "Comments:"
-msgstr "コメント:"
+msgstr ""
 
 #: templates/config_form.html:314 templates/config_form.html:396
 msgid "Notes on sky quality, obstructions, etc."
-msgstr "空の質、障害物などに関する注記"
+msgstr ""
 
 #: templates/config_form.html:319
 msgid "Add"
-msgstr "追加"
+msgstr ""
 
 #: templates/config_form.html:365
 msgid "Del:"
-msgstr "削除:"
+msgstr ""
 
 #: templates/config_form.html:367
 msgid "Cannot delete your only location"
-msgstr "唯一の場所を削除できません"
+msgstr ""
 
 #: templates/config_form.html:371
 msgid "View on Google Maps"
-msgstr "Googleマップで見る"
+msgstr ""
 
 #: templates/config_form.html:372
 msgid "Open Map"
-msgstr "地図を開く"
+msgstr ""
 
 #: templates/config_form.html:403
 msgid "Update Locations"
-msgstr "場所を更新"
+msgstr ""
 
 #: templates/config_form.html:414
 msgid "1. Define Your Components"
-msgstr "1. コンポーネントを定義する"
+msgstr ""
 
 #: templates/config_form.html:415
 msgid "Help with Rigs"
-msgstr "リグのヘルプ"
+msgstr ""
 
 #: templates/config_form.html:417
 msgid ""
 "Add or update your equipment here. To edit an item, click \"Edit\" to "
 "load its details into the form, make your changes, and click the "
 "\"Update\" button."
-msgstr "ここで装備を追加または更新してください。アイテムを編集するには、「編集」をクリックして詳細をフォームに読み込み、変更を加えた後、「更新」ボタンをクリックしてください。"
+msgstr ""
 
 #: templates/config_form.html:418
 msgid "Telescopes"
-msgstr "望遠鏡"
+msgstr ""
 
 #: templates/config_form.html:422
 msgid "e.g., Celestron EdgeHD 11"
-msgstr "例：Celestron EdgeHD 11"
+msgstr ""
 
 #: templates/config_form.html:423
 msgid "Aperture (mm):"
-msgstr "開口部（mm）："
+msgstr ""
 
 #: templates/config_form.html:424
 msgid "Focal Length (mm):"
-msgstr "焦点距離（mm）："
+msgstr ""
 
 #: templates/config_form.html:428 templates/config_form.html:448
 #: templates/config_form.html:466
 msgid "Share this component"
-msgstr "このコンポーネントを共有する"
+msgstr ""
 
 #: templates/config_form.html:431
 msgid "Add Telescope"
-msgstr "望遠鏡を追加"
+msgstr ""
 
 #: templates/config_form.html:437
 msgid "Cameras"
-msgstr "カメラ"
+msgstr ""
 
 #: templates/config_form.html:441
 msgid "e.g., ZWO ASI2600MC Pro"
-msgstr "例：ZWO ASI2600MC Pro"
+msgstr ""
 
 #: templates/config_form.html:442
 msgid "Sensor Width (mm):"
-msgstr "センサー幅（mm）："
+msgstr ""
 
 #: templates/config_form.html:443
 msgid "Sensor Height (mm):"
-msgstr "センサー高さ (mm):"
+msgstr ""
 
 #: templates/config_form.html:444
 msgid "Pixel Size (μm):"
-msgstr "ピクセルサイズ（μm）："
+msgstr ""
 
 #: templates/config_form.html:451
 msgid "Add Camera"
-msgstr "カメラを追加"
+msgstr ""
 
 #: templates/config_form.html:457
 msgid "Reducers / Extenders"
-msgstr "レデューサー/エクステンダー"
+msgstr ""
 
 #: templates/config_form.html:461
 msgid "e.g., Celestron 0.7x Reducer"
-msgstr "例：Celestron 0.7x レデューサー"
+msgstr ""
 
 #: templates/config_form.html:462
 msgid "Factor:"
-msgstr "倍率:"
+msgstr ""
 
 #: templates/config_form.html:462
 msgid "e.g., 0.7 for reducer"
-msgstr "例：0.7（還元）"
+msgstr ""
 
 #: templates/config_form.html:469
 msgid "Add Reducer/Extender"
-msgstr "レデューサー/エクステンダーを追加"
+msgstr ""
 
 #: templates/config_form.html:476
 msgid "2. Configure Your Rigs"
-msgstr "2. リグの設定"
+msgstr ""
 
 #: templates/config_form.html:477
 msgid ""
 "Combine your components into a complete imaging rig. To edit, click "
 "\"Edit\" to load the rig into the form below."
-msgstr "コンポーネントを組み合わせて完全なイメージングリグを作成してください。編集するには「編集」をクリックし、リグを以下のフォームに読み込んでください。"
+msgstr ""
 
 #: templates/config_form.html:480
 msgid "Rig Name:"
-msgstr "リグ名:"
+msgstr ""
 
 #: templates/config_form.html:480
 msgid "e.g., C11 Deep Sky Rig"
-msgstr "例：C11 ディープスカイリグ"
+msgstr ""
 
 #: templates/config_form.html:484
 msgid "-- Select a Telescope --"
-msgstr "-- 望遠鏡を選択 --"
+msgstr ""
 
 #: templates/config_form.html:490
 msgid "-- Select a Camera --"
-msgstr "-- カメラを選択 --"
+msgstr ""
 
 #: templates/config_form.html:494
 msgid "Reducer / Extender (Optional):"
-msgstr "リデューサー／エクステンダー（オプション）："
+msgstr ""
 
 #: templates/config_form.html:496 templates/config_form.html:512
 #: templates/config_form.html:518
 msgid "-- None --"
-msgstr "-- なし --"
+msgstr ""
 
 #: templates/config_form.html:501
 msgid "Guide Optics"
-msgstr "ガイド光学系"
+msgstr ""
 
 #: templates/config_form.html:501
 msgid "Optional — for dither recommendations"
-msgstr "オプション — ディザリングの推奨事項"
+msgstr ""
 
 #: templates/config_form.html:506
 msgid "Off-Axis Guider (OAG) — uses main scope focal length"
-msgstr "オフアクシスガイダー（OAG） — 主鏡の焦点距離を使用する"
+msgstr ""
 
 #: templates/config_form.html:510
 msgid "Guide Scope:"
-msgstr "ガイドスコープ:"
+msgstr ""
 
 #: templates/config_form.html:516
 msgid "Guide Camera:"
-msgstr "ガイドカメラ:"
+msgstr ""
 
 #: templates/config_form.html:522
 msgid "Create Rig"
-msgstr "リグを作成"
+msgstr ""
 
 #: templates/config_form.html:526
 msgid "Select Your Typical Seeing:"
-msgstr "お好みの視聴スタイルを選択してください："
+msgstr ""
 
 #: templates/config_form.html:528
 msgid "-- Select Seeing to Assess Rigs --"
-msgstr "-- リグを評価するために視認を選択 --"
+msgstr ""
 
 #: templates/config_form.html:529
 msgid "Excellent Seeing (1.0\" - 2.0\" FWHM)"
-msgstr "優れた視界（1.0インチ～2.0インチ FWHM）"
+msgstr ""
 
 #: templates/config_form.html:530
 msgid "Good Seeing (2.0\" - 4.0\" FWHM)"
-msgstr "良いシーン (2.0\" - 4.0\" FWHM)"
+msgstr ""
 
 #: templates/config_form.html:531
 msgid "Poor Seeing (> 4.0\" FWHM)"
-msgstr "悪いシーン (> 4.0\" FWHM)"
+msgstr ""
 
 #: templates/config_form.html:535
 msgid "Sort rigs by:"
-msgstr "黒の王国の都市："
+msgstr ""
 
 #: templates/config_form.html:537
 msgid "Name (A→Z)"
-msgstr "名前（A→Z）"
+msgstr ""
 
 #: templates/config_form.html:538
 msgid "Name (Z→A)"
-msgstr "名前 (Z→A)"
+msgstr ""
 
 #: templates/config_form.html:539
 msgid "Effective Focal Length (low→high)"
-msgstr "実焦点距離（低→高）"
+msgstr ""
 
 #: templates/config_form.html:540
 msgid "Effective Focal Length (high→low)"
-msgstr "実焦点距離（高→低）"
+msgstr ""
 
 #: templates/config_form.html:541
 msgid "f/ratio (low→high)"
-msgstr "f値（低→高）"
+msgstr ""
 
 #: templates/config_form.html:542
 msgid "f/ratio (high→low)"
-msgstr "f値（高→低）"
+msgstr ""
 
 #: templates/config_form.html:543
 msgid "Image Scale (low→high)"
-msgstr "画像スケール（低→高）"
+msgstr ""
 
 #: templates/config_form.html:544
 msgid "Image Scale (high→low)"
-msgstr "画像スケール（高→低）"
+msgstr ""
 
 #: templates/config_form.html:545
 msgid "FOV Width (low→high)"
-msgstr "視野幅（低→高）"
+msgstr ""
 
 #: templates/config_form.html:546
 msgid "FOV Width (high→low)"
-msgstr "視野幅（高→低）"
+msgstr ""
 
 #: templates/config_form.html:547
 msgid "Recently Added (newest first)"
-msgstr "最近追加されたもの（新しい順）"
+msgstr ""
 
 #: templates/config_form.html:548
 msgid "Recently Added (oldest first)"
-msgstr "最近追加されたもの（古い順）"
+msgstr ""
 
 #: templates/config_form.html:551
 msgid "Existing Rigs"
-msgstr "既存のリグ"
+msgstr ""
 
 #: templates/config_form.html:559
 msgid "Shared Items from Other Users"
-msgstr "他のユーザーからの共有アイテム"
+msgstr ""
 
 #: templates/config_form.html:560
 msgid "Help with Shared Items"
-msgstr "共有アイテムのヘルプ"
+msgstr ""
 
 #: templates/config_form.html:562
 msgid ""
 "Here you can find Objects and Components shared by other users in the "
 "system. Click \"Import\" to add a copy to your own configuration."
-msgstr "ここでは、システム内の他のユーザーが共有しているオブジェクトとコンポーネントを確認できます。「インポート」をクリックすると、自身の構成にコピーを追加できます。"
+msgstr ""
 
 #: templates/config_form.html:564
 msgid "Shared Objects"
-msgstr "共有オブジェクト"
+msgstr ""
 
 #: templates/config_form.html:569
 msgid "Img"
-msgstr "画像"
+msgstr ""
 
 #: templates/config_form.html:571 templates/index.html:133
 #: templates/index.html:182 templates/index.html:211
 #: templates/mobile_add_object.html:21
 msgid "Common Name"
-msgstr "一般名"
+msgstr ""
 
 #: templates/config_form.html:574 templates/config_form.html:608
 #: templates/config_form.html:637
 msgid "Shared By"
-msgstr "共有者"
+msgstr ""
 
 #: templates/config_form.html:580
 msgid "Filter ID..."
-msgstr "IDでフィルター..."
+msgstr ""
 
 #: templates/config_form.html:581 templates/config_form.html:612
 #: templates/config_form.html:641
 msgid "Filter name..."
-msgstr "名前でフィルター..."
+msgstr ""
 
 #: templates/config_form.html:582
 msgid "Filter type..."
-msgstr "タイプでフィルター..."
+msgstr ""
 
 #: templates/config_form.html:583
 msgid "Filter con..."
-msgstr "星座でフィルター..."
+msgstr ""
 
 #: templates/config_form.html:584 templates/config_form.html:614
 #: templates/config_form.html:650
 msgid "Filter user..."
-msgstr "ユーザーでフィルター..."
+msgstr ""
 
 #: templates/config_form.html:588 templates/config_form.html:617
 #: templates/config_form.html:653
 msgid "All"
-msgstr "すべて"
+msgstr ""
 
 #: templates/config_form.html:589 templates/config_form.html:618
 #: templates/config_form.html:654
 msgid "Not Imported"
-msgstr "未インポート"
+msgstr ""
 
 #: templates/config_form.html:601
 msgid "Shared Views"
-msgstr "共有ビュー"
+msgstr ""
 
 #: templates/config_form.html:606
 msgid "View Name"
-msgstr "ビュー名"
+msgstr ""
 
 #: templates/config_form.html:613
 msgid "Filter desc..."
-msgstr "説明でフィルター..."
+msgstr ""
 
 #: templates/config_form.html:630
 msgid "Shared Components"
-msgstr "共有コンポーネント"
+msgstr ""
 
 #: templates/config_form.html:635
 msgid "Component Name"
-msgstr "コンポーネント名"
+msgstr ""
 
 #: templates/config_form.html:644
 msgid "All Types"
-msgstr "すべてのタイプ"
+msgstr ""
 
 #: templates/config_form.html:647
 msgid "Reducer/Extender"
-msgstr "レデューサー/エクステンダー"
+msgstr ""
 
 #: templates/config_form.html:679
 msgid "Fetching Details..."
-msgstr "詳細を取得中..."
+msgstr ""
 
 #: templates/config_form.html:683
 msgid "Please wait, communicating with SIMBAD..."
-msgstr "お待ちください、SIMBADと通信中です..."
+msgstr ""
 
 #: templates/graph_view.html:4 templates/journal_form.html:4
 #: templates/journal_report.html:6 templates/journal_report.html:1210
 #: templates/project_report.html:6 templates/project_report.html:1187
 msgid "Nova DSO Tracker"
-msgstr "Nova DSO Tracker"
+msgstr ""
 
 #: templates/graph_view.html:47
-#, fuzzy
 msgid "← Back to Dashboard"
-msgstr "ダッシュボードに戻る"
+msgstr ""
 
 #: templates/graph_view.html:53
-#, fuzzy
 msgid "Graph Date"
-msgstr "検索日"
+msgstr ""
 
 #: templates/graph_view.html:54 templates/index.html:44
 #: templates/mobile_base.html:35 templates/project_report.html:1105
 msgid "Moon"
-msgstr "月"
+msgstr ""
 
 #: templates/graph_view.html:55
-#, fuzzy
 msgid "Moon Sep."
-msgstr "月 九月"
+msgstr ""
 
 #: templates/graph_view.html:57
-#, fuzzy
 msgid "ASTR. DUSK / DAWN"
-msgstr "アストラル・夕暮れ／夜明け"
+msgstr ""
 
 #: templates/graph_view.html:92
-#, fuzzy
 msgid "Chart"
-msgstr "チャートを見る"
+msgstr ""
 
 #: templates/graph_view.html:93 templates/graph_view.html:157
-#, fuzzy
 msgid "Notes & Framing"
-msgstr "フレーム保存"
+msgstr ""
 
 #: templates/graph_view.html:94 templates/mobile_object_detail.html:533
 msgid "Opportunities"
-msgstr "機会"
+msgstr ""
 
 #: templates/graph_view.html:96 templates/mobile_object_detail.html:529
 msgid "SIMBAD"
-msgstr "シンボル"
+msgstr ""
 
 #: templates/graph_view.html:110
-#, fuzzy
 msgid "Loading Chart"
-msgstr "ガイディングRMSチャート"
+msgstr ""
 
 #: templates/graph_view.html:116 templates/mobile_object_detail.html:519
 msgid "Day"
-msgstr "日"
+msgstr ""
 
 #: templates/graph_view.html:118 templates/mobile_object_detail.html:520
 msgid "Month"
-msgstr "月"
+msgstr ""
 
 #: templates/graph_view.html:124 templates/mobile_object_detail.html:521
 msgid "Year"
-msgstr "年"
+msgstr ""
 
 #: templates/graph_view.html:126
-#, fuzzy
 msgid "Day View"
-msgstr "保存済みビュー"
+msgstr ""
 
 #: templates/graph_view.html:127
-#, fuzzy
 msgid "Month View"
-msgstr "月"
+msgstr ""
 
 #: templates/graph_view.html:128
-#, fuzzy
 msgid "Year View"
-msgstr "概要"
+msgstr ""
 
 #: templates/graph_view.html:130 templates/mobile_add_object.html:3
 #: templates/mobile_add_object.html:4 templates/mobile_base.html:64
 msgid "Add Object"
-msgstr "オブジェクトを追加"
+msgstr ""
 
 #: templates/graph_view.html:134
-#, fuzzy
 msgid "How objects are ranked"
-msgstr "オブジェクトが見つかりません"
+msgstr ""
 
 #: templates/graph_view.html:139 templates/graph_view.html:658
-#, fuzzy
 msgid "Calibration Star"
-msgstr "校正戦略"
+msgstr ""
 
 #: templates/graph_view.html:140
-#, fuzzy
 msgid "Refresh"
-msgstr "フレーム"
+msgstr ""
 
 #: templates/graph_view.html:158 templates/index.html:90
 msgid "Inspiration"
-msgstr "インスピレーション"
+msgstr ""
 
 #: templates/graph_view.html:159
-#, fuzzy
 msgid "Rig Data"
-msgstr "ログデータ"
+msgstr ""
 
 #: templates/graph_view.html:165
-#, fuzzy
 msgid "Show Framing"
-msgstr "フレーミング"
+msgstr ""
 
 #: templates/graph_view.html:166
 msgid "Open in Stellarium"
@@ -3994,21 +3940,19 @@ msgstr ""
 #: templates/graph_view.html:182 templates/mobile_edit_notes.html:17
 #: templates/mobile_edit_notes.html:108 templates/mobile_edit_notes.html:122
 msgid "Save Notes"
-msgstr "メモを保存"
+msgstr ""
 
 #: templates/graph_view.html:198
 msgid "Edit Object to Add Content"
 msgstr ""
 
 #: templates/graph_view.html:206
-#, fuzzy
 msgid "Inspiration Image for"
-msgstr "インスピレーション"
+msgstr ""
 
 #: templates/graph_view.html:219
-#, fuzzy
 msgid "External Source"
-msgstr "テキストソースリンク"
+msgstr ""
 
 #: templates/graph_view.html:227
 msgid ""
@@ -4017,16 +3961,12 @@ msgid ""
 msgstr ""
 
 #: templates/graph_view.html:228
-#, fuzzy
 msgid "Go to <strong>Configuration > Manage Objects</strong> to add one."
 msgstr ""
-"<strong>設定 > "
-"オブジェクトの管理</strong>に移動して、ターゲットに「インスピレーションコンテンツ」（画像URL、クレジット、説明）を追加してください。"
 
 #: templates/graph_view.html:237
-#, fuzzy
 msgid "Framing With Your Rigs"
-msgstr "お近くの図書館を調べてみると...。"
+msgstr ""
 
 #: templates/graph_view.html:238
 msgid ""
@@ -4035,39 +3975,32 @@ msgid ""
 msgstr ""
 
 #: templates/graph_view.html:242
-#, fuzzy
 msgid "Rig Name"
-msgstr "リグ名:"
+msgstr ""
 
 #: templates/graph_view.html:243
-#, fuzzy
 msgid "Rig FOV"
-msgstr "リグ"
+msgstr ""
 
 #: templates/graph_view.html:244
-#, fuzzy
 msgid "Object Size"
-msgstr "オブジェクトID"
+msgstr ""
 
 #: templates/graph_view.html:245
-#, fuzzy
 msgid "Fit Assessment"
-msgstr "このセッションを編集"
+msgstr ""
 
 #: templates/graph_view.html:254
-#, fuzzy
 msgid "Mosaic Required"
-msgstr "プロジェクト名は必須です。"
+msgstr ""
 
 #: templates/graph_view.html:255
-#, fuzzy
 msgid "Fits with Rotation"
-msgstr "インスピレーション"
+msgstr ""
 
 #: templates/graph_view.html:257
-#, fuzzy
 msgid "Small Target"
-msgstr "主要ターゲット"
+msgstr ""
 
 #: templates/graph_view.html:258
 msgid "Wide Field"
@@ -4078,14 +4011,12 @@ msgid "Good Fit"
 msgstr ""
 
 #: templates/graph_view.html:291
-#, fuzzy
 msgid "Framing Assistant"
-msgstr "フレーミングに関する注記"
+msgstr ""
 
 #: templates/graph_view.html:296
-#, fuzzy
 msgid "Help with Framing"
-msgstr "リグのヘルプ"
+msgstr ""
 
 #: templates/graph_view.html:301
 msgid "Lock FOV"
@@ -4102,29 +4033,25 @@ msgid "Geo Belt"
 msgstr ""
 
 #: templates/graph_view.html:303
-#, fuzzy
 msgid "Flip 90°"
-msgstr "フリップ"
+msgstr ""
 
 #: templates/graph_view.html:304
-#, fuzzy
 msgid "Copy framing URL"
-msgstr "フレーミング"
+msgstr ""
 
 #: templates/graph_view.html:305
-#, fuzzy
 msgid "Save Framing"
-msgstr "フレーム保存"
+msgstr ""
 
 #: templates/graph_view.html:308 templates/mobile_journal_new.html:237
 #: templates/project_report.html:1120
 msgid "Rig"
-msgstr "リグ"
+msgstr ""
 
 #: templates/graph_view.html:313
-#, fuzzy
 msgid "No rigs configured"
-msgstr "場所が設定されていません"
+msgstr ""
 
 #: templates/graph_view.html:318
 msgid "Position Angle (0°=North, 90°=East)"
@@ -4139,9 +4066,8 @@ msgid "Mosaic (Col x Row)"
 msgstr ""
 
 #: templates/graph_view.html:328
-#, fuzzy
 msgid "Columns"
-msgstr "カウント"
+msgstr ""
 
 #: templates/graph_view.html:330
 msgid "Rows"
@@ -4159,14 +4085,12 @@ msgid ""
 msgstr ""
 
 #: templates/graph_view.html:337
-#, fuzzy
 msgid "Copy Plan (CSV)"
-msgstr "コピー計画 (CSV)"
+msgstr ""
 
 #: templates/graph_view.html:340
-#, fuzzy
 msgid "Survey"
-msgstr "ソース"
+msgstr ""
 
 #: templates/graph_view.html:360
 msgid "Blend with"
@@ -4181,18 +4105,16 @@ msgid "Brightness"
 msgstr ""
 
 #: templates/graph_view.html:383
-#, fuzzy
 msgid "Contrast"
-msgstr "トランジット"
+msgstr ""
 
 #: templates/graph_view.html:384
 msgid "Gamma"
 msgstr ""
 
 #: templates/graph_view.html:385
-#, fuzzy
 msgid "Saturation"
-msgstr "期間"
+msgstr ""
 
 #: templates/graph_view.html:387
 msgid ""
@@ -4201,27 +4123,24 @@ msgid ""
 msgstr ""
 
 #: templates/graph_view.html:392
-#, fuzzy
 msgid "Copy"
-msgstr "コピー計画 (CSV)"
+msgstr ""
 
 #: templates/graph_view.html:395
 msgid "Tip: Click on the sky to move the FOV center."
 msgstr ""
 
 #: templates/graph_view.html:396
-#, fuzzy
 msgid "Recenter to object"
-msgstr "対象物："
+msgstr ""
 
 #: templates/graph_view.html:398
 msgid "Nudge Up"
 msgstr ""
 
 #: templates/graph_view.html:400
-#, fuzzy
 msgid "Nudge Left"
-msgstr "削除"
+msgstr ""
 
 #: templates/graph_view.html:401
 msgid "Nudge Right"
@@ -4232,52 +4151,44 @@ msgid "Nudge Down"
 msgstr ""
 
 #: templates/graph_view.html:404
-#, fuzzy
 msgid "steps"
-msgstr "ステップ"
+msgstr ""
 
 #: templates/graph_view.html:449
 msgid "Ask Nova for observing notes"
 msgstr ""
 
 #: templates/graph_view.html:450
-#, fuzzy
 msgid "Consulting the star charts..."
-msgstr "星図を見ながら..."
+msgstr ""
 
 #: templates/graph_view.html:452
-#, fuzzy
 msgid "Scanning the cosmos..."
-msgstr "空をスキャン中..."
+msgstr ""
 
 #: templates/graph_view.html:453
-#, fuzzy
 msgid "Calculating from"
-msgstr "読み込み中..."
+msgstr ""
 
 #: templates/graph_view.html:455
-#, fuzzy
 msgid "your location"
-msgstr "場所"
+msgstr ""
 
 #: templates/graph_view.html:456
-#, fuzzy
 msgid "Nova has notes ready. What would you like to do?"
-msgstr "Nova がサマリーを用意しました。どうしますか？"
+msgstr ""
 
 #: templates/graph_view.html:460
 msgid "Nova couldn't load notes"
 msgstr ""
 
 #: templates/graph_view.html:659
-#, fuzzy
 msgid "No calibration star available near meridian"
-msgstr "校正戦略"
+msgstr ""
 
 #: templates/graph_view.html:699
-#, fuzzy
 msgid "HA"
-msgstr "h"
+msgstr ""
 
 #: templates/graph_view.html:699
 msgid "from meridian"
@@ -4285,1668 +4196,1062 @@ msgstr ""
 
 #: templates/index.html:3 templates/login.html:2
 msgid "DSO Altitude Tracker"
-msgstr "DSO高度トラッカー"
+msgstr ""
 
 #: templates/index.html:24
 msgid "Dashboard"
-msgstr "ダッシュボード"
+msgstr ""
 
 #: templates/index.html:40 templates/index.html:139
 msgid "Local Time"
-msgstr "現地時間"
+msgstr ""
 
 #: templates/index.html:48
 msgid "Astr. Dusk / Dawn"
-msgstr "アストラル・夕暮れ／夜明け"
+msgstr ""
 
 #: templates/index.html:60
 msgid "Simulation"
-msgstr "シミュレーション"
+msgstr ""
 
 #: templates/index.html:61
 msgid "About Simulation Mode"
-msgstr "シミュレーションモードについて"
+msgstr ""
 
 #: templates/index.html:86
 msgid "Position"
-msgstr "位置"
+msgstr ""
 
 #: templates/index.html:87
 msgid "Properties"
-msgstr "プロパティ"
+msgstr ""
 
 #: templates/index.html:88 templates/mobile_base.html:60
 #: templates/mobile_outlook.html:3
 msgid "Outlook"
-msgstr "予報"
+msgstr ""
 
 #: templates/index.html:89
 msgid "Heatmap"
-msgstr "ヒートマップ"
+msgstr ""
 
 #: templates/index.html:92
 msgid "Search Syntax Guide"
-msgstr "検索構文ガイド"
+msgstr ""
 
 #: templates/index.html:96
 msgid "Saved Views"
-msgstr "保存済みビュー"
+msgstr ""
 
 #: templates/index.html:98
 msgid "Save current filters and sorting"
-msgstr "現在のフィルターと並べ替えを保存"
+msgstr ""
 
 #: templates/index.html:99
 msgid "Delete selected view"
-msgstr "選択したビューを削除"
+msgstr ""
 
 #: templates/index.html:103
 msgid "Active Only"
-msgstr "アクティブのみ"
+msgstr ""
 
 #: templates/index.html:108
-#, fuzzy
 msgid "Ask Nova to rank and recommend best objects"
-msgstr "Novaがこのオブジェクトをおすすめ"
+msgstr ""
 
 #: templates/index.html:114
-#, fuzzy
 msgid "About Nova AI"
-msgstr "Nova DSO Trackerについて"
+msgstr ""
 
 #: templates/index.html:122
 msgid "Remove Filter"
-msgstr "フィルターを解除"
+msgstr ""
 
 #: templates/index.html:132 templates/index.html:181 templates/index.html:210
 msgid "Object"
-msgstr "目的"
+msgstr ""
 
 #: templates/index.html:134 templates/index.html:137
 #: templates/mobile_up_now.html:899 templates/mobile_up_now.html:912
 msgid "Altitude"
-msgstr "高度"
+msgstr ""
 
 #: templates/index.html:134 templates/index.html:135
 msgid "Current"
-msgstr "現在"
+msgstr ""
 
 #: templates/index.html:135 templates/index.html:138
 msgid "Azimuth"
-msgstr "方位角"
+msgstr ""
 
 #: templates/index.html:136 templates/index.html:157
 #: templates/mobile_object_detail.html:498
 msgid "Trend"
-msgstr "トレンド"
+msgstr ""
 
 #: templates/index.html:137 templates/index.html:138
 msgid "11 PM"
-msgstr "夜11時"
+msgstr ""
 
 #: templates/index.html:139 templates/index.html:160
 msgid "Transit"
-msgstr "トランジット"
+msgstr ""
 
 #: templates/index.html:140
 msgid "Observable"
-msgstr "観測可能"
+msgstr ""
 
 #: templates/index.html:140 templates/index.html:161
 msgid "minutes"
-msgstr "分"
+msgstr ""
 
 #: templates/index.html:141
 msgid "observable (°)"
-msgstr "観測値 (°)"
+msgstr ""
 
 #: templates/index.html:142
 msgid "Ang. Sep."
-msgstr "九月。"
+msgstr ""
 
 #: templates/index.html:142
 msgid "to moon (°)"
-msgstr "月へ (°)"
+msgstr ""
 
 #: templates/index.html:145
 msgid "Magnitude"
-msgstr "規模"
+msgstr ""
 
 #: templates/index.html:146
 msgid "Size ("
-msgstr "あなたに ("
+msgstr ""
 
 #: templates/index.html:147
 msgid "SB"
-msgstr "表面輝度"
+msgstr ""
 
 #: templates/index.html:148
 msgid "Best Month"
-msgstr "最高の月"
+msgstr ""
 
 #: templates/index.html:148
 msgid "Opp."
-msgstr "上。"
+msgstr ""
 
 #: templates/index.html:149 templates/index.html:213
 msgid "Max Alt"
-msgstr "最大値"
+msgstr ""
 
 #: templates/index.html:149
 msgid "Culm."
-msgstr "茎。"
+msgstr ""
 
 #: templates/index.html:153 templates/index.html:218
 msgid "Search Object"
-msgstr "検索対象"
+msgstr ""
 
 #: templates/index.html:154 templates/index.html:192 templates/index.html:219
 msgid "Search Common Name"
-msgstr "一般名で検索"
+msgstr ""
 
 #: templates/index.html:155 templates/index.html:158
 msgid "Altitude °"
-msgstr "高度 °"
+msgstr ""
 
 #: templates/index.html:156 templates/index.html:159
 msgid "Azimuth °"
-msgstr "方位角 °"
+msgstr ""
 
 #: templates/index.html:162
 msgid "Max Alt. °"
-msgstr "最大高度 °"
+msgstr ""
 
 #: templates/index.html:163
 msgid "Ang. Sep. °"
-msgstr "9月"
+msgstr ""
 
 #: templates/index.html:164
 msgid "e.g. Cyg"
-msgstr "例：Cyg"
+msgstr ""
 
 #: templates/index.html:165
 msgid "Type (e.g. PN,SNR)"
-msgstr "タイプ（例：PN、SNR）"
+msgstr ""
 
 #: templates/index.html:166
 msgid "Mag e.g. <8"
-msgstr "例えば、8未満"
+msgstr ""
 
 #: templates/index.html:167
 msgid "Size e.g. >10"
-msgstr "例えば、>10"
+msgstr ""
 
 #: templates/index.html:168
 msgid "SB e.g. <22"
-msgstr "SB 例：<22"
+msgstr ""
 
 #: templates/index.html:169
 msgid "e.g. Dec"
-msgstr "例：12月"
+msgstr ""
 
 #: templates/index.html:170
 msgid "e.g. >80"
-msgstr "例：80以上"
+msgstr ""
 
 #: templates/index.html:183 templates/journal_report.html:690
 msgid "Project"
-msgstr "プロジェクト"
+msgstr ""
 
 #: templates/index.html:186
 msgid "Telescope Setup"
-msgstr "望遠鏡の設置"
+msgstr ""
 
 #: templates/index.html:187 templates/journal_report.html:722
 #: templates/project_report.html:1085
 msgid "Integration"
-msgstr "統合"
+msgstr ""
 
 #: templates/index.html:193
 msgid "Project Name"
-msgstr "プロジェクト名"
+msgstr ""
 
 #: templates/index.html:196
 msgid "Setup notes"
-msgstr "セットアップに関する注意事項"
+msgstr ""
 
 #: templates/index.html:197
 msgid "e.g. >120"
-msgstr "例：120以上"
+msgstr ""
 
 #: templates/index.html:198
 msgid "e.g. ★★★★"
-msgstr "例：★★★★"
+msgstr ""
 
 #: templates/index.html:214
 msgid "Obs. Time"
-msgstr "注記 時間"
+msgstr ""
 
 #: templates/index.html:220
 msgid "Search Date"
-msgstr "検索日"
+msgstr ""
 
 #: templates/index.html:221
 msgid "e.g. >60"
-msgstr "例：60以上"
+msgstr ""
 
 #: templates/index.html:222
 msgid "e.g. >300"
-msgstr "例：300以上"
+msgstr ""
 
 #: templates/index.html:223
 msgid "e.g. ★★★★★"
-msgstr "例：★★★★★"
+msgstr ""
 
 #: templates/index.html:234
 msgid "Updating data..."
-msgstr "データを更新中..."
+msgstr ""
 
 #: templates/index.html:249
 msgid "Graph"
-msgstr "グラフ"
+msgstr ""
 
 #: templates/index.html:255
 msgid "Save Current View"
-msgstr "現在のビューを保存"
+msgstr ""
 
 #: templates/index.html:258
 msgid "Description:"
-msgstr "説明:"
+msgstr ""
 
 #: templates/index.html:258
 msgid "Describe what this filter does..."
-msgstr "このフィルターの機能を説明してください..."
+msgstr ""
 
 #: templates/index.html:261
 msgid "Share this view with others"
-msgstr "この景色を他の人と共有する"
+msgstr ""
 
 #: templates/journal_form.html:4 templates/journal_form.html:13
 msgid "Journal Entry"
-msgstr "日記の記録"
+msgstr ""
 
 #: templates/journal_form.html:21
 msgid "Core Info"
-msgstr "コア情報"
+msgstr ""
 
 #: templates/journal_form.html:28
 msgid "Target Object:"
-msgstr "対象物："
+msgstr ""
 
 #: templates/journal_form.html:30
 msgid "Select Target (Optional)"
-msgstr "対象を選択（任意）"
+msgstr ""
 
 #: templates/journal_form.html:42
 msgid "Select Location (Optional)"
-msgstr "場所を選択（任意）"
+msgstr ""
 
 #: templates/journal_form.html:75
 #, python-format
 msgid "Moon Illumination at Session (%%):"
-msgstr "セッション時の月光照度 (%%):"
+msgstr ""
 
 #: templates/journal_form.html:76
 msgid "e.g., 34"
-msgstr "例：34"
+msgstr ""
 
 #: templates/journal_form.html:79
 msgid "Moon Angular Separation from Target (°):"
-msgstr "対象物からの月の角距離（°）："
+msgstr ""
 
 #: templates/journal_form.html:80
 msgid "e.g., 45.5"
-msgstr "例：45.5"
+msgstr ""
 
 #: templates/journal_form.html:87
 msgid "Select a Rig (Optional)"
-msgstr "リグを選択（任意）"
+msgstr ""
 
 #: templates/journal_form.html:89
 msgid "Manually Enter Setup Below"
-msgstr "以下の設定を手動で入力してください"
+msgstr ""
 
 #: templates/journal_form.html:97
 msgid "e.g., C11+Reducer+ASI2600"
-msgstr "例：C11+Reducer+ASI2600"
+msgstr ""
 
 #: templates/journal_form.html:101
 msgid "Filter Used:"
-msgstr "使用フィルター："
+msgstr ""
 
 #: templates/journal_form.html:102
 msgid "e.g., L-Pro, Ha 7nm"
-msgstr "例：L-Pro、Ha 7nm"
+msgstr ""
 
 #: templates/journal_form.html:110
 msgid "Guiding Equipment (Scope, Camera, Software):"
-msgstr "ガイド装置（スコープ、カメラ、ソフトウェア）："
+msgstr ""
 
 #: templates/journal_form.html:111
 msgid "e.g., 50mm guidescope + ASI120MM Mini, PHD2"
-msgstr "例：50mmガイドスコープ + ASI120MM Mini、PHD2"
+msgstr ""
 
 #: templates/journal_form.html:115
 msgid "e.g., Yes, 3px every 2 subs"
-msgstr "例：はい、2サブごとに3ピクセル"
+msgstr ""
 
 #: templates/journal_form.html:119
 msgid "e.g., N.I.N.A., Sequence Generator Pro, Astroberry"
-msgstr "例：N.I.N.A.、Sequence Generator Pro、Astroberry"
+msgstr ""
 
 #: templates/journal_form.html:125
 msgid "Sub Exposure (seconds):"
-msgstr "露出時間（秒）："
+msgstr ""
 
 #: templates/journal_form.html:129
 msgid "Number of Light Subs:"
-msgstr "ライトサブの数："
+msgstr ""
 
 #: templates/journal_form.html:155
 msgid "e.g., 1x1, 2x2"
-msgstr "例：1×1、2×2"
+msgstr ""
 
 #: templates/journal_form.html:158
 msgid ""
 "Enter number of subframes and exposure time (in seconds) per subframe for"
 " each filter used. Leave blank if not used."
-msgstr "使用する各フィルターごとに、サブフレーム数とサブフレームあたりの露光時間（秒単位）を入力してください。使用しない場合は空白のままにしてください。"
+msgstr ""
 
 #: templates/journal_form.html:167
 msgid "# Subs:"
-msgstr "# 字幕:"
+msgstr ""
 
 #: templates/journal_form.html:206
 msgid "Save Entry"
-msgstr "エントリを保存"
+msgstr ""
 
 #: templates/journal_report.html:673 templates/project_report.html:788
 msgid "Nova Logo"
-msgstr "Nova Logo"
+msgstr ""
 
 #: templates/journal_report.html:676
 msgid "Nova"
-msgstr "Nova"
+msgstr ""
 
 #: templates/journal_report.html:676
 msgid "DSO Tracker"
-msgstr "DSOトラッカー"
+msgstr ""
 
 #: templates/journal_report.html:708
 msgid "Total Integration:"
-msgstr "完全統合："
+msgstr ""
 
 #: templates/journal_report.html:711
 msgid "Notes & Reflections"
-msgstr "ノートと考察"
+msgstr ""
 
 #: templates/journal_report.html:726
 msgid "Seeing (FWHM)"
-msgstr "可視化（FWHM）"
+msgstr ""
 
 #: templates/journal_report.html:732
 msgid "Guiding (RMS)"
-msgstr "ガイディング（RMS）"
+msgstr ""
 
 #: templates/journal_report.html:736
 msgid "Sky Quality (SQM)"
-msgstr "空の質指数（SQM）"
+msgstr ""
 
 #: templates/journal_report.html:742
 msgid "Moon Illum./Sep."
-msgstr "月光／九月"
+msgstr ""
 
 #: templates/journal_report.html:746
 msgid "Transparency"
-msgstr "透明性"
+msgstr ""
 
 #: templates/journal_report.html:755 templates/project_report.html:887
 msgid "Rig:"
-msgstr "リグ："
+msgstr ""
 
 #: templates/journal_report.html:775
 msgid "Temp (Set/Avg):"
-msgstr "温度（設定/平均）："
+msgstr ""
 
 #: templates/journal_report.html:779
 msgid "FL / Ratio:"
-msgstr "FL / 比率:"
+msgstr ""
 
 #: templates/journal_report.html:783
 msgid "Scale / FOV:"
-msgstr "スケール／視野角："
+msgstr ""
 
 #: templates/journal_report.html:787
 msgid "Setup:"
-msgstr "設定:"
+msgstr ""
 
 #: templates/journal_report.html:790
 msgid "Acquisition SW:"
-msgstr "買収ソフトウェア："
+msgstr ""
 
 #: templates/journal_report.html:794
 msgid "Guiding Equip.:"
-msgstr "ガイディング装備："
+msgstr ""
 
 #: templates/journal_report.html:798
 msgid "Dither Details:"
-msgstr "ディザの詳細："
+msgstr ""
 
 #: templates/journal_report.html:807
 msgid "Darks"
-msgstr "ダークス"
+msgstr ""
 
 #: templates/journal_report.html:811
 msgid "Flats"
-msgstr "フラット"
+msgstr ""
 
 #: templates/journal_report.html:817
 msgid "Bias / Dark Flats"
-msgstr "バイアス／ダーク・フラッツ"
+msgstr ""
 
 #: templates/journal_report.html:827 templates/project_report.html:1151
 msgid "Filter"
-msgstr "フィルター"
+msgstr ""
 
 #: templates/journal_report.html:828 templates/project_report.html:1152
 msgid "Subs"
-msgstr "サブ"
+msgstr ""
 
 #: templates/journal_report.html:829
 msgid "Exposure"
-msgstr "露出"
+msgstr ""
 
 #: templates/journal_report.html:864
 msgid "Key Events"
-msgstr "主要な出来事"
+msgstr ""
 
 #: templates/journal_report.html:870
 msgid "Session Start"
-msgstr "セッション開始"
+msgstr ""
 
 #: templates/journal_report.html:876
 msgid "Meridian Flip Success"
-msgstr "子午線反転成功"
+msgstr ""
 
 #: templates/journal_report.html:884
 msgid "Dither Settle Timeout"
-msgstr "ディザ・セトル・タイムアウト"
+msgstr ""
 
 #: templates/journal_report.html:891
 msgid "Session Ended"
-msgstr "セッション終了"
+msgstr ""
 
 #: templates/journal_report.html:901
 msgid "Log Analysis"
-msgstr "ログ分析"
+msgstr ""
 
 #: templates/journal_report.html:911 templates/journal_report.html:920
 #: templates/project_report.html:909 templates/project_report.html:918
 msgid "Total RMS"
-msgstr "総RMS"
+msgstr ""
 
 #: templates/journal_report.html:915 templates/journal_report.html:924
 msgid "Guide Frames"
-msgstr "ガイドフレーム"
+msgstr ""
 
 #: templates/journal_report.html:942 templates/journal_report.html:959
 #: templates/journal_report.html:1041
 msgid "Meridian Flips"
-msgstr "メリディアン・フリップス"
+msgstr ""
 
 #: templates/journal_report.html:967 templates/project_report.html:964
 msgid "PHD2 Guiding Performance"
-msgstr "PHD2 ガイディング性能"
+msgstr ""
 
 #: templates/journal_report.html:971 templates/project_report.html:967
 msgid "Imaging RMS"
-msgstr "イメージングRMS"
+msgstr ""
 
 #: templates/journal_report.html:981 templates/journal_report.html:983
 msgid "frames"
-msgstr "フレーム"
+msgstr ""
 
 #: templates/journal_report.html:988 templates/project_report.html:977
 msgid "All Frames RMS"
-msgstr "全フレーム RMS"
+msgstr ""
 
 #: templates/journal_report.html:991
 msgid "RA:"
-msgstr "RA："
+msgstr ""
 
 #: templates/journal_report.html:1003 templates/journal_report.html:1055
 #: templates/journal_report.html:1134 templates/project_report.html:1030
 msgid "Dither Events"
-msgstr "ディザイベント"
+msgstr ""
 
 #: templates/journal_report.html:1011
 msgid "Guiding RMS Chart"
-msgstr "ガイディングRMSチャート"
+msgstr ""
 
 #: templates/journal_report.html:1017
 msgid "Guide Pulse Distribution"
-msgstr "ガイドパルス分配"
+msgstr ""
 
 #: templates/journal_report.html:1026
 msgid "ASIAIR Session Summary"
-msgstr "ASIAIR セッション概要"
+msgstr ""
 
 #: templates/journal_report.html:1045
 msgid "Plate Solves"
-msgstr "プレートが解決する"
+msgstr ""
 
 #: templates/journal_report.html:1051 templates/journal_report.html:1093
 #: templates/project_report.html:998
 msgid "AutoFocus Runs"
-msgstr "オートフォーカス実行中"
+msgstr ""
 
 #: templates/journal_report.html:1097 templates/project_report.html:1002
 msgid "Run"
-msgstr "走る"
+msgstr ""
 
 #: templates/journal_report.html:1099
 msgid "Focus Position"
-msgstr "焦点位置"
+msgstr ""
 
 #: templates/journal_report.html:1100
 msgid "Temperature"
-msgstr "温度"
+msgstr ""
 
 #: templates/journal_report.html:1101
 msgid "Points"
-msgstr "ポイント"
+msgstr ""
 
 #: templates/journal_report.html:1119
 msgid "AutoFocus V-Curves"
-msgstr "オートフォーカス Vカーブ"
+msgstr ""
 
 #: templates/journal_report.html:1125
 msgid "Focus Position Drift"
-msgstr "焦点位置のずれ"
+msgstr ""
 
 #: templates/journal_report.html:1138
 msgid "Total Dithers"
-msgstr "総ディザ数"
+msgstr ""
 
 #: templates/journal_report.html:1142
 msgid "Timeouts"
-msgstr "タイムアウト"
+msgstr ""
 
 #: templates/journal_report.html:1151
 msgid "Avg Settle Time"
-msgstr "平均決済時間"
+msgstr ""
 
 #: templates/journal_report.html:1155
 msgid "Success Rate"
-msgstr "成功率"
+msgstr ""
 
 #: templates/journal_report.html:1163
 msgid "Dither Settle Times"
-msgstr "ディザの収束時間"
+msgstr ""
 
 #: templates/journal_report.html:1172 templates/project_report.html:1041
 msgid "Autocenter Results"
-msgstr "オートセンター結果"
+msgstr ""
 
 #: templates/journal_report.html:1176
 msgid "Attempt"
-msgstr "試み"
+msgstr ""
 
 #: templates/journal_report.html:1178
 msgid "Distance"
-msgstr "距離"
+msgstr ""
 
 #: templates/journal_report.html:1189
 msgid "Centered"
-msgstr "中央に配置"
+msgstr ""
 
 #: templates/journal_report.html:1189 templates/mobile_journal_new.html:343
 msgid "Offset"
-msgstr "オフセット"
+msgstr ""
 
 #: templates/journal_report.html:1198
 msgid "Autocenter Accuracy"
-msgstr "オートセンター精度"
+msgstr ""
 
 #: templates/journal_report.html:1210 templates/project_report.html:1187
 msgid "Generated by"
-msgstr "生成されました"
+msgstr ""
 
 #: templates/login.html:27 templates/mobile_base.html:73
 msgid "Log In"
-msgstr "ログイン"
+msgstr ""
 
 #: templates/login.html:28
 msgid "Continue as Guest"
-msgstr "ゲストとして続ける"
+msgstr ""
 
 #: templates/mobile_add_object.html:8
 msgid "Object Name"
-msgstr "オブジェクト名"
+msgstr ""
 
 #: templates/mobile_add_object.html:9
 msgid "e.g., M42 or NGC1976"
-msgstr "例：M42 または NGC1976"
+msgstr ""
 
 #: templates/mobile_add_object.html:11
 msgid "Search SIMBAD"
-msgstr "SIMBADを検索"
+msgstr ""
 
 #: templates/mobile_add_object.html:26
 msgid "RA (hours)"
-msgstr "RA（時間）"
+msgstr ""
 
 #: templates/mobile_add_object.html:31
 msgid "DEC (degrees)"
-msgstr "DEC（度）"
+msgstr ""
 
 #: templates/mobile_add_object.html:36
 msgid "Project Notes"
-msgstr "プロジェクトノート"
+msgstr ""
 
 #: templates/mobile_add_object.html:43 templates/mobile_edit_notes.html:14
 msgid "Set as Active Project"
-msgstr "アクティブプロジェクトとして設定"
+msgstr ""
 
 #: templates/mobile_add_object.html:46 templates/mobile_add_object.html:61
 msgid "Save Object"
-msgstr "オブジェクトを保存"
+msgstr ""
 
 #: templates/mobile_add_object.html:56
 #, python-format
 msgid "Searching for %%(name)s..."
-msgstr "%%(name)sを検索中..."
+msgstr ""
 
 #: templates/mobile_add_object.html:58 templates/mobile_outlook.html:181
 msgid "Error connecting to server."
-msgstr "サーバーへの接続に失敗しました。"
+msgstr ""
 
 #: templates/mobile_add_object.html:60
 msgid "Object saved successfully!"
-msgstr "オブジェクトが正常に保存されました！"
+msgstr ""
 
 #: templates/mobile_add_object.html:62 templates/mobile_edit_notes.html:118
 msgid "Error:"
-msgstr "エラー:"
+msgstr ""
 
 #: templates/mobile_base.html:6
 msgid "Nova Companion"
-msgstr "Nova Companion"
+msgstr ""
 
 #: templates/mobile_base.html:24 templates/mobile_base.html:56
 #: templates/mobile_up_now.html:3 templates/mobile_up_now.html:4
 msgid "Up Now"
-msgstr "現在放送中"
+msgstr ""
 
 #: templates/mobile_base.html:26
 msgid "Main Site"
-msgstr "メインサイト"
+msgstr ""
 
 #: templates/mobile_base.html:40
-#, fuzzy
 msgid "Dusk/Dawn"
-msgstr "アストラル・夕暮れ／夜明け"
+msgstr ""
 
 #: templates/mobile_edit_notes.html:3 templates/mobile_object_detail.html:556
 #: templates/mobile_object_detail.html:561
 msgid "Edit Notes"
-msgstr "編集メモ"
+msgstr ""
 
 #: templates/mobile_edit_notes.html:4
 msgid "Edit:"
-msgstr "編集:"
+msgstr ""
 
 #: templates/mobile_edit_notes.html:27
 msgid "Unknown error"
-msgstr "不明なエラー"
+msgstr ""
 
 #: templates/mobile_edit_notes.html:103
 msgid "Notes saved successfully!"
-msgstr "ノートが正常に保存されました！"
+msgstr ""
 
 #: templates/mobile_framing_coords.html:2
 #: templates/mobile_object_detail.html:527 templates/mobile_outlook.html:183
 #: templates/mobile_up_now.html:895
 msgid "Framing"
-msgstr "フレーミング"
+msgstr ""
 
 #: templates/mobile_framing_coords.html:8
 msgid "Back"
-msgstr "バック"
+msgstr ""
 
 #: templates/mobile_framing_coords.html:29
 #: templates/mobile_framing_coords.html:46
 #: templates/mobile_framing_coords.html:56
-#, fuzzy
 msgid "Copy CSV"
-msgstr "コピー計画 (CSV)"
+msgstr ""
 
 #: templates/mobile_framing_coords.html:35
 msgid "View full mosaic plan"
-msgstr "モザイクプラン"
+msgstr ""
 
 #: templates/mobile_framing_coords.html:45
 #: templates/mobile_framing_coords.html:55 templates/mobile_mosaic_copy.html:24
 msgid "Copied!"
-msgstr "コピーしました！"
+msgstr ""
 
 #: templates/mobile_journal_new.html:3 templates/mobile_journal_new.html:4
-#, fuzzy
 msgid "New Session"
-msgstr "新しいセッションを追加"
+msgstr ""
 
 #: templates/mobile_journal_new.html:215
-#, fuzzy
 msgid "Target Object"
-msgstr "対象物："
+msgstr ""
 
 #: templates/mobile_journal_new.html:227
-#, fuzzy
 msgid "Select Location"
-msgstr "場所を設定"
+msgstr ""
 
 #: templates/mobile_journal_new.html:239
-#, fuzzy
 msgid "Select Rig"
-msgstr "-- カメラを選択 --"
+msgstr ""
 
 #: templates/mobile_journal_new.html:272
-#, fuzzy
 msgid "Moon Illum"
-msgstr "月光/分離："
+msgstr ""
 
 #: templates/mobile_journal_new.html:277
 #: templates/mobile_object_detail.html:503 templates/mobile_up_now.html:957
-#, fuzzy
 msgid "Moon Sep"
-msgstr "月 九月"
+msgstr ""
 
 #: templates/mobile_journal_new.html:338
-#, fuzzy
 msgid "Gain"
-msgstr "さらに："
+msgstr ""
 
 #: templates/mobile_journal_new.html:350
-#, fuzzy
 msgid "Sub Exp"
-msgstr "サブ"
+msgstr ""
 
 #: templates/mobile_journal_new.html:355
-#, fuzzy
 msgid "Cam Temp"
-msgstr "天気"
+msgstr ""
 
 #: templates/mobile_journal_new.html:377
 msgid "Add any notes about this session..."
-msgstr "このセッションに関するメモを追加する"
+msgstr ""
 
 #: templates/mobile_journal_new.html:385
-#, fuzzy
 msgid "Discard"
-msgstr "障害のある"
+msgstr ""
 
 #: templates/mobile_journal_new.html:386
-#, fuzzy
 msgid "Save Session"
-msgstr "新しいセッションを追加"
+msgstr ""
 
 #: templates/mobile_location.html:3 templates/mobile_location.html:4
 msgid "Set Location"
-msgstr "場所を設定"
+msgstr ""
 
 #: templates/mobile_location.html:8
 msgid "Current:"
-msgstr "現在:"
+msgstr ""
 
 #: templates/mobile_location.html:8
 msgid "Default"
-msgstr "デフォルト"
+msgstr ""
 
 #: templates/mobile_mosaic_copy.html:3
 msgid "Mosaic:"
-msgstr "モザイク："
+msgstr ""
 
 #: templates/mobile_mosaic_copy.html:8
 msgid "Mosaic"
-msgstr "モザイク"
+msgstr ""
 
 #: templates/mobile_mosaic_copy.html:13
 msgid "Config:"
-msgstr "設定:"
+msgstr ""
 
 #: templates/mobile_mosaic_copy.html:16
 msgid "ASIAIR Plan Coordinates:"
-msgstr "ASIAIR計画座標:"
+msgstr ""
 
 #: templates/mobile_mosaic_copy.html:20
 msgid "Copy to Clipboard"
-msgstr "クリップボードにコピー"
+msgstr ""
 
 #: templates/mobile_mosaic_copy.html:42
 msgid "Clipboard copy failed."
-msgstr "クリップボードへのコピーに失敗しました。"
+msgstr ""
 
 #: templates/mobile_object_detail.html:493
-#, fuzzy
 msgid "Now"
-msgstr "現在放送中"
+msgstr ""
 
 #: templates/mobile_object_detail.html:508
-#, fuzzy
 msgid "Obs"
-msgstr "オブジェクト"
+msgstr ""
 
 #: templates/mobile_object_detail.html:523
-#, fuzzy
 msgid "Today"
-msgstr "日"
+msgstr ""
 
 #: templates/mobile_object_detail.html:528
-#, fuzzy
 msgid "Log Session"
-msgstr "セッション:"
+msgstr ""
 
 #: templates/mobile_object_detail.html:540
-#, fuzzy
 msgid "Loading opportunities..."
-msgstr "イメージングの機会"
+msgstr ""
 
 #: templates/mobile_object_detail.html:551
-#, fuzzy
 msgid "No notes for this object."
-msgstr "オブジェクトに近づく"
+msgstr ""
 
 #: templates/mobile_object_detail.html:590
-#, fuzzy
 msgid "Error loading opportunities."
-msgstr "コンポーネントの追加中にエラーが発生しました: %(error)s"
+msgstr ""
 
 #: templates/mobile_object_detail.html:591 templates/mobile_outlook.html:184
 msgid "Rating:"
-msgstr "評価："
+msgstr ""
 
 #: templates/mobile_object_detail.html:592 templates/mobile_outlook.html:185
 msgid "Max Alt:"
-msgstr "最大高度:"
+msgstr ""
 
 #: templates/mobile_object_detail.html:593 templates/mobile_outlook.html:186
 msgid "Duration:"
-msgstr "期間："
+msgstr ""
 
 #: templates/mobile_object_detail.html:594 templates/mobile_outlook.html:187
 msgid "Moon:"
-msgstr "月："
+msgstr ""
 
 #: templates/mobile_outlook.html:4
 msgid "Imaging Outlook"
-msgstr "イメージング展望"
+msgstr ""
 
 #: templates/mobile_outlook.html:170
 msgid "Calculating imaging opportunities..."
-msgstr "画像化の可能性を計算中..."
+msgstr ""
 
 #: templates/mobile_outlook.html:179
 msgid "Error loading outlook."
-msgstr "Outlookの読み込み中にエラーが発生しました。"
+msgstr ""
 
 #: templates/mobile_outlook.html:180
 msgid "Outlook cache is generating. Please check back in a minute."
-msgstr "Outlookのキャッシュが生成中です。しばらくしてから再度ご確認ください。"
+msgstr ""
 
 #: templates/mobile_outlook.html:182
 msgid "No imaging opportunities found for your active projects."
-msgstr "アクティブなプロジェクトに対して画像取得の機会が見つかりませんでした。"
+msgstr ""
 
 #: templates/mobile_up_now.html:874
 msgid "Scanning Sky..."
-msgstr "空をスキャン中..."
+msgstr ""
 
 #: templates/mobile_up_now.html:884
-#, fuzzy
 msgid "Search objects..."
-msgstr "検索対象"
+msgstr ""
 
 #: templates/mobile_up_now.html:891 templates/mobile_up_now.html:922
-#, fuzzy
 msgid "Filters"
-msgstr "フィルター"
+msgstr ""
 
 #: templates/mobile_up_now.html:899
-#, fuzzy
 msgid "Sort"
-msgstr "ソース"
+msgstr ""
 
 #: templates/mobile_up_now.html:907
-#, fuzzy
 msgid "No objects match your filters"
-msgstr "フィルターに一致するオブジェクトはありません。"
+msgstr ""
 
 #: templates/mobile_up_now.html:923
-#, fuzzy
 msgid "Reset"
-msgstr "プロジェクト"
+msgstr ""
 
 #: templates/mobile_up_now.html:930
-#, fuzzy
 msgid "Alt Now"
-msgstr "現在放送中"
+msgstr ""
 
 #: templates/mobile_up_now.html:939
 msgid "Alt Max"
-msgstr "アルトマックス"
+msgstr ""
 
 #: templates/mobile_up_now.html:984
-#, fuzzy
 msgid "or type name..."
-msgstr "名前でフィルター..."
+msgstr ""
 
 #: templates/mobile_up_now.html:991
 msgid "Apply"
-msgstr "応募する"
+msgstr ""
 
 #: templates/mobile_up_now.html:1000
 msgid "No objects found. Try adding one!"
-msgstr "オブジェクトが見つかりません。追加してみてください！"
+msgstr ""
 
 #: templates/mobile_up_now.html:1001
 msgid "No objects match your search."
-msgstr "該当するオブジェクトはありません。"
+msgstr ""
 
 #: templates/mobile_up_now.html:1002
 msgid "No objects match your filter."
-msgstr "フィルターに一致するオブジェクトはありません。"
+msgstr ""
 
 #: templates/mobile_up_now.html:1003
 #, python-format
 msgid "Calculated %%(count)d of %%(total)d objects..."
-msgstr "%%(total)d個中%%(count)d個のオブジェクトを計算済み..."
+msgstr ""
 
 #: templates/mobile_up_now.html:1004
 msgid "Error loading data."
-msgstr "データを読み込めませんでした。"
+msgstr ""
 
 #: templates/project_report.html:799
 msgid "Target:"
-msgstr "ターゲット:"
+msgstr ""
 
 #: templates/project_report.html:799
 msgid "Various"
-msgstr "様々な"
+msgstr ""
 
 #: templates/project_report.html:809
 msgid "Total Sessions"
-msgstr "総セッション数"
+msgstr ""
 
 #: templates/project_report.html:816
 msgid "Date Range"
-msgstr "日付範囲"
+msgstr ""
 
 #: templates/project_report.html:822
 msgid "Final Result"
-msgstr "最終結果"
+msgstr ""
 
 #: templates/project_report.html:828
 msgid "Goals"
-msgstr "目標"
+msgstr ""
 
 #: templates/project_report.html:835
 msgid "Project Story"
-msgstr "プロジェクトストーリー"
+msgstr ""
 
 #: templates/project_report.html:842
 msgid "Framing & Composition"
-msgstr "構図と構成"
+msgstr ""
 
 #: templates/project_report.html:849
 msgid "Processing Workflow"
-msgstr "処理ワークフロー"
+msgstr ""
 
 #: templates/project_report.html:855
 msgid "Session Chronicles"
-msgstr "セッション・クロニクルズ"
+msgstr ""
 
 #: templates/project_report.html:863
 msgid "Log Data"
-msgstr "ログデータ"
+msgstr ""
 
 #: templates/project_report.html:864
 msgid "Configuration & Notes"
-msgstr "設定と注意事項"
+msgstr ""
 
 #: templates/project_report.html:913 templates/project_report.html:922
 msgid "Frames"
-msgstr "フレーム"
+msgstr ""
 
 #: templates/project_report.html:940 templates/project_report.html:957
 msgid "Flips"
-msgstr "フリップ"
+msgstr ""
 
 #: templates/project_report.html:990
 msgid "Guide Pulse"
-msgstr "ガイドパルス"
+msgstr ""
 
 #: templates/project_report.html:1004
 msgid "Focus Pos"
-msgstr "フォーカス位置"
+msgstr ""
 
 #: templates/project_report.html:1005 templates/project_report.html:1141
 msgid "Temp"
-msgstr "天気"
+msgstr ""
 
 #: templates/project_report.html:1022
 msgid "V-Curves"
-msgstr "Vカーブ"
+msgstr ""
 
 #: templates/project_report.html:1033
 msgid "Dither Settle"
-msgstr "ディザ・セトル"
+msgstr ""
 
 #: templates/project_report.html:1044
 msgid "Autocenter"
-msgstr "オートセンター"
+msgstr ""
 
 #: templates/project_report.html:1057
 msgid "Session:"
-msgstr "セッション:"
+msgstr ""
 
 #: templates/project_report.html:1058
 msgid "Location not specified"
-msgstr "場所が指定されていません"
+msgstr ""
 
 #: templates/project_report.html:1071
 msgid "Integration:"
-msgstr "統合："
+msgstr ""
 
 #: templates/project_report.html:1081
 msgid "Statistics"
-msgstr "統計"
+msgstr ""
 
 #: templates/project_report.html:1115
 msgid "Equipment"
-msgstr "設備"
+msgstr ""
 
 #: templates/project_report.html:1137
 msgid "Gain/Offset"
-msgstr "ゲイン/オフセット"
+msgstr ""
 
 #: templates/project_report.html:1153
 msgid "Exp"
-msgstr "実験"
-
-#~ msgid ""
-#~ "Go to %(strong_start)sConfiguration &gt; "
-#~ "Manage Objects%(strong_end)s to add "
-#~ "\"Inspiration Content\" (Image URLs, Credits,"
-#~ " Descriptions) to your targets."
-#~ msgstr ""
-#~ "%(strong_start)s設定 > "
-#~ "オブジェクト管理%(strong_end)sにアクセスして、ターゲットに「インスピレーションコンテンツ」（画像URL、クレジット、説明文）を追加してください。"
-
-#~ msgid "Add own inspiration"
-#~ msgstr "自分のインスピレーションを追加"
-
-#~ msgid "See automated survey images"
-#~ msgstr "自動調査画像を見る"
-
-#~ msgid "Display own astrophotos"
-#~ msgstr "自分の天体写真を表示する"
-
-#~ msgid "Go to config to manage objects"
-#~ msgstr "設定に移動してオブジェクトを管理"
-
-#~ msgid "{editor}: Editing failed"
-#~ msgstr "{editor}: 編集に失敗しました"
-
-#~ msgid "{editor}: Editing failed: {e}"
-#~ msgstr "{editor}: 編集に失敗しました: {e}"
-
-#~ msgid "Aborted!"
-#~ msgstr "輸入品"
-
-#~ msgid "(Deprecated) {text}"
-#~ msgstr "(非推奨) {text}"
-
-#~ msgid "Options"
-#~ msgstr "(任意)"
-
-#~ msgid "Got unexpected extra argument ({args})"
-#~ msgid_plural "Got unexpected extra arguments ({args})"
-#~ msgstr[0] ""
-
-#~ msgid "DeprecationWarning: The command {name!r} is deprecated."
-#~ msgstr "非推奨警告: コマンド {name!r} は非推奨です。"
-
-#~ msgid "Commands"
-#~ msgstr "コメント:"
-
-#~ msgid "Missing command."
-#~ msgstr "コマンドが見つかりません。"
-
-#~ msgid "No such command {name!r}."
-#~ msgstr "No such command {name!r}."
-
-#~ msgid "Value must be an iterable."
-#~ msgstr "値は反復可能でなければなりません。"
-
-#~ msgid "Takes {nargs} values but 1 was given."
-#~ msgid_plural "Takes {nargs} values but {len} were given."
-#~ msgstr[0] ""
-
-#~ msgid "env var: {var}"
-#~ msgstr "env var: {var}"
-
-#~ msgid "(dynamic)"
-#~ msgstr "(動的)"
-
-#~ msgid "default: {default}"
-#~ msgstr "デフォルト: {default}"
-
-#~ msgid "required"
-#~ msgstr "ラベルが必要です"
-
-#~ msgid "%(prog)s, version %(version)s"
-#~ msgstr "%(prog)s、バージョン %(version)s"
-
-#~ msgid "Show the version and exit."
-#~ msgstr "バージョンを表示して終了する。"
-
-#~ msgid "Show this message and exit."
-#~ msgstr "このメッセージを表示して終了します。"
-
-#~ msgid "Error: {message}"
-#~ msgstr "エラー: {message}"
-
-#~ msgid "Try '{command} {option}' for help."
-#~ msgstr "ヘルプについては '{command} {option}' を試してください。"
-
-#~ msgid "Invalid value: {message}"
-#~ msgstr "無効な値: {message}"
-
-#~ msgid "Invalid value for {param_hint}: {message}"
-#~ msgstr "{param_hint} の値が無効です: {message}"
-
-#~ msgid "Missing argument"
-#~ msgstr "引数が不足しています"
-
-#~ msgid "Missing option"
-#~ msgstr "構図と構成"
-
-#~ msgid "Missing parameter"
-#~ msgstr "最低4文字"
-
-#~ msgid "Missing {param_type}"
-#~ msgstr "{param_type} が不足しています"
-
-#~ msgid "Missing parameter: {param_name}"
-#~ msgstr "パラメータ {param_name} が不足しています"
-
-#~ msgid "No such option: {name}"
-#~ msgstr "No such option: {name}"
-
-#~ msgid "Did you mean {possibility}?"
-#~ msgid_plural "(Possible options: {possibilities})"
-#~ msgstr[0] ""
-
-#~ msgid "unknown error"
-#~ msgstr "不明なエラー"
-
-#~ msgid "Could not open file {filename!r}: {message}"
-#~ msgstr "ファイル {filename!r} を開けません: {message}"
-
-#~ msgid "Argument {name!r} takes {nargs} values."
-#~ msgstr "引数 {name!r} は {nargs} 個の値を取ります。"
-
-#~ msgid "Option {name!r} does not take a value."
-#~ msgstr "Option {name!r} does not take a value."
-
-#~ msgid "Option {name!r} requires an argument."
-#~ msgid_plural "Option {name!r} requires {nargs} arguments."
-#~ msgstr[0] ""
-
-#~ msgid "Shell completion is not supported for Bash versions older than 4.4."
-#~ msgstr "シェル補完は、バージョン4.4より古いBashではサポートされていません。"
-
-#~ msgid "Couldn't detect Bash version, shell completion is not supported."
-#~ msgstr "Bashのバージョンを検出できませんでした。シェル補完はサポートされていません。"
-
-#~ msgid "Repeat for confirmation"
-#~ msgstr "場所の設定"
-
-#~ msgid "Error: The value you entered was invalid."
-#~ msgstr "エラー：入力した値が無効です。"
-
-#~ msgid "Error: {e.message}"
-#~ msgstr "エラー: {e.message}"
-
-#~ msgid "Error: The two entered values do not match."
-#~ msgstr "エラー：入力された2つの値が一致しません。"
-
-#~ msgid "Error: invalid input"
-#~ msgstr "SSO エラー: 無効なログイン トークンです。"
-
-#~ msgid "Press any key to continue..."
-#~ msgstr "任意のキーを押して続行してください..."
-
-#~ msgid ""
-#~ "Choose from:\n"
-#~ "\t{choices}"
-#~ msgstr "以下の選択肢から選択してください：{choices}"
-
-#~ msgid "{value!r} is not {choice}."
-#~ msgid_plural "{value!r} is not one of {choices}."
-#~ msgstr[0] ""
-
-#~ msgid "{value!r} does not match the format {format}."
-#~ msgid_plural "{value!r} does not match the formats {formats}."
-#~ msgstr[0] ""
-
-#~ msgid "{value!r} is not a valid {number_type}."
-#~ msgstr "{value!r} is not a valid {number_type}."
-
-#~ msgid "{value} is not in the range {range}."
-#~ msgstr "{value} is not in the range {range}."
-
-#~ msgid "{value!r} is not a valid boolean."
-#~ msgstr "{value!r} is not a valid boolean."
-
-#~ msgid "{value!r} is not a valid UUID."
-#~ msgstr "{value!r} is not a valid UUID."
-
-#~ msgid "file"
-#~ msgstr "フィルター"
-
-#~ msgid "directory"
-#~ msgstr "プロジェクトストーリー"
-
-#~ msgid "path"
-#~ msgstr "更新"
-
-#~ msgid "{name} {filename!r} does not exist."
-#~ msgstr "{name} {filename!r} は存在しません。"
-
-#~ msgid "{name} {filename!r} is a file."
-#~ msgstr "{name} {filename!r} はファイルです。"
-
-#~ msgid "{name} {filename!r} is a directory."
-#~ msgstr "{name} {filename!r} はディレクトリです。"
-
-#~ msgid "{name} {filename!r} is not readable."
-#~ msgstr "{name} {filename!r} は読み取れません。"
-
-#~ msgid "{name} {filename!r} is not writable."
-#~ msgstr "{name} {filename!r} は書き込み不可です。"
-
-#~ msgid "{name} {filename!r} is not executable."
-#~ msgstr "{name} {filename!r} は実行ファイルではありません。"
-
-#~ msgid "{len_type} values are required, but {len_value} was given."
-#~ msgid_plural "{len_type} values are required, but {len_value} were given."
-#~ msgstr[0] ""
-
-#~ msgid "This field is required."
-#~ msgstr "この項目は必須です。"
-
-#~ msgid "File does not have an approved extension: {extensions}"
-#~ msgstr "承認された拡張子を持っていません: {extensions}"
-
-#~ msgid "File does not have an approved extension."
-#~ msgstr "承認された拡張子を持っていません"
-
-#~ msgid "Invalid field name '%s'."
-#~ msgstr "Invalid field name '%s'."
-
-#~ msgid "Field must be equal to %(other_name)s."
-#~ msgstr "Field must be equal to %(other_name)s."
-
-#~ msgid "Field must be at least %(min)d character long."
-#~ msgid_plural "Field must be at least %(min)d characters long."
-#~ msgstr[0] ""
-
-#~ msgid "Field cannot be longer than %(max)d character."
-#~ msgid_plural "Field cannot be longer than %(max)d characters."
-#~ msgstr[0] ""
-
-#~ msgid "Field must be exactly %(max)d character long."
-#~ msgid_plural "Field must be exactly %(max)d characters long."
-#~ msgstr[0] ""
-
-#~ msgid "Field must be between %(min)d and %(max)d characters long."
-#~ msgstr "Field must be between %(min)d and %(max)d characters long."
-
-#~ msgid "Number must be at least %(min)s."
-#~ msgstr "Number must be at least %(min)s."
-
-#~ msgid "Number must be at most %(max)s."
-#~ msgstr "数値は最大%(max)sでなければなりません。"
-
-#~ msgid "Number must be between %(min)s and %(max)s."
-#~ msgstr "数値は %(min)s と %(max)s の間でなければなりません。"
-
-#~ msgid "Invalid input."
-#~ msgstr "無効な入力です。"
-
-#~ msgid "Invalid email address."
-#~ msgstr "無効なメールアドレスです。"
-
-#~ msgid "Invalid IP address."
-#~ msgstr "無効なIPアドレスです。"
-
-#~ msgid "Invalid Mac address."
-#~ msgstr "無効なMACアドレスです。"
-
-#~ msgid "Invalid URL."
-#~ msgstr "無効な日付形式です。"
-
-#~ msgid "Invalid UUID."
-#~ msgstr "無効な日付形式です。"
-
-#~ msgid "Invalid value, must be one of: %(values)s."
-#~ msgstr "無効な値です。次のいずれかでなければなりません: %(values)s。"
-
-#~ msgid "Invalid value, can't be any of: %(values)s."
-#~ msgstr "無効な値です。以下のいずれかである必要があります: %(values)s。"
-
-#~ msgid "This field cannot be edited."
-#~ msgstr "パスワードは空欄にできません。"
-
-#~ msgid "This field is disabled and cannot have a value."
-#~ msgstr "このフィールドは無効化されており、値を設定できません。"
-
-#~ msgid "Invalid CSRF Token."
-#~ msgstr "SSO エラー: 無効なログイン トークンです。"
-
-#~ msgid "CSRF token missing."
-#~ msgstr "CSRFトークンが欠落しています。"
-
-#~ msgid "CSRF failed."
-#~ msgstr "CSRFが失敗しました。"
-
-#~ msgid "CSRF token expired."
-#~ msgstr "CSRFトークンが期限切れです。"
-
-#~ msgid "Invalid Choice: could not coerce."
-#~ msgstr "無効な選択: 型変換できませんでした。"
-
-#~ msgid "Choices cannot be None."
-#~ msgstr "選択肢は「なし」にできません。"
-
-#~ msgid "Not a valid choice."
-#~ msgstr "無効な選択です。"
-
-#~ msgid "Invalid choice(s): one or more data inputs could not be coerced."
-#~ msgstr "無効な選択: 1つ以上のデータ入力が強制変換できませんでした。"
-
-#~ msgid "'%(value)s' is not a valid choice for this field."
-#~ msgid_plural "'%(value)s' are not valid choices for this field."
-#~ msgstr[0] ""
-
-#~ msgid "Not a valid datetime value."
-#~ msgstr "有効な日付時刻値ではありません。"
-
-#~ msgid "Not a valid date value."
-#~ msgstr "無効な日付形式です。"
-
-#~ msgid "Not a valid time value."
-#~ msgstr "無効な時刻値です。"
-
-#~ msgid "Not a valid week value."
-#~ msgstr "有効な週の値ではありません。"
-
-#~ msgid "Not a valid integer value."
-#~ msgstr "有効な整数値ではありません。"
-
-#~ msgid "Not a valid decimal value."
-#~ msgstr "有効な10進数値ではありません。"
-
-#~ msgid "Not a valid float value."
-#~ msgstr "有効な浮動小数点値ではありません。"
-
-#~ msgid "ASIAIR Autorun Log (.txt/.log)"
-#~ msgstr "ASIAIR オートラン ログ (.txt/.log)"
-
-#~ msgid "PHD2 Guide Log (.txt/.log)"
-#~ msgstr "PHD2 ガイドログ (.txt/.log)"
-
-#~ msgid "Nova Pocket"
-#~ msgstr "Nova Pocket"
-
-#~ msgid "Search by name (e.g., M42 or Orion)..."
-#~ msgstr "名前で検索（例：M42 または オリオン座）..."
-
-#~ msgid "No objects found."
-#~ msgstr "オブジェクトが見つかりませんでした。"
-
-#~ msgid "Not visible"
-#~ msgstr "表示されない"
-
-#~ msgid "Altitude:"
-#~ msgstr "高度:"
-
-#~ msgid "Azimuth:"
-#~ msgstr "方位角："
-
-#~ msgid "← Back to Dashboard"
-#~ msgstr "← ダッシュボードに戻る"
-
-#~ msgid "Graph Date"
-#~ msgstr "グラフ日付"
-
-#~ msgid "Moon Sep."
-#~ msgstr "月 九月"
-
-#~ msgid "ASTR. DUSK / DAWN"
-#~ msgstr "ASTR. 夕暮れ／夜明け"
-
-#~ msgid "Chart"
-#~ msgstr "チャート"
-
-#~ msgid "Notes & Framing"
-#~ msgstr "注記と枠組み"
-
-#~ msgid "Loading Chart"
-#~ msgstr "チャートを読み込み中"
-
-#~ msgid "Day View"
-#~ msgstr "デイビュー"
-
-#~ msgid "Month View"
-#~ msgstr "月表示"
-
-#~ msgid "Year View"
-#~ msgstr "年次ビュー"
-
-#~ msgid "How objects are ranked"
-#~ msgstr "オブジェクトのランク付け方法"
-
-#~ msgid "Rig Data"
-#~ msgstr "リグデータ"
-
-#~ msgid "Show Framing"
-#~ msgstr "フレーム表示"
-
-#~ msgid "Open in Stellarium"
-#~ msgstr "Stellariumで開く"
-
-#~ msgid "Edit Object to Add Content"
-#~ msgstr "オブジェクトを編集してコンテンツを追加する"
-
-#~ msgid "Inspiration Image for"
-#~ msgstr "インスピレーション画像"
-
-#~ msgid "External Source"
-#~ msgstr "外部ソース"
-
-#~ msgid ""
-#~ "No inspiration content (custom image or"
-#~ " description) has been added for this"
-#~ " object yet."
-#~ msgstr "このオブジェクトには、まだインスピレーションコンテンツ（カスタム画像または説明文）が追加されていません。"
-
-#~ msgid "Go to <strong>Configuration > Manage Objects</strong> to add one."
-#~ msgstr "<strong>設定 > オブジェクトの管理</strong> に移動して追加してください。"
-
-#~ msgid "Framing With Your Rigs"
-#~ msgstr "リグを用いたフレーミング"
-
-#~ msgid ""
-#~ "Assessment is based on the object's "
-#~ "largest dimension and may not reflect"
-#~ " framing of specific features."
-#~ msgstr "評価は対象物の最大寸法に基づいており、特定の特徴の枠組みを反映していない場合があります。"
-
-#~ msgid "Rig Name"
-#~ msgstr "リグ名"
-
-#~ msgid "Rig FOV"
-#~ msgstr "広い視野角"
-
-#~ msgid "Object Size"
-#~ msgstr "オブジェクトサイズ"
-
-#~ msgid "Fit Assessment"
-#~ msgstr "フィット評価"
-
-#~ msgid "Mosaic Required"
-#~ msgstr "モザイク必須"
-
-#~ msgid "Fits with Rotation"
-#~ msgstr "回転に適合する"
-
-#~ msgid "Small Target"
-#~ msgstr "小さな標的"
-
-#~ msgid "Wide Field"
-#~ msgstr "広視野"
-
-#~ msgid "Good Fit"
-#~ msgstr "ぴったり"
-
-#~ msgid "Framing Assistant"
-#~ msgstr "フレーミングアシスタント"
-
-#~ msgid "Help with Framing"
-#~ msgstr "額装のサポート"
-
-#~ msgid "Lock FOV"
-#~ msgstr "ロックFOV"
-
-#~ msgid ""
-#~ "Displays the approximate location of "
-#~ "geostationary satellites (corrected for your"
-#~ " latitude)"
-#~ msgstr "静止衛星のおおよその位置を表示します（緯度に応じて補正済み）"
-
-#~ msgid "Geo Belt"
-#~ msgstr "ジオベルト"
-
-#~ msgid "Flip 90°"
-#~ msgstr "90°回転"
-
-#~ msgid "Copy framing URL"
-#~ msgstr "URLのコピー"
-
-#~ msgid "Save Framing"
-#~ msgstr "フレーム保存"
-
-#~ msgid "No rigs configured"
-#~ msgstr "構成済みのリグはありません"
-
-#~ msgid "Position Angle (0°=North, 90°=East)"
-#~ msgstr "方位角（0°=北、90°=東）"
-
-#~ msgid "Rotation (PA)"
-#~ msgstr "回転（PA）"
-
-#~ msgid "Mosaic (Col x Row)"
-#~ msgstr "モザイク（列 x 行）"
-
-#~ msgid "Columns"
-#~ msgstr "コラム"
-
-#~ msgid "Rows"
-#~ msgstr "行"
-
-#~ msgid "Overlap %%"
-#~ msgstr "オーバーラップ %%"
-
-#~ msgid ""
-#~ "Generates a CSV format compatible with"
-#~ " ASIAIR (Plan Import), N.I.N.A., and "
-#~ "Telescopius."
-#~ msgstr "ASIAIR（天体計画インポート）、N.I.N.A.、およびTelescopiusと互換性のあるCSV形式を生成します。"
-
-#~ msgid "Copy Plan (CSV)"
-#~ msgstr "コピー計画 (CSV)"
-
-#~ msgid "Survey"
-#~ msgstr "調査"
-
-#~ msgid "Blend with"
-#~ msgstr "ブレンドする"
-
-#~ msgid "Blend opacity"
-#~ msgstr "ブレンドする"
-
-#~ msgid "Brightness"
-#~ msgstr "明るさ"
-
-#~ msgid "Contrast"
-#~ msgstr "対比"
-
-#~ msgid "Gamma"
-#~ msgstr "ガンマ"
-
-#~ msgid "Saturation"
-#~ msgstr "飽和"
-
-#~ msgid ""
-#~ "Coordinates are JNow (Real Time / "
-#~ "Mean Equinox of Date) to match "
-#~ "your mount."
-#~ msgstr "座標はJNow（リアルタイム／日付の平均春分点）で、お使いの架台に合わせます。"
-
-#~ msgid "Copy"
-#~ msgstr "コピー"
-
-#~ msgid "Tip: Click on the sky to move the FOV center."
-#~ msgstr "ヒント：空をクリックすると視野の中心を移動できます。"
-
-#~ msgid "Recenter to object"
-#~ msgstr "オブジェクトに近づく"
-
-#~ msgid "Nudge Up"
-#~ msgstr "押し上げる"
-
-#~ msgid "Nudge Left"
-#~ msgstr "左に少しずらす"
-
-#~ msgid "Nudge Right"
-#~ msgstr "右に軽く押す"
-
-#~ msgid "Nudge Down"
-#~ msgstr "押し下げる"
-
-#~ msgid "steps"
-#~ msgstr "ステップ"
-
-#~ msgid "Ask Nova for observing notes"
-#~ msgstr "Ask Nova for observing notes"
-
-#~ msgid "Consulting the star charts..."
-#~ msgstr "星図を見ながら..."
-
-#~ msgid "Scanning the cosmos..."
-#~ msgstr "空をスキャン中..."
-
-#~ msgid "Calculating from"
-#~ msgstr "読み込み中..."
-
-#~ msgid "your location"
-#~ msgstr "場所"
-
-#~ msgid "Nova has notes ready. What would you like to do?"
-#~ msgstr "Nova has notes ready. What would you like to do?"
-
-#~ msgid "Nova couldn't load notes"
-#~ msgstr "Nova couldn't load notes"
+msgstr ""
 

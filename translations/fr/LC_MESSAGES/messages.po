@@ -7,369 +7,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-24 11:24+0800\n"
+"POT-Creation-Date: 2026-04-19 10:47+0200\n"
 "PO-Revision-Date: 2026-03-06 10:45+0800\n"
 "Last-Translator: \n"
-"Language-Team: fr <LL@li.org>\n"
 "Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "Generated-By: Babel 2.18.0\n"
-
-#: nova/__init__.py:3690
-msgid "No file uploaded"
-msgstr "Aucun fichier téléchargé"
-
-#: nova/__init__.py:3694
-msgid "Empty filename"
-msgstr "Nom de fichier vide"
-
-#: nova/__init__.py:3737 nova/__init__.py:4107
-msgid "User not found"
-msgstr "Utilisateur non trouvé"
-
-#: nova/__init__.py:3741
-msgid "Session not found"
-msgstr "Session non trouvée"
-
-#: nova/__init__.py:3806
-msgid "Object data not found or invalid."
-msgstr "Données d'objet non trouvées ou invalides."
-
-#: nova/__init__.py:3810
-msgid "RA/DEC missing for object."
-msgstr "RA/DEC manquant pour l'objet."
-
-#: nova/__init__.py:3815
-msgid "Invalid RA/DEC format for object."
-msgstr "Format RA/DEC invalide pour l'objet."
-
-#: nova/__init__.py:3969
-msgid "Could not generate time series for plot."
-msgstr "Impossible de générer la série temporelle pour le graphique."
-
-#: nova/__init__.py:4071
-msgid "Location not configured"
-msgstr "Emplacement non configuré"
-
-#: nova/__init__.py:5684
-#, python-format
-msgid "Error: Unknown component type '%(component_type)s'."
-msgstr "Erreur : type de composant inconnu « %(component_type)s »."
-
-#: nova/__init__.py:5705
-#, python-format
-msgid "Component '%(component_name)s' added successfully."
-msgstr "Composant « %(component_name)s » ajouté avec succès."
-
-#: nova/__init__.py:5708
-#, python-format
-msgid "Error adding component: %(error)s"
-msgstr "Erreur lors de l'ajout du composant : %(error)s"
-
-#: nova/__init__.py:5723
-msgid "Authorization error."
-msgstr "Erreur d'autorisation."
-
-#: nova/__init__.py:5745
-#, python-format
-msgid "Component '%(component_name)s' updated successfully."
-msgstr "Composant « %(component_name)s » mis à jour avec succès."
-
-#: nova/__init__.py:5748
-#, python-format
-msgid "Error updating component: %(error)s"
-msgstr "Erreur lors de la mise à jour du composant : %(error)s"
-
-#: nova/__init__.py:5791
-#, python-format
-msgid "Rig '%(rig_name)s' updated successfully."
-msgstr "Plateforme « %(rig_name)s » mise à jour avec succès."
-
-#: nova/__init__.py:5803
-#, python-format
-msgid "Rig '%(rig_name)s' created successfully."
-msgstr "Plateforme « %(rig_name)s » créée avec succès."
-
-#: nova/__init__.py:5822
-#, python-format
-msgid "Error saving rig: %(error)s"
-msgstr "Erreur lors de l'enregistrement du rig : %(error)s"
-
-#: nova/__init__.py:5839
-msgid "Cannot delete component: It is used in at least one rig."
-msgstr ""
-"Impossible de supprimer le composant : il est utilisé dans au moins un rig."
-
-#: nova/__init__.py:5844
-msgid "Component deleted successfully."
-msgstr "Composant supprimé avec succès."
-
-#: nova/__init__.py:5847
-#, python-format
-msgid "Error deleting component: %(error)s"
-msgstr "Erreur lors de la suppression du composant : %(error)s"
-
-#: nova/__init__.py:5859
-msgid "Rig deleted successfully."
-msgstr "Plateforme supprimée avec succès."
-
-#: nova/__init__.py:5862
-#, python-format
-msgid "Error deleting rig: %(error)s"
-msgstr "Erreur lors de la suppression de la plate-forme : %(error)s"
-
-#: nova/__init__.py:6127 nova/__init__.py:6217 nova/__init__.py:8113
-#: nova/__init__.py:9423 nova/__init__.py:9442 nova/__init__.py:9461
-#: nova/blueprints/mobile.py:104 nova/blueprints/mobile.py:506
-msgid "User not found."
-msgstr "Utilisateur introuvable."
-
-#: nova/__init__.py:6204
-#, python-format
-msgid "Error generating config file: %(error)s"
-msgstr "Erreur lors de la génération du fichier de configuration : %(error)s"
-
-#: nova/__init__.py:6323
-#, python-format
-msgid "Error generating journal file: %(error)s"
-msgstr "Erreur lors de la génération du fichier journal : %(error)s"
-
-#: nova/__init__.py:6354 nova/__init__.py:6359
-msgid "No file selected for journal import."
-msgstr "Aucun fichier sélectionné pour l'importation du journal."
-
-#: nova/__init__.py:6373
-#, python-format
-msgid "Invalid journal file structure: %(message)s"
-msgstr "Structure du fichier journal invalide : %(message)s"
-
-#: nova/__init__.py:6397
-msgid "Journal imported successfully! (Previous journal data was replaced)"
-msgstr ""
-"Journal importé avec succès ! (Les données précédentes du journal ont été "
-"remplacées)"
-
-#: nova/__init__.py:6409
-#, python-format
-msgid "Import failed: Invalid YAML format in the journal file. %(error)s"
-msgstr ""
-"Échec de l'importation : format YAML non valide dans le fichier journal. "
-"%(error)s"
-
-#: nova/__init__.py:6417 nova/__init__.py:6548
-#, python-format
-msgid "Import failed: %(error)s"
-msgstr "Échec de l'importation : %(error)s"
-
-#: nova/__init__.py:6420
-msgid "Invalid file type. Please upload a .yaml journal file."
-msgstr ""
-"Type de fichier non valide. Veuillez télécharger un fichier journal .yaml."
-
-#: nova/__init__.py:6432
-msgid "Authentication error during import."
-msgstr "Erreur d'authentification lors de l'importation."
-
-#: nova/__init__.py:6437 nova/__init__.py:6442
-msgid "No file selected for import."
-msgstr "Aucun fichier sélectionné pour l'importation."
-
-#: nova/__init__.py:6464
-msgid "Cannot import: Configuration must contain at least one location."
-msgstr ""
-"Impossible d'importer : la configuration doit contenir au moins un "
-"emplacement."
-
-#: nova/__init__.py:6472
-msgid ""
-"Cannot import: Configuration must contain at least one active location."
-msgstr ""
-"Impossible d'importer : la configuration doit contenir au moins un "
-"emplacement actif."
-
-#: nova/__init__.py:6503
-msgid "Config imported successfully! (Previous config was replaced)"
-msgstr ""
-"Configuration importée avec succès ! (La configuration précédente a été "
-"remplacée)"
-
-#: nova/__init__.py:6545
-#, python-format
-msgid "Import failed: Invalid YAML. (%(error)s)"
-msgstr "Échec de l'importation : YAML non valide. (%(error)s)"
-
-#: nova/__init__.py:6570
-msgid "Authentication error during catalog import."
-msgstr "Erreur d'authentification lors de l'importation du catalogue."
-
-#: nova/__init__.py:6580
-msgid "Catalog pack not found or invalid."
-msgstr "Pack catalogue introuvable ou invalide."
-
-#: nova/__init__.py:6592
-msgid "Catalog import failed due to an internal error."
-msgstr "L'importation du catalogue a échoué en raison d'une erreur interne."
-
-#: nova/__init__.py:6783
-msgid "Object not found"
-msgstr "Objet non trouvé"
-
-#: nova/__init__.py:7232
-#, python-format
-msgid "<p>Error reading help file: %(error)s</p>"
-msgstr "<p>Erreur lors de la lecture du fichier d'aide : %(error)s</p>"
-
-#: nova/__init__.py:8202
-#, python-format
-msgid "Error generating rig config: %(error)s"
-msgstr "Erreur lors de la génération de la configuration du rig : %(error)s"
-
-#: nova/__init__.py:8222
-msgid "No journal photos found to download."
-msgstr "Aucune photo du journal n'a été trouvée à télécharger."
-
-#: nova/__init__.py:8267
-msgid "No file selected for photo import."
-msgstr "Aucun fichier sélectionné pour l'importation de photos."
-
-#: nova/__init__.py:8272
-msgid "Please select a valid .zip file to import."
-msgstr "Veuillez sélectionner un fichier .zip valide à importer."
-
-#: nova/__init__.py:8285
-msgid "Import failed: The uploaded file is not a valid ZIP archive."
-msgstr ""
-"Échec de l'importation : le fichier téléchargé n'est pas une archive ZIP "
-"valide."
-
-#: nova/__init__.py:8319
-#, python-format
-msgid "Journal photos imported successfully! Extracted %(count)d files."
-msgstr ""
-"Les photos du journal ont été importées avec succès ! %(count)d fichiers "
-"extraits."
-
-#: nova/__init__.py:8322
-msgid "Import failed: The ZIP file appears to be corrupted."
-msgstr "Échec de l'importation : le fichier ZIP semble être corrompu."
-
-#: nova/__init__.py:8324
-#, python-format
-msgid "An unexpected error occurred during import: %(error)s"
-msgstr ""
-"Une erreur inattendue s'est produite pendant l'importation : %(error)s"
-
-#: nova/__init__.py:8427 nova/__init__.py:8432
-msgid "No file selected for rigs import."
-msgstr "Aucun fichier sélectionné pour l'importation des plates-formes."
-
-#: nova/__init__.py:8462
-msgid "Rigs configuration imported and synced to database successfully!"
-msgstr ""
-"Configuration des plates-formes importée et synchronisée avec succès dans la"
-" base de données !"
-
-#: nova/__init__.py:8470
-#, python-format
-msgid "Error importing rigs file: %(error)s"
-msgstr "Erreur lors de l'importation du fichier de plates-formes : %(error)s"
-
-#: nova/__init__.py:8473
-msgid "Invalid file type. Please upload a .yaml or .yml file."
-msgstr ""
-"Type de fichier non valide. Veuillez télécharger un fichier .yaml ou .yml."
-
-#: nova/__init__.py:9287
-msgid "Not authorized to export another user's data."
-msgstr "Non autorisé à exporter les données d'un autre utilisateur."
-
-#: nova/__init__.py:9291
-msgid "Export failed (no such user or empty data)."
-msgstr "Échec de l'exportation (utilisateur inexistant ou données vides)."
-
-#: nova/__init__.py:9320
-msgid "Username is required in multi-user mode."
-msgstr "Le nom d'utilisateur est obligatoire en mode multi-utilisateurs."
-
-#: nova/__init__.py:9325
-msgid "Not authorized to import for another user."
-msgstr "Non autorisé à importer pour un autre utilisateur."
-
-#: nova/__init__.py:9333
-msgid "Please provide config, rigs, and journal YAML files."
-msgstr ""
-"Veuillez fournir les fichiers YAML de configuration, de rigs et de journal."
-
-#: nova/__init__.py:9353
-msgid "Import completed successfully!"
-msgstr "Importation terminée avec succès !"
-
-#: nova/__init__.py:9355
-msgid "Import failed. See server logs for details."
-msgstr ""
-"Importation échouée. Consultez les journaux du serveur pour plus de détails."
-
-#: nova/__init__.py:9358
-msgid "Import crashed. Check logs."
-msgstr "Importation échouée. Vérifiez les journaux."
-
-#: nova/__init__.py:9365 nova/__init__.py:9389 nova/__init__.py:9398
-#: nova/__init__.py:9419 nova/__init__.py:9438 nova/__init__.py:9457
-msgid "Not authorized."
-msgstr "Non autorisé."
-
-#: nova/__init__.py:9369
-msgid "Database repair completed."
-msgstr "Réparation de la base de données terminée."
-
-#: nova/__init__.py:9371
-#, python-format
-msgid "Repair failed: %(error)s"
-msgstr "Échec de la réparation : %(error)s"
-
-#: nova/__init__.py:9403
-msgid "Username and password are required."
-msgstr "Un nom d'utilisateur et un mot de passe sont requis."
-
-#: nova/__init__.py:9406
-#, python-format
-msgid "User '%(username)s' already exists."
-msgstr "L'utilisateur « %(username)s » existe déjà."
-
-#: nova/__init__.py:9412
-#, python-format
-msgid "User '%(username)s' created successfully."
-msgstr "Utilisateur « %(username)s » créé avec succès."
-
-#: nova/__init__.py:9426
-msgid "Cannot deactivate the admin account."
-msgstr "Impossible de désactiver le compte administrateur."
-
-#: nova/__init__.py:9431
-#, python-format
-msgid "User '%(username)s' %(status)s."
-msgstr "Utilisateur « %(username)s » %(status)s."
-
-#: nova/__init__.py:9446
-msgid "Password cannot be empty."
-msgstr "Le mot de passe ne peut pas être vide."
-
-#: nova/__init__.py:9450
-#, python-format
-msgid "Password reset for '%(username)s'."
-msgstr "Réinitialisation du mot de passe pour « %(username)s »."
-
-#: nova/__init__.py:9464
-msgid "Cannot delete the admin account."
-msgstr "Impossible de supprimer le compte administrateur."
-
-#: nova/__init__.py:9469
-#, python-format
-msgid "User '%(username)s' deleted."
-msgstr "Utilisateur « %(username)s » supprimé."
 
 #: nova/log_parser.py:931
 #, fuzzy
@@ -420,82 +67,190 @@ msgstr "Autofocus"
 
 #: nova/log_parser.py:1672
 msgid "Log parsed but no structured data found."
-msgstr ""
-"Le journal a été analysé mais aucune donnée structurée n'a été trouvée."
+msgstr "Le journal a été analysé mais aucune donnée structurée n'a été trouvée."
 
-#: nova/blueprints/core.py:121
+#: nova/blueprints/admin.py:15 nova/blueprints/tools.py:1254
+msgid "Not authorized."
+msgstr "Non autorisé."
+
+#: nova/blueprints/admin.py:50
+msgid "Username and password are required."
+msgstr "Un nom d'utilisateur et un mot de passe sont requis."
+
+#: nova/blueprints/admin.py:53
+#, python-format
+msgid "User '%(username)s' already exists."
+msgstr "L'utilisateur « %(username)s » existe déjà."
+
+#: nova/blueprints/admin.py:59
+#, python-format
+msgid "User '%(username)s' created successfully."
+msgstr "Utilisateur « %(username)s » créé avec succès."
+
+#: nova/blueprints/admin.py:72 nova/blueprints/admin.py:93
+#: nova/blueprints/admin.py:114 nova/blueprints/mobile.py:104
+#: nova/blueprints/mobile.py:506 nova/blueprints/tools.py:399
+#: nova/blueprints/tools.py:491 nova/blueprints/tools.py:855
+msgid "User not found."
+msgstr "Utilisateur introuvable."
+
+#: nova/blueprints/admin.py:75
+msgid "Cannot deactivate the admin account."
+msgstr "Impossible de désactiver le compte administrateur."
+
+#: nova/blueprints/admin.py:80
+#, python-format
+msgid "User '%(username)s' %(status)s."
+msgstr "Utilisateur « %(username)s » %(status)s."
+
+#: nova/blueprints/admin.py:97
+msgid "Password cannot be empty."
+msgstr "Le mot de passe ne peut pas être vide."
+
+#: nova/blueprints/admin.py:101
+#, python-format
+msgid "Password reset for '%(username)s'."
+msgstr "Réinitialisation du mot de passe pour « %(username)s »."
+
+#: nova/blueprints/admin.py:117
+msgid "Cannot delete the admin account."
+msgstr "Impossible de supprimer le compte administrateur."
+
+#: nova/blueprints/admin.py:122
+#, python-format
+msgid "User '%(username)s' deleted."
+msgstr "Utilisateur « %(username)s » supprimé."
+
+#: nova/blueprints/api.py:155
+msgid "Object not found"
+msgstr "Objet non trouvé"
+
+#: nova/blueprints/api.py:421
+#, python-format
+msgid "<p>Error reading help file: %(error)s</p>"
+msgstr "<p>Erreur lors de la lecture du fichier d'aide : %(error)s</p>"
+
+#: nova/blueprints/api.py:1380
+msgid "No file uploaded"
+msgstr "Aucun fichier téléchargé"
+
+#: nova/blueprints/api.py:1384
+msgid "Empty filename"
+msgstr "Nom de fichier vide"
+
+#: nova/blueprints/api.py:1427 nova/blueprints/api.py:2633
+msgid "User not found"
+msgstr "Utilisateur non trouvé"
+
+#: nova/blueprints/api.py:1431
+msgid "Session not found"
+msgstr "Session non trouvée"
+
+#: nova/blueprints/api.py:2331
+msgid "Object data not found or invalid."
+msgstr "Données d'objet non trouvées ou invalides."
+
+#: nova/blueprints/api.py:2335
+msgid "RA/DEC missing for object."
+msgstr "RA/DEC manquant pour l'objet."
+
+#: nova/blueprints/api.py:2340
+msgid "Invalid RA/DEC format for object."
+msgstr "Format RA/DEC invalide pour l'objet."
+
+#: nova/blueprints/api.py:2494
+msgid "Could not generate time series for plot."
+msgstr "Impossible de générer la série temporelle pour le graphique."
+
+#: nova/blueprints/api.py:2597
+msgid "Location not configured"
+msgstr "Emplacement non configuré"
+
+#: nova/blueprints/api.py:3483
+msgid "Missing or invalid lat/lon parameters"
+msgstr ""
+
+#: nova/blueprints/api.py:3492
+#, fuzzy
+msgid "Invalid datetime format"
+msgstr "Format de date invalide."
+
+#: nova/blueprints/api.py:3512
+#, fuzzy
+msgid "Calibration star catalog not found"
+msgstr "Stratégie d'étalonnage"
+
+#: nova/blueprints/core.py:120
 msgid "Logged out successfully!"
 msgstr "Déconnexion réussie !"
 
-#: nova/blueprints/core.py:131
+#: nova/blueprints/core.py:130
 #, python-format
 msgid "Language '%(lang)s' is not supported."
 msgstr "La langue « %(lang)s » n'est pas prise en charge."
 
-#: nova/blueprints/core.py:187
+#: nova/blueprints/core.py:186
 msgid "Logged in successfully!"
 msgstr "Connexion réussie !"
 
-#: nova/blueprints/core.py:203
+#: nova/blueprints/core.py:202
 msgid "Invalid username or password."
 msgstr "Nom d'utilisateur ou mot de passe invalide."
 
-#: nova/blueprints/core.py:211
+#: nova/blueprints/core.py:210
 msgid "Single Sign-On is not applicable in single-user mode."
-msgstr ""
-"L'authentification unique n'est pas applicable en mode mono-utilisateur."
+msgstr "L'authentification unique n'est pas applicable en mode mono-utilisateur."
 
-#: nova/blueprints/core.py:219
+#: nova/blueprints/core.py:218
 msgid "SSO Error: No token provided."
 msgstr "Erreur SSO : aucun jeton fourni."
 
-#: nova/blueprints/core.py:225
+#: nova/blueprints/core.py:224
 msgid "SSO Error: SSO is not configured on the server."
 msgstr "Erreur SSO : SSO n'est pas configuré sur le serveur."
 
-#: nova/blueprints/core.py:243
+#: nova/blueprints/core.py:242
 #, python-format
 msgid "Welcome back, %(username)s!"
 msgstr "Bon retour, %(username)s !"
 
-#: nova/blueprints/core.py:246
+#: nova/blueprints/core.py:245
 #, python-format
 msgid "SSO Error: User '%(username)s' not found or is disabled in Nova."
 msgstr ""
 "Erreur SSO : l'utilisateur « %(username)s » est introuvable ou désactivé "
 "dans Nova."
 
-#: nova/blueprints/core.py:250
-msgid ""
-"SSO Error: The login link has expired. Please try again from WordPress."
+#: nova/blueprints/core.py:249
+msgid "SSO Error: The login link has expired. Please try again from WordPress."
 msgstr ""
 "Erreur SSO : le lien de connexion a expiré. Veuillez réessayer depuis "
 "WordPress."
 
-#: nova/blueprints/core.py:253
+#: nova/blueprints/core.py:252
 msgid "SSO Error: Invalid login token."
 msgstr "Erreur SSO : jeton de connexion non valide."
 
-#: nova/blueprints/core.py:459
+#: nova/blueprints/core.py:458
 #, python-format
 msgid "Could not find user '%(username)s' in the database."
 msgstr ""
 "Impossible de trouver l'utilisateur « %(username)s » dans la base de "
 "données."
 
-#: nova/blueprints/core.py:528
+#: nova/blueprints/core.py:532
 msgid "Warning: Horizon Mask was invalid and was ignored."
 msgstr "Avertissement : le masque Horizon était invalide et a été ignoré."
 
-#: nova/blueprints/core.py:550
+#: nova/blueprints/core.py:554
 msgid ""
 "Cannot delete your last location. You must have at least one location "
 "configured."
 msgstr ""
-"Impossible de supprimer votre dernier emplacement. Vous devez avoir au moins"
-" un emplacement configuré."
+"Impossible de supprimer votre dernier emplacement. Vous devez avoir au "
+"moins un emplacement configuré."
 
-#: nova/blueprints/core.py:555
+#: nova/blueprints/core.py:559
 msgid ""
 "Cannot deactivate your only active location. You must keep at least one "
 "active location."
@@ -503,91 +258,89 @@ msgstr ""
 "Vous ne pouvez pas désactiver votre seul emplacement actif. Vous devez "
 "conserver au moins un emplacement actif."
 
-#: nova/blueprints/core.py:591
+#: nova/blueprints/core.py:600
 #, python-format
 msgid "Warning: Horizon Mask for '%(location_name)s' was invalid and ignored."
 msgstr ""
 "Avertissement : le masque Horizon pour « %(location_name)s » n'était pas "
 "valide et a été ignoré."
 
-#: nova/blueprints/core.py:638
+#: nova/blueprints/core.py:646
 #, python-format
 msgid "%(message)s updated successfully."
 msgstr "%(message)s mis à jour avec succès."
 
-#: nova/blueprints/core.py:711
+#: nova/blueprints/core.py:720
 #, python-format
 msgid "A database error occurred: %(error)s"
 msgstr "Une erreur de base de données s'est produite : %(error)s"
 
-#: nova/blueprints/core.py:829
+#: nova/blueprints/core.py:838
 msgid "Label required"
 msgstr "Libellé requis"
 
-#: nova/blueprints/core.py:839
+#: nova/blueprints/core.py:848
 msgid "Filter already exists"
 msgstr "Le filtre existe déjà"
 
-#: nova/blueprints/core.py:856
+#: nova/blueprints/core.py:865
 msgid "Filter not found"
 msgstr "Filtre non trouvé"
 
-#: nova/blueprints/core.py:883 nova/blueprints/core.py:903
+#: nova/blueprints/core.py:892 nova/blueprints/core.py:912
 msgid "No object specified."
 msgstr "Aucun objet spécifié."
 
-#: nova/blueprints/core.py:890 nova/blueprints/core.py:1385
-#: nova/blueprints/core.py:1411 templates/mobile_add_object.html:57
+#: nova/blueprints/core.py:899 nova/blueprints/core.py:1400
+#: nova/blueprints/core.py:1426 templates/mobile_add_object.html:57
 msgid "Object not found."
 msgstr "Objet non trouvé."
 
-#: nova/blueprints/core.py:1168
+#: nova/blueprints/core.py:1177
 msgid "Fetched and saved missing object details."
 msgstr "Récupération et enregistrement des détails des objets manquants."
 
-#: nova/blueprints/core.py:1170
+#: nova/blueprints/core.py:1179
 msgid "No missing data found or no updates needed."
 msgstr "Aucune donnée manquante trouvée ou aucune mise à jour nécessaire."
 
-#: nova/blueprints/core.py:1174
+#: nova/blueprints/core.py:1183
 #, python-format
 msgid "An error occurred during data fetching: %(error)s"
-msgstr ""
-"Une erreur s'est produite lors de la récupération des données : %(error)s"
+msgstr "Une erreur s'est produite lors de la récupération des données : %(error)s"
 
-#: nova/blueprints/core.py:1512
+#: nova/blueprints/core.py:1527
 msgid "Please log in to view object details."
 msgstr "Veuillez vous connecter pour afficher les détails de l'objet."
 
-#: nova/blueprints/core.py:1527
+#: nova/blueprints/core.py:1542
 #, python-format
 msgid "User '%(username)s' not found."
 msgstr "Utilisateur « %(username)s » introuvable."
 
-#: nova/blueprints/core.py:1541
+#: nova/blueprints/core.py:1558
 #, python-format
 msgid "Requested location '%(location_name)s' not found, using default."
 msgstr ""
 "Emplacement demandé « %(location_name)s » introuvable, utilisation de "
 "l'emplacement par défaut."
 
-#: nova/blueprints/core.py:1555
+#: nova/blueprints/core.py:1576
 msgid "Error: No valid location configured or selected for this user."
 msgstr ""
-"Erreur : aucun emplacement valide n'est configuré ou sélectionné pour cet "
-"utilisateur."
+"Erreur : aucun emplacement valide n'est configuré ou sélectionné pour cet"
+" utilisateur."
 
-#: nova/blueprints/core.py:1573
+#: nova/blueprints/core.py:1594
 #, python-format
 msgid "Object '%(object_name)s' not found in your configuration."
 msgstr "Objet « %(object_name)s » introuvable dans votre configuration."
 
-#: nova/blueprints/core.py:1800
+#: nova/blueprints/core.py:1834
 msgid "Invalid date components provided, defaulting to current date."
-msgstr ""
-"Composants de date invalides fournis, valeur par défaut : date actuelle."
+msgstr "Composants de date invalides fournis, valeur par défaut : date actuelle."
 
-#: nova/blueprints/core.py:2004
+#: nova/blueprints/core.py:2041
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
 msgstr ""
@@ -598,97 +351,97 @@ msgstr ""
 msgid "User session error, please log in again."
 msgstr "Erreur de session utilisateur, veuillez vous reconnecter."
 
-#: nova/blueprints/journal.py:111 nova/blueprints/journal.py:372
-#: nova/blueprints/mobile.py:532
+#: nova/blueprints/journal.py:120 nova/blueprints/journal.py:409
+#: nova/blueprints/mobile.py:550
 msgid "Invalid date format."
 msgstr "Format de date invalide."
 
-#: nova/blueprints/journal.py:333 nova/blueprints/mobile.py:685
+#: nova/blueprints/journal.py:350 nova/blueprints/mobile.py:703
 msgid "New journal entry added successfully!"
 msgstr "Nouvelle entrée de journal ajoutée avec succès !"
 
-#: nova/blueprints/journal.py:349
+#: nova/blueprints/journal.py:376
 msgid "To add a new session, please select an object first."
-msgstr ""
-"Pour ajouter une nouvelle session, veuillez d'abord sélectionner un objet."
+msgstr "Pour ajouter une nouvelle session, veuillez d'abord sélectionner un objet."
 
-#: nova/blueprints/journal.py:363
+#: nova/blueprints/journal.py:391
 msgid "Journal entry not found or you do not have permission to edit it."
 msgstr ""
 "Entrée de journal introuvable ou vous n'avez pas l'autorisation de la "
 "modifier."
 
-#: nova/blueprints/journal.py:583
+#: nova/blueprints/journal.py:626
 msgid "NINA log file must be a .log file."
 msgstr "Le fichier journal NINA doit être un fichier .log."
 
-#: nova/blueprints/journal.py:595
+#: nova/blueprints/journal.py:638
 msgid "NINA log file is too large. Maximum size is 10 MB."
 msgstr ""
-"Le fichier journal NINA est trop volumineux. La taille maximale est de 10 "
-"Mo."
+"Le fichier journal NINA est trop volumineux. La taille maximale est de 10"
+" Mo."
 
-#: nova/blueprints/journal.py:604
+#: nova/blueprints/journal.py:647
 #, fuzzy
 msgid "NINA log imported successfully."
 msgstr "Plateforme supprimée avec succès."
 
-#: nova/blueprints/journal.py:635
+#: nova/blueprints/journal.py:677
 msgid "Journal entry updated successfully!"
 msgstr "Entrée du journal mise à jour avec succès !"
 
-#: nova/blueprints/journal.py:644
+#: nova/blueprints/journal.py:700
 msgid "Cannot edit session: associated object name is missing."
 msgstr ""
-"Impossible de modifier la session : le nom de l'objet associé est manquant."
+"Impossible de modifier la session : le nom de l'objet associé est "
+"manquant."
 
-#: nova/blueprints/journal.py:670
+#: nova/blueprints/journal.py:726
 msgid "Project name is required."
 msgstr "Le nom du projet est obligatoire."
 
-#: nova/blueprints/journal.py:676
+#: nova/blueprints/journal.py:732
 #, python-format
 msgid "A project named '%(project_name)s' already exists."
 msgstr "Un projet nommé « %(project_name)s » existe déjà."
 
-#: nova/blueprints/journal.py:703
+#: nova/blueprints/journal.py:759
 #, python-format
 msgid "Project '%(project_name)s' created successfully."
 msgstr "Projet « %(project_name)s » créé avec succès."
 
-#: nova/blueprints/journal.py:719
+#: nova/blueprints/journal.py:775
 #, python-format
 msgid "Error creating project: %(error)s"
 msgstr "Erreur lors de la création du projet : %(error)s"
 
-#: nova/blueprints/journal.py:734
+#: nova/blueprints/journal.py:790
 msgid "Session to duplicate not found."
 msgstr "Session à dupliquer introuvable."
 
-#: nova/blueprints/journal.py:759
+#: nova/blueprints/journal.py:815
 msgid "Session duplicated successfully."
 msgstr "Session dupliquée avec succès."
 
-#: nova/blueprints/journal.py:770
+#: nova/blueprints/journal.py:826
 #, python-format
 msgid "Error duplicating session: %(error)s"
 msgstr "Erreur lors de la duplication de la session : %(error)s"
 
-#: nova/blueprints/journal.py:792
+#: nova/blueprints/journal.py:848
 msgid "Journal entry deleted successfully."
 msgstr "Entrée du journal supprimée avec succès."
 
-#: nova/blueprints/journal.py:798
+#: nova/blueprints/journal.py:854
 msgid "Journal entry not found or you do not have permission to delete it."
 msgstr ""
 "Entrée de journal introuvable ou vous n'avez pas l'autorisation de la "
 "supprimer."
 
-#: nova/blueprints/journal.py:815 nova/blueprints/journal.py:969
+#: nova/blueprints/journal.py:871 nova/blueprints/journal.py:1025
 msgid "Session not found."
 msgstr "Session introuvable."
 
-#: nova/blueprints/journal.py:977 nova/blueprints/projects.py:267
+#: nova/blueprints/journal.py:1033 nova/blueprints/projects.py:267
 msgid "Project not found."
 msgstr "Projet introuvable."
 
@@ -706,7 +459,7 @@ msgstr "Objet non trouvé."
 msgid "Object coordinates not available."
 msgstr "Les coordonnées de l'objet ne sont pas disponibles."
 
-#: nova/blueprints/mobile.py:701
+#: nova/blueprints/mobile.py:719
 #, fuzzy, python-format
 msgid "Error saving journal entry: %(error)s"
 msgstr "Erreur lors de la génération du fichier journal : %(error)s"
@@ -728,18 +481,274 @@ msgstr "Une erreur s'est produite : %(error)s"
 #, python-format
 msgid "Project '%(project_name)s' deleted. Sessions are now standalone."
 msgstr ""
-"Projet « %(project_name)s » supprimé. Les sessions sont désormais autonomes."
+"Projet « %(project_name)s » supprimé. Les sessions sont désormais "
+"autonomes."
 
 #: nova/blueprints/projects.py:290
 #, python-format
 msgid "Error deleting project: %(error)s"
 msgstr "Erreur lors de la suppression du projet : %(error)s"
 
+#: nova/blueprints/tools.py:69
+#, python-format
+msgid "Error: Unknown component type '%(component_type)s'."
+msgstr "Erreur : type de composant inconnu « %(component_type)s »."
+
+#: nova/blueprints/tools.py:90
+#, python-format
+msgid "Component '%(component_name)s' added successfully."
+msgstr "Composant « %(component_name)s » ajouté avec succès."
+
+#: nova/blueprints/tools.py:93
+#, python-format
+msgid "Error adding component: %(error)s"
+msgstr "Erreur lors de l'ajout du composant : %(error)s"
+
+#: nova/blueprints/tools.py:108
+msgid "Authorization error."
+msgstr "Erreur d'autorisation."
+
+#: nova/blueprints/tools.py:130
+#, python-format
+msgid "Component '%(component_name)s' updated successfully."
+msgstr "Composant « %(component_name)s » mis à jour avec succès."
+
+#: nova/blueprints/tools.py:133
+#, python-format
+msgid "Error updating component: %(error)s"
+msgstr "Erreur lors de la mise à jour du composant : %(error)s"
+
+#: nova/blueprints/tools.py:175
+#, python-format
+msgid "Rig '%(rig_name)s' updated successfully."
+msgstr "Plateforme « %(rig_name)s » mise à jour avec succès."
+
+#: nova/blueprints/tools.py:187
+#, python-format
+msgid "Rig '%(rig_name)s' created successfully."
+msgstr "Plateforme « %(rig_name)s » créée avec succès."
+
+#: nova/blueprints/tools.py:206
+#, python-format
+msgid "Error saving rig: %(error)s"
+msgstr "Erreur lors de l'enregistrement du rig : %(error)s"
+
+#: nova/blueprints/tools.py:223
+msgid "Cannot delete component: It is used in at least one rig."
+msgstr ""
+"Impossible de supprimer le composant : il est utilisé dans au moins un "
+"rig."
+
+#: nova/blueprints/tools.py:228
+msgid "Component deleted successfully."
+msgstr "Composant supprimé avec succès."
+
+#: nova/blueprints/tools.py:231
+#, python-format
+msgid "Error deleting component: %(error)s"
+msgstr "Erreur lors de la suppression du composant : %(error)s"
+
+#: nova/blueprints/tools.py:243
+msgid "Rig deleted successfully."
+msgstr "Plateforme supprimée avec succès."
+
+#: nova/blueprints/tools.py:246
+#, python-format
+msgid "Error deleting rig: %(error)s"
+msgstr "Erreur lors de la suppression de la plate-forme : %(error)s"
+
+#: nova/blueprints/tools.py:479
+#, python-format
+msgid "Error generating config file: %(error)s"
+msgstr "Erreur lors de la génération du fichier de configuration : %(error)s"
+
+#: nova/blueprints/tools.py:600
+#, python-format
+msgid "Error generating journal file: %(error)s"
+msgstr "Erreur lors de la génération du fichier journal : %(error)s"
+
+#: nova/blueprints/tools.py:608 nova/blueprints/tools.py:613
+msgid "No file selected for journal import."
+msgstr "Aucun fichier sélectionné pour l'importation du journal."
+
+#: nova/blueprints/tools.py:627
+#, python-format
+msgid "Invalid journal file structure: %(message)s"
+msgstr "Structure du fichier journal invalide : %(message)s"
+
+#: nova/blueprints/tools.py:651
+msgid "Journal imported successfully! (Previous journal data was replaced)"
+msgstr ""
+"Journal importé avec succès ! (Les données précédentes du journal ont été"
+" remplacées)"
+
+#: nova/blueprints/tools.py:663
+#, python-format
+msgid "Import failed: Invalid YAML format in the journal file. %(error)s"
+msgstr ""
+"Échec de l'importation : format YAML non valide dans le fichier journal. "
+"%(error)s"
+
+#: nova/blueprints/tools.py:671 nova/blueprints/tools.py:802
+#, python-format
+msgid "Import failed: %(error)s"
+msgstr "Échec de l'importation : %(error)s"
+
+#: nova/blueprints/tools.py:674
+msgid "Invalid file type. Please upload a .yaml journal file."
+msgstr "Type de fichier non valide. Veuillez télécharger un fichier journal .yaml."
+
+#: nova/blueprints/tools.py:686
+msgid "Authentication error during import."
+msgstr "Erreur d'authentification lors de l'importation."
+
+#: nova/blueprints/tools.py:691 nova/blueprints/tools.py:696
+msgid "No file selected for import."
+msgstr "Aucun fichier sélectionné pour l'importation."
+
+#: nova/blueprints/tools.py:718
+msgid "Cannot import: Configuration must contain at least one location."
+msgstr ""
+"Impossible d'importer : la configuration doit contenir au moins un "
+"emplacement."
+
+#: nova/blueprints/tools.py:726
+msgid "Cannot import: Configuration must contain at least one active location."
+msgstr ""
+"Impossible d'importer : la configuration doit contenir au moins un "
+"emplacement actif."
+
+#: nova/blueprints/tools.py:757
+msgid "Config imported successfully! (Previous config was replaced)"
+msgstr ""
+"Configuration importée avec succès ! (La configuration précédente a été "
+"remplacée)"
+
+#: nova/blueprints/tools.py:799
+#, python-format
+msgid "Import failed: Invalid YAML. (%(error)s)"
+msgstr "Échec de l'importation : YAML non valide. (%(error)s)"
+
+#: nova/blueprints/tools.py:821
+msgid "Authentication error during catalog import."
+msgstr "Erreur d'authentification lors de l'importation du catalogue."
+
+#: nova/blueprints/tools.py:831
+msgid "Catalog pack not found or invalid."
+msgstr "Pack catalogue introuvable ou invalide."
+
+#: nova/blueprints/tools.py:843
+msgid "Catalog import failed due to an internal error."
+msgstr "L'importation du catalogue a échoué en raison d'une erreur interne."
+
+#: nova/blueprints/tools.py:944
+#, python-format
+msgid "Error generating rig config: %(error)s"
+msgstr "Erreur lors de la génération de la configuration du rig : %(error)s"
+
+#: nova/blueprints/tools.py:964
+msgid "No journal photos found to download."
+msgstr "Aucune photo du journal n'a été trouvée à télécharger."
+
+#: nova/blueprints/tools.py:1006
+msgid "No file selected for photo import."
+msgstr "Aucun fichier sélectionné pour l'importation de photos."
+
+#: nova/blueprints/tools.py:1011
+msgid "Please select a valid .zip file to import."
+msgstr "Veuillez sélectionner un fichier .zip valide à importer."
+
+#: nova/blueprints/tools.py:1024
+msgid "Import failed: The uploaded file is not a valid ZIP archive."
+msgstr ""
+"Échec de l'importation : le fichier téléchargé n'est pas une archive ZIP "
+"valide."
+
+#: nova/blueprints/tools.py:1058
+#, python-format
+msgid "Journal photos imported successfully! Extracted %(count)d files."
+msgstr ""
+"Les photos du journal ont été importées avec succès ! %(count)d fichiers "
+"extraits."
+
+#: nova/blueprints/tools.py:1061
+msgid "Import failed: The ZIP file appears to be corrupted."
+msgstr "Échec de l'importation : le fichier ZIP semble être corrompu."
+
+#: nova/blueprints/tools.py:1063
+#, python-format
+msgid "An unexpected error occurred during import: %(error)s"
+msgstr "Une erreur inattendue s'est produite pendant l'importation : %(error)s"
+
+#: nova/blueprints/tools.py:1071 nova/blueprints/tools.py:1076
+msgid "No file selected for rigs import."
+msgstr "Aucun fichier sélectionné pour l'importation des plates-formes."
+
+#: nova/blueprints/tools.py:1106
+msgid "Rigs configuration imported and synced to database successfully!"
+msgstr ""
+"Configuration des plates-formes importée et synchronisée avec succès dans"
+" la base de données !"
+
+#: nova/blueprints/tools.py:1114
+#, python-format
+msgid "Error importing rigs file: %(error)s"
+msgstr "Erreur lors de l'importation du fichier de plates-formes : %(error)s"
+
+#: nova/blueprints/tools.py:1117
+msgid "Invalid file type. Please upload a .yaml or .yml file."
+msgstr "Type de fichier non valide. Veuillez télécharger un fichier .yaml ou .yml."
+
+#: nova/blueprints/tools.py:1176
+msgid "Not authorized to export another user's data."
+msgstr "Non autorisé à exporter les données d'un autre utilisateur."
+
+#: nova/blueprints/tools.py:1180
+msgid "Export failed (no such user or empty data)."
+msgstr "Échec de l'exportation (utilisateur inexistant ou données vides)."
+
+#: nova/blueprints/tools.py:1209
+msgid "Username is required in multi-user mode."
+msgstr "Le nom d'utilisateur est obligatoire en mode multi-utilisateurs."
+
+#: nova/blueprints/tools.py:1214
+msgid "Not authorized to import for another user."
+msgstr "Non autorisé à importer pour un autre utilisateur."
+
+#: nova/blueprints/tools.py:1222
+msgid "Please provide config, rigs, and journal YAML files."
+msgstr ""
+"Veuillez fournir les fichiers YAML de configuration, de rigs et de "
+"journal."
+
+#: nova/blueprints/tools.py:1242
+msgid "Import completed successfully!"
+msgstr "Importation terminée avec succès !"
+
+#: nova/blueprints/tools.py:1244
+msgid "Import failed. See server logs for details."
+msgstr ""
+"Importation échouée. Consultez les journaux du serveur pour plus de "
+"détails."
+
+#: nova/blueprints/tools.py:1247
+msgid "Import crashed. Check logs."
+msgstr "Importation échouée. Vérifiez les journaux."
+
+#: nova/blueprints/tools.py:1258
+msgid "Database repair completed."
+msgstr "Réparation de la base de données terminée."
+
+#: nova/blueprints/tools.py:1260
+#, python-format
+msgid "Repair failed: %(error)s"
+msgstr "Échec de la réparation : %(error)s"
+
 #: templates/_heatmap_section.html:5
 msgid "Generating Heatmap..."
 msgstr "Génération de la carte thermique..."
 
-#: templates/_heatmap_section.html:12 templates/mobile_up_now.html:872
+#: templates/_heatmap_section.html:12 templates/mobile_up_now.html:878
 msgid "Initializing..."
 msgstr "Initialisation..."
 
@@ -763,8 +772,8 @@ msgstr "Veuillez vous connecter pour afficher les détails de l'objet."
 #: templates/_heatmap_section.html:23
 #, fuzzy
 msgid ""
-"* Vertical bands = Full Moon. Darker teal = Best visibility. Click any cell "
-"to view details."
+"* Vertical bands = Full Moon. Darker teal = Best visibility. Click any "
+"cell to view details."
 msgstr ""
 "* Bandes lumineuses verticales = pleine lune (décolorées). Vert foncé = "
 "meilleure qualité. Cliquez sur les noms des objets pour afficher les "
@@ -786,13 +795,13 @@ msgstr "Altitude max."
 msgid "Transit Time"
 msgstr "Heure de culmination"
 
-#: templates/_inspiration_section.html:497 templates/mobile_up_now.html:911
-#: templates/mobile_up_now.html:950
+#: templates/_inspiration_section.html:497 templates/mobile_up_now.html:913
+#: templates/mobile_up_now.html:948
 msgid "Duration"
 msgstr "Durée"
 
-#: templates/_inspiration_section.html:498 templates/config_form.html:543
-#: templates/index.html:143 templates/mobile_up_now.html:987
+#: templates/_inspiration_section.html:498 templates/config_form.html:573
+#: templates/index.html:143 templates/mobile_up_now.html:982
 msgid "Constellation"
 msgstr "Constellation"
 
@@ -800,11 +809,11 @@ msgstr "Constellation"
 msgid "Source: Wiki"
 msgstr "Source : Wiki"
 
-#: templates/_inspiration_section.html:504
-#: templates/_journal_section.html:2477 templates/_objects_section.html:427
-#: templates/_objects_section.html:442 templates/base.html:384
-#: templates/base.html:404 templates/base.html:412 templates/base.html:450
-#: templates/config_form.html:643 templates/graph_view.html:281
+#: templates/_inspiration_section.html:504 templates/_journal_section.html:2453
+#: templates/_objects_section.html:427 templates/_objects_section.html:442
+#: templates/base.html:384 templates/base.html:401 templates/base.html:406
+#: templates/base.html:415 templates/base.html:453
+#: templates/config_form.html:673 templates/graph_view.html:290
 msgid "Close"
 msgstr "Fermer"
 
@@ -817,7 +826,7 @@ msgid "Analyzing targets..."
 msgstr "Analyse des cibles..."
 
 #: templates/_inspiration_section.html:517 templates/journal_report.html:706
-#: templates/project_report.html:1081
+#: templates/project_report.html:1069
 msgid "No Image"
 msgstr "Pas d'image"
 
@@ -861,8 +870,7 @@ msgstr "Visibilité :"
 
 #: templates/_inspiration_section.html:529
 msgid "We only show objects observable during tonight's session."
-msgstr ""
-"Nous ne montrons que les objets observables lors de la session de ce soir."
+msgstr "Nous ne montrons que les objets observables lors de la session de ce soir."
 
 #: templates/_inspiration_section.html:532
 #, fuzzy
@@ -884,9 +892,10 @@ msgid "h"
 msgstr "h"
 
 #: templates/_inspiration_section.html:536 templates/base.html:105
-#: templates/config_form.html:566 templates/config_form.html:595
-#: templates/config_form.html:631 templates/graph_view.html:132
-#: templates/mobile_object_detail.html:573
+#: templates/config_form.html:596 templates/config_form.html:625
+#: templates/config_form.html:661 templates/graph_view.html:132
+#: templates/graph_view.html:143 templates/graph_view.html:660
+#: templates/mobile_object_detail.html:588
 msgid "Loading..."
 msgstr "Chargement..."
 
@@ -941,8 +950,8 @@ msgstr "Chargement de l'historique..."
 #: templates/_inspiration_section.html:632
 msgid "Please wait while we calculate visibility and fetch data."
 msgstr ""
-"Veuillez patienter pendant que nous calculons la visibilité et récupérons "
-"les données."
+"Veuillez patienter pendant que nous calculons la visibilité et récupérons"
+" les données."
 
 #: templates/_inspiration_section.html:635
 msgid "Database Empty"
@@ -952,1048 +961,1048 @@ msgstr "Réparation de la base de données terminée."
 msgid "No objects found in your configuration."
 msgstr "Aucun objet trouvé dans votre configuration."
 
-#: templates/_journal_section.html:1608
+#: templates/_journal_section.html:1584
 msgid "Session History"
 msgstr "Historique des sessions"
 
-#: templates/_journal_section.html:1612
+#: templates/_journal_section.html:1588
 msgid "Switch Object"
 msgstr "Objet commutateur"
 
-#: templates/_journal_section.html:1614 templates/_journal_section.html:2218
+#: templates/_journal_section.html:1590 templates/_journal_section.html:2193
 msgid "Add New Project"
 msgstr "Ajouter un nouveau projet"
 
-#: templates/_journal_section.html:1615 templates/base.html:182
+#: templates/_journal_section.html:1591 templates/base.html:182
 msgid "Add New Session"
 msgstr "Ajouter une nouvelle session"
 
-#: templates/_journal_section.html:1620
+#: templates/_journal_section.html:1596
 msgid "Date & Location"
 msgstr "Mettre à jour les lieux"
 
-#: templates/_journal_section.html:1620 templates/project_report.html:866
+#: templates/_journal_section.html:1596 templates/project_report.html:861
 msgid "Integ."
 msgstr "Intégrité."
 
-#: templates/_journal_section.html:1620
+#: templates/_journal_section.html:1596
 #: templates/_opportunities_section.html:42 templates/_project_subtab.html:196
 #: templates/index.html:188 templates/index.html:215
-#: templates/journal_report.html:692 templates/project_report.html:867
-#: templates/project_report.html:1101
+#: templates/journal_report.html:692 templates/project_report.html:862
+#: templates/project_report.html:1089
 msgid "Rating"
 msgstr "Évaluation"
 
-#: templates/_journal_section.html:1631
+#: templates/_journal_section.html:1607
 msgid "Click to view project details"
 msgstr "Veuillez vous connecter pour afficher les détails de l'objet."
 
-#: templates/_journal_section.html:1635 templates/_journal_section.html:2057
+#: templates/_journal_section.html:1611 templates/_journal_section.html:2032
 #: templates/_project_subtab.html:150
 msgid "Project:"
 msgstr "Projet :"
 
-#: templates/_journal_section.html:1636 templates/_journal_section.html:1956
+#: templates/_journal_section.html:1612 templates/_journal_section.html:1931
 msgid "Total:"
 msgstr "Total :"
 
-#: templates/_journal_section.html:1645 templates/_project_subtab.html:209
+#: templates/_journal_section.html:1621 templates/_project_subtab.html:209
 msgid "min"
 msgstr "min"
 
-#: templates/_journal_section.html:1653
+#: templates/_journal_section.html:1629
 msgid "Loading history..."
 msgstr "Chargement de l'historique..."
 
-#: templates/_journal_section.html:1673
+#: templates/_journal_section.html:1648
 msgid "Details for Session:"
 msgstr "Détails de la session :"
 
-#: templates/_journal_section.html:1675
+#: templates/_journal_section.html:1650
 msgid "Edit This Session"
 msgstr "Modifier cette session"
 
-#: templates/_journal_section.html:1677
+#: templates/_journal_section.html:1652
 msgid "Create a copy of this session"
 msgstr "Créer une copie de cette session"
 
-#: templates/_journal_section.html:1677
+#: templates/_journal_section.html:1652
 msgid "Duplicate"
 msgstr "Dupliquer"
 
-#: templates/_journal_section.html:1679
+#: templates/_journal_section.html:1654
 msgid "Are you sure you want to delete this session permanently?"
 msgstr "Êtes-vous sûr de vouloir supprimer définitivement cette session ?"
 
-#: templates/_journal_section.html:1680
+#: templates/_journal_section.html:1655
 msgid "Delete This Session"
 msgstr "Supprimer cette session"
 
-#: templates/_journal_section.html:1687
+#: templates/_journal_section.html:1662
 msgid "Summary"
 msgstr "Résumé"
 
-#: templates/_journal_section.html:1688 templates/journal_report.html:752
+#: templates/_journal_section.html:1663 templates/journal_report.html:752
 msgid "Equipment & Acquisition"
 msgstr "Équipement et acquisition"
 
-#: templates/_journal_section.html:1689
+#: templates/_journal_section.html:1664
 msgid "Calibration & Outcome"
 msgstr "Étalonnage et résultats"
 
-#: templates/_journal_section.html:1691
+#: templates/_journal_section.html:1666
 msgid "Logs"
 msgstr "Fenêtre"
 
-#: templates/_journal_section.html:1693 templates/journal_report.html:6
+#: templates/_journal_section.html:1668 templates/journal_report.html:6
 #: templates/journal_report.html:679
 msgid "Session Report"
 msgstr "Rapport de séance"
 
-#: templates/_journal_section.html:1699
+#: templates/_journal_section.html:1674
 msgid "SEEING (FWHM)"
 msgstr "VISION (FWHM)"
 
-#: templates/_journal_section.html:1700
+#: templates/_journal_section.html:1675
 msgid "GUIDING (RMS)"
 msgstr "GUIDAGE (RMS)"
 
-#: templates/_journal_section.html:1701
+#: templates/_journal_section.html:1676
 msgid "SKY QUALITY (SQM)"
 msgstr "QUALITÉ DU CIEL (SQM)"
 
-#: templates/_journal_section.html:1712
+#: templates/_journal_section.html:1687
 msgid "Multiple"
 msgstr "Multiple"
 
-#: templates/_journal_section.html:1714
+#: templates/_journal_section.html:1689
 msgid "x"
 msgstr "x"
 
-#: templates/_journal_section.html:1714
+#: templates/_journal_section.html:1689
 msgid "s"
 msgstr "SB"
 
-#: templates/_journal_section.html:1716
+#: templates/_journal_section.html:1691
 msgid "EXPOSURES"
 msgstr "EXPOSITIONS"
 
-#: templates/_journal_section.html:1720 templates/_journal_section.html:1791
-#: templates/journal_form.html:169
+#: templates/_journal_section.html:1695 templates/_journal_section.html:1766
+#: templates/journal_form.html:164
 msgid "Filter:"
 msgstr "Filtre :"
 
-#: templates/_journal_section.html:1724 templates/_journal_section.html:1768
+#: templates/_journal_section.html:1699 templates/_journal_section.html:1743
 msgid "Rig Used:"
 msgstr "Nom du rig :"
 
-#: templates/_journal_section.html:1725 templates/_journal_section.html:1774
+#: templates/_journal_section.html:1700 templates/_journal_section.html:1749
 msgid "Rig Specs:"
 msgstr "Aperçu du royaume"
 
-#: templates/_journal_section.html:1727 templates/_journal_section.html:1769
-#: templates/config_form.html:452 templates/journal_report.html:757
+#: templates/_journal_section.html:1702 templates/_journal_section.html:1744
+#: templates/config_form.html:482 templates/journal_report.html:757
 msgid "Telescope:"
 msgstr "Télescope :"
 
-#: templates/_journal_section.html:1728 templates/_journal_section.html:1773
-#: templates/config_form.html:458 templates/journal_report.html:767
+#: templates/_journal_section.html:1703 templates/_journal_section.html:1748
+#: templates/config_form.html:488 templates/journal_report.html:767
 msgid "Camera:"
 msgstr "Chambre :"
 
-#: templates/_journal_section.html:1729
+#: templates/_journal_section.html:1704
 msgid "FL:"
 msgstr "Appartements :"
 
-#: templates/_journal_section.html:1730 templates/_journal_section.html:1777
+#: templates/_journal_section.html:1705 templates/_journal_section.html:1752
 msgid "Scale:"
 msgstr "Échelle / Champ de vision :"
 
-#: templates/_journal_section.html:1733 templates/_journal_section.html:1780
+#: templates/_journal_section.html:1708 templates/_journal_section.html:1755
 msgid "Setup Notes:"
 msgstr "Notes de configuration"
 
-#: templates/_journal_section.html:1736 templates/_journal_section.html:1782
+#: templates/_journal_section.html:1711 templates/_journal_section.html:1757
 msgid "Telescope Setup:"
 msgstr "Installation du télescope"
 
-#: templates/_journal_section.html:1740
+#: templates/_journal_section.html:1715
 msgid "Session Image:"
 msgstr "Image de session"
 
-#: templates/_journal_section.html:1743
+#: templates/_journal_section.html:1718
 msgid "Click to view full size"
 msgstr "Cliquez pour voir la taille complète"
 
-#: templates/_journal_section.html:1744 templates/journal_report.html:700
-#: templates/journal_report.html:703 templates/project_report.html:1075
-#: templates/project_report.html:1079
+#: templates/_journal_section.html:1719 templates/journal_report.html:700
+#: templates/journal_report.html:703 templates/project_report.html:1063
+#: templates/project_report.html:1067
 msgid "Session Image"
 msgstr "Image de session"
 
-#: templates/_journal_section.html:1753 templates/journal_report.html:718
+#: templates/_journal_section.html:1728 templates/journal_report.html:718
 msgid "Statistics & Conditions"
 msgstr "Statistiques et conditions"
 
-#: templates/_journal_section.html:1755
+#: templates/_journal_section.html:1730
 msgid "Seeing (FWHM):"
 msgstr "Vision (FWHM) :"
 
-#: templates/_journal_section.html:1756
+#: templates/_journal_section.html:1731
 msgid "Guiding RMS:"
 msgstr "RMS guide :"
 
-#: templates/_journal_section.html:1757
+#: templates/_journal_section.html:1732
 msgid "SQM:"
 msgstr "SQM :"
 
-#: templates/_journal_section.html:1758 templates/_journal_section.html:2268
-#: templates/journal_form.html:63
+#: templates/_journal_section.html:1733 templates/_journal_section.html:2243
+#: templates/journal_form.html:58
 msgid "Transparency Scale:"
 msgstr "Échelle de transparence :"
 
-#: templates/_journal_section.html:1759
+#: templates/_journal_section.html:1734
 msgid "Moon Illum/Sep:"
 msgstr "Illumination lunaire/Séparation :"
 
-#: templates/_journal_section.html:1760 templates/_journal_section.html:2270
-#: templates/journal_form.html:75
+#: templates/_journal_section.html:1735 templates/_journal_section.html:2245
+#: templates/journal_form.html:70
 msgid "Weather Notes:"
 msgstr "Notes météorologiques :"
 
-#: templates/_journal_section.html:1765
+#: templates/_journal_section.html:1740
 msgid "Equipment & Acquisition Details"
 msgstr "Équipement et détails relatifs à l'acquisition"
 
-#: templates/_journal_section.html:1771 templates/journal_report.html:762
+#: templates/_journal_section.html:1746 templates/journal_report.html:762
 msgid "Reducer/Ext.:"
 msgstr "Réduire/Ext. :"
 
-#: templates/_journal_section.html:1776
+#: templates/_journal_section.html:1751
 msgid "FL/Ratio:"
 msgstr "FL / Ratio :"
 
-#: templates/_journal_section.html:1778
+#: templates/_journal_section.html:1753
 msgid "FOV:"
 msgstr "Champ de vision :"
 
-#: templates/_journal_section.html:1785 templates/_journal_section.html:2288
+#: templates/_journal_section.html:1760 templates/_journal_section.html:2263
 msgid "Guiding Equipment:"
 msgstr "Équipement de guidage :"
 
-#: templates/_journal_section.html:1786
+#: templates/_journal_section.html:1761
 msgid "Acquisition Sw:"
 msgstr "Logiciel d'acquisition :"
 
-#: templates/_journal_section.html:1787 templates/journal_form.html:119
+#: templates/_journal_section.html:1762 templates/journal_form.html:114
 msgid "Dither Settings:"
 msgstr "Paramètres de tramage :"
 
-#: templates/_journal_section.html:1788 templates/_journal_section.html:2317
-#: templates/journal_form.html:159
+#: templates/_journal_section.html:1763 templates/_journal_section.html:2292
+#: templates/journal_form.html:154
 msgid "Binning:"
 msgstr "Binning :"
 
-#: templates/_journal_section.html:1789 templates/journal_report.html:771
+#: templates/_journal_section.html:1764 templates/journal_report.html:771
 msgid "Gain / Offset:"
 msgstr "Gain / Décalage :"
 
-#: templates/_journal_section.html:1790
+#: templates/_journal_section.html:1765
 msgid "Camera Temp (Set/Avg):"
 msgstr "Température (réglée/moyenne) :"
 
-#: templates/_journal_section.html:1792
+#: templates/_journal_section.html:1767
 msgid "Sub Exposure:"
 msgstr "Exposition"
 
-#: templates/_journal_section.html:1793
+#: templates/_journal_section.html:1768
 msgid "# Light Subs:"
 msgstr "Nombre de sous-marins légers :"
 
-#: templates/_journal_section.html:1813
+#: templates/_journal_section.html:1788
 msgid "Monochrome Exposures"
 msgstr "Expositions monochromes"
 
-#: templates/_journal_section.html:1819 templates/_journal_section.html:1829
+#: templates/_journal_section.html:1794 templates/_journal_section.html:1804
 msgid "subs x "
 msgstr "Sous-marins"
 
-#: templates/_journal_section.html:1839 templates/_journal_section.html:2373
-#: templates/journal_form.html:181 templates/journal_report.html:803
+#: templates/_journal_section.html:1814 templates/_journal_section.html:2348
+#: templates/journal_form.html:176 templates/journal_report.html:803
 msgid "Calibration Strategy"
 msgstr "Stratégie d'étalonnage"
 
-#: templates/_journal_section.html:1841 templates/_journal_section.html:2374
-#: templates/journal_form.html:183
+#: templates/_journal_section.html:1816 templates/_journal_section.html:2349
+#: templates/journal_form.html:178
 msgid "Darks:"
 msgstr "Tons foncés :"
 
-#: templates/_journal_section.html:1842 templates/_journal_section.html:2375
-#: templates/journal_form.html:187
+#: templates/_journal_section.html:1817 templates/_journal_section.html:2350
+#: templates/journal_form.html:182
 msgid "Flats:"
 msgstr "Appartements :"
 
-#: templates/_journal_section.html:1843
+#: templates/_journal_section.html:1818
 msgid "Bias/DarkFlats:"
 msgstr "Biais/DarkFlats :"
 
-#: templates/_journal_section.html:1848 templates/_journal_section.html:2377
-#: templates/journal_form.html:195
+#: templates/_journal_section.html:1823 templates/_journal_section.html:2352
+#: templates/journal_form.html:190
 msgid "Outcome & Reflections"
 msgstr "Résultats et réflexions"
 
-#: templates/_journal_section.html:1850
+#: templates/_journal_section.html:1825
 msgid "Session Rating:"
 msgstr "Évaluation de la session :"
 
-#: templates/_journal_section.html:1851 templates/project_report.html:893
+#: templates/_journal_section.html:1826 templates/project_report.html:888
 msgid "Notes:"
 msgstr "Remarques :"
 
-#: templates/_journal_section.html:1859 templates/_journal_section.html:2128
+#: templates/_journal_section.html:1834 templates/_journal_section.html:2103
 msgid "Download CSV"
 msgstr "Télécharger CSV"
 
-#: templates/_journal_section.html:1865 templates/_journal_section.html:2134
+#: templates/_journal_section.html:1840 templates/_journal_section.html:2109
 msgid "Download PDF"
 msgstr "Télécharger le PDF"
 
-#: templates/_journal_section.html:1876 templates/_journal_section.html:2069
+#: templates/_journal_section.html:1851 templates/_journal_section.html:2044
 msgid "Overview"
 msgstr "Aperçu"
 
-#: templates/_journal_section.html:1877 templates/base.html:144
+#: templates/_journal_section.html:1852 templates/base.html:144
 msgid "Guiding"
 msgstr "Guidage"
 
-#: templates/_journal_section.html:1878
+#: templates/_journal_section.html:1853
 msgid "Dithering"
 msgstr "Tramage"
 
-#: templates/_journal_section.html:1879 templates/journal_report.html:934
-#: templates/journal_report.html:951 templates/project_report.html:939
-#: templates/project_report.html:956
+#: templates/_journal_section.html:1854 templates/journal_report.html:934
+#: templates/journal_report.html:951 templates/project_report.html:932
+#: templates/project_report.html:949
 msgid "AutoFocus"
 msgstr "Autofocus"
 
-#: templates/_journal_section.html:1880
+#: templates/_journal_section.html:1855
 msgid "NINA"
 msgstr "NINA"
 
-#: templates/_journal_section.html:1888 templates/journal_report.html:823
+#: templates/_journal_section.html:1863 templates/journal_report.html:823
 #: templates/journal_report.html:930 templates/journal_report.html:947
-#: templates/journal_report.html:1031 templates/project_report.html:935
-#: templates/project_report.html:952 templates/project_report.html:1159
+#: templates/journal_report.html:1031 templates/project_report.html:928
+#: templates/project_report.html:945 templates/project_report.html:1147
 msgid "Exposures"
 msgstr "Expositions"
 
-#: templates/_journal_section.html:1892 templates/journal_report.html:1035
+#: templates/_journal_section.html:1867 templates/journal_report.html:1035
 msgid "Total Time"
 msgstr "Durée totale"
 
-#: templates/_journal_section.html:1896 templates/project_report.html:992
-#: templates/project_report.html:1111
+#: templates/_journal_section.html:1871 templates/project_report.html:984
+#: templates/project_report.html:1099
 msgid "Guiding RMS"
 msgstr "Guidage RMS"
 
-#: templates/_journal_section.html:1900 templates/journal_report.html:938
-#: templates/journal_report.html:955 templates/project_report.html:943
-#: templates/project_report.html:960
+#: templates/_journal_section.html:1875 templates/journal_report.html:938
+#: templates/journal_report.html:955 templates/project_report.html:936
+#: templates/project_report.html:953
 msgid "Dithers"
 msgstr "Hésitations"
 
-#: templates/_journal_section.html:1904
+#: templates/_journal_section.html:1879
 msgid "AF Runs"
 msgstr "Tirs AF"
 
-#: templates/_journal_section.html:1908 templates/journal_report.html:999
+#: templates/_journal_section.html:1883 templates/journal_report.html:999
 msgid "Pixel Scale"
 msgstr "Échelle de pixels"
 
-#: templates/_journal_section.html:1917 templates/journal_report.html:1064
+#: templates/_journal_section.html:1892 templates/journal_report.html:1064
 msgid "Plate Solve Results"
 msgstr "Résultats de la résolution de plaques"
 
-#: templates/_journal_section.html:1921
+#: templates/_journal_section.html:1896
 msgid "#"
 msgstr "#"
 
-#: templates/_journal_section.html:1922 templates/journal_report.html:1068
+#: templates/_journal_section.html:1897 templates/journal_report.html:1068
 #: templates/journal_report.html:1098 templates/journal_report.html:1177
-#: templates/project_report.html:1012
+#: templates/project_report.html:1003
 msgid "Time"
 msgstr "Temps"
 
-#: templates/_journal_section.html:1923 templates/journal_report.html:1069
+#: templates/_journal_section.html:1898 templates/journal_report.html:1069
 msgid "RA"
 msgstr "AD"
 
-#: templates/_journal_section.html:1924 templates/journal_report.html:1070
+#: templates/_journal_section.html:1899 templates/journal_report.html:1070
 msgid "Dec"
 msgstr "Décembre"
 
-#: templates/_journal_section.html:1925 templates/journal_report.html:1071
+#: templates/_journal_section.html:1900 templates/journal_report.html:1071
 msgid "Angle"
 msgstr "Angle"
 
-#: templates/_journal_section.html:1926 templates/journal_report.html:1072
+#: templates/_journal_section.html:1901 templates/journal_report.html:1072
 msgid "Stars"
 msgstr "Étoiles"
 
-#: templates/_journal_section.html:1927 templates/_journal_section.html:2085
+#: templates/_journal_section.html:1902 templates/_journal_section.html:2060
 #: templates/_objects_section.html:46 templates/_project_subtab.html:154
 #: templates/admin_users.html:72 templates/journal_report.html:1179
 msgid "Status"
 msgstr "Statut"
 
-#: templates/_journal_section.html:1936
+#: templates/_journal_section.html:1911
 msgid "Autocenter Accuracy Over Time"
 msgstr "Précision de l'Autocenter au fil du temps"
 
-#: templates/_journal_section.html:1937
+#: templates/_journal_section.html:1912
 msgid "Distance from target center per centering attempt"
 msgstr "Distance par rapport au centre de la cible par tentative de centrage"
 
-#: templates/_journal_section.html:1948
+#: templates/_journal_section.html:1923
 msgid "RA RMS:"
 msgstr "RMS total"
 
-#: templates/_journal_section.html:1949
+#: templates/_journal_section.html:1924
 msgid "Dec RMS:"
 msgstr "Décembre :"
 
-#: templates/_journal_section.html:1950
+#: templates/_journal_section.html:1925
 msgid "Total RMS:"
 msgstr "RMS total"
 
-#: templates/_journal_section.html:1951
+#: templates/_journal_section.html:1926
 msgid "Imaging Frames:"
 msgstr "Imagerie RMS"
 
-#: templates/_journal_section.html:1954
+#: templates/_journal_section.html:1929
 msgid "Including dithers — RA:"
 msgstr "Y compris les tergiversations - RA :"
 
-#: templates/_journal_section.html:1955 templates/journal_report.html:991
+#: templates/_journal_section.html:1930 templates/journal_report.html:991
 msgid "Dec:"
 msgstr "Décembre :"
 
-#: templates/_journal_section.html:1959 templates/base.html:208
+#: templates/_journal_section.html:1934 templates/base.html:208
 msgid "Zoom"
 msgstr "Zoom"
 
-#: templates/_journal_section.html:1964
+#: templates/_journal_section.html:1939
 msgid "Avg RA Pulse:"
 msgstr "Impulsion moyenne de l'AR :"
 
-#: templates/_journal_section.html:1965
+#: templates/_journal_section.html:1940
 msgid "Avg Dec Pulse:"
 msgstr "Impulsion de guidage"
 
-#: templates/_journal_section.html:1966
+#: templates/_journal_section.html:1941
 msgid "Avg RA Dur:"
 msgstr "Durée moyenne de l'AR"
 
-#: templates/_journal_section.html:1967
+#: templates/_journal_section.html:1942
 msgid "Avg Dec Dur:"
 msgstr "Moy. déc. dur :"
 
-#: templates/_journal_section.html:1968
+#: templates/_journal_section.html:1943
 msgid "RA Dir:"
 msgstr "RA :"
 
-#: templates/_journal_section.html:1969
+#: templates/_journal_section.html:1944
 msgid "Dec Dir:"
 msgstr "Décembre :"
 
-#: templates/_journal_section.html:1988
+#: templates/_journal_section.html:1963
 msgid "Total Dithers:"
 msgstr "Total des hésitations"
 
-#: templates/_journal_section.html:1989
+#: templates/_journal_section.html:1964
 msgid "Settle Success:"
 msgstr "Régler le problème de la réussite :"
 
-#: templates/_journal_section.html:1990
+#: templates/_journal_section.html:1965
 msgid "Settle Timeout:"
 msgstr "Délai de stabilisation du tramage"
 
-#: templates/_journal_section.html:2000
+#: templates/_journal_section.html:1975
 msgid "AF Runs:"
 msgstr "Tirs AF"
 
-#: templates/_journal_section.html:2010
+#: templates/_journal_section.html:1985
 msgid "Autofocus V-Curves – EAF Position vs Star Size"
 msgstr ""
-"Courbes en V de l'autofocus - Position de l'EAF par rapport à la taille de "
-"l'étoile"
+"Courbes en V de l'autofocus - Position de l'EAF par rapport à la taille "
+"de l'étoile"
 
-#: templates/_journal_section.html:2016
+#: templates/_journal_section.html:1991
 msgid "Focus Position Drift Over Night"
 msgstr "Dérive de la position de mise au point"
 
-#: templates/_journal_section.html:2024
+#: templates/_journal_section.html:1999
 msgid "Individual V-Curves"
 msgstr "Courbes en V individuelles"
 
-#: templates/_journal_section.html:2038
+#: templates/_journal_section.html:2013
 msgid "Expand all"
 msgstr "Tout développer"
 
-#: templates/_journal_section.html:2040
+#: templates/_journal_section.html:2015
 msgid "Collapse all"
 msgstr "Tout fermer"
 
-#: templates/_journal_section.html:2059 templates/_project_subtab.html:147
+#: templates/_journal_section.html:2034 templates/_project_subtab.html:147
 msgid "Edit Project"
 msgstr "Modifier le projet"
 
-#: templates/_journal_section.html:2061
+#: templates/_journal_section.html:2036
 msgid ""
-"Are you sure you want to delete this project? Linked sessions will become "
-"standalone."
+"Are you sure you want to delete this project? Linked sessions will become"
+" standalone."
 msgstr "Êtes-vous sûr de vouloir supprimer définitivement cette session ?"
 
-#: templates/_journal_section.html:2063
+#: templates/_journal_section.html:2038
 msgid "Delete Project"
 msgstr "Modifier le projet"
 
-#: templates/_journal_section.html:2070 templates/project_report.html:6
-#: templates/project_report.html:795
+#: templates/_journal_section.html:2045 templates/project_report.html:6
+#: templates/project_report.html:794
 msgid "Project Report"
 msgstr "Rapport de projet"
 
-#: templates/_journal_section.html:2079 templates/project_report.html:808
+#: templates/_journal_section.html:2054 templates/project_report.html:805
 msgid "Total Integration"
 msgstr "Intégration totale"
 
-#: templates/_journal_section.html:2091 templates/_project_subtab.html:158
+#: templates/_journal_section.html:2066 templates/_project_subtab.html:158
 msgid "Goals & Status"
 msgstr "Objectifs et état d'avancement"
 
-#: templates/_journal_section.html:2092
+#: templates/_journal_section.html:2067
 msgid "No goals defined."
 msgstr "Aucun objectif fixé."
 
-#: templates/_journal_section.html:2100 templates/_project_subtab.html:166
+#: templates/_journal_section.html:2075 templates/_project_subtab.html:166
 msgid "Final Project Image"
 msgstr "Image finale du projet"
 
-#: templates/_journal_section.html:2103 templates/_journal_section.html:2171
+#: templates/_journal_section.html:2078 templates/_journal_section.html:2146
 #: templates/_project_subtab.html:168 templates/_project_subtab.html:262
 msgid "Final Image"
 msgstr "Image finale"
 
-#: templates/_journal_section.html:2108 templates/_project_subtab.html:175
+#: templates/_journal_section.html:2083 templates/_project_subtab.html:175
 msgid "Project Story & Learnings"
 msgstr "Histoire du projet et enseignements tirés"
 
-#: templates/_journal_section.html:2109
+#: templates/_journal_section.html:2084
 msgid "No description added."
 msgstr "Aucune description du projet n'a été ajoutée."
 
-#: templates/_journal_section.html:2113 templates/_project_subtab.html:180
+#: templates/_journal_section.html:2088 templates/_project_subtab.html:180
 msgid "Framing Notes"
 msgstr "Notes de cadrage"
 
-#: templates/_journal_section.html:2114 templates/_project_subtab.html:181
+#: templates/_journal_section.html:2089 templates/_project_subtab.html:181
 msgid "No framing notes added."
 msgstr "Aucune note de cadrage ajoutée."
 
-#: templates/_journal_section.html:2118 templates/_project_subtab.html:185
+#: templates/_journal_section.html:2093 templates/_project_subtab.html:185
 msgid "Processing Notes"
 msgstr "Notes de traitement"
 
-#: templates/_journal_section.html:2119 templates/_project_subtab.html:186
+#: templates/_journal_section.html:2094 templates/_project_subtab.html:186
 msgid "No processing workflow recorded."
 msgstr "Aucun flux de travail de traitement enregistré."
 
-#: templates/_journal_section.html:2148
+#: templates/_journal_section.html:2123
 msgid "Editing Project"
 msgstr "Projet d'édition :"
 
-#: templates/_journal_section.html:2150 templates/_project_subtab.html:231
+#: templates/_journal_section.html:2125 templates/_project_subtab.html:231
 msgid "Save Project"
 msgstr "Enregistrer le projet"
 
-#: templates/_journal_section.html:2151 templates/_journal_section.html:2221
-#: templates/_journal_section.html:2254 templates/_journal_section.html:2537
+#: templates/_journal_section.html:2126 templates/_journal_section.html:2196
+#: templates/_journal_section.html:2229 templates/_journal_section.html:2513
 #: templates/_objects_section.html:347 templates/_project_subtab.html:232
-#: templates/admin_users.html:120 templates/base.html:483
-#: templates/graph_view.html:449 templates/index.html:266
-#: templates/journal_form.html:210
+#: templates/admin_users.html:120 templates/base.html:486
+#: templates/graph_view.html:459 templates/index.html:266
+#: templates/journal_form.html:205
 msgid "Cancel"
 msgstr "Annuler"
 
-#: templates/_journal_section.html:2156 templates/_journal_section.html:2227
+#: templates/_journal_section.html:2131 templates/_journal_section.html:2202
 #: templates/_project_subtab.html:239
 msgid "Metadata"
 msgstr "Métadonnées"
 
-#: templates/_journal_section.html:2157 templates/_journal_section.html:2228
+#: templates/_journal_section.html:2132 templates/_journal_section.html:2203
 #: templates/_project_subtab.html:240
 msgid "Project Name:"
 msgstr "Nom du projet :"
 
-#: templates/_journal_section.html:2159 templates/_journal_section.html:2229
-#: templates/_project_subtab.html:249 templates/project_report.html:801
+#: templates/_journal_section.html:2134 templates/_journal_section.html:2204
+#: templates/_project_subtab.html:249 templates/project_report.html:799
 msgid "Status:"
 msgstr "Statut :"
 
-#: templates/_journal_section.html:2163 templates/_journal_section.html:2233
+#: templates/_journal_section.html:2138 templates/_journal_section.html:2208
 #: templates/_project_subtab.html:256
 msgid "Goals & Status:"
 msgstr "Objectifs et état d'avancement :"
 
-#: templates/_journal_section.html:2173 templates/_project_subtab.html:264
+#: templates/_journal_section.html:2148 templates/_project_subtab.html:264
 msgid "Current file:"
 msgstr "Fichier actuel :"
 
-#: templates/_journal_section.html:2174 templates/_project_subtab.html:265
+#: templates/_journal_section.html:2149 templates/_project_subtab.html:265
 msgid "Delete Current Image"
 msgstr "Supprimer l'image actuelle"
 
-#: templates/_journal_section.html:2177 templates/_project_subtab.html:268
+#: templates/_journal_section.html:2152 templates/_project_subtab.html:268
 msgid "Upload New Final Image (optional, max 5MB)"
 msgstr "Télécharger une nouvelle image finale (facultatif, max. 5 Mo)"
 
-#: templates/_journal_section.html:2183 templates/_project_subtab.html:275
+#: templates/_journal_section.html:2158 templates/_project_subtab.html:275
 msgid "Project Story & Learnings:"
 msgstr "Histoire du projet et enseignements tirés :"
 
-#: templates/_journal_section.html:2190
+#: templates/_journal_section.html:2165
 msgid "Framing Notes:"
 msgstr "Notes de cadrage"
 
-#: templates/_journal_section.html:2197
+#: templates/_journal_section.html:2172
 msgid "Processing Notes:"
 msgstr "Notes de traitement"
 
-#: templates/_journal_section.html:2208
+#: templates/_journal_section.html:2183
 msgid "No session selected"
 msgstr "Session terminée"
 
-#: templates/_journal_section.html:2210
+#: templates/_journal_section.html:2185
 msgid ""
-"Select a session or project from the list on the left to view details, or "
-"click 'Add New Session'."
+"Select a session or project from the list on the left to view details, or"
+" click 'Add New Session'."
 msgstr ""
-"Sélectionnez une session ou un projet dans la liste de gauche pour afficher "
-"les détails, ou cliquez sur \"Ajouter une nouvelle session\"."
+"Sélectionnez une session ou un projet dans la liste de gauche pour "
+"afficher les détails, ou cliquez sur \"Ajouter une nouvelle session\"."
 
-#: templates/_journal_section.html:2220
+#: templates/_journal_section.html:2195
 msgid "Create Project"
 msgstr "Projet actif"
 
-#: templates/_journal_section.html:2228
+#: templates/_journal_section.html:2203
 msgid "e.g., M31 Broadband"
 msgstr "par exemple, M31 Haut débit"
 
-#: templates/_journal_section.html:2229
+#: templates/_journal_section.html:2204
 msgid "In Progress"
 msgstr "En cours"
 
-#: templates/_journal_section.html:2229
+#: templates/_journal_section.html:2204
 msgid "On Hold"
 msgstr "En attente"
 
-#: templates/_journal_section.html:2229
+#: templates/_journal_section.html:2204
 msgid "Completed"
 msgstr "Copié !"
 
-#: templates/_journal_section.html:2229
+#: templates/_journal_section.html:2204
 msgid "Abandoned"
 msgstr "Abandonné"
 
-#: templates/_journal_section.html:2246
+#: templates/_journal_section.html:2221
 msgid "Add New Session for"
 msgstr "Ajouter une nouvelle session"
 
-#: templates/_journal_section.html:2250
+#: templates/_journal_section.html:2225
 msgid "Edit Session"
 msgstr "Modifier cette session"
 
-#: templates/_journal_section.html:2252
+#: templates/_journal_section.html:2227
 msgid "Save Draft"
 msgstr "Enregistrer le brouillon"
 
-#: templates/_journal_section.html:2253
+#: templates/_journal_section.html:2228
 msgid "Save & Close"
 msgstr "Enregistrer et fermer"
 
-#: templates/_journal_section.html:2261 templates/journal_form.html:27
+#: templates/_journal_section.html:2236 templates/journal_form.html:24
 msgid "Session Date:"
 msgstr "Date de la session :"
 
-#: templates/_journal_section.html:2262 templates/journal_form.html:45
+#: templates/_journal_section.html:2237 templates/journal_form.html:40
 msgid "Location:"
 msgstr "Emplacement :"
 
-#: templates/_journal_section.html:2262
+#: templates/_journal_section.html:2237
 msgid " (Inactive)"
 msgstr "Inactif"
 
-#: templates/_journal_section.html:2264
+#: templates/_journal_section.html:2239
 msgid "Link to Project (Optional)"
 msgstr "Contenu d'inspiration (optionnel)"
 
-#: templates/_journal_section.html:2264
+#: templates/_journal_section.html:2239
 msgid "-- Standalone Session --"
 msgstr "Ajouter une nouvelle session"
 
-#: templates/_journal_section.html:2264
+#: templates/_journal_section.html:2239
 msgid "-- Create New Project --"
 msgstr "Ajouter un nouveau projet"
 
-#: templates/_journal_section.html:2265
+#: templates/_journal_section.html:2240
 msgid "New Project Name:"
 msgstr "Nom du projet :"
 
-#: templates/_journal_section.html:2265
+#: templates/_journal_section.html:2240
 msgid "e.g., M31 Galaxy - 2025"
 msgstr "par exemple, Galaxy"
 
-#: templates/_journal_section.html:2267 templates/journal_form.html:56
+#: templates/_journal_section.html:2242 templates/journal_form.html:51
 msgid "Sky Conditions (Observed)"
 msgstr "Conditions atmosphériques (observées)"
 
-#: templates/_journal_section.html:2268 templates/journal_form.html:59
+#: templates/_journal_section.html:2243 templates/journal_form.html:54
 msgid "Seeing (FWHM, arcsec):"
 msgstr "Vision (FWHM, arcsec) :"
 
-#: templates/_journal_section.html:2268 templates/journal_form.html:64
+#: templates/_journal_section.html:2243 templates/journal_form.html:59
 msgid "e.g., Good (4/5), Clear"
 msgstr "Par exemple, Bon (4/5), Clair"
 
-#: templates/_journal_section.html:2269 templates/journal_form.html:69
+#: templates/_journal_section.html:2244 templates/journal_form.html:64
 msgid "SQM Reading:"
 msgstr "Lecture SQM :"
 
-#: templates/_journal_section.html:2271
+#: templates/_journal_section.html:2246
 #, python-format
 msgid "Moon Illumination (%%):"
 msgstr "Illumination lunaire à la session (%%) :"
 
-#: templates/_journal_section.html:2271
+#: templates/_journal_section.html:2246
 msgid "Auto-fills on date/loc change"
 msgstr "Remplissage automatique en cas de changement de date ou de lieu"
 
-#: templates/_journal_section.html:2271
+#: templates/_journal_section.html:2246
 msgid "Moon Angular Separation (°):"
 msgstr "Séparation angulaire de la Lune par rapport à la cible (°):"
 
-#: templates/_journal_section.html:2272 templates/journal_form.html:89
+#: templates/_journal_section.html:2247 templates/journal_form.html:84
 msgid "Equipment & Guiding"
 msgstr "Équipement et accompagnement"
 
-#: templates/_journal_section.html:2274
+#: templates/_journal_section.html:2249
 msgid "Select a Rig (Optional - Overwrites notes below)"
 msgstr "Sélectionnez un équipement (facultatif)"
 
-#: templates/_journal_section.html:2277
+#: templates/_journal_section.html:2252
 msgid "-- Manually Enter Below --"
 msgstr "Entrez manuellement la configuration ci-dessous"
 
-#: templates/_journal_section.html:2282
+#: templates/_journal_section.html:2257
 msgid "View rig details"
 msgstr "Détails du tramage :"
 
-#: templates/_journal_section.html:2287 templates/journal_form.html:101
+#: templates/_journal_section.html:2262 templates/journal_form.html:96
 msgid "Telescope Setup Notes:"
 msgstr "Remarques concernant l'installation du télescope :"
 
-#: templates/_journal_section.html:2288
+#: templates/_journal_section.html:2263
 msgid "e.g., OAG + ASI174MM"
 msgstr "par exemple, OAG + ASI174MM"
 
-#: templates/_journal_section.html:2289 templates/journal_form.html:110
+#: templates/_journal_section.html:2264 templates/journal_form.html:105
 msgid "Guiding RMS (avg, arcsec):"
 msgstr "RMS de guidage (moyenne, arcsec) :"
 
-#: templates/_journal_section.html:2292 templates/journal_form.html:127
+#: templates/_journal_section.html:2267 templates/journal_form.html:122
 msgid "Acquisition Details"
 msgstr "Détails de l'acquisition"
 
-#: templates/_journal_section.html:2293 templates/journal_form.html:123
+#: templates/_journal_section.html:2268 templates/journal_form.html:118
 msgid "Acquisition Software:"
 msgstr "Logiciel d'acquisition :"
 
-#: templates/_journal_section.html:2293
+#: templates/_journal_section.html:2268
 msgid "e.g., N.I.N.A."
 msgstr "par exemple, Orion"
 
-#: templates/_journal_section.html:2297
+#: templates/_journal_section.html:2272
 msgid "Dither Pixels:"
 msgstr "Détails du tramage :"
 
-#: templates/_journal_section.html:2300
+#: templates/_journal_section.html:2275
 msgid "e.g. 7"
 msgstr "par exemple, PN"
 
-#: templates/_journal_section.html:2304
+#: templates/_journal_section.html:2279
 msgid "Dither every ___ subs:"
 msgstr "Événements Dither"
 
-#: templates/_journal_section.html:2307
+#: templates/_journal_section.html:2282
 msgid "e.g. 3"
 msgstr "par exemple, 34"
 
-#: templates/_journal_section.html:2310
+#: templates/_journal_section.html:2285
 msgid "Dither Notes (optional):"
 msgstr "Réducteur / Prolongateur (en option) :"
 
-#: templates/_journal_section.html:2312
+#: templates/_journal_section.html:2287
 msgid "Sub Exposure (sec):"
 msgstr "Sous-exposition (secondes) :"
 
-#: templates/_journal_section.html:2313
+#: templates/_journal_section.html:2288
 msgid "# Light Subs"
 msgstr "Nombre de sous-marins légers :"
 
-#: templates/_journal_section.html:2315 templates/journal_form.html:140
+#: templates/_journal_section.html:2290 templates/journal_form.html:135
 msgid "Gain:"
 msgstr "Plus :"
 
-#: templates/_journal_section.html:2315 templates/journal_form.html:144
+#: templates/_journal_section.html:2290 templates/journal_form.html:139
 msgid "Offset:"
 msgstr "Décalage :"
 
-#: templates/_journal_section.html:2316 templates/journal_form.html:150
+#: templates/_journal_section.html:2291 templates/journal_form.html:145
 msgid "Camera Temp Setpoint (°C):"
 msgstr "Consigne de température ambiante (°C) :"
 
-#: templates/_journal_section.html:2316 templates/journal_form.html:154
+#: templates/_journal_section.html:2291 templates/journal_form.html:149
 msgid "Camera Temp Actual Avg (°C):"
 msgstr "Température réelle moyenne de la caméra (°C) :"
 
-#: templates/_journal_section.html:2317
+#: templates/_journal_section.html:2292
 msgid "e.g., 1x1"
 msgstr "par exemple, 1x1, 2x2"
 
-#: templates/_journal_section.html:2318
+#: templates/_journal_section.html:2293
 msgid "Filter Used (if broadband/single):"
 msgstr "Filtre utilisé (si large bande/simple) :"
 
-#: templates/_journal_section.html:2318
+#: templates/_journal_section.html:2293
 msgid "e.g., L-Pro, None"
 msgstr "par exemple, L-Pro, Ha 7 nm"
 
-#: templates/_journal_section.html:2319 templates/journal_form.html:162
+#: templates/_journal_section.html:2294 templates/journal_form.html:157
 msgid "Monochrome Filter Exposures"
 msgstr "Expositions avec filtre monochrome"
 
-#: templates/_journal_section.html:2324 templates/_journal_section.html:2342
-#: templates/_journal_section.html:2515
+#: templates/_journal_section.html:2299 templates/_journal_section.html:2317
+#: templates/_journal_section.html:2491
 msgid "# Subs"
 msgstr "# Expositions"
 
-#: templates/_journal_section.html:2324 templates/_journal_section.html:2345
-#: templates/_journal_section.html:2516 templates/journal_form.html:173
+#: templates/_journal_section.html:2299 templates/_journal_section.html:2320
+#: templates/_journal_section.html:2492 templates/journal_form.html:168
 msgid "Count"
 msgstr "Comte"
 
-#: templates/_journal_section.html:2325 templates/_journal_section.html:2349
-#: templates/_journal_section.html:2517 templates/journal_form.html:176
+#: templates/_journal_section.html:2300 templates/_journal_section.html:2324
+#: templates/_journal_section.html:2493 templates/journal_form.html:171
 msgid "Exp (sec/sub):"
 msgstr "Exp (sec/sous) :"
 
-#: templates/_journal_section.html:2325 templates/_journal_section.html:2352
-#: templates/_journal_section.html:2518 templates/journal_form.html:177
+#: templates/_journal_section.html:2300 templates/_journal_section.html:2327
+#: templates/_journal_section.html:2494 templates/journal_form.html:172
 msgid "Seconds"
 msgstr "Secondes"
 
-#: templates/_journal_section.html:2339 templates/_journal_section.html:2514
+#: templates/_journal_section.html:2314 templates/_journal_section.html:2490
 msgid "Remove filter"
 msgstr "Supprimer le filtre"
 
-#: templates/_journal_section.html:2361
+#: templates/_journal_section.html:2336
 msgid "Filter name (e.g. NB-II)"
 msgstr "Filtrer nom..."
 
-#: templates/_journal_section.html:2367
+#: templates/_journal_section.html:2342
 msgid "+ Add Filter"
 msgstr "Erreur lors de l'ajout du filtre."
 
-#: templates/_journal_section.html:2374 templates/journal_form.html:184
+#: templates/_journal_section.html:2349 templates/journal_form.html:179
 msgid "e.g., Library match, Taken post-session"
 msgstr "Par exemple, correspondance de bibliothèque, prise après la session."
 
-#: templates/_journal_section.html:2375 templates/journal_form.html:188
+#: templates/_journal_section.html:2350 templates/journal_form.html:183
 msgid "e.g., Morning sky, Panel"
 msgstr "Par exemple, Ciel matinal, Panneau"
 
-#: templates/_journal_section.html:2376 templates/journal_form.html:191
+#: templates/_journal_section.html:2351 templates/journal_form.html:186
 msgid "Bias / Dark Flats:"
 msgstr "Biais / Appartements sombres :"
 
-#: templates/_journal_section.html:2376 templates/journal_form.html:192
+#: templates/_journal_section.html:2351 templates/journal_form.html:187
 msgid "e.g., Library match"
 msgstr "Par exemple, correspondance de bibliothèque"
 
-#: templates/_journal_section.html:2378 templates/journal_form.html:198
+#: templates/_journal_section.html:2353 templates/journal_form.html:193
 msgid "Session Rating (1-5 ★):"
 msgstr "Évaluation de la session (1-5 ★) :"
 
-#: templates/_journal_section.html:2381 templates/journal_form.html:205
+#: templates/_journal_section.html:2356 templates/journal_form.html:200
 msgid "General Notes, Problems, Learnings:"
 msgstr "Remarques générales, problèmes, enseignements tirés :"
 
-#: templates/_journal_section.html:2384 templates/_journal_section.html:2527
+#: templates/_journal_section.html:2359 templates/_journal_section.html:2503
 msgid "Ask Nova for session summary"
 msgstr "Ask Nova for session summary"
 
-#: templates/_journal_section.html:2395
+#: templates/_journal_section.html:2371
 msgid "Current Image:"
 msgstr "Fichier actuel :"
 
-#: templates/_journal_section.html:2395
+#: templates/_journal_section.html:2371
 msgid "Delete Image"
 msgstr "Supprimer l'image actuelle"
 
-#: templates/_journal_section.html:2396
+#: templates/_journal_section.html:2372
 msgid "Upload New or Replace Image (optional, max 5MB)"
 msgstr "Télécharger une nouvelle image finale (facultatif, max. 5 Mo)"
 
-#: templates/_journal_section.html:2399
+#: templates/_journal_section.html:2375
 msgid "Session Logs (Optional)"
 msgstr "Sélectionner un emplacement (facultatif)"
 
-#: templates/_journal_section.html:2402
+#: templates/_journal_section.html:2378
 #, fuzzy
 msgid "ASIAIR Log"
 msgstr "Journal de bord ASIAIR :"
 
-#: templates/_journal_section.html:2405 templates/_journal_section.html:2418
-#: templates/_journal_section.html:2431
+#: templates/_journal_section.html:2381 templates/_journal_section.html:2394
+#: templates/_journal_section.html:2407
 msgid "Uploaded"
 msgstr "Télécharger"
 
-#: templates/_journal_section.html:2407 templates/_journal_section.html:2420
-#: templates/_journal_section.html:2433 templates/_objects_section.html:88
+#: templates/_journal_section.html:2383 templates/_journal_section.html:2396
+#: templates/_journal_section.html:2409 templates/_objects_section.html:88
 #: templates/admin_users.html:110 templates/base.html:112
 #: templates/index.html:99
 msgid "Delete"
 msgstr "Supprimer"
 
-#: templates/_journal_section.html:2415
+#: templates/_journal_section.html:2391
 #, fuzzy
 msgid "PHD2 Guide Log"
 msgstr "Journal de bord du guide PHD2 :"
 
-#: templates/_journal_section.html:2428
+#: templates/_journal_section.html:2404
 #, fuzzy
 msgid "NINA Log"
 msgstr "Nouveau logo"
 
-#: templates/_journal_section.html:2465
+#: templates/_journal_section.html:2441
 msgid "Search objects…"
 msgstr "Rechercher un objet"
 
-#: templates/_journal_section.html:2466
+#: templates/_journal_section.html:2442
 msgid "Sort order"
 msgstr "Mode invité"
 
-#: templates/_journal_section.html:2467
+#: templates/_journal_section.html:2443
 msgid "Recent"
 msgstr "Projet"
 
-#: templates/_journal_section.html:2468
+#: templates/_journal_section.html:2444
 msgid "Most Hours"
 msgstr "RA (heures)"
 
-#: templates/_journal_section.html:2512
+#: templates/_journal_section.html:2488
 msgid "Failed to fetch objects"
 msgstr "Échec de la récupération des objets"
 
-#: templates/_journal_section.html:2513
+#: templates/_journal_section.html:2489
 msgid "No objects found"
 msgstr "Aucun objet trouvé"
 
-#: templates/_journal_section.html:2519
+#: templates/_journal_section.html:2495
 msgid "Enter a filter name."
 msgstr "Entrez un nom de filtre."
 
-#: templates/_journal_section.html:2520
+#: templates/_journal_section.html:2496
 msgid "Error adding filter."
 msgstr "Erreur lors de l'ajout du filtre."
 
-#: templates/_journal_section.html:2521
+#: templates/_journal_section.html:2497
 #, python-brace-format
 msgid "{label} added."
 msgstr "{label} ajouté."
 
-#: templates/_journal_section.html:2522
+#: templates/_journal_section.html:2498
 msgid "Network error."
 msgstr "Erreur réseau."
 
-#: templates/_journal_section.html:2523
+#: templates/_journal_section.html:2499
 #, python-brace-format
 msgid "Remove \"{label}\"? Historical session data for this filter is kept."
 msgstr ""
-"Supprimer « {label} » ? Les données historiques de session pour ce filtre "
-"sont conservées."
+"Supprimer « {label} » ? Les données historiques de session pour ce filtre"
+" sont conservées."
 
-#: templates/_journal_section.html:2524
+#: templates/_journal_section.html:2500
 msgid "Error removing filter."
 msgstr "Erreur lors de la suppression du filtre."
 
-#: templates/_journal_section.html:2525
+#: templates/_journal_section.html:2501
 #, python-brace-format
 msgid "{label} removed."
 msgstr "{label} supprimé."
 
-#: templates/_journal_section.html:2526 templates/base.html:244
-#: templates/graph_view.html:438 templates/index.html:112
+#: templates/_journal_section.html:2502 templates/base.html:244
+#: templates/graph_view.html:448 templates/index.html:112
 msgid "Ask Nova"
 msgstr "Ask Nova"
 
-#: templates/_journal_section.html:2528
+#: templates/_journal_section.html:2504
 msgid "Analyzing your session..."
 msgstr "Analyse des cibles..."
 
-#: templates/_journal_section.html:2529
+#: templates/_journal_section.html:2505
 msgid "Reviewing conditions..."
 msgstr "Examiner les conditions..."
 
-#: templates/_journal_section.html:2530
+#: templates/_journal_section.html:2506
 msgid "Checking guiding data..."
 msgstr "Mise à jour des données..."
 
-#: templates/_journal_section.html:2531 templates/base.html:256
-#: templates/graph_view.html:444
+#: templates/_journal_section.html:2507 templates/base.html:256
+#: templates/graph_view.html:454
 msgid "Almost there..."
 msgstr "Nous y sommes presque..."
 
-#: templates/_journal_section.html:2532
+#: templates/_journal_section.html:2508
 msgid "Nova writing…"
 msgstr "Nova writing…"
 
-#: templates/_journal_section.html:2533
+#: templates/_journal_section.html:2509
 msgid "words"
 msgstr "Mot de passe"
 
-#: templates/_journal_section.html:2534
+#: templates/_journal_section.html:2510
 msgid "Nova has a summary ready. What would you like to do?"
 msgstr "Nova a un résumé prêt. Que souhaitez-vous faire ?"
 
-#: templates/_journal_section.html:2535 templates/graph_view.html:447
+#: templates/_journal_section.html:2511 templates/graph_view.html:457
 msgid "Overwrite"
 msgstr "Aperçu"
 
-#: templates/_journal_section.html:2536 templates/graph_view.html:448
+#: templates/_journal_section.html:2512 templates/graph_view.html:458
 msgid "Append"
 msgstr "Ajouter"
 
-#: templates/_journal_section.html:2538
+#: templates/_journal_section.html:2514
 msgid "Nova error"
 msgstr "Nova error"
 
-#: templates/_journal_section.html:2539
+#: templates/_journal_section.html:2515
 #, fuzzy
 msgid "Draft saved"
 msgstr "Enregistrer"
 
-#: templates/_journal_section.html:2540
+#: templates/_journal_section.html:2516
 msgid "Please save the session first before asking Nova."
 msgstr "Veuillez d'abord enregistrer la session avant de demander à Nova."
 
@@ -2017,7 +2026,7 @@ msgstr "Rechercher les doublons"
 msgid "Filter ID"
 msgstr "Filtre ID"
 
-#: templates/_objects_section.html:31 templates/mobile_journal_new.html:20
+#: templates/_objects_section.html:31 templates/mobile_journal_new.html:216
 msgid "e.g., M42"
 msgstr "par exemple, M42"
 
@@ -2040,9 +2049,9 @@ msgid "e.g., Cyg"
 msgstr "par exemple, Cyg"
 
 #: templates/_objects_section.html:42 templates/_objects_section.html:138
-#: templates/_objects_section.html:290 templates/config_form.html:542
-#: templates/config_form.html:606 templates/index.html:144
-#: templates/mobile_up_now.html:969
+#: templates/_objects_section.html:290 templates/config_form.html:572
+#: templates/config_form.html:636 templates/index.html:144
+#: templates/mobile_up_now.html:965
 msgid "Type"
 msgstr "Type"
 
@@ -2071,13 +2080,13 @@ msgid "Shared by Me"
 msgstr "Partagé par moi"
 
 #: templates/_objects_section.html:54 templates/_objects_section.html:111
-#: templates/base.html:120 templates/config_form.html:560
-#: templates/config_form.html:589 templates/config_form.html:625
+#: templates/base.html:120 templates/config_form.html:590
+#: templates/config_form.html:619 templates/config_form.html:655
 msgid "Imported"
 msgstr "Importé"
 
 #: templates/_objects_section.html:58 templates/_objects_section.html:158
-#: templates/graph_view.html:210
+#: templates/graph_view.html:219
 msgid "Source"
 msgstr "Source"
 
@@ -2085,9 +2094,9 @@ msgstr "Source"
 msgid "e.g., messier (use = for exact)"
 msgstr "par exemple, messier (utilisation = pour exact)"
 
-#: templates/_objects_section.html:63 templates/config_form.html:545
-#: templates/graph_view.html:162 templates/mobile_journal_new.html:143
-#: templates/mobile_object_detail.html:519 templates/project_report.html:1086
+#: templates/_objects_section.html:63 templates/config_form.html:575
+#: templates/graph_view.html:171 templates/mobile_journal_new.html:376
+#: templates/mobile_object_detail.html:534 templates/project_report.html:1074
 msgid "Notes"
 msgstr "Remarques"
 
@@ -2166,7 +2175,7 @@ msgid "Enabled"
 msgstr "Activé"
 
 #: templates/_objects_section.html:172 templates/_objects_section.html:309
-#: templates/graph_view.html:177
+#: templates/graph_view.html:186
 msgid "Active Project"
 msgstr "Projet actif"
 
@@ -2174,7 +2183,7 @@ msgstr "Projet actif"
 msgid "Update"
 msgstr "Mise à jour"
 
-#: templates/_objects_section.html:184 templates/graph_view.html:187
+#: templates/_objects_section.html:184 templates/graph_view.html:196
 msgid "Inspiration Content"
 msgstr "Contenu inspirant"
 
@@ -2225,7 +2234,7 @@ msgid "Personal notes... (not shared)"
 msgstr "Notes personnelles... (non partagées)"
 
 #: templates/_objects_section.html:236 templates/_objects_section.html:425
-#: templates/config_form.html:640
+#: templates/config_form.html:670
 msgid "Shared Notes"
 msgstr "Notes partagées"
 
@@ -2241,7 +2250,7 @@ msgstr "Partager cet objet avec d'autres utilisateurs"
 msgid "Update Objects"
 msgstr "Mettre à jour les objets"
 
-#: templates/_objects_section.html:265 templates/config_form.html:540
+#: templates/_objects_section.html:265 templates/config_form.html:570
 #: templates/index.html:191 templates/mobile_add_object.html:17
 msgid "Object ID"
 msgstr "Identifiant de l'objet"
@@ -2324,13 +2333,13 @@ msgid ""
 "your library. Importing is non-destructive: existing objects are never "
 "overwritten, and overlapping objects are skipped."
 msgstr ""
-"Les packs de catalogue sont des collections d'objets fournies par le serveur"
-" que vous pouvez importer dans votre bibliothèque. L'importation est non "
-"destructive : les objets existants ne sont jamais écrasés et les objets qui "
-"se chevauchent sont ignorés."
+"Les packs de catalogue sont des collections d'objets fournies par le "
+"serveur que vous pouvez importer dans votre bibliothèque. L'importation "
+"est non destructive : les objets existants ne sont jamais écrasés et les "
+"objets qui se chevauchent sont ignorés."
 
-#: templates/_objects_section.html:386 templates/config_form.html:577
-#: templates/graph_view.html:206
+#: templates/_objects_section.html:386 templates/config_form.html:607
+#: templates/graph_view.html:215
 msgid "Description"
 msgstr "Description"
 
@@ -2342,8 +2351,8 @@ msgstr "Étiquettes"
 msgid "Objects"
 msgstr "Objets"
 
-#: templates/_objects_section.html:389 templates/config_form.html:546
-#: templates/config_form.html:579 templates/config_form.html:608
+#: templates/_objects_section.html:389 templates/config_form.html:576
+#: templates/config_form.html:609 templates/config_form.html:638
 msgid "Action"
 msgstr "Action"
 
@@ -2362,17 +2371,18 @@ msgstr "Doublons potentiels"
 
 #: templates/_objects_section.html:435
 msgid ""
-"These pairs are located within 2.5 arcminutes of each other. Merging will "
-"move all journals, projects, and framings to the \"Kept\" object and delete "
-"the other. Please note that objects from different catalogs might have "
-"slightly different RA / DEC and will therefore not be considered as "
+"These pairs are located within 2.5 arcminutes of each other. Merging will"
+" move all journals, projects, and framings to the \"Kept\" object and "
+"delete the other. Please note that objects from different catalogs might "
+"have slightly different RA / DEC and will therefore not be considered as "
 "duplicates."
 msgstr ""
-"Ces paires sont situées à moins de 2,5 minutes d'arc l'une de l'autre. La "
-"fusion déplacera tous les journaux, projets et cadrages vers l'objet « "
-"Conservé » et supprimera l'autre. Veuillez noter que les objets provenant de"
-" catalogues différents peuvent avoir des coordonnées RA / DEC légèrement "
-"différentes et ne seront donc pas considérés comme des doublons."
+"Ces paires sont situées à moins de 2,5 minutes d'arc l'une de l'autre. La"
+" fusion déplacera tous les journaux, projets et cadrages vers l'objet « "
+"Conservé » et supprimera l'autre. Veuillez noter que les objets provenant"
+" de catalogues différents peuvent avoir des coordonnées RA / DEC "
+"légèrement différentes et ne seront donc pas considérés comme des "
+"doublons."
 
 #: templates/_objects_section.html:438
 msgid "Scanning catalog... (this may take a few seconds)"
@@ -2384,8 +2394,8 @@ msgstr "Possibilités d'imagerie"
 
 #: templates/_opportunities_section.html:35 templates/index.html:184
 #: templates/index.html:194 templates/index.html:212
-#: templates/journal_report.html:686 templates/mobile_journal_new.html:14
-#: templates/project_report.html:864
+#: templates/journal_report.html:686 templates/mobile_journal_new.html:210
+#: templates/project_report.html:859
 msgid "Date"
 msgstr "Données"
 
@@ -2420,13 +2430,13 @@ msgstr "Ajouter au calendrier"
 
 #: templates/_project_subtab.html:145
 msgid ""
-"This object is not currently linked to a Project. The **Project Details** "
-"sub-tab will only appear if the object is the primary target of an existing "
-"project."
+"This object is not currently linked to a Project. The **Project Details**"
+" sub-tab will only appear if the object is the primary target of an "
+"existing project."
 msgstr ""
-"Cet objet n'est actuellement lié à aucun projet. Le sous-onglet **Détails du"
-" projet** n'apparaîtra que si l'objet est la cible principale d'un projet "
-"existant."
+"Cet objet n'est actuellement lié à aucun projet. Le sous-onglet **Détails"
+" du projet** n'apparaîtra que si l'objet est la cible principale d'un "
+"projet existant."
 
 #: templates/_project_subtab.html:153
 msgid "Total Integration Time"
@@ -2456,8 +2466,8 @@ msgstr "Date (UTC)"
 #: templates/_project_subtab.html:195 templates/graph_view.html:52
 #: templates/index.html:36 templates/index.html:185 templates/index.html:195
 #: templates/journal_report.html:688 templates/mobile_base.html:30
-#: templates/mobile_base.html:68 templates/mobile_journal_new.html:24
-#: templates/project_report.html:865
+#: templates/mobile_base.html:68 templates/mobile_journal_new.html:225
+#: templates/project_report.html:860
 msgid "Location"
 msgstr "Emplacement"
 
@@ -2465,11 +2475,11 @@ msgstr "Emplacement"
 msgid "Integ. Time"
 msgstr "Temps intégré"
 
-#: templates/_project_subtab.html:198 templates/project_report.html:1121
+#: templates/_project_subtab.html:198 templates/project_report.html:1109
 msgid "SQM"
 msgstr "SQM"
 
-#: templates/_project_subtab.html:199 templates/project_report.html:1107
+#: templates/_project_subtab.html:199 templates/project_report.html:1095
 msgid "Seeing"
 msgstr "Voir"
 
@@ -2558,7 +2568,7 @@ msgstr "Actions"
 msgid "admin"
 msgstr "Administrateur"
 
-#: templates/admin_users.html:86 templates/mobile_up_now.html:890
+#: templates/admin_users.html:86 templates/mobile_up_now.html:894
 msgid "Active"
 msgstr "Actif"
 
@@ -2584,8 +2594,9 @@ msgid ""
 "Delete user '%(username)s'? This removes their login credentials. Their "
 "observing data in app.db is NOT deleted."
 msgstr ""
-"Supprimer l'utilisateur « %(username)s » ? Cela supprime ses identifiants de"
-" connexion. Ses données d'observation dans app.db ne sont PAS supprimées."
+"Supprimer l'utilisateur « %(username)s » ? Cela supprime ses identifiants"
+" de connexion. Ses données d'observation dans app.db ne sont PAS "
+"supprimées."
 
 #: templates/admin_users.html:118
 msgid "New password"
@@ -2608,8 +2619,8 @@ msgstr "Tableau de bord analytique"
 #, python-format
 msgid "Anonymous usage insights — Last %(days_count)s days"
 msgstr ""
-"Statistiques d'utilisation anonymes — Au cours des derniers %(days_count)s "
-"jours"
+"Statistiques d'utilisation anonymes — Au cours des derniers "
+"%(days_count)s jours"
 
 #: templates/analytics.html:256
 msgid "User Activity"
@@ -2661,8 +2672,7 @@ msgstr "Jours actifs"
 
 #: templates/analytics.html:319
 msgid "No feature usage data available yet"
-msgstr ""
-"Aucune donnée d'utilisation des fonctionnalités n'est encore disponible."
+msgstr "Aucune donnée d'utilisation des fonctionnalités n'est encore disponible."
 
 #: templates/analytics.html:324
 msgid "Nova DSO Tracker Analytics — GDPR compliant, no PII stored"
@@ -2775,13 +2785,13 @@ msgstr "-- Sélectionnez un télescope --"
 msgid "Select Camera"
 msgstr "-- Sélectionnez un appareil photo --"
 
-#: templates/base.html:141 templates/config_form.html:615
-#: templates/project_report.html:1139
+#: templates/base.html:141 templates/config_form.html:645
+#: templates/project_report.html:1127
 msgid "Telescope"
 msgstr "Télescope"
 
-#: templates/base.html:142 templates/config_form.html:616
-#: templates/project_report.html:1143
+#: templates/base.html:142 templates/config_form.html:646
+#: templates/project_report.html:1131
 msgid "Camera"
 msgstr "Chambre"
 
@@ -2816,7 +2826,8 @@ msgstr "Erreur lors du chargement des données."
 #: templates/base.html:151
 msgid "Import failed. See console for details."
 msgstr ""
-"Importation échouée. Consultez les journaux du serveur pour plus de détails."
+"Importation échouée. Consultez les journaux du serveur pour plus de "
+"détails."
 
 #: templates/base.html:152
 msgid "Upload failed. See console."
@@ -2907,7 +2918,7 @@ msgstr "Échec de la copie dans le presse-papiers."
 msgid "selected"
 msgstr "0 Sélectionné"
 
-#: templates/base.html:176 templates/mobile_object_detail.html:574
+#: templates/base.html:176 templates/mobile_object_detail.html:589
 msgid "No imaging opportunities found."
 msgstr "Possibilités d'imagerie"
 
@@ -2943,14 +2954,13 @@ msgstr "Erreur lors de la création du projet : %(error)s"
 
 #: templates/base.html:189
 msgid "SIMBAD requires an active internet connection to load data."
-msgstr ""
-"SIMBAD nécessite une connexion internet active pour charger les données."
+msgstr "SIMBAD nécessite une connexion internet active pour charger les données."
 
 #: templates/base.html:190
 msgid "SIMBAD requires an active internet connection."
 msgstr "SIMBAD nécessite une connexion internet active."
 
-#: templates/base.html:191 templates/mobile_object_detail.html:580
+#: templates/base.html:191 templates/mobile_object_detail.html:595
 msgid "Add to calendar"
 msgstr "Ajouter au calendrier"
 
@@ -2962,10 +2972,11 @@ msgstr "Erreur lors de l'ajout du composant : %(error)s"
 #: templates/base.html:193
 #, python-format
 msgid ""
-"Failed to load imaging opportunities. Check console for details. (%(error)s)"
+"Failed to load imaging opportunities. Check console for details. "
+"(%(error)s)"
 msgstr ""
-"Échec du chargement des opportunités d'imagerie. Vérifier la console pour "
-"plus de détails. (%(error)s)"
+"Échec du chargement des opportunités d'imagerie. Vérifier la console pour"
+" plus de détails. (%(error)s)"
 
 #: templates/base.html:194
 msgid "Please configure at least one rig on the Configuration page first."
@@ -3006,7 +3017,8 @@ msgstr "Enregistrer le cadrage"
 #: templates/base.html:202
 msgid "Image upload failed. See console for details."
 msgstr ""
-"Importation échouée. Consultez les journaux du serveur pour plus de détails."
+"Importation échouée. Consultez les journaux du serveur pour plus de "
+"détails."
 
 #: templates/base.html:205
 msgid "No timeline data to display."
@@ -3114,17 +3126,17 @@ msgid ""
 "Did you know you can display your own astrophotos or favorite reference "
 "images here?"
 msgstr ""
-"Saviez-vous que vous pouvez afficher vos propres astrophotos ou images de "
-"référence préférées ici ?"
+"Saviez-vous que vous pouvez afficher vos propres astrophotos ou images de"
+" référence préférées ici ?"
 
 #: templates/base.html:241
 msgid ""
 "Go to Configuration - Manage Objects to add Inspiration Content to your "
 "targets."
 msgstr ""
-"Allez dans <strong>Configuration > Gérer les objets</strong> pour ajouter du"
-" \"Contenu d'inspiration\" (URLs d'images, crédits, descriptions) à vos "
-"cibles."
+"Allez dans <strong>Configuration > Gérer les objets</strong> pour ajouter"
+" du \"Contenu d'inspiration\" (URLs d'images, crédits, descriptions) à "
+"vos cibles."
 
 #: templates/base.html:245
 msgid "Asking Nova..."
@@ -3165,7 +3177,7 @@ msgstr "Erreur lors de la demande à Nova. Veuillez réessayer."
 msgid "Consulting star charts..."
 msgstr "Consulter la carte des étoiles..."
 
-#: templates/base.html:254 templates/graph_view.html:441
+#: templates/base.html:254 templates/graph_view.html:451
 msgid "Checking your rigs..."
 msgstr "Consultez votre bibliothèque locale..."
 
@@ -3193,8 +3205,9 @@ msgid ""
 "You are viewing a read-only demo. Full functionality (like saving) is "
 "enabled for registered users."
 msgstr ""
-"Vous consultez une démo en lecture seule. Toutes les fonctionnalités (comme "
-"l'enregistrement) sont disponibles pour les utilisateurs enregistrés."
+"Vous consultez une démo en lecture seule. Toutes les fonctionnalités "
+"(comme l'enregistrement) sont disponibles pour les utilisateurs "
+"enregistrés."
 
 #: templates/base.html:314
 msgid "About Nova DSO Tracker"
@@ -3237,101 +3250,101 @@ msgid ""
 "The translations for this language are machine-generated and may not be "
 "accurate. Help improve them!"
 msgstr ""
-"Les traductions de cette langue sont générées automatiquement et peuvent ne "
-"pas être précises. Aidez-nous à les améliorer !"
+"Les traductions de cette langue sont générées automatiquement et peuvent "
+"ne pas être précises. Aidez-nous à les améliorer !"
 
 #: templates/base.html:382
 msgid "Submit feedback"
 msgstr "Envoyer des commentaires"
 
-#: templates/base.html:401 templates/config_form.html:283
-#: templates/config_form.html:351
+#: templates/base.html:402 templates/config_form.html:298
+#: templates/config_form.html:381
 msgid "Help"
 msgstr "Aide"
 
-#: templates/base.html:419
+#: templates/base.html:422
 msgid "Nova DSO Tracker Logo"
 msgstr "Nova DSO Tracker Logo"
 
-#: templates/base.html:421
+#: templates/base.html:424
 msgid "Version"
 msgstr "Version"
 
-#: templates/base.html:422
-msgid ""
-"A personal project born from a passion for astronomy and astrophotography."
+#: templates/base.html:425
+msgid "A personal project born from a passion for astronomy and astrophotography."
 msgstr ""
 "Un projet personnel né d'une passion pour l'astronomie et "
 "l'astrophotographie."
 
-#: templates/base.html:423
+#: templates/base.html:426
 msgid ""
 "Nova DSO Tracker helps amateur astronomers plan observation sessions, "
 "calculating and visualizing altitude and azimuth of deep-sky objects, "
-"tracking Moon position and phase, and identifying optimal viewing windows."
+"tracking Moon position and phase, and identifying optimal viewing "
+"windows."
 msgstr ""
 "Nova DSO Tracker aide les astronomes amateurs à planifier leurs séances "
 "d'observation, en calculant et en visualisant l'altitude et l'azimut des "
-"objets du ciel profond, en suivant la position et la phase de la Lune, et en"
-" identifiant les fenêtres d'observation optimales."
+"objets du ciel profond, en suivant la position et la phase de la Lune, et"
+" en identifiant les fenêtres d'observation optimales."
 
-#: templates/base.html:424
+#: templates/base.html:427
 msgid "Data sourced from SIMBAD; calculations powered by Astropy and Ephem."
 msgstr "Données provenant de SIMBAD ; calculs effectués par Astropy et Ephem."
 
-#: templates/base.html:432
+#: templates/base.html:435
 msgid "Visit nova-tracker.com"
 msgstr "Visitez nova-tracker.com"
 
-#: templates/base.html:442
+#: templates/base.html:445
 msgid "Built by Anton Gutscher"
 msgstr "Conçu par Anton Gutscher"
 
-#: templates/base.html:457
+#: templates/base.html:460
 msgid "Translation Feedback"
 msgstr "Commentaires de traduction"
 
-#: templates/base.html:458
+#: templates/base.html:461
 msgid "Help us improve the translations for this language."
 msgstr "Aidez-nous à améliorer les traductions de cette langue."
 
-#: templates/base.html:462
+#: templates/base.html:465
 msgid "Locale"
 msgstr "Paramètres régionaux"
 
-#: templates/base.html:467
+#: templates/base.html:470
 msgid "Term / Phrase"
 msgstr "Terme / Expression"
 
-#: templates/base.html:468
+#: templates/base.html:471
 msgid "The translated term that seems wrong..."
 msgstr "Le terme traduit qui semble incorrect..."
 
-#: templates/base.html:472
+#: templates/base.html:475
 msgid "Suggested Correction"
 msgstr "Correction Suggérée"
 
-#: templates/base.html:473
+#: templates/base.html:476
 msgid "Your suggested translation..."
 msgstr "Votre traduction suggérée..."
 
-#: templates/base.html:477
+#: templates/base.html:480
 msgid "Context / Notes"
 msgstr "Contexte / Notes"
 
-#: templates/base.html:477
+#: templates/base.html:480
 msgid "optional"
 msgstr "(facultatif)"
 
-#: templates/base.html:478
+#: templates/base.html:481
 msgid ""
 "Additional context about where this appears or why the correction is "
 "needed..."
 msgstr ""
-"Contexte supplémentaire sur où cela apparaît ou pourquoi la correction est "
-"nécessaire..."
+"Contexte supplémentaire sur où cela apparaît ou pourquoi la correction "
+"est nécessaire..."
 
-#: templates/base.html:482
+#: templates/base.html:485
 msgid "Submit"
 msgstr "Soumettre"
 
@@ -3421,7 +3434,8 @@ msgid ""
 "updates automatically."
 msgstr ""
 "Choisissez l'apparence de Nova. « Suivre le système » correspond aux "
-"paramètres de votre système d'exploitation et se met à jour automatiquement."
+"paramètres de votre système d'exploitation et se met à jour "
+"automatiquement."
 
 #: templates/config_form.html:153
 msgid "Min Observable (min):"
@@ -3451,12 +3465,12 @@ msgstr "Calc. Objets invisibles :"
 #: templates/config_form.html:188
 msgid ""
 "If checked, Nova will calculate curves for ALL objects, even those "
-"geometrically impossible to see from your location (disabling the \"Smart "
-"Skip\" optimization)."
+"geometrically impossible to see from your location (disabling the \"Smart"
+" Skip\" optimization)."
 msgstr ""
-"Si cette option est cochée, Nova calculera les courbes pour TOUS les objets,"
-" même ceux qui sont géométriquement impossibles à voir depuis votre "
-"emplacement (désactivant ainsi l'optimisation « Smart Skip »)."
+"Si cette option est cochée, Nova calculera les courbes pour TOUS les "
+"objets, même ceux qui sont géométriquement impossibles à voir depuis "
+"votre emplacement (désactivant ainsi l'optimisation « Smart Skip »)."
 
 #: templates/config_form.html:194
 msgid "Hide Invisible Objects:"
@@ -3464,13 +3478,13 @@ msgstr "Masquer les objets invisibles :"
 
 #: templates/config_form.html:199
 msgid ""
-"If checked, objects that are geometrically impossible to see will be hidden "
-"from the main list by default. They will still appear if you specifically "
-"search for them."
+"If checked, objects that are geometrically impossible to see will be "
+"hidden from the main list by default. They will still appear if you "
+"specifically search for them."
 msgstr ""
-"Si cette option est cochée, les objets qui sont géométriquement impossibles "
-"à voir seront masqués par défaut dans la liste principale. Ils apparaîtront "
-"toujours si vous les recherchez spécifiquement."
+"Si cette option est cochée, les objets qui sont géométriquement "
+"impossibles à voir seront masqués par défaut dans la liste principale. "
+"Ils apparaîtront toujours si vous les recherchez spécifiquement."
 
 #: templates/config_form.html:206
 msgid "Calculation Precision:"
@@ -3500,13 +3514,14 @@ msgstr "Le plus rapide (échantillons de 60 min)"
 msgid ""
 "Note: Your 'Current Altitude' is always calculated in real-time. This "
 "setting only refines the accuracy of the nightly overview values (Max "
-"Altitude, Observable Duration, etc.). 'Fast' is recommended for low-power "
-"devices."
+"Altitude, Observable Duration, etc.). 'Fast' is recommended for low-power"
+" devices."
 msgstr ""
-"Remarque : votre « altitude actuelle » est toujours calculée en temps réel. "
-"Ce paramètre permet uniquement d'affiner la précision des valeurs globales "
-"nocturnes (altitude maximale, durée d'observabilité, etc.). Le mode « Rapide"
-" » est recommandé pour les appareils à faible consommation d'énergie."
+"Remarque : votre « altitude actuelle » est toujours calculée en temps "
+"réel. Ce paramètre permet uniquement d'affiner la précision des valeurs "
+"globales nocturnes (altitude maximale, durée d'observabilité, etc.). Le "
+"mode « Rapide » est recommandé pour les appareils à faible consommation "
+"d'énergie."
 
 #: templates/config_form.html:224
 msgid "Anonymous Telemetry:"
@@ -3514,16 +3529,16 @@ msgstr "Télémétrie anonyme :"
 
 #: templates/config_form.html:229
 msgid ""
-"Nova sends a small anonymous heartbeat (app version, system type, and counts"
-" of your data entries like objects, rigs, locations, and journals). No "
-"personal details are ever collected, and you can opt out anytime. Allowing "
-"it really helps me improve Nova."
+"Nova sends a small anonymous heartbeat (app version, system type, and "
+"counts of your data entries like objects, rigs, locations, and journals)."
+" No personal details are ever collected, and you can opt out anytime. "
+"Allowing it really helps me improve Nova."
 msgstr ""
 "Nova envoie un petit signal anonyme (version de l'application, type de "
 "système et nombre d'entrées de données telles que les objets, les "
-"plateformes, les emplacements et les journaux). Aucune donnée personnelle "
-"n'est collectée et vous pouvez vous désinscrire à tout moment. Autoriser "
-"cette fonctionnalité m'aide vraiment à améliorer Nova."
+"plateformes, les emplacements et les journaux). Aucune donnée personnelle"
+" n'est collectée et vous pouvez vous désinscrire à tout moment. Autoriser"
+" cette fonctionnalité m'aide vraiment à améliorer Nova."
 
 #: templates/config_form.html:234
 msgid "Save Settings"
@@ -3537,8 +3552,8 @@ msgstr "Configuration des lieux"
 msgid "Add New Location"
 msgstr "Ajouter un nouveau lieu"
 
-#: templates/config_form.html:252 templates/config_form.html:392
-#: templates/config_form.html:411 templates/config_form.html:431
+#: templates/config_form.html:252 templates/config_form.html:422
+#: templates/config_form.html:441 templates/config_form.html:461
 #: templates/index.html:257
 msgid "Name:"
 msgstr "Nom :"
@@ -3547,15 +3562,15 @@ msgstr "Nom :"
 msgid "e.g., Home Observatory"
 msgstr "Par exemple, Observatoire domestique"
 
-#: templates/config_form.html:256 templates/config_form.html:315
+#: templates/config_form.html:256 templates/config_form.html:330
 msgid "Lat:"
 msgstr "Lat :"
 
-#: templates/config_form.html:260 templates/config_form.html:319
+#: templates/config_form.html:260 templates/config_form.html:334
 msgid "Lon:"
 msgstr "Lon :"
 
-#: templates/config_form.html:264 templates/config_form.html:323
+#: templates/config_form.html:264 templates/config_form.html:338
 msgid "Timezone:"
 msgstr "Fuseau horaire :"
 
@@ -3563,458 +3578,513 @@ msgstr "Fuseau horaire :"
 msgid "Type to search..."
 msgstr "Tapez pour rechercher..."
 
-#: templates/config_form.html:273 templates/config_form.html:331
+#: templates/config_form.html:273 templates/config_form.html:346
 msgid "Active:"
 msgstr "Actif :"
 
-#: templates/config_form.html:282 templates/config_form.html:350
+#: templates/config_form.html:277 templates/config_form.html:350
+#, fuzzy
+msgid "Bortle:"
+msgstr "Remarques :"
+
+#: templates/config_form.html:279 templates/config_form.html:352
+#, fuzzy
+msgid "Not set"
+msgstr "Remarques"
+
+#: templates/config_form.html:280 templates/config_form.html:353
+msgid "Exceptional dark sky"
+msgstr ""
+
+#: templates/config_form.html:281 templates/config_form.html:354
+msgid "Truly dark sky"
+msgstr ""
+
+#: templates/config_form.html:282 templates/config_form.html:355
+msgid "Rural sky"
+msgstr ""
+
+#: templates/config_form.html:283 templates/config_form.html:356
+msgid "Rural/suburban transition"
+msgstr ""
+
+#: templates/config_form.html:284 templates/config_form.html:357
+msgid "Suburban sky"
+msgstr ""
+
+#: templates/config_form.html:285 templates/config_form.html:358
+msgid "Bright suburban sky"
+msgstr ""
+
+#: templates/config_form.html:286 templates/config_form.html:359
+msgid "Suburban/urban transition"
+msgstr ""
+
+#: templates/config_form.html:287 templates/config_form.html:360
+msgid "City sky"
+msgstr ""
+
+#: templates/config_form.html:288 templates/config_form.html:361
+msgid "Inner-city sky"
+msgstr ""
+
+#: templates/config_form.html:297 templates/config_form.html:380
 msgid "Horizon Mask:"
 msgstr "Masque Horizon :"
 
-#: templates/config_form.html:286 templates/config_form.html:354
+#: templates/config_form.html:301 templates/config_form.html:384
 msgid "Optional. e.g., [[0, 35], [90, 15]]"
 msgstr "Facultatif. Par exemple, [[0, 35], [90, 15]]"
 
-#: templates/config_form.html:288 templates/config_form.html:356
+#: templates/config_form.html:303 templates/config_form.html:386
 msgid "Import a Stellarium .hzn horizon file"
 msgstr "Importer un fichier horizon .hzn dans Stellarium"
 
-#: templates/config_form.html:288 templates/config_form.html:356
+#: templates/config_form.html:303 templates/config_form.html:386
 msgid "Import .hzn"
 msgstr "Importer .hzn"
 
-#: templates/config_form.html:298 templates/config_form.html:365
+#: templates/config_form.html:313 templates/config_form.html:395
 msgid "Comments:"
 msgstr "Commentaires :"
 
-#: templates/config_form.html:299 templates/config_form.html:366
+#: templates/config_form.html:314 templates/config_form.html:396
 msgid "Notes on sky quality, obstructions, etc."
 msgstr "Remarques sur la qualité du ciel, les obstacles, etc."
 
-#: templates/config_form.html:304
+#: templates/config_form.html:319
 msgid "Add"
 msgstr "Ajouter"
 
-#: templates/config_form.html:335
+#: templates/config_form.html:365
 msgid "Del:"
 msgstr "Suppr :"
 
-#: templates/config_form.html:337
+#: templates/config_form.html:367
 msgid "Cannot delete your only location"
 msgstr "Impossible de supprimer votre seul emplacement"
 
-#: templates/config_form.html:341
+#: templates/config_form.html:371
 msgid "View on Google Maps"
 msgstr "Voir sur Google Maps"
 
-#: templates/config_form.html:342
+#: templates/config_form.html:372
 msgid "Open Map"
 msgstr "Ouvrir la carte"
 
-#: templates/config_form.html:373
+#: templates/config_form.html:403
 msgid "Update Locations"
 msgstr "Mettre à jour les lieux"
 
-#: templates/config_form.html:384
+#: templates/config_form.html:414
 msgid "1. Define Your Components"
 msgstr "1. Définissez vos composants"
 
-#: templates/config_form.html:385
+#: templates/config_form.html:415
 msgid "Help with Rigs"
 msgstr "Aide pour les rigs"
 
-#: templates/config_form.html:387
+#: templates/config_form.html:417
 msgid ""
-"Add or update your equipment here. To edit an item, click \"Edit\" to load "
-"its details into the form, make your changes, and click the \"Update\" "
-"button."
+"Add or update your equipment here. To edit an item, click \"Edit\" to "
+"load its details into the form, make your changes, and click the "
+"\"Update\" button."
 msgstr ""
 "Ajoutez ou mettez à jour votre équipement ici. Pour modifier un élément, "
 "cliquez sur « Modifier » afin d'afficher ses détails dans le formulaire, "
 "apportez vos modifications, puis cliquez sur le bouton « Mettre à jour »."
 
-#: templates/config_form.html:388
+#: templates/config_form.html:418
 msgid "Telescopes"
 msgstr "Télescopes"
 
-#: templates/config_form.html:392
+#: templates/config_form.html:422
 msgid "e.g., Celestron EdgeHD 11"
 msgstr "par exemple, Celestron EdgeHD 11"
 
-#: templates/config_form.html:393
+#: templates/config_form.html:423
 msgid "Aperture (mm):"
 msgstr "Ouvertures (mm) :"
 
-#: templates/config_form.html:394
+#: templates/config_form.html:424
 msgid "Focal Length (mm):"
 msgstr "Distance focale (mm) :"
 
-#: templates/config_form.html:398 templates/config_form.html:418
-#: templates/config_form.html:436
+#: templates/config_form.html:428 templates/config_form.html:448
+#: templates/config_form.html:466
 msgid "Share this component"
 msgstr "Partager ce composant"
 
-#: templates/config_form.html:401
+#: templates/config_form.html:431
 msgid "Add Telescope"
 msgstr "Ajouter un télescope"
 
-#: templates/config_form.html:407
+#: templates/config_form.html:437
 msgid "Cameras"
 msgstr "Caméras"
 
-#: templates/config_form.html:411
+#: templates/config_form.html:441
 msgid "e.g., ZWO ASI2600MC Pro"
 msgstr "Par exemple, ZWO ASI2600MC Pro"
 
-#: templates/config_form.html:412
+#: templates/config_form.html:442
 msgid "Sensor Width (mm):"
 msgstr "Largeur du capteur (mm) :"
 
-#: templates/config_form.html:413
+#: templates/config_form.html:443
 msgid "Sensor Height (mm):"
 msgstr "Hauteur du capteur (mm) :"
 
-#: templates/config_form.html:414
+#: templates/config_form.html:444
 msgid "Pixel Size (μm):"
 msgstr "Taille des pixels (μm) :"
 
-#: templates/config_form.html:421
+#: templates/config_form.html:451
 msgid "Add Camera"
 msgstr "Ajouter une caméra"
 
-#: templates/config_form.html:427
+#: templates/config_form.html:457
 msgid "Reducers / Extenders"
 msgstr "Réducteurs / Extendeurs"
 
-#: templates/config_form.html:431
+#: templates/config_form.html:461
 msgid "e.g., Celestron 0.7x Reducer"
 msgstr "Par exemple, réducteur Celestron 0,7x"
 
-#: templates/config_form.html:432
+#: templates/config_form.html:462
 msgid "Factor:"
 msgstr "Facteur :"
 
-#: templates/config_form.html:432
+#: templates/config_form.html:462
 msgid "e.g., 0.7 for reducer"
 msgstr "par exemple, 0,7 pour réduire"
 
-#: templates/config_form.html:439
+#: templates/config_form.html:469
 msgid "Add Reducer/Extender"
 msgstr "Ajouter réducteur/extendeur"
 
-#: templates/config_form.html:446
+#: templates/config_form.html:476
 msgid "2. Configure Your Rigs"
 msgstr "2. Configurez vos plateformes"
 
-#: templates/config_form.html:447
+#: templates/config_form.html:477
 msgid ""
-"Combine your components into a complete imaging rig. To edit, click \"Edit\""
-" to load the rig into the form below."
+"Combine your components into a complete imaging rig. To edit, click "
+"\"Edit\" to load the rig into the form below."
 msgstr ""
-"Combinez vos composants pour créer un dispositif d'imagerie complet. Pour "
-"modifier, cliquez sur « Modifier » afin de charger le dispositif dans le "
-"formulaire ci-dessous."
+"Combinez vos composants pour créer un dispositif d'imagerie complet. Pour"
+" modifier, cliquez sur « Modifier » afin de charger le dispositif dans le"
+" formulaire ci-dessous."
 
-#: templates/config_form.html:450
+#: templates/config_form.html:480
 msgid "Rig Name:"
 msgstr "Nom du rig :"
 
-#: templates/config_form.html:450
+#: templates/config_form.html:480
 msgid "e.g., C11 Deep Sky Rig"
 msgstr "Par exemple, C11 Deep Sky Rig"
 
-#: templates/config_form.html:454
+#: templates/config_form.html:484
 msgid "-- Select a Telescope --"
 msgstr "-- Sélectionnez un télescope --"
 
-#: templates/config_form.html:460
+#: templates/config_form.html:490
 msgid "-- Select a Camera --"
 msgstr "-- Sélectionnez un appareil photo --"
 
-#: templates/config_form.html:464
+#: templates/config_form.html:494
 msgid "Reducer / Extender (Optional):"
 msgstr "Réducteur / Prolongateur (en option) :"
 
-#: templates/config_form.html:466 templates/config_form.html:482
-#: templates/config_form.html:488
+#: templates/config_form.html:496 templates/config_form.html:512
+#: templates/config_form.html:518
 msgid "-- None --"
 msgstr "-- Aucun --"
 
-#: templates/config_form.html:471
+#: templates/config_form.html:501
 msgid "Guide Optics"
 msgstr "Optique de guidage"
 
-#: templates/config_form.html:471
+#: templates/config_form.html:501
 msgid "Optional — for dither recommendations"
 msgstr "Facultatif — pour les recommandations relatives au tramage"
 
-#: templates/config_form.html:476
+#: templates/config_form.html:506
 msgid "Off-Axis Guider (OAG) — uses main scope focal length"
-msgstr ""
-"Guider hors axe (OAG) — utilise la distance focale du télescope principal"
+msgstr "Guider hors axe (OAG) — utilise la distance focale du télescope principal"
 
-#: templates/config_form.html:480
+#: templates/config_form.html:510
 msgid "Guide Scope:"
 msgstr "Lunette de guidage :"
 
-#: templates/config_form.html:486
+#: templates/config_form.html:516
 msgid "Guide Camera:"
 msgstr "Caméra de guidage :"
 
-#: templates/config_form.html:492
+#: templates/config_form.html:522
 msgid "Create Rig"
 msgstr "Créer un rig"
 
-#: templates/config_form.html:496
+#: templates/config_form.html:526
 msgid "Select Your Typical Seeing:"
 msgstr "Sélectionnez votre vision habituelle :"
 
-#: templates/config_form.html:498
+#: templates/config_form.html:528
 msgid "-- Select Seeing to Assess Rigs --"
 msgstr "-- Sélectionner « Voir » pour évaluer les plates-formes --"
 
-#: templates/config_form.html:499
+#: templates/config_form.html:529
 msgid "Excellent Seeing (1.0\" - 2.0\" FWHM)"
 msgstr "Excellente visibilité (1,0\" - 2,0\" FWHM)"
 
-#: templates/config_form.html:500
+#: templates/config_form.html:530
 msgid "Good Seeing (2.0\" - 4.0\" FWHM)"
 msgstr "Bon seeing (2.0\" - 4.0\" FWHM)"
 
-#: templates/config_form.html:501
+#: templates/config_form.html:531
 msgid "Poor Seeing (> 4.0\" FWHM)"
 msgstr "Mauvais seeing (> 4.0\" FWHM)"
 
-#: templates/config_form.html:505
+#: templates/config_form.html:535
 msgid "Sort rigs by:"
 msgstr "Rigs noirs par :"
 
-#: templates/config_form.html:507
+#: templates/config_form.html:537
 msgid "Name (A→Z)"
 msgstr "Nom (A→Z)"
 
-#: templates/config_form.html:508
+#: templates/config_form.html:538
 msgid "Name (Z→A)"
 msgstr "Nom (Z→A)"
 
-#: templates/config_form.html:509
+#: templates/config_form.html:539
 msgid "Effective Focal Length (low→high)"
 msgstr "Distance focale effective (faible→élevée)"
 
-#: templates/config_form.html:510
+#: templates/config_form.html:540
 msgid "Effective Focal Length (high→low)"
 msgstr "Distance focale effective (haute→basse)"
 
-#: templates/config_form.html:511
+#: templates/config_form.html:541
 msgid "f/ratio (low→high)"
 msgstr "f/ratio (faible→élevé)"
 
-#: templates/config_form.html:512
+#: templates/config_form.html:542
 msgid "f/ratio (high→low)"
 msgstr "f/ratio (haut→bas)"
 
-#: templates/config_form.html:513
+#: templates/config_form.html:543
 msgid "Image Scale (low→high)"
 msgstr "Échelle d'image (faible→élevée)"
 
-#: templates/config_form.html:514
+#: templates/config_form.html:544
 msgid "Image Scale (high→low)"
 msgstr "Échelle d'image (élevée→faible)"
 
-#: templates/config_form.html:515
+#: templates/config_form.html:545
 msgid "FOV Width (low→high)"
 msgstr "Largeur du champ de vision (faible→élevée)"
 
-#: templates/config_form.html:516
+#: templates/config_form.html:546
 msgid "FOV Width (high→low)"
 msgstr "Largeur du champ de vision (haut→bas)"
 
-#: templates/config_form.html:517
+#: templates/config_form.html:547
 msgid "Recently Added (newest first)"
 msgstr "Ajouts récents (les plus récents en premier)"
 
-#: templates/config_form.html:518
+#: templates/config_form.html:548
 msgid "Recently Added (oldest first)"
 msgstr "Ajoutés récemment (les plus anciens en premier)"
 
-#: templates/config_form.html:521
+#: templates/config_form.html:551
 msgid "Existing Rigs"
 msgstr "Rigs existants"
 
-#: templates/config_form.html:529
+#: templates/config_form.html:559
 msgid "Shared Items from Other Users"
 msgstr "Éléments partagés par d'autres utilisateurs"
 
-#: templates/config_form.html:530
+#: templates/config_form.html:560
 msgid "Help with Shared Items"
 msgstr "Aide pour les éléments partagés"
 
-#: templates/config_form.html:532
+#: templates/config_form.html:562
 msgid ""
 "Here you can find Objects and Components shared by other users in the "
 "system. Click \"Import\" to add a copy to your own configuration."
 msgstr ""
 "Vous trouverez ici les objets et composants partagés par d'autres "
-"utilisateurs du système. Cliquez sur « Importer » pour ajouter une copie à "
-"votre propre configuration."
+"utilisateurs du système. Cliquez sur « Importer » pour ajouter une copie "
+"à votre propre configuration."
 
-#: templates/config_form.html:534
+#: templates/config_form.html:564
 msgid "Shared Objects"
 msgstr "Objets partagés"
 
-#: templates/config_form.html:539
+#: templates/config_form.html:569
 msgid "Img"
 msgstr "Img"
 
-#: templates/config_form.html:541 templates/index.html:133
+#: templates/config_form.html:571 templates/index.html:133
 #: templates/index.html:182 templates/index.html:211
 #: templates/mobile_add_object.html:21
 msgid "Common Name"
 msgstr "Nom commun"
 
-#: templates/config_form.html:544 templates/config_form.html:578
-#: templates/config_form.html:607
+#: templates/config_form.html:574 templates/config_form.html:608
+#: templates/config_form.html:637
 msgid "Shared By"
 msgstr "Partagé par"
 
-#: templates/config_form.html:550
+#: templates/config_form.html:580
 msgid "Filter ID..."
 msgstr "Filtrer ID..."
 
-#: templates/config_form.html:551 templates/config_form.html:582
-#: templates/config_form.html:611
+#: templates/config_form.html:581 templates/config_form.html:612
+#: templates/config_form.html:641
 msgid "Filter name..."
 msgstr "Filtrer nom..."
 
-#: templates/config_form.html:552
+#: templates/config_form.html:582
 msgid "Filter type..."
 msgstr "Filtrer type..."
 
-#: templates/config_form.html:553
+#: templates/config_form.html:583
 msgid "Filter con..."
 msgstr "Filtrer con..."
 
-#: templates/config_form.html:554 templates/config_form.html:584
-#: templates/config_form.html:620
+#: templates/config_form.html:584 templates/config_form.html:614
+#: templates/config_form.html:650
 msgid "Filter user..."
 msgstr "Filtrer utilisateur..."
 
-#: templates/config_form.html:558 templates/config_form.html:587
-#: templates/config_form.html:623
+#: templates/config_form.html:588 templates/config_form.html:617
+#: templates/config_form.html:653
 msgid "All"
 msgstr "Tous"
 
-#: templates/config_form.html:559 templates/config_form.html:588
-#: templates/config_form.html:624
+#: templates/config_form.html:589 templates/config_form.html:618
+#: templates/config_form.html:654
 msgid "Not Imported"
 msgstr "Non importé"
 
-#: templates/config_form.html:571
+#: templates/config_form.html:601
 msgid "Shared Views"
 msgstr "Vues partagées"
 
-#: templates/config_form.html:576
+#: templates/config_form.html:606
 msgid "View Name"
 msgstr "Nom de la vue"
 
-#: templates/config_form.html:583
+#: templates/config_form.html:613
 msgid "Filter desc..."
 msgstr "Filtrer desc..."
 
-#: templates/config_form.html:600
+#: templates/config_form.html:630
 msgid "Shared Components"
 msgstr "Composants partagés"
 
-#: templates/config_form.html:605
+#: templates/config_form.html:635
 msgid "Component Name"
 msgstr "Nom du composant"
 
-#: templates/config_form.html:614
+#: templates/config_form.html:644
 msgid "All Types"
 msgstr "Tous les types"
 
-#: templates/config_form.html:617
+#: templates/config_form.html:647
 msgid "Reducer/Extender"
 msgstr "Réducteur/Extendeur"
 
-#: templates/config_form.html:649
+#: templates/config_form.html:679
 msgid "Fetching Details..."
 msgstr "Récupération des détails..."
 
-#: templates/config_form.html:653
+#: templates/config_form.html:683
 msgid "Please wait, communicating with SIMBAD..."
 msgstr "Veuillez patienter, communication avec SIMBAD..."
 
 #: templates/graph_view.html:4 templates/journal_form.html:4
 #: templates/journal_report.html:6 templates/journal_report.html:1210
-#: templates/project_report.html:6 templates/project_report.html:1200
+#: templates/project_report.html:6 templates/project_report.html:1187
 msgid "Nova DSO Tracker"
 msgstr "Nova DSO Tracker"
 
 #: templates/graph_view.html:47
+#, fuzzy
 msgid "← Back to Dashboard"
-msgstr "← Retour au tableau de bord"
+msgstr "Retour au tableau de bord"
 
 #: templates/graph_view.html:53
+#, fuzzy
 msgid "Graph Date"
-msgstr "Date du graphique"
+msgstr "Date de recherche"
 
 #: templates/graph_view.html:54 templates/index.html:44
-#: templates/mobile_base.html:35 templates/project_report.html:1117
+#: templates/mobile_base.html:35 templates/project_report.html:1105
 msgid "Moon"
 msgstr "Lune"
 
 #: templates/graph_view.html:55
+#, fuzzy
 msgid "Moon Sep."
 msgstr "Lune septembre"
 
 #: templates/graph_view.html:57
+#, fuzzy
 msgid "ASTR. DUSK / DAWN"
-msgstr "ASTR. CRÉPUSCULE / AUBERGE"
+msgstr "Astr. Crépuscule / Aube"
 
 #: templates/graph_view.html:92
+#, fuzzy
 msgid "Chart"
-msgstr "Graphique"
+msgstr "Voir les graphiques"
 
-#: templates/graph_view.html:93 templates/graph_view.html:148
+#: templates/graph_view.html:93 templates/graph_view.html:157
+#, fuzzy
 msgid "Notes & Framing"
-msgstr "Notes et encadrement"
+msgstr "Enregistrer le cadrage"
 
-#: templates/graph_view.html:94 templates/mobile_object_detail.html:518
+#: templates/graph_view.html:94 templates/mobile_object_detail.html:533
 msgid "Opportunities"
 msgstr "Opportunités"
 
-#: templates/graph_view.html:96 templates/mobile_object_detail.html:513
+#: templates/graph_view.html:96 templates/mobile_object_detail.html:529
 msgid "SIMBAD"
 msgstr "Symbole"
 
 #: templates/graph_view.html:110
+#, fuzzy
 msgid "Loading Chart"
-msgstr "Chargement du graphique"
+msgstr "Tableau RMS indicatif"
 
-#: templates/graph_view.html:116 templates/mobile_object_detail.html:502
+#: templates/graph_view.html:116 templates/mobile_object_detail.html:519
 msgid "Day"
 msgstr "Jour"
 
-#: templates/graph_view.html:118 templates/mobile_object_detail.html:503
+#: templates/graph_view.html:118 templates/mobile_object_detail.html:520
 msgid "Month"
 msgstr "Mois"
 
-#: templates/graph_view.html:124 templates/mobile_object_detail.html:504
+#: templates/graph_view.html:124 templates/mobile_object_detail.html:521
 msgid "Year"
 msgstr "Année"
 
 #: templates/graph_view.html:126
+#, fuzzy
 msgid "Day View"
-msgstr "Vue journalière"
+msgstr "Vues enregistrées"
 
 #: templates/graph_view.html:127
+#, fuzzy
 msgid "Month View"
-msgstr "Vue mensuelle"
+msgstr "Mois"
 
 #: templates/graph_view.html:128
+#, fuzzy
 msgid "Year View"
-msgstr "Vue annuelle"
+msgstr "Aperçu"
 
 #: templates/graph_view.html:130 templates/mobile_add_object.html:3
 #: templates/mobile_add_object.html:4 templates/mobile_base.html:64
@@ -4022,281 +4092,330 @@ msgid "Add Object"
 msgstr "Ajouter un objet"
 
 #: templates/graph_view.html:134
+#, fuzzy
 msgid "How objects are ranked"
-msgstr "Comment les objets sont classés"
+msgstr "Aucun objet trouvé"
 
-#: templates/graph_view.html:149 templates/index.html:90
+#: templates/graph_view.html:139 templates/graph_view.html:658
+#, fuzzy
+msgid "Calibration Star"
+msgstr "Stratégie d'étalonnage"
+
+#: templates/graph_view.html:140
+#, fuzzy
+msgid "Refresh"
+msgstr "Cadres"
+
+#: templates/graph_view.html:158 templates/index.html:90
 msgid "Inspiration"
 msgstr "Inspiration"
 
-#: templates/graph_view.html:150
+#: templates/graph_view.html:159
+#, fuzzy
 msgid "Rig Data"
-msgstr "Données riches"
+msgstr "Données de connexion"
 
-#: templates/graph_view.html:156
+#: templates/graph_view.html:165
+#, fuzzy
 msgid "Show Framing"
-msgstr "Afficher l'encadrement"
+msgstr "Encadrement"
 
-#: templates/graph_view.html:157
+#: templates/graph_view.html:166
 msgid "Open in Stellarium"
-msgstr "Ouvrir dans Stellarium"
+msgstr ""
 
-#: templates/graph_view.html:173 templates/mobile_edit_notes.html:17
+#: templates/graph_view.html:182 templates/mobile_edit_notes.html:17
 #: templates/mobile_edit_notes.html:108 templates/mobile_edit_notes.html:122
 msgid "Save Notes"
 msgstr "Enregistrer les notes"
 
-#: templates/graph_view.html:189
+#: templates/graph_view.html:198
 msgid "Edit Object to Add Content"
-msgstr "Modifier l'objet pour ajouter du contenu"
-
-#: templates/graph_view.html:197
-msgid "Inspiration Image for"
-msgstr "Image d'inspiration pour"
-
-#: templates/graph_view.html:210
-msgid "External Source"
-msgstr "Source externe"
-
-#: templates/graph_view.html:218
-msgid ""
-"No inspiration content (custom image or description) has been added for this"
-" object yet."
 msgstr ""
-"Aucun contenu d'inspiration (image ou description personnalisée) n'a encore "
-"été ajouté pour cet objet."
+
+#: templates/graph_view.html:206
+#, fuzzy
+msgid "Inspiration Image for"
+msgstr "Inspiration"
 
 #: templates/graph_view.html:219
-msgid "Go to <strong>Configuration > Manage Objects</strong> to add one."
+#, fuzzy
+msgid "External Source"
+msgstr "Lien vers la source du texte"
+
+#: templates/graph_view.html:227
+msgid ""
+"No inspiration content (custom image or description) has been added for "
+"this object yet."
 msgstr ""
-"Allez dans <strong>Configuration > Gérer les objets</strong> pour en ajouter"
-" un."
 
 #: templates/graph_view.html:228
-msgid "Framing With Your Rigs"
-msgstr "Cadrage avec vos appareils"
-
-#: templates/graph_view.html:229
-msgid ""
-"Assessment is based on the object's largest dimension and may not reflect "
-"framing of specific features."
+#, fuzzy
+msgid "Go to <strong>Configuration > Manage Objects</strong> to add one."
 msgstr ""
-"L'évaluation est basée sur la plus grande dimension de l'objet et peut ne "
-"pas refléter la structure de certaines caractéristiques spécifiques."
+"Allez dans <strong>Configuration > Gérer les objets</strong> pour ajouter"
+" du \"Contenu d'inspiration\" (URLs d'images, crédits, descriptions) à "
+"vos cibles."
 
-#: templates/graph_view.html:233
+#: templates/graph_view.html:237
+#, fuzzy
+msgid "Framing With Your Rigs"
+msgstr "Consultez votre bibliothèque locale..."
+
+#: templates/graph_view.html:238
+msgid ""
+"Assessment is based on the object's largest dimension and may not reflect"
+" framing of specific features."
+msgstr ""
+
+#: templates/graph_view.html:242
+#, fuzzy
 msgid "Rig Name"
-msgstr "Nom de la plate-forme"
+msgstr "Nom du rig :"
 
-#: templates/graph_view.html:234
+#: templates/graph_view.html:243
+#, fuzzy
 msgid "Rig FOV"
-msgstr "Champ de vision large"
+msgstr "Riche"
 
-#: templates/graph_view.html:235
+#: templates/graph_view.html:244
+#, fuzzy
 msgid "Object Size"
-msgstr "Taille de l'objet"
-
-#: templates/graph_view.html:236
-msgid "Fit Assessment"
-msgstr "Évaluation de l'ajustement"
+msgstr "Identifiant de l'objet"
 
 #: templates/graph_view.html:245
+#, fuzzy
+msgid "Fit Assessment"
+msgstr "Modifier cette session"
+
+#: templates/graph_view.html:254
+#, fuzzy
 msgid "Mosaic Required"
-msgstr "Mosaïque requise"
+msgstr "Le nom du projet est obligatoire."
 
-#: templates/graph_view.html:246
+#: templates/graph_view.html:255
+#, fuzzy
 msgid "Fits with Rotation"
-msgstr "S'adapte avec rotation"
+msgstr "Inspiration"
 
-#: templates/graph_view.html:248
+#: templates/graph_view.html:257
+#, fuzzy
 msgid "Small Target"
-msgstr "Petite cible"
+msgstr "Cible principale"
 
-#: templates/graph_view.html:249
+#: templates/graph_view.html:258
 msgid "Wide Field"
-msgstr "Champ large"
-
-#: templates/graph_view.html:250
-msgid "Good Fit"
-msgstr "Bonne coupe"
-
-#: templates/graph_view.html:282
-msgid "Framing Assistant"
-msgstr "Assistant cadrage"
-
-#: templates/graph_view.html:287
-msgid "Help with Framing"
-msgstr "Aide à la mise en forme"
-
-#: templates/graph_view.html:292
-msgid "Lock FOV"
-msgstr "Verrouiller le champ de vision"
-
-#: templates/graph_view.html:293
-msgid ""
-"Displays the approximate location of geostationary satellites (corrected for"
-" your latitude)"
 msgstr ""
-"Affiche l'emplacement approximatif des satellites géostationnaires (corrigé "
-"en fonction de votre latitude)."
 
-#: templates/graph_view.html:293
-msgid "Geo Belt"
-msgstr "Ceinture géographique"
+#: templates/graph_view.html:259
+msgid "Good Fit"
+msgstr ""
 
-#: templates/graph_view.html:294
-msgid "Flip 90°"
-msgstr "Rotation à 90°"
-
-#: templates/graph_view.html:295
-msgid "Copy framing URL"
-msgstr "Copier l'URL du cadre"
+#: templates/graph_view.html:291
+#, fuzzy
+msgid "Framing Assistant"
+msgstr "Notes de cadrage"
 
 #: templates/graph_view.html:296
+#, fuzzy
+msgid "Help with Framing"
+msgstr "Aide pour les rigs"
+
+#: templates/graph_view.html:301
+msgid "Lock FOV"
+msgstr ""
+
+#: templates/graph_view.html:302
+msgid ""
+"Displays the approximate location of geostationary satellites (corrected "
+"for your latitude)"
+msgstr ""
+
+#: templates/graph_view.html:302
+msgid "Geo Belt"
+msgstr ""
+
+#: templates/graph_view.html:303
+#, fuzzy
+msgid "Flip 90°"
+msgstr "Basculements"
+
+#: templates/graph_view.html:304
+#, fuzzy
+msgid "Copy framing URL"
+msgstr "Encadrement"
+
+#: templates/graph_view.html:305
+#, fuzzy
 msgid "Save Framing"
 msgstr "Enregistrer le cadrage"
 
-#: templates/graph_view.html:299 templates/mobile_journal_new.html:36
-#: templates/project_report.html:1132
+#: templates/graph_view.html:308 templates/mobile_journal_new.html:237
+#: templates/project_report.html:1120
 msgid "Rig"
 msgstr "Riche"
 
-#: templates/graph_view.html:304
+#: templates/graph_view.html:313
+#, fuzzy
 msgid "No rigs configured"
-msgstr "Aucune plate-forme configurée"
+msgstr "Emplacement non configuré"
 
-#: templates/graph_view.html:309
+#: templates/graph_view.html:318
 msgid "Position Angle (0°=North, 90°=East)"
-msgstr "Angle de position (0° = nord, 90° = est)"
+msgstr ""
 
-#: templates/graph_view.html:309
+#: templates/graph_view.html:318
 msgid "Rotation (PA)"
-msgstr "Rotation (PA)"
+msgstr ""
 
-#: templates/graph_view.html:317
+#: templates/graph_view.html:326
 msgid "Mosaic (Col x Row)"
-msgstr "Mosaïque (colonne x ligne)"
+msgstr ""
 
-#: templates/graph_view.html:319
+#: templates/graph_view.html:328
+#, fuzzy
 msgid "Columns"
-msgstr "Colonnes"
+msgstr "Comte"
 
-#: templates/graph_view.html:321
+#: templates/graph_view.html:330
 msgid "Rows"
-msgstr "Lignes"
+msgstr ""
 
-#: templates/graph_view.html:325
+#: templates/graph_view.html:334
 #, python-format
 msgid "Overlap %%"
-msgstr "Chevauchement %%"
-
-#: templates/graph_view.html:328
-msgid ""
-"Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., and "
-"Telescopius."
 msgstr ""
-"Génère un format CSV compatible avec ASIAIR (Plan Import), N.I.N.A. et "
-"Telescopius."
 
-#: templates/graph_view.html:328
+#: templates/graph_view.html:337
+msgid ""
+"Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., "
+"and Telescopius."
+msgstr ""
+
+#: templates/graph_view.html:337
+#, fuzzy
 msgid "Copy Plan (CSV)"
 msgstr "Copier le plan (CSV)"
 
-#: templates/graph_view.html:331
+#: templates/graph_view.html:340
+#, fuzzy
 msgid "Survey"
-msgstr "Enquête"
+msgstr "Source"
 
-#: templates/graph_view.html:351
+#: templates/graph_view.html:360
 msgid "Blend with"
-msgstr "Mélanger avec"
-
-#: templates/graph_view.html:369
-msgid "Blend opacity"
-msgstr "Mélanger avec"
-
-#: templates/graph_view.html:373
-msgid "Brightness"
-msgstr "Luminosité"
-
-#: templates/graph_view.html:374
-msgid "Contrast"
-msgstr "Contraste"
-
-#: templates/graph_view.html:375
-msgid "Gamma"
-msgstr "Gamme"
-
-#: templates/graph_view.html:376
-msgid "Saturation"
-msgstr "Saturation"
+msgstr ""
 
 #: templates/graph_view.html:378
-msgid ""
-"Coordinates are JNow (Real Time / Mean Equinox of Date) to match your mount."
+msgid "Blend opacity"
 msgstr ""
-"Les coordonnées sont JNow (temps réel / équinoxe moyen de la date) pour "
-"correspondre à votre monture."
+
+#: templates/graph_view.html:382
+msgid "Brightness"
+msgstr ""
 
 #: templates/graph_view.html:383
-msgid "Copy"
-msgstr "Copier"
+#, fuzzy
+msgid "Contrast"
+msgstr "Culmination"
 
-#: templates/graph_view.html:386
-msgid "Tip: Click on the sky to move the FOV center."
+#: templates/graph_view.html:384
+msgid "Gamma"
 msgstr ""
-"Astuce : cliquez sur le ciel pour déplacer le centre du champ de vision."
+
+#: templates/graph_view.html:385
+#, fuzzy
+msgid "Saturation"
+msgstr "Durée"
 
 #: templates/graph_view.html:387
-msgid "Recenter to object"
-msgstr "Plus récent vers l'objet"
-
-#: templates/graph_view.html:389
-msgid "Nudge Up"
-msgstr "Poussez vers le haut"
-
-#: templates/graph_view.html:391
-msgid "Nudge Left"
-msgstr "Déplacer vers la gauche"
+msgid ""
+"Coordinates are JNow (Real Time / Mean Equinox of Date) to match your "
+"mount."
+msgstr ""
 
 #: templates/graph_view.html:392
-msgid "Nudge Right"
-msgstr "Poussez vers la droite"
-
-#: templates/graph_view.html:394
-msgid "Nudge Down"
-msgstr "Pousser vers le bas"
+#, fuzzy
+msgid "Copy"
+msgstr "Copier le plan (CSV)"
 
 #: templates/graph_view.html:395
+msgid "Tip: Click on the sky to move the FOV center."
+msgstr ""
+
+#: templates/graph_view.html:396
+#, fuzzy
+msgid "Recenter to object"
+msgstr "Objet cible :"
+
+#: templates/graph_view.html:398
+msgid "Nudge Up"
+msgstr ""
+
+#: templates/graph_view.html:400
+#, fuzzy
+msgid "Nudge Left"
+msgstr "Supprimer"
+
+#: templates/graph_view.html:401
+msgid "Nudge Right"
+msgstr ""
+
+#: templates/graph_view.html:403
+msgid "Nudge Down"
+msgstr ""
+
+#: templates/graph_view.html:404
+#, fuzzy
 msgid "steps"
 msgstr "étapes"
 
-#: templates/graph_view.html:439
+#: templates/graph_view.html:449
 msgid "Ask Nova for observing notes"
-msgstr "Ask Nova for observing notes"
+msgstr ""
 
-#: templates/graph_view.html:440
+#: templates/graph_view.html:450
+#, fuzzy
 msgid "Consulting the star charts..."
 msgstr "Consulter la carte des étoiles..."
 
-#: templates/graph_view.html:442
+#: templates/graph_view.html:452
+#, fuzzy
 msgid "Scanning the cosmos..."
 msgstr "Balayage du ciel..."
 
-#: templates/graph_view.html:443
+#: templates/graph_view.html:453
+#, fuzzy
 msgid "Calculating from"
 msgstr "Chargement..."
 
-#: templates/graph_view.html:445
+#: templates/graph_view.html:455
+#, fuzzy
 msgid "your location"
 msgstr "Emplacement"
 
-#: templates/graph_view.html:446
+#: templates/graph_view.html:456
+#, fuzzy
 msgid "Nova has notes ready. What would you like to do?"
-msgstr "Nova has notes ready. What would you like to do?"
+msgstr "Nova a un résumé prêt. Que souhaitez-vous faire ?"
 
-#: templates/graph_view.html:450
+#: templates/graph_view.html:460
 msgid "Nova couldn't load notes"
-msgstr "Nova couldn't load notes"
+msgstr ""
+
+#: templates/graph_view.html:659
+#, fuzzy
+msgid "No calibration star available near meridian"
+msgstr "Stratégie d'étalonnage"
+
+#: templates/graph_view.html:699
+#, fuzzy
+msgid "HA"
+msgstr "h"
+
+#: templates/graph_view.html:699
+msgid "from meridian"
+msgstr ""
 
 #: templates/index.html:3 templates/login.html:2
 msgid "DSO Altitude Tracker"
@@ -4378,7 +4497,7 @@ msgid "Object"
 msgstr "Objet"
 
 #: templates/index.html:134 templates/index.html:137
-#: templates/mobile_up_now.html:895 templates/mobile_up_now.html:910
+#: templates/mobile_up_now.html:899 templates/mobile_up_now.html:912
 msgid "Altitude"
 msgstr "Altitude"
 
@@ -4391,7 +4510,7 @@ msgid "Azimuth"
 msgstr "Azimut"
 
 #: templates/index.html:136 templates/index.html:157
-#: templates/mobile_object_detail.html:479
+#: templates/mobile_object_detail.html:498
 msgid "Trend"
 msgstr "tendance"
 
@@ -4512,7 +4631,7 @@ msgid "Telescope Setup"
 msgstr "Installation du télescope"
 
 #: templates/index.html:187 templates/journal_report.html:722
-#: templates/project_report.html:1097
+#: templates/project_report.html:1085
 msgid "Integration"
 msgstr "intégration"
 
@@ -4576,108 +4695,108 @@ msgstr "Décrivez ce que fait ce filtre..."
 msgid "Share this view with others"
 msgstr "Partager cette vue avec d'autres personnes"
 
-#: templates/journal_form.html:4 templates/journal_form.html:14
+#: templates/journal_form.html:4 templates/journal_form.html:13
 msgid "Journal Entry"
 msgstr "Entrée de journal"
 
-#: templates/journal_form.html:24
+#: templates/journal_form.html:21
 msgid "Core Info"
 msgstr "Informations essentielles"
 
-#: templates/journal_form.html:33
+#: templates/journal_form.html:28
 msgid "Target Object:"
 msgstr "Objet cible :"
 
-#: templates/journal_form.html:35
+#: templates/journal_form.html:30
 msgid "Select Target (Optional)"
 msgstr "Sélectionner la cible (facultatif)"
 
-#: templates/journal_form.html:47
+#: templates/journal_form.html:42
 msgid "Select Location (Optional)"
 msgstr "Sélectionner un emplacement (facultatif)"
 
-#: templates/journal_form.html:80
+#: templates/journal_form.html:75
 #, python-format
 msgid "Moon Illumination at Session (%%):"
 msgstr "Illumination lunaire à la session (%%) :"
 
-#: templates/journal_form.html:81
+#: templates/journal_form.html:76
 msgid "e.g., 34"
 msgstr "par exemple, 34"
 
-#: templates/journal_form.html:84
+#: templates/journal_form.html:79
 msgid "Moon Angular Separation from Target (°):"
 msgstr "Séparation angulaire de la Lune par rapport à la cible (°):"
 
-#: templates/journal_form.html:85
+#: templates/journal_form.html:80
 msgid "e.g., 45.5"
 msgstr "par exemple, 45,5"
 
-#: templates/journal_form.html:92
+#: templates/journal_form.html:87
 msgid "Select a Rig (Optional)"
 msgstr "Sélectionnez un équipement (facultatif)"
 
-#: templates/journal_form.html:94
+#: templates/journal_form.html:89
 msgid "Manually Enter Setup Below"
 msgstr "Entrez manuellement la configuration ci-dessous"
 
-#: templates/journal_form.html:102
+#: templates/journal_form.html:97
 msgid "e.g., C11+Reducer+ASI2600"
 msgstr "Par exemple, C11+Réducteur+ASI2600"
 
-#: templates/journal_form.html:106
+#: templates/journal_form.html:101
 msgid "Filter Used:"
 msgstr "Filtre utilisé :"
 
-#: templates/journal_form.html:107
+#: templates/journal_form.html:102
 msgid "e.g., L-Pro, Ha 7nm"
 msgstr "par exemple, L-Pro, Ha 7 nm"
 
-#: templates/journal_form.html:115
+#: templates/journal_form.html:110
 msgid "Guiding Equipment (Scope, Camera, Software):"
 msgstr "Équipement de guidage (télescope, appareil photo, logiciel) :"
 
-#: templates/journal_form.html:116
+#: templates/journal_form.html:111
 msgid "e.g., 50mm guidescope + ASI120MM Mini, PHD2"
 msgstr "Par exemple, guide optique 50 mm + ASI120MM Mini, PHD2"
 
-#: templates/journal_form.html:120
+#: templates/journal_form.html:115
 msgid "e.g., Yes, 3px every 2 subs"
 msgstr "Par exemple, oui, 3 px tous les 2 abonnés."
 
-#: templates/journal_form.html:124
+#: templates/journal_form.html:119
 msgid "e.g., N.I.N.A., Sequence Generator Pro, Astroberry"
 msgstr "Par exemple, N.I.N.A., Sequence Generator Pro, Astroberry"
 
-#: templates/journal_form.html:130
+#: templates/journal_form.html:125
 msgid "Sub Exposure (seconds):"
 msgstr "Sous-exposition (secondes) :"
 
-#: templates/journal_form.html:134
+#: templates/journal_form.html:129
 msgid "Number of Light Subs:"
 msgstr "Nombre de sous-marins légers :"
 
-#: templates/journal_form.html:160
+#: templates/journal_form.html:155
 msgid "e.g., 1x1, 2x2"
 msgstr "par exemple, 1x1, 2x2"
 
-#: templates/journal_form.html:163
+#: templates/journal_form.html:158
 msgid ""
-"Enter number of subframes and exposure time (in seconds) per subframe for "
-"each filter used. Leave blank if not used."
+"Enter number of subframes and exposure time (in seconds) per subframe for"
+" each filter used. Leave blank if not used."
 msgstr ""
-"Entrez le nombre de sous-images et le temps d'exposition (en secondes) par "
-"sous-image pour chaque filtre utilisé. Laissez vide si non utilisé."
+"Entrez le nombre de sous-images et le temps d'exposition (en secondes) "
+"par sous-image pour chaque filtre utilisé. Laissez vide si non utilisé."
 
-#: templates/journal_form.html:172
+#: templates/journal_form.html:167
 msgid "# Subs:"
 msgstr "# Sous-titres :"
 
-#: templates/journal_form.html:211
+#: templates/journal_form.html:206
 msgid "Save Entry"
 msgstr "Enregistrer l'entrée"
 
-#: templates/journal_report.html:673 templates/project_report.html:789
+#: templates/journal_report.html:673 templates/project_report.html:788
 msgid "Nova Logo"
 msgstr "Nova Logo"
 
@@ -4717,7 +4836,7 @@ msgstr "Clair de lune / Septembre"
 msgid "Transparency"
 msgstr "Transparence"
 
-#: templates/journal_report.html:755 templates/project_report.html:892
+#: templates/journal_report.html:755 templates/project_report.html:887
 msgid "Rig:"
 msgstr "Riche :"
 
@@ -4761,11 +4880,11 @@ msgstr "Appartements"
 msgid "Bias / Dark Flats"
 msgstr "Biais / Appartements sombres"
 
-#: templates/journal_report.html:827 templates/project_report.html:1163
+#: templates/journal_report.html:827 templates/project_report.html:1151
 msgid "Filter"
 msgstr "filtre"
 
-#: templates/journal_report.html:828 templates/project_report.html:1164
+#: templates/journal_report.html:828 templates/project_report.html:1152
 msgid "Subs"
 msgstr "Sous-marins"
 
@@ -4798,7 +4917,7 @@ msgid "Log Analysis"
 msgstr "Analyse des journaux"
 
 #: templates/journal_report.html:911 templates/journal_report.html:920
-#: templates/project_report.html:916 templates/project_report.html:925
+#: templates/project_report.html:909 templates/project_report.html:918
 msgid "Total RMS"
 msgstr "RMS total"
 
@@ -4811,11 +4930,11 @@ msgstr "Cadres de guidage"
 msgid "Meridian Flips"
 msgstr "Basculements au méridien"
 
-#: templates/journal_report.html:967 templates/project_report.html:972
+#: templates/journal_report.html:967 templates/project_report.html:964
 msgid "PHD2 Guiding Performance"
 msgstr "PHD2 Performances de guidage"
 
-#: templates/journal_report.html:971 templates/project_report.html:975
+#: templates/journal_report.html:971 templates/project_report.html:967
 msgid "Imaging RMS"
 msgstr "Imagerie RMS"
 
@@ -4823,7 +4942,7 @@ msgstr "Imagerie RMS"
 msgid "frames"
 msgstr "cadres"
 
-#: templates/journal_report.html:988 templates/project_report.html:985
+#: templates/journal_report.html:988 templates/project_report.html:977
 msgid "All Frames RMS"
 msgstr "Tous les cadres RMS"
 
@@ -4832,7 +4951,7 @@ msgid "RA:"
 msgstr "RA :"
 
 #: templates/journal_report.html:1003 templates/journal_report.html:1055
-#: templates/journal_report.html:1134 templates/project_report.html:1040
+#: templates/journal_report.html:1134 templates/project_report.html:1030
 msgid "Dither Events"
 msgstr "Événements Dither"
 
@@ -4853,11 +4972,11 @@ msgid "Plate Solves"
 msgstr "La plaque résout"
 
 #: templates/journal_report.html:1051 templates/journal_report.html:1093
-#: templates/project_report.html:1007
+#: templates/project_report.html:998
 msgid "AutoFocus Runs"
 msgstr "AutoFocus s'exécute"
 
-#: templates/journal_report.html:1097 templates/project_report.html:1011
+#: templates/journal_report.html:1097 templates/project_report.html:1002
 msgid "Run"
 msgstr "Courir"
 
@@ -4901,7 +5020,7 @@ msgstr "Taux de réussite"
 msgid "Dither Settle Times"
 msgstr "Temps de stabilisation du tramage"
 
-#: templates/journal_report.html:1172 templates/project_report.html:1052
+#: templates/journal_report.html:1172 templates/project_report.html:1041
 msgid "Autocenter Results"
 msgstr "Résultats Autocenter"
 
@@ -4917,7 +5036,7 @@ msgstr "Distance"
 msgid "Centered"
 msgstr "Centré"
 
-#: templates/journal_report.html:1189
+#: templates/journal_report.html:1189 templates/mobile_journal_new.html:343
 msgid "Offset"
 msgstr "Décalage"
 
@@ -4925,7 +5044,7 @@ msgstr "Décalage"
 msgid "Autocenter Accuracy"
 msgstr "Précision de l'Autocenter"
 
-#: templates/journal_report.html:1210 templates/project_report.html:1200
+#: templates/journal_report.html:1210 templates/project_report.html:1187
 msgid "Generated by"
 msgstr "Généré par"
 
@@ -5004,7 +5123,8 @@ msgstr "Site principal"
 msgid "Dusk/Dawn"
 msgstr "Astr. Crépuscule / Aube"
 
-#: templates/mobile_edit_notes.html:3 templates/mobile_object_detail.html:544
+#: templates/mobile_edit_notes.html:3 templates/mobile_object_detail.html:556
+#: templates/mobile_object_detail.html:561
 msgid "Edit Notes"
 msgstr "Modifier les notes"
 
@@ -5021,8 +5141,8 @@ msgid "Notes saved successfully!"
 msgstr "Notes enregistrées avec succès !"
 
 #: templates/mobile_framing_coords.html:2
-#: templates/mobile_object_detail.html:511 templates/mobile_outlook.html:183
-#: templates/mobile_up_now.html:891
+#: templates/mobile_object_detail.html:527 templates/mobile_outlook.html:183
+#: templates/mobile_up_now.html:895
 msgid "Framing"
 msgstr "Encadrement"
 
@@ -5042,8 +5162,7 @@ msgid "View full mosaic plan"
 msgstr "Voir le plan complet de la mosaïque"
 
 #: templates/mobile_framing_coords.html:45
-#: templates/mobile_framing_coords.html:55
-#: templates/mobile_mosaic_copy.html:24
+#: templates/mobile_framing_coords.html:55 templates/mobile_mosaic_copy.html:24
 msgid "Copied!"
 msgstr "Copié !"
 
@@ -5052,31 +5171,57 @@ msgstr "Copié !"
 msgid "New Session"
 msgstr "Ajouter une nouvelle session"
 
-#: templates/mobile_journal_new.html:19
+#: templates/mobile_journal_new.html:215
 #, fuzzy
 msgid "Target Object"
 msgstr "Objet cible :"
 
-#: templates/mobile_journal_new.html:26
+#: templates/mobile_journal_new.html:227
 #, fuzzy
 msgid "Select Location"
 msgstr "Définir l'emplacement"
 
-#: templates/mobile_journal_new.html:38
+#: templates/mobile_journal_new.html:239
 #, fuzzy
 msgid "Select Rig"
 msgstr "-- Sélectionnez un appareil photo --"
 
-#: templates/mobile_journal_new.html:144
+#: templates/mobile_journal_new.html:272
+#, fuzzy
+msgid "Moon Illum"
+msgstr "Illumination lunaire/Séparation :"
+
+#: templates/mobile_journal_new.html:277
+#: templates/mobile_object_detail.html:503 templates/mobile_up_now.html:957
+#, fuzzy
+msgid "Moon Sep"
+msgstr "Lune septembre"
+
+#: templates/mobile_journal_new.html:338
+#, fuzzy
+msgid "Gain"
+msgstr "Plus :"
+
+#: templates/mobile_journal_new.html:350
+#, fuzzy
+msgid "Sub Exp"
+msgstr "Sous-marins"
+
+#: templates/mobile_journal_new.html:355
+#, fuzzy
+msgid "Cam Temp"
+msgstr "Météo"
+
+#: templates/mobile_journal_new.html:377
 msgid "Add any notes about this session..."
 msgstr "Ajouter des notes sur cette session..."
 
-#: templates/mobile_journal_new.html:154
+#: templates/mobile_journal_new.html:385
 #, fuzzy
 msgid "Discard"
 msgstr "Handicapé"
 
-#: templates/mobile_journal_new.html:155
+#: templates/mobile_journal_new.html:386
 #, fuzzy
 msgid "Save Session"
 msgstr "Ajouter une nouvelle session"
@@ -5117,59 +5262,54 @@ msgstr "Copier dans le presse-papiers"
 msgid "Clipboard copy failed."
 msgstr "Échec de la copie dans le presse-papiers."
 
-#: templates/mobile_object_detail.html:474
+#: templates/mobile_object_detail.html:493
 #, fuzzy
 msgid "Now"
 msgstr "En cours"
 
-#: templates/mobile_object_detail.html:484 templates/mobile_up_now.html:960
-#, fuzzy
-msgid "Moon Sep"
-msgstr "Lune septembre"
-
-#: templates/mobile_object_detail.html:489
+#: templates/mobile_object_detail.html:508
 #, fuzzy
 msgid "Obs"
 msgstr "Objets"
 
-#: templates/mobile_object_detail.html:506
+#: templates/mobile_object_detail.html:523
 #, fuzzy
 msgid "Today"
 msgstr "Jour"
 
-#: templates/mobile_object_detail.html:512
+#: templates/mobile_object_detail.html:528
 #, fuzzy
 msgid "Log Session"
 msgstr "Session :"
 
-#: templates/mobile_object_detail.html:526
+#: templates/mobile_object_detail.html:540
 #, fuzzy
 msgid "Loading opportunities..."
 msgstr "Possibilités d'imagerie"
 
-#: templates/mobile_object_detail.html:538
+#: templates/mobile_object_detail.html:551
 #, fuzzy
 msgid "No notes for this object."
 msgstr "Plus récent vers l'objet"
 
-#: templates/mobile_object_detail.html:575
+#: templates/mobile_object_detail.html:590
 #, fuzzy
 msgid "Error loading opportunities."
 msgstr "Erreur lors de l'ajout du composant : %(error)s"
 
-#: templates/mobile_object_detail.html:576 templates/mobile_outlook.html:184
+#: templates/mobile_object_detail.html:591 templates/mobile_outlook.html:184
 msgid "Rating:"
 msgstr "Note :"
 
-#: templates/mobile_object_detail.html:577 templates/mobile_outlook.html:185
+#: templates/mobile_object_detail.html:592 templates/mobile_outlook.html:185
 msgid "Max Alt:"
 msgstr "Max Alt :"
 
-#: templates/mobile_object_detail.html:578 templates/mobile_outlook.html:186
+#: templates/mobile_object_detail.html:593 templates/mobile_outlook.html:186
 msgid "Duration:"
 msgstr "Durée :"
 
-#: templates/mobile_object_detail.html:579 templates/mobile_outlook.html:187
+#: templates/mobile_object_detail.html:594 templates/mobile_outlook.html:187
 msgid "Moon:"
 msgstr "Lune :"
 
@@ -5195,31 +5335,31 @@ msgstr ""
 msgid "No imaging opportunities found for your active projects."
 msgstr "Aucune opportunité d'imagerie trouvée pour vos projets actifs."
 
-#: templates/mobile_up_now.html:868
+#: templates/mobile_up_now.html:874
 msgid "Scanning Sky..."
 msgstr "Balayage du ciel..."
 
-#: templates/mobile_up_now.html:879
+#: templates/mobile_up_now.html:884
 #, fuzzy
 msgid "Search objects..."
 msgstr "Rechercher un objet"
 
-#: templates/mobile_up_now.html:887 templates/mobile_up_now.html:921
+#: templates/mobile_up_now.html:891 templates/mobile_up_now.html:922
 #, fuzzy
 msgid "Filters"
 msgstr "filtre"
 
-#: templates/mobile_up_now.html:895
+#: templates/mobile_up_now.html:899
 #, fuzzy
 msgid "Sort"
 msgstr "Source"
 
-#: templates/mobile_up_now.html:904
+#: templates/mobile_up_now.html:907
 #, fuzzy
 msgid "No objects match your filters"
 msgstr "Aucun objet ne correspond à votre filtre."
 
-#: templates/mobile_up_now.html:922
+#: templates/mobile_up_now.html:923
 #, fuzzy
 msgid "Reset"
 msgstr "Projet"
@@ -5229,156 +5369,159 @@ msgstr "Projet"
 msgid "Alt Now"
 msgstr "En cours"
 
-#: templates/mobile_up_now.html:940
+#: templates/mobile_up_now.html:939
 msgid "Alt Max"
 msgstr "Alt Max"
 
-#: templates/mobile_up_now.html:989
+#: templates/mobile_up_now.html:984
 #, fuzzy
 msgid "or type name..."
 msgstr "Filtrer nom..."
 
-#: templates/mobile_up_now.html:996
+#: templates/mobile_up_now.html:991
 msgid "Apply"
 msgstr "Appliquer"
 
-#: templates/mobile_up_now.html:1005
+#: templates/mobile_up_now.html:1000
 msgid "No objects found. Try adding one!"
 msgstr "Aucun objet trouvé. Essayez d'en ajouter un !"
 
-#: templates/mobile_up_now.html:1006
+#: templates/mobile_up_now.html:1001
 msgid "No objects match your search."
 msgstr "Aucun objet ne correspond à votre recherche."
 
-#: templates/mobile_up_now.html:1007
+#: templates/mobile_up_now.html:1002
 msgid "No objects match your filter."
 msgstr "Aucun objet ne correspond à votre filtre."
 
-#: templates/mobile_up_now.html:1008
+#: templates/mobile_up_now.html:1003
 #, python-format
 msgid "Calculated %%(count)d of %%(total)d objects..."
 msgstr "Calculé %%(count)d sur %%(total)d objets..."
 
-#: templates/mobile_up_now.html:1009
+#: templates/mobile_up_now.html:1004
 msgid "Error loading data."
 msgstr "Erreur lors du chargement des données."
 
-#: templates/project_report.html:801
+#: templates/project_report.html:799
 msgid "Target:"
 msgstr "Cible :"
 
-#: templates/project_report.html:801
+#: templates/project_report.html:799
 msgid "Various"
 msgstr "Divers"
 
-#: templates/project_report.html:812
+#: templates/project_report.html:809
 msgid "Total Sessions"
 msgstr "Total des sessions"
 
-#: templates/project_report.html:819
+#: templates/project_report.html:816
 msgid "Date Range"
 msgstr "Période"
 
-#: templates/project_report.html:826
+#: templates/project_report.html:822
 msgid "Final Result"
 msgstr "Résultat final"
 
-#: templates/project_report.html:832
+#: templates/project_report.html:828
 msgid "Goals"
 msgstr "Objectifs"
 
-#: templates/project_report.html:839
+#: templates/project_report.html:835
 msgid "Project Story"
 msgstr "Histoire du projet"
 
-#: templates/project_report.html:846
+#: templates/project_report.html:842
 msgid "Framing & Composition"
 msgstr "Cadrage et composition"
 
-#: templates/project_report.html:853
+#: templates/project_report.html:849
 msgid "Processing Workflow"
 msgstr "Flux de travail de traitement"
 
-#: templates/project_report.html:860
+#: templates/project_report.html:855
 msgid "Session Chronicles"
 msgstr "Chroniques de session"
 
-#: templates/project_report.html:868
+#: templates/project_report.html:863
 msgid "Log Data"
 msgstr "Données de connexion"
 
-#: templates/project_report.html:869
+#: templates/project_report.html:864
 msgid "Configuration & Notes"
 msgstr "Configuration et notes"
 
-#: templates/project_report.html:920 templates/project_report.html:929
+#: templates/project_report.html:913 templates/project_report.html:922
 msgid "Frames"
 msgstr "Cadres"
 
-#: templates/project_report.html:947 templates/project_report.html:964
+#: templates/project_report.html:940 templates/project_report.html:957
 msgid "Flips"
 msgstr "Basculements"
 
-#: templates/project_report.html:998
+#: templates/project_report.html:990
 msgid "Guide Pulse"
 msgstr "Impulsion de guidage"
 
-#: templates/project_report.html:1013
+#: templates/project_report.html:1004
 msgid "Focus Pos"
 msgstr "Pos. mise au point"
 
-#: templates/project_report.html:1014 templates/project_report.html:1153
+#: templates/project_report.html:1005 templates/project_report.html:1141
 msgid "Temp"
 msgstr "Météo"
 
-#: templates/project_report.html:1031
+#: templates/project_report.html:1022
 msgid "V-Curves"
 msgstr "Courbes en V"
 
-#: templates/project_report.html:1043
+#: templates/project_report.html:1033
 msgid "Dither Settle"
 msgstr "Stabilisation dither"
 
-#: templates/project_report.html:1055
+#: templates/project_report.html:1044
 msgid "Autocenter"
 msgstr "Centre automobile"
 
-#: templates/project_report.html:1069
+#: templates/project_report.html:1057
 msgid "Session:"
 msgstr "Session :"
 
-#: templates/project_report.html:1070
+#: templates/project_report.html:1058
 msgid "Location not specified"
 msgstr "Lieu non spécifié"
 
-#: templates/project_report.html:1083
+#: templates/project_report.html:1071
 msgid "Integration:"
 msgstr "Intégration :"
 
-#: templates/project_report.html:1093
+#: templates/project_report.html:1081
 msgid "Statistics"
 msgstr "Statistiques"
 
-#: templates/project_report.html:1127
+#: templates/project_report.html:1115
 msgid "Equipment"
 msgstr "Équipement"
 
-#: templates/project_report.html:1149
+#: templates/project_report.html:1137
 msgid "Gain/Offset"
 msgstr "Gain/Décalage"
 
-#: templates/project_report.html:1165
+#: templates/project_report.html:1153
 msgid "Exp"
 msgstr "Expérience"
 
 #~ msgid ""
-#~ "Go to %(strong_start)sConfiguration &gt; Manage Objects%(strong_end)s to add"
-#~ " \"Inspiration Content\" (Image URLs, Credits, Descriptions) to your "
-#~ "targets."
+#~ "Go to %(strong_start)sConfiguration &gt; "
+#~ "Manage Objects%(strong_end)s to add "
+#~ "\"Inspiration Content\" (Image URLs, Credits,"
+#~ " Descriptions) to your targets."
 #~ msgstr ""
-#~ "Allez dans %(strong_start)sConfiguration > Gérer les objets%(strong_end)s "
-#~ "pour ajouter du \"Contenu d'inspiration\" (URL des images, crédits, "
-#~ "descriptions) à vos cibles."
+#~ "Allez dans %(strong_start)sConfiguration > "
+#~ "Gérer les objets%(strong_end)s pour ajouter"
+#~ " du \"Contenu d'inspiration\" (URL des "
+#~ "images, crédits, descriptions) à vos "
+#~ "cibles."
 
 #~ msgid "Add own inspiration"
 #~ msgstr "Ajouter sa propre inspiration"
@@ -5735,3 +5878,250 @@ msgstr "Expérience"
 
 #~ msgid "Azimuth:"
 #~ msgstr "Azimut :"
+
+#~ msgid "← Back to Dashboard"
+#~ msgstr "← Retour au tableau de bord"
+
+#~ msgid "Graph Date"
+#~ msgstr "Date du graphique"
+
+#~ msgid "Moon Sep."
+#~ msgstr "Lune septembre"
+
+#~ msgid "ASTR. DUSK / DAWN"
+#~ msgstr "ASTR. CRÉPUSCULE / AUBERGE"
+
+#~ msgid "Chart"
+#~ msgstr "Graphique"
+
+#~ msgid "Notes & Framing"
+#~ msgstr "Notes et encadrement"
+
+#~ msgid "Loading Chart"
+#~ msgstr "Chargement du graphique"
+
+#~ msgid "Day View"
+#~ msgstr "Vue journalière"
+
+#~ msgid "Month View"
+#~ msgstr "Vue mensuelle"
+
+#~ msgid "Year View"
+#~ msgstr "Vue annuelle"
+
+#~ msgid "How objects are ranked"
+#~ msgstr "Comment les objets sont classés"
+
+#~ msgid "Rig Data"
+#~ msgstr "Données riches"
+
+#~ msgid "Show Framing"
+#~ msgstr "Afficher l'encadrement"
+
+#~ msgid "Open in Stellarium"
+#~ msgstr "Ouvrir dans Stellarium"
+
+#~ msgid "Edit Object to Add Content"
+#~ msgstr "Modifier l'objet pour ajouter du contenu"
+
+#~ msgid "Inspiration Image for"
+#~ msgstr "Image d'inspiration pour"
+
+#~ msgid "External Source"
+#~ msgstr "Source externe"
+
+#~ msgid ""
+#~ "No inspiration content (custom image or"
+#~ " description) has been added for this"
+#~ " object yet."
+#~ msgstr ""
+#~ "Aucun contenu d'inspiration (image ou "
+#~ "description personnalisée) n'a encore été "
+#~ "ajouté pour cet objet."
+
+#~ msgid "Go to <strong>Configuration > Manage Objects</strong> to add one."
+#~ msgstr ""
+#~ "Allez dans <strong>Configuration > Gérer "
+#~ "les objets</strong> pour en ajouter un."
+
+#~ msgid "Framing With Your Rigs"
+#~ msgstr "Cadrage avec vos appareils"
+
+#~ msgid ""
+#~ "Assessment is based on the object's "
+#~ "largest dimension and may not reflect"
+#~ " framing of specific features."
+#~ msgstr ""
+#~ "L'évaluation est basée sur la plus "
+#~ "grande dimension de l'objet et peut "
+#~ "ne pas refléter la structure de "
+#~ "certaines caractéristiques spécifiques."
+
+#~ msgid "Rig Name"
+#~ msgstr "Nom de la plate-forme"
+
+#~ msgid "Rig FOV"
+#~ msgstr "Champ de vision large"
+
+#~ msgid "Object Size"
+#~ msgstr "Taille de l'objet"
+
+#~ msgid "Fit Assessment"
+#~ msgstr "Évaluation de l'ajustement"
+
+#~ msgid "Mosaic Required"
+#~ msgstr "Mosaïque requise"
+
+#~ msgid "Fits with Rotation"
+#~ msgstr "S'adapte avec rotation"
+
+#~ msgid "Small Target"
+#~ msgstr "Petite cible"
+
+#~ msgid "Wide Field"
+#~ msgstr "Champ large"
+
+#~ msgid "Good Fit"
+#~ msgstr "Bonne coupe"
+
+#~ msgid "Framing Assistant"
+#~ msgstr "Assistant cadrage"
+
+#~ msgid "Help with Framing"
+#~ msgstr "Aide à la mise en forme"
+
+#~ msgid "Lock FOV"
+#~ msgstr "Verrouiller le champ de vision"
+
+#~ msgid ""
+#~ "Displays the approximate location of "
+#~ "geostationary satellites (corrected for your"
+#~ " latitude)"
+#~ msgstr ""
+#~ "Affiche l'emplacement approximatif des "
+#~ "satellites géostationnaires (corrigé en "
+#~ "fonction de votre latitude)."
+
+#~ msgid "Geo Belt"
+#~ msgstr "Ceinture géographique"
+
+#~ msgid "Flip 90°"
+#~ msgstr "Rotation à 90°"
+
+#~ msgid "Copy framing URL"
+#~ msgstr "Copier l'URL du cadre"
+
+#~ msgid "Save Framing"
+#~ msgstr "Enregistrer le cadrage"
+
+#~ msgid "No rigs configured"
+#~ msgstr "Aucune plate-forme configurée"
+
+#~ msgid "Position Angle (0°=North, 90°=East)"
+#~ msgstr "Angle de position (0° = nord, 90° = est)"
+
+#~ msgid "Rotation (PA)"
+#~ msgstr "Rotation (PA)"
+
+#~ msgid "Mosaic (Col x Row)"
+#~ msgstr "Mosaïque (colonne x ligne)"
+
+#~ msgid "Columns"
+#~ msgstr "Colonnes"
+
+#~ msgid "Rows"
+#~ msgstr "Lignes"
+
+#~ msgid "Overlap %%"
+#~ msgstr "Chevauchement %%"
+
+#~ msgid ""
+#~ "Generates a CSV format compatible with"
+#~ " ASIAIR (Plan Import), N.I.N.A., and "
+#~ "Telescopius."
+#~ msgstr ""
+#~ "Génère un format CSV compatible avec "
+#~ "ASIAIR (Plan Import), N.I.N.A. et "
+#~ "Telescopius."
+
+#~ msgid "Copy Plan (CSV)"
+#~ msgstr "Copier le plan (CSV)"
+
+#~ msgid "Survey"
+#~ msgstr "Enquête"
+
+#~ msgid "Blend with"
+#~ msgstr "Mélanger avec"
+
+#~ msgid "Blend opacity"
+#~ msgstr "Mélanger avec"
+
+#~ msgid "Brightness"
+#~ msgstr "Luminosité"
+
+#~ msgid "Contrast"
+#~ msgstr "Contraste"
+
+#~ msgid "Gamma"
+#~ msgstr "Gamme"
+
+#~ msgid "Saturation"
+#~ msgstr "Saturation"
+
+#~ msgid ""
+#~ "Coordinates are JNow (Real Time / "
+#~ "Mean Equinox of Date) to match "
+#~ "your mount."
+#~ msgstr ""
+#~ "Les coordonnées sont JNow (temps réel"
+#~ " / équinoxe moyen de la date) "
+#~ "pour correspondre à votre monture."
+
+#~ msgid "Copy"
+#~ msgstr "Copier"
+
+#~ msgid "Tip: Click on the sky to move the FOV center."
+#~ msgstr ""
+#~ "Astuce : cliquez sur le ciel pour"
+#~ " déplacer le centre du champ de "
+#~ "vision."
+
+#~ msgid "Recenter to object"
+#~ msgstr "Plus récent vers l'objet"
+
+#~ msgid "Nudge Up"
+#~ msgstr "Poussez vers le haut"
+
+#~ msgid "Nudge Left"
+#~ msgstr "Déplacer vers la gauche"
+
+#~ msgid "Nudge Right"
+#~ msgstr "Poussez vers la droite"
+
+#~ msgid "Nudge Down"
+#~ msgstr "Pousser vers le bas"
+
+#~ msgid "steps"
+#~ msgstr "étapes"
+
+#~ msgid "Ask Nova for observing notes"
+#~ msgstr "Ask Nova for observing notes"
+
+#~ msgid "Consulting the star charts..."
+#~ msgstr "Consulter la carte des étoiles..."
+
+#~ msgid "Scanning the cosmos..."
+#~ msgstr "Balayage du ciel..."
+
+#~ msgid "Calculating from"
+#~ msgstr "Chargement..."
+
+#~ msgid "your location"
+#~ msgstr "Emplacement"
+
+#~ msgid "Nova has notes ready. What would you like to do?"
+#~ msgstr "Nova has notes ready. What would you like to do?"
+
+#~ msgid "Nova couldn't load notes"
+#~ msgstr "Nova couldn't load notes"
+
