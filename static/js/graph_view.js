@@ -196,6 +196,24 @@
                 if (typeof fetchAndPopulateSecondarySelector === 'function') {
                     fetchAndPopulateSecondarySelector(NOVA_GRAPH_DATA.objectName);
                 }
+                // Sync date fields from inputs and re-fetch calibration star
+                if (window.NOVA_GRAPH_DATA) {
+                    var _dayEl = document.getElementById('day-select');
+                    var _monthEl = document.getElementById('month-select');
+                    var _yearEl = document.getElementById('year-select');
+                    if (_dayEl) NOVA_GRAPH_DATA.selectedDay = parseInt(_dayEl.value, 10);
+                    if (_monthEl) NOVA_GRAPH_DATA.selectedMonth = parseInt(_monthEl.value, 10);
+                    if (_yearEl) NOVA_GRAPH_DATA.selectedYear = parseInt(_yearEl.value, 10);
+                    var _now = new Date();
+                    NOVA_GRAPH_DATA.isSimMode = (
+                        NOVA_GRAPH_DATA.selectedYear !== _now.getFullYear() ||
+                        NOVA_GRAPH_DATA.selectedMonth !== (_now.getMonth() + 1) ||
+                        NOVA_GRAPH_DATA.selectedDay !== _now.getDate()
+                    );
+                }
+                if (typeof window._fetchCalibrationStar === 'function') {
+                    window._fetchCalibrationStar();
+                }
                 break;
             case 'save-project':
                 console.log('[GRAPH_VIEW] save-project, function exists:', typeof window.saveProject);

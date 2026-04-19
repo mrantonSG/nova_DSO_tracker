@@ -428,6 +428,7 @@
         selectedDay: {{ selected_day }},
         selectedMonth: {{ selected_month }},
         selectedYear: {{ selected_year }},
+        isSimMode: {{ 'true' if is_sim_mode else 'false' }},
 
         // We pass RA in DEGREES (RA_Hours * 15) and DEC in DEGREES
         // 'null' is passed if the database has no value.
@@ -689,12 +690,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         var _gd = window.NOVA_GRAPH_DATA;
-        var _today = new Date();
-        var _simActive = _gd && (
-            _gd.selectedYear !== _today.getFullYear() ||
-            _gd.selectedMonth !== (_today.getMonth() + 1) ||
-            _gd.selectedDay !== _today.getDate()
-        );
+        var _simActive = _gd && _gd.isSimMode;
 
         var windowLine = '';
         if (data.window_close) {
@@ -742,12 +738,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Simulation mode: if the selected date differs from today, pass dt
         // as that date at 00:00 UTC so the API computes the window for that
         // calendar day's meridian transit
-        var today = new Date();
-        var simActive = (
-            gd.selectedYear !== today.getFullYear() ||
-            gd.selectedMonth !== (today.getMonth() + 1) ||
-            gd.selectedDay !== today.getDate()
-        );
+        var simActive = gd.isSimMode;
         if (simActive) {
             var mm = String(gd.selectedMonth).padStart(2, '0');
             var dd = String(gd.selectedDay).padStart(2, '0');

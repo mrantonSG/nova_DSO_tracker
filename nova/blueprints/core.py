@@ -2028,6 +2028,7 @@ def graph_dashboard(object_name):
                                today_date=datetime.now().strftime('%Y-%m-%d'),
                                is_guest=g.is_guest,
                                object_id=obj_record.id,
+                               is_sim_mode=effective_date_obj.date() != observing_date_for_calcs,
                                horizon_mask=[[hp.az_deg, hp.alt_min_deg] for hp in
                                               sorted(selected_location_db.horizon_points, key=lambda p: p.az_deg)]
                                if selected_location_db else []
