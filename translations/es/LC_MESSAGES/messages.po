@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-04-19 10:47+0200\n"
+"POT-Creation-Date: 2026-04-19 11:03+0200\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -4374,12 +4374,22 @@ msgstr ""
 msgid "No calibration star available near meridian"
 msgstr "Estrategia de calibración"
 
-#: templates/graph_view.html:699
+#: templates/graph_view.html:661
+#, fuzzy
+msgid "Window"
+msgstr "Arriba ahora"
+
+#: templates/graph_view.html:662 templates/mobile_object_detail.html:493
+#, fuzzy
+msgid "Now"
+msgstr "Arriba ahora"
+
+#: templates/graph_view.html:715
 #, fuzzy
 msgid "HA"
 msgstr "h"
 
-#: templates/graph_view.html:699
+#: templates/graph_view.html:715
 msgid "from meridian"
 msgstr ""
 
@@ -5228,11 +5238,6 @@ msgstr "Copiar al portapapeles"
 #: templates/mobile_mosaic_copy.html:42
 msgid "Clipboard copy failed."
 msgstr "Falló la copia al portapapeles."
-
-#: templates/mobile_object_detail.html:493
-#, fuzzy
-msgid "Now"
-msgstr "Arriba ahora"
 
 #: templates/mobile_object_detail.html:508
 #, fuzzy

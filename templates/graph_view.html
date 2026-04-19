@@ -657,7 +657,9 @@ document.addEventListener('DOMContentLoaded', function() {
     var calI18n = {
         calibrationStar: {{ _("Calibration Star") | tojson }},
         noStar: {{ _("No calibration star available near meridian") | tojson }},
-        loading: {{ _("Loading...") | tojson }}
+        loading: {{ _("Loading...") | tojson }},
+        windowLabel: {{ _("Window") | tojson }},
+        now: {{ _("Now") | tojson }}
     };
 
     var calBody = document.getElementById('calibration-star-body');
@@ -686,6 +688,20 @@ document.addEventListener('DOMContentLoaded', function() {
             calBody.innerHTML = '<span style="color: var(--text-muted); font-size: 12px;">' + calI18n.noStar + '</span>';
             return;
         }
+        var windowLine = '';
+        if (data.window_close) {
+            var closeStr = new Date(data.window_close).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+            var openPart;
+            if (data.window_open) {
+                openPart = new Date(data.window_open).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+            } else {
+                openPart = calI18n.now;
+            }
+            windowLine = '<div style="font-size: 11px; margin-top: 4px;">' +
+                '<span style="color: var(--text-faint);">' + calI18n.windowLabel + ':</span> ' +
+                '<span style="color: var(--text-muted);">' + openPart + ' \u2013 ' + closeStr + '</span>' +
+            '</div>';
+        }
         calBody.innerHTML =
             '<div style="display: flex; justify-content: space-between; align-items: baseline;">' +
                 '<span style="font-size: 15px; color: var(--text-primary); font-weight: 600;">' + data.name + '</span>' +
@@ -697,7 +713,8 @@ document.addEventListener('DOMContentLoaded', function() {
             '</div>' +
             '<div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">' +
                 '{{ _("HA") }}: ' + formatHA(data.ha_hours) + ' {{ _("from meridian") }}' +
-            '</div>';
+            '</div>' +
+            windowLine;
     }
 
     function fetchCalibrationStar() {

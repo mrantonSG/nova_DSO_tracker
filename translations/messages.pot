@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-04-19 10:47+0200\n"
+"POT-Creation-Date: 2026-04-19 11:03+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -4186,11 +4186,19 @@ msgstr ""
 msgid "No calibration star available near meridian"
 msgstr ""
 
-#: templates/graph_view.html:699
+#: templates/graph_view.html:661
+msgid "Window"
+msgstr ""
+
+#: templates/graph_view.html:662 templates/mobile_object_detail.html:493
+msgid "Now"
+msgstr ""
+
+#: templates/graph_view.html:715
 msgid "HA"
 msgstr ""
 
-#: templates/graph_view.html:699
+#: templates/graph_view.html:715
 msgid "from meridian"
 msgstr ""
 
@@ -5020,10 +5028,6 @@ msgstr ""
 
 #: templates/mobile_mosaic_copy.html:42
 msgid "Clipboard copy failed."
-msgstr ""
-
-#: templates/mobile_object_detail.html:493
-msgid "Now"
 msgstr ""
 
 #: templates/mobile_object_detail.html:508

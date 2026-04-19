@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-04-19 10:47+0200\n"
+"POT-Creation-Date: 2026-04-19 11:03+0200\n"
 "PO-Revision-Date: 2026-03-27 13:26+0800\n"
 "Last-Translator: \n"
 "Language: de\n"
@@ -4377,11 +4377,19 @@ msgstr ""
 msgid "No calibration star available near meridian"
 msgstr "Kein Kalibrierstern in Meridiannähe verfügbar"
 
-#: templates/graph_view.html:699
+#: templates/graph_view.html:661
+msgid "Window"
+msgstr "Fenster"
+
+#: templates/graph_view.html:662 templates/mobile_object_detail.html:493
+msgid "Now"
+msgstr "Jetzt"
+
+#: templates/graph_view.html:715
 msgid "HA"
 msgstr "HA"
 
-#: templates/graph_view.html:699
+#: templates/graph_view.html:715
 msgid "from meridian"
 msgstr "vom Meridian"
 
@@ -5230,11 +5238,6 @@ msgstr "In die Zwischenablage kopieren"
 #: templates/mobile_mosaic_copy.html:42
 msgid "Clipboard copy failed."
 msgstr "Kopieren in die Zwischenablage fehlgeschlagen."
-
-#: templates/mobile_object_detail.html:493
-#, fuzzy
-msgid "Now"
-msgstr "Jetzt oben"
 
 #: templates/mobile_object_detail.html:508
 #, fuzzy

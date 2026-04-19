@@ -3558,8 +3558,6 @@ def get_calibration_star():
             # Best candidate = smallest |HA|
             if abs(ha_hours) < best_ha:
                 best_ha = abs(ha_hours)
-                ra_h = float(star._ra) * 12.0 / 3.141592653589793
-                dec_deg = float(star._dec) * 180.0 / 3.141592653589793
                 best_candidate = {
                     "name": star_entry['name'],
                     "ra": star_entry['ra'],
@@ -3567,12 +3565,62 @@ def get_calibration_star():
                     "altitude": round(alt_deg, 1),
                     "azimuth": round(az_deg, 1),
                     "ha_hours": round(ha_hours, 2),
+                    "ha_minutes": int(round(abs(ha_hours) * 60)),
                     "found": True,
+                    "_star": star,
                 }
         except Exception:
             continue
 
     if best_candidate:
+        # Compute calibration window open/close by stepping observer time
+        star_obj = best_candidate.pop('_star')
+        step = timedelta(minutes=5)
+        ha_limit_hours = 1.5
+
+        def _compute_ha_at(obs_time):
+            observer.date = obs_time.strftime('%Y-%m-%d %H:%M:%S')
+            star_obj.compute(observer)
+            lst = observer.sidereal_time()
+            ha_rad = float(lst) - float(star_obj._ra)
+            while ha_rad > 3.141592653589793:
+                ha_rad -= 2 * 3.141592653589793
+            while ha_rad < -3.141592653589793:
+                ha_rad += 2 * 3.141592653589793
+            return ha_rad * 12.0 / 3.141592653589793
+
+        # Step backward to find window_open (where HA crosses -1.5h)
+        search_dt = dt
+        window_open = None
+        for _ in range(36):  # max 3 hours back in 5-min steps
+            prev_dt = search_dt - step
+            ha_prev = _compute_ha_at(prev_dt)
+            if ha_prev < -ha_limit_hours:
+                window_open = search_dt
+                break
+            search_dt = prev_dt
+        if window_open is None:
+            window_open = search_dt  # fell off search limit
+
+        # Step forward to find window_close (where HA crosses +1.5h)
+        search_dt = dt
+        window_close = None
+        for _ in range(36):  # max 3 hours forward in 5-min steps
+            next_dt = search_dt + step
+            ha_next = _compute_ha_at(next_dt)
+            if ha_next > ha_limit_hours:
+                window_close = search_dt + step
+                break
+            search_dt = next_dt
+        if window_close is None:
+            window_close = search_dt
+
+        # If window_open is at or before now, mark as already in window
+        if window_open <= dt:
+            window_open = None  # frontend will show "Now – close"
+
+        best_candidate["window_open"] = window_open.isoformat() if window_open else None
+        best_candidate["window_close"] = window_close.isoformat()
         return jsonify(best_candidate)
     else:
         return jsonify({"found": False})
