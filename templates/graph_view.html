@@ -688,18 +688,29 @@ document.addEventListener('DOMContentLoaded', function() {
             calBody.innerHTML = '<span style="color: var(--text-muted); font-size: 12px;">' + calI18n.noStar + '</span>';
             return;
         }
+        var _gd = window.NOVA_GRAPH_DATA;
+        var _today = new Date();
+        var _simActive = _gd && (
+            _gd.selectedYear !== _today.getFullYear() ||
+            _gd.selectedMonth !== (_today.getMonth() + 1) ||
+            _gd.selectedDay !== _today.getDate()
+        );
+
         var windowLine = '';
         if (data.window_close) {
             var closeStr = new Date(data.window_close).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
             var openPart;
             if (data.window_open) {
                 openPart = new Date(data.window_open).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
-            } else {
+            } else if (!_simActive) {
                 openPart = calI18n.now;
+            } else {
+                openPart = null;
             }
+            var openStr = openPart ? openPart + ' \u2013 ' : '';
             windowLine = '<div style="font-size: 11px; margin-top: 4px;">' +
                 '<span style="color: var(--text-faint);">' + calI18n.windowLabel + ':</span> ' +
-                '<span style="color: var(--text-muted);">' + openPart + ' \u2013 ' + closeStr + '</span>' +
+                '<span style="color: var(--text-muted);">' + openStr + closeStr + '</span>' +
             '</div>';
         }
         calBody.innerHTML =
@@ -726,6 +737,21 @@ document.addEventListener('DOMContentLoaded', function() {
         var params = 'lat=' + encodeURIComponent(gd.plotLat) + '&lon=' + encodeURIComponent(gd.plotLon);
         if (gd.horizonMask && gd.horizonMask.length >= 2) {
             params += '&horizon=' + encodeURIComponent(JSON.stringify(gd.horizonMask));
+        }
+
+        // Simulation mode: if the selected date differs from today, pass dt
+        // as that date at 00:00 UTC so the API computes the window for that
+        // calendar day's meridian transit
+        var today = new Date();
+        var simActive = (
+            gd.selectedYear !== today.getFullYear() ||
+            gd.selectedMonth !== (today.getMonth() + 1) ||
+            gd.selectedDay !== today.getDate()
+        );
+        if (simActive) {
+            var mm = String(gd.selectedMonth).padStart(2, '0');
+            var dd = String(gd.selectedDay).padStart(2, '0');
+            params += '&dt=' + encodeURIComponent(gd.selectedYear + '-' + mm + '-' + dd + 'T12:00:00Z');
         }
 
         fetch('/api/calibration_star?' + params)
