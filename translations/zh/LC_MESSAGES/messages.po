@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-04-19 11:03+0200\n"
+"POT-Creation-Date: 2026-04-19 13:20+0200\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh\n"
@@ -324,7 +324,7 @@ msgstr "在您的配置中未找到对象'%(object_name)s'。"
 msgid "Invalid date components provided, defaulting to current date."
 msgstr "提供的日期组件无效，默认为当前日期。"
 
-#: nova/blueprints/core.py:2041
+#: nova/blueprints/core.py:2042
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
 msgstr "加载%(object_name)s的详细信息时发生错误。"
@@ -760,7 +760,7 @@ msgstr "来源：Wiki"
 #: templates/_objects_section.html:427 templates/_objects_section.html:442
 #: templates/base.html:384 templates/base.html:401 templates/base.html:406
 #: templates/base.html:415 templates/base.html:453
-#: templates/config_form.html:673 templates/graph_view.html:290
+#: templates/config_form.html:673 templates/graph_view.html:293
 msgid "Close"
 msgstr "关闭"
 
@@ -841,7 +841,7 @@ msgstr "h"
 #: templates/_inspiration_section.html:536 templates/base.html:105
 #: templates/config_form.html:596 templates/config_form.html:625
 #: templates/config_form.html:661 templates/graph_view.html:132
-#: templates/graph_view.html:143 templates/graph_view.html:660
+#: templates/graph_view.html:146 templates/graph_view.html:664
 #: templates/mobile_object_detail.html:588
 msgid "Loading..."
 msgstr "加载中..."
@@ -1278,11 +1278,13 @@ msgstr "#"
 msgid "Time"
 msgstr "时间"
 
-#: templates/_journal_section.html:1898 templates/journal_report.html:1069
+#: templates/_journal_section.html:1898 templates/graph_view.html:669
+#: templates/journal_report.html:1069
 msgid "RA"
 msgstr "RA"
 
-#: templates/_journal_section.html:1899 templates/journal_report.html:1070
+#: templates/_journal_section.html:1899 templates/graph_view.html:670
+#: templates/journal_report.html:1070
 msgid "Dec"
 msgstr "Dec"
 
@@ -1472,7 +1474,7 @@ msgstr "保存项目"
 #: templates/_journal_section.html:2229 templates/_journal_section.html:2513
 #: templates/_objects_section.html:347 templates/_project_subtab.html:232
 #: templates/admin_users.html:120 templates/base.html:486
-#: templates/graph_view.html:459 templates/index.html:266
+#: templates/graph_view.html:463 templates/index.html:266
 #: templates/journal_form.html:205
 msgid "Cancel"
 msgstr "取消"
@@ -1891,7 +1893,7 @@ msgid "{label} removed."
 msgstr "{label} 已删除。"
 
 #: templates/_journal_section.html:2502 templates/base.html:244
-#: templates/graph_view.html:448 templates/index.html:112
+#: templates/graph_view.html:452 templates/index.html:112
 msgid "Ask Nova"
 msgstr "Ask Nova"
 
@@ -1908,7 +1910,7 @@ msgid "Checking guiding data..."
 msgstr "更新数据中..."
 
 #: templates/_journal_section.html:2507 templates/base.html:256
-#: templates/graph_view.html:454
+#: templates/graph_view.html:458
 msgid "Almost there..."
 msgstr "快到了..."
 
@@ -1924,11 +1926,11 @@ msgstr "密码"
 msgid "Nova has a summary ready. What would you like to do?"
 msgstr "Nova 已准备好摘要。你想怎么做？"
 
-#: templates/_journal_section.html:2511 templates/graph_view.html:457
+#: templates/_journal_section.html:2511 templates/graph_view.html:461
 msgid "Overwrite"
 msgstr "概览"
 
-#: templates/_journal_section.html:2512 templates/graph_view.html:458
+#: templates/_journal_section.html:2512 templates/graph_view.html:462
 msgid "Append"
 msgstr "附加"
 
@@ -2025,7 +2027,7 @@ msgid "Imported"
 msgstr "已导入"
 
 #: templates/_objects_section.html:58 templates/_objects_section.html:158
-#: templates/graph_view.html:219
+#: templates/graph_view.html:222
 msgid "Source"
 msgstr "来源"
 
@@ -2034,7 +2036,7 @@ msgid "e.g., messier (use = for exact)"
 msgstr "例如：messier（使用 = 表示精确匹配）"
 
 #: templates/_objects_section.html:63 templates/config_form.html:575
-#: templates/graph_view.html:171 templates/mobile_journal_new.html:376
+#: templates/graph_view.html:174 templates/mobile_journal_new.html:376
 #: templates/mobile_object_detail.html:534 templates/project_report.html:1074
 msgid "Notes"
 msgstr "备注"
@@ -2114,7 +2116,7 @@ msgid "Enabled"
 msgstr "已启用"
 
 #: templates/_objects_section.html:172 templates/_objects_section.html:309
-#: templates/graph_view.html:186
+#: templates/graph_view.html:189
 msgid "Active Project"
 msgstr "活跃项目"
 
@@ -2122,7 +2124,7 @@ msgstr "活跃项目"
 msgid "Update"
 msgstr "更新"
 
-#: templates/_objects_section.html:184 templates/graph_view.html:196
+#: templates/_objects_section.html:184 templates/graph_view.html:199
 msgid "Inspiration Content"
 msgstr "灵感内容"
 
@@ -2272,7 +2274,7 @@ msgid ""
 msgstr "星表包是服务器提供的天体集合，您可以将其导入到您的库中。导入不会破坏性修改：现有天体永远不会被覆盖，重叠的天体将被跳过。"
 
 #: templates/_objects_section.html:386 templates/config_form.html:607
-#: templates/graph_view.html:215
+#: templates/graph_view.html:218
 msgid "Description"
 msgstr "描述"
 
@@ -3079,7 +3081,7 @@ msgstr "询问Nova时出错。请再试一次。"
 msgid "Consulting star charts..."
 msgstr "查阅星图..."
 
-#: templates/base.html:254 templates/graph_view.html:451
+#: templates/base.html:254 templates/graph_view.html:455
 msgid "Checking your rigs..."
 msgstr "查看当地图书馆..."
 
@@ -3902,7 +3904,7 @@ msgstr "天文黄昏 / 黎明"
 msgid "Chart"
 msgstr "查看图表"
 
-#: templates/graph_view.html:93 templates/graph_view.html:157
+#: templates/graph_view.html:93 templates/graph_view.html:160
 #, fuzzy
 msgid "Notes & Framing"
 msgstr "保存构图"
@@ -3957,333 +3959,342 @@ msgstr "添加天体"
 msgid "How objects are ranked"
 msgstr "未找到天体"
 
-#: templates/graph_view.html:139 templates/graph_view.html:658
-#, fuzzy
+#: templates/graph_view.html:139 templates/graph_view.html:662
 msgid "Calibration Star"
-msgstr "校准策略"
+msgstr "校准星"
 
-#: templates/graph_view.html:140
+#: templates/graph_view.html:141
 #, fuzzy
 msgid "Refresh"
 msgstr "帧"
 
-#: templates/graph_view.html:158 templates/index.html:90
+#: templates/graph_view.html:142
+msgid "Help with calibration star"
+msgstr "校准星帮助"
+
+#: templates/graph_view.html:161 templates/index.html:90
 msgid "Inspiration"
 msgstr "灵感"
 
-#: templates/graph_view.html:159
+#: templates/graph_view.html:162
 #, fuzzy
 msgid "Rig Data"
 msgstr "日志数据"
 
-#: templates/graph_view.html:165
+#: templates/graph_view.html:168
 #, fuzzy
 msgid "Show Framing"
 msgstr "构图"
 
-#: templates/graph_view.html:166
+#: templates/graph_view.html:169
 msgid "Open in Stellarium"
 msgstr ""
 
-#: templates/graph_view.html:182 templates/mobile_edit_notes.html:17
+#: templates/graph_view.html:185 templates/mobile_edit_notes.html:17
 #: templates/mobile_edit_notes.html:108 templates/mobile_edit_notes.html:122
 msgid "Save Notes"
 msgstr "保存备注"
 
-#: templates/graph_view.html:198
+#: templates/graph_view.html:201
 msgid "Edit Object to Add Content"
 msgstr ""
 
-#: templates/graph_view.html:206
+#: templates/graph_view.html:209
 #, fuzzy
 msgid "Inspiration Image for"
 msgstr "灵感"
 
-#: templates/graph_view.html:219
+#: templates/graph_view.html:222
 #, fuzzy
 msgid "External Source"
 msgstr "文字来源链接"
 
-#: templates/graph_view.html:227
+#: templates/graph_view.html:230
 msgid ""
 "No inspiration content (custom image or description) has been added for "
 "this object yet."
 msgstr ""
 
-#: templates/graph_view.html:228
+#: templates/graph_view.html:231
 #, fuzzy
 msgid "Go to <strong>Configuration > Manage Objects</strong> to add one."
 msgstr "转到<strong>配置 > 管理天体</strong>为您的目标添加「灵感内容」（图像URL、署名、描述）。"
 
-#: templates/graph_view.html:237
+#: templates/graph_view.html:240
 #, fuzzy
 msgid "Framing With Your Rigs"
 msgstr "查看当地图书馆..."
 
-#: templates/graph_view.html:238
+#: templates/graph_view.html:241
 msgid ""
 "Assessment is based on the object's largest dimension and may not reflect"
 " framing of specific features."
 msgstr ""
 
-#: templates/graph_view.html:242
+#: templates/graph_view.html:245
 #, fuzzy
 msgid "Rig Name"
 msgstr "设备名称："
 
-#: templates/graph_view.html:243
+#: templates/graph_view.html:246
 #, fuzzy
 msgid "Rig FOV"
 msgstr "设备"
 
-#: templates/graph_view.html:244
+#: templates/graph_view.html:247
 #, fuzzy
 msgid "Object Size"
 msgstr "天体 ID"
 
-#: templates/graph_view.html:245
+#: templates/graph_view.html:248
 #, fuzzy
 msgid "Fit Assessment"
 msgstr "编辑会话"
 
-#: templates/graph_view.html:254
+#: templates/graph_view.html:257
 #, fuzzy
 msgid "Mosaic Required"
 msgstr "项目名称为必填项。"
 
-#: templates/graph_view.html:255
+#: templates/graph_view.html:258
 #, fuzzy
 msgid "Fits with Rotation"
 msgstr "灵感"
 
-#: templates/graph_view.html:257
+#: templates/graph_view.html:260
 #, fuzzy
 msgid "Small Target"
 msgstr "主要目标"
 
-#: templates/graph_view.html:258
+#: templates/graph_view.html:261
 msgid "Wide Field"
 msgstr ""
 
-#: templates/graph_view.html:259
+#: templates/graph_view.html:262
 msgid "Good Fit"
 msgstr ""
 
-#: templates/graph_view.html:291
+#: templates/graph_view.html:294
 #, fuzzy
 msgid "Framing Assistant"
 msgstr "构图说明"
 
-#: templates/graph_view.html:296
+#: templates/graph_view.html:299
 #, fuzzy
 msgid "Help with Framing"
 msgstr "设备帮助"
 
-#: templates/graph_view.html:301
+#: templates/graph_view.html:304
 msgid "Lock FOV"
 msgstr ""
 
-#: templates/graph_view.html:302
+#: templates/graph_view.html:305
 msgid ""
 "Displays the approximate location of geostationary satellites (corrected "
 "for your latitude)"
 msgstr ""
 
-#: templates/graph_view.html:302
+#: templates/graph_view.html:305
 msgid "Geo Belt"
 msgstr ""
 
-#: templates/graph_view.html:303
+#: templates/graph_view.html:306
 #, fuzzy
 msgid "Flip 90°"
 msgstr "翻转"
 
-#: templates/graph_view.html:304
+#: templates/graph_view.html:307
 #, fuzzy
 msgid "Copy framing URL"
 msgstr "构图"
 
-#: templates/graph_view.html:305
+#: templates/graph_view.html:308
 #, fuzzy
 msgid "Save Framing"
 msgstr "保存构图"
 
-#: templates/graph_view.html:308 templates/mobile_journal_new.html:237
+#: templates/graph_view.html:311 templates/mobile_journal_new.html:237
 #: templates/project_report.html:1120
 msgid "Rig"
 msgstr "设备"
 
-#: templates/graph_view.html:313
+#: templates/graph_view.html:316
 #, fuzzy
 msgid "No rigs configured"
 msgstr "未配置位置"
 
-#: templates/graph_view.html:318
+#: templates/graph_view.html:321
 msgid "Position Angle (0°=North, 90°=East)"
 msgstr ""
 
-#: templates/graph_view.html:318
+#: templates/graph_view.html:321
 msgid "Rotation (PA)"
 msgstr ""
 
-#: templates/graph_view.html:326
+#: templates/graph_view.html:329
 msgid "Mosaic (Col x Row)"
 msgstr ""
 
-#: templates/graph_view.html:328
+#: templates/graph_view.html:331
 #, fuzzy
 msgid "Columns"
 msgstr "数量"
 
-#: templates/graph_view.html:330
+#: templates/graph_view.html:333
 msgid "Rows"
 msgstr ""
 
-#: templates/graph_view.html:334
+#: templates/graph_view.html:337
 #, python-format
 msgid "Overlap %%"
 msgstr ""
 
-#: templates/graph_view.html:337
+#: templates/graph_view.html:340
 msgid ""
 "Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., "
 "and Telescopius."
 msgstr ""
 
-#: templates/graph_view.html:337
+#: templates/graph_view.html:340
 #, fuzzy
 msgid "Copy Plan (CSV)"
 msgstr "复制计划（CSV）"
 
-#: templates/graph_view.html:340
+#: templates/graph_view.html:343
 #, fuzzy
 msgid "Survey"
 msgstr "来源"
 
-#: templates/graph_view.html:360
+#: templates/graph_view.html:363
 msgid "Blend with"
 msgstr ""
 
-#: templates/graph_view.html:378
+#: templates/graph_view.html:381
 msgid "Blend opacity"
 msgstr ""
 
-#: templates/graph_view.html:382
+#: templates/graph_view.html:385
 msgid "Brightness"
 msgstr ""
 
-#: templates/graph_view.html:383
+#: templates/graph_view.html:386
 #, fuzzy
 msgid "Contrast"
 msgstr "中天"
 
-#: templates/graph_view.html:384
+#: templates/graph_view.html:387
 msgid "Gamma"
 msgstr ""
 
-#: templates/graph_view.html:385
+#: templates/graph_view.html:388
 #, fuzzy
 msgid "Saturation"
 msgstr "持续时间"
 
-#: templates/graph_view.html:387
+#: templates/graph_view.html:390
 msgid ""
 "Coordinates are JNow (Real Time / Mean Equinox of Date) to match your "
 "mount."
 msgstr ""
 
-#: templates/graph_view.html:392
+#: templates/graph_view.html:395
 #, fuzzy
 msgid "Copy"
 msgstr "复制计划（CSV）"
 
-#: templates/graph_view.html:395
+#: templates/graph_view.html:398
 msgid "Tip: Click on the sky to move the FOV center."
 msgstr ""
 
-#: templates/graph_view.html:396
+#: templates/graph_view.html:399
 #, fuzzy
 msgid "Recenter to object"
 msgstr "目标天体："
 
-#: templates/graph_view.html:398
+#: templates/graph_view.html:401
 msgid "Nudge Up"
 msgstr ""
 
-#: templates/graph_view.html:400
+#: templates/graph_view.html:403
 #, fuzzy
 msgid "Nudge Left"
 msgstr "删除"
 
-#: templates/graph_view.html:401
+#: templates/graph_view.html:404
 msgid "Nudge Right"
 msgstr ""
 
-#: templates/graph_view.html:403
+#: templates/graph_view.html:406
 msgid "Nudge Down"
 msgstr ""
 
-#: templates/graph_view.html:404
+#: templates/graph_view.html:407
 #, fuzzy
 msgid "steps"
 msgstr "步"
 
-#: templates/graph_view.html:449
+#: templates/graph_view.html:453
 msgid "Ask Nova for observing notes"
 msgstr ""
 
-#: templates/graph_view.html:450
+#: templates/graph_view.html:454
 #, fuzzy
 msgid "Consulting the star charts..."
 msgstr "查阅星图..."
 
-#: templates/graph_view.html:452
+#: templates/graph_view.html:456
 #, fuzzy
 msgid "Scanning the cosmos..."
 msgstr "扫描天空中..."
 
-#: templates/graph_view.html:453
+#: templates/graph_view.html:457
 #, fuzzy
 msgid "Calculating from"
 msgstr "加载中..."
 
-#: templates/graph_view.html:455
+#: templates/graph_view.html:459
 #, fuzzy
 msgid "your location"
 msgstr "位置"
 
-#: templates/graph_view.html:456
+#: templates/graph_view.html:460
 #, fuzzy
 msgid "Nova has notes ready. What would you like to do?"
 msgstr "Nova 已准备好摘要。你想怎么做？"
 
-#: templates/graph_view.html:460
+#: templates/graph_view.html:464
 msgid "Nova couldn't load notes"
 msgstr ""
 
-#: templates/graph_view.html:659
-#, fuzzy
+#: templates/graph_view.html:663
 msgid "No calibration star available near meridian"
-msgstr "校准策略"
+msgstr "子午线附近没有可用的校准星"
 
-#: templates/graph_view.html:661
+#: templates/graph_view.html:665
 #, fuzzy
 msgid "Window"
 msgstr "现在观测"
 
-#: templates/graph_view.html:662 templates/mobile_object_detail.html:493
+#: templates/graph_view.html:666 templates/mobile_object_detail.html:493
 #, fuzzy
 msgid "Now"
 msgstr "现在观测"
 
-#: templates/graph_view.html:715
-#, fuzzy
-msgid "HA"
-msgstr "h"
+#: templates/graph_view.html:667
+msgid "Alt"
+msgstr "高度角"
 
-#: templates/graph_view.html:715
+#: templates/graph_view.html:668
+msgid "Az"
+msgstr "方位角"
+
+#: templates/graph_view.html:671
+msgid "HA"
+msgstr "HA"
+
+#: templates/graph_view.html:672
 msgid "from meridian"
-msgstr ""
+msgstr "距子午线"
 
 #: templates/index.html:3 templates/login.html:2
 msgid "DSO Altitude Tracker"

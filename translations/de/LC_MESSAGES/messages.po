@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-04-19 11:03+0200\n"
+"POT-Creation-Date: 2026-04-19 13:20+0200\n"
 "PO-Revision-Date: 2026-03-27 13:26+0800\n"
 "Last-Translator: \n"
 "Language: de\n"
@@ -342,7 +342,7 @@ msgstr ""
 "Ungültige Datumskomponenten angegeben, Standardwert ist das aktuelle "
 "Datum."
 
-#: nova/blueprints/core.py:2041
+#: nova/blueprints/core.py:2042
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
 msgstr "Beim Laden der Details für %(object_name)s ist ein Fehler aufgetreten."
@@ -802,7 +802,7 @@ msgstr "Quelle: Wiki"
 #: templates/_objects_section.html:427 templates/_objects_section.html:442
 #: templates/base.html:384 templates/base.html:401 templates/base.html:406
 #: templates/base.html:415 templates/base.html:453
-#: templates/config_form.html:673 templates/graph_view.html:290
+#: templates/config_form.html:673 templates/graph_view.html:293
 msgid "Close"
 msgstr "Schließen"
 
@@ -880,7 +880,7 @@ msgstr "h"
 #: templates/_inspiration_section.html:536 templates/base.html:105
 #: templates/config_form.html:596 templates/config_form.html:625
 #: templates/config_form.html:661 templates/graph_view.html:132
-#: templates/graph_view.html:143 templates/graph_view.html:660
+#: templates/graph_view.html:146 templates/graph_view.html:664
 #: templates/mobile_object_detail.html:588
 msgid "Loading..."
 msgstr "Wird geladen..."
@@ -1316,11 +1316,13 @@ msgstr "#"
 msgid "Time"
 msgstr "Zeit"
 
-#: templates/_journal_section.html:1898 templates/journal_report.html:1069
+#: templates/_journal_section.html:1898 templates/graph_view.html:669
+#: templates/journal_report.html:1069
 msgid "RA"
 msgstr "RA"
 
-#: templates/_journal_section.html:1899 templates/journal_report.html:1070
+#: templates/_journal_section.html:1899 templates/graph_view.html:670
+#: templates/journal_report.html:1070
 msgid "Dec"
 msgstr "Dezember"
 
@@ -1512,7 +1514,7 @@ msgstr "Projekt speichern"
 #: templates/_journal_section.html:2229 templates/_journal_section.html:2513
 #: templates/_objects_section.html:347 templates/_project_subtab.html:232
 #: templates/admin_users.html:120 templates/base.html:486
-#: templates/graph_view.html:459 templates/index.html:266
+#: templates/graph_view.html:463 templates/index.html:266
 #: templates/journal_form.html:205
 msgid "Cancel"
 msgstr "Abbrechen"
@@ -1936,7 +1938,7 @@ msgid "{label} removed."
 msgstr "{label} entfernt."
 
 #: templates/_journal_section.html:2502 templates/base.html:244
-#: templates/graph_view.html:448 templates/index.html:112
+#: templates/graph_view.html:452 templates/index.html:112
 msgid "Ask Nova"
 msgstr "Ask Nova"
 
@@ -1953,7 +1955,7 @@ msgid "Checking guiding data..."
 msgstr "Daten werden aktualisiert..."
 
 #: templates/_journal_section.html:2507 templates/base.html:256
-#: templates/graph_view.html:454
+#: templates/graph_view.html:458
 msgid "Almost there..."
 msgstr "Fast geschafft..."
 
@@ -1969,11 +1971,11 @@ msgstr "Passwort"
 msgid "Nova has a summary ready. What would you like to do?"
 msgstr "Nova hat eine Zusammenfassung bereit. Was möchtest du tun?"
 
-#: templates/_journal_section.html:2511 templates/graph_view.html:457
+#: templates/_journal_section.html:2511 templates/graph_view.html:461
 msgid "Overwrite"
 msgstr "Überschreiben"
 
-#: templates/_journal_section.html:2512 templates/graph_view.html:458
+#: templates/_journal_section.html:2512 templates/graph_view.html:462
 msgid "Append"
 msgstr "Anhängen"
 
@@ -2070,7 +2072,7 @@ msgid "Imported"
 msgstr "Importiert"
 
 #: templates/_objects_section.html:58 templates/_objects_section.html:158
-#: templates/graph_view.html:219
+#: templates/graph_view.html:222
 msgid "Source"
 msgstr "Quelle"
 
@@ -2079,7 +2081,7 @@ msgid "e.g., messier (use = for exact)"
 msgstr "z. B. messier (Verwendung = für exakt)"
 
 #: templates/_objects_section.html:63 templates/config_form.html:575
-#: templates/graph_view.html:171 templates/mobile_journal_new.html:376
+#: templates/graph_view.html:174 templates/mobile_journal_new.html:376
 #: templates/mobile_object_detail.html:534 templates/project_report.html:1074
 msgid "Notes"
 msgstr "Anmerkungen"
@@ -2159,7 +2161,7 @@ msgid "Enabled"
 msgstr "Aktiviert"
 
 #: templates/_objects_section.html:172 templates/_objects_section.html:309
-#: templates/graph_view.html:186
+#: templates/graph_view.html:189
 msgid "Active Project"
 msgstr "Aktives Projekt"
 
@@ -2167,7 +2169,7 @@ msgstr "Aktives Projekt"
 msgid "Update"
 msgstr "Aktualisierung"
 
-#: templates/_objects_section.html:184 templates/graph_view.html:196
+#: templates/_objects_section.html:184 templates/graph_view.html:199
 msgid "Inspiration Content"
 msgstr "Inspirierende Inhalte"
 
@@ -2321,7 +2323,7 @@ msgstr ""
 " werden übersprungen."
 
 #: templates/_objects_section.html:386 templates/config_form.html:607
-#: templates/graph_view.html:215
+#: templates/graph_view.html:218
 msgid "Description"
 msgstr "Beschreibung"
 
@@ -3150,7 +3152,7 @@ msgstr "Fehler beim Fragen von Nova. Bitte versuchen Sie es erneut."
 msgid "Consulting star charts..."
 msgstr "Ich habe die Sternenkarten konsultiert..."
 
-#: templates/base.html:254 templates/graph_view.html:451
+#: templates/base.html:254 templates/graph_view.html:455
 msgid "Checking your rigs..."
 msgstr "Überprüfen Sie Ihre örtliche Bibliothek..."
 
@@ -4013,7 +4015,7 @@ msgstr "Astr. Abend / Morgen"
 msgid "Chart"
 msgstr "Diagramme anzeigen"
 
-#: templates/graph_view.html:93 templates/graph_view.html:157
+#: templates/graph_view.html:93 templates/graph_view.html:160
 #, fuzzy
 msgid "Notes & Framing"
 msgstr "Bildausschnitt speichern"
@@ -4068,58 +4070,62 @@ msgstr "Objekt hinzufügen"
 msgid "How objects are ranked"
 msgstr "Keine Objekte gefunden"
 
-#: templates/graph_view.html:139 templates/graph_view.html:658
+#: templates/graph_view.html:139 templates/graph_view.html:662
 msgid "Calibration Star"
 msgstr "Kalibrierstern"
 
-#: templates/graph_view.html:140
+#: templates/graph_view.html:141
 msgid "Refresh"
 msgstr "Aktualisieren"
 
-#: templates/graph_view.html:158 templates/index.html:90
+#: templates/graph_view.html:142
+msgid "Help with calibration star"
+msgstr "Hilfe zum Kalibrierstern"
+
+#: templates/graph_view.html:161 templates/index.html:90
 msgid "Inspiration"
 msgstr "Inspiration"
 
-#: templates/graph_view.html:159
+#: templates/graph_view.html:162
 #, fuzzy
 msgid "Rig Data"
 msgstr "Datenprotokoll"
 
-#: templates/graph_view.html:165
+#: templates/graph_view.html:168
 #, fuzzy
 msgid "Show Framing"
 msgstr "Bildausschnitt"
 
-#: templates/graph_view.html:166
+#: templates/graph_view.html:169
 msgid "Open in Stellarium"
 msgstr ""
 
-#: templates/graph_view.html:182 templates/mobile_edit_notes.html:17
+#: templates/graph_view.html:185 templates/mobile_edit_notes.html:17
 #: templates/mobile_edit_notes.html:108 templates/mobile_edit_notes.html:122
 msgid "Save Notes"
 msgstr "Notizen speichern"
 
-#: templates/graph_view.html:198
+#: templates/graph_view.html:201
 msgid "Edit Object to Add Content"
 msgstr ""
 
-#: templates/graph_view.html:206
+#: templates/graph_view.html:209
 #, fuzzy
 msgid "Inspiration Image for"
 msgstr "Inspiration"
 
-#: templates/graph_view.html:219
+#: templates/graph_view.html:222
 #, fuzzy
 msgid "External Source"
 msgstr "Textquelle Link"
 
-#: templates/graph_view.html:227
+#: templates/graph_view.html:230
 msgid ""
 "No inspiration content (custom image or description) has been added for "
 "this object yet."
 msgstr ""
 
-#: templates/graph_view.html:228
+#: templates/graph_view.html:231
 #, fuzzy
 msgid "Go to <strong>Configuration > Manage Objects</strong> to add one."
 msgstr ""
@@ -4127,269 +4133,277 @@ msgstr ""
 "„Inspiration-Inhalte\" (Bild-URLs, Credits, Beschreibungen) zu Ihren "
 "Zielen hinzuzufügen."
 
-#: templates/graph_view.html:237
+#: templates/graph_view.html:240
 #, fuzzy
 msgid "Framing With Your Rigs"
 msgstr "Überprüfen Sie Ihre örtliche Bibliothek..."
 
-#: templates/graph_view.html:238
+#: templates/graph_view.html:241
 msgid ""
 "Assessment is based on the object's largest dimension and may not reflect"
 " framing of specific features."
 msgstr ""
 
-#: templates/graph_view.html:242
+#: templates/graph_view.html:245
 #, fuzzy
 msgid "Rig Name"
 msgstr "Rig-Name:"
 
-#: templates/graph_view.html:243
+#: templates/graph_view.html:246
 #, fuzzy
 msgid "Rig FOV"
 msgstr "Rig"
 
-#: templates/graph_view.html:244
+#: templates/graph_view.html:247
 #, fuzzy
 msgid "Object Size"
 msgstr "Objekt-ID"
 
-#: templates/graph_view.html:245
+#: templates/graph_view.html:248
 #, fuzzy
 msgid "Fit Assessment"
 msgstr "Diese Sequenz bearbeiten"
 
-#: templates/graph_view.html:254
+#: templates/graph_view.html:257
 #, fuzzy
 msgid "Mosaic Required"
 msgstr "Name ist erforderlich"
 
-#: templates/graph_view.html:255
+#: templates/graph_view.html:258
 #, fuzzy
 msgid "Fits with Rotation"
 msgstr "Inspiration"
 
-#: templates/graph_view.html:257
+#: templates/graph_view.html:260
 #, fuzzy
 msgid "Small Target"
 msgstr "Primäres Ziel"
 
-#: templates/graph_view.html:258
+#: templates/graph_view.html:261
 msgid "Wide Field"
 msgstr ""
 
-#: templates/graph_view.html:259
+#: templates/graph_view.html:262
 msgid "Good Fit"
 msgstr ""
 
-#: templates/graph_view.html:291
+#: templates/graph_view.html:294
 #, fuzzy
 msgid "Framing Assistant"
 msgstr "Rahmenhinweise"
 
-#: templates/graph_view.html:296
+#: templates/graph_view.html:299
 #, fuzzy
 msgid "Help with Framing"
 msgstr "Hilfe zu Rigs"
 
-#: templates/graph_view.html:301
+#: templates/graph_view.html:304
 msgid "Lock FOV"
 msgstr ""
 
-#: templates/graph_view.html:302
+#: templates/graph_view.html:305
 msgid ""
 "Displays the approximate location of geostationary satellites (corrected "
 "for your latitude)"
 msgstr ""
 
-#: templates/graph_view.html:302
+#: templates/graph_view.html:305
 msgid "Geo Belt"
 msgstr ""
 
-#: templates/graph_view.html:303
+#: templates/graph_view.html:306
 #, fuzzy
 msgid "Flip 90°"
 msgstr "Meridianflips"
 
-#: templates/graph_view.html:304
+#: templates/graph_view.html:307
 #, fuzzy
 msgid "Copy framing URL"
 msgstr "Bildausschnitt"
 
-#: templates/graph_view.html:305
+#: templates/graph_view.html:308
 #, fuzzy
 msgid "Save Framing"
 msgstr "Bildausschnitt speichern"
 
-#: templates/graph_view.html:308 templates/mobile_journal_new.html:237
+#: templates/graph_view.html:311 templates/mobile_journal_new.html:237
 #: templates/project_report.html:1120
 msgid "Rig"
 msgstr "Rig"
 
-#: templates/graph_view.html:313
+#: templates/graph_view.html:316
 #, fuzzy
 msgid "No rigs configured"
 msgstr "Standort nicht konfiguriert"
 
-#: templates/graph_view.html:318
+#: templates/graph_view.html:321
 msgid "Position Angle (0°=North, 90°=East)"
 msgstr ""
 
-#: templates/graph_view.html:318
+#: templates/graph_view.html:321
 msgid "Rotation (PA)"
 msgstr ""
 
-#: templates/graph_view.html:326
+#: templates/graph_view.html:329
 msgid "Mosaic (Col x Row)"
 msgstr ""
 
-#: templates/graph_view.html:328
+#: templates/graph_view.html:331
 #, fuzzy
 msgid "Columns"
 msgstr "Graf"
 
-#: templates/graph_view.html:330
+#: templates/graph_view.html:333
 msgid "Rows"
 msgstr ""
 
-#: templates/graph_view.html:334
+#: templates/graph_view.html:337
 #, python-format
 msgid "Overlap %%"
 msgstr ""
 
-#: templates/graph_view.html:337
+#: templates/graph_view.html:340
 msgid ""
 "Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., "
 "and Telescopius."
 msgstr ""
 
-#: templates/graph_view.html:337
+#: templates/graph_view.html:340
 #, fuzzy
 msgid "Copy Plan (CSV)"
 msgstr "Plan kopieren (CSV)"
 
-#: templates/graph_view.html:340
+#: templates/graph_view.html:343
 #, fuzzy
 msgid "Survey"
 msgstr "Quelle"
 
-#: templates/graph_view.html:360
+#: templates/graph_view.html:363
 msgid "Blend with"
 msgstr ""
 
-#: templates/graph_view.html:378
+#: templates/graph_view.html:381
 msgid "Blend opacity"
 msgstr ""
 
-#: templates/graph_view.html:382
+#: templates/graph_view.html:385
 msgid "Brightness"
 msgstr ""
 
-#: templates/graph_view.html:383
+#: templates/graph_view.html:386
 #, fuzzy
 msgid "Contrast"
 msgstr "Kulmination"
 
-#: templates/graph_view.html:384
+#: templates/graph_view.html:387
 msgid "Gamma"
 msgstr ""
 
-#: templates/graph_view.html:385
+#: templates/graph_view.html:388
 #, fuzzy
 msgid "Saturation"
 msgstr "Dauer"
 
-#: templates/graph_view.html:387
+#: templates/graph_view.html:390
 msgid ""
 "Coordinates are JNow (Real Time / Mean Equinox of Date) to match your "
 "mount."
 msgstr ""
 
-#: templates/graph_view.html:392
+#: templates/graph_view.html:395
 #, fuzzy
 msgid "Copy"
 msgstr "Plan kopieren (CSV)"
 
-#: templates/graph_view.html:395
+#: templates/graph_view.html:398
 msgid "Tip: Click on the sky to move the FOV center."
 msgstr ""
 
-#: templates/graph_view.html:396
+#: templates/graph_view.html:399
 #, fuzzy
 msgid "Recenter to object"
 msgstr "Zielobjekt:"
 
-#: templates/graph_view.html:398
+#: templates/graph_view.html:401
 msgid "Nudge Up"
 msgstr ""
 
-#: templates/graph_view.html:400
+#: templates/graph_view.html:403
 #, fuzzy
 msgid "Nudge Left"
 msgstr "Löschen"
 
-#: templates/graph_view.html:401
+#: templates/graph_view.html:404
 msgid "Nudge Right"
 msgstr ""
 
-#: templates/graph_view.html:403
+#: templates/graph_view.html:406
 msgid "Nudge Down"
 msgstr ""
 
-#: templates/graph_view.html:404
+#: templates/graph_view.html:407
 #, fuzzy
 msgid "steps"
 msgstr "Schritte"
 
-#: templates/graph_view.html:449
+#: templates/graph_view.html:453
 msgid "Ask Nova for observing notes"
 msgstr ""
 
-#: templates/graph_view.html:450
+#: templates/graph_view.html:454
 #, fuzzy
 msgid "Consulting the star charts..."
 msgstr "Ich habe die Sternenkarten konsultiert..."
 
-#: templates/graph_view.html:452
+#: templates/graph_view.html:456
 #, fuzzy
 msgid "Scanning the cosmos..."
 msgstr "Den Himmel scannen..."
 
-#: templates/graph_view.html:453
+#: templates/graph_view.html:457
 #, fuzzy
 msgid "Calculating from"
 msgstr "Wird geladen..."
 
-#: templates/graph_view.html:455
+#: templates/graph_view.html:459
 #, fuzzy
 msgid "your location"
 msgstr "Standort"
 
-#: templates/graph_view.html:456
+#: templates/graph_view.html:460
 #, fuzzy
 msgid "Nova has notes ready. What would you like to do?"
 msgstr "Nova hat eine Zusammenfassung bereit. Was möchtest du tun?"
 
-#: templates/graph_view.html:460
+#: templates/graph_view.html:464
 msgid "Nova couldn't load notes"
 msgstr ""
 
-#: templates/graph_view.html:659
+#: templates/graph_view.html:663
 msgid "No calibration star available near meridian"
 msgstr "Kein Kalibrierstern in Meridiannähe verfügbar"
 
-#: templates/graph_view.html:661
+#: templates/graph_view.html:665
 msgid "Window"
 msgstr "Fenster"
 
-#: templates/graph_view.html:662 templates/mobile_object_detail.html:493
+#: templates/graph_view.html:666 templates/mobile_object_detail.html:493
 msgid "Now"
 msgstr "Jetzt"
 
-#: templates/graph_view.html:715
+#: templates/graph_view.html:667
+msgid "Alt"
+msgstr "Höhe"
+
+#: templates/graph_view.html:668
+msgid "Az"
+msgstr "Az"
+
+#: templates/graph_view.html:671
 msgid "HA"
 msgstr "HA"
 
-#: templates/graph_view.html:715
+#: templates/graph_view.html:672
 msgid "from meridian"
 msgstr "vom Meridian"
 

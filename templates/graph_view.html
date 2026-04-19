@@ -137,7 +137,10 @@
             <div id="calibration-star-card" style="margin-top: 16px; padding: 12px 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: var(--shadow-sm); max-width: 480px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                     <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-faint);">{{ _('Calibration Star') }}</span>
-                    <button id="calibration-star-refresh" type="button" title="{{ _('Refresh') }}" style="background: transparent; border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-muted); cursor: pointer; padding: 2px 6px; font-size: 13px; line-height: 1; transition: all 0.15s ease;">↻</button>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <button id="calibration-star-refresh" type="button" title="{{ _('Refresh') }}" style="background: transparent; border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-muted); cursor: pointer; padding: 2px 6px; font-size: 13px; line-height: 1; transition: all 0.15s ease;">↻</button>
+                        {{ help_badge('calibration_star', _('Help with calibration star')) }}
+                    </div>
                 </div>
                 <div id="calibration-star-body">
                     <span style="color: var(--text-muted); font-size: 12px;">{{ _('Loading...') }}</span>
@@ -660,7 +663,13 @@ document.addEventListener('DOMContentLoaded', function() {
         noStar: {{ _("No calibration star available near meridian") | tojson }},
         loading: {{ _("Loading...") | tojson }},
         windowLabel: {{ _("Window") | tojson }},
-        now: {{ _("Now") | tojson }}
+        now: {{ _("Now") | tojson }},
+        alt: {{ _("Alt") | tojson }},
+        az: {{ _("Az") | tojson }},
+        ra: {{ _("RA") | tojson }},
+        dec: {{ _("Dec") | tojson }},
+        ha: {{ _("HA") | tojson }},
+        fromMeridian: {{ _("from meridian") | tojson }}
     };
 
     var calBody = document.getElementById('calibration-star-body');
@@ -712,14 +721,14 @@ document.addEventListener('DOMContentLoaded', function() {
         calBody.innerHTML =
             '<div style="display: flex; justify-content: space-between; align-items: baseline;">' +
                 '<span style="font-size: 15px; color: var(--text-primary); font-weight: 600;">' + data.name + '</span>' +
-                '<span style="font-size: 12px; font-family: var(--font-mono, \'DM Mono\', monospace); color: var(--text-secondary);">Alt: ' + data.altitude.toFixed(1) + '\u00B0</span>' +
+                '<span style="font-size: 12px; font-family: var(--font-mono, \'DM Mono\', monospace); color: var(--text-secondary);">' + calI18n.alt + ': ' + data.altitude.toFixed(1) + '\u00B0</span>' +
             '</div>' +
             '<div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">' +
-                '<span style="font-size: 12px; font-family: var(--font-mono, \'DM Mono\', monospace); color: var(--text-secondary);">RA ' + formatRA(data.ra) + ' \u00B7 Dec ' + formatDec(data.dec) + '</span>' +
-                '<span style="font-size: 12px; font-family: var(--font-mono, \'DM Mono\', monospace); color: var(--text-secondary);">Az: ' + data.azimuth.toFixed(1) + '\u00B0</span>' +
+                '<span style="font-size: 12px; font-family: var(--font-mono, \'DM Mono\', monospace); color: var(--text-secondary);">' + calI18n.ra + ' ' + formatRA(data.ra) + ' \u00B7 ' + calI18n.dec + ' ' + formatDec(data.dec) + '</span>' +
+                '<span style="font-size: 12px; font-family: var(--font-mono, \'DM Mono\', monospace); color: var(--text-secondary);">' + calI18n.az + ': ' + data.azimuth.toFixed(1) + '\u00B0</span>' +
             '</div>' +
             '<div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">' +
-                '{{ _("HA") }}: ' + formatHA(data.ha_hours) + ' {{ _("from meridian") }}' +
+                calI18n.ha + ': ' + formatHA(data.ha_hours) + ' ' + calI18n.fromMeridian +
             '</div>' +
             windowLine;
     }
