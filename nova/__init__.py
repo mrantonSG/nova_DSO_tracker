@@ -2388,6 +2388,7 @@ def send_telemetry_async(user_config, browser_user_agent: str = '', force: bool 
             try:
                 # print("[TELEMETRY] Sending to:", endpoint)
                 resp = requests.post(endpoint, json=payload, timeout=TELEMETRY_TIMEOUT)
+                telemetry_mark_sent(state_dir)
                 TELEMETRY_DEBUG_STATE['last_result'] = f"HTTP {getattr(resp, 'status_code', 'unknown')}"
                 TELEMETRY_DEBUG_STATE['last_error'] = None
                 TELEMETRY_DEBUG_STATE['last_ts'] = datetime.now(timezone.utc).isoformat()
@@ -2397,8 +2398,6 @@ def send_telemetry_async(user_config, browser_user_agent: str = '', force: bool 
                 TELEMETRY_DEBUG_STATE['last_error'] = str(e)
                 TELEMETRY_DEBUG_STATE['last_ts'] = datetime.now(timezone.utc).isoformat()
                 # print("[TELEMETRY] ERROR:", e)
-            finally:
-                telemetry_mark_sent(state_dir)
 
         TELEMETRY_DEBUG_STATE['last_payload'] = payload
         threading.Thread(target=_worker, daemon=True).start()
