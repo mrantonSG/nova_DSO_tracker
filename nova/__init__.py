@@ -2329,6 +2329,32 @@ def build_telemetry_payload(user_config, browser_user_agent: str = ''):
 
     instance_id, enabled = ensure_instance_id(user_config)
     mode = 'single' if SINGLE_USER_MODE else 'multi'
+
+    # --- Analytics feature_usage (last 30 days) ---
+    feature_usage: dict = {}
+    login_count_30d = 0
+    try:
+        from nova.models import AnalyticsEvent, AnalyticsLogin
+        from sqlalchemy import func as sa_func
+        cutoff = date.today() - timedelta(days=30)
+        session = SessionLocal()
+        try:
+            rows = session.query(
+                AnalyticsEvent.event_name,
+                sa_func.sum(AnalyticsEvent.count)
+            ).filter(AnalyticsEvent.date >= cutoff)\
+             .group_by(AnalyticsEvent.event_name).all()
+            feature_usage = {r[0]: int(r[1]) for r in rows}
+
+            login_count_30d = session.query(
+                sa_func.sum(AnalyticsLogin.login_count)
+            ).filter(AnalyticsLogin.date >= cutoff).scalar() or 0
+            login_count_30d = int(login_count_30d)
+        finally:
+            session.close()
+    except Exception as e:
+        print(f"[TELEMETRY] Analytics query failed: {e}")
+
     return {
         'instance_id': instance_id,
         'app_version': APP_VERSION,
@@ -2342,6 +2368,8 @@ def build_telemetry_payload(user_config, browser_user_agent: str = ''):
         "rigs_count": rigs_count,
         "locations_count": locations_count,
         "journals_count": journals_count,
+        "feature_usage": feature_usage,
+        "login_count_30d": login_count_30d,
     }
 
 def send_telemetry_async(user_config, browser_user_agent: str = '', force: bool = False):

@@ -30,8 +30,8 @@ def _is_excluded() -> bool:
 
 
 def _is_enabled() -> bool:
-    """Analytics only runs in multi-user mode."""
-    return not SINGLE_USER_MODE
+    """Analytics runs in both single-user and multi-user modes."""
+    return True
 
 
 def record_event(event_name: str) -> None:
