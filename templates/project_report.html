@@ -817,6 +817,53 @@
             </div>
         </div>
 
+        {% if exposure_summary.filters %}
+        <div class="section">
+            <div class="section-label">{{ _('Total Exposures — All Sessions') }}</div>
+            <div class="section-content">
+                <table class="data-table-mini">
+                    <thead>
+                        <tr>
+                            <th>{{ _('Filter') }}</th>
+                            <th style="text-align:right">{{ _('Subs') }}</th>
+                            <th style="text-align:right">{{ _('Per Sub') }}</th>
+                            <th style="text-align:right">{{ _('Integration') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for f in exposure_summary.filters %}
+                        <tr>
+                            <td>{{ f.name }}</td>
+                            <td style="text-align:right; font-family:var(--font-mono)">{{ f.subs }}</td>
+                            <td style="text-align:right; font-family:var(--font-mono)">
+                                {% if f.mixed_duration %}mixed{% elif f.exposure_sec %}{{ f.exposure_sec }}s{% else %}—{% endif %}
+                            </td>
+                            <td style="text-align:right; font-family:var(--font-mono)">
+                                {% set h = (f.total_sec // 3600) %}
+                                {% set m = ((f.total_sec % 3600) // 60) %}
+                                {% if h %}{{ h }}h {% endif %}{{ m }}m
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3"><strong>{{ _('Grand Total') }}</strong></td>
+                            <td style="text-align:right; font-family:var(--font-mono)">
+                                <strong>
+                                    {% set gh = (exposure_summary.grand_total_sec // 3600) %}
+                                    {% set gm = ((exposure_summary.grand_total_sec % 3600) // 60) %}
+                                    {% if gh %}{{ gh }}h {% endif %}{{ gm }}m
+                                </strong>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+
+            </div>
+        </div>
+        {% endif %}
+
         {% if project_image_url %}
         <div class="master-image-container">
             <img src="{{ project_image_url }}" alt="{{ _('Final Result') }}">

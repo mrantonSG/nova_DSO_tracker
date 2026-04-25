@@ -151,6 +151,93 @@ def project_detail(project_id):
         return redirect(url_for('core.index'))
 
 
+def _build_project_exposure_summary(sessions):
+    """
+    Aggregate per-filter exposure totals across all sessions in a project.
+    Returns a dict with keys:
+      'filters': list of dicts {name, subs, exposure_sec, total_sec, mixed_duration}
+                 ordered: L, R, G, B, Ha, OIII, SII, then custom filters alpha-sorted
+      'grand_total_sec': int
+      'has_simple_mode': bool (True if any session used simple/free-text mode)
+    """
+    import json as _json
+
+    BUILTIN_FILTERS = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII']
+
+    # {filter_name: {subs: int, total_sec: int, durations: set()}}
+    agg = {}
+
+    def _add(name, subs, exp_sec):
+        if not subs:
+            return
+        if name not in agg:
+            agg[name] = {'subs': 0, 'total_sec': 0, 'durations': set()}
+        agg[name]['subs'] += subs
+        agg[name]['total_sec'] += subs * (exp_sec or 0)
+        if exp_sec:
+            agg[name]['durations'].add(exp_sec)
+
+    for s in sessions:
+        # Built-in monochrome filters
+        for key in BUILTIN_FILTERS:
+            subs = getattr(s, f'filter_{key}_subs', None)
+            exp_sec = getattr(s, f'filter_{key}_exposure_sec', None)
+            _add(key, subs, exp_sec)
+
+        # Custom filters (JSON column — raw string, needs parsing)
+        raw = getattr(s, 'custom_filter_data', None)
+        if raw:
+            try:
+                custom = _json.loads(raw)
+                if isinstance(custom, dict):
+                    for fname, fdata in custom.items():
+                        if isinstance(fdata, dict):
+                            _add(fname,
+                                 fdata.get('subs') or fdata.get('number_of_subs'),
+                                 fdata.get('exposure_sec') or fdata.get('exposure_time_per_sub_sec'))
+            except (ValueError, TypeError):
+                pass
+
+        # Simple mode sessions — use filter_used_session as the key
+        simple_subs = getattr(s, 'number_of_subs_light', None)
+        if simple_subs:
+            simple_filter = (getattr(s, 'filter_used_session', None) or 'Light').strip()
+            simple_exp = getattr(s, 'exposure_time_per_sub_sec', None)
+            _add(simple_filter, simple_subs, simple_exp)
+
+    # Build ordered output list
+    filters_out = []
+    seen = set()
+    for key in BUILTIN_FILTERS:
+        if key in agg:
+            d = agg[key]
+            filters_out.append({
+                'name': key,
+                'subs': d['subs'],
+                'total_sec': d['total_sec'],
+                'mixed_duration': len(d['durations']) > 1,
+                'exposure_sec': next(iter(d['durations'])) if len(d['durations']) == 1 else None,
+            })
+            seen.add(key)
+    for key in sorted(agg.keys()):
+        if key not in seen:
+            d = agg[key]
+            filters_out.append({
+                'name': key,
+                'subs': d['subs'],
+                'total_sec': d['total_sec'],
+                'mixed_duration': len(d['durations']) > 1,
+                'exposure_sec': next(iter(d['durations'])) if len(d['durations']) == 1 else None,
+            })
+
+    grand_total = sum(f['total_sec'] for f in filters_out)
+
+    return {
+        'filters': filters_out,
+        'grand_total_sec': grand_total,
+    }
+
+
 @projects_bp.route('/project/report_page/<string:project_id>')
 @login_required
 def show_project_report_page(project_id):
@@ -238,6 +325,9 @@ def show_project_report_page(project_id):
     # 6. Logo URL
     logo_url = url_for('static', filename='nova-icon-transparent.png', _external=True)
 
+    # 7. Exposure Summary
+    exposure_summary = _build_project_exposure_summary(sessions)
+
     record_event('pdf_report_generated')
     return render_template(
         'project_report.html',
@@ -250,6 +340,7 @@ def show_project_report_page(project_id):
         last_date=last_date,
         project_image_url=project_image_url,
         logo_url=logo_url,
+        exposure_summary=exposure_summary,
         today_date=datetime.now().strftime('%d.%m.%Y')
     )
 
