@@ -28,6 +28,8 @@ from flask import (
 from flask_babel import gettext as _
 from flask_login import current_user, login_required, login_user, logout_user
 
+from nova.blueprints.projects import _build_project_exposure_summary
+
 # =============================================================================
 # Nova Package Imports (no circular import)
 # =============================================================================
@@ -1676,6 +1678,7 @@ def graph_dashboard(object_name):
         project_journal_html_fields = {}
         total_integration_str_journal = "0h 0m"
         project_sessions_list_journal = []  # <--- NEW LIST
+        project_exposure_summary = {'filters': [], 'grand_total_sec': 0}
 
         # A: Handle Session Selection
         if requested_session_id:
@@ -1754,6 +1757,7 @@ def graph_dashboard(object_name):
                     s_dict = {c.name: getattr(s, c.name) for c in s.__table__.columns}
                     if s.date_utc: s_dict['date_utc'] = s.date_utc.isoformat()
                     project_sessions_list_journal.append(s_dict)
+                project_exposure_summary = _build_project_exposure_summary(project_sessions_db)
 
         # (The rest of grouping logic is unchanged)
         all_projects_for_user = db.query(Project).filter_by(user_id=user.id).order_by(Project.name).all()
@@ -2007,6 +2011,7 @@ def graph_dashboard(object_name):
                                total_integration_str_journal=total_integration_str_journal,
                                current_project_id=requested_project_id_journal,
                                project_sessions_list_journal=project_sessions_list_journal,  # <--- NEW Variable
+                               project_exposure_summary=project_exposure_summary,
 
                                all_objects=db.query(AstroObject).filter_by(user_id=user.id).order_by(
                                    AstroObject.object_name).all(),
