@@ -76,6 +76,7 @@
   --radius-sm: 5px;     /* Filter inputs, small elements */
   --radius-md: 8px;     /* Standard inputs, buttons */
   --radius-lg: 12px;     /* Larger buttons, cards */
+  --radius-xl: 16px;     /* Modals, large containers */
 
   /* =================================================================
      MOBILE INTERFACE VARIABLES

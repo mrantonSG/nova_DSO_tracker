@@ -2784,10 +2784,9 @@ hr,
   max-width: 440px;
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-modal);
-  max-height: 85vh;
-  overflow-y: auto;
-  margin: 0;
   text-align: center;
+  /* overflow intentionally NOT set here — kept on .about-modal-body
+     to prevent WebKit from clipping the border-radius */
 }
 
 :root[data-theme="dark"] #about-modal .about-modal-content {
@@ -2837,6 +2836,10 @@ hr,
   flex-direction: column;
   align-items: center;
   gap: var(--space-4);
+  max-height: 80vh;
+  overflow-y: auto;
+  width: 100%;
+  padding: var(--space-2) 0;
 }
 
 /* Logo */
