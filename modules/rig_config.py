@@ -6,9 +6,10 @@ import os
 import yaml
 import uuid
 from datetime import datetime
+from nova.config import BoundedCache
 
-rig_cache = {}
-rig_mtime = {}
+rig_cache = BoundedCache(500)
+rig_mtime = BoundedCache(500)
 APP_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 CONFIG_DIR = os.path.join(APP_ROOT, "instance", "configs")
 
