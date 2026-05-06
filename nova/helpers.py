@@ -27,7 +27,7 @@ from nova.models import SessionLocal, Location, AstroObject, Component, SavedFra
 from nova.config import (
     INSTANCE_PATH, BACKUP_DIR, ALLOWED_EXTENSIONS, SINGLE_USER_MODE, SIMBAD_TIMEOUT,
     nightly_curves_cache, NOVA_CATALOG_URL, CATALOG_MANIFEST_CACHE, DEFAULT_HTTP_TIMEOUT,
-    CACHE_DIR,
+    CACHE_DIR, astro_context_cache,
 )
 from modules.astro_calculations import (
     get_common_time_arrays, hms_to_hours, dms_to_degrees,
@@ -94,6 +94,12 @@ def get_outlook_cache_path(safe_log_key: str, lat: float,
     suffix = f"_{date_suffix}" if date_suffix else ""
     filename = f"outlook_cache_{safe_log_key}_{lat_grid:.1f}_{lon_grid:.1f}{suffix}.json"
     return os.path.join(CACHE_DIR, filename)
+
+
+def bust_astro_context_cache(user_id: int) -> None:
+    """Invalidate the astro context cache for a user after any
+    AstroObject or Location write."""
+    astro_context_cache.pop(user_id, None)
 
 
 # === File & YAML IO helpers ===
@@ -547,82 +553,103 @@ def load_full_astro_context():
         g.times_local, g.times_utc = [], []
         return
 
-    db = get_db()
-    try:
-        # --- Load Locations with Horizon Points (Fixes N+1 query) ---
-        loc_rows = db.query(Location).options(
-            selectinload(Location.horizon_points)  # Eagerly load horizon points
-        ).filter_by(user_id=g.db_user.id).all()
+    # --- Cache check (Class A: pure DB reads) ---
+    user_id = g.db_user.id
+    cached = astro_context_cache.get(user_id)
 
-        g.locations = {}
-        g.active_locations = {}
-        default_loc_name = g.user_config.get("default_location")
-        validated_location = default_loc_name
+    if cached is None:
+        # --- Class A: DB block (only runs on cache miss) ---
+        db = get_db()
+        try:
+            # --- Load Locations with Horizon Points (Fixes N+1 query) ---
+            loc_rows = db.query(Location).options(
+                selectinload(Location.horizon_points)
+            ).filter_by(user_id=user_id).all()
 
-        for l in loc_rows:
-            # The l.horizon_points access is now free, no new query
-            mask = [[hp.az_deg, hp.alt_min_deg] for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)]
-            loc_data = {
-                "name": l.name, "lat": l.lat, "lon": l.lon, "timezone": l.timezone,
-                "altitude_threshold": l.altitude_threshold, "is_default": l.is_default,
-                "horizon_mask": mask, "active": l.active, "comments": l.comments
+            locations = {}
+
+            for l in loc_rows:
+                mask = [[hp.az_deg, hp.alt_min_deg] for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)]
+                loc_data = {
+                    "name": l.name, "lat": l.lat, "lon": l.lon, "timezone": l.timezone,
+                    "altitude_threshold": l.altitude_threshold, "is_default": l.is_default,
+                    "horizon_mask": mask, "active": l.active, "comments": l.comments
+                }
+                locations[l.name] = loc_data
+
+            # --- Load Objects ---
+            obj_rows = db.query(AstroObject).filter_by(user_id=user_id).all()
+            objects_list = []
+            objects_map = {}
+            alternative_names = {}
+            projects = {}
+            objects = []
+
+            for o in obj_rows:
+                obj_data = o.to_dict()
+                objects_list.append(obj_data)
+                objects.append(o.object_name)
+                if o.object_name:
+                    obj_key = o.object_name.lower()
+                    objects_map[obj_key] = obj_data
+                    alternative_names[obj_key] = o.common_name
+                    projects[obj_key] = o.project_name
+
+            astro_context_cache[user_id] = {
+                'locations':         locations,
+                'objects_list':      objects_list,
+                'objects_map':       objects_map,
+                'alternative_names': alternative_names,
+                'projects':          projects,
+                'objects':           objects,
             }
-            g.locations[l.name] = loc_data
-            if l.active:
-                g.active_locations[l.name] = loc_data
+            cached = astro_context_cache[user_id]
 
-        # Validate default location
-        if not default_loc_name or default_loc_name not in g.active_locations:
-            validated_location = next(iter(g.active_locations), None)
+        except Exception as e:
+            print(f"Error in load_full_astro_context: {e}")
+            traceback.print_exc()
+            return
 
-        g.selected_location = validated_location
+    # --- Populate Class A g attributes from cached dict ---
+    g.locations         = cached['locations']
+    g.objects_list      = cached['objects_list']
+    g.objects_map       = cached['objects_map']
+    g.alternative_names = cached['alternative_names']
+    g.projects          = cached['projects']
+    g.objects           = cached['objects']
 
-        # Set safe defaults
-        g.altitude_threshold = g.user_config.get("altitude_threshold", 20)
-        if g.selected_location:
-            loc_cfg = g.locations.get(g.selected_location, {})
-            g.lat = loc_cfg.get("lat")
-            g.lon = loc_cfg.get("lon")
-            g.tz_name = loc_cfg.get("timezone", "UTC")
-        else:
-            g.lat, g.lon, g.tz_name = None, None, "UTC"
+    # --- Class B: Derived values (re-derived every request from cached A) ---
+    g.active_locations = {
+        name: loc for name, loc in g.locations.items()
+        if loc.get('active')
+    }
+    default_loc_name = g.user_config.get("default_location")
+    validated_location = default_loc_name
+    if not default_loc_name or default_loc_name not in g.active_locations:
+        validated_location = next(iter(g.active_locations), None)
 
-        # --- Load Objects ---
-        obj_rows = db.query(AstroObject).filter_by(user_id=g.db_user.id).all()
-        g.objects_list = []  # List for iteration
-        g.objects_map = {}  # <<< NEW: Dictionary for fast lookups
-        g.alternative_names = {}
-        g.projects = {}
-        g.objects = []
+    g.selected_location = validated_location
+    g.altitude_threshold = g.user_config.get("altitude_threshold", 20)
 
-        for o in obj_rows:
-            # Get all fields from our new method
-            obj_data = o.to_dict()
+    if g.selected_location:
+        loc_cfg = g.locations.get(g.selected_location, {})
+        g.lat = loc_cfg.get("lat")
+        g.lon = loc_cfg.get("lon")
+        g.tz_name = loc_cfg.get("timezone", "UTC")
+    else:
+        g.lat, g.lon, g.tz_name = None, None, "UTC"
 
-            # Append to the list and map
-            g.objects_list.append(obj_data)
-            g.objects.append(o.object_name)
-            if o.object_name:
-                obj_key = o.object_name.lower()
-                g.objects_map[obj_key] = obj_data  # <<< Add to map
-                g.alternative_names[obj_key] = o.common_name
-                g.projects[obj_key] = o.project_name
+    # --- Class C: Time arrays (always compute fresh) ---
+    if g.tz_name:
+        local_tz = pytz.timezone(g.tz_name)
+        local_date = datetime.now(local_tz).strftime('%Y-%m-%d')
+        g.times_local, g.times_utc = get_common_time_arrays(g.tz_name, local_date, g.sampling_interval)
+    else:
+        g.times_local, g.times_utc = [], []
 
-        # Add objects list to user_config dict for compatibility
-        g.user_config["objects"] = g.objects_list
-        g.user_config["locations"] = g.locations
-
-        # --- Precompute time arrays ---
-        if g.tz_name:
-            local_tz = pytz.timezone(g.tz_name)
-            local_date = datetime.now(local_tz).strftime('%Y-%m-%d')
-            g.times_local, g.times_utc = get_common_time_arrays(g.tz_name, local_date, g.sampling_interval)
-        else:
-            g.times_local, g.times_utc = [], []
-
-    except Exception as e:
-        print(f"Error in load_full_astro_context: {e}")
-        traceback.print_exc()
+    # --- User-config compatibility mutations ---
+    g.user_config["objects"] = g.objects_list
+    g.user_config["locations"] = g.locations
 
 
 # === RA/DEC Lookup ===

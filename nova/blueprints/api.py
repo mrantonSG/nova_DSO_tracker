@@ -33,6 +33,7 @@ from nova.helpers import (
     get_db, load_full_astro_context, get_locale,
     get_all_mobile_up_now_data, get_ra_dec, safe_float,
     read_log_content, enable_user, disable_user, delete_user,
+    bust_astro_context_cache,
 )
 from nova.models import (
     DbUser, AstroObject, JournalSession, Project,
@@ -374,6 +375,7 @@ def bulk_update_objects():
             return jsonify({"status": "error", "message": "Invalid action"}), 400
 
         db.commit()
+        bust_astro_context_cache(g.db_user.id)
         return jsonify({"status": "success", "message": msg})
     except Exception as e:
         db.rollback()
@@ -732,6 +734,7 @@ def import_item():
             return jsonify({"status": "error", "message": "Invalid item type"}), 400
 
         db.commit()
+        bust_astro_context_cache(g.db_user.id)
         return jsonify({"status": "success", "message": f"{item_type.capitalize()} imported successfully!"})
 
     except Exception as e:
@@ -1651,6 +1654,7 @@ def merge_objects():
         db.delete(obj_merge)
 
         db.commit()
+        bust_astro_context_cache(g.db_user.id)
         return jsonify({"status": "success", "message": f"Successfully merged '{merge_id}' into '{keep_id}'."})
 
     except Exception as e:

@@ -61,6 +61,7 @@ from nova.helpers import (
     get_user_log_string,
     load_full_astro_context,
     normalize_object_name,
+    bust_astro_context_cache,
 )
 from nova.models import (
     AnalyticsEvent,
@@ -343,6 +344,7 @@ def set_location_api():
         prefs.json_blob = json.dumps(settings)
 
         db.commit()
+        bust_astro_context_cache(g.db_user.id)
 
         # Update in-memory global state
         if hasattr(g, 'user_config'):
@@ -646,6 +648,7 @@ def config_form():
 
             if not error:
                 db.commit()
+                bust_astro_context_cache(g.db_user.id)
                 flash(_("%(message)s updated successfully.", message=message or 'Configuration'), "success")
                 return redirect(url_for('core.config_form'))
             else:
@@ -1039,6 +1042,7 @@ def confirm_object():
             db.add(new_obj)
 
         db.commit()
+        bust_astro_context_cache(g.db_user.id)
         return jsonify({"status": "success"})
 
     except ValueError as ve:

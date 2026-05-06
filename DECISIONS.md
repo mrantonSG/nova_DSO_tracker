@@ -3,6 +3,7 @@
 This file logs *why* the codebase looks the way it does.
 One line per decision. Format: Date | What changed | Why
 
+2026-05-06 | Add write-through process cache (astro_context_cache) for DB layer of load_full_astro_context() | Eliminate repeated Location+AstroObject queries per request; bust on every write path
 ---
 
 ## Foundation

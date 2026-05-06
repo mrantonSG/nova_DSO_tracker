@@ -29,7 +29,7 @@ from nova import (
     User
 )
 from nova.config import (
-    observable_objects_cache, nightly_curves_cache
+    observable_objects_cache, nightly_curves_cache, astro_context_cache
 )
 
 
@@ -99,6 +99,7 @@ def db_session(monkeypatch):
         # Clear module-level caches to prevent cross-test leakage
         observable_objects_cache.clear()
         nightly_curves_cache.clear()
+        astro_context_cache.clear()
         # Explicitly rollback any pending changes before cleanup
         try:
             session.rollback()

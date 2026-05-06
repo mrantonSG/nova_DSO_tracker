@@ -65,6 +65,7 @@ observable_objects_cache = BoundedCache(200)
 cache_worker_status = BoundedCache(500)
 LATEST_VERSION_INFO = BoundedCache(10)
 weather_cache = BoundedCache(1000)
+astro_context_cache = BoundedCache(500)  # keyed by user_id (int)
 CATALOG_MANIFEST_CACHE = {"data": None, "expires": 0}
 DEFAULT_HTTP_TIMEOUT = 10  # Standard timeout for HTTP requests
 

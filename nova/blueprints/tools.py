@@ -28,6 +28,7 @@ from nova.helpers import (
     calculate_dither_recommendation,
     safe_int, _compute_rig_metrics_from_components,
     sort_rigs, get_outlook_cache_path,
+    bust_astro_context_cache,
 )
 from nova.models import (
     DbUser, AstroObject, Component, Rig, Location,
@@ -754,6 +755,7 @@ def import_config():
             user_id_for_thread = user.id
 
             db.commit()
+            bust_astro_context_cache(user.id)
             flash(_("Config imported successfully! (Previous config was replaced)"), "success")
         except Exception as e:
             db.rollback()
