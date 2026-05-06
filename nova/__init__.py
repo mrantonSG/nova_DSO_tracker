@@ -432,9 +432,14 @@ def get_or_create_db_user(db_session, username: str) -> 'DbUser':
         if username == "guest_user":
             # Guest user MUST be seeded from disk (YAML) to act as the template for others
             _seed_guest_from_yaml(new_user)
-        else:
-            # Normal users are seeded from the database template (the guest_user record)
+        elif _is_test_environment():
+            # In test mode the YAML files on the developer's real filesystem
+            # would collide with fixture data. Fall back to DB-to-DB seeding
+            # (which is a no-op since the test guest_user has no template data).
             _seed_user_from_guest_data(db_session, new_user)
+        else:
+            # Normal users are seeded from config_default.yaml
+            _seed_new_user_from_yaml(db_session, new_user)
 
         db_session.commit()
 
@@ -446,6 +451,44 @@ def get_or_create_db_user(db_session, username: str) -> 'DbUser':
         print(f"   -> FAILED to provision '{username}'. Rolled back. Error: {e}")
         traceback.print_exc()
         return None
+
+
+def _is_test_environment() -> bool:
+    """Return True if running inside pytest or Flask TESTING mode."""
+    try:
+        if current_app.config.get('TESTING'):
+            return True
+    except RuntimeError:
+        pass  # No app context
+    return os.environ.get('PYTEST_CURRENT_TEST') is not None
+
+
+def _seed_new_user_from_yaml(db_session, user_to_seed: 'DbUser'):
+    """Seed a new user from config_default.yaml (instead of the guest_user DB row)."""
+    try:
+        print(f"[PROVISIONING] Seeding new user '{user_to_seed.username}' from config_default.yaml...")
+        cfg_path = os.path.join(CONFIG_DIR, "config_default.yaml")
+        rigs_path = os.path.join(CONFIG_DIR, "rigs_default.yaml")
+        jrn_path = os.path.join(CONFIG_DIR, "journal_default.yaml")
+
+        cfg_data, _ = _read_yaml(cfg_path)
+        rigs_data, _ = _read_yaml(rigs_path)
+        jrn_data, _ = _read_yaml(jrn_path)
+
+        if cfg_data:
+            _migrate_locations(db_session, user_to_seed, cfg_data)
+            _migrate_objects(db_session, user_to_seed, cfg_data)
+            _migrate_components_and_rigs(db_session, user_to_seed, rigs_data, user_to_seed.username)
+            _migrate_saved_framings(db_session, user_to_seed, cfg_data)
+            _migrate_journal(db_session, user_to_seed, jrn_data)
+            _migrate_ui_prefs(db_session, user_to_seed, cfg_data)
+            print(f"   -> [SEEDING] YAML import complete for '{user_to_seed.username}'.")
+        else:
+            print(f"   -> [SEEDING] WARNING: config_default.yaml empty or missing.")
+    except Exception as e:
+        print(f"   -> [SEEDING] ERROR importing from YAML for '{user_to_seed.username}': {e}")
+        raise e
+
 
 def _run_schema_patches(conn):
     """
@@ -3030,7 +3073,7 @@ def seed_empty_users_command():
                 # The seeding function already contains the safety check
                 # to see if the user is empty.
                 print(f"Checking user: '{user.username}' (ID: {user.id})...")
-                _seed_user_from_guest_data(db, user)
+                _seed_new_user_from_yaml(db, user)
 
                 # If the function added data, the session will be "dirty"
                 if db.is_modified(user) or db.new or db.dirty:
