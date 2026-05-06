@@ -53,6 +53,8 @@ One line per decision. Format: Date | What changed | Why
 
 2025-10-19 | Cache warmers skip inactive locations | Avoids wasting CPU calculating observability data for locations the user has disabled
 
+2026-05-06 | Removed 8 dead cache variables (static_cache, moon_separation_cache, monthly_top_targets_cache, config_cache, config_mtime, journal_cache, journal_mtime, rig_data_cache) | Superseded by nightly_curves_cache (superset), inline per-request calculation, or direct DB queries after YAML-to-SQLite migration; definitions and imports survived the blueprint refactor as unused code
+
 ## Frontend & Design
 
 2026-02-18 | CSS design system tokens (tokens.css) introduced | Hardcoded color values scattered across 15+ CSS files made dark-mode and consistent styling impossible to maintain
