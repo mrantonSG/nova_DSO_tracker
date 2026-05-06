@@ -3314,10 +3314,10 @@ def get_yearly_heatmap_chunk():
         db = get_db()
         user_id = g.db_user.id
         obj_count = db.query(AstroObject).filter_by(user_id=user_id, enabled=True).count()
-        loc_safe = selected_loc_key.lower().replace(' ', '_')
-
+        lat_grid = round(lat * 2) / 2   # 0.5° resolution ≈ 55km
+        lon_grid = round(lon * 2) / 2
         # Base filename
-        base_cache_name = f"heatmap_v5_{user_id}_{loc_safe}_{obj_count}"
+        base_cache_name = f"heatmap_v5_{user_id}_{lat_grid:.1f}_{lon_grid:.1f}_{obj_count}"
         # Specific chunk filename
         chunk_cache_filename = os.path.join(CACHE_DIR, f"{base_cache_name}.part{chunk_idx}.json")
 
