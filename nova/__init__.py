@@ -113,10 +113,9 @@ from nova.config import (
     UPLOAD_FOLDER, ENV_FILE, FIRST_RUN_ENV_CREATED, SINGLE_USER_MODE,
     SECRET_KEY, STELLARIUM_ERROR_MESSAGE, NOVA_CATALOG_URL,
     ALLOWED_EXTENSIONS, MAX_ACTIVE_LOCATIONS, SENTRY_DSN,
-    static_cache, moon_separation_cache, nightly_curves_cache, observable_objects_cache,
-    cache_worker_status, monthly_top_targets_cache, config_cache,
-    config_mtime, journal_cache, journal_mtime, LATEST_VERSION_INFO,
-    rig_data_cache, weather_cache, CATALOG_MANIFEST_CACHE,
+    nightly_curves_cache, observable_objects_cache,
+    cache_worker_status, LATEST_VERSION_INFO,
+    weather_cache, CATALOG_MANIFEST_CACHE,
     _telemetry_startup_once, TELEMETRY_DEBUG_STATE, TRANSLATION_STATUS,
     AI_PROVIDER, AI_API_KEY, AI_MODEL, AI_BASE_URL, AI_ALLOWED_USERS
 )

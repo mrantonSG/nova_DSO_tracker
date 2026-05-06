@@ -398,4 +398,4 @@ Hard-coded prompt templates for AI features. Pure string data, but large and gro
 ### Cross-cutting concerns
 - **`g` object as shared state**: Before-request hooks stuff `g` with user, locations, objects, config. Every route and helper accesses `g` directly. This is implicit global state that makes individual functions hard to reason about in isolation.
 - **Dual-mode complexity**: `SINGLE_USER_MODE` branches appear in auth, user provisioning, template rendering, and API responses. The conditional `User` class definition means type-checkers and IDEs struggle.
-- **In-memory caches**: `nova/config.py` holds mutable dicts (`static_cache`, `weather_cache`, `nightly_curves_cache`) shared between threads. No locking; correctness depends on Python's GIL and the append-only nature of most writes.
+- **In-memory caches**: `nova/config.py` holds mutable dicts (`weather_cache`, `nightly_curves_cache`) shared between threads. No locking; correctness depends on Python's GIL and the append-only nature of most writes.
