@@ -26,7 +26,8 @@ import astropy.units as u
 from nova.models import SessionLocal, Location, AstroObject, Component, SavedFraming
 from nova.config import (
     INSTANCE_PATH, BACKUP_DIR, ALLOWED_EXTENSIONS, SINGLE_USER_MODE, SIMBAD_TIMEOUT,
-    nightly_curves_cache, NOVA_CATALOG_URL, CATALOG_MANIFEST_CACHE, DEFAULT_HTTP_TIMEOUT
+    nightly_curves_cache, NOVA_CATALOG_URL, CATALOG_MANIFEST_CACHE, DEFAULT_HTTP_TIMEOUT,
+    CACHE_DIR,
 )
 from modules.astro_calculations import (
     get_common_time_arrays, hms_to_hours, dms_to_degrees,
@@ -84,6 +85,15 @@ def get_user_log_string(user_id, username):
 
     # Return with the parentheses
     return f"({user_id_str} | {log_name})"
+
+
+def get_outlook_cache_path(safe_log_key: str, lat: float,
+                            lon: float, date_suffix: str = "") -> str:
+    lat_grid = round(lat * 2) / 2   # 0.5° resolution ≈ 55km
+    lon_grid = round(lon * 2) / 2
+    suffix = f"_{date_suffix}" if date_suffix else ""
+    filename = f"outlook_cache_{safe_log_key}_{lat_grid:.1f}_{lon_grid:.1f}{suffix}.json"
+    return os.path.join(CACHE_DIR, filename)
 
 
 # === File & YAML IO helpers ===

@@ -56,6 +56,7 @@ from nova.helpers import (
     convert_to_native_python,
     dither_display,
     get_db,
+    get_outlook_cache_path,
     get_ra_dec,
     get_user_log_string,
     load_full_astro_context,
@@ -766,9 +767,14 @@ def get_outlook_data():
     # 3. Construct cache filename and status key
     # We append the date suffix so simulated caches don't overwrite the realtime cache
     safe_log_key = user_log_key.replace(" | ", "_").replace(".", "").replace(" ", "_")
-    loc_safe = location_name.lower().replace(' ', '_')
+    loc_data = g.locations.get(location_name, {})
 
-    cache_filename = os.path.join(CACHE_DIR, f"outlook_cache_{safe_log_key}_{loc_safe}{date_suffix}.json")
+    cache_filename = get_outlook_cache_path(
+        safe_log_key,
+        float(loc_data['lat']),
+        float(loc_data['lon']),
+        date_suffix if date_suffix else "",
+    )
     status_key = f"({user_log_key})_{location_name}{date_suffix}"
     # --- END OF CHANGES ---
 

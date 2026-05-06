@@ -27,7 +27,7 @@ from nova.helpers import (
     get_db, allowed_file, get_user_log_string,
     calculate_dither_recommendation,
     safe_int, _compute_rig_metrics_from_components,
-    sort_rigs,
+    sort_rigs, get_outlook_cache_path,
 )
 from nova.models import (
     DbUser, AstroObject, Component, Rig, Location,
@@ -780,10 +780,13 @@ def import_config():
             # 1. Standardize filename construction (Matches Master Cache)
             user_log_key = get_user_log_string(user_id_for_thread, username)
             safe_log_key = user_log_key.replace(" | ", "_").replace(".", "").replace(" ", "_")
-            loc_safe = loc_name.lower().replace(' ', '_')
 
             status_key = f"({user_log_key})_{loc_name}"
-            cache_filename = os.path.join(CACHE_DIR, f"outlook_cache_{safe_log_key}_{loc_safe}.json")
+            cache_filename = get_outlook_cache_path(
+                safe_log_key,
+                float(loc_data['lat']),
+                float(loc_data['lon']),
+            )
 
             # 2. REMOVED 'if not os.path.exists': Always force update on import
 

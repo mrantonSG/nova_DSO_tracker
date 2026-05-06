@@ -131,7 +131,8 @@ from nova.helpers import (
     generate_session_id, _compute_rig_metrics_from_components,
     load_full_astro_context, get_ra_dec,
     # Additional helpers extracted
-    normalize_object_name, _parse_float_from_request, sort_rigs
+    normalize_object_name, _parse_float_from_request, sort_rigs,
+    get_outlook_cache_path,
 )
 from nova.config import DEFAULT_DITHER_MAIN_SHIFT_PX
 from nova.report_graphs import generate_session_charts
@@ -1616,8 +1617,12 @@ def trigger_outlook_update_for_user(username):
                 user_log_key = get_user_log_string(uid, uname)
                 safe_log_key = user_log_key.replace(" | ", "_").replace(".", "").replace(" ", "_")
                 status_key = f"({user_log_key})_{loc_name}"
-                cache_filename = os.path.join(CACHE_DIR,
-                                              f"outlook_cache_{safe_log_key}_{loc_name.lower().replace(' ', '_')}.json")
+                loc_cfg = cfg.get('locations', {}).get(loc_name, {})
+                cache_filename = get_outlook_cache_path(
+                    safe_log_key,
+                    float(loc_cfg['lat']),
+                    float(loc_cfg['lon']),
+                )
 
                 cache_worker_status[status_key] = "starting"
                 # Call update_outlook_cache directly (blocking) to enforce sequential execution
@@ -2257,9 +2262,8 @@ def warm_main_cache(username, location_name, user_config, sampling_interval):
 
         user_log_key = get_user_log_string(u_id, username)
         safe_log_key = user_log_key.replace(" | ", "_").replace(".", "").replace(" ", "_")
-        loc_safe = location_name.lower().replace(' ', '_')
 
-        cache_filename = os.path.join(CACHE_DIR, f"outlook_cache_{safe_log_key}_{loc_safe}.json")
+        cache_filename = get_outlook_cache_path(safe_log_key, lat, lon)
 
         needs_update = False
         if not os.path.exists(cache_filename):
@@ -2286,11 +2290,10 @@ def warm_main_cache(username, location_name, user_config, sampling_interval):
             u_obj = db.query(DbUser).filter_by(username=username).first()
             u_id = u_obj.id if u_obj else 0
 
-            user_log_key = f"({u_id} | {username})"
-            safe_log_key = f"{u_id}_{username}"
-            status_key = f"{user_log_key}_{location_name}"
-            cache_filename = os.path.join(CACHE_DIR,
-                                          f"outlook_cache_{safe_log_key}_{location_name.lower().replace(' ', '_')}.json")
+            user_log_key = get_user_log_string(u_id, username)
+            safe_log_key = user_log_key.replace(" | ", "_").replace(".", "").replace(" ", "_")
+            status_key = f"({user_log_key})_{location_name}"
+            cache_filename = get_outlook_cache_path(safe_log_key, lat, lon)
 
             thread = threading.Thread(target=update_outlook_cache,
                                       args=(u_id, status_key, cache_filename, location_name, user_config.copy(),
