@@ -845,6 +845,7 @@ Use your astrophotography knowledge to assess each object's narrowband capabilit
 MOON PENALTY RULES — apply these BEFORE scoring:
 
 - LSB targets (large diffuse galaxies, extended emission nebulae, objects with angular size >60 arcmin, or known very low surface brightness): if moon illumination is >60%, apply a severe score penalty regardless of angular separation. These targets are fundamentally unviable — scattered moonlight floods the sky background and destroys SNR on faint extended structure. Large separation (even 90°+) does NOT protect them. Demote them to the bottom of the ranking and note "moon-limited" in the reason field.
+- COMPOUND EXCLUSION: If a target simultaneously meets ALL of the following — Bortle >= 7, moon illumination > 50%, and the target is an LSB broadband-only object (large diffuse galaxy, low-surface-brightness galaxy, extended reflection nebula, or any object with known very low surface brightness) — exclude it from the ranked output entirely. Do not include it even to reach a minimum count. These conditions together make the target non-viable; including it misleads the user.
 - Bright emission nebulae with narrowband: exempt from this penalty — narrowband filters block scattered moonlight effectively regardless of moon brightness.
 - Standard broadband targets (galaxies <60 arcmin, reflection nebulae, globular clusters): use existing angular separation thresholds as normal. Separation still matters for these compact targets.
 
@@ -893,9 +894,10 @@ You are an experienced astrophotographer advising a fellow astronomer on what to
 These objects have already been qualified as viable for tonight. Rank them in order of best achievable image quality tonight, considering sky position, moon separation, equipment match, and object character. Observable time has already been filtered — do not weight it heavily.
 
 Prioritize objects that are genuinely viable tonight. Omit broadband-only
-targets that are clearly unsuitable under current moon conditions. However,
-always return AT LEAST 5 objects — if narrowband targets are available,
-rank those first.
+targets that are clearly unsuitable under current moon conditions. If fewer
+than 5 targets remain viable after applying all penalties and exclusions,
+return however many are viable — do not pad the list with non-viable targets
+to reach a minimum count.
 
 Return the top 20 opportunities in order of best to worst for tonight.
 
