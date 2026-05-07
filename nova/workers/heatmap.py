@@ -65,8 +65,11 @@ def heatmap_background_worker(app):
             # 2. Process Tasks
             for task in tasks:
                 user_id = task['user_id']
-                loc_safe = task['loc_name'].lower().replace(' ', '_')
                 obj_count = task['obj_count']
+
+                lat_grid = round(task['lat'] * 2) / 2
+                lon_grid = round(task['lon'] * 2) / 2
+                loc_safe = f"{lat_grid:.1f}_{lon_grid:.1f}"
 
                 # Check the timestamp of the LAST chunk (part11) as a proxy for the whole set
                 base_filename = f"heatmap_v5_{user_id}_{loc_safe}_{obj_count}"
