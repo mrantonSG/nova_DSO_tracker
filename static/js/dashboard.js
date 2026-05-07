@@ -266,9 +266,9 @@
             function updateDataForSim() {
                 const currentSelectedLocation = sessionStorage.getItem('selectedLocation');
                 // Clear current cache keys to force fresh calculation with the simulated date
-                for (let i = 0; i < sessionStorage.length; i++) {
+                for (let i = sessionStorage.length - 1; i >= 0; i--) {
                     const key = sessionStorage.key(i);
-                    if (key.startsWith('nova_desktop_cache_')) {
+                    if (key && key.startsWith('nova_desktop_cache_')) {
                         sessionStorage.removeItem(key);
                     }
                 }
@@ -1098,6 +1098,8 @@
         // Clear table ONLY if we are showing loader (fresh load)
         if (shouldShowLoader) tbody.innerHTML = '';
 
+        let firstChunk = true;
+
         try {
             while (true) {
                 if (signal.aborted) return;
@@ -1120,6 +1122,11 @@
 
                 // Render this chunk immediately (Stream effect)
                 if (shouldShowLoader) {
+                    if (signal.aborted) return;
+                    if (firstChunk) {
+                        tbody.innerHTML = '';
+                        firstChunk = false;
+                    }
                     appendRows(chunkData);
                     // FIX: Re-apply filters immediately so the DOM state is correct
                     // This prevents the Inspiration tab from reading visible rows that should be hidden
