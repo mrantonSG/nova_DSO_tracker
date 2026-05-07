@@ -29,6 +29,7 @@ from nova.helpers import (
     safe_int, _compute_rig_metrics_from_components,
     sort_rigs, get_outlook_cache_path,
     bust_astro_context_cache,
+    bust_nightly_curves_cache,
 )
 from nova.models import (
     DbUser, AstroObject, Component, Rig, Location,
@@ -756,6 +757,7 @@ def import_config():
 
             db.commit()
             bust_astro_context_cache(user.id)
+            bust_nightly_curves_cache(username)
             flash(_("Config imported successfully! (Previous config was replaced)"), "success")
         except Exception as e:
             db.rollback()

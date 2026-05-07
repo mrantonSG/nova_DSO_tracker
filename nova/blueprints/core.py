@@ -62,6 +62,7 @@ from nova.helpers import (
     load_full_astro_context,
     normalize_object_name,
     bust_astro_context_cache,
+    bust_nightly_curves_cache,
 )
 from nova.models import (
     AnalyticsEvent,
@@ -345,6 +346,7 @@ def set_location_api():
 
         db.commit()
         bust_astro_context_cache(g.db_user.id)
+        bust_nightly_curves_cache(g.user_config.get('username') or g.db_user.username)
 
         # Update in-memory global state
         if hasattr(g, 'user_config'):
@@ -464,6 +466,7 @@ def config_form():
             return redirect(url_for('core.index'))
 
         if request.method == 'POST':
+            location_written = False
             # --- General Settings Tab ---
             if 'submit_general' in request.form:
                 prefs = db.query(UiPref).filter_by(user_id=app_db_user.id).first()
@@ -536,6 +539,7 @@ def config_form():
                         except (yaml.YAMLError, ValueError, TypeError):
                             flash(_("Warning: Horizon Mask was invalid and was ignored."), "warning")
                     message = "New location added."
+                    location_written = True
 
             # --- Update Existing Locations ---
             elif 'submit_locations' in request.form:
@@ -611,6 +615,7 @@ def config_form():
                     # --- END FIX ---
 
                 message = "Locations"
+                location_written = True
 
             # --- Update Existing Objects ---
             elif 'submit_objects' in request.form:
@@ -649,6 +654,8 @@ def config_form():
             if not error:
                 db.commit()
                 bust_astro_context_cache(g.db_user.id)
+                if location_written:
+                    bust_nightly_curves_cache(g.user_config.get('username') or g.db_user.username)
                 flash(_("%(message)s updated successfully.", message=message or 'Configuration'), "success")
                 return redirect(url_for('core.config_form'))
             else:
