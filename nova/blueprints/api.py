@@ -1386,6 +1386,13 @@ def api_parse_asiair_log():
     if file.filename == '':
         return jsonify({"status": "error", "message": _("Empty filename")}), 400
 
+    # 10MB size check before reading file into memory
+    file.seek(0, os.SEEK_END)
+    file_size = file.tell()
+    file.seek(0)
+    if file_size > 10 * 1024 * 1024:
+        return jsonify({"status": "error", "message": _("File is too large. Maximum size is 10 MB.")}), 413
+
     try:
         content = file.read().decode('utf-8', errors='ignore')
 

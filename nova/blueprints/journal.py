@@ -285,6 +285,12 @@ def journal_add():
             if 'session_image' in request.files:
                 file = request.files['session_image']
                 if file and file.filename != '' and allowed_file(file.filename):
+                    # 5MB size check for session images
+                    file.seek(0, os.SEEK_END)
+                    if file.tell() > 5 * 1024 * 1024:
+                        flash(_("Session image is too large. Maximum size is 5 MB."), "error")
+                        return redirect(url_for('core.graph_dashboard', object_name=request.form.get("target_object_id", "")))
+                    file.seek(0)
                     file_extension = file.filename.rsplit('.', 1)[1].lower()
                     new_filename = f"{new_session.id}.{file_extension}"
                     user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
@@ -304,18 +310,33 @@ def journal_add():
             if 'asiair_log' in request.files:
                 log_file = request.files['asiair_log']
                 if log_file and log_file.filename != '':
+                    log_file.seek(0, os.SEEK_END)
+                    if log_file.tell() > 10 * 1024 * 1024:
+                        flash(_("ASIAir log file is too large. Maximum size is 10 MB."), "error")
+                        return redirect(url_for('core.graph_dashboard', object_name=request.form.get("target_object_id", "")))
+                    log_file.seek(0)
                     asiair_content = log_file.read().decode('utf-8', errors='ignore')
                     asiair_filename = log_file.filename
 
             if 'phd2_log' in request.files:
                 log_file = request.files['phd2_log']
                 if log_file and log_file.filename != '':
+                    log_file.seek(0, os.SEEK_END)
+                    if log_file.tell() > 10 * 1024 * 1024:
+                        flash(_("PHD2 log file is too large. Maximum size is 10 MB."), "error")
+                        return redirect(url_for('core.graph_dashboard', object_name=request.form.get("target_object_id", "")))
+                    log_file.seek(0)
                     phd2_content = log_file.read().decode('utf-8', errors='ignore')
                     phd2_filename = log_file.filename
 
             if 'nina_log' in request.files:
                 log_file = request.files['nina_log']
                 if log_file and log_file.filename != '':
+                    log_file.seek(0, os.SEEK_END)
+                    if log_file.tell() > 10 * 1024 * 1024:
+                        flash(_("NINA log file is too large. Maximum size is 10 MB."), "error")
+                        return redirect(url_for('core.graph_dashboard', object_name=request.form.get("target_object_id", "")))
+                    log_file.seek(0)
                     nina_content = log_file.read().decode('utf-8', errors='ignore')
                     nina_filename = log_file.filename
 
@@ -589,13 +610,21 @@ def journal_edit(session_id):
             if 'session_image' in request.files:
                 file = request.files['session_image']
                 if file and file.filename != '' and allowed_file(file.filename):
+                    # 5MB size check for session images
+                    file.seek(0, os.SEEK_END)
+                    if file.tell() > 5 * 1024 * 1024:
+                        flash(_("Session image is too large. Maximum size is 5 MB."), "error")
+                        return redirect(
+                            url_for('core.graph_dashboard', object_name=session_to_edit.object_name,
+                                    session_id=session_id, location=session_to_edit.location_name))
+                    file.seek(0)
                     file_extension = file.filename.rsplit('.', 1)[1].lower()
                     new_filename = f"{session_to_edit.id}.{file_extension}"
                     user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
                     os.makedirs(user_upload_dir, exist_ok=True)
                     file.save(os.path.join(user_upload_dir, new_filename))
                     session_to_edit.session_image_file = new_filename
-    
+
             # --- Log file handling (stored as TEXT in DB) ---
             # Track if we need to invalidate the analysis cache
             invalidate_cache = False
