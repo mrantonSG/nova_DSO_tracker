@@ -845,6 +845,83 @@ def get_outlook_data():
         return jsonify({"status": "error", "message": "Failed to start background worker."}), 500
 
 
+@core_bp.route('/api/prewarm_outlook')
+def prewarm_outlook():
+    """
+    Fire-and-forget endpoint called on dashboard load.
+    If the outlook cache for the current location is older than 20h (72000s),
+    kick off a background refresh thread so the data is fresh before the user
+    opens the Outlook tab.
+    Returns immediately in all cases.
+    """
+    try:
+        if hasattr(g, 'is_guest') and g.is_guest:
+            return jsonify({"status": "skipped", "reason": "guest"}), 200
+
+        if SINGLE_USER_MODE:
+            user_id = g.db_user.id
+            username = g.db_user.username
+        elif current_user.is_authenticated:
+            user_id = g.db_user.id
+            username = g.db_user.username
+        else:
+            return jsonify({"status": "skipped", "reason": "unauthenticated"}), 200
+
+        location_name = g.selected_location
+        if not location_name:
+            return jsonify({"status": "skipped", "reason": "no_location"}), 200
+
+        loc_data = g.locations.get(location_name, {})
+        if not loc_data:
+            return jsonify({"status": "skipped", "reason": "location_data_missing"}), 200
+
+        user_log_key = get_user_log_string(user_id, username)
+        safe_log_key = user_log_key.replace(" | ", "_").replace(".", "").replace(" ", "_")
+
+        cache_filename = get_outlook_cache_path(
+            safe_log_key,
+            float(loc_data['lat']),
+            float(loc_data['lon']),
+        )
+        status_key = f"({user_log_key})_{location_name}"
+
+        # Skip if a worker is already running for this location
+        if cache_worker_status.get(status_key) in ["running", "starting"]:
+            return jsonify({"status": "skipped", "reason": "worker_active"}), 200
+
+        # Only trigger if cache is missing or older than 20h
+        PREWARM_THRESHOLD = 72000  # 20 hours in seconds
+        if os.path.exists(cache_filename):
+            cache_age = datetime.now().timestamp() - os.path.getmtime(cache_filename)
+            if cache_age < PREWARM_THRESHOLD:
+                return jsonify({"status": "skipped", "reason": "cache_fresh"}), 200
+
+        # Cache is stale or missing -- trigger background refresh
+        if not hasattr(g, 'user_config') or not g.user_config:
+            return jsonify({"status": "skipped", "reason": "no_user_config"}), 200
+
+        sampling_interval = 15
+        if SINGLE_USER_MODE:
+            sampling_interval = g.user_config.get('sampling_interval_minutes', 15)
+        else:
+            sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
+
+        from nova import update_outlook_cache
+        thread = threading.Thread(
+            target=update_outlook_cache,
+            args=(user_id, status_key, cache_filename, location_name,
+                  g.user_config.copy(), sampling_interval, None)
+        )
+        thread.start()
+        cache_worker_status[status_key] = "starting"
+        print(f"[PREWARM] Started background outlook refresh for {status_key}")
+        return jsonify({"status": "triggered"}), 200
+
+    except Exception as e:
+        print(f"[PREWARM] Error in prewarm_outlook: {e}")
+        return jsonify({"status": "error"}), 200  # Always 200 -- non-critical path
+
+
 @core_bp.route('/api/journal/custom-filters', methods=['POST'])
 @login_required
 def add_custom_filter():
