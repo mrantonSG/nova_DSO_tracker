@@ -3444,7 +3444,15 @@
                         break;
                 }
             });
-        });
+
+            // Proactive outlook cache pre-warm -- fire and forget on page load
+            (function() {
+                fetch('/api/prewarm_outlook', { method: 'GET', credentials: 'same-origin' })
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) { if (d.status === 'triggered') console.log('[Nova] Outlook pre-warm started.'); })
+                    .catch(function() {}); // Silent failure -- non-critical
+            })();
+        }); // closes DOMContentLoaded
         // --- END OF REPLACE ---
 
     // Expose functions needed by HTML inline event handlers and other scripts
