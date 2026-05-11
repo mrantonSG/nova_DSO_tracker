@@ -3066,6 +3066,31 @@
         checkAndShowFramingButton();
     });
 
+    const MAX_SCAN_FOV_DEG = 4.0;
+
+    function updateScanButtonState() {
+        const btn = document.getElementById('scan-frame-btn');
+        if (!btn) return;
+        const sel = document.getElementById('framing-rig-select');
+        const opt = sel ? sel.options[sel.selectedIndex] : null;
+        if (!opt) return;
+        const fovWDeg = parseFloat(opt.dataset.fovw) / 60;
+        const fovHDeg = parseFloat(opt.dataset.fovh) / 60;
+        if (fovWDeg > MAX_SCAN_FOV_DEG || fovHDeg > MAX_SCAN_FOV_DEG) {
+            btn.disabled = true;
+            btn.title    = 'FOV too large ('
+                + fovWDeg.toFixed(1) + '° × ' + fovHDeg.toFixed(1)
+                + '°) — max ' + MAX_SCAN_FOV_DEG + '° for Scan Frame';
+            btn.style.opacity = '0.45';
+            btn.style.cursor  = 'not-allowed';
+        } else {
+            btn.disabled      = false;
+            btn.title         = '';
+            btn.style.opacity = '';
+            btn.style.cursor  = '';
+        }
+    }
+
     const SIMBAD_OTYPE_LABELS = {
         'G':   'Galaxy',            'GiG': 'Galaxy in Group',
         'GiC': 'Galaxy in Cluster', 'GlC': 'Globular Cluster',
@@ -3278,6 +3303,7 @@
     window.nudgeFov = nudgeFov;
     window.copyAsiairMosaic = copyAsiairMosaic;
     window.scanFrameForDSOs = scanFrameForDSOs;
+    window.updateScanButtonState = updateScanButtonState;
     window.setLocation = setLocation;
     window.selectSuggestedDate = selectSuggestedDate;
     window.openInStellarium = openInStellarium;

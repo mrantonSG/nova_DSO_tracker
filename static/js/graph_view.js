@@ -263,6 +263,7 @@
                     } else {
                         window.openFramingAssistant();
                     }
+                    window.updateScanButtonState?.();
                 } else {
                     console.error('[GRAPH_VIEW] openFramingAssistant function not available!');
                 }
@@ -381,6 +382,7 @@
                 if (typeof window.updateFovVsObjectLabel === 'function') {
                     window.updateFovVsObjectLabel();
                 }
+                window.updateScanButtonState?.();
                 break;
             case 'update-mosaic':
                 console.log('[GRAPH_VIEW] update-mosaic');
