@@ -5,6 +5,15 @@ import json
 import threading
 from unittest.mock import MagicMock
 
+# Fake SIMBAD TAP CSV response for mocking in tests.
+FAKE_SIMBAD_CSV = (
+    "main_id,ra,dec,otype,galdim_majaxis,vmag\n"
+    "NGC 2070,83.628,-57.0429,GiG,,6.1\n"
+    "NGC 2074,83.591,-56.9833,GiG,,8.4\n"
+    "NGC 2060,83.517,-57.0167,Cl*,,7.2\n"
+    "Taurus X-1,83.650,-57.1000,PN,42.5,\n"
+)
+
 # 1. Add the project's parent directory to the system path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -908,3 +917,56 @@ def test_api_update_object(client, db_session):
 
 def test_config_form_post_update_and_delete_locations(client, db_session):
     pass
+
+
+def test_api_scan_frame_basic(client, db_session, monkeypatch):
+    import types as _types
+    def mock_post(*args, **kwargs):
+        return _types.SimpleNamespace(text=FAKE_SIMBAD_CSV)
+    import requests as _requests
+    monkeypatch.setattr(_requests, 'post', mock_post)
+
+    payload = {'ra': 83.5, 'dec': -57.0, 'fov_w': 1.0, 'fov_h': 1.0}
+    response = client.post('/api/scan_frame', json=payload)
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body['status'] == 'success'
+    assert body['count'] == 4
+    names = [o['name'] for o in body['objects']]
+    assert 'NGC 2070' in names
+    assert 'NGC 2074' in names
+    taurus = next(o for o in body['objects'] if o['name'] == 'Taurus X-1')
+    assert taurus['mag'] is None
+    assert taurus['size_arcmin'] == 42.5
+
+
+def test_api_scan_frame_mag_filter(client, db_session, monkeypatch):
+    import types as _types
+    def mock_post(*args, **kwargs):
+        return _types.SimpleNamespace(text=FAKE_SIMBAD_CSV)
+    import requests as _requests
+    monkeypatch.setattr(_requests, 'post', mock_post)
+
+    payload = {'ra': 83.5, 'dec': -57.0, 'fov_w': 1.0, 'fov_h': 1.0,
+               'mag_limit': 7.5}
+    response = client.post('/api/scan_frame', json=payload)
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body['status'] == 'success'
+    assert body['count'] == 3           # NGC 2074 (8.4) filtered; rest kept
+    names = {o['name'] for o in body['objects']}
+    assert 'NGC 2074' not in names
+    assert 'NGC 2070' in names          # 6.1 <= 7.5
+    assert 'NGC 2060' in names          # 7.2 <= 7.5
+    assert 'Taurus X-1' in names        # no mag -> always kept
+
+
+def test_api_scan_frame_timeout(client, db_session, monkeypatch):
+    import requests as _requests
+    from requests.exceptions import Timeout
+    monkeypatch.setattr(_requests, 'post',
+                        lambda *a, **kw: (_ for _ in ()).throw(Timeout()))
+    payload = {'ra': 10.0, 'dec': 20.0, 'fov_w': 1.0, 'fov_h': 1.0}
+    response = client.post('/api/scan_frame', json=payload)
+    assert response.status_code == 200
+    assert response.get_json()['status'] == 'error'

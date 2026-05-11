@@ -1,6 +1,6 @@
 import json
 import os
-import time
+import csv, io, time
 from pathlib import Path
 import calendar
 import traceback
@@ -56,6 +56,7 @@ import markdown
 api_bp = Blueprint('api', __name__)
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_scan_frame_cache = {}
 
 
 # --- Telemetry diagnostics route ---
@@ -804,6 +805,76 @@ def save_framing():
         db.rollback()
         current_app.logger.error(f"[FRAMING API] Failed to save framing for '{object_name}': {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
+
+@api_bp.route('/api/scan_frame', methods=['POST'])
+@login_required
+def scan_frame():
+    try:
+        data = request.get_json()
+        ra        = float(data['ra'])
+        dec       = float(data['dec'])
+        fov_w     = float(data['fov_w'])
+        fov_h     = float(data['fov_h'])
+        mag_limit = float(data.get('mag_limit', 16.0))
+    except (KeyError, TypeError, ValueError) as e:
+        return jsonify({'status': 'error', 'message': f'Bad parameters: {e}'}), 200
+
+    cache_key = (
+        g.db_user.username,
+        round(ra, 2), round(dec, 2),
+        round(fov_w, 3), round(fov_h, 3),
+        round(mag_limit, 1),
+    )
+    now = time.time()
+    if cache_key in _scan_frame_cache:
+        ts, cached = _scan_frame_cache[cache_key]
+        if now - ts < 3600:
+            return jsonify(cached)
+        del _scan_frame_cache[cache_key]
+
+    adql = (
+        "SELECT TOP 500 main_id, ra, dec, otype, galdim_majaxis, "
+        "(SELECT flux FROM allfluxes WHERE oidref = basic.oid "
+        " AND filter = 'V') AS vmag "
+        "FROM basic "
+        "WHERE CONTAINS(POINT('ICRS', ra, dec), "
+        "BOX('ICRS', {ra}, {dec}, {fov_w}, {fov_h})) = 1 "
+        "AND otype IN ('G','GiG','GiC','GlC','OpC','PN','SNR',"
+        "              'HII','EmN','RfN','MoC','Cl*')"
+    ).format(ra=ra, dec=dec, fov_w=fov_w, fov_h=fov_h)
+
+    try:
+        r = requests.post(
+            'http://simbad.u-strasbg.fr/simbad/sim-tap/sync',
+            data=[('REQUEST','doQuery'),('LANG','ADQL'),
+                  ('FORMAT','csv'),('QUERY', adql)],
+            timeout=DEFAULT_HTTP_TIMEOUT,
+        )
+    except requests.exceptions.Timeout:
+        return jsonify({'status': 'error', 'message': 'SIMBAD timeout'}), 200
+    except requests.exceptions.RequestException as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 200
+
+    reader = csv.DictReader(io.StringIO(r.text))
+    objects = []
+    for row in reader:
+        vmag_s = row.get('vmag', '').strip()
+        vmag = float(vmag_s) if vmag_s else None
+        if vmag is not None and vmag > mag_limit:
+            continue
+        size_s = row.get('galdim_majaxis', '').strip()
+        objects.append({
+            'name':       row.get('main_id', '').strip(),
+            'ra':         float(row['ra']),
+            'dec':        float(row['dec']),
+            'otype':      row.get('otype', '').strip(),
+            'mag':        vmag,
+            'size_arcmin': float(size_s) if size_s else None,
+        })
+
+    resp = {'status': 'success', 'count': len(objects), 'objects': objects}
+    _scan_frame_cache[cache_key] = (now, resp)
+    return jsonify(resp)
 
 @api_bp.route('/api/get_framing/<path:object_name>')
 @login_required
