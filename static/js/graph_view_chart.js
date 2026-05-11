@@ -3066,6 +3066,15 @@
         checkAndShowFramingButton();
     });
 
+    const SIMBAD_OTYPE_LABELS = {
+        'G':   'Galaxy',            'GiG': 'Galaxy in Group',
+        'GiC': 'Galaxy in Cluster', 'GlC': 'Globular Cluster',
+        'OpC': 'Open Cluster',      'PN':  'Planetary Nebula',
+        'SNR': 'SNR',               'HII': 'HII Region',
+        'EmN': 'Emission Nebula',   'RfN': 'Reflection Nebula',
+        'MoC': 'Molecular Cloud',   'Cl*': 'Star Cluster',
+    };
+
     function scanFrameForDSOs() {
         const btn = document.getElementById('scan-frame-btn');
         const popup = document.getElementById('scan-result-popup');
@@ -3125,15 +3134,60 @@
                     const nameEl = document.getElementById('scan-popup-name');
                     const bodyEl = document.getElementById('scan-popup-body');
                     if (!popup || !nameEl || !bodyEl) return;
+
+                    // Position near clicked object
+                    const pix = aladin.world2pix(source.ra, source.dec);
+                    const modalContent = document.getElementById('framing-modal-content');
+                    const aladinDiv    = document.getElementById('aladin-lite-div');
+                    if (pix && modalContent && aladinDiv) {
+                        const ar = aladinDiv.getBoundingClientRect();
+                        const mr = modalContent.getBoundingClientRect();
+                        const px = ar.left - mr.left + pix[0];
+                        const py = ar.top  - mr.top  + pix[1];
+                        const pw = 230; // popup estimated width
+                        const ph = 140; // popup estimated height
+                        const mw = modalContent.offsetWidth;
+                        const left = (px + 28 + pw < mw) ? px + 28 : px - pw - 8;
+                        const top  = (py - ph > 20) ? py - ph : py + 16;
+                        popup.style.left   = Math.max(8, left) + 'px';
+                        popup.style.top    = Math.max(8, top)  + 'px';
+                        popup.style.bottom = 'auto';
+                        popup.style.right  = 'auto';
+                    }
+
+                    // Content
                     nameEl.textContent = source.data.name || '—';
-                    const mag  = source.data.mag  != null
-                        ? source.data.mag.toFixed(1) : '—';
-                    const size = source.data.size_arcmin != null
-                        ? source.data.size_arcmin.toFixed(1) + '\'' : '—';
-                    bodyEl.innerHTML =
-                        'Type: ' + (source.data.otype || '—') + '<br>' +
-                        'Mag: '  + mag  + '<br>' +
-                        'Size: ' + size;
+                    const typeName = SIMBAD_OTYPE_LABELS[source.data.otype]
+                                     || source.data.otype || '—';
+                    const raHrs = source.ra / 15;
+                    const raH   = Math.floor(raHrs);
+                    const raM   = Math.floor((raHrs - raH) * 60);
+                    const raS   = ((raHrs - raH) * 60 - raM) * 60;
+                    const raStr = raH + 'h\u202f' + String(raM).padStart(2,'0')
+                        + 'm\u202f' + raS.toFixed(1) + 's';
+                    const dSign = source.dec >= 0 ? '+' : '−';
+                    const dAbs  = Math.abs(source.dec);
+                    const dD    = Math.floor(dAbs);
+                    const dM    = Math.floor((dAbs - dD) * 60);
+                    const dS    = ((dAbs - dD) * 60 - dM) * 60;
+                    const decStr = dSign + dD + '°\u202f' + String(dM).padStart(2,'0')
+                        + '′\u202f' + dS.toFixed(0) + '″';
+
+                    let html = '<span style="font-size:11px;font-weight:700;'
+                        + 'text-transform:uppercase;letter-spacing:0.07em;'
+                        + 'color:var(--text-secondary);">' + typeName + '</span><br>'
+                        + '<span style="font-family:var(--font-mono,monospace);'
+                        + 'font-size:11px;color:var(--text-muted);">'
+                        + raStr + '<br>' + decStr + '</span>';
+                    if (source.data.size_arcmin != null) {
+                        html += '<br><span style="font-size:11px;color:var(--text-secondary);">'
+                            + 'Size\u2009' + source.data.size_arcmin.toFixed(1) + '</span>';
+                    }
+                    if (source.data.mag != null) {
+                        html += '<br><span style="font-size:11px;color:var(--text-secondary);">'
+                            + 'Mag\u2009' + source.data.mag.toFixed(1) + '</span>';
+                    }
+                    bodyEl.innerHTML = html;
                     popup.style.display = 'block';
                 },
             });
