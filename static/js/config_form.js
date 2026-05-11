@@ -934,6 +934,15 @@
         tabs.forEach(tab => tab.addEventListener('click', () => { activeTab = tab.dataset.tab; updateTabDisplay(); }));
         updateTabDisplay(); // Run on page load
 
+        // Activate tab from URL params (e.g. from Scan Frame "Add to DB")
+        const _cfgUrlP = new URLSearchParams(window.location.search);
+        const _cfgTab  = _cfgUrlP.get('prefill_config_tab');
+        if (_cfgTab) {
+            const _tabBtn = document.querySelector(
+                '.tab-button[data-tab="' + _cfgTab + '"]');
+            if (_tabBtn) _tabBtn.click();
+        }
+
         // --- NEW: Trix Editor File Upload Handler ---
         function handleTrixAttachmentAdd(event) {
             if (!event.attachment.file) { return; }

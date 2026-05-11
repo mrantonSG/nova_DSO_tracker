@@ -3235,13 +3235,16 @@
                     _cfgUrl.searchParams.set('prefill_size',
                         source.data.size_arcmin != null
                             ? source.data.size_arcmin.toFixed(2) : '');
-                    const _addBtn = document.createElement('button');
-                    _addBtn.type      = 'button';
+                    _cfgUrl.searchParams.set('prefill_config_tab', 'objects');
+                    const _addBtn = document.createElement('a');
+                    _addBtn.href      = _cfgUrl.toString();
+                    _addBtn.target    = '_blank';
+                    _addBtn.rel       = 'noopener';
                     _addBtn.className = 'inline-button';
                     _addBtn.textContent = '+ Add to Database';
-                    _addBtn.style.cssText = 'margin-top:8px;width:100%;font-size:12px;';
-                    _addBtn.addEventListener('click', () =>
-                        window.open(_cfgUrl.toString(), '_blank'));
+                    _addBtn.style.cssText = 'margin-top:8px;width:100%;font-size:12px;'
+                        + 'display:block;text-align:center;text-decoration:none;'
+                        + 'box-sizing:border-box;';
                     bodyEl.appendChild(_addBtn);
 
                     // Wikipedia snippet
