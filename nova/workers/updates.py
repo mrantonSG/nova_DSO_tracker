@@ -1,5 +1,6 @@
 import time
 import traceback
+import re as _re
 import requests
 
 from nova.config import APP_VERSION, LATEST_VERSION_INFO
@@ -27,8 +28,13 @@ def check_for_updates(app):
             if not latest_version_str or not current_version_str:
                 print("[VERSION CHECK] Could not determine current or latest version string.")
             else:
-                current_version_tuple = tuple(map(int, current_version_str.split('.')))
-                latest_version_tuple = tuple(map(int, latest_version_str.split('.')))
+                # safe int: takes first digit-run from a version part
+                def _safe_ver_int(part):
+                    m = _re.match(r'\d+', part.strip())
+                    return int(m.group()) if m else 0
+
+                current_version_tuple = tuple(_safe_ver_int(p) for p in current_version_str.split('.'))
+                latest_version_tuple = tuple(_safe_ver_int(p) for p in latest_version_str.split('.'))
 
                 if latest_version_tuple > current_version_tuple:
                     print(f"[VERSION CHECK] New version found: {latest_version_str}")

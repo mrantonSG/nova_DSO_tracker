@@ -3207,6 +3207,33 @@
                         window.open(_cfgUrl.toString(), '_blank'));
                     bodyEl.appendChild(_addBtn);
 
+                    // Wikipedia snippet
+                    const _wikiName = (source.data.name || '')
+                        .replace(/\s+/g, ' ').trim().replace(/ /g, '_');
+                    const _wikiDiv = document.createElement('div');
+                    _wikiDiv.style.cssText = 'margin-top:8px;padding-top:8px;'
+                        + 'border-top:1px solid var(--border-color,#d0cdc8);'
+                        + 'font-size:11px;color:var(--text-muted);font-style:italic;';
+                    _wikiDiv.textContent = 'Loading…';
+                    bodyEl.appendChild(_wikiDiv);
+
+                    fetch('https://en.wikipedia.org/api/rest_v1/page/summary/'
+                          + encodeURIComponent(_wikiName))
+                        .then(r => r.ok ? r.json() : null)
+                        .then(d => {
+                            if (!d || !d.extract) { _wikiDiv.remove(); return; }
+                            const extract = d.extract.length > 220
+                                ? d.extract.slice(0, 220) + '…' : d.extract;
+                            _wikiDiv.style.fontStyle = 'normal';
+                            _wikiDiv.style.color = 'var(--text-secondary)';
+                            _wikiDiv.innerHTML = '<span>' + extract + '</span> '
+                                + '<a href="' + d.content_urls.desktop.page + '"'
+                                + ' target="_blank" rel="noopener"'
+                                + ' style="color:var(--primary-color);text-decoration:none;'
+                                + 'font-weight:600;white-space:nowrap;">Wikipedia →</a>';
+                        })
+                        .catch(() => _wikiDiv.remove());
+
                     popup.style.display = 'block';
                 },
             });
