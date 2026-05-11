@@ -387,6 +387,8 @@
     
     const OBJECT_SIZE_ARCMIN = null;
     let aladin = null;
+    let scanResultsCatalog = null;
+    let scanFrameActive    = false;
     let fovLayer = null;
     let altitudeChart = null;
     let __blendSurveyId = null;
@@ -3063,6 +3065,98 @@
         // --- CHECK DATABASE FOR FRAMING ---
         checkAndShowFramingButton();
     });
+
+    function scanFrameForDSOs() {
+        const btn = document.getElementById('scan-frame-btn');
+        const popup = document.getElementById('scan-result-popup');
+
+        if (scanFrameActive && scanResultsCatalog) {
+            scanResultsCatalog.removeAll();
+            scanFrameActive = false;
+            if (btn) { btn.textContent = 'Scan Frame'; btn.disabled = false; }
+            if (popup) popup.style.display = 'none';
+            return;
+        }
+
+        if (!aladin) return;
+
+        const center = getFrameCenterRaDec();
+        const sel = document.getElementById('framing-rig-select');
+        const opt = sel ? sel.options[sel.selectedIndex] : null;
+        const fovWDeg = opt ? parseFloat(opt.dataset.fovw) / 60 : 1.0;
+        const fovHDeg = opt ? parseFloat(opt.dataset.fovh) / 60 : 1.0;
+
+        if (btn) { btn.textContent = 'Scanning…'; btn.disabled = true; }
+
+        fetch('/api/scan_frame', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ra:    center.ra,
+                dec:   center.dec,
+                fov_w: fovWDeg,
+                fov_h: fovHDeg,
+            }),
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (btn) { btn.textContent = 'Scan Frame'; btn.disabled = false; }
+            if (data.status !== 'success') {
+                console.warn('[SCAN] SIMBAD error:', data.message);
+                return;
+            }
+            if (!data.objects.length) {
+                console.log('[SCAN] No DSOs found in frame.');
+                return;
+            }
+
+            scanResultsCatalog = A.catalog({
+                name:         'SIMBAD DSOs',
+                shape:        'circle',
+                sourceSize:   10,
+                color:        '#e8a84c',
+                labelColumn:  'name',
+                displayLabel: true,
+                labelColor:   '#e8a84c',
+                labelFont:    '13px DM Sans, sans-serif',
+                labelHalo:    true,
+                labelHaloColor: '#000000',
+                onClick: function(source) {
+                    const nameEl = document.getElementById('scan-popup-name');
+                    const bodyEl = document.getElementById('scan-popup-body');
+                    if (!popup || !nameEl || !bodyEl) return;
+                    nameEl.textContent = source.data.name || '—';
+                    const mag  = source.data.mag  != null
+                        ? source.data.mag.toFixed(1) : '—';
+                    const size = source.data.size_arcmin != null
+                        ? source.data.size_arcmin.toFixed(1) + '\'' : '—';
+                    bodyEl.innerHTML =
+                        'Type: ' + (source.data.otype || '—') + '<br>' +
+                        'Mag: '  + mag  + '<br>' +
+                        'Size: ' + size;
+                    popup.style.display = 'block';
+                },
+            });
+
+            scanResultsCatalog.addSources(
+                data.objects.map(obj =>
+                    A.source(obj.ra, obj.dec, {
+                        name:        obj.name,
+                        otype:       obj.otype,
+                        mag:         obj.mag,
+                        size_arcmin: obj.size_arcmin,
+                    })
+                )
+            );
+            aladin.addCatalog(scanResultsCatalog);
+            scanFrameActive = true;
+        })
+        .catch(err => {
+            console.error('[SCAN] fetch error:', err);
+            if (btn) { btn.textContent = 'Scan Frame'; btn.disabled = false; }
+        });
+    }
+
     // Expose functions needed by event delegation in graph_view.js
     // NOTE: showTab, showProjectSubTab, toggleProjectSubTabEdit are defined in graph_view.js, not here
     window.changeView = changeView;
@@ -3083,6 +3177,7 @@
     window.resetFovCenterToObject = resetFovCenterToObject;
     window.nudgeFov = nudgeFov;
     window.copyAsiairMosaic = copyAsiairMosaic;
+    window.scanFrameForDSOs = scanFrameForDSOs;
     window.setLocation = setLocation;
     window.selectSuggestedDate = selectSuggestedDate;
     window.openInStellarium = openInStellarium;

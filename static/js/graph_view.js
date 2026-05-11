@@ -299,6 +299,13 @@
                     window.saveFramingToDB();
                 }
                 break;
+            case 'scan-frame':
+                window.scanFrameForDSOs();
+                break;
+            case 'close-scan-popup':
+                const p = document.getElementById('scan-result-popup');
+                if (p) p.style.display = 'none';
+                break;
             case 'copy-mosaic-csv':
                 console.log('[GRAPH_VIEW] copy-mosaic-csv');
                 if (typeof window.copyAsiairMosaic === 'function') {

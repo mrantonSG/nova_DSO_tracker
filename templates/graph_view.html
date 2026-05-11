@@ -306,6 +306,7 @@
             <button class="inline-button" style="padding:6px 10px;font-size:13px;" data-action="flip-framing">{{ _('Flip 90°') }}</button>
             <button class="inline-button" style="padding:6px 10px;font-size:13px;" data-action="copy-framing-url">{{ _('Copy framing URL') }}</button>
             <button id="save-framing-db" type="button" class="inline-button" style="padding:6px 10px;font-size:13px;" data-action="save-framing-db">{{ _('Save Framing') }}</button>
+            <button id="scan-frame-btn" type="button" class="inline-button" style="padding:6px 10px;font-size:13px;" data-action="scan-frame">{{ _('Scan Frame') }}</button>
 
             <div style="display:flex; align-items:center; gap:6px; margin-left:12px; padding-left:12px; border-left:1px solid var(--border-medium-alt);">
                 <label for="framing-rig-select" style="font-weight:bold;">{{ _('Rig') }}:</label>
@@ -409,6 +410,23 @@
             </div>
         </div>
         <div id="aladin-lite-div"></div>
+        <div id="scan-result-popup" style="display:none; position:absolute; z-index:1000;
+                bottom:16px; left:16px; min-width:200px; max-width:280px;
+                background:var(--bg-secondary);
+                border:1px solid var(--border-color,#d0cdc8);
+                border-radius:8px; padding:10px 12px;
+                box-shadow:var(--shadow-md);
+                font-size:13px; font-family:'DM Sans',sans-serif;
+                color:var(--text-primary);">
+          <div style="display:flex; justify-content:space-between;
+                      align-items:center; margin-bottom:6px;">
+            <strong id="scan-popup-name" style="font-size:13px; color:var(--primary-color);"></strong>
+            <button type="button" class="inline-button-ghost" style="padding:2px 7px; font-size:14px; line-height:1;"
+                    data-action="close-scan-popup">×</button>
+          </div>
+          <div id="scan-popup-body" style="color:var(--text-secondary); font-size:12px;
+                  line-height:1.6;"></div>
+        </div>
     </div>
 </div>
 
