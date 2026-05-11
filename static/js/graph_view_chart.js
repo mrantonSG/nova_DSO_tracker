@@ -3188,6 +3188,25 @@
                             + 'Mag\u2009' + source.data.mag.toFixed(1) + '</span>';
                     }
                     bodyEl.innerHTML = html;
+
+                    // "Add to DB" button
+                    const _cfgUrl = new URL('/config_form', window.location.origin);
+                    _cfgUrl.searchParams.set('prefill_id',   source.data.name || '');
+                    _cfgUrl.searchParams.set('prefill_ra',   (source.ra / 15).toFixed(5));
+                    _cfgUrl.searchParams.set('prefill_dec',  source.dec.toFixed(5));
+                    _cfgUrl.searchParams.set('prefill_type', typeName);
+                    _cfgUrl.searchParams.set('prefill_size',
+                        source.data.size_arcmin != null
+                            ? source.data.size_arcmin.toFixed(2) : '');
+                    const _addBtn = document.createElement('button');
+                    _addBtn.type      = 'button';
+                    _addBtn.className = 'inline-button';
+                    _addBtn.textContent = '+ Add to Database';
+                    _addBtn.style.cssText = 'margin-top:8px;width:100%;font-size:12px;';
+                    _addBtn.addEventListener('click', () =>
+                        window.open(_cfgUrl.toString(), '_blank'));
+                    bodyEl.appendChild(_addBtn);
+
                     popup.style.display = 'block';
                 },
             });

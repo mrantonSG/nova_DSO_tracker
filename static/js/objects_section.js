@@ -754,6 +754,26 @@
                 });
             }
 
+            // Pre-fill "Add New Object" form from URL params (Scan Frame → Add to DB)
+            const _urlP = new URLSearchParams(window.location.search);
+            const _pfId = _urlP.get('prefill_id');
+            if (_pfId) {
+                requestAnimationFrame(() => {
+                    showObjectSubTab('add');
+                    const _f = (id, val) => {
+                        const el = document.getElementById(id);
+                         if (el && val) el.value = val;
+                    };
+                    _f('new_object', _pfId);
+                    _f('new_ra',     _urlP.get('prefill_ra'));
+                    _f('new_dec',    _urlP.get('prefill_dec'));
+                    _f('new_type',   _urlP.get('prefill_type'));
+                    _f('new_size',   _urlP.get('prefill_size'));
+                    // Auto-trigger SIMBAD search so constellation, SB etc. populate
+                    document.getElementById('submit_new_object')?.click();
+                });
+            }
+
             // --- Add Object Form Logic ---
             const resultDiv = document.getElementById('object_result');
             const submitNewObjectBtn = document.getElementById('submit_new_object');
