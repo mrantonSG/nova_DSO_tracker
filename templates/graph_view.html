@@ -308,6 +308,13 @@
             <button id="save-framing-db" type="button" class="inline-button" style="padding:6px 10px;font-size:13px;" data-action="save-framing-db">{{ _('Save Framing') }}</button>
             <button id="scan-frame-btn" type="button" class="inline-button" style="padding:6px 10px;font-size:13px;" data-action="scan-frame">{{ _('Scan Frame') }}</button>
 
+            <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text-secondary);">
+                <span style="white-space:nowrap;">Min size</span>
+                <input type="number" id="scan-min-size" min="0" max="60" step="0.1" value="0.5" disabled
+                       style="width:52px;font-size:12px;padding:4px 6px;border:1px solid var(--border-color,#d0cdc8);border-radius:6px;background:var(--bg-secondary);color:var(--text-primary);text-align:center;">
+                <span style="font-size:11px;color:var(--text-muted);">′</span>
+            </label>
+
             <div style="display:flex; align-items:center; gap:6px; margin-left:12px; padding-left:12px; border-left:1px solid var(--border-medium-alt);">
                 <label for="framing-rig-select" style="font-weight:bold;">{{ _('Rig') }}:</label>
                 <select id="framing-rig-select" data-action="update-framing-rig" style="max-width:240px; font-size:14px;">
