@@ -769,8 +769,6 @@
                     _f('new_dec',    _urlP.get('prefill_dec'));
                     _f('new_type',   _urlP.get('prefill_type'));
                     _f('new_size',   _urlP.get('prefill_size'));
-                    // Auto-trigger SIMBAD search so constellation, SB etc. populate
-                    document.getElementById('submit_new_object')?.click();
                 });
             }
 
