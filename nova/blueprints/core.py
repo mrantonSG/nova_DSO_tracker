@@ -867,7 +867,7 @@ def prewarm_outlook():
         else:
             return jsonify({"status": "skipped", "reason": "unauthenticated"}), 200
 
-        location_name = g.selected_location
+        location_name = getattr(g, 'selected_location', None)
         if not location_name:
             return jsonify({"status": "skipped", "reason": "no_location"}), 200
 
