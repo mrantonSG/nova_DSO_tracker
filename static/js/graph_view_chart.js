@@ -389,6 +389,7 @@
     let aladin = null;
     let scanResultsCatalog = null;
     let scanFrameActive    = false;
+    let scanResultsAll = [];
     let fovLayer = null;
     let altitudeChart = null;
     let __blendSurveyId = null;
@@ -1896,6 +1897,14 @@
         updateScanButtonState();
         setTimeout(updateScanButtonState, 600);
 
+        const _sizeEl = document.getElementById('scan-min-size');
+        if (_sizeEl && !_sizeEl.dataset.listenerAttached) {
+            _sizeEl.dataset.listenerAttached = 'true';
+            _sizeEl.addEventListener('input', function() {
+                applyMinSizeFilter(parseFloat(this.value) || 0);
+            });
+        }
+
         // --- MODIFIED: Check for internet connection first ---
         if (!navigator.onLine) {
             displayOfflineMessage('aladin-lite-div', 'The Framing Assistant requires an active internet connection to load sky surveys.');
@@ -3103,6 +3112,27 @@
         }
     }
 
+    function applyMinSizeFilter(minSize) {
+        if (!scanFrameActive || !scanResultsCatalog
+                || !scanResultsAll.length) return;
+        const popup = document.getElementById('scan-result-popup');
+        if (popup) popup.style.display = 'none';
+        const filtered = scanResultsAll.filter(obj =>
+            minSize === 0 || (obj.size_arcmin !== null && obj.size_arcmin >= minSize)
+        );
+        scanResultsCatalog.removeAll();
+        scanResultsCatalog.addSources(
+            filtered.map(obj =>
+                A.source(obj.ra, obj.dec, {
+                    name:        obj.name,
+                    otype:       obj.otype,
+                    mag:         obj.mag,
+                    size_arcmin: obj.size_arcmin,
+                })
+            )
+        );
+    }
+
     const SIMBAD_OTYPE_LABELS = {
         'G':   'Galaxy',            'GiG': 'Galaxy in Group',
         'GiC': 'Galaxy in Cluster', 'GlC': 'Globular Cluster',
@@ -3119,6 +3149,9 @@
         if (scanFrameActive && scanResultsCatalog) {
             scanResultsCatalog.removeAll();
             scanFrameActive = false;
+            scanResultsAll = [];
+            const _si = document.getElementById('scan-min-size');
+            if (_si) _si.disabled = true;
             if (btn) { btn.textContent = 'Scan Frame'; btn.disabled = false; }
             if (popup) popup.style.display = 'none';
             return;
@@ -3155,6 +3188,11 @@
                 console.log('[SCAN] No DSOs found in frame.');
                 return;
             }
+
+            scanResultsAll = data.objects;
+            const _sizeInput = document.getElementById('scan-min-size');
+            const _minSize   = parseFloat(_sizeInput?.value) || 0.5;
+            if (_sizeInput) _sizeInput.disabled = false;
 
             scanResultsCatalog = A.catalog({
                 name:         'SIMBAD DSOs',
@@ -3283,18 +3321,9 @@
                 },
             });
 
-            scanResultsCatalog.addSources(
-                data.objects.map(obj =>
-                    A.source(obj.ra, obj.dec, {
-                        name:        obj.name,
-                        otype:       obj.otype,
-                        mag:         obj.mag,
-                        size_arcmin: obj.size_arcmin,
-                    })
-                )
-            );
             aladin.addCatalog(scanResultsCatalog);
             scanFrameActive = true;
+            applyMinSizeFilter(_minSize);
         })
         .catch(err => {
             console.error('[SCAN] fetch error:', err);
@@ -3324,6 +3353,7 @@
     window.copyAsiairMosaic = copyAsiairMosaic;
     window.scanFrameForDSOs = scanFrameForDSOs;
     window.updateScanButtonState = updateScanButtonState;
+    window.applyMinSizeFilter = applyMinSizeFilter;
     window.setLocation = setLocation;
     window.selectSuggestedDate = selectSuggestedDate;
     window.openInStellarium = openInStellarium;
