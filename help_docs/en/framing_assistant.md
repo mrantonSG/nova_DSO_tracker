@@ -36,3 +36,14 @@ If your target is too big for a single frame, use the **Mosaic** section in the 
 
 * **Save Framing:** Click this to store your current Rig, Rotation, and Center Coordinates to the database. The next time you visit this object, your custom framing will be restored automatically.
 * **Lock FOV:** This is checked by default. Unchecking it unlocks the sensor rectangle, allowing you to drag the rectangle itself around a static sky map.
+
+**Scan Frame**
+
+The **Scan Frame** button queries the SIMBAD astronomical database for deep-sky objects within your current rig's field of view and overlays them as amber markers on the sky map.
+
+* **How it works:** Click **Scan Frame** to fetch all known DSOs within your rig's FOV from SIMBAD. Results appear as labeled amber circles on the sky image. Click **Scan Frame** again to remove the overlay.
+* **Min size filter:** The **Min size** field (default: 0.5′) filters out catalog stubs and very small objects. Adjust after scanning to refine results — filtering is instant, with no new network request. Set to 0 to show all objects including those with no recorded size.
+* **Object popup:** Click the amber **circle** on an object to see its name, type, coordinates (RA/Dec), angular size, and a short description from Wikipedia where available. Note: clicking the label text does not open the popup — only the circle itself is interactive. The **+ Add to Database** button opens the Configuration page pre-filled with the object's data.
+* **FOV limit:** Scan Frame is disabled for rigs with a field of view wider than 5°. If the button is greyed out, switch to a narrower rig configuration.
+
+*SIMBAD is an external service. Results require an active internet connection and may take a few seconds.*

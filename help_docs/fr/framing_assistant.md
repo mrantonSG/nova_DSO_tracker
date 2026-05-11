@@ -36,3 +36,14 @@ Si votre cible est trop grande pour une seule image, utilisez la section **Mosa�
 
 * **Sauvegarder le Recadrage :** Cliquez ici pour stocker votre Rig actuel, votre Rotation et vos Coordonnées centrales dans la base de données. La prochaine fois que vous visiterez cet objet, votre recadrage personnalisé sera automatiquement restauré.
 * **Verrouiller FOV :** Ceci est coché par défaut. Le décocher déverrouille le rectangle du capteur, vous permettant de faire glisser le rectangle lui-même sur une carte du ciel statique.
+
+**Scan Frame**
+
+Le bouton **Scan Frame** interroge la base de données astronomique SIMBAD pour les objets du ciel profond dans le champ de vision (FOV) de votre rig actuel et les superpose en tant que marqueurs ambrés sur la carte du ciel.
+
+* **Comment ça marche :** Cliquez sur **Scan Frame** pour récupérer tous les DSOs connus dans le FOV de votre rig depuis SIMBAD. Les résultats apparaissent sous forme de cercles ambrés étiquetés sur l'image du ciel. Cliquez à nouveau sur **Scan Frame** pour retirer la superposition.
+* **Filtre de taille minimale :** Le champ **Min size** (par défaut : 0.5′) filtre les entrées de catalogue simplifiées et les objets très petits. Ajustez après le scan pour affiner les résultats — le filtrage est instantané, sans nouvelle requête réseau. Réglez sur 0 pour afficher tous les objets, y compris ceux sans taille enregistrée.
+* **Popup d'objet :** Cliquez sur le **cercle** ambré d'un objet pour voir son nom, son type, ses coordonnées (RA/Dec), sa taille angulaire et une courte description de Wikipedia lorsque disponible. Remarque : cliquer sur le texte de l'étiquette n'ouvre pas la fenêtre contextuelle — seul le cercle est interactif. Le bouton **+ Add to Database** ouvre la page de Configuration pré-remplie avec les données de l'objet.
+* **Limite FOV :** Scan Frame est désactivé pour les rigs avec un champ de vision supérieur à 5°. Si le bouton est grisifié, passez à une configuration de rig plus étroite.
+
+*SIMBAD est un service externe. Les résultats nécessitent une connexion internet active et peuvent prendre quelques secondes.*

@@ -36,3 +36,14 @@ Wenn Ihr Ziel zu groß für ein einzelnes Bild ist, verwenden Sie den **Mosaik**
 
 * **Framing speichern:** Klicken Sie hier, um Ihr aktuelles Rig, Ihre Rotation und Ihre Mitte-Koordinaten in der Datenbank zu speichern. Beim nächsten Besuch dieses Objekts wird Ihr benutzerdefiniertes Framing automatisch wiederhergestellt.
 * **FOV sperren:** Dies ist standardmäßig aktiviert. Durch Deaktivieren wird das Sensor-Rechteck freigeschaltet, sodass Sie das Rechteck selbst auf einer statischen Himmelskarte bewegen können.
+
+**Scan Frame**
+
+Die Schaltfläche **Scan Frame** fragt die astronomische SIMBAD-Datenbank nach Deep-Sky-Objekten im Sichtfeld Ihres aktuellen Rigs ab und überlagert sie als bernsteinfarbene Markierungen auf der Himmelskarte.
+
+* **So funktioniert es:** Klicken Sie auf **Scan Frame**, um alle bekannten DSOs im FOV Ihres Rigs aus SIMBAD abzurufen. Die Ergebnisse erscheinen als beschriftete bernsteinfarbene Kreise auf dem Himmelbild. Klicken Sie erneut auf **Scan Frame**, um die Überlagerung zu entfernen.
+* **Mindestgrößenfilter:** Das Feld **Min size** (Standard: 0.5′) filtert Katalogstubs und sehr kleine Objekte heraus. Passen Sie den Wert nach dem Scan an, um die Ergebnisse zu verfeinern — die Filterung erfolgt sofort ohne neue Netzwerkverbindung. Auf 0 setzen, um alle Objekte anzuzeigen, einschließlich solcher ohne aufgezeichnete Größe.
+* **Objektdetails:** Klicken Sie auf das bernsteinfarbene **Kreis**-Symbol eines Objekts, um Name, Typ, Koordinaten (RA/Dec), Winkelgröße und eine kurze Beschreibung von Wikipedia (falls verfügbar) anzuzeigen. Hinweis: Das Klicken auf den Textlabel öffnet keine Popup — nur der Kreis selbst ist interaktiv. Die Schaltfläche **+ Add to Database** öffnet die Konfigurationsseite, vorbelegt mit den Daten des Objekts.
+* **FOV-Grenze:** Scan Frame ist für Rigs mit einem Sichtfeld größer als 5° deaktiviert. Wenn die Schaltfläche ausgegraut ist, wechseln Sie zu einem Rig mit schmalerem FOV.
+
+*SIMBAD ist ein externer Dienst. Ergebnisse erfordern eine aktive Internetverbindung und können einige Sekunden dauern.*

@@ -12,4 +12,15 @@
 **Planificador de mosaicos** Si su objetivo es demasiado grande para un solo fotograma, utilice la sección **Mosaico** de la barra de herramientas. 1. Establezca el número de **Columnas** y **Filas** (por ejemplo, 2x1 para una panorámica amplia). 2. Ajuste el **% de superposición** (el valor predeterminado es 10 %).
 3. **Copiar plan:** haga clic en «Copiar plan (CSV)» para generar una lista de coordenadas compatible con software de adquisición como **ASIAIR** o **N.I.N.A.**.
 
-**Guardar su trabajo** * **Guardar encuadre:** haga clic aquí para almacenar su equipo, rotación y coordenadas centrales actuales en la base de datos. La próxima vez que visite este objeto, su encuadre personalizado se restaurará automáticamente. * **Bloquear FOV:** esta opción está marcada de forma predeterminada. Al desmarcarla, se desbloquea el rectángulo del sensor, lo que le permite arrastrar el rectángulo por un mapa estático del cielo. 
+**Guardar su trabajo** * **Guardar encuadre:** haga clic aquí para almacenar su equipo, rotación y coordenadas centrales actuales en la base de datos. La próxima vez que visite este objeto, su encuadre personalizado se restaurará automáticamente. * **Bloquear FOV:** esta opción está marcada de forma predeterminada. Al desmarcarla, se desbloquea el rectángulo del sensor, lo que le permite arrastrar el rectángulo por un mapa estático del cielo.
+
+**Scan Frame**
+
+El botón **Scan Frame** consulta la base de datos astronómica SIMBAD en busca de objetos deep-sky dentro del campo de visión (FOV) de su equipo actual y los superpone como marcadores ámbar sobre el mapa celeste.
+
+* **Cómo funciona:** Haga clic en **Scan Frame** para obtener todos los DSOs conocidos dentro del FOV de su equipo desde SIMBAD. Los resultados aparecen como círculos ámbar etiquetados en la imagen del cielo. Haga clic de nuevo en **Scan Frame** para quitar la superposición.
+* **Filtro de tamaño mínimo:** El campo **Min size** (valor predeterminado: 0.5′) filtra las entradas de catálogo incompletas y los objetos muy pequeños. Ajuste el valor después del escaneo para refinar los resultados — el filtrado es instantáneo sin nueva solicitud de red. Establezca en 0 para mostrar todos los objetos, incluidos aquellos sin tamaño registrado.
+* **Ventana del objeto:** Haga clic en el círculo **ámbar** de un objeto para ver su nombre, tipo, coordenadas (RA/Dec), tamaño angular y una descripción corta de Wikipedia cuando esté disponible. Nota: hacer clic en el texto de la etiqueta no abre la ventana emergente — solo el círculo es interactivo. El botón **+ Add to Database** abre la página de Configuración prellenada con los datos del objeto.
+* **Límite FOV:** Scan Frame está desactivado para equipos con un campo de visión mayor a 5°. Si el botón aparece en gris, cambie a una configuración de equipo con FOV más estrecho.
+
+*SIMBAD es un servicio externo. Los resultados requieren una conexión activa a Internet y pueden tardar unos segundos.* 
