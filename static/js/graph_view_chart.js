@@ -1884,7 +1884,17 @@
             framingModal.style.display = 'block'; // Fallback
         }
 
+        // Reset any stuck scan state on modal open
+        const _scanBtn = document.getElementById('scan-frame-btn');
+        if (_scanBtn) {
+            _scanBtn.textContent   = 'Scan Frame';
+            _scanBtn.disabled      = false;
+            _scanBtn.style.opacity = '';
+            _scanBtn.style.cursor  = '';
+        }
+        if (!scanFrameActive) scanResultsCatalog = null;
         updateScanButtonState();
+        setTimeout(updateScanButtonState, 600);
 
         // --- MODIFIED: Check for internet connection first ---
         if (!navigator.onLine) {
