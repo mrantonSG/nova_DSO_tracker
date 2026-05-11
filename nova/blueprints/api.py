@@ -833,9 +833,7 @@ def scan_frame():
         del _scan_frame_cache[cache_key]
 
     adql = (
-        "SELECT TOP 500 main_id, ra, dec, otype, galdim_majaxis, "
-        "(SELECT flux FROM allfluxes WHERE oidref = basic.oid "
-        " AND filter = 'V') AS vmag "
+        "SELECT TOP 500 main_id, ra, dec, otype, galdim_majaxis "
         "FROM basic "
         "WHERE CONTAINS(POINT('ICRS', ra, dec), "
         "BOX('ICRS', {ra}, {dec}, {fov_w}, {fov_h})) = 1 "
@@ -855,20 +853,27 @@ def scan_frame():
     except requests.exceptions.RequestException as e:
         return jsonify({'status': 'error', 'message': str(e)}), 200
 
+    current_app.logger.debug('[SCAN] SIMBAD response: %s', r.text[:300])
     reader = csv.DictReader(io.StringIO(r.text))
     objects = []
     for row in reader:
+        try:
+            ra_val  = float(row['ra'])
+            dec_val = float(row['dec'])
+        except (KeyError, ValueError):
+            current_app.logger.debug('[SCAN] Skipping unparseable row: %s', row)
+            continue
         vmag_s = row.get('vmag', '').strip()
-        vmag = float(vmag_s) if vmag_s else None
+        vmag   = float(vmag_s) if vmag_s else None
         if vmag is not None and vmag > mag_limit:
             continue
         size_s = row.get('galdim_majaxis', '').strip()
         objects.append({
-            'name':       row.get('main_id', '').strip(),
-            'ra':         float(row['ra']),
-            'dec':        float(row['dec']),
-            'otype':      row.get('otype', '').strip(),
-            'mag':        vmag,
+            'name':        row.get('main_id', '').strip(),
+            'ra':          ra_val,
+            'dec':         dec_val,
+            'otype':       row.get('otype', '').strip(),
+            'mag':         None,
             'size_arcmin': float(size_s) if size_s else None,
         })
 
