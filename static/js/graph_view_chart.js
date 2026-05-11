@@ -3240,6 +3240,11 @@
                     _addBtn.href      = _cfgUrl.toString();
                     _addBtn.target    = '_blank';
                     _addBtn.rel       = 'noopener';
+                    _addBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.open(this.href, '_blank');
+                    });
                     _addBtn.className = 'inline-button';
                     _addBtn.textContent = '+ Add to Database';
                     _addBtn.style.cssText = 'margin-top:8px;width:100%;font-size:12px;'
