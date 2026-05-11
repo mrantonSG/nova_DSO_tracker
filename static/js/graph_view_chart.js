@@ -1884,6 +1884,8 @@
             framingModal.style.display = 'block'; // Fallback
         }
 
+        updateScanButtonState();
+
         // --- MODIFIED: Check for internet connection first ---
         if (!navigator.onLine) {
             displayOfflineMessage('aladin-lite-div', 'The Framing Assistant requires an active internet connection to load sky surveys.');
