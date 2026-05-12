@@ -79,6 +79,27 @@
         }
     };
 
+    // ==========================================================================
+    // HiPS SURVEY ID → URL MAP (bypasses MocServer lookup)
+    // ==========================================================================
+    const HIPS_ID_TO_URL = Object.freeze({
+        "P/DSS2/color":                     "https://alasky.cds.unistra.fr/DSS/DSSColor",
+        "P/allWISE/color":                  "https://alaskybis.cds.unistra.fr/AllWISE/RGB-W4-W2-W1",
+        "P/2MASS/color":                    "https://alaskybis.cds.unistra.fr/2MASS/Color",
+        "P/GALEXGR6/AIS/color":             "https://alasky.cds.unistra.fr/GALEX/GR6-03-2014/AIS-Color",
+        "P/PanSTARRS/DR1/color-z-zg-g":     "https://alasky.cds.unistra.fr/Pan-STARRS/DR1/color-z-zg-g",
+        "P/SDSS9/color":                    "https://alasky.cds.unistra.fr/SDSS/DR9/color",
+        "P/DSS2/red":                       "https://alaskybis.cds.unistra.fr/DSS/DSS2Merged",
+        "P/DSS2/blue":                      "https://alasky.cds.unistra.fr/DSS/DSS2-blue-XJ-S",
+        "P/2MASS/H":                        "https://alasky.cds.unistra.fr/2MASS/H",
+    });
+
+    function resolveHipsId(idOrUrl) {
+        if (typeof idOrUrl !== "string") return idOrUrl;
+        if (idOrUrl.startsWith("http")) return idOrUrl;
+        return HIPS_ID_TO_URL[idOrUrl] || idOrUrl;
+    }
+
     // --- Nova Precession Helpers (J2000 <-> JNow) ---
     function getPrecessionMatrix(jd) {
         const T = (jd - 2451545.0) / 36525.0;
@@ -414,11 +435,12 @@
 
         try {
             let hpx;
-            if (surveyId.startsWith('http')) {
-                const friendlyName = sel.options[sel.selectedIndex]?.textContent || surveyId;
-                hpx = aladin.createImageSurvey(surveyId, friendlyName, surveyId, "equatorial", 9);
+            const resolvedId = resolveHipsId(surveyId);
+            if (resolvedId.startsWith('http')) {
+                const friendlyName = sel.options[sel.selectedIndex]?.textContent || resolvedId;
+                hpx = aladin.createImageSurvey(resolvedId, friendlyName, resolvedId, "equatorial", 9);
             } else {
-                hpx = (aladin.newImageSurvey) ? aladin.newImageSurvey(surveyId) : aladin.createImageSurvey(surveyId, surveyId, surveyId, 'equatorial', 9, { imgFormat: 'jpeg' });
+                hpx = (aladin.newImageSurvey) ? aladin.newImageSurvey(resolvedId) : aladin.createImageSurvey(resolvedId, resolvedId, resolvedId, 'equatorial', 9, { imgFormat: 'jpeg' });
             }
             if (hpx) {
                 aladin.setOverlayImageLayer(hpx, 'blend');
@@ -1689,7 +1711,7 @@
         return new Promise((resolve, reject) => {
             try {
                 aladin = A.aladin('#aladin-lite-div', {
-                    survey: "P/DSS2/color",
+                    survey: resolveHipsId("P/DSS2/color"),
                     fov: FRAMING_CONFIG.DEFAULT_FOV_DEG || FRAMING_CONFIG.DEFAULT_FOV,
                     cooFrame: 'ICRS',
                     showFullscreenControl: false,
@@ -1952,7 +1974,7 @@
         if (!aladin) {
             try {
                 aladin = A.aladin('#aladin-lite-div', {
-                    survey: "P/DSS2/color",
+                    survey: resolveHipsId("P/DSS2/color"),
                     fov: FRAMING_CONFIG.DEFAULT_FOV,
                     cooFrame: 'ICRS',
                     showFullscreenControl: false,
@@ -2461,20 +2483,16 @@
     
         let newLayer;
     
-        // --- THIS IS THE NEW LOGIC ---
-        // Check if the ID is a full URL (external) or a simple ID (internal)
-        if (hipsId.startsWith('http')) {
-            // --- This is an EXTERNAL survey ---
-            // We must use aladin.createImageSurvey(id, name, url, frame, order, options)
-            // We derive a friendly name from the <option> text
-            const friendlyName = document.querySelector(`#survey-select option[value='${hipsId}']`)?.textContent || hipsId;
-    
+        const resolvedId = resolveHipsId(hipsId);
+        // Check if the resolved ID is a full URL (external/mapped) or an unmapped simple ID
+        if (resolvedId.startsWith('http')) {
+            const friendlyName = document.querySelector(`#survey-select option[value='${hipsId}']`)?.textContent || resolvedId;
+
             try {
-                // This is the documented way to add an external HiPS survey
                 newLayer = aladin.createImageSurvey(
-                    hipsId,         // A unique ID for this layer (the URL is fine)
+                    resolvedId,     // A unique ID for this layer (the URL is fine)
                     friendlyName,   // A human-readable name
-                    hipsId,         // The base URL for the HiPS tiles
+                    resolvedId,     // The base URL for the HiPS tiles
                     "equatorial",   // The coordinate frame
                     9,              // A standard max order (depth)
                 );
@@ -2484,10 +2502,9 @@
                 return;
             }
         } else {
-            // --- This is a STANDARD, built-in survey ---
-            newLayer = aladin.newImageSurvey(hipsId);
+            // Unmapped legacy ID — falls through to slow MocServer path
+            newLayer = aladin.newImageSurvey(resolvedId);
         }
-        // --- END OF NEW LOGIC ---
     
         aladin.setBaseImageLayer(newLayer);
         baseSurvey = aladin.getBaseImageLayer();
