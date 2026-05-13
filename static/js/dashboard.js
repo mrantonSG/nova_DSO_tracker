@@ -489,7 +489,7 @@
             if (!btnContainer) return;
 
             let isAnyFilterActive = false;
-            const allFilterInputs = document.querySelectorAll('#data-table .filter-row input, #journal-filter-row input');
+            const allFilterInputs = document.querySelectorAll('#data-table .filter-row input, #data-table .filter-row select, #journal-filter-row input, #journal-filter-row select');
 
             for (const input of allFilterInputs) {
                 if (input.value.trim() !== '') {
@@ -518,8 +518,8 @@
             // Clear DSO filters
             for (const key in columnConfig) {
                 if (columnConfig[key].filterable) {
-                    const inputEl = document.querySelector(`#data-table .filter-row th[data-column-key="${key}"] input`);
-                    if (inputEl) inputEl.value = '';
+                    const filterEl = document.querySelector(`#data-table .filter-row th[data-column-key="${key}"] input, #data-table .filter-row th[data-column-key="${key}"] select`);
+                    if (filterEl) filterEl.value = '';
                     localStorage.removeItem("dso_filter_col_key_" + key);
                 }
             }
@@ -2048,9 +2048,9 @@
           const activeFilters = {};
           for (const columnKey in columnConfig) {
             if (columnConfig.hasOwnProperty(columnKey) && columnConfig[columnKey].filterable) {
-              const inputElement = document.querySelector(`#data-table .filter-row th[data-column-key="${columnKey}"] input`);
-              if (inputElement && inputElement.value.trim() !== '') {
-                activeFilters[columnKey] = inputElement.value.trim().toLowerCase();
+              const filterEl = document.querySelector(`#data-table .filter-row th[data-column-key="${columnKey}"] input, #data-table .filter-row th[data-column-key="${columnKey}"] select`);
+              if (filterEl && filterEl.value.trim() !== '') {
+                activeFilters[columnKey] = filterEl.value.trim().toLowerCase();
               }
             }
           }

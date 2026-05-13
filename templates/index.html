@@ -172,7 +172,13 @@
               <th data-column-key="Best Month" class="col-properties"><input type="text" placeholder="{{ _('e.g. Dec') }}" /></th>
               <th data-column-key="Max Altitude" class="col-properties"><input type="text" placeholder="{{ _('e.g. >80') }}" /></th>
               <th data-column-key="Rig" class="col-properties"><input type="text" placeholder="{{ _('e.g. SW80') }}" /></th>
-              <th data-column-key="Notes" class="col-properties"><input type="text" placeholder="{{ _('✓ / —') }}" /></th>
+              <th data-column-key="Notes" class="col-properties">
+  <select>
+    <option value="">{{ _('All') }}</option>
+    <option value="✓">{{ _('Has notes') }}</option>
+    <option value="—">{{ _('No notes') }}</option>
+  </select>
+</th>
               <th data-column-key="Sessions" class="col-properties"><input type="text" placeholder="{{ _('e.g. >0') }}" /></th>
             </tr>
           </thead>

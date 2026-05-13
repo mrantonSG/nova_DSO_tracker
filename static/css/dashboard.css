@@ -81,6 +81,15 @@
     th[data-column-key="Rig"], td[data-column-key="Rig"] {
         width: 120px;
         min-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        border-left: 2px solid var(--primary-color);
+    }
+    th[data-column-key="Rig"],
+    th[data-column-key="Notes"],
+    th[data-column-key="Sessions"] {
+        background-color: var(--primary-bg);
     }
     th[data-column-key="Notes"], td[data-column-key="Notes"],
     th[data-column-key="Sessions"], td[data-column-key="Sessions"] {
