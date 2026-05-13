@@ -160,7 +160,28 @@
             'Size':             { header: "Size (')<br><span class='subtext'>&nbsp;</span>", dataKey: 'Size', type: 'properties', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : parseFloat(val).toFixed(1) },
             'SB':               { header: 'SB<br><span class="subtext">&nbsp;</span>', dataKey: 'SB', type: 'properties', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : parseFloat(val).toFixed(1) },
             'Best Month':       { header: 'Best Month<br><span class="subtext">(Opp.)</span>', dataKey: 'best_month_ra', type: 'properties', filterable: true, sortable: true },
-            'Max Altitude':     { header: 'Max Alt<br><span class="subtext">(Culm.)</span>', dataKey: 'max_culmination_alt', type: 'properties', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : `${Number(val).toFixed(1)}°` }
+            'Max Altitude':     { header: 'Max Alt<br><span class="subtext">(Culm.)</span>', dataKey: 'max_culmination_alt', type: 'properties', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : `${Number(val).toFixed(1)}°` },
+            'Rig': { header: 'Rig<br><span class="subtext">&nbsp;</span>',
+                dataKey: 'framing_rig',
+                type: 'properties',
+                filterable: true,
+                sortable: true,
+                format: val => (val && val.trim()) ? val : '—'
+            },
+            'Notes': { header: 'Notes<br><span class="subtext">&nbsp;</span>',
+                dataKey: 'has_notes',
+                type: 'properties',
+                filterable: true,
+                sortable: true,
+                format: val => val ? '✓' : '—'
+            },
+            'Sessions': { header: 'Sessions<br><span class="subtext">&nbsp;</span>',
+                dataKey: 'session_count',
+                type: 'properties',
+                filterable: true,
+                sortable: true,
+                format: val => (val > 0) ? String(val) : '—'
+            }
         };
     
         // --- Journal Table Configuration ---
@@ -1686,7 +1707,7 @@
             'Object', 'Common Name', 'Altitude Current', 'Azimuth Current', 'Trend', 'Altitude 11PM',
             'Azimuth 11PM', 'Transit Time', 'Observable Duration (min)', 'Max Altitude (°)',
             'Angular Separation (°)', 'Constellation', 'Type', 'Magnitude', 'Size', 'SB',
-            'Best Month', 'Max Altitude'
+            'Best Month', 'Max Altitude', 'Rig', 'Notes', 'Sessions'
         ];
     
         data.forEach(objectData => {

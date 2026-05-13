@@ -3175,6 +3175,22 @@ def get_desktop_data_batch():
             .all()
 
         # Determine has_more flag based on whether we got a full page
+
+        # --- Bulk framing & session-count lookups ---
+        object_names = [obj.object_name for obj in batch_objects]
+        framing_map = {
+            f.object_name: f.rig_name
+            for f in db.query(SavedFraming.object_name, SavedFraming.rig_name)
+            .filter(SavedFraming.user_id == user.id,
+                    SavedFraming.object_name.in_(object_names)).all()
+        }
+        session_map = {
+            row[0]: row[1] for row in db.query(JournalSession.object_name, func.count(JournalSession.id))
+            .filter(JournalSession.user_id == user.id,
+                    JournalSession.object_name.in_(object_names))
+            .group_by(JournalSession.object_name).all()
+        }
+
         has_more = len(batch_objects) == limit
 
         # Only fetch total_count if offset is 0 (first page) to avoid double query on pagination
@@ -3238,6 +3254,11 @@ def get_desktop_data_batch():
 
                 if ra is None or dec is None:
                     item.update({'error': True, 'Common Name': 'Error: Missing RA/DEC'})
+                    item.update({
+                        'framing_rig': framing_map.get(obj.object_name) or '',
+                        'has_notes': bool(obj.project_name),
+                        'session_count': session_map.get(obj.object_name, 0)
+                    })
                     results.append(item)
                     continue
 
@@ -3261,6 +3282,11 @@ def get_desktop_data_batch():
                                     int(ra / 2) % 12],
                             'max_culmination_alt': round(max_culm_geo, 1),
                             'error': False
+                        })
+                        item.update({
+                            'framing_rig': framing_map.get(obj.object_name) or '',
+                            'has_notes': bool(obj.project_name),
+                            'session_count': session_map.get(obj.object_name, 0)
                         })
                         results.append(item)
                         continue
@@ -3343,6 +3369,11 @@ def get_desktop_data_batch():
                     'best_month_ra': best_m,
                     'max_culmination_alt': max_culm,
                     'error': False
+                })
+                item.update({
+                    'framing_rig': framing_map.get(obj.object_name) or '',
+                    'has_notes': bool(obj.project_name),
+                    'session_count': session_map.get(obj.object_name, 0)
                 })
                 results.append(item)
 

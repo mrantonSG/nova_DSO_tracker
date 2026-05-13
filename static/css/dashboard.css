@@ -78,6 +78,17 @@
         text-align: center;
     }
 
+    th[data-column-key="Rig"], td[data-column-key="Rig"] {
+        width: 120px;
+        min-width: 120px;
+    }
+    th[data-column-key="Notes"], td[data-column-key="Notes"],
+    th[data-column-key="Sessions"], td[data-column-key="Sessions"] {
+        width: 80px;
+        min-width: 80px;
+        text-align: center;
+    }
+
     /* --- ADDED FOR NEW COLUMNS --- */
     th[data-column-key="Best Month"], td[data-column-key="Best Month"],
     th[data-column-key="Max Altitude"], td[data-column-key="Max Altitude"] {
