@@ -2067,6 +2067,16 @@
                 let cellText = (cellElement.dataset.rawValue || cellElement.textContent).trim().toLowerCase();
     
                 if (filterValue === "n/a" || filterValue === "na") { if (cellText !== "n/a") { showRow = false; break; } continue; }
+
+                // Notes column: read the cell's textContent directly from the row.
+                if (columnKeyInFilter === 'Notes') {
+                    const notesCell = rows[i].querySelector('td[data-column-key="Notes"]');
+                    const notesText = notesCell ? notesCell.textContent.trim() : '';
+                    if (filterValue === "✓" && notesText !== "✓") { showRow = false; break; }
+                    if (filterValue === "—" && notesText !== "—") { showRow = false; break; }
+                    continue;
+                }
+
                 if (config.dataKey === 'Type') {
                     const filterTypes = filterValue.split(/[\s,]+/).filter(t => t.length > 0);
     
@@ -2860,6 +2870,10 @@
           document.querySelectorAll("#data-table .filter-row input").forEach(input => {
               const thParent = input.closest('th'); const columnKey = thParent ? thParent.dataset.columnKey : null;
               if (columnKey && columnConfig[columnKey] && columnConfig[columnKey].filterable) { input.addEventListener("keyup", () => { saveFilter(input, columnKey, 'dso'); filterTable(); }); }
+          });
+          document.querySelectorAll('#data-table .filter-row select').forEach(sel => {
+              const thParent = sel.closest('th'); const columnKey = thParent ? thParent.dataset.columnKey : null;
+              if (columnKey && columnConfig[columnKey] && columnConfig[columnKey].filterable) { sel.addEventListener('change', () => { saveFilter(sel, columnKey, 'dso'); filterTable(); }); }
           });
           document.querySelectorAll("#journal-data-table > thead > tr:not(.filter-row) > th[data-journal-column-key]").forEach(header => {
             const columnKey = header.dataset.journalColumnKey;

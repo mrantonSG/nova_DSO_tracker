@@ -89,7 +89,7 @@
     th[data-column-key="Rig"],
     th[data-column-key="Notes"],
     th[data-column-key="Sessions"] {
-        background-color: var(--primary-bg);
+        background-color: var(--primary-bg) !important;
     }
     th[data-column-key="Notes"], td[data-column-key="Notes"],
     th[data-column-key="Sessions"], td[data-column-key="Sessions"] {
@@ -267,6 +267,20 @@
       border: var(--input-border-width) solid var(--input-border-color);
       background-color: var(--bg-white);
       border-radius: var(--radius-sm);
+    }
+
+    /* Filter row select (matches input styling) */
+    .filter-row select {
+      width: 95%;
+      box-sizing: border-box;
+      padding: var(--space-1);
+      font-size: var(--font-size-2xs);
+      font-family: 'DM Sans', 'Roboto', sans-serif;
+      margin-top: 2px;
+      margin-bottom: 2px;
+      border: 1px solid var(--border-color);
+      background-color: var(--bg-secondary);
+      border-radius: 4px;
     }
 
     /* --- NEW: Unified Dropdown Styling --- */
@@ -595,6 +609,18 @@
 }
 
 [data-theme="dark"] .filter-row input:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+/* Filter row selects (dark mode) */
+[data-theme="dark"] .filter-row select {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .filter-row select:focus {
     border-color: var(--primary-color);
     outline: none;
 }
