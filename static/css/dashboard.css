@@ -274,7 +274,7 @@
       width: 95%;
       box-sizing: border-box;
       padding: var(--space-1);
-      font-size: var(--font-size-2xs);
+      font-size: 11px !important;
       font-family: 'DM Sans', 'Roboto', sans-serif;
       margin-top: 2px;
       margin-bottom: 2px;
