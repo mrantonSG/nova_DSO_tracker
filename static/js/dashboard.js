@@ -106,7 +106,7 @@
         // ========================================================================
         const IS_GUEST_USER = window.NOVA_INDEX.isGuest;
         const HIDE_INVISIBLE_PREF = window.NOVA_INDEX.hideInvisible;
-        let activeTab = 'position'; // Always start on Dashboard tab
+        let activeTab = localStorage.getItem('nova_last_tab') || 'position';
         let outlookDataLoaded = false;
         let activeFetchController = null; // Controls network cancellation
         let dataUpdateIntervalId = null; // 60-second interval for data updates
@@ -1872,7 +1872,40 @@
     
                 // Highlights
                 _applyRowHighlights(td, columnKey, rawValue, objectData, altitudeThreshold);
-    
+
+                // Click handlers for Rig / Notes / Sessions cells
+                if (columnKey === 'Rig' || columnKey === 'Notes' || columnKey === 'Sessions') {
+                    const objectName = objectData.Object;
+                    if (columnKey === 'Rig' && displayValue !== '—') {
+                        td.style.cursor = 'pointer';
+                        td.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            var url = '/graph_dashboard/' + encodeURIComponent(objectName) + '?tab=framing&subtab=framing-scout';
+                            var loc = sessionStorage.getItem('selectedLocation');
+                            if (loc) url += '&location=' + encodeURIComponent(loc);
+                            window.location.href = url;
+                        });
+                    } else if (columnKey === 'Notes' && displayValue === '✓') {
+                        td.style.cursor = 'pointer';
+                        td.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            var url = '/graph_dashboard/' + encodeURIComponent(objectName) + '?tab=framing&subtab=notes';
+                            var loc = sessionStorage.getItem('selectedLocation');
+                            if (loc) url += '&location=' + encodeURIComponent(loc);
+                            window.location.href = url;
+                        });
+                    } else if (columnKey === 'Sessions' && displayValue !== '—') {
+                        td.style.cursor = 'pointer';
+                        td.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            var url = '/graph_dashboard/' + encodeURIComponent(objectName) + '?tab=journal';
+                            var loc = sessionStorage.getItem('selectedLocation');
+                            if (loc) url += '&location=' + encodeURIComponent(loc);
+                            window.location.href = url;
+                        });
+                    }
+                }
+
                 // Sort helpers
                 const numericSortKeys = ['Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
                                          'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)',
@@ -2861,7 +2894,7 @@
           updateTabDisplay();
 
           document.querySelectorAll('.tab-button').forEach(button => {
-            button.addEventListener('click', () => { activeTab = button.dataset.tab; updateTabDisplay(); });
+            button.addEventListener('click', () => { activeTab = button.dataset.tab; localStorage.setItem('nova_last_tab', activeTab); updateTabDisplay(); });
           });
           document.querySelectorAll("#data-table > thead > tr:not(.filter-row) > th[data-column-key]").forEach(header => {
             const columnKey = header.dataset.columnKey;
