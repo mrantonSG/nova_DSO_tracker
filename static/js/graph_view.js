@@ -21,6 +21,30 @@
         }
     });
 
+    // --- URL-based tab/sub-tab restoration ---
+    (function() {
+        var params = new URLSearchParams(window.location.search);
+        var tabName = params.get('tab');
+        var subTabName = params.get('subtab');
+
+        if (tabName) {
+            var tabBtn = document.querySelector('.tab-button[data-tab="' + tabName + '"]');
+            if (tabBtn) {
+                tabBtn.click();
+            }
+        }
+
+        if (subTabName && tabName === 'framing') {
+            var subBtn = document.querySelector('#framing-tab .detail-tab-button[data-tab="' + subTabName + '"]');
+            if (subBtn) {
+                // Wait a tick so the main tab has activated first
+                setTimeout(function() {
+                    subBtn.click();
+                }, 0);
+            }
+        }
+    })();
+
     // --- Patch: Update Separation on Date Change ---
     document.addEventListener("DOMContentLoaded", function() {
         var updateSep = async function() {
