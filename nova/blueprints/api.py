@@ -3268,7 +3268,7 @@ def get_desktop_data_batch():
                     item.update({'error': True, 'Common Name': 'Error: Missing RA/DEC'})
                     item.update({
                         'framing_rig': framing_map.get(obj.object_name) or '',
-                        'has_notes': bool(obj.project_name),
+                        'has_notes': bool(re.sub(r'<[^>]+>', '', obj.project_name or '').strip().lower() not in ('none', '')),
                         'session_count': session_map.get(obj.object_name, 0)
                     })
                     results.append(item)
@@ -3297,7 +3297,7 @@ def get_desktop_data_batch():
                         })
                         item.update({
                             'framing_rig': framing_map.get(obj.object_name) or '',
-                            'has_notes': bool(obj.project_name),
+                            'has_notes': bool(re.sub(r'<[^>]+>', '', obj.project_name or '').strip().lower() not in ('none', '')),
                             'session_count': session_map.get(obj.object_name, 0)
                         })
                         results.append(item)
@@ -3384,7 +3384,7 @@ def get_desktop_data_batch():
                 })
                 item.update({
                     'framing_rig': framing_map.get(obj.object_name) or '',
-                    'has_notes': bool(obj.project_name),
+                    'has_notes': bool(re.sub(r'<[^>]+>', '', obj.project_name or '').strip().lower() not in ('none', '')),
                     'session_count': session_map.get(obj.object_name, 0)
                 })
                 results.append(item)
