@@ -1808,12 +1808,13 @@ def update_outlook_cache(user_id, status_key, cache_filename, location_name, use
 
             criteria = _get_criteria_from_config(user_config)
 
-            # --- Extract Objects List from ARGUMENTS ---
-            all_objects_from_config = user_config.get("objects", [])
+            # Fetch active objects from the database (live query, not stale user_config)
+            db = get_db()
+            active_rows = db.query(AstroObject).filter_by(user_id=user_id, active_project=True).all()
+            project_objects = [o.to_dict() for o in active_rows]
 
             # Fetch framing status for Outlook
             framed_objects = set()
-            db = get_db()
             try:
                 rows = db.query(SavedFraming.object_name).filter_by(user_id=user_id).all()
                 framed_objects = {r[0] for r in rows}
@@ -1821,21 +1822,11 @@ def update_outlook_cache(user_id, status_key, cache_filename, location_name, use
                 # Fail gracefully if table is missing (e.g. during tests/migrations)
                 print(f"[OUTLOOK WORKER {status_key}] WARN: Could not fetch framings: {e}")
 
-            # --- START FIX: Build object map for this thread ---
+            # Build object map for RA/DEC lookup (local_objects_map)
             local_objects_map = {
                 str(o.get("Object", "")).lower(): o
-                for o in all_objects_from_config if isinstance(o, dict) and o.get("Object")
+                for o in project_objects if o.get("Object")
             }
-            # --- END FIX ---
-
-            # --- Filter Active Projects ---
-            project_objects = []
-            if isinstance(all_objects_from_config, list):
-                for obj in all_objects_from_config:
-                    if isinstance(obj, dict):
-                        ap_val = obj.get("ActiveProject")
-                        is_active = (ap_val is True or str(ap_val).lower() in ['true', '1', 'yes'])
-                        if is_active: project_objects.append(obj)
 
             active_object_names = [o.get('Object', 'Unnamed') for o in project_objects]
             print(f"[OUTLOOK WORKER {status_key}] Found {len(project_objects)} active projects: {active_object_names}")

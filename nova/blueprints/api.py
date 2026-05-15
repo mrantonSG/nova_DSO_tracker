@@ -185,6 +185,18 @@ def update_object():
                 obj.shared_notes = data.get('shared_notes')
 
         db.commit()
+
+        # Bust all outlook cache files for this user (cache keyed by user log key)
+        try:
+            from nova.config import CACHE_DIR
+            import glob as _glob
+            # Filenames use the log-key format: outlook_cache_(123 | Name)_lat_lon.json
+            cache_pattern = _glob.path.join(CACHE_DIR, f"outlook_cache_({user.id}_*.json")
+            for cf in _glob.glob(cache_pattern):
+                os.remove(cf)
+        except Exception:
+            pass  # Non-critical: missing cache files just trigger a fresh compute
+
         return jsonify({"status": "success", "message": f"Object '{object_name}' updated."})
 
     except Exception as e:
