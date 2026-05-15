@@ -2972,6 +2972,11 @@
                         container.appendChild(btn);
                     }
 
+                    // Auto-click if ?openframing=1 is in the URL
+                    if (new URLSearchParams(window.location.search).get('openframing') === '1') {
+                        btn.click();
+                    }
+
                     // 2. DELETE SAVED FRAMING BUTTON
                     const delBtn = document.createElement('button');
                     delBtn.className = 'inline-button inline-button-danger';

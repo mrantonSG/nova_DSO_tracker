@@ -1880,7 +1880,7 @@
                         td.style.cursor = 'pointer';
                         td.addEventListener('click', function(e) {
                             e.stopPropagation();
-                            var url = '/graph_dashboard/' + encodeURIComponent(objectName) + '?tab=framing&subtab=framing-scout';
+                            var url = '/graph_dashboard/' + encodeURIComponent(objectName) + '?tab=framing&openframing=1';
                             var loc = sessionStorage.getItem('selectedLocation');
                             if (loc) url += '&location=' + encodeURIComponent(loc);
                             window.location.href = url;
