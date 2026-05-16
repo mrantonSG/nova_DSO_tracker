@@ -3425,7 +3425,11 @@
     
                 const config = { displayModeBar: false, responsive: true };
     
-                Plotly.newPlot('inspiration-mini-graph', [trace], layout, config);
+                loadPlotly().then(() => {
+                    Plotly.newPlot('inspiration-mini-graph', [trace], layout, config);
+                }).catch(function(err) {
+                    console.error(err);
+                });
     
             } catch (e) {
                 console.error(e);

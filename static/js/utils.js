@@ -18,3 +18,14 @@ function formatDateISOtoEuropean(isoStr) {
   const [year, month, day] = parts;
   return `${day}.${month}.${year}`;
 }
+
+function loadPlotly() {
+  return new Promise(function(resolve, reject) {
+    if (window.Plotly) { resolve(); return; }
+    var s = document.createElement('script');
+    s.src = window._plotlySrc;
+    s.onload = resolve;
+    s.onerror = function() { reject(new Error('Plotly failed to load')); };
+    document.head.appendChild(s);
+  });
+}

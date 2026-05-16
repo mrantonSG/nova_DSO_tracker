@@ -309,32 +309,35 @@
             displayModeBar: false
         };
 
-        if (typeof Plotly === 'undefined') {
-            plotDiv.innerHTML = '<div style="color:orange; text-align:center; padding:20px;">Plotly library not loaded. Please check your internet connection or ad-blocker.</div>';
-            return;
-        }
+        loadPlotly().then(() => {
+            Plotly.newPlot(plotDiv, [trace], layout, config).then(() => {
+                heatmapLoaded = true;
+                plotDiv.removeAllListeners('plotly_click');
+                plotDiv.on('plotly_click', function(evt){
+                    if(evt.points && evt.points.length > 0) {
+                        const point = evt.points[0];
+                        const yIndex = currentFilteredY.indexOf(point.y);
+                        const xIndex = globalHeatmapData.x.indexOf(point.x);
 
-        Plotly.newPlot(plotDiv, [trace], layout, config).then(() => {
-            heatmapLoaded = true;
-            plotDiv.removeAllListeners('plotly_click');
-            plotDiv.on('plotly_click', function(evt){
-                if(evt.points && evt.points.length > 0) {
-                    const point = evt.points[0];
-                    const yIndex = currentFilteredY.indexOf(point.y);
-                    const xIndex = globalHeatmapData.x.indexOf(point.x);
-
-                    if (yIndex !== -1 && xIndex !== -1) {
-                        const objectId = currentFilteredIds[yIndex];
-                        if (globalHeatmapData.dates && globalHeatmapData.dates[xIndex]) {
-                            const dateStr = globalHeatmapData.dates[xIndex];
-                            const [year, month, day] = dateStr.split('-');
-                            const currentLoc = sessionStorage.getItem('selectedLocation');
-                            const locParam = currentLoc ? `&location=${encodeURIComponent(currentLoc)}` : '';
-                            window.location.assign(`/graph_dashboard/${encodeURIComponent(objectId)}?tab=chart&year=${year}&month=${month}&day=${day}${locParam}`);
+                        if (yIndex !== -1 && xIndex !== -1) {
+                            const objectId = currentFilteredIds[yIndex];
+                            if (globalHeatmapData.dates && globalHeatmapData.dates[xIndex]) {
+                                const dateStr = globalHeatmapData.dates[xIndex];
+                                const [year, month, day] = dateStr.split('-');
+                                const currentLoc = sessionStorage.getItem('selectedLocation');
+                                const locParam = currentLoc ? `&location=${encodeURIComponent(currentLoc)}` : '';
+                                window.location.assign(`/graph_dashboard/${encodeURIComponent(objectId)}?tab=chart&year=${year}&month=${month}&day=${day}${locParam}`);
+                            }
                         }
                     }
-                }
+                });
+            }).catch(function(err) {
+                plotDiv.innerHTML = '<div style="color:orange; text-align:center; padding:20px;">Plotly library not loaded. Please check your internet connection or ad-blocker.</div>';
+                console.error(err);
             });
+        }).catch(function(err) {
+            plotDiv.innerHTML = '<div style="color:orange; text-align:center; padding:20px;">Plotly library not loaded. Please check your internet connection or ad-blocker.</div>';
+            console.error(err);
         });
     }
 
@@ -446,33 +449,36 @@
         const plotDiv = document.getElementById('yearly-heatmap-plot');
         if (!plotDiv) return;
 
-        if (typeof Plotly === 'undefined') {
-            plotDiv.innerHTML = '<div style="color:orange; text-align:center; padding:20px;">Plotly library not loaded. Please check your internet connection or ad-blocker.</div>';
-            return;
-        }
+        return loadPlotly().then(() => {
+            // Re-plot the heatmap with new theme colors
+            return Plotly.newPlot(plotDiv, [trace], layout, config).then(() => {
+                // Re-attach click listener
+                plotDiv.removeAllListeners('plotly_click');
+                plotDiv.on('plotly_click', function(evt){
+                    if(evt.points && evt.points.length > 0) {
+                        const point = evt.points[0];
+                        const yIndex = currentFilteredY.indexOf(point.y);
+                        const xIndex = globalHeatmapData.x.indexOf(point.x);
 
-        // Re-plot the heatmap with new theme colors
-        Plotly.newPlot(plotDiv, [trace], layout, config).then(() => {
-            // Re-attach click listener
-            plotDiv.removeAllListeners('plotly_click');
-            plotDiv.on('plotly_click', function(evt){
-                if(evt.points && evt.points.length > 0) {
-                    const point = evt.points[0];
-                    const yIndex = currentFilteredY.indexOf(point.y);
-                    const xIndex = globalHeatmapData.x.indexOf(point.x);
-
-                    if (yIndex !== -1 && xIndex !== -1) {
-                        const objectId = currentFilteredIds[yIndex];
-                        if (globalHeatmapData.dates && globalHeatmapData.dates[xIndex]) {
-                            const dateStr = globalHeatmapData.dates[xIndex];
-                            const [year, month, day] = dateStr.split('-');
-                            const currentLoc = sessionStorage.getItem('selectedLocation');
-                            const locParam = currentLoc ? `&location=${encodeURIComponent(currentLoc)}` : '';
-                            window.location.assign(`/graph_dashboard/${encodeURIComponent(objectId)}?tab=chart&year=${year}&month=${month}&day=${day}${locParam}`);
+                        if (yIndex !== -1 && xIndex !== -1) {
+                            const objectId = currentFilteredIds[yIndex];
+                            if (globalHeatmapData.dates && globalHeatmapData.dates[xIndex]) {
+                                const dateStr = globalHeatmapData.dates[xIndex];
+                                const [year, month, day] = dateStr.split('-');
+                                const currentLoc = sessionStorage.getItem('selectedLocation');
+                                const locParam = currentLoc ? `&location=${encodeURIComponent(currentLoc)}` : '';
+                                window.location.assign(`/graph_dashboard/${encodeURIComponent(objectId)}?tab=chart&year=${year}&month=${month}&day=${day}${locParam}`);
+                            }
                         }
                     }
-                }
+                });
+            }).catch(function(err) {
+                plotDiv.innerHTML = '<div style="color:orange; text-align:center; padding:20px;">Plotly library not loaded. Please check your internet connection or ad-blocker.</div>';
+                console.error(err);
             });
+        }).catch(function(err) {
+            plotDiv.innerHTML = '<div style="color:orange; text-align:center; padding:20px;">Plotly library not loaded. Please check your internet connection or ad-blocker.</div>';
+            console.error(err);
         });
     }
 

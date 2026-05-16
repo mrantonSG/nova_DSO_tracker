@@ -3,7 +3,7 @@
 {% block title %}{{ _('DSO Altitude Tracker') }}{% endblock %}
 
 {% block head_extra %}
-  <script src="{{ url_for('static', filename='js/plotly-2.27.0.min.js') }}?v={{ version }}" defer></script>
+  <script>window._plotlySrc = "{{ url_for('static', filename='js/plotly-2.27.0.min.js') }}?v={{ version }}";</script>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}?v={{ version }}">
 
   <script>
