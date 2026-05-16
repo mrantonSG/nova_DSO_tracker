@@ -2997,6 +2997,7 @@
            filterTable();
            filterJournalTable();
            updateRemoveFiltersButtonVisibility();
+           setTimeout(loadPlotly, 3000);
         };
     
         function renderOutlookTable() {
