@@ -876,14 +876,20 @@ body {
             return luxon.DateTime.fromISO(`${dateStr}T${timeStr}`, { zone: OBJECT_DATA.plotTz }).toMillis();
         };
 
-        if (data.sun_events?.current?.astronomical_dusk) {
-            duskTime = toAnnotationMs(data.date, data.sun_events.current.astronomical_dusk);
+        if (isDayView && nextDateStr && data.sun_events?.current?.astronomical_dusk) {
+            const duskStr = data.sun_events.current.astronomical_dusk;
+            const duskHour = parseInt(duskStr.split(':')[0], 10);
+            const duskDate = duskHour < 12 ? nextDateStr : data.date;
+            duskTime = toAnnotationMs(duskDate, duskStr);
         }
         if (isDayView && nextDateStr && data.sun_events?.next?.astronomical_dawn) {
             dawnTime = toAnnotationMs(nextDateStr, data.sun_events.next.astronomical_dawn);
         }
-        if (data.sun_events?.current?.sunset) {
-            sunsetTime = toAnnotationMs(data.date, data.sun_events.current.sunset);
+        if (isDayView && nextDateStr && data.sun_events?.current?.sunset) {
+            const sunsetStr = data.sun_events.current.sunset;
+            const sunsetHour = parseInt(sunsetStr.split(':')[0], 10);
+            const sunsetDate = sunsetHour < 12 ? nextDateStr : data.date;
+            sunsetTime = toAnnotationMs(sunsetDate, sunsetStr);
         }
         if (isDayView && nextDateStr && data.sun_events?.next?.sunrise) {
             sunriseTime = toAnnotationMs(nextDateStr, data.sun_events.next.sunrise);
