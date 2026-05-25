@@ -816,9 +816,9 @@ body {
 
         if (view === 'day') {
             // Day view: use time scale with actual Date objects
-            labels = data.times.map(t => new Date(t));
-            xMin = labels[0].getTime();
-            xMax = labels[labels.length - 1].getTime();
+            labels = data.times.map(t => luxon.DateTime.fromISO(t, { zone: OBJECT_DATA.plotTz }).toMillis());
+            xMin = labels[0];
+            xMax = labels[labels.length - 1];
         } else {
             // Month/year views: use category scale with formatted date strings
             labels = data.times.map((t, i) => {
@@ -870,17 +870,23 @@ body {
             return `${dateStr}T${timeStr}`;
         };
 
+        // Helper to convert date + time string to milliseconds for Plotly annotations
+        const toAnnotationMs = (dateStr, timeStr) => {
+            if (!timeStr || !timeStr.includes(':')) return null;
+            return luxon.DateTime.fromISO(`${dateStr}T${timeStr}`, { zone: OBJECT_DATA.plotTz }).toMillis();
+        };
+
         if (data.sun_events?.current?.astronomical_dusk) {
-            duskTime = createIsoTimestamp(data.date, data.sun_events.current.astronomical_dusk);
+            duskTime = toAnnotationMs(data.date, data.sun_events.current.astronomical_dusk);
         }
         if (isDayView && nextDateStr && data.sun_events?.next?.astronomical_dawn) {
-            dawnTime = createIsoTimestamp(nextDateStr, data.sun_events.next.astronomical_dawn);
+            dawnTime = toAnnotationMs(nextDateStr, data.sun_events.next.astronomical_dawn);
         }
         if (data.sun_events?.current?.sunset) {
-            sunsetTime = createIsoTimestamp(data.date, data.sun_events.current.sunset);
+            sunsetTime = toAnnotationMs(data.date, data.sun_events.current.sunset);
         }
         if (isDayView && nextDateStr && data.sun_events?.next?.sunrise) {
-            sunriseTime = createIsoTimestamp(nextDateStr, data.sun_events.next.sunrise);
+            sunriseTime = toAnnotationMs(nextDateStr, data.sun_events.next.sunrise);
         }
 
         // Build sun event annotations (vertical lines)
@@ -1045,6 +1051,7 @@ body {
                                 hour: 'HH:mm'
                             }
                         } : undefined,
+                        adapters: isDayView ? { date: { zone: OBJECT_DATA.plotTz } } : {},
                         grid: {
                             display: false
                         },
