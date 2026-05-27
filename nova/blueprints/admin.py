@@ -2,7 +2,7 @@ from flask import Blueprint, request, redirect, url_for, render_template, flash
 from flask_login import login_required, current_user
 from flask_babel import gettext as _
 
-from nova.config import SINGLE_USER_MODE
+from nova.config import SINGLE_USER_MODE, ADMIN_USERS
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -11,7 +11,7 @@ def _admin_guard():
     """Return a redirect response if the request is not from an admin, else None."""
     if SINGLE_USER_MODE:
         return redirect(url_for("core.index"))
-    if current_user.username != "admin":
+    if current_user.username not in ADMIN_USERS:
         flash(_("Not authorized."), "error")
         return redirect(url_for("core.index"))
     return None

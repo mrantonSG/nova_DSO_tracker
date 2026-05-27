@@ -88,6 +88,7 @@ def _mu_admin_env(db_session, monkeypatch):
     monkeypatch.setattr('nova.SINGLE_USER_MODE', False)
     monkeypatch.setattr('nova.auth.SINGLE_USER_MODE', False)
     monkeypatch.setattr('nova.blueprints.admin.SINGLE_USER_MODE', False)
+    monkeypatch.setattr('nova.blueprints.admin.ADMIN_USERS', {"admin"})
 
     import nova
     import nova.auth
