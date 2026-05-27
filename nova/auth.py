@@ -79,6 +79,12 @@ def init_auth(app):
                     print("[MIGRATION] User table missing. Creating all tables...")
                     db.create_all()
                     print("✅ [MIGRATION] Database initialized.")
+                    default_user = User(username='admin')
+                    default_user.set_password('admin')
+                    db.session.add(default_user)
+                    db.session.commit()
+                    print("⚠️  [STARTUP] Default admin user created (username: admin, password: admin).")
+                    print("⚠️  [STARTUP] CHANGE THE DEFAULT PASSWORD IMMEDIATELY via /admin/users.")
                 except Exception as e:
                     print(f"❌ [MIGRATION] Failed to initialize DB: {e}")
 
