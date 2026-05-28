@@ -17,7 +17,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from nova.config import SINGLE_USER_MODE, NOVA_ADMIN_USERNAME, NOVA_ADMIN_PASSWORD
+from nova.config import SINGLE_USER_MODE, USER_ADMIN_USERNAME, USER_ADMIN_PASSWORD
 from nova.models import INSTANCE_PATH
 
 login_manager = LoginManager()
@@ -79,15 +79,15 @@ def init_auth(app):
                 ).scalar()
                 if user_count == 0:
                     try:
-                        _pwd = NOVA_ADMIN_PASSWORD if NOVA_ADMIN_PASSWORD else 'admin'
-                        default_user = User(username=NOVA_ADMIN_USERNAME)
+                        _pwd = USER_ADMIN_PASSWORD if USER_ADMIN_PASSWORD else 'admin'
+                        default_user = User(username=USER_ADMIN_USERNAME)
                         default_user.set_password(_pwd)
                         db.session.add(default_user)
                         db.session.commit()
-                        if NOVA_ADMIN_PASSWORD:
-                            print(f"[STARTUP] Admin user '{NOVA_ADMIN_USERNAME}' created from environment.")
+                        if USER_ADMIN_PASSWORD:
+                            print(f"[STARTUP] Admin user '{USER_ADMIN_USERNAME}' created from environment.")
                         else:
-                            print(f"⚠️  [STARTUP] Default admin user created (username: {NOVA_ADMIN_USERNAME}, password: admin).")
+                            print(f"⚠️  [STARTUP] Default admin user created (username: {USER_ADMIN_USERNAME}, password: admin).")
                             print("⚠️  [STARTUP] CHANGE THE DEFAULT PASSWORD IMMEDIATELY via /admin/users.")
                     except IntegrityError:
                         db.session.rollback()
@@ -98,15 +98,15 @@ def init_auth(app):
                     db.create_all()
                     print("✅ [MIGRATION] Database initialized.")
                     try:
-                        _pwd = NOVA_ADMIN_PASSWORD if NOVA_ADMIN_PASSWORD else 'admin'
-                        default_user = User(username=NOVA_ADMIN_USERNAME)
+                        _pwd = USER_ADMIN_PASSWORD if USER_ADMIN_PASSWORD else 'admin'
+                        default_user = User(username=USER_ADMIN_USERNAME)
                         default_user.set_password(_pwd)
                         db.session.add(default_user)
                         db.session.commit()
-                        if NOVA_ADMIN_PASSWORD:
-                            print(f"[STARTUP] Admin user '{NOVA_ADMIN_USERNAME}' created from environment.")
+                        if USER_ADMIN_PASSWORD:
+                            print(f"[STARTUP] Admin user '{USER_ADMIN_USERNAME}' created from environment.")
                         else:
-                            print(f"⚠️  [STARTUP] Default admin user created (username: {NOVA_ADMIN_USERNAME}, password: admin).")
+                            print(f"⚠️  [STARTUP] Default admin user created (username: {USER_ADMIN_USERNAME}, password: admin).")
                             print("⚠️  [STARTUP] CHANGE THE DEFAULT PASSWORD IMMEDIATELY via /admin/users.")
                     except IntegrityError:
                         db.session.rollback()

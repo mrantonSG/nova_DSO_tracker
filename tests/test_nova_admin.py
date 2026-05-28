@@ -267,8 +267,8 @@ class TestDefaultAdminCreation:
         import sys
 
         monkeypatch.setattr('nova.config.SINGLE_USER_MODE', False)
-        monkeypatch.setattr('nova.config.NOVA_ADMIN_USERNAME', 'admin')
-        monkeypatch.setattr('nova.config.NOVA_ADMIN_PASSWORD', '')
+        monkeypatch.setattr('nova.config.USER_ADMIN_USERNAME', 'admin')
+        monkeypatch.setattr('nova.config.USER_ADMIN_PASSWORD', '')
 
         if 'nova.auth' in sys.modules:
             del sys.modules['nova.auth']
@@ -284,12 +284,12 @@ class TestDefaultAdminCreation:
         assert self._created_users[0].password_hash == 'admin'
 
     def test_custom_admin_created_from_env(self, monkeypatch):
-        """init_auth() uses NOVA_ADMIN_USERNAME/PASSWORD when set."""
+        """init_auth() uses USER_ADMIN_USERNAME/PASSWORD when set."""
         import sys
 
         monkeypatch.setattr('nova.config.SINGLE_USER_MODE', False)
-        monkeypatch.setattr('nova.config.NOVA_ADMIN_USERNAME', 'gilles')
-        monkeypatch.setattr('nova.config.NOVA_ADMIN_PASSWORD', 'secret123')
+        monkeypatch.setattr('nova.config.USER_ADMIN_USERNAME', 'gilles')
+        monkeypatch.setattr('nova.config.USER_ADMIN_PASSWORD', 'secret123')
 
         if 'nova.auth' in sys.modules:
             del sys.modules['nova.auth']
@@ -309,8 +309,8 @@ class TestDefaultAdminCreation:
         import sys
 
         monkeypatch.setattr('nova.config.SINGLE_USER_MODE', False)
-        monkeypatch.setattr('nova.config.NOVA_ADMIN_USERNAME', 'admin')
-        monkeypatch.setattr('nova.config.NOVA_ADMIN_PASSWORD', '')
+        monkeypatch.setattr('nova.config.USER_ADMIN_USERNAME', 'admin')
+        monkeypatch.setattr('nova.config.USER_ADMIN_PASSWORD', '')
 
         if 'nova.auth' in sys.modules:
             del sys.modules['nova.auth']
