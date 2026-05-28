@@ -207,3 +207,118 @@ class TestAdminToggleUser:
         """Toggle on admin account is rejected."""
         resp = admin_client.post("/admin/users/1/toggle")
         assert resp.status_code == 302
+
+
+class TestDefaultAdminCreation:
+    """Verify that init_auth() auto-creates a default admin user when users.db is empty."""
+
+    def _setup_auth_mock(self, count, monkeypatch):
+        """Build a mock db/User/Session and patch nova.auth with fresh imports.
+
+        Stores ``created_users`` on self so the test method can assert on it.
+        """
+        import sys
+        import types
+
+        created_users = []
+
+        class MockUser:
+            def __init__(self, username):
+                self.username = username
+                self.password_hash = None
+
+            def set_password(self, pwd):
+                self.password_hash = pwd
+
+        class MockSession:
+            def execute(self, stmt):
+                class R:
+                    def scalar(self_):
+                        return count
+
+                return R()
+
+            def add(self, obj):
+                created_users.append(obj)
+
+            def commit(self):
+                pass
+
+        mock_db = types.SimpleNamespace()
+        mock_db.session = MockSession()
+        mock_db.init_app = lambda app: None
+
+        monkeypatch.setattr('nova.auth.db', mock_db)
+        monkeypatch.setattr('nova.auth.login_manager', types.SimpleNamespace(
+            init_app=lambda app: None,
+        ))
+        monkeypatch.setattr('nova.auth.User', MockUser)
+        monkeypatch.setattr('nova.auth.INSTANCE_PATH', '/tmp')
+
+        # Force a fresh module import so module-level constants pick up patches.
+        if 'nova.auth' in sys.modules:
+            del sys.modules['nova.auth']
+
+        # Expose to the test method.
+        self._created_users = created_users
+
+    def test_default_admin_created_when_db_empty(self, monkeypatch):
+        """init_auth() creates admin/admin when user table exists but is empty."""
+        import sys
+
+        monkeypatch.setattr('nova.config.SINGLE_USER_MODE', False)
+        monkeypatch.setattr('nova.config.NOVA_ADMIN_USERNAME', 'admin')
+        monkeypatch.setattr('nova.config.NOVA_ADMIN_PASSWORD', '')
+
+        if 'nova.auth' in sys.modules:
+            del sys.modules['nova.auth']
+
+        from nova.auth import init_auth
+        self._setup_auth_mock(count=0, monkeypatch=monkeypatch)
+
+        from nova import app
+        init_auth(app)
+
+        assert len(self._created_users) == 1
+        assert self._created_users[0].username == 'admin'
+        assert self._created_users[0].password_hash == 'admin'
+
+    def test_custom_admin_created_from_env(self, monkeypatch):
+        """init_auth() uses NOVA_ADMIN_USERNAME/PASSWORD when set."""
+        import sys
+
+        monkeypatch.setattr('nova.config.SINGLE_USER_MODE', False)
+        monkeypatch.setattr('nova.config.NOVA_ADMIN_USERNAME', 'gilles')
+        monkeypatch.setattr('nova.config.NOVA_ADMIN_PASSWORD', 'secret123')
+
+        if 'nova.auth' in sys.modules:
+            del sys.modules['nova.auth']
+
+        from nova.auth import init_auth
+        self._setup_auth_mock(count=0, monkeypatch=monkeypatch)
+
+        from nova import app
+        init_auth(app)
+
+        assert len(self._created_users) == 1
+        assert self._created_users[0].username == 'gilles'
+        assert self._created_users[0].password_hash == 'secret123'
+
+    def test_no_user_created_when_db_has_users(self, monkeypatch):
+        """init_auth() skips creation when users already exist."""
+        import sys
+
+        monkeypatch.setattr('nova.config.SINGLE_USER_MODE', False)
+        monkeypatch.setattr('nova.config.NOVA_ADMIN_USERNAME', 'admin')
+        monkeypatch.setattr('nova.config.NOVA_ADMIN_PASSWORD', '')
+
+        if 'nova.auth' in sys.modules:
+            del sys.modules['nova.auth']
+
+        from nova.auth import init_auth
+        self._setup_auth_mock(count=2, monkeypatch=monkeypatch)
+
+        from nova import app
+        init_auth(app)
+
+        assert len(self._created_users) == 0
