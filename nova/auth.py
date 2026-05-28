@@ -14,6 +14,7 @@ import os
 from flask_login import LoginManager, UserMixin  # noqa: F401 — re-exported for test compatibility
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from nova.config import SINGLE_USER_MODE, NOVA_ADMIN_USERNAME, NOVA_ADMIN_PASSWORD
@@ -77,31 +78,39 @@ def init_auth(app):
                     text("SELECT COUNT(*) FROM user")
                 ).scalar()
                 if user_count == 0:
-                    _pwd = NOVA_ADMIN_PASSWORD if NOVA_ADMIN_PASSWORD else 'admin'
-                    default_user = User(username=NOVA_ADMIN_USERNAME)
-                    default_user.set_password(_pwd)
-                    db.session.add(default_user)
-                    db.session.commit()
-                    if NOVA_ADMIN_PASSWORD:
-                        print(f"[STARTUP] Admin user '{NOVA_ADMIN_USERNAME}' created from environment.")
-                    else:
-                        print(f"⚠️  [STARTUP] Default admin user created (username: {NOVA_ADMIN_USERNAME}, password: admin).")
-                        print("⚠️  [STARTUP] CHANGE THE DEFAULT PASSWORD IMMEDIATELY via /admin/users.")
+                    try:
+                        _pwd = NOVA_ADMIN_PASSWORD if NOVA_ADMIN_PASSWORD else 'admin'
+                        default_user = User(username=NOVA_ADMIN_USERNAME)
+                        default_user.set_password(_pwd)
+                        db.session.add(default_user)
+                        db.session.commit()
+                        if NOVA_ADMIN_PASSWORD:
+                            print(f"[STARTUP] Admin user '{NOVA_ADMIN_USERNAME}' created from environment.")
+                        else:
+                            print(f"⚠️  [STARTUP] Default admin user created (username: {NOVA_ADMIN_USERNAME}, password: admin).")
+                            print("⚠️  [STARTUP] CHANGE THE DEFAULT PASSWORD IMMEDIATELY via /admin/users.")
+                    except IntegrityError:
+                        db.session.rollback()
+                        print("[STARTUP] Admin user already created by another worker. Skipping.")
             except Exception:
                 try:
                     print("[MIGRATION] User table missing. Creating all tables...")
                     db.create_all()
                     print("✅ [MIGRATION] Database initialized.")
-                    _pwd = NOVA_ADMIN_PASSWORD if NOVA_ADMIN_PASSWORD else 'admin'
-                    default_user = User(username=NOVA_ADMIN_USERNAME)
-                    default_user.set_password(_pwd)
-                    db.session.add(default_user)
-                    db.session.commit()
-                    if NOVA_ADMIN_PASSWORD:
-                        print(f"[STARTUP] Admin user '{NOVA_ADMIN_USERNAME}' created from environment.")
-                    else:
-                        print(f"⚠️  [STARTUP] Default admin user created (username: {NOVA_ADMIN_USERNAME}, password: admin).")
-                        print("⚠️  [STARTUP] CHANGE THE DEFAULT PASSWORD IMMEDIATELY via /admin/users.")
+                    try:
+                        _pwd = NOVA_ADMIN_PASSWORD if NOVA_ADMIN_PASSWORD else 'admin'
+                        default_user = User(username=NOVA_ADMIN_USERNAME)
+                        default_user.set_password(_pwd)
+                        db.session.add(default_user)
+                        db.session.commit()
+                        if NOVA_ADMIN_PASSWORD:
+                            print(f"[STARTUP] Admin user '{NOVA_ADMIN_USERNAME}' created from environment.")
+                        else:
+                            print(f"⚠️  [STARTUP] Default admin user created (username: {NOVA_ADMIN_USERNAME}, password: admin).")
+                            print("⚠️  [STARTUP] CHANGE THE DEFAULT PASSWORD IMMEDIATELY via /admin/users.")
+                    except IntegrityError:
+                        db.session.rollback()
+                        print("[STARTUP] Admin user already created by another worker. Skipping.")
                 except Exception as e:
                     print(f"❌ [MIGRATION] Failed to initialize DB: {e}")
 
