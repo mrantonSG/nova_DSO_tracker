@@ -16,7 +16,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from nova.config import SINGLE_USER_MODE
+from nova.config import SINGLE_USER_MODE, NOVA_ADMIN_USERNAME, NOVA_ADMIN_PASSWORD
 from nova.models import INSTANCE_PATH
 
 login_manager = LoginManager()
@@ -73,18 +73,35 @@ def init_auth(app):
         # Ensure DB tables exist on first run / after switching modes
         with app.app_context():
             try:
-                db.session.execute(text("SELECT 1 FROM user LIMIT 1"))
+                user_count = db.session.execute(
+                    text("SELECT COUNT(*) FROM user")
+                ).scalar()
+                if user_count == 0:
+                    _pwd = NOVA_ADMIN_PASSWORD if NOVA_ADMIN_PASSWORD else 'admin'
+                    default_user = User(username=NOVA_ADMIN_USERNAME)
+                    default_user.set_password(_pwd)
+                    db.session.add(default_user)
+                    db.session.commit()
+                    if NOVA_ADMIN_PASSWORD:
+                        print(f"[STARTUP] Admin user '{NOVA_ADMIN_USERNAME}' created from environment.")
+                    else:
+                        print(f"⚠️  [STARTUP] Default admin user created (username: {NOVA_ADMIN_USERNAME}, password: admin).")
+                        print("⚠️  [STARTUP] CHANGE THE DEFAULT PASSWORD IMMEDIATELY via /admin/users.")
             except Exception:
                 try:
                     print("[MIGRATION] User table missing. Creating all tables...")
                     db.create_all()
                     print("✅ [MIGRATION] Database initialized.")
-                    default_user = User(username='admin')
-                    default_user.set_password('admin')
+                    _pwd = NOVA_ADMIN_PASSWORD if NOVA_ADMIN_PASSWORD else 'admin'
+                    default_user = User(username=NOVA_ADMIN_USERNAME)
+                    default_user.set_password(_pwd)
                     db.session.add(default_user)
                     db.session.commit()
-                    print("⚠️  [STARTUP] Default admin user created (username: admin, password: admin).")
-                    print("⚠️  [STARTUP] CHANGE THE DEFAULT PASSWORD IMMEDIATELY via /admin/users.")
+                    if NOVA_ADMIN_PASSWORD:
+                        print(f"[STARTUP] Admin user '{NOVA_ADMIN_USERNAME}' created from environment.")
+                    else:
+                        print(f"⚠️  [STARTUP] Default admin user created (username: {NOVA_ADMIN_USERNAME}, password: admin).")
+                        print("⚠️  [STARTUP] CHANGE THE DEFAULT PASSWORD IMMEDIATELY via /admin/users.")
                 except Exception as e:
                     print(f"❌ [MIGRATION] Failed to initialize DB: {e}")
 

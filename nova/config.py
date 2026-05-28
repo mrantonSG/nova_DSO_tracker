@@ -28,6 +28,8 @@ SINGLE_USER_MODE = config('SINGLE_USER_MODE', default='True') == 'True'
 
 ADMIN_USERS_RAW = config('ADMIN_USERS', default='admin')
 ADMIN_USERS = {u.strip() for u in ADMIN_USERS_RAW.split(",") if u.strip()}
+NOVA_ADMIN_USERNAME = config('NOVA_ADMIN_USERNAME', default='admin')
+NOVA_ADMIN_PASSWORD = config('NOVA_ADMIN_PASSWORD', default='')
 
 # --- Sentry (error reporting, multi-user only) ---
 SENTRY_DSN = config('SENTRY_DSN', default='')
