@@ -41,10 +41,13 @@
   --space-3: 12px;
   --space-4: 16px;
   --space-5: 20px;
+  --space-6: 24px;
   /* =================================================================
      SHADOW SCALE
      Tiered shadows for elevation hierarchy
      ================================================================ */
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
 
   /* Semantic shadow tokens */
   --shadow-modal: 0 5px 15px rgba(0, 0, 0, 0.3);      /* Standard modals */
