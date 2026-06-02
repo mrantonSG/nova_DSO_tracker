@@ -274,32 +274,34 @@
                     {% endfor %}
                 </select>
               </div>
-              <div>
-                  <label class="short-label" for="new_active">{{ _('Active:') }}</label>
-                  <input type="checkbox" name="new_active" id="new_active" class="active-location-checkbox" checked>
-              </div>
-              <div>
-                  <label class="short-label" for="new_bortle_scale">{{ _('Bortle:') }}</label>
-                  <select name="new_bortle_scale" id="new_bortle_scale" style="width: 210px;">
-                      <option value="">{{ _('Not set') }}</option>
-                      <option value="1">1 – {{ _('Exceptional dark sky') }}</option>
-                      <option value="2">2 – {{ _('Truly dark sky') }}</option>
-                      <option value="3">3 – {{ _('Rural sky') }}</option>
-                      <option value="4">4 – {{ _('Rural/suburban transition') }}</option>
-                      <option value="5">5 – {{ _('Suburban sky') }}</option>
-                      <option value="6">6 – {{ _('Bright suburban sky') }}</option>
-                      <option value="7">7 – {{ _('Suburban/urban transition') }}</option>
-                      <option value="8">8 – {{ _('City sky') }}</option>
-                      <option value="9">9 – {{ _('Inner-city sky') }}</option>
-                  </select>
-              </div>
-              <div>
-                <label class="short-label" for="new_sqm_zenith">{{ _('SQM Zenith:') }}</label>
-                <input type="number" name="new_sqm_zenith" id="new_sqm_zenith" step="0.01" min="15" max="23"
-                  placeholder="{{ _('Zenith SQM (optional)') }}" value="">
-                <small class="field-hint">{{ _('Leave blank to derive from Bortle scale. Enter a measured SQM value (mag/arcsec²) if available.') }}</small>
-              </div>
             </div>
+            <div class="inline-fields">
+                <div>
+                    <label class="short-label" for="new_active">{{ _('Active:') }}</label>
+                    <input type="checkbox" name="new_active" id="new_active" class="active-location-checkbox" checked>
+                </div>
+                <div>
+                    <label class="short-label" for="new_bortle_scale">{{ _('Bortle:') }}</label>
+                    <select name="new_bortle_scale" id="new_bortle_scale" style="width: 210px;">
+                        <option value="">{{ _('Not set') }}</option>
+                        <option value="1">1 – {{ _('Exceptional dark sky') }}</option>
+                        <option value="2">2 – {{ _('Truly dark sky') }}</option>
+                        <option value="3">3 – {{ _('Rural sky') }}</option>
+                        <option value="4">4 – {{ _('Rural/suburban transition') }}</option>
+                        <option value="5">5 – {{ _('Suburban sky') }}</option>
+                        <option value="6">6 – {{ _('Bright suburban sky') }}</option>
+                        <option value="7">7 – {{ _('Suburban/urban transition') }}</option>
+                        <option value="8">8 – {{ _('City sky') }}</option>
+                        <option value="9">9 – {{ _('Inner-city sky') }}</option>
+                    </select>
+                </div>
+                <div>
+                  <label class="short-label" for="new_sqm_zenith">{{ _('SQM Zenith:') }}</label>
+                  <input type="number" name="new_sqm_zenith" id="new_sqm_zenith" step="0.01" min="15" max="23"
+                    placeholder="{{ _('Zenith SQM (optional)') }}" value="">
+                </div>
+            </div>
+            <p class="field-hint" style="margin: 4px 0 8px 0;">{{ _('Leave blank to derive from Bortle scale. Enter a measured SQM value (mag/arcsec²) if available.') }}</p>
 
             <div class="inline-fields">
                  <div class="location-id"></div>
@@ -358,6 +360,8 @@
                     {% endfor %}
                 </select>
                 </div>
+              </div>
+              <div class="inline-fields">
                 <div>
                     <label class="short-label" for="active_{{ loc_key }}">{{ _('Active:') }}</label>
                     <input type="checkbox" name="active_{{ loc_key }}" id="active_{{ loc_key }}" class="active-location-checkbox" {% if loc_val.get('active', True) %}checked{% endif %}>
@@ -381,20 +385,9 @@
                   <label class="short-label" for="sqm_zenith_{{ loc_key }}">{{ _('SQM Zenith:') }}</label>
                   <input type="number" name="sqm_zenith_{{ loc_key }}" id="sqm_zenith_{{ loc_key }}" step="0.01" min="15" max="23"
                     placeholder="{{ _('Zenith SQM (optional)') }}" value="{{ loc_val.sqm_zenith if loc_val.sqm_zenith is not none else '' }}">
-                  <small class="field-hint">{{ _('Leave blank to derive from Bortle scale. Enter a measured SQM value (mag/arcsec²) if available.') }}</small>
-                </div>
-                <div>
-                  <label class="short-label" for="delete_loc_{{ loc_key }}">{{ _('Del:') }}</label>
-                  <input type="checkbox" name="delete_loc_{{ loc_key }}" id="delete_loc_{{ loc_key }}"
-                         {% if locations|length <= 1 %}disabled title="{{ _('Cannot delete your only location') }}"{% endif %}>
-                </div>
-                <div>
-                  <a href="https://www.google.com/maps?q={{ loc_val.lat }},{{ loc_val.lon }}"
-                     target="_blank" title="{{ _('View on Google Maps') }}" class="action-button" style="text-decoration: none; font-size: 13px; padding: 6px 12px; margin-left: 10px;">
-                     {{ _('Open Map') }}
-                  </a>
                 </div>
               </div>
+                <p class="field-hint" style="margin: 4px 0 8px 0;">{{ _('Leave blank to derive from Bortle scale. Enter a measured SQM value (mag/arcsec²) if available.') }}</p>
                 <div class="inline-fields">
                     <div class="location-id"></div>
                     <div style="display: grid; grid-template-columns: 115px 1fr; align-items: start; gap: 5px;">
@@ -419,6 +412,19 @@
                         <div></div>
                         <small id="comment-counter-{{ loop.index }}" style="color: var(--text-tertiary);">{{ (loc_val.get('comments') or '')|length }} / 500</small>
                     </div>
+                </div>
+                <div class="inline-fields">
+                  <div>
+                    <label class="short-label" for="delete_loc_{{ loc_key }}">{{ _('Del:') }}</label>
+                    <input type="checkbox" name="delete_loc_{{ loc_key }}" id="delete_loc_{{ loc_key }}"
+                           {% if locations|length <= 1 %}disabled title="{{ _('Cannot delete your only location') }}"{% endif %}>
+                  </div>
+                  <div>
+                    <a href="https://www.google.com/maps?q={{ loc_val.lat }},{{ loc_val.lon }}"
+                       target="_blank" title="{{ _('View on Google Maps') }}" class="action-button" style="text-decoration: none; font-size: 13px; padding: 6px 12px; margin-left: 10px;">
+                       {{ _('Open Map') }}
+                    </a>
+                  </div>
                 </div>
             </div>
           {% endfor %}
