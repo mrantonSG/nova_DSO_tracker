@@ -50,6 +50,7 @@ matplotlib==3.10.1
 modulegraph==0.19.6
 more-itertools==10.6.0
 numpy==2.2.3
+h5py==3.16.0
 packaging==24.2
 paho-mqtt==2.1.0
 pandas==2.2.3
