@@ -261,6 +261,11 @@
                 <input type="text" name="new_lon" id="new_lon" placeholder="-74.0060">
               </div>
               <div>
+                <label class="short-label" for="new_elevation">{{ _('Elevation:') }}</label>
+                <input type="number" name="new_elevation" id="new_elevation" step="1" min="-500" max="9000"
+                  placeholder="{{ _('Elevation (m)') }}" value="">
+              </div>
+              <div>
                 <label class="long-label" for="new_timezone">{{ _('Timezone:') }}</label>
                 <select name="new_timezone" id="new_timezone">
                     <option value="">{{ _('Type to search...') }}</option>
@@ -287,6 +292,12 @@
                       <option value="8">8 – {{ _('City sky') }}</option>
                       <option value="9">9 – {{ _('Inner-city sky') }}</option>
                   </select>
+              </div>
+              <div>
+                <label class="short-label" for="new_sqm_zenith">{{ _('SQM Zenith:') }}</label>
+                <input type="number" name="new_sqm_zenith" id="new_sqm_zenith" step="0.01" min="15" max="23"
+                  placeholder="{{ _('Zenith SQM (optional)') }}" value="">
+                <small class="field-hint">{{ _('Leave blank to derive from Bortle scale. Enter a measured SQM value (mag/arcsec²) if available.') }}</small>
               </div>
             </div>
 
@@ -335,6 +346,11 @@
                   <input type="text" name="lon_{{ loc_key }}" id="lon_{{ loc_key }}" value="{{ loc_val.lon }}">
                 </div>
                 <div>
+                  <label class="short-label" for="elevation_{{ loc_key }}">{{ _('Elevation:') }}</label>
+                  <input type="number" name="elevation_{{ loc_key }}" id="elevation_{{ loc_key }}" step="1" min="-500" max="9000"
+                    placeholder="{{ _('Elevation (m)') }}" value="{{ loc_val.elevation|int if loc_val.elevation is not none else '' }}">
+                </div>
+                <div>
                   <label class="long-label" for="timezone_{{ loc_key }}">{{ _('Timezone:') }}</label>
                   <select name="timezone_{{ loc_key }}" id="timezone_{{ loc_key }}">
                     {% for tz in all_timezones %}
@@ -360,6 +376,12 @@
                         <option value="8" {% if loc_val.get('bortle_scale') == 8 %}selected{% endif %}>8 – {{ _('City sky') }}</option>
                         <option value="9" {% if loc_val.get('bortle_scale') == 9 %}selected{% endif %}>9 – {{ _('Inner-city sky') }}</option>
                     </select>
+                </div>
+                <div>
+                  <label class="short-label" for="sqm_zenith_{{ loc_key }}">{{ _('SQM Zenith:') }}</label>
+                  <input type="number" name="sqm_zenith_{{ loc_key }}" id="sqm_zenith_{{ loc_key }}" step="0.01" min="15" max="23"
+                    placeholder="{{ _('Zenith SQM (optional)') }}" value="{{ loc_val.sqm_zenith if loc_val.sqm_zenith is not none else '' }}">
+                  <small class="field-hint">{{ _('Leave blank to derive from Bortle scale. Enter a measured SQM value (mag/arcsec²) if available.') }}</small>
                 </div>
                 <div>
                   <label class="short-label" for="delete_loc_{{ loc_key }}">{{ _('Del:') }}</label>
