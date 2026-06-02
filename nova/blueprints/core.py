@@ -118,6 +118,53 @@ core_bp = Blueprint('core', __name__)
 # Auth & Utility Routes
 # =============================================================================
 
+
+# =============================================================================
+# Skyglow Background Task Helpers
+# =============================================================================
+
+def _run_skyglow_task(app, location_id, lat, lon, elevation, sqm_zenith, bortle_scale, cache_dir):
+    """Fire-and-forget background task: compute skyglow profile for a location."""
+    try:
+        token = os.environ.get('NASA_EARTHDATA_TOKEN')
+        if not token:
+            print(f"[SKYGLOW] No NASA_EARTHDATA_TOKEN found, skipping skyglow for location {location_id}")
+            return
+        BORTLE_TO_SQM = {1: 22.0, 2: 21.5, 3: 21.3, 4: 20.8, 5: 20.0,
+                         6: 19.1, 7: 18.4, 8: 17.0, 9: 15.5}
+        sqm = sqm_zenith if sqm_zenith is not None else BORTLE_TO_SQM.get(bortle_scale, 20.0)
+        elev = elevation if elevation is not None else 0.0
+        year = datetime.datetime.utcnow().year - 1
+        with app.app_context():
+            print(f"[SKYGLOW] Computing for location {location_id} (lat={lat}, lon={lon}, elev={elev}, sqm={sqm})")
+            from tools.skyglow.cache import get_or_download_tile
+            from tools.skyglow.garstang import compute_skyglow_profile, compute_skyglow_horizon
+            data, lats_g, lons_g = get_or_download_tile(lat, lon, year, token)
+            profile = compute_skyglow_profile(lat, lon, elev, data, lats_g, lons_g, sqm_zenith=sqm)
+            horizon = compute_skyglow_horizon(profile)
+            os.makedirs(cache_dir, exist_ok=True)
+            out_path = os.path.join(cache_dir, f"{location_id}.json")
+            with open(out_path, 'w') as f:
+                json.dump(horizon, f)
+            print(f"[SKYGLOW] Saved profile to {out_path}")
+    except Exception:
+        print(f"[SKYGLOW] Error for location {location_id}:")
+        traceback.print_exc()
+
+
+def _fire_skyglow_for_locations(app, locations, instance_path):
+    """Launch fire-and-forget skyglow computation threads for a list of locations."""
+    cache_dir = os.path.join(instance_path, 'skyglow')
+    for loc in locations:
+        uid = loc.stable_uid or str(loc.id)
+        t = threading.Thread(
+            target=_run_skyglow_task,
+            args=(app, uid, loc.lat, loc.lon, loc.elevation, loc.sqm_zenith, loc.bortle_scale, cache_dir),
+            daemon=True
+        )
+        t.start()
+
+
 @core_bp.route('/logout', methods=['POST'])
 def logout():
     logout_user()
@@ -467,6 +514,7 @@ def config_form():
 
         if request.method == 'POST':
             location_written = False
+            skyglow_locations = []
             # --- General Settings Tab ---
             if 'submit_general' in request.form:
                 prefs = db.query(UiPref).filter_by(user_id=app_db_user.id).first()
@@ -530,6 +578,7 @@ def config_form():
                     )
                     db.add(new_loc);
                     db.flush()
+                    skyglow_locations.append(new_loc)
                     mask_str = request.form.get("new_horizon_mask", "").strip()
                     if mask_str:
                         try:
@@ -619,6 +668,7 @@ def config_form():
                     loc.horizon_points = new_horizon_points
                     # --- END FIX ---
 
+                skyglow_locations.extend(locs_to_update)
                 message = "Locations"
                 location_written = True
 
@@ -661,6 +711,12 @@ def config_form():
                 bust_astro_context_cache(g.db_user.id)
                 if location_written:
                     bust_nightly_curves_cache(g.user_config.get('username') or g.db_user.username)
+                    if skyglow_locations:
+                        _fire_skyglow_for_locations(
+                            app=current_app._get_current_object(),
+                            locations=skyglow_locations,
+                            instance_path=current_app.instance_path
+                        )
                 flash(_("%(message)s updated successfully.", message=message or 'Configuration'), "success")
                 return redirect(url_for('core.config_form'))
             else:

@@ -223,3 +223,11 @@ def load_tile_data(h: int, v: int, year: int,
     lons_g, lats_g = np.meshgrid(lons_crop, lats_crop)
 
     return data_crop, lats_g, lons_g
+
+
+def get_or_download_tile(lat: float, lon: float, year: int, token: str):
+    """Download tile if not cached, then load and return (data, lats_grid, lons_grid)."""
+    h, v = tile_for_location(lat, lon)
+    if not is_cached(h, v, year):
+        download_tile(h, v, year, token, progress=False)
+    return load_tile_data(h, v, year, lat, lon, radius_km=150.0)
