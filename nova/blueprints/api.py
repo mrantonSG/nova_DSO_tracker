@@ -2574,6 +2574,7 @@ def get_plot_data(object_name):
                         nearest = min(sg_azimuths, key=lambda a: abs(a - az % 360))
                         return sg_lookup[nearest]
                     skyglow_alt = [None] + [_nearest_sg_alt(az) for az in azimuths] + [None]
+                    print(f"[SKYGLOW DEBUG] object={object_name} az[40]={azimuths[40]:.1f} sg[40]={skyglow_alt[41]} az[50]={azimuths[50]:.1f} sg[50]={skyglow_alt[51]}")
     except Exception as sg_err:
         print(f"[API Plot Data] WARN: Could not load skyglow data: {sg_err}")
 

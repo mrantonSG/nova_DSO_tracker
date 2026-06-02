@@ -480,7 +480,7 @@ def get_common_time_arrays(tz_name, local_date, sampling_interval_minutes=15):
 
     # Calculate number of samples based on the interval
     samples_per_hour = 60 / sampling_interval_minutes
-    num_samples = int(25 * samples_per_hour)
+    num_samples = int(24 * samples_per_hour)
     times_local = [start_time + timedelta(minutes=sampling_interval_minutes * i) for i in range(num_samples)]
 
     times_utc = Time([t.astimezone(pytz.utc).strftime('%Y-%m-%dT%H:%M:%S') for t in times_local],
