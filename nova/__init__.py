@@ -914,6 +914,15 @@ def ensure_db_initialized_unified():
     with _FileLock(lock_path):
         Base.metadata.create_all(bind=engine, checkfirst=True)
 
+        # Schema migration: add skyglow columns if not present (idempotent)
+        with engine.connect() as _conn:
+            for _col, _type in [("elevation", "FLOAT"), ("sqm_zenith", "FLOAT")]:
+                try:
+                    _conn.execute(text(f"ALTER TABLE locations ADD COLUMN {_col} {_type}"))
+                    _conn.commit()
+                except Exception:
+                    pass  # column already exists
+
         # Set pragmas BEFORE any transaction (SQLite restriction)
         with engine.connect() as pragma_conn:
             pragma_conn.exec_driver_sql("PRAGMA journal_mode=WAL;")

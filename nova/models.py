@@ -90,6 +90,8 @@ class Location(Base):
     active = Column(Boolean, nullable=False, default=True, index=True)
     comments = Column(String(500), nullable=True)
     bortle_scale = Column(Integer, nullable=True)
+    elevation = Column(Float, nullable=True)  # observer elevation in metres
+    sqm_zenith = Column(Float, nullable=True)  # measured zenith SQM (mag/arcsec²)
     user = relationship("DbUser", back_populates="locations")
     horizon_points = relationship("HorizonPoint", back_populates="location", cascade="all, delete-orphan")
     __table_args__ = (
