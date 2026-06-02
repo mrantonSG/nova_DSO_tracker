@@ -134,7 +134,7 @@ def _run_skyglow_task(app, location_id, lat, lon, elevation, sqm_zenith, bortle_
                          6: 19.1, 7: 18.4, 8: 17.0, 9: 15.5}
         sqm = sqm_zenith if sqm_zenith is not None else BORTLE_TO_SQM.get(bortle_scale, 20.0)
         elev = elevation if elevation is not None else 0.0
-        year = datetime.datetime.utcnow().year - 1
+        year = datetime.utcnow().year - 1
         with app.app_context():
             print(f"[SKYGLOW] Computing for location {location_id} (lat={lat}, lon={lon}, elev={elev}, sqm={sqm})")
             from tools.skyglow.cache import get_or_download_tile
