@@ -524,7 +524,9 @@ def config_form():
                         lat=float(request.form.get("new_lat")), lon=float(request.form.get("new_lon")),
                         timezone=request.form.get("new_timezone"), active=request.form.get("new_active") == "on",
                         comments=request.form.get("new_comments", "").strip()[:500],
-                        bortle_scale=bortle_scale_val
+                        bortle_scale=bortle_scale_val,
+                        elevation=request.form.get('new_elevation', type=float),
+                        sqm_zenith=request.form.get('new_sqm_zenith', type=float),
                     )
                     db.add(new_loc);
                     db.flush()
@@ -589,6 +591,9 @@ def config_form():
                     loc.bortle_scale = int(_bortle) if _bortle else None
                     if loc.bortle_scale is not None and not (1 <= loc.bortle_scale <= 9):
                         loc.bortle_scale = None
+
+                    loc.elevation = request.form.get(f'elevation_{loc.name}', type=float)
+                    loc.sqm_zenith = request.form.get(f'sqm_zenith_{loc.name}', type=float)
 
                     # --- START FIX: Use relationship assignment for cascade ---
                     # 1. Create a new, empty list for this location's points.
@@ -686,6 +691,8 @@ def config_form():
                 "lat": loc.lat, "lon": loc.lon, "timezone": loc.timezone,
                 "active": loc.active, "comments": loc.comments,
                 "bortle_scale": loc.bortle_scale,
+                "elevation": loc.elevation,
+                "sqm_zenith": loc.sqm_zenith,
                 "horizon_mask": [[hp.az_deg, hp.alt_min_deg] for hp in
                                  sorted(loc.horizon_points, key=lambda p: p.az_deg)]
             }
