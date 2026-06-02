@@ -27,3 +27,4 @@ README.md
 tests/
 .pytest_cache/
 /.claude/
+nova_data/
