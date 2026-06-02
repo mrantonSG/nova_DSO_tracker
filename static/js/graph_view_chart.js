@@ -872,7 +872,7 @@
                 borderWidth: 1.5,
                 pointRadius: 0,
                 tension: 0.3,
-                fill: 'start',
+                fill: {target: 3},
                 borderDash: [3, 3]
             }] : [])
         ];
