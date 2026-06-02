@@ -690,6 +690,12 @@ def _run_schema_patches(conn):
     if "bortle_scale" not in colnames_locations:
         conn.exec_driver_sql("ALTER TABLE locations ADD COLUMN bortle_scale INTEGER;")
         print("[DB PATCH] Added missing column locations.bortle_scale")
+    if "elevation" not in colnames_locations:
+        conn.exec_driver_sql("ALTER TABLE locations ADD COLUMN elevation FLOAT;")
+        print("[DB PATCH] Added missing column locations.elevation")
+    if "sqm_zenith" not in colnames_locations:
+        conn.exec_driver_sql("ALTER TABLE locations ADD COLUMN sqm_zenith FLOAT;")
+        print("[DB PATCH] Added missing column locations.sqm_zenith")
 
     # --- Add new columns to 'components' table ---
     cols_components = conn.exec_driver_sql("PRAGMA table_info(components);").fetchall()
