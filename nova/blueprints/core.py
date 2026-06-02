@@ -123,6 +123,23 @@ core_bp = Blueprint('core', __name__)
 # Skyglow Background Task Helpers
 # =============================================================================
 
+def _skyglow_needs_recompute(cache_path, lat, lon, elev, sqm):
+    """Return True if skyglow JSON is missing or location params have changed."""
+    if not os.path.exists(cache_path):
+        return True
+    try:
+        with open(cache_path) as f:
+            meta = json.load(f).get('_meta', {})
+        return (
+            abs(meta.get('lat', 0) - lat) > 0.0001 or
+            abs(meta.get('lon', 0) - lon) > 0.0001 or
+            abs(meta.get('elev_m', 0) - elev) > 1.0 or
+            abs(meta.get('sqm_zenith', 0) - sqm) > 0.01
+        )
+    except Exception:
+        return True
+
+
 def _run_skyglow_task(app, location_id, lat, lon, elevation, sqm_zenith, bortle_scale, cache_dir):
     """Fire-and-forget background task: compute skyglow profile for a location."""
     try:
@@ -144,6 +161,13 @@ def _run_skyglow_task(app, location_id, lat, lon, elevation, sqm_zenith, bortle_
             horizon = compute_skyglow_horizon(profile)
             os.makedirs(cache_dir, exist_ok=True)
             out_path = os.path.join(cache_dir, f"{location_id}.json")
+            horizon['_meta'] = {
+                'lat': lat,
+                'lon': lon,
+                'elev_m': elev,
+                'sqm_zenith': sqm,
+                'computed_at': datetime.utcnow().isoformat()
+            }
             with open(out_path, 'w') as f:
                 json.dump(horizon, f)
             print(f"[SKYGLOW] Saved profile to {out_path}")
@@ -157,6 +181,14 @@ def _fire_skyglow_for_locations(app, locations, instance_path):
     cache_dir = os.path.join(instance_path, 'skyglow')
     for loc in locations:
         uid = loc.stable_uid or str(loc.id)
+        cache_path = os.path.join(cache_dir, f'{uid}.json')
+        BORTLE_TO_SQM = {1: 22.0, 2: 21.5, 3: 21.3, 4: 20.8, 5: 20.0,
+                         6: 19.1, 7: 18.4, 8: 17.0, 9: 15.5}
+        sqm = loc.sqm_zenith if loc.sqm_zenith is not None else BORTLE_TO_SQM.get(loc.bortle_scale, 20.0)
+        elev = loc.elevation if loc.elevation is not None else 0.0
+        if not _skyglow_needs_recompute(cache_path, loc.lat, loc.lon, elev, sqm):
+            print(f"[SKYGLOW] Skipping {uid} — params unchanged")
+            continue
         t = threading.Thread(
             target=_run_skyglow_task,
             args=(app, uid, loc.lat, loc.lon, loc.elevation, loc.sqm_zenith, loc.bortle_scale, cache_dir),
