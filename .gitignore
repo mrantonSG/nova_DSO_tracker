@@ -22,3 +22,4 @@ scripts/
 /docs/archive/
 tools/skyglow/cache/
 instance/skyglow/
+tools/skyglow/__pycache__/
