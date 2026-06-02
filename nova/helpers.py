@@ -581,9 +581,10 @@ def load_full_astro_context():
             for l in loc_rows:
                 mask = [[hp.az_deg, hp.alt_min_deg] for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)]
                 loc_data = {
-                    "name": l.name, "lat": l.lat, "lon": l.lon, "timezone": l.timezone,
-                    "altitude_threshold": l.altitude_threshold, "is_default": l.is_default,
-                    "horizon_mask": mask, "active": l.active, "comments": l.comments
+                    "db_id": l.id, "name": l.name, "lat": l.lat, "lon": l.lon,
+                    "timezone": l.timezone, "altitude_threshold": l.altitude_threshold,
+                    "is_default": l.is_default, "horizon_mask": mask, "active": l.active,
+                    "comments": l.comments
                 }
                 locations[l.name] = loc_data
 

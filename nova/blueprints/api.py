@@ -2554,6 +2554,29 @@ def get_plot_data(object_name):
     else:
         horizon_mask_altitudes = [altitude_threshold] * len(azimuths)
 
+    # --- 6b) Skyglow horizon overlay ---
+    skyglow_alt = None
+    try:
+        db_id = location_config.get("db_id")
+        if db_id:
+            import os, json as _json
+            skyglow_path = os.path.join(current_app.instance_path, 'skyglow', f'{db_id}.json')
+            if os.path.exists(skyglow_path):
+                with open(skyglow_path) as f:
+                    sg = _json.load(f)
+                sg_horizon = sg.get('skyglow_horizon', [])
+                if sg_horizon:
+                    sg_lookup = {entry['az_deg']: entry['min_alt_deg'] for entry in sg_horizon}
+                    sg_azimuths = sorted(sg_lookup.keys())
+                    def _nearest_sg_alt(az):
+                        if az is None:
+                            return None
+                        nearest = min(sg_azimuths, key=lambda a: abs(a - az % 360))
+                        return sg_lookup[nearest]
+                    skyglow_alt = [None] + [_nearest_sg_alt(az) for az in azimuths] + [None]
+    except Exception as sg_err:
+        print(f"[API Plot Data] WARN: Could not load skyglow data: {sg_err}")
+
     # --- 6) Moon series ---
     moon_altitudes = [];
     moon_azimuths = []
@@ -2603,6 +2626,7 @@ def get_plot_data(object_name):
         "moon_alt": [None] + moon_altitudes + [None],
         "moon_az": [None] + moon_azimuths + [None],
         "horizon_mask_alt": [None] + horizon_mask_altitudes + [None],
+        "skyglow_alt": skyglow_alt,
         "sun_events": {"current": sun_events_curr, "next": sun_events_next},
         "transit_time": transit_time_str,
         "date": local_date,

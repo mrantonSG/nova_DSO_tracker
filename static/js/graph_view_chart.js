@@ -860,7 +860,21 @@
             { label: 'Horizon Mask', data: data.horizon_mask_alt, borderColor: (window.stylingUtils && window.stylingUtils.getChartLineColor) ? window.stylingUtils.getChartLineColor(2) : '#636e72', backgroundColor: (window.stylingUtils && window.stylingUtils.getCssVarAsRgba) ? window.stylingUtils.getCssVarAsRgba('--chart-line-3', 'rgba(99, 110, 114, 0.3)', 0.3) : 'rgba(99, 110, 114, 0.3)', yAxisID: 'yAltitude', borderWidth: 2, pointRadius: 0, tension: 0.1, fill: 'start' },
             { label: 'Horizon', data: Array(labels.length).fill(0), borderColor: (window.stylingUtils && window.stylingUtils.getCssVar) ? window.stylingUtils.getCssVar('--text-primary', 'black') : 'black', yAxisID: 'yAltitude', borderWidth: 2, pointRadius: 0 },
             { label: `${objectName} Azimuth`, data: data.object_az, borderColor: (window.stylingUtils && window.stylingUtils.getChartLineColor) ? window.stylingUtils.getChartLineColor(0) : '#36A2EB', yAxisID: 'yAzimuth', borderDash: [5, 5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 },
-            { label: 'Moon Azimuth', data: data.moon_az, borderColor: (window.stylingUtils && window.stylingUtils.getChartLineColor) ? window.stylingUtils.getChartLineColor(1) : '#FFC107', yAxisID: 'yAzimuth', borderDash: [5, 5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 }
+            { label: 'Moon Azimuth', data: data.moon_az, borderColor: (window.stylingUtils && window.stylingUtils.getChartLineColor) ? window.stylingUtils.getChartLineColor(1) : '#FFC107', yAxisID: 'yAzimuth', borderDash: [5, 5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 },
+
+            // 7. Skyglow Horizon (filled area, yAltitude axis — only if data available)
+            ...(data.skyglow_alt ? [{
+                label: 'Skyglow Floor',
+                data: data.skyglow_alt,
+                borderColor: 'rgba(255, 160, 50, 0.6)',
+                backgroundColor: 'rgba(255, 140, 0, 0.15)',
+                yAxisID: 'yAltitude',
+                borderWidth: 1.5,
+                pointRadius: 0,
+                tension: 0.3,
+                fill: 'start',
+                borderDash: [3, 3]
+            }] : [])
         ];
     }
 

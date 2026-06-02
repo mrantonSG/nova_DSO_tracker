@@ -1027,10 +1027,9 @@ def build_user_config_from_db(username: str) -> dict:
     for l in loc_rows:
         mask = [[hp.az_deg, hp.alt_min_deg] for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)]
         locations[l.name] = {
-            "lat": l.lat, "lon": l.lon, "timezone": l.timezone,
+            "db_id": l.id, "lat": l.lat, "lon": l.lon, "timezone": l.timezone,
             "altitude_threshold": l.altitude_threshold, "horizon_mask": mask,
-            "active": l.active,
-            "is_default": l.is_default
+            "active": l.active, "is_default": l.is_default
         }
     user_config["locations"] = locations
 
