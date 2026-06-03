@@ -297,11 +297,11 @@
                 </div>
                 <div>
                   <label class="short-label" for="new_sqm_zenith">{{ _('SQM Zenith:') }}</label>
+                  {{ help_badge('sqm_zenith', _('Leave blank to derive from Bortle scale. Enter a measured SQM value (mag/arcsec²) if available.')) }}
                   <input type="number" name="new_sqm_zenith" id="new_sqm_zenith" step="0.01" min="15" max="23"
                     placeholder="{{ _('Zenith SQM (optional)') }}" value="">
                 </div>
             </div>
-            <p class="field-hint" style="margin: 4px 0 8px 0;">{{ _('Leave blank to derive from Bortle scale. Enter a measured SQM value (mag/arcsec²) if available.') }}</p>
 
             <div class="inline-fields">
                  <div class="location-id"></div>
@@ -383,11 +383,11 @@
                 </div>
                 <div>
                   <label class="short-label" for="sqm_zenith_{{ loc_key }}">{{ _('SQM Zenith:') }}</label>
+                  {{ help_badge('sqm_zenith', _('Leave blank to derive from Bortle scale. Enter a measured SQM value (mag/arcsec²) if available.')) }}
                   <input type="number" name="sqm_zenith_{{ loc_key }}" id="sqm_zenith_{{ loc_key }}" step="0.01" min="15" max="23"
                     placeholder="{{ _('Zenith SQM (optional)') }}" value="{{ loc_val.sqm_zenith if loc_val.sqm_zenith is not none else '' }}">
                 </div>
               </div>
-                <p class="field-hint" style="margin: 4px 0 8px 0;">{{ _('Leave blank to derive from Bortle scale. Enter a measured SQM value (mag/arcsec²) if available.') }}</p>
                 <div class="inline-fields">
                     <div class="location-id"></div>
                     <div style="display: grid; grid-template-columns: 115px 1fr; align-items: start; gap: 5px;">

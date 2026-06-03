@@ -227,10 +227,26 @@
     }
 
     .location-id {
-      width: 100px;
+      width: 120px;
       display: flex;
       align-items: flex-start;
       justify-content: flex-start;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    /* Existing location cards: darker bg to separate from page */
+    .locations-list .block {
+      background: var(--bg-tertiary);
+      border-color: var(--border-color);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Dark mode override for location cards */
+    [data-theme="dark"] .locations-list .block {
+      background: var(--bg-tertiary);
+      border-color: var(--border-color);
     }
     .object-id {
       width: 100px;
