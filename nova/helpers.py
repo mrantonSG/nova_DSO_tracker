@@ -119,8 +119,26 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+def _convert_numpy_scalars(obj):
+    """Recursively convert numpy scalar types to native Python for JSON/YAML serialization."""
+    if isinstance(obj, dict):
+        return {k: _convert_numpy_scalars(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return type(obj)(_convert_numpy_scalars(v) for v in obj)
+    elif hasattr(np, 'str_') and isinstance(obj, np.str_):
+        return str(obj)
+    elif hasattr(np, 'int_') and isinstance(obj, (np.int_, np.integer)):
+        return int(obj)
+    elif hasattr(np, 'float_') and isinstance(obj, (np.float_, np.floating)):
+        return float(obj)
+    elif hasattr(np, 'bool_') and isinstance(obj, (np.bool_, np.bool_)):
+        return bool(obj)
+    else:
+        return obj
+
+
 def _yaml_dump_pretty(data):
-    return yaml.safe_dump(data, sort_keys=False, allow_unicode=True)
+    return yaml.safe_dump(_convert_numpy_scalars(data), sort_keys=False, allow_unicode=True)
 
 
 def _mkdirp(path):

@@ -1973,10 +1973,13 @@ def update_outlook_cache(user_id, status_key, cache_filename, location_name, use
             # --- END CHANGE ---
 
             # --- START CHANGE (to use the passed-in cache_filename) ---
-            _atomic_write_yaml(cache_filename.replace('.json', '_debug.yaml'), cache_content)
             with open(cache_filename, 'w') as f:
                 json.dump(cache_content, f)
             print(f"[OUTLOOK WORKER {status_key}] Successfully updated cache: {cache_filename}")
+            try:
+                _atomic_write_yaml(cache_filename.replace('.json', '_debug.yaml'), cache_content)
+            except Exception as e:
+                print(f"[OUTLOOK WORKER {status_key}] warning: failed to write debug YAML: {e}")
             # --- END CHANGE ---
 
             cache_worker_status[status_key] = "complete"
