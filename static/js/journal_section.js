@@ -917,6 +917,19 @@
                 currentContent.innerHTML = newContent.innerHTML;
             }
 
+            // 1.5. Update Header Bar Elements from the AJAX response
+            const headerSelectors = [
+                '#date-display', '#phase-display', '#separation-display',
+                '#dusk-display', '#dawn-display'
+            ];
+            for (const selector of headerSelectors) {
+                const newEl = newDoc.querySelector(selector);
+                const currentEl = document.querySelector(selector);
+                if (newEl && currentEl) {
+                    currentEl.textContent = newEl.textContent;
+                }
+            }
+
             // 2. Update Global State (Critical for Edit Mode to work after swap)
             const scripts = newDoc.querySelectorAll('script');
             for (let s of scripts) {
