@@ -503,10 +503,23 @@ def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_n
     dawn_str = sun_events.get("astronomical_dawn")
 
     # Handle polar night/day where dusk or dawn is 'N/A'
+    no_astro_night = False
     if not dusk_str or not dawn_str or dusk_str == "N/A" or dawn_str == "N/A":
         # Check for polar day (sun never sets to -18)
         if dusk_str == "N/A":
-            return timedelta(0), 0, None, None  # No astronomical night
+            # No astronomical twilight — fall back to sunset/sunrise window
+            sunset_str = sun_events.get("sunset")
+            sunrise_str = sun_events.get("sunrise")
+            if sunset_str and sunset_str != "N/A" and sunrise_str and sunrise_str != "N/A":
+                no_astro_night = True
+                sunset_time = datetime.strptime(sunset_str, "%H:%M").time()
+                sunrise_time = datetime.strptime(sunrise_str, "%H:%M").time()
+                dusk_dt = local_tz.localize(datetime.combine(date_obj, sunset_time))
+                dawn_dt = local_tz.localize(datetime.combine(date_obj, sunrise_time))
+                if dawn_dt <= dusk_dt:
+                    dawn_dt += timedelta(days=1)
+            else:
+                return timedelta(0), 0, None, None  # True polar day — no darkness at all
         # Check for polar night (sun never rises to -18)
         # We can't use dusk/dawn, so we check the full 24h period
         dusk_dt = local_tz.localize(datetime.combine(date_obj, datetime.min.time()))
@@ -585,6 +598,8 @@ def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_n
     # The old, incorrect max_altitude calculation is removed from here.
     # max_altitude = float(np.max(altitudes[mask])) if observable_indices.size > 0 else 0
 
+    if no_astro_night:
+        observable_minutes = 0
     return timedelta(minutes=observable_minutes), max_altitude, observable_from, observable_to
 
 def interpolate_horizon(azimuth, horizon_mask, default_altitude, _presorted=False):
