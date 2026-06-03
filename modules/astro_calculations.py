@@ -276,51 +276,59 @@ def calculate_sun_events(date_str, tz_name, lat, lon):
 
     # --- Start of Fix ---
 
-    # Calculate Astronomical Dawn
-    obs.horizon = '-18'
-    try:
-        astro_dawn = obs.next_rising(sun, use_center=True)
-        astro_dawn_local = ephem_to_local(astro_dawn, tz_name).strftime('%H:%M')
-    except (ephem.AlwaysUpError, ephem.NeverUpError):
-        astro_dawn_local = "N/A" # Sun never rises to/sets from -18 deg
-
-    # Calculate Sunrise
+    # Calculate Sunrise (search from midnight)
+    obs.date = midnight_utc
     obs.horizon = '-0.833'
     try:
         sunrise = obs.next_rising(sun, use_center=True)
         sunrise_local = ephem_to_local(sunrise, tz_name).strftime('%H:%M')
     except (ephem.AlwaysUpError, ephem.NeverUpError):
-        sunrise_local = "N/A" # Circumpolar (never sets)
+        sunrise_local = "N/A"  # Circumpolar (never sets)
 
     # Calculate Transit (Noon)
-    obs.horizon = '0' # Horizon doesn't matter for transit, but reset
-    obs.date = midnight_utc # Reset date to start of day for next_transit
+    obs.horizon = '0'  # Horizon doesn't matter for transit, but reset
+    obs.date = midnight_utc  # Reset date to start of day for next_transit
     try:
         transit = obs.next_transit(sun)
         transit_local = ephem_to_local(transit, tz_name).strftime('%H:%M')
     except (ephem.AlwaysUpError, ephem.NeverUpError):
-        transit_local = "N/A" # Should not happen for sun, but safe
+        transit_local = "N/A"  # Should not happen for sun, but safe
 
     # Set observer date to noon for finding *next* setting
     noon_local = local_tz.localize(datetime.combine(local_date, datetime.strptime("12:00", "%H:%M").time()))
     noon_utc = noon_local.astimezone(pytz.utc)
-    obs.date = noon_utc
 
-    # Calculate Sunset
+    # Calculate Sunset  (moved before dawn — uses noon_utc, unchanged logic)
+    obs.date = noon_utc
     obs.horizon = '-0.833'
     try:
         sunset = obs.next_setting(sun, use_center=True)
         sunset_local = ephem_to_local(sunset, tz_name).strftime('%H:%M')
     except (ephem.AlwaysUpError, ephem.NeverUpError):
-        sunset_local = "N/A" # Circumpolar (never sets)
+        sunset_local = "N/A"  # Circumpolar (never sets)
 
-    # Calculate Astronomical Dusk
+    # Calculate Astronomical Dusk  (moved before dawn — uses noon_utc, unchanged logic)
     obs.horizon = '-18'
     try:
         astro_dusk = obs.next_setting(sun, use_center=True)
         astro_dusk_local = ephem_to_local(astro_dusk, tz_name).strftime('%H:%M')
     except (ephem.AlwaysUpError, ephem.NeverUpError):
-        astro_dusk_local = "N/A" # Sun never sets to -18 deg
+        astro_dusk_local = "N/A"  # Sun never sets to -18 deg
+
+    # Calculate Astronomical Dawn  (chains from dusk so next_rising starts from the correct window)
+    astro_dawn_local = "N/A"  # default fallback
+    try:
+        if astro_dusk_local != "N/A":
+            # Start search from dusk so next_rising finds the dawn event,
+            # not some date that wraps around incorrectly at midnight.
+            obs.date = ephem.Date(astro_dusk)
+        else:
+            # Fallback: no dusk found (polar summer), search from midnight.
+            obs.date = midnight_utc
+        astro_dawn = obs.next_rising(sun, use_center=True)
+        astro_dawn_local = ephem_to_local(astro_dawn, tz_name).strftime('%H:%M')
+    except (ephem.AlwaysUpError, ephem.NeverUpError):
+        astro_dawn_local = "N/A"  # Sun never rises to/sets from -18 deg
 
     # --- End of Fix ---
 
@@ -504,35 +512,50 @@ def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_n
 
     # Handle polar night/day where dusk or dawn is 'N/A'
     no_astro_night = False
-    if not dusk_str or not dawn_str or dusk_str == "N/A" or dawn_str == "N/A":
-        # Check for polar day (sun never sets to -18)
-        if dusk_str == "N/A":
-            # No astronomical twilight — fall back to sunset/sunrise window
-            sunset_str = sun_events.get("sunset")
-            sunrise_str = sun_events.get("sunrise")
-            if sunset_str and sunset_str != "N/A" and sunrise_str and sunrise_str != "N/A":
-                no_astro_night = True
-                sunset_time = datetime.strptime(sunset_str, "%H:%M").time()
-                sunrise_time = datetime.strptime(sunrise_str, "%H:%M").time()
-                dusk_dt = local_tz.localize(datetime.combine(date_obj, sunset_time))
-                dawn_dt = local_tz.localize(datetime.combine(date_obj, sunrise_time))
-                if dawn_dt <= dusk_dt:
-                    dawn_dt += timedelta(days=1)
-            else:
-                return timedelta(0), 0, None, None  # True polar day — no darkness at all
-        # Check for polar night (sun never rises to -18)
-        # We can't use dusk/dawn, so we check the full 24h period
-        dusk_dt = local_tz.localize(datetime.combine(date_obj, datetime.min.time()))
-        dawn_dt = dusk_dt + timedelta(days=1)
+    sunset_str = sun_events.get("sunset")
+    sunrise_str = sun_events.get("sunrise")
+
+    if dusk_str == "N/A" and dawn_str == "N/A":
+        # Both missing — true polar day (sun never sets to -18)
+        if sunset_str and sunset_str != "N/A" and sunrise_str and sunrise_str != "N/A":
+            no_astro_night = True
+            sunset_time = datetime.strptime(sunset_str, "%H:%M").time()
+            sunrise_time = datetime.strptime(sunrise_str, "%H:%M").time()
+            dusk_dt = local_tz.localize(datetime.combine(date_obj, sunset_time))
+            dawn_dt = local_tz.localize(datetime.combine(date_obj, sunrise_time))
+        else:
+            return timedelta(0), 0, None, None  # True polar day — no darkness at all
+    elif dusk_str == "N/A" and dawn_str != "N/A":
+        # Dusk missing, dawn valid — substitute dusk with sunset (mid-latitude summer)
+        if sunset_str and sunset_str != "N/A":
+            no_astro_night = False
+            dusk_time = datetime.strptime(sunset_str, "%H:%M").time()
+            dusk_dt = local_tz.localize(datetime.combine(date_obj, dusk_time))
+        else:
+            return timedelta(0), 0, None, None
+        dawn_time = datetime.strptime(dawn_str, "%H:%M").time()
+        dawn_dt = local_tz.localize(datetime.combine(date_obj, dawn_time))
+    elif dawn_str == "N/A" and dusk_str != "N/A":
+        # Dawn missing, dusk valid — substitute dawn with sunrise (mid-latitude summer)
+        if sunrise_str and sunrise_str != "N/A":
+            no_astro_night = False
+            dawn_time = datetime.strptime(sunrise_str, "%H:%M").time()
+            dawn_dt = local_tz.localize(datetime.combine(date_obj, dawn_time))
+        else:
+            return timedelta(0), 0, None, None
+        dusk_time = datetime.strptime(dusk_str, "%H:%M").time()
+        dusk_dt = local_tz.localize(datetime.combine(date_obj, dusk_time))
     else:
-        # Standard night calculation
+        # Standard night calculation — both valid
+        no_astro_night = False
         dusk_time = datetime.strptime(dusk_str, "%H:%M").time()
         dawn_time = datetime.strptime(dawn_str, "%H:%M").time()
 
         dusk_dt = local_tz.localize(datetime.combine(date_obj, dusk_time))
         dawn_dt = local_tz.localize(datetime.combine(date_obj, dawn_time))
-        if dawn_dt <= dusk_dt:
-            dawn_dt += timedelta(days=1)
+
+    if dawn_dt <= dusk_dt:
+        dawn_dt += timedelta(days=1)
 
     sample_interval = timedelta(minutes=sampling_interval_minutes)
     times = []

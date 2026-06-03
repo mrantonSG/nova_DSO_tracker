@@ -2033,6 +2033,8 @@ def graph_dashboard(object_name):
         try:
             effective_local_tz = pytz.timezone(effective_tz_name)
             dusk_str = sun_events_for_effective_date.get("astronomical_dusk", "21:00")
+            if not dusk_str or dusk_str == "N/A":
+                dusk_str = "22:00"  # High-latitude summer: no astronomical twilight
             dusk_time_obj = datetime.strptime(dusk_str, "%H:%M").time()
             dt_for_moon_local = effective_local_tz.localize(datetime.combine(effective_date_obj.date(), dusk_time_obj))
             dt_utc_astropy = dt_for_moon_local.astimezone(pytz.utc)
@@ -2400,10 +2402,9 @@ def get_imaging_opportunities(object_name):
             continue
 
         # Calculate separation using determined local_tz, lat, lon
-        try:
-            dusk_time_obj = datetime.strptime(dusk, "%H:%M").time()
-        except ValueError:
-            dusk_time_obj = datetime.strptime("20:00", "%H:%M").time() # Fallback dusk time
+        if not dusk or dusk == "N/A":
+            dusk = "20:00"  # Fallback for high-latitude / no astronomical twilight
+        dusk_time_obj = datetime.strptime(dusk, "%H:%M").time()
         dusk_dt_local = local_tz.localize(datetime.combine(d, dusk_time_obj))
         dusk_utc = dusk_dt_local.astimezone(pytz.utc)
 
