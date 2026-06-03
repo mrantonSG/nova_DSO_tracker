@@ -47,6 +47,100 @@ def test_dms_to_degrees_handles_decimal_input():
     assert dms_to_degrees("-10.25") == -10.25
 
 
+# =============================================================================
+# High-latitude / no astronomical twilight regression tests
+# =============================================================================
+
+
+class TestHighLatitudeSunEvents:
+    """Regression tests for calculate_sun_events at London latitudes (51.5) during summer.
+
+    At ~51°N, astronomical twilight (-18°) is borderline: it disappears in early
+    summer but returns by mid-summer. These tests verify the four sun-event fields
+    behave correctly across that transition.
+    """
+
+    def test_london_june_no_astronomical_twilight(self):
+        """June 15 at London: sun doesn't go deep enough for astro dusk/dawn."""
+        events = calculate_sun_events_cached(
+            "2026-06-15", "Europe/London", lat=51.5, lon=-0.12
+        )
+        assert events["astronomical_dusk"] == "N/A"
+        assert events["astronomical_dawn"] == "N/A"
+        # But civil sunset/sunrise still exist at this latitude
+        assert events["sunset"] != "N/A"
+        assert events["sunrise"] != "N/A"
+
+    def test_london_july_astronomical_twilight_returns(self):
+        """July 21 at London: astro dusk/dawn valid, short window (30m–3h)."""
+        events = calculate_sun_events_cached(
+            "2026-07-21", "Europe/London", lat=51.5, lon=-0.12
+        )
+        assert events["astronomical_dusk"] != "N/A"
+        assert events["astronomical_dawn"] != "N/A"
+
+        dusk_time = datetime.strptime(events["astronomical_dusk"], "%H:%M").time()
+        dawn_time = datetime.strptime(events["astronomical_dawn"], "%H:%M").time()
+
+        base = datetime(2026, 7, 21)
+        dusk_dt = datetime.combine(base, dusk_time)
+        dawn_dt = datetime.combine(base, dawn_time)
+        if dawn_dt <= dusk_dt:
+            dawn_dt += timedelta(days=1)
+
+        window = dawn_dt - dusk_dt
+        assert timedelta(minutes=30) <= window <= timedelta(hours=3)
+
+    def test_london_august_astronomical_twilight_stable(self):
+        """August 15 at London: both astro dusk and dawn are valid."""
+        events = calculate_sun_events_cached(
+            "2026-08-15", "Europe/London", lat=51.5, lon=-0.12
+        )
+        assert events["astronomical_dusk"] != "N/A"
+        assert events["astronomical_dawn"] != "N/A"
+
+
+class TestHighLatitudeObservableDuration:
+    """Tests for calculate_observable_duration_vectorized with a high-dec object (RA=0, Dec=60) from London.
+
+    At 51°N, an object at Dec=60° has a decent max altitude but very short or
+    zero observable windows during deep summer when astronomical twilight never
+    arrives (or is extremely short).
+    """
+
+    def test_high_dec_object_june_zero_duration(self):
+        """June 15 at London: no observable window — sun never gets dark enough."""
+        obs_duration, max_alt, obs_from, obs_to = calculate_observable_duration_vectorized(
+            ra=0.0, dec=60.0, lat=51.5, lon=-0.12,
+            local_date="2026-06-15", tz_name="Europe/London",
+            altitude_threshold=30, sampling_interval_minutes=15
+        )
+        # Max altitude is positive (object does rise)
+        assert max_alt > 0
+        # But observable duration is zero — no dark enough window
+        assert obs_duration == timedelta(0)
+
+    def test_high_dec_object_july_short_window(self):
+        """July 21 at London: short but non-zero observable window."""
+        obs_duration, max_alt, obs_from, obs_to = calculate_observable_duration_vectorized(
+            ra=0.0, dec=60.0, lat=51.5, lon=-0.12,
+            local_date="2026-07-21", tz_name="Europe/London",
+            altitude_threshold=30, sampling_interval_minutes=15
+        )
+        assert obs_duration > timedelta(0)
+        # Window should be short — under 3 hours
+        assert obs_duration < timedelta(hours=3)
+
+    def test_high_dec_object_august_nonzero(self):
+        """August 15 at London: observable window is non-zero."""
+        obs_duration, max_alt, obs_from, obs_to = calculate_observable_duration_vectorized(
+            ra=0.0, dec=60.0, lat=51.5, lon=-0.12,
+            local_date="2026-08-15", tz_name="Europe/London",
+            altitude_threshold=30, sampling_interval_minutes=15
+        )
+        assert obs_duration > timedelta(0)
+
+
 # --- 2. Test calculate_transit_time ---
 # (Your 3 existing transit/sun tests)
 def test_calculate_transit_time():
