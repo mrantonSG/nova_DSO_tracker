@@ -1401,6 +1401,18 @@ dd {
   border: none;
 }
 
+/* Skyglow floor state — above horizon mask but below skyglow floor */
+.table-wrapper tbody td.highlight.skyglow-floor .alt-badge,
+.table-wrapper tbody td.highlight.skyglow-floor span.alt-badge {
+  background-color: rgba(200, 149, 100, 0.18);
+  color: #b07840;
+}
+[data-theme="dark"] .table-wrapper tbody td.highlight.skyglow-floor .alt-badge,
+[data-theme="dark"] .table-wrapper tbody td.highlight.skyglow-floor span.alt-badge {
+  background-color: rgba(201, 168, 124, 0.15);
+  color: #c9a87c;
+}
+
 /* =================================================================
    13. HIGHLIGHTED/SELECTED ROW
    Currently selected or observing object
