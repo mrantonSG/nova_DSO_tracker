@@ -125,7 +125,7 @@ def journal_add():
                         return redirect(url_for('core.graph_dashboard', object_name=target_object_id))
                     else:
                         # Fallback if no object was specified
-                        return redirect(url_for('journal.journal_list_view'))
+                        return redirect(url_for('core.index'))
             else:
                 # For drafts, use a default date or empty if not provided
                 try:
