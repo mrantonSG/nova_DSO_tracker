@@ -89,7 +89,7 @@ def journal_list_view():
         )
 
     record_event('journal_open')
-    return render_template('journal_list.html', journal_sessions=sessions)
+    return redirect(url_for('core.index'))
 
 
 @journal_bp.route('/journal/add', methods=['GET', 'POST'])
