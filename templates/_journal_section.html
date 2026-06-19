@@ -2966,6 +2966,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     actionInput.id = 'form-action-hidden';
                     form.appendChild(actionInput);
                 }
+                var sessionIdVal = form.elements['session_id'] ? form.elements['session_id'].value : '';
+                if (!form.action || !form.action.includes('/journal/')) {
+                    form.action = sessionIdVal
+                        ? '/journal/edit/' + sessionIdVal
+                        : "{{ url_for('journal.journal_add') }}";
+                }
                 form.submit();
             }
         });
