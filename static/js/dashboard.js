@@ -1043,6 +1043,7 @@
         if (config.dataKey === 'Altitude Current' && isAboveThreshold && !objectData.error) {
             td.classList.add('highlight');
             if (objectData.is_obstructed_now) td.classList.add('obstructed');
+            if (objectData.below_skyglow_floor && !objectData.is_obstructed_now) td.classList.add('skyglow-floor');
             // Wrap the altitude value in a span for the pill badge styling
             wrapInBadge(td, td.textContent);
         }
@@ -1050,6 +1051,7 @@
         if (config.dataKey === 'Altitude 11PM' && isAboveThreshold && !objectData.error) {
             td.classList.add('highlight');
             if (objectData.is_obstructed_at_11pm) td.classList.add('obstructed');
+            if (objectData.below_skyglow_floor_11pm && !objectData.is_obstructed_at_11pm) td.classList.add('skyglow-floor');
             // Wrap the altitude value in a span for the pill badge styling
             wrapInBadge(td, td.textContent);
         }

@@ -29,6 +29,17 @@ from nova.config import (
     nightly_curves_cache, observable_objects_cache,
     weather_cache, CACHE_DIR, DEFAULT_HTTP_TIMEOUT,
 )
+
+
+def _nearest_sg_alt(az, sg_data):
+    """Return the skyglow min_alt_deg for the nearest azimuth sector."""
+    sectors = sg_data.get("skyglow_horizon", [])
+    if not sectors:
+        return None
+    nearest = min(sectors, key=lambda s: abs(s["az_deg"] - az))
+    return nearest.get("min_alt_deg")
+
+
 from nova.helpers import (
     get_db, load_full_astro_context, get_locale,
     get_all_mobile_up_now_data, get_ra_dec, safe_float,
@@ -2566,26 +2577,7 @@ def get_plot_data(object_name):
                     sg = _json.load(f)
                 sg_horizon = sg.get('skyglow_horizon', [])
                 if sg_horizon:
-                    sg_lookup = {entry['az_deg']: entry['min_alt_deg'] for entry in sg_horizon}
-                    sg_azimuths = sorted(sg_lookup.keys())
-                    def _nearest_sg_alt(az):
-                        if az is None:
-                            return None
-                        az_norm = az % 360
-                        n = len(sg_azimuths)
-                        for i in range(n):
-                            a0 = sg_azimuths[i]
-                            a1 = sg_azimuths[(i + 1) % n]
-                            if a1 < a0:
-                                a1 += 360
-                            az_check = az_norm if az_norm >= a0 else az_norm + 360
-                            if a0 <= az_check <= a1:
-                                t = (az_check - a0) / (a1 - a0) if a1 != a0 else 0
-                                v0 = sg_lookup[sg_azimuths[i]]
-                                v1 = sg_lookup[sg_azimuths[(i + 1) % n]]
-                                return v0 + t * (v1 - v0)
-                        return sg_lookup[sg_azimuths[0]]
-                    skyglow_alt = [None] + [max(0.0, v) if (v := _nearest_sg_alt(az)) is not None else None for az in azimuths] + [None]
+                    skyglow_alt = [None] + [max(0.0, v) if (v := _nearest_sg_alt(az, sg)) is not None else None for az in azimuths] + [None]
     except Exception as sg_err:
         print(f"[API Plot Data] WARN: Could not load skyglow data: {sg_err}")
 
@@ -3013,6 +3005,17 @@ def get_object_data(object_name):
         }
         # --- End Location Determination ---
 
+        # Load skyglow data for this location (single request)
+        sg_data = {}
+        if os.environ.get("NASA_EARTHDATA_TOKEN"):
+            sg_path = os.path.join(
+                current_app.instance_path, "skyglow",
+                f"{selected_location.id}.json"
+            )
+            if os.path.exists(sg_path):
+                with open(sg_path) as f:
+                    sg_data = json.load(f)
+
         # --- 4. Query ONLY the specific object ---
         obj_record = db.query(AstroObject).filter_by(user_id=user.id, object_name=object_name).one_or_none()
 
@@ -3119,6 +3122,20 @@ def get_object_data(object_name):
             if current_alt >= altitude_threshold and current_alt < required_altitude_now:
                 is_obstructed_now = True
 
+        # Below skyglow floor check (current)
+        is_below_skyglow = False
+        if sg_data and not is_obstructed_now:
+            sg_floor = _nearest_sg_alt(current_az, sg_data)
+            if sg_floor is not None and current_alt < sg_floor:
+                is_below_skyglow = True
+
+        # Below skyglow floor check (11PM)
+        is_below_skyglow_11pm = False
+        if sg_data and not is_obstructed_at_11pm:
+            sg_floor_11pm = _nearest_sg_alt(az_11pm, sg_data)
+            if sg_floor_11pm is not None and alt_11pm < sg_floor_11pm:
+                is_below_skyglow_11pm = True
+
         # Calculate Moon separation (logic remains similar)
         time_obj = Time(datetime.now(pytz.utc))
         location_for_moon = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
@@ -3158,6 +3175,8 @@ def get_object_data(object_name):
             'Angular Separation (°)': round(angular_sep),
             'Time': current_datetime_local.strftime('%Y-%m-%d %H:%M:%S'),
             'is_obstructed_now': is_obstructed_now,
+            'below_skyglow_floor': is_below_skyglow,
+            'below_skyglow_floor_11pm': is_below_skyglow_11pm,
             'is_obstructed_at_11pm': is_obstructed_at_11pm,
             'best_month_ra': best_month_str,
             'max_culmination_alt': max_culmination_alt,
@@ -3256,6 +3275,17 @@ def get_desktop_data_batch():
                         sorted(location_obj.horizon_points, key=lambda p: p.az_deg)]
         altitude_threshold = location_obj.altitude_threshold if location_obj.altitude_threshold is not None else g.user_config.get(
             "altitude_threshold", 20)
+
+        # Load skyglow data for this location (batch cache)
+        sg_data = {}
+        if os.environ.get("NASA_EARTHDATA_TOKEN"):
+            sg_path = os.path.join(
+                current_app.instance_path, "skyglow",
+                f"{location_obj.id}.json"
+            )
+            if os.path.exists(sg_path):
+                with open(sg_path) as f:
+                    sg_data = json.load(f)
 
         try:
             local_tz = pytz.timezone(tz_name)
@@ -3391,6 +3421,23 @@ def get_desktop_data_batch():
                     req = interpolate_horizon(cur_az, sorted(horizon_mask, key=lambda p: p[0]), altitude_threshold)
                     if cur_alt >= altitude_threshold and cur_alt < req: is_obst_now = True
 
+                # Below skyglow floor check (current)
+                is_below_skyglow = False
+                if sg_data and not is_obst_now:
+                    sg_floor = _nearest_sg_alt(cur_az, sg_data)
+                    if sg_floor is not None and cur_alt < sg_floor:
+                        is_below_skyglow = True
+
+                # Below skyglow floor check (11PM)
+                is_below_skyglow_11pm = False
+                if sg_data and not cached.get('is_obstructed_at_11pm', False):
+                    alt_11 = cached.get('alt_11pm')
+                    az_11 = cached.get('az_11pm')
+                    if alt_11 is not None and az_11 is not None:
+                        sg_floor_11pm = _nearest_sg_alt(float(az_11), sg_data)
+                        if sg_floor_11pm is not None and float(alt_11) < sg_floor_11pm:
+                            is_below_skyglow_11pm = True
+
                 sep = "N/A"
                 try:
                     sky_c = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
@@ -3413,6 +3460,8 @@ def get_desktop_data_batch():
                     'Max Altitude (°)': cached['max_altitude'],
                     'Angular Separation (°)': sep,
                     'is_obstructed_now': is_obst_now,
+                    'below_skyglow_floor': is_below_skyglow,
+                    'below_skyglow_floor_11pm': is_below_skyglow_11pm,
                     'is_obstructed_at_11pm': cached['is_obstructed_at_11pm'],
                     'best_month_ra': best_m,
                     'max_culmination_alt': max_culm,

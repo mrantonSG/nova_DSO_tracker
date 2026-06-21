@@ -89,7 +89,7 @@ def journal_list_view():
         )
 
     record_event('journal_open')
-    return render_template('journal_list.html', journal_sessions=sessions)
+    return redirect(url_for('core.index'))
 
 
 @journal_bp.route('/journal/add', methods=['GET', 'POST'])
@@ -125,7 +125,7 @@ def journal_add():
                         return redirect(url_for('core.graph_dashboard', object_name=target_object_id))
                     else:
                         # Fallback if no object was specified
-                        return redirect(url_for('journal.journal_list_view'))
+                        return redirect(url_for('core.index'))
             else:
                 # For drafts, use a default date or empty if not provided
                 try:
