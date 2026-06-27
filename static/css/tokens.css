@@ -106,6 +106,19 @@
      ================================================================ */
   --border-color: #e5e2dc;
   --border-light: #eeebe5;
+
+  /* =================================================================
+     FILTER IDENTITY COLORS
+     Used to color astrophotography filters consistently across the app.
+     ================================================================ */
+  --filter-l:      #97968f;
+  --filter-r:      #d05f3f;
+  --filter-g:      #5a9e6f;
+  --filter-b:      #4a82c4;
+  --filter-ha:     #c0504d;
+  --filter-oiii:   #3f9db5;
+  --filter-sii:    #c79030;
+  --filter-custom: #8a8a8a;
 }
 
 /* =====================================================================
@@ -137,6 +150,16 @@
   /* Borders - dark theme */
   --border-color: rgba(255, 255, 255, 0.07);
   --border-light: rgba(255, 255, 255, 0.04);
+
+  /* Filter Identity Colors - dark theme */
+  --filter-l:      #b6b5ad;
+  --filter-r:      #e07a5c;
+  --filter-g:      #76c08c;
+  --filter-b:      #6fa3e0;
+  --filter-ha:     #d97670;
+  --filter-oiii:   #5fc0d6;
+  --filter-sii:    #e0ad50;
+  --filter-custom: #a8a8a8;
 }
 
 /* =====================================================================
