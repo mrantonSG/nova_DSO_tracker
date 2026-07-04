@@ -63,31 +63,6 @@ journal_bp = Blueprint('journal', __name__)
 @journal_bp.route('/journal')
 @login_required
 def journal_list_view():
-    load_full_astro_context()
-    db = get_db()
-        # 1. Use the pre-loaded g.db_user (from the consolidated before_request)
-    if not g.db_user:
-        flash(_("User session error, please log in again."), "error")
-        return redirect(url_for('core.login'))
-
-    user_id = g.db_user.id
-
-    # 2. Query only for the sessions for this user
-    sessions = db.query(JournalSession).filter_by(user_id=user_id).order_by(JournalSession.date_utc.desc()).all()
-
-    # 3. Use the pre-loaded g.alternative_names map for common names
-    #    This avoids a second DB query for AstroObject.
-    #    The map is { "m31": "Andromeda Galaxy", ... }
-    object_names_lookup = g.alternative_names or {}
-
-    # 4. Add the common name to each session object for the template
-    for s in sessions:
-        # Safely look up the common name using the lowercase object name
-        s.target_common_name = object_names_lookup.get(
-            s.object_name.lower() if s.object_name else '',
-            s.object_name  # Fallback to the object_name itself if not found
-        )
-
     record_event('journal_open')
     return redirect(url_for('core.index'))
 
