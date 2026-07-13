@@ -78,7 +78,7 @@ sentry-sdk[flask]==2.22.0
 setuptools==78.1.1
 sgp4==2.25
 six==1.17.0
-soupsieve==2.6
+soupsieve==2.8.4
 SQLAlchemy==2.0.43
 TatSu==5.13.1
 tinycss2==1.5.1
