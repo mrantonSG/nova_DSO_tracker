@@ -8,7 +8,7 @@ from sqlalchemy.sql.elements import BinaryExpression, ColumnElement
 from sqlalchemy.sql.expression import literal
 from sqlalchemy.sql import operators
 from sqlalchemy.sql.selectable import Select
-from sqlalchemy import create_engine
+from sqlalchemy import StaticPool, create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -76,7 +76,11 @@ class MockAuthDbUser(User):
 @pytest.fixture(scope="function")
 def db_session(monkeypatch):
     # ... (content remains unchanged) ...
-    engine = create_engine("sqlite:///:memory:")
+    engine = create_engine(
+        "sqlite:///:memory:",
+        poolclass=StaticPool,
+        connect_args={"check_same_thread": False},
+    )
     Base.metadata.create_all(engine)
 
     TestSessionLocal = scoped_session(

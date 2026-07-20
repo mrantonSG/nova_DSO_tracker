@@ -2114,22 +2114,27 @@
 
                 if (config.dataKey === 'Type') {
                     const filterTypes = filterValue.split(/[\s,]+/).filter(t => t.length > 0);
-    
+
                     if (filterTypes.length > 0) {
                         let typeMatch = false;
-    
+                        const hasPositiveTerm = filterTypes.some(t => !t.startsWith("!"));
+
                         // Split the cell text into specific tokens (words) to prevent "G" matching "GlC"
                         // cellText is already lowercased at the start of the loop
                         const cellTokens = cellText.split(/[\s,]+/).filter(t => t.length > 0);
-    
+
                         for (const typeTerm of filterTypes) {
-                            // Check if the search term exists exactly in the list of cell tokens
-                            if (cellTokens.includes(typeTerm)) {
+                            const isNegated = typeTerm.startsWith("!");
+                            const token = isNegated ? typeTerm.substring(1) : typeTerm;
+                            const hasToken = cellTokens.includes(token);
+                            if (isNegated) {
+                                if (hasToken) { showRow = false; break; }
+                            } else if (hasToken) {
                                 typeMatch = true;
                                 break;
                             }
                         }
-                        if (!typeMatch) { showRow = false; break; }
+                        if (hasPositiveTerm && !typeMatch) { showRow = false; break; }
                     }
                 } else {
                     const numericFilterKeys = [
