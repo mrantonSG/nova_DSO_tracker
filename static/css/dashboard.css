@@ -40,6 +40,7 @@
     }
     th[data-column-key="Common Name"],
     td[data-column-key="Common Name"] {
+        width: 230px;
         min-width: 220px;         /* enforce a floor */
         text-align: left;
         white-space: nowrap;
@@ -73,8 +74,8 @@
     th[data-column-key="Magnitude"], td[data-column-key="Magnitude"],
     th[data-column-key="Size"], td[data-column-key="Size"],
     th[data-column-key="SB"], td[data-column-key="SB"] {
-        width: 100px;
-        min-width: 100px;
+        width: 70px;
+        min-width: 70px;
         text-align: center;
     }
 
@@ -101,8 +102,8 @@
     /* --- ADDED FOR NEW COLUMNS --- */
     th[data-column-key="Best Month"], td[data-column-key="Best Month"],
     th[data-column-key="Max Altitude"], td[data-column-key="Max Altitude"] {
-        width: 100px;
-        min-width: 100px;
+        width: 70px;
+        min-width: 70px;
         text-align: center;
     }
     /* --- END OF ADD --- */
@@ -431,10 +432,15 @@
     th[data-column-key="Type"], td[data-column-key="Type"],
     th[data-column-key="Magnitude"], td[data-column-key="Magnitude"],
     th[data-column-key="Size"], td[data-column-key="Size"],
-    th[data-column-key="SB"], td[data-column-key="SB"],
+    th[data-column-key="SB"], td[data-column-key="SB"] {
+        width: 70px;
+        min-width: 70px;
+        text-align: center;
+    }
+
     th[data-column-key="Constellation"], td[data-column-key="Constellation"] {
-        width: 100px;
-        min-width: 100px;
+        width: 130px;
+        min-width: 130px;
         text-align: center;
     }
 
