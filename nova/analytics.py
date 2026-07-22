@@ -10,7 +10,7 @@ GDPR-compliant analytics system for tracking feature usage and login activity.
 """
 import os
 from datetime import date
-from flask import current_app
+from flask import current_app, request
 from flask_login import current_user
 from nova.config import SINGLE_USER_MODE
 
@@ -29,6 +29,19 @@ def _is_excluded() -> bool:
         return False
 
 
+def _is_bot_request() -> bool:
+    """Return True if the current request appears to be from a known bot/monitoring UA."""
+    try:
+        excluded_uas = os.getenv(
+            'ANALYTICS_EXCLUDE_USER_AGENTS', 'SentryUptimeBot'
+        )
+        substrings = [s.strip().lower() for s in excluded_uas.split(',') if s.strip()]
+        ua = request.headers.get('User-Agent', '').lower()
+        return any(sub in ua for sub in substrings)
+    except Exception:
+        return False
+
+
 def _is_enabled() -> bool:
     """Analytics runs in both single-user and multi-user modes."""
     return True
@@ -42,7 +55,7 @@ def record_event(event_name: str) -> None:
     Args:
         event_name: The name of the event to track (e.g., 'dashboard_load', 'journal_open')
     """
-    if not _is_enabled() or _is_excluded():
+    if not _is_enabled() or _is_excluded() or _is_bot_request():
         return
     try:
         from nova.models import AnalyticsEvent, SessionLocal
@@ -76,7 +89,7 @@ def record_login() -> None:
     Increment the daily login counter.
     No user identifier stored — just a count per day.
     """
-    if not _is_enabled() or _is_excluded():
+    if not _is_enabled() or _is_excluded() or _is_bot_request():
         return
     try:
         from nova.models import AnalyticsLogin, SessionLocal
