@@ -262,16 +262,16 @@
                 </div>
                 <div class="stat-box">
                     <div class="stat-value">{{ active_days_30 }} / 30</div>
-                    <div class="stat-label">{{ _('Active Login Days') }}</div>
+                    <div class="stat-label">Active Usage Days</div>
                 </div>
                 <div class="stat-box">
                     <div class="stat-value">{{ total_logins }}</div>
-                    <div class="stat-label">{{ _('Total Logins') }}</div>
+                    <div class="stat-label">Total Dashboard Views</div>
                 </div>
             </div>
 
             <div class="chart-container">
-                <div class="chart-title">{{ _('Daily Logins (90 days)') }}</div>
+                <div class="chart-title">Daily Dashboard Views (90 days)</div>
                 {% if login_series %}
                 <div class="bar-chart">
                     {% for entry in login_series %}

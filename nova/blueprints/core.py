@@ -1652,17 +1652,19 @@ def analytics_dashboard():
         )
         events = session.execute(stmt).all()
 
-        # Login data for chart (90 days) - build a map for quick lookup
-        login_stmt = select(AnalyticsLogin).where(
-            AnalyticsLogin.date >= since
-        ).order_by(AnalyticsLogin.date)
-        login_rows = session.execute(login_stmt).scalars().all()
+        # Dashboard load data for chart (90 days) - build a map for quick lookup
+        dashboard_stmt = select(AnalyticsEvent).where(
+            AnalyticsEvent.event_name == 'dashboard_load',
+            AnalyticsEvent.date >= since
+        ).order_by(AnalyticsEvent.date)
+        dashboard_rows = session.execute(dashboard_stmt).scalars().all()
 
-        # Recurrence signal: days with at least 1 login in last 30 days
+        # Recurrence signal: dashboard loads in last 30 days
         last_30 = today - timedelta(days=30)
-        active_stmt = select(sql_func.count()).select_from(AnalyticsLogin).where(
-            AnalyticsLogin.date >= last_30,
-            AnalyticsLogin.login_count > 0
+        active_stmt = select(sql_func.count()).select_from(AnalyticsEvent).where(
+            AnalyticsEvent.event_name == 'dashboard_load',
+            AnalyticsEvent.date >= last_30,
+            AnalyticsEvent.count > 0
         )
         active_days_30 = session.execute(active_stmt).scalar() or 0
 
@@ -1672,14 +1674,14 @@ def analytics_dashboard():
     finally:
         session.close()
 
-    # Build a complete 90-day login series with zeros for missing days
-    login_map = {row.date: row.login_count for row in login_rows}
-    max_login = max(login_map.values()) if login_map else 1
+    # Build a complete 90-day dashboard load series with zeros for missing days
+    usage_map = {row.date: row.count for row in dashboard_rows}
+    max_usage = max(usage_map.values()) if usage_map else 1
     login_series = []
     for i in range(days_count):
         day = since + timedelta(days=i)
-        count = login_map.get(day, 0)
-        height_pct = (count / max_login * 100) if max_login > 0 and count > 0 else 0
+        count = usage_map.get(day, 0)
+        height_pct = (count / max_usage * 100) if max_usage > 0 and count > 0 else 0
         login_series.append({
             'date_str': day.strftime('%Y-%m-%d'),
             'count': count,
@@ -1687,8 +1689,8 @@ def analytics_dashboard():
             'has_data': count > 0
         })
 
-    # Pre-compute total logins
-    total_logins = sum(login_map.values())
+    # Pre-compute total dashboard loads
+    total_logins = sum(usage_map.values())
 
     # Pre-format event data for template
     events_formatted = []
