@@ -51,6 +51,7 @@ from flask import session
 from flask import Flask, send_from_directory, has_request_context
 from flask_babel import Babel, gettext as _
 import math
+from astropy.utils.exceptions import AstropyWarning
 from astroquery.simbad import Simbad
 from astropy.coordinates import EarthLocation, AltAz, SkyCoord, get_body, get_constellation, FK5, search_around_sky
 from astropy.time import Time
@@ -61,6 +62,8 @@ import astropy.units as u
 # Precision loss is negligible for amateur astronomy (~milliseconds)
 iers.conf.auto_download = False
 iers.conf.auto_max_age = None  # Allow using old IERS data without errors
+warnings.filterwarnings(
+    "ignore", message=".*Tried to get polar motions for times after IERS data is valid.*", category=AstropyWarning, module="astropy")
 
 from flask_wtf.csrf import CSRFProtect
 from sqlalchemy import text, func
@@ -139,7 +142,6 @@ from nova.report_graphs import generate_session_charts
 from nova.workers.weather import weather_cache_worker
 from nova.workers.updates import check_for_updates
 from nova.workers.heatmap import heatmap_background_worker
-from nova.workers.iers import iers_refresh_worker
 from nova.analytics import record_event, record_login
 from nova.auth import db, User, login_manager, init_auth, UserMixin  # noqa: F401
 
@@ -3533,11 +3535,6 @@ if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
         heatmap_thread = threading.Thread(target=heatmap_background_worker, args=(app,))
         heatmap_thread.daemon = True
         heatmap_thread.start()
-
-        print("[STARTUP] Starting background IERS data refresh thread...")
-        iers_thread = threading.Thread(target=iers_refresh_worker, args=(app,))
-        iers_thread.daemon = True
-        iers_thread.start()
 
 
 @app.cli.command("reset-guest-from-template")
