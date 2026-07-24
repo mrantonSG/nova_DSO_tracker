@@ -1312,14 +1312,14 @@ def import_catalog_pack_for_user(db, user: DbUser, catalog_config: dict, pack_id
                 # while preserving user-specific data like Project Notes.
                 if pack_img_url:
                     # Check if actually different to avoid unnecessary writes/counts
-                    if existing.image_url != pack_img_url or existing.image_credit != pack_img_credit:
+                    if not existing.image_url:
                         existing.image_url = pack_img_url
                         existing.image_credit = pack_img_credit
                         existing.image_source_link = pack_img_link
                         was_enriched = True
 
                 if pack_desc_text:
-                    if existing.description_text != pack_desc_text:
+                    if not existing.description_text:
                         existing.description_text = pack_desc_text
                         existing.description_credit = pack_desc_credit
                         existing.description_source_link = pack_desc_link
