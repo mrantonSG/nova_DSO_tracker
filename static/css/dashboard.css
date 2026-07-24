@@ -40,7 +40,6 @@
     }
     th[data-column-key="Common Name"],
     td[data-column-key="Common Name"] {
-        width: 230px;
         min-width: 220px;         /* enforce a floor */
         text-align: left;
         white-space: nowrap;
@@ -160,6 +159,10 @@
         vertical-align: middle;
         padding-top: var(--space-2);
         padding-bottom: var(--space-2);
+    }
+
+    #data-table {
+        width: 100%;
     }
 
     th span { display: block; font-weight: var(--font-weight-bold); font-size: var(--font-size-2xs); line-height: var(--line-height-tight); }
