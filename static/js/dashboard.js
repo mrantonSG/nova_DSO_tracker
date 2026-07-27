@@ -3501,9 +3501,8 @@
                 const target = e.target.closest('[data-action]');
                 if (!target) return;
 
-                // Stop propagation if requested
-                if (target.closest('[data-stop-propagation="true"]')) {
-                    e.stopPropagation();
+                const stopZone = e.target.closest('[data-stop-propagation="true"]');
+                if (stopZone && !stopZone.contains(target)) {
                     return;
                 }
 
