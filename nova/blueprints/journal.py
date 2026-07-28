@@ -285,6 +285,9 @@ def journal_add():
             if 'asiair_log' in request.files:
                 log_file = request.files['asiair_log']
                 if log_file and log_file.filename != '':
+                    if not log_file.filename.lower().endswith('.log'):
+                        flash(_("ASIAir log file must be a .log file."), "error")
+                        return redirect(url_for('core.graph_dashboard', object_name=request.form.get("target_object_id", "")))
                     log_file.seek(0, os.SEEK_END)
                     if log_file.tell() > 10 * 1024 * 1024:
                         flash(_("ASIAir log file is too large. Maximum size is 10 MB."), "error")
@@ -296,6 +299,9 @@ def journal_add():
             if 'phd2_log' in request.files:
                 log_file = request.files['phd2_log']
                 if log_file and log_file.filename != '':
+                    if not log_file.filename.lower().endswith('.log'):
+                        flash(_("PHD2 log file must be a .log file."), "error")
+                        return redirect(url_for('core.graph_dashboard', object_name=request.form.get("target_object_id", "")))
                     log_file.seek(0, os.SEEK_END)
                     if log_file.tell() > 10 * 1024 * 1024:
                         flash(_("PHD2 log file is too large. Maximum size is 10 MB."), "error")
@@ -307,6 +313,9 @@ def journal_add():
             if 'nina_log' in request.files:
                 log_file = request.files['nina_log']
                 if log_file and log_file.filename != '':
+                    if not log_file.filename.lower().endswith('.log'):
+                        flash(_("NINA log file must be a .log file."), "error")
+                        return redirect(url_for('core.graph_dashboard', object_name=request.form.get("target_object_id", "")))
                     log_file.seek(0, os.SEEK_END)
                     if log_file.tell() > 10 * 1024 * 1024:
                         flash(_("NINA log file is too large. Maximum size is 10 MB."), "error")
