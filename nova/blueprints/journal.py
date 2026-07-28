@@ -608,19 +608,53 @@ def journal_edit(session_id):
             if 'asiair_log' in request.files:
                 log_file = request.files['asiair_log']
                 if log_file and log_file.filename != '':
+                    if not log_file.filename.lower().endswith('.log'):
+                        flash(_("ASIAir log file must be a .log file."), "error")
+                        return redirect(
+                            url_for('core.graph_dashboard', object_name=session_to_edit.object_name,
+                                    session_id=session_id, location=session_to_edit.location_name))
+
+                    log_file.seek(0, os.SEEK_END)
+                    file_size = log_file.tell()
+                    log_file.seek(0)
+
+                    MAX_SIZE = 10 * 1024 * 1024  # 10 MB
+                    if file_size > MAX_SIZE:
+                        flash(_("ASIAir log file is too large. Maximum size is 10 MB."), "error")
+                        return redirect(
+                            url_for('core.graph_dashboard', object_name=session_to_edit.object_name,
+                                    session_id=session_id, location=session_to_edit.location_name))
+
                     content = log_file.read().decode('utf-8', errors='ignore')
                     path = save_log_to_filesystem(session_to_edit.id, 'asiair', content, log_file.filename)
                     session_to_edit.asiair_log_content = path
                     invalidate_cache = True
-    
+
             if 'phd2_log' in request.files:
                 log_file = request.files['phd2_log']
                 if log_file and log_file.filename != '':
+                    if not log_file.filename.lower().endswith('.log'):
+                        flash(_("PHD2 log file must be a .log file."), "error")
+                        return redirect(
+                            url_for('core.graph_dashboard', object_name=session_to_edit.object_name,
+                                    session_id=session_id, location=session_to_edit.location_name))
+
+                    log_file.seek(0, os.SEEK_END)
+                    file_size = log_file.tell()
+                    log_file.seek(0)
+
+                    MAX_SIZE = 10 * 1024 * 1024  # 10 MB
+                    if file_size > MAX_SIZE:
+                        flash(_("PHD2 log file is too large. Maximum size is 10 MB."), "error")
+                        return redirect(
+                            url_for('core.graph_dashboard', object_name=session_to_edit.object_name,
+                                    session_id=session_id, location=session_to_edit.location_name))
+
                     content = log_file.read().decode('utf-8', errors='ignore')
                     path = save_log_to_filesystem(session_to_edit.id, 'phd2', content, log_file.filename)
                     session_to_edit.phd2_log_content = path
                     invalidate_cache = True
-    
+
             # NINA log upload with validation
             if 'nina_log' in request.files:
                 log_file = request.files['nina_log']
