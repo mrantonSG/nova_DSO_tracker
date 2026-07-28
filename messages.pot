@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-02 20:18+0800\n"
+"POT-Creation-Date: 2026-07-28 22:39+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -113,64 +113,64 @@ msgstr ""
 msgid "User '%(username)s' deleted."
 msgstr ""
 
-#: nova/blueprints/api.py:157
+#: nova/blueprints/api.py:168
 msgid "Object not found"
 msgstr ""
 
-#: nova/blueprints/api.py:436
+#: nova/blueprints/api.py:447
 #, python-format
 msgid "<p>Error reading help file: %(error)s</p>"
 msgstr ""
 
-#: nova/blueprints/api.py:1471
+#: nova/blueprints/api.py:1482
 msgid "No file uploaded"
 msgstr ""
 
-#: nova/blueprints/api.py:1475
+#: nova/blueprints/api.py:1486
 msgid "Empty filename"
 msgstr ""
 
-#: nova/blueprints/api.py:1482
+#: nova/blueprints/api.py:1493
 msgid "File is too large. Maximum size is 10 MB."
 msgstr ""
 
-#: nova/blueprints/api.py:1525 nova/blueprints/api.py:2756
+#: nova/blueprints/api.py:1536 nova/blueprints/api.py:2760
 msgid "User not found"
 msgstr ""
 
-#: nova/blueprints/api.py:1529
+#: nova/blueprints/api.py:1540
 msgid "Session not found"
 msgstr ""
 
-#: nova/blueprints/api.py:2430
+#: nova/blueprints/api.py:2441
 msgid "Object data not found or invalid."
 msgstr ""
 
-#: nova/blueprints/api.py:2434
+#: nova/blueprints/api.py:2445
 msgid "RA/DEC missing for object."
 msgstr ""
 
-#: nova/blueprints/api.py:2439
+#: nova/blueprints/api.py:2450
 msgid "Invalid RA/DEC format for object."
 msgstr ""
 
-#: nova/blueprints/api.py:2616
+#: nova/blueprints/api.py:2620
 msgid "Could not generate time series for plot."
 msgstr ""
 
-#: nova/blueprints/api.py:2720
+#: nova/blueprints/api.py:2724
 msgid "Location not configured"
 msgstr ""
 
-#: nova/blueprints/api.py:3637
+#: nova/blueprints/api.py:3698
 msgid "Missing or invalid lat/lon parameters"
 msgstr ""
 
-#: nova/blueprints/api.py:3646
+#: nova/blueprints/api.py:3707
 msgid "Invalid datetime format"
 msgstr ""
 
-#: nova/blueprints/api.py:3666
+#: nova/blueprints/api.py:3727
 msgid "Calibration star catalog not found"
 msgstr ""
 
@@ -291,136 +291,140 @@ msgstr ""
 msgid "An error occurred during data fetching: %(error)s"
 msgstr ""
 
-#: nova/blueprints/core.py:1718
+#: nova/blueprints/core.py:1720
 msgid "Please log in to view object details."
 msgstr ""
 
-#: nova/blueprints/core.py:1733
+#: nova/blueprints/core.py:1735
 #, python-format
 msgid "User '%(username)s' not found."
 msgstr ""
 
-#: nova/blueprints/core.py:1749
+#: nova/blueprints/core.py:1751
 #, python-format
 msgid "Requested location '%(location_name)s' not found, using default."
 msgstr ""
 
-#: nova/blueprints/core.py:1767
+#: nova/blueprints/core.py:1769
 msgid "Error: No valid location configured or selected for this user."
 msgstr ""
 
-#: nova/blueprints/core.py:1785
+#: nova/blueprints/core.py:1787
 #, python-format
 msgid "Object '%(object_name)s' not found in your configuration."
 msgstr ""
 
-#: nova/blueprints/core.py:2027
+#: nova/blueprints/core.py:2029
 msgid "Invalid date components provided, defaulting to current date."
 msgstr ""
 
-#: nova/blueprints/core.py:2236
+#: nova/blueprints/core.py:2240
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
 msgstr ""
 
-#: nova/blueprints/journal.py:70
-msgid "User session error, please log in again."
-msgstr ""
-
-#: nova/blueprints/journal.py:120 nova/blueprints/journal.py:430
+#: nova/blueprints/journal.py:95 nova/blueprints/journal.py:414
 #: nova/blueprints/mobile.py:550
 msgid "Invalid date format."
 msgstr ""
 
-#: nova/blueprints/journal.py:291 nova/blueprints/journal.py:616
+#: nova/blueprints/journal.py:266 nova/blueprints/journal.py:600
 msgid "Session image is too large. Maximum size is 5 MB."
 msgstr ""
 
-#: nova/blueprints/journal.py:315
+#: nova/blueprints/journal.py:289 nova/blueprints/journal.py:621
+msgid "ASIAir log file must be a .log file."
+msgstr ""
+
+#: nova/blueprints/journal.py:293 nova/blueprints/journal.py:632
 msgid "ASIAir log file is too large. Maximum size is 10 MB."
 msgstr ""
 
-#: nova/blueprints/journal.py:326
+#: nova/blueprints/journal.py:303 nova/blueprints/journal.py:646
+msgid "PHD2 log file must be a .log file."
+msgstr ""
+
+#: nova/blueprints/journal.py:307 nova/blueprints/journal.py:657
 msgid "PHD2 log file is too large. Maximum size is 10 MB."
 msgstr ""
 
-#: nova/blueprints/journal.py:337 nova/blueprints/journal.py:667
-msgid "NINA log file is too large. Maximum size is 10 MB."
-msgstr ""
-
-#: nova/blueprints/journal.py:371 nova/blueprints/mobile.py:703
-msgid "New journal entry added successfully!"
-msgstr ""
-
-#: nova/blueprints/journal.py:397
-msgid "To add a new session, please select an object first."
-msgstr ""
-
-#: nova/blueprints/journal.py:412
-msgid "Journal entry not found or you do not have permission to edit it."
-msgstr ""
-
-#: nova/blueprints/journal.py:655
+#: nova/blueprints/journal.py:317 nova/blueprints/journal.py:673
 msgid "NINA log file must be a .log file."
 msgstr ""
 
-#: nova/blueprints/journal.py:676
+#: nova/blueprints/journal.py:321 nova/blueprints/journal.py:685
+msgid "NINA log file is too large. Maximum size is 10 MB."
+msgstr ""
+
+#: nova/blueprints/journal.py:355 nova/blueprints/mobile.py:703
+msgid "New journal entry added successfully!"
+msgstr ""
+
+#: nova/blueprints/journal.py:381
+msgid "To add a new session, please select an object first."
+msgstr ""
+
+#: nova/blueprints/journal.py:396
+msgid "Journal entry not found or you do not have permission to edit it."
+msgstr ""
+
+#: nova/blueprints/journal.py:694
 msgid "NINA log imported successfully."
 msgstr ""
 
-#: nova/blueprints/journal.py:706
+#: nova/blueprints/journal.py:724
 msgid "Journal entry updated successfully!"
 msgstr ""
 
-#: nova/blueprints/journal.py:729
+#: nova/blueprints/journal.py:747
 msgid "Cannot edit session: associated object name is missing."
 msgstr ""
 
-#: nova/blueprints/journal.py:755
+#: nova/blueprints/journal.py:773
 msgid "Project name is required."
 msgstr ""
 
-#: nova/blueprints/journal.py:761
+#: nova/blueprints/journal.py:779
 #, python-format
 msgid "A project named '%(project_name)s' already exists."
 msgstr ""
 
-#: nova/blueprints/journal.py:788
+#: nova/blueprints/journal.py:806
 #, python-format
 msgid "Project '%(project_name)s' created successfully."
 msgstr ""
 
-#: nova/blueprints/journal.py:804
+#: nova/blueprints/journal.py:822
 #, python-format
 msgid "Error creating project: %(error)s"
 msgstr ""
 
-#: nova/blueprints/journal.py:819
+#: nova/blueprints/journal.py:837
 msgid "Session to duplicate not found."
 msgstr ""
 
-#: nova/blueprints/journal.py:844
+#: nova/blueprints/journal.py:862
 msgid "Session duplicated successfully."
 msgstr ""
 
-#: nova/blueprints/journal.py:855
+#: nova/blueprints/journal.py:873
 #, python-format
 msgid "Error duplicating session: %(error)s"
 msgstr ""
 
-#: nova/blueprints/journal.py:877
+#: nova/blueprints/journal.py:895
 msgid "Journal entry deleted successfully."
 msgstr ""
 
-#: nova/blueprints/journal.py:883
+#: nova/blueprints/journal.py:901
 msgid "Journal entry not found or you do not have permission to delete it."
 msgstr ""
 
-#: nova/blueprints/journal.py:900 nova/blueprints/journal.py:1054
+#: nova/blueprints/journal.py:918 nova/blueprints/journal.py:1072
 msgid "Session not found."
 msgstr ""
 
-#: nova/blueprints/journal.py:1062 nova/blueprints/projects.py:358
+#: nova/blueprints/journal.py:1080 nova/blueprints/projects.py:358
 msgid "Project not found."
 msgstr ""
 
@@ -2570,18 +2574,6 @@ msgstr ""
 msgid "Total Users"
 msgstr ""
 
-#: templates/analytics.html:265
-msgid "Active Login Days"
-msgstr ""
-
-#: templates/analytics.html:269
-msgid "Total Logins"
-msgstr ""
-
-#: templates/analytics.html:274
-msgid "Daily Logins (90 days)"
-msgstr ""
-
 #: templates/analytics.html:279
 msgid "login(s)"
 msgstr ""
@@ -3524,14 +3516,14 @@ msgstr ""
 msgid "SQM Zenith:"
 msgstr ""
 
-#: templates/config_form.html:301 templates/config_form.html:387
-msgid "Zenith SQM (optional)"
-msgstr ""
-
-#: templates/config_form.html:304 templates/config_form.html:390
+#: templates/config_form.html:300 templates/config_form.html:386
 msgid ""
 "Leave blank to derive from Bortle scale. Enter a measured SQM value "
 "(mag/arcsec²) if available."
+msgstr ""
+
+#: templates/config_form.html:302 templates/config_form.html:388
+msgid "Zenith SQM (optional)"
 msgstr ""
 
 #: templates/config_form.html:310 templates/config_form.html:395

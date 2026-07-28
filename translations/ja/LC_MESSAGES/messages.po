@@ -7,15 +7,15 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-02 20:18+0800\n"
+"POT-Creation-Date: 2026-07-28 22:39+0200\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language: ja\n"
 "Language-Team: ja <LL@li.org>\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
+"Language: ja\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 "Generated-By: Babel 2.18.0\n"
 
 #: nova/log_parser.py:931
@@ -121,66 +121,66 @@ msgstr "管理者アカウントを削除できません。"
 msgid "User '%(username)s' deleted."
 msgstr "ユーザー '%(username)s' が削除されました。"
 
-#: nova/blueprints/api.py:157
+#: nova/blueprints/api.py:168
 msgid "Object not found"
 msgstr "オブジェクトが見つかりません"
 
-#: nova/blueprints/api.py:436
+#: nova/blueprints/api.py:447
 #, python-format
 msgid "<p>Error reading help file: %(error)s</p>"
 msgstr "<p>ヘルプファイルの読み込みエラー: %(error)s</p>"
 
-#: nova/blueprints/api.py:1471
+#: nova/blueprints/api.py:1482
 msgid "No file uploaded"
 msgstr "ファイルがアップロードされていません"
 
-#: nova/blueprints/api.py:1475
+#: nova/blueprints/api.py:1486
 msgid "Empty filename"
 msgstr "ファイル名が空です"
 
-#: nova/blueprints/api.py:1482
+#: nova/blueprints/api.py:1493
 #, fuzzy
 msgid "File is too large. Maximum size is 10 MB."
 msgstr "NINAログファイルが大きすぎる。最大サイズは10MBです。"
 
-#: nova/blueprints/api.py:1525 nova/blueprints/api.py:2756
+#: nova/blueprints/api.py:1536 nova/blueprints/api.py:2760
 msgid "User not found"
 msgstr "ユーザーが見つかりません"
 
-#: nova/blueprints/api.py:1529
+#: nova/blueprints/api.py:1540
 msgid "Session not found"
 msgstr "セッションが見つかりません"
 
-#: nova/blueprints/api.py:2430
+#: nova/blueprints/api.py:2441
 msgid "Object data not found or invalid."
 msgstr "オブジェクトデータが見つからないか無効です。"
 
-#: nova/blueprints/api.py:2434
+#: nova/blueprints/api.py:2445
 msgid "RA/DEC missing for object."
 msgstr "オブジェクトのRA/DECがありません。"
 
-#: nova/blueprints/api.py:2439
+#: nova/blueprints/api.py:2450
 msgid "Invalid RA/DEC format for object."
 msgstr "オブジェクトのRA/DEC形式が無効です。"
 
-#: nova/blueprints/api.py:2616
+#: nova/blueprints/api.py:2620
 msgid "Could not generate time series for plot."
 msgstr "プロットの時系列を生成できませんでした。"
 
-#: nova/blueprints/api.py:2720
+#: nova/blueprints/api.py:2724
 msgid "Location not configured"
 msgstr "場所が設定されていません"
 
-#: nova/blueprints/api.py:3637
+#: nova/blueprints/api.py:3698
 msgid "Missing or invalid lat/lon parameters"
 msgstr ""
 
-#: nova/blueprints/api.py:3646
+#: nova/blueprints/api.py:3707
 #, fuzzy
 msgid "Invalid datetime format"
 msgstr "無効な日付形式です。"
 
-#: nova/blueprints/api.py:3666
+#: nova/blueprints/api.py:3727
 #, fuzzy
 msgid "Calibration star catalog not found"
 msgstr "校正戦略"
@@ -225,7 +225,8 @@ msgid "SSO Error: User '%(username)s' not found or is disabled in Nova."
 msgstr "SSO エラー: Nova でユーザー '%(username)s' が見つかりません、または無効になっています。"
 
 #: nova/blueprints/core.py:333
-msgid "SSO Error: The login link has expired. Please try again from WordPress."
+msgid ""
+"SSO Error: The login link has expired. Please try again from WordPress."
 msgstr "SSOエラー：ログインリンクの有効期限が切れています。WordPressから再度お試しください。"
 
 #: nova/blueprints/core.py:336
@@ -302,140 +303,144 @@ msgstr "欠落データは見つかりませんでした、または更新の必
 msgid "An error occurred during data fetching: %(error)s"
 msgstr "データ取得中にエラーが発生しました: %(error)s"
 
-#: nova/blueprints/core.py:1718
+#: nova/blueprints/core.py:1720
 msgid "Please log in to view object details."
 msgstr "オブジェクトの詳細を表示するにはログインしてください。"
 
-#: nova/blueprints/core.py:1733
+#: nova/blueprints/core.py:1735
 #, python-format
 msgid "User '%(username)s' not found."
 msgstr "ユーザー '%(username)s' は見つかりませんでした。"
 
-#: nova/blueprints/core.py:1749
+#: nova/blueprints/core.py:1751
 #, python-format
 msgid "Requested location '%(location_name)s' not found, using default."
 msgstr "指定された場所 '%(location_name)s' が見つかりません。デフォルトを使用します。"
 
-#: nova/blueprints/core.py:1767
+#: nova/blueprints/core.py:1769
 msgid "Error: No valid location configured or selected for this user."
 msgstr "エラー: このユーザーに対して有効な場所が設定または選択されていません。"
 
-#: nova/blueprints/core.py:1785
+#: nova/blueprints/core.py:1787
 #, python-format
 msgid "Object '%(object_name)s' not found in your configuration."
 msgstr "オブジェクト '%(object_name)s' が設定に見つかりません。"
 
-#: nova/blueprints/core.py:2027
+#: nova/blueprints/core.py:2029
 msgid "Invalid date components provided, defaulting to current date."
 msgstr "無効な日付コンポーネントが指定されました。デフォルトで現在の日付を使用します。"
 
-#: nova/blueprints/core.py:2236
+#: nova/blueprints/core.py:2240
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
 msgstr "%(object_name)s の詳細を読み込む際にエラーが発生しました。"
 
-#: nova/blueprints/journal.py:70
-msgid "User session error, please log in again."
-msgstr "ユーザーセッションエラーが発生しました。再度ログインしてください。"
-
-#: nova/blueprints/journal.py:120 nova/blueprints/journal.py:430
+#: nova/blueprints/journal.py:95 nova/blueprints/journal.py:414
 #: nova/blueprints/mobile.py:550
 msgid "Invalid date format."
 msgstr "無効な日付形式です。"
 
-#: nova/blueprints/journal.py:291 nova/blueprints/journal.py:616
+#: nova/blueprints/journal.py:266 nova/blueprints/journal.py:600
 #, fuzzy
 msgid "Session image is too large. Maximum size is 5 MB."
 msgstr "NINAログファイルが大きすぎる。最大サイズは10MBです。"
 
-#: nova/blueprints/journal.py:315
+#: nova/blueprints/journal.py:289 nova/blueprints/journal.py:621
+msgid "ASIAir log file must be a .log file."
+msgstr "ASIAirログファイルは.logファイルでなければならない。"
+
+#: nova/blueprints/journal.py:293 nova/blueprints/journal.py:632
 #, fuzzy
 msgid "ASIAir log file is too large. Maximum size is 10 MB."
 msgstr "NINAログファイルが大きすぎる。最大サイズは10MBです。"
 
-#: nova/blueprints/journal.py:326
+#: nova/blueprints/journal.py:303 nova/blueprints/journal.py:646
+msgid "PHD2 log file must be a .log file."
+msgstr "PHD2ログファイルは.logファイルでなければならない。"
+
+#: nova/blueprints/journal.py:307 nova/blueprints/journal.py:657
 #, fuzzy
 msgid "PHD2 log file is too large. Maximum size is 10 MB."
 msgstr "NINAログファイルが大きすぎる。最大サイズは10MBです。"
 
-#: nova/blueprints/journal.py:337 nova/blueprints/journal.py:667
-msgid "NINA log file is too large. Maximum size is 10 MB."
-msgstr "NINAログファイルが大きすぎる。最大サイズは10MBです。"
-
-#: nova/blueprints/journal.py:371 nova/blueprints/mobile.py:703
-msgid "New journal entry added successfully!"
-msgstr "新しい日記の投稿が正常に追加されました！"
-
-#: nova/blueprints/journal.py:397
-msgid "To add a new session, please select an object first."
-msgstr "新しいセッションを追加するには、まずオブジェクトを選択してください。"
-
-#: nova/blueprints/journal.py:412
-msgid "Journal entry not found or you do not have permission to edit it."
-msgstr "ジャーナルエントリが見つかりません、または編集する権限がありません。"
-
-#: nova/blueprints/journal.py:655
+#: nova/blueprints/journal.py:317 nova/blueprints/journal.py:673
 msgid "NINA log file must be a .log file."
 msgstr "NINAログファイルは.logファイルでなければならない。"
 
-#: nova/blueprints/journal.py:676
+#: nova/blueprints/journal.py:321 nova/blueprints/journal.py:685
+msgid "NINA log file is too large. Maximum size is 10 MB."
+msgstr "NINAログファイルが大きすぎる。最大サイズは10MBです。"
+
+#: nova/blueprints/journal.py:355 nova/blueprints/mobile.py:703
+msgid "New journal entry added successfully!"
+msgstr "新しい日記の投稿が正常に追加されました！"
+
+#: nova/blueprints/journal.py:381
+msgid "To add a new session, please select an object first."
+msgstr "新しいセッションを追加するには、まずオブジェクトを選択してください。"
+
+#: nova/blueprints/journal.py:396
+msgid "Journal entry not found or you do not have permission to edit it."
+msgstr "ジャーナルエントリが見つかりません、または編集する権限がありません。"
+
+#: nova/blueprints/journal.py:694
 #, fuzzy
 msgid "NINA log imported successfully."
 msgstr "リグの削除に成功しました。"
 
-#: nova/blueprints/journal.py:706
+#: nova/blueprints/journal.py:724
 msgid "Journal entry updated successfully!"
 msgstr "日記の更新に成功しました！"
 
-#: nova/blueprints/journal.py:729
+#: nova/blueprints/journal.py:747
 msgid "Cannot edit session: associated object name is missing."
 msgstr "セッションを編集できません: 関連付けられたオブジェクト名が欠落しています。"
 
-#: nova/blueprints/journal.py:755
+#: nova/blueprints/journal.py:773
 msgid "Project name is required."
 msgstr "プロジェクト名は必須です。"
 
-#: nova/blueprints/journal.py:761
+#: nova/blueprints/journal.py:779
 #, python-format
 msgid "A project named '%(project_name)s' already exists."
 msgstr "「%(project_name)s」という名前のプロジェクトが既に存在します。"
 
-#: nova/blueprints/journal.py:788
+#: nova/blueprints/journal.py:806
 #, python-format
 msgid "Project '%(project_name)s' created successfully."
 msgstr "プロジェクト '%(project_name)s' が正常に作成されました。"
 
-#: nova/blueprints/journal.py:804
+#: nova/blueprints/journal.py:822
 #, python-format
 msgid "Error creating project: %(error)s"
 msgstr "プロジェクト作成エラー: %(error)s"
 
-#: nova/blueprints/journal.py:819
+#: nova/blueprints/journal.py:837
 msgid "Session to duplicate not found."
 msgstr "セッションの複製が見つかりません。"
 
-#: nova/blueprints/journal.py:844
+#: nova/blueprints/journal.py:862
 msgid "Session duplicated successfully."
 msgstr "セッションの複製に成功しました。"
 
-#: nova/blueprints/journal.py:855
+#: nova/blueprints/journal.py:873
 #, python-format
 msgid "Error duplicating session: %(error)s"
 msgstr "セッションの複製中にエラーが発生しました: %(error)s"
 
-#: nova/blueprints/journal.py:877
+#: nova/blueprints/journal.py:895
 msgid "Journal entry deleted successfully."
 msgstr "日記の投稿を正常に削除しました。"
 
-#: nova/blueprints/journal.py:883
+#: nova/blueprints/journal.py:901
 msgid "Journal entry not found or you do not have permission to delete it."
 msgstr "ジャーナルエントリが見つかりません、または削除する権限がありません。"
 
-#: nova/blueprints/journal.py:900 nova/blueprints/journal.py:1054
+#: nova/blueprints/journal.py:918 nova/blueprints/journal.py:1072
 msgid "Session not found."
 msgstr "セッションが見つかりません。"
 
-#: nova/blueprints/journal.py:1062 nova/blueprints/projects.py:358
+#: nova/blueprints/journal.py:1080 nova/blueprints/projects.py:358
 msgid "Project not found."
 msgstr "プロジェクトが見つかりません。"
 
@@ -597,7 +602,8 @@ msgid "Cannot import: Configuration must contain at least one location."
 msgstr "インポートできません: 構成には少なくとも1つの場所が含まれている必要があります。"
 
 #: nova/blueprints/tools.py:728
-msgid "Cannot import: Configuration must contain at least one active location."
+msgid ""
+"Cannot import: Configuration must contain at least one active location."
 msgstr "インポートできません: 構成には少なくとも1つのアクティブな場所が含まれている必要があります。"
 
 #: nova/blueprints/tools.py:761
@@ -742,8 +748,8 @@ msgstr "オブジェクトの詳細を表示するにはログインしてくだ
 #: templates/_heatmap_section.html:23
 #, fuzzy
 msgid ""
-"* Vertical bands = Full Moon. Darker teal = Best visibility. Click any "
-"cell to view details."
+"* Vertical bands = Full Moon. Darker teal = Best visibility. Click any cell "
+"to view details."
 msgstr "* 縦方向の明るい帯 = 満月（白飛び）。濃い緑色 = 最良の品質。オブジェクト名をクリックすると詳細が表示されます。"
 
 #: templates/_inspiration_section.html:470
@@ -776,11 +782,12 @@ msgstr "星座"
 msgid "Source: Wiki"
 msgstr "出典: Wiki"
 
-#: templates/_inspiration_section.html:504 templates/_journal_section.html:2503
-#: templates/_objects_section.html:427 templates/_objects_section.html:442
-#: templates/base.html:384 templates/base.html:401 templates/base.html:406
-#: templates/base.html:415 templates/base.html:453
-#: templates/config_form.html:701 templates/graph_view.html:294
+#: templates/_inspiration_section.html:504
+#: templates/_journal_section.html:2503 templates/_objects_section.html:427
+#: templates/_objects_section.html:442 templates/base.html:384
+#: templates/base.html:401 templates/base.html:406 templates/base.html:415
+#: templates/base.html:453 templates/config_form.html:701
+#: templates/graph_view.html:294
 msgid "Close"
 msgstr "閉じる"
 
@@ -1424,8 +1431,8 @@ msgstr "プロジェクトを編集"
 
 #: templates/_journal_section.html:2042
 msgid ""
-"Are you sure you want to delete this project? Linked sessions will become"
-" standalone."
+"Are you sure you want to delete this project? Linked sessions will become "
+"standalone."
 msgstr "このセッションを完全に削除してもよろしいですか？"
 
 #: templates/_journal_section.html:2044
@@ -1580,8 +1587,8 @@ msgstr "セッション終了"
 
 #: templates/_journal_section.html:2235
 msgid ""
-"Select a session or project from the list on the left to view details, or"
-" click 'Add New Session'."
+"Select a session or project from the list on the left to view details, or "
+"click 'Add New Session'."
 msgstr "左側のリストからセッションまたはプロジェクトを選択して詳細を表示するか、「新規セッションを追加」をクリックしてください。"
 
 #: templates/_journal_section.html:2245
@@ -2323,7 +2330,8 @@ msgid ""
 "Catalog packs are server-provided object collections you can import into "
 "your library. Importing is non-destructive: existing objects are never "
 "overwritten, and overlapping objects are skipped."
-msgstr "カタログパックは、ライブラリにインポートできるサーバー提供のオブジェクトコレクションです。インポートは非破壊的であり、既存のオブジェクトは上書きされることはなく、重複するオブジェクトはスキップされます。"
+msgstr ""
+"カタログパックは、ライブラリにインポートできるサーバー提供のオブジェクトコレクションです。インポートは非破壊的であり、既存のオブジェクトは上書きされることはなく、重複するオブジェクトはスキップされます。"
 
 #: templates/_objects_section.html:386 templates/config_form.html:635
 #: templates/graph_view.html:219
@@ -2358,12 +2366,13 @@ msgstr "重複の可能性"
 
 #: templates/_objects_section.html:435
 msgid ""
-"These pairs are located within 2.5 arcminutes of each other. Merging will"
-" move all journals, projects, and framings to the \"Kept\" object and "
-"delete the other. Please note that objects from different catalogs might "
-"have slightly different RA / DEC and will therefore not be considered as "
+"These pairs are located within 2.5 arcminutes of each other. Merging will "
+"move all journals, projects, and framings to the \"Kept\" object and delete "
+"the other. Please note that objects from different catalogs might have "
+"slightly different RA / DEC and will therefore not be considered as "
 "duplicates."
-msgstr "これらのペアは互いに2.5分角以内に位置しています。マージすると、すべてのジャーナル、プロジェクト、フレーミングが「保持」オブジェクトに移動され、もう一方は削除されます。異なるカタログのオブジェクトはRA/DECがわずかに異なる場合があるため、重複とは見なされない点にご注意ください。"
+msgstr ""
+"これらのペアは互いに2.5分角以内に位置しています。マージすると、すべてのジャーナル、プロジェクト、フレーミングが「保持」オブジェクトに移動され、もう一方は削除されます。異なるカタログのオブジェクトはRA/DECがわずかに異なる場合があるため、重複とは見なされない点にご注意ください。"
 
 #: templates/_objects_section.html:438
 msgid "Scanning catalog... (this may take a few seconds)"
@@ -2411,10 +2420,11 @@ msgstr "カレンダーに追加"
 
 #: templates/_project_subtab.html:145
 msgid ""
-"This object is not currently linked to a Project. The **Project Details**"
-" sub-tab will only appear if the object is the primary target of an "
-"existing project."
-msgstr "このオブジェクトは現在、プロジェクトに関連付けられていません。**プロジェクト詳細**サブタブは、このオブジェクトが既存プロジェクトの主要な対象である場合にのみ表示されます。"
+"This object is not currently linked to a Project. The **Project Details** "
+"sub-tab will only appear if the object is the primary target of an existing "
+"project."
+msgstr ""
+"このオブジェクトは現在、プロジェクトに関連付けられていません。**プロジェクト詳細**サブタブは、このオブジェクトが既存プロジェクトの主要な対象である場合にのみ表示されます。"
 
 #: templates/_project_subtab.html:153
 msgid "Total Integration Time"
@@ -2604,18 +2614,6 @@ msgstr "ユーザー活動"
 #: templates/analytics.html:261
 msgid "Total Users"
 msgstr "総ユーザー数"
-
-#: templates/analytics.html:265
-msgid "Active Login Days"
-msgstr "アクティブなログイン日数"
-
-#: templates/analytics.html:269
-msgid "Total Logins"
-msgstr "総ログイン数"
-
-#: templates/analytics.html:274
-msgid "Daily Logins (90 days)"
-msgstr "デイリーログイン（90日間）"
 
 #: templates/analytics.html:279
 msgid "login(s)"
@@ -2943,8 +2941,7 @@ msgstr "コンポーネントの追加中にエラーが発生しました: %(er
 #: templates/base.html:193
 #, python-format
 msgid ""
-"Failed to load imaging opportunities. Check console for details. "
-"(%(error)s)"
+"Failed to load imaging opportunities. Check console for details. (%(error)s)"
 msgstr "イメージング機会のロードに失敗しました。コンソールで詳細を確認してください。(%(error)s)"
 
 #: templates/base.html:194
@@ -3226,15 +3223,15 @@ msgid "Version"
 msgstr "バージョン"
 
 #: templates/base.html:425
-msgid "A personal project born from a passion for astronomy and astrophotography."
+msgid ""
+"A personal project born from a passion for astronomy and astrophotography."
 msgstr "天文学と天体写真への情熱から生まれた個人的なプロジェクト。"
 
 #: templates/base.html:426
 msgid ""
 "Nova DSO Tracker helps amateur astronomers plan observation sessions, "
 "calculating and visualizing altitude and azimuth of deep-sky objects, "
-"tracking Moon position and phase, and identifying optimal viewing "
-"windows."
+"tracking Moon position and phase, and identifying optimal viewing windows."
 msgstr ""
 "Nova DSO "
 "Trackerは、アマチュア天文学者が観測セッションを計画するのを支援します。深宇宙天体の高度と方位角を計算・可視化し、月の位置と満ち欠けを追跡し、最適な観測時間帯を特定します。"
@@ -3411,9 +3408,10 @@ msgstr "計算。見えない物体："
 #: templates/config_form.html:188
 msgid ""
 "If checked, Nova will calculate curves for ALL objects, even those "
-"geometrically impossible to see from your location (disabling the \"Smart"
-" Skip\" optimization)."
-msgstr "チェックすると、Novaはすべての天体の軌道計算を行います。これは、あなたの位置から幾何学的に見えなくとも計算対象となります（「スマートスキップ」最適化を無効化）。"
+"geometrically impossible to see from your location (disabling the \"Smart "
+"Skip\" optimization)."
+msgstr ""
+"チェックすると、Novaはすべての天体の軌道計算を行います。これは、あなたの位置から幾何学的に見えなくとも計算対象となります（「スマートスキップ」最適化を無効化）。"
 
 #: templates/config_form.html:194
 msgid "Hide Invisible Objects:"
@@ -3421,10 +3419,11 @@ msgstr "見えないオブジェクトを隠す:"
 
 #: templates/config_form.html:199
 msgid ""
-"If checked, objects that are geometrically impossible to see will be "
-"hidden from the main list by default. They will still appear if you "
-"specifically search for them."
-msgstr "チェックすると、視覚的に表示不可能なオブジェクトはデフォルトでメインリストから非表示になります。ただし、それらを直接検索した場合は表示されます。"
+"If checked, objects that are geometrically impossible to see will be hidden "
+"from the main list by default. They will still appear if you specifically "
+"search for them."
+msgstr ""
+"チェックすると、視覚的に表示不可能なオブジェクトはデフォルトでメインリストから非表示になります。ただし、それらを直接検索した場合は表示されます。"
 
 #: templates/config_form.html:206
 msgid "Calculation Precision:"
@@ -3454,9 +3453,10 @@ msgstr "最速（60分サンプル）"
 msgid ""
 "Note: Your 'Current Altitude' is always calculated in real-time. This "
 "setting only refines the accuracy of the nightly overview values (Max "
-"Altitude, Observable Duration, etc.). 'Fast' is recommended for low-power"
-" devices."
-msgstr "注：現在の高度は常にリアルタイムで計算されます。この設定は夜間概要値（最高高度、観測可能時間など）の精度を向上させるだけです。「高速」は低電力デバイスに推奨されます。"
+"Altitude, Observable Duration, etc.). 'Fast' is recommended for low-power "
+"devices."
+msgstr ""
+"注：現在の高度は常にリアルタイムで計算されます。この設定は夜間概要値（最高高度、観測可能時間など）の精度を向上させるだけです。「高速」は低電力デバイスに推奨されます。"
 
 #: templates/config_form.html:224
 msgid "Anonymous Telemetry:"
@@ -3464,11 +3464,12 @@ msgstr "匿名テレメトリ："
 
 #: templates/config_form.html:229
 msgid ""
-"Nova sends a small anonymous heartbeat (app version, system type, and "
-"counts of your data entries like objects, rigs, locations, and journals)."
-" No personal details are ever collected, and you can opt out anytime. "
-"Allowing it really helps me improve Nova."
-msgstr "Novaは小さな匿名のハートビート（アプリバージョン、システムタイプ、オブジェクト・リグ・ロケーション・ジャーナルなどのデータ入力件数）を送信します。個人情報は一切収集されず、いつでもオプトアウト可能です。許可いただくことで、Novaの改善に大変役立ちます。"
+"Nova sends a small anonymous heartbeat (app version, system type, and counts"
+" of your data entries like objects, rigs, locations, and journals). No "
+"personal details are ever collected, and you can opt out anytime. Allowing "
+"it really helps me improve Nova."
+msgstr ""
+"Novaは小さな匿名のハートビート（アプリバージョン、システムタイプ、オブジェクト・リグ・ロケーション・ジャーナルなどのデータ入力件数）を送信します。個人情報は一切収集されず、いつでもオプトアウト可能です。許可いただくことで、Novaの改善に大変役立ちます。"
 
 #: templates/config_form.html:234
 msgid "Save Settings"
@@ -3573,16 +3574,16 @@ msgstr ""
 msgid "SQM Zenith:"
 msgstr "SQM 測定値："
 
-#: templates/config_form.html:301 templates/config_form.html:387
-#, fuzzy
-msgid "Zenith SQM (optional)"
-msgstr "リデューサー／エクステンダー（オプション）："
-
-#: templates/config_form.html:304 templates/config_form.html:390
+#: templates/config_form.html:300 templates/config_form.html:386
 msgid ""
 "Leave blank to derive from Bortle scale. Enter a measured SQM value "
 "(mag/arcsec²) if available."
 msgstr ""
+
+#: templates/config_form.html:302 templates/config_form.html:388
+#, fuzzy
+msgid "Zenith SQM (optional)"
+msgstr "リデューサー／エクステンダー（オプション）："
 
 #: templates/config_form.html:310 templates/config_form.html:395
 msgid "Horizon Mask:"
@@ -3642,10 +3643,11 @@ msgstr "リグのヘルプ"
 
 #: templates/config_form.html:445
 msgid ""
-"Add or update your equipment here. To edit an item, click \"Edit\" to "
-"load its details into the form, make your changes, and click the "
-"\"Update\" button."
-msgstr "ここで装備を追加または更新してください。アイテムを編集するには、「編集」をクリックして詳細をフォームに読み込み、変更を加えた後、「更新」ボタンをクリックしてください。"
+"Add or update your equipment here. To edit an item, click \"Edit\" to load "
+"its details into the form, make your changes, and click the \"Update\" "
+"button."
+msgstr ""
+"ここで装備を追加または更新してください。アイテムを編集するには、「編集」をクリックして詳細をフォームに読み込み、変更を加えた後、「更新」ボタンをクリックしてください。"
 
 #: templates/config_form.html:446
 msgid "Telescopes"
@@ -3722,9 +3724,10 @@ msgstr "2. リグの設定"
 
 #: templates/config_form.html:505
 msgid ""
-"Combine your components into a complete imaging rig. To edit, click "
-"\"Edit\" to load the rig into the form below."
-msgstr "コンポーネントを組み合わせて完全なイメージングリグを作成してください。編集するには「編集」をクリックし、リグを以下のフォームに読み込んでください。"
+"Combine your components into a complete imaging rig. To edit, click \"Edit\""
+" to load the rig into the form below."
+msgstr ""
+"コンポーネントを組み合わせて完全なイメージングリグを作成してください。編集するには「編集」をクリックし、リグを以下のフォームに読み込んでください。"
 
 #: templates/config_form.html:508
 msgid "Rig Name:"
@@ -3863,7 +3866,8 @@ msgstr "共有アイテムのヘルプ"
 msgid ""
 "Here you can find Objects and Components shared by other users in the "
 "system. Click \"Import\" to add a copy to your own configuration."
-msgstr "ここでは、システム内の他のユーザーが共有しているオブジェクトとコンポーネントを確認できます。「インポート」をクリックすると、自身の構成にコピーを追加できます。"
+msgstr ""
+"ここでは、システム内の他のユーザーが共有しているオブジェクトとコンポーネントを確認できます。「インポート」をクリックすると、自身の構成にコピーを追加できます。"
 
 #: templates/config_form.html:592
 msgid "Shared Objects"
@@ -4095,8 +4099,8 @@ msgstr "テキストソースリンク"
 
 #: templates/graph_view.html:231
 msgid ""
-"No inspiration content (custom image or description) has been added for "
-"this object yet."
+"No inspiration content (custom image or description) has been added for this"
+" object yet."
 msgstr ""
 
 #: templates/graph_view.html:232
@@ -4113,8 +4117,8 @@ msgstr "お近くの図書館を調べてみると...。"
 
 #: templates/graph_view.html:242
 msgid ""
-"Assessment is based on the object's largest dimension and may not reflect"
-" framing of specific features."
+"Assessment is based on the object's largest dimension and may not reflect "
+"framing of specific features."
 msgstr ""
 
 #: templates/graph_view.html:246
@@ -4176,8 +4180,8 @@ msgstr ""
 
 #: templates/graph_view.html:306
 msgid ""
-"Displays the approximate location of geostationary satellites (corrected "
-"for your latitude)"
+"Displays the approximate location of geostationary satellites (corrected for"
+" your latitude)"
 msgstr ""
 
 #: templates/graph_view.html:306
@@ -4242,8 +4246,8 @@ msgstr ""
 
 #: templates/graph_view.html:349
 msgid ""
-"Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., "
-"and Telescopius."
+"Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., and "
+"Telescopius."
 msgstr ""
 
 #: templates/graph_view.html:349
@@ -4284,8 +4288,7 @@ msgstr "期間"
 
 #: templates/graph_view.html:396
 msgid ""
-"Coordinates are JNow (Real Time / Mean Equinox of Date) to match your "
-"mount."
+"Coordinates are JNow (Real Time / Mean Equinox of Date) to match your mount."
 msgstr ""
 
 #: templates/graph_view.html:401
@@ -4769,9 +4772,10 @@ msgstr "例：1×1、2×2"
 
 #: templates/journal_form.html:158
 msgid ""
-"Enter number of subframes and exposure time (in seconds) per subframe for"
-" each filter used. Leave blank if not used."
-msgstr "使用する各フィルターごとに、サブフレーム数とサブフレームあたりの露光時間（秒単位）を入力してください。使用しない場合は空白のままにしてください。"
+"Enter number of subframes and exposure time (in seconds) per subframe for "
+"each filter used. Leave blank if not used."
+msgstr ""
+"使用する各フィルターごとに、サブフレーム数とサブフレームあたりの露光時間（秒単位）を入力してください。使用しない場合は空白のままにしてください。"
 
 #: templates/journal_form.html:167
 msgid "# Subs:"
@@ -5139,7 +5143,8 @@ msgid "View full mosaic plan"
 msgstr "モザイクプラン"
 
 #: templates/mobile_framing_coords.html:45
-#: templates/mobile_framing_coords.html:55 templates/mobile_mosaic_copy.html:24
+#: templates/mobile_framing_coords.html:55
+#: templates/mobile_mosaic_copy.html:24
 msgid "Copied!"
 msgstr "コピーしました！"
 
@@ -5487,10 +5492,9 @@ msgid "Exp"
 msgstr "実験"
 
 #~ msgid ""
-#~ "Go to %(strong_start)sConfiguration &gt; "
-#~ "Manage Objects%(strong_end)s to add "
-#~ "\"Inspiration Content\" (Image URLs, Credits,"
-#~ " Descriptions) to your targets."
+#~ "Go to %(strong_start)sConfiguration &gt; Manage Objects%(strong_end)s to add"
+#~ " \"Inspiration Content\" (Image URLs, Credits, Descriptions) to your "
+#~ "targets."
 #~ msgstr ""
 #~ "%(strong_start)s設定 > "
 #~ "オブジェクト管理%(strong_end)sにアクセスして、ターゲットに「インスピレーションコンテンツ」（画像URL、クレジット、説明文）を追加してください。"
@@ -5890,8 +5894,7 @@ msgstr "実験"
 #~ msgstr "外部ソース"
 
 #~ msgid ""
-#~ "No inspiration content (custom image or"
-#~ " description) has been added for this"
+#~ "No inspiration content (custom image or description) has been added for this"
 #~ " object yet."
 #~ msgstr "このオブジェクトには、まだインスピレーションコンテンツ（カスタム画像または説明文）が追加されていません。"
 
@@ -5902,9 +5905,8 @@ msgstr "実験"
 #~ msgstr "リグを用いたフレーミング"
 
 #~ msgid ""
-#~ "Assessment is based on the object's "
-#~ "largest dimension and may not reflect"
-#~ " framing of specific features."
+#~ "Assessment is based on the object's largest dimension and may not reflect "
+#~ "framing of specific features."
 #~ msgstr "評価は対象物の最大寸法に基づいており、特定の特徴の枠組みを反映していない場合があります。"
 
 #~ msgid "Rig Name"
@@ -5944,9 +5946,8 @@ msgstr "実験"
 #~ msgstr "ロックFOV"
 
 #~ msgid ""
-#~ "Displays the approximate location of "
-#~ "geostationary satellites (corrected for your"
-#~ " latitude)"
+#~ "Displays the approximate location of geostationary satellites (corrected for"
+#~ " your latitude)"
 #~ msgstr "静止衛星のおおよその位置を表示します（緯度に応じて補正済み）"
 
 #~ msgid "Geo Belt"
@@ -5983,8 +5984,7 @@ msgstr "実験"
 #~ msgstr "オーバーラップ %%"
 
 #~ msgid ""
-#~ "Generates a CSV format compatible with"
-#~ " ASIAIR (Plan Import), N.I.N.A., and "
+#~ "Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., and "
 #~ "Telescopius."
 #~ msgstr "ASIAIR（天体計画インポート）、N.I.N.A.、およびTelescopiusと互換性のあるCSV形式を生成します。"
 
@@ -6013,9 +6013,7 @@ msgstr "実験"
 #~ msgstr "飽和"
 
 #~ msgid ""
-#~ "Coordinates are JNow (Real Time / "
-#~ "Mean Equinox of Date) to match "
-#~ "your mount."
+#~ "Coordinates are JNow (Real Time / Mean Equinox of Date) to match your mount."
 #~ msgstr "座標はJNow（リアルタイム／日付の平均春分点）で、お使いの架台に合わせます。"
 
 #~ msgid "Copy"
@@ -6063,3 +6061,14 @@ msgstr "実験"
 #~ msgid "Nova couldn't load notes"
 #~ msgstr "Nova couldn't load notes"
 
+#~ msgid "User session error, please log in again."
+#~ msgstr "ユーザーセッションエラーが発生しました。再度ログインしてください。"
+
+#~ msgid "Active Login Days"
+#~ msgstr "アクティブなログイン日数"
+
+#~ msgid "Total Logins"
+#~ msgstr "総ログイン数"
+
+#~ msgid "Daily Logins (90 days)"
+#~ msgstr "デイリーログイン（90日間）"

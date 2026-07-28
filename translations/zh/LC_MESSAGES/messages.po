@@ -7,15 +7,15 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-02 20:18+0800\n"
+"POT-Creation-Date: 2026-07-28 22:39+0200\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language: zh\n"
 "Language-Team: zh <LL@li.org>\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
+"Language: zh\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 "Generated-By: Babel 2.18.0\n"
 
 #: nova/log_parser.py:931
@@ -121,66 +121,66 @@ msgstr "无法删除管理员账户。"
 msgid "User '%(username)s' deleted."
 msgstr "用户'%(username)s'已删除。"
 
-#: nova/blueprints/api.py:157
+#: nova/blueprints/api.py:168
 msgid "Object not found"
 msgstr "未找到对象"
 
-#: nova/blueprints/api.py:436
+#: nova/blueprints/api.py:447
 #, python-format
 msgid "<p>Error reading help file: %(error)s</p>"
 msgstr "<p>读取帮助文件时出错：%(error)s</p>"
 
-#: nova/blueprints/api.py:1471
+#: nova/blueprints/api.py:1482
 msgid "No file uploaded"
 msgstr "未上传文件"
 
-#: nova/blueprints/api.py:1475
+#: nova/blueprints/api.py:1486
 msgid "Empty filename"
 msgstr "文件名为空"
 
-#: nova/blueprints/api.py:1482
+#: nova/blueprints/api.py:1493
 #, fuzzy
 msgid "File is too large. Maximum size is 10 MB."
 msgstr "NINA 日志文件过大。最大为 10 MB。"
 
-#: nova/blueprints/api.py:1525 nova/blueprints/api.py:2756
+#: nova/blueprints/api.py:1536 nova/blueprints/api.py:2760
 msgid "User not found"
 msgstr "未找到用户"
 
-#: nova/blueprints/api.py:1529
+#: nova/blueprints/api.py:1540
 msgid "Session not found"
 msgstr "未找到会话"
 
-#: nova/blueprints/api.py:2430
+#: nova/blueprints/api.py:2441
 msgid "Object data not found or invalid."
 msgstr "未找到对象数据或数据无效。"
 
-#: nova/blueprints/api.py:2434
+#: nova/blueprints/api.py:2445
 msgid "RA/DEC missing for object."
 msgstr "缺少对象的RA/DEC。"
 
-#: nova/blueprints/api.py:2439
+#: nova/blueprints/api.py:2450
 msgid "Invalid RA/DEC format for object."
 msgstr "对象的RA/DEC格式无效。"
 
-#: nova/blueprints/api.py:2616
+#: nova/blueprints/api.py:2620
 msgid "Could not generate time series for plot."
 msgstr "无法生成图表的时间序列。"
 
-#: nova/blueprints/api.py:2720
+#: nova/blueprints/api.py:2724
 msgid "Location not configured"
 msgstr "未配置位置"
 
-#: nova/blueprints/api.py:3637
+#: nova/blueprints/api.py:3698
 msgid "Missing or invalid lat/lon parameters"
 msgstr ""
 
-#: nova/blueprints/api.py:3646
+#: nova/blueprints/api.py:3707
 #, fuzzy
 msgid "Invalid datetime format"
 msgstr "日期格式无效。"
 
-#: nova/blueprints/api.py:3666
+#: nova/blueprints/api.py:3727
 #, fuzzy
 msgid "Calibration star catalog not found"
 msgstr "校准策略"
@@ -225,7 +225,8 @@ msgid "SSO Error: User '%(username)s' not found or is disabled in Nova."
 msgstr "SSO错误：未找到用户'%(username)s'或已在Nova中禁用。"
 
 #: nova/blueprints/core.py:333
-msgid "SSO Error: The login link has expired. Please try again from WordPress."
+msgid ""
+"SSO Error: The login link has expired. Please try again from WordPress."
 msgstr "SSO错误：登录链接已过期。请从WordPress重试。"
 
 #: nova/blueprints/core.py:336
@@ -302,140 +303,144 @@ msgstr "未找到缺失数据或无需更新。"
 msgid "An error occurred during data fetching: %(error)s"
 msgstr "数据获取期间发生错误：%(error)s"
 
-#: nova/blueprints/core.py:1718
+#: nova/blueprints/core.py:1720
 msgid "Please log in to view object details."
 msgstr "请登录以查看对象详细信息。"
 
-#: nova/blueprints/core.py:1733
+#: nova/blueprints/core.py:1735
 #, python-format
 msgid "User '%(username)s' not found."
 msgstr "未找到用户'%(username)s'。"
 
-#: nova/blueprints/core.py:1749
+#: nova/blueprints/core.py:1751
 #, python-format
 msgid "Requested location '%(location_name)s' not found, using default."
 msgstr "请求的位置'%(location_name)s'未找到，使用默认值。"
 
-#: nova/blueprints/core.py:1767
+#: nova/blueprints/core.py:1769
 msgid "Error: No valid location configured or selected for this user."
 msgstr "错误：此用户未配置或选择有效的位置。"
 
-#: nova/blueprints/core.py:1785
+#: nova/blueprints/core.py:1787
 #, python-format
 msgid "Object '%(object_name)s' not found in your configuration."
 msgstr "在您的配置中未找到对象'%(object_name)s'。"
 
-#: nova/blueprints/core.py:2027
+#: nova/blueprints/core.py:2029
 msgid "Invalid date components provided, defaulting to current date."
 msgstr "提供的日期组件无效，默认为当前日期。"
 
-#: nova/blueprints/core.py:2236
+#: nova/blueprints/core.py:2240
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
 msgstr "加载%(object_name)s的详细信息时发生错误。"
 
-#: nova/blueprints/journal.py:70
-msgid "User session error, please log in again."
-msgstr "用户会话错误，请重新登录。"
-
-#: nova/blueprints/journal.py:120 nova/blueprints/journal.py:430
+#: nova/blueprints/journal.py:95 nova/blueprints/journal.py:414
 #: nova/blueprints/mobile.py:550
 msgid "Invalid date format."
 msgstr "日期格式无效。"
 
-#: nova/blueprints/journal.py:291 nova/blueprints/journal.py:616
+#: nova/blueprints/journal.py:266 nova/blueprints/journal.py:600
 #, fuzzy
 msgid "Session image is too large. Maximum size is 5 MB."
 msgstr "NINA 日志文件过大。最大为 10 MB。"
 
-#: nova/blueprints/journal.py:315
+#: nova/blueprints/journal.py:289 nova/blueprints/journal.py:621
+msgid "ASIAir log file must be a .log file."
+msgstr "ASIAir 日志文件必须是 .log 文件。"
+
+#: nova/blueprints/journal.py:293 nova/blueprints/journal.py:632
 #, fuzzy
 msgid "ASIAir log file is too large. Maximum size is 10 MB."
 msgstr "NINA 日志文件过大。最大为 10 MB。"
 
-#: nova/blueprints/journal.py:326
+#: nova/blueprints/journal.py:303 nova/blueprints/journal.py:646
+msgid "PHD2 log file must be a .log file."
+msgstr "PHD2 日志文件必须是 .log 文件。"
+
+#: nova/blueprints/journal.py:307 nova/blueprints/journal.py:657
 #, fuzzy
 msgid "PHD2 log file is too large. Maximum size is 10 MB."
 msgstr "NINA 日志文件过大。最大为 10 MB。"
 
-#: nova/blueprints/journal.py:337 nova/blueprints/journal.py:667
-msgid "NINA log file is too large. Maximum size is 10 MB."
-msgstr "NINA 日志文件过大。最大为 10 MB。"
-
-#: nova/blueprints/journal.py:371 nova/blueprints/mobile.py:703
-msgid "New journal entry added successfully!"
-msgstr "新日记条目添加成功！"
-
-#: nova/blueprints/journal.py:397
-msgid "To add a new session, please select an object first."
-msgstr "要添加新会话，请先选择一个对象。"
-
-#: nova/blueprints/journal.py:412
-msgid "Journal entry not found or you do not have permission to edit it."
-msgstr "未找到日记条目或您没有权限编辑它。"
-
-#: nova/blueprints/journal.py:655
+#: nova/blueprints/journal.py:317 nova/blueprints/journal.py:673
 msgid "NINA log file must be a .log file."
 msgstr "NINA 日志文件必须是 .log 文件。"
 
-#: nova/blueprints/journal.py:676
+#: nova/blueprints/journal.py:321 nova/blueprints/journal.py:685
+msgid "NINA log file is too large. Maximum size is 10 MB."
+msgstr "NINA 日志文件过大。最大为 10 MB。"
+
+#: nova/blueprints/journal.py:355 nova/blueprints/mobile.py:703
+msgid "New journal entry added successfully!"
+msgstr "新日记条目添加成功！"
+
+#: nova/blueprints/journal.py:381
+msgid "To add a new session, please select an object first."
+msgstr "要添加新会话，请先选择一个对象。"
+
+#: nova/blueprints/journal.py:396
+msgid "Journal entry not found or you do not have permission to edit it."
+msgstr "未找到日记条目或您没有权限编辑它。"
+
+#: nova/blueprints/journal.py:694
 #, fuzzy
 msgid "NINA log imported successfully."
 msgstr "Rig删除成功。"
 
-#: nova/blueprints/journal.py:706
+#: nova/blueprints/journal.py:724
 msgid "Journal entry updated successfully!"
 msgstr "日记条目更新成功！"
 
-#: nova/blueprints/journal.py:729
+#: nova/blueprints/journal.py:747
 msgid "Cannot edit session: associated object name is missing."
 msgstr "无法编辑会话：关联的对象名称缺失。"
 
-#: nova/blueprints/journal.py:755
+#: nova/blueprints/journal.py:773
 msgid "Project name is required."
 msgstr "项目名称为必填项。"
 
-#: nova/blueprints/journal.py:761
+#: nova/blueprints/journal.py:779
 #, python-format
 msgid "A project named '%(project_name)s' already exists."
 msgstr "名为'%(project_name)s'的项目已存在。"
 
-#: nova/blueprints/journal.py:788
+#: nova/blueprints/journal.py:806
 #, python-format
 msgid "Project '%(project_name)s' created successfully."
 msgstr "项目'%(project_name)s'创建成功。"
 
-#: nova/blueprints/journal.py:804
+#: nova/blueprints/journal.py:822
 #, python-format
 msgid "Error creating project: %(error)s"
 msgstr "创建项目时出错：%(error)s"
 
-#: nova/blueprints/journal.py:819
+#: nova/blueprints/journal.py:837
 msgid "Session to duplicate not found."
 msgstr "未找到要复制的会话。"
 
-#: nova/blueprints/journal.py:844
+#: nova/blueprints/journal.py:862
 msgid "Session duplicated successfully."
 msgstr "会话复制成功。"
 
-#: nova/blueprints/journal.py:855
+#: nova/blueprints/journal.py:873
 #, python-format
 msgid "Error duplicating session: %(error)s"
 msgstr "复制会话时出错：%(error)s"
 
-#: nova/blueprints/journal.py:877
+#: nova/blueprints/journal.py:895
 msgid "Journal entry deleted successfully."
 msgstr "日记条目删除成功。"
 
-#: nova/blueprints/journal.py:883
+#: nova/blueprints/journal.py:901
 msgid "Journal entry not found or you do not have permission to delete it."
 msgstr "未找到日记条目或您没有权限删除它。"
 
-#: nova/blueprints/journal.py:900 nova/blueprints/journal.py:1054
+#: nova/blueprints/journal.py:918 nova/blueprints/journal.py:1072
 msgid "Session not found."
 msgstr "未找到会话。"
 
-#: nova/blueprints/journal.py:1062 nova/blueprints/projects.py:358
+#: nova/blueprints/journal.py:1080 nova/blueprints/projects.py:358
 msgid "Project not found."
 msgstr "未找到项目。"
 
@@ -597,7 +602,8 @@ msgid "Cannot import: Configuration must contain at least one location."
 msgstr "无法导入：配置必须包含至少一个位置。"
 
 #: nova/blueprints/tools.py:728
-msgid "Cannot import: Configuration must contain at least one active location."
+msgid ""
+"Cannot import: Configuration must contain at least one active location."
 msgstr "无法导入：配置必须包含至少一个活动位置。"
 
 #: nova/blueprints/tools.py:761
@@ -742,8 +748,8 @@ msgstr "点击查看项目详细信息"
 #: templates/_heatmap_section.html:23
 #, fuzzy
 msgid ""
-"* Vertical bands = Full Moon. Darker teal = Best visibility. Click any "
-"cell to view details."
+"* Vertical bands = Full Moon. Darker teal = Best visibility. Click any cell "
+"to view details."
 msgstr "* 垂直光带 = 满月（被冲刷）。深绿色 = 最佳质量。点击天体名称查看详情。"
 
 #: templates/_inspiration_section.html:470
@@ -776,11 +782,12 @@ msgstr "星座"
 msgid "Source: Wiki"
 msgstr "来源：Wiki"
 
-#: templates/_inspiration_section.html:504 templates/_journal_section.html:2503
-#: templates/_objects_section.html:427 templates/_objects_section.html:442
-#: templates/base.html:384 templates/base.html:401 templates/base.html:406
-#: templates/base.html:415 templates/base.html:453
-#: templates/config_form.html:701 templates/graph_view.html:294
+#: templates/_inspiration_section.html:504
+#: templates/_journal_section.html:2503 templates/_objects_section.html:427
+#: templates/_objects_section.html:442 templates/base.html:384
+#: templates/base.html:401 templates/base.html:406 templates/base.html:415
+#: templates/base.html:453 templates/config_form.html:701
+#: templates/graph_view.html:294
 msgid "Close"
 msgstr "关闭"
 
@@ -1424,8 +1431,8 @@ msgstr "编辑项目"
 
 #: templates/_journal_section.html:2042
 msgid ""
-"Are you sure you want to delete this project? Linked sessions will become"
-" standalone."
+"Are you sure you want to delete this project? Linked sessions will become "
+"standalone."
 msgstr "您确定要删除此项目吗？关联的会话将变为独立的。"
 
 #: templates/_journal_section.html:2044
@@ -1580,8 +1587,8 @@ msgstr "未选择会话"
 
 #: templates/_journal_section.html:2235
 msgid ""
-"Select a session or project from the list on the left to view details, or"
-" click 'Add New Session'."
+"Select a session or project from the list on the left to view details, or "
+"click 'Add New Session'."
 msgstr "从左侧列表中选择会话或项目查看详细信息，或点击'添加新会话'。"
 
 #: templates/_journal_section.html:2245
@@ -2358,12 +2365,13 @@ msgstr "可能的重复项"
 
 #: templates/_objects_section.html:435
 msgid ""
-"These pairs are located within 2.5 arcminutes of each other. Merging will"
-" move all journals, projects, and framings to the \"Kept\" object and "
-"delete the other. Please note that objects from different catalogs might "
-"have slightly different RA / DEC and will therefore not be considered as "
+"These pairs are located within 2.5 arcminutes of each other. Merging will "
+"move all journals, projects, and framings to the \"Kept\" object and delete "
+"the other. Please note that objects from different catalogs might have "
+"slightly different RA / DEC and will therefore not be considered as "
 "duplicates."
-msgstr "这些对彼此位于2.5角分之内。合并将所有日记、项目和构图移至\"保留\"天体，并删除另一个天体。请注意，来自不同星表的天体可能具有略有不同的RA/DEC，因此不会被视为重复项。"
+msgstr ""
+"这些对彼此位于2.5角分之内。合并将所有日记、项目和构图移至\"保留\"天体，并删除另一个天体。请注意，来自不同星表的天体可能具有略有不同的RA/DEC，因此不会被视为重复项。"
 
 #: templates/_objects_section.html:438
 msgid "Scanning catalog... (this may take a few seconds)"
@@ -2411,9 +2419,9 @@ msgstr "添加到日历"
 
 #: templates/_project_subtab.html:145
 msgid ""
-"This object is not currently linked to a Project. The **Project Details**"
-" sub-tab will only appear if the object is the primary target of an "
-"existing project."
+"This object is not currently linked to a Project. The **Project Details** "
+"sub-tab will only appear if the object is the primary target of an existing "
+"project."
 msgstr "此天体当前未关联到项目。仅当天体是现有项目的主要目标时，才会显示**项目详细信息**子选项卡。"
 
 #: templates/_project_subtab.html:153
@@ -2602,18 +2610,6 @@ msgstr "用户活动"
 #: templates/analytics.html:261
 msgid "Total Users"
 msgstr "总用户数"
-
-#: templates/analytics.html:265
-msgid "Active Login Days"
-msgstr "活跃登录天数"
-
-#: templates/analytics.html:269
-msgid "Total Logins"
-msgstr "总登录次数"
-
-#: templates/analytics.html:274
-msgid "Daily Logins (90 days)"
-msgstr "每日登录（90 天）"
 
 #: templates/analytics.html:279
 msgid "login(s)"
@@ -2941,8 +2937,7 @@ msgstr "添加组件时出错：%(error)s"
 #: templates/base.html:193
 #, python-format
 msgid ""
-"Failed to load imaging opportunities. Check console for details. "
-"(%(error)s)"
+"Failed to load imaging opportunities. Check console for details. (%(error)s)"
 msgstr "加载成像机会失败。请查看控制台了解详情。(%(error)s)"
 
 #: templates/base.html:194
@@ -3222,15 +3217,15 @@ msgid "Version"
 msgstr "版本"
 
 #: templates/base.html:425
-msgid "A personal project born from a passion for astronomy and astrophotography."
+msgid ""
+"A personal project born from a passion for astronomy and astrophotography."
 msgstr "一个因对天文学和天体摄影的热情而诞生的个人项目。"
 
 #: templates/base.html:426
 msgid ""
 "Nova DSO Tracker helps amateur astronomers plan observation sessions, "
 "calculating and visualizing altitude and azimuth of deep-sky objects, "
-"tracking Moon position and phase, and identifying optimal viewing "
-"windows."
+"tracking Moon position and phase, and identifying optimal viewing windows."
 msgstr "Nova DSO Tracker 帮助业余天文学家规划观测会话，计算和可视化深空天体的高度和方位，跟踪月球位置和相位，并确定最佳观测窗口。"
 
 #: templates/base.html:427
@@ -3405,8 +3400,8 @@ msgstr "计算不可见天体："
 #: templates/config_form.html:188
 msgid ""
 "If checked, Nova will calculate curves for ALL objects, even those "
-"geometrically impossible to see from your location (disabling the \"Smart"
-" Skip\" optimization)."
+"geometrically impossible to see from your location (disabling the \"Smart "
+"Skip\" optimization)."
 msgstr "如果选中，Nova将计算所有天体的曲线，包括从您的位置几何上不可能看到的天体（禁用\"智能跳过\"优化）。"
 
 #: templates/config_form.html:194
@@ -3415,9 +3410,9 @@ msgstr "隐藏不可见天体："
 
 #: templates/config_form.html:199
 msgid ""
-"If checked, objects that are geometrically impossible to see will be "
-"hidden from the main list by default. They will still appear if you "
-"specifically search for them."
+"If checked, objects that are geometrically impossible to see will be hidden "
+"from the main list by default. They will still appear if you specifically "
+"search for them."
 msgstr "如果选中，几何上不可能看到的天体将默认从主列表中隐藏。如果您专门搜索它们，它们仍会显示。"
 
 #: templates/config_form.html:206
@@ -3448,8 +3443,8 @@ msgstr "最快（60 分钟采样）"
 msgid ""
 "Note: Your 'Current Altitude' is always calculated in real-time. This "
 "setting only refines the accuracy of the nightly overview values (Max "
-"Altitude, Observable Duration, etc.). 'Fast' is recommended for low-power"
-" devices."
+"Altitude, Observable Duration, etc.). 'Fast' is recommended for low-power "
+"devices."
 msgstr "注意：您的'当前高度'始终实时计算。此设置仅优化夜览概览值的准确性（最大高度、可观测持续时间等）。对于低功耗设备，建议使用'快速'。"
 
 #: templates/config_form.html:224
@@ -3458,11 +3453,12 @@ msgstr "匿名遥测："
 
 #: templates/config_form.html:229
 msgid ""
-"Nova sends a small anonymous heartbeat (app version, system type, and "
-"counts of your data entries like objects, rigs, locations, and journals)."
-" No personal details are ever collected, and you can opt out anytime. "
-"Allowing it really helps me improve Nova."
-msgstr "Nova会发送一个小的匿名心跳（应用版本、系统类型和您的数据条目计数，如天体、设备配置、位置和日记）。绝不会收集个人详细信息，您可以随时选择退出。允许它确实有助于我改进Nova。"
+"Nova sends a small anonymous heartbeat (app version, system type, and counts"
+" of your data entries like objects, rigs, locations, and journals). No "
+"personal details are ever collected, and you can opt out anytime. Allowing "
+"it really helps me improve Nova."
+msgstr ""
+"Nova会发送一个小的匿名心跳（应用版本、系统类型和您的数据条目计数，如天体、设备配置、位置和日记）。绝不会收集个人详细信息，您可以随时选择退出。允许它确实有助于我改进Nova。"
 
 #: templates/config_form.html:234
 msgid "Save Settings"
@@ -3567,16 +3563,16 @@ msgstr ""
 msgid "SQM Zenith:"
 msgstr "SQM读数："
 
-#: templates/config_form.html:301 templates/config_form.html:387
-#, fuzzy
-msgid "Zenith SQM (optional)"
-msgstr "抖动说明（可选）："
-
-#: templates/config_form.html:304 templates/config_form.html:390
+#: templates/config_form.html:300 templates/config_form.html:386
 msgid ""
 "Leave blank to derive from Bortle scale. Enter a measured SQM value "
 "(mag/arcsec²) if available."
 msgstr ""
+
+#: templates/config_form.html:302 templates/config_form.html:388
+#, fuzzy
+msgid "Zenith SQM (optional)"
+msgstr "抖动说明（可选）："
 
 #: templates/config_form.html:310 templates/config_form.html:395
 msgid "Horizon Mask:"
@@ -3636,9 +3632,9 @@ msgstr "设备帮助"
 
 #: templates/config_form.html:445
 msgid ""
-"Add or update your equipment here. To edit an item, click \"Edit\" to "
-"load its details into the form, make your changes, and click the "
-"\"Update\" button."
+"Add or update your equipment here. To edit an item, click \"Edit\" to load "
+"its details into the form, make your changes, and click the \"Update\" "
+"button."
 msgstr "在此处添加或更新您的设备。要编辑项目，请点击\"编辑\"将其详细信息加载到表单中，进行更改，然后点击\"更新\"按钮。"
 
 #: templates/config_form.html:446
@@ -3716,8 +3712,8 @@ msgstr "2. 配置您的设备"
 
 #: templates/config_form.html:505
 msgid ""
-"Combine your components into a complete imaging rig. To edit, click "
-"\"Edit\" to load the rig into the form below."
+"Combine your components into a complete imaging rig. To edit, click \"Edit\""
+" to load the rig into the form below."
 msgstr "将您的组件组合成完整的成像设备。要编辑，请点击\"编辑\"将设备加载到下方的表单中。"
 
 #: templates/config_form.html:508
@@ -4089,8 +4085,8 @@ msgstr "文字来源链接"
 
 #: templates/graph_view.html:231
 msgid ""
-"No inspiration content (custom image or description) has been added for "
-"this object yet."
+"No inspiration content (custom image or description) has been added for this"
+" object yet."
 msgstr ""
 
 #: templates/graph_view.html:232
@@ -4105,8 +4101,8 @@ msgstr "查看当地图书馆..."
 
 #: templates/graph_view.html:242
 msgid ""
-"Assessment is based on the object's largest dimension and may not reflect"
-" framing of specific features."
+"Assessment is based on the object's largest dimension and may not reflect "
+"framing of specific features."
 msgstr ""
 
 #: templates/graph_view.html:246
@@ -4168,8 +4164,8 @@ msgstr ""
 
 #: templates/graph_view.html:306
 msgid ""
-"Displays the approximate location of geostationary satellites (corrected "
-"for your latitude)"
+"Displays the approximate location of geostationary satellites (corrected for"
+" your latitude)"
 msgstr ""
 
 #: templates/graph_view.html:306
@@ -4234,8 +4230,8 @@ msgstr ""
 
 #: templates/graph_view.html:349
 msgid ""
-"Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., "
-"and Telescopius."
+"Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., and "
+"Telescopius."
 msgstr ""
 
 #: templates/graph_view.html:349
@@ -4276,8 +4272,7 @@ msgstr "持续时间"
 
 #: templates/graph_view.html:396
 msgid ""
-"Coordinates are JNow (Real Time / Mean Equinox of Date) to match your "
-"mount."
+"Coordinates are JNow (Real Time / Mean Equinox of Date) to match your mount."
 msgstr ""
 
 #: templates/graph_view.html:401
@@ -4761,8 +4756,8 @@ msgstr "例如 1x1, 2x2"
 
 #: templates/journal_form.html:158
 msgid ""
-"Enter number of subframes and exposure time (in seconds) per subframe for"
-" each filter used. Leave blank if not used."
+"Enter number of subframes and exposure time (in seconds) per subframe for "
+"each filter used. Leave blank if not used."
 msgstr "输入每个使用的滤镜的子帧数量和每个子帧的曝光时间（秒）。如果未使用，请留空。"
 
 #: templates/journal_form.html:167
@@ -5131,7 +5126,8 @@ msgid "View full mosaic plan"
 msgstr "查看完整马赛克平面图"
 
 #: templates/mobile_framing_coords.html:45
-#: templates/mobile_framing_coords.html:55 templates/mobile_mosaic_copy.html:24
+#: templates/mobile_framing_coords.html:55
+#: templates/mobile_mosaic_copy.html:24
 msgid "Copied!"
 msgstr "已复制！"
 
@@ -5479,10 +5475,9 @@ msgid "Exp"
 msgstr "曝光"
 
 #~ msgid ""
-#~ "Go to %(strong_start)sConfiguration &gt; "
-#~ "Manage Objects%(strong_end)s to add "
-#~ "\"Inspiration Content\" (Image URLs, Credits,"
-#~ " Descriptions) to your targets."
+#~ "Go to %(strong_start)sConfiguration &gt; Manage Objects%(strong_end)s to add"
+#~ " \"Inspiration Content\" (Image URLs, Credits, Descriptions) to your "
+#~ "targets."
 #~ msgstr "前往%(strong_start)s配置 > 管理对象%(strong_end)s，为您的目标添加「灵感内容」（图片URL、来源、描述）。"
 
 #~ msgid "Add own inspiration"
@@ -5880,8 +5875,7 @@ msgstr "曝光"
 #~ msgstr "外部来源"
 
 #~ msgid ""
-#~ "No inspiration content (custom image or"
-#~ " description) has been added for this"
+#~ "No inspiration content (custom image or description) has been added for this"
 #~ " object yet."
 #~ msgstr "尚未为此天体添加灵感内容（自定义图像或描述）。"
 
@@ -5892,9 +5886,8 @@ msgstr "曝光"
 #~ msgstr "使用您的设备构图"
 
 #~ msgid ""
-#~ "Assessment is based on the object's "
-#~ "largest dimension and may not reflect"
-#~ " framing of specific features."
+#~ "Assessment is based on the object's largest dimension and may not reflect "
+#~ "framing of specific features."
 #~ msgstr "评估基于天体的最大尺寸，可能不反映特定特征的构图。"
 
 #~ msgid "Rig Name"
@@ -5934,9 +5927,8 @@ msgstr "曝光"
 #~ msgstr "锁定视场"
 
 #~ msgid ""
-#~ "Displays the approximate location of "
-#~ "geostationary satellites (corrected for your"
-#~ " latitude)"
+#~ "Displays the approximate location of geostationary satellites (corrected for"
+#~ " your latitude)"
 #~ msgstr "显示地球静止轨道卫星的大致位置（针对您的纬度进行了校正）"
 
 #~ msgid "Geo Belt"
@@ -5973,8 +5965,7 @@ msgstr "曝光"
 #~ msgstr "重叠 %%"
 
 #~ msgid ""
-#~ "Generates a CSV format compatible with"
-#~ " ASIAIR (Plan Import), N.I.N.A., and "
+#~ "Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., and "
 #~ "Telescopius."
 #~ msgstr "生成与ASIAIR（计划导入）、N.I.N.A.和Telescopius兼容的CSV格式。"
 
@@ -6003,9 +5994,7 @@ msgstr "曝光"
 #~ msgstr "饱和度"
 
 #~ msgid ""
-#~ "Coordinates are JNow (Real Time / "
-#~ "Mean Equinox of Date) to match "
-#~ "your mount."
+#~ "Coordinates are JNow (Real Time / Mean Equinox of Date) to match your mount."
 #~ msgstr "坐标为JNow（实时/日期平均分点），以匹配您的赤道仪。"
 
 #~ msgid "Copy"
@@ -6053,3 +6042,14 @@ msgstr "曝光"
 #~ msgid "Nova couldn't load notes"
 #~ msgstr "Nova couldn't load notes"
 
+#~ msgid "User session error, please log in again."
+#~ msgstr "用户会话错误，请重新登录。"
+
+#~ msgid "Active Login Days"
+#~ msgstr "活跃登录天数"
+
+#~ msgid "Total Logins"
+#~ msgstr "总登录次数"
+
+#~ msgid "Daily Logins (90 days)"
+#~ msgstr "每日登录（90 天）"
