@@ -2430,6 +2430,10 @@ def build_telemetry_payload(user_config, browser_user_agent: str = ''):
 
 def send_telemetry_async(user_config, browser_user_agent: str = '', force: bool = False):
     """Non-blocking send; obeys enable flag and once-per-24h rule."""
+    # Hard gate via TELEMETRY_ENABLED env var.  Checked before anything else so
+    # that background-daemon threads (which have no Flask `g`) also respect it.
+    if os.getenv('TELEMETRY_ENABLED', 'true').lower() != 'true':
+        return
     try:
         tcfg = user_config.get('telemetry', {})
         enabled_flag = tcfg.get('enabled', True)
