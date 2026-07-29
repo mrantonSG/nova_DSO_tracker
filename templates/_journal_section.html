@@ -2605,6 +2605,15 @@ const journalI18n = {
         return div.innerHTML;
     }
 
+    // Filter objects by in-progress-only checkbox
+    function getFiltered(items) {
+        const checkbox = document.getElementById('jss-in-progress-only');
+        if (checkbox && checkbox.checked) {
+            return items.filter(obj => obj.active_project);
+        }
+        return items;
+    }
+
     // Sort objects based on current sort mode
     function getSorted(items) {
         const mode = sortSelect ? sortSelect.value : 'recent';
@@ -2649,8 +2658,9 @@ const journalI18n = {
     function renderList(allObjects, searchTerm) {
         if (!listContainer) return;
 
-        // Sort first
-        const sorted = getSorted(allObjects);
+        // Filter by in-progress checkbox, then sort
+        const filteredByProgress = getFiltered(allObjects);
+        const sorted = getSorted(filteredByProgress);
         // Then filter
         const filtered = searchTerm ? filterObjects(sorted, searchTerm) : sorted;
 
@@ -2762,6 +2772,19 @@ const journalI18n = {
             renderList(objects, currentSearchTerm);
         });
     }
+
+    // Event: In-progress-only checkbox change
+    (function() {
+        const checkbox = document.getElementById('jss-in-progress-only');
+        if (checkbox) {
+            checkbox.addEventListener('change', function() {
+                // Use cached data — no re-fetch needed
+                const objects = objectsCache || [];
+                activeIndex = -1;
+                renderList(objects, currentSearchTerm);
+            });
+        }
+    })();
 
     // Event: Keyboard navigation
     document.addEventListener('keydown', function(e) {
