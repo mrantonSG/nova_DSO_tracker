@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-07-28 22:39+0200\n"
+"POT-Creation-Date: 2026-07-29 20:13+0200\n"
 "PO-Revision-Date: 2026-03-03 13:38+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -118,60 +118,60 @@ msgstr ""
 msgid "Object not found"
 msgstr ""
 
-#: nova/blueprints/api.py:447
+#: nova/blueprints/api.py:450
 #, python-format
 msgid "<p>Error reading help file: %(error)s</p>"
 msgstr ""
 
-#: nova/blueprints/api.py:1482
+#: nova/blueprints/api.py:1485
 msgid "No file uploaded"
 msgstr ""
 
-#: nova/blueprints/api.py:1486
+#: nova/blueprints/api.py:1489
 msgid "Empty filename"
 msgstr ""
 
-#: nova/blueprints/api.py:1493
+#: nova/blueprints/api.py:1496
 msgid "File is too large. Maximum size is 10 MB."
 msgstr ""
 
-#: nova/blueprints/api.py:1536 nova/blueprints/api.py:2760
+#: nova/blueprints/api.py:1539 nova/blueprints/api.py:2763
 msgid "User not found"
 msgstr ""
 
-#: nova/blueprints/api.py:1540
+#: nova/blueprints/api.py:1543
 msgid "Session not found"
 msgstr ""
 
-#: nova/blueprints/api.py:2441
+#: nova/blueprints/api.py:2444
 msgid "Object data not found or invalid."
 msgstr ""
 
-#: nova/blueprints/api.py:2445
+#: nova/blueprints/api.py:2448
 msgid "RA/DEC missing for object."
 msgstr ""
 
-#: nova/blueprints/api.py:2450
+#: nova/blueprints/api.py:2453
 msgid "Invalid RA/DEC format for object."
 msgstr ""
 
-#: nova/blueprints/api.py:2620
+#: nova/blueprints/api.py:2623
 msgid "Could not generate time series for plot."
 msgstr ""
 
-#: nova/blueprints/api.py:2724
+#: nova/blueprints/api.py:2727
 msgid "Location not configured"
 msgstr ""
 
-#: nova/blueprints/api.py:3698
+#: nova/blueprints/api.py:3701
 msgid "Missing or invalid lat/lon parameters"
 msgstr ""
 
-#: nova/blueprints/api.py:3707
+#: nova/blueprints/api.py:3710
 msgid "Invalid datetime format"
 msgstr ""
 
-#: nova/blueprints/api.py:3727
+#: nova/blueprints/api.py:3730
 msgid "Calibration star catalog not found"
 msgstr ""
 
@@ -763,7 +763,7 @@ msgstr ""
 msgid "Source: Wiki"
 msgstr ""
 
-#: templates/_inspiration_section.html:504 templates/_journal_section.html:2503
+#: templates/_inspiration_section.html:504 templates/_journal_section.html:2504
 #: templates/_objects_section.html:427 templates/_objects_section.html:442
 #: templates/base.html:384 templates/base.html:401 templates/base.html:406
 #: templates/base.html:415 templates/base.html:453
@@ -1498,7 +1498,7 @@ msgid "Save Project"
 msgstr ""
 
 #: templates/_journal_section.html:2176 templates/_journal_section.html:2246
-#: templates/_journal_section.html:2279 templates/_journal_section.html:2563
+#: templates/_journal_section.html:2279 templates/_journal_section.html:2564
 #: templates/_objects_section.html:347 templates/_project_subtab.html:232
 #: templates/admin_users.html:120 templates/base.html:486
 #: templates/graph_view.html:486 templates/index.html:278
@@ -1762,26 +1762,26 @@ msgid "Monochrome Filter Exposures"
 msgstr ""
 
 #: templates/_journal_section.html:2349 templates/_journal_section.html:2367
-#: templates/_journal_section.html:2541
+#: templates/_journal_section.html:2542
 msgid "# Subs"
 msgstr ""
 
 #: templates/_journal_section.html:2349 templates/_journal_section.html:2370
-#: templates/_journal_section.html:2542 templates/journal_form.html:168
+#: templates/_journal_section.html:2543 templates/journal_form.html:168
 msgid "Count"
 msgstr ""
 
 #: templates/_journal_section.html:2350 templates/_journal_section.html:2374
-#: templates/_journal_section.html:2543 templates/journal_form.html:171
+#: templates/_journal_section.html:2544 templates/journal_form.html:171
 msgid "Exp (sec/sub):"
 msgstr ""
 
 #: templates/_journal_section.html:2350 templates/_journal_section.html:2377
-#: templates/_journal_section.html:2544 templates/journal_form.html:172
+#: templates/_journal_section.html:2545 templates/journal_form.html:172
 msgid "Seconds"
 msgstr ""
 
-#: templates/_journal_section.html:2364 templates/_journal_section.html:2540
+#: templates/_journal_section.html:2364 templates/_journal_section.html:2541
 msgid "Remove filter"
 msgstr ""
 
@@ -1817,7 +1817,7 @@ msgstr ""
 msgid "General Notes, Problems, Learnings:"
 msgstr ""
 
-#: templates/_journal_section.html:2409 templates/_journal_section.html:2553
+#: templates/_journal_section.html:2409 templates/_journal_section.html:2554
 msgid "Ask Nova for session summary"
 msgstr ""
 
@@ -1877,96 +1877,100 @@ msgstr ""
 msgid "Most Hours"
 msgstr ""
 
-#: templates/_journal_section.html:2538
-msgid "Failed to fetch objects"
+#: templates/_journal_section.html:2496
+msgid "In Progress only"
 msgstr ""
 
 #: templates/_journal_section.html:2539
+msgid "Failed to fetch objects"
+msgstr ""
+
+#: templates/_journal_section.html:2540
 msgid "No objects found"
 msgstr ""
 
-#: templates/_journal_section.html:2545
+#: templates/_journal_section.html:2546
 msgid "Enter a filter name."
 msgstr ""
 
-#: templates/_journal_section.html:2546
+#: templates/_journal_section.html:2547
 msgid "Error adding filter."
 msgstr ""
 
-#: templates/_journal_section.html:2547
+#: templates/_journal_section.html:2548
 #, python-brace-format
 msgid "{label} added."
 msgstr ""
 
-#: templates/_journal_section.html:2548
+#: templates/_journal_section.html:2549
 msgid "Network error."
 msgstr ""
 
-#: templates/_journal_section.html:2549
+#: templates/_journal_section.html:2550
 #, python-brace-format
 msgid "Remove \"{label}\"? Historical session data for this filter is kept."
 msgstr ""
 
-#: templates/_journal_section.html:2550
+#: templates/_journal_section.html:2551
 msgid "Error removing filter."
 msgstr ""
 
-#: templates/_journal_section.html:2551
+#: templates/_journal_section.html:2552
 #, python-brace-format
 msgid "{label} removed."
 msgstr ""
 
-#: templates/_journal_section.html:2552 templates/base.html:244
+#: templates/_journal_section.html:2553 templates/base.html:244
 #: templates/graph_view.html:475 templates/index.html:112
 msgid "Ask Nova"
 msgstr ""
 
-#: templates/_journal_section.html:2554
+#: templates/_journal_section.html:2555
 msgid "Analyzing your session..."
 msgstr ""
 
-#: templates/_journal_section.html:2555
+#: templates/_journal_section.html:2556
 msgid "Reviewing conditions..."
 msgstr ""
 
-#: templates/_journal_section.html:2556
+#: templates/_journal_section.html:2557
 msgid "Checking guiding data..."
 msgstr ""
 
-#: templates/_journal_section.html:2557 templates/base.html:256
+#: templates/_journal_section.html:2558 templates/base.html:256
 #: templates/graph_view.html:481
 msgid "Almost there..."
 msgstr ""
 
-#: templates/_journal_section.html:2558
+#: templates/_journal_section.html:2559
 msgid "Nova writing…"
 msgstr ""
 
-#: templates/_journal_section.html:2559
+#: templates/_journal_section.html:2560
 msgid "words"
 msgstr ""
 
-#: templates/_journal_section.html:2560
+#: templates/_journal_section.html:2561
 msgid "Nova has a summary ready. What would you like to do?"
 msgstr ""
 
-#: templates/_journal_section.html:2561 templates/graph_view.html:484
+#: templates/_journal_section.html:2562 templates/graph_view.html:484
 msgid "Overwrite"
 msgstr ""
 
-#: templates/_journal_section.html:2562 templates/graph_view.html:485
+#: templates/_journal_section.html:2563 templates/graph_view.html:485
 msgid "Append"
 msgstr ""
 
-#: templates/_journal_section.html:2564
+#: templates/_journal_section.html:2565
 msgid "Nova error"
 msgstr ""
 
-#: templates/_journal_section.html:2565
+#: templates/_journal_section.html:2566
 msgid "Draft saved"
 msgstr ""
 
-#: templates/_journal_section.html:2566
+#: templates/_journal_section.html:2567
 msgid "Please save the session first before asking Nova."
 msgstr ""
 
