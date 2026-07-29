@@ -2265,7 +2265,7 @@
 
             {# --- EDIT/ADD FORM (SESSION) --- #}
             <form id="journal-detail-form" class="edit-mode-form" method="POST" action="" enctype="multipart/form-data"
-                  data-add-url="{{ url_for('journal.journal_add_for_target', object_name=object_name) }}"
+                  data-add-url="{{ url_for('journal.journal_add') }}"
                   data-today-date="{{ today_date }}"
                   data-default-location="{{ header_location_name or default_location or (available_locations[0].name if available_locations else '') }}"
                   data-add-title="{{ _('Add New Session for') }} {{ alt_name | default(object_name, True) }}"
@@ -2283,7 +2283,7 @@
                 <input type="hidden" name="session_id" value="{{ selected_session_data.id if selected_session_data else '' }}">
                 <input type="hidden" id="form-action-hidden" name="form_action" value="save_close">
                 <div class="form-row">
-                    {{ form_group('session_date', _('Session Date:'), type='date', value=today_date) }}
+                    {{ form_group('session_date', _('Session Date:'), type='date', value=today_date, extra_attrs='autocomplete="off"') }}
                     <div class="form-group"><label for="location_name">{{ _('Location:') }}</label><select id="location_name" name="location_name">{% for loc in available_locations %}<option value="{{ loc.name }}" data-lat="{{ loc.lat }}" data-lon="{{ loc.lon }}" data-tz="{{ loc.timezone }}">{{ loc.name }}{{ _(' (Inactive)') if not loc.active else '' }}</option>{% endfor %}</select></div>
                 </div>
                 <div class="form-group full-width"><label for="project_selection">{{ _('Link to Project (Optional)') }}</label><select name="project_selection" id="project_selection"><option value="standalone">{{ _('-- Standalone Session --') }}</option>{% for project in all_projects %}<option value="{{ project.id }}">{{ project.name }}</option>{% endfor %}<option value="new_project">{{ _('-- Create New Project --') }}</option></select></div>

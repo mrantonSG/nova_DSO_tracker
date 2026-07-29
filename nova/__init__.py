@@ -1407,6 +1407,9 @@ def set_cache_headers(response):
         response.headers['Cache-Control'] = 'public, max-age=2592000'  # 30 days
     elif response.content_type and 'application/json' in response.content_type:
         response.headers['Cache-Control'] = 'no-store'
+    else:
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
     return response
 
 
