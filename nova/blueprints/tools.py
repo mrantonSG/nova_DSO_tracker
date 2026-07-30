@@ -50,6 +50,12 @@ from modules.config_validation import validate_config
 
 tools_bp = Blueprint('tools', __name__)
 
+# Single-process-Gunicorn-only: each worker has its own dict; acceptable known
+# limitation, not to be fixed here.  Keyed by user.id (matches single-user-mode
+# pattern used throughout this file).
+IMPORT_CONFLICTS_STORE: dict[int, dict] = {}
+
+
 @tools_bp.route('/add_component', methods=['POST'])
 @login_required
 def add_component():
@@ -838,18 +844,98 @@ def import_catalog(pack_id):
             flash(_("Catalog pack not found or invalid."), "error")
             return redirect(url_for('core.config_form'))
 
-        created, enriched, skipped, _ = import_catalog_pack_for_user(db, user, catalog_data, pack_id)
+        created, enriched, skipped, conflicts = import_catalog_pack_for_user(db, user, catalog_data, pack_id)
         db.commit()
 
         pack_name = (meta or {}).get("name") or pack_id
-        msg = f"Catalog '{pack_name}': {created} new, {enriched} enriched (updated), {skipped} skipped."
-        flash(msg, "success")
+        if conflicts:
+            unique_names = len(set(c['object_name'] for c in conflicts))
+            flash(
+                f"Catalog '{pack_name}': {created} new, {enriched} enriched (updated), "
+                f"{skipped} skipped, {unique_names} object(s) have differences pending review.",
+                "warning",
+            )
+            IMPORT_CONFLICTS_STORE[user.id] = {
+                "pack_id": pack_id,
+                "pack_name": pack_name,
+                "conflicts": conflicts,
+            }
+        else:
+            msg = f"Catalog '{pack_name}': {created} new, {enriched} enriched (updated), {skipped} skipped."
+            flash(msg, "success")
     except Exception as e:
         db.rollback()
         print(f"[CATALOG IMPORT] Error importing catalog pack '{pack_id}': {e}")
         flash(_("Catalog import failed due to an internal error."), "error")
 
     return redirect(url_for('core.config_form'))
+
+
+@tools_bp.route('/api/resolve_import_conflicts', methods=['POST'])
+@login_required
+def resolve_import_conflicts():
+    """Resolve catalog-import conflicts by applying catalog values or keeping local copies."""
+    if SINGLE_USER_MODE:
+        username = "default"
+    elif not current_user.is_authenticated:
+        return jsonify({"error": "Authentication required."}), 401
+    else:
+        username = current_user.username
+
+    db = get_db()
+    try:
+        user = db.query(DbUser).filter_by(username=username).one()
+
+        store_entry = IMPORT_CONFLICTS_STORE.pop(user.id, None)
+        if not store_entry:
+            return jsonify({"error": "No pending conflicts for this user."}), 404
+
+        # Conflicts is a flat list: [{object_name, field, existing_value, catalog_value}, ...]
+        # Group by object_name so we query AstroObject once per object, not per field.
+        grouped: dict[str, list[dict]] = {}
+        for entry in conflicts:
+            grouped.setdefault(entry["object_name"], []).append(entry)
+
+        body = request.get_json(force=True, silent=True) or {}
+        decisions = body.get("decisions", {})
+
+        updated = 0
+        kept = 0
+
+        for object_name, entries in grouped.items():
+            decision = decisions.get(object_name)
+
+            if decision == "keep":
+                kept += len(entries)
+                continue
+
+            if decision != "catalog":
+                kept += len(entries)
+                continue
+
+            obj = db.query(AstroObject).filter_by(
+                user_id=user.id, object_name=object_name
+            ).first()
+
+            if obj is None:
+                kept += len(entries)
+                continue
+
+            for entry in entries:
+                try:
+                    setattr(obj, entry["field"], entry["catalog_value"])
+                except AttributeError:
+                    pass
+
+            updated += len(entries)
+
+        db.commit()
+        return jsonify({"updated": updated, "kept": kept})
+
+    except Exception as e:
+        db.rollback()
+        return jsonify({"error": str(e)}), 500
+
 
 @tools_bp.route('/download_rig_config')
 @login_required
