@@ -893,7 +893,7 @@ def resolve_import_conflicts():
         # Conflicts is a flat list: [{object_name, field, existing_value, catalog_value}, ...]
         # Group by object_name so we query AstroObject once per object, not per field.
         grouped: dict[str, list[dict]] = {}
-        for entry in conflicts:
+        for entry in store_entry.get("conflicts", []):
             grouped.setdefault(entry["object_name"], []).append(entry)
 
         body = request.get_json(force=True, silent=True) or {}
