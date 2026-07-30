@@ -937,6 +937,35 @@ def resolve_import_conflicts():
         return jsonify({"error": str(e)}), 500
 
 
+@tools_bp.route('/api/import_conflicts')
+@login_required
+def get_import_conflicts():
+    """Return pending catalog-import conflicts without consuming them."""
+    if SINGLE_USER_MODE:
+        username = "default"
+    elif not current_user.is_authenticated:
+        return jsonify({"error": "Authentication required."}), 401
+    else:
+        username = current_user.username
+
+    db = get_db()
+    try:
+        user = db.query(DbUser).filter_by(username=username).one()
+    except Exception as e:
+        db.rollback()
+        return jsonify({"error": str(e)}), 500
+
+    store_entry = IMPORT_CONFLICTS_STORE.get(user.id)
+    if not store_entry:
+        return jsonify({"pending": False})
+
+    return jsonify({
+        "pending": True,
+        "pack_name": store_entry.get("pack_name"),
+        "conflicts": store_entry.get("conflicts", []),
+    })
+
+
 @tools_bp.route('/download_rig_config')
 @login_required
 def download_rig_config():
