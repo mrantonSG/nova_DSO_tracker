@@ -838,7 +838,7 @@ def import_catalog(pack_id):
             flash(_("Catalog pack not found or invalid."), "error")
             return redirect(url_for('core.config_form'))
 
-        created, enriched, skipped = import_catalog_pack_for_user(db, user, catalog_data, pack_id)
+        created, enriched, skipped, _ = import_catalog_pack_for_user(db, user, catalog_data, pack_id)
         db.commit()
 
         pack_name = (meta or {}).get("name") or pack_id

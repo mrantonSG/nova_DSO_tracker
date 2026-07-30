@@ -1258,14 +1258,16 @@ def import_user_from_yaml(username: str,
         return False
 
 
-def import_catalog_pack_for_user(db, user: DbUser, catalog_config: dict, pack_id: str) -> tuple[int, int, int]:
+def import_catalog_pack_for_user(db, user: DbUser, catalog_config: dict, pack_id: str) -> tuple[int, int, int, list[dict]]:
     """
-    Import a catalog pack. Returns (created_count, enriched_count, skipped_count).
+    Import a catalog pack. Returns (created_count, enriched_count, skipped_count, conflicts).
     Enrichment is NON-DESTRUCTIVE: it only fills missing (empty) fields.
+    conflicts is a list of dicts with keys: object_name, field, existing_value, catalog_value.
     """
     created = 0
     enriched = 0
     skipped = 0
+    conflicts = []
 
     objs = (catalog_config or {}).get("objects", []) or []
 
@@ -1305,6 +1307,56 @@ def import_catalog_pack_for_user(db, user: DbUser, catalog_config: dict, pack_id
 
             if existing:
                 # --- UPDATE LOGIC (Authoritative for Inspiration) ---
+
+                # Conflict detection: compare 8 catalog-owned fields.
+                # Only flag when the pack actually provides a value for the field.
+                ra_f = float(ra_val) if ra_val is not None else None
+                dec_f = float(dec_val) if dec_val is not None else None
+
+                common_name_incoming = o.get("Common Name") or o.get("Name") or o.get("common_name")
+                obj_type_incoming = o.get("Type") or o.get("type")
+                constellation_incoming = o.get("Constellation") or o.get("constellation")
+                magnitude_incoming = str(o.get("Magnitude") if o.get("Magnitude") is not None else o.get("magnitude") or "")
+                size_incoming = str(o.get("Size") if o.get("Size") is not None else o.get("size") or "")
+                sb_incoming = str(o.get("SB") if o.get("SB") is not None else o.get("sb") or "")
+
+                catalog_fields = [
+                    ("common_name", common_name_incoming),
+                    ("type", obj_type_incoming),
+                    ("constellation", constellation_incoming),
+                    ("magnitude", magnitude_incoming),
+                    ("size", size_incoming),
+                    ("sb", sb_incoming),
+                ]
+
+                for field_name, incoming_val in catalog_fields:
+                    if not incoming_val:
+                        continue  # skip if catalog offers nothing for this field
+                    existing_val = getattr(existing, field_name, None)
+                    if str(incoming_val) != str(existing_val):
+                        conflicts.append({
+                            "object_name": object_name,
+                            "field": field_name,
+                            "existing_value": existing_val,
+                            "catalog_value": incoming_val,
+                        })
+
+                # RA/DEC tolerance check (only when pack provides a value)
+                for field_name, incoming_val in [("ra_hours", ra_f), ("dec_deg", dec_f)]:
+                    if incoming_val is None:
+                        continue  # skip if catalog offers no coord
+                    existing_val = getattr(existing, field_name, None)
+                    try:
+                        if abs(float(existing_val) - float(incoming_val)) > 0.001:
+                            conflicts.append({
+                                "object_name": object_name,
+                                "field": field_name,
+                                "existing_value": existing_val,
+                                "catalog_value": incoming_val,
+                            })
+                    except (TypeError, ValueError):
+                        pass
+
                 was_enriched = False
 
                 # Force update Inspiration fields if the pack provides them.
@@ -1393,7 +1445,7 @@ def import_catalog_pack_for_user(db, user: DbUser, catalog_config: dict, pack_id
             print(f"[CATALOG IMPORT] Error processing '{o}': {e}")
             skipped += 1
 
-    return (created, enriched, skipped)
+    return (created, enriched, skipped, conflicts)
 
 
 def repair_journals(dry_run: bool = False):
