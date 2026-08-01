@@ -995,27 +995,35 @@
                 fetchAndRenderImportConflicts();
             }
 
-            // --- Show/hide review import conflicts tab button based on pending count ---
-            fetch('/api/import_conflicts')
-                .then(function(r) { return r.json(); })
-                .then(function(data) {
-                    var btn = document.getElementById('review-import-conflicts-tab-btn');
-                    if (!btn) return;
-                    if (data && data.pending && Array.isArray(data.conflicts) && data.conflicts.length > 0) {
-                        var names = new Set();
-                        data.conflicts.forEach(function(c) { if (c.object_name) names.add(c.object_name); });
-                        btn.textContent = window.t('review_import_differences_count', { count: names.size });
-                        btn.style.display = '';
-                    } else {
-                        btn.textContent = window.t('review_import_differences');
-                        btn.style.display = 'none';
-                    }
-                })
-                .catch(function(err) { console.error('[objects_section] Import conflicts check failed:', err); });
+            // Update the button on page load
+            updateImportConflictsTabButton();
         });
     }
 
     // --- Import Conflicts Modal Functions ---
+
+    /**
+     * Fetch current conflict count and update the header tab button
+     * (text, visibility) to match the real remaining count.
+     */
+    function updateImportConflictsTabButton() {
+        fetch('/api/import_conflicts')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var btn = document.getElementById('review-import-conflicts-tab-btn');
+                if (!btn) return;
+                if (data && data.pending && Array.isArray(data.conflicts) && data.conflicts.length > 0) {
+                    var names = new Set();
+                    data.conflicts.forEach(function(c) { if (c.object_name) names.add(c.object_name); });
+                    btn.textContent = window.t('review_import_differences_count', { count: names.size });
+                    btn.style.display = '';
+                } else {
+                    btn.textContent = window.t('review_import_differences');
+                    btn.style.display = 'none';
+                }
+            })
+            .catch(function(err) { console.error('[objects_section] Import conflicts check failed:', err); });
+    }
 
     let importConflictsController = null;
 
@@ -1113,6 +1121,9 @@
                 if (remaining.length === 0) {
                     document.getElementById('import-conflicts-list').innerHTML = '<p style="text-align: center; padding: 20px;">' + window.t('all_import_conflicts_resolved') + '</p>';
                 }
+
+                // Re-sync the header button with the real remaining count
+                updateImportConflictsTabButton();
             })
             .catch(function(err) {
                 alert(window.t('error_submitting_decision'));
