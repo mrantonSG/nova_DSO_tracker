@@ -219,7 +219,7 @@ document.addEventListener("DOMContentLoaded", function () {
         .catch(error => console.error("Update check failed:", error));
 
     // --- IMPORT CONFLICTS CHECK ---
-    fetch('/tools/api/import_conflicts')
+    fetch('/api/import_conflicts')
         .then(response => response.json())
         .then(data => {
             if (data && data.pending) {
@@ -231,8 +231,9 @@ document.addEventListener("DOMContentLoaded", function () {
                         data.conflicts.forEach(function(c) { if (c.object_name) names.add(c.object_name); });
                         uniqueCount = names.size;
                     }
-                    var primaryColor = (window.stylingUtils && window.stylingUtils.getPrimaryColor) ? window.stylingUtils.getPrimaryColor() : '#83b4c5';
-                    notificationSpan.innerHTML = ' (<a href="#" style="color: ' + primaryColor + '; text-decoration: none;" id="import-conflicts-link">' + window.t('import_conflicts_pending', { count: uniqueCount }) + '</a>)';
+                    var titleText = window.t('import_conflicts_pending', { count: uniqueCount });
+                    var badgeText = window.t('import_conflicts_badge', { count: uniqueCount });
+                    notificationSpan.innerHTML = ' (<a href="#" id="import-conflicts-link" class="catalog-source-badge" title="' + titleText + '" style="white-space:nowrap;cursor:pointer;text-decoration:none;">' + badgeText + '</a>)';
                     document.getElementById('import-conflicts-link').addEventListener('click', function(e) {
                         e.preventDefault();
                         e.stopPropagation();
