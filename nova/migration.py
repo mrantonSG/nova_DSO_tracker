@@ -1357,6 +1357,8 @@ def import_catalog_pack_for_user(db, user: DbUser, catalog_config: dict, pack_id
                     except (TypeError, ValueError):
                         pass
 
+                was_enriched = False
+
                 # --- Curation trio conflict detection & enrichment ---
                 # Image trio: primary = image_url, sub-fields = image_credit, image_source_link
                 pack_img_primary = pack_img_url
