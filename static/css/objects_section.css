@@ -40,6 +40,16 @@
     .config-table th, .config-table td { border: 1px solid var(--border-medium); padding: var(--space-2) var(--space-3); text-align: left; }
     .config-table th { background-color: var(--bg-light-gray-alt2); }
     .config-table .badge { background-color: var(--border-light-alt3); color: var(--accent-gray-text); padding: 3px 8px; border-radius: var(--radius-xl); font-size: 0.8em; }
+    /* Conflict table — fixed layout so long URLs wrap instead of overflowing the modal */
+    .conflict-table { table-layout: fixed; width: 100%; border-collapse: collapse; margin-top: 15px; }
+    .conflict-table colgroup col:nth-child(1) { width: 12%; }
+    .conflict-table colgroup col:nth-child(2) { width: 12%; }
+    .conflict-table colgroup col:nth-child(3) { width: 24.5%; }
+    .conflict-table colgroup col:nth-child(4) { width: 27%; }
+    .conflict-table colgroup col:nth-child(5) { width: 25%; }
+    .conflict-table td { padding: 6px 8px; }
+    .conflict-table td[data-cell="your_value"],
+    .conflict-table td[data-cell="catalog_value"] { overflow-wrap: anywhere; word-break: break-all; }
     .muted-text { color: var(--accent-gray-medium); }
 
     /* --- Catalog/Source Styles (from previous step) --- */

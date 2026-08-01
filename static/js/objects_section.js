@@ -1093,7 +1093,7 @@
                 });
 
                 var packName = data.pack_name;
-                var html = '<table class="config-table"><thead><tr>';
+                var html = '<table class="conflict-table"><colgroup><col><col><col><col><col></colgroup><thead><tr>';
                 html += '<th>' + window.t('object_name') + '</th>';
                 html += '<th>' + window.t('field') + '</th>';
                 html += '<th>' + window.t('your_value') + '</th>';
@@ -1106,8 +1106,8 @@
                         html += '<tr data-object-name="' + objectName + '">';
                         html += '<td>' + objectName + '</td>';
                         html += '<td>' + entry.field + '</td>';
-                        html += '<td title="' + _escapeHtmlAttr(entry.existing_value !== null && entry.existing_value !== undefined ? String(entry.existing_value) : '') + '">' + _truncateForDisplay(entry.existing_value) + '</td>';
-                        html += '<td title="' + _escapeHtmlAttr(_renderCatalogValue(entry.catalog_value)) + '">' + _truncateForDisplay(_renderCatalogValue(entry.catalog_value)) + '</td>';
+                        html += '<td data-cell="your_value" title="' + _escapeHtmlAttr(entry.existing_value !== null && entry.existing_value !== undefined ? String(entry.existing_value) : '') + '">' + _truncateForDisplay(entry.existing_value) + '</td>';
+                        html += '<td data-cell="catalog_value" title="' + _escapeHtmlAttr(_renderCatalogValue(entry.catalog_value)) + '">' + _truncateForDisplay(_renderCatalogValue(entry.catalog_value)) + '</td>';
                         html += '<td style="white-space: nowrap;">';
                         html += '<button class="action-button" style="font-size: 10px; margin-right: 4px;" data-action="keep-conflict" data-object-name="' + objectName + '">' + window.t('keep_mine') + '</button> ';
                         html += '<button class="action-button" style="font-size: 10px;" data-action="take-catalog" data-object-name="' + objectName + '">' + window.t('take_catalog') + '</button>';
