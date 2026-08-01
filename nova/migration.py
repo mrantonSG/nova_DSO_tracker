@@ -1357,25 +1357,57 @@ def import_catalog_pack_for_user(db, user: DbUser, catalog_config: dict, pack_id
                     except (TypeError, ValueError):
                         pass
 
-                was_enriched = False
+                # --- Curation trio conflict detection & enrichment ---
+                # Image trio: primary = image_url, sub-fields = image_credit, image_source_link
+                pack_img_primary = pack_img_url
+                existing_img_primary = existing.image_url or ""
 
-                # Force update Inspiration fields if the pack provides them.
-                # We assume the catalog is the master source for these fields,
-                # while preserving user-specific data like Project Notes.
-                if pack_img_url:
-                    # Check if actually different to avoid unnecessary writes/counts
-                    if not existing.image_url:
-                        existing.image_url = pack_img_url
-                        existing.image_credit = pack_img_credit
-                        existing.image_source_link = pack_img_link
-                        was_enriched = True
+                if not pack_img_primary:
+                    pass  # Pack offers nothing for image trio — no-op.
+                elif not existing_img_primary:
+                    # Empty user field → silent enrichment write
+                    existing.image_url = pack_img_url
+                    existing.image_credit = pack_img_credit
+                    existing.image_source_link = pack_img_link
+                    was_enriched = True
+                elif str(pack_img_primary) != str(existing_img_primary):
+                    # Non-empty and differs → do NOT write any sub-field.
+                    # Emit one conflict entry per trio, not per sub-field.
+                    conflicts.append({
+                        "object_name": object_name,
+                        "field": "image",
+                        "existing_value": existing_img_primary,
+                        "catalog_value": {
+                            "image_url": pack_img_url,
+                            "image_credit": pack_img_credit,
+                            "image_source_link": pack_img_link,
+                        },
+                    })
 
-                if pack_desc_text:
-                    if not existing.description_text:
-                        existing.description_text = pack_desc_text
-                        existing.description_credit = pack_desc_credit
-                        existing.description_source_link = pack_desc_link
-                        was_enriched = True
+                # Description trio: primary = description_text, sub-fields = description_credit, description_source_link
+                pack_desc_primary = pack_desc_text
+                existing_desc_primary = existing.description_text or ""
+
+                if not pack_desc_primary:
+                    pass  # Pack offers nothing for description trio — no-op.
+                elif not existing_desc_primary:
+                    # Empty user field → silent enrichment write
+                    existing.description_text = pack_desc_text
+                    existing.description_credit = pack_desc_credit
+                    existing.description_source_link = pack_desc_link
+                    was_enriched = True
+                elif str(pack_desc_primary) != str(existing_desc_primary):
+                    # Non-empty and differs → do NOT write any sub-field.
+                    conflicts.append({
+                        "object_name": object_name,
+                        "field": "description",
+                        "existing_value": existing_desc_primary,
+                        "catalog_value": {
+                            "description_text": pack_desc_text,
+                            "description_credit": pack_desc_credit,
+                            "description_source_link": pack_desc_link,
+                        },
+                    })
 
                 # Always update source tracking
                 existing.catalog_sources = _merge_sources(existing.catalog_sources, pack_id)

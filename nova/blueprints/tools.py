@@ -929,7 +929,20 @@ def resolve_import_conflicts():
 
             for entry in entries:
                 try:
-                    setattr(obj, entry["field"], entry["catalog_value"])
+                    field = entry["field"]
+                    catalog_val = entry.get("catalog_value")
+                    # Handle synthetic curation-trio fields ("image", "description").
+                    # catalog_value is a dict: {"subfield": ..., ...}.
+                    if field == "image" and isinstance(catalog_val, dict):
+                        obj.image_url = catalog_val.get("image_url")
+                        obj.image_credit = catalog_val.get("image_credit")
+                        obj.image_source_link = catalog_val.get("image_source_link")
+                    elif field == "description" and isinstance(catalog_val, dict):
+                        obj.description_text = catalog_val.get("description_text")
+                        obj.description_credit = catalog_val.get("description_credit")
+                        obj.description_source_link = catalog_val.get("description_source_link")
+                    else:
+                        setattr(obj, field, catalog_val)
                 except AttributeError:
                     pass
 

@@ -1027,6 +1027,35 @@
 
     let importConflictsController = null;
 
+    function _renderCatalogValue(val) {
+        if (val === null || val === undefined) return '';
+        if (typeof val === 'object') {
+            // Synthetic curation-trio field: show the primary sub-field value.
+            return val.image_url || val.description_text || '';
+        }
+        return String(val);
+    }
+
+    /**
+     * Truncate a string for safe display in narrow table cells.
+     * Returns the first maxLen characters + '…' if exceeded, otherwise as-is.
+     */
+    function _truncateForDisplay(str, maxLen) {
+        maxLen = maxLen || 100;
+        if (!str) return '';
+        var s = String(str);
+        if (s.length <= maxLen) return s;
+        return s.substring(0, maxLen) + '…';
+    }
+
+    /**
+     * Escape a string for safe embedding inside an HTML attribute value.
+     */
+    function _escapeHtmlAttr(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
     function fetchAndRenderImportConflicts() {
         // Cache the controller instance — reuse across calls (matches base.js pattern)
         if (!importConflictsController) {
@@ -1077,8 +1106,8 @@
                         html += '<tr data-object-name="' + objectName + '">';
                         html += '<td>' + objectName + '</td>';
                         html += '<td>' + entry.field + '</td>';
-                        html += '<td>' + (entry.existing_value !== null && entry.existing_value !== undefined ? String(entry.existing_value) : '') + '</td>';
-                        html += '<td>' + (entry.catalog_value !== null && entry.catalog_value !== undefined ? String(entry.catalog_value) : '') + '</td>';
+                        html += '<td title="' + _escapeHtmlAttr(entry.existing_value !== null && entry.existing_value !== undefined ? String(entry.existing_value) : '') + '">' + _truncateForDisplay(entry.existing_value) + '</td>';
+                        html += '<td title="' + _escapeHtmlAttr(_renderCatalogValue(entry.catalog_value)) + '">' + _truncateForDisplay(_renderCatalogValue(entry.catalog_value)) + '</td>';
                         html += '<td style="white-space: nowrap;">';
                         html += '<button class="action-button" style="font-size: 10px; margin-right: 4px;" data-action="keep-conflict" data-object-name="' + objectName + '">' + window.t('keep_mine') + '</button> ';
                         html += '<button class="action-button" style="font-size: 10px;" data-action="take-catalog" data-object-name="' + objectName + '">' + window.t('take_catalog') + '</button>';
