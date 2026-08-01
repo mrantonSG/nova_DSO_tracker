@@ -886,18 +886,24 @@ def resolve_import_conflicts():
     try:
         user = db.query(DbUser).filter_by(username=username).one()
 
-        store_entry = IMPORT_CONFLICTS_STORE.pop(user.id, None)
+        store_entry = IMPORT_CONFLICTS_STORE.get(user.id)
         if not store_entry:
             return jsonify({"error": "No pending conflicts for this user."}), 404
+
+        body = request.get_json(force=True, silent=True) or {}
+        decisions = body.get("decisions", {})
+
+        # Track every object_name the user made a decision about, so all
+        # resolved entries are removed from the pending store — not just
+        # "catalog" ones.  "keep" decisions are also removed so they don't
+        # reappear when the modal is reopened.
+        resolved_names = set(decisions.keys())
 
         # Conflicts is a flat list: [{object_name, field, existing_value, catalog_value}, ...]
         # Group by object_name so we query AstroObject once per object, not per field.
         grouped: dict[str, list[dict]] = {}
         for entry in store_entry.get("conflicts", []):
             grouped.setdefault(entry["object_name"], []).append(entry)
-
-        body = request.get_json(force=True, silent=True) or {}
-        decisions = body.get("decisions", {})
 
         updated = 0
         kept = 0
@@ -930,6 +936,18 @@ def resolve_import_conflicts():
             updated += len(entries)
 
         db.commit()
+
+        # Remove every entry whose object_name was decided in this request,
+        # keeping only truly unresolved objects for future resolution.
+        remaining = [
+            e for e in store_entry.get("conflicts", [])
+            if e["object_name"] not in resolved_names
+        ]
+        if remaining:
+            store_entry["conflicts"] = remaining
+        else:
+            IMPORT_CONFLICTS_STORE.pop(user.id, None)
+
         return jsonify({"updated": updated, "kept": kept})
 
     except Exception as e:
