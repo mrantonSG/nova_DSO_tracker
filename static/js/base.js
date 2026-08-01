@@ -218,52 +218,6 @@ document.addEventListener("DOMContentLoaded", function () {
         })
         .catch(error => console.error("Update check failed:", error));
 
-    // --- IMPORT CONFLICTS CHECK ---
-    fetch('/api/import_conflicts')
-        .then(response => response.json())
-        .then(data => {
-            if (data && data.pending) {
-                var notificationSpan = document.getElementById('import-conflicts-notification');
-                if (notificationSpan) {
-                    var uniqueCount = 0;
-                    if (data.conflicts && Array.isArray(data.conflicts)) {
-                        var names = new Set();
-                        data.conflicts.forEach(function(c) { if (c.object_name) names.add(c.object_name); });
-                        uniqueCount = names.size;
-                    }
-                    var titleText = window.t('import_conflicts_pending', { count: uniqueCount });
-                    var badgeText = window.t('import_conflicts_badge', { count: uniqueCount });
-                    notificationSpan.innerHTML = ' (<a href="#" id="import-conflicts-link" class="catalog-source-badge" title="' + titleText + '" style="white-space:nowrap;cursor:pointer;text-decoration:none;">' + badgeText + '</a>)';
-                    document.getElementById('import-conflicts-link').addEventListener('click', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        var modalElement = document.getElementById('import-conflicts-modal');
-                        if (modalElement) {
-                            // On config page — use ModalController if available
-                            if (window.novaState && window.novaState.fn && window.novaState.fn.ModalController) {
-                                try {
-                                    var controller = new window.novaState.fn.ModalController('import-conflicts-modal', {
-                                        contentId: null,
-                                        visibleClass: 'is-visible',
-                                        closeOnBackdrop: true,
-                                        closeOnEscape: true,
-                                        skipFocus: true
-                                    });
-                                    controller.open();
-                                } catch (err) {
-                                    console.error('[base.js] Error opening import conflicts modal:', err);
-                                }
-                            }
-                        } else {
-                            // Not on config page — navigate there with query param
-                            window.location.href = '{{ url_for("core.config_form") }}?open_conflicts=1';
-                        }
-                    });
-                }
-            }
-        })
-        .catch(error => console.error("Import conflicts check failed:", error));
-
     // --- INITIALIZE TRANSLATION FEEDBACK MODAL ---
     if (window.novaState && window.novaState.fn && window.novaState.fn.ModalController) {
         try {

@@ -402,6 +402,10 @@
                 e.preventDefault();
                 openDuplicateChecker();
                 break;
+            case 'open-import-conflicts':
+                e.preventDefault();
+                fetchAndRenderImportConflicts();
+                break;
             case 'close-notes-modal':
                 e.preventDefault();
                 closeNotesModal();
@@ -990,6 +994,24 @@
             if (params.get('open_conflicts') === '1') {
                 fetchAndRenderImportConflicts();
             }
+
+            // --- Show/hide review import conflicts tab button based on pending count ---
+            fetch('/api/import_conflicts')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var btn = document.getElementById('review-import-conflicts-tab-btn');
+                    if (!btn) return;
+                    if (data && data.pending && Array.isArray(data.conflicts) && data.conflicts.length > 0) {
+                        var names = new Set();
+                        data.conflicts.forEach(function(c) { if (c.object_name) names.add(c.object_name); });
+                        btn.textContent = window.t('review_import_differences_count', { count: names.size });
+                        btn.style.display = '';
+                    } else {
+                        btn.textContent = window.t('review_import_differences');
+                        btn.style.display = 'none';
+                    }
+                })
+                .catch(function(err) { console.error('[objects_section] Import conflicts check failed:', err); });
         });
     }
 
@@ -1017,7 +1039,7 @@
         list.innerHTML = '';
         if (loading) loading.style.display = 'block';
 
-        fetch('/tools/api/import_conflicts')
+        fetch('/api/import_conflicts')
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 if (loading) loading.style.display = 'none';
@@ -1070,7 +1092,7 @@
     }
 
     function submitImportConflictDecision(objectName, decision) {
-        fetch('/tools/api/resolve_import_conflicts', {
+        fetch('/api/resolve_import_conflicts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ decisions: { [objectName]: decision } })

@@ -220,6 +220,8 @@
       help_network_error:             {{ _('Network Error: Could not load help topic.') | tojson }},
       import_conflicts_pending:       {{ _('%(count)d object(s) have catalog differences pending review', count=11111) | tojson }}.replace('11111', '{count}'),
       import_conflicts_badge:         {{ _('%(count)d pending', count=11111) | tojson }}.replace('11111', '{count}'),
+      review_import_differences:      {{ _('Review Import Differences') | tojson }},
+      review_import_differences_count: {{ _('%(count)d objects to review', count=11111) | tojson }}.replace('11111', '{count}'),
 
       // Pluralised / parametric strings
       showing_objects:                {{ _('Showing %(count)d objects', count=11111) | tojson }}.replace('11111', '{count}'),
@@ -299,7 +301,7 @@
           <div class="brand-group">
               <h1>
                   <span>Nova</span> DSO Tracker
-                  <small>v{{ version }} <span id="update-notification"></span><span id="import-conflicts-notification"></span></small>
+                  <small>v{{ version }} <span id="update-notification"></span></small>
               </h1>
           </div>
 

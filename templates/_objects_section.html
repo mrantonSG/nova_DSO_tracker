@@ -21,6 +21,9 @@
                 {{ _('Find Duplicates') }}
                 {{ help_badge('objects_duplicates', extra_attrs='onclick="openHelp(\'objects_duplicates\'); event.stopPropagation();"') }}
             </button>
+            <button class="detail-tab-button" id="review-import-conflicts-tab-btn" style="display:none;" data-action="open-import-conflicts">
+                {{ _('Review Import Differences') }}
+            </button>
         </div>
 
         <div id="manage-object-subtab" class="detail-tab-content active">
