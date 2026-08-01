@@ -2181,6 +2181,8 @@ def graph_dashboard(object_name):
             user_id=user.id
         ).order_by(UserCustomFilter.created_at).all()
 
+        record_event('graph_view_open')
+
         return render_template('graph_view.html',
                                object_name=object_name,
                                alt_name=object_main_details.get("Common Name", object_name),
@@ -2231,7 +2233,6 @@ def graph_dashboard(object_name):
                                               sorted(selected_location_db.horizon_points, key=lambda p: p.az_deg)]
                                if selected_location_db else []
                                )
-        record_event('graph_view_open')
 
     except Exception as e:
         db.rollback()
