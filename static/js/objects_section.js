@@ -975,8 +975,143 @@
             }
 
             // (Old 'update-single-object-btn' listener removed; using 'saveObjectData' from config_form.html)
+
+            // --- Wire up import conflicts modal close button ---
+            var closeBtn = document.getElementById('import-conflicts-modal-close-btn');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    if (importConflictsController) importConflictsController.close();
+                });
+            }
+
+            // --- Check for open_conflicts=1 on page load ---
+            var params = new URLSearchParams(window.location.search);
+            if (params.get('open_conflicts') === '1') {
+                fetchAndRenderImportConflicts();
+            }
         });
     }
+
+    // --- Import Conflicts Modal Functions ---
+
+    let importConflictsController = null;
+
+    function fetchAndRenderImportConflicts() {
+        // Cache the controller instance — reuse across calls (matches base.js pattern)
+        if (!importConflictsController) {
+            importConflictsController = new window.novaState.fn.ModalController('import-conflicts-modal', {
+                contentId: null,
+                visibleClass: 'is-visible',
+                closeOnBackdrop: true,
+                closeOnEscape: true,
+                skipFocus: true
+            });
+        }
+
+        importConflictsController.open();
+
+        var list = document.getElementById('import-conflicts-list');
+        var loading = document.getElementById('import-conflicts-loading');
+
+        list.innerHTML = '';
+        if (loading) loading.style.display = 'block';
+
+        fetch('/tools/api/import_conflicts')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (loading) loading.style.display = 'none';
+
+                if (!data.pending || !Array.isArray(data.conflicts) || data.conflicts.length === 0) {
+                    list.innerHTML = '<p style="text-align: center; padding: 20px;">' + window.t('no_import_conflicts') + '</p>';
+                    return;
+                }
+
+                // Group by object_name
+                var grouped = {};
+                data.conflicts.forEach(function(entry) {
+                    (grouped[entry.object_name] = grouped[entry.object_name] || []).push(entry);
+                });
+
+                var packName = data.pack_name;
+                var html = '<table class="config-table"><thead><tr>';
+                html += '<th>' + window.t('object_name') + '</th>';
+                html += '<th>' + window.t('field') + '</th>';
+                html += '<th>' + window.t('your_value') + '</th>';
+                html += '<th>' + window.t('catalog_value') + '</th>';
+                html += '<th>' + window.t('action') + '</th>';
+                html += '</tr></thead><tbody>';
+
+                Object.keys(grouped).forEach(function(objectName) {
+                    grouped[objectName].forEach(function(entry) {
+                        html += '<tr data-object-name="' + objectName + '">';
+                        html += '<td>' + objectName + '</td>';
+                        html += '<td>' + entry.field + '</td>';
+                        html += '<td>' + (entry.existing_value !== null && entry.existing_value !== undefined ? String(entry.existing_value) : '') + '</td>';
+                        html += '<td>' + (entry.catalog_value !== null && entry.catalog_value !== undefined ? String(entry.catalog_value) : '') + '</td>';
+                        html += '<td style="white-space: nowrap;">';
+                        html += '<button class="action-button" style="font-size: 10px; margin-right: 4px;" data-action="keep-conflict" data-object-name="' + objectName + '">' + window.t('keep_mine') + '</button> ';
+                        html += '<button class="action-button" style="font-size: 10px;" data-action="take-catalog" data-object-name="' + objectName + '">' + window.t('take_catalog') + '</button>';
+                        html += '</td></tr>';
+                    });
+                });
+
+                html += '</tbody></table>';
+                if (packName) {
+                    html = '<p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 10px;">' + window.t('conflicts_from_pack', { pack: packName }) + '</p>' + html;
+                }
+                list.innerHTML = html;
+            })
+            .catch(function(err) {
+                if (loading) loading.style.display = 'none';
+                console.error('[objects_section] Failed to fetch import conflicts:', err);
+                list.innerHTML = '<p style="color: ' + ((window.stylingUtils && window.stylingUtils.getDangerColor) ? window.stylingUtils.getDangerColor() : 'red') + '; text-align: center;">' + window.t('error_fetching_conflicts') + '</p>';
+            });
+    }
+
+    function submitImportConflictDecision(objectName, decision) {
+        fetch('/tools/api/resolve_import_conflicts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ decisions: { [objectName]: decision } })
+        })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+
+                // Remove all rows for this object (one row per field)
+                var rows = document.querySelectorAll('#import-conflicts-list tr[data-object-name="' + objectName + '"]');
+                rows.forEach(function(row) { row.remove(); });
+
+                // If no data rows left, show "all resolved"
+                var remaining = document.querySelectorAll('#import-conflicts-list tbody tr');
+                if (remaining.length === 0) {
+                    document.getElementById('import-conflicts-list').innerHTML = '<p style="text-align: center; padding: 20px;">' + window.t('all_import_conflicts_resolved') + '</p>';
+                }
+            })
+            .catch(function(err) {
+                alert(window.t('error_submitting_decision'));
+                console.error('[objects_section] Failed to submit decision:', err);
+            });
+    }
+
+    // --- Event delegation for conflict action buttons ---
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('[data-action="keep-conflict"]');
+        if (btn) {
+            e.preventDefault();
+            submitImportConflictDecision(btn.dataset.objectName, 'keep');
+            return;
+        }
+        var takeBtn = e.target.closest('[data-action="take-catalog"]');
+        if (takeBtn) {
+            e.preventDefault();
+            submitImportConflictDecision(takeBtn.dataset.objectName, 'catalog');
+        }
+    });
 
     function confirmCatalogImport(form) {
         const packName = form.getAttribute('data-pack-name') || 'Catalog';
@@ -999,4 +1134,6 @@
     window.mergeObjects = mergeObjects;
     window.activateLazyTrix = activateLazyTrix;
     window.confirmCatalogImport = confirmCatalogImport;
+    window.fetchAndRenderImportConflicts = fetchAndRenderImportConflicts;
+    window.submitImportConflictDecision = submitImportConflictDecision;
 })();
