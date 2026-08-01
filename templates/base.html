@@ -223,6 +223,20 @@
       review_import_differences:      {{ _('Review Import Differences') | tojson }},
       review_import_differences_count: {{ _('%(count)d objects to review', count=11111) | tojson }}.replace('11111', '{count}'),
 
+      // import-conflicts modal
+      conflicts_from_pack:             {{ _('From pack: PACKNAME') | tojson }}.replace('PACKNAME', '{pack}'),
+      no_import_conflicts:              {{ _('No differences to review.') | tojson }},
+      object_name:                      {{ _('Object') | tojson }},
+      field:                            {{ _('Field') | tojson }},
+      your_value:                       {{ _('Your Value') | tojson }},
+      catalog_value:                    {{ _('Catalog Value') | tojson }},
+      action:                           {{ _('Action') | tojson }},
+      keep_mine:                        {{ _('Keep Mine') | tojson }},
+      take_catalog:                     {{ _('Take Catalog') | tojson }},
+      error_fetching_conflicts:         {{ _('Failed to load differences.') | tojson }},
+      all_import_conflicts_resolved:    {{ _('All differences resolved.') | tojson }},
+      error_submitting_decision:        {{ _('Failed to save your choice.') | tojson }},
+
       // Pluralised / parametric strings
       showing_objects:                {{ _('Showing %(count)d objects', count=11111) | tojson }}.replace('11111', '{count}'),
       showing_objects_of:             {{ _('Showing %(shown)d of %(total)d objects', shown=22222, total=33333) | tojson }}.replace('22222', '{shown}').replace('33333', '{total}'),
