@@ -443,6 +443,23 @@
         </div>
     </div>
 </div>
+
+<div id="import-conflicts-modal" class="modal-backdrop" aria-labelledby="import-conflicts-modal-title">
+    <div id="import-conflicts-modal-content" class="modal-content" style="max-width: 800px;">
+        <h3 id="import-conflicts-modal-title">{{ _('Review Catalog Import Differences') }}</h3>
+        <p style="font-size: 14px; color: var(--text-tertiary);">
+            {{ _('These objects have values that differ from the catalog pack you just imported. Choose whether to keep your current values or take the catalog values, per object.') }}
+        </p>
+        <div id="import-conflicts-loading" style="text-align: center; padding: 20px; display: none;">
+            {{ _('Loading...') }}
+        </div>
+        <div id="import-conflicts-list" style="max-height: 50vh; overflow-y: auto;"></div>
+        <div style="margin-top: 15px; text-align: right;">
+            <button type="button" id="import-conflicts-modal-close-btn" class="action-button" style="background-color: var(--primary-color);">{{ _('Close') }}</button>
+        </div>
+    </div>
+</div>
+
 <script src="{{ url_for('static', filename='js/objects_section.js') }}?v={{ version }}" defer></script>
 
 </div>
