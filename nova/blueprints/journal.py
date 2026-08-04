@@ -285,8 +285,8 @@ def journal_add():
             if 'asiair_log' in request.files:
                 log_file = request.files['asiair_log']
                 if log_file and log_file.filename != '':
-                    if not log_file.filename.lower().endswith('.log'):
-                        flash(_("ASIAir log file must be a .log file."), "error")
+                    if not log_file.filename.lower().endswith('.txt'):
+                        flash(_("ASIAir log file must be a .txt file."), "error")
                         return redirect(url_for('core.graph_dashboard', object_name=request.form.get("target_object_id", "")))
                     log_file.seek(0, os.SEEK_END)
                     if log_file.tell() > 10 * 1024 * 1024:
@@ -299,8 +299,8 @@ def journal_add():
             if 'phd2_log' in request.files:
                 log_file = request.files['phd2_log']
                 if log_file and log_file.filename != '':
-                    if not log_file.filename.lower().endswith('.log'):
-                        flash(_("PHD2 log file must be a .log file."), "error")
+                    if not log_file.filename.lower().endswith('.txt'):
+                        flash(_("PHD2 log file must be a .txt file."), "error")
                         return redirect(url_for('core.graph_dashboard', object_name=request.form.get("target_object_id", "")))
                     log_file.seek(0, os.SEEK_END)
                     if log_file.tell() > 10 * 1024 * 1024:
