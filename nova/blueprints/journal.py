@@ -285,6 +285,10 @@ def journal_add():
             if 'asiair_log' in request.files:
                 log_file = request.files['asiair_log']
                 if log_file and log_file.filename != '':
+                    # Reject Chinese-language ASIAir logs before extension check
+                    if '_CHN' in log_file.filename:
+                        flash(_("This is the Chinese-language version of the ASIAir log. Please upload the standard English log file instead."), "error")
+                        return redirect(url_for('core.graph_dashboard', object_name=request.form.get("target_object_id", "")))
                     if not log_file.filename.lower().endswith('.txt'):
                         flash(_("ASIAir log file must be a .txt file."), "error")
                         return redirect(url_for('core.graph_dashboard', object_name=request.form.get("target_object_id", "")))
@@ -617,6 +621,13 @@ def journal_edit(session_id):
             if 'asiair_log' in request.files:
                 log_file = request.files['asiair_log']
                 if log_file and log_file.filename != '':
+                    # Reject Chinese-language ASIAir logs before extension check
+                    if '_CHN' in log_file.filename:
+                        flash(_("This is the Chinese-language version of the ASIAir log. Please upload the standard English log file instead."), "error")
+                        return redirect(
+                            url_for('core.graph_dashboard', object_name=session_to_edit.object_name,
+                                    session_id=session_id, location=session_to_edit.location_name))
+
                     if not log_file.filename.lower().endswith('.txt'):
                         flash(_("ASIAir log file must be a .txt file."), "error")
                         return redirect(
