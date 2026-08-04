@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-04 07:58+0200\n"
+"POT-Creation-Date: 2026-08-04 08:27+0200\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: es <LL@li.org>\n"
@@ -354,120 +354,128 @@ msgstr ""
 msgid "An error occurred while loading the details for %(object_name)s."
 msgstr "Ocurrió un error al cargar los detalles de %(object_name)s."
 
-#: nova/blueprints/journal.py:95 nova/blueprints/journal.py:414
+#: nova/blueprints/journal.py:95 nova/blueprints/journal.py:418
 #: nova/blueprints/mobile.py:550
 msgid "Invalid date format."
 msgstr "Formato de fecha no válido."
 
-#: nova/blueprints/journal.py:266 nova/blueprints/journal.py:600
+#: nova/blueprints/journal.py:266 nova/blueprints/journal.py:604
 #, fuzzy
 msgid "Session image is too large. Maximum size is 5 MB."
 msgstr ""
 "El archivo de registro NINA es demasiado grande. El tamaño máximo es de 10 "
 "MB."
 
-#: nova/blueprints/journal.py:289 nova/blueprints/journal.py:621
+#: nova/blueprints/journal.py:290 nova/blueprints/journal.py:626
+msgid ""
+"This is the Chinese-language version of the ASIAir log. Please upload the "
+"standard English log file instead."
+msgstr ""
+"Esta es la versión en chino del registro de ASIAir. Por favor, sube el "
+"archivo de registro en inglés estándar."
+
+#: nova/blueprints/journal.py:293 nova/blueprints/journal.py:632
 msgid "ASIAir log file must be a .txt file."
 msgstr "El archivo de registro ASIAir debe ser un archivo .txt."
 
-#: nova/blueprints/journal.py:293 nova/blueprints/journal.py:632
+#: nova/blueprints/journal.py:297 nova/blueprints/journal.py:643
 #, fuzzy
 msgid "ASIAir log file is too large. Maximum size is 10 MB."
 msgstr ""
 "El archivo de registro NINA es demasiado grande. El tamaño máximo es de 10 "
 "MB."
 
-#: nova/blueprints/journal.py:303 nova/blueprints/journal.py:646
+#: nova/blueprints/journal.py:307 nova/blueprints/journal.py:657
 msgid "PHD2 log file must be a .txt file."
 msgstr "El archivo de registro PHD2 debe ser un archivo .txt."
 
-#: nova/blueprints/journal.py:307 nova/blueprints/journal.py:657
+#: nova/blueprints/journal.py:311 nova/blueprints/journal.py:668
 #, fuzzy
 msgid "PHD2 log file is too large. Maximum size is 10 MB."
 msgstr ""
 "El archivo de registro NINA es demasiado grande. El tamaño máximo es de 10 "
 "MB."
 
-#: nova/blueprints/journal.py:317 nova/blueprints/journal.py:673
+#: nova/blueprints/journal.py:321 nova/blueprints/journal.py:684
 msgid "NINA log file must be a .log file."
 msgstr "El archivo de registro NINA debe ser un archivo .log."
 
-#: nova/blueprints/journal.py:321 nova/blueprints/journal.py:685
+#: nova/blueprints/journal.py:325 nova/blueprints/journal.py:696
 msgid "NINA log file is too large. Maximum size is 10 MB."
 msgstr ""
 "El archivo de registro NINA es demasiado grande. El tamaño máximo es de 10 "
 "MB."
 
-#: nova/blueprints/journal.py:355 nova/blueprints/mobile.py:703
+#: nova/blueprints/journal.py:359 nova/blueprints/mobile.py:703
 msgid "New journal entry added successfully!"
 msgstr "¡Nueva entrada de diario añadida con éxito!"
 
-#: nova/blueprints/journal.py:381
+#: nova/blueprints/journal.py:385
 msgid "To add a new session, please select an object first."
 msgstr "Para añadir una nueva sesión, seleccione primero un objeto."
 
-#: nova/blueprints/journal.py:396
+#: nova/blueprints/journal.py:400
 msgid "Journal entry not found or you do not have permission to edit it."
 msgstr "Entrada de diario no encontrada o no tiene permiso para editarla."
 
-#: nova/blueprints/journal.py:694
+#: nova/blueprints/journal.py:705
 #, fuzzy
 msgid "NINA log imported successfully."
 msgstr "Rig eliminado con éxito."
 
-#: nova/blueprints/journal.py:724
+#: nova/blueprints/journal.py:735
 msgid "Journal entry updated successfully!"
 msgstr "¡Entrada de diario actualizada con éxito!"
 
-#: nova/blueprints/journal.py:747
+#: nova/blueprints/journal.py:758
 msgid "Cannot edit session: associated object name is missing."
 msgstr "No se puede editar la sesión: falta el nombre del objeto asociado."
 
-#: nova/blueprints/journal.py:773
+#: nova/blueprints/journal.py:784
 msgid "Project name is required."
 msgstr "Se requiere el nombre del proyecto."
 
-#: nova/blueprints/journal.py:779
+#: nova/blueprints/journal.py:790
 #, python-format
 msgid "A project named '%(project_name)s' already exists."
 msgstr "Ya existe un proyecto llamado '%(project_name)s'."
 
-#: nova/blueprints/journal.py:806
+#: nova/blueprints/journal.py:817
 #, python-format
 msgid "Project '%(project_name)s' created successfully."
 msgstr "Proyecto '%(project_name)s' creado con éxito."
 
-#: nova/blueprints/journal.py:822
+#: nova/blueprints/journal.py:833
 #, python-format
 msgid "Error creating project: %(error)s"
 msgstr "Error al crear proyecto: %(error)s"
 
-#: nova/blueprints/journal.py:837
+#: nova/blueprints/journal.py:848
 msgid "Session to duplicate not found."
 msgstr "Sesión a duplicar no encontrada."
 
-#: nova/blueprints/journal.py:862
+#: nova/blueprints/journal.py:873
 msgid "Session duplicated successfully."
 msgstr "Sesión duplicada con éxito."
 
-#: nova/blueprints/journal.py:873
+#: nova/blueprints/journal.py:884
 #, python-format
 msgid "Error duplicating session: %(error)s"
 msgstr "Error al duplicar sesión: %(error)s"
 
-#: nova/blueprints/journal.py:895
+#: nova/blueprints/journal.py:906
 msgid "Journal entry deleted successfully."
 msgstr "Entrada de diario eliminada con éxito."
 
-#: nova/blueprints/journal.py:901
+#: nova/blueprints/journal.py:912
 msgid "Journal entry not found or you do not have permission to delete it."
 msgstr "Entrada de diario no encontrada o no tiene permiso para eliminarla."
 
-#: nova/blueprints/journal.py:918 nova/blueprints/journal.py:1072
+#: nova/blueprints/journal.py:929 nova/blueprints/journal.py:1083
 msgid "Session not found."
 msgstr "Sesión no encontrada."
 
-#: nova/blueprints/journal.py:1080 nova/blueprints/projects.py:358
+#: nova/blueprints/journal.py:1091 nova/blueprints/projects.py:358
 msgid "Project not found."
 msgstr "Proyecto no encontrado."
 

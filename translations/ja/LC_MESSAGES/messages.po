@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-04 07:58+0200\n"
+"POT-Creation-Date: 2026-08-04 08:27+0200\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: ja <LL@li.org>\n"
@@ -335,112 +335,118 @@ msgstr "無効な日付コンポーネントが指定されました。デフォ
 msgid "An error occurred while loading the details for %(object_name)s."
 msgstr "%(object_name)s の詳細を読み込む際にエラーが発生しました。"
 
-#: nova/blueprints/journal.py:95 nova/blueprints/journal.py:414
+#: nova/blueprints/journal.py:95 nova/blueprints/journal.py:418
 #: nova/blueprints/mobile.py:550
 msgid "Invalid date format."
 msgstr "無効な日付形式です。"
 
-#: nova/blueprints/journal.py:266 nova/blueprints/journal.py:600
+#: nova/blueprints/journal.py:266 nova/blueprints/journal.py:604
 #, fuzzy
 msgid "Session image is too large. Maximum size is 5 MB."
 msgstr "NINAログファイルが大きすぎる。最大サイズは10MBです。"
 
-#: nova/blueprints/journal.py:289 nova/blueprints/journal.py:621
+#: nova/blueprints/journal.py:290 nova/blueprints/journal.py:626
+msgid ""
+"This is the Chinese-language version of the ASIAir log. Please upload the "
+"standard English log file instead."
+msgstr "これはASIAirログの中国語版です。標準の英語ログファイルをアップロードしてください。"
+
+#: nova/blueprints/journal.py:293 nova/blueprints/journal.py:632
 msgid "ASIAir log file must be a .txt file."
 msgstr "ASIAirログファイルは.txtファイルでなければならない。"
 
-#: nova/blueprints/journal.py:293 nova/blueprints/journal.py:632
+#: nova/blueprints/journal.py:297 nova/blueprints/journal.py:643
 #, fuzzy
 msgid "ASIAir log file is too large. Maximum size is 10 MB."
 msgstr "NINAログファイルが大きすぎる。最大サイズは10MBです。"
 
-#: nova/blueprints/journal.py:303 nova/blueprints/journal.py:646
+#: nova/blueprints/journal.py:307 nova/blueprints/journal.py:657
 msgid "PHD2 log file must be a .txt file."
 msgstr "PHD2ログファイルは.txtファイルでなければならない。"
 
-#: nova/blueprints/journal.py:307 nova/blueprints/journal.py:657
+#: nova/blueprints/journal.py:311 nova/blueprints/journal.py:668
 #, fuzzy
 msgid "PHD2 log file is too large. Maximum size is 10 MB."
 msgstr "NINAログファイルが大きすぎる。最大サイズは10MBです。"
 
-#: nova/blueprints/journal.py:317 nova/blueprints/journal.py:673
+#: nova/blueprints/journal.py:321 nova/blueprints/journal.py:684
 msgid "NINA log file must be a .log file."
 msgstr "NINAログファイルは.logファイルでなければならない。"
 
-#: nova/blueprints/journal.py:321 nova/blueprints/journal.py:685
+#: nova/blueprints/journal.py:325 nova/blueprints/journal.py:696
 msgid "NINA log file is too large. Maximum size is 10 MB."
 msgstr "NINAログファイルが大きすぎる。最大サイズは10MBです。"
 
-#: nova/blueprints/journal.py:355 nova/blueprints/mobile.py:703
+#: nova/blueprints/journal.py:359 nova/blueprints/mobile.py:703
 msgid "New journal entry added successfully!"
 msgstr "新しい日記の投稿が正常に追加されました！"
 
-#: nova/blueprints/journal.py:381
+#: nova/blueprints/journal.py:385
 msgid "To add a new session, please select an object first."
 msgstr "新しいセッションを追加するには、まずオブジェクトを選択してください。"
 
-#: nova/blueprints/journal.py:396
+#: nova/blueprints/journal.py:400
 msgid "Journal entry not found or you do not have permission to edit it."
 msgstr "ジャーナルエントリが見つかりません、または編集する権限がありません。"
 
-#: nova/blueprints/journal.py:694
+#: nova/blueprints/journal.py:705
 #, fuzzy
 msgid "NINA log imported successfully."
 msgstr "リグの削除に成功しました。"
 
-#: nova/blueprints/journal.py:724
+#: nova/blueprints/journal.py:735
 msgid "Journal entry updated successfully!"
 msgstr "日記の更新に成功しました！"
 
-#: nova/blueprints/journal.py:747
+#: nova/blueprints/journal.py:758
 msgid "Cannot edit session: associated object name is missing."
 msgstr "セッションを編集できません: 関連付けられたオブジェクト名が欠落しています。"
 
-#: nova/blueprints/journal.py:773
+#: nova/blueprints/journal.py:784
 msgid "Project name is required."
 msgstr "プロジェクト名は必須です。"
 
-#: nova/blueprints/journal.py:779
+#: nova/blueprints/journal.py:790
 #, python-format
 msgid "A project named '%(project_name)s' already exists."
 msgstr "「%(project_name)s」という名前のプロジェクトが既に存在します。"
 
-#: nova/blueprints/journal.py:806
+#: nova/blueprints/journal.py:817
 #, python-format
 msgid "Project '%(project_name)s' created successfully."
 msgstr "プロジェクト '%(project_name)s' が正常に作成されました。"
 
-#: nova/blueprints/journal.py:822
+#: nova/blueprints/journal.py:833
 #, python-format
 msgid "Error creating project: %(error)s"
 msgstr "プロジェクト作成エラー: %(error)s"
 
-#: nova/blueprints/journal.py:837
+#: nova/blueprints/journal.py:848
 msgid "Session to duplicate not found."
 msgstr "セッションの複製が見つかりません。"
 
-#: nova/blueprints/journal.py:862
+#: nova/blueprints/journal.py:873
 msgid "Session duplicated successfully."
 msgstr "セッションの複製に成功しました。"
 
-#: nova/blueprints/journal.py:873
+#: nova/blueprints/journal.py:884
 #, python-format
 msgid "Error duplicating session: %(error)s"
 msgstr "セッションの複製中にエラーが発生しました: %(error)s"
 
-#: nova/blueprints/journal.py:895
+#: nova/blueprints/journal.py:906
 msgid "Journal entry deleted successfully."
 msgstr "日記の投稿を正常に削除しました。"
 
-#: nova/blueprints/journal.py:901
+#: nova/blueprints/journal.py:912
 msgid "Journal entry not found or you do not have permission to delete it."
 msgstr "ジャーナルエントリが見つかりません、または削除する権限がありません。"
 
-#: nova/blueprints/journal.py:918 nova/blueprints/journal.py:1072
+#: nova/blueprints/journal.py:929 nova/blueprints/journal.py:1083
 msgid "Session not found."
 msgstr "セッションが見つかりません。"
 
-#: nova/blueprints/journal.py:1080 nova/blueprints/projects.py:358
+#: nova/blueprints/journal.py:1091 nova/blueprints/projects.py:358
 msgid "Project not found."
 msgstr "プロジェクトが見つかりません。"
 
