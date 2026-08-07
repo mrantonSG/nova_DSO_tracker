@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-07 09:31+0200\n"
+"POT-Creation-Date: 2026-08-07 11:00+0200\n"
 "PO-Revision-Date: 2026-03-27 13:26+0800\n"
 "Last-Translator: \n"
 "Language-Team: de <LL@li.org>\n"
@@ -842,8 +842,8 @@ msgstr "Quelle: Wiki"
 #: templates/_inspiration_section.html:504
 #: templates/_journal_section.html:2504 templates/_objects_section.html:430
 #: templates/_objects_section.html:445 templates/_objects_section.html:461
-#: templates/base.html:402 templates/base.html:419 templates/base.html:424
-#: templates/base.html:433 templates/base.html:471
+#: templates/base.html:405 templates/base.html:422 templates/base.html:427
+#: templates/base.html:436 templates/base.html:474
 #: templates/config_form.html:701 templates/graph_view.html:294
 msgid "Close"
 msgstr "Schließen"
@@ -1585,7 +1585,7 @@ msgstr "Projekt speichern"
 #: templates/_journal_section.html:2176 templates/_journal_section.html:2246
 #: templates/_journal_section.html:2279 templates/_journal_section.html:2564
 #: templates/_objects_section.html:350 templates/_project_subtab.html:232
-#: templates/admin_users.html:120 templates/base.html:504
+#: templates/admin_users.html:120 templates/base.html:507
 #: templates/graph_view.html:486 templates/index.html:278
 #: templates/journal_form.html:205
 msgid "Cancel"
@@ -2012,7 +2012,7 @@ msgstr "Fehler beim Entfernen des Filters."
 msgid "{label} removed."
 msgstr "{label} entfernt."
 
-#: templates/_journal_section.html:2553 templates/base.html:262
+#: templates/_journal_section.html:2553 templates/base.html:265
 #: templates/graph_view.html:475 templates/index.html:112
 msgid "Ask Nova"
 msgstr "Ask Nova"
@@ -2029,7 +2029,7 @@ msgstr "Überprüfung der Bedingungen..."
 msgid "Checking guiding data..."
 msgstr "Daten werden aktualisiert..."
 
-#: templates/_journal_section.html:2558 templates/base.html:274
+#: templates/_journal_section.html:2558 templates/base.html:277
 #: templates/graph_view.html:481
 msgid "Almost there..."
 msgstr "Fast geschafft..."
@@ -3200,42 +3200,65 @@ msgid "Fetching details for %(name)s..."
 msgstr "Suche nach %(name)s..."
 
 #: templates/base.html:247
+#, python-format
+msgid ""
+"Importing '%(name)s'...\n"
+"\n"
+"This will update your library with data from the server:\n"
+"• New objects from this pack will be added.\n"
+"• Existing objects with empty images/descriptions will be filled in.\n"
+"• Differences will be flagged for your review.\n"
+"• Your personal Project Notes, Status, and Framings remain safe.\n"
+"\n"
+"Do you want to proceed?"
+msgstr ""
+"Importiere '%(name)s'...\n"
+"\n"
+"Dies wird deine Bibliothek mit Daten vom Server aktualisieren:\n"
+"• Neue Objekte aus diesem Paket werden hinzugefügt.\n"
+"• Bestehende Objekte mit leeren Bildern/Beschreibungen werden ausgefüllt.\n"
+"• Unterschiede werden zur Prüfung markiert.\n"
+"• Deine persönlichen Projektnotizen, Status und Rahmungen bleiben sicher.\n"
+"\n"
+"Möchtest du fortfahren?"
+
+#: templates/base.html:250
 msgid "Effective FL"
 msgstr "Nur aktiv"
 
-#: templates/base.html:248
+#: templates/base.html:251
 msgid "Field of View"
 msgstr "Sichtfeld"
 
-#: templates/base.html:249
+#: templates/base.html:252
 msgid "Good sampling"
 msgstr "Gutes sampling"
 
-#: templates/base.html:250
+#: templates/base.html:253
 msgid "Image Scale"
 msgstr "Pixel-Skala"
 
-#: templates/base.html:251
+#: templates/base.html:254
 msgid "No reducers defined."
 msgstr "Keine Ziele gesetzt."
 
-#: templates/base.html:252
+#: templates/base.html:255
 msgid "Slightly oversampled"
 msgstr "Etwas oversampled"
 
-#: templates/base.html:253
+#: templates/base.html:256
 msgid "Slightly undersampled"
 msgstr "Benutzername"
 
-#: templates/base.html:256
+#: templates/base.html:259
 msgid "Add Your Own Inspiration!"
 msgstr "Fügen Sie Ihre eigene Inspiration hinzu!"
 
-#: templates/base.html:257
+#: templates/base.html:260
 msgid "You are currently seeing automated survey images (DSS2)."
 msgstr "Sie sehen derzeit automatisierte Sky-Survey Bilder (DSS2)."
 
-#: templates/base.html:258
+#: templates/base.html:261
 msgid ""
 "Did you know you can display your own astrophotos or favorite reference "
 "images here?"
@@ -3243,7 +3266,7 @@ msgstr ""
 "Wussten Sie, dass Sie hier Ihre eigenen Astrofotos oder "
 "Lieblingsreferenzbilder anzeigen können?"
 
-#: templates/base.html:259
+#: templates/base.html:262
 msgid ""
 "Go to Configuration - Manage Objects to add Inspiration Content to your "
 "targets."
@@ -3252,69 +3275,69 @@ msgstr ""
 "„Inspiration-Inhalte\" (Bild-URLs, Credits, Beschreibungen) zu Ihren Zielen "
 "hinzuzufügen."
 
-#: templates/base.html:263
+#: templates/base.html:266
 msgid "Asking Nova..."
 msgstr "Frage Nova..."
 
-#: templates/base.html:264
+#: templates/base.html:267
 #, fuzzy
 msgid "Nova Ranking"
 msgstr "Nova writing…"
 
-#: templates/base.html:265
+#: templates/base.html:268
 msgid "Nova Recommended"
 msgstr "Nova empfohlen"
 
-#: templates/base.html:266
+#: templates/base.html:269
 msgid "Reset Ranking"
 msgstr "Rang zurücksetzen"
 
-#: templates/base.html:267
+#: templates/base.html:270
 msgid "Nova recommends this object"
 msgstr "Nova empfiehlt dieses Objekt"
 
-#: templates/base.html:268
+#: templates/base.html:271
 #, python-format
 msgid "#%(rank)d"
 msgstr "#%(rank)d"
 
-#: templates/base.html:269
+#: templates/base.html:272
 msgid "Reason"
 msgstr "Grund"
 
-#: templates/base.html:270
+#: templates/base.html:273
 msgid "Error asking Nova. Please try again."
 msgstr "Fehler beim Fragen von Nova. Bitte versuchen Sie es erneut."
 
-#: templates/base.html:271
+#: templates/base.html:274
 #, fuzzy
 msgid "Consulting star charts..."
 msgstr "Ich habe die Sternenkarten konsultiert..."
 
-#: templates/base.html:272 templates/graph_view.html:478
+#: templates/base.html:275 templates/graph_view.html:478
 msgid "Checking your rigs..."
 msgstr "Überprüfen Sie Ihre örtliche Bibliothek..."
 
-#: templates/base.html:273
+#: templates/base.html:276
 #, fuzzy
 msgid "Scanning cosmos..."
 msgstr "Den Himmel scannen..."
 
-#: templates/base.html:275
+#: templates/base.html:278
 #, fuzzy
 msgid "Recommended Rig"
 msgstr "Nova empfohlen"
 
-#: templates/base.html:276
+#: templates/base.html:279
 #, fuzzy
 msgid "Recommended Rigs"
 msgstr "Nova empfohlen"
 
-#: templates/base.html:308
+#: templates/base.html:311
 msgid "Demo Mode:"
 msgstr "Demo-Modus:"
 
-#: templates/base.html:308
+#: templates/base.html:311
 msgid ""
 "You are viewing a read-only demo. Full functionality (like saving) is "
 "enabled for registered users."
@@ -3322,43 +3345,43 @@ msgstr ""
 "Sie sehen eine schreibgeschützte Demo. Die volle Funktionalität (wie z. B. "
 "das Speichern) ist für registrierte Benutzer aktiviert."
 
-#: templates/base.html:332
+#: templates/base.html:335
 msgid "About Nova DSO Tracker"
 msgstr "Über Nova DSO Tracker"
 
-#: templates/base.html:332
+#: templates/base.html:335
 msgid "About"
 msgstr "Über"
 
-#: templates/base.html:340
+#: templates/base.html:343
 msgid "Toggle dark/light theme"
 msgstr "Dunkles/helles Design umschalten"
 
-#: templates/base.html:340
+#: templates/base.html:343
 msgid "Toggle theme"
 msgstr "Thema umschalten"
 
-#: templates/base.html:360
+#: templates/base.html:363
 msgid "Select language"
 msgstr "Sprache auswählen"
 
-#: templates/base.html:372
+#: templates/base.html:375
 msgid "Guest Mode"
 msgstr "Gastmodus"
 
-#: templates/base.html:373 templates/login.html:2
+#: templates/base.html:376 templates/login.html:2
 msgid "Login"
 msgstr "Anmelden"
 
-#: templates/base.html:377
+#: templates/base.html:380
 msgid "Users"
 msgstr "Benutzer"
 
-#: templates/base.html:380
+#: templates/base.html:383
 msgid "Logout"
 msgstr "Abmelden"
 
-#: templates/base.html:399
+#: templates/base.html:402
 msgid ""
 "The translations for this language are machine-generated and may not be "
 "accurate. Help improve them!"
@@ -3366,31 +3389,31 @@ msgstr ""
 "Die Übersetzungen für diese Sprache wurden maschinell erstellt und sind "
 "möglicherweise nicht akkurat. Hilf uns, sie zu verbessern!"
 
-#: templates/base.html:400
+#: templates/base.html:403
 msgid "Submit feedback"
 msgstr "Feedback senden"
 
-#: templates/base.html:420 templates/config_form.html:311
+#: templates/base.html:423 templates/config_form.html:311
 #: templates/config_form.html:396 templates/graph_view.html:97
 msgid "Help"
 msgstr "Hilfe"
 
-#: templates/base.html:440
+#: templates/base.html:443
 msgid "Nova DSO Tracker Logo"
 msgstr "Nova DSO Tracker Logo"
 
-#: templates/base.html:442
+#: templates/base.html:445
 msgid "Version"
 msgstr "Version"
 
-#: templates/base.html:443
+#: templates/base.html:446
 msgid ""
 "A personal project born from a passion for astronomy and astrophotography."
 msgstr ""
 "Ein persönliches Projekt, das aus der Leidenschaft für Astronomie und "
 "Astrofotografie entstanden ist."
 
-#: templates/base.html:444
+#: templates/base.html:447
 msgid ""
 "Nova DSO Tracker helps amateur astronomers plan observation sessions, "
 "calculating and visualizing altitude and azimuth of deep-sky objects, "
@@ -3401,55 +3424,55 @@ msgstr ""
 " berechnet und visualisiert, die Position und Phase des Mondes verfolgt und "
 "optimale Beobachtungsfenster identifiziert."
 
-#: templates/base.html:445
+#: templates/base.html:448
 msgid "Data sourced from SIMBAD; calculations powered by Astropy and Ephem."
 msgstr "Datenquelle: SIMBAD; Berechnungen mit Astropy und Ephem."
 
-#: templates/base.html:453
+#: templates/base.html:456
 msgid "Visit nova-tracker.com"
 msgstr "Besuchen Sie nova-tracker.com"
 
-#: templates/base.html:463
+#: templates/base.html:466
 msgid "Built by Anton Gutscher"
 msgstr "Erstellt von Anton Gutscher"
 
-#: templates/base.html:478
+#: templates/base.html:481
 msgid "Translation Feedback"
 msgstr "Übersetzungs-Feedback"
 
-#: templates/base.html:479
+#: templates/base.html:482
 msgid "Help us improve the translations for this language."
 msgstr "Helfen Sie uns, die Übersetzungen für diese Sprache zu verbessern."
 
-#: templates/base.html:483
+#: templates/base.html:486
 msgid "Locale"
 msgstr "Sprache"
 
-#: templates/base.html:488
+#: templates/base.html:491
 msgid "Term / Phrase"
 msgstr "Begriff / Ausdruck"
 
-#: templates/base.html:489
+#: templates/base.html:492
 msgid "The translated term that seems wrong..."
 msgstr "Der übersetzte Begriff, der falsch erscheint..."
 
-#: templates/base.html:493
+#: templates/base.html:496
 msgid "Suggested Correction"
 msgstr "Vorgeschlagene Korrektur"
 
-#: templates/base.html:494
+#: templates/base.html:497
 msgid "Your suggested translation..."
 msgstr "Ihre vorgeschlagene Übersetzung..."
 
-#: templates/base.html:498
+#: templates/base.html:501
 msgid "Context / Notes"
 msgstr "Kontext / Hinweise"
 
-#: templates/base.html:498
+#: templates/base.html:501
 msgid "optional"
 msgstr "(optional)"
 
-#: templates/base.html:499
+#: templates/base.html:502
 msgid ""
 "Additional context about where this appears or why the correction is "
 "needed..."
@@ -3457,7 +3480,7 @@ msgstr ""
 "Zusätzlicher Kontext darüber, wo dies erscheint oder warum die Korrektur "
 "benötigt wird..."
 
-#: templates/base.html:503
+#: templates/base.html:506
 msgid "Submit"
 msgstr "Senden"
 

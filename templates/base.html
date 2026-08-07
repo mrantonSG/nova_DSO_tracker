@@ -243,6 +243,9 @@
       confirm_bulk_action:            {{ _('Are you sure you want to %(action)s %(count)d objects?', action='{action}', count=11111) | tojson }}.replace('11111', '{count}'),
       fetching_details_for:           {{ _('Fetching details for %(name)s...', name='{name}') | tojson }},
 
+      // Catalog import confirmation dialog
+      confirm_catalog_import:         {{ _('Importing \'%(name)s\'...\n\nThis will update your library with data from the server:\n• New objects from this pack will be added.\n• Existing objects with empty images/descriptions will be filled in.\n• Differences will be flagged for your review.\n• Your personal Project Notes, Status, and Framings remain safe.\n\nDo you want to proceed?', name='PACKNAME_PLACEHOLDER') | tojson }}.replace('PACKNAME_PLACEHOLDER', '{name}'),
+
       // Additional strings called via window.t() but missing from novaI18n
       effective_fl:                  {{ _('Effective FL') | tojson }},
       field_of_view:                 {{ _('Field of View') | tojson }},

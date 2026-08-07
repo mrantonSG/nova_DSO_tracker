@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-07 09:31+0200\n"
+"POT-Creation-Date: 2026-08-07 11:00+0200\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: ja <LL@li.org>\n"
@@ -791,8 +791,8 @@ msgstr "出典: Wiki"
 #: templates/_inspiration_section.html:504
 #: templates/_journal_section.html:2504 templates/_objects_section.html:430
 #: templates/_objects_section.html:445 templates/_objects_section.html:461
-#: templates/base.html:402 templates/base.html:419 templates/base.html:424
-#: templates/base.html:433 templates/base.html:471
+#: templates/base.html:405 templates/base.html:422 templates/base.html:427
+#: templates/base.html:436 templates/base.html:474
 #: templates/config_form.html:701 templates/graph_view.html:294
 msgid "Close"
 msgstr "閉じる"
@@ -1537,7 +1537,7 @@ msgstr "プロジェクトを保存"
 #: templates/_journal_section.html:2176 templates/_journal_section.html:2246
 #: templates/_journal_section.html:2279 templates/_journal_section.html:2564
 #: templates/_objects_section.html:350 templates/_project_subtab.html:232
-#: templates/admin_users.html:120 templates/base.html:504
+#: templates/admin_users.html:120 templates/base.html:507
 #: templates/graph_view.html:486 templates/index.html:278
 #: templates/journal_form.html:205
 msgid "Cancel"
@@ -1960,7 +1960,7 @@ msgstr "フィルターの削除エラー。"
 msgid "{label} removed."
 msgstr "{label} を削除しました。"
 
-#: templates/_journal_section.html:2553 templates/base.html:262
+#: templates/_journal_section.html:2553 templates/base.html:265
 #: templates/graph_view.html:475 templates/index.html:112
 msgid "Ask Nova"
 msgstr "Ask Nova"
@@ -1977,7 +1977,7 @@ msgstr "コンディションの見直し..."
 msgid "Checking guiding data..."
 msgstr "データを更新中..."
 
-#: templates/_journal_section.html:2558 templates/base.html:274
+#: templates/_journal_section.html:2558 templates/base.html:277
 #: templates/graph_view.html:481
 msgid "Almost there..."
 msgstr "もう少しだ..."
@@ -3132,48 +3132,71 @@ msgid "Fetching details for %(name)s..."
 msgstr "%%(name)sを検索中..."
 
 #: templates/base.html:247
+#, python-format
+msgid ""
+"Importing '%(name)s'...\n"
+"\n"
+"This will update your library with data from the server:\n"
+"• New objects from this pack will be added.\n"
+"• Existing objects with empty images/descriptions will be filled in.\n"
+"• Differences will be flagged for your review.\n"
+"• Your personal Project Notes, Status, and Framings remain safe.\n"
+"\n"
+"Do you want to proceed?"
+msgstr ""
+"'%(name)s'をインポート中...\n"
+"\n"
+"サーバーのデータでライブラリを更新します：\n"
+"• このパックからの新しい天体が追加されます。\n"
+"• 画像/説明が空の既存天体に充填されます。\n"
+"• 差分はレビュー用にフラグが立ちます。\n"
+"•個人のプロジェクトメモ、ステータス、フレーミングは安全に保たれます。\n"
+"\n"
+"続行しますか？"
+
+#: templates/base.html:250
 msgid "Effective FL"
 msgstr "アクティブのみ"
 
-#: templates/base.html:248
+#: templates/base.html:251
 msgid "Field of View"
 msgstr "視野"
 
-#: templates/base.html:249
+#: templates/base.html:252
 msgid "Good sampling"
 msgstr "良いサンプリング"
 
-#: templates/base.html:250
+#: templates/base.html:253
 msgid "Image Scale"
 msgstr "ピクセルスケール"
 
-#: templates/base.html:251
+#: templates/base.html:254
 msgid "No reducers defined."
 msgstr "目標は設定されていません。"
 
-#: templates/base.html:252
+#: templates/base.html:255
 msgid "Slightly oversampled"
 msgstr "コピーしました！"
 
-#: templates/base.html:253
+#: templates/base.html:256
 msgid "Slightly undersampled"
 msgstr "ユーザー名"
 
-#: templates/base.html:256
+#: templates/base.html:259
 msgid "Add Your Own Inspiration!"
 msgstr "自分のインスピレーションを追加！"
 
-#: templates/base.html:257
+#: templates/base.html:260
 msgid "You are currently seeing automated survey images (DSS2)."
 msgstr "現在、自動調査画像（DSS2）が表示されています。"
 
-#: templates/base.html:258
+#: templates/base.html:261
 msgid ""
 "Did you know you can display your own astrophotos or favorite reference "
 "images here?"
 msgstr "ここで自分の天体写真やお気に入りの参照画像を表示できることをご存知ですか？"
 
-#: templates/base.html:259
+#: templates/base.html:262
 msgid ""
 "Go to Configuration - Manage Objects to add Inspiration Content to your "
 "targets."
@@ -3181,139 +3204,139 @@ msgstr ""
 "<strong>設定 > "
 "オブジェクトの管理</strong>に移動して、ターゲットに「インスピレーションコンテンツ」（画像URL、クレジット、説明）を追加してください。"
 
-#: templates/base.html:263
+#: templates/base.html:266
 msgid "Asking Nova..."
 msgstr "Novaに質問中..."
 
-#: templates/base.html:264
+#: templates/base.html:267
 #, fuzzy
 msgid "Nova Ranking"
 msgstr "Nova writing…"
 
-#: templates/base.html:265
+#: templates/base.html:268
 msgid "Nova Recommended"
 msgstr "Novaのおすすめ"
 
-#: templates/base.html:266
+#: templates/base.html:269
 msgid "Reset Ranking"
 msgstr "ランキングをリセット"
 
-#: templates/base.html:267
+#: templates/base.html:270
 msgid "Nova recommends this object"
 msgstr "Novaがこのオブジェクトをおすすめ"
 
-#: templates/base.html:268
+#: templates/base.html:271
 #, python-format
 msgid "#%(rank)d"
 msgstr "#%(rank)d"
 
-#: templates/base.html:269
+#: templates/base.html:272
 msgid "Reason"
 msgstr "理由"
 
-#: templates/base.html:270
+#: templates/base.html:273
 msgid "Error asking Nova. Please try again."
 msgstr "Novaへの質問でエラーが発生しました。もう一度お試しください。"
 
-#: templates/base.html:271
+#: templates/base.html:274
 #, fuzzy
 msgid "Consulting star charts..."
 msgstr "星図を見ながら..."
 
-#: templates/base.html:272 templates/graph_view.html:478
+#: templates/base.html:275 templates/graph_view.html:478
 msgid "Checking your rigs..."
 msgstr "お近くの図書館を調べてみると...。"
 
-#: templates/base.html:273
+#: templates/base.html:276
 #, fuzzy
 msgid "Scanning cosmos..."
 msgstr "空をスキャン中..."
 
-#: templates/base.html:275
+#: templates/base.html:278
 #, fuzzy
 msgid "Recommended Rig"
 msgstr "Novaのおすすめ"
 
-#: templates/base.html:276
+#: templates/base.html:279
 #, fuzzy
 msgid "Recommended Rigs"
 msgstr "Novaのおすすめ"
 
-#: templates/base.html:308
+#: templates/base.html:311
 msgid "Demo Mode:"
 msgstr "デモモード:"
 
-#: templates/base.html:308
+#: templates/base.html:311
 msgid ""
 "You are viewing a read-only demo. Full functionality (like saving) is "
 "enabled for registered users."
 msgstr "ご覧になっているのは読み取り専用デモです。保存などの全機能は登録ユーザー向けに有効化されています。"
 
-#: templates/base.html:332
+#: templates/base.html:335
 msgid "About Nova DSO Tracker"
 msgstr "Nova DSO Trackerについて"
 
-#: templates/base.html:332
+#: templates/base.html:335
 msgid "About"
 msgstr "について"
 
-#: templates/base.html:340
+#: templates/base.html:343
 msgid "Toggle dark/light theme"
 msgstr "ダーク/ライトテーマを切り替える"
 
-#: templates/base.html:340
+#: templates/base.html:343
 msgid "Toggle theme"
 msgstr "テーマを切り替える"
 
-#: templates/base.html:360
+#: templates/base.html:363
 msgid "Select language"
 msgstr "言語を選択"
 
-#: templates/base.html:372
+#: templates/base.html:375
 msgid "Guest Mode"
 msgstr "ゲストモード"
 
-#: templates/base.html:373 templates/login.html:2
+#: templates/base.html:376 templates/login.html:2
 msgid "Login"
 msgstr "ログイン"
 
-#: templates/base.html:377
+#: templates/base.html:380
 msgid "Users"
 msgstr "ユーザー"
 
-#: templates/base.html:380
+#: templates/base.html:383
 msgid "Logout"
 msgstr "ログアウト"
 
-#: templates/base.html:399
+#: templates/base.html:402
 msgid ""
 "The translations for this language are machine-generated and may not be "
 "accurate. Help improve them!"
 msgstr "この言語の翻訳は機械翻訳であり、正確ではない可能性があります。改善にご協力ください！"
 
-#: templates/base.html:400
+#: templates/base.html:403
 msgid "Submit feedback"
 msgstr "フィードバックを送信"
 
-#: templates/base.html:420 templates/config_form.html:311
+#: templates/base.html:423 templates/config_form.html:311
 #: templates/config_form.html:396 templates/graph_view.html:97
 msgid "Help"
 msgstr "助けて"
 
-#: templates/base.html:440
+#: templates/base.html:443
 msgid "Nova DSO Tracker Logo"
 msgstr "Nova DSO Tracker Logo"
 
-#: templates/base.html:442
+#: templates/base.html:445
 msgid "Version"
 msgstr "バージョン"
 
-#: templates/base.html:443
+#: templates/base.html:446
 msgid ""
 "A personal project born from a passion for astronomy and astrophotography."
 msgstr "天文学と天体写真への情熱から生まれた個人的なプロジェクト。"
 
-#: templates/base.html:444
+#: templates/base.html:447
 msgid ""
 "Nova DSO Tracker helps amateur astronomers plan observation sessions, "
 "calculating and visualizing altitude and azimuth of deep-sky objects, "
@@ -3322,61 +3345,61 @@ msgstr ""
 "Nova DSO "
 "Trackerは、アマチュア天文学者が観測セッションを計画するのを支援します。深宇宙天体の高度と方位角を計算・可視化し、月の位置と満ち欠けを追跡し、最適な観測時間帯を特定します。"
 
-#: templates/base.html:445
+#: templates/base.html:448
 msgid "Data sourced from SIMBAD; calculations powered by Astropy and Ephem."
 msgstr "データはSIMBADから取得；計算はAstropyおよびEphemによって実行。"
 
-#: templates/base.html:453
+#: templates/base.html:456
 msgid "Visit nova-tracker.com"
 msgstr "nova-tracker.comをご覧ください"
 
-#: templates/base.html:463
+#: templates/base.html:466
 msgid "Built by Anton Gutscher"
 msgstr "アントン・グッチャーによって構築"
 
-#: templates/base.html:478
+#: templates/base.html:481
 msgid "Translation Feedback"
 msgstr "翻訳フィードバック"
 
-#: templates/base.html:479
+#: templates/base.html:482
 msgid "Help us improve the translations for this language."
 msgstr "この言語の翻訳を改善するのを手伝ってください。"
 
-#: templates/base.html:483
+#: templates/base.html:486
 msgid "Locale"
 msgstr "ロケール"
 
-#: templates/base.html:488
+#: templates/base.html:491
 msgid "Term / Phrase"
 msgstr "用語 / フレーズ"
 
-#: templates/base.html:489
+#: templates/base.html:492
 msgid "The translated term that seems wrong..."
 msgstr "間違っているように見える翻訳用語..."
 
-#: templates/base.html:493
+#: templates/base.html:496
 msgid "Suggested Correction"
 msgstr "推奨修正"
 
-#: templates/base.html:494
+#: templates/base.html:497
 msgid "Your suggested translation..."
 msgstr "ご推奨翻訳..."
 
-#: templates/base.html:498
+#: templates/base.html:501
 msgid "Context / Notes"
 msgstr "コンテキスト / メモ"
 
-#: templates/base.html:498
+#: templates/base.html:501
 msgid "optional"
 msgstr "(任意)"
 
-#: templates/base.html:499
+#: templates/base.html:502
 msgid ""
 "Additional context about where this appears or why the correction is "
 "needed..."
 msgstr "それがどこに表示されるか、なぜ修正が必要かについての付加コンテキスト..."
 
-#: templates/base.html:503
+#: templates/base.html:506
 msgid "Submit"
 msgstr "送信"
 

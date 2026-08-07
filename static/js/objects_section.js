@@ -1177,14 +1177,7 @@
 
     function confirmCatalogImport(form) {
         const packName = form.getAttribute('data-pack-name') || 'Catalog';
-        return confirm(
-            "Importing '" + packName + "'...\n\n" +
-            "This will update your library with data from the server:\n" +
-            "• New objects from this pack will be added.\n" +
-            "• Existing objects will be updated with the latest images/descriptions.\n" +
-            "• Your personal Project Notes, Status, and Framings remain safe.\n\n" +
-            "Do you want to proceed?"
-        );
+        return confirm(window.t('confirm_catalog_import', { name: packName }));
     }
 
     // Expose functions needed by HTML inline event handlers
