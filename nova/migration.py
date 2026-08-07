@@ -1320,16 +1320,19 @@ def import_catalog_pack_for_user(db, user: DbUser, catalog_config: dict, pack_id
                 size_incoming = str(o.get("Size") if o.get("Size") is not None else o.get("size") or "")
                 sb_incoming = str(o.get("SB") if o.get("SB") is not None else o.get("sb") or "")
 
-                catalog_fields = [
+                string_fields = [
                     ("common_name", common_name_incoming),
                     ("type", obj_type_incoming),
                     ("constellation", constellation_incoming),
+                ]
+
+                numeric_fields = [
                     ("magnitude", magnitude_incoming),
                     ("size", size_incoming),
                     ("sb", sb_incoming),
                 ]
 
-                for field_name, incoming_val in catalog_fields:
+                for field_name, incoming_val in string_fields:
                     if not incoming_val:
                         continue  # skip if catalog offers nothing for this field
                     existing_val = getattr(existing, field_name, None)
@@ -1340,6 +1343,31 @@ def import_catalog_pack_for_user(db, user: DbUser, catalog_config: dict, pack_id
                             "existing_value": existing_val,
                             "catalog_value": incoming_val,
                         })
+
+                # Numeric fields: compare as floats with tolerance to avoid
+                # false positives from formatting differences (e.g. "9" vs "9.0").
+                for field_name, incoming_val in numeric_fields:
+                    if not incoming_val:
+                        continue  # skip if catalog offers nothing for this field
+                    existing_val = getattr(existing, field_name, None)
+                    try:
+                        a, b = float(existing_val), float(incoming_val)
+                        if abs(a - b) > 0.001:
+                            conflicts.append({
+                                "object_name": object_name,
+                                "field": field_name,
+                                "existing_value": existing_val,
+                                "catalog_value": incoming_val,
+                            })
+                    except (TypeError, ValueError):
+                        # If either side isn't a valid float, fall back to string comparison
+                        if str(incoming_val) != str(existing_val):
+                            conflicts.append({
+                                "object_name": object_name,
+                                "field": field_name,
+                                "existing_value": existing_val,
+                                "catalog_value": incoming_val,
+                            })
 
                 # RA/DEC tolerance check (only when pack provides a value)
                 for field_name, incoming_val in [("ra_hours", ra_f), ("dec_deg", dec_f)]:
