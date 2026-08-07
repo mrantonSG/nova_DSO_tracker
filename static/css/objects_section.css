@@ -5,14 +5,14 @@
 
     /* Primary-action tab button — stands out in the row of ghost-style tabs */
     #review-import-conflicts-tab-btn {
-        background-color: var(--primary-color);
+        background-color: var(--warning-color-alt);
         color: #ffffff;
         border-radius: 6px;
         font-size: 12px;
         font-weight: 600;
     }
     #review-import-conflicts-tab-btn:hover {
-        background-color: var(--primary-hover);
+        background-color: var(--warning-color-alt);
     }
 
     .detail-tab-content { display: none; }
@@ -312,10 +312,10 @@
 
     /* Primary-action tab button — dark mode */
     [data-theme="dark"] #review-import-conflicts-tab-btn {
-        background-color: var(--primary-color);
+        background-color: var(--warning-color-alt);
     }
     [data-theme="dark"] #review-import-conflicts-tab-btn:hover {
-        background-color: var(--primary-hover);
+        background-color: var(--warning-color-alt);
     }
 
     /* Readonly notes */
