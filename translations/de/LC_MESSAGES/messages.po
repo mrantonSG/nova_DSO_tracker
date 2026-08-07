@@ -3130,7 +3130,7 @@ msgid "%(count)d pending"
 msgstr ""
 
 #: templates/base.html:224
-#, fuzzy, python-format
+#, python-format
 msgid "%(count)d objects to review"
 msgstr "%(count)d Objekte zur Überprüfung"
 
@@ -3152,12 +3152,10 @@ msgid "Field"
 msgstr "Feld"
 
 #: templates/base.html:231
-#, fuzzy
 msgid "Your Value"
 msgstr "Ihr Wert"
 
 #: templates/base.html:232
-#, fuzzy
 msgid "Catalog Value"
 msgstr "Katalogwert"
 
