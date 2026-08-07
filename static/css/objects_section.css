@@ -2,6 +2,19 @@
     .detail-tabs-container { display: flex; margin-bottom: 15px; border-bottom: 1px solid var(--border-medium-alt); }
     .detail-tab-button { padding: var(--space-2) var(--space-4); cursor: pointer; border: none; background-color: transparent; color: var(--text-secondary); border-bottom: 2px solid transparent; font-size: var(--font-size-md); }
     .detail-tab-button.active { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: var(--font-weight-semibold); }
+
+    /* Primary-action tab button — stands out in the row of ghost-style tabs */
+    #review-import-conflicts-tab-btn {
+        background-color: var(--primary-color);
+        color: #ffffff;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    #review-import-conflicts-tab-btn:hover {
+        background-color: var(--primary-hover);
+    }
+
     .detail-tab-content { display: none; }
     .detail-tab-content.active { display: block; }
 
@@ -295,6 +308,14 @@
     [data-theme="dark"] .detail-tab-button:hover {
         color: var(--text-primary);
         background-color: var(--bg-medium);
+    }
+
+    /* Primary-action tab button — dark mode */
+    [data-theme="dark"] #review-import-conflicts-tab-btn {
+        background-color: var(--primary-color);
+    }
+    [data-theme="dark"] #review-import-conflicts-tab-btn:hover {
+        background-color: var(--primary-hover);
     }
 
     /* Readonly notes */
