@@ -3060,7 +3060,7 @@ msgstr ""
 #: templates/base.html:224
 #, fuzzy, python-format
 msgid "%(count)d objects to review"
-msgstr "显示 %(count)d 个对象"
+msgstr "%(count)d 个待审核对象"
 
 #: templates/base.html:227
 msgid "From pack: PACKNAME"
@@ -3077,17 +3077,17 @@ msgstr "天体"
 
 #: templates/base.html:230
 msgid "Field"
-msgstr ""
+msgstr "字段"
 
 #: templates/base.html:231
 #, fuzzy
 msgid "Your Value"
-msgstr "可观测"
+msgstr "您的值"
 
 #: templates/base.html:232
 #, fuzzy
 msgid "Catalog Value"
-msgstr "星表包"
+msgstr "目录值"
 
 #: templates/base.html:234
 msgid "Keep Mine"

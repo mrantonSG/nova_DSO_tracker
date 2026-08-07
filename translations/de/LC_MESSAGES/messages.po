@@ -3132,7 +3132,7 @@ msgstr ""
 #: templates/base.html:224
 #, fuzzy, python-format
 msgid "%(count)d objects to review"
-msgstr "Anzeigen von %(count)d Objekten"
+msgstr "%(count)d Objekte zur Überprüfung"
 
 #: templates/base.html:227
 msgid "From pack: PACKNAME"
@@ -3149,17 +3149,17 @@ msgstr "Objekt"
 
 #: templates/base.html:230
 msgid "Field"
-msgstr ""
+msgstr "Feld"
 
 #: templates/base.html:231
 #, fuzzy
 msgid "Your Value"
-msgstr "Beobachtbar"
+msgstr "Ihr Wert"
 
 #: templates/base.html:232
 #, fuzzy
 msgid "Catalog Value"
-msgstr "Katalog-Pakete"
+msgstr "Katalogwert"
 
 #: templates/base.html:234
 msgid "Keep Mine"
