@@ -675,12 +675,19 @@ def generate_session_summary():
                 ).first()
 
             if rig:
-                guide_pixel_um = rig.guide_camera.pixel_size_um if rig.guide_camera else None
+                # Resolve guide_pixel_um with legacy-column fallback
+                if rig.guide_camera and rig.guide_camera.pixel_size_um is not None:
+                    guide_pixel_um = rig.guide_camera.pixel_size_um
+                elif rig.guide_pixel_size_um is not None:
+                    guide_pixel_um = rig.guide_pixel_size_um
 
+                # Resolve guide_FL_mm with legacy-column fallback
                 if rig.guide_is_oag:
                     guide_FL_mm = rig.effective_focal_length
-                elif rig.guide_telescope:
+                elif rig.guide_telescope and rig.guide_telescope.focal_length_mm is not None:
                     guide_FL_mm = rig.guide_telescope.focal_length_mm
+                elif not rig.guide_is_oag and rig.guide_focal_length_mm is not None:
+                    guide_FL_mm = rig.guide_focal_length_mm
 
         session_data["guide_pixel_um"] = guide_pixel_um
         session_data["guide_FL_mm"] = guide_FL_mm
