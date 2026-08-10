@@ -5702,3 +5702,6 @@ msgstr "Gain/Offset"
 #: templates/project_report.html:1200
 msgid "Exp"
 msgstr "Experiment"
+
+msgid "%(count)d object to review"
+msgstr "%(count)d Objekt zur Überprüfung"

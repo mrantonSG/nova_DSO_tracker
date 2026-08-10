@@ -5578,3 +5578,6 @@ msgstr "增益/偏移"
 #: templates/project_report.html:1200
 msgid "Exp"
 msgstr "曝光"
+
+msgid "%(count)d object to review"
+msgstr "%(count)d 个待审核对象"

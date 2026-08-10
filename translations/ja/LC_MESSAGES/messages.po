@@ -5596,3 +5596,6 @@ msgstr "ゲイン/オフセット"
 #: templates/project_report.html:1200
 msgid "Exp"
 msgstr "実験"
+
+msgid "%(count)d object to review"
+msgstr "確認が必要なオブジェクトが%(count)d件"

@@ -5735,3 +5735,6 @@ msgstr "Gain/Décalage"
 #: templates/project_report.html:1200
 msgid "Exp"
 msgstr "Expérience"
+
+msgid "%(count)d object to review"
+msgstr "%(count)d objet à vérifier"

@@ -219,7 +219,8 @@
       help_content_empty:             {{ _('Error: Help content returned empty.') | tojson }},
       help_network_error:             {{ _('Network Error: Could not load help topic.') | tojson }},
       review_import_differences:      {{ _('Review Import Differences') | tojson }},
-      review_import_differences_count: {{ _('%(count)d objects to review', count=11111) | tojson }}.replace('11111', '{count}'),
+      review_import_differences_count_one: {{ _('%(count)d object to review', count=11111) | tojson }}.replace('11111', '{count}'),
+      review_import_differences_count_other: {{ _('%(count)d objects to review', count=11111) | tojson }}.replace('11111', '{count}'),
 
       // import-conflicts modal
       conflicts_from_pack:             {{ _('From pack: PACKNAME') | tojson }}.replace('PACKNAME', '{pack}'),

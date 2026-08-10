@@ -1015,7 +1015,7 @@
                 if (data && data.pending && Array.isArray(data.conflicts) && data.conflicts.length > 0) {
                     var names = new Set();
                     data.conflicts.forEach(function(c) { if (c.object_name) names.add(c.object_name); });
-                    btn.textContent = window.t('review_import_differences_count', { count: names.size });
+                    btn.textContent = window.t(names.size === 1 ? 'review_import_differences_count_one' : 'review_import_differences_count_other', { count: names.size });
                     btn.style.display = '';
                 } else {
                     btn.textContent = window.t('review_import_differences');

@@ -5705,3 +5705,6 @@ msgstr "Ganancia/Desplazamiento"
 #: templates/project_report.html:1200
 msgid "Exp"
 msgstr "Exp"
+
+msgid "%(count)d object to review"
+msgstr "%(count)d objeto para revisar"
