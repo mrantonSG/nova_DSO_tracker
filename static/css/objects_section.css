@@ -63,6 +63,7 @@
     .conflict-table td { padding: 6px 8px; }
     .conflict-table td[data-cell="your_value"],
     .conflict-table td[data-cell="catalog_value"] { overflow-wrap: anywhere; word-break: break-all; }
+    .conflict-table td[data-cell="field"] { overflow-wrap: anywhere; word-break: break-all; }
     .muted-text { color: var(--accent-gray-medium); }
 
     /* --- Catalog/Source Styles (from previous step) --- */

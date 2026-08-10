@@ -1105,7 +1105,7 @@
                     grouped[objectName].forEach(function(entry) {
                         html += '<tr data-object-name="' + objectName + '">';
                         html += '<td>' + objectName + '</td>';
-                        html += '<td>' + entry.field + '</td>';
+                        html += '<td data-cell="field">' + entry.field + '</td>';
                         html += '<td data-cell="your_value" title="' + _escapeHtmlAttr(entry.existing_value !== null && entry.existing_value !== undefined ? String(entry.existing_value) : '') + '">' + _truncateForDisplay(entry.existing_value) + '</td>';
                         html += '<td data-cell="catalog_value" title="' + _escapeHtmlAttr(_renderCatalogValue(entry.catalog_value)) + '">' + _truncateForDisplay(_renderCatalogValue(entry.catalog_value)) + '</td>';
                         html += '<td style="white-space: nowrap;">';
