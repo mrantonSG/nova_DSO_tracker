@@ -2479,7 +2479,7 @@ msgstr "Analyse du catalogue... (cela peut prendre quelques secondes)"
 
 #: templates/_objects_section.html:452
 msgid "Review Catalog Import Differences"
-msgstr ""
+msgstr "Différences d'importation du catalogue"
 
 #: templates/_objects_section.html:454
 msgid ""
@@ -2487,6 +2487,9 @@ msgid ""
 "imported. Choose whether to keep your current values or take the catalog "
 "values, per object."
 msgstr ""
+"Ces objets ont des valeurs qui diffèrent du pack de catalogue que vous venez"
+" d'importer. Choisissez, pour chaque objet, si vous souhaitez conserver vos "
+"valeurs actuelles ou reprendre les valeurs du catalogue."
 
 #: templates/_opportunities_section.html:27
 msgid "Imaging Opportunities"

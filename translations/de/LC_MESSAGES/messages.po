@@ -2454,7 +2454,7 @@ msgstr "Katalog wird gescannt... (dies kann einige Sekunden dauern)"
 
 #: templates/_objects_section.html:452
 msgid "Review Catalog Import Differences"
-msgstr ""
+msgstr "Katalogimport-Unterschiede prüfen"
 
 #: templates/_objects_section.html:454
 msgid ""
@@ -2462,6 +2462,9 @@ msgid ""
 "imported. Choose whether to keep your current values or take the catalog "
 "values, per object."
 msgstr ""
+"Diese Objekte haben Werte, die vom soeben importierten Katalogpaket "
+"abweichen. Wählen Sie pro Objekt, ob Sie Ihre aktuellen Werte behalten oder "
+"die Katalogwerte übernehmen möchten."
 
 #: templates/_opportunities_section.html:27
 msgid "Imaging Opportunities"

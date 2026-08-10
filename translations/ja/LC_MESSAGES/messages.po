@@ -2395,7 +2395,7 @@ msgstr "カタログをスキャン中...（数秒かかる場合があります
 
 #: templates/_objects_section.html:452
 msgid "Review Catalog Import Differences"
-msgstr ""
+msgstr "カタログインポートの差異を確認"
 
 #: templates/_objects_section.html:454
 msgid ""
@@ -2403,6 +2403,7 @@ msgid ""
 "imported. Choose whether to keep your current values or take the catalog "
 "values, per object."
 msgstr ""
+"これらのオブジェクトの値は、インポートしたばかりのカタログパックと異なります。オブジェクトごとに、現在の値を保持するかカタログの値を採用するか選択してください。"
 
 #: templates/_opportunities_section.html:27
 msgid "Imaging Opportunities"

@@ -2394,14 +2394,14 @@ msgstr "扫描星表中...（这可能需要几秒钟）"
 
 #: templates/_objects_section.html:452
 msgid "Review Catalog Import Differences"
-msgstr ""
+msgstr "查看目录导入差异"
 
 #: templates/_objects_section.html:454
 msgid ""
 "These objects have values that differ from the catalog pack you just "
 "imported. Choose whether to keep your current values or take the catalog "
 "values, per object."
-msgstr ""
+msgstr "这些对象的数值与您刚导入的目录包不同。请针对每个对象选择保留当前数值还是采用目录数值。"
 
 #: templates/_opportunities_section.html:27
 msgid "Imaging Opportunities"
