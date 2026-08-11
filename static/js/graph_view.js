@@ -209,6 +209,33 @@
                     window.location.href = actionBtn.dataset.url;
                 }
                 break;
+            case 'today': {
+                console.log('[GRAPH_VIEW] today');
+                var _now = new Date();
+                var _dayEl = document.getElementById('day-select');
+                var _monthEl = document.getElementById('month-select');
+                var _yearEl = document.getElementById('year-select');
+                if (_dayEl) _dayEl.value = String(_now.getDate()).padStart(2, '0');
+                if (_monthEl) _monthEl.value = String(_now.getMonth() + 1);
+                if (_yearEl) _yearEl.value = String(_now.getFullYear());
+                if (typeof window.changeView === 'function') {
+                    window.changeView('day');
+                }
+                if (window.NOVA_GRAPH_DATA) {
+                    NOVA_GRAPH_DATA.selectedDay = parseInt(_dayEl.value, 10);
+                    NOVA_GRAPH_DATA.selectedMonth = parseInt(_monthEl.value, 10);
+                    NOVA_GRAPH_DATA.selectedYear = parseInt(_yearEl.value, 10);
+                    NOVA_GRAPH_DATA.isSimMode = (
+                        NOVA_GRAPH_DATA.selectedYear !== _now.getFullYear() ||
+                        NOVA_GRAPH_DATA.selectedMonth !== (_now.getMonth() + 1) ||
+                        NOVA_GRAPH_DATA.selectedDay !== _now.getDate()
+                    );
+                }
+                if (typeof window._fetchCalibrationStar === 'function') {
+                    window._fetchCalibrationStar();
+                }
+                break;
+            }
             case 'change-view':
                 console.log('[GRAPH_VIEW] change-view:', actionBtn.dataset.view, 'function exists:', typeof window.changeView);
                 if (actionBtn.dataset.view && typeof window.changeView === 'function') {
