@@ -4133,19 +4133,16 @@ msgid "Year"
 msgstr "年"
 
 #: templates/graph_view.html:127
-#, fuzzy
 msgid "Day View"
-msgstr "保存済みビュー"
+msgstr "日別ビュー"
 
 #: templates/graph_view.html:128
-#, fuzzy
 msgid "Month View"
-msgstr "月"
+msgstr "月別ビュー"
 
 #: templates/graph_view.html:129
-#, fuzzy
 msgid "Year View"
-msgstr "概要"
+msgstr "年別ビュー"
 
 #: templates/graph_view.html:131 templates/mobile_add_object.html:3
 #: templates/mobile_add_object.html:4 templates/mobile_base.html:64

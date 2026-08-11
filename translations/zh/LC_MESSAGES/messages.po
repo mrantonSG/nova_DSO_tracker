@@ -4118,19 +4118,16 @@ msgid "Year"
 msgstr "年"
 
 #: templates/graph_view.html:127
-#, fuzzy
 msgid "Day View"
-msgstr "已保存的视图"
+msgstr "日视图"
 
 #: templates/graph_view.html:128
-#, fuzzy
 msgid "Month View"
-msgstr "月"
+msgstr "月视图"
 
 #: templates/graph_view.html:129
-#, fuzzy
 msgid "Year View"
-msgstr "概览"
+msgstr "年视图"
 
 #: templates/graph_view.html:131 templates/mobile_add_object.html:3
 #: templates/mobile_add_object.html:4 templates/mobile_base.html:64

@@ -4237,19 +4237,16 @@ msgid "Year"
 msgstr "Jahr"
 
 #: templates/graph_view.html:127
-#, fuzzy
 msgid "Day View"
-msgstr "Gespeicherte Ansichten"
+msgstr "Tagesansicht"
 
 #: templates/graph_view.html:128
-#, fuzzy
 msgid "Month View"
-msgstr "Monat"
+msgstr "Monatsansicht"
 
 #: templates/graph_view.html:129
-#, fuzzy
 msgid "Year View"
-msgstr "Überblick"
+msgstr "Jahresansicht"
 
 #: templates/graph_view.html:131 templates/mobile_add_object.html:3
 #: templates/mobile_add_object.html:4 templates/mobile_base.html:64
