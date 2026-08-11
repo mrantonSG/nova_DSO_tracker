@@ -5459,10 +5459,9 @@ msgstr "Kopieren in die Zwischenablage fehlgeschlagen."
 msgid "Obs"
 msgstr "Objekte"
 
-#: templates/mobile_object_detail.html:523
-#, fuzzy
+#: templates/mobile_object_detail.html:523 templates/graph_view.html:127
 msgid "Today"
-msgstr "Tag"
+msgstr "Heute"
 
 #: templates/mobile_object_detail.html:528
 #, fuzzy

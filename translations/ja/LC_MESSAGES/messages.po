@@ -5355,10 +5355,9 @@ msgstr "クリップボードへのコピーに失敗しました。"
 msgid "Obs"
 msgstr "オブジェクト"
 
-#: templates/mobile_object_detail.html:523
-#, fuzzy
+#: templates/mobile_object_detail.html:523 templates/graph_view.html:127
 msgid "Today"
-msgstr "日"
+msgstr "今日"
 
 #: templates/mobile_object_detail.html:528
 #, fuzzy

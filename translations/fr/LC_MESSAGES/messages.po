@@ -5492,10 +5492,9 @@ msgstr "Échec de la copie dans le presse-papiers."
 msgid "Obs"
 msgstr "Objets"
 
-#: templates/mobile_object_detail.html:523
-#, fuzzy
+#: templates/mobile_object_detail.html:523 templates/graph_view.html:127
 msgid "Today"
-msgstr "Jour"
+msgstr "Aujourd'hui"
 
 #: templates/mobile_object_detail.html:528
 #, fuzzy

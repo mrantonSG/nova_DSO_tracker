@@ -5337,10 +5337,9 @@ msgstr "剪贴板复制失败。"
 msgid "Obs"
 msgstr "天体"
 
-#: templates/mobile_object_detail.html:523
-#, fuzzy
+#: templates/mobile_object_detail.html:523 templates/graph_view.html:127
 msgid "Today"
-msgstr "日"
+msgstr "今天"
 
 #: templates/mobile_object_detail.html:528
 #, fuzzy
