@@ -251,10 +251,13 @@ def get_journal_objects():
         JournalSession.location_name,
         AstroObject.common_name,
         AstroObject.id.label('astro_id'),
-        AstroObject.active_project
+        Project.status.label('project_status')
     ).outerjoin(
         AstroObject,
         and_(AstroObject.user_id == user_id, AstroObject.object_name == JournalSession.object_name)
+    ).outerjoin(
+        Project,
+        and_(Project.user_id == user_id, Project.target_object_name == JournalSession.object_name)
     ).filter(
         JournalSession.user_id == user_id,
         or_(
@@ -283,7 +286,7 @@ def get_journal_objects():
                 'first_session_date': None,
                 'first_session_id': None,
                 'first_session_location': None,
-                'active_project': session.active_project
+                'project_status': session.project_status
             }
 
         # Accumulate integration time
@@ -326,7 +329,7 @@ def get_journal_objects():
             'last_session': obj['last_session'].strftime('%Y-%m-%d') if obj['last_session'] else None,
             'first_session_date': obj['first_session_date'].strftime('%Y-%m-%d') if obj['first_session_date'] else None,
             'first_session_location': first_session_location,
-            'active_project': obj['active_project'],
+            'project_status': obj['project_status'],
             'url': url_for('core.graph_dashboard', **url_params, _external=False)
         })
 
