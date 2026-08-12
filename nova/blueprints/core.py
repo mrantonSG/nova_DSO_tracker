@@ -1396,7 +1396,7 @@ def index():
 
     sessions = db.query(JournalSession).filter_by(user_id=user.id).order_by(JournalSession.date_utc.desc()).all()
     all_projects = db.query(Project).filter_by(user_id=user.id).all()
-    project_map = {p.id: p.name for p in all_projects}
+    project_map = {p.id: {'name': p.name, 'status': p.status} for p in all_projects}
     objects_from_db = db.query(AstroObject).filter_by(user_id=user.id).all()
     object_names_lookup = {o.object_name: o.common_name for o in objects_from_db}
 
@@ -1415,9 +1415,16 @@ def index():
         session_dict['target_common_name'] = object_names_lookup.get(session.object_name, session.object_name)
 
         if session.project_id:
-            session_dict['project_name'] = project_map.get(session.project_id, "Unknown Project")
+            proj = project_map.get(session.project_id)
+            if proj:
+                session_dict['project_name'] = proj['name']
+                session_dict['project_status'] = proj['status']
+            else:
+                session_dict['project_name'] = "Unknown Project"
+                session_dict['project_status'] = None
         else:
-            session_dict['project_name'] = "-"  # Or "Standalone"
+            session_dict['project_name'] = "-"
+            session_dict['project_status'] = ""
 
         sessions_for_template.append(session_dict)
     # --- END OF FIX ---
@@ -1446,7 +1453,8 @@ def index():
                            selected_month=observing_date_for_calcs.month,
                            selected_year=observing_date_for_calcs.year,
                            hide_invisible=hide_invisible_pref,
-                           imaging_criteria=imaging_criteria)
+                           imaging_criteria=imaging_criteria,
+                           project_statuses=["In Progress", "Completed", "On Hold", "Abandoned"])
 
 
 @core_bp.route('/sun_events')

@@ -193,6 +193,7 @@
                     <th data-journal-column-key="object_name"><span>{{ _('Object') }}</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
                     <th data-journal-column-key="target_common_name"><span>{{ _('Common Name') }}</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
                     <th data-journal-column-key="project_name"><span>{{ _('Project') }}</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+                    <th data-journal-column-key="project_status"><span>{{ _('Status') }}</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
                     <th data-journal-column-key="date_utc"><span>{{ _('Date') }}</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
                     <th data-journal-column-key="location_name"><span>{{ _('Location') }}</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
                     <th data-journal-column-key="telescope_setup_notes"><span>{{ _('Telescope Setup') }}</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
@@ -203,6 +204,14 @@
                     <th data-journal-column-key="object_name"><input type="text" placeholder="{{ _('Object ID') }}"/></th>
                     <th data-journal-column-key="target_common_name"><input type="text" placeholder="{{ _('Search Common Name') }}"/></th>
                     <th data-journal-column-key="project_name"><input type="text" placeholder="{{ _('Project Name') }}"/></th>
+                    <th data-journal-column-key="project_status">
+                        <select>
+                            <option value="">{{ _('All') }}</option>
+                            {% for status_option in project_statuses %}
+                            <option value="{{ status_option }}">{{ status_option }}</option>
+                            {% endfor %}
+                        </select>
+                    </th>
                     <th data-journal-column-key="date_utc"><input type="text" placeholder="{{ _('Date') }}" style="min-width: 0;"/></th>
                     <th data-journal-column-key="location_name"><input type="text" placeholder="{{ _('Location') }}"/></th>
                     <th data-journal-column-key="telescope_setup_notes"><input type="text" placeholder="{{ _('Setup notes') }}"/></th>

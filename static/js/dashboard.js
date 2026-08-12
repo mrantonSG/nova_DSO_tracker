@@ -207,6 +207,11 @@
                 sortable: true,
                 filterable: true
             },
+            'project_status': {
+                dataKey: 'project_status',
+                sortable: true,
+                filterable: true
+            },
             'date_utc': {
                 headerText: 'Date',
                 dataKey: 'date_utc',
@@ -527,8 +532,8 @@
             // Clear Journal filters
             for (const key in journalColumnConfig) {
                 if (journalColumnConfig[key].filterable) {
-                    const inputEl = document.querySelector(`#journal-filter-row th[data-journal-column-key="${key}"] input`);
-                    if (inputEl) inputEl.value = '';
+                    const filterEl = document.querySelector(`#journal-filter-row th[data-journal-column-key="${key}"] input, #journal-filter-row th[data-journal-column-key="${key}"] select`);
+                    if (filterEl) filterEl.value = '';
                     localStorage.removeItem("journal_filter_col_key_" + key);
                 }
             }
@@ -667,8 +672,8 @@
             for (const key in journalColumnConfig) {
                 if (journalColumnConfig[key].filterable) {
                     const val = localStorage.getItem("journal_filter_col_key_" + key);
-                    const inputEl = document.querySelector(`#journal-filter-row th[data-journal-column-key="${key}"] input`);
-                    if (inputEl) inputEl.value = val || '';
+                    const filterEl = document.querySelector(`#journal-filter-row th[data-journal-column-key="${key}"] input, #journal-filter-row th[data-journal-column-key="${key}"] select`);
+                    if (filterEl) filterEl.value = val || '';
                 }
             }
     
@@ -2731,7 +2736,7 @@
             }
     
             // --- Filtering Logic ---
-            const journalFilterInputs = document.querySelectorAll("#journal-filter-row input");
+            const journalFilterInputs = document.querySelectorAll("#journal-filter-row input, #journal-filter-row select");
             const activeJournalFilters = _buildJournalFiltersMap(journalFilterInputs);
             const journalNumericFilterKeys = ['calculated_integration_time_minutes','guiding_rms_avg_arcsec','seeing_observed_fwhm','session_rating_subjective'];
 
@@ -2922,6 +2927,10 @@
           document.querySelectorAll("#journal-filter-row input").forEach(input => {
               const thParent = input.closest('th'); const columnKey = thParent ? thParent.dataset.journalColumnKey : null;
               if (columnKey && journalColumnConfig[columnKey] && journalColumnConfig[columnKey].filterable) { input.addEventListener("keyup", () => { saveJournalFilter(input, columnKey); filterJournalTable(); }); }
+          });
+          document.querySelectorAll("#journal-filter-row select").forEach(select => {
+              const thParent = select.closest('th'); const columnKey = thParent ? thParent.dataset.journalColumnKey : null;
+              if (columnKey && journalColumnConfig[columnKey] && journalColumnConfig[columnKey].filterable) { select.addEventListener('change', () => { saveJournalFilter(select, columnKey); filterJournalTable(); }); }
           });
           document.querySelectorAll("#outlook-table th[data-outlook-column-key]").forEach(header => {
               const columnKey = header.dataset.outlookColumnKey;
