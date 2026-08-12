@@ -2062,7 +2062,7 @@
                                 </div>
                                 <div style="flex: 1;">
                                     <div class="journal-project-stat-box">
-                                        <span class="journal-project-stat-value">{{ selected_project_data_journal.status }}</span>
+                                        <span class="journal-project-stat-value">{{ _(selected_project_data_journal.status) }}</span>
                                         <span class="journal-project-stat-label">{{ _('Status') }}</span>
                                     </div>
                                 </div>
@@ -2181,7 +2181,7 @@
                                 <h3>{{ _('Metadata') }}</h3>
                                 {{ form_group('name', _('Project Name:'), type='text', value=selected_project_data_journal.name, required=True, id_override='project-name') }}
                                 <input type="hidden" name="target_object_id" value="{{ object_name }}">
-                                {{ form_group('status', _('Status:'), type='select', options=project_statuses, selected=selected_project_data_journal.status, id_override='project-status') }}
+                                {{ form_group('status', _('Status:'), type='select', options=[{'value': 'In Progress', 'label': _('In Progress')}, {'value': 'On Hold', 'label': _('On Hold')}, {'value': 'Completed', 'label': _('Completed')}, {'value': 'Abandoned', 'label': _('Abandoned')}], selected=selected_project_data_journal.status, id_override='project-status') }}
                             </div>
 
                             <div class="journal-project-notes-section">

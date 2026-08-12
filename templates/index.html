@@ -208,7 +208,7 @@
                         <select>
                             <option value="">{{ _('All') }}</option>
                             {% for status_option in project_statuses %}
-                            <option value="{{ status_option }}">{{ status_option }}</option>
+                            <option value="{{ status_option }}">{{ _(status_option) }}</option>
                             {% endfor %}
                         </select>
                     </th>

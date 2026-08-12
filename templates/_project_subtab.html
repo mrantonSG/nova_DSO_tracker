@@ -151,7 +151,7 @@
             <div class="project-container">
                 <div class="project-side-column">
                     {{ stat_box(total_integration_str, _('Total Integration Time')) }}
-                    {{ stat_box(project.status, _('Status')) }}
+                    {{ stat_box(_(project.status), _('Status')) }}
                     {{ stat_box(project.target_object_name or '-', _('Primary Target')) }}
 
                     <div class="notes-section">
@@ -249,7 +249,7 @@
                             <div class="form-group"><label for="project-status">{{ _('Status:') }}</label>
                                 <select id="project-status" name="status">
                                     {% for status_option in project_statuses %}
-                                    <option value="{{ status_option }}" {% if status_option == project.status %}selected{% endif %}>{{ status_option }}</option>
+                                    <option value="{{ status_option }}" {% if status_option == project.status %}selected{% endif %}>{{ _(status_option) }}</option>
                                     {% endfor %}
                                 </select>
                             </div>

@@ -208,6 +208,15 @@
                 filterable: true
             },
             'project_status': {
+                format: val => {
+                    const statusMap = {
+                        'In Progress': 'status_in_progress',
+                        'Completed': 'status_completed',
+                        'On Hold': 'status_on_hold',
+                        'Abandoned': 'status_abandoned'
+                    };
+                    return statusMap[val] ? window.t(statusMap[val]) : String(val);
+                },
                 dataKey: 'project_status',
                 sortable: true,
                 filterable: true
