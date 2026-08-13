@@ -259,11 +259,7 @@ def get_journal_objects():
         Project,
         and_(Project.user_id == user_id, Project.target_object_name == JournalSession.object_name)
     ).filter(
-        JournalSession.user_id == user_id,
-        or_(
-            JournalSession.number_of_subs_light > 0,
-            JournalSession.calculated_integration_time_minutes > 0
-        )
+        JournalSession.user_id == user_id
     ).order_by(
         JournalSession.object_name,
         JournalSession.date_utc.desc()
