@@ -2948,6 +2948,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     saveDraftBtn.textContent = originalText;
                     saveDraftBtn.disabled = false;
                 }, 2000);
+                objectsCache = null;
 
                 // Update session_id with returned id
                 if (data.session_id) {
