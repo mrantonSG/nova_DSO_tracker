@@ -233,8 +233,15 @@
             form.elements[`filter_${filt}_subs`].value = data.hasOwnProperty(`filter_${filt}_subs`) && data[`filter_${filt}_subs`] !== null ? data[`filter_${filt}_subs`] : '';
             form.elements[`filter_${filt}_exposure_sec`].value = data.hasOwnProperty(`filter_${filt}_exposure_sec`) && data[`filter_${filt}_exposure_sec`] !== null ? data[`filter_${filt}_exposure_sec`] : '';
         });
-        if (data.project_id) { form.elements['project_selection'].value = data.project_id; }
-        else { form.elements['project_selection'].value = 'standalone'; }
+        if (data.project_ids && data.project_ids.length > 0) {
+            form.querySelectorAll('input[name="project_selection"]').forEach(cb => {
+                cb.checked = data.project_ids.includes(parseInt(cb.value, 10));
+            });
+        } else {
+            form.querySelectorAll('input[name="project_selection"]').forEach(cb => {
+                cb.checked = false;
+            });
+        }
         toggleNewProjectField();
     }
 
@@ -280,7 +287,11 @@
         const defaultLocation = form.getAttribute('data-default-location');
         if (defaultLocation) form.elements.location_name.value = defaultLocation;
 
-        form.elements['project_selection'].value = 'standalone';
+        form.querySelectorAll('input[name="project_selection"]').forEach(cb => {
+            cb.checked = false;
+        });
+        const showNewToggle = document.getElementById('show_new_project_toggle');
+        if (showNewToggle) showNewToggle.checked = false;
 
         const deleteCheckbox = form.elements['delete_session_image']; if (deleteCheckbox) deleteCheckbox.checked = false;
         const fileInput = form.elements['session_image']; if(fileInput) fileInput.value = '';
@@ -474,10 +485,10 @@
     window.triggerAllMaxSubsCalculations = triggerAllMaxSubsCalculations;
 
     function toggleNewProjectField() {
-        const projectSelect = document.getElementById('project_selection');
         const newProjectGroup = document.getElementById('new_project_name_group');
-        if (projectSelect && newProjectGroup) {
-            newProjectGroup.style.display = (projectSelect.value === 'new_project') ? 'block' : 'none';
+        const showNewToggle = document.getElementById('show_new_project_toggle');
+        if (newProjectGroup && showNewToggle) {
+            newProjectGroup.style.display = showNewToggle.checked ? 'block' : 'none';
         }
     }
 
@@ -1093,11 +1104,11 @@
         // Direct listeners for specific form fields
         const sessionDate = document.getElementById('session_date');
         const locationName = document.getElementById('location_name');
-        const projectSelection = document.getElementById('project_selection');
-
         if (sessionDate) sessionDate.addEventListener('change', updateMoonData);
         if (locationName) locationName.addEventListener('change', updateMoonData);
-        if (projectSelection) projectSelection.addEventListener('change', toggleNewProjectField);
+
+        const showNewToggle = document.getElementById('show_new_project_toggle');
+        if (showNewToggle) showNewToggle.addEventListener('change', toggleNewProjectField);
 
         // Rig selector change handler - auto-populate guiding equipment and dither hint
         const rigSelector = document.getElementById('rig-selector-edit');

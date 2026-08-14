@@ -2286,7 +2286,21 @@
                     {{ form_group('session_date', _('Session Date:'), type='date', value=today_date, extra_attrs='autocomplete="off"') }}
                     <div class="form-group"><label for="location_name">{{ _('Location:') }}</label><select id="location_name" name="location_name">{% for loc in available_locations %}<option value="{{ loc.name }}" data-lat="{{ loc.lat }}" data-lon="{{ loc.lon }}" data-tz="{{ loc.timezone }}">{{ loc.name }}{{ _(' (Inactive)') if not loc.active else '' }}</option>{% endfor %}</select></div>
                 </div>
-                <div class="form-group full-width"><label for="project_selection">{{ _('Link to Project (Optional)') }}</label><select name="project_selection" id="project_selection"><option value="standalone">{{ _('-- Standalone Session --') }}</option>{% for project in all_projects %}<option value="{{ project.id }}">{{ project.name }}</option>{% endfor %}<option value="new_project">{{ _('-- Create New Project --') }}</option></select></div>
+                <div class="form-group full-width">
+                    <label>{{ _('Link to Project (Optional)') }}</label>
+                    <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
+                        {% for project in all_projects %}
+                        <label style="display:flex; align-items:center; gap:8px;">
+                            <input type="checkbox" name="project_selection" value="{{ project.id }}">
+                            {{ project.name }}
+                        </label>
+                        {% endfor %}
+                        <hr class="detail-separator" style="margin:8px 0;">
+                        <label style="display:flex; align-items:center; gap:8px;">
+                            <input type="checkbox" id="show_new_project_toggle"> {{ _('-- Create New Project --') }}
+                        </label>
+                    </div>
+                </div>
                 <div class="form-group full-width" id="new_project_name_group" style="display: none;"><label for="new_project_name">{{ _('New Project Name:') }}</label><input type="text" name="new_project_name" id="new_project_name" placeholder="{{ _('e.g., M31 Galaxy - 2025') }}"></div>
                 <div id="form-sky-tab">
                     <div class="form-section-title">{{ _('Sky Conditions (Observed)') }}</div>
