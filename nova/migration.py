@@ -828,6 +828,24 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
                     valid_project_ids.add(sess_project_id)
         # === END: Orphan Project Check ===
 
+        # === START: Multi-project m2m population ===
+        ownership_validated_projects = []
+        imported_project_ids = s.get("project_ids")
+        if imported_project_ids:
+            for pid in imported_project_ids:
+                pid_str = str(pid)
+                p = db.query(Project).filter_by(id=pid_str, user_id=user.id).one_or_none()
+                if p:
+                    ownership_validated_projects.append(p)
+                else:
+                    print(f"[MIGRATION] Skipping orphan project_id {pid_str} for session {ext_id}: not owned by importing user.")
+        # Fallback for old-format YAML (no project_ids key): use project_id
+        if not imported_project_ids and sess_project_id:
+            fallback_p = db.query(Project).filter_by(id=sess_project_id, user_id=user.id).one_or_none()
+            if fallback_p:
+                ownership_validated_projects.append(fallback_p)
+        # *** END: Multi-project m2m population ***
+
         # Map all YAML keys to DB columns
         row_values = {
             "user_id": user.id,
@@ -929,6 +947,11 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
             session_obj.dither_notes = row_values.get("dither_details")
         # *** END: Legacy dither migration ***
         # *** END: Simplified Upsert Logic ***
+
+        # Assign ownership-validated projects to the m2m relationship
+        if ownership_validated_projects:
+            session_obj = existing_session if existing_session else new_session
+            session_obj.projects = ownership_validated_projects
 
     # --- Import custom filter definitions ---
     for cf_def in data.get('custom_mono_filters', []):
@@ -1148,6 +1171,7 @@ def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
                 "session_id": s.external_id or s.id,
                 "project_id": s.project_id,  # Legacy: kept for backward compatibility
                 "project_name": project_lookup.get(s.project_id) if s.project_id else None,
+                "project_ids": [p.id for p in s.projects],
 
                 # Capture Details
                 "number_of_subs_light": s.number_of_subs_light,

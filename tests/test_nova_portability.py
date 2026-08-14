@@ -980,3 +980,254 @@ def test_import_healing_logic(db_session):
 
     assert framing.rig_id is not None
     assert framing.rig_id == rig_created.id
+
+
+def test_export_includes_project_ids_for_multi_project_sessions(db_session, tmp_path):
+    """
+    Verifies that export_user_to_yaml writes 'project_ids' for sessions
+    linked to multiple projects via the session_projects m2m table.
+    """
+    # 1. ARRANGE
+    user = DbUser(username="multi_proj_export_user")
+    db_session.add(user)
+    db_session.commit()
+
+    proj_a = Project(id="proj_export_a", user_id=user.id, name="Project A")
+    proj_b = Project(id="proj_export_b", user_id=user.id, name="Project B")
+    db_session.add_all([proj_a, proj_b])
+    db_session.commit()
+
+    sess = JournalSession(
+        user_id=user.id,
+        project_id="proj_export_a",  # Legacy single-project column
+        date_utc=date(2025, 10, 20),
+        object_name="M31",
+        external_id="multi_sess_1"
+    )
+    # Link to multiple projects via m2m relationship
+    sess.projects = [proj_a, proj_b]
+    db_session.add(sess)
+    db_session.commit()
+
+    # 2. ACT
+    output_dir = str(tmp_path)
+    success = export_user_to_yaml(user.username, out_dir=output_dir)
+    assert success is True
+
+    # 3. ASSERT
+    expected_file = os.path.join(output_dir, f"journal_{user.username}.yaml")
+    with open(expected_file, 'r') as f:
+        data = yaml.safe_load(f)
+
+    assert len(data["sessions"]) == 1
+    exported_sess = data["sessions"][0]
+    assert "project_ids" in exported_sess
+    assert set(exported_sess["project_ids"]) == {"proj_export_a", "proj_export_b"}
+    # Legacy fields must still be present for backward compatibility
+    assert exported_sess["project_id"] == "proj_export_a"
+
+
+def test_import_roundtrip_multi_project_session(db_session, tmp_path):
+    """
+    Round-trip test: create a session linked to 2+ projects, export to YAML,
+    re-import, assert session.projects still has both.
+    """
+    # 1. ARRANGE
+    user = DbUser(username="roundtrip_user")
+    db_session.add(user)
+    db_session.commit()
+
+    proj_a = Project(id="rt_proj_a", user_id=user.id, name="Roundtrip A")
+    proj_b = Project(id="rt_proj_b", user_id=user.id, name="Roundtrip B")
+    db_session.add_all([proj_a, proj_b])
+    db_session.commit()
+
+    sess = JournalSession(
+        user_id=user.id,
+        project_id="rt_proj_a",
+        date_utc=date(2025, 10, 20),
+        object_name="M31",
+        external_id="rt_sess_1"
+    )
+    sess.projects = [proj_a, proj_b]
+    db_session.add(sess)
+    db_session.commit()
+
+    # 2. ACT — Export then re-import
+    output_dir = str(tmp_path)
+    export_user_to_yaml(user.username, out_dir=output_dir)
+
+    # Read the exported YAML and re-import into a fresh user
+    importing_user = DbUser(username="roundtrip_importer")
+    db_session.add(importing_user)
+    db_session.commit()
+
+    # Clear existing sessions/projects for the importing user (mimics wipe & replace)
+    db_session.query(JournalSession).filter_by(user_id=importing_user.id).delete()
+    db_session.query(Project).filter_by(user_id=importing_user.id).delete()
+    db_session.flush()
+
+    # Read the exported file and re-import
+    expected_file = os.path.join(output_dir, f"journal_{user.username}.yaml")
+    with open(expected_file, 'r') as f:
+        exported_data = yaml.safe_load(f)
+
+    _migrate_journal(db_session, importing_user, exported_data)
+    db_session.commit()
+
+    # 3. ASSERT
+    imported_sess = db_session.query(JournalSession).filter_by(
+        user_id=importing_user.id, external_id="rt_sess_1"
+    ).one()
+
+    assert len(imported_sess.projects) == 2
+    project_ids = {p.id for p in imported_sess.projects}
+    assert project_ids == {"rt_proj_a", "rt_proj_b"}
+    # Legacy column should also be set
+    assert imported_sess.project_id == "rt_proj_a"
+
+
+def test_import_old_format_yaml_populates_m2m_fallback(db_session):
+    """
+    Old-format YAML (only project_id, no project_ids key) should still
+    populate session.projects correctly via the fallback path.
+    """
+    # 1. ARRANGE
+    user = DbUser(username="old_format_user")
+    db_session.add(user)
+    db_session.commit()
+
+    legacy_yaml = {
+        "projects": [
+            {"project_id": "legacy_proj_1", "project_name": "Legacy Project"}
+        ],
+        "sessions": [
+            {
+                "session_id": "old_sess_1",
+                "date": "2025-01-01",
+                "object_name": "M42",
+                "project_id": "legacy_proj_1"
+                # NOTE: no 'project_ids' key — this is old-format YAML
+            }
+        ]
+    }
+
+    # 2. ACT
+    _migrate_journal(db_session, user, legacy_yaml)
+    db_session.commit()
+
+    # 3. ASSERT
+    sess = db_session.query(JournalSession).filter_by(external_id="old_sess_1").one()
+
+    # The m2m table should be populated with the single project
+    assert len(sess.projects) == 1
+    assert sess.projects[0].id == "legacy_proj_1"
+    # Legacy column should also be set (existing behavior, unchanged)
+    assert sess.project_id == "legacy_proj_1"
+
+
+def test_import_orphan_project_ids_skipped_gracefully(db_session):
+    """
+    If project_ids contains an ID that doesn't exist or isn't owned by
+    the importing user, it should be skipped gracefully (matching existing
+    orphan-handling pattern for project_id), not a hard failure.
+    """
+    # 1. ARRANGE
+    user = DbUser(username="orphan_proj_ids_user")
+    db_session.add(user)
+    db_session.commit()
+
+    # Create a valid project that IS owned by the user
+    valid_proj = Project(id="valid_proj_1", user_id=user.id, name="Valid Project")
+    db_session.add(valid_proj)
+    db_session.commit()
+
+    # YAML with mixed valid + orphan project_ids
+    yaml_with_orphans = {
+        "projects": [
+            {"project_id": "valid_proj_1", "project_name": "Valid Project"}
+        ],
+        "sessions": [
+            {
+                "session_id": "orphan_sess_1",
+                "date": "2025-01-01",
+                "object_name": "M42",
+                "project_id": "valid_proj_1",
+                "project_ids": ["valid_proj_1", "nonexistent_id", "another_missing"]
+            }
+        ]
+    }
+
+    # 2. ACT — should NOT raise, should skip orphans and link valid ones
+    _migrate_journal(db_session, user, yaml_with_orphans)
+    db_session.commit()
+
+    # 3. ASSERT
+    sess = db_session.query(JournalSession).filter_by(external_id="orphan_sess_1").one()
+
+    # Only the valid, owned project should be linked
+    assert len(sess.projects) == 1
+    assert sess.projects[0].id == "valid_proj_1"
+
+
+def test_import_updates_existing_session_project_ids(db_session):
+    """
+    Verifies the UPDATE path of _migrate_journal: when a session with a given
+    external_id already exists in the DB, importing YAML that references it
+    should update (not duplicate) and correctly reassign projects via m2m.
+    """
+    # 1. ARRANGE — pre-seed a session with one project
+    user = DbUser(username="update_path_user")
+    db_session.add(user)
+    db_session.commit()
+
+    proj_old = Project(id="update_proj_old", user_id=user.id, name="Old Project")
+    proj_new = Project(id="update_proj_new", user_id=user.id, name="New Project")
+    db_session.add_all([proj_old, proj_new])
+    db_session.commit()
+
+    existing_sess = JournalSession(
+        user_id=user.id,
+        project_id="update_proj_old",  # Legacy column matches old project
+        date_utc=date(2025, 11, 1),
+        object_name="M42",
+        external_id="update_sess_1"
+    )
+    existing_sess.projects = [proj_old]  # m2m: linked to old project only
+    db_session.add(existing_sess)
+    db_session.commit()
+
+    # YAML that re-imports the same session with a different project
+    update_yaml = {
+        "projects": [
+            {"project_id": "update_proj_old", "project_name": "Old Project"},
+            {"project_id": "update_proj_new", "project_name": "New Project"},
+        ],
+        "sessions": [
+            {
+                "session_id": "update_sess_1",  # same external_id — triggers UPDATE path
+                "date": "2025-11-01",
+                "object_name": "M42",
+                "project_id": "update_proj_new",  # legacy column updated too
+                "project_ids": ["update_proj_new"],  # new-format: reassign to new project only
+            }
+        ]
+    }
+
+    # 2. ACT — re-import into the SAME user (session already exists)
+    _migrate_journal(db_session, user, update_yaml)
+    db_session.commit()
+
+    # 3. ASSERT — verify UPDATE path behavior
+    updated_sess = db_session.query(JournalSession).filter_by(external_id="update_sess_1").one()
+
+    # Only one row — no accidental duplicate INSERT
+    all_sessions = db_session.query(JournalSession).filter_by(external_id="update_sess_1").all()
+    assert len(all_sessions) == 1, f"Expected 1 session row, got {len(all_sessions)}"
+
+    # m2m should now point to the new project only (replaced, not appended)
+    assert len(updated_sess.projects) == 1
+    assert updated_sess.projects[0].id == "update_proj_new"
+
+    # Legacy column should also reflect the update
+    assert updated_sess.project_id == "update_proj_new"
