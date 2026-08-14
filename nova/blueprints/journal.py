@@ -70,15 +70,12 @@ def journal_list_view():
 @journal_bp.route('/journal/add', methods=['GET', 'POST'])
 @login_required
 def journal_add():
-    print(f"[DEBUG] journal_add called, form keys: {list(request.form.keys())}, form_action={request.form.get('form_action')}")
     load_full_astro_context()
     username = "default" if SINGLE_USER_MODE else current_user.username
     db = get_db()
     user = db.query(DbUser).filter_by(username=username).one()
 
     if request.method == 'POST':
-        # DIAGNOSTIC: Log what we received at the very top of POST handler
-        print(f"[DRAFT] journal_add POST received: form_action={request.form.get('form_action')} all_keys={list(request.form.keys())[:20]}")
         # --- Handle action field (save_draft vs save_close) ---
         # Check action BEFORE try block so it's available in exception handler
         action = request.form.get("form_action")
@@ -109,21 +106,45 @@ def journal_add():
                     parsed_date_utc = datetime.now().date()
             # --- END FIX ---
 
-            # --- Handle Project Creation/Selection (This logic is still valid) ---
+            # --- Handle Project Creation/Selection (Multi-value safe) ---
             project_id_for_session = None
             project_selection = request.form.get("project_selection")
+            projects_list = []
+
+            # Support both single value (get) and multi-select (getlist)
+            raw_selections = request.form.getlist("project_selection")
+            if not isinstance(raw_selections, list):
+                raw_selections = [raw_selections]
+
+            # Filter out sentinel / empty values
+            raw_selections = [
+                s for s in raw_selections
+                if s and s not in ("standalone", "new_project", "")
+            ]
+
             new_project_name = request.form.get("new_project_name", "").strip()
 
+            newly_created_project_id = None
             if project_selection == "new_project" and new_project_name:
                 new_project = Project(id=uuid.uuid4().hex, user_id=user.id, name=new_project_name)
                 db.add(new_project)
                 db.flush()
+                newly_created_project_id = new_project.id
                 project_id_for_session = new_project.id
                 target_object_id = request.form.get("target_object_id", "").strip()
                 if target_object_id:
                     new_project.target_object_name = target_object_id
-            elif project_selection and project_selection not in ["standalone", "new_project"]:
-                project_id_for_session = project_selection
+
+            # Collect ownership-validated existing projects
+            for pid in raw_selections:
+                p = db.query(Project).filter_by(id=pid, user_id=user.id).one_or_none()
+                if p:
+                    projects_list.append(p)
+
+            # Set project_id_for_session from the ownership-validated list.
+            # Only override when the new-project path didn't already set it.
+            if project_id_for_session is None:
+                project_id_for_session = projects_list[0].id if projects_list else None
 
             # --- NEW: Get Rig Snapshot Specs and Component Names ---
             rig_id_str = request.form.get("rig_id_snapshot")
@@ -254,6 +275,9 @@ def journal_add():
             new_session.calculated_integration_time_minutes = round(total_seconds / 60.0,
                                                                     1) if total_seconds > 0 else None
 
+            # Assign projects list to session before commit
+            new_session.projects = projects_list
+
             db.add(new_session)
             db.flush()
 
@@ -345,9 +369,6 @@ def journal_add():
 
             # --- Handle action field (save_draft vs save_close) ---
             if action == "save_draft":
-                # DIAGNOSTIC: Log what we received
-                print(f"[DRAFT] journal_add: form_action={request.form.get('form_action')} all_keys={list(request.form.keys())}")
-                print("DRAFT BRANCH REACHED in journal_add")
                 # Save as draft, return JSON without redirect
                 new_session.draft = True
                 db.commit()
@@ -389,7 +410,6 @@ def journal_add():
 @journal_bp.route('/journal/edit/<int:session_id>', methods=['GET', 'POST'])
 @login_required
 def journal_edit(session_id):
-    print(f"[DEBUG] journal_edit called, form keys: {list(request.form.keys())}, form_action={request.form.get('form_action')}")
     load_full_astro_context()
     username = "default" if SINGLE_USER_MODE else current_user.username
     db = get_db()
@@ -401,8 +421,6 @@ def journal_edit(session_id):
         return redirect(url_for('core.index'))
 
     if request.method == 'POST':
-        # DIAGNOSTIC: Log what we received at the very top of POST handler
-        print(f"[DRAFT] journal_edit POST received: form_action={request.form.get('form_action')} all_keys={list(request.form.keys())[:20]}")
         # --- Handle action field (save_draft vs save_close) ---
         # Check action FIRST so it's available in exception handler
         action = request.form.get("form_action")
@@ -532,33 +550,57 @@ def journal_edit(session_id):
                     custom_data[f'filter_{cf.filter_key}_exposure_sec'] = int(exp) if exp else None
             session_to_edit.custom_filter_data = json.dumps(custom_data) if custom_data else None
     
-            # Project logic
+            # Project logic (Multi-value safe)
             project_id_for_session = None
             project_selection = request.form.get("project_selection")
-            new_project_name = request.form.get("new_project_name", "").strip()
-    
+            projects_list = []
+
+            # Support both single value (get) and multi-select (getlist)
+            raw_selections = request.form.getlist("project_selection")
+            if not isinstance(raw_selections, list):
+                raw_selections = [raw_selections]
+
+            # Filter out sentinel / empty values
+            raw_selections = [
+                s for s in raw_selections
+                if s and s not in ("standalone", "new_project", "")
+            ]
+
             # The object being viewed/edited (use this consistently)
             target_object_id = session_to_edit.object_name
-    
+
+            new_project_name = request.form.get("new_project_name", "").strip()
+
+            newly_created_project_id = None
             if project_selection == "new_project" and new_project_name:
                 new_project = Project(id=uuid.uuid4().hex, user_id=user.id, name=new_project_name)
                 db.add(new_project)
                 db.flush()
+                newly_created_project_id = new_project.id
                 project_id_for_session = new_project.id
-    
+
                 # Link the NEW project to the object
                 if target_object_id:
                     new_project.target_object_name = target_object_id
-    
-            elif project_selection and project_selection not in ["standalone", "new_project"]:
-                project_id_for_session = project_selection
-    
-                # Link the EXISTING project to the object
-                project_to_link = db.query(Project).filter_by(id=project_id_for_session, user_id=user.id).one_or_none()
-                if project_to_link and target_object_id:
-                    project_to_link.target_object_name = target_object_id
-    
+
+            # Collect ownership-validated existing projects
+            for pid in raw_selections:
+                p = db.query(Project).filter_by(id=pid, user_id=user.id).one_or_none()
+                if p:
+                    projects_list.append(p)
+
+            # Set project_id_for_session from the ownership-validated list.
+            # Only override when the new-project path didn't already set it.
+            if project_id_for_session is None:
+                project_id_for_session = projects_list[0].id if projects_list else None
+
+            # Link target_object_name on every selected project except the newly created one
+            for p in projects_list:
+                if p.id != newly_created_project_id and target_object_id:
+                    p.target_object_name = target_object_id
+
             session_to_edit.project_id = project_id_for_session
+            session_to_edit.projects = projects_list
     
             # --- Total exposure calculation (fixed + custom filters) ---
             FIXED_FILTER_KEYS = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII']
@@ -858,6 +900,7 @@ def journal_duplicate(session_id):
         for col in source_session.__table__.columns:
             if col.name not in exclude_cols:
                 setattr(new_session, col.name, getattr(source_session, col.name))
+        new_session.projects = list(source_session.projects)
 
         # Set new unique values
         new_session.external_id = uuid.uuid4().hex

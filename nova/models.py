@@ -3,7 +3,7 @@ from datetime import datetime
 
 from sqlalchemy import (
     create_engine, Column, Integer, Float, String, Boolean, Date,
-    ForeignKey, Text, UniqueConstraint, CheckConstraint
+    ForeignKey, Text, UniqueConstraint, CheckConstraint, Table
 )
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker, scoped_session
 
@@ -16,6 +16,14 @@ DB_URI = f"sqlite:///{DB_PATH}"
 engine = create_engine(DB_URI, echo=False, future=True)
 SessionLocal = scoped_session(sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False))
 Base = declarative_base()
+
+# --- MANY-TO-MANY: JournalSession <-> Project ---
+session_projects = Table(
+    'session_projects',
+    Base.metadata,
+    Column('session_id', Integer, ForeignKey('journal_sessions.id', ondelete='CASCADE'), primary_key=True),
+    Column('project_id', String(64), ForeignKey('projects.id', ondelete='CASCADE'), primary_key=True),
+)
 
 
 # --- MODELS ------------------------------------------------------------------
@@ -60,6 +68,9 @@ class Project(Base):
 
     user = relationship("DbUser", back_populates="projects")
     sessions = relationship("JournalSession", back_populates="project")
+    journal_sessions_m2m = relationship(
+        "JournalSession", secondary=session_projects, back_populates="projects"
+    )
 
     __table_args__ = (UniqueConstraint('user_id', 'name', name='uq_user_project_name'),)
 
@@ -363,6 +374,9 @@ class JournalSession(Base):
 
     user = relationship("DbUser", back_populates="sessions")
     project = relationship("Project", back_populates="sessions")
+    projects = relationship(
+        "Project", secondary=session_projects, back_populates="journal_sessions_m2m"
+    )
     rig_snapshot = relationship("Rig", foreign_keys=[rig_id_snapshot]) # <-- ADDED THIS
 
 class UiPref(Base):

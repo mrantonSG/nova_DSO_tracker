@@ -1886,6 +1886,7 @@ def graph_dashboard(object_name):
             if selected_session_data:
                 selected_session_data_dict = {c.name: getattr(selected_session_data, c.name) for c in
                                               selected_session_data.__table__.columns}
+                selected_session_data_dict['project_ids'] = [p.id for p in (selected_session_data.projects or [])]
                 selected_session_data_dict['dither_display'] = dither_display(selected_session_data)
                 # ... (Session Note Sanitization Logic - same as before) ...
                 raw_journal_notes = selected_session_data_dict.get('notes') or ""

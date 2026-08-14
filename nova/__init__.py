@@ -912,6 +912,21 @@ def _run_schema_patches(conn):
         """)
         print("[DB PATCH] Created analytics_login table")
 
+    # --- Backfill session_projects from journal_sessions.project_id ---
+    try:
+        conn.exec_driver_sql(
+            "INSERT OR IGNORE INTO session_projects (session_id, project_id) "
+            "SELECT id, project_id FROM journal_sessions WHERE project_id IS NOT NULL"
+        )
+        print(
+            "[DB PATCH] Backfilled session_projects from journal_sessions.project_id"
+        )
+    except Exception as patch_err:
+        print(
+            f"[DB PATCH] Could not backfill session_projects "
+            f"(table may not exist yet): {patch_err}"
+        )
+
 
 def ensure_db_initialized_unified():
     """
