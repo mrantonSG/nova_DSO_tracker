@@ -489,6 +489,10 @@
         const showNewToggle = document.getElementById('show_new_project_toggle');
         if (newProjectGroup && showNewToggle) {
             newProjectGroup.style.display = showNewToggle.checked ? 'block' : 'none';
+            if (!showNewToggle.checked) {
+                const nameInput = newProjectGroup.querySelector('input[name="new_project_name"]');
+                if (nameInput) nameInput.value = '';
+            }
         }
     }
 
