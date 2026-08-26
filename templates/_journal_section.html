@@ -1638,7 +1638,8 @@
                 {% for group in grouped_sessions %}
                     <tr>
                         <th colspan="3"
-                            class="{{ 'project-header-clickable' if group.is_project else '' }} {{ 'current-project-item' if group.is_project and group.project_id|string == current_project_id|string else '' }}"
+                            class="{{ 'project-header-clickable' if group.is_project else '' }} {{ 'current-project-item' if group.is_project and group.project_id|string == current_project_id|string else '' }} {{ 'project-group-expanded' if group.is_latest else 'project-group-collapsed' if group.is_project else '' }}"
+                            {% if group.is_project %}data-project-id="{{ group.project_id }}"{% endif %}
                             style="padding: 8px 5px; border-top: 1px solid var(--text-lighter);"
                             {% if group.is_project %}
                             {# Fix: Pass current location to prevent fallback to default #}
@@ -1655,6 +1656,8 @@
                     </tr>
                     {% for session_item in group.sessions %}
                         <tr class="clickable-session-row {{ 'current-session-item' if session_item.id|string == current_session_id|string else '' }}"
+                            {% if group.is_project %}data-project-group="{{ group.project_id }}"{% else %}data-project-group="standalone"{% endif %}
+                            style="{% if not group.is_project %}{% elif not group.is_latest %}display: none;{% endif %}"
                             data-action="load-session"
                             data-url="{% if session_item.location_name %}{{ url_for('core.graph_dashboard', object_name=object_name, session_id=session_item.id, location=session_item.location_name, tab='journal') }}{% else %}{{ url_for('core.graph_dashboard', object_name=object_name, session_id=session_item.id, tab='journal') }}{% endif %}">
                             <td class="col-date">{{ session_item.date_utc | date_eu | default("-") }}<br><small style="color:var(--text-secondary);">{{ session_item.location_name | default("-") }}</small></td>
