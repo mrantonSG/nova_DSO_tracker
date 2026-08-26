@@ -1044,6 +1044,7 @@
                     break;
                 case 'load-session':
                     console.log('[JOURNAL_SECTION] load-session:', actionBtn.dataset.url);
+                    handleProjectGroupToggle(actionBtn.dataset.projectId);
                     loadSessionViaAjax(e, actionBtn.dataset.url, actionBtn);
                     break;
                 case 'show-rig-info':
@@ -1051,6 +1052,40 @@
                     openRigInfoModal();
                     break;
             }
+        });
+    }
+
+    // --- Project Group Toggle (Expand/Collapse) ---
+    function handleProjectGroupToggle(projectId) {
+        if (!projectId) return;
+
+        var clickedHeader = document.querySelector(
+            'th[data-project-id="' + projectId + '"]'
+        );
+        if (!clickedHeader) return;
+
+        var isExpanded = clickedHeader.classList.contains('project-group-expanded');
+        if (isExpanded) return; // Finder-style: never collapse to zero.
+
+        // Collapse all other expanded projects
+        document.querySelectorAll('th.project-group-expanded').forEach(function(other) {
+            other.classList.remove('project-group-expanded');
+            other.classList.add('project-group-collapsed');
+            var groupId = other.getAttribute('data-project-id');
+            document.querySelectorAll(
+                'tr[data-project-group="' + groupId + '"]'
+            ).forEach(function(row) {
+                row.style.display = 'none';
+            });
+        });
+
+        // Expand the clicked project
+        clickedHeader.classList.remove('project-group-collapsed');
+        clickedHeader.classList.add('project-group-expanded');
+        document.querySelectorAll(
+            'tr[data-project-group="' + projectId + '"]'
+        ).forEach(function(row) {
+            row.style.display = '';
         });
     }
 
