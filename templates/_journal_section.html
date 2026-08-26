@@ -2325,7 +2325,8 @@
                     <div class="project-checkbox-grid">
                         {% for project in all_projects %}
                         <label style="display:flex; align-items:center; gap:8px;">
-                            <input type="checkbox" name="project_selection" value="{{ project.id }}">
+                            <input type="checkbox" name="project_selection" value="{{ project.id }}"
+                                   {% if selected_session_data_dict and project.id in selected_session_data_dict.get('project_ids', []) %}checked{% endif %}>
                             {{ project.name }}
                         </label>
                         {% endfor %}
