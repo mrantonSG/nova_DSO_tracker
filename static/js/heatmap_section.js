@@ -260,13 +260,32 @@
             });
         }
 
+        const theme = document.documentElement.dataset.theme || 'light';
+        const lightFallbacks = {
+            '--heatmap-scale-0': 'rgba(0,0,0,0.02)',
+            '--heatmap-scale-10': 'rgba(122,175,192,0.15)',
+            '--heatmap-scale-30': 'rgba(122,175,192,0.35)',
+            '--heatmap-scale-60': 'rgba(122,175,192,0.55)',
+            '--heatmap-scale-80': '#7aafc0',
+            '--heatmap-scale-100': '#4a8fa0'
+        };
+        const darkFallbacks = {
+            '--heatmap-scale-0': 'rgba(255,255,255,0.02)',
+            '--heatmap-scale-10': 'rgba(122,175,192,0.15)',
+            '--heatmap-scale-30': 'rgba(122,175,192,0.35)',
+            '--heatmap-scale-60': 'rgba(122,175,192,0.55)',
+            '--heatmap-scale-80': '#7aafc0',
+            '--heatmap-scale-100': '#a8d4e0'
+        };
+        const fallbacks = theme === 'dark' ? darkFallbacks : lightFallbacks;
+
         const novaColorScale = [
-            [0.0, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-0', 'rgba(0,0,0,0.02)') : 'rgba(0,0,0,0.02)'],
-            [0.1, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-10', 'rgba(122,175,192,0.15)') : 'rgba(122,175,192,0.15)'],
-            [0.3, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-30', 'rgba(122,175,192,0.35)') : 'rgba(122,175,192,0.35)'],
-            [0.6, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-60', 'rgba(122,175,192,0.55)') : 'rgba(122,175,192,0.55)'],
-            [0.8, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-80', '#7aafc0') : '#7aafc0'],
-            [1.0, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-100', '#4a8fa0') : '#4a8fa0']
+            [0.0, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-0', fallbacks['--heatmap-scale-0']) : fallbacks['--heatmap-scale-0']],
+            [0.1, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-10', fallbacks['--heatmap-scale-10']) : fallbacks['--heatmap-scale-10']],
+            [0.3, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-30', fallbacks['--heatmap-scale-30']) : fallbacks['--heatmap-scale-30']],
+            [0.6, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-60', fallbacks['--heatmap-scale-60']) : fallbacks['--heatmap-scale-60']],
+            [0.8, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-80', fallbacks['--heatmap-scale-80']) : fallbacks['--heatmap-scale-80']],
+            [1.0, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-100', fallbacks['--heatmap-scale-100']) : fallbacks['--heatmap-scale-100']]
         ];
 
         const trace = {
