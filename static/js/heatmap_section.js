@@ -261,6 +261,7 @@
         }
 
         const theme = document.documentElement.dataset.theme || 'light';
+
         const lightFallbacks = {
             '--heatmap-scale-0': 'rgba(0,0,0,0.02)',
             '--heatmap-scale-10': 'rgba(122,175,192,0.15)',
@@ -309,18 +310,20 @@
                 side: 'top',
                 tickangle: -90,
                 fixedrange: true,
-                tickfont: { size: 11, color: (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-secondary', '#555') : '#555' }
+                tickfont: { size: 11, color: (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-secondary', '#555') : '#555' },
+                gridcolor: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
             },
             yaxis: {
                 automargin: true,
                 fixedrange: true,
-                tickfont: { size: 11, color: (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-primary', '#333') : '#333' }
+                tickfont: { size: 11, color: (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-primary', '#333') : '#333' },
+                gridcolor: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
             },
             dragmode: false,
             margin: { l: 180, r: 20, b: 20, t: 100 },
             shapes: shapes,
-            paper_bgcolor: 'rgba(0,0,0,0)',
-            plot_bgcolor: 'rgba(0,0,0,0)'
+            paper_bgcolor: theme === 'dark' ? '#121212' : '#ffffff',
+            plot_bgcolor: theme === 'dark' ? '#1e1e1e' : '#ffffff'
         };
 
         const config = {
@@ -447,12 +450,14 @@
                 side: 'top',
                 tickangle: -90,
                 fixedrange: true,
-                tickfont: { size: 11, color: tickColor }
+                tickfont: { size: 11, color: tickColor },
+                gridcolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
             },
             yaxis: {
                 automargin: true,
                 fixedrange: true,
-                tickfont: { size: 11, color: textColor }
+                tickfont: { size: 11, color: textColor },
+                gridcolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
             },
             dragmode: false,
             margin: { l: 180, r: 20, b: 20, t: 100 },
