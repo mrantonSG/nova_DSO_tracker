@@ -1967,7 +1967,9 @@ def graph_dashboard(object_name):
 
         object_specific_sessions_list = []
         for s in object_specific_sessions_db:
+            linked_pids = [p.id for p in s.projects]
             session_dict = {c.name: getattr(s, c.name) for c in s.__table__.columns}
+            session_dict['linked_project_ids'] = linked_pids
             object_specific_sessions_list.append(session_dict)
 
         projects_map = {p.id: p.name for p in all_projects_for_user}
@@ -1975,8 +1977,12 @@ def graph_dashboard(object_name):
 
         # 1. Add sessions to their respective projects
         for session in object_specific_sessions_list:
-            project_id = session.get('project_id')
-            grouped_sessions_dict.setdefault(project_id, []).append(session)
+            linked_pids = session.get('linked_project_ids') or []
+            if linked_pids:
+                for pid in linked_pids:
+                    grouped_sessions_dict.setdefault(pid, []).append(session)
+            else:
+                grouped_sessions_dict.setdefault(None, []).append(session)
 
         # 2. Explicitly ensure empty projects targeting this object appear in the list
         # This fixes the issue where a newly created project (with no sessions yet) remains invisible
@@ -1996,7 +2002,8 @@ def graph_dashboard(object_name):
                 'project_name': projects_map.get(project_id, 'Unknown Project'),
                 'project_id': project_id,
                 'sessions': sessions_in_group,
-                'total_integration_time': total_minutes
+                'total_integration_time': total_minutes,
+                'is_latest': False
             })
         if None in grouped_sessions_dict:
             sessions_none_project = grouped_sessions_dict[None]
@@ -2008,6 +2015,20 @@ def graph_dashboard(object_name):
                 'sessions': sessions_none_project,
                 'total_integration_time': total_minutes_none
             })
+
+        # Finalize is_latest: find the project group containing the most recent session.
+        latest_date = None
+        latest_group = None
+        for group in grouped_sessions_for_template:
+            if not group['is_project']:
+                continue
+            for s in group['sessions']:
+                d = s.get('date_utc')
+                if d is not None and (latest_date is None or d > latest_date):
+                    latest_date = d
+                    latest_group = group
+        if latest_group is not None:
+            latest_group['is_latest'] = True
 
         # --- 6. Calculate Effective Date (No change) ---
         effective_day_req = request.args.get('day')
