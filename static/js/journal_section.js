@@ -235,7 +235,7 @@
         });
         if (data.project_ids && data.project_ids.length > 0) {
             form.querySelectorAll('input[name="project_selection"]').forEach(cb => {
-                cb.checked = data.project_ids.includes(parseInt(cb.value, 10));
+                cb.checked = data.project_ids.includes(cb.value);
             });
         } else {
             form.querySelectorAll('input[name="project_selection"]').forEach(cb => {
