@@ -569,6 +569,11 @@
 
             // Ensure button state updates immediately (after clearing)
             updateRemoveFiltersButtonVisibility();
+
+            // Refresh Inspiration grid if that tab is currently active
+            if (activeTab === 'inspiration' && typeof renderInspirationGrid === 'function') {
+                renderInspirationGrid();
+            }
         }
     
         // ========================================================================
