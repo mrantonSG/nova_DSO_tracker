@@ -465,10 +465,16 @@
 </style>
 
 <div id="inspiration-tab-content" style="display:none;">
-    <div id="inspiration-controls" style="margin-bottom: 16px; display: flex; justify-content: flex-end;">
-        <button type="button" data-action="refresh-inspiration" class="btn-accent-light">
-            ↻ {{ _('Refresh Suggestions') }}
-        </button>
+    <div id="inspiration-controls" style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+        <span id="inspiration-page-label" style="font-size:13px; font-family:var(--font-mono); color:var(--text-secondary);"></span>
+        <div style="display:flex; gap:8px;">
+            <button type="button" id="inspiration-prev-btn" data-action="inspiration-previous" class="inline-button-ghost" style="border-radius:6px;">
+                &larr; {{ _('Previous') }}
+            </button>
+            <button type="button" id="inspiration-next-btn" data-action="inspiration-next" class="inline-button-ghost" style="border-radius:6px;">
+                {{ _('Next') }} &rarr;
+            </button>
+        </div>
     </div>
 
     <div id="inspiration-wrapper">
@@ -546,6 +552,8 @@
         sourceWikipedia:   {{ _("Wikipedia") | tojson }},
         sourceNasa:        {{ _("NASA") | tojson }},
         sourceDss2:        {{ _("Aladin Sky Atlas / DSS2") | tojson }},
+        showingRange:      {{ _("Showing") | tojson }},
+        ofLabel:           {{ _("of") | tojson }},
     };
 
     function getAladinFallbackUrl(ra, dec, sizeArcmin) {
@@ -583,6 +591,10 @@
     // ========================================================================
     // 3. MAIN LOGIC (Failsafe)
     // ========================================================================
+    let inspirationPage = 0;
+    const INSPIRATION_PAGE_SIZE = 20;
+    let lastDataSourceRef = null;
+
     async function renderInspirationGrid(event) {
         if(event) { event.preventDefault(); event.stopPropagation(); }
 
@@ -604,6 +616,11 @@
             // If filters ARE active but returned 0 results, dataSource should remain empty.
             if ((!dataSource || dataSource.length === 0) && !window.isListFiltered) {
                 dataSource = window.latestDSOData || [];
+            }
+
+            if (lastDataSourceRef !== dataSource) {
+                inspirationPage = 0;
+                lastDataSourceRef = dataSource;
             }
 
             // Remove any existing banners from previous renders
@@ -666,7 +683,6 @@
                 candidates = dataSource.slice(0, 50); // Just take top 50 raw items
             }
 
-            // Sort & Shuffle
             // Sort by Altitude Descending (best ones first)
             candidates.sort((a, b) => {
                 const altA = parseFloat(a['Max Altitude (°)']) || 0;
@@ -674,14 +690,10 @@
                 return altB - altA;
             });
 
-            // Shuffle top pool
-            const poolSize = Math.min(candidates.length, 30);
-            const topPool = candidates.slice(0, poolSize);
-            for (let i = topPool.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [topPool[i], topPool[j]] = [topPool[j], topPool[i]];
-            }
-            const topPicks = topPool.slice(0, 20);
+            const pageStart = inspirationPage * INSPIRATION_PAGE_SIZE;
+            const pageEnd = (inspirationPage + 1) * INSPIRATION_PAGE_SIZE;
+            const topPicks = candidates.slice(pageStart, pageEnd);
+            updatePaginationUI(candidates.length, pageStart, pageEnd);
 
             loading.style.display = 'none';
 
@@ -829,6 +841,18 @@
         }
     }
 
+    function updatePaginationUI(totalItems, pageStart, pageEnd) {
+        const label = document.getElementById('inspiration-page-label');
+        const prevBtn = document.getElementById('inspiration-prev-btn');
+        const nextBtn = document.getElementById('inspiration-next-btn');
+        if (!label) return;
+        const startItem = totalItems === 0 ? 0 : pageStart + 1;
+        const endItem = Math.min(pageEnd, totalItems);
+        label.textContent = `${inspirationI18n.showingRange} ${startItem}-${endItem} ${inspirationI18n.ofLabel} ${totalItems}`;
+        if (prevBtn) prevBtn.disabled = (pageStart === 0);
+        if (nextBtn) nextBtn.disabled = (endItem >= totalItems);
+    }
+
     // --- Helpers (Unchanged) ---
     function filterCandidates(data, minAlt, minDur) {
         return data.filter(obj => {
@@ -942,7 +966,19 @@
         // Handle data-actions
         switch(action) {
             case 'refresh-inspiration':
+                inspirationPage = 0;
+                lastDataSourceRef = null;
                 renderInspirationGrid(e);
+                return;
+            case 'inspiration-previous':
+                if (inspirationPage > 0) {
+                    inspirationPage--;
+                    renderInspirationGrid();
+                }
+                return;
+            case 'inspiration-next':
+                inspirationPage++;
+                renderInspirationGrid();
                 return;
             case 'close-inspiration-modal':
                 closeInspirationModal();
