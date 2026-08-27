@@ -1279,6 +1279,81 @@
     }
 
     /**
+     * Sort a plain data array by column key and sort direction.
+     * Contains the SAME comparison logic that sortTable() uses on DOM rows,
+     * but operates on plain JS objects (from window.latestDSOData).
+     * Returns a NEW sorted array — never mutates the input.
+     */
+    function sortDataArray(dataArray, columnKey, ascending) {
+        const config = columnConfig[columnKey];
+        const numericSortKeys = [
+            'Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
+            'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)',
+            'Magnitude', 'Size', 'SB', 'Max Altitude', 'Nova Rank'
+        ];
+
+        return dataArray.slice().sort((a, b) => {
+            // Priority Sort: push "Geometrically Impossible" rows to the bottom always
+            const impA = a._impossible === true;
+            const impB = b._impossible === true;
+            if (impA !== impB) return impA ? 1 : -1;
+
+            const dataKey = config ? config.dataKey : columnKey;
+            let valA_str = (dataKey && a[dataKey] !== undefined) ? String(a[dataKey]) : '';
+            let valB_str = (dataKey && b[dataKey] !== undefined) ? String(b[dataKey]) : '';
+            // Fallback: try columnKey as property name (for 'Trend', 'Constellation', etc.)
+            if (!valA_str && columnKey !== dataKey) valA_str = a[columnKey] || '';
+            if (!valB_str && columnKey !== dataKey) valB_str = b[columnKey] || '';
+            // Last resort: try 'Object' property
+            if (!valA_str) valA_str = a.Object || '';
+            if (!valB_str) valB_str = b.Object || '';
+
+            const isNA_A = valA_str === 'N/A' || valA_str === '';
+            const isNA_B = valB_str === 'N/A' || valB_str === '';
+            if (isNA_A && isNA_B) return 0;
+            if (isNA_A) return ascending ? 1 : -1;
+            if (isNA_B) return ascending ? -1 : 1;
+
+            let valA = valA_str;
+            let valB = valB_str;
+
+            if (numericSortKeys.includes(columnKey)) {
+                valA = parseFloat(valA_str);
+                valB = parseFloat(valB_str);
+            } else if (columnKey === 'Transit Time' && /^\d{1,2}:\d{2}$/.test(valA_str) && /^\d{1,2}:\d{2}$/.test(valB_str)) {
+                valA = parseTimeToMinutes(valA_str);
+                valB = parseTimeToMinutes(valB_str);
+            }
+
+            if (typeof valA === 'number' && typeof valB === 'number') {
+                if (isNaN(valA) && isNaN(valB)) return 0;
+                if (isNaN(valA)) return ascending ? 1 : -1;
+                if (isNaN(valB)) return ascending ? -1 : 1;
+                return ascending ? valA - valB : valB - valA;
+            }
+            return ascending ? String(valA).localeCompare(String(valB)) : String(valB).localeCompare(String(valA));
+        });
+    }
+
+    /**
+     * Return the array sorted the way Position currently displays it.
+     * If novaRankMap is non-empty: ranked objects by rank ascending, unranked after.
+     * Otherwise: sortDataArray() using currentSort (or localStorage fallback).
+     */
+    function getEffectiveSortedData(dataArray) {
+        if (!dataArray || dataArray.length === 0) return [];
+        if (Object.keys(novaRankMap).length > 0) {
+            return applyNovaRankSorting(dataArray);
+        }
+        const columnKey = currentSort.columnKey || localStorage.getItem('dso_sortColumnKey') || 'Altitude Current';
+        const ascending = currentSort.ascending !== undefined ? currentSort.ascending : (localStorage.getItem('dso_sortOrder') === 'asc');
+        return sortDataArray(dataArray, columnKey, ascending);
+    }
+
+    // Expose on window for external callers (e.g. _inspiration_section.html)
+    window.getEffectiveSortedData = getEffectiveSortedData;
+
+    /**
      * Build Nova-sorted array for Inspiration tab
      * Returns only ranked objects from latestDSOData, sorted by rank ascending
      * @returns {Array} Array of DSO objects sorted by Nova rank
@@ -2046,40 +2121,36 @@
         const tbody = document.getElementById("data-body");
         if (!tbody) return;
         const rows = Array.from(tbody.getElementsByTagName("tr"));
-        const config = columnConfig[currentSort.columnKey];
-    
-        rows.sort((a, b) => {
-                // Priority Sort: Push "Geometrically Impossible" (greyed out) rows to the bottom always
-                const impA = a.dataset.impossible === 'true';
-                const impB = b.dataset.impossible === 'true';
-                if (impA !== impB) return impA ? 1 : -1;
-    
-                const cellA_element = a.querySelector(`td[data-column-key="${currentSort.columnKey}"]`);
-                const cellB_element = b.querySelector(`td[data-column-key="${currentSort.columnKey}"]`);
-                if (!cellA_element || !cellB_element) return 0;
-    
-                // FIX: Use textContent for sorting hidden tables
-                let valA_str = cellA_element.dataset.rawValue !== undefined ? cellA_element.dataset.rawValue : cellA_element.textContent.trim();
-                let valB_str = cellB_element.dataset.rawValue !== undefined ? cellB_element.dataset.rawValue : cellB_element.textContent.trim();
-    
-                const isNA_A = valA_str === 'N/A' || valA_str === ''; const isNA_B = valB_str === 'N/A' || valB_str === '';
-                if (isNA_A && isNA_B) return 0; if (isNA_A) return currentSort.ascending ? 1 : -1; if (isNA_B) return currentSort.ascending ? -1 : 1;
-                let valA = valA_str; let valB = valB_str;
-                // --- MODIFIED TO ADD NEW COLUMN ---
-                const numericSortKeys = [
-                    'Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
-                    'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)',
-                    'Magnitude', 'Size', 'SB', 'Max Altitude', 'Nova Rank'
-                ];
-                // --- END MODIFICATION ---
-                if (config && numericSortKeys.includes(currentSort.columnKey)) { valA = parseFloat(valA_str); valB = parseFloat(valB_str); }
-                else if (currentSort.columnKey === 'Transit Time' && /^\d{1,2}:\d{2}$/.test(valA_str) && /^\d{1,2}:\d{2}$/.test(valB_str)) { valA = parseTimeToMinutes(valA_str); valB = parseTimeToMinutes(valB_str); }
-                if (typeof valA === 'number' && typeof valB === 'number') { if (isNaN(valA) && isNaN(valB)) return 0; if (isNaN(valA)) return currentSort.ascending ? 1 : -1; if (isNaN(valB)) return currentSort.ascending ? -1 : 1; return currentSort.ascending ? valA - valB : valB - valA; }
-                return currentSort.ascending ? String(valA).localeCompare(String(valB)) : String(valB).localeCompare(String(valA));
-            });
-            rows.forEach(row => tbody.appendChild(row));
-            updateSortIndicators();
-        }
+
+        // Build a parallel plain-data array from DOM rows, sort it via sortDataArray,
+        // then reorder the actual <tr> elements to match the sorted order.
+        const rowObjects = rows.map(row => {
+            const objectCell = row.querySelector('td[data-column-key="Object"]');
+            const sortCell = row.querySelector(`td[data-column-key="${currentSort.columnKey}"]`);
+            const val = sortCell ? (sortCell.dataset.rawValue !== undefined ? sortCell.dataset.rawValue : sortCell.textContent.trim()) : '';
+            return { _impossible: row.dataset.impossible === 'true', Object: objectCell ? objectCell.textContent.trim() : '', [currentSort.columnKey]: val };
+        });
+
+        const sorted = sortDataArray(rowObjects, currentSort.columnKey, currentSort.ascending);
+
+        // Build a lookup from (objectName + impossible) → DOM row index for reordering.
+        const domLookup = new Map();
+        rows.forEach((row, i) => {
+            const objectCell = row.querySelector('td[data-column-key="Object"]');
+            const key = (objectCell ? objectCell.textContent.trim() : '') + '::IMP::' + (row.dataset.impossible === 'true');
+            domLookup.set(key, i);
+        });
+
+        // Reorder DOM rows to match the sorted data array order.
+        const reorderedRows = sorted.map(obj => {
+            const key = obj.Object + '::IMP::' + obj._impossible;
+            const idx = domLookup.get(key);
+            return idx !== undefined ? rows[idx] : null;
+        }).filter(Boolean);
+
+        reorderedRows.forEach(row => tbody.appendChild(row));
+        updateSortIndicators();
+    }
     
         function updateSortIndicators() { // DSO Table
             document.querySelectorAll('#data-table > thead > tr:not(.filter-row) > th .sort-indicator').forEach(span => span.innerHTML = '');

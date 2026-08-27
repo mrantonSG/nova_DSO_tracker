@@ -683,12 +683,16 @@
                 candidates = dataSource.slice(0, 50); // Just take top 50 raw items
             }
 
-            // Sort by Altitude Descending (best ones first)
-            candidates.sort((a, b) => {
-                const altA = parseFloat(a['Max Altitude (°)']) || 0;
-                const altB = parseFloat(b['Max Altitude (°)']) || 0;
-                return altB - altA;
-            });
+            // Sort by current Position sort order (falls back to altitude-descending)
+            if (typeof window.getEffectiveSortedData === 'function') {
+                candidates = window.getEffectiveSortedData(candidates);
+            } else {
+                candidates.sort((a, b) => {
+                    const altA = parseFloat(a['Max Altitude (°)']) || 0;
+                    const altB = parseFloat(b['Max Altitude (°)']) || 0;
+                    return altB - altA;
+                });
+            }
 
             const pageStart = inspirationPage * INSPIRATION_PAGE_SIZE;
             const pageEnd = (inspirationPage + 1) * INSPIRATION_PAGE_SIZE;
