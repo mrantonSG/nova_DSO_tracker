@@ -273,6 +273,9 @@
             const enabledInput = block.querySelector('input[name^="enabled_"]');
             const isEnabled = enabledInput ? enabledInput.value === 'on' : true;
 
+            const activeProjectInput = block.querySelector('input[name^="active_project_"]');
+            const isActiveProject = activeProjectInput ? activeProjectInput.checked : false;
+
             // 4. Apply filters
             if (filterId && !objectId.includes(filterId)) show = false;
             if (show && filterName && !name.includes(filterName)) show = false;
@@ -295,6 +298,8 @@
                     if (isEnabled) show = false;
                 } else if (filterShared === 'enabled') {
                     if (!isEnabled) show = false;
+                } else if (filterShared === 'active_project') {
+                    if (!isActiveProject) show = false;
                 } else if (sharedStatus !== filterShared) {
                     show = false;
                 }
