@@ -373,6 +373,12 @@
           return h * 60 + m;
         }
 
+        const MONTH_ORDER = { Jan: 1, Feb: 2, Mar: 3, Apr: 4, May: 5, Jun: 6, Jul: 7, Aug: 8, Sep: 9, Oct: 10, Nov: 11, Dec: 12 };
+        function monthOrderIndex(monthStr) {
+          const key = String(monthStr || '').trim().substring(0, 3);
+          return MONTH_ORDER[key]; // undefined for unknown values (sorted as NaN)
+        }
+
         // ========================================================================
         // Nova Cache Functions
         // ========================================================================
@@ -1294,7 +1300,7 @@
         const numericSortKeys = [
             'Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
             'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)',
-            'Magnitude', 'Size', 'SB', 'Max Altitude', 'Nova Rank'
+            'Magnitude', 'Size', 'SB', 'Max Altitude', 'Nova Rank', 'Sessions'
         ];
 
         return dataArray.slice().sort((a, b) => {
@@ -1328,6 +1334,9 @@
             } else if (columnKey === 'Transit Time' && /^\d{1,2}:\d{2}$/.test(valA_str) && /^\d{1,2}:\d{2}$/.test(valB_str)) {
                 valA = parseTimeToMinutes(valA_str);
                 valB = parseTimeToMinutes(valB_str);
+            } else if (columnKey === 'Best Month') {
+                valA = monthOrderIndex(valA_str);
+                valB = monthOrderIndex(valB_str);
             }
 
             if (typeof valA === 'number' && typeof valB === 'number') {
@@ -2005,7 +2014,7 @@
                 // Sort helpers
                 const numericSortKeys = ['Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
                                          'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)',
-                                         'Magnitude', 'Size', 'SB', 'Max Altitude', 'Nova Rank'];
+                                         'Magnitude', 'Size', 'SB', 'Max Altitude', 'Nova Rank', 'Sessions'];
     
                 if (numericSortKeys.includes(columnKey)) {
                     if (rawValue === 'N/A' || rawValue == null) td.dataset.rawValue = 'N/A';
@@ -2230,7 +2239,7 @@
                     const numericFilterKeys = [
                         'Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
                         'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)',
-                        'Magnitude', 'Size', 'SB', 'Max Altitude'
+                        'Magnitude', 'Size', 'SB', 'Max Altitude', 'Sessions'
                     ];
     
                     // --- THIS IS THE FIX ---
