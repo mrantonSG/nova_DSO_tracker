@@ -2242,8 +2242,8 @@ msgstr "Aktiviert"
 
 #: templates/_objects_section.html:175 templates/_objects_section.html:312
 #: templates/graph_view.html:190
-msgid "Active Project"
-msgstr "Aktives Projekt"
+msgid "Pinned"
+msgstr "Angepinnt"
 
 #: templates/_objects_section.html:180 templates/base.html:113
 msgid "Update"
@@ -3011,8 +3011,8 @@ msgstr "Notizen speichern"
 
 #: templates/base.html:188
 #, python-format
-msgid "Failed to update Active Project: %(error)s"
-msgstr "Fehler beim Erstellen des Projekts: %(error)s"
+msgid "Failed to update pinned status: %(error)s"
+msgstr "Angepinnt-Status konnte nicht aktualisiert werden: %(error)s"
 
 #: templates/base.html:189
 msgid "SIMBAD requires an active internet connection to load data."
@@ -4657,8 +4657,8 @@ msgid "Delete selected view"
 msgstr "Ausgewählte Ansicht löschen"
 
 #: templates/index.html:103
-msgid "Active Only"
-msgstr "Nur aktiv"
+msgid "Pinned Only"
+msgstr "Nur angepinnte"
 
 #: templates/index.html:108
 #, fuzzy
@@ -5269,8 +5269,8 @@ msgid "Project Notes"
 msgstr "Projektnotizen"
 
 #: templates/mobile_add_object.html:43 templates/mobile_edit_notes.html:14
-msgid "Set as Active Project"
-msgstr "Als aktives Projekt festlegen"
+msgid "Set as Pinned"
+msgstr "Als angepinnt markieren"
 
 #: templates/mobile_add_object.html:46 templates/mobile_add_object.html:61
 msgid "Save Object"
@@ -5515,8 +5515,8 @@ msgstr ""
 "Minute erneut."
 
 #: templates/mobile_outlook.html:182
-msgid "No imaging opportunities found for your active projects."
-msgstr "Für Ihre aktiven Projekte wurden keine Aufnahmefenster gefunden."
+msgid "No imaging opportunities found for your pinned objects."
+msgstr "Für Ihre angepinnten Objekte wurden keine Aufnahmefenster gefunden."
 
 #: templates/mobile_up_now.html:874
 msgid "Scanning Sky..."

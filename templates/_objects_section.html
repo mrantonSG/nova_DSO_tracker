@@ -56,7 +56,7 @@
               <option value="shared">{{ _('Shared by Me') }}</option>
               <option value="imported">{{ _('Imported') }}</option>
               <option disabled>──────────</option>
-              <option value="active_project">{{ _('Active Project') }}</option>
+              <option value="active_project">{{ _('Pinned') }}</option>
             </select>
           </div>
           <div>
@@ -174,7 +174,7 @@
                         </div>
 
                         <div style="margin-left: 15px; display: flex; align-items: center; gap: 10px;">
-                            <label class="short-label" for="active_project_{{ obj.Object }}">{{ _('Active Project') }}:</label>
+                            <label class="short-label" for="active_project_{{ obj.Object }}">{{ _('Pinned') }}:</label>
                             <input type="checkbox" name="active_project_{{ obj.Object }}" id="active_project_{{ obj.Object }}"
                                    {% if obj.ActiveProject %}checked{% endif %}>
                         </div>
@@ -311,7 +311,7 @@
 
               <div class="share-control" style="margin-top: 10px; margin-left: 15px;">
                   <input type="checkbox" name="new_is_active" id="new_is_active" checked>
-                  <label for="new_is_active" style="font-weight: normal; margin-left: 5px;">{{ _('Active Project') }}</label>
+                  <label for="new_is_active" style="font-weight: normal; margin-left: 5px;">{{ _('Pinned') }}</label>
               </div>
 
               <div class="inspiration-container" style="background: var(--bg-white); border: 1px solid var(--text-lightest); border-radius: 4px; padding: 12px; margin-bottom: 15px;">

@@ -41,7 +41,7 @@ Nova helps track Deep Sky Objects (DSOs) positions throughout the night for astr
 
 When opening Nova, you see a list of DSOs sorted by default by their current altitude.
 
-* **Highlights:** Objects with active project notes are highlighted.
+* **Highlights:** Pinned objects are highlighted.
 * **Altitude Color Coding:** Altitudes above your defined threshold appear in green.
 * **Horizon Mask:** If a Horizon Mask is defined and an object is obstructed by terrain, the field turns yellow.
 * **Observable Window:** The "Observable" column shows the minutes an object is visible between astronomical dusk and dawn.
@@ -120,7 +120,7 @@ The Yearly Heatmap visualizes target visibility over the next 12 months.
 * **Waterfall Visualization:** Darker green indicates higher quality imaging time. Vertical white bands highlight full moon periods.
 * **Data Loading:** Data is loaded in chunks and stored for 24 hours for performance.
 * **Integrated Filtering:** Apply your Saved Views directly to the heatmap to narrow down targets.
-* **Active Only:** A checkbox filters the view to show only your currently active projects.
+* **Pinned Only:** A checkbox filters the view to show only your currently pinned objects.
 
 ![Yearly heatmap](docs/Screenshot%202026-02-27%20at%2014.09.32.jpg)
 

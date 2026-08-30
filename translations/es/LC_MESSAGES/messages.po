@@ -2242,8 +2242,8 @@ msgstr "Habilitado"
 
 #: templates/_objects_section.html:175 templates/_objects_section.html:312
 #: templates/graph_view.html:190
-msgid "Active Project"
-msgstr "Proyecto activo"
+msgid "Pinned"
+msgstr "Fijado"
 
 #: templates/_objects_section.html:180 templates/base.html:113
 msgid "Update"
@@ -3012,8 +3012,8 @@ msgstr "Guardar cambios"
 
 #: templates/base.html:188
 #, python-format
-msgid "Failed to update Active Project: %(error)s"
-msgstr "Error al crear proyecto: %(error)s"
+msgid "Failed to update pinned status: %(error)s"
+msgstr "Error al actualizar el estado de fijado: %(error)s"
 
 #: templates/base.html:189
 msgid "SIMBAD requires an active internet connection to load data."
@@ -4660,8 +4660,8 @@ msgid "Delete selected view"
 msgstr "Eliminar vista seleccionada"
 
 #: templates/index.html:103
-msgid "Active Only"
-msgstr "Solo activos"
+msgid "Pinned Only"
+msgstr "Solo fijados"
 
 #: templates/index.html:108
 #, fuzzy
@@ -5271,8 +5271,8 @@ msgid "Project Notes"
 msgstr "Notas del proyecto"
 
 #: templates/mobile_add_object.html:43 templates/mobile_edit_notes.html:14
-msgid "Set as Active Project"
-msgstr "Establecer como proyecto activo"
+msgid "Set as Pinned"
+msgstr "Establecer como fijado"
 
 #: templates/mobile_add_object.html:46 templates/mobile_add_object.html:61
 msgid "Save Object"
@@ -5517,8 +5517,8 @@ msgstr ""
 "un minuto."
 
 #: templates/mobile_outlook.html:182
-msgid "No imaging opportunities found for your active projects."
-msgstr ""
+msgid "No imaging opportunities found for your pinned objects."
+msgstr "No se encontraron oportunidades de imágenes para tus objetos fijados."
 "No se encontraron oportunidades de imágenes para sus proyectos activos."
 
 #: templates/mobile_up_now.html:874

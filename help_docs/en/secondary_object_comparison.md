@@ -10,7 +10,7 @@ Objects in the dropdown are **sorted by total observable duration** (longest fir
 
 Objects appear in the list only if they meet **all** of the following:
 
-1. **Active Project** — The object must be marked as an Active Project (checkbox in the Notes & Framing tab)
+1. **Pinned** — The object must be marked as Pinned (checkbox in the Notes & Framing tab)
 2. **Observable Tonight** — The object must be above your horizon mask during astronomical darkness
 3. **Valid Coordinates** — The object must have RA and DEC coordinates defined
 4. **Not the Primary** — The object you're currently viewing is excluded from the list

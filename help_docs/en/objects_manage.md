@@ -33,7 +33,7 @@ To keep the Nova App running fast, you can **Disable** objects that you aren't c
 You can edit most fields directly in the list without leaving the page:
 
 * **Coordinates & Stats:** Updates to RA/DEC, Magnitude, Size, or Surface Brightness are useful if you want to refine position accuracy or add missing data.
-* **Active Project:** Check this box to mark the object as a priority. "Active" objects get special highlighting in the **Outlook** forecast tool.
+* **Pinned:** Check this box to mark the object as a priority. Pinned objects get special highlighting in the **Outlook** forecast tool.
 
 **Notes & Sharing**
 

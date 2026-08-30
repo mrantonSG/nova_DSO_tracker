@@ -47,7 +47,7 @@ The **Inspiration** tab offers a graphical way to browse potential targets. Inst
 
 * **Position:** Real-time coordinates and visibility.
 * **Properties:** Static data like Magnitude, Size, and Constellation.
-* **Outlook:** A long-term forecast showing the best nights to image your active projects.
+* **Outlook:** A long-term forecast showing the best nights to image your pinned objects.
 * **Heatmap:** A visual yearly calendar showing when objects are visible.
 * **Inspiration:** A visual gallery of currently visible targets with images and summaries.
 * **Journal:** A quick-access list of all your recorded sessions.

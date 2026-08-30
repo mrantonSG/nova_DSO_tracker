@@ -2190,8 +2190,8 @@ msgstr "已启用"
 
 #: templates/_objects_section.html:175 templates/_objects_section.html:312
 #: templates/graph_view.html:190
-msgid "Active Project"
-msgstr "活跃项目"
+msgid "Pinned"
+msgstr "已置顶"
 
 #: templates/_objects_section.html:180 templates/base.html:113
 msgid "Update"
@@ -2940,8 +2940,8 @@ msgstr "保存更改"
 
 #: templates/base.html:188
 #, python-format
-msgid "Failed to update Active Project: %(error)s"
-msgstr "创建项目时出错：%(error)s"
+msgid "Failed to update pinned status: %(error)s"
+msgstr "更新置顶状态失败：%(error)s"
 
 #: templates/base.html:189
 msgid "SIMBAD requires an active internet connection to load data."
@@ -4538,8 +4538,8 @@ msgid "Delete selected view"
 msgstr "删除选中的视图"
 
 #: templates/index.html:103
-msgid "Active Only"
-msgstr "仅活跃"
+msgid "Pinned Only"
+msgstr "仅置顶"
 
 #: templates/index.html:108
 #, fuzzy
@@ -5147,8 +5147,8 @@ msgid "Project Notes"
 msgstr "项目备注"
 
 #: templates/mobile_add_object.html:43 templates/mobile_edit_notes.html:14
-msgid "Set as Active Project"
-msgstr "设为活动项目"
+msgid "Set as Pinned"
+msgstr "设为置顶"
 
 #: templates/mobile_add_object.html:46 templates/mobile_add_object.html:61
 msgid "Save Object"
@@ -5391,8 +5391,8 @@ msgid "Outlook cache is generating. Please check back in a minute."
 msgstr "展望缓存正在生成中。请在一分钟后查看。"
 
 #: templates/mobile_outlook.html:182
-msgid "No imaging opportunities found for your active projects."
-msgstr "未为您的活跃项目找到成像机会。"
+msgid "No imaging opportunities found for your pinned objects."
+msgstr "未为您的已置顶天体找到成像机会。"
 
 #: templates/mobile_up_now.html:874
 msgid "Scanning Sky..."

@@ -2265,8 +2265,8 @@ msgstr "Activé"
 
 #: templates/_objects_section.html:175 templates/_objects_section.html:312
 #: templates/graph_view.html:190
-msgid "Active Project"
-msgstr "Projet actif"
+msgid "Pinned"
+msgstr "Épinglé"
 
 #: templates/_objects_section.html:180 templates/base.html:113
 msgid "Update"
@@ -3039,8 +3039,8 @@ msgstr "Enregistrer les notes"
 
 #: templates/base.html:188
 #, python-format
-msgid "Failed to update Active Project: %(error)s"
-msgstr "Erreur lors de la création du projet : %(error)s"
+msgid "Failed to update pinned status: %(error)s"
+msgstr "Échec de la mise à jour de l'état épinglé : %(error)s"
 
 #: templates/base.html:189
 msgid "SIMBAD requires an active internet connection to load data."
@@ -4691,8 +4691,8 @@ msgid "Delete selected view"
 msgstr "Supprimer la vue sélectionnée"
 
 #: templates/index.html:103
-msgid "Active Only"
-msgstr "Actif uniquement"
+msgid "Pinned Only"
+msgstr "Épinglés uniquement"
 
 #: templates/index.html:108
 #, fuzzy
@@ -5302,8 +5302,8 @@ msgid "Project Notes"
 msgstr "Notes de projet"
 
 #: templates/mobile_add_object.html:43 templates/mobile_edit_notes.html:14
-msgid "Set as Active Project"
-msgstr "Définir comme projet actif"
+msgid "Set as Pinned"
+msgstr "Définir comme épinglé"
 
 #: templates/mobile_add_object.html:46 templates/mobile_add_object.html:61
 msgid "Save Object"
@@ -5548,8 +5548,8 @@ msgstr ""
 "minute."
 
 #: templates/mobile_outlook.html:182
-msgid "No imaging opportunities found for your active projects."
-msgstr "Aucune opportunité d'imagerie trouvée pour vos projets actifs."
+msgid "No imaging opportunities found for your pinned objects."
+msgstr "Aucune opportunité d'imagerie trouvée pour vos objets épinglés."
 
 #: templates/mobile_up_now.html:874
 msgid "Scanning Sky..."
