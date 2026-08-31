@@ -1638,7 +1638,7 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
 
 /* Individual view buttons - segmented control style */
 /* Higher specificity (.date-controls .view-button) to override base.css */
-.date-controls .view-button {
+.date-controls .view-buttons .view-button {
     padding: 5px 14px;
     border-radius: 5px;
     font-size: 12px;
@@ -1653,16 +1653,16 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     box-shadow: none;
 }
 
-.date-controls .view-button:hover {
+.date-controls .view-buttons .view-button:hover {
     color: var(--nova-text-2, var(--text-secondary));
     background: transparent;
     box-shadow: none;
 }
 
 /* Active view button */
-.date-controls .view-button.active,
-.date-controls .view-button[data-active="true"],
-.date-controls .view-button[aria-pressed="true"] {
+.date-controls .view-buttons .view-button.active,
+.date-controls .view-buttons .view-button[data-active="true"],
+.date-controls .view-buttons .view-button[aria-pressed="true"] {
     background: var(--nova-surface, var(--bg-white));
     color: var(--nova-accent, var(--primary-color));
     box-shadow: var(--nova-shadow-sm, 0 1px 3px rgba(0,0,0,0.08));
@@ -1673,19 +1673,19 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     background: rgba(255,255,255,0.04);
 }
 
-:root[data-theme="dark"] .date-controls .view-button {
+:root[data-theme="dark"] .date-controls .view-buttons .view-button {
     color: var(--nova-text-3, rgba(255,255,255,0.30));
     background: transparent;
 }
 
-:root[data-theme="dark"] .date-controls .view-button:hover {
+:root[data-theme="dark"] .date-controls .view-buttons .view-button:hover {
     color: var(--nova-text-2, rgba(255,255,255,0.55));
     background: transparent;
 }
 
-:root[data-theme="dark"] .date-controls .view-button.active,
-:root[data-theme="dark"] .date-controls .view-button[data-active="true"],
-:root[data-theme="dark"] .date-controls .view-button[aria-pressed="true"] {
+:root[data-theme="dark"] .date-controls .view-buttons .view-button.active,
+:root[data-theme="dark"] .date-controls .view-buttons .view-button[data-active="true"],
+:root[data-theme="dark"] .date-controls .view-buttons .view-button[aria-pressed="true"] {
     background: var(--nova-surface, var(--bg-dark-secondary));
     color: var(--nova-accent, #7aafc0);
     box-shadow: 0 1px 3px rgba(0,0,0,0.30);

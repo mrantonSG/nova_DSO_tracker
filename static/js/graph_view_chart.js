@@ -2578,6 +2578,11 @@
     function updateReadoutFromCenter() { let center; if (lockToObject) { const rc = aladin.getRaDec(); center = { ra: rc[0], dec: rc[1] }; } else if (fovCenter && isFinite(fovCenter.ra) && isFinite(fovCenter.dec)) center = fovCenter; else { const rc = aladin.getRaDec(); center = { ra: rc[0], dec: rc[1] }; } updateReadout(center.ra, center.dec); }
     function copyRaDec() { const text = `${document.getElementById('ra-readout').value} ${document.getElementById('dec-readout').value}`; navigator.clipboard.writeText(text); }
     function changeView(view, skipPhaseUpdate = false) {
+        // Sync the active state of the segmented view buttons (CSS targets [aria-pressed="true"])
+        document.querySelectorAll('.date-controls .view-buttons .view-button').forEach(btn => {
+            btn.setAttribute('aria-pressed', btn.dataset.view === view ? 'true' : 'false');
+        });
+
         const day = document.getElementById('day-select').value, month = document.getElementById('month-select').value, year = document.getElementById('year-select').value, objectName = NOVA_GRAPH_DATA.objectName;
         fetch(`/get_date_info/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}`)
             .then(response => response.json())
