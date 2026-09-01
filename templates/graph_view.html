@@ -91,6 +91,7 @@
 <div class="tab-container">
     <button class="tab-button" data-tab="chart" data-action="show-tab">{{ _('Chart') }}</button>
     <button class="tab-button" data-tab="framing" data-action="show-tab">{{ _('Notes & Framing') }}</button>
+    <button class="tab-button" data-tab="inspiration" data-action="show-tab">{{ _('Object Info') }}</button>
     <button class="tab-button" data-tab="opportunities" data-action="show-tab">{{ _('Opportunities') }}</button>
     <button class="tab-button" data-tab="journal" data-action="show-tab">{{ _('Journal') }}</button>
     <button class="tab-button" data-tab="simbad" data-action="show-tab">{{ _('SIMBAD') }}</button>
@@ -162,7 +163,6 @@
 
     <div class="detail-tabs-container">
         {{ tab_button(_('Notes & Framing'), 'notes', active=True, data_action='show-project-subtab') }}
-        {{ tab_button(_('Inspiration'), 'inspiration', data_action='show-project-subtab') }}
         {{ tab_button(_('Rig Data'), 'framing-scout', data_action='show-project-subtab') }}
     </div>
 
@@ -197,46 +197,6 @@
         </div>
     </div>
 
-    <div id="inspiration-sub-tab" class="detail-tab-content">
-        <div class="content-section">
-            <h3 style="display:flex; justify-content:space-between; align-items:center;">
-                {{ _('Inspiration Content') }}
-                {% if not object_main_details.image_url and not object_main_details.description_text %}
-                <a href="{{ url_for('core.config_form') }}?active_tab=objects" style="font-size:13px; font-weight:normal;">{{ _('Edit Object to Add Content') }}</a>
-                {% endif %}
-            </h3>
-
-            {% if object_main_details.image_url or object_main_details.description_text %}
-            <div class="insp-detail-container">
-                {% if object_main_details.image_url %}
-                <div class="insp-detail-image-wrapper">
-                    <img src="{{ object_main_details.image_url }}" alt="{{ _('Inspiration Image for') }} {{ object_name }}">
-                    {% if object_main_details.image_credit %}
-                        <div class="insp-detail-badge">{{ object_main_details.image_credit }}</div>
-                    {% endif %}
-                </div>
-                {% endif %}
-
-                {% if object_main_details.description_text %}
-                <div class="insp-detail-text">
-                    <h4 style="margin-top:0; color:var(--text-primary);">{{ _('Description') }}</h4>
-                    <p style="white-space: pre-wrap;">{{ object_main_details.description_text }}</p>
-                    {% if object_main_details.image_source_link %}
-                        <p style="margin-top:15px; font-size:0.9em; color:var(--text-tertiary);">
-                            {{ _('Source') }}: <a href="{{ object_main_details.image_source_link }}" target="_blank">{{ object_main_details.image_credit or _('External Source') }}</a>
-                        </p>
-                    {% endif %}
-                </div>
-                {% endif %}
-            </div>
-            {% else %}
-            <div style="text-align:center; padding:40px; color:var(--text-tertiary); border: 2px dashed var(--text-lighter); border-radius: 6px;">
-                <p>{{ _('No inspiration content (custom image or description) has been added for this object yet.') }}</p>
-                <p style="font-size: 0.9em;">{{ _('Go to <strong>Configuration > Manage Objects</strong> to add one.') | safe }}</p>
-            </div>
-            {% endif %}
-        </div>
-    </div>
 
     <div id="framing-scout-sub-tab" class="detail-tab-content">
         {% if available_rigs and object_main_details.Size and object_main_details.Size != "N/A" %}
@@ -277,6 +237,47 @@
         {% endif %}
     </div>
 </div>
+
+    <div id="inspiration-tab" class="tab-content">
+        <div class="content-section">
+            <h3 style="display:flex; justify-content:space-between; align-items:center;">
+                {{ _('Inspiration Content') }}
+                {% if not object_main_details.image_url and not object_main_details.description_text %}
+                <a href="{{ url_for('core.config_form') }}?active_tab=objects" style="font-size:13px; font-weight:normal;">{{ _('Edit Object to Add Content') }}</a>
+                {% endif %}
+            </h3>
+
+            {% if object_main_details.image_url or object_main_details.description_text %}
+            <div class="insp-detail-container">
+                {% if object_main_details.image_url %}
+                <div class="insp-detail-image-wrapper">
+                    <img src="{{ object_main_details.image_url }}" alt="{{ _('Inspiration Image for') }} {{ object_name }}">
+                    {% if object_main_details.image_credit %}
+                        <div class="insp-detail-badge">{{ object_main_details.image_credit }}</div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                {% if object_main_details.description_text %}
+                <div class="insp-detail-text">
+                    <h4 style="margin-top:0; color:var(--text-primary);">{{ _('Description') }}</h4>
+                    <p style="white-space: pre-wrap;">{{ object_main_details.description_text }}</p>
+                    {% if object_main_details.image_source_link %}
+                        <p style="margin-top:15px; font-size:0.9em; color:var(--text-tertiary);">
+                            {{ _('Source') }}: <a href="{{ object_main_details.image_source_link }}" target="_blank">{{ object_main_details.image_credit or _('External Source') }}</a>
+                        </p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <div style="text-align:center; padding:40px; color:var(--text-tertiary); border: 2px dashed var(--text-lighter); border-radius: 6px;">
+                <p>{{ _('No inspiration content (custom image or description) has been added for this object yet.') }}</p>
+                <p style="font-size: 0.9em;">{{ _('Go to <strong>Configuration > Manage Objects</strong> to add one.') | safe }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
 
 <div id="opportunities-tab" class="tab-content">
     {% include '_opportunities_section.html' %}

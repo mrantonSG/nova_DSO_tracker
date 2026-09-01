@@ -5701,3 +5701,6 @@ msgstr "Experiment"
 
 msgid "%(count)d object to review"
 msgstr "%(count)d Objekt zur Überprüfung"
+
+msgid "Object Info"
+msgstr "Objekt-Info"

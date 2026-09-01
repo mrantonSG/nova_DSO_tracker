@@ -5595,3 +5595,6 @@ msgstr "実験"
 
 msgid "%(count)d object to review"
 msgstr "確認が必要なオブジェクトが%(count)d件"
+
+msgid "Object Info"
+msgstr "天体情報"

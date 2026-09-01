@@ -5518,8 +5518,9 @@ msgstr ""
 
 #: templates/mobile_outlook.html:182
 msgid "No imaging opportunities found for your pinned objects."
-msgstr "No se encontraron oportunidades de imágenes para tus objetos fijados."
-"No se encontraron oportunidades de imágenes para sus proyectos activos."
+msgstr ""
+"No se encontraron oportunidades de imágenes para tus objetos fijados.No se "
+"encontraron oportunidades de imágenes para sus proyectos activos."
 
 #: templates/mobile_up_now.html:874
 msgid "Scanning Sky..."
@@ -5704,3 +5705,6 @@ msgstr "Exp"
 
 msgid "%(count)d object to review"
 msgstr "%(count)d objeto para revisar"
+
+msgid "Object Info"
+msgstr "Info del objeto"

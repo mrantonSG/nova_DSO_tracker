@@ -5577,3 +5577,6 @@ msgstr "曝光"
 
 msgid "%(count)d object to review"
 msgstr "%(count)d 个待审核对象"
+
+msgid "Object Info"
+msgstr "天体信息"

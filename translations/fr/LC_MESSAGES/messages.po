@@ -5734,3 +5734,6 @@ msgstr "Expérience"
 
 msgid "%(count)d object to review"
 msgstr "%(count)d objet à vérifier"
+
+msgid "Object Info"
+msgstr "Infos de l'objet"
