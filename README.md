@@ -13,7 +13,7 @@ A Flask-based web application for astrophotographers — track deep-sky objects,
 * **User Management (Multi-User Mode):** Web-based admin panel to create, activate/deactivate, reset passwords, and delete users — no command line required.
 * **Guide Optics & Dither Recommendations:** Configure guiding equipment per rig and get dither pixel recommendations based on your guide camera pixel scale.
 * **Custom Mono Filters:** Define custom mono filters in the journal with per-session tracking and full YAML export/import support.
-* **Night Explorer (Inspiration Tab):** Visual gallery of targets currently observable from your location, sorted by altitude and visibility duration.
+* **Night Explorer (Inspiration Tab):** Visual gallery of targets currently observable from your location, shown 20 tiles per page and following the dashboard's current sort order.
 * **Yearly Heatmap:** Waterfall visualization of target visibility over 12 months with moon period indicators.
 * **Project Management & Journal:** Group imaging sessions into Projects, track integration time, generate PDF reports with embedded log charts.
 * **Mosaic Planning & Export:** Plan multi-pane mosaics in the Framing Assistant and export as CSV for ASIAIR or N.I.N.A.
@@ -106,7 +106,8 @@ Nova includes a mobile-first interface for essential planning on the go. Access 
 
 The Inspiration Tab offers a visual way to browse potential targets. Instead of a data table, this view presents tiles for objects that are currently observable.
 
-* **Smart Sorting:** Objects are prioritized based on their current altitude and visibility duration (or by AI recommendation when Ask Nova is active).
+* **Smart Sorting:** The grid follows the dashboard's current sort order (altitude by default, or Nova Rank when Ask Nova is active).
+* **Pagination:** Tiles are displayed 20 per page with prev/next controls; clearing the dashboard filters or changing the view resets to the first page.
 * **Imagery:** Tiles display survey images (DSS2) by default. If you have uploaded your own astrophoto for an object, it will be displayed here.
 * **Quick Info:** Each tile displays the object's type, current altitude, and constellation. Clicking a tile opens a detail modal with a summary and a link to the full charts.
 
@@ -133,7 +134,7 @@ The Journal is a full **Project Management System**.
 1. **Projects:** A Project groups multiple imaging sessions toward a single goal (e.g., "Mosaic of M31" or "HaOIII data for Helix").
 
     * **Dedicated Project Pages:** Each project has its own detail page with aggregated stats and rich text notes for goals, framing, and processing.
-    * **Status:** Track if a project is `In Progress`, `Completed`, or `Abandoned`.
+    * **Status:** Track if a project is `In Progress`, `On Hold`, `Completed`, or `Abandoned`.
     * **Integration:** Nova automatically sums the exposure time from all linked sessions.
 
 ![Project detail](docs/Screenshot%202026-02-27%20at%2014.10.16.jpg)
@@ -165,12 +166,17 @@ The Journal is a full **Project Management System**.
 ![Reports](docs/Screenshot%202026-02-27%20at%2014.11.42.jpg)
 ![Log file import](docs/Screenshot%202026-02-27%20at%2014.12.11.jpg)
 
+9. **Multi-Project Sessions:** A session can be linked to several projects at once via the "Link to Project" checkboxes in the session form (creating a new project inline still works). In the journal sidebar, sessions appear under every linked project in collapsible groups — the group containing your most recent session is expanded by default.
+
+10. **Session Status Column:** The journal's session table has a sortable and filterable Status column showing the status of each session's linked project.
+
 ### Detailed Object Information
 
 Clicking a DSO in the main list opens the Detailed View.
 
 * **Altitude Graphs:** Shows the object's path for the current night.
 * **Moon Separation:** Displays angular separation from the moon on the main graph.
+* **Object Info Tab:** Shows the inspiration content you added for the target — custom image, credit, and description (added via Manage Objects).
 * **Imaging Opportunities:** Click "Find Imaging Opportunities" to calculate the best dates based on your horizon and moon constraints.
 * **AI Observation Notes:** Generate contextual notes about the target directly from the graph view.
 
@@ -205,7 +211,7 @@ The Configuration page manages your library of objects, locations, and equipment
 
 **Manage Objects:**
 
-* **Filtering:** Filter by ID, Name, Type, or Source. Use range expressions for Magnitude (`>5 <30`) and Size.
+* **Filtering:** Filter by ID, Name, Type, or Source. Use range expressions for Magnitude (`>5 <30`) and Size. The Status filter includes a **Pinned** option to show only the objects in your pinned project.
 * **Bulk Actions:** Enable or disable multiple objects at once. Disabled objects remain in your database but are excluded from calculations and the dashboard.
 * **Inspiration Content:** Upload a custom image URL, credit, and description for any object.
 
