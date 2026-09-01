@@ -71,7 +71,7 @@ Nova is available in 6 languages. Use the language selector in the header to swi
 | Language | Status                                       |
 |---|----------------------------------------------|
 | English | Original                                     |
-| German | Full translation, community review welcome   |
+| German | Machine-translated, community review welcome   |
 | French | Machine-translated, community review welcome |
 | Spanish | Machine-translated, community review welcome |
 | Japanese | Machine-translated, community review welcome |
