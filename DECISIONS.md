@@ -28,6 +28,8 @@ One line per decision. Format: Date | What changed | Why
 
 2026-02-12 | YAML import/export logic extracted into nova/migration.py | Separates the one-time migration path from the active codebase so the YAML dependency can eventually be dropped
 
+2026-08-14 | session_projects many-to-many junction table (JournalSession ↔ Project) | A session can link to multiple projects; the singular legacy project_id column is kept as fallback for unlinked sessions
+
 ## App Structure
 
 2026-02-12 | Flask Blueprints introduced (core_bp, api_bp, journal_bp, mobile_bp, projects_bp, tools_bp) | First step in decomposing the monolith; blueprint decorators mark ownership even though route functions still live in `__init__.py`
