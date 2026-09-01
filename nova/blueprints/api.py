@@ -831,6 +831,36 @@ def save_framing():
         current_app.logger.error(f"[FRAMING API] Failed to save framing for '{object_name}': {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
+# Preferred catalog prefixes for scan_frame labels, in priority order.
+# Matched case-insensitively against each '|' -separated SIMBAD identifier,
+# with whitespace normalised (SIMBAD emits e.g. "M  42" / "SH  2-281").
+_SCAN_NAME_PREFIXES = ('M ', 'NGC ', 'IC ', 'SH 2', 'Cl ', 'LDN ', 'Ced ')
+
+
+def _resolve_scan_name(ids_str, fallback):
+    """Pick the most well-known catalog label for a scanned object.
+
+    ``ids_str`` is the pipe-separated identifier list returned by SIMBAD's
+    ``smb_get_ids()`` (e.g. ``"M  42|NGC  1976|..."``). Returns the first
+    identifier (in its original spelling) that starts with one of
+    ``_SCAN_NAME_PREFIXES`` — honoring prefix priority so "M  42" wins over
+    "NGC  1976" regardless of list position. Falls back to ``fallback``
+    (the object's ``main_id``) when nothing matches or ids is empty.
+    """
+    if not ids_str or not ids_str.strip():
+        return fallback
+    ids = [p.strip() for p in ids_str.split('|') if p.strip()]
+    # Collapse runs of whitespace and upper-case for tolerant matching, while
+    # keeping ``ids`` untouched so we return the identifier verbatim.
+    norm = [' '.join(i.split()).upper() for i in ids]
+    for prefix in _SCAN_NAME_PREFIXES:
+        p = prefix.upper()
+        for i, n in enumerate(norm):
+            if n.startswith(p):
+                return ids[i]
+    return fallback
+
+
 @api_bp.route('/api/scan_frame', methods=['POST'])
 @login_required
 def scan_frame():
@@ -858,12 +888,14 @@ def scan_frame():
         del _scan_frame_cache[cache_key]
 
     adql = (
-        "SELECT TOP 500 main_id, ra, dec, otype, galdim_majaxis "
-        "FROM basic "
-        "WHERE CONTAINS(POINT('ICRS', ra, dec), "
+        "SELECT TOP 500 b.main_id, b.ra, b.dec, b.otype, b.galdim_majaxis, "
+        "smb_get_ids(b.oid, 40) AS ids, f.V AS vmag "
+        "FROM basic AS b "
+        "LEFT JOIN allfluxes AS f ON b.oid = f.oidref "
+        "WHERE CONTAINS(POINT('ICRS', b.ra, b.dec), "
         "BOX('ICRS', {ra}, {dec}, {fov_w}, {fov_h})) = 1 "
-        "AND otype IN ('G','GiG','GiC','GlC','OpC','PN','SNR',"
-        "              'HII','EmN','RfN','MoC','Cl*')"
+        "AND b.otype IN ('G','GiG','GiC','GlC','OpC','PN','SNR',"
+        "                'HII','EmN','RfN','MoC','Cl*')"
     ).format(ra=ra, dec=dec, fov_w=fov_w, fov_h=fov_h)
 
     try:
@@ -894,11 +926,11 @@ def scan_frame():
             continue
         size_s = row.get('galdim_majaxis', '').strip()
         objects.append({
-            'name':        row.get('main_id', '').strip(),
+            'name':        _resolve_scan_name(row.get('ids', ''), row.get('main_id', '').strip()),
             'ra':          ra_val,
             'dec':         dec_val,
             'otype':       row.get('otype', '').strip(),
-            'mag':         None,
+            'mag':         vmag,
             'size_arcmin': float(size_s) if size_s else None,
         })
 
