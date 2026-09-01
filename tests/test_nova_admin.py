@@ -210,15 +210,30 @@ class TestAdminToggleUser:
 
 
 class TestDefaultAdminCreation:
-    """Verify that init_auth() auto-creates a default admin user when users.db is empty."""
+    """Verify that init_auth() auto-creates a default admin user when users.db is empty.
 
-    def _setup_auth_mock(self, count, monkeypatch):
-        """Build a mock db/User/Session and patch nova.auth with fresh imports.
+    These tests patch ``nova.auth``'s module globals directly. The previous
+    approach deleted ``nova.auth`` from ``sys.modules`` and re-imported it so
+    the module-level constants would pick up the patches — but re-importing
+    created a brand-new ``LoginManager`` whose ``init_app(app)`` registered a
+    *second* before_request handler on the shared app. That handler resolved
+    login sessions against the REAL ``instance/users.db`` and silently
+    replaced ``g._login_user`` for every subsequent multi-user test (e.g.
+    ``test_sharing_and_importing_items`` imported items as the real 'admin'
+    user instead of UserA).
+    """
+
+    def _setup_auth_mock(self, count, username, password, monkeypatch):
+        """Build a mock db/User/Session and patch nova.auth's module globals.
+
+        ``init_auth()`` resolves SINGLE_USER_MODE / USER_ADMIN_* / db / User /
+        login_manager from its module globals at call time, so patching the
+        module attributes is enough — no re-import required.
 
         Stores ``created_users`` on self so the test method can assert on it.
         """
-        import sys
         import types
+        import nova.auth as auth
 
         created_users = []
 
@@ -248,36 +263,27 @@ class TestDefaultAdminCreation:
         mock_db.session = MockSession()
         mock_db.init_app = lambda app: None
 
-        monkeypatch.setattr('nova.auth.db', mock_db)
-        monkeypatch.setattr('nova.auth.login_manager', types.SimpleNamespace(
+        # Mock the login manager so init_app() does not register another
+        # before_request handler on the shared app.
+        monkeypatch.setattr(auth, 'SINGLE_USER_MODE', False)
+        monkeypatch.setattr(auth, 'USER_ADMIN_USERNAME', username)
+        monkeypatch.setattr(auth, 'USER_ADMIN_PASSWORD', password)
+        monkeypatch.setattr(auth, 'db', mock_db)
+        monkeypatch.setattr(auth, 'login_manager', types.SimpleNamespace(
             init_app=lambda app: None,
         ))
-        monkeypatch.setattr('nova.auth.User', MockUser)
-        monkeypatch.setattr('nova.auth.INSTANCE_PATH', '/tmp')
-
-        # Force a fresh module import so module-level constants pick up patches.
-        if 'nova.auth' in sys.modules:
-            del sys.modules['nova.auth']
+        monkeypatch.setattr(auth, 'User', MockUser)
 
         # Expose to the test method.
         self._created_users = created_users
 
     def test_default_admin_created_when_db_empty(self, monkeypatch):
         """init_auth() creates admin/admin when user table exists but is empty."""
-        import sys
-
-        monkeypatch.setattr('nova.config.SINGLE_USER_MODE', False)
-        monkeypatch.setattr('nova.config.USER_ADMIN_USERNAME', 'admin')
-        monkeypatch.setattr('nova.config.USER_ADMIN_PASSWORD', '')
-
-        if 'nova.auth' in sys.modules:
-            del sys.modules['nova.auth']
-
-        from nova.auth import init_auth
-        self._setup_auth_mock(count=0, monkeypatch=monkeypatch)
+        self._setup_auth_mock(count=0, username='admin', password='', monkeypatch=monkeypatch)
 
         from nova import app
-        init_auth(app)
+        import nova.auth as auth
+        auth.init_auth(app)
 
         assert len(self._created_users) == 1
         assert self._created_users[0].username == 'admin'
@@ -285,20 +291,11 @@ class TestDefaultAdminCreation:
 
     def test_custom_admin_created_from_env(self, monkeypatch):
         """init_auth() uses USER_ADMIN_USERNAME/PASSWORD when set."""
-        import sys
-
-        monkeypatch.setattr('nova.config.SINGLE_USER_MODE', False)
-        monkeypatch.setattr('nova.config.USER_ADMIN_USERNAME', 'gilles')
-        monkeypatch.setattr('nova.config.USER_ADMIN_PASSWORD', 'secret123')
-
-        if 'nova.auth' in sys.modules:
-            del sys.modules['nova.auth']
-
-        from nova.auth import init_auth
-        self._setup_auth_mock(count=0, monkeypatch=monkeypatch)
+        self._setup_auth_mock(count=0, username='gilles', password='secret123', monkeypatch=monkeypatch)
 
         from nova import app
-        init_auth(app)
+        import nova.auth as auth
+        auth.init_auth(app)
 
         assert len(self._created_users) == 1
         assert self._created_users[0].username == 'gilles'
@@ -306,19 +303,10 @@ class TestDefaultAdminCreation:
 
     def test_no_user_created_when_db_has_users(self, monkeypatch):
         """init_auth() skips creation when users already exist."""
-        import sys
-
-        monkeypatch.setattr('nova.config.SINGLE_USER_MODE', False)
-        monkeypatch.setattr('nova.config.USER_ADMIN_USERNAME', 'admin')
-        monkeypatch.setattr('nova.config.USER_ADMIN_PASSWORD', '')
-
-        if 'nova.auth' in sys.modules:
-            del sys.modules['nova.auth']
-
-        from nova.auth import init_auth
-        self._setup_auth_mock(count=2, monkeypatch=monkeypatch)
+        self._setup_auth_mock(count=2, username='admin', password='', monkeypatch=monkeypatch)
 
         from nova import app
-        init_auth(app)
+        import nova.auth as auth
+        auth.init_auth(app)
 
         assert len(self._created_users) == 0
