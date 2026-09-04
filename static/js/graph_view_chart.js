@@ -2042,40 +2042,6 @@
                 return;
             }
         }
-        function buildFramingQuery() { const sel = document.getElementById('framing-rig-select'), rig = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].value : '', rotInput = document.getElementById('framing-rotation'), rot = rotInput ? (parseFloat(rotInput.value) || 0) : 0, sSel = document.getElementById('survey-select'), survey = sSel ? sSel.value : '', bSel = document.getElementById('blend-survey-select'), bOp = document.getElementById('blend-opacity'), blend = bSel ? bSel.value : '', blend_op = bOp ? (parseFloat(bOp.value) || 0) : 0; const { ra, dec } = (fovCenter || (aladin && (() => { const rc = aladin.getRaDec(); return { ra: rc[0], dec: rc[1] }; })()) || { ra: NaN, dec: NaN });
-            const cols = document.getElementById('mosaic-cols')?.value || 1;
-        const rows = document.getElementById('mosaic-rows')?.value || 1;
-        const overlap = document.getElementById('mosaic-overlap')?.value || 10;
-        // Image adjustment values
-        const imgBright = parseFloat(document.getElementById('img-bright')?.value || 0);
-        const imgContrast = parseFloat(document.getElementById('img-contrast')?.value || 0);
-        const imgGamma = parseFloat(document.getElementById('img-gamma')?.value || 1);
-        const imgSat = parseFloat(document.getElementById('img-sat')?.value || 0);
-        const qp = new URLSearchParams();
-        if (rig) qp.set('rig', rig);
-        if (Number.isFinite(ra)) qp.set('ra', ra.toFixed(6));
-        if (Number.isFinite(dec)) qp.set('dec', dec.toFixed(6));
-        const utils = fu();
-        qp.set('rot', String(Math.round(utils.normalizeAngle ? utils.normalizeAngle(rot) : to360(rot))));
-        if (survey) qp.set('survey', survey);
-        if (blend) qp.set('blend', blend);
-        qp.set('blend_op', String(Math.max(0, Math.min(1, blend_op))));
-
-        // Mosaic Params
-        if (cols > 1 || rows > 1) {
-            qp.set('m_cols', cols);
-            qp.set('m_rows', rows);
-            qp.set('m_ov', overlap);
-        }
-
-        // Image Adjustment Params (only if non-default)
-        if (imgBright !== 0) qp.set('img_b', imgBright.toFixed(2));
-        if (imgContrast !== 0) qp.set('img_c', imgContrast.toFixed(2));
-        if (imgGamma !== 1) qp.set('img_g', imgGamma.toFixed(2));
-        if (imgSat !== 0) qp.set('img_s', imgSat.toFixed(2));
-
-        return '?' + qp.toString();
-    }
     
         // Parse query string and restore state using helpers
         let params, flags;
@@ -2576,7 +2542,39 @@
         document.getElementById('dec-readout').value = formatDec(jNow.dec);
     }
     function updateReadoutFromCenter() { let center; if (lockToObject) { const rc = aladin.getRaDec(); center = { ra: rc[0], dec: rc[1] }; } else if (fovCenter && isFinite(fovCenter.ra) && isFinite(fovCenter.dec)) center = fovCenter; else { const rc = aladin.getRaDec(); center = { ra: rc[0], dec: rc[1] }; } updateReadout(center.ra, center.dec); }
-    function copyRaDec() { const text = `${document.getElementById('ra-readout').value} ${document.getElementById('dec-readout').value}`; navigator.clipboard.writeText(text); }
+    function copyToClipboard(text, onSuccess, onError) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(onSuccess).catch(function(err) {
+                console.error('Clipboard write failed:', err);
+                if (onError) onError(err);
+            });
+            return;
+        }
+        // Fallback for non-secure contexts (navigator.clipboard is undefined)
+        try {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            const ok = document.execCommand('copy');
+            document.body.removeChild(ta);
+            if (ok) {
+                if (onSuccess) onSuccess();
+            } else {
+                throw new Error('execCommand copy returned false');
+            }
+        } catch (err) {
+            console.error('Clipboard fallback failed:', err);
+            if (onError) onError(err);
+        }
+    }
+    function copyRaDec() {
+        const text = `${document.getElementById('ra-readout').value} ${document.getElementById('dec-readout').value}`;
+        copyToClipboard(text);
+    }
     function changeView(view, skipPhaseUpdate = false) {
         // Sync the active state of the segmented view buttons (CSS targets [aria-pressed="true"])
         document.querySelectorAll('.date-controls .view-buttons .view-button').forEach(btn => {
@@ -2696,7 +2694,49 @@
         });
     }
     
-    function copyFramingUrl() { try { const q = buildFramingQuery(), url = location.origin + location.pathname + q; navigator.clipboard.writeText(url); console.log("[Framing] Copied URL:", url); } catch (e) { console.warn("[Framing] copyFramingUrl failed:", e); } }
+        function buildFramingQuery() { const sel = document.getElementById('framing-rig-select'), rig = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].value : '', rotInput = document.getElementById('framing-rotation'), rot = rotInput ? (parseFloat(rotInput.value) || 0) : 0, sSel = document.getElementById('survey-select'), survey = sSel ? sSel.value : '', bSel = document.getElementById('blend-survey-select'), bOp = document.getElementById('blend-opacity'), blend = bSel ? bSel.value : '', blend_op = bOp ? (parseFloat(bOp.value) || 0) : 0; const { ra, dec } = (fovCenter || (aladin && (() => { const rc = aladin.getRaDec(); return { ra: rc[0], dec: rc[1] }; })()) || { ra: NaN, dec: NaN });
+            const cols = document.getElementById('mosaic-cols')?.value || 1;
+        const rows = document.getElementById('mosaic-rows')?.value || 1;
+        const overlap = document.getElementById('mosaic-overlap')?.value || 10;
+        // Image adjustment values
+        const imgBright = parseFloat(document.getElementById('img-bright')?.value || 0);
+        const imgContrast = parseFloat(document.getElementById('img-contrast')?.value || 0);
+        const imgGamma = parseFloat(document.getElementById('img-gamma')?.value || 1);
+        const imgSat = parseFloat(document.getElementById('img-sat')?.value || 0);
+        const qp = new URLSearchParams();
+        if (rig) qp.set('rig', rig);
+        if (Number.isFinite(ra)) qp.set('ra', ra.toFixed(6));
+        if (Number.isFinite(dec)) qp.set('dec', dec.toFixed(6));
+        const utils = fu();
+        qp.set('rot', String(Math.round(utils.normalizeAngle ? utils.normalizeAngle(rot) : to360(rot))));
+        if (survey) qp.set('survey', survey);
+        if (blend) qp.set('blend', blend);
+        qp.set('blend_op', String(Math.max(0, Math.min(1, blend_op))));
+
+        // Mosaic Params
+        if (cols > 1 || rows > 1) {
+            qp.set('m_cols', cols);
+            qp.set('m_rows', rows);
+            qp.set('m_ov', overlap);
+        }
+
+        // Image Adjustment Params (only if non-default)
+        if (imgBright !== 0) qp.set('img_b', imgBright.toFixed(2));
+        if (imgContrast !== 0) qp.set('img_c', imgContrast.toFixed(2));
+        if (imgGamma !== 1) qp.set('img_g', imgGamma.toFixed(2));
+        if (imgSat !== 0) qp.set('img_s', imgSat.toFixed(2));
+
+        return '?' + qp.toString();
+    }
+
+    function copyFramingUrl() {
+        const q = buildFramingQuery(), url = location.origin + location.pathname + q;
+        copyToClipboard(url, function() {
+            console.log("[Framing] Copied URL:", url);
+        }, function(err) {
+            console.warn("[Framing] copyFramingUrl failed:", err);
+        });
+    }
     function loadImagingOpportunities() { document.getElementById("opportunities-section").style.display = "block"; const tbody = document.getElementById("opportunities-body"); tbody.innerHTML = `<tr><td colspan="9">Searching...</td></tr>`; const objectName = NOVA_GRAPH_DATA.objectName; fetch(`/get_imaging_opportunities/${encodeURIComponent(objectName)}`).then(response => response.json()).then(data => { if (data.status === "success") { if (data.results.length === 0) { tbody.innerHTML = `<tr><td colspan="9">No good dates found matching your criteria.</td></tr>`; return; } let htmlRows = ""; const selectedDateStr = `${document.getElementById('year-select').value.padStart(4, '0')}-${document.getElementById('month-select').value.padStart(2, '0')}-${document.getElementById('day-select').value.padStart(2, '0')}`, plotLat = NOVA_GRAPH_DATA.plotLat, plotLon = NOVA_GRAPH_DATA.plotLon; data.results.forEach(r => { const isSelected = r.date === selectedDateStr, formattedDate = formatDateISOtoEuropean(r.date), ics_url = `/generate_ics/${encodeURIComponent(objectName)}?date=${r.date}&tz=${encodeURIComponent(plotTz)}&lat=${plotLat}&lon=${plotLon}&max_alt=${r.max_alt}&moon_illum=${r.moon_illumination}&obs_dur=${r.obs_minutes}&from_time=${r.from_time}&to_time=${r.to_time}`, filename = `imaging_${objectName.replace(/\s+/g, '_')}_${r.date}.ics`; htmlRows += `<tr class="${isSelected ? 'highlight' : ''}" data-date="${r.date}" onclick="selectSuggestedDate('${r.date}')" style="cursor: pointer;"><td>${formattedDate}</td><td>${r.from_time}</td><td>${r.to_time}</td><td>${r.obs_minutes}</td><td>${r.max_alt}</td><td>${r.moon_illumination}</td><td>${r.moon_separation}</td><td>${r.rating || ""}</td><td onclick="event.stopPropagation();"><a href="${ics_url}" download="${filename}" title="Add to calendar" style="font-size: 1.5em; text-decoration: none;">🗓️</a></td></tr>`; }); tbody.innerHTML = htmlRows; } else tbody.innerHTML = `<tr><td colspan="9">Error: ${data.message}</td></tr>`; }); }
     function selectSuggestedDate(dateStr) { const [year, month, day] = dateStr.split('-').map(Number); document.getElementById('year-select').value = year; document.getElementById('month-select').value = month; document.getElementById('day-select').value = day; changeView('day'); setTimeout(() => { const rows = document.getElementById("opportunities-body").querySelectorAll("tr"); rows.forEach(row => { row.classList.toggle("highlight", row.getAttribute("data-date") === dateStr); }); }, 100); }
     function openInStellarium() { document.getElementById('stellarium-status').textContent = "Sending object to Stellarium..."; document.getElementById('stellarium-status').style.color = "#666"; const objectName = NOVA_GRAPH_DATA.objectName; fetch("/proxy_focus", { method: "POST", headers: {"Content-Type": "application/x-www-form-urlencoded"}, body: new URLSearchParams({target: objectName, mode: "center"}) }).then(async response => { let data; try { data = await response.json(); } catch (e) { data = {message: "Could not parse server response."}; } if (response.ok && data.status === "success") { document.getElementById('stellarium-status').textContent = "Stellarium view updated!"; document.getElementById('stellarium-status').style.color = "#83b4c5"; } else document.getElementById('stellarium-status').innerHTML = `<p style="color:red; margin:0;">Error: ${data.message || "Unknown error"}</p>`; }); }
@@ -2900,15 +2940,14 @@
             }
         }
     
-        navigator.clipboard.writeText(clipboardText).then(() => {
+        copyToClipboard(clipboardText, function() {
             alert(
                 `Copied ${paneCount-1} pane(s) to clipboard (CSV Format).\n\n` +
                 `• ASIAIR: Go to Plan > Import > Paste.\n` +
                 `• N.I.N.A.: Save as .csv and import into Sequencer.\n\n` +
                 `NOTE: Coordinates are J2000. Rotation is included.`
             );
-        }).catch(err => {
-            console.error('Clipboard write failed:', err);
+        }, function() {
             alert("Failed to copy to clipboard. See console.");
         });
     }
