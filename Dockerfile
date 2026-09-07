@@ -33,4 +33,9 @@ EXPOSE 5001
 # - gthread works well for Flask + light I/O
 # - --timeout 30 avoids premature kills on cold starts
 # - --worker-tmp-dir /dev/shm avoids tmpfs issues on some hosts
+
+# ---- Version label (kept last: avoids invalidating cache for earlier layers) ----
+ARG VERSION=unknown
+LABEL org.opencontainers.image.version="${VERSION}"
+
 CMD ["gunicorn", "-w", "2", "-k", "gthread", "--threads", "4", "--timeout", "30", "--worker-tmp-dir", "/dev/shm", "--log-level", "info", "-b", "0.0.0.0:5001", "nova:app"]
