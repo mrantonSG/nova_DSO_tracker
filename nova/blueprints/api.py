@@ -2082,7 +2082,8 @@ def provision_user():
 @api_bp.route('/api/internal/deprovision_user', methods=['POST'])
 def deprovision_user():
     api_key = request.headers.get('X-Api-Key')
-    if api_key != os.environ.get('PROVISIONING_API_KEY'):
+    expected_key = os.environ.get('PROVISIONING_API_KEY')
+    if not expected_key or api_key != expected_key:
         return jsonify({"status":"error","message":"unauthorized"}), 401
 
     data = request.get_json(force=True) or {}
