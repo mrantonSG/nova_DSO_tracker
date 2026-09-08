@@ -1640,9 +1640,9 @@ def analytics_dashboard():
 
     session = SessionLocal()
     try:
-        # Last 90 days of event data
+        # Last 90 days of event data (inclusive of today -> 90 distinct days)
         today = date.today()
-        since = today - timedelta(days=90)
+        since = today - timedelta(days=89)
         days_count = 90
 
         # Aggregate events: total count and active days per event name
@@ -1652,7 +1652,8 @@ def analytics_dashboard():
             sql_func.sum(AnalyticsEvent.count).label('total'),
             sql_func.count(AnalyticsEvent.date).label('active_days')
         ).where(
-            AnalyticsEvent.date >= since
+            AnalyticsEvent.date >= since,
+            AnalyticsEvent.date <= today
         ).group_by(
             AnalyticsEvent.event_name
         ).order_by(
@@ -1663,15 +1664,17 @@ def analytics_dashboard():
         # Dashboard load data for chart (90 days) - build a map for quick lookup
         dashboard_stmt = select(AnalyticsEvent).where(
             AnalyticsEvent.event_name == 'dashboard_load',
-            AnalyticsEvent.date >= since
+            AnalyticsEvent.date >= since,
+            AnalyticsEvent.date <= today
         ).order_by(AnalyticsEvent.date)
         dashboard_rows = session.execute(dashboard_stmt).scalars().all()
 
-        # Recurrence signal: dashboard loads in last 30 days
-        last_30 = today - timedelta(days=30)
+        # Recurrence signal: dashboard loads in last 30 days (inclusive of today -> 30 distinct days)
+        last_30 = today - timedelta(days=29)
         active_stmt = select(sql_func.count()).select_from(AnalyticsEvent).where(
             AnalyticsEvent.event_name == 'dashboard_load',
             AnalyticsEvent.date >= last_30,
+            AnalyticsEvent.date <= today,
             AnalyticsEvent.count > 0
         )
         active_days_30 = session.execute(active_stmt).scalar() or 0

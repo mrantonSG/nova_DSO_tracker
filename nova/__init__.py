@@ -2410,19 +2410,20 @@ def build_telemetry_payload(user_config, browser_user_agent: str = ''):
     try:
         from nova.models import AnalyticsEvent, AnalyticsLogin
         from sqlalchemy import func as sa_func
-        cutoff = date.today() - timedelta(days=30)
+        today = date.today()
+        cutoff = today - timedelta(days=29)
         session = SessionLocal()
         try:
             rows = session.query(
                 AnalyticsEvent.event_name,
                 sa_func.sum(AnalyticsEvent.count)
-            ).filter(AnalyticsEvent.date >= cutoff)\
+            ).filter(AnalyticsEvent.date >= cutoff, AnalyticsEvent.date <= today)\
              .group_by(AnalyticsEvent.event_name).all()
             feature_usage = {r[0]: int(r[1]) for r in rows}
 
             login_count_30d = session.query(
                 sa_func.sum(AnalyticsLogin.login_count)
-            ).filter(AnalyticsLogin.date >= cutoff).scalar() or 0
+            ).filter(AnalyticsLogin.date >= cutoff, AnalyticsLogin.date <= today).scalar() or 0
             login_count_30d = int(login_count_30d)
         finally:
             session.close()
