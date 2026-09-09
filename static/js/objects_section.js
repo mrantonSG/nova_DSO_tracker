@@ -411,10 +411,6 @@
                 e.preventDefault();
                 fetchAndRenderImportConflicts();
                 break;
-            case 'close-notes-modal':
-                e.preventDefault();
-                closeNotesModal();
-                break;
             case 'close-duplicates-modal':
                 e.preventDefault();
                 e.stopPropagation(); // Prevent event from bubbling
