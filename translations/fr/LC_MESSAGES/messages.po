@@ -1243,7 +1243,7 @@ msgstr "Exposition"
 
 #: templates/_journal_section.html:1811
 msgid "# Light Subs:"
-msgstr "Nombre de sous-marins légers :"
+msgstr "# Poses Lumière :"
 
 #: templates/_journal_section.html:1831
 msgid "Monochrome Exposures"
@@ -1517,7 +1517,7 @@ msgstr "filtre"
 #: templates/_journal_section.html:2115 templates/journal_report.html:828
 #: templates/project_report.html:828 templates/project_report.html:1199
 msgid "Subs"
-msgstr "Sous-marins"
+msgstr "Poses"
 
 #: templates/_journal_section.html:2116 templates/project_report.html:829
 msgid "Per Sub"
@@ -4392,7 +4392,7 @@ msgstr "Scanner le cadre"
 #: templates/graph_view.html:324 templates/index.html:153
 #: templates/mobile_journal_new.html:237 templates/project_report.html:1167
 msgid "Rig"
-msgstr "Riche"
+msgstr "Rig"
 
 #: templates/graph_view.html:329
 msgid "No rigs configured"
@@ -4996,7 +4996,7 @@ msgstr "Transparence"
 
 #: templates/journal_report.html:755 templates/project_report.html:934
 msgid "Rig:"
-msgstr "Riche :"
+msgstr "Rig :"
 
 #: templates/journal_report.html:775
 msgid "Temp (Set/Avg):"

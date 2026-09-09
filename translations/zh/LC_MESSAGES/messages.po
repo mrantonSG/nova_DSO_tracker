@@ -2903,7 +2903,7 @@ msgstr "成像机会"
 
 #: templates/base.html:183
 msgid "Report frame not found."
-msgstr "未找到用户。"
+msgstr "未找到报告框架。"
 
 #: templates/base.html:184
 msgid "Preparing Print View..."
@@ -2946,7 +2946,7 @@ msgstr "添加到日历"
 #: templates/base.html:196
 #, python-format
 msgid "Error loading opportunities: %(error)s"
-msgstr "添加组件时出错：%(error)s"
+msgstr "加载机会时出错：%(error)s"
 
 #: templates/base.html:197
 #, python-format
