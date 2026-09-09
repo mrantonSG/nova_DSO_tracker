@@ -1834,9 +1834,16 @@ def graph_dashboard(object_name):
             return redirect(url_for('core.index'))
 
         # --- Framing Tab Data Preparation ---
-        project_record = db.query(Project).filter_by(
-            user_id=user.id, target_object_name=object_name
-        ).order_by(Project.status).first()
+        project_id_param = request.args.get('project_id')
+        project_record = None
+        if project_id_param:
+            project_record = db.query(Project).filter_by(
+                id=project_id_param, user_id=user.id
+            ).one_or_none()
+        if not project_record:
+            project_record = db.query(Project).filter_by(
+                user_id=user.id, target_object_name=object_name
+            ).order_by(Project.status).first()
 
         project_id_for_this_object = None
         project_name_for_this_object = "N/A"

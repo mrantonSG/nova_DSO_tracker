@@ -946,7 +946,7 @@
                 tile.addEventListener('click', function() {
                     const objectName = project.target_object_name;
                     if (objectName) {
-                        window.location.href = `/graph_dashboard/${encodeURIComponent(objectName)}?tab=journal`;
+                        window.location.href = `/graph_dashboard/${encodeURIComponent(objectName)}?tab=journal&project_id=${encodeURIComponent(project.id)}`;
                     }
                 });
 
