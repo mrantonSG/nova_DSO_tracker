@@ -1414,6 +1414,12 @@ def index():
         # Add the common name for convenience in the template
         session_dict['target_common_name'] = object_names_lookup.get(session.object_name, session.object_name)
 
+        if session_dict.get('session_image_file'):
+            session_dict['image_url'] = url_for('core.get_uploaded_image', username=username,
+                                                filename=session_dict['session_image_file'])
+        else:
+            session_dict['image_url'] = None
+
         if session.project_id:
             proj = project_map.get(session.project_id)
             if proj:
