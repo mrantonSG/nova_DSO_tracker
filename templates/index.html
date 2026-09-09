@@ -256,7 +256,10 @@
 
     <div id="gallery-tab-content" style="display:none;">
         <div class="gallery-grid-container"></div>
-        <p class="gallery-empty-state">{{ _('No session photos yet.') }}</p>
+        <div class="gallery-empty-state">
+            <div class="gallery-empty-icon">📷</div>
+            <p>{{ _('Here your session and project images will be shown.') }}</p>
+        </div>
     </div>
 
     <div id="table-loading" style="display:none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--overlay-light); padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px var(--shadow-light); z-index: 2000; width: 300px; text-align: center; border: 1px solid var(--text-lighter);">

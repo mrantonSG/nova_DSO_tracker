@@ -72,8 +72,23 @@
 .gallery-empty-state {
     grid-column: 1 / -1;
     text-align: center;
-    color: var(--text-muted);
-    padding: 40px 20px;
+    padding: 60px 20px;
+    color: var(--text-tertiary);
+    background: var(--bg-light-alt);
+    border-radius: 12px;
+    border: 2px dashed var(--text-lightest);
+    margin: 40px auto;
+    max-width: 600px;
+}
+
+.gallery-empty-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.8;
+}
+
+.gallery-empty-state p {
+    margin: 0;
 }
 
 /* ===================================================================
@@ -109,5 +124,6 @@
 }
 
 [data-theme="dark"] .gallery-empty-state {
-    color: var(--nova-text-3, rgba(255, 255, 255, 0.30));
+    background: var(--nova-surface-alt, var(--bg-dark-primary));
+    border-color: var(--nova-border, rgba(255, 255, 255, 0.07));
 }

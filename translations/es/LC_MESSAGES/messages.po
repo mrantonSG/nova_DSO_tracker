@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-09 15:00+0800\n"
+"POT-Creation-Date: 2026-09-09 16:45+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: es <LL@li.org>\n"
@@ -70,7 +70,7 @@ msgid "Log parsed but no structured data found."
 msgstr ""
 "Se ha analizado el registro pero no se han encontrado datos estructurados."
 
-#: nova/blueprints/admin.py:15 nova/blueprints/tools.py:1407
+#: nova/blueprints/admin.py:15 nova/blueprints/tools.py:1411
 msgid "Not authorized."
 msgstr "No autorizado."
 
@@ -91,7 +91,7 @@ msgstr "Usuario '%(username)s' creado con éxito."
 #: nova/blueprints/admin.py:72 nova/blueprints/admin.py:93
 #: nova/blueprints/admin.py:114 nova/blueprints/mobile.py:104
 #: nova/blueprints/mobile.py:506 nova/blueprints/tools.py:407
-#: nova/blueprints/tools.py:499 nova/blueprints/tools.py:1008
+#: nova/blueprints/tools.py:499 nova/blueprints/tools.py:1012
 msgid "User not found."
 msgstr "Usuario no encontrado."
 
@@ -299,8 +299,8 @@ msgstr "Filtro no encontrado"
 msgid "No object specified."
 msgstr "No se especificó ningún objeto."
 
-#: nova/blueprints/core.py:1089 nova/blueprints/core.py:1605
-#: nova/blueprints/core.py:1631 templates/mobile_add_object.html:57
+#: nova/blueprints/core.py:1089 nova/blueprints/core.py:1627
+#: nova/blueprints/core.py:1653 templates/mobile_add_object.html:57
 msgid "Object not found."
 msgstr "Objeto no encontrado."
 
@@ -317,39 +317,39 @@ msgstr "No se encontraron datos faltantes o no se necesitan actualizaciones."
 msgid "An error occurred during data fetching: %(error)s"
 msgstr "Ocurrió un error durante la recuperación de datos: %(error)s"
 
-#: nova/blueprints/core.py:1737
+#: nova/blueprints/core.py:1759
 msgid "Please log in to view object details."
 msgstr "Por favor, inicie sesión para ver los detalles del objeto."
 
-#: nova/blueprints/core.py:1752
+#: nova/blueprints/core.py:1774
 #, python-format
 msgid "User '%(username)s' not found."
 msgstr "Usuario '%(username)s' no encontrado."
 
-#: nova/blueprints/core.py:1768
+#: nova/blueprints/core.py:1790
 #, python-format
 msgid "Requested location '%(location_name)s' not found, using default."
 msgstr ""
 "Ubicación solicitada '%(location_name)s' no encontrada, usando la "
 "predeterminada."
 
-#: nova/blueprints/core.py:1786
+#: nova/blueprints/core.py:1808
 msgid "Error: No valid location configured or selected for this user."
 msgstr ""
 "Error: No hay una ubicación válida configurada o seleccionada para este "
 "usuario."
 
-#: nova/blueprints/core.py:1804
+#: nova/blueprints/core.py:1826
 #, python-format
 msgid "Object '%(object_name)s' not found in your configuration."
 msgstr "Objeto '%(object_name)s' no encontrado en su configuración."
 
-#: nova/blueprints/core.py:2068
+#: nova/blueprints/core.py:2090
 msgid "Invalid date components provided, defaulting to current date."
 msgstr ""
 "Componentes de fecha no válidos proporcionados, usando la fecha actual."
 
-#: nova/blueprints/core.py:2280
+#: nova/blueprints/core.py:2302
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
 msgstr "Ocurrió un error al cargar los detalles de %(object_name)s."
@@ -608,164 +608,164 @@ msgstr "No se ha seleccionado ningún archivo para la importación del diario."
 msgid "Invalid journal file structure: %(message)s"
 msgstr "Estructura de archivo de diario no válida: %(message)s"
 
-#: nova/blueprints/tools.py:659
+#: nova/blueprints/tools.py:663
 msgid "Journal imported successfully! (Previous journal data was replaced)"
 msgstr ""
 "¡Diario importado con éxito! (Los datos anteriores del diario fueron "
 "reemplazados)"
 
-#: nova/blueprints/tools.py:671
+#: nova/blueprints/tools.py:675
 #, python-format
 msgid "Import failed: Invalid YAML format in the journal file. %(error)s"
 msgstr ""
 "Error al importar: formato YAML no válido en el archivo de diario. %(error)s"
 
-#: nova/blueprints/tools.py:679 nova/blueprints/tools.py:815
+#: nova/blueprints/tools.py:683 nova/blueprints/tools.py:819
 #, python-format
 msgid "Import failed: %(error)s"
 msgstr "Error al importar: %(error)s"
 
-#: nova/blueprints/tools.py:682
+#: nova/blueprints/tools.py:686
 msgid "Invalid file type. Please upload a .yaml journal file."
 msgstr ""
 "Tipo de archivo no válido. Por favor, cargue un archivo de diario .yaml."
 
-#: nova/blueprints/tools.py:694
+#: nova/blueprints/tools.py:698
 msgid "Authentication error during import."
 msgstr "Error de autenticación durante la importación."
 
-#: nova/blueprints/tools.py:699 nova/blueprints/tools.py:704
+#: nova/blueprints/tools.py:703 nova/blueprints/tools.py:708
 msgid "No file selected for import."
 msgstr "No se ha seleccionado ningún archivo para importar."
 
-#: nova/blueprints/tools.py:726
+#: nova/blueprints/tools.py:730
 msgid "Cannot import: Configuration must contain at least one location."
 msgstr ""
 "No se puede importar: La configuración debe contener al menos una ubicación."
 
-#: nova/blueprints/tools.py:734
+#: nova/blueprints/tools.py:738
 msgid ""
 "Cannot import: Configuration must contain at least one active location."
 msgstr ""
 "No se puede importar: La configuración debe contener al menos una ubicación "
 "activa."
 
-#: nova/blueprints/tools.py:767
+#: nova/blueprints/tools.py:771
 msgid "Config imported successfully! (Previous config was replaced)"
 msgstr ""
 "¡Configuración importada con éxito! (La configuración anterior fue "
 "reemplazada)"
 
-#: nova/blueprints/tools.py:812
+#: nova/blueprints/tools.py:816
 #, python-format
 msgid "Import failed: Invalid YAML. (%(error)s)"
 msgstr "Error al importar: YAML no válido. (%(error)s)"
 
-#: nova/blueprints/tools.py:834
+#: nova/blueprints/tools.py:838
 msgid "Authentication error during catalog import."
 msgstr "Error de autenticación durante la importación del catálogo."
 
-#: nova/blueprints/tools.py:844
+#: nova/blueprints/tools.py:848
 msgid "Catalog pack not found or invalid."
 msgstr "Paquete de catálogo no encontrado o no válido."
 
-#: nova/blueprints/tools.py:869
+#: nova/blueprints/tools.py:873
 msgid "Catalog import failed due to an internal error."
 msgstr "La importación del catálogo falló debido a un error interno."
 
-#: nova/blueprints/tools.py:1097
+#: nova/blueprints/tools.py:1101
 #, python-format
 msgid "Error generating rig config: %(error)s"
 msgstr "Error al generar configuración de rig: %(error)s"
 
-#: nova/blueprints/tools.py:1117
+#: nova/blueprints/tools.py:1121
 msgid "No journal photos found to download."
 msgstr "No se encontraron fotos del diario para descargar."
 
-#: nova/blueprints/tools.py:1159
+#: nova/blueprints/tools.py:1163
 msgid "No file selected for photo import."
 msgstr "No se ha seleccionado ningún archivo para la importación de fotos."
 
-#: nova/blueprints/tools.py:1164
+#: nova/blueprints/tools.py:1168
 msgid "Please select a valid .zip file to import."
 msgstr "Por favor, seleccione un archivo .zip válido para importar."
 
-#: nova/blueprints/tools.py:1177
+#: nova/blueprints/tools.py:1181
 msgid "Import failed: The uploaded file is not a valid ZIP archive."
 msgstr "Error al importar: El archivo cargado no es un archivo ZIP válido."
 
-#: nova/blueprints/tools.py:1211
+#: nova/blueprints/tools.py:1215
 #, python-format
 msgid "Journal photos imported successfully! Extracted %(count)d files."
 msgstr ""
 "¡Fotos del diario importadas con éxito! Se extrajeron %(count)d archivos."
 
-#: nova/blueprints/tools.py:1214
+#: nova/blueprints/tools.py:1218
 msgid "Import failed: The ZIP file appears to be corrupted."
 msgstr "Error al importar: El archivo ZIP parece estar dañado."
 
-#: nova/blueprints/tools.py:1216
+#: nova/blueprints/tools.py:1220
 #, python-format
 msgid "An unexpected error occurred during import: %(error)s"
 msgstr "Ocurrió un error inesperado durante la importación: %(error)s"
 
-#: nova/blueprints/tools.py:1224 nova/blueprints/tools.py:1229
+#: nova/blueprints/tools.py:1228 nova/blueprints/tools.py:1233
 msgid "No file selected for rigs import."
 msgstr "No se ha seleccionado ningún archivo para la importación de rigs."
 
-#: nova/blueprints/tools.py:1259
+#: nova/blueprints/tools.py:1263
 msgid "Rigs configuration imported and synced to database successfully!"
 msgstr ""
 "¡Configuración de rigs importada y sincronizada con la base de datos con "
 "éxito!"
 
-#: nova/blueprints/tools.py:1267
+#: nova/blueprints/tools.py:1271
 #, python-format
 msgid "Error importing rigs file: %(error)s"
 msgstr "Error al importar archivo de rigs: %(error)s"
 
-#: nova/blueprints/tools.py:1270
+#: nova/blueprints/tools.py:1274
 msgid "Invalid file type. Please upload a .yaml or .yml file."
 msgstr "Tipo de archivo no válido. Por favor, cargue un archivo .yaml o .yml."
 
-#: nova/blueprints/tools.py:1329
+#: nova/blueprints/tools.py:1333
 msgid "Not authorized to export another user's data."
 msgstr "No autorizado para exportar los datos de otro usuario."
 
-#: nova/blueprints/tools.py:1333
+#: nova/blueprints/tools.py:1337
 msgid "Export failed (no such user or empty data)."
 msgstr "Error al exportar (no existe el usuario o datos vacíos)."
 
-#: nova/blueprints/tools.py:1362
+#: nova/blueprints/tools.py:1366
 msgid "Username is required in multi-user mode."
 msgstr "Se requiere el nombre de usuario en modo multi-usuario."
 
-#: nova/blueprints/tools.py:1367
+#: nova/blueprints/tools.py:1371
 msgid "Not authorized to import for another user."
 msgstr "No autorizado para importar para otro usuario."
 
-#: nova/blueprints/tools.py:1375
+#: nova/blueprints/tools.py:1379
 msgid "Please provide config, rigs, and journal YAML files."
 msgstr ""
 "Por favor, proporcione los archivos YAML de configuración, rigs y diario."
 
-#: nova/blueprints/tools.py:1395
+#: nova/blueprints/tools.py:1399
 msgid "Import completed successfully!"
 msgstr "¡Importación completada con éxito!"
 
-#: nova/blueprints/tools.py:1397
+#: nova/blueprints/tools.py:1401
 msgid "Import failed. See server logs for details."
 msgstr "Error al importar. Vea los registros del servidor para más detalles."
 
-#: nova/blueprints/tools.py:1400
+#: nova/blueprints/tools.py:1404
 msgid "Import crashed. Check logs."
 msgstr "La importación falló. Compruebe los registros."
 
-#: nova/blueprints/tools.py:1411
+#: nova/blueprints/tools.py:1415
 msgid "Database repair completed."
 msgstr "Reparación de la base de datos completada."
 
-#: nova/blueprints/tools.py:1413
+#: nova/blueprints/tools.py:1417
 #, python-format
 msgid "Repair failed: %(error)s"
 msgstr "Error en la reparación: %(error)s"
@@ -817,7 +817,7 @@ msgstr ""
 msgid "Processing targets..."
 msgstr "Procesando objetivos..."
 
-#: templates/_inspiration_section.html:501 templates/index.html:143
+#: templates/_inspiration_section.html:501 templates/index.html:144
 msgid "Max Altitude"
 msgstr "Altitud máxima"
 
@@ -831,7 +831,7 @@ msgid "Duration"
 msgstr "Duración"
 
 #: templates/_inspiration_section.html:504 templates/config_form.html:601
-#: templates/index.html:145 templates/mobile_up_now.html:982
+#: templates/index.html:146 templates/mobile_up_now.html:982
 msgid "Constellation"
 msgstr "Constelación"
 
@@ -1025,7 +1025,7 @@ msgstr "Integ."
 
 #: templates/_journal_section.html:1636
 #: templates/_opportunities_section.html:42 templates/_project_subtab.html:196
-#: templates/index.html:203 templates/index.html:238
+#: templates/index.html:204 templates/index.html:239
 #: templates/journal_report.html:692 templates/project_report.html:909
 #: templates/project_report.html:1136
 msgid "Rating"
@@ -1391,7 +1391,7 @@ msgstr "Estrellas"
 
 #: templates/_journal_section.html:1945 templates/_journal_section.html:2103
 #: templates/_objects_section.html:49 templates/_project_subtab.html:154
-#: templates/admin_users.html:72 templates/index.html:198
+#: templates/admin_users.html:72 templates/index.html:199
 #: templates/journal_report.html:1179
 msgid "Status"
 msgstr "Estado"
@@ -1537,7 +1537,7 @@ msgstr "Subs"
 msgid "Per Sub"
 msgstr "# Subs"
 
-#: templates/_journal_section.html:2117 templates/index.html:202
+#: templates/_journal_section.html:2117 templates/index.html:203
 #: templates/journal_report.html:722 templates/project_report.html:830
 #: templates/project_report.html:1132
 msgid "Integration"
@@ -1601,7 +1601,7 @@ msgstr "Guardar proyecto"
 #: templates/_journal_section.html:2316 templates/_journal_section.html:2616
 #: templates/_objects_section.html:364 templates/_project_subtab.html:232
 #: templates/admin_users.html:120 templates/base.html:510
-#: templates/graph_view.html:490 templates/index.html:294
+#: templates/graph_view.html:490 templates/index.html:298
 #: templates/journal_form.html:205
 msgid "Cancel"
 msgstr "Cancelar"
@@ -1952,7 +1952,7 @@ msgstr "Cargado"
 #: templates/_journal_section.html:2485 templates/_journal_section.html:2498
 #: templates/_journal_section.html:2511 templates/_objects_section.html:93
 #: templates/admin_users.html:110 templates/base.html:112
-#: templates/index.html:101
+#: templates/index.html:102
 msgid "Delete"
 msgstr "Eliminar"
 
@@ -2028,7 +2028,7 @@ msgid "{label} removed."
 msgstr "{label} eliminado."
 
 #: templates/_journal_section.html:2605 templates/base.html:268
-#: templates/graph_view.html:479 templates/index.html:114
+#: templates/graph_view.html:479 templates/index.html:115
 msgid "Ask Nova"
 msgstr "Ask Nova"
 
@@ -2130,7 +2130,7 @@ msgstr "p. ej., Cyg"
 
 #: templates/_objects_section.html:45 templates/_objects_section.html:143
 #: templates/_objects_section.html:307 templates/config_form.html:600
-#: templates/config_form.html:664 templates/index.html:146
+#: templates/config_form.html:664 templates/index.html:147
 #: templates/mobile_up_now.html:965
 msgid "Type"
 msgstr "Tipo"
@@ -2180,7 +2180,7 @@ msgid "e.g., messier (use = for exact)"
 msgstr "p. ej., messier (use = para exacto)"
 
 #: templates/_objects_section.html:68 templates/config_form.html:603
-#: templates/graph_view.html:178 templates/index.html:153
+#: templates/graph_view.html:178 templates/index.html:154
 #: templates/mobile_journal_new.html:376
 #: templates/mobile_object_detail.html:534 templates/project_report.html:1121
 msgid "Notes"
@@ -2269,7 +2269,7 @@ msgid "Inspiration Content"
 msgstr "Contenido de inspiración"
 
 #: templates/_objects_section.html:194 templates/_objects_section.html:475
-#, fuzzy, python-format
+#, fuzzy
 msgid "Object image preview"
 msgstr "%(count)d objeto para revisar"
 
@@ -2335,7 +2335,7 @@ msgid "Update Objects"
 msgstr "Actualizar objetos"
 
 #: templates/_objects_section.html:282 templates/config_form.html:598
-#: templates/index.html:206 templates/mobile_add_object.html:17
+#: templates/index.html:207 templates/mobile_add_object.html:17
 msgid "Object ID"
 msgstr "ID de objeto"
 
@@ -2495,8 +2495,8 @@ msgstr "Crédito de imagen"
 msgid "Imaging Opportunities"
 msgstr "Oportunidades de imagen"
 
-#: templates/_opportunities_section.html:35 templates/index.html:199
-#: templates/index.html:217 templates/index.html:235
+#: templates/_opportunities_section.html:35 templates/index.html:200
+#: templates/index.html:218 templates/index.html:236
 #: templates/journal_report.html:686 templates/mobile_journal_new.html:210
 #: templates/project_report.html:906
 msgid "Date"
@@ -2567,7 +2567,7 @@ msgid "Date (UTC)"
 msgstr "Fecha (UTC)"
 
 #: templates/_project_subtab.html:195 templates/graph_view.html:52
-#: templates/index.html:37 templates/index.html:200 templates/index.html:218
+#: templates/index.html:38 templates/index.html:201 templates/index.html:219
 #: templates/journal_report.html:688 templates/mobile_base.html:30
 #: templates/mobile_base.html:68 templates/mobile_journal_new.html:225
 #: templates/project_report.html:907
@@ -2704,8 +2704,8 @@ msgstr ""
 msgid "New password"
 msgstr "Nueva contraseña"
 
-#: templates/admin_users.html:119 templates/index.html:100
-#: templates/index.html:293
+#: templates/admin_users.html:119 templates/index.html:101
+#: templates/index.html:297
 msgid "Save"
 msgstr "Guardar"
 
@@ -2797,7 +2797,7 @@ msgstr "Notas"
 msgid "Mode"
 msgstr "Modo"
 
-#: templates/base.html:116 templates/index.html:25
+#: templates/base.html:116 templates/index.html:26
 msgid "Simulated"
 msgstr "Simulado"
 
@@ -2858,7 +2858,7 @@ msgstr "Eliminar vista seleccionada"
 msgid "Error loading views"
 msgstr "Error al cargar datos."
 
-#: templates/base.html:139 templates/index.html:66
+#: templates/base.html:139 templates/index.html:67
 msgid "Update in"
 msgstr "Actualizar en"
 
@@ -3165,8 +3165,8 @@ msgstr "Desde paquete: PACKNAME"
 msgid "No differences to review."
 msgstr "No hay diferencias para revisar."
 
-#: templates/base.html:232 templates/index.html:134 templates/index.html:195
-#: templates/index.html:233
+#: templates/base.html:232 templates/index.html:135 templates/index.html:196
+#: templates/index.html:234
 msgid "Object"
 msgstr "Objeto"
 
@@ -3518,7 +3518,7 @@ msgid "Configuration Form"
 msgstr "Formulario de configuración"
 
 #: templates/config_form.html:22 templates/config_form.html:74
-#: templates/config_form.html:85 templates/index.html:30
+#: templates/config_form.html:85 templates/index.html:31
 msgid "Configuration"
 msgstr "Configuración"
 
@@ -3548,7 +3548,7 @@ msgid "Download"
 msgstr "Descargar"
 
 #: templates/config_form.html:75 templates/config_form.html:89
-#: templates/graph_view.html:96 templates/index.html:91
+#: templates/graph_view.html:96 templates/index.html:92
 msgid "Journal"
 msgstr "Diario"
 
@@ -3713,7 +3713,7 @@ msgstr "Añadir nueva ubicación"
 
 #: templates/config_form.html:252 templates/config_form.html:450
 #: templates/config_form.html:469 templates/config_form.html:489
-#: templates/index.html:285
+#: templates/index.html:289
 msgid "Name:"
 msgstr "Nombre:"
 
@@ -4110,8 +4110,8 @@ msgstr "Objetos compartidos"
 msgid "Img"
 msgstr "Img"
 
-#: templates/config_form.html:599 templates/index.html:135
-#: templates/index.html:196 templates/index.html:234
+#: templates/config_form.html:599 templates/index.html:136
+#: templates/index.html:197 templates/index.html:235
 #: templates/mobile_add_object.html:21
 msgid "Common Name"
 msgstr "Nombre común"
@@ -4144,8 +4144,8 @@ msgid "Filter user..."
 msgstr "Filtrar usuario..."
 
 #: templates/config_form.html:616 templates/config_form.html:645
-#: templates/config_form.html:681 templates/index.html:179
-#: templates/index.html:211
+#: templates/config_form.html:681 templates/index.html:180
+#: templates/index.html:212
 msgid "All"
 msgstr "Todos"
 
@@ -4206,7 +4206,7 @@ msgstr "Volver al panel de control"
 msgid "Graph Date"
 msgstr "Buscar fecha"
 
-#: templates/graph_view.html:54 templates/index.html:45
+#: templates/graph_view.html:54 templates/index.html:46
 #: templates/mobile_base.html:35 templates/project_report.html:1152
 msgid "Moon"
 msgstr "Luna"
@@ -4444,7 +4444,7 @@ msgstr "Guardar encuadre"
 msgid "Scan Frame"
 msgstr "Fotogramas de imagen:"
 
-#: templates/graph_view.html:324 templates/index.html:152
+#: templates/graph_view.html:324 templates/index.html:153
 #: templates/mobile_journal_new.html:237 templates/project_report.html:1167
 msgid "Rig"
 msgstr "Rig"
@@ -4630,303 +4630,302 @@ msgstr "del meridiano"
 msgid "DSO Altitude Tracker"
 msgstr "Rastreador de Altitud de OCP"
 
-#: templates/index.html:25
+#: templates/index.html:26
 msgid "Dashboard"
 msgstr "Panel de control"
 
-#: templates/index.html:41 templates/index.html:141
+#: templates/index.html:42 templates/index.html:142
 msgid "Local Time"
 msgstr "Hora local"
 
-#: templates/index.html:49
+#: templates/index.html:50
 msgid "Astr. Dusk / Dawn"
 msgstr "Anochecer / Amanecer astr."
 
-#: templates/index.html:61
+#: templates/index.html:62
 msgid "Simulation"
 msgstr "Simulación"
 
-#: templates/index.html:62
+#: templates/index.html:63
 msgid "About Simulation Mode"
 msgstr "Sobre el modo de simulación"
 
-#: templates/index.html:87
+#: templates/index.html:88
 msgid "Position"
 msgstr "Posición"
 
-#: templates/index.html:88
+#: templates/index.html:89
 msgid "Properties"
 msgstr "Propiedades"
 
-#: templates/index.html:89 templates/mobile_base.html:60
+#: templates/index.html:90 templates/mobile_base.html:60
 #: templates/mobile_outlook.html:3
 msgid "Outlook"
 msgstr "Perspectiva"
 
-#: templates/index.html:90
+#: templates/index.html:91
 msgid "Heatmap"
 msgstr "Mapa de calor"
 
-#: templates/index.html:91
+#: templates/index.html:92
 msgid "Inspiration"
 msgstr "Inspiración"
 
-#: templates/index.html:92
+#: templates/index.html:93
 msgid "Gallery"
 msgstr "Galería"
 
-#: templates/index.html:94
+#: templates/index.html:95
 msgid "Search Syntax Guide"
 msgstr "Guía de sintaxis de búsqueda"
 
-#: templates/index.html:98
+#: templates/index.html:99
 msgid "Saved Views"
 msgstr "Vistas guardadas"
 
-#: templates/index.html:100
+#: templates/index.html:101
 msgid "Save current filters and sorting"
 msgstr "Guardar filtros actuales y ordenamiento"
 
-#: templates/index.html:101
+#: templates/index.html:102
 msgid "Delete selected view"
 msgstr "Eliminar vista seleccionada"
 
-#: templates/index.html:105
+#: templates/index.html:106
 msgid "Pinned Only"
 msgstr "Solo fijados"
 
-#: templates/index.html:110
+#: templates/index.html:111
 #, fuzzy
 msgid "Ask Nova to rank and recommend best objects"
 msgstr "Nova recomienda este objeto"
 
-#: templates/index.html:116
+#: templates/index.html:117
 #, fuzzy
 msgid "About Nova AI"
 msgstr "Acerca de Nova DSO Tracker"
 
-#: templates/index.html:124
+#: templates/index.html:125
 msgid "Remove Filter"
 msgstr "Eliminar filtro"
 
-#: templates/index.html:136 templates/index.html:139
+#: templates/index.html:137 templates/index.html:140
 #: templates/mobile_up_now.html:899 templates/mobile_up_now.html:912
 msgid "Altitude"
 msgstr "Altitud"
 
-#: templates/index.html:136 templates/index.html:137
+#: templates/index.html:137 templates/index.html:138
 msgid "Current"
 msgstr "Actual"
 
-#: templates/index.html:137 templates/index.html:140
+#: templates/index.html:138 templates/index.html:141
 msgid "Azimuth"
 msgstr "Acimut"
 
-#: templates/index.html:138 templates/index.html:162
+#: templates/index.html:139 templates/index.html:163
 #: templates/mobile_object_detail.html:498
 msgid "Trend"
 msgstr "Tendencia"
 
-#: templates/index.html:139 templates/index.html:140
+#: templates/index.html:140 templates/index.html:141
 msgid "11 PM"
 msgstr "23:00"
 
-#: templates/index.html:141 templates/index.html:165
+#: templates/index.html:142 templates/index.html:166
 msgid "Transit"
 msgstr "Tránsito"
 
-#: templates/index.html:142
+#: templates/index.html:143
 msgid "Observable"
 msgstr "Observable"
 
-#: templates/index.html:142 templates/index.html:166
+#: templates/index.html:143 templates/index.html:167
 msgid "minutes"
 msgstr "minutos"
 
-#: templates/index.html:143
+#: templates/index.html:144
 msgid "observable (°)"
 msgstr "observable (°)"
 
-#: templates/index.html:144
+#: templates/index.html:145
 msgid "Ang. Sep."
 msgstr "Sep. angular"
 
-#: templates/index.html:144
+#: templates/index.html:145
 msgid "to moon (°)"
 msgstr "a la luna (°)"
 
-#: templates/index.html:147
+#: templates/index.html:148
 msgid "Magnitude"
 msgstr "Magnitud"
 
-#: templates/index.html:148
+#: templates/index.html:149
 msgid "Size ("
 msgstr "Tamaño ("
 
-#: templates/index.html:149
+#: templates/index.html:150
 msgid "SB"
 msgstr "SB"
 
-#: templates/index.html:150
+#: templates/index.html:151
 msgid "Best Month"
 msgstr "Mejor mes"
 
-#: templates/index.html:150
+#: templates/index.html:151
 msgid "Opp."
 msgstr "Oposición"
 
-#: templates/index.html:151 templates/index.html:236
+#: templates/index.html:152 templates/index.html:237
 msgid "Max Alt"
 msgstr "Altitud máx"
 
-#: templates/index.html:151
+#: templates/index.html:152
 msgid "Culm."
 msgstr "Culminación"
 
-#: templates/index.html:154
+#: templates/index.html:155
 msgid "Sessions"
 msgstr "Sesiones"
 
-#: templates/index.html:158 templates/index.html:241
+#: templates/index.html:159 templates/index.html:242
 msgid "Search Object"
 msgstr "Buscar objeto"
 
-#: templates/index.html:159 templates/index.html:207 templates/index.html:242
+#: templates/index.html:160 templates/index.html:208 templates/index.html:243
 msgid "Search Common Name"
 msgstr "Buscar nombre común"
 
-#: templates/index.html:160 templates/index.html:163
+#: templates/index.html:161 templates/index.html:164
 msgid "Altitude °"
 msgstr "Altitud °"
 
-#: templates/index.html:161 templates/index.html:164
+#: templates/index.html:162 templates/index.html:165
 msgid "Azimuth °"
 msgstr "Acimut °"
 
-#: templates/index.html:167
+#: templates/index.html:168
 msgid "Max Alt. °"
 msgstr "Altitud máx. °"
 
-#: templates/index.html:168
+#: templates/index.html:169
 msgid "Ang. Sep. °"
 msgstr "Sep. angular °"
 
-#: templates/index.html:169
+#: templates/index.html:170
 msgid "e.g. Cyg"
 msgstr "p. ej., Cyg"
 
-#: templates/index.html:170
+#: templates/index.html:171
 msgid "Type (e.g. PN,SNR)"
 msgstr "Tipo (p. ej., PN,SNR)"
 
-#: templates/index.html:171
+#: templates/index.html:172
 msgid "Mag e.g. <8"
 msgstr "Mag p. ej., <8"
 
-#: templates/index.html:172
+#: templates/index.html:173
 msgid "Size e.g. >10"
 msgstr "Tamaño p. ej., >10"
 
-#: templates/index.html:173
+#: templates/index.html:174
 msgid "SB e.g. <22"
 msgstr "SB p. ej., <22"
 
-#: templates/index.html:174
+#: templates/index.html:175
 msgid "e.g. Dec"
 msgstr "p. ej., Dec"
 
-#: templates/index.html:175
+#: templates/index.html:176
 msgid "e.g. >80"
 msgstr "p. ej., >80"
 
-#: templates/index.html:176
+#: templates/index.html:177
 #, fuzzy
 msgid "e.g. SW80"
 msgstr "p. ej., >80"
 
-#: templates/index.html:180
+#: templates/index.html:181
 msgid "Has notes"
 msgstr "Tiene notas"
 
-#: templates/index.html:181
+#: templates/index.html:182
 msgid "No notes"
 msgstr "Sin notas"
 
-#: templates/index.html:184
+#: templates/index.html:185
 #, fuzzy
 msgid "e.g. >0"
 msgstr "p. ej., >80"
 
-#: templates/index.html:197 templates/journal_report.html:690
+#: templates/index.html:198 templates/journal_report.html:690
 msgid "Project"
 msgstr "Proyecto"
 
-#: templates/index.html:201
+#: templates/index.html:202
 msgid "Telescope Setup"
 msgstr "Configuración de telescopio"
 
-#: templates/index.html:208
+#: templates/index.html:209
 msgid "Project Name"
 msgstr "Nombre del proyecto"
 
-#: templates/index.html:219
+#: templates/index.html:220
 msgid "Setup notes"
 msgstr "Notas de configuración"
 
-#: templates/index.html:220
+#: templates/index.html:221
 msgid "e.g. >120"
 msgstr "p. ej., >120"
 
-#: templates/index.html:221
+#: templates/index.html:222
 msgid "e.g. ★★★★"
 msgstr "p. ej., ★★★★"
 
-#: templates/index.html:237
+#: templates/index.html:238
 msgid "Obs. Time"
 msgstr "Tiempo de observación"
 
-#: templates/index.html:243
+#: templates/index.html:244
 msgid "Search Date"
 msgstr "Buscar fecha"
 
-#: templates/index.html:244
+#: templates/index.html:245
 msgid "e.g. >60"
 msgstr "p. ej., >60"
 
-#: templates/index.html:245
+#: templates/index.html:246
 msgid "e.g. >300"
 msgstr "p. ej., >300"
 
-#: templates/index.html:246
+#: templates/index.html:247
 msgid "e.g. ★★★★★"
 msgstr "p. ej., ★★★★★"
 
-#: templates/index.html:258
-#, fuzzy
-msgid "No session photos yet."
-msgstr "No hay sesión seleccionada"
+#: templates/index.html:261
+msgid "Here your session and project images will be shown."
+msgstr "Aquí se mostrarán tus imágenes de sesiones y proyectos."
 
-#: templates/index.html:262
+#: templates/index.html:266
 msgid "Updating data..."
 msgstr "Actualizando datos..."
 
-#: templates/index.html:277
+#: templates/index.html:281
 msgid "Graph"
 msgstr "Gráfico"
 
-#: templates/index.html:283
+#: templates/index.html:287
 msgid "Save Current View"
 msgstr "Guardar vista actual"
 
-#: templates/index.html:286
+#: templates/index.html:290
 msgid "Description:"
 msgstr "Descripción:"
 
-#: templates/index.html:286
+#: templates/index.html:290
 msgid "Describe what this filter does..."
 msgstr "Describa qué hace este filtro..."
 
-#: templates/index.html:289
+#: templates/index.html:293
 msgid "Share this view with others"
 msgstr "Compartir esta vista con otros"
 
@@ -5747,3 +5746,6 @@ msgstr "Exp"
 
 #~ msgid "%(count)d pending"
 #~ msgstr ""
+
+#~ msgid "No session photos yet."
+#~ msgstr "No hay sesión seleccionada"
