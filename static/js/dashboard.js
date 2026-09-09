@@ -813,7 +813,8 @@
             const outlookWrapper = document.getElementById('outlook-wrapper');
             const heatmapWrapper = document.getElementById('heatmap-tab-content');
             const inspirationWrapper = document.getElementById('inspiration-tab-content'); // NEW
-    
+            const galleryWrapper = document.getElementById('gallery-tab-content');
+
             document.querySelectorAll('.tab-button').forEach(button => {
                 button.classList.toggle('active', button.dataset.tab === activeTab);
             });
@@ -824,7 +825,8 @@
             if (outlookWrapper) outlookWrapper.style.display = 'none';
             if (heatmapWrapper) heatmapWrapper.style.display = 'none';
             if (inspirationWrapper) inspirationWrapper.style.display = 'none'; // NEW
-    
+            if (galleryWrapper) galleryWrapper.style.display = 'none';
+
             if (dsoLoadingDiv) dsoLoadingDiv.style.display = 'none';
     
             if (activeTab === 'position' || activeTab === 'properties') {
@@ -859,12 +861,66 @@
                         renderInspirationGrid();
                     }
                 }
+            } else if (activeTab === 'gallery') {
+                if (galleryWrapper) galleryWrapper.style.display = 'block';
+                if (typeof renderGalleryGrid === 'function') {
+                    renderGalleryGrid();
+                }
             }
-    
+
             localStorage.setItem('activeTab', activeTab);
             updateRemoveFiltersButtonVisibility();
         }
-    
+
+        function renderGalleryGrid() {
+            const container = document.querySelector('.gallery-grid-container');
+            const emptyState = document.querySelector('.gallery-empty-state');
+            if (!container) return;
+
+            container.innerHTML = '';
+
+            const sessions = (allJournalSessions || []).filter(s => s.image_url);
+
+            if (sessions.length === 0) {
+                if (emptyState) emptyState.style.display = 'block';
+                return;
+            }
+            if (emptyState) emptyState.style.display = 'none';
+
+            for (const session of sessions) {
+                const rigParts = [session.telescope_name_snapshot, session.reducer_name_snapshot, session.camera_name_snapshot]
+                    .filter(part => part && String(part).trim() !== '');
+                const rigString = rigParts.length > 0 ? rigParts.join(' + ') : (session.telescope_setup_notes || '');
+
+                const integrationVal = session.calculated_integration_time_minutes;
+                const integrationText = (integrationVal === null || integrationVal === undefined || isNaN(Number(integrationVal)))
+                    ? 'N/A'
+                    : `${Number(integrationVal).toFixed(0)} min`;
+
+                const tile = document.createElement('div');
+                tile.className = 'gallery-tile';
+                tile.innerHTML = `
+                    <img class="gallery-tile-image" style="opacity:0;">
+                    <div class="gallery-tile-info">
+                        <div class="gallery-tile-target"></div>
+                        <div class="gallery-tile-rig"></div>
+                        <div class="gallery-tile-meta"></div>
+                    </div>
+                `;
+
+                tile.querySelector('.gallery-tile-target').textContent = session.target_common_name || '';
+                tile.querySelector('.gallery-tile-rig').textContent = rigString;
+                tile.querySelector('.gallery-tile-meta').textContent =
+                    [session.filter_used_session, integrationText, session.date_utc].filter(Boolean).join(' · ');
+
+                const imgEl = tile.querySelector('.gallery-tile-image');
+                imgEl.onload = () => { imgEl.style.opacity = '1'; };
+                imgEl.src = session.image_url;
+
+                container.appendChild(tile);
+            }
+        }
+
         function applyDsoColumnVisibility() {
             const headers = document.querySelectorAll("#data-table > thead > tr:not(.filter-row) > th[data-column-key]");
             const filterCells = document.querySelectorAll("#data-table .filter-row th[data-column-key]");

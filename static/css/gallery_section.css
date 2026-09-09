@@ -1,0 +1,111 @@
+/* ===================================================================
+   GALLERY TAB — card grid matching the Inspiration tile pattern
+   ================================================================ */
+
+/* Card grid with 1px gap using border as separator (matches .inspiration-grid) */
+.gallery-grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1px;
+    background: var(--nova-border, var(--border-medium));
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.gallery-tile {
+    background: var(--nova-surface, var(--bg-white));
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+    transition: box-shadow 0.15s ease;
+}
+
+.gallery-tile:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    z-index: 1;
+}
+
+/* Image is the dominant element — edge-to-edge, no radius (tile itself has none) */
+.gallery-tile-image {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    display: block;
+    background-color: var(--nova-surface-alt, var(--bg-light-alt));
+    transition: opacity 0.2s ease;
+}
+
+/* Compact footer strip — metadata stays secondary to the image */
+.gallery-tile-info {
+    padding: 8px 10px;
+}
+
+.gallery-tile-target {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gallery-tile-rig {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+}
+
+.gallery-tile-meta {
+    font-size: var(--font-size-xs);
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.gallery-empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: var(--text-muted);
+    padding: 40px 20px;
+}
+
+/* ===================================================================
+   DARK MODE OVERRIDES — GALLERY
+   ================================================================ */
+
+[data-theme="dark"] .gallery-grid-container {
+    background: var(--nova-border, rgba(255, 255, 255, 0.07));
+}
+
+[data-theme="dark"] .gallery-tile {
+    background: var(--nova-surface, var(--bg-dark-secondary));
+}
+
+[data-theme="dark"] .gallery-tile:hover {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .gallery-tile-image {
+    background-color: var(--nova-surface-alt, var(--bg-dark-primary));
+}
+
+[data-theme="dark"] .gallery-tile-target {
+    color: var(--nova-text, rgba(255, 255, 255, 0.92));
+}
+
+[data-theme="dark"] .gallery-tile-rig {
+    color: var(--nova-text-2, rgba(255, 255, 255, 0.55));
+}
+
+[data-theme="dark"] .gallery-tile-meta {
+    color: var(--nova-text-3, rgba(255, 255, 255, 0.30));
+}
+
+[data-theme="dark"] .gallery-empty-state {
+    color: var(--nova-text-3, rgba(255, 255, 255, 0.30));
+}
