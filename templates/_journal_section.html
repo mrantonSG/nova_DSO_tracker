@@ -3060,14 +3060,21 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     fetch('/api/ai/status')
-        .then(r => r.json())
+        .then(r => {
+            if (!r.ok) {
+                console.error('[Ask Nova] status check failed: HTTP ' + r.status);
+            }
+            return r.json();
+        })
         .then(data => {
             if (data && data.enabled === true) {
                 document.getElementById('ai-session-summary-btn')
                     .style.display = 'inline-block';
             }
         })
-        .catch(() => {});
+        .catch(err => {
+            console.error('[Ask Nova] status check failed:', err);
+        });
 
     var btn = document.getElementById('ai-session-summary-btn');
     if (!btn) return;
