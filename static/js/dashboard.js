@@ -879,18 +879,82 @@
 
             container.innerHTML = '';
 
-            const sessions = (allJournalSessions || []).filter(s => s.image_url);
+            function composeRigString(session) {
+                const rigParts = [session.telescope_name_snapshot, session.reducer_name_snapshot, session.camera_name_snapshot]
+                    .filter(part => part && String(part).trim() !== '');
+                return rigParts.length > 0 ? rigParts.join(' + ') : (session.telescope_setup_notes || '');
+            }
 
-            if (sessions.length === 0) {
+            const projects = (window.NOVA_INDEX && window.NOVA_INDEX.projects) || [];
+            const projectSessionIds = new Set();
+            for (const project of projects) {
+                for (const sid of (project.session_ids || [])) {
+                    projectSessionIds.add(sid);
+                }
+            }
+
+            const sessions = (allJournalSessions || []).filter(s => s.image_url && !projectSessionIds.has(s.id));
+
+            if (projects.length === 0 && sessions.length === 0) {
                 if (emptyState) emptyState.style.display = 'block';
                 return;
             }
             if (emptyState) emptyState.style.display = 'none';
 
+            const sessionById = new Map((allJournalSessions || []).map(s => [s.id, s]));
+            const tiles = [];
+
+            for (const project of projects) {
+                const totalMinutes = project.total_integration_time_minutes;
+                const integrationText = (totalMinutes === null || totalMinutes === undefined || isNaN(Number(totalMinutes)))
+                    ? 'N/A'
+                    : `${(Number(totalMinutes) / 60).toFixed(1)}h`;
+
+                const linkedSessions = (project.session_ids || [])
+                    .map(sid => sessionById.get(sid))
+                    .filter(Boolean);
+
+                let mostRecentDate = null;
+                for (const s of linkedSessions) {
+                    if (s.date_utc && (!mostRecentDate || s.date_utc > mostRecentDate)) {
+                        mostRecentDate = s.date_utc;
+                    }
+                }
+
+                const rigStrings = [...new Set(linkedSessions.map(composeRigString).filter(r => r))];
+
+                const tile = document.createElement('div');
+                tile.className = 'gallery-tile';
+                tile.innerHTML = `
+                    <img class="gallery-tile-image" style="opacity:0;">
+                    <div class="gallery-tile-info">
+                        <div class="gallery-tile-target"></div>
+                        <div class="gallery-tile-rig"></div>
+                        <div class="gallery-tile-meta"></div>
+                    </div>
+                `;
+
+                tile.querySelector('.gallery-tile-target').textContent = project.target_object_name || project.name || '';
+                tile.querySelector('.gallery-tile-rig').textContent = rigStrings.join(', ');
+                tile.querySelector('.gallery-tile-meta').textContent =
+                    [project.name, integrationText].filter(Boolean).join(' · ');
+
+                const imgEl = tile.querySelector('.gallery-tile-image');
+                imgEl.onload = () => { imgEl.style.opacity = '1'; };
+                imgEl.src = project.image_url;
+
+                tile.addEventListener('click', function() {
+                    const objectName = project.target_object_name;
+                    if (objectName) {
+                        window.location.href = `/graph_dashboard/${encodeURIComponent(objectName)}?tab=journal`;
+                    }
+                });
+
+                tiles.push({ el: tile, sortDate: mostRecentDate });
+            }
+
             for (const session of sessions) {
-                const rigParts = [session.telescope_name_snapshot, session.reducer_name_snapshot, session.camera_name_snapshot]
-                    .filter(part => part && String(part).trim() !== '');
-                const rigString = rigParts.length > 0 ? rigParts.join(' + ') : (session.telescope_setup_notes || '');
+                const rigString = composeRigString(session);
 
                 const integrationVal = session.calculated_integration_time_minutes;
                 const integrationText = (integrationVal === null || integrationVal === undefined || isNaN(Number(integrationVal)))
@@ -929,7 +993,18 @@
                     }
                 });
 
-                container.appendChild(tile);
+                tiles.push({ el: tile, sortDate: session.date_utc || null });
+            }
+
+            tiles.sort((a, b) => {
+                if (!a.sortDate && !b.sortDate) return 0;
+                if (!a.sortDate) return 1;
+                if (!b.sortDate) return -1;
+                return a.sortDate < b.sortDate ? 1 : (a.sortDate > b.sortDate ? -1 : 0);
+            });
+
+            for (const t of tiles) {
+                container.appendChild(t.el);
             }
         }
 

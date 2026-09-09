@@ -1391,7 +1391,7 @@ def index():
     user = db.query(DbUser).filter_by(username=username).one_or_none()
     if not user:
         # Handle case where user is authenticated but not yet in app.db
-        return render_template('index.html', journal_sessions=[], hide_invisible=False,
+        return render_template('index.html', journal_sessions=[], dashboard_projects=[], hide_invisible=False,
                                imaging_criteria={})
 
     sessions = db.query(JournalSession).filter_by(user_id=user.id).order_by(JournalSession.date_utc.desc()).all()
@@ -1435,6 +1435,27 @@ def index():
         sessions_for_template.append(session_dict)
     # --- END OF FIX ---
 
+    # Projects with a final image, for the dashboard "showcase" tiles.
+    # Uses the session_projects m2m relationship (project.journal_sessions_m2m),
+    # matching the grouping/aggregation logic used for the object graph dashboard
+    # (core.py ~1985-2026), not the simpler JournalSession.project_id FK filter
+    # used elsewhere (e.g. projects.py project_detail()).
+    projects_for_template = []
+    for project in all_projects:
+        if not project.final_image_file:
+            continue
+        linked_sessions = project.journal_sessions_m2m
+        projects_for_template.append({
+            'id': project.id,
+            'name': project.name,
+            'target_object_name': project.target_object_name,
+            'image_url': url_for('core.get_uploaded_image', username=username,
+                                 filename=project.final_image_file),
+            'total_integration_time_minutes': sum(
+                s.calculated_integration_time_minutes or 0 for s in linked_sessions),
+            'session_ids': [s.id for s in linked_sessions],
+        })
+
     local_tz = pytz.timezone(g.tz_name or 'UTC')
     now_local = datetime.now(local_tz)
 
@@ -1455,6 +1476,7 @@ def index():
     record_event('dashboard_load')
     return render_template('index.html',
                            journal_sessions=sessions_for_template,
+                           dashboard_projects=projects_for_template,
                            selected_day=observing_date_for_calcs.day,
                            selected_month=observing_date_for_calcs.month,
                            selected_year=observing_date_for_calcs.year,

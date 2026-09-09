@@ -13,6 +13,7 @@
       isGuest: {{ is_guest | tojson }},
       hideInvisible: {{ hide_invisible | tojson }},
       journalSessions: {{ journal_sessions | tojson | safe }},
+      projects: {{ dashboard_projects | tojson | safe }},
       altitudeThreshold: {{ g.altitude_threshold | default(20) }},
       imagingCriteria: {{ imaging_criteria | tojson | safe }}
     };
