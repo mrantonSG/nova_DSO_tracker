@@ -19,51 +19,44 @@ msgstr ""
 "Generated-By: Babel 2.18.0\n"
 
 #: nova/log_parser.py:931
-#, fuzzy
 msgid "Empty log file."
-msgstr "ファイル名が空です"
+msgstr "ログファイルが空です。"
 
 #: nova/log_parser.py:936
-#, fuzzy
 msgid "Log file is very large, truncated for performance."
-msgstr "インポートするファイルが選択されていません。"
+msgstr "ログファイルが非常に大きいため、パフォーマンスのために切り詰められました。"
 
 #: nova/log_parser.py:945
 msgid "File does not appear to be a NINA log."
 msgstr "ファイルはNINAログではないようだ。"
 
 #: nova/log_parser.py:1132
-#, fuzzy
 msgid "After Filter Change"
-msgstr "フィルター名を入力してください。"
+msgstr "フィルター変更後"
 
 #: nova/log_parser.py:1134
-#, fuzzy
 msgid "Manual"
-msgstr "最大値"
+msgstr "手動"
 
 #: nova/log_parser.py:1136
 msgid "Automatic"
 msgstr "自動"
 
 #: nova/log_parser.py:1175
-#, fuzzy
 msgid "AutoFocus Run"
-msgstr "オートフォーカス実行中"
+msgstr "オートフォーカス実行"
 
 #: nova/log_parser.py:1295
-#, fuzzy
 msgid "AutoFocus Complete"
-msgstr "オートフォーカス Vカーブ"
+msgstr "オートフォーカス完了"
 
 #: nova/log_parser.py:1325
 msgid "R squared value below threshold"
 msgstr "R2乗値がしきい値以下"
 
 #: nova/log_parser.py:1337
-#, fuzzy
 msgid "AutoFocus Failed"
-msgstr "オートフォーカス"
+msgstr "オートフォーカス失敗"
 
 #: nova/log_parser.py:1672
 msgid "Log parsed but no structured data found."
@@ -139,9 +132,8 @@ msgid "Empty filename"
 msgstr "ファイル名が空です"
 
 #: nova/blueprints/api.py:1527
-#, fuzzy
 msgid "File is too large. Maximum size is 10 MB."
-msgstr "NINAログファイルが大きすぎる。最大サイズは10MBです。"
+msgstr "ファイルが大きすぎる。最大サイズは10MBです。"
 
 #: nova/blueprints/api.py:1570 nova/blueprints/api.py:2795
 msgid "User not found"
@@ -176,14 +168,12 @@ msgid "Missing or invalid lat/lon parameters"
 msgstr ""
 
 #: nova/blueprints/api.py:3742
-#, fuzzy
 msgid "Invalid datetime format"
 msgstr "無効な日付形式です。"
 
 #: nova/blueprints/api.py:3762
-#, fuzzy
 msgid "Calibration star catalog not found"
-msgstr "校正戦略"
+msgstr "キャリブレーション星カタログが見つかりません"
 
 #: nova/blueprints/core.py:204
 msgid "Logged out successfully!"
@@ -341,9 +331,8 @@ msgid "Invalid date format."
 msgstr "無効な日付形式です。"
 
 #: nova/blueprints/journal.py:290 nova/blueprints/journal.py:646
-#, fuzzy
 msgid "Session image is too large. Maximum size is 5 MB."
-msgstr "NINAログファイルが大きすぎる。最大サイズは10MBです。"
+msgstr "セッション画像が大きすぎる。最大サイズは5MBです。"
 
 #: nova/blueprints/journal.py:314 nova/blueprints/journal.py:668
 msgid ""
@@ -356,18 +345,16 @@ msgid "ASIAir log file must be a .txt file."
 msgstr "ASIAirログファイルは.txtファイルでなければならない。"
 
 #: nova/blueprints/journal.py:321 nova/blueprints/journal.py:685
-#, fuzzy
 msgid "ASIAir log file is too large. Maximum size is 10 MB."
-msgstr "NINAログファイルが大きすぎる。最大サイズは10MBです。"
+msgstr "ASIAirログファイルが大きすぎる。最大サイズは10MBです。"
 
 #: nova/blueprints/journal.py:331 nova/blueprints/journal.py:699
 msgid "PHD2 log file must be a .txt file."
 msgstr "PHD2ログファイルは.txtファイルでなければならない。"
 
 #: nova/blueprints/journal.py:335 nova/blueprints/journal.py:710
-#, fuzzy
 msgid "PHD2 log file is too large. Maximum size is 10 MB."
-msgstr "NINAログファイルが大きすぎる。最大サイズは10MBです。"
+msgstr "PHD2ログファイルが大きすぎる。最大サイズは10MBです。"
 
 #: nova/blueprints/journal.py:345 nova/blueprints/journal.py:726
 msgid "NINA log file must be a .log file."
@@ -390,9 +377,8 @@ msgid "Journal entry not found or you do not have permission to edit it."
 msgstr "ジャーナルエントリが見つかりません、または編集する権限がありません。"
 
 #: nova/blueprints/journal.py:747
-#, fuzzy
 msgid "NINA log imported successfully."
-msgstr "リグの削除に成功しました。"
+msgstr "NINAログのインポートに成功しました。"
 
 #: nova/blueprints/journal.py:777
 msgid "Journal entry updated successfully!"
@@ -456,18 +442,17 @@ msgid "Object '%(object_name)s' not found."
 msgstr "オブジェクト '%(object_name)s' が見つかりません。"
 
 #: nova/blueprints/mobile.py:357
-#, fuzzy
 msgid "Location not found."
-msgstr "オブジェクトが見つかりません。"
+msgstr "場所が見つかりません。"
 
 #: nova/blueprints/mobile.py:366
 msgid "Object coordinates not available."
 msgstr "オブジェクトの座標が利用できません。"
 
 #: nova/blueprints/mobile.py:719
-#, fuzzy, python-format
+#, python-format
 msgid "Error saving journal entry: %(error)s"
-msgstr "ジャーナルファイルの生成中にエラーが発生しました: %(error)s"
+msgstr "ジャーナルエントリの保存中にエラーが発生しました: %(error)s"
 
 #: nova/blueprints/projects.py:64 nova/blueprints/projects.py:91
 msgid "Error deleting old image."
@@ -747,21 +732,18 @@ msgid "Brighter teal = Best visibility"
 msgstr "明るい青緑色 = 最高の視認性"
 
 #: templates/_heatmap_section.html:22
-#, fuzzy
 msgid "Click any cell to view details"
-msgstr "オブジェクトの詳細を表示するにはログインしてください。"
+msgstr "任意のセルをクリックすると詳細が表示されます。"
 
 #: templates/_heatmap_section.html:23
-#, fuzzy
 msgid ""
 "* Vertical bands = Full Moon. Darker teal = Best visibility. Click any cell "
 "to view details."
 msgstr "* 縦方向の明るい帯 = 満月（白飛び）。濃い緑色 = 最良の品質。オブジェクト名をクリックすると詳細が表示されます。"
 
 #: templates/_inspiration_section.html:472
-#, fuzzy
 msgid "Previous"
-msgstr "様々な"
+msgstr "前へ"
 
 #: templates/_inspiration_section.html:475
 msgid "Next"
@@ -832,9 +814,8 @@ msgid "How to populate this gallery:"
 msgstr "このギャラリーの入力方法"
 
 #: templates/_inspiration_section.html:530
-#, fuzzy
 msgid "Check Filters:"
-msgstr "フィルター："
+msgstr "フィルターを確認："
 
 #: templates/_inspiration_section.html:531
 msgid "Clear filters on the Position tab."
@@ -845,9 +826,8 @@ msgid "Check Database:"
 msgstr "データベースをチェックする："
 
 #: templates/_inspiration_section.html:533
-#, fuzzy
 msgid "Ensure you have objects in Configuration."
-msgstr "設定にオブジェクトが見つかりません。"
+msgstr "設定にオブジェクトが登録されていることを確認してください。"
 
 #: templates/_inspiration_section.html:534
 msgid "Visibility:"
@@ -858,19 +838,16 @@ msgid "We only show objects observable during tonight's session."
 msgstr "今夜のセッションで観測可能なものだけをお見せします。"
 
 #: templates/_inspiration_section.html:538
-#, fuzzy
 msgid "Alt:"
-msgstr "緯度:"
+msgstr "高度:"
 
 #: templates/_inspiration_section.html:539
-#, fuzzy
 msgid "Dur:"
 msgstr "期間："
 
 #: templates/_inspiration_section.html:540
-#, fuzzy
 msgid "hrs"
-msgstr "ディザリング"
+msgstr "時間"
 
 #: templates/_inspiration_section.html:541
 msgid "h"
@@ -885,27 +862,24 @@ msgid "Loading..."
 msgstr "読み込み中..."
 
 #: templates/_inspiration_section.html:545
-#, fuzzy
 msgid "Type:"
-msgstr "タイプ"
+msgstr "タイプ:"
 
 #: templates/_inspiration_section.html:546
 msgid "DSO"
 msgstr "DSO"
 
 #: templates/_inspiration_section.html:547
-#, fuzzy
 msgid "Located in"
-msgstr "場所"
+msgstr "位置："
 
 #: templates/_inspiration_section.html:548
 msgid "N/A"
 msgstr "N/A"
 
 #: templates/_inspiration_section.html:551
-#, fuzzy
 msgid "Source:"
-msgstr "ソース"
+msgstr "ソース:"
 
 #: templates/_inspiration_section.html:552
 msgid "Wikipedia"
@@ -920,9 +894,8 @@ msgid "Aladin Sky Atlas / DSS2"
 msgstr "Aladin Sky Atlas / DSS2"
 
 #: templates/_inspiration_section.html:555
-#, fuzzy
 msgid "Showing"
-msgstr "フレーミング"
+msgstr "表示中"
 
 #: templates/_inspiration_section.html:556
 msgid "of"
@@ -1470,9 +1443,8 @@ msgid "Total Integration"
 msgstr "完全統合"
 
 #: templates/_journal_section.html:2110
-#, fuzzy
 msgid "Exposure Summary"
-msgstr "露出"
+msgstr "露出サマリー"
 
 #: templates/_journal_section.html:2114 templates/journal_report.html:827
 #: templates/project_report.html:827 templates/project_report.html:1198
@@ -1485,9 +1457,8 @@ msgid "Subs"
 msgstr "サブ"
 
 #: templates/_journal_section.html:2116 templates/project_report.html:829
-#, fuzzy
 msgid "Per Sub"
-msgstr "枚数"
+msgstr "サブあたり"
 
 #: templates/_journal_section.html:2117 templates/index.html:203
 #: templates/journal_report.html:722 templates/project_report.html:830
@@ -1496,9 +1467,8 @@ msgid "Integration"
 msgstr "統合"
 
 #: templates/_journal_section.html:2138 templates/project_report.html:851
-#, fuzzy
 msgid "Grand Total"
-msgstr "カレンダーに追加"
+msgstr "合計"
 
 #: templates/_journal_section.html:2153 templates/_project_subtab.html:158
 msgid "Goals & Status"
@@ -1890,9 +1860,8 @@ msgid "Session Logs (Optional)"
 msgstr "場所を選択（任意）"
 
 #: templates/_journal_section.html:2480
-#, fuzzy
 msgid "ASIAIR Log (Autorun)"
-msgstr "ASIAIR ログ:"
+msgstr "ASIAIRログ（自動実行）"
 
 #: templates/_journal_section.html:2483 templates/_journal_section.html:2496
 #: templates/_journal_section.html:2509
@@ -1907,14 +1876,12 @@ msgid "Delete"
 msgstr "削除"
 
 #: templates/_journal_section.html:2493
-#, fuzzy
 msgid "PHD2 Guide Log"
-msgstr "PHD2ガイドログ："
+msgstr "PHD2ガイドログ"
 
 #: templates/_journal_section.html:2506
-#, fuzzy
 msgid "NINA Log"
-msgstr "新ロゴ"
+msgstr "NINAログ"
 
 #: templates/_journal_section.html:2543
 msgid "Search objects…"
@@ -2022,9 +1989,8 @@ msgid "Nova error"
 msgstr "Nova error"
 
 #: templates/_journal_section.html:2618
-#, fuzzy
 msgid "Draft saved"
-msgstr "保存"
+msgstr "下書きを保存しました"
 
 #: templates/_journal_section.html:2619
 msgid "Please save the session first before asking Nova."
@@ -2217,9 +2183,8 @@ msgid "Inspiration Content"
 msgstr "インスピレーションコンテンツ"
 
 #: templates/_objects_section.html:194 templates/_objects_section.html:475
-#, fuzzy
 msgid "Object image preview"
-msgstr "確認が必要なオブジェクトが%(count)d件"
+msgstr "オブジェクトの画像プレビュー"
 
 #: templates/_objects_section.html:205 templates/_objects_section.html:336
 msgid "Image URL (https://...)"
@@ -2425,9 +2390,8 @@ msgstr ""
 "これらのオブジェクトの値は、インポートしたばかりのカタログパックと異なります。オブジェクトごとに、現在の値を保持するかカタログの値を採用するか選択してください。"
 
 #: templates/_objects_section.html:472
-#, fuzzy
 msgid "Image preview"
-msgstr "画像クレジット"
+msgstr "画像プレビュー"
 
 #: templates/_opportunities_section.html:27
 msgid "Imaging Opportunities"
@@ -3229,9 +3193,8 @@ msgid "Asking Nova..."
 msgstr "Novaに質問中..."
 
 #: templates/base.html:270
-#, fuzzy
 msgid "Nova Ranking"
-msgstr "Nova writing…"
+msgstr "Novaランキング"
 
 #: templates/base.html:271
 msgid "Nova Recommended"
@@ -3259,7 +3222,6 @@ msgid "Error asking Nova. Please try again."
 msgstr "Novaへの質問でエラーが発生しました。もう一度お試しください。"
 
 #: templates/base.html:277
-#, fuzzy
 msgid "Consulting star charts..."
 msgstr "星図を見ながら..."
 
@@ -3268,19 +3230,16 @@ msgid "Checking your rigs..."
 msgstr "お近くの図書館を調べてみると...。"
 
 #: templates/base.html:279
-#, fuzzy
 msgid "Scanning cosmos..."
 msgstr "空をスキャン中..."
 
 #: templates/base.html:281
-#, fuzzy
 msgid "Recommended Rig"
-msgstr "Novaのおすすめ"
+msgstr "おすすめリグ"
 
 #: templates/base.html:282
-#, fuzzy
 msgid "Recommended Rigs"
-msgstr "Novaのおすすめ"
+msgstr "おすすめリグ"
 
 #: templates/base.html:314
 msgid "Demo Mode:"
@@ -3631,14 +3590,12 @@ msgid "Lon:"
 msgstr "経度:"
 
 #: templates/config_form.html:264 templates/config_form.html:351
-#, fuzzy
 msgid "Elevation:"
-msgstr "場所:"
+msgstr "標高:"
 
 #: templates/config_form.html:266 templates/config_form.html:353
-#, fuzzy
 msgid "Elevation (m)"
-msgstr "可視化（FWHM）"
+msgstr "標高（m）"
 
 #: templates/config_form.html:269 templates/config_form.html:356
 msgid "Timezone:"
@@ -3653,14 +3610,12 @@ msgid "Active:"
 msgstr "有効:"
 
 #: templates/config_form.html:284 templates/config_form.html:370
-#, fuzzy
 msgid "Bortle:"
-msgstr "注記："
+msgstr "ボートル:"
 
 #: templates/config_form.html:286 templates/config_form.html:372
-#, fuzzy
 msgid "Not set"
-msgstr "注記"
+msgstr "未設定"
 
 #: templates/config_form.html:287 templates/config_form.html:373
 msgid "Exceptional dark sky"
@@ -3699,9 +3654,8 @@ msgid "Inner-city sky"
 msgstr ""
 
 #: templates/config_form.html:299 templates/config_form.html:385
-#, fuzzy
 msgid "SQM Zenith:"
-msgstr "SQM 測定値："
+msgstr "天頂SQM:"
 
 #: templates/config_form.html:300 templates/config_form.html:386
 msgid ""
@@ -3710,9 +3664,8 @@ msgid ""
 msgstr ""
 
 #: templates/config_form.html:302 templates/config_form.html:388
-#, fuzzy
 msgid "Zenith SQM (optional)"
-msgstr "リデューサー／エクステンダー（オプション）："
+msgstr "天頂SQM（任意）"
 
 #: templates/config_form.html:310 templates/config_form.html:395
 msgid "Horizon Mask:"
@@ -4093,14 +4046,12 @@ msgid "Nova DSO Tracker"
 msgstr "Nova DSO Tracker"
 
 #: templates/graph_view.html:47
-#, fuzzy
 msgid "← Back to Dashboard"
 msgstr "ダッシュボードに戻る"
 
 #: templates/graph_view.html:53
-#, fuzzy
 msgid "Graph Date"
-msgstr "検索日"
+msgstr "グラフ日付"
 
 #: templates/graph_view.html:54 templates/index.html:46
 #: templates/mobile_base.html:35 templates/project_report.html:1152
@@ -4108,24 +4059,20 @@ msgid "Moon"
 msgstr "月"
 
 #: templates/graph_view.html:55
-#, fuzzy
 msgid "Moon Sep."
-msgstr "月 九月"
+msgstr "月間隔"
 
 #: templates/graph_view.html:57
-#, fuzzy
 msgid "ASTR. DUSK / DAWN"
 msgstr "アストラル・夕暮れ／夜明け"
 
 #: templates/graph_view.html:92
-#, fuzzy
 msgid "Chart"
-msgstr "チャートを見る"
+msgstr "チャート"
 
 #: templates/graph_view.html:93 templates/graph_view.html:165
-#, fuzzy
 msgid "Notes & Framing"
-msgstr "フレーム保存"
+msgstr "注記とフレーミング"
 
 #: templates/graph_view.html:94
 msgid "Object Info"
@@ -4140,9 +4087,8 @@ msgid "SIMBAD"
 msgstr "シンボル"
 
 #: templates/graph_view.html:112
-#, fuzzy
 msgid "Loading Chart"
-msgstr "ガイディングRMSチャート"
+msgstr "チャートを読み込み中"
 
 #: templates/graph_view.html:118 templates/mobile_object_detail.html:519
 msgid "Day"
@@ -4178,32 +4124,28 @@ msgid "Add Object"
 msgstr "オブジェクトを追加"
 
 #: templates/graph_view.html:139
-#, fuzzy
 msgid "How objects are ranked"
-msgstr "オブジェクトが見つかりません"
+msgstr "オブジェクトのランキング方法"
 
 #: templates/graph_view.html:144 templates/graph_view.html:689
 msgid "Calibration Star"
 msgstr "キャリブレーション星"
 
 #: templates/graph_view.html:146
-#, fuzzy
 msgid "Refresh"
-msgstr "フレーム"
+msgstr "更新"
 
 #: templates/graph_view.html:147
 msgid "Help with calibration star"
 msgstr "キャリブレーション星のヘルプ"
 
 #: templates/graph_view.html:166
-#, fuzzy
 msgid "Rig Data"
-msgstr "ログデータ"
+msgstr "リグデータ"
 
 #: templates/graph_view.html:172
-#, fuzzy
 msgid "Show Framing"
-msgstr "フレーミング"
+msgstr "フレーミングを表示"
 
 #: templates/graph_view.html:173
 msgid "Open in Stellarium"
@@ -4215,9 +4157,8 @@ msgid "Save Notes"
 msgstr "メモを保存"
 
 #: templates/graph_view.html:204
-#, fuzzy
 msgid "Framing With Your Rigs"
-msgstr "お近くの図書館を調べてみると...。"
+msgstr "お使いのリグでのフレーミング"
 
 #: templates/graph_view.html:205
 msgid ""
@@ -4226,39 +4167,32 @@ msgid ""
 msgstr ""
 
 #: templates/graph_view.html:209
-#, fuzzy
 msgid "Rig Name"
-msgstr "リグ名:"
+msgstr "リグ名"
 
 #: templates/graph_view.html:210
-#, fuzzy
 msgid "Rig FOV"
-msgstr "リグ"
+msgstr "視野角"
 
 #: templates/graph_view.html:211
-#, fuzzy
 msgid "Object Size"
-msgstr "オブジェクトID"
+msgstr "オブジェクトサイズ"
 
 #: templates/graph_view.html:212
-#, fuzzy
 msgid "Fit Assessment"
-msgstr "このセッションを編集"
+msgstr "適合評価"
 
 #: templates/graph_view.html:221
-#, fuzzy
 msgid "Mosaic Required"
-msgstr "プロジェクト名は必須です。"
+msgstr "モザイク撮影が必要"
 
 #: templates/graph_view.html:222
-#, fuzzy
 msgid "Fits with Rotation"
-msgstr "インスピレーション"
+msgstr "回転で収まる"
 
 #: templates/graph_view.html:224
-#, fuzzy
 msgid "Small Target"
-msgstr "主要ターゲット"
+msgstr "小さいターゲット"
 
 #: templates/graph_view.html:225
 msgid "Wide Field"
@@ -4273,14 +4207,12 @@ msgid "Edit Object to Add Content"
 msgstr ""
 
 #: templates/graph_view.html:254
-#, fuzzy
 msgid "Inspiration Image for"
-msgstr "インスピレーション"
+msgstr "インスピレーション画像："
 
 #: templates/graph_view.html:267
-#, fuzzy
 msgid "External Source"
-msgstr "テキストソースリンク"
+msgstr "外部ソース"
 
 #: templates/graph_view.html:275
 msgid ""
@@ -4289,21 +4221,18 @@ msgid ""
 msgstr ""
 
 #: templates/graph_view.html:276
-#, fuzzy
 msgid "Go to <strong>Configuration > Manage Objects</strong> to add one."
 msgstr ""
 "<strong>設定 > "
 "オブジェクトの管理</strong>に移動して、ターゲットに「インスピレーションコンテンツ」（画像URL、クレジット、説明）を追加してください。"
 
 #: templates/graph_view.html:299
-#, fuzzy
 msgid "Framing Assistant"
-msgstr "フレーミングに関する注記"
+msgstr "フレーミングアシスタント"
 
 #: templates/graph_view.html:304
-#, fuzzy
 msgid "Help with Framing"
-msgstr "リグのヘルプ"
+msgstr "フレーミングのヘルプ"
 
 #: templates/graph_view.html:309
 msgid "Lock FOV"
@@ -4320,24 +4249,20 @@ msgid "Geo Belt"
 msgstr ""
 
 #: templates/graph_view.html:311
-#, fuzzy
 msgid "Flip 90°"
-msgstr "フリップ"
+msgstr "90°回転"
 
 #: templates/graph_view.html:312
-#, fuzzy
 msgid "Copy framing URL"
-msgstr "フレーミング"
+msgstr "フレーミングURLをコピー"
 
 #: templates/graph_view.html:313
-#, fuzzy
 msgid "Save Framing"
 msgstr "フレーム保存"
 
 #: templates/graph_view.html:314
-#, fuzzy
 msgid "Scan Frame"
-msgstr "イメージングRMS"
+msgstr "フレームをスキャン"
 
 #: templates/graph_view.html:324 templates/index.html:153
 #: templates/mobile_journal_new.html:237 templates/project_report.html:1167
@@ -4345,9 +4270,8 @@ msgid "Rig"
 msgstr "リグ"
 
 #: templates/graph_view.html:329
-#, fuzzy
 msgid "No rigs configured"
-msgstr "場所が設定されていません"
+msgstr "リグが設定されていません"
 
 #: templates/graph_view.html:334
 msgid "Position Angle (0°=North, 90°=East)"
@@ -4362,9 +4286,8 @@ msgid "Mosaic (Col x Row)"
 msgstr ""
 
 #: templates/graph_view.html:344
-#, fuzzy
 msgid "Columns"
-msgstr "カウント"
+msgstr "列"
 
 #: templates/graph_view.html:346
 msgid "Rows"
@@ -4382,14 +4305,12 @@ msgid ""
 msgstr ""
 
 #: templates/graph_view.html:353
-#, fuzzy
 msgid "Copy Plan (CSV)"
 msgstr "コピー計画 (CSV)"
 
 #: templates/graph_view.html:356
-#, fuzzy
 msgid "Survey"
-msgstr "ソース"
+msgstr "サーベイ"
 
 #: templates/graph_view.html:373
 msgid "Blend with"
@@ -4404,18 +4325,16 @@ msgid "Brightness"
 msgstr ""
 
 #: templates/graph_view.html:396
-#, fuzzy
 msgid "Contrast"
-msgstr "トランジット"
+msgstr "コントラスト"
 
 #: templates/graph_view.html:397
 msgid "Gamma"
 msgstr ""
 
 #: templates/graph_view.html:398
-#, fuzzy
 msgid "Saturation"
-msgstr "期間"
+msgstr "彩度"
 
 #: templates/graph_view.html:400
 msgid ""
@@ -4423,27 +4342,24 @@ msgid ""
 msgstr ""
 
 #: templates/graph_view.html:405
-#, fuzzy
 msgid "Copy"
-msgstr "コピー計画 (CSV)"
+msgstr "コピー"
 
 #: templates/graph_view.html:408
 msgid "Tip: Click on the sky to move the FOV center."
 msgstr ""
 
 #: templates/graph_view.html:409
-#, fuzzy
 msgid "Recenter to object"
-msgstr "対象物："
+msgstr "対象物を中心に"
 
 #: templates/graph_view.html:411
 msgid "Nudge Up"
 msgstr ""
 
 #: templates/graph_view.html:413
-#, fuzzy
 msgid "Nudge Left"
-msgstr "削除"
+msgstr "左に移動"
 
 #: templates/graph_view.html:414
 msgid "Nudge Right"
@@ -4454,7 +4370,6 @@ msgid "Nudge Down"
 msgstr ""
 
 #: templates/graph_view.html:417
-#, fuzzy
 msgid "steps"
 msgstr "ステップ"
 
@@ -4463,29 +4378,24 @@ msgid "Ask Nova for observing notes"
 msgstr ""
 
 #: templates/graph_view.html:481
-#, fuzzy
 msgid "Consulting the star charts..."
 msgstr "星図を見ながら..."
 
 #: templates/graph_view.html:483
-#, fuzzy
 msgid "Scanning the cosmos..."
 msgstr "空をスキャン中..."
 
 #: templates/graph_view.html:484
-#, fuzzy
 msgid "Calculating from"
-msgstr "読み込み中..."
+msgstr "算出中："
 
 #: templates/graph_view.html:486
-#, fuzzy
 msgid "your location"
-msgstr "場所"
+msgstr "あなたの場所"
 
 #: templates/graph_view.html:487
-#, fuzzy
 msgid "Nova has notes ready. What would you like to do?"
-msgstr "Nova がサマリーを用意しました。どうしますか？"
+msgstr "Nova がノートを用意しました。どうしますか？"
 
 #: templates/graph_view.html:491
 msgid "Nova couldn't load notes"
@@ -4496,14 +4406,12 @@ msgid "No calibration star available near meridian"
 msgstr "子午線付近にキャリブレーション星がありません"
 
 #: templates/graph_view.html:692
-#, fuzzy
 msgid "Window"
-msgstr "現在放送中"
+msgstr "観測可能時間"
 
 #: templates/graph_view.html:693 templates/mobile_object_detail.html:493
-#, fuzzy
 msgid "Now"
-msgstr "現在放送中"
+msgstr "現在"
 
 #: templates/graph_view.html:694
 msgid "Alt"
@@ -4591,14 +4499,12 @@ msgid "Pinned Only"
 msgstr "ピン留めのみ"
 
 #: templates/index.html:111
-#, fuzzy
 msgid "Ask Nova to rank and recommend best objects"
-msgstr "Novaがこのオブジェクトをおすすめ"
+msgstr "Novaにオブジェクトのランク付けとおすすめを依頼"
 
 #: templates/index.html:117
-#, fuzzy
 msgid "About Nova AI"
-msgstr "Nova DSO Trackerについて"
+msgstr "Nova AIについて"
 
 #: templates/index.html:125
 msgid "Remove Filter"
@@ -4735,9 +4641,8 @@ msgid "e.g. >80"
 msgstr "例：80以上"
 
 #: templates/index.html:177
-#, fuzzy
 msgid "e.g. SW80"
-msgstr "例：80以上"
+msgstr "例：SW80"
 
 #: templates/index.html:181
 msgid "Has notes"
@@ -4748,9 +4653,8 @@ msgid "No notes"
 msgstr "注記なし"
 
 #: templates/index.html:185
-#, fuzzy
 msgid "e.g. >0"
-msgstr "例：80以上"
+msgstr "例：0以上"
 
 #: templates/index.html:198 templates/journal_report.html:690
 msgid "Project"
@@ -5239,7 +5143,6 @@ msgid "Main Site"
 msgstr "メインサイト"
 
 #: templates/mobile_base.html:40
-#, fuzzy
 msgid "Dusk/Dawn"
 msgstr "アストラル・夕暮れ／夜明け"
 
@@ -5273,9 +5176,8 @@ msgstr "バック"
 #: templates/mobile_framing_coords.html:29
 #: templates/mobile_framing_coords.html:46
 #: templates/mobile_framing_coords.html:56
-#, fuzzy
 msgid "Copy CSV"
-msgstr "コピー計画 (CSV)"
+msgstr "CSVをコピー"
 
 #: templates/mobile_framing_coords.html:35
 msgid "View full mosaic plan"
@@ -5288,64 +5190,53 @@ msgid "Copied!"
 msgstr "コピーしました！"
 
 #: templates/mobile_journal_new.html:3 templates/mobile_journal_new.html:4
-#, fuzzy
 msgid "New Session"
 msgstr "新しいセッションを追加"
 
 #: templates/mobile_journal_new.html:215
-#, fuzzy
 msgid "Target Object"
 msgstr "対象物："
 
 #: templates/mobile_journal_new.html:227
-#, fuzzy
 msgid "Select Location"
 msgstr "場所を設定"
 
 #: templates/mobile_journal_new.html:239
-#, fuzzy
 msgid "Select Rig"
-msgstr "-- カメラを選択 --"
+msgstr "-- リグを選択 --"
 
 #: templates/mobile_journal_new.html:272
-#, fuzzy
 msgid "Moon Illum"
-msgstr "月光/分離："
+msgstr "月光照度"
 
 #: templates/mobile_journal_new.html:277
 #: templates/mobile_object_detail.html:503 templates/mobile_up_now.html:957
-#, fuzzy
 msgid "Moon Sep"
-msgstr "月 九月"
+msgstr "月間隔"
 
 #: templates/mobile_journal_new.html:338
-#, fuzzy
 msgid "Gain"
-msgstr "さらに："
+msgstr "ゲイン"
 
 #: templates/mobile_journal_new.html:350
-#, fuzzy
 msgid "Sub Exp"
-msgstr "サブ"
+msgstr "サブ露出"
 
 #: templates/mobile_journal_new.html:355
-#, fuzzy
 msgid "Cam Temp"
-msgstr "天気"
+msgstr "カメラ温度"
 
 #: templates/mobile_journal_new.html:377
 msgid "Add any notes about this session..."
 msgstr "このセッションに関するメモを追加する"
 
 #: templates/mobile_journal_new.html:385
-#, fuzzy
 msgid "Discard"
-msgstr "障害のある"
+msgstr "破棄"
 
 #: templates/mobile_journal_new.html:386
-#, fuzzy
 msgid "Save Session"
-msgstr "新しいセッションを追加"
+msgstr "セッションを保存"
 
 #: templates/mobile_location.html:3 templates/mobile_location.html:4
 msgid "Set Location"
@@ -5384,29 +5275,24 @@ msgid "Clipboard copy failed."
 msgstr "クリップボードへのコピーに失敗しました。"
 
 #: templates/mobile_object_detail.html:508
-#, fuzzy
 msgid "Obs"
-msgstr "オブジェクト"
+msgstr "観測時間"
 
 #: templates/mobile_object_detail.html:528
-#, fuzzy
 msgid "Log Session"
-msgstr "セッション:"
+msgstr "セッションを記録"
 
 #: templates/mobile_object_detail.html:540
-#, fuzzy
 msgid "Loading opportunities..."
-msgstr "イメージングの機会"
+msgstr "イメージングの機会を読み込み中..."
 
 #: templates/mobile_object_detail.html:551
-#, fuzzy
 msgid "No notes for this object."
-msgstr "オブジェクトに近づく"
+msgstr "このオブジェクトに関する注記はありません。"
 
 #: templates/mobile_object_detail.html:590
-#, fuzzy
 msgid "Error loading opportunities."
-msgstr "コンポーネントの追加中にエラーが発生しました: %(error)s"
+msgstr "イメージング機会の読み込み中にエラーが発生しました: %(error)s"
 
 #: templates/mobile_object_detail.html:591 templates/mobile_outlook.html:184
 msgid "Rating:"
@@ -5449,41 +5335,34 @@ msgid "Scanning Sky..."
 msgstr "空をスキャン中..."
 
 #: templates/mobile_up_now.html:884
-#, fuzzy
 msgid "Search objects..."
 msgstr "検索対象"
 
 #: templates/mobile_up_now.html:891 templates/mobile_up_now.html:922
-#, fuzzy
 msgid "Filters"
 msgstr "フィルター"
 
 #: templates/mobile_up_now.html:899
-#, fuzzy
 msgid "Sort"
-msgstr "ソース"
+msgstr "並べ替え"
 
 #: templates/mobile_up_now.html:907
-#, fuzzy
 msgid "No objects match your filters"
 msgstr "フィルターに一致するオブジェクトはありません。"
 
 #: templates/mobile_up_now.html:923
-#, fuzzy
 msgid "Reset"
-msgstr "プロジェクト"
+msgstr "リセット"
 
 #: templates/mobile_up_now.html:930
-#, fuzzy
 msgid "Alt Now"
-msgstr "現在放送中"
+msgstr "現在高度"
 
 #: templates/mobile_up_now.html:939
 msgid "Alt Max"
 msgstr "アルトマックス"
 
 #: templates/mobile_up_now.html:984
-#, fuzzy
 msgid "or type name..."
 msgstr "名前でフィルター..."
 
@@ -5529,9 +5408,8 @@ msgid "Date Range"
 msgstr "日付範囲"
 
 #: templates/project_report.html:822
-#, fuzzy
 msgid "Total Exposures — All Sessions"
-msgstr "総セッション数"
+msgstr "総露出時間 — 全セッション"
 
 #: templates/project_report.html:869
 msgid "Final Result"
