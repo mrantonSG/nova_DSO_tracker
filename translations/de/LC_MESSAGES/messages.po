@@ -997,7 +997,7 @@ msgstr "Neue Sequenz hinzufügen"
 
 #: templates/_journal_section.html:1636
 msgid "Date & Location"
-msgstr "Standorte aktualisieren"
+msgstr "Datum & Standort"
 
 #: templates/_journal_section.html:1636 templates/project_report.html:908
 msgid "Integ."
@@ -1099,7 +1099,7 @@ msgstr "x"
 
 #: templates/_journal_section.html:1732
 msgid "s"
-msgstr "FH"
+msgstr "s"
 
 #: templates/_journal_section.html:1734
 msgid "EXPOSURES"
@@ -1130,7 +1130,7 @@ msgstr "Kamera:"
 
 #: templates/_journal_section.html:1747
 msgid "FL:"
-msgstr "Wohnungen:"
+msgstr "FL:"
 
 #: templates/_journal_section.html:1748 templates/_journal_section.html:1795
 msgid "Scale:"
@@ -1321,13 +1321,13 @@ msgstr "Gesamtzeit"
 #: templates/_journal_section.html:1914 templates/project_report.html:1031
 #: templates/project_report.html:1146
 msgid "Guiding RMS"
-msgstr "Leitendes RMS"
+msgstr "Guiding RMS"
 
 #: templates/_journal_section.html:1918 templates/journal_report.html:938
 #: templates/journal_report.html:955 templates/project_report.html:983
 #: templates/project_report.html:1000
 msgid "Dithers"
-msgstr "Zögert"
+msgstr "Dither"
 
 #: templates/_journal_section.html:1922
 msgid "AF Runs"
@@ -1359,7 +1359,7 @@ msgstr "RA"
 #: templates/_journal_section.html:1942 templates/graph_view.html:697
 #: templates/journal_report.html:1070
 msgid "Dec"
-msgstr "Dezember"
+msgstr "Dec"
 
 #: templates/_journal_section.html:1943 templates/journal_report.html:1071
 msgid "Angle"
@@ -1390,7 +1390,7 @@ msgstr "RA RMS:"
 
 #: templates/_journal_section.html:1967
 msgid "Dec RMS:"
-msgstr "Dezember:"
+msgstr "Dec RMS:"
 
 #: templates/_journal_section.html:1968
 msgid "Total RMS:"
@@ -1402,11 +1402,11 @@ msgstr "Belichtungen:"
 
 #: templates/_journal_section.html:1972
 msgid "Including dithers — RA:"
-msgstr "Einschließlich Zauderer - RA:"
+msgstr "Einschließlich Dither — RA:"
 
 #: templates/_journal_section.html:1973 templates/journal_report.html:991
 msgid "Dec:"
-msgstr "Dezember:"
+msgstr "Dec:"
 
 #: templates/_journal_section.html:1977 templates/base.html:212
 msgid "Zoom"
@@ -1434,7 +1434,7 @@ msgstr "RA:"
 
 #: templates/_journal_section.html:1987
 msgid "Dec Dir:"
-msgstr "Dezember:"
+msgstr "Dec:"
 
 #: templates/_journal_section.html:2006
 msgid "Total Dithers:"
@@ -1486,7 +1486,7 @@ msgstr ""
 
 #: templates/_journal_section.html:2081
 msgid "Delete Project"
-msgstr "Projekt bearbeiten"
+msgstr "Projekt löschen"
 
 #: templates/_journal_section.html:2088 templates/project_report.html:6
 #: templates/project_report.html:794
@@ -1661,7 +1661,7 @@ msgstr ""
 
 #: templates/_journal_section.html:2282
 msgid "Create Project"
-msgstr "Aktives Projekt"
+msgstr "Projekt erstellen"
 
 #: templates/_journal_section.html:2290
 msgid "e.g., M31 Broadband"
@@ -1786,7 +1786,7 @@ msgstr "Dither-Pixel:"
 
 #: templates/_journal_section.html:2377
 msgid "e.g. 7"
-msgstr "z. B. PN"
+msgstr "z. B. 7"
 
 #: templates/_journal_section.html:2381
 msgid "Dither every ___ subs:"
@@ -1848,7 +1848,7 @@ msgstr "# Belichtungen"
 #: templates/_journal_section.html:2401 templates/_journal_section.html:2422
 #: templates/_journal_section.html:2595 templates/journal_form.html:168
 msgid "Count"
-msgstr "Graf"
+msgstr "Anzahl"
 
 #: templates/_journal_section.html:2402 templates/_journal_section.html:2426
 #: templates/_journal_section.html:2596 templates/journal_form.html:171
@@ -1914,7 +1914,7 @@ msgstr "Neues endgültiges Bild hochladen (optional, max. 5 MB)"
 
 #: templates/_journal_section.html:2477
 msgid "Session Logs (Optional)"
-msgstr "Standort auswählen (optional)"
+msgstr "Sequenzprotokolle (optional)"
 
 #: templates/_journal_section.html:2480
 msgid "ASIAIR Log (Autorun)"
@@ -1946,15 +1946,15 @@ msgstr "Objekte suchen…"
 
 #: templates/_journal_section.html:2544
 msgid "Sort order"
-msgstr "Gastmodus"
+msgstr "Sortierreihenfolge"
 
 #: templates/_journal_section.html:2545
 msgid "Recent"
-msgstr "Projekt"
+msgstr "Neueste"
 
 #: templates/_journal_section.html:2546
 msgid "Most Hours"
-msgstr "RA (Std)"
+msgstr "Meiste Stunden"
 
 #: templates/_journal_section.html:2548
 msgid "In Progress only"
@@ -2029,7 +2029,7 @@ msgstr "Nova writing…"
 
 #: templates/_journal_section.html:2612
 msgid "words"
-msgstr "Passwort"
+msgstr "Wörter"
 
 #: templates/_journal_section.html:2613
 msgid "Nova has a summary ready. What would you like to do?"
@@ -2761,7 +2761,7 @@ msgstr "Fehler"
 
 #: templates/base.html:114
 msgid "None"
-msgstr "Anmerkungen"
+msgstr "Keine"
 
 #: templates/base.html:115
 msgid "Mode"
@@ -2805,15 +2805,15 @@ msgstr "Warten auf Hintergrundaufgabe..."
 
 #: templates/base.html:133
 msgid "No data available or error. Check server logs."
-msgstr "Auf diesem Server sind noch keine Katalogpakete verfügbar."
+msgstr "Keine Daten verfügbar oder ein Fehler ist aufgetreten. Serverprotokolle prüfen."
 
 #: templates/base.html:134
 msgid "Error fetching data. Check console for details."
-msgstr "Fehler beim Rendern des Rasters. Konsole prüfen."
+msgstr "Fehler beim Abrufen der Daten. Konsole für Details prüfen."
 
 #: templates/base.html:135
 msgid "Loading altitude data..."
-msgstr "Lade Verlauf..."
+msgstr "Höhendaten werden geladen..."
 
 #: templates/base.html:136
 msgid "Altitude data unavailable."
@@ -2863,19 +2863,19 @@ msgstr "Oversampled"
 
 #: templates/base.html:150
 msgid "Well sampled"
-msgstr "Pixel-Skala"
+msgstr "Gut sampled"
 
 #: templates/base.html:151
 msgid "Undersampled"
-msgstr "Benutzername"
+msgstr "Undersampled"
 
 #: templates/base.html:152
 msgid "No telescopes defined."
-msgstr "Keine Ziele gesetzt."
+msgstr "Keine Teleskope definiert."
 
 #: templates/base.html:153
 msgid "No cameras defined."
-msgstr "Keine Ziele gesetzt."
+msgstr "Keine Kameras definiert."
 
 #: templates/base.html:154
 msgid "Error loading shared items."
@@ -2903,7 +2903,7 @@ msgstr "Fehler: Das Feld für die Horizontmaske konnte nicht gefunden werden."
 
 #: templates/base.html:160
 msgid "Error reading file. Please try again."
-msgstr "Fehler beim Hinzufügen des Filters."
+msgstr "Fehler beim Lesen der Datei. Bitte versuchen Sie es erneut."
 
 #: templates/base.html:161
 msgid "No valid horizon data found."
@@ -2951,7 +2951,7 @@ msgstr "Alle Duplikate bereinigt"
 
 #: templates/base.html:174
 msgid "Please enter an object identifier."
-msgstr "Bitte melden Sie sich an, um die Objektdetails anzuzeigen."
+msgstr "Bitte geben Sie eine Objekt-ID ein."
 
 #: templates/base.html:175
 msgid "Checking your local library..."
@@ -2959,7 +2959,7 @@ msgstr "Überprüfen Sie Ihre örtliche Bibliothek..."
 
 #: templates/base.html:176
 msgid "Object found in your library."
-msgstr "Objektdaten nicht gefunden oder ungültig."
+msgstr "Objekt in Ihrer Bibliothek gefunden."
 
 #: templates/base.html:177
 #, python-format
@@ -2968,7 +2968,7 @@ msgstr "Gefunden: %(name)s. Details aus SIMBAD geladen."
 
 #: templates/base.html:178
 msgid "SIMBAD lookup failed."
-msgstr "Kopieren in die Zwischenablage fehlgeschlagen."
+msgstr "SIMBAD-Suche fehlgeschlagen."
 
 #: templates/base.html:179
 msgid "selected"
@@ -2980,7 +2980,7 @@ msgstr "Keine Aufnahmegelegenheiten gefunden."
 
 #: templates/base.html:183
 msgid "Report frame not found."
-msgstr "Benutzer nicht gefunden."
+msgstr "Berichtsrahmen nicht gefunden."
 
 #: templates/base.html:184
 msgid "Preparing Print View..."
@@ -2989,8 +2989,7 @@ msgstr "Druckansicht vorbereiten..."
 #: templates/base.html:185
 #, python-format
 msgid "Merging Session %(current)d/%(total)d..."
-msgstr ""
-"Zusammenführung von Sequenz %(current)d/%(total)d...%(total)d%(current)d"
+msgstr "Zusammenführung von Sequenz %(current)d/%(total)d..."
 
 #: templates/base.html:187
 msgid "Add Session"
@@ -3024,7 +3023,7 @@ msgstr "Zum Kalender hinzufügen"
 #: templates/base.html:196
 #, python-format
 msgid "Error loading opportunities: %(error)s"
-msgstr "Fehler beim Hinzufügen der Komponente: %(error)s"
+msgstr "Fehler beim Laden der Aufnahmefenster: %(error)s"
 
 #: templates/base.html:197
 #, python-format
@@ -3032,7 +3031,7 @@ msgid ""
 "Failed to load imaging opportunities. Check console for details. (%(error)s)"
 msgstr ""
 "Bildgebungsmöglichkeiten konnten nicht geladen werden. Prüfen Sie die "
-"Konsole auf Details. (%(error)s)%(error)s"
+"Konsole auf Details. (%(error)s)"
 
 #: templates/base.html:198
 msgid "Please configure at least one rig on the Configuration page first."
@@ -3054,7 +3053,7 @@ msgstr "Fehler beim Speichern"
 
 #: templates/base.html:202
 msgid "Please select a rig first."
-msgstr "Bitte wählen Sie eine gültige ZIP-Datei zum Importieren aus."
+msgstr "Bitte wählen Sie zuerst ein Rig aus."
 
 #: templates/base.html:203
 msgid "Failed to copy to clipboard. See console."
@@ -3062,11 +3061,11 @@ msgstr "Das Kopieren in die Zwischenablage ist fehlgeschlagen. Siehe Konsole."
 
 #: templates/base.html:204
 msgid "Open Saved Framing"
-msgstr "Bildausschnitt speichern"
+msgstr "Gespeicherten Bildausschnitt öffnen"
 
 #: templates/base.html:205
 msgid "Delete Saved Framing"
-msgstr "Bildausschnitt speichern"
+msgstr "Gespeicherten Bildausschnitt löschen"
 
 #: templates/base.html:206
 msgid "Image upload failed. See console for details."
@@ -3095,7 +3094,7 @@ msgstr "Keine Autofokus Daten verfügbar."
 #: templates/base.html:217
 #, python-format
 msgid "Calculating month %(current)d of %(total)d..."
-msgstr "Berechnet %(current)d von %(total)d Objekten..."
+msgstr "Berechnet %(current)d von %(total)d Monaten..."
 
 #: templates/base.html:218
 msgid "No projects found. Adjust filters or add projects."
@@ -3217,7 +3216,7 @@ msgstr ""
 
 #: templates/base.html:253
 msgid "Effective FL"
-msgstr "Nur aktiv"
+msgstr "Effektive FL"
 
 #: templates/base.html:254
 msgid "Field of View"
@@ -3233,7 +3232,7 @@ msgstr "Pixel-Skala"
 
 #: templates/base.html:257
 msgid "No reducers defined."
-msgstr "Keine Ziele gesetzt."
+msgstr "Keine Reduzierer definiert."
 
 #: templates/base.html:258
 msgid "Slightly oversampled"
@@ -3241,7 +3240,7 @@ msgstr "Etwas oversampled"
 
 #: templates/base.html:259
 msgid "Slightly undersampled"
-msgstr "Benutzername"
+msgstr "Etwas undersampled"
 
 #: templates/base.html:262
 msgid "Add Your Own Inspiration!"
@@ -4694,7 +4693,7 @@ msgstr "Max Höhe"
 
 #: templates/index.html:152
 msgid "Culm."
-msgstr "Halm."
+msgstr "Kulm."
 
 #: templates/index.html:155
 msgid "Sessions"
@@ -4722,7 +4721,7 @@ msgstr "Max. Alt. °"
 
 #: templates/index.html:169
 msgid "Ang. Sep. °"
-msgstr "Der. Sep. °"
+msgstr "Winkelabst. °"
 
 #: templates/index.html:170
 msgid "e.g. Cyg"
@@ -5024,7 +5023,7 @@ msgstr "Flats"
 
 #: templates/journal_report.html:817
 msgid "Bias / Dark Flats"
-msgstr "Voreingenommenheit / Dunkle Wohnungen"
+msgstr "Bias / Dark Flats"
 
 #: templates/journal_report.html:829
 msgid "Exposure"
@@ -5212,7 +5211,7 @@ msgstr "RA (Std)"
 
 #: templates/mobile_add_object.html:31
 msgid "DEC (degrees)"
-msgstr "Grad (Grad)"
+msgstr "DEC (Grad)"
 
 #: templates/mobile_add_object.html:36
 msgid "Project Notes"
@@ -5334,7 +5333,7 @@ msgstr "Gain:"
 
 #: templates/mobile_journal_new.html:350
 msgid "Sub Exp"
-msgstr "Aufnahmen x "
+msgstr "Sub-Belichtung"
 
 #: templates/mobile_journal_new.html:355
 msgid "Cam Temp"
@@ -5434,7 +5433,7 @@ msgstr "Berechnung der Aufnahmefenster..."
 
 #: templates/mobile_outlook.html:179
 msgid "Error loading outlook."
-msgstr "Fehler beim Laden von Outlook."
+msgstr "Fehler beim Laden des Ausblicks."
 
 #: templates/mobile_outlook.html:180
 msgid "Outlook cache is generating. Please check back in a minute."
@@ -5484,7 +5483,7 @@ msgstr "Name filtern..."
 
 #: templates/mobile_up_now.html:991
 msgid "Apply"
-msgstr "Bewerbung"
+msgstr "Anwenden"
 
 #: templates/mobile_up_now.html:1000
 msgid "No objects found. Try adding one!"
@@ -5577,7 +5576,7 @@ msgstr "Fokus Pos"
 
 #: templates/project_report.html:1052 templates/project_report.html:1188
 msgid "Temp"
-msgstr "Wetter"
+msgstr "Temp"
 
 #: templates/project_report.html:1069
 msgid "V-Curves"
@@ -5617,13 +5616,13 @@ msgstr "Gain/Offset"
 
 #: templates/project_report.html:1200
 msgid "Exp"
-msgstr "Experiment"
+msgstr "Exp"
 
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Vorschläge aktualisieren"
 
 #~ msgid "-- Standalone Session --"
-#~ msgstr "Neue Sequenz hinzufügen"
+#~ msgstr "-- Eigenständige Sequenz --"
 
 #~ msgid "%(count)d object(s) have catalog differences pending review"
 #~ msgstr ""
@@ -5632,4 +5631,4 @@ msgstr "Experiment"
 #~ msgstr ""
 
 #~ msgid "No session photos yet."
-#~ msgstr "Keine Sequenz ausgewählt"
+#~ msgstr "Noch keine Sequenzfotos vorhanden."

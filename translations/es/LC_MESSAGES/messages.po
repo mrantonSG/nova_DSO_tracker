@@ -948,7 +948,7 @@ msgstr ""
 #: templates/_inspiration_section.html:640
 #: templates/_inspiration_section.html:641
 msgid "No Matching Targets"
-msgstr "Procesando objetivos..."
+msgstr "Sin objetivos coincidentes"
 
 #: templates/_inspiration_section.html:642
 msgid "Your current filters (Position Tab) are too restrictive."
@@ -956,7 +956,7 @@ msgstr "Sus filtros actuales (pestaña Posición) son demasiado restrictivos."
 
 #: templates/_inspiration_section.html:648
 msgid "Loading Object Database..."
-msgstr "Cargando historial..."
+msgstr "Cargando base de datos de objetos..."
 
 #: templates/_inspiration_section.html:649
 msgid "Please wait while we calculate visibility and fetch data."
@@ -964,7 +964,7 @@ msgstr "Espere mientras calculamos la visibilidad y obtenemos los datos."
 
 #: templates/_inspiration_section.html:652
 msgid "Database Empty"
-msgstr "Reparación de la base de datos completada."
+msgstr "Base de datos vacía"
 
 #: templates/_inspiration_section.html:653
 msgid "No objects found in your configuration."
@@ -1999,7 +1999,7 @@ msgstr "Ask Nova"
 
 #: templates/_journal_section.html:2607
 msgid "Analyzing your session..."
-msgstr "Analizando objetivos..."
+msgstr "Analizando tu sesión..."
 
 #: templates/_journal_section.html:2608
 msgid "Reviewing conditions..."
@@ -2020,7 +2020,7 @@ msgstr "Nova writing…"
 
 #: templates/_journal_section.html:2612
 msgid "words"
-msgstr "Contraseña"
+msgstr "palabras"
 
 #: templates/_journal_section.html:2613
 msgid "Nova has a summary ready. What would you like to do?"
@@ -2028,7 +2028,7 @@ msgstr "Nova tiene un resumen listo. ¿Qué te gustaría hacer?"
 
 #: templates/_journal_section.html:2614 templates/graph_view.html:488
 msgid "Overwrite"
-msgstr "Visión general"
+msgstr "Sobrescribir"
 
 #: templates/_journal_section.html:2615 templates/graph_view.html:489
 msgid "Append"
@@ -2753,7 +2753,7 @@ msgstr "Error:"
 
 #: templates/base.html:114
 msgid "None"
-msgstr "Notas"
+msgstr "Ninguno"
 
 #: templates/base.html:115
 msgid "Mode"
@@ -2765,7 +2765,7 @@ msgstr "Simulado"
 
 #: templates/base.html:117
 msgid "sep"
-msgstr "pasos"
+msgstr "sep"
 
 #: templates/base.html:119
 msgid "Importing..."
@@ -2798,23 +2798,23 @@ msgstr "Esperando tarea en segundo plano..."
 
 #: templates/base.html:133
 msgid "No data available or error. Check server logs."
-msgstr "No hay paquetes de catálogo disponibles en este servidor todavía."
+msgstr "No hay datos disponibles o se produjo un error. Compruebe los registros del servidor."
 
 #: templates/base.html:134
 msgid "Error fetching data. Check console for details."
-msgstr "Error al renderizar la cuadrícula. Compruebe la consola."
+msgstr "Error al recuperar los datos. Compruebe los detalles en la consola."
 
 #: templates/base.html:135
 msgid "Loading altitude data..."
-msgstr "Cargando historial..."
+msgstr "Cargando datos de altitud..."
 
 #: templates/base.html:136
 msgid "Altitude data unavailable."
-msgstr "Imagen no disponible"
+msgstr "Datos de altitud no disponibles."
 
 #: templates/base.html:137
 msgid "Select a saved view..."
-msgstr "Eliminar vista seleccionada"
+msgstr "Seleccionar una vista guardada..."
 
 #: templates/base.html:138
 msgid "Error loading views"
@@ -2852,23 +2852,23 @@ msgstr "Reductores / Extensores"
 
 #: templates/base.html:149
 msgid "Oversampled"
-msgstr "Completado"
+msgstr "Sobremuestreado"
 
 #: templates/base.html:150
 msgid "Well sampled"
-msgstr "Escala de píxel"
+msgstr "Bien muestreado"
 
 #: templates/base.html:151
 msgid "Undersampled"
-msgstr "Nombre de usuario"
+msgstr "Submuestreado"
 
 #: templates/base.html:152
 msgid "No telescopes defined."
-msgstr "No hay objetivos definidos."
+msgstr "No hay telescopios definidos."
 
 #: templates/base.html:153
 msgid "No cameras defined."
-msgstr "No hay objetivos definidos."
+msgstr "No hay cámaras definidas."
 
 #: templates/base.html:154
 msgid "Error loading shared items."
@@ -2896,7 +2896,7 @@ msgstr "Error: No se ha podido encontrar el campo de máscara de horizonte."
 
 #: templates/base.html:160
 msgid "Error reading file. Please try again."
-msgstr "Error al añadir filtro."
+msgstr "Error al leer el archivo. Por favor, inténtalo de nuevo."
 
 #: templates/base.html:161
 msgid "No valid horizon data found."
@@ -2936,7 +2936,7 @@ msgstr "Error al cargar datos."
 
 #: templates/base.html:172
 msgid "Confirm merge?"
-msgstr "Confirmar añadir"
+msgstr "¿Confirmar fusión?"
 
 #: templates/base.html:173
 msgid "All duplicates resolved."
@@ -2944,7 +2944,7 @@ msgstr "Soluciones de placa"
 
 #: templates/base.html:174
 msgid "Please enter an object identifier."
-msgstr "Por favor, inicie sesión para ver los detalles del objeto."
+msgstr "Por favor, introduzca un identificador de objeto."
 
 #: templates/base.html:175
 msgid "Checking your local library..."
@@ -2961,11 +2961,11 @@ msgstr "Encontrado: %(name)s. Detalles cargados desde SIMBAD."
 
 #: templates/base.html:178
 msgid "SIMBAD lookup failed."
-msgstr "Falló la copia al portapapeles."
+msgstr "Falló la búsqueda en SIMBAD."
 
 #: templates/base.html:179
 msgid "selected"
-msgstr "0 seleccionados"
+msgstr "seleccionados"
 
 #: templates/base.html:180 templates/mobile_object_detail.html:589
 msgid "No imaging opportunities found."
@@ -2973,7 +2973,7 @@ msgstr "Oportunidades de imagen"
 
 #: templates/base.html:183
 msgid "Report frame not found."
-msgstr "Usuario no encontrado."
+msgstr "Marco de informe no encontrado."
 
 #: templates/base.html:184
 msgid "Preparing Print View..."
@@ -2982,7 +2982,7 @@ msgstr "Preparando la vista de impresión..."
 #: templates/base.html:185
 #, python-format
 msgid "Merging Session %(current)d/%(total)d..."
-msgstr "Fusionando Sesión %(current)d/%(total)d...%(current)d"
+msgstr "Fusionando Sesión %(current)d/%(total)d..."
 
 #: templates/base.html:187
 msgid "Add Session"
@@ -3016,7 +3016,7 @@ msgstr "Añadir al calendario"
 #: templates/base.html:196
 #, python-format
 msgid "Error loading opportunities: %(error)s"
-msgstr "Error al añadir componente: %(error)s"
+msgstr "Error al cargar oportunidades: %(error)s"
 
 #: templates/base.html:197
 #, python-format
@@ -3042,11 +3042,11 @@ msgstr "Los ajustes de encuadre se guardan en la base de datos."
 
 #: templates/base.html:201
 msgid "Error saving"
-msgstr "Error al cargar datos."
+msgstr "Error al guardar"
 
 #: templates/base.html:202
 msgid "Please select a rig first."
-msgstr "Por favor, seleccione un archivo .zip válido para importar."
+msgstr "Por favor, seleccione un rig primero."
 
 #: templates/base.html:203
 msgid "Failed to copy to clipboard. See console."
@@ -3054,11 +3054,11 @@ msgstr "Error al copiar al portapapeles. Ver consola."
 
 #: templates/base.html:204
 msgid "Open Saved Framing"
-msgstr "Guardar encuadre"
+msgstr "Abrir encuadre guardado"
 
 #: templates/base.html:205
 msgid "Delete Saved Framing"
-msgstr "Guardar encuadre"
+msgstr "Eliminar encuadre guardado"
 
 #: templates/base.html:206
 msgid "Image upload failed. See console for details."
@@ -3070,7 +3070,7 @@ msgstr "No hay datos de la línea de tiempo para mostrar."
 
 #: templates/base.html:210
 msgid "No PHD2 guide log data available."
-msgstr "No hay datos de inicio de sesión disponibles todavía"
+msgstr "No hay datos del registro de guiado PHD2 disponibles."
 
 #: templates/base.html:211
 msgid "Full"
@@ -3078,20 +3078,20 @@ msgstr "Completo"
 
 #: templates/base.html:213
 msgid "No dither data available."
-msgstr "No hay datos de inicio de sesión disponibles todavía"
+msgstr "No hay datos de dither disponibles."
 
 #: templates/base.html:214
 msgid "No autofocus data available."
-msgstr "No hay datos de inicio de sesión disponibles todavía"
+msgstr "No hay datos de enfoque automático disponibles."
 
 #: templates/base.html:217
 #, python-format
 msgid "Calculating month %(current)d of %(total)d..."
-msgstr "Calculados %%(current)d de %%(total)d objetos..."
+msgstr "Calculando mes %(current)d de %(total)d..."
 
 #: templates/base.html:218
 msgid "No projects found. Adjust filters or add projects."
-msgstr "No se encontraron objetos. ¡Intente añadir uno!"
+msgstr "No se encontraron proyectos. Ajuste los filtros o añada proyectos."
 
 #: templates/base.html:219
 msgid "Plotly library not loaded. Please refresh."
@@ -3099,7 +3099,7 @@ msgstr "La biblioteca Plotly no se ha cargado. Por favor, actualice."
 
 #: templates/base.html:222
 msgid "Loading help content..."
-msgstr "Cargando historial..."
+msgstr "Cargando contenido de ayuda..."
 
 #: templates/base.html:223
 msgid "Error: Help content returned empty."
@@ -3172,19 +3172,17 @@ msgstr "Mostrando objetos %(count)d"
 #: templates/base.html:245
 #, python-format
 msgid "Showing %(shown)d of %(total)d objects"
-msgstr "Calculados %%(shown)d de %%(total)d objetos..."
+msgstr "Mostrando %(shown)d de %(total)d objetos"
 
 #: templates/base.html:246
 #, python-format
 msgid "Are you sure you want to %(action)s %(count)d objects?"
-msgstr ""
-"¿Estás seguro de que quieres %(action)s %(count)d "
-"objetos?%(action)s%(count)d"
+msgstr "¿Estás seguro de que quieres %(action)s %(count)d objetos?"
 
 #: templates/base.html:247
 #, python-format
 msgid "Fetching details for %(name)s..."
-msgstr "Buscando %%(name)s..."
+msgstr "Obteniendo detalles de %(name)s..."
 
 #: templates/base.html:250
 #, python-format
@@ -3211,7 +3209,7 @@ msgstr ""
 
 #: templates/base.html:253
 msgid "Effective FL"
-msgstr "Solo activos"
+msgstr "FL efectiva"
 
 #: templates/base.html:254
 msgid "Field of View"
@@ -3227,15 +3225,15 @@ msgstr "Escala de píxel"
 
 #: templates/base.html:257
 msgid "No reducers defined."
-msgstr "No hay objetivos definidos."
+msgstr "No hay reductores definidos."
 
 #: templates/base.html:258
 msgid "Slightly oversampled"
-msgstr "Completado"
+msgstr "Ligeramente sobremuestreado"
 
 #: templates/base.html:259
 msgid "Slightly undersampled"
-msgstr "Nombre de usuario"
+msgstr "Ligeramente submuestreado"
 
 #: templates/base.html:262
 msgid "Add Your Own Inspiration!"
@@ -3301,7 +3299,7 @@ msgstr "Consultando las cartas astrales..."
 
 #: templates/base.html:278 templates/graph_view.html:482
 msgid "Checking your rigs..."
-msgstr "Busca en tu biblioteca local..."
+msgstr "Busca en tus rigs..."
 
 #: templates/base.html:279
 msgid "Scanning cosmos..."
@@ -4980,7 +4978,7 @@ msgstr "Temp (establecida/promedio):"
 
 #: templates/journal_report.html:779
 msgid "FL / Ratio:"
-msgstr "LF / Relación:"
+msgstr "FL / Relación:"
 
 #: templates/journal_report.html:783
 msgid "Scale / FOV:"
@@ -5432,9 +5430,7 @@ msgstr ""
 
 #: templates/mobile_outlook.html:182
 msgid "No imaging opportunities found for your pinned objects."
-msgstr ""
-"No se encontraron oportunidades de imágenes para tus objetos fijados.No se "
-"encontraron oportunidades de imágenes para sus proyectos activos."
+msgstr "No se encontraron oportunidades de imágenes para tus objetos fijados."
 
 #: templates/mobile_up_now.html:874
 msgid "Scanning Sky..."
