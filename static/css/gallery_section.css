@@ -24,7 +24,7 @@
 }
 
 .gallery-tile:hover {
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14);
+    box-shadow: var(--shadow-tile-hover-lg);
     transform: scale(1.02);
     z-index: 1;
 }
@@ -104,7 +104,7 @@
 }
 
 [data-theme="dark"] .gallery-tile:hover {
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.48);
+    box-shadow: var(--shadow-tile-hover-lg);
 }
 
 [data-theme="dark"] .gallery-tile-image {

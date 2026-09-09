@@ -53,6 +53,8 @@
   --shadow-modal: 0 5px 15px rgba(0, 0, 0, 0.3);      /* Standard modals */
   --shadow-float: 0 10px 25px rgba(0, 0, 0, 0.2);     /* Floating panels, progress */
   --shadow-overlay: 0 12px 32px rgba(0, 0, 0, 0.25);  /* Fullscreen overlays */
+  --shadow-tile-hover-lg: 0 6px 20px rgba(0, 0, 0, 0.14);   /* Gallery tiles */
+  --shadow-tile-hover-sm: 0 4px 16px rgba(0, 0, 0, 0.1);     /* Astro/Inspiration tiles */
 
   /* =================================================================
      INPUT TOKENS
@@ -131,6 +133,8 @@
   --shadow-modal: 0 5px 15px rgba(0, 0, 0, 0.5);
   --shadow-float: 0 10px 25px rgba(0, 0, 0, 0.4);
   --shadow-overlay: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --shadow-tile-hover-lg: 0 6px 24px rgba(0, 0, 0, 0.48);
+  --shadow-tile-hover-sm: 0 4px 20px rgba(0, 0, 0, 0.4);
 
   /* Mobile interface variables - dark theme overrides */
   --primary-color: #8ec8da;
