@@ -19,6 +19,7 @@
     height: 100%;
     overflow: hidden;
     position: relative;
+    cursor: pointer;
     transition: box-shadow 0.15s ease;
 }
 

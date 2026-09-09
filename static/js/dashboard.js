@@ -917,6 +917,18 @@
                 imgEl.onload = () => { imgEl.style.opacity = '1'; };
                 imgEl.src = session.image_url;
 
+                tile.addEventListener('click', function() {
+                    const objectName = session.object_name;
+                    const sessionId = session.id;
+                    if (objectName && sessionId) {
+                        let url = `/graph_dashboard/${encodeURIComponent(objectName)}?session_id=${encodeURIComponent(sessionId)}&tab=journal`;
+                        if (session.location_name) {
+                            url += `&location=${encodeURIComponent(session.location_name)}`;
+                        }
+                        window.location.href = url;
+                    }
+                });
+
                 container.appendChild(tile);
             }
         }
