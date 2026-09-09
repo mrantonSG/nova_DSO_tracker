@@ -5,7 +5,7 @@
 /* Card grid with 1px gap using border as separator (matches .inspiration-grid) */
 .gallery-grid-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
     gap: 1px;
     background: var(--nova-border, var(--border-medium));
     border-radius: var(--radius-lg);
