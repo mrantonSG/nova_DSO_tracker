@@ -75,33 +75,89 @@
         let totalChunks = 12;
         let completedChunks = 0;
 
-        // Fetch all chunks in parallel
+        // Small dismissible notice for partially loaded data. Reuses the
+        // existing .translation-banner* classes (theme-aware, no new tokens).
+        const showPartialChunkBanner = (failedCount, total) => {
+            const existing = document.getElementById('heatmap-partial-banner');
+            if (existing) existing.remove();
+            const banner = document.createElement('div');
+            banner.id = 'heatmap-partial-banner';
+            banner.className = 'translation-banner';
+            const content = document.createElement('div');
+            content.className = 'translation-banner-content';
+            const text = document.createElement('span');
+            text.className = 'translation-banner-text';
+            text.textContent = failedCount === 1
+                ? `1 of ${total} chunks is unavailable - some time ranges are missing from this heatmap.`
+                : `${failedCount} of ${total} chunks are unavailable - some time ranges are missing from this heatmap.`;
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'translation-banner-close';
+            closeBtn.setAttribute('aria-label', 'Close');
+            closeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+            closeBtn.addEventListener('click', () => banner.remove());
+            content.appendChild(text);
+            banner.appendChild(content);
+            banner.appendChild(closeBtn);
+            plotDiv.insertAdjacentElement('beforebegin', banner);
+        };
+
+        // One fetch attempt (behavior unchanged from the old inline chain)
+        const fetchChunkAttempt = (index) => fetch(`/api/get_yearly_heatmap_chunk?chunk_index=${index}&location_name=${encodeURIComponent(currentLoc)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) throw new Error(data.error);
+                completedChunks++;
+                const percent = Math.round((completedChunks / totalChunks) * 100);
+                if (progressBar) progressBar.style.width = `${percent}%`;
+                if (loadingText) loadingText.textContent = window.t('calculating_month')
+                    .replace('{current}', completedChunks)
+                    .replace('{total}', totalChunks);
+                return data;
+            });
+
+        // Fetch all chunks in parallel. A failed chunk retries once, then
+        // resolves to a sentinel instead of rejecting, so Promise.all keeps
+        // ordering and array length intact and partial data can still render.
         const chunkPromises = Array.from({ length: totalChunks }, (_, index) => {
-            return fetch(`/api/get_yearly_heatmap_chunk?chunk_index=${index}&location_name=${encodeURIComponent(currentLoc)}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.error) throw new Error(data.error);
-                    completedChunks++;
-                    const percent = Math.round((completedChunks / totalChunks) * 100);
-                    if (progressBar) progressBar.style.width = `${percent}%`;
-                    if (loadingText) loadingText.textContent = window.t('calculating_month')
-                        .replace('{current}', completedChunks)
-                        .replace('{total}', totalChunks);
-                    return data;
+            return fetchChunkAttempt(index).catch(err => {
+                console.warn(`[heatmap] chunk ${index} failed, retrying once`, err);
+                return fetchChunkAttempt(index).catch(err2 => {
+                    console.error(`[heatmap] chunk ${index} failed after retry`, err2);
+                    return { failed: true, chunk_index: index, error: err2 && err2.message ? err2.message : String(err2) };
                 });
+            });
         });
 
         Promise.all(chunkPromises)
             .then(chunks => {
+                // Filter to successful chunks (original index order preserved)
+                const successfulChunks = chunks.filter(data => !data.failed);
+                const failedCount = totalChunks - successfulChunks.length;
+
+                if (successfulChunks.length === 0) {
+                    console.error('[heatmap] all chunks failed to load', chunks);
+                    isFetching = false;
+                    if (loadingDiv) loadingDiv.style.display = "none";
+                    const errorDiv = document.createElement('div');
+                    errorDiv.style.color = 'red';
+                    errorDiv.style.textAlign = 'center';
+                    errorDiv.style.padding = '20px';
+                    const firstError = chunks.map(c => c.error).find(Boolean);
+                    errorDiv.textContent = `Error: ${firstError || 'unknown error'} (all ${totalChunks} chunks failed to load)`;
+                    plotDiv.innerHTML = '';
+                    plotDiv.appendChild(errorDiv);
+                    return;
+                }
+
                 // Stitch x-axis columns (concat in chunk order)
-                chunks.forEach(data => {
+                successfulChunks.forEach(data => {
                     stitchedData.x = stitchedData.x.concat(data.x);
                     stitchedData.dates = stitchedData.dates.concat(data.dates);
                     stitchedData.moon_phases = stitchedData.moon_phases.concat(data.moon_phases);
                 });
 
-                // Metadata (take from last chunk — consistent across all)
-                const last = chunks[chunks.length - 1];
+                // Metadata (take from last successful chunk — consistent across all)
+                const last = successfulChunks[successfulChunks.length - 1];
                 stitchedData.y = last.y;
                 stitchedData.ids = last.ids;
                 stitchedData.active = last.active;
@@ -112,9 +168,10 @@
                 stitchedData.sbs = last.sbs;
 
                 // Stitch z rows from z_chunk arrays (row-by-row concat)
-                chunks.forEach((data, chunkIdx) => {
+                successfulChunks.forEach((data, chunkIdx) => {
                     if (chunkIdx === 0) {
-                        stitchedData.z = data.z_chunk;
+                        // Shallow copy: later in-place row concats must not mutate the fetched chunk
+                        stitchedData.z = [...data.z_chunk];
                     } else {
                         for (let i = 0; i < data.z_chunk.length; i++) {
                             if (stitchedData.z[i]) {
@@ -133,13 +190,27 @@
                 } catch (e) { console.warn("LocalStorage quota exceeded", e); }
 
                 if (loadingDiv) loadingDiv.style.display = "none";
+
+                if (failedCount > 0) {
+                    showPartialChunkBanner(failedCount, totalChunks);
+                } else {
+                    const staleBanner = document.getElementById('heatmap-partial-banner');
+                    if (staleBanner) staleBanner.remove();
+                }
+
                 renderHeatmapFromCache();
             })
             .catch(err => {
                 console.error(err);
                 isFetching = false;
                 if (loadingDiv) loadingDiv.style.display = "none";
-                plotDiv.innerHTML = `<div style="color:red; text-align:center; padding:20px;">Error: ${err.message}</div>`;
+                const errorDiv = document.createElement('div');
+                errorDiv.style.color = 'red';
+                errorDiv.style.textAlign = 'center';
+                errorDiv.style.padding = '20px';
+                errorDiv.textContent = `Error: ${err.message}`;
+                plotDiv.innerHTML = '';
+                plotDiv.appendChild(errorDiv);
             });
     }
 
