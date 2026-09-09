@@ -927,6 +927,12 @@
             }
             // --- END KEY CHANGE ---
 
+            // Description textareas can't measure scrollHeight while their tab
+            // panel is display:none, so re-run the resize once it's visible.
+            if (activeTab === 'objects' && window.resizeAllObjectDescriptionTextareas) {
+                window.resizeAllObjectDescriptionTextareas();
+            }
+
             if (activeTab === 'rigs') fetchRigsData();
             if (activeTab === 'shared' && contentPanels['shared']) { fetchSharedItems(); }
             localStorage.setItem('activeConfigTab', activeTab);

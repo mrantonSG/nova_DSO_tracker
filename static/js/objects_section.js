@@ -522,6 +522,12 @@
         el.style.height = Math.min(el.scrollHeight, 400) + 'px';
     }
 
+    // Exposed so config_form.js can re-run the resize once the Objects tab
+    // panel is actually visible (scrollHeight is unreliable while hidden).
+    window.resizeAllObjectDescriptionTextareas = function() {
+        document.querySelectorAll('.obj-description-textarea').forEach(autoResizeDescriptionTextarea);
+    };
+
     // --- Object image lightbox ---
     let objectImageLightboxController = null;
     function openObjectImageLightbox(src) {
@@ -792,7 +798,7 @@
         window.objectScriptLoaded = true;
 
         document.addEventListener('DOMContentLoaded', () => {
-            document.querySelectorAll('.obj-description-textarea').forEach(autoResizeDescriptionTextarea);
+            window.resizeAllObjectDescriptionTextareas();
             // Attach event listeners to tab buttons
             const tabButtons = document.querySelectorAll('#objects-tab-content .detail-tab-button[data-tab]');
             tabButtons.forEach(button => {
