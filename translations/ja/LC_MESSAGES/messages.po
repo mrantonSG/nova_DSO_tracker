@@ -912,7 +912,7 @@ msgstr "現在のフィルター（ポジションタブ）は制限が多すぎ
 
 #: templates/_inspiration_section.html:648
 msgid "Loading Object Database..."
-msgstr "履歴を読み込み中..."
+msgstr "オブジェクトデータベースを読み込み中..."
 
 #: templates/_inspiration_section.html:649
 msgid "Please wait while we calculate visibility and fetch data."
@@ -960,7 +960,7 @@ msgstr "評価"
 
 #: templates/_journal_section.html:1648
 msgid "Click to view project details"
-msgstr "オブジェクトの詳細を表示するにはログインしてください。"
+msgstr "クリックしてプロジェクトの詳細を表示"
 
 #: templates/_journal_section.html:1652 templates/_journal_section.html:2075
 #: templates/_project_subtab.html:150
@@ -1431,7 +1431,7 @@ msgstr "このプロジェクトを削除してもよろしいですか？リン
 
 #: templates/_journal_section.html:2081
 msgid "Delete Project"
-msgstr "プロジェクトを編集"
+msgstr "プロジェクトを削除"
 
 #: templates/_journal_section.html:2088 templates/project_report.html:6
 #: templates/project_report.html:794
@@ -1556,7 +1556,7 @@ msgstr "保留中"
 #: templates/_journal_section.html:2221 templates/_journal_section.html:2291
 #: templates/base.html:122
 msgid "Completed"
-msgstr "コピーしました！"
+msgstr "完了"
 
 #: templates/_journal_section.html:2221 templates/_journal_section.html:2291
 #: templates/base.html:124
@@ -1604,7 +1604,7 @@ msgstr "左側のリストからセッションまたはプロジェクトを選
 
 #: templates/_journal_section.html:2282
 msgid "Create Project"
-msgstr "進行中のプロジェクト"
+msgstr "プロジェクトを作成"
 
 #: templates/_journal_section.html:2290
 msgid "e.g., M31 Broadband"
@@ -1640,7 +1640,7 @@ msgstr "非アクティブ"
 
 #: templates/_journal_section.html:2327
 msgid "Link to Project (Optional)"
-msgstr "インスピレーションコンテンツ（任意）"
+msgstr "プロジェクトへのリンク（任意）"
 
 #: templates/_journal_section.html:2338
 msgid "-- Create New Project --"
@@ -1697,7 +1697,7 @@ msgstr "以下の設定を手動で入力してください"
 
 #: templates/_journal_section.html:2359
 msgid "View rig details"
-msgstr "ディザの詳細："
+msgstr "リグの詳細を表示"
 
 #: templates/_journal_section.html:2364 templates/journal_form.html:96
 msgid "Telescope Setup Notes:"
@@ -1725,7 +1725,7 @@ msgstr "例：オリオン"
 
 #: templates/_journal_section.html:2374
 msgid "Dither Pixels:"
-msgstr "ディザの詳細："
+msgstr "ディザピクセル："
 
 #: templates/_journal_section.html:2377
 msgid "e.g. 7"
@@ -1741,7 +1741,7 @@ msgstr "例：34"
 
 #: templates/_journal_section.html:2387
 msgid "Dither Notes (optional):"
-msgstr "リデューサー／エクステンダー（オプション）："
+msgstr "ディザメモ（任意）："
 
 #: templates/_journal_section.html:2389
 msgid "Sub Exposure (sec):"
@@ -1753,7 +1753,7 @@ msgstr "ライトサブの数："
 
 #: templates/_journal_section.html:2392 templates/journal_form.html:135
 msgid "Gain:"
-msgstr "さらに："
+msgstr "ゲイン："
 
 #: templates/_journal_section.html:2392 templates/journal_form.html:139
 msgid "Offset:"
@@ -1761,7 +1761,7 @@ msgstr "オフセット:"
 
 #: templates/_journal_section.html:2393 templates/journal_form.html:145
 msgid "Camera Temp Setpoint (°C):"
-msgstr "室温設定値（°C）："
+msgstr "カメラ温度設定値（°C）："
 
 #: templates/_journal_section.html:2393 templates/journal_form.html:149
 msgid "Camera Temp Actual Avg (°C):"
@@ -1813,7 +1813,7 @@ msgstr "名前でフィルター..."
 
 #: templates/_journal_section.html:2444
 msgid "+ Add Filter"
-msgstr "フィルターの追加エラー。"
+msgstr "+ フィルターを追加"
 
 #: templates/_journal_section.html:2451 templates/journal_form.html:179
 msgid "e.g., Library match, Taken post-session"
@@ -1857,7 +1857,7 @@ msgstr "新しい最終画像をアップロード（任意、最大5MB）"
 
 #: templates/_journal_section.html:2477
 msgid "Session Logs (Optional)"
-msgstr "場所を選択（任意）"
+msgstr "セッションログ（任意）"
 
 #: templates/_journal_section.html:2480
 msgid "ASIAIR Log (Autorun)"
@@ -1889,15 +1889,15 @@ msgstr "検索対象"
 
 #: templates/_journal_section.html:2544
 msgid "Sort order"
-msgstr "ゲストモード"
+msgstr "並べ替え順"
 
 #: templates/_journal_section.html:2545
 msgid "Recent"
-msgstr "プロジェクト"
+msgstr "最近"
 
 #: templates/_journal_section.html:2546
 msgid "Most Hours"
-msgstr "RA（時間）"
+msgstr "最多時間"
 
 #: templates/_journal_section.html:2548
 msgid "In Progress only"
@@ -1978,7 +1978,7 @@ msgstr "Nova がサマリーを用意しました。どうしますか？"
 
 #: templates/_journal_section.html:2614 templates/graph_view.html:488
 msgid "Overwrite"
-msgstr "概要"
+msgstr "上書き"
 
 #: templates/_journal_section.html:2615 templates/graph_view.html:489
 msgid "Append"
@@ -2077,7 +2077,7 @@ msgstr "私によって共有されました"
 #: templates/base.html:120 templates/config_form.html:618
 #: templates/config_form.html:647 templates/config_form.html:683
 msgid "Imported"
-msgstr "輸入品"
+msgstr "インポート済み"
 
 #: templates/_objects_section.html:59 templates/_objects_section.html:177
 #: templates/_objects_section.html:326 templates/graph_view.html:193
@@ -2741,7 +2741,7 @@ msgstr "グリッドのレンダリングエラー。コンソールを確認し
 
 #: templates/base.html:135
 msgid "Loading altitude data..."
-msgstr "履歴を読み込み中..."
+msgstr "高度データを読み込み中..."
 
 #: templates/base.html:136
 msgid "Altitude data unavailable."
@@ -2787,7 +2787,7 @@ msgstr "レデューサー/エクステンダー"
 
 #: templates/base.html:149
 msgid "Oversampled"
-msgstr "コピーしました！"
+msgstr "オーバーサンプリング"
 
 #: templates/base.html:150
 msgid "Well sampled"
@@ -2795,15 +2795,15 @@ msgstr "ピクセルスケール"
 
 #: templates/base.html:151
 msgid "Undersampled"
-msgstr "ユーザー名"
+msgstr "アンダーサンプリング"
 
 #: templates/base.html:152
 msgid "No telescopes defined."
-msgstr "目標は設定されていません。"
+msgstr "望遠鏡は設定されていません。"
 
 #: templates/base.html:153
 msgid "No cameras defined."
-msgstr "目標は設定されていません。"
+msgstr "カメラは設定されていません。"
 
 #: templates/base.html:154
 msgid "Error loading shared items."
@@ -2831,7 +2831,7 @@ msgstr "エラー：水平マスクフィールドが見つかりません。"
 
 #: templates/base.html:160
 msgid "Error reading file. Please try again."
-msgstr "フィルターの追加エラー。"
+msgstr "ファイルの読み込み中にエラーが発生しました。もう一度お試しください。"
 
 #: templates/base.html:161
 msgid "No valid horizon data found."
@@ -2851,7 +2851,7 @@ msgstr "一括処理に失敗した。"
 
 #: templates/base.html:167
 msgid "Bulk fetch details failed."
-msgstr "詳細を取得"
+msgstr "詳細の一括取得に失敗しました。"
 
 #: templates/base.html:168
 msgid "No potential duplicates found."
@@ -2875,15 +2875,15 @@ msgstr "統合を確認しますか？"
 
 #: templates/base.html:173
 msgid "All duplicates resolved."
-msgstr "プレートが解決する"
+msgstr "すべての重複が解決されました。"
 
 #: templates/base.html:174
 msgid "Please enter an object identifier."
-msgstr "オブジェクトの詳細を表示するにはログインしてください。"
+msgstr "オブジェクトの識別子を入力してください。"
 
 #: templates/base.html:175
 msgid "Checking your local library..."
-msgstr "お近くの図書館を調べてみると...。"
+msgstr "ローカルライブラリを確認中..."
 
 #: templates/base.html:176
 msgid "Object found in your library."
@@ -2896,7 +2896,7 @@ msgstr "見つかりました: %(name)s。詳細は SIMBAD から読み込まれ
 
 #: templates/base.html:178
 msgid "SIMBAD lookup failed."
-msgstr "クリップボードへのコピーに失敗しました。"
+msgstr "SIMBAD検索に失敗しました。"
 
 #: templates/base.html:179
 msgid "selected"
@@ -2908,7 +2908,7 @@ msgstr "イメージングの機会が見つかりませんでした。"
 
 #: templates/base.html:183
 msgid "Report frame not found."
-msgstr "ユーザーが見つかりません。"
+msgstr "レポートフレームが見つかりません。"
 
 #: templates/base.html:184
 msgid "Preparing Print View..."
@@ -2951,7 +2951,7 @@ msgstr "カレンダーに追加"
 #: templates/base.html:196
 #, python-format
 msgid "Error loading opportunities: %(error)s"
-msgstr "コンポーネントの追加中にエラーが発生しました: %(error)s"
+msgstr "イメージング機会の読み込み中にエラーが発生しました: %(error)s"
 
 #: templates/base.html:197
 #, python-format
@@ -3001,7 +3001,7 @@ msgstr "表示するタイムラインデータがない。"
 
 #: templates/base.html:210
 msgid "No PHD2 guide log data available."
-msgstr "ログインデータはまだ利用できません"
+msgstr "PHD2ガイドログデータは利用できません。"
 
 #: templates/base.html:211
 msgid "Full"
@@ -3009,11 +3009,11 @@ msgstr "フル"
 
 #: templates/base.html:213
 msgid "No dither data available."
-msgstr "ログインデータはまだ利用できません"
+msgstr "ディザデータは利用できません。"
 
 #: templates/base.html:214
 msgid "No autofocus data available."
-msgstr "ログインデータはまだ利用できません"
+msgstr "オートフォーカスデータは利用できません。"
 
 #: templates/base.html:217
 #, python-format
@@ -3022,7 +3022,7 @@ msgstr "%%(total)d個中%%(current)d個のオブジェクトを計算済み..."
 
 #: templates/base.html:218
 msgid "No projects found. Adjust filters or add projects."
-msgstr "オブジェクトが見つかりません。追加してみてください！"
+msgstr "プロジェクトが見つかりません。フィルターを調整するか、プロジェクトを追加してください。"
 
 #: templates/base.html:219
 msgid "Plotly library not loaded. Please refresh."
@@ -3030,7 +3030,7 @@ msgstr "Plotly ライブラリが読み込まれません。更新してくだ�
 
 #: templates/base.html:222
 msgid "Loading help content..."
-msgstr "履歴を読み込み中..."
+msgstr "ヘルプの内容を読み込み中..."
 
 #: templates/base.html:223
 msgid "Error: Help content returned empty."
@@ -3156,15 +3156,15 @@ msgstr "ピクセルスケール"
 
 #: templates/base.html:257
 msgid "No reducers defined."
-msgstr "目標は設定されていません。"
+msgstr "レデューサー/エクステンダーは設定されていません。"
 
 #: templates/base.html:258
 msgid "Slightly oversampled"
-msgstr "コピーしました！"
+msgstr "ややオーバーサンプリング"
 
 #: templates/base.html:259
 msgid "Slightly undersampled"
-msgstr "ユーザー名"
+msgstr "ややアンダーサンプリング"
 
 #: templates/base.html:262
 msgid "Add Your Own Inspiration!"
@@ -3227,7 +3227,7 @@ msgstr "星図を見ながら..."
 
 #: templates/base.html:278 templates/graph_view.html:482
 msgid "Checking your rigs..."
-msgstr "お近くの図書館を調べてみると...。"
+msgstr "リグを確認中..."
 
 #: templates/base.html:279
 msgid "Scanning cosmos..."
@@ -3882,7 +3882,7 @@ msgstr "不良なシーイング (> 4.0\" FWHM)"
 
 #: templates/config_form.html:563
 msgid "Sort rigs by:"
-msgstr "黒の王国の都市："
+msgstr "リグの並べ替え："
 
 #: templates/config_form.html:565
 msgid "Name (A→Z)"
