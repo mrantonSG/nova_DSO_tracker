@@ -462,11 +462,22 @@
                 const inputEl = document.getElementById(inputId);
                 if (inputEl) inputEl.click();
                 break;
+            case 'preview-object-image':
+                e.preventDefault();
+                if (actionBtn.src) openObjectImageLightbox(actionBtn.src);
+                break;
+            case 'close-object-image-lightbox':
+                e.preventDefault();
+                if (objectImageLightboxController) objectImageLightboxController.close();
+                break;
         }
     });
 
     // --- Event Delegation for Input/Change Events ---
     document.addEventListener('input', function(e) {
+        if (e.target.matches('.obj-image-url-input')) {
+            debounceObjectThumbPreview(e.target);
+        }
         const actionBtn = e.target.closest('[data-action]');
         if (!actionBtn) return;
         const action = actionBtn.dataset.action;
@@ -474,6 +485,50 @@
             filterObjectsList();
         }
     });
+
+    // --- Inspiration image thumbnail preview ---
+    const _thumbPreviewDebounceTimers = {};
+    function debounceObjectThumbPreview(inputEl) {
+        const key = inputEl.id;
+        clearTimeout(_thumbPreviewDebounceTimers[key]);
+        _thumbPreviewDebounceTimers[key] = setTimeout(function() {
+            updateObjectThumbPreview(inputEl);
+        }, 300);
+    }
+
+    function updateObjectThumbPreview(inputEl) {
+        const targetId = inputEl.dataset.thumbTarget;
+        if (!targetId) return;
+        const img = document.getElementById(targetId);
+        if (!img) return;
+        const placeholder = img.nextElementSibling;
+        const url = inputEl.value.trim();
+        if (!url) {
+            img.style.display = 'none';
+            img.removeAttribute('src');
+            if (placeholder) placeholder.style.display = 'flex';
+            return;
+        }
+        if (placeholder) placeholder.style.display = 'none';
+        img.style.display = '';
+        img.src = url;
+    }
+
+    // --- Object image lightbox ---
+    let objectImageLightboxController = null;
+    function openObjectImageLightbox(src) {
+        const img = document.getElementById('object-image-lightbox-img');
+        if (img) img.src = src;
+        if (!objectImageLightboxController) {
+            objectImageLightboxController = new window.novaState.fn.ModalController('object-image-lightbox', {
+                visibleClass: 'is-visible',
+                closeOnBackdrop: true,
+                closeOnEscape: true,
+                skipFocus: true
+            });
+        }
+        objectImageLightboxController.open();
+    }
 
     document.addEventListener('change', function(e) {
         const actionBtn = e.target.closest('[data-action]');
