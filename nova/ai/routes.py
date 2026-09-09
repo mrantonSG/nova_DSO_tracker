@@ -528,9 +528,11 @@ def generate_dso_notes():
         )
 
         # Get AI response
-        notes = get_ai_response(prompt["user"], system=prompt["system"], max_tokens=2500)
+        notes = get_ai_response(prompt["user"], system=prompt["system"], max_tokens=20000)
 
         import re
+        if not notes:
+            raise AIServiceError("AI returned an empty response")
         notes = notes.strip()
 
         # Parse pipe-separated summary block after — Nova sign-off
@@ -816,7 +818,7 @@ def generate_session_summary():
             full_content = []
             buffer = ""
 
-            for chunk in get_ai_response(prompt["user"], system=prompt["system"], stream=True, max_tokens=5000):
+            for chunk in get_ai_response(prompt["user"], system=prompt["system"], stream=True, max_tokens=20000):
                 if not chunk:
                     continue
 
@@ -950,7 +952,7 @@ def generate_session_summary():
             full_content = []
             buffer = ""
 
-            for chunk in get_ai_response(prompt["user"], system=prompt["system"], stream=True, max_tokens=5000):
+            for chunk in get_ai_response(prompt["user"], system=prompt["system"], stream=True, max_tokens=20000):
                 if not chunk:
                     continue
 
@@ -1184,8 +1186,10 @@ def get_best_objects():
             has_horizon_mask=bool(location.horizon_points),
         )
 
+        logger.warning("get_best_objects: sending %d objects to AI prompt", len(objects_for_prompt))
+
         # Get AI response for ranking (increased timeout for large JSON response)
-        ranking_response = get_ai_response(ranking_prompt["user"], system=ranking_prompt["system"], max_tokens=6000, timeout=300)
+        ranking_response = get_ai_response(ranking_prompt["user"], system=ranking_prompt["system"], max_tokens=20000, timeout=300)
 
         # Parse ranking response to extract ranked objects
         # Expected format: JSON array with objects having "Object" key

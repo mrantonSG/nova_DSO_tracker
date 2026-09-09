@@ -3,8 +3,12 @@
 Provides a unified interface for multiple AI providers (Anthropic, OpenAI, Ollama).
 """
 
+import logging
+
 import requests
 from flask import current_app
+
+logger = logging.getLogger(__name__)
 
 
 class AIServiceError(Exception):
@@ -100,7 +104,46 @@ def _call_openai(api_key: str, model: str, base_url: str, prompt: str, system: s
             messages=messages,
             max_tokens=max_tokens,
         )
-        return response.choices[0].message.content
+        content = response.choices[0].message.content
+        message = response.choices[0].message
+        finish_reason = response.choices[0].finish_reason
+
+        if not content or finish_reason != "stop":
+            reasoning = getattr(message, "reasoning_content", None)
+            if reasoning is None:
+                reasoning = getattr(message, "reasoning", None)
+            if reasoning is None:
+                reasoning = "N/A"
+
+            usage = getattr(response, "usage", None)
+            if usage is not None:
+                prompt_tokens = getattr(usage, "prompt_tokens", "N/A")
+                completion_tokens = getattr(usage, "completion_tokens", "N/A")
+                completion_tokens_details = getattr(usage, "completion_tokens_details", None)
+                reasoning_tokens = (
+                    getattr(completion_tokens_details, "reasoning_tokens", "N/A")
+                    if completion_tokens_details is not None else "N/A"
+                )
+                usage_str = (
+                    f"prompt_tokens={prompt_tokens} completion_tokens={completion_tokens} "
+                    f"reasoning_tokens={reasoning_tokens}"
+                )
+            else:
+                usage_str = "N/A"
+
+            logger.warning(
+                "=== OpenAI response diagnostics ===\n"
+                "finish_reason=%s\n"
+                "content=%r\n"
+                "reasoning=%r\n"
+                "usage=%s\n"
+                "====================================",
+                finish_reason,
+                content if content else "EMPTY",
+                reasoning,
+                usage_str,
+            )
+        return content
     except Exception as e:
         raise AIServiceError(str(e))
 
