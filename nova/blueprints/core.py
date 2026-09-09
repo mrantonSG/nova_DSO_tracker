@@ -1436,15 +1436,22 @@ def index():
     # --- END OF FIX ---
 
     # Projects with a final image, for the dashboard "showcase" tiles.
-    # Uses the session_projects m2m relationship (project.journal_sessions_m2m),
-    # matching the grouping/aggregation logic used for the object graph dashboard
-    # (core.py ~1985-2026), not the simpler JournalSession.project_id FK filter
-    # used elsewhere (e.g. projects.py project_detail()).
+    # Matches the grouping/aggregation logic used for the object graph dashboard
+    # (core.py ~1985-2026): derive linked sessions from the already user-scoped
+    # `sessions` list via each session's own .projects relationship, rather than
+    # walking project.journal_sessions_m2m directly. That relationship isn't
+    # user-filtered and can include cross-user rows sharing the session_projects
+    # secondary table, silently doubling totals.
+    sessions_by_project_id = {}
+    for s in sessions:
+        for p in s.projects:
+            sessions_by_project_id.setdefault(p.id, []).append(s)
+
     projects_for_template = []
     for project in all_projects:
         if not project.final_image_file:
             continue
-        linked_sessions = project.journal_sessions_m2m
+        linked_sessions = sessions_by_project_id.get(project.id, [])
         projects_for_template.append({
             'id': project.id,
             'name': project.name,
