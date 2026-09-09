@@ -15,7 +15,7 @@ from flask_login import login_required, current_user
 from flask_babel import gettext as _
 from math import atan, degrees
 from datetime import datetime, UTC
-from sqlalchemy import func
+from sqlalchemy import func, delete as sa_delete, select as sa_select
 from sqlalchemy.orm import selectinload
 
 from nova.config import (
@@ -33,7 +33,7 @@ from nova.helpers import (
 )
 from nova.models import (
     DbUser, AstroObject, Component, Rig, Location,
-    JournalSession, Project, UserCustomFilter,
+    JournalSession, Project, UserCustomFilter, session_projects,
     SavedFraming, SavedView, UiPref,
 )
 from nova.migration import (
@@ -646,6 +646,10 @@ def import_journal():
                 # We must delete Sessions first (they depend on Projects), then Projects.
                 print(f"[IMPORT_JOURNAL] Wiping existing sessions and projects for user '{username}'...")
 
+                # Delete association rows first: PRAGMA foreign_keys is never enabled,
+                # so the table's ondelete='CASCADE' never fires at the DB level.
+                session_ids_subq = sa_select(JournalSession.id).where(JournalSession.user_id == user.id)
+                db.execute(sa_delete(session_projects).where(session_projects.c.session_id.in_(session_ids_subq)))
                 db.query(JournalSession).filter_by(user_id=user.id).delete()
                 # Projects are safe to delete after sessions are gone
                 db.query(Project).filter_by(user_id=user.id).delete()
