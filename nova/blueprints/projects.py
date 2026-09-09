@@ -99,6 +99,7 @@ def project_detail(project_id):
             )
 
             # 3. Update all new fields (including the rich text from Trix)
+            old_target_name = project.target_object_name
             project.name = request.form.get('name')
             project.target_object_name = request.form.get('target_object_id')  # Note: Renamed from 'target_object_name'
             project.status = request.form.get('status')
@@ -122,6 +123,21 @@ def project_detail(project_id):
                     # Update active_project status based on this primary project
                     # Set active if status is "In Progress", otherwise set inactive
                     target_obj_in_config.active_project = (project.status == "In Progress")
+
+            # If the target changed, clear active_project on the old target — but only
+            # if no other project still points at it.
+            if old_target_name and old_target_name != project.target_object_name:
+                other_project_with_old_target = db.query(Project).filter(
+                    Project.id != project.id,
+                    Project.user_id == g.db_user.id,
+                    Project.target_object_name == old_target_name
+                ).first()
+                if not other_project_with_old_target:
+                    old_target_obj = db.query(AstroObject).filter_by(
+                        user_id=g.db_user.id, object_name=old_target_name
+                    ).one_or_none()
+                    if old_target_obj:
+                        old_target_obj.active_project = False
 
             db.commit()
             flash(_("Project updated successfully."), "success")
@@ -362,7 +378,13 @@ def delete_project(project_id):
         if project.target_object_name:
             obj = db.query(AstroObject).filter_by(user_id=user.id, object_name=project.target_object_name).one_or_none()
             if obj:
-                obj.active_project = False
+                other_project_with_target = db.query(Project).filter(
+                    Project.id != project.id,
+                    Project.user_id == user.id,
+                    Project.target_object_name == project.target_object_name
+                ).first()
+                if not other_project_with_target:
+                    obj.active_project = False
 
         # Delete the project.
         # Note: Sessions will NOT be deleted. Their project_id will automatically set to NULL
