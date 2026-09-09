@@ -920,7 +920,7 @@ msgstr "視認性の計算とデータの取得を行いますので、しばら
 
 #: templates/_inspiration_section.html:652
 msgid "Database Empty"
-msgstr "データベースの修復が完了しました。"
+msgstr "データベースは空です"
 
 #: templates/_inspiration_section.html:653
 msgid "No objects found in your configuration."
@@ -1427,7 +1427,7 @@ msgstr "プロジェクトを編集"
 msgid ""
 "Are you sure you want to delete this project? Linked sessions will become "
 "standalone."
-msgstr "このセッションを完全に削除してもよろしいですか？"
+msgstr "このプロジェクトを削除してもよろしいですか？リンクされたセッションはスタンドアロンになります。"
 
 #: templates/_journal_section.html:2081
 msgid "Delete Project"
@@ -2063,7 +2063,7 @@ msgstr "有効のみ"
 
 #: templates/_objects_section.html:53
 msgid "Disabled Only"
-msgstr "障害者専用"
+msgstr "無効のみ"
 
 #: templates/_objects_section.html:55
 msgid "Private"
@@ -2152,7 +2152,7 @@ msgstr "詳細を取得"
 
 #: templates/_objects_section.html:113 templates/_objects_section.html:171
 msgid "Disabled"
-msgstr "障害のある"
+msgstr "無効"
 
 #: templates/_objects_section.html:116
 msgid "Imported from another user"
@@ -2749,7 +2749,7 @@ msgstr "画像は利用できません"
 
 #: templates/base.html:137
 msgid "Select a saved view..."
-msgstr "選択したビューを削除"
+msgstr "保存済みビューを選択..."
 
 #: templates/base.html:138
 msgid "Error loading views"
@@ -2855,7 +2855,7 @@ msgstr "詳細を取得"
 
 #: templates/base.html:168
 msgid "No potential duplicates found."
-msgstr "重複の可能性"
+msgstr "重複の可能性は見つかりませんでした。"
 
 #: templates/base.html:169
 msgid "Keep A, merge B into A"
@@ -2871,7 +2871,7 @@ msgstr "データを読み込めませんでした。"
 
 #: templates/base.html:172
 msgid "Confirm merge?"
-msgstr "追加を確認"
+msgstr "統合を確認しますか？"
 
 #: templates/base.html:173
 msgid "All duplicates resolved."
@@ -2887,7 +2887,7 @@ msgstr "お近くの図書館を調べてみると...。"
 
 #: templates/base.html:176
 msgid "Object found in your library."
-msgstr "オブジェクトデータが見つからないか無効です。"
+msgstr "オブジェクトはライブラリ内に見つかりました。"
 
 #: templates/base.html:177
 #, python-format
@@ -2904,7 +2904,7 @@ msgstr "0 選択済み"
 
 #: templates/base.html:180 templates/mobile_object_detail.html:589
 msgid "No imaging opportunities found."
-msgstr "イメージングの機会"
+msgstr "イメージングの機会が見つかりませんでした。"
 
 #: templates/base.html:183
 msgid "Report frame not found."
@@ -2977,7 +2977,7 @@ msgstr "データを読み込めませんでした。"
 
 #: templates/base.html:202
 msgid "Please select a rig first."
-msgstr "インポートする有効な .zip ファイルを選択してください。"
+msgstr "まずリグを選択してください。"
 
 #: templates/base.html:203
 msgid "Failed to copy to clipboard. See console."
@@ -2985,11 +2985,11 @@ msgstr "クリップボードへのコピーに失敗しました。コンソー
 
 #: templates/base.html:204
 msgid "Open Saved Framing"
-msgstr "フレーム保存"
+msgstr "保存済みフレーミングを開く"
 
 #: templates/base.html:205
 msgid "Delete Saved Framing"
-msgstr "フレーム保存"
+msgstr "保存済みフレーミングを削除"
 
 #: templates/base.html:206
 msgid "Image upload failed. See console for details."
@@ -4258,7 +4258,7 @@ msgstr "フレーミングURLをコピー"
 
 #: templates/graph_view.html:313
 msgid "Save Framing"
-msgstr "フレーム保存"
+msgstr "フレーミングを保存"
 
 #: templates/graph_view.html:314
 msgid "Scan Frame"
