@@ -215,7 +215,7 @@
                              <input type="text" id="image_source_link_{{ obj.Object }}" value="{{ obj.image_source_link or '' }}" placeholder="{{ _('Image Source Link (e.g. APOD URL)') }}" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
                         </div>
                         <div style="margin-bottom: 8px;">
-                            <textarea id="description_text_{{ obj.Object }}" rows="2" placeholder="{{ _('Short description for the tile...') }}" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px; font-family: inherit;">{{ obj.description_text or '' }}</textarea>
+                            <textarea id="description_text_{{ obj.Object }}" class="obj-description-textarea" rows="2" placeholder="{{ _('Short description for the tile...') }}" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px; font-family: inherit;">{{ obj.description_text or '' }}</textarea>
                         </div>
                         <div style="display: flex; gap: 10px;">
                             <div style="flex: 1;">

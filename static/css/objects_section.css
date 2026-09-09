@@ -101,7 +101,8 @@
         border: 1px solid var(--border-medium-alt);
         border-radius: var(--radius-sm);
         padding: 0.7em;
-        height: 150px;     /* Matches standard editor height */
+        min-height: 75px;
+        max-height: 400px; /* Cap growth; falls back to a scrollbar beyond this */
         overflow-y: auto;
         cursor: text;      /* Indicates interactability */
         position: relative;
@@ -368,6 +369,14 @@
         flex-direction: column;
         gap: 5px;
         justify-content: space-between;
+    }
+
+    /* Auto-growing Short Description field (Manage My Objects); JS drives height, this caps it */
+    .obj-description-textarea {
+        min-height: 75px;
+        max-height: 400px;
+        overflow-y: auto;
+        resize: none;
     }
 
     .obj-thumb-wrap {

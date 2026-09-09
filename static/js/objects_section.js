@@ -478,6 +478,9 @@
         if (e.target.matches('.obj-image-url-input')) {
             debounceObjectThumbPreview(e.target);
         }
+        if (e.target.matches('.obj-description-textarea')) {
+            autoResizeDescriptionTextarea(e.target);
+        }
         const actionBtn = e.target.closest('[data-action]');
         if (!actionBtn) return;
         const action = actionBtn.dataset.action;
@@ -512,6 +515,11 @@
         if (placeholder) placeholder.style.display = 'none';
         img.style.display = '';
         img.src = url;
+    }
+
+    function autoResizeDescriptionTextarea(el) {
+        el.style.height = 'auto';
+        el.style.height = Math.min(el.scrollHeight, 400) + 'px';
     }
 
     // --- Object image lightbox ---
@@ -784,6 +792,7 @@
         window.objectScriptLoaded = true;
 
         document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.obj-description-textarea').forEach(autoResizeDescriptionTextarea);
             // Attach event listeners to tab buttons
             const tabButtons = document.querySelectorAll('#objects-tab-content .detail-tab-button[data-tab]');
             tabButtons.forEach(button => {

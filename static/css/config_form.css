@@ -1608,6 +1608,14 @@
     .form-group.trix-group trix-editor {
         grid-column: 1 / -1;
     }
+    /* Auto-growing Private/Shared Notes editors in the per-object loop only
+       (Add New Object tab keeps the original fixed height above) */
+    .objects-list .form-group.trix-group trix-editor {
+        height: auto;
+        min-height: 75px;
+        max-height: 400px;
+        overflow-y: auto;
+    }
     /* --- Styles for Inspiration Fields --- */
     .inspiration-container {
         background-color: var(--bg-white);
