@@ -1468,6 +1468,14 @@ def index():
             session_dict['project_name'] = "-"
             session_dict['project_status'] = ""
 
+        other_projects = [
+            {'id': p.id, 'name': p.name}
+            for p in session.projects
+            if p.id != session.project_id
+        ]
+        session_dict['other_projects'] = other_projects
+        session_dict['other_projects_count'] = len(other_projects)
+
         sessions_for_template.append(session_dict)
     # --- END OF FIX ---
 
