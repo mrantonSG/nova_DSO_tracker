@@ -44,6 +44,7 @@ from pathlib import Path
 import platform
 import markdown
 import csv
+from PIL import Image
 from math import atan, degrees
 from flask import render_template, jsonify, request, send_file, redirect, url_for, flash, g, current_app, make_response, Response, stream_with_context
 from flask_login import login_user, login_required, current_user, logout_user
@@ -2633,6 +2634,26 @@ def _handle_project_image_upload(file_object, project_id: str, username: str, ex
             user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
             os.makedirs(user_upload_dir, exist_ok=True)
             file_object.save(os.path.join(user_upload_dir, new_filename))
+
+            # Best-effort thumbnail generation — must not fail the request
+            # or affect the original upload if it errors (corrupt image,
+            # unsupported format, etc).
+            try:
+                saved_image_path = os.path.join(user_upload_dir, new_filename)
+                thumb_path = os.path.join(user_upload_dir, f"thumb_{new_filename}")
+                with Image.open(saved_image_path) as img:
+                    img.thumbnail((480, 480))
+                    if file_extension in ('jpg', 'jpeg'):
+                        img.save(thumb_path, quality=85)
+                    elif file_extension == 'png':
+                        img.save(thumb_path, optimize=True)
+                    else:
+                        img.save(thumb_path)
+            except Exception as thumb_err:
+                current_app.logger.warning(
+                    f"Failed to generate thumbnail for project image '{new_filename}': {thumb_err}"
+                )
+
             return new_filename
         except Exception as e:
             print(f"Error handling project image upload: {e}")

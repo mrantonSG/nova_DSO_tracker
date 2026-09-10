@@ -22,9 +22,10 @@ from math import atan, degrees
 # =============================================================================
 import bleach
 from bleach.css_sanitizer import CSSSanitizer
+from PIL import Image
 from flask import (
     Blueprint, render_template, redirect, url_for, flash,
-    request, g, make_response, session, jsonify
+    request, g, make_response, session, jsonify, current_app
 )
 from flask_login import login_required, current_user
 from flask_babel import gettext as _
@@ -294,8 +295,27 @@ def journal_add():
                     new_filename = f"{new_session.id}.{file_extension}"
                     user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
                     os.makedirs(user_upload_dir, exist_ok=True)
-                    file.save(os.path.join(user_upload_dir, new_filename))
+                    saved_image_path = os.path.join(user_upload_dir, new_filename)
+                    file.save(saved_image_path)
                     new_session.session_image_file = new_filename
+
+                    # Best-effort thumbnail generation — must not fail the request
+                    # or roll back the original upload if it errors (corrupt image,
+                    # unsupported format, etc).
+                    try:
+                        thumb_path = os.path.join(user_upload_dir, f"thumb_{new_filename}")
+                        with Image.open(saved_image_path) as img:
+                            img.thumbnail((480, 480))
+                            if file_extension in ('jpg', 'jpeg'):
+                                img.save(thumb_path, quality=85)
+                            elif file_extension == 'png':
+                                img.save(thumb_path, optimize=True)
+                            else:
+                                img.save(thumb_path)
+                    except Exception as thumb_err:
+                        current_app.logger.warning(
+                            f"[JOURNAL] Failed to generate thumbnail for session image '{new_filename}': {thumb_err}"
+                        )
 
             # --- Log file uploads (stored on filesystem, path in DB) ---
             # Read content first, we'll save after commit when we have the session ID
