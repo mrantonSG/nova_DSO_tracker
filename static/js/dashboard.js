@@ -2892,6 +2892,52 @@
         }
 
         /**
+         * Build the "+N" dropdown badge listing a session's other linked projects
+         * @param {Array} otherProjects - Array of {id, name} objects
+         * @param {number} otherProjectsCount - Count of other linked projects
+         * @returns {HTMLSpanElement} - The dropdown wrapper element
+         */
+        function _createOtherProjectsDropdown(otherProjects, otherProjectsCount) {
+            const wrap = document.createElement('span');
+            wrap.className = 'dropdown journal-other-projects-dropdown';
+
+            const panel = document.createElement('div');
+            panel.className = 'dropdown-content journal-other-projects-content';
+            (otherProjects || []).forEach(p => {
+                const item = document.createElement('span');
+                item.className = 'journal-other-projects-item';
+                item.textContent = p.name;
+                panel.appendChild(item);
+            });
+
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'dropdown-btn journal-other-projects-btn';
+            btn.textContent = `+${otherProjectsCount}`;
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                document.querySelectorAll('#journal-data-body .dropdown-content.show').forEach(d => {
+                    if (d !== panel) d.classList.remove('show');
+                });
+                const willOpen = !panel.classList.contains('show');
+                if (willOpen) {
+                    // Panel is position:fixed (see dashboard.css) so it escapes the
+                    // project_name <td>'s `overflow: hidden` (used for text-ellipsis
+                    // truncation). Position it against the button's viewport rect.
+                    const rect = btn.getBoundingClientRect();
+                    panel.style.top = `${rect.bottom + 4}px`;
+                    panel.style.left = `${rect.right}px`;
+                    panel.style.transform = 'translateX(-100%)';
+                }
+                panel.classList.toggle('show');
+            });
+
+            wrap.appendChild(btn);
+            wrap.appendChild(panel);
+            return wrap;
+        }
+
+        /**
          * Create a single journal table row
          * @param {Object} session - Journal session object
          * @param {Object} config - Column configuration
@@ -2944,6 +2990,11 @@
                     td.innerHTML = "";
                 } else {
                     td.innerHTML = String(displayValue);
+                }
+
+                // Other-projects "+N" dropdown indicator (project_name cell only)
+                if (key === 'project_name' && session.other_projects_count > 0) {
+                    td.appendChild(_createOtherProjectsDropdown(session.other_projects, session.other_projects_count));
                 }
 
                 row.appendChild(td);
@@ -3784,6 +3835,24 @@
                         break;
                 }
             });
+
+            // --- Click outside to close journal "other projects" dropdowns ---
+            document.addEventListener('click', function(e) {
+                const insideContent = e.target.closest('.journal-other-projects-content');
+                const insideBtn = e.target.closest('.journal-other-projects-btn');
+                if (!insideContent && !insideBtn) {
+                    document.querySelectorAll('#journal-data-body .dropdown-content.show').forEach(d => d.classList.remove('show'));
+                }
+            });
+
+            // --- Close journal "other projects" dropdowns on scroll ---
+            // Panel is position:fixed and positioned once at open time, so it would
+            // otherwise drift away from its button when the page or the horizontally
+            // scrollable #journal-table-wrapper scrolls. Capture phase is required
+            // since scroll events don't bubble.
+            window.addEventListener('scroll', function() {
+                document.querySelectorAll('#journal-data-body .dropdown-content.show').forEach(d => d.classList.remove('show'));
+            }, true);
 
             // Proactive outlook cache pre-warm -- fire and forget on page load
             (function() {

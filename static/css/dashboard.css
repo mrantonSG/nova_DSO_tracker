@@ -694,3 +694,84 @@
         display: none;
     }
 }
+
+/* ===================================================================
+   JOURNAL "OTHER PROJECTS" (+N) DROPDOWN
+   ================================================================ */
+
+.journal-other-projects-dropdown {
+    position: relative;
+    display: inline-block;
+    margin-left: var(--space-1);
+    vertical-align: middle;
+}
+
+#journal-data-table .journal-other-projects-btn.dropdown-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 18px;
+    padding: 0 var(--space-1-5);
+    background: var(--primary-bg);
+    color: var(--primary-hover);
+    border: 1px solid rgba(131, 180, 197, 0.35);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+}
+
+#journal-data-table .journal-other-projects-btn.dropdown-btn:hover {
+    background: rgba(131, 180, 197, 0.22);
+    border-color: rgba(131, 180, 197, 0.55);
+}
+
+/* position:fixed (not absolute) -- the project_name <td> sets
+   `overflow: hidden` for text-ellipsis truncation, which would otherwise
+   clip this panel regardless of the positioning context of its .dropdown
+   wrapper. top/left are set inline by dashboard.js at open time. */
+.journal-other-projects-content.dropdown-content {
+    display: none;
+    position: fixed;
+    min-width: 140px;
+    max-width: 220px;
+    background-color: var(--nova-surface, var(--bg-white));
+    border: 1px solid var(--nova-border, var(--border-medium));
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-md);
+    z-index: var(--z-dropdown, 100);
+    padding: var(--space-1-5) 0;
+}
+
+.journal-other-projects-content.dropdown-content.show {
+    display: block;
+}
+
+.journal-other-projects-item {
+    display: block;
+    padding: var(--space-1) var(--space-2-5);
+    font-size: var(--font-size-xs);
+    color: var(--nova-text, var(--text-primary));
+    white-space: normal;
+    word-wrap: break-word;
+}
+
+[data-theme="dark"] .journal-other-projects-btn.dropdown-btn {
+    background: rgba(142, 200, 218, 0.1);
+    color: var(--primary-color);
+    border-color: rgba(142, 200, 218, 0.25);
+}
+
+[data-theme="dark"] .journal-other-projects-btn.dropdown-btn:hover {
+    background: rgba(142, 200, 218, 0.18);
+    border-color: rgba(142, 200, 218, 0.4);
+}
+
+[data-theme="dark"] .journal-other-projects-content.dropdown-content {
+    background-color: var(--nova-surface, var(--bg-medium));
+    border-color: var(--nova-border, var(--border-medium));
+    box-shadow: var(--shadow-md);
+}
