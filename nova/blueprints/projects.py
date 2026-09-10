@@ -64,9 +64,14 @@ def project_detail(project_id):
             flash(_("Error deleting old image."), "warning")
 
         # --- Aggregated Statistics ---
+        # Match sessions via the session_projects m2m relationship (JournalSession.projects),
+        # not the single project_id FK, so multi-project-linked sessions are included too.
         total_integration_minutes = db.query(
             func.sum(JournalSession.calculated_integration_time_minutes)
-        ).filter_by(project_id=project_id, user_id=g.db_user.id).scalar() or 0
+        ).filter(
+            JournalSession.projects.any(Project.id == project_id),
+            JournalSession.user_id == g.db_user.id
+        ).scalar() or 0
 
         # Format integration time (e.g., 10h 30m)
         total_minutes = int(total_integration_minutes)
@@ -75,8 +80,10 @@ def project_detail(project_id):
         total_integration_str = f"{hours}h {minutes}m"
 
         # Fetch all linked sessions eagerly to display them
-        sessions = db.query(JournalSession).filter_by(project_id=project_id, user_id=g.db_user.id).order_by(
-            JournalSession.date_utc.desc()).all()
+        sessions = db.query(JournalSession).filter(
+            JournalSession.projects.any(Project.id == project_id),
+            JournalSession.user_id == g.db_user.id
+        ).order_by(JournalSession.date_utc.desc()).all()
 
         # --- Handle POST Request (Update Project) ---
         if request.method == 'POST':
@@ -266,8 +273,12 @@ def show_project_report_page(project_id):
         return "Project not found", 404
 
     # 2. Fetch Sessions
-    sessions = db.query(JournalSession).filter_by(project_id=project.id, user_id=g.db_user.id).order_by(
-        JournalSession.date_utc.asc()).all()
+    # Match via the session_projects m2m relationship (JournalSession.projects),
+    # not the single project_id FK, so multi-project-linked sessions are included too.
+    sessions = db.query(JournalSession).filter(
+        JournalSession.projects.any(Project.id == project.id),
+        JournalSession.user_id == g.db_user.id
+    ).order_by(JournalSession.date_utc.asc()).all()
 
     # 3. Calculate Stats
     total_min = sum(s.calculated_integration_time_minutes or 0 for s in sessions)
