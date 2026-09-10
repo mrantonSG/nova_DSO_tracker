@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-09 16:45+0800\n"
+"POT-Creation-Date: 2026-09-10 09:08+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: ja <LL@li.org>\n"
@@ -175,264 +175,264 @@ msgstr "無効な日付形式です。"
 msgid "Calibration star catalog not found"
 msgstr "キャリブレーション星カタログが見つかりません"
 
-#: nova/blueprints/core.py:204
+#: nova/blueprints/core.py:205
 msgid "Logged out successfully!"
 msgstr "ログアウトに成功しました！"
 
-#: nova/blueprints/core.py:214
+#: nova/blueprints/core.py:215
 #, python-format
 msgid "Language '%(lang)s' is not supported."
 msgstr "言語 '%(lang)s' はサポートされていません。"
 
-#: nova/blueprints/core.py:270
+#: nova/blueprints/core.py:271
 msgid "Logged in successfully!"
 msgstr "ログインに成功しました！"
 
-#: nova/blueprints/core.py:286
+#: nova/blueprints/core.py:287
 msgid "Invalid username or password."
 msgstr "ユーザー名またはパスワードが無効です。"
 
-#: nova/blueprints/core.py:294
+#: nova/blueprints/core.py:295
 msgid "Single Sign-On is not applicable in single-user mode."
 msgstr "シングルサインオンはシングルユーザーモードでは適用されません。"
 
-#: nova/blueprints/core.py:302
+#: nova/blueprints/core.py:303
 msgid "SSO Error: No token provided."
 msgstr "SSO エラー: トークンが提供されていません。"
 
-#: nova/blueprints/core.py:308
+#: nova/blueprints/core.py:309
 msgid "SSO Error: SSO is not configured on the server."
 msgstr "SSO エラー: サーバーで SSO が設定されていません。"
 
-#: nova/blueprints/core.py:326
+#: nova/blueprints/core.py:327
 #, python-format
 msgid "Welcome back, %(username)s!"
 msgstr "おかえりなさい、%(username)sさん！"
 
-#: nova/blueprints/core.py:329
+#: nova/blueprints/core.py:330
 #, python-format
 msgid "SSO Error: User '%(username)s' not found or is disabled in Nova."
 msgstr "SSO エラー: Nova でユーザー '%(username)s' が見つかりません、または無効になっています。"
 
-#: nova/blueprints/core.py:333
+#: nova/blueprints/core.py:334
 msgid ""
 "SSO Error: The login link has expired. Please try again from WordPress."
 msgstr "SSOエラー：ログインリンクの有効期限が切れています。WordPressから再度お試しください。"
 
-#: nova/blueprints/core.py:336
+#: nova/blueprints/core.py:337
 msgid "SSO Error: Invalid login token."
 msgstr "SSO エラー: 無効なログイン トークンです。"
 
-#: nova/blueprints/core.py:544
+#: nova/blueprints/core.py:545
 #, python-format
 msgid "Could not find user '%(username)s' in the database."
 msgstr "データベースにユーザー '%(username)s' が見つかりませんでした。"
 
-#: nova/blueprints/core.py:623
+#: nova/blueprints/core.py:624
 msgid "Warning: Horizon Mask was invalid and was ignored."
 msgstr "警告: ホライゾンマスクが無効であったため無視されました。"
 
-#: nova/blueprints/core.py:646
+#: nova/blueprints/core.py:647
 msgid ""
 "Cannot delete your last location. You must have at least one location "
 "configured."
 msgstr "最後の位置情報を削除できません。少なくとも1つの位置情報を設定する必要があります。"
 
-#: nova/blueprints/core.py:651
+#: nova/blueprints/core.py:652
 msgid ""
 "Cannot deactivate your only active location. You must keep at least one "
 "active location."
 msgstr "唯一の有効な位置情報を無効化できません。少なくとも1つの有効な位置情報を保持する必要があります。"
 
-#: nova/blueprints/core.py:695
+#: nova/blueprints/core.py:696
 #, python-format
 msgid "Warning: Horizon Mask for '%(location_name)s' was invalid and ignored."
 msgstr "警告: '%(location_name)s' のホライズンマスクが無効なため無視されました。"
 
-#: nova/blueprints/core.py:752
+#: nova/blueprints/core.py:753
 #, python-format
 msgid "%(message)s updated successfully."
 msgstr "%(message)s が正常に更新されました。"
 
-#: nova/blueprints/core.py:828
+#: nova/blueprints/core.py:829
 #, python-format
 msgid "A database error occurred: %(error)s"
 msgstr "データベースエラーが発生しました: %(error)s"
 
-#: nova/blueprints/core.py:1028
+#: nova/blueprints/core.py:1029
 msgid "Label required"
 msgstr "ラベルが必要です"
 
-#: nova/blueprints/core.py:1038
+#: nova/blueprints/core.py:1039
 msgid "Filter already exists"
 msgstr "フィルターは既に存在します"
 
-#: nova/blueprints/core.py:1055
+#: nova/blueprints/core.py:1056
 msgid "Filter not found"
 msgstr "フィルターが見つかりません"
 
-#: nova/blueprints/core.py:1082 nova/blueprints/core.py:1102
+#: nova/blueprints/core.py:1083 nova/blueprints/core.py:1103
 msgid "No object specified."
 msgstr "オブジェクトが指定されていません。"
 
-#: nova/blueprints/core.py:1089 nova/blueprints/core.py:1627
-#: nova/blueprints/core.py:1653 templates/mobile_add_object.html:57
+#: nova/blueprints/core.py:1090 nova/blueprints/core.py:1699
+#: nova/blueprints/core.py:1725 templates/mobile_add_object.html:57
 msgid "Object not found."
 msgstr "オブジェクトが見つかりません。"
 
-#: nova/blueprints/core.py:1368
+#: nova/blueprints/core.py:1369
 msgid "Fetched and saved missing object details."
 msgstr "不足していたオブジェクトの詳細を取得して保存しました。"
 
-#: nova/blueprints/core.py:1370
+#: nova/blueprints/core.py:1371
 msgid "No missing data found or no updates needed."
 msgstr "欠落データは見つかりませんでした、または更新の必要はありません。"
 
-#: nova/blueprints/core.py:1374
+#: nova/blueprints/core.py:1375
 #, python-format
 msgid "An error occurred during data fetching: %(error)s"
 msgstr "データ取得中にエラーが発生しました: %(error)s"
 
-#: nova/blueprints/core.py:1759
+#: nova/blueprints/core.py:1831
 msgid "Please log in to view object details."
 msgstr "オブジェクトの詳細を表示するにはログインしてください。"
 
-#: nova/blueprints/core.py:1774
+#: nova/blueprints/core.py:1846
 #, python-format
 msgid "User '%(username)s' not found."
 msgstr "ユーザー '%(username)s' は見つかりませんでした。"
 
-#: nova/blueprints/core.py:1790
+#: nova/blueprints/core.py:1862
 #, python-format
 msgid "Requested location '%(location_name)s' not found, using default."
 msgstr "指定された場所 '%(location_name)s' が見つかりません。デフォルトを使用します。"
 
-#: nova/blueprints/core.py:1808
+#: nova/blueprints/core.py:1880
 msgid "Error: No valid location configured or selected for this user."
 msgstr "エラー: このユーザーに対して有効な場所が設定または選択されていません。"
 
-#: nova/blueprints/core.py:1826
+#: nova/blueprints/core.py:1898
 #, python-format
 msgid "Object '%(object_name)s' not found in your configuration."
 msgstr "オブジェクト '%(object_name)s' が設定に見つかりません。"
 
-#: nova/blueprints/core.py:2090
+#: nova/blueprints/core.py:2169
 msgid "Invalid date components provided, defaulting to current date."
 msgstr "無効な日付コンポーネントが指定されました。デフォルトで現在の日付を使用します。"
 
-#: nova/blueprints/core.py:2302
+#: nova/blueprints/core.py:2381
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
 msgstr "%(object_name)s の詳細を読み込む際にエラーが発生しました。"
 
-#: nova/blueprints/journal.py:92 nova/blueprints/journal.py:436
+#: nova/blueprints/journal.py:93 nova/blueprints/journal.py:456
 #: nova/blueprints/mobile.py:550
 msgid "Invalid date format."
 msgstr "無効な日付形式です。"
 
-#: nova/blueprints/journal.py:290 nova/blueprints/journal.py:646
+#: nova/blueprints/journal.py:291 nova/blueprints/journal.py:666
 msgid "Session image is too large. Maximum size is 5 MB."
 msgstr "セッション画像が大きすぎる。最大サイズは5MBです。"
 
-#: nova/blueprints/journal.py:314 nova/blueprints/journal.py:668
+#: nova/blueprints/journal.py:334 nova/blueprints/journal.py:688
 msgid ""
 "This is the Chinese-language version of the ASIAir log. Please upload the "
 "standard English log file instead."
 msgstr "これはASIAirログの中国語版です。標準の英語ログファイルをアップロードしてください。"
 
-#: nova/blueprints/journal.py:317 nova/blueprints/journal.py:674
+#: nova/blueprints/journal.py:337 nova/blueprints/journal.py:694
 msgid "ASIAir log file must be a .txt file."
 msgstr "ASIAirログファイルは.txtファイルでなければならない。"
 
-#: nova/blueprints/journal.py:321 nova/blueprints/journal.py:685
+#: nova/blueprints/journal.py:341 nova/blueprints/journal.py:705
 msgid "ASIAir log file is too large. Maximum size is 10 MB."
 msgstr "ASIAirログファイルが大きすぎる。最大サイズは10MBです。"
 
-#: nova/blueprints/journal.py:331 nova/blueprints/journal.py:699
+#: nova/blueprints/journal.py:351 nova/blueprints/journal.py:719
 msgid "PHD2 log file must be a .txt file."
 msgstr "PHD2ログファイルは.txtファイルでなければならない。"
 
-#: nova/blueprints/journal.py:335 nova/blueprints/journal.py:710
+#: nova/blueprints/journal.py:355 nova/blueprints/journal.py:730
 msgid "PHD2 log file is too large. Maximum size is 10 MB."
 msgstr "PHD2ログファイルが大きすぎる。最大サイズは10MBです。"
 
-#: nova/blueprints/journal.py:345 nova/blueprints/journal.py:726
+#: nova/blueprints/journal.py:365 nova/blueprints/journal.py:746
 msgid "NINA log file must be a .log file."
 msgstr "NINAログファイルは.logファイルでなければならない。"
 
-#: nova/blueprints/journal.py:349 nova/blueprints/journal.py:738
+#: nova/blueprints/journal.py:369 nova/blueprints/journal.py:758
 msgid "NINA log file is too large. Maximum size is 10 MB."
 msgstr "NINAログファイルが大きすぎる。最大サイズは10MBです。"
 
-#: nova/blueprints/journal.py:380 nova/blueprints/mobile.py:703
+#: nova/blueprints/journal.py:400 nova/blueprints/mobile.py:703
 msgid "New journal entry added successfully!"
 msgstr "新しい日記の投稿が正常に追加されました！"
 
-#: nova/blueprints/journal.py:406
+#: nova/blueprints/journal.py:426
 msgid "To add a new session, please select an object first."
 msgstr "新しいセッションを追加するには、まずオブジェクトを選択してください。"
 
-#: nova/blueprints/journal.py:420
+#: nova/blueprints/journal.py:440
 msgid "Journal entry not found or you do not have permission to edit it."
 msgstr "ジャーナルエントリが見つかりません、または編集する権限がありません。"
 
-#: nova/blueprints/journal.py:747
+#: nova/blueprints/journal.py:767
 msgid "NINA log imported successfully."
 msgstr "NINAログのインポートに成功しました。"
 
-#: nova/blueprints/journal.py:777
+#: nova/blueprints/journal.py:797
 msgid "Journal entry updated successfully!"
 msgstr "日記の更新に成功しました！"
 
-#: nova/blueprints/journal.py:800
+#: nova/blueprints/journal.py:820
 msgid "Cannot edit session: associated object name is missing."
 msgstr "セッションを編集できません: 関連付けられたオブジェクト名が欠落しています。"
 
-#: nova/blueprints/journal.py:826
+#: nova/blueprints/journal.py:846
 msgid "Project name is required."
 msgstr "プロジェクト名は必須です。"
 
-#: nova/blueprints/journal.py:832
+#: nova/blueprints/journal.py:852
 #, python-format
 msgid "A project named '%(project_name)s' already exists."
 msgstr "「%(project_name)s」という名前のプロジェクトが既に存在します。"
 
-#: nova/blueprints/journal.py:859
+#: nova/blueprints/journal.py:879
 #, python-format
 msgid "Project '%(project_name)s' created successfully."
 msgstr "プロジェクト '%(project_name)s' が正常に作成されました。"
 
-#: nova/blueprints/journal.py:875
+#: nova/blueprints/journal.py:895
 #, python-format
 msgid "Error creating project: %(error)s"
 msgstr "プロジェクト作成エラー: %(error)s"
 
-#: nova/blueprints/journal.py:890
+#: nova/blueprints/journal.py:910
 msgid "Session to duplicate not found."
 msgstr "セッションの複製が見つかりません。"
 
-#: nova/blueprints/journal.py:916
+#: nova/blueprints/journal.py:936
 msgid "Session duplicated successfully."
 msgstr "セッションの複製に成功しました。"
 
-#: nova/blueprints/journal.py:927
+#: nova/blueprints/journal.py:947
 #, python-format
 msgid "Error duplicating session: %(error)s"
 msgstr "セッションの複製中にエラーが発生しました: %(error)s"
 
-#: nova/blueprints/journal.py:949
+#: nova/blueprints/journal.py:969
 msgid "Journal entry deleted successfully."
 msgstr "日記の投稿を正常に削除しました。"
 
-#: nova/blueprints/journal.py:955
+#: nova/blueprints/journal.py:975
 msgid "Journal entry not found or you do not have permission to delete it."
 msgstr "ジャーナルエントリが見つかりません、または削除する権限がありません。"
 
-#: nova/blueprints/journal.py:972 nova/blueprints/journal.py:1126
+#: nova/blueprints/journal.py:992 nova/blueprints/journal.py:1146
 msgid "Session not found."
 msgstr "セッションが見つかりません。"
 
-#: nova/blueprints/journal.py:1134 nova/blueprints/projects.py:358
+#: nova/blueprints/journal.py:1154 nova/blueprints/projects.py:374
 msgid "Project not found."
 msgstr "プロジェクトが見つかりません。"
 
@@ -458,21 +458,21 @@ msgstr "ジャーナルエントリの保存中にエラーが発生しました
 msgid "Error deleting old image."
 msgstr "古い画像の削除に失敗しました。"
 
-#: nova/blueprints/projects.py:127
+#: nova/blueprints/projects.py:143
 msgid "Project updated successfully."
 msgstr "プロジェクトの更新に成功しました。"
 
-#: nova/blueprints/projects.py:148
+#: nova/blueprints/projects.py:164
 #, python-format
 msgid "An error occurred: %(error)s"
 msgstr "エラーが発生しました: %(error)s"
 
-#: nova/blueprints/projects.py:373
+#: nova/blueprints/projects.py:395
 #, python-format
 msgid "Project '%(project_name)s' deleted. Sessions are now standalone."
 msgstr "プロジェクト '%(project_name)s' が削除されました。セッションは現在スタンドアロンです。"
 
-#: nova/blueprints/projects.py:381
+#: nova/blueprints/projects.py:403
 #, python-format
 msgid "Error deleting project: %(error)s"
 msgstr "プロジェクト削除エラー: %(error)s"
@@ -778,8 +778,8 @@ msgstr "出典: Wiki"
 #: templates/_inspiration_section.html:510
 #: templates/_journal_section.html:2556 templates/_objects_section.html:451
 #: templates/_objects_section.html:467 templates/_objects_section.html:474
-#: templates/base.html:408 templates/base.html:425 templates/base.html:430
-#: templates/base.html:439 templates/base.html:477
+#: templates/base.html:411 templates/base.html:428 templates/base.html:433
+#: templates/base.html:442 templates/base.html:480
 #: templates/config_form.html:701 templates/graph_view.html:298
 msgid "Close"
 msgstr "閉じる"
@@ -938,7 +938,7 @@ msgstr "オブジェクトを切り替える"
 msgid "Add New Project"
 msgstr "新規プロジェクトを追加"
 
-#: templates/_journal_section.html:1631 templates/base.html:186
+#: templates/_journal_section.html:1631 templates/base.html:189
 msgid "Add New Session"
 msgstr "新しいセッションを追加"
 
@@ -1236,7 +1236,7 @@ msgstr "PDFをダウンロード"
 msgid "Overview"
 msgstr "概要"
 
-#: templates/_journal_section.html:1895 templates/base.html:148
+#: templates/_journal_section.html:1895 templates/base.html:151
 msgid "Guiding"
 msgstr "ガイディング"
 
@@ -1355,7 +1355,7 @@ msgstr "ディザを含む — RA:"
 msgid "Dec:"
 msgstr "Dec："
 
-#: templates/_journal_section.html:1977 templates/base.html:212
+#: templates/_journal_section.html:1977 templates/base.html:215
 msgid "Zoom"
 msgstr "ズーム"
 
@@ -1522,7 +1522,7 @@ msgstr "プロジェクトを保存"
 #: templates/_journal_section.html:2213 templates/_journal_section.html:2283
 #: templates/_journal_section.html:2316 templates/_journal_section.html:2616
 #: templates/_objects_section.html:364 templates/_project_subtab.html:232
-#: templates/admin_users.html:120 templates/base.html:510
+#: templates/admin_users.html:120 templates/base.html:513
 #: templates/graph_view.html:490 templates/index.html:298
 #: templates/journal_form.html:205
 msgid "Cancel"
@@ -1942,7 +1942,7 @@ msgstr "フィルターの削除エラー。"
 msgid "{label} removed."
 msgstr "{label} を削除しました。"
 
-#: templates/_journal_section.html:2605 templates/base.html:268
+#: templates/_journal_section.html:2605 templates/base.html:271
 #: templates/graph_view.html:479 templates/index.html:115
 msgid "Ask Nova"
 msgstr "Ask Nova"
@@ -1959,7 +1959,7 @@ msgstr "コンディションの見直し..."
 msgid "Checking guiding data..."
 msgstr "データを更新中..."
 
-#: templates/_journal_section.html:2610 templates/base.html:280
+#: templates/_journal_section.html:2610 templates/base.html:283
 #: templates/graph_view.html:485
 msgid "Almost there..."
 msgstr "もう少しだ..."
@@ -2012,7 +2012,7 @@ msgstr "カタログからインポート"
 msgid "Find Duplicates"
 msgstr "重複を検索"
 
-#: templates/_objects_section.html:25 templates/base.html:225
+#: templates/_objects_section.html:25 templates/base.html:228
 msgid "Review Import Differences"
 msgstr "インポートの違いを確認"
 
@@ -2344,7 +2344,7 @@ msgstr "タグ"
 msgid "Objects"
 msgstr "オブジェクト"
 
-#: templates/_objects_section.html:406 templates/base.html:236
+#: templates/_objects_section.html:406 templates/base.html:239
 #: templates/config_form.html:604 templates/config_form.html:637
 #: templates/config_form.html:666
 msgid "Action"
@@ -2748,374 +2748,389 @@ msgid "Altitude data unavailable."
 msgstr "画像は利用できません"
 
 #: templates/base.html:137
+msgid ""
+"Above the horizon, but blocked by a mapped obstruction in this direction."
+msgstr "地平線より上にありますが、この方向のマッピングされた障害物によって遮られています。"
+
+#: templates/base.html:138
+msgid ""
+"Above the horizon, but light pollution in this direction likely limits "
+"visibility."
+msgstr "地平線より上にありますが、この方向の光害により視認性が制限される可能性があります。"
+
+#: templates/base.html:139
+msgid "Above your altitude threshold and unobstructed."
+msgstr "高度閾値を超えており、遮るものがありません。"
+
+#: templates/base.html:140
 msgid "Select a saved view..."
 msgstr "保存済みビューを選択..."
 
-#: templates/base.html:138
+#: templates/base.html:141
 msgid "Error loading views"
 msgstr "データを読み込めませんでした。"
 
-#: templates/base.html:139 templates/index.html:67
+#: templates/base.html:142 templates/index.html:67
 msgid "Update in"
 msgstr "更新まで"
 
-#: templates/base.html:140
+#: templates/base.html:143
 msgid "Latest version"
 msgstr "バージョン"
 
-#: templates/base.html:143
+#: templates/base.html:146
 msgid "Select Telescope"
 msgstr "-- 望遠鏡を選択 --"
 
-#: templates/base.html:144
+#: templates/base.html:147
 msgid "Select Camera"
 msgstr "-- カメラを選択 --"
 
-#: templates/base.html:145 templates/config_form.html:673
+#: templates/base.html:148 templates/config_form.html:673
 #: templates/project_report.html:1174
 msgid "Telescope"
 msgstr "望遠鏡"
 
-#: templates/base.html:146 templates/config_form.html:674
+#: templates/base.html:149 templates/config_form.html:674
 #: templates/project_report.html:1178
 msgid "Camera"
 msgstr "カメラ"
 
-#: templates/base.html:147
+#: templates/base.html:150
 msgid "Reducer / Extender"
 msgstr "レデューサー/エクステンダー"
 
-#: templates/base.html:149
+#: templates/base.html:152
 msgid "Oversampled"
 msgstr "オーバーサンプリング"
 
-#: templates/base.html:150
+#: templates/base.html:153
 msgid "Well sampled"
 msgstr "ピクセルスケール"
 
-#: templates/base.html:151
+#: templates/base.html:154
 msgid "Undersampled"
 msgstr "アンダーサンプリング"
 
-#: templates/base.html:152
+#: templates/base.html:155
 msgid "No telescopes defined."
 msgstr "望遠鏡は設定されていません。"
 
-#: templates/base.html:153
+#: templates/base.html:156
 msgid "No cameras defined."
 msgstr "カメラは設定されていません。"
 
-#: templates/base.html:154
+#: templates/base.html:157
 msgid "Error loading shared items."
 msgstr "データを読み込めませんでした。"
 
-#: templates/base.html:155
+#: templates/base.html:158
 msgid "Import failed. See console for details."
 msgstr "インポートに失敗しました。詳細はサーバーログを参照してください。"
 
-#: templates/base.html:156
+#: templates/base.html:159
 msgid "Upload failed. See console."
 msgstr "アップロードに失敗しました。コンソールを参照してください。"
 
-#: templates/base.html:157
+#: templates/base.html:160
 msgid "Network error saving object."
 msgstr "ネットワークエラー。"
 
-#: templates/base.html:158
+#: templates/base.html:161
 msgid "Image upload failed: Network error."
 msgstr "インポートに失敗しました: ネットワークエラー"
 
-#: templates/base.html:159
+#: templates/base.html:162
 msgid "Error: Could not find the horizon mask field."
 msgstr "エラー：水平マスクフィールドが見つかりません。"
 
-#: templates/base.html:160
+#: templates/base.html:163
 msgid "Error reading file. Please try again."
 msgstr "ファイルの読み込み中にエラーが発生しました。もう一度お試しください。"
 
-#: templates/base.html:161
+#: templates/base.html:164
 msgid "No valid horizon data found."
 msgstr "有効な水平線データが見つかりません。"
 
-#: templates/base.html:162
+#: templates/base.html:165
 msgid "Shared Notes for"
 msgstr "共有ノート"
 
-#: templates/base.html:165
+#: templates/base.html:168
 msgid "No objects selected."
 msgstr "オブジェクトが指定されていません。"
 
-#: templates/base.html:166
+#: templates/base.html:169
 msgid "Bulk action failed."
 msgstr "一括処理に失敗した。"
 
-#: templates/base.html:167
+#: templates/base.html:170
 msgid "Bulk fetch details failed."
 msgstr "詳細の一括取得に失敗しました。"
 
-#: templates/base.html:168
+#: templates/base.html:171
 msgid "No potential duplicates found."
 msgstr "重複の可能性は見つかりませんでした。"
 
-#: templates/base.html:169
+#: templates/base.html:172
 msgid "Keep A, merge B into A"
 msgstr "Aを維持し、BをAに統合する"
 
-#: templates/base.html:170
+#: templates/base.html:173
 msgid "Keep B, merge A into B"
 msgstr "Bを維持し、AをBに統合する"
 
-#: templates/base.html:171
+#: templates/base.html:174
 msgid "Error scanning duplicates."
 msgstr "データを読み込めませんでした。"
 
-#: templates/base.html:172
+#: templates/base.html:175
 msgid "Confirm merge?"
 msgstr "統合を確認しますか？"
 
-#: templates/base.html:173
+#: templates/base.html:176
 msgid "All duplicates resolved."
 msgstr "すべての重複が解決されました。"
 
-#: templates/base.html:174
+#: templates/base.html:177
 msgid "Please enter an object identifier."
 msgstr "オブジェクトの識別子を入力してください。"
 
-#: templates/base.html:175
+#: templates/base.html:178
 msgid "Checking your local library..."
 msgstr "ローカルライブラリを確認中..."
 
-#: templates/base.html:176
+#: templates/base.html:179
 msgid "Object found in your library."
 msgstr "オブジェクトはライブラリ内に見つかりました。"
 
-#: templates/base.html:177
+#: templates/base.html:180
 #, python-format
 msgid "Found: %(name)s. Details loaded from SIMBAD\\."
 msgstr "見つかりました: %(name)s。詳細は SIMBAD から読み込まれました。"
 
-#: templates/base.html:178
+#: templates/base.html:181
 msgid "SIMBAD lookup failed."
 msgstr "SIMBAD検索に失敗しました。"
 
-#: templates/base.html:179
+#: templates/base.html:182
 msgid "selected"
 msgstr "0 選択済み"
 
-#: templates/base.html:180 templates/mobile_object_detail.html:589
+#: templates/base.html:183 templates/mobile_object_detail.html:589
 msgid "No imaging opportunities found."
 msgstr "イメージングの機会が見つかりませんでした。"
 
-#: templates/base.html:183
+#: templates/base.html:186
 msgid "Report frame not found."
 msgstr "レポートフレームが見つかりません。"
 
-#: templates/base.html:184
+#: templates/base.html:187
 msgid "Preparing Print View..."
 msgstr "プリントビューの準備..."
 
-#: templates/base.html:185
+#: templates/base.html:188
 #, python-format
 msgid "Merging Session %(current)d/%(total)d..."
 msgstr "セッション%(current)d/%(total)dのマージ..."
 
-#: templates/base.html:187
+#: templates/base.html:190
 msgid "Add Session"
 msgstr "新しいセッションを追加"
 
-#: templates/base.html:188
+#: templates/base.html:191
 msgid "Editing Session"
 msgstr "このセッションを編集"
 
-#: templates/base.html:189
+#: templates/base.html:192
 msgid "Save Changes"
 msgstr "メモを保存"
 
-#: templates/base.html:192
+#: templates/base.html:195
 #, python-format
 msgid "Failed to update pinned status: %(error)s"
 msgstr "ピン留めステータスの更新に失敗しました: %(error)s"
 
-#: templates/base.html:193
+#: templates/base.html:196
 msgid "SIMBAD requires an active internet connection to load data."
 msgstr "SIMBADは、データをロードするためにアクティブなインターネット接続が必要です。"
 
-#: templates/base.html:194
+#: templates/base.html:197
 msgid "SIMBAD requires an active internet connection."
 msgstr "SIMBADはアクティブなインターネット接続を必要とします。"
 
-#: templates/base.html:195 templates/mobile_object_detail.html:595
+#: templates/base.html:198 templates/mobile_object_detail.html:595
 msgid "Add to calendar"
 msgstr "カレンダーに追加"
 
-#: templates/base.html:196
+#: templates/base.html:199
 #, python-format
 msgid "Error loading opportunities: %(error)s"
 msgstr "イメージング機会の読み込み中にエラーが発生しました: %(error)s"
 
-#: templates/base.html:197
+#: templates/base.html:200
 #, python-format
 msgid ""
 "Failed to load imaging opportunities. Check console for details. (%(error)s)"
 msgstr "イメージング機会のロードに失敗しました。コンソールで詳細を確認してください。(%(error)s)"
 
-#: templates/base.html:198
+#: templates/base.html:201
 msgid "Please configure at least one rig on the Configuration page first."
 msgstr "まず、設定ページで少なくとも1つのリグを設定してください。"
 
-#: templates/base.html:199
+#: templates/base.html:202
 msgid "Could not load external survey. See console for details."
 msgstr "外部アンケートをロードできませんでした。詳細はコンソールを参照してください。"
 
-#: templates/base.html:200
+#: templates/base.html:203
 msgid "Framing settings saved to database."
 msgstr "フレーミング設定をデータベースに保存。"
 
-#: templates/base.html:201
+#: templates/base.html:204
 msgid "Error saving"
 msgstr "データを読み込めませんでした。"
 
-#: templates/base.html:202
+#: templates/base.html:205
 msgid "Please select a rig first."
 msgstr "まずリグを選択してください。"
 
-#: templates/base.html:203
+#: templates/base.html:206
 msgid "Failed to copy to clipboard. See console."
 msgstr "クリップボードへのコピーに失敗しました。コンソールを参照してください。"
 
-#: templates/base.html:204
+#: templates/base.html:207
 msgid "Open Saved Framing"
 msgstr "保存済みフレーミングを開く"
 
-#: templates/base.html:205
+#: templates/base.html:208
 msgid "Delete Saved Framing"
 msgstr "保存済みフレーミングを削除"
 
-#: templates/base.html:206
+#: templates/base.html:209
 msgid "Image upload failed. See console for details."
 msgstr "インポートに失敗しました。詳細はサーバーログを参照してください。"
 
-#: templates/base.html:209
+#: templates/base.html:212
 msgid "No timeline data to display."
 msgstr "表示するタイムラインデータがない。"
 
-#: templates/base.html:210
+#: templates/base.html:213
 msgid "No PHD2 guide log data available."
 msgstr "PHD2ガイドログデータは利用できません。"
 
-#: templates/base.html:211
+#: templates/base.html:214
 msgid "Full"
 msgstr "フル"
 
-#: templates/base.html:213
+#: templates/base.html:216
 msgid "No dither data available."
 msgstr "ディザデータは利用できません。"
 
-#: templates/base.html:214
+#: templates/base.html:217
 msgid "No autofocus data available."
 msgstr "オートフォーカスデータは利用できません。"
 
-#: templates/base.html:217
+#: templates/base.html:220
 #, python-format
 msgid "Calculating month %(current)d of %(total)d..."
 msgstr "%%(total)d個中%%(current)d個のオブジェクトを計算済み..."
 
-#: templates/base.html:218
+#: templates/base.html:221
 msgid "No projects found. Adjust filters or add projects."
 msgstr "プロジェクトが見つかりません。フィルターを調整するか、プロジェクトを追加してください。"
 
-#: templates/base.html:219
+#: templates/base.html:222
 msgid "Plotly library not loaded. Please refresh."
 msgstr "Plotly ライブラリが読み込まれません。更新してください。"
 
-#: templates/base.html:222
+#: templates/base.html:225
 msgid "Loading help content..."
 msgstr "ヘルプの内容を読み込み中..."
 
-#: templates/base.html:223
+#: templates/base.html:226
 msgid "Error: Help content returned empty."
 msgstr "エラー：ヘルプの内容が空で返されました。"
 
-#: templates/base.html:224
+#: templates/base.html:227
 msgid "Network Error: Could not load help topic."
 msgstr "ネットワークエラー：ヘルプトピックをロードできませんでした。"
 
-#: templates/base.html:226
+#: templates/base.html:229
 #, python-format
 msgid "%(count)d object to review"
 msgstr "確認が必要なオブジェクトが%(count)d件"
 
-#: templates/base.html:227
+#: templates/base.html:230
 #, python-format
 msgid "%(count)d objects to review"
 msgstr "確認が必要なオブジェクトが%(count)d件"
 
-#: templates/base.html:230
+#: templates/base.html:233
 msgid "From pack: PACKNAME"
 msgstr "パッケージ由来: PACKNAME"
 
-#: templates/base.html:231
+#: templates/base.html:234
 msgid "No differences to review."
 msgstr "確認する違いはありません。"
 
-#: templates/base.html:232 templates/index.html:135 templates/index.html:196
+#: templates/base.html:235 templates/index.html:135 templates/index.html:196
 #: templates/index.html:234
 msgid "Object"
 msgstr "オブジェクト"
 
-#: templates/base.html:233
+#: templates/base.html:236
 msgid "Field"
 msgstr "フィールド"
 
-#: templates/base.html:234
+#: templates/base.html:237
 msgid "Your Value"
 msgstr "あなたの値"
 
-#: templates/base.html:235
+#: templates/base.html:238
 msgid "Catalog Value"
 msgstr "カタログ値"
 
-#: templates/base.html:237
+#: templates/base.html:240
 msgid "Keep Mine"
 msgstr "自分のものを保持"
 
-#: templates/base.html:238
+#: templates/base.html:241
 msgid "Take Catalog"
 msgstr "カタログを採用"
 
-#: templates/base.html:239
+#: templates/base.html:242
 msgid "Failed to load differences."
 msgstr "違いの読み込みに失敗しました。"
 
-#: templates/base.html:240
+#: templates/base.html:243
 msgid "All differences resolved."
 msgstr "すべての違いが解決しました。"
 
-#: templates/base.html:241
+#: templates/base.html:244
 msgid "Failed to save your choice."
 msgstr "選択の保存に失敗しました。"
 
-#: templates/base.html:244
+#: templates/base.html:247
 #, python-format
 msgid "Showing %(count)d objects"
 msgstr "(数)個のオブジェクトを表示%(count)d"
 
-#: templates/base.html:245
+#: templates/base.html:248
 #, python-format
 msgid "Showing %(shown)d of %(total)d objects"
 msgstr "%%(total)d個中%%(shown)d個のオブジェクトを計算済み..."
 
-#: templates/base.html:246
+#: templates/base.html:249
 #, python-format
 msgid "Are you sure you want to %(action)s %(count)d objects?"
 msgstr "本当に%(action)s %(count)d個のオブジェクトが欲しいのですか？"
 
-#: templates/base.html:247
+#: templates/base.html:250
 #, python-format
 msgid "Fetching details for %(name)s..."
 msgstr "%%(name)sを検索中..."
 
-#: templates/base.html:250
+#: templates/base.html:253
 #, python-format
 msgid ""
 "Importing '%(name)s'...\n"
@@ -3138,49 +3153,49 @@ msgstr ""
 "\n"
 "続行しますか？"
 
-#: templates/base.html:253
+#: templates/base.html:256
 msgid "Effective FL"
 msgstr "アクティブのみ"
 
-#: templates/base.html:254
+#: templates/base.html:257
 msgid "Field of View"
 msgstr "視野"
 
-#: templates/base.html:255
+#: templates/base.html:258
 msgid "Good sampling"
 msgstr "良いサンプリング"
 
-#: templates/base.html:256
+#: templates/base.html:259
 msgid "Image Scale"
 msgstr "ピクセルスケール"
 
-#: templates/base.html:257
+#: templates/base.html:260
 msgid "No reducers defined."
 msgstr "レデューサー/エクステンダーは設定されていません。"
 
-#: templates/base.html:258
+#: templates/base.html:261
 msgid "Slightly oversampled"
 msgstr "ややオーバーサンプリング"
 
-#: templates/base.html:259
+#: templates/base.html:262
 msgid "Slightly undersampled"
 msgstr "ややアンダーサンプリング"
 
-#: templates/base.html:262
+#: templates/base.html:265
 msgid "Add Your Own Inspiration!"
 msgstr "自分のインスピレーションを追加！"
 
-#: templates/base.html:263
+#: templates/base.html:266
 msgid "You are currently seeing automated survey images (DSS2)."
 msgstr "現在、自動調査画像（DSS2）が表示されています。"
 
-#: templates/base.html:264
+#: templates/base.html:267
 msgid ""
 "Did you know you can display your own astrophotos or favorite reference "
 "images here?"
 msgstr "ここで自分の天体写真やお気に入りの参照画像を表示できることをご存知ですか？"
 
-#: templates/base.html:265
+#: templates/base.html:268
 msgid ""
 "Go to Configuration - Manage Objects to add Inspiration Content to your "
 "targets."
@@ -3188,134 +3203,134 @@ msgstr ""
 "<strong>設定 > "
 "オブジェクトの管理</strong>に移動して、ターゲットに「インスピレーションコンテンツ」（画像URL、クレジット、説明）を追加してください。"
 
-#: templates/base.html:269
+#: templates/base.html:272
 msgid "Asking Nova..."
 msgstr "Novaに質問中..."
 
-#: templates/base.html:270
+#: templates/base.html:273
 msgid "Nova Ranking"
 msgstr "Novaランキング"
 
-#: templates/base.html:271
+#: templates/base.html:274
 msgid "Nova Recommended"
 msgstr "Novaのおすすめ"
 
-#: templates/base.html:272
+#: templates/base.html:275
 msgid "Reset Ranking"
 msgstr "ランキングをリセット"
 
-#: templates/base.html:273
+#: templates/base.html:276
 msgid "Nova recommends this object"
 msgstr "Novaがこのオブジェクトをおすすめ"
 
-#: templates/base.html:274
+#: templates/base.html:277
 #, python-format
 msgid "#%(rank)d"
 msgstr "#%(rank)d"
 
-#: templates/base.html:275
+#: templates/base.html:278
 msgid "Reason"
 msgstr "理由"
 
-#: templates/base.html:276
+#: templates/base.html:279
 msgid "Error asking Nova. Please try again."
 msgstr "Novaへの質問でエラーが発生しました。もう一度お試しください。"
 
-#: templates/base.html:277
+#: templates/base.html:280
 msgid "Consulting star charts..."
 msgstr "星図を見ながら..."
 
-#: templates/base.html:278 templates/graph_view.html:482
+#: templates/base.html:281 templates/graph_view.html:482
 msgid "Checking your rigs..."
 msgstr "リグを確認中..."
 
-#: templates/base.html:279
+#: templates/base.html:282
 msgid "Scanning cosmos..."
 msgstr "空をスキャン中..."
 
-#: templates/base.html:281
+#: templates/base.html:284
 msgid "Recommended Rig"
 msgstr "おすすめリグ"
 
-#: templates/base.html:282
+#: templates/base.html:285
 msgid "Recommended Rigs"
 msgstr "おすすめリグ"
 
-#: templates/base.html:314
+#: templates/base.html:317
 msgid "Demo Mode:"
 msgstr "デモモード:"
 
-#: templates/base.html:314
+#: templates/base.html:317
 msgid ""
 "You are viewing a read-only demo. Full functionality (like saving) is "
 "enabled for registered users."
 msgstr "ご覧になっているのは読み取り専用デモです。保存などの全機能は登録ユーザー向けに有効化されています。"
 
-#: templates/base.html:338
+#: templates/base.html:341
 msgid "About Nova DSO Tracker"
 msgstr "Nova DSO Trackerについて"
 
-#: templates/base.html:338
+#: templates/base.html:341
 msgid "About"
 msgstr "について"
 
-#: templates/base.html:346
+#: templates/base.html:349
 msgid "Toggle dark/light theme"
 msgstr "ダーク/ライトテーマを切り替える"
 
-#: templates/base.html:346
+#: templates/base.html:349
 msgid "Toggle theme"
 msgstr "テーマを切り替える"
 
-#: templates/base.html:366
+#: templates/base.html:369
 msgid "Select language"
 msgstr "言語を選択"
 
-#: templates/base.html:378
+#: templates/base.html:381
 msgid "Guest Mode"
 msgstr "ゲストモード"
 
-#: templates/base.html:379 templates/login.html:2
+#: templates/base.html:382 templates/login.html:2
 msgid "Login"
 msgstr "ログイン"
 
-#: templates/base.html:383
+#: templates/base.html:386
 msgid "Users"
 msgstr "ユーザー"
 
-#: templates/base.html:386
+#: templates/base.html:389
 msgid "Logout"
 msgstr "ログアウト"
 
-#: templates/base.html:405
+#: templates/base.html:408
 msgid ""
 "The translations for this language are machine-generated and may not be "
 "accurate. Help improve them!"
 msgstr "この言語の翻訳は機械翻訳であり、正確ではない可能性があります。改善にご協力ください！"
 
-#: templates/base.html:406
+#: templates/base.html:409
 msgid "Submit feedback"
 msgstr "フィードバックを送信"
 
-#: templates/base.html:426 templates/config_form.html:311
+#: templates/base.html:429 templates/config_form.html:311
 #: templates/config_form.html:396 templates/graph_view.html:98
 msgid "Help"
 msgstr "助けて"
 
-#: templates/base.html:446
+#: templates/base.html:449
 msgid "Nova DSO Tracker Logo"
 msgstr "Nova DSO Tracker Logo"
 
-#: templates/base.html:448
+#: templates/base.html:451
 msgid "Version"
 msgstr "バージョン"
 
-#: templates/base.html:449
+#: templates/base.html:452
 msgid ""
 "A personal project born from a passion for astronomy and astrophotography."
 msgstr "天文学と天体写真への情熱から生まれた個人的なプロジェクト。"
 
-#: templates/base.html:450
+#: templates/base.html:453
 msgid ""
 "Nova DSO Tracker helps amateur astronomers plan observation sessions, "
 "calculating and visualizing altitude and azimuth of deep-sky objects, "
@@ -3324,61 +3339,61 @@ msgstr ""
 "Nova DSO "
 "Trackerは、アマチュア天文学者が観測セッションを計画するのを支援します。深宇宙天体の高度と方位角を計算・可視化し、月の位置と満ち欠けを追跡し、最適な観測時間帯を特定します。"
 
-#: templates/base.html:451
+#: templates/base.html:454
 msgid "Data sourced from SIMBAD; calculations powered by Astropy and Ephem."
 msgstr "データはSIMBADから取得；計算はAstropyおよびEphemによって実行。"
 
-#: templates/base.html:459
+#: templates/base.html:462
 msgid "Visit nova-tracker.com"
 msgstr "nova-tracker.comをご覧ください"
 
-#: templates/base.html:469
+#: templates/base.html:472
 msgid "Built by Anton Gutscher"
 msgstr "アントン・グッチャーによって構築"
 
-#: templates/base.html:484
+#: templates/base.html:487
 msgid "Translation Feedback"
 msgstr "翻訳フィードバック"
 
-#: templates/base.html:485
+#: templates/base.html:488
 msgid "Help us improve the translations for this language."
 msgstr "この言語の翻訳を改善するのを手伝ってください。"
 
-#: templates/base.html:489
+#: templates/base.html:492
 msgid "Locale"
 msgstr "ロケール"
 
-#: templates/base.html:494
+#: templates/base.html:497
 msgid "Term / Phrase"
 msgstr "用語 / フレーズ"
 
-#: templates/base.html:495
+#: templates/base.html:498
 msgid "The translated term that seems wrong..."
 msgstr "間違っているように見える翻訳用語..."
 
-#: templates/base.html:499
+#: templates/base.html:502
 msgid "Suggested Correction"
 msgstr "推奨修正"
 
-#: templates/base.html:500
+#: templates/base.html:503
 msgid "Your suggested translation..."
 msgstr "ご推奨翻訳..."
 
-#: templates/base.html:504
+#: templates/base.html:507
 msgid "Context / Notes"
 msgstr "コンテキスト / メモ"
 
-#: templates/base.html:504
+#: templates/base.html:507
 msgid "optional"
 msgstr "(任意)"
 
-#: templates/base.html:505
+#: templates/base.html:508
 msgid ""
 "Additional context about where this appears or why the correction is "
 "needed..."
 msgstr "それがどこに表示されるか、なぜ修正が必要かについての付加コンテキスト..."
 
-#: templates/base.html:509
+#: templates/base.html:512
 msgid "Submit"
 msgstr "送信"
 

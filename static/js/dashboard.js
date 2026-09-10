@@ -1206,6 +1206,7 @@
             span.textContent = value;
             cell.textContent = '';
             cell.appendChild(span);
+            return span;
         }
 
         if (config.dataKey === 'Altitude Current' && isAboveThreshold && !objectData.error) {
@@ -1213,7 +1214,14 @@
             if (objectData.is_obstructed_now) td.classList.add('obstructed');
             if (objectData.below_skyglow_floor && !objectData.is_obstructed_now) td.classList.add('skyglow-floor');
             // Wrap the altitude value in a span for the pill badge styling
-            wrapInBadge(td, td.textContent);
+            const badge = wrapInBadge(td, td.textContent);
+            if (objectData.is_obstructed_now) {
+                badge.title = window.t('alt_badge_obstructed_tooltip');
+            } else if (objectData.below_skyglow_floor) {
+                badge.title = window.t('alt_badge_skyglow_tooltip');
+            } else {
+                badge.title = window.t('alt_badge_visible_tooltip');
+            }
         }
 
         if (config.dataKey === 'Altitude 11PM' && isAboveThreshold && !objectData.error) {
@@ -1221,7 +1229,14 @@
             if (objectData.is_obstructed_at_11pm) td.classList.add('obstructed');
             if (objectData.below_skyglow_floor_11pm && !objectData.is_obstructed_at_11pm) td.classList.add('skyglow-floor');
             // Wrap the altitude value in a span for the pill badge styling
-            wrapInBadge(td, td.textContent);
+            const badge = wrapInBadge(td, td.textContent);
+            if (objectData.is_obstructed_at_11pm) {
+                badge.title = window.t('alt_badge_obstructed_tooltip');
+            } else if (objectData.below_skyglow_floor_11pm) {
+                badge.title = window.t('alt_badge_skyglow_tooltip');
+            } else {
+                badge.title = window.t('alt_badge_visible_tooltip');
+            }
         }
     }
 

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-09 16:45+0800\n"
+"POT-Creation-Date: 2026-09-10 09:08+0800\n"
 "PO-Revision-Date: 2026-03-03 13:38+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -175,263 +175,263 @@ msgstr ""
 msgid "Calibration star catalog not found"
 msgstr ""
 
-#: nova/blueprints/core.py:204
+#: nova/blueprints/core.py:205
 msgid "Logged out successfully!"
 msgstr ""
 
-#: nova/blueprints/core.py:214
+#: nova/blueprints/core.py:215
 #, python-format
 msgid "Language '%(lang)s' is not supported."
 msgstr ""
 
-#: nova/blueprints/core.py:270
+#: nova/blueprints/core.py:271
 msgid "Logged in successfully!"
 msgstr ""
 
-#: nova/blueprints/core.py:286
+#: nova/blueprints/core.py:287
 msgid "Invalid username or password."
 msgstr ""
 
-#: nova/blueprints/core.py:294
+#: nova/blueprints/core.py:295
 msgid "Single Sign-On is not applicable in single-user mode."
 msgstr ""
 
-#: nova/blueprints/core.py:302
+#: nova/blueprints/core.py:303
 msgid "SSO Error: No token provided."
 msgstr ""
 
-#: nova/blueprints/core.py:308
+#: nova/blueprints/core.py:309
 msgid "SSO Error: SSO is not configured on the server."
 msgstr ""
 
-#: nova/blueprints/core.py:326
+#: nova/blueprints/core.py:327
 #, python-format
 msgid "Welcome back, %(username)s!"
 msgstr ""
 
-#: nova/blueprints/core.py:329
+#: nova/blueprints/core.py:330
 #, python-format
 msgid "SSO Error: User '%(username)s' not found or is disabled in Nova."
 msgstr ""
 
-#: nova/blueprints/core.py:333
+#: nova/blueprints/core.py:334
 msgid "SSO Error: The login link has expired. Please try again from WordPress."
 msgstr ""
 
-#: nova/blueprints/core.py:336
+#: nova/blueprints/core.py:337
 msgid "SSO Error: Invalid login token."
 msgstr ""
 
-#: nova/blueprints/core.py:544
+#: nova/blueprints/core.py:545
 #, python-format
 msgid "Could not find user '%(username)s' in the database."
 msgstr ""
 
-#: nova/blueprints/core.py:623
+#: nova/blueprints/core.py:624
 msgid "Warning: Horizon Mask was invalid and was ignored."
 msgstr ""
 
-#: nova/blueprints/core.py:646
+#: nova/blueprints/core.py:647
 msgid ""
 "Cannot delete your last location. You must have at least one location "
 "configured."
 msgstr ""
 
-#: nova/blueprints/core.py:651
+#: nova/blueprints/core.py:652
 msgid ""
 "Cannot deactivate your only active location. You must keep at least one "
 "active location."
 msgstr ""
 
-#: nova/blueprints/core.py:695
+#: nova/blueprints/core.py:696
 #, python-format
 msgid "Warning: Horizon Mask for '%(location_name)s' was invalid and ignored."
 msgstr ""
 
-#: nova/blueprints/core.py:752
+#: nova/blueprints/core.py:753
 #, python-format
 msgid "%(message)s updated successfully."
 msgstr ""
 
-#: nova/blueprints/core.py:828
+#: nova/blueprints/core.py:829
 #, python-format
 msgid "A database error occurred: %(error)s"
 msgstr ""
 
-#: nova/blueprints/core.py:1028
+#: nova/blueprints/core.py:1029
 msgid "Label required"
 msgstr ""
 
-#: nova/blueprints/core.py:1038
+#: nova/blueprints/core.py:1039
 msgid "Filter already exists"
 msgstr ""
 
-#: nova/blueprints/core.py:1055
+#: nova/blueprints/core.py:1056
 msgid "Filter not found"
 msgstr ""
 
-#: nova/blueprints/core.py:1082 nova/blueprints/core.py:1102
+#: nova/blueprints/core.py:1083 nova/blueprints/core.py:1103
 msgid "No object specified."
 msgstr ""
 
-#: nova/blueprints/core.py:1089 nova/blueprints/core.py:1627
-#: nova/blueprints/core.py:1653 templates/mobile_add_object.html:57
+#: nova/blueprints/core.py:1090 nova/blueprints/core.py:1699
+#: nova/blueprints/core.py:1725 templates/mobile_add_object.html:57
 msgid "Object not found."
 msgstr ""
 
-#: nova/blueprints/core.py:1368
+#: nova/blueprints/core.py:1369
 msgid "Fetched and saved missing object details."
 msgstr ""
 
-#: nova/blueprints/core.py:1370
+#: nova/blueprints/core.py:1371
 msgid "No missing data found or no updates needed."
 msgstr ""
 
-#: nova/blueprints/core.py:1374
+#: nova/blueprints/core.py:1375
 #, python-format
 msgid "An error occurred during data fetching: %(error)s"
 msgstr ""
 
-#: nova/blueprints/core.py:1759
+#: nova/blueprints/core.py:1831
 msgid "Please log in to view object details."
 msgstr ""
 
-#: nova/blueprints/core.py:1774
+#: nova/blueprints/core.py:1846
 #, python-format
 msgid "User '%(username)s' not found."
 msgstr ""
 
-#: nova/blueprints/core.py:1790
+#: nova/blueprints/core.py:1862
 #, python-format
 msgid "Requested location '%(location_name)s' not found, using default."
 msgstr ""
 
-#: nova/blueprints/core.py:1808
+#: nova/blueprints/core.py:1880
 msgid "Error: No valid location configured or selected for this user."
 msgstr ""
 
-#: nova/blueprints/core.py:1826
+#: nova/blueprints/core.py:1898
 #, python-format
 msgid "Object '%(object_name)s' not found in your configuration."
 msgstr ""
 
-#: nova/blueprints/core.py:2090
+#: nova/blueprints/core.py:2169
 msgid "Invalid date components provided, defaulting to current date."
 msgstr ""
 
-#: nova/blueprints/core.py:2302
+#: nova/blueprints/core.py:2381
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
 msgstr ""
 
-#: nova/blueprints/journal.py:92 nova/blueprints/journal.py:436
+#: nova/blueprints/journal.py:93 nova/blueprints/journal.py:456
 #: nova/blueprints/mobile.py:550
 msgid "Invalid date format."
 msgstr ""
 
-#: nova/blueprints/journal.py:290 nova/blueprints/journal.py:646
+#: nova/blueprints/journal.py:291 nova/blueprints/journal.py:666
 msgid "Session image is too large. Maximum size is 5 MB."
 msgstr ""
 
-#: nova/blueprints/journal.py:314 nova/blueprints/journal.py:668
+#: nova/blueprints/journal.py:334 nova/blueprints/journal.py:688
 msgid ""
 "This is the Chinese-language version of the ASIAir log. Please upload the"
 " standard English log file instead."
 msgstr ""
 
-#: nova/blueprints/journal.py:317 nova/blueprints/journal.py:674
+#: nova/blueprints/journal.py:337 nova/blueprints/journal.py:694
 msgid "ASIAir log file must be a .txt file."
 msgstr ""
 
-#: nova/blueprints/journal.py:321 nova/blueprints/journal.py:685
+#: nova/blueprints/journal.py:341 nova/blueprints/journal.py:705
 msgid "ASIAir log file is too large. Maximum size is 10 MB."
 msgstr ""
 
-#: nova/blueprints/journal.py:331 nova/blueprints/journal.py:699
+#: nova/blueprints/journal.py:351 nova/blueprints/journal.py:719
 msgid "PHD2 log file must be a .txt file."
 msgstr ""
 
-#: nova/blueprints/journal.py:335 nova/blueprints/journal.py:710
+#: nova/blueprints/journal.py:355 nova/blueprints/journal.py:730
 msgid "PHD2 log file is too large. Maximum size is 10 MB."
 msgstr ""
 
-#: nova/blueprints/journal.py:345 nova/blueprints/journal.py:726
+#: nova/blueprints/journal.py:365 nova/blueprints/journal.py:746
 msgid "NINA log file must be a .log file."
 msgstr ""
 
-#: nova/blueprints/journal.py:349 nova/blueprints/journal.py:738
+#: nova/blueprints/journal.py:369 nova/blueprints/journal.py:758
 msgid "NINA log file is too large. Maximum size is 10 MB."
 msgstr ""
 
-#: nova/blueprints/journal.py:380 nova/blueprints/mobile.py:703
+#: nova/blueprints/journal.py:400 nova/blueprints/mobile.py:703
 msgid "New journal entry added successfully!"
 msgstr ""
 
-#: nova/blueprints/journal.py:406
+#: nova/blueprints/journal.py:426
 msgid "To add a new session, please select an object first."
 msgstr ""
 
-#: nova/blueprints/journal.py:420
+#: nova/blueprints/journal.py:440
 msgid "Journal entry not found or you do not have permission to edit it."
 msgstr ""
 
-#: nova/blueprints/journal.py:747
+#: nova/blueprints/journal.py:767
 msgid "NINA log imported successfully."
 msgstr ""
 
-#: nova/blueprints/journal.py:777
+#: nova/blueprints/journal.py:797
 msgid "Journal entry updated successfully!"
 msgstr ""
 
-#: nova/blueprints/journal.py:800
+#: nova/blueprints/journal.py:820
 msgid "Cannot edit session: associated object name is missing."
 msgstr ""
 
-#: nova/blueprints/journal.py:826
+#: nova/blueprints/journal.py:846
 msgid "Project name is required."
 msgstr ""
 
-#: nova/blueprints/journal.py:832
+#: nova/blueprints/journal.py:852
 #, python-format
 msgid "A project named '%(project_name)s' already exists."
 msgstr ""
 
-#: nova/blueprints/journal.py:859
+#: nova/blueprints/journal.py:879
 #, python-format
 msgid "Project '%(project_name)s' created successfully."
 msgstr ""
 
-#: nova/blueprints/journal.py:875
+#: nova/blueprints/journal.py:895
 #, python-format
 msgid "Error creating project: %(error)s"
 msgstr ""
 
-#: nova/blueprints/journal.py:890
+#: nova/blueprints/journal.py:910
 msgid "Session to duplicate not found."
 msgstr ""
 
-#: nova/blueprints/journal.py:916
+#: nova/blueprints/journal.py:936
 msgid "Session duplicated successfully."
 msgstr ""
 
-#: nova/blueprints/journal.py:927
+#: nova/blueprints/journal.py:947
 #, python-format
 msgid "Error duplicating session: %(error)s"
 msgstr ""
 
-#: nova/blueprints/journal.py:949
+#: nova/blueprints/journal.py:969
 msgid "Journal entry deleted successfully."
 msgstr ""
 
-#: nova/blueprints/journal.py:955
+#: nova/blueprints/journal.py:975
 msgid "Journal entry not found or you do not have permission to delete it."
 msgstr ""
 
-#: nova/blueprints/journal.py:972 nova/blueprints/journal.py:1126
+#: nova/blueprints/journal.py:992 nova/blueprints/journal.py:1146
 msgid "Session not found."
 msgstr ""
 
-#: nova/blueprints/journal.py:1134 nova/blueprints/projects.py:358
+#: nova/blueprints/journal.py:1154 nova/blueprints/projects.py:374
 msgid "Project not found."
 msgstr ""
 
@@ -457,21 +457,21 @@ msgstr ""
 msgid "Error deleting old image."
 msgstr ""
 
-#: nova/blueprints/projects.py:127
+#: nova/blueprints/projects.py:143
 msgid "Project updated successfully."
 msgstr ""
 
-#: nova/blueprints/projects.py:148
+#: nova/blueprints/projects.py:164
 #, python-format
 msgid "An error occurred: %(error)s"
 msgstr ""
 
-#: nova/blueprints/projects.py:373
+#: nova/blueprints/projects.py:395
 #, python-format
 msgid "Project '%(project_name)s' deleted. Sessions are now standalone."
 msgstr ""
 
-#: nova/blueprints/projects.py:381
+#: nova/blueprints/projects.py:403
 #, python-format
 msgid "Error deleting project: %(error)s"
 msgstr ""
@@ -775,9 +775,9 @@ msgstr ""
 
 #: templates/_inspiration_section.html:510 templates/_journal_section.html:2556
 #: templates/_objects_section.html:451 templates/_objects_section.html:467
-#: templates/_objects_section.html:474 templates/base.html:408
-#: templates/base.html:425 templates/base.html:430 templates/base.html:439
-#: templates/base.html:477 templates/config_form.html:701
+#: templates/_objects_section.html:474 templates/base.html:411
+#: templates/base.html:428 templates/base.html:433 templates/base.html:442
+#: templates/base.html:480 templates/config_form.html:701
 #: templates/graph_view.html:298
 msgid "Close"
 msgstr ""
@@ -936,7 +936,7 @@ msgstr ""
 msgid "Add New Project"
 msgstr ""
 
-#: templates/_journal_section.html:1631 templates/base.html:186
+#: templates/_journal_section.html:1631 templates/base.html:189
 msgid "Add New Session"
 msgstr ""
 
@@ -1234,7 +1234,7 @@ msgstr ""
 msgid "Overview"
 msgstr ""
 
-#: templates/_journal_section.html:1895 templates/base.html:148
+#: templates/_journal_section.html:1895 templates/base.html:151
 msgid "Guiding"
 msgstr ""
 
@@ -1353,7 +1353,7 @@ msgstr ""
 msgid "Dec:"
 msgstr ""
 
-#: templates/_journal_section.html:1977 templates/base.html:212
+#: templates/_journal_section.html:1977 templates/base.html:215
 msgid "Zoom"
 msgstr ""
 
@@ -1520,7 +1520,7 @@ msgstr ""
 #: templates/_journal_section.html:2213 templates/_journal_section.html:2283
 #: templates/_journal_section.html:2316 templates/_journal_section.html:2616
 #: templates/_objects_section.html:364 templates/_project_subtab.html:232
-#: templates/admin_users.html:120 templates/base.html:510
+#: templates/admin_users.html:120 templates/base.html:513
 #: templates/graph_view.html:490 templates/index.html:298
 #: templates/journal_form.html:205
 msgid "Cancel"
@@ -1940,7 +1940,7 @@ msgstr ""
 msgid "{label} removed."
 msgstr ""
 
-#: templates/_journal_section.html:2605 templates/base.html:268
+#: templates/_journal_section.html:2605 templates/base.html:271
 #: templates/graph_view.html:479 templates/index.html:115
 msgid "Ask Nova"
 msgstr ""
@@ -1957,7 +1957,7 @@ msgstr ""
 msgid "Checking guiding data..."
 msgstr ""
 
-#: templates/_journal_section.html:2610 templates/base.html:280
+#: templates/_journal_section.html:2610 templates/base.html:283
 #: templates/graph_view.html:485
 msgid "Almost there..."
 msgstr ""
@@ -2010,7 +2010,7 @@ msgstr ""
 msgid "Find Duplicates"
 msgstr ""
 
-#: templates/_objects_section.html:25 templates/base.html:225
+#: templates/_objects_section.html:25 templates/base.html:228
 msgid "Review Import Differences"
 msgstr ""
 
@@ -2341,7 +2341,7 @@ msgstr ""
 msgid "Objects"
 msgstr ""
 
-#: templates/_objects_section.html:406 templates/base.html:236
+#: templates/_objects_section.html:406 templates/base.html:239
 #: templates/config_form.html:604 templates/config_form.html:637
 #: templates/config_form.html:666
 msgid "Action"
@@ -2740,375 +2740,389 @@ msgid "Altitude data unavailable."
 msgstr ""
 
 #: templates/base.html:137
-msgid "Select a saved view..."
+msgid "Above the horizon, but blocked by a mapped obstruction in this direction."
 msgstr ""
 
 #: templates/base.html:138
-msgid "Error loading views"
+msgid ""
+"Above the horizon, but light pollution in this direction likely limits "
+"visibility."
 msgstr ""
 
-#: templates/base.html:139 templates/index.html:67
-msgid "Update in"
+#: templates/base.html:139
+msgid "Above your altitude threshold and unobstructed."
 msgstr ""
 
 #: templates/base.html:140
-msgid "Latest version"
+msgid "Select a saved view..."
+msgstr ""
+
+#: templates/base.html:141
+msgid "Error loading views"
+msgstr ""
+
+#: templates/base.html:142 templates/index.html:67
+msgid "Update in"
 msgstr ""
 
 #: templates/base.html:143
+msgid "Latest version"
+msgstr ""
+
+#: templates/base.html:146
 msgid "Select Telescope"
 msgstr ""
 
-#: templates/base.html:144
+#: templates/base.html:147
 msgid "Select Camera"
 msgstr ""
 
-#: templates/base.html:145 templates/config_form.html:673
+#: templates/base.html:148 templates/config_form.html:673
 #: templates/project_report.html:1174
 msgid "Telescope"
 msgstr ""
 
-#: templates/base.html:146 templates/config_form.html:674
+#: templates/base.html:149 templates/config_form.html:674
 #: templates/project_report.html:1178
 msgid "Camera"
 msgstr ""
 
-#: templates/base.html:147
+#: templates/base.html:150
 msgid "Reducer / Extender"
 msgstr ""
 
-#: templates/base.html:149
+#: templates/base.html:152
 msgid "Oversampled"
 msgstr ""
 
-#: templates/base.html:150
+#: templates/base.html:153
 msgid "Well sampled"
 msgstr ""
 
-#: templates/base.html:151
+#: templates/base.html:154
 msgid "Undersampled"
 msgstr ""
 
-#: templates/base.html:152
+#: templates/base.html:155
 msgid "No telescopes defined."
 msgstr ""
 
-#: templates/base.html:153
+#: templates/base.html:156
 msgid "No cameras defined."
 msgstr ""
 
-#: templates/base.html:154
+#: templates/base.html:157
 msgid "Error loading shared items."
 msgstr ""
 
-#: templates/base.html:155
+#: templates/base.html:158
 msgid "Import failed. See console for details."
 msgstr ""
 
-#: templates/base.html:156
+#: templates/base.html:159
 msgid "Upload failed. See console."
 msgstr ""
 
-#: templates/base.html:157
+#: templates/base.html:160
 msgid "Network error saving object."
 msgstr ""
 
-#: templates/base.html:158
+#: templates/base.html:161
 msgid "Image upload failed: Network error."
 msgstr ""
 
-#: templates/base.html:159
+#: templates/base.html:162
 msgid "Error: Could not find the horizon mask field."
 msgstr ""
 
-#: templates/base.html:160
+#: templates/base.html:163
 msgid "Error reading file. Please try again."
 msgstr ""
 
-#: templates/base.html:161
+#: templates/base.html:164
 msgid "No valid horizon data found."
 msgstr ""
 
-#: templates/base.html:162
+#: templates/base.html:165
 msgid "Shared Notes for"
 msgstr ""
 
-#: templates/base.html:165
+#: templates/base.html:168
 msgid "No objects selected."
 msgstr ""
 
-#: templates/base.html:166
+#: templates/base.html:169
 msgid "Bulk action failed."
 msgstr ""
 
-#: templates/base.html:167
+#: templates/base.html:170
 msgid "Bulk fetch details failed."
 msgstr ""
 
-#: templates/base.html:168
+#: templates/base.html:171
 msgid "No potential duplicates found."
 msgstr ""
 
-#: templates/base.html:169
+#: templates/base.html:172
 msgid "Keep A, merge B into A"
 msgstr ""
 
-#: templates/base.html:170
+#: templates/base.html:173
 msgid "Keep B, merge A into B"
 msgstr ""
 
-#: templates/base.html:171
+#: templates/base.html:174
 msgid "Error scanning duplicates."
 msgstr ""
 
-#: templates/base.html:172
+#: templates/base.html:175
 msgid "Confirm merge?"
 msgstr ""
 
-#: templates/base.html:173
+#: templates/base.html:176
 msgid "All duplicates resolved."
 msgstr ""
 
-#: templates/base.html:174
+#: templates/base.html:177
 msgid "Please enter an object identifier."
 msgstr ""
 
-#: templates/base.html:175
+#: templates/base.html:178
 msgid "Checking your local library..."
 msgstr ""
 
-#: templates/base.html:176
+#: templates/base.html:179
 msgid "Object found in your library."
 msgstr ""
 
-#: templates/base.html:177
+#: templates/base.html:180
 #, python-format
 msgid "Found: %(name)s. Details loaded from SIMBAD\\."
 msgstr ""
 
-#: templates/base.html:178
+#: templates/base.html:181
 msgid "SIMBAD lookup failed."
 msgstr ""
 
-#: templates/base.html:179
+#: templates/base.html:182
 msgid "selected"
 msgstr ""
 
-#: templates/base.html:180 templates/mobile_object_detail.html:589
+#: templates/base.html:183 templates/mobile_object_detail.html:589
 msgid "No imaging opportunities found."
 msgstr ""
 
-#: templates/base.html:183
+#: templates/base.html:186
 msgid "Report frame not found."
 msgstr ""
 
-#: templates/base.html:184
+#: templates/base.html:187
 msgid "Preparing Print View..."
 msgstr ""
 
-#: templates/base.html:185
+#: templates/base.html:188
 #, python-format
 msgid "Merging Session %(current)d/%(total)d..."
 msgstr ""
 
-#: templates/base.html:187
+#: templates/base.html:190
 msgid "Add Session"
 msgstr ""
 
-#: templates/base.html:188
+#: templates/base.html:191
 msgid "Editing Session"
 msgstr ""
 
-#: templates/base.html:189
+#: templates/base.html:192
 msgid "Save Changes"
 msgstr ""
 
-#: templates/base.html:192
+#: templates/base.html:195
 #, python-format
 msgid "Failed to update pinned status: %(error)s"
 msgstr ""
 
-#: templates/base.html:193
+#: templates/base.html:196
 msgid "SIMBAD requires an active internet connection to load data."
 msgstr ""
 
-#: templates/base.html:194
+#: templates/base.html:197
 msgid "SIMBAD requires an active internet connection."
 msgstr ""
 
-#: templates/base.html:195 templates/mobile_object_detail.html:595
+#: templates/base.html:198 templates/mobile_object_detail.html:595
 msgid "Add to calendar"
 msgstr ""
 
-#: templates/base.html:196
+#: templates/base.html:199
 #, python-format
 msgid "Error loading opportunities: %(error)s"
 msgstr ""
 
-#: templates/base.html:197
+#: templates/base.html:200
 #, python-format
 msgid ""
 "Failed to load imaging opportunities. Check console for details. "
 "(%(error)s)"
 msgstr ""
 
-#: templates/base.html:198
+#: templates/base.html:201
 msgid "Please configure at least one rig on the Configuration page first."
 msgstr ""
 
-#: templates/base.html:199
+#: templates/base.html:202
 msgid "Could not load external survey. See console for details."
 msgstr ""
 
-#: templates/base.html:200
+#: templates/base.html:203
 msgid "Framing settings saved to database."
 msgstr ""
 
-#: templates/base.html:201
+#: templates/base.html:204
 msgid "Error saving"
 msgstr ""
 
-#: templates/base.html:202
+#: templates/base.html:205
 msgid "Please select a rig first."
 msgstr ""
 
-#: templates/base.html:203
+#: templates/base.html:206
 msgid "Failed to copy to clipboard. See console."
 msgstr ""
 
-#: templates/base.html:204
+#: templates/base.html:207
 msgid "Open Saved Framing"
 msgstr ""
 
-#: templates/base.html:205
+#: templates/base.html:208
 msgid "Delete Saved Framing"
 msgstr ""
 
-#: templates/base.html:206
+#: templates/base.html:209
 msgid "Image upload failed. See console for details."
 msgstr ""
 
-#: templates/base.html:209
+#: templates/base.html:212
 msgid "No timeline data to display."
 msgstr ""
 
-#: templates/base.html:210
+#: templates/base.html:213
 msgid "No PHD2 guide log data available."
 msgstr ""
 
-#: templates/base.html:211
+#: templates/base.html:214
 msgid "Full"
 msgstr ""
 
-#: templates/base.html:213
+#: templates/base.html:216
 msgid "No dither data available."
 msgstr ""
 
-#: templates/base.html:214
+#: templates/base.html:217
 msgid "No autofocus data available."
 msgstr ""
 
-#: templates/base.html:217
+#: templates/base.html:220
 #, python-format
 msgid "Calculating month %(current)d of %(total)d..."
 msgstr ""
 
-#: templates/base.html:218
+#: templates/base.html:221
 msgid "No projects found. Adjust filters or add projects."
 msgstr ""
 
-#: templates/base.html:219
+#: templates/base.html:222
 msgid "Plotly library not loaded. Please refresh."
 msgstr ""
 
-#: templates/base.html:222
+#: templates/base.html:225
 msgid "Loading help content..."
 msgstr ""
 
-#: templates/base.html:223
+#: templates/base.html:226
 msgid "Error: Help content returned empty."
 msgstr ""
 
-#: templates/base.html:224
+#: templates/base.html:227
 msgid "Network Error: Could not load help topic."
 msgstr ""
 
-#: templates/base.html:226
+#: templates/base.html:229
 #, python-format
 msgid "%(count)d object to review"
 msgstr ""
 
-#: templates/base.html:227
+#: templates/base.html:230
 #, python-format
 msgid "%(count)d objects to review"
 msgstr ""
 
-#: templates/base.html:230
+#: templates/base.html:233
 msgid "From pack: PACKNAME"
 msgstr ""
 
-#: templates/base.html:231
+#: templates/base.html:234
 msgid "No differences to review."
 msgstr ""
 
-#: templates/base.html:232 templates/index.html:135 templates/index.html:196
+#: templates/base.html:235 templates/index.html:135 templates/index.html:196
 #: templates/index.html:234
 msgid "Object"
 msgstr ""
 
-#: templates/base.html:233
+#: templates/base.html:236
 msgid "Field"
 msgstr ""
 
-#: templates/base.html:234
+#: templates/base.html:237
 msgid "Your Value"
 msgstr ""
 
-#: templates/base.html:235
+#: templates/base.html:238
 msgid "Catalog Value"
 msgstr ""
 
-#: templates/base.html:237
+#: templates/base.html:240
 msgid "Keep Mine"
 msgstr ""
 
-#: templates/base.html:238
+#: templates/base.html:241
 msgid "Take Catalog"
 msgstr ""
 
-#: templates/base.html:239
+#: templates/base.html:242
 msgid "Failed to load differences."
 msgstr ""
 
-#: templates/base.html:240
+#: templates/base.html:243
 msgid "All differences resolved."
 msgstr ""
 
-#: templates/base.html:241
-msgid "Failed to save your choice."
-msgstr ""
-
 #: templates/base.html:244
-#, python-format
-msgid "Showing %(count)d objects"
-msgstr ""
-
-#: templates/base.html:245
-#, python-format
-msgid "Showing %(shown)d of %(total)d objects"
-msgstr ""
-
-#: templates/base.html:246
-#, python-format
-msgid "Are you sure you want to %(action)s %(count)d objects?"
+msgid "Failed to save your choice."
 msgstr ""
 
 #: templates/base.html:247
 #, python-format
-msgid "Fetching details for %(name)s..."
+msgid "Showing %(count)d objects"
+msgstr ""
+
+#: templates/base.html:248
+#, python-format
+msgid "Showing %(shown)d of %(total)d objects"
+msgstr ""
+
+#: templates/base.html:249
+#, python-format
+msgid "Are you sure you want to %(action)s %(count)d objects?"
 msgstr ""
 
 #: templates/base.html:250
+#, python-format
+msgid "Fetching details for %(name)s..."
+msgstr ""
+
+#: templates/base.html:253
 #, python-format
 msgid ""
 "Importing '%(name)s'...\n"
@@ -3122,49 +3136,49 @@ msgid ""
 "Do you want to proceed?"
 msgstr ""
 
-#: templates/base.html:253
+#: templates/base.html:256
 msgid "Effective FL"
 msgstr ""
 
-#: templates/base.html:254
+#: templates/base.html:257
 msgid "Field of View"
 msgstr ""
 
-#: templates/base.html:255
+#: templates/base.html:258
 msgid "Good sampling"
 msgstr ""
 
-#: templates/base.html:256
+#: templates/base.html:259
 msgid "Image Scale"
 msgstr ""
 
-#: templates/base.html:257
+#: templates/base.html:260
 msgid "No reducers defined."
 msgstr ""
 
-#: templates/base.html:258
+#: templates/base.html:261
 msgid "Slightly oversampled"
 msgstr ""
 
-#: templates/base.html:259
+#: templates/base.html:262
 msgid "Slightly undersampled"
 msgstr ""
 
-#: templates/base.html:262
+#: templates/base.html:265
 msgid "Add Your Own Inspiration!"
 msgstr ""
 
-#: templates/base.html:263
+#: templates/base.html:266
 msgid "You are currently seeing automated survey images (DSS2)."
 msgstr ""
 
-#: templates/base.html:264
+#: templates/base.html:267
 msgid ""
 "Did you know you can display your own astrophotos or favorite reference "
 "images here?"
 msgstr ""
 
-#: templates/base.html:265
+#: templates/base.html:268
 msgid ""
 "Go to Configuration - Manage Objects to add Inspiration Content to your "
 "targets."
@@ -3173,109 +3187,109 @@ msgstr ""
 "\"Inspiration Content\" (Image URLs, Credits, Descriptions) to your "
 "targets."
 
-#: templates/base.html:269
+#: templates/base.html:272
 msgid "Asking Nova..."
 msgstr "Asking Nova..."
 
-#: templates/base.html:270
+#: templates/base.html:273
 #, fuzzy
 msgid "Nova Ranking"
 msgstr "Reset Ranking"
 
-#: templates/base.html:271
+#: templates/base.html:274
 msgid "Nova Recommended"
 msgstr "Nova Recommended"
 
-#: templates/base.html:272
+#: templates/base.html:275
 msgid "Reset Ranking"
 msgstr "Reset Ranking"
 
-#: templates/base.html:273
+#: templates/base.html:276
 msgid "Nova recommends this object"
 msgstr "Nova recommends this object"
 
-#: templates/base.html:274
+#: templates/base.html:277
 #, python-format
 msgid "#%(rank)d"
 msgstr "#%(rank)d"
 
-#: templates/base.html:275
+#: templates/base.html:278
 msgid "Reason"
 msgstr "Reason"
 
-#: templates/base.html:276
+#: templates/base.html:279
 msgid "Error asking Nova. Please try again."
 msgstr "Error asking Nova. Please try again."
 
-#: templates/base.html:277
+#: templates/base.html:280
 msgid "Consulting star charts..."
 msgstr ""
 
-#: templates/base.html:278 templates/graph_view.html:482
+#: templates/base.html:281 templates/graph_view.html:482
 msgid "Checking your rigs..."
 msgstr ""
 
-#: templates/base.html:279
+#: templates/base.html:282
 msgid "Scanning cosmos..."
 msgstr ""
 
-#: templates/base.html:281
+#: templates/base.html:284
 #, fuzzy
 msgid "Recommended Rig"
 msgstr "Nova Recommended"
 
-#: templates/base.html:282
+#: templates/base.html:285
 #, fuzzy
 msgid "Recommended Rigs"
 msgstr "Nova Recommended"
 
-#: templates/base.html:314
+#: templates/base.html:317
 msgid "Demo Mode:"
 msgstr ""
 
-#: templates/base.html:314
+#: templates/base.html:317
 msgid ""
 "You are viewing a read-only demo. Full functionality (like saving) is "
 "enabled for registered users."
 msgstr ""
 
-#: templates/base.html:338
+#: templates/base.html:341
 msgid "About Nova DSO Tracker"
 msgstr ""
 
-#: templates/base.html:338
+#: templates/base.html:341
 msgid "About"
 msgstr ""
 
-#: templates/base.html:346
+#: templates/base.html:349
 msgid "Toggle dark/light theme"
 msgstr ""
 
-#: templates/base.html:346
+#: templates/base.html:349
 msgid "Toggle theme"
 msgstr ""
 
-#: templates/base.html:366
+#: templates/base.html:369
 msgid "Select language"
 msgstr ""
 
-#: templates/base.html:378
+#: templates/base.html:381
 msgid "Guest Mode"
 msgstr ""
 
-#: templates/base.html:379 templates/login.html:2
+#: templates/base.html:382 templates/login.html:2
 msgid "Login"
 msgstr ""
 
-#: templates/base.html:383
+#: templates/base.html:386
 msgid "Users"
 msgstr ""
 
-#: templates/base.html:386
+#: templates/base.html:389
 msgid "Logout"
 msgstr ""
 
-#: templates/base.html:405
+#: templates/base.html:408
 msgid ""
 "The translations for this language are machine-generated and may not be "
 "accurate. Help improve them!"
@@ -3283,28 +3297,28 @@ msgstr ""
 "The translations for this language are machine-generated and may not be "
 "accurate. Help improve them!"
 
-#: templates/base.html:406
+#: templates/base.html:409
 msgid "Submit feedback"
 msgstr "Submit feedback"
 
-#: templates/base.html:426 templates/config_form.html:311
+#: templates/base.html:429 templates/config_form.html:311
 #: templates/config_form.html:396 templates/graph_view.html:98
 msgid "Help"
 msgstr ""
 
-#: templates/base.html:446
+#: templates/base.html:449
 msgid "Nova DSO Tracker Logo"
 msgstr ""
 
-#: templates/base.html:448
+#: templates/base.html:451
 msgid "Version"
 msgstr ""
 
-#: templates/base.html:449
+#: templates/base.html:452
 msgid "A personal project born from a passion for astronomy and astrophotography."
 msgstr ""
 
-#: templates/base.html:450
+#: templates/base.html:453
 msgid ""
 "Nova DSO Tracker helps amateur astronomers plan observation sessions, "
 "calculating and visualizing altitude and azimuth of deep-sky objects, "
@@ -3312,62 +3326,62 @@ msgid ""
 "windows."
 msgstr ""
 
-#: templates/base.html:451
+#: templates/base.html:454
 msgid "Data sourced from SIMBAD; calculations powered by Astropy and Ephem."
 msgstr ""
 
-#: templates/base.html:459
+#: templates/base.html:462
 msgid "Visit nova-tracker.com"
 msgstr ""
 
-#: templates/base.html:469
+#: templates/base.html:472
 msgid "Built by Anton Gutscher"
 msgstr ""
 
-#: templates/base.html:484
+#: templates/base.html:487
 #, fuzzy
 msgid "Translation Feedback"
 msgstr "Submit feedback"
 
-#: templates/base.html:485
+#: templates/base.html:488
 msgid "Help us improve the translations for this language."
 msgstr ""
 
-#: templates/base.html:489
+#: templates/base.html:492
 msgid "Locale"
 msgstr ""
 
-#: templates/base.html:494
+#: templates/base.html:497
 msgid "Term / Phrase"
 msgstr ""
 
-#: templates/base.html:495
+#: templates/base.html:498
 msgid "The translated term that seems wrong..."
 msgstr ""
 
-#: templates/base.html:499
+#: templates/base.html:502
 msgid "Suggested Correction"
 msgstr ""
 
-#: templates/base.html:500
+#: templates/base.html:503
 msgid "Your suggested translation..."
 msgstr ""
 
-#: templates/base.html:504
+#: templates/base.html:507
 msgid "Context / Notes"
 msgstr ""
 
-#: templates/base.html:504
+#: templates/base.html:507
 msgid "optional"
 msgstr ""
 
-#: templates/base.html:505
+#: templates/base.html:508
 msgid ""
 "Additional context about where this appears or why the correction is "
 "needed..."
 msgstr ""
 
-#: templates/base.html:509
+#: templates/base.html:512
 msgid "Submit"
 msgstr ""
 
