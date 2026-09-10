@@ -35,6 +35,7 @@ from nova.blueprints.projects import _build_project_exposure_summary
 # =============================================================================
 import bleach
 from bleach.css_sanitizer import CSSSanitizer
+from PIL import Image
 import pytz
 import yaml
 
@@ -1415,8 +1416,40 @@ def index():
         session_dict['target_common_name'] = object_names_lookup.get(session.object_name, session.object_name)
 
         if session_dict.get('session_image_file'):
+            session_image_filename = session_dict['session_image_file']
+            session_thumb_filename = f"thumb_{session_image_filename}"
+            session_user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+            if os.path.exists(os.path.join(session_user_upload_dir, session_thumb_filename)):
+                session_image_filename = session_thumb_filename
+            else:
+                # Self-healing: generate the missing thumbnail now so
+                # self-hosted users never need a manual backfill script.
+                session_thumb_path = os.path.join(session_user_upload_dir, session_thumb_filename)
+                session_original_path = os.path.join(session_user_upload_dir, session_image_filename)
+                try:
+                    if os.path.getsize(session_original_path) < 1024:
+                        current_app.logger.warning(
+                            f"[DASHBOARD] Skipping likely-corrupt file, too small to be a "
+                            f"valid image: '{session_image_filename}'"
+                        )
+                    else:
+                        session_file_extension = session_image_filename.rsplit('.', 1)[1].lower()
+                        with Image.open(session_original_path) as session_img:
+                            session_img.thumbnail((480, 480))
+                            if session_file_extension in ('jpg', 'jpeg'):
+                                session_img.save(session_thumb_path, quality=85)
+                            elif session_file_extension == 'png':
+                                session_img.save(session_thumb_path, optimize=True)
+                            else:
+                                session_img.save(session_thumb_path)
+                        session_image_filename = session_thumb_filename
+                except Exception as session_thumb_err:
+                    current_app.logger.warning(
+                        f"[DASHBOARD] Failed to generate thumbnail for session image "
+                        f"'{session_image_filename}': {session_thumb_err}"
+                    )
             session_dict['image_url'] = url_for('core.get_uploaded_image', username=username,
-                                                filename=session_dict['session_image_file'])
+                                                filename=session_image_filename)
         else:
             session_dict['image_url'] = None
 
@@ -1452,12 +1485,44 @@ def index():
         if not project.final_image_file:
             continue
         linked_sessions = sessions_by_project_id.get(project.id, [])
+        project_image_filename = project.final_image_file
+        project_thumb_filename = f"thumb_{project_image_filename}"
+        project_user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+        if os.path.exists(os.path.join(project_user_upload_dir, project_thumb_filename)):
+            project_image_filename = project_thumb_filename
+        else:
+            # Self-healing: generate the missing thumbnail now so
+            # self-hosted users never need a manual backfill script.
+            project_thumb_path = os.path.join(project_user_upload_dir, project_thumb_filename)
+            project_original_path = os.path.join(project_user_upload_dir, project_image_filename)
+            try:
+                if os.path.getsize(project_original_path) < 1024:
+                    current_app.logger.warning(
+                        f"[DASHBOARD] Skipping likely-corrupt file, too small to be a "
+                        f"valid image: '{project_image_filename}'"
+                    )
+                else:
+                    project_file_extension = project_image_filename.rsplit('.', 1)[1].lower()
+                    with Image.open(project_original_path) as project_img:
+                        project_img.thumbnail((480, 480))
+                        if project_file_extension in ('jpg', 'jpeg'):
+                            project_img.save(project_thumb_path, quality=85)
+                        elif project_file_extension == 'png':
+                            project_img.save(project_thumb_path, optimize=True)
+                        else:
+                            project_img.save(project_thumb_path)
+                    project_image_filename = project_thumb_filename
+            except Exception as project_thumb_err:
+                current_app.logger.warning(
+                    f"[DASHBOARD] Failed to generate thumbnail for project image "
+                    f"'{project_image_filename}': {project_thumb_err}"
+                )
         projects_for_template.append({
             'id': project.id,
             'name': project.name,
             'target_object_name': project.target_object_name,
             'image_url': url_for('core.get_uploaded_image', username=username,
-                                 filename=project.final_image_file),
+                                 filename=project_image_filename),
             'total_integration_time_minutes': sum(
                 s.calculated_integration_time_minutes or 0 for s in linked_sessions),
             'session_ids': [s.id for s in linked_sessions],
