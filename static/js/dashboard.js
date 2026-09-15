@@ -652,10 +652,10 @@
             return settings;
         }
     
-        function loadView(viewName) {
+        async function loadView(viewName) {
             const viewData = allSavedViews[viewName];
             if (!viewData || !viewData.settings) {
-                alert('Error: Could not load view data from cache.');
+                await novaAlert('Error: Could not load view data from cache.');
                 return;
             }
             // 1. Clear all existing filters from inputs and localStorage
@@ -744,7 +744,7 @@
             const description = document.getElementById('modal-view-desc').value.trim();
             const isShared = document.getElementById('modal-view-shared') ? document.getElementById('modal-view-shared').checked : false;
     
-            if (!viewName) { alert(window.t('name_required')); return; }
+            if (!viewName) { await novaAlert(window.t('name_required')); return; }
     
             closeSaveViewModal();
             const currentSettings = getCurrentSettingsSnapshot();
@@ -771,7 +771,7 @@
     
             } catch (error) {
                 console.error("Error saving view:", error);
-                alert(`Error saving view: ${error.message}`);
+                await novaAlert(`Error saving view: ${error.message}`);
             }
         }
     
@@ -779,7 +779,7 @@
             const viewName = savedViewsDropdown.value;
             if (!viewName) return;
     
-            if (!confirm(`Are you sure you want to delete the view "${viewName}"?`)) return;
+            if (!(await novaConfirm(`Are you sure you want to delete the view "${viewName}"?`))) return;
     
             try {
                 const response = await fetch('/api/delete_saved_view', {
@@ -799,7 +799,7 @@
     
             } catch (error) {
                 console.error("Error deleting view:", error);
-                alert(`Error deleting view: ${error.message}`);
+                await novaAlert(`Error deleting view: ${error.message}`);
             }
         }
     

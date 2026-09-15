@@ -101,6 +101,11 @@
         }
     });
 
+    function escapeHtmlAttr(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
     function safeNum(v, fallback = null) {
         const n = Number(v);
         return Number.isFinite(n) ? n : fallback;
@@ -197,7 +202,7 @@
                 <div class="item-info">${t.name} (${t.aperture_mm}mm / ${t.focal_length_mm}mm)${createIndicator(t)}</div>
                 <div class="item-actions">
                     <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('telescope', '${t.id}')">${window.t('edit')}</button>
-                    <form action="${window.NOVA_CONFIG_FORM.urls.deleteComponent}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
+                    <form action="${window.NOVA_CONFIG_FORM.urls.deleteComponent}" method="post" data-confirm="Deleting a component is permanent and cannot be undone. Are you sure?">
                         <input type="hidden" name="component_id" value="${t.id}"><input type="hidden" name="component_type" value="telescopes">
                         <button type="submit" class="delete-btn">${window.t('delete')}</button>
                     </form>
@@ -209,7 +214,7 @@
                 <div class="item-info">${c.name} (${c.pixel_size_um}μm pixel)${createIndicator(c)}</div>
                 <div class="item-actions">
                     <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('camera', '${c.id}')">${window.t('edit')}</button>
-                    <form action="${window.NOVA_CONFIG_FORM.urls.deleteComponent}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
+                    <form action="${window.NOVA_CONFIG_FORM.urls.deleteComponent}" method="post" data-confirm="Deleting a component is permanent and cannot be undone. Are you sure?">
                         <input type="hidden" name="component_id" value="${c.id}"><input type="hidden" name="component_type" value="cameras">
                         <button type="submit" class="delete-btn">${window.t('delete')}</button>
                     </form>
@@ -221,7 +226,7 @@
                 <div class="item-info">${r.name} (${r.factor}x)${createIndicator(r)}</div>
                 <div class="item-actions">
                     <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('reducer_extender', '${r.id}')">${window.t('edit')}</button>
-                    <form action="${window.NOVA_CONFIG_FORM.urls.deleteComponent}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
+                    <form action="${window.NOVA_CONFIG_FORM.urls.deleteComponent}" method="post" data-confirm="Deleting a component is permanent and cannot be undone. Are you sure?">
                         <input type="hidden" name="component_id" value="${r.id}"><input type="hidden" name="component_type" value="reducers_extenders">
                         <button type="submit" class="delete-btn">${window.t('delete')}</button>
                     </form>
@@ -282,7 +287,7 @@
                             <strong>${rig.rig_name}</strong>
                             <div style="display:flex; gap:6px; flex-shrink:0;">
                                 <button type="button" class="edit-btn" onclick="populateRigFormForEdit('${rig.rig_id}')">${window.t('edit')}</button>
-                                <form action="${window.NOVA_CONFIG_FORM.urls.deleteRig}" method="post" onsubmit="return confirm('Are you sure you want to delete the rig \\'${rig.rig_name}\\'?');" style="display:inline;">
+                                <form action="${window.NOVA_CONFIG_FORM.urls.deleteRig}" method="post" data-confirm="Are you sure you want to delete the rig '${escapeHtmlAttr(rig.rig_name)}'?" style="display:inline;">
                                     <input type="hidden" name="rig_id" value="${rig.rig_id}">
                                     <button type="submit" class="delete-btn">${window.t('delete')}</button>
                                 </form>
@@ -505,8 +510,8 @@
             });
     }
 
-    function importSharedItem(itemId, itemType, button) {
-        if (!confirm(`Are you sure you want to import this ${itemType}?`)) {
+    async function importSharedItem(itemId, itemType, button) {
+        if (!(await novaConfirm(`Are you sure you want to import this ${itemType}?`))) {
             return;
         }
 
@@ -519,9 +524,9 @@
             body: JSON.stringify({ id: itemId, type: itemType })
         })
         .then(response => response.json())
-        .then(data => {
+        .then(async data => {
             if (data.status === 'success') {
-                alert(data.message);
+                await novaAlert(data.message);
                 button.textContent = window.t('imported');
                 button.className = 'imported-button'; // Change class
 
@@ -529,14 +534,14 @@
                 const row = button.closest('tr');
                 if(row) row.dataset.status = 'imported';
             } else {
-                alert(`${window.t('error')}: ${data.message}`);
+                await novaAlert(`${window.t('error')}: ${data.message}`);
                 button.disabled = false;
                 button.textContent = window.t('import_btn');
             }
         })
-        .catch(error => {
+        .catch(async error => {
             console.error('Import failed:', error);
-            alert('Import failed. See console for details.');
+            await novaAlert('Import failed. See console for details.');
             button.disabled = false;
             button.textContent = 'Import';
         });
@@ -593,8 +598,8 @@
         });
     }
 
-    function confirmAndFetchDetails(formElement) {
-        if (!confirm("This will scan all your objects and fetch missing details (Type, Magnitude, Size, etc.) from external databases.\n\nDepending on your library size, this may take a few moments.\n\nProceed?")) {
+    async function confirmAndFetchDetails(formElement) {
+        if (!(await novaConfirm("This will scan all your objects and fetch missing details (Type, Magnitude, Size, etc.) from external databases.\n\nDepending on your library size, this may take a few moments.\n\nProceed?"))) {
             return;
         }
 
@@ -657,7 +662,7 @@
         };
     }
     // --- NEW Import Handler (replaces setupImport) ---
-        function handleImportSubmit(fileInput, entityName) {
+        async function handleImportSubmit(fileInput, entityName) {
             if (!fileInput.files[0]) return; // No file selected
 
             let confirmMsg = `This will import the ${entityName}. Are you sure?`;
@@ -665,7 +670,7 @@
                 confirmMsg = `This will merge/overwrite your current ${entityName}. The existing data will be backed up. Are you sure?`;
             }
 
-            if (confirm(confirmMsg)) {
+            if (await novaConfirm(confirmMsg)) {
                 // User confirmed, submit via fetch
                 const formData = new FormData();
                 formData.append("file", fileInput.files[0]);
@@ -695,9 +700,9 @@
                         throw new Error(`Import failed: Server returned status ${resp.status}`);
                     }
                 })
-                .catch(err => {
+                .catch(async err => {
                     // This catches network failures or the error thrown above
-                    alert(`${entityName} ${window.t('import_failed')}: ${err.message}`);
+                    await novaAlert(`${entityName} ${window.t('import_failed')}: ${err.message}`);
                     if (msgContainer) msgContainer.innerHTML = '';
                     fileInput.value = ""; // Clear on failure
                 });
@@ -724,20 +729,20 @@
             body: formData
         })
         .then(response => response.json())
-        .then(data => {
+        .then(async data => {
             if (data.url) {
                 document.getElementById(targetInputId).value = data.url;
                 btn.textContent = "Done";
                 setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 1500);
             } else {
-                alert("Upload error: " + (data.error || "Unknown error"));
+                await novaAlert("Upload error: " + (data.error || "Unknown error"));
                 btn.textContent = originalText;
                 btn.disabled = false;
             }
         })
-        .catch(err => {
+        .catch(async err => {
             console.error("Upload failed:", err);
-            alert(window.t('upload_failed'));
+            await novaAlert(window.t('upload_failed'));
             btn.textContent = originalText;
             btn.disabled = false;
         });
@@ -789,7 +794,7 @@
             body: JSON.stringify(payload)
         })
         .then(response => response.json())
-        .then(data => {
+        .then(async data => {
             if (data.status === 'success') {
                 // Flash success button state
                 btn.textContent = "Saved!";
@@ -800,14 +805,14 @@
                     btn.disabled = false;
                 }, 2000);
             } else {
-                alert("Error saving: " + data.message);
+                await novaAlert("Error saving: " + data.message);
                 btn.textContent = originalText;
                 btn.disabled = false;
             }
         })
-        .catch(err => {
+        .catch(async err => {
             console.error(err);
-            alert(window.t('network_error_saving'));
+            await novaAlert(window.t('network_error_saving'));
             btn.textContent = originalText;
             btn.disabled = false;
         });
@@ -961,7 +966,7 @@
                 body: formData
             })
             .then(response => response.json())
-            .then(data => {
+            .then(async data => {
                 if (data.url) {
                     event.attachment.setAttributes({
                         url: data.url,
@@ -971,13 +976,13 @@
                 } else if (data.error) {
                     console.error("Trix upload error:", data.error);
                     event.attachment.remove();
-                    alert("Image upload failed: " + data.error);
+                    await novaAlert("Image upload failed: " + data.error);
                 }
             })
-            .catch(error => {
+            .catch(async error => {
                 console.error("Trix upload network error:", error);
                 event.attachment.remove();
-                alert(window.t('image_upload_failed_network'));
+                await novaAlert(window.t('image_upload_failed_network'));
             });
         }
         document.addEventListener("trix-attachment-add", handleTrixAttachmentAdd);
@@ -1086,14 +1091,6 @@
             }
         });
 
-        // --- Event delegation for form confirmations ---
-        document.addEventListener('submit', function(e) {
-            const confirmMsg = e.target.dataset.confirm;
-            if (confirmMsg && !confirm(confirmMsg)) {
-                e.preventDefault();
-            }
-        });
-
         // --- Event delegation for .hzn file input changes ---
         document.addEventListener('change', function(e) {
             if (e.target.classList.contains('hzn-file-input')) {
@@ -1123,7 +1120,7 @@
 
     });
 
-    function parseStellariumHorizon(fileInput, textareaId) {
+    async function parseStellariumHorizon(fileInput, textareaId) {
         const file = fileInput.files[0];
         if (!file) {
             console.warn('[CONFIG_FORM] parseStellariumHorizon: No file selected');
@@ -1134,7 +1131,7 @@
         const textarea = document.getElementById(textareaId);
         if (!textarea) {
             console.error('[CONFIG_FORM] parseStellariumHorizon: Target textarea not found:', textareaId);
-            alert(window.t('horizon_field_not_found'));
+            await novaAlert(window.t('horizon_field_not_found'));
             fileInput.value = '';
             return;
         }
@@ -1143,13 +1140,13 @@
 
         const reader = new FileReader();
 
-        reader.onerror = function(e) {
+        reader.onerror = async function(e) {
             console.error('[CONFIG_FORM] FileReader error:', e.target.error);
-            alert(window.t('error_reading_file'));
+            await novaAlert(window.t('error_reading_file'));
             fileInput.value = '';
         };
 
-        reader.onload = function(e) {
+        reader.onload = async function(e) {
             const lines = e.target.result.split(/\r?\n/);
             let points = [];
 
@@ -1168,7 +1165,7 @@
 
             if (points.length === 0) {
                 console.warn('[CONFIG_FORM] No valid horizon data found in file');
-                alert(window.t('no_valid_horizon_data'));
+                await novaAlert(window.t('no_valid_horizon_data'));
                 fileInput.value = '';
                 return;
             }

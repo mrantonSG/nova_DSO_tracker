@@ -569,16 +569,16 @@
         updateSelectionCount();
     }
 
-    function executeBulkAction(action) {
+    async function executeBulkAction(action) {
         const selectedCheckboxes = document.querySelectorAll('.bulk-select-checkbox:checked');
         const objectIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.objectId);
 
         if (objectIds.length === 0) {
-            alert(window.t('no_objects_selected'));
+            await novaAlert(window.t('no_objects_selected'));
             return;
         }
 
-        if (!confirm(window.t('confirm_bulk_action', { action: action.toUpperCase(), count: objectIds.length }))) {
+        if (!(await novaConfirm(window.t('confirm_bulk_action', { action: action.toUpperCase(), count: objectIds.length })))) {
             return;
         }
 
@@ -588,30 +588,30 @@
             body: JSON.stringify({ action: action, object_ids: objectIds })
         })
         .then(response => response.json())
-        .then(data => {
+        .then(async data => {
             if (data.status === 'success') {
-                alert(data.message);
+                await novaAlert(data.message);
                 window.location.reload(); // Reload to reflect state changes and re-run jinja logic
             } else {
-                alert('Error: ' + data.message);
+                await novaAlert('Error: ' + data.message);
             }
         })
-        .catch(err => {
+        .catch(async err => {
             console.error('Bulk action failed:', err);
-            alert(window.t('bulk_action_failed'));
+            await novaAlert(window.t('bulk_action_failed'));
         });
     }
 
-    function executeBulkFetchDetails() {
+    async function executeBulkFetchDetails() {
         const selectedCheckboxes = document.querySelectorAll('.bulk-select-checkbox:checked');
         const objectIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.objectId);
 
         if (objectIds.length === 0) {
-            alert(window.t('no_objects_selected'));
+            await novaAlert(window.t('no_objects_selected'));
             return;
         }
 
-        if (!confirm(`Fetch missing details (type, magnitude, size, surface brightness, constellation) for ${objectIds.length} selected objects?\n\nThis may take a moment depending on the number of objects.`)) {
+        if (!(await novaConfirm(`Fetch missing details (type, magnitude, size, surface brightness, constellation) for ${objectIds.length} selected objects?\n\nThis may take a moment depending on the number of objects.`))) {
             return;
         }
 
@@ -629,25 +629,25 @@
             body: JSON.stringify({ object_ids: objectIds })
         })
         .then(response => response.json())
-        .then(data => {
+        .then(async data => {
             if (data.status === 'success') {
-                alert(data.message);
+                await novaAlert(data.message);
                 window.location.reload();
             } else {
                 if (countDisplay) {
                     countDisplay.textContent = originalText;
                     countDisplay.style.color = '';
                 }
-                alert('Error: ' + data.message);
+                await novaAlert('Error: ' + data.message);
             }
         })
-        .catch(err => {
+        .catch(async err => {
             console.error('Bulk fetch details failed:', err);
             if (countDisplay) {
                 countDisplay.textContent = originalText;
                 countDisplay.style.color = '';
             }
-            alert(window.t('bulk_fetch_details_failed'));
+            await novaAlert(window.t('bulk_fetch_details_failed'));
         });
     }
 
@@ -707,8 +707,8 @@
         });
     }
 
-    function mergeObjects(keepId, mergeId, rowId) {
-        if (!confirm(window.t('merge_confirm', { merge: mergeId, keep: keepId }))) {
+    async function mergeObjects(keepId, mergeId, rowId) {
+        if (!(await novaConfirm(window.t('merge_confirm', { merge: mergeId, keep: keepId })))) {
             return;
         }
 
@@ -718,7 +718,7 @@
             body: JSON.stringify({ keep_id: keepId, merge_id: mergeId })
         })
         .then(r => r.json())
-        .then(data => {
+        .then(async data => {
             if (data.status === 'success') {
                 const row = document.getElementById(rowId);
                 if (row) row.remove();
@@ -726,10 +726,12 @@
                     document.getElementById('duplicates-list').innerHTML = '<p style="text-align: center; padding: 20px;">' + window.t('all_duplicates_resolved') + '</p>';
                 }
             } else {
-                alert('Error: ' + data.message);
+                await novaAlert('Error: ' + data.message);
             }
         })
-        .catch(err => alert('Merge failed: ' + err));
+        .catch(async err => {
+            await novaAlert('Merge failed: ' + err);
+        });
     }
 
     function activateLazyTrix(container, inputId, placeholder) {
@@ -799,6 +801,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             window.resizeAllObjectDescriptionTextareas();
+            initCatalogImportConfirmations();
             // Attach event listeners to tab buttons
             const tabButtons = document.querySelectorAll('#objects-tab-content .detail-tab-button[data-tab]');
             tabButtons.forEach(button => {
@@ -855,12 +858,12 @@
             const cancelAddObjectBtn = document.getElementById('cancel_add_object');
 
             if (submitNewObjectBtn) {
-                submitNewObjectBtn.addEventListener('click', e => {
+                submitNewObjectBtn.addEventListener('click', async e => {
                     e.preventDefault();
                     const objectNameInput = document.getElementById('new_object');
                     const objectName = objectNameInput.value.trim();
                     if (!objectName) {
-                        alert("Please enter an object identifier.");
+                        await novaAlert("Please enter an object identifier.");
                         return;
                     }
 
@@ -975,7 +978,7 @@
                 });
             }
             if (confirmAddObjectBtn) {
-                confirmAddObjectBtn.addEventListener('click', e => {
+                confirmAddObjectBtn.addEventListener('click', async e => {
                     e.preventDefault();
                     const raInput = document.getElementById('new_ra').value;
                     const decInput = document.getElementById('new_dec').value;
@@ -986,7 +989,7 @@
                     // --- FORMAT CHECK: Detect Degrees vs Hours ---
                     if (raDecimal > 24.0) {
                         const correctedRA = raDecimal / 15.0;
-                        const userConfirmed = confirm(
+                        const userConfirmed = await novaConfirm(
                             `Warning: RA value (${raDecimal.toFixed(2)}) is > 24, which implies Degrees.\n\n` +
                             `Do you want to automatically convert this to ${correctedRA.toFixed(4)} Hours?`
                         );
@@ -1199,16 +1202,16 @@
             });
     }
 
-    function submitImportConflictDecision(objectName, decision) {
+    async function submitImportConflictDecision(objectName, decision) {
         fetch('/api/resolve_import_conflicts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ decisions: { [objectName]: decision } })
         })
             .then(function(r) { return r.json(); })
-            .then(function(data) {
+            .then(async function(data) {
                 if (data.error) {
-                    alert('Error: ' + data.error);
+                    await novaAlert('Error: ' + data.error);
                     return;
                 }
 
@@ -1225,8 +1228,8 @@
                 // Re-sync the header button with the real remaining count
                 updateImportConflictsTabButton();
             })
-            .catch(function(err) {
-                alert(window.t('error_submitting_decision'));
+            .catch(async function(err) {
+                await novaAlert(window.t('error_submitting_decision'));
                 console.error('[objects_section] Failed to submit decision:', err);
             });
     }
@@ -1246,9 +1249,11 @@
         }
     });
 
-    function confirmCatalogImport(form) {
-        const packName = form.getAttribute('data-pack-name') || 'Catalog';
-        return confirm(window.t('confirm_catalog_import', { name: packName }));
+    function initCatalogImportConfirmations() {
+        document.querySelectorAll('form.catalog-import-form').forEach(function(form) {
+            const packName = form.getAttribute('data-pack-name') || 'Catalog';
+            form.dataset.confirm = window.t('confirm_catalog_import', { name: packName });
+        });
     }
 
     // Expose functions needed by HTML inline event handlers
@@ -1259,7 +1264,6 @@
     window.openDuplicateChecker = openDuplicateChecker;
     window.mergeObjects = mergeObjects;
     window.activateLazyTrix = activateLazyTrix;
-    window.confirmCatalogImport = confirmCatalogImport;
     window.fetchAndRenderImportConflicts = fetchAndRenderImportConflicts;
     window.submitImportConflictDecision = submitImportConflictDecision;
 })();

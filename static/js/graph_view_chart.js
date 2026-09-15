@@ -1911,7 +1911,7 @@
         return flags;
     }
 
-    function openFramingAssistant(optionalQueryString) {
+    async function openFramingAssistant(optionalQueryString) {
         const framingModal = document.getElementById('framing-modal');
 
         // Show the modal frame immediately
@@ -1950,7 +1950,7 @@
 
         const framingRigSelect = document.getElementById('framing-rig-select');
         if (framingRigSelect.options.length === 0 || framingRigSelect.value === "") {
-            alert(window.t('no_rigs_configured'));
+            await novaAlert(window.t('no_rigs_configured'));
             return;
         }
 
@@ -2458,7 +2458,7 @@
     }
     function startLockOverlayLoop() { if (lockRafId) return; const tick = () => { if (!lockToObject) { lockRafId = null; return; } const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } updateReadoutFromCenter(); lockRafId = requestAnimationFrame(tick); }; lockRafId = requestAnimationFrame(tick); }
     function stopLockOverlayLoop() { if (lockRafId) { cancelAnimationFrame(lockRafId); lockRafId = null; } }
-    function setSurvey(hipsId) {
+    async function setSurvey(hipsId) {
         if (!aladin) return;
     
         let newLayer;
@@ -2478,7 +2478,7 @@
                 );
             } catch (e) {
                 console.error("Error creating external survey layer:", e);
-                alert(window.t('survey_load_error'));
+                await novaAlert(window.t('survey_load_error'));
                 return;
             }
         } else {
@@ -2689,8 +2689,8 @@
             body: JSON.stringify({object: objectName, project: newProject})
         })
         .then(res => res.json())
-        .then(data => {
-            alert(data.status === "success" ? "Project updated successfully!" : data.error);
+        .then(async data => {
+            await novaAlert(data.status === "success" ? "Project updated successfully!" : data.error);
         });
     }
     
@@ -2798,12 +2798,12 @@
             body: JSON.stringify(payload)
         })
         .then(r => r.json())
-        .then(data => {
+        .then(async data => {
             if(data.status === 'success') {
-                alert(window.t('framing_saved'));
+                await novaAlert(window.t('framing_saved'));
                 checkAndShowFramingButton();
             } else {
-                alert(`${window.t('error_saving')}: ${data.message}`);
+                await novaAlert(`${window.t('error_saving')}: ${data.message}`);
             }
         });
     }
@@ -2847,7 +2847,7 @@
         return `${signStr}${pad(d)}º ${pad(m)}' ${pad(s)}"`;
     }
     
-    function copyAsiairMosaic() {
+    async function copyAsiairMosaic() {
         if (!aladin || !fovCenter) return;
 
         const cols = parseInt(document.getElementById('mosaic-cols')?.value || 1);
@@ -2858,7 +2858,7 @@
 
         const fovRigSel = document.getElementById('framing-rig-select');
         if (!fovRigSel || fovRigSel.selectedIndex < 0) {
-            alert(window.t('please_select_rig'));
+            await novaAlert(window.t('please_select_rig'));
             return;
         }
         const opt = fovRigSel.options[fovRigSel.selectedIndex];
@@ -2940,21 +2940,21 @@
             }
         }
     
-        copyToClipboard(clipboardText, function() {
-            alert(
+        copyToClipboard(clipboardText, async function() {
+            await novaAlert(
                 `Copied ${paneCount-1} pane(s) to clipboard (CSV Format).\n\n` +
                 `• ASIAIR: Go to Plan > Import > Paste.\n` +
                 `• N.I.N.A.: Save as .csv and import into Sequencer.\n\n` +
                 `NOTE: Coordinates are J2000. Rotation is included.`
             );
-        }, function() {
-            alert("Failed to copy to clipboard. See console.");
+        }, async function() {
+            await novaAlert("Failed to copy to clipboard. See console.");
         });
     }
 
-    function deleteSavedFraming() {
+    async function deleteSavedFraming() {
         const objectName = NOVA_GRAPH_DATA.objectName;
-        if (!confirm("Are you sure you want to delete the saved framing for this object?")) return;
+        if (!(await novaConfirm("Are you sure you want to delete the saved framing for this object?"))) return;
 
         fetch('/api/delete_framing', {
             method: 'POST',
@@ -2962,7 +2962,7 @@
             body: JSON.stringify({ object_name: objectName })
         })
         .then(r => r.json())
-        .then(data => {
+        .then(async data => {
             if(data.status === 'success') {
                 // Clear the saved framing buttons from the UI
                 const container = document.getElementById('project-framing-buttons');
@@ -2971,7 +2971,7 @@
                     savedButtons.forEach(btn => btn.remove());
                 }
             } else {
-                alert("Error deleting: " + data.message);
+                await novaAlert("Error deleting: " + data.message);
             }
         });
     }
@@ -3075,9 +3075,9 @@
                     attachment.setAttributes({ url: data.url, href: data.url });
                 }
             })
-            .catch(e => {
+            .catch(async e => {
                 console.error("Trix upload failed", e);
-                alert("Image upload failed. See console for details.");
+                await novaAlert("Image upload failed. See console for details.");
                 attachment.remove();
             });
         }

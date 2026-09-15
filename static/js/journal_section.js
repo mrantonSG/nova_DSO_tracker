@@ -16,7 +16,7 @@
     async function downloadVisibleReport(defaultFilename, buttonElement, iframeId) {
         const iframe = document.getElementById(iframeId);
         if (!iframe || !iframe.contentWindow) {
-             alert(window.t('report_frame_not_found'));
+             await novaAlert(window.t('report_frame_not_found'));
              return;
         }
 
@@ -109,7 +109,7 @@
 
         } catch (err) {
             console.error(err);
-            alert("Error preparing print view: " + err.message);
+            await novaAlert("Error preparing print view: " + err.message);
             buttonElement.textContent = buttonOriginalText;
             buttonElement.disabled = false;
         }
@@ -1090,14 +1090,6 @@
     }
 
     function attachFormListeners() {
-        // Confirmation dialogs for delete forms
-        document.addEventListener('submit', function(e) {
-            const confirmMsg = e.target.dataset.confirm;
-            if (confirmMsg && !confirm(confirmMsg)) {
-                e.preventDefault();
-            }
-        });
-
         // Form submission handler for the journal project edit form to update hidden inputs
         const projectEditForm = document.getElementById('journal-project-edit-form');
         if (projectEditForm) {

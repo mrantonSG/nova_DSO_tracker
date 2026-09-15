@@ -158,13 +158,13 @@
 
           var data = await res.json();
           if (!res.ok || data.status !== 'success') {
-            alert(window.t('failed_update_active_project', { error: data.error || res.status }));
+            await novaAlert(window.t('failed_update_active_project', { error: data.error || res.status }));
             e.target.checked = !e.target.checked;
           } else {
               console.log('Successfully updated Active Project status for ' + objectName + ' to ' + isActive);
           }
         } catch (err) {
-          alert(window.t('failed_update_active_project', { error: err }));
+          await novaAlert(window.t('failed_update_active_project', { error: err }));
           e.target.checked = !e.target.checked;
         }
       });

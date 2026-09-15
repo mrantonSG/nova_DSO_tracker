@@ -422,7 +422,7 @@
                     </td>
                     <td>{{ pack.object_count }}</td>
                     <td>
-                      <form method="post" action="{{ url_for('tools.import_catalog', pack_id=pack.id) }}" data-pack-name="{{ pack.name or pack.id }}" onsubmit="return confirmCatalogImport(this);">
+                      <form method="post" action="{{ url_for('tools.import_catalog', pack_id=pack.id) }}" class="catalog-import-form" data-pack-name="{{ pack.name or pack.id }}">
                         <button type="submit" class="action-button">{{ _('Import') }}</button>
                       </form>
                     </td>
