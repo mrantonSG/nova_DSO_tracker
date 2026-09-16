@@ -13,6 +13,13 @@
     let currentRigData = null;
 
     // --- NATIVE PRINT: ROBUST & CLEAN PDF GENERATION ---
+    // DEAD CODE (cleanup candidate): the "Download PDF" button now calls
+    // printVisibleReport() / printReportViaTopLevel() instead. Nothing in
+    // the codebase calls downloadVisibleReport() anymore — left in place
+    // per this pass's scope, but it (and the .session-data-row /
+    // #report-content merge logic inside it, which was already dead
+    // before this change since neither selector matches current report
+    // markup) can be deleted in a future cleanup pass.
     async function downloadVisibleReport(defaultFilename, buttonElement, iframeId) {
         const iframe = document.getElementById(iframeId);
         if (!iframe || !iframe.contentWindow) {
@@ -110,6 +117,88 @@
         } catch (err) {
             console.error(err);
             await novaAlert("Error preparing print view: " + err.message);
+            buttonElement.textContent = buttonOriginalText;
+            buttonElement.disabled = false;
+        }
+    }
+
+    // --- TOP-LEVEL PRINT: fetches the same report HTML the preview iframe
+    // loads (via iframe.dataset.src / the show_journal_report_page /
+    // show_project_report_page URLs), extracts its .a4-page content, and
+    // injects it into #print-report-container (see templates/base.html and
+    // static/css/print-report.css) so window.print() can print it directly
+    // instead of going through the iframe.
+    //
+    // reportType must be 'journal' or 'project' — it selects the scoped
+    // print CSS (.report-journal / .report-project) that avoids class-name
+    // collisions between the two report layouts.
+    async function printReportViaTopLevel(reportUrl, reportType) {
+        if (!reportUrl) {
+            console.error('[JOURNAL_SECTION] printReportViaTopLevel: no reportUrl provided');
+            return;
+        }
+
+        const container = document.getElementById('print-report-container');
+        if (!container) {
+            console.error('[JOURNAL_SECTION] printReportViaTopLevel: #print-report-container not found in DOM');
+            return;
+        }
+
+        let htmlContent;
+        try {
+            const response = await fetch(reportUrl);
+            if (!response.ok) {
+                console.error('[JOURNAL_SECTION] printReportViaTopLevel: failed to fetch report (' + response.status + '): ' + reportUrl);
+                return;
+            }
+            htmlContent = await response.text();
+        } catch (e) {
+            console.error('[JOURNAL_SECTION] printReportViaTopLevel: failed to fetch report: ' + reportUrl, e);
+            return;
+        }
+
+        // The report templates (journal_report.html / project_report.html) are
+        // full standalone documents; the printable content is the .a4-page
+        // div they render inside <body>.
+        const parser = new DOMParser();
+        const reportDoc = parser.parseFromString(htmlContent, 'text/html');
+        const reportContent = reportDoc.querySelector('.a4-page');
+
+        if (!reportContent) {
+            console.error('[JOURNAL_SECTION] printReportViaTopLevel: could not find .a4-page content in fetched report: ' + reportUrl);
+            return;
+        }
+
+        container.className = 'print-only report-' + reportType;
+        container.innerHTML = reportContent.outerHTML;
+
+        window.print();
+    }
+
+    // Drives the "Download PDF" button (data-action="download-report").
+    // reportType is derived from which report tab the button belongs to —
+    // the journal-session report tab uses iframe id 'report-preview-frame',
+    // the project report tab uses 'project-report-frame'.
+    async function printVisibleReport(buttonElement, iframeId) {
+        const iframe = document.getElementById(iframeId);
+        const reportUrl = iframe ? (iframe.dataset.src || iframe.src) : null;
+        if (!iframe || !reportUrl) {
+            await novaAlert(window.t('report_frame_not_found'));
+            return;
+        }
+
+        const reportType = iframeId === 'project-report-frame' ? 'project' : 'journal';
+
+        const buttonOriginalText = buttonElement.textContent;
+        buttonElement.textContent = window.t('preparing_print_view');
+        buttonElement.disabled = true;
+
+        try {
+            await printReportViaTopLevel(reportUrl, reportType);
+        } catch (err) {
+            console.error(err);
+            await novaAlert("Error preparing print view: " + err.message);
+        } finally {
             buttonElement.textContent = buttonOriginalText;
             buttonElement.disabled = false;
         }
@@ -1031,11 +1120,7 @@
                 case 'download-report':
                     console.log('[JOURNAL_SECTION] download-report:', actionBtn.dataset.filename);
                     e.preventDefault();
-                    downloadVisibleReport(
-                        actionBtn.dataset.filename,
-                        actionBtn,
-                        actionBtn.dataset.iframeId
-                    );
+                    printVisibleReport(actionBtn, actionBtn.dataset.iframeId);
                     break;
                 case 'toggle-project-edit':
                     console.log('[JOURNAL_SECTION] toggle-project-edit:', actionBtn.dataset.enable);

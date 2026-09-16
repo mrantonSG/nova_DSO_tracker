@@ -98,6 +98,7 @@
     <script src="{{ url_for('static', filename='js/styling-utils.js') }}?v={{ version }}" defer></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/nova-modal.css') }}?v={{ version }}">
     <script src="{{ url_for('static', filename='js/nova-modal.js') }}?v={{ version }}" defer></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/print-report.css') }}?v={{ version }}">
 
     <!-- ── Nova i18n — single Babel source ───────────────────────────────────── -->
     <script>
@@ -518,5 +519,15 @@
             </div>
         </div>
     </div>
+
+    <!--
+        Populated at print time by printReportViaTopLevel() in
+        static/js/journal_section.js, which sets the report-journal /
+        report-project modifier class and injects the fetched report's
+        .a4-page markup before calling window.print(). Invisible in
+        normal use (.print-only in static/css/print-report.css); visible
+        only under @media print.
+    -->
+    <div id="print-report-container" class="print-only"></div>
   </body>
 </html>
