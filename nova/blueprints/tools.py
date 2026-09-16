@@ -480,7 +480,7 @@ def download_config():
         else:
             download_name = f"config_{username}.yaml"
 
-        return send_file(str_io, as_attachment=True, download_name=download_name, mimetype='text/yaml')
+        return send_file(str_io, as_attachment=True, download_name=download_name, mimetype='application/octet-stream')
 
     except Exception as e:
         db.rollback()
@@ -601,7 +601,7 @@ def download_journal():
         else:
             download_name = f"journal_{username}.yaml"
 
-        return send_file(str_io, as_attachment=True, download_name=download_name, mimetype='text/yaml')
+        return send_file(str_io, as_attachment=True, download_name=download_name, mimetype='application/octet-stream')
 
     except Exception as e:
         db.rollback()
@@ -1094,7 +1094,7 @@ def download_rig_config():
         else:
             download_name = f"rigs_{username}.yaml"
 
-        return send_file(str_io, as_attachment=True, download_name=download_name, mimetype='text/yaml')
+        return send_file(str_io, as_attachment=True, download_name=download_name, mimetype='application/octet-stream')
 
     except Exception as e:
         db.rollback()

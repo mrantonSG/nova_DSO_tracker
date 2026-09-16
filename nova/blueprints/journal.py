@@ -1194,7 +1194,7 @@ def download_csv(item_type, item_id):
 
         output = make_response(si.getvalue())
         output.headers["Content-Disposition"] = f"attachment; filename={filename}"
-        output.headers["Content-type"] = "text/csv"
+        output.headers["Content-type"] = "application/octet-stream"
         return output
 
     except Exception as e:
