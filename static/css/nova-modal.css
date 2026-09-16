@@ -1,0 +1,75 @@
+/* nova-modal.css - novaConfirm()/novaAlert() dialog
+   Follows the #about-modal / #universal-help-modal convention in
+   base.css / nova-theme.css: fixed full-viewport overlay, display:none by
+   default, .is-visible toggles display:flex + opacity, --z-modal layer. */
+
+#nova-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    background: var(--overlay-dark);
+    z-index: var(--z-modal);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    align-items: center;
+    justify-content: center;
+}
+
+#nova-modal.is-visible {
+    display: flex !important;
+    opacity: 1;
+}
+
+#nova-modal .nova-modal-content {
+    position: relative;
+    background: var(--bg-white);
+    width: 90%;
+    max-width: 420px;
+    box-sizing: border-box;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-modal);
+    padding: var(--space-6);
+}
+
+[data-theme="dark"] #nova-modal .nova-modal-content {
+    border: 1px solid var(--border-color);
+}
+
+#nova-modal .nova-modal-title {
+    margin: 0 0 var(--space-2);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+}
+
+#nova-modal .nova-modal-message {
+    margin: 0 0 var(--space-5);
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-normal);
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+}
+
+#nova-modal .nova-modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-2);
+}
+
+@media (max-width: 600px) {
+    #nova-modal .nova-modal-content {
+        width: calc(100% - 32px);
+        padding: var(--space-4);
+    }
+
+    #nova-modal .nova-modal-buttons {
+        flex-direction: column-reverse;
+    }
+
+    #nova-modal .nova-modal-buttons button {
+        width: 100%;
+        justify-content: center;
+    }
+}
