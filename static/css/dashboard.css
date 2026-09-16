@@ -507,6 +507,17 @@
     #delete-view-btn:hover {
         background-color: var(--primary-muted) !important;
     }
+    /* Icon-only compact square buttons (Save "+", Delete "−") */
+    #save-view-btn,
+    #delete-view-btn {
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        box-sizing: border-box;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
     /* #saved-views-dropdown is now part of .styled-select */
     /* --- END OF ADD --- */
 

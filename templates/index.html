@@ -98,8 +98,17 @@
         <select id="saved-views-dropdown" class="styled-select">
             <option value="">-- {{ _('Saved Views') }} --</option>
         </select>
-        <button id="save-view-btn" title="{{ _('Save current filters and sorting') }}">{{ _('Save') }}</button>
-        <button id="delete-view-btn" title="{{ _('Delete selected view') }}">{{ _('Delete') }}</button>
+        <button id="save-view-btn" title="{{ _('Save current filters and sorting') }}" aria-label="{{ _('Save current filters and sorting') }}">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+                <rect x="5" y="1" width="2" height="10" fill="currentColor"/>
+                <rect x="1" y="5" width="10" height="2" fill="currentColor"/>
+            </svg>
+        </button>
+        <button id="delete-view-btn" title="{{ _('Delete selected view') }}" aria-label="{{ _('Delete selected view') }}">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+                <rect x="1" y="5" width="10" height="2" fill="currentColor"/>
+            </svg>
+        </button>
 
         <label style="display:flex; align-items:center; margin-left:10px; cursor:pointer; font-size: var(--font-size-2xs); user-select: none; color: var(--text-dark-alt);">
             <input type="checkbox" id="global-active-toggle" style="margin-right:5px;">
