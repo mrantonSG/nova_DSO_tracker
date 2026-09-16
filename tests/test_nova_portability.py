@@ -60,7 +60,7 @@ def test_download_config_yaml(client):
 
     # 3. ASSERT
     assert response.status_code == 200
-    assert response.mimetype == 'text/yaml'
+    assert response.mimetype == 'application/octet-stream'
     assert response.headers['Content-Disposition'] == 'attachment; filename=config_default.yaml'
 
     # Load the YAML data from the response
@@ -257,7 +257,7 @@ def test_download_journal_yaml(client):
 
     # 3. ASSERT
     assert response.status_code == 200
-    assert response.mimetype == 'text/yaml'
+    assert response.mimetype == 'application/octet-stream'
     assert response.headers['Content-Disposition'] == 'attachment; filename=journal_default.yaml'
 
     # Load the YAML data from the response
