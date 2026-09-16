@@ -875,6 +875,7 @@ dd {
 .tab-container .help-badge {
   width: 18px;
   height: 18px;
+  flex-shrink: 0; /* Other row items are shrink-0; without this the badge gets squeezed */
   border-radius: 50%;
   border: 1.5px solid var(--nova-border);
   font-size: 10px;

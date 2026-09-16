@@ -101,9 +101,9 @@
         <button id="save-view-btn" title="{{ _('Save current filters and sorting') }}">{{ _('Save') }}</button>
         <button id="delete-view-btn" title="{{ _('Delete selected view') }}">{{ _('Delete') }}</button>
 
-        <label style="display:flex; align-items:center; margin-left:10px; cursor:pointer; font-size: 14px; user-select: none; color: var(--text-dark-alt);">
+        <label style="display:flex; align-items:center; margin-left:10px; cursor:pointer; font-size: var(--font-size-2xs); user-select: none; color: var(--text-dark-alt);">
             <input type="checkbox" id="global-active-toggle" style="margin-right:5px;">
-            {{ _('Pinned Only') }}
+            {{ _('Pinned') }}
         </label>
 
         {% if ai_enabled %}
