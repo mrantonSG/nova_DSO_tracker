@@ -11,8 +11,9 @@ from sqlalchemy.orm import selectinload
 from astropy.coordinates import SkyCoord, get_constellation
 import astropy.units as u
 
+import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay live (see nova/config.py)
 from nova.config import (
-    SINGLE_USER_MODE, CONFIG_DIR, NOVA_CATALOG_URL,
+    CONFIG_DIR, NOVA_CATALOG_URL,
     DEFAULT_HTTP_TIMEOUT,
 )
 from nova.helpers import (
@@ -1070,7 +1071,7 @@ def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
             for v in db.query(SavedView).filter_by(user_id=u.id).order_by(SavedView.name).all()
         ]
     }
-    cfg_file = "config_default.yaml" if (SINGLE_USER_MODE and username == "default") else f"config_{username}.yaml"
+    cfg_file = "config_default.yaml" if (nova.SINGLE_USER_MODE and username == "default") else f"config_{username}.yaml"
     _atomic_write_yaml(os.path.join(out_dir, cfg_file), cfg)
 
     # RIGS/COMPONENTS
@@ -1125,7 +1126,7 @@ def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
             } for r in rigs
         ]
     }
-    rig_file = "rigs_default.yaml" if (SINGLE_USER_MODE and username == "default") else f"rigs_{username}.yaml"
+    rig_file = "rigs_default.yaml" if (nova.SINGLE_USER_MODE and username == "default") else f"rigs_{username}.yaml"
     _atomic_write_yaml(os.path.join(out_dir, rig_file), rigs_doc)
     try:
         print(f"[EXPORT] Rigs for '{username}' written to {rig_file} (count={len(rigs)})")
@@ -1236,7 +1237,7 @@ def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
             } for s in sessions
         ]
     }
-    jfile = "journal_default.yaml" if (SINGLE_USER_MODE and username == "default") else f"journal_{username}.yaml"
+    jfile = "journal_default.yaml" if (nova.SINGLE_USER_MODE and username == "default") else f"journal_{username}.yaml"
     _atomic_write_yaml(os.path.join(out_dir, jfile), jdoc)
     return True
 
@@ -1587,7 +1588,7 @@ def repair_journals(dry_run: bool = False):
 
             # Backfill missing object_name where possible from YAML (by date)
             # YAML path: per user -> journal_<username>.yaml, single-user -> journal_default.yaml
-            s_mode = SINGLE_USER_MODE
+            s_mode = nova.SINGLE_USER_MODE
             jfile = os.path.join(CONFIG_DIR, "journal_default.yaml" if (s_mode and u.username == "default") else f"journal_{u.username}.yaml")
             by_date = {}
             if os.path.exists(jfile):

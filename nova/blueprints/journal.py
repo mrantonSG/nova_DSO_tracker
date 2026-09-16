@@ -34,7 +34,7 @@ from sqlalchemy.orm import selectinload
 # =============================================================================
 # Nova Package Imports (no circular import)
 # =============================================================================
-from nova import SINGLE_USER_MODE  # Import from nova for test patching compatibility
+import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay live (see nova/config.py)
 from nova.config import UPLOAD_FOLDER
 from nova.models import (
     DbUser, Project, JournalSession, Rig,
@@ -72,7 +72,7 @@ def journal_list_view():
 @login_required
 def journal_add():
     load_full_astro_context()
-    username = "default" if SINGLE_USER_MODE else current_user.username
+    username = "default" if nova.SINGLE_USER_MODE else current_user.username
     db = get_db()
     user = db.query(DbUser).filter_by(username=username).one()
 
@@ -431,7 +431,7 @@ def journal_add():
 @login_required
 def journal_edit(session_id):
     load_full_astro_context()
-    username = "default" if SINGLE_USER_MODE else current_user.username
+    username = "default" if nova.SINGLE_USER_MODE else current_user.username
     db = get_db()
     user = db.query(DbUser).filter_by(username=username).one_or_none()
     session_to_edit = db.query(JournalSession).filter_by(id=session_id, user_id=user.id).one_or_none()
@@ -829,7 +829,7 @@ def journal_edit(session_id):
 @login_required
 def add_project_from_journal():
     from nova import trigger_outlook_update_for_user  # Lazy import
-    username = "default" if SINGLE_USER_MODE else current_user.username
+    username = "default" if nova.SINGLE_USER_MODE else current_user.username
     db = get_db()
     # Capture location to persist view state on redirect
     current_location = request.form.get('current_location')
@@ -900,7 +900,7 @@ def add_project_from_journal():
 @journal_bp.route('/journal/duplicate/<int:session_id>', methods=['POST'])
 @login_required
 def journal_duplicate(session_id):
-    username = "default" if SINGLE_USER_MODE else current_user.username
+    username = "default" if nova.SINGLE_USER_MODE else current_user.username
     db = get_db()
     try:
         user = db.query(DbUser).filter_by(username=username).one()
@@ -951,7 +951,7 @@ def journal_duplicate(session_id):
 @journal_bp.route('/journal/delete/<int:session_id>', methods=['POST'])
 @login_required
 def journal_delete(session_id):
-    username = "default" if SINGLE_USER_MODE else current_user.username
+    username = "default" if nova.SINGLE_USER_MODE else current_user.username
     db = get_db()
     user = db.query(DbUser).filter_by(username=username).one()
     session_to_delete = db.query(JournalSession).filter_by(id=session_id, user_id=user.id).one_or_none()
@@ -1027,7 +1027,7 @@ def show_journal_report_page(session_id):
         image_url = None
         image_source_label = "Session Image"
 
-        username = "default" if SINGLE_USER_MODE else current_user.username
+        username = "default" if nova.SINGLE_USER_MODE else current_user.username
 
         # Try Session Image
         if session_dict.get('session_image_file'):

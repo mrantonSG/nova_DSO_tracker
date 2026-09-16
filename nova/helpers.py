@@ -24,8 +24,9 @@ from astropy.time import Time
 import astropy.units as u
 
 from nova.models import SessionLocal, Location, AstroObject, Component, SavedFraming
+import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay live (see nova/config.py)
 from nova.config import (
-    INSTANCE_PATH, BACKUP_DIR, ALLOWED_EXTENSIONS, SINGLE_USER_MODE, SIMBAD_TIMEOUT,
+    INSTANCE_PATH, BACKUP_DIR, ALLOWED_EXTENSIONS, SIMBAD_TIMEOUT,
     nightly_curves_cache, NOVA_CATALOG_URL, CATALOG_MANIFEST_CACHE, DEFAULT_HTTP_TIMEOUT,
     CACHE_DIR, astro_context_cache,
 )
@@ -466,7 +467,7 @@ def load_effective_settings():
     Determines the effective settings for telemetry and calculation precision
     based on the application mode (single-user vs. multi-user).
     """
-    if SINGLE_USER_MODE:
+    if nova.SINGLE_USER_MODE:
         # In single-user mode, read from the user's config file.
         g.sampling_interval = g.user_config.get('sampling_interval_minutes') or 15
         # --- START FIX ---
@@ -1025,7 +1026,7 @@ def get_all_mobile_up_now_data(user, location, user_prefs_dict, objects_list, db
         altitude_threshold = location.altitude_threshold
 
     sampling_interval = 15  # Default
-    if SINGLE_USER_MODE:
+    if nova.SINGLE_USER_MODE:
         sampling_interval = user_prefs_dict.get('sampling_interval_minutes') or 15
     else:
         sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))

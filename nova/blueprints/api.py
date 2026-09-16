@@ -24,8 +24,9 @@ from astropy.time import Time
 import ephem
 import pytz
 
+import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay live (see nova/config.py)
 from nova.config import (
-    SINGLE_USER_MODE, TELEMETRY_DEBUG_STATE, LATEST_VERSION_INFO,
+    TELEMETRY_DEBUG_STATE, LATEST_VERSION_INFO,
     nightly_curves_cache, observable_objects_cache,
     weather_cache, CACHE_DIR, DEFAULT_HTTP_TIMEOUT,
 )
@@ -74,11 +75,11 @@ _scan_frame_cache = {}
 @api_bp.route('/telemetry/debug', methods=['GET'])
 @login_required
 def telemetry_debug():
-    if not SINGLE_USER_MODE and (not current_user.is_authenticated or current_user.username != "admin"):
+    if not nova.SINGLE_USER_MODE and (not current_user.is_authenticated or current_user.username != "admin"):
         return jsonify({"error": "Not authorized"}), 403
     # Report current telemetry config and last attempt
     try:
-        username = "default" if SINGLE_USER_MODE else (current_user.username if current_user.is_authenticated else "guest_user")
+        username = "default" if nova.SINGLE_USER_MODE else (current_user.username if current_user.is_authenticated else "guest_user")
     except Exception:
         username = "default"
     try:
@@ -100,7 +101,7 @@ def telemetry_debug():
 def telemetry_ping():
     # Respect opt-out as usual
     try:
-        username = "default" if SINGLE_USER_MODE else (
+        username = "default" if nova.SINGLE_USER_MODE else (
             current_user.username if getattr(current_user, "is_authenticated", False) else "guest_user"
         )
     except Exception:
@@ -159,7 +160,7 @@ def update_object():
     try:
         data = request.get_json()
         object_name = data.get('object_id')
-        username = "default" if SINGLE_USER_MODE else current_user.username
+        username = "default" if nova.SINGLE_USER_MODE else current_user.username
 
         user = db.query(DbUser).filter_by(username=username).one()
         obj = db.query(AstroObject).filter_by(user_id=user.id, object_name=object_name).one_or_none()
@@ -189,7 +190,7 @@ def update_object():
         obj.description_source_link = data.get('description_source_link')
         # -----------------------
 
-        if not SINGLE_USER_MODE:
+        if not nova.SINGLE_USER_MODE:
             # Only update sharing if it's not an imported item
             if not obj.original_user_id:
                 obj.is_shared = data.get('is_shared')
@@ -546,7 +547,7 @@ def delete_saved_view():
 @api_bp.route('/api/get_shared_items')
 @login_required
 def get_shared_items():
-    if SINGLE_USER_MODE:
+    if nova.SINGLE_USER_MODE:
         return jsonify({"objects": [], "components": [], "views": [], "imported_object_ids": [], "imported_component_ids": [], "imported_view_ids": []})
 
     db = get_db()
@@ -653,7 +654,7 @@ def get_shared_items():
 @api_bp.route('/api/import_item', methods=['POST'])
 @login_required
 def import_item():
-    if SINGLE_USER_MODE:
+    if nova.SINGLE_USER_MODE:
         return jsonify({"status": "error", "message": "Sharing is disabled in single-user mode"}), 400
 
     db = get_db()
@@ -1562,7 +1563,7 @@ def get_session_log_analysis(session_id):
     import json
     from nova.log_parser import parse_asiair_log, parse_phd2_log, parse_nina_log
 
-    username = "default" if SINGLE_USER_MODE else current_user.username
+    username = "default" if nova.SINGLE_USER_MODE else current_user.username
     db = get_db()
     user = db.query(DbUser).filter_by(username=username).one_or_none()
 
@@ -1915,7 +1916,7 @@ def api_mobile_status():
 @api_bp.route('/api/get_moon_data')
 def get_moon_data_for_session():
     # --- Manual Auth Check for Guest Support ---
-    if not (current_user.is_authenticated or SINGLE_USER_MODE or getattr(g, 'is_guest', False)):
+    if not (current_user.is_authenticated or nova.SINGLE_USER_MODE or getattr(g, 'is_guest', False)):
         return jsonify({"status": "error", "message": "Unauthorized"}), 401
     try:
         date_str = request.args.get('date')
@@ -2783,7 +2784,7 @@ def get_observable_objects():
     db = get_db()
     try:
         # Get current user
-        if SINGLE_USER_MODE:
+        if nova.SINGLE_USER_MODE:
             username = "default"
         elif current_user.is_authenticated:
             username = current_user.username
@@ -2978,7 +2979,7 @@ def get_weather_forecast_api():
 @api_bp.route('/api/get_object_data/<path:object_name>')
 def get_object_data(object_name):
     # --- 1. Determine User (No change needed here) ---
-    if SINGLE_USER_MODE:
+    if nova.SINGLE_USER_MODE:
         username = "default"
     elif current_user.is_authenticated:
         username = current_user.username
@@ -3099,7 +3100,7 @@ def get_object_data(object_name):
 
         # Determine sampling interval based on mode
         sampling_interval = 15  # Default
-        if SINGLE_USER_MODE:
+        if nova.SINGLE_USER_MODE:
             sampling_interval = user_prefs_dict.get('sampling_interval_minutes') or 15
         else:
             sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
@@ -3235,7 +3236,7 @@ def get_object_data(object_name):
 @api_bp.route('/api/get_desktop_data_batch')
 def get_desktop_data_batch():
     # --- Manual Auth Check for Guest Support ---
-    if not (current_user.is_authenticated or SINGLE_USER_MODE or getattr(g, 'is_guest', False)):
+    if not (current_user.is_authenticated or nova.SINGLE_USER_MODE or getattr(g, 'is_guest', False)):
         return jsonify({"error": "Unauthorized"}), 401
     """
     Batch processor for the desktop dashboard.
@@ -3348,7 +3349,7 @@ def get_desktop_data_batch():
         else:
             local_date = current_datetime_local.strftime('%Y-%m-%d')
 
-        sampling_interval = 15 if SINGLE_USER_MODE else int(os.environ.get('CALCULATION_PRECISION', 15))
+        sampling_interval = 15 if nova.SINGLE_USER_MODE else int(os.environ.get('CALCULATION_PRECISION', 15))
         fixed_time_utc_str = get_utc_time_for_local_11pm(tz_name)
 
         # Moon / Ephem Prep
@@ -3530,7 +3531,7 @@ def get_desktop_data_batch():
 @api_bp.route('/api/get_yearly_heatmap_chunk')
 def get_yearly_heatmap_chunk():
     # --- Manual Auth Check for Guest Support ---
-    if not (current_user.is_authenticated or SINGLE_USER_MODE or getattr(g, 'is_guest', False)):
+    if not (current_user.is_authenticated or nova.SINGLE_USER_MODE or getattr(g, 'is_guest', False)):
         return jsonify({"error": "Unauthorized"}), 401
     load_full_astro_context()
 

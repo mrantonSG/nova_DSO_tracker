@@ -27,7 +27,7 @@ from sqlalchemy import func
 # =============================================================================
 # Nova Package Imports (no circular import)
 # =============================================================================
-from nova import SINGLE_USER_MODE  # Import from nova for test patching compatibility
+import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay live (see nova/config.py)
 from nova.config import UPLOAD_FOLDER
 from nova.models import (
     DbUser, Project, JournalSession, AstroObject
@@ -55,7 +55,7 @@ def project_detail(project_id):
     from nova import _handle_project_image_upload  # Lazy import to avoid circular
 
     load_full_astro_context()  # Ensures g.db_user is loaded
-    username = "default" if SINGLE_USER_MODE else current_user.username
+    username = "default" if nova.SINGLE_USER_MODE else current_user.username
     db = get_db()
 
     try:
@@ -281,7 +281,7 @@ def show_project_report_page(project_id):
     # 4. Prepare Image
     project_image_url = None
     if project.final_image_file:
-        username = "default" if SINGLE_USER_MODE else current_user.username
+        username = "default" if nova.SINGLE_USER_MODE else current_user.username
         project_image_url = url_for('core.get_uploaded_image', username=username, filename=project.final_image_file,
                                     _external=True)
 
@@ -364,7 +364,7 @@ def show_project_report_page(project_id):
 @projects_bp.route('/project/delete/<string:project_id>', methods=['POST'])
 @login_required
 def delete_project(project_id):
-    username = "default" if SINGLE_USER_MODE else current_user.username
+    username = "default" if nova.SINGLE_USER_MODE else current_user.username
     db = get_db()
     try:
         user = db.query(DbUser).filter_by(username=username).one()

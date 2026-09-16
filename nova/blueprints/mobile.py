@@ -27,7 +27,7 @@ from sqlalchemy.orm import selectinload
 # =============================================================================
 # Nova Package Imports (no circular import)
 # =============================================================================
-from nova import SINGLE_USER_MODE  # Import from nova for test patching compatibility
+import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay live (see nova/config.py)
 from nova.models import (
     DbUser, AstroObject, SavedFraming, Rig, Project, JournalSession, UserCustomFilter
 )
@@ -93,7 +93,7 @@ def mobile_edit_notes(object_name):
     load_full_astro_context()  # Ensures g.db_user is loaded
 
     # Get the current user
-    if SINGLE_USER_MODE:
+    if nova.SINGLE_USER_MODE:
         username = "default"
     else:
         username = current_user.username
@@ -382,7 +382,7 @@ def mobile_object_detail(object_name):
         # Get calculation settings
         from nova.config import nightly_curves_cache
         sampling_interval = 15
-        if SINGLE_USER_MODE:
+        if nova.SINGLE_USER_MODE:
             sampling_interval = user_prefs.get('sampling_interval_minutes', 15)
         else:
             import os
@@ -496,7 +496,7 @@ def mobile_journal_new():
     db = get_db()
 
     # Get user
-    if SINGLE_USER_MODE:
+    if nova.SINGLE_USER_MODE:
         username = "default"
     else:
         username = current_user.username

@@ -49,7 +49,7 @@ from astropy.time import Time
 import astropy.units as u
 import ephem
 
-from nova import SINGLE_USER_MODE  # Import from nova for test patching compatibility
+import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay live (see nova/config.py)
 from nova.analytics import record_event, record_login
 from nova.config import CACHE_DIR, UPLOAD_FOLDER, cache_worker_status
 from nova.helpers import (
@@ -253,7 +253,7 @@ def set_language(lang):
 
 @core_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    if SINGLE_USER_MODE:
+    if nova.SINGLE_USER_MODE:
         # In single-user mode, the login page is not needed, just redirect.
         return redirect(url_for('core.index'))
     else:
@@ -291,7 +291,7 @@ def login():
 @core_bp.route('/sso/login')
 def sso_login():
     # First, check if the app is in single-user mode. SSO is not applicable here.
-    if SINGLE_USER_MODE:
+    if nova.SINGLE_USER_MODE:
         flash(_("Single Sign-On is not applicable in single-user mode."), "error")
         return redirect(url_for('core.index'))
 
@@ -363,13 +363,13 @@ def get_uploaded_image(username, filename):
     # 2) In multi-user mode, also try the current user's directory.
     #    This fixes MU→MU migrations where the username changed:
     #    old HTML: /uploads/mrantonsG/..., new files: uploads/anton/...
-    if not SINGLE_USER_MODE:
+    if not nova.SINGLE_USER_MODE:
         current_name = getattr(current_user, "username", None)
         if current_name and current_name != username:
             candidate_dirs.append(os.path.join(UPLOAD_FOLDER, current_name))
 
     # 3) In single-user mode, fall back to "default" for legacy paths.
-    if SINGLE_USER_MODE and username != "default":
+    if nova.SINGLE_USER_MODE and username != "default":
         candidate_dirs.append(os.path.join(UPLOAD_FOLDER, "default"))
 
     for user_upload_dir in candidate_dirs:
@@ -445,7 +445,7 @@ def set_location_api():
 def get_locations():
     """Returns only ACTIVE locations for the main UI dropdown and the user's default."""
     # Determine username based on mode and authentication status
-    username = "default" if SINGLE_USER_MODE else (current_user.username if current_user.is_authenticated else "guest_user")
+    username = "default" if nova.SINGLE_USER_MODE else (current_user.username if current_user.is_authenticated else "guest_user")
     db = get_db()
     try:
         # Find the user record in the application database
@@ -537,7 +537,7 @@ def config_form():
     load_full_astro_context()
     error = None
     message = None
-    username = "default" if SINGLE_USER_MODE else current_user.username
+    username = "default" if nova.SINGLE_USER_MODE else current_user.username
     db = get_db()
     try:
         app_db_user = db.query(DbUser).filter_by(username=username).one_or_none()
@@ -568,7 +568,7 @@ def config_form():
                 if theme_value in ('follow_system', 'always_light', 'always_dark'):
                     settings['theme_preference'] = theme_value
 
-                if SINGLE_USER_MODE:
+                if nova.SINGLE_USER_MODE:
                     settings['sampling_interval_minutes'] = int(request.form.get("sampling_interval", 15))
                     settings.setdefault('telemetry', {})['enabled'] = bool(request.form.get('telemetry_enabled'))
 
@@ -843,7 +843,7 @@ def get_outlook_data():
         return jsonify({"status": "complete", "results": []})
 
     # --- Determine user ID and username ---
-    if SINGLE_USER_MODE:
+    if nova.SINGLE_USER_MODE:
         user_id = g.db_user.id
         username = g.db_user.username
     elif current_user.is_authenticated:
@@ -917,7 +917,7 @@ def get_outlook_data():
              return jsonify({"status": "error", "message": "User configuration not loaded."}), 500
 
         sampling_interval = 15 # Default
-        if SINGLE_USER_MODE:
+        if nova.SINGLE_USER_MODE:
             sampling_interval = g.user_config.get('sampling_interval_minutes', 15)
         else:
             sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
@@ -954,7 +954,7 @@ def prewarm_outlook():
         if hasattr(g, 'is_guest') and g.is_guest:
             return jsonify({"status": "skipped", "reason": "guest"}), 200
 
-        if SINGLE_USER_MODE:
+        if nova.SINGLE_USER_MODE:
             user_id = g.db_user.id
             username = g.db_user.username
         elif current_user.is_authenticated:
@@ -997,7 +997,7 @@ def prewarm_outlook():
             return jsonify({"status": "skipped", "reason": "no_user_config"}), 200
 
         sampling_interval = 15
-        if SINGLE_USER_MODE:
+        if nova.SINGLE_USER_MODE:
             sampling_interval = g.user_config.get('sampling_interval_minutes', 15)
         else:
             sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
@@ -1032,7 +1032,7 @@ def add_custom_filter():
     filter_key = f'custom_{slug}'
 
     db = get_db()
-    username = "default" if SINGLE_USER_MODE else current_user.username
+    username = "default" if nova.SINGLE_USER_MODE else current_user.username
     user = db.query(DbUser).filter_by(username=username).one()
 
     if db.query(UserCustomFilter).filter_by(user_id=user.id, filter_key=filter_key).first():
@@ -1048,7 +1048,7 @@ def add_custom_filter():
 def delete_custom_filter(filter_key):
     """Delete a custom filter definition for the current user."""
     db = get_db()
-    username = "default" if SINGLE_USER_MODE else current_user.username
+    username = "default" if nova.SINGLE_USER_MODE else current_user.username
     user = db.query(DbUser).filter_by(username=username).one()
 
     cf = db.query(UserCustomFilter).filter_by(user_id=user.id, filter_key=filter_key).first()
@@ -1131,7 +1131,7 @@ def fetch_object_details():
 @login_required
 def confirm_object():
     req = request.get_json()
-    username = "default" if SINGLE_USER_MODE else current_user.username
+    username = "default" if nova.SINGLE_USER_MODE else current_user.username
     db = get_db()
     try:
         app_db_user = db.query(DbUser).filter_by(username=username).one()
@@ -1242,7 +1242,7 @@ def stream_fetch_details():
 
     @stream_with_context
     def generate():
-        username = "default" if SINGLE_USER_MODE else current_user.username
+        username = "default" if nova.SINGLE_USER_MODE else current_user.username
         db = SessionLocal()  # Use a dedicated session for this generator
         try:
             app_db_user = db.query(DbUser).filter_by(username=username).one()
@@ -1328,7 +1328,7 @@ def stream_fetch_details():
 @core_bp.route('/fetch_all_details', methods=['POST'])
 @login_required
 def fetch_all_details():
-    username = "default" if SINGLE_USER_MODE else current_user.username
+    username = "default" if nova.SINGLE_USER_MODE else current_user.username
     db = get_db()
     try:
         app_db_user = db.query(DbUser).filter_by(username=username).one()
@@ -1384,10 +1384,10 @@ def fetch_all_details():
 @core_bp.route('/')
 def index():
     load_full_astro_context()
-    if not (current_user.is_authenticated or SINGLE_USER_MODE or getattr(g, 'is_guest', False)):
+    if not (current_user.is_authenticated or nova.SINGLE_USER_MODE or getattr(g, 'is_guest', False)):
         return redirect(url_for('core.login'))
 
-    username = "default" if SINGLE_USER_MODE else current_user.username if current_user.is_authenticated else "guest_user"
+    username = "default" if nova.SINGLE_USER_MODE else current_user.username if current_user.is_authenticated else "guest_user"
     db = get_db()
     user = db.query(DbUser).filter_by(username=username).one_or_none()
     if not user:
@@ -1662,7 +1662,7 @@ def update_project():
     data = request.get_json()
     object_name = data.get('object')
 
-    username = "default" if SINGLE_USER_MODE else current_user.username
+    username = "default" if nova.SINGLE_USER_MODE else current_user.username
     db = get_db()
     try:
         user = db.query(DbUser).filter_by(username=username).one()
@@ -1709,7 +1709,7 @@ def update_project_active():
     data = request.get_json()
     object_name = data.get('object')
     is_active = data.get('active')
-    username = "default" if SINGLE_USER_MODE else current_user.username
+    username = "default" if nova.SINGLE_USER_MODE else current_user.username
     db = get_db()
     try:
         user = db.query(DbUser).filter_by(username=username).one()
@@ -1827,11 +1827,11 @@ def analytics_dashboard():
 def graph_dashboard(object_name):
     from nova import STELLARIUM_API_URL_BASE
     # --- 1. Determine User (No change) ---
-    if not (SINGLE_USER_MODE or current_user.is_authenticated or getattr(g, 'is_guest', False)):
+    if not (nova.SINGLE_USER_MODE or current_user.is_authenticated or getattr(g, 'is_guest', False)):
         flash(_("Please log in to view object details."), "info")
         return redirect(url_for('core.login'))
 
-    if SINGLE_USER_MODE:
+    if nova.SINGLE_USER_MODE:
         username = "default"
     elif current_user.is_authenticated:
         username = current_user.username
@@ -2494,7 +2494,7 @@ def get_imaging_opportunities(object_name):
 
     # Get altitude threshold and sampling interval (from 'g')
     altitude_threshold = g.user_config.get("altitude_threshold", 20)
-    sampling_interval = (g.user_config.get('sampling_interval_minutes') or 15) if SINGLE_USER_MODE else int(
+    sampling_interval = (g.user_config.get('sampling_interval_minutes') or 15) if nova.SINGLE_USER_MODE else int(
         os.environ.get('CALCULATION_PRECISION', 15))
 
     # --- Get Horizon Mask for the specific location ---
