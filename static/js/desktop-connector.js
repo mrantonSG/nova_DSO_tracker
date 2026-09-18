@@ -10,11 +10,11 @@ const NOVA_DESKTOP_TRIGGERS = {
     }
 };
 
-(function runNovaDesktopTriggers() {
+document.addEventListener('DOMContentLoaded', function runNovaDesktopTriggers() {
     const params = new URLSearchParams(window.location.search);
     Object.keys(NOVA_DESKTOP_TRIGGERS).forEach(function (param) {
         if (params.get(param) === '1') {
             NOVA_DESKTOP_TRIGGERS[param]();
         }
     });
-})();
+});
