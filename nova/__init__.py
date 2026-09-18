@@ -1363,6 +1363,7 @@ app = Flask(
     __name__,
     template_folder=os.path.join(_project_root, 'templates'),
     static_folder=os.path.join(_project_root, 'static'),
+    instance_path=INSTANCE_PATH,
 )
 app.jinja_env.filters['toyaml'] = to_yaml_filter
 app.jinja_env.globals['translation_status'] = TRANSLATION_STATUS
