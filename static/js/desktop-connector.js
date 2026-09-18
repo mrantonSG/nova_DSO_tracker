@@ -17,4 +17,12 @@ document.addEventListener('DOMContentLoaded', function runNovaDesktopTriggers() 
             NOVA_DESKTOP_TRIGGERS[param]();
         }
     });
+
+    if (typeof window.__NOVA_DESKTOP_VERSION__ === 'string') {
+        const versionEl = document.getElementById('about-desktop-version');
+        if (versionEl) {
+            versionEl.textContent = 'Desktop app v' + window.__NOVA_DESKTOP_VERSION__;
+            versionEl.style.display = '';
+        }
+    }
 });
