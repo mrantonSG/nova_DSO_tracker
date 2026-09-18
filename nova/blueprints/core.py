@@ -144,22 +144,25 @@ def _skyglow_needs_recompute(cache_path, lat, lon, elev, sqm):
 def _run_skyglow_task(app, location_id, lat, lon, elevation, sqm_zenith, bortle_scale, cache_dir):
     """Fire-and-forget background task: compute skyglow profile for a location."""
     try:
-        token = os.environ.get('NASA_EARTHDATA_TOKEN')
-        if not token:
-            print(f"[SKYGLOW] No NASA_EARTHDATA_TOKEN found, skipping skyglow for location {location_id}")
+        api_key = os.environ.get('SKYGLOW_API_KEY')
+        if not api_key:
+            print(f"[SKYGLOW] No SKYGLOW_API_KEY found, skipping skyglow for location {location_id}")
             return
         BORTLE_TO_SQM = {1: 22.0, 2: 21.5, 3: 21.3, 4: 20.8, 5: 20.0,
                          6: 19.1, 7: 18.4, 8: 17.0, 9: 15.5}
         sqm = sqm_zenith if sqm_zenith is not None else BORTLE_TO_SQM.get(bortle_scale, 20.0)
         elev = elevation if elevation is not None else 0.0
-        year = datetime.utcnow().year - 1
         with app.app_context():
             print(f"[SKYGLOW] Computing for location {location_id} (lat={lat}, lon={lon}, elev={elev}, sqm={sqm})")
-            from tools.skyglow.cache import get_or_download_tile
-            from tools.skyglow.garstang import compute_skyglow_profile, compute_skyglow_horizon
-            data, lats_g, lons_g = get_or_download_tile(lat, lon, year, token)
-            profile = compute_skyglow_profile(lat, lon, elev, data, lats_g, lons_g, sqm_zenith=sqm)
-            horizon = compute_skyglow_horizon(profile)
+            service_url = os.environ.get('SKYGLOW_SERVICE_URL', 'https://skyglow.nova-tracker.com/skyglow')
+            response = requests.post(
+                service_url,
+                json={'lat': lat, 'lon': lon, 'elev_m': elev, 'sqm_zenith': sqm},
+                headers={'X-API-Key': api_key},
+                timeout=120
+            )
+            response.raise_for_status()
+            horizon = response.json()
             os.makedirs(cache_dir, exist_ok=True)
             out_path = os.path.join(cache_dir, f"{location_id}.json")
             horizon['_meta'] = {
