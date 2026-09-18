@@ -423,6 +423,7 @@
     {% block body %}{% endblock %}
 
     <script src="{{ url_for('static', filename='js/base.js') }}?v={{ version }}" defer></script>
+    <script src="{{ url_for('static', filename='js/desktop-connector.js') }}?v={{ version }}" defer></script>
 
     {% block scripts %}{% endblock %}
 
