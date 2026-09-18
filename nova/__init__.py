@@ -3508,6 +3508,28 @@ def seed_guest_account_command():
         db.close()
 
 # =============================================================================
+# Startup Skyglow Check (one-shot)
+# =============================================================================
+def _fire_startup_skyglow_check(app):
+    """One-shot startup task: fire skyglow computation for any active location
+    that doesn't have a valid cached profile yet. Safe to call with every
+    active location — _fire_skyglow_for_locations skips ones already cached."""
+    from nova.blueprints.core import _fire_skyglow_for_locations
+    try:
+        with app.app_context():
+            db = get_db()
+            try:
+                active_locs = db.query(Location).filter_by(active=True).all()
+            finally:
+                db.close()
+        print(f"[STARTUP] Checking skyglow cache for {len(active_locs)} active locations...")
+        _fire_skyglow_for_locations(app=app, locations=active_locs, instance_path=app.instance_path)
+    except Exception as e:
+        print(f"[STARTUP] ERROR: Could not run startup skyglow check: {e}")
+        traceback.print_exc()
+
+
+# =============================================================================
 # Main Entry Point
 # =============================================================================
 if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
@@ -3580,6 +3602,11 @@ if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
         heatmap_thread = threading.Thread(target=heatmap_background_worker, args=(app,))
         heatmap_thread.daemon = True
         heatmap_thread.start()
+
+        print("[STARTUP] Starting background skyglow startup-check thread...")
+        skyglow_startup_thread = threading.Thread(target=_fire_startup_skyglow_check, args=(app,))
+        skyglow_startup_thread.daemon = True
+        skyglow_startup_thread.start()
 
 
 @app.cli.command("reset-guest-from-template")
