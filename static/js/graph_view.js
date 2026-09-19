@@ -21,26 +21,15 @@
         }
     });
 
-    // --- URL-based tab/sub-tab restoration ---
+    // --- URL-based tab restoration ---
     (function() {
         var params = new URLSearchParams(window.location.search);
         var tabName = params.get('tab');
-        var subTabName = params.get('subtab');
 
         if (tabName) {
             var tabBtn = document.querySelector('.tab-button[data-tab="' + tabName + '"]');
             if (tabBtn) {
                 tabBtn.click();
-            }
-        }
-
-        if (subTabName && tabName === 'framing') {
-            var subBtn = document.querySelector('#framing-tab .detail-tab-button[data-tab="' + subTabName + '"]');
-            if (subBtn) {
-                // Wait a tick so the main tab has activated first
-                setTimeout(function() {
-                    subBtn.click();
-                }, 0);
             }
         }
     })();
@@ -527,11 +516,6 @@
                 }
             }, 300);
         }
-
-        // --- Initialize Project Sub-Tab ---
-        if (tabToShow === 'framing') {
-            showProjectSubTab('notes');
-        }
     });
 
 
@@ -554,10 +538,6 @@
 
         if (tabName === 'simbad' && !simbadLoaded) {
             loadSimbadInfo();
-        }
-
-        if (tabName === 'framing') {
-            showProjectSubTab('notes');
         }
 
         if (tabName === 'chart' && typeof window._fetchCalibrationStar === 'function') {

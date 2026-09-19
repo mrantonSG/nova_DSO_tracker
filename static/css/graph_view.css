@@ -1552,10 +1552,6 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     background-color: var(--nova-bg, var(--gray-50));
 }
 
-#framing-tab .detail-tab-content {
-    background-color: var(--nova-bg, var(--gray-50));
-}
-
 /* Dark mode content section */
 :root[data-theme="dark"] .content-section {
     background-color: var(--nova-surface, var(--bg-dark-secondary));
@@ -1565,8 +1561,7 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
 :root[data-theme="dark"] #chart-section,
 :root[data-theme="dark"] #chart-tab,
 :root[data-theme="dark"] .tab-content,
-:root[data-theme="dark"] #framing-tab,
-:root[data-theme="dark"] #framing-tab .detail-tab-content {
+:root[data-theme="dark"] #framing-tab {
     background-color: var(--nova-bg, #0f1118);
 }
 
