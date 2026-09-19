@@ -163,6 +163,8 @@ def _run_skyglow_task(app, location_id, lat, lon, elevation, sqm_zenith, bortle_
             )
             response.raise_for_status()
             horizon = response.json()
+            record_event('skyglow_computed')
+            record_event('skyglow_cache_hit' if horizon.get('cache_hit') else 'skyglow_cache_miss')
             os.makedirs(cache_dir, exist_ok=True)
             out_path = os.path.join(cache_dir, f"{location_id}.json")
             horizon['_meta'] = {
