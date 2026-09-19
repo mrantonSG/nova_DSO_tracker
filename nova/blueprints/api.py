@@ -1693,46 +1693,51 @@ def bulk_fetch_details():
 @api_bp.route('/api/find_duplicates')
 @login_required
 def find_duplicates():
-    load_full_astro_context()
-    user_id = g.db_user.id
+    try:
+        load_full_astro_context()
+        user_id = g.db_user.id
 
-    # 1. Get all objects with valid coordinates
-    all_objects = [o for o in g.objects_list if o.get('RA (hours)') is not None and o.get('DEC (degrees)') is not None]
+        # 1. Get all objects with valid coordinates
+        all_objects = [o for o in g.objects_list if o.get('RA (hours)') is not None and o.get('DEC (degrees)') is not None]
 
-    if len(all_objects) < 2:
-        return jsonify({"status": "success", "duplicates": []})
+        if len(all_objects) < 2:
+            return jsonify({"status": "success", "duplicates": []})
 
-    # 2. Create SkyCoord objects
-    ra_vals = [o['RA (hours)'] * 15.0 for o in all_objects]  # Convert to degrees
-    dec_vals = [o['DEC (degrees)'] for o in all_objects]
+        # 2. Create SkyCoord objects
+        ra_vals = [o['RA (hours)'] * 15.0 for o in all_objects]  # Convert to degrees
+        dec_vals = [o['DEC (degrees)'] for o in all_objects]
 
-    coords = SkyCoord(ra=ra_vals * u.deg, dec=dec_vals * u.deg)
+        coords = SkyCoord(ra=ra_vals * u.deg, dec=dec_vals * u.deg)
 
-    # 3. Find matches within 2.5 arcminutes
-    # search_around_sky finds all pairs (i, j) where distance < limit
-    # This includes (i, i) self-matches and (i, j) + (j, i) duplicates
-    idx1, idx2, d2d, d3d = search_around_sky(coords, coords, seplimit=2.5 * u.arcmin)
+        # 3. Find matches within 2.5 arcminutes
+        # search_around_sky finds all pairs (i, j) where distance < limit
+        # This includes (i, i) self-matches and (i, j) + (j, i) duplicates
+        idx1, idx2, d2d, d3d = search_around_sky(coords, coords, seplimit=2.5 * u.arcmin)
 
-    potential_duplicates = []
-    seen_pairs = set()
+        potential_duplicates = []
+        seen_pairs = set()
 
-    for i, j, dist in zip(idx1, idx2, d2d):
-        if i >= j: continue  # Skip self-matches and reverse duplicates
+        for i, j, dist in zip(idx1, idx2, d2d):
+            if i >= j: continue  # Skip self-matches and reverse duplicates
 
-        obj_a = all_objects[i]
-        obj_b = all_objects[j]
+            obj_a = all_objects[i]
+            obj_b = all_objects[j]
 
-        pair_key = tuple(sorted([obj_a['Object'], obj_b['Object']]))
-        if pair_key in seen_pairs: continue
-        seen_pairs.add(pair_key)
+            pair_key = tuple(sorted([obj_a['Object'], obj_b['Object']]))
+            if pair_key in seen_pairs: continue
+            seen_pairs.add(pair_key)
 
-        potential_duplicates.append({
-            "object_a": obj_a,
-            "object_b": obj_b,
-            "separation_arcmin": round(dist.to(u.arcmin).value, 2)
-        })
+            potential_duplicates.append({
+                "object_a": obj_a,
+                "object_b": obj_b,
+                "separation_arcmin": round(dist.to(u.arcmin).value, 2)
+            })
 
-    return jsonify({"status": "success", "duplicates": potential_duplicates})
+        return jsonify({"status": "success", "duplicates": potential_duplicates})
+
+    except Exception as e:
+        current_app.logger.exception(f"[FIND_DUPLICATES] Error in find_duplicates route: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 @api_bp.route('/api/merge_objects', methods=['POST'])
