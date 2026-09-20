@@ -403,6 +403,10 @@
                 e.preventDefault();
                 mergeObjects(actionBtn.dataset.keepId, actionBtn.dataset.mergeId, actionBtn.dataset.rowId);
                 break;
+            case 'ignore-duplicate':
+                e.preventDefault();
+                ignoreDuplicate(actionBtn.dataset.nameA, actionBtn.dataset.nameB, actionBtn.dataset.rowId);
+                break;
             case 'open-duplicates':
                 e.preventDefault();
                 openDuplicateChecker();
@@ -692,7 +696,8 @@
                     </td>
                     <td style="vertical-align: middle; text-align: center;">
                         <button class="action-button" style="font-size: 11px; margin-bottom: 5px;" data-action="merge-objects" data-keep-id="${nameA}" data-merge-id="${nameB}" data-row-id="${rowId}">${window.t('keep_a_merge_b')}</button><br>
-                        <button class="action-button" style="font-size: 11px;" data-action="merge-objects" data-keep-id="${nameB}" data-merge-id="${nameA}" data-row-id="${rowId}">${window.t('keep_b_merge_a')}</button>
+                        <button class="action-button" style="font-size: 11px; margin-bottom: 5px;" data-action="merge-objects" data-keep-id="${nameB}" data-merge-id="${nameA}" data-row-id="${rowId}">${window.t('keep_b_merge_a')}</button><br>
+                        <button class="action-button" style="font-size: 11px;" data-action="ignore-duplicate" data-name-a="${nameA}" data-name-b="${nameB}" data-row-id="${rowId}">${window.t('ignore_duplicate')}</button>
                     </td>
                 </tr>`;
             });
@@ -731,6 +736,29 @@
         })
         .catch(async err => {
             await novaAlert('Merge failed: ' + err);
+        });
+    }
+
+    function ignoreDuplicate(nameA, nameB, rowId) {
+        fetch('/api/ignore_duplicate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name_a: nameA, name_b: nameB })
+        })
+        .then(r => r.json())
+        .then(async data => {
+            if (data.status === 'ok') {
+                const row = document.getElementById(rowId);
+                if (row) row.remove();
+                if (document.querySelectorAll('#duplicates-list tr').length <= 1) {
+                    document.getElementById('duplicates-list').innerHTML = '<p style="text-align: center; padding: 20px;">' + window.t('all_duplicates_resolved') + '</p>';
+                }
+            } else {
+                await novaAlert('Error: ' + data.message);
+            }
+        })
+        .catch(async err => {
+            await novaAlert('Ignore failed: ' + err);
         });
     }
 

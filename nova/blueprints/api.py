@@ -1703,13 +1703,25 @@ def find_duplicates():
         if len(all_objects) < 2:
             return jsonify({"status": "success", "duplicates": []})
 
-        # 2. Create SkyCoord objects
+        # 2. Load previously-ignored pairs so they can be filtered out below
+        db = get_db()
+        prefs = db.query(UiPref).filter_by(user_id=user_id).first()
+        try:
+            settings = json.loads(prefs.json_blob or '{}') if prefs else {}
+        except json.JSONDecodeError:
+            settings = {}
+        ignored_pairs = {
+            tuple(pair) for pair in settings.get('ignored_duplicate_pairs', [])
+            if isinstance(pair, list) and len(pair) == 2
+        }
+
+        # 3. Create SkyCoord objects
         ra_vals = [o['RA (hours)'] * 15.0 for o in all_objects]  # Convert to degrees
         dec_vals = [o['DEC (degrees)'] for o in all_objects]
 
         coords = SkyCoord(ra=ra_vals * u.deg, dec=dec_vals * u.deg)
 
-        # 3. Find matches within 2.5 arcminutes
+        # 4. Find matches within 2.5 arcminutes
         # search_around_sky finds all pairs (i, j) where distance < limit
         # This includes (i, i) self-matches and (i, j) + (j, i) duplicates
         idx1, idx2, d2d, d3d = search_around_sky(coords, coords, seplimit=2.5 * u.arcmin)
@@ -1727,6 +1739,8 @@ def find_duplicates():
             if pair_key in seen_pairs: continue
             seen_pairs.add(pair_key)
 
+            if pair_key in ignored_pairs: continue
+
             potential_duplicates.append({
                 "object_a": obj_a,
                 "object_b": obj_b,
@@ -1737,6 +1751,44 @@ def find_duplicates():
 
     except Exception as e:
         current_app.logger.exception(f"[FIND_DUPLICATES] Error in find_duplicates route: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@api_bp.route('/api/ignore_duplicate', methods=['POST'])
+@login_required
+def ignore_duplicate():
+    data = request.get_json()
+    name_a = data.get('name_a')
+    name_b = data.get('name_b')
+
+    if not name_a or not name_b:
+        return jsonify({"status": "error", "message": "Missing name_a or name_b"}), 400
+
+    db = get_db()
+    try:
+        prefs = db.query(UiPref).filter_by(user_id=g.db_user.id).first()
+        if not prefs:
+            prefs = UiPref(user_id=g.db_user.id, json_blob='{}')
+            db.add(prefs)
+
+        try:
+            settings = json.loads(prefs.json_blob or '{}')
+        except json.JSONDecodeError:
+            settings = {}
+
+        ignored_pairs = settings.setdefault('ignored_duplicate_pairs', [])
+        pair_key = sorted([name_a, name_b])
+        if pair_key not in ignored_pairs:
+            ignored_pairs.append(pair_key)
+
+        prefs.json_blob = json.dumps(settings)
+        db.commit()
+
+        return jsonify({"status": "ok"})
+
+    except Exception as e:
+        db.rollback()
+        current_app.logger.exception(f"[IGNORE_DUPLICATE] Error saving ignored pair: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
