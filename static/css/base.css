@@ -1159,8 +1159,8 @@
     flex-wrap: wrap;
 }
 .status-item { display: flex; flex-direction: column; line-height: var(--line-height-tight); }
-.status-label { font-size: var(--font-size-xs); text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: var(--font-weight-semibold); }
-.status-value { font-weight: var(--font-weight-medium); color: var(--text-primary); font-size: var(--font-size-md); }
+.status-label { font-size: var(--font-size-xs); text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: var(--font-weight-semibold); white-space: nowrap; }
+.status-value { font-weight: var(--font-weight-medium); color: var(--text-primary); font-size: var(--font-size-md); white-space: nowrap; }
 .status-strip select { background: transparent; border: none; font-weight: bold; color: var(--text-primary); font-size: var(--font-size-md); padding: 0; cursor: pointer; }
 .status-strip select:focus { outline: none; }
 
