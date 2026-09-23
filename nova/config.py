@@ -61,7 +61,7 @@ class BoundedCache(dict):
         if len(self) >= self._maxsize:
             to_remove = list(self.keys())[:self._maxsize // 10 or 1]
             for k in to_remove:
-                del self[k]
+                self.pop(k, None)
         super().__setitem__(key, value)
 
 # --- Mutable cache dicts (shared between workers and routes) ---
