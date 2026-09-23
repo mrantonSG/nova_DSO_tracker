@@ -1567,7 +1567,7 @@ def index():
                            selected_year=observing_date_for_calcs.year,
                            hide_invisible=hide_invisible_pref,
                            imaging_criteria=imaging_criteria,
-                           project_statuses=["In Progress", "Completed", "On Hold", "Abandoned"])
+                           project_statuses=["In Planning", "In Progress", "Completed", "On Hold", "Abandoned"])
 
 
 @core_bp.route('/sun_events')
@@ -2363,7 +2363,7 @@ def graph_dashboard(object_name):
 
                                all_objects=db.query(AstroObject).filter_by(user_id=user.id).order_by(
                                    AstroObject.object_name).all(),
-                               project_statuses=["In Progress", "Completed", "On Hold", "Abandoned"],
+                               project_statuses=["In Planning", "In Progress", "Completed", "On Hold", "Abandoned"],
                                is_project_active=object_main_details.get('ActiveProject', False),
                                grouped_sessions=grouped_sessions_for_template,
                                object_specific_sessions=object_specific_sessions_list,
