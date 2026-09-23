@@ -4216,21 +4216,21 @@ msgstr ""
 msgid ""
 "No rig is configured yet. Add a rig to see how this object fits your "
 "field of view."
-msgstr ""
+msgstr "リグがまだ設定されていません。リグを追加すると、このオブジェクトが視野にどのように収まるかを確認できます。"
 
 #: templates/graph_view.html:236
 msgid "Manage Rigs"
-msgstr ""
+msgstr "リグを管理"
 
 #: templates/graph_view.html:238
 msgid ""
 "The size of this object is unknown, so its fit in your rigs cannot be "
 "assessed. Add a size to the object to enable this view."
-msgstr ""
+msgstr "このオブジェクトのサイズが不明なため、リグとの適合を評価できません。オブジェクトにサイズを追加すると、この表示が有効になります。"
 
 #: templates/graph_view.html:239
 msgid "Edit Object"
-msgstr ""
+msgstr "オブジェクトを編集"
 
 #: templates/graph_view.html:250
 msgid "Edit Object to Add Content"
