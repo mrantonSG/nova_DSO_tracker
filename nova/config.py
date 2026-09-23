@@ -65,7 +65,7 @@ class BoundedCache(dict):
         super().__setitem__(key, value)
 
 # --- Mutable cache dicts (shared between workers and routes) ---
-nightly_curves_cache = BoundedCache(2000)
+nightly_curves_cache = BoundedCache(5000)
 observable_objects_cache = BoundedCache(200)
 cache_worker_status = BoundedCache(500)
 LATEST_VERSION_INFO = BoundedCache(10)
