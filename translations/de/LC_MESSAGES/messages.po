@@ -44,7 +44,7 @@ msgstr "Automatisch"
 
 #: nova/log_parser.py:1175
 msgid "AutoFocus Run"
-msgstr "Autofokus läuft"
+msgstr "Autofokus-Lauf"
 
 #: nova/log_parser.py:1295
 msgid "AutoFocus Complete"
@@ -169,7 +169,7 @@ msgstr ""
 
 #: nova/blueprints/api.py:3833
 msgid "Invalid datetime format"
-msgstr "Ungültiges Datumsformat."
+msgstr "Ungültiges Datums-/Zeitformat"
 
 #: nova/blueprints/api.py:3853
 msgid "Calibration star catalog not found"
@@ -736,7 +736,7 @@ msgstr "Import erfolgreich abgeschlossen!"
 
 #: nova/blueprints/tools.py:1401
 msgid "Import failed. See server logs for details."
-msgstr "Import fehlgeschlagen. Details finden Sie in den Serverprotokollen."
+msgstr "Import fehlgeschlagen. Details stehen in den Serverprotokollen."
 
 #: nova/blueprints/tools.py:1404
 msgid "Import crashed. Check logs."
@@ -785,7 +785,7 @@ msgstr ""
 
 #: templates/_inspiration_section.html:472
 msgid "Previous"
-msgstr "Zurück"
+msgstr "Vorherige"
 
 #: templates/_inspiration_section.html:475
 msgid "Next"
@@ -857,7 +857,7 @@ msgstr "Wie man diese Galerie befüllt:"
 
 #: templates/_inspiration_section.html:530
 msgid "Check Filters:"
-msgstr "Filter:"
+msgstr "Filter prüfen:"
 
 #: templates/_inspiration_section.html:531
 msgid "Clear filters on the Position tab."
@@ -869,7 +869,7 @@ msgstr "Datenbank prüfen:"
 
 #: templates/_inspiration_section.html:533
 msgid "Ensure you have objects in Configuration."
-msgstr "Keine Objekte in Ihrer Konfiguration gefunden."
+msgstr "Stellen Sie sicher, dass in der Konfiguration Objekte vorhanden sind."
 
 #: templates/_inspiration_section.html:534
 msgid "Visibility:"
@@ -1023,7 +1023,7 @@ msgstr "min"
 
 #: templates/_journal_section.html:1674
 msgid "Loading history..."
-msgstr "Lade Verlauf..."
+msgstr "Verlauf wird geladen..."
 
 #: templates/_journal_section.html:1693
 msgid "Details for Session:"
@@ -1105,7 +1105,7 @@ msgstr "Filter:"
 
 #: templates/_journal_section.html:1744 templates/_journal_section.html:1788
 msgid "Rig Used:"
-msgstr "Rig-Name:"
+msgstr "Verwendetes Rig:"
 
 #: templates/_journal_section.html:1745 templates/_journal_section.html:1794
 msgid "Rig Specs:"
@@ -1127,7 +1127,7 @@ msgstr "FL:"
 
 #: templates/_journal_section.html:1750 templates/_journal_section.html:1797
 msgid "Scale:"
-msgstr "Maßstab / Sichtfeld:"
+msgstr "Maßstab:"
 
 #: templates/_journal_section.html:1753 templates/_journal_section.html:1800
 msgid "Setup Notes:"
@@ -1199,7 +1199,7 @@ msgstr "Sichtfeld:"
 
 #: templates/_journal_section.html:1805 templates/_journal_section.html:2367
 msgid "Guiding Equipment:"
-msgstr "Guiding Ausrüstung:"
+msgstr "Guiding-Ausrüstung:"
 
 #: templates/_journal_section.html:1806
 msgid "Acquisition Sw:"
@@ -1220,7 +1220,7 @@ msgstr "Gain / Offset:"
 
 #: templates/_journal_section.html:1810
 msgid "Camera Temp (Set/Avg):"
-msgstr "Temp (Einstellung/Durchschnitt):"
+msgstr "Kameratemp. (Soll/Ø):"
 
 #: templates/_journal_section.html:1812
 msgid "Sub Exposure:"
@@ -1228,7 +1228,7 @@ msgstr "Belichtungszeit:"
 
 #: templates/_journal_section.html:1813
 msgid "# Light Subs:"
-msgstr "Anzahl der Aufnahmen:"
+msgstr "Anz. Light-Subs:"
 
 #: templates/_journal_section.html:1833
 msgid "Monochrome Exposures"
@@ -1328,7 +1328,7 @@ msgstr "AF-Läufe"
 
 #: templates/_journal_section.html:1928 templates/journal_report.html:999
 msgid "Pixel Scale"
-msgstr "Pixel-Skala"
+msgstr "Pixelmaßstab"
 
 #: templates/_journal_section.html:1937 templates/journal_report.html:1064
 msgid "Plate Solve Results"
@@ -1399,7 +1399,7 @@ msgstr "Einschließlich Dither — RA:"
 
 #: templates/_journal_section.html:1975 templates/journal_report.html:991
 msgid "Dec:"
-msgstr "Dec:"
+msgstr "Dek:"
 
 #: templates/_journal_section.html:1979 templates/base.html:220
 msgid "Zoom"
@@ -1423,11 +1423,11 @@ msgstr "Ø Dec-Dauer:"
 
 #: templates/_journal_section.html:1988
 msgid "RA Dir:"
-msgstr "RA:"
+msgstr "RA-Richtung:"
 
 #: templates/_journal_section.html:1989
 msgid "Dec Dir:"
-msgstr "Dec:"
+msgstr "Dek-Richtung:"
 
 #: templates/_journal_section.html:2008
 msgid "Total Dithers:"
@@ -1451,7 +1451,7 @@ msgstr "Autofokus-V-Kurven - EAF-Position vs. Sterngröße"
 
 #: templates/_journal_section.html:2036
 msgid "Focus Position Drift Over Night"
-msgstr "Fokuspositionsdrift"
+msgstr "Drift der Fokusposition über die Nacht"
 
 #: templates/_journal_section.html:2044
 msgid "Individual V-Curves"
@@ -1524,7 +1524,7 @@ msgstr "Ziele & Status"
 
 #: templates/_journal_section.html:2156
 msgid "No goals defined."
-msgstr "Keine Ziele gesetzt."
+msgstr "Keine Ziele definiert."
 
 #: templates/_journal_section.html:2164 templates/_project_subtab.html:166
 msgid "Final Project Image"
@@ -1541,7 +1541,7 @@ msgstr "Projektgeschichte und Erkenntnisse"
 
 #: templates/_journal_section.html:2173
 msgid "No description added."
-msgstr "Keine Projektbeschreibung hinzugefügt."
+msgstr "Keine Beschreibung hinzugefügt."
 
 #: templates/_journal_section.html:2177 templates/_project_subtab.html:180
 msgid "Framing Notes"
@@ -1561,7 +1561,7 @@ msgstr "Es wurde kein Verarbeitungsworkflow aufgezeichnet."
 
 #: templates/_journal_section.html:2212
 msgid "Editing Project"
-msgstr "Projekt bearbeiten"
+msgstr "Projekt wird bearbeitet"
 
 #: templates/_journal_section.html:2214 templates/_project_subtab.html:231
 msgid "Save Project"
@@ -1631,7 +1631,7 @@ msgstr "Aktuelles Bild löschen"
 
 #: templates/_journal_section.html:2241 templates/_project_subtab.html:268
 msgid "Upload New Final Image (optional, max 5MB)"
-msgstr "Neues endgültiges Bild hochladen (optional, max. 5 MB)"
+msgstr "Neues finales Bild hochladen (optional, max. 5 MB)"
 
 #: templates/_journal_section.html:2247 templates/_project_subtab.html:275
 msgid "Project Story & Learnings:"
@@ -1668,11 +1668,11 @@ msgstr "z.B. M31 Broadband"
 
 #: templates/_journal_section.html:2310
 msgid "Add New Session for"
-msgstr "Neue Sequenz hinzufügen"
+msgstr "Neue Sequenz hinzufügen für"
 
 #: templates/_journal_section.html:2314
 msgid "Edit Session"
-msgstr "Diese Sequenz bearbeiten"
+msgstr "Sequenz bearbeiten"
 
 #: templates/_journal_section.html:2316
 msgid "Save Draft"
@@ -1700,15 +1700,15 @@ msgstr "Mit Projekt verknüpfen (Optional)"
 
 #: templates/_journal_section.html:2340
 msgid "-- Create New Project --"
-msgstr "Neues Projekt hinzufügen"
+msgstr "-- Neues Projekt erstellen --"
 
 #: templates/_journal_section.html:2344
 msgid "New Project Name:"
-msgstr "Projektname:"
+msgstr "Name des neuen Projekts:"
 
 #: templates/_journal_section.html:2344
 msgid "e.g., M31 Galaxy - 2025"
-msgstr "z. B. Galaxy"
+msgstr "z. B. M31 Galaxie - 2025"
 
 #: templates/_journal_section.html:2346 templates/journal_form.html:51
 msgid "Sky Conditions (Observed)"
@@ -1729,7 +1729,7 @@ msgstr "SQM-Messwert:"
 #: templates/_journal_section.html:2350
 #, python-format
 msgid "Moon Illumination (%%):"
-msgstr "Mondphase bei Session (%%):"
+msgstr "Mondbeleuchtung (%%):"
 
 #: templates/_journal_section.html:2350
 msgid "Auto-fills on date/loc change"
@@ -1737,7 +1737,7 @@ msgstr "Automatisches Ausfüllen bei Änderung von Datum/Ort"
 
 #: templates/_journal_section.html:2350
 msgid "Moon Angular Separation (°):"
-msgstr "Mondwinkelabstand vom Ziel (°):"
+msgstr "Winkelabstand zum Mond (°):"
 
 #: templates/_journal_section.html:2351 templates/journal_form.html:84
 msgid "Equipment & Guiding"
@@ -1745,11 +1745,11 @@ msgstr "Ausrüstung & Guiding"
 
 #: templates/_journal_section.html:2353
 msgid "Select a Rig (Optional - Overwrites notes below)"
-msgstr "Wähle ein Rig aus (optional)"
+msgstr "Rig auswählen (optional – überschreibt die Notizen unten)"
 
 #: templates/_journal_section.html:2356
 msgid "-- Manually Enter Below --"
-msgstr "Setup manuell eingeben"
+msgstr "-- Unten manuell eingeben --"
 
 #: templates/_journal_section.html:2361
 msgid "View rig details"
@@ -1793,7 +1793,7 @@ msgstr "Dither alle___subs:"
 
 #: templates/_journal_section.html:2386
 msgid "e.g. 3"
-msgstr "z. B. 34"
+msgstr "z. B. 3"
 
 #: templates/_journal_section.html:2389
 msgid "Dither Notes (optional):"
@@ -1801,11 +1801,11 @@ msgstr "Dithering-Notizen (optional):"
 
 #: templates/_journal_section.html:2391
 msgid "Sub Exposure (sec):"
-msgstr "Belichtungszeit (Sekunden):"
+msgstr "Einzelbelichtung (s):"
 
 #: templates/_journal_section.html:2392
 msgid "# Light Subs"
-msgstr "# Belichtungen"
+msgstr "Anz. Light-Subs"
 
 #: templates/_journal_section.html:2394 templates/journal_form.html:135
 msgid "Gain:"
@@ -1825,7 +1825,7 @@ msgstr "Kamera-Temperatur, tatsächlicher Durchschnitt (°C):"
 
 #: templates/_journal_section.html:2396
 msgid "e.g., 1x1"
-msgstr "z. B. 1x1, 2x2"
+msgstr "z. B. 1x1"
 
 #: templates/_journal_section.html:2397
 msgid "Filter Used (if broadband/single):"
@@ -1833,7 +1833,7 @@ msgstr "Verwendeter Filter (falls Breitband/Einzeln):"
 
 #: templates/_journal_section.html:2397
 msgid "e.g., L-Pro, None"
-msgstr "z. B. L-Pro, Ha 7 nm"
+msgstr "z. B. L-Pro, Keiner"
 
 #: templates/_journal_section.html:2398 templates/journal_form.html:157
 msgid "Monochrome Filter Exposures"
@@ -1842,7 +1842,7 @@ msgstr "Monochrome Filterbelichtungen"
 #: templates/_journal_section.html:2403 templates/_journal_section.html:2421
 #: templates/_journal_section.html:2601
 msgid "# Subs"
-msgstr "# Belichtungen"
+msgstr "Anz. Subs"
 
 #: templates/_journal_section.html:2403 templates/_journal_section.html:2424
 #: templates/_journal_section.html:2602 templates/journal_form.html:168
@@ -1865,7 +1865,7 @@ msgstr "Filter entfernen"
 
 #: templates/_journal_section.html:2440
 msgid "Filter name (e.g. NB-II)"
-msgstr "Name filtern..."
+msgstr "Filtername (z. B. NB-II)"
 
 #: templates/_journal_section.html:2446
 msgid "+ Add Filter"
@@ -1901,15 +1901,15 @@ msgstr "Ask Nova for session summary"
 
 #: templates/_journal_section.html:2475
 msgid "Current Image:"
-msgstr "Aktuelle Datei:"
+msgstr "Aktuelles Bild:"
 
 #: templates/_journal_section.html:2475
 msgid "Delete Image"
-msgstr "Aktuelles Bild löschen"
+msgstr "Bild löschen"
 
 #: templates/_journal_section.html:2476
 msgid "Upload New or Replace Image (optional, max 5MB)"
-msgstr "Neues endgültiges Bild hochladen (optional, max. 5 MB)"
+msgstr "Neues Bild hochladen oder ersetzen (optional, max. 5 MB)"
 
 #: templates/_journal_section.html:2479
 msgid "Session Logs (Optional)"
@@ -1922,7 +1922,7 @@ msgstr "ASIAIR-Protokoll (Autorun):"
 #: templates/_journal_section.html:2485 templates/_journal_section.html:2498
 #: templates/_journal_section.html:2511
 msgid "Uploaded"
-msgstr "Hochladen"
+msgstr "Hochgeladen"
 
 #: templates/_journal_section.html:2487 templates/_journal_section.html:2500
 #: templates/_journal_section.html:2513 templates/_objects_section.html:93
@@ -2012,7 +2012,7 @@ msgstr "Ask Nova"
 
 #: templates/_journal_section.html:2614
 msgid "Analyzing your session..."
-msgstr "Ziele werden analysiert..."
+msgstr "Sequenz wird analysiert..."
 
 #: templates/_journal_section.html:2615
 msgid "Reviewing conditions..."
@@ -2020,7 +2020,7 @@ msgstr "Überprüfung der Bedingungen..."
 
 #: templates/_journal_section.html:2616
 msgid "Checking guiding data..."
-msgstr "Daten werden aktualisiert..."
+msgstr "Guiding-Daten werden geprüft..."
 
 #: templates/_journal_section.html:2617 templates/base.html:288
 #: templates/graph_view.html:489
@@ -2037,7 +2037,7 @@ msgstr "Wörter"
 
 #: templates/_journal_section.html:2620
 msgid "Nova has a summary ready. What would you like to do?"
-msgstr "Nova hat eine Zusammenfassung bereit. Was möchtest du tun?"
+msgstr "Nova hat eine Zusammenfassung vorbereitet. Was möchten Sie tun?"
 
 #: templates/_journal_section.html:2621 templates/graph_view.html:492
 msgid "Overwrite"
@@ -2184,7 +2184,7 @@ msgstr "Größe"
 
 #: templates/_objects_section.html:78
 msgid "e.g., >5, <30, >5 <30"
-msgstr "z. B. >300"
+msgstr "z. B. >5, <30, >5 <30"
 
 #: templates/_objects_section.html:84
 msgid "Select Visible"
@@ -2196,7 +2196,7 @@ msgstr "Alle abwählen"
 
 #: templates/_objects_section.html:86
 msgid "0 Selected"
-msgstr "0 Ausgewählt"
+msgstr "0 ausgewählt"
 
 #: templates/_objects_section.html:89
 msgid "Selection Actions"
@@ -2296,7 +2296,7 @@ msgstr "Persönliche Notizen... (nicht geteilt)"
 
 #: templates/_objects_section.html:253 templates/config_form.html:698
 msgid "Shared Notes"
-msgstr "Gemeinsame Notizen"
+msgstr "Geteilte Notizen"
 
 #: templates/_objects_section.html:255 templates/_objects_section.html:259
 msgid "Public notes... (will be shared)"
@@ -2341,7 +2341,7 @@ msgstr "z. B. +40,85 oder 40:51:00"
 
 #: templates/_objects_section.html:308
 msgid "e.g., Galaxy"
-msgstr "z. B. Galaxy"
+msgstr "z. B. Galaxie"
 
 #: templates/_objects_section.html:331
 msgid "Inspiration Content (Optional)"
@@ -2469,7 +2469,7 @@ msgstr "Bildvorschau"
 
 #: templates/_opportunities_section.html:27
 msgid "Imaging Opportunities"
-msgstr "Aufnahmefenster"
+msgstr "Aufnahmegelegenheiten"
 
 #: templates/_opportunities_section.html:35 templates/index.html:209
 #: templates/index.html:227 templates/index.html:245
@@ -2505,7 +2505,7 @@ msgstr "Winkelabstand(°)"
 
 #: templates/_opportunities_section.html:43
 msgid "Add to Cal"
-msgstr "Zum Kalender hinzufügen"
+msgstr "In Kalender eintragen"
 
 #: templates/_project_subtab.html:145
 msgid ""
@@ -2527,7 +2527,7 @@ msgstr "Primäres Ziel"
 
 #: templates/_project_subtab.html:159
 msgid "No goals set."
-msgstr "Keine Ziele gesetzt."
+msgstr "Keine Ziele festgelegt."
 
 #: templates/_project_subtab.html:176
 msgid "No project description added."
@@ -2745,11 +2745,11 @@ msgstr ""
 
 #: templates/base.html:109
 msgid "Calculating..."
-msgstr "Wird geladen..."
+msgstr "Wird berechnet..."
 
 #: templates/base.html:110
 msgid "Fetching..."
-msgstr "Details werden geladen..."
+msgstr "Wird abgerufen..."
 
 #: templates/base.html:111 templates/mobile_add_object.html:59
 #: templates/mobile_edit_notes.html:78
@@ -2758,7 +2758,7 @@ msgstr "Speichern..."
 
 #: templates/base.html:112
 msgid "Saved"
-msgstr "Speichern"
+msgstr "Gespeichert"
 
 #: templates/base.html:113
 msgid "Error"
@@ -2778,7 +2778,7 @@ msgstr "Simuliert"
 
 #: templates/base.html:120
 msgid "sep"
-msgstr "Schritte"
+msgstr "Abst."
 
 #: templates/base.html:122
 msgid "Importing..."
@@ -2794,11 +2794,11 @@ msgstr "Daten laden fehlgeschlagen"
 
 #: templates/base.html:133
 msgid "No targets found matching your filters."
-msgstr "Es wurden keine Objekte gefunden, die Ihrem Filter entsprechen."
+msgstr "Keine Ziele entsprechen den Filtern."
 
 #: templates/base.html:134
 msgid "Updating location..."
-msgstr "Daten werden aktualisiert..."
+msgstr "Standort wird aktualisiert..."
 
 #: templates/base.html:135
 msgid "No imaging opportunities found matching the criteria."
@@ -2858,15 +2858,15 @@ msgstr "Aktualisierung in"
 
 #: templates/base.html:147
 msgid "Latest version"
-msgstr "Version"
+msgstr "Neueste Version"
 
 #: templates/base.html:150
 msgid "Select Telescope"
-msgstr "-- Wählen Sie ein Teleskop aus --"
+msgstr "Teleskop auswählen"
 
 #: templates/base.html:151
 msgid "Select Camera"
-msgstr "-- Kamera auswählen --"
+msgstr "Kamera auswählen"
 
 #: templates/base.html:152 templates/config_form.html:673
 #: templates/project_report.html:1174
@@ -2880,7 +2880,7 @@ msgstr "Kamera"
 
 #: templates/base.html:154
 msgid "Reducer / Extender"
-msgstr "Reduzierer / Extender"
+msgstr "Reducer / Extender"
 
 #: templates/base.html:156
 msgid "Oversampled"
@@ -2904,11 +2904,11 @@ msgstr "Keine Kameras definiert."
 
 #: templates/base.html:161
 msgid "Error loading shared items."
-msgstr "Fehler beim Laden der Daten."
+msgstr "Fehler beim Laden der geteilten Einträge."
 
 #: templates/base.html:162
 msgid "Import failed. See console for details."
-msgstr "Import fehlgeschlagen. Details finden Sie in den Serverprotokollen."
+msgstr "Import fehlgeschlagen. Details stehen in der Konsole."
 
 #: templates/base.html:163
 msgid "Upload failed. See console."
@@ -2916,7 +2916,7 @@ msgstr "Upload fehlgeschlagen. Siehe Konsole."
 
 #: templates/base.html:164
 msgid "Network error saving object."
-msgstr "Netzwerkfehler."
+msgstr "Netzwerkfehler beim Speichern des Objekts."
 
 #: templates/base.html:165
 msgid "Image upload failed: Network error."
@@ -2936,11 +2936,11 @@ msgstr "Keine gültigen Horizontdaten gefunden."
 
 #: templates/base.html:169
 msgid "Shared Notes for"
-msgstr "Gemeinsame Notizen"
+msgstr "Geteilte Notizen für"
 
 #: templates/base.html:172
 msgid "No objects selected."
-msgstr "Kein Objekt angegeben."
+msgstr "Keine Objekte ausgewählt."
 
 #: templates/base.html:173
 msgid "Bulk action failed."
@@ -2968,7 +2968,7 @@ msgstr "Ignorieren, beide behalten"
 
 #: templates/base.html:179
 msgid "Error scanning duplicates."
-msgstr "Fehler beim Laden der Daten."
+msgstr "Fehler bei der Duplikatsuche."
 
 #: templates/base.html:180
 msgid "Confirm merge?"
@@ -2984,7 +2984,7 @@ msgstr "Bitte geben Sie eine Objekt-ID ein."
 
 #: templates/base.html:183
 msgid "Checking your local library..."
-msgstr "Überprüfen Sie Ihre örtliche Bibliothek..."
+msgstr "Lokale Bibliothek wird geprüft..."
 
 #: templates/base.html:184
 msgid "Object found in your library."
@@ -3001,7 +3001,7 @@ msgstr "SIMBAD-Suche fehlgeschlagen."
 
 #: templates/base.html:187
 msgid "selected"
-msgstr "0 Ausgewählt"
+msgstr "ausgewählt"
 
 #: templates/base.html:188 templates/mobile_object_detail.html:589
 msgid "No imaging opportunities found."
@@ -3030,7 +3030,7 @@ msgstr "Sequenz bearbeiten"
 
 #: templates/base.html:197
 msgid "Save Changes"
-msgstr "Notizen speichern"
+msgstr "Änderungen speichern"
 
 #: templates/base.html:200
 #, python-format
@@ -3099,7 +3099,7 @@ msgstr "Gespeicherten Bildausschnitt löschen"
 
 #: templates/base.html:214
 msgid "Image upload failed. See console for details."
-msgstr "Import fehlgeschlagen. Details finden Sie in den Serverprotokollen."
+msgstr "Bild-Upload fehlgeschlagen. Details stehen in der Konsole."
 
 #: templates/base.html:217
 msgid "No timeline data to display."
@@ -3136,7 +3136,7 @@ msgstr "Plotly-Bibliothek nicht geladen. Bitte aktualisieren Sie."
 
 #: templates/base.html:230
 msgid "Loading help content..."
-msgstr "Lade Verlauf..."
+msgstr "Hilfeinhalte werden geladen..."
 
 #: templates/base.html:231
 msgid "Error: Help content returned empty."
@@ -3260,7 +3260,7 @@ msgstr "Gutes sampling"
 
 #: templates/base.html:264
 msgid "Image Scale"
-msgstr "Pixel-Skala"
+msgstr "Bildmaßstab"
 
 #: templates/base.html:265
 msgid "No reducers defined."
@@ -3295,9 +3295,8 @@ msgid ""
 "Go to Configuration - Manage Objects to add Inspiration Content to your "
 "targets."
 msgstr ""
-"Gehen Sie zu <strong>Konfiguration > Objekte verwalten</strong>, um "
-"„Inspiration-Inhalte\" (Bild-URLs, Credits, Beschreibungen) zu Ihren "
-"Zielen hinzuzufügen."
+"Gehen Sie zu Konfiguration - Objekte verwalten, um Ihren Zielen "
+"Inspirationsinhalte hinzuzufügen."
 
 #: templates/base.html:277
 msgid "Asking Nova..."
@@ -3334,15 +3333,15 @@ msgstr "Fehler beim Fragen von Nova. Bitte versuchen Sie es erneut."
 
 #: templates/base.html:285
 msgid "Consulting star charts..."
-msgstr "Die Sternenkarten konsultieren..."
+msgstr "Sternkarten werden befragt..."
 
 #: templates/base.html:286 templates/graph_view.html:486
 msgid "Checking your rigs..."
-msgstr "Überprüfen Sie Ihre örtliche Bibliothek..."
+msgstr "Rigs werden geprüft..."
 
 #: templates/base.html:287
 msgid "Scanning cosmos..."
-msgstr "Den Himmel scannen..."
+msgstr "Kosmos wird durchsucht..."
 
 #: templates/base.html:289
 msgid "Recommended Rig"
@@ -3535,7 +3534,7 @@ msgstr "Rigs"
 
 #: templates/config_form.html:66
 msgid "Shared Items"
-msgstr "Geteilte Objekte"
+msgstr "Geteilte Einträge"
 
 #: templates/config_form.html:72
 msgid "Download"
@@ -3920,7 +3919,7 @@ msgstr "Kamera hinzufügen"
 
 #: templates/config_form.html:485
 msgid "Reducers / Extenders"
-msgstr "Reduzierer / Extender"
+msgstr "Reducer / Extender"
 
 #: templates/config_form.html:489
 msgid "e.g., Celestron 0.7x Reducer"
@@ -3961,7 +3960,7 @@ msgstr "z. B. C11 Deep Sky Rig"
 
 #: templates/config_form.html:512
 msgid "-- Select a Telescope --"
-msgstr "-- Wählen Sie ein Teleskop aus --"
+msgstr "-- Teleskop auswählen --"
 
 #: templates/config_form.html:518
 msgid "-- Select a Camera --"
@@ -4119,7 +4118,7 @@ msgstr "ID filtern..."
 #: templates/config_form.html:609 templates/config_form.html:640
 #: templates/config_form.html:669
 msgid "Filter name..."
-msgstr "Name filtern..."
+msgstr "Nach Name filtern..."
 
 #: templates/config_form.html:610
 msgid "Filter type..."
@@ -4169,7 +4168,7 @@ msgstr "Reducer/Extender"
 
 #: templates/config_form.html:707
 msgid "Fetching Details..."
-msgstr "Details werden geladen..."
+msgstr "Details werden abgerufen..."
 
 #: templates/config_form.html:711
 msgid "Please wait, communicating with SIMBAD..."
@@ -4200,7 +4199,7 @@ msgstr "Mond Abstand."
 
 #: templates/graph_view.html:57
 msgid "ASTR. DUSK / DAWN"
-msgstr "Astr. Abend / Morgen"
+msgstr "ASTR. ABEND- / MORGENDÄMMERUNG"
 
 #: templates/graph_view.html:92
 msgid "Chart"
@@ -4220,7 +4219,7 @@ msgstr "Objekt-Info"
 
 #: templates/graph_view.html:96 templates/mobile_object_detail.html:533
 msgid "Opportunities"
-msgstr "Aufnahmefenster"
+msgstr "Aufnahmegelegenheiten"
 
 #: templates/graph_view.html:98 templates/mobile_object_detail.html:529
 msgid "SIMBAD"
@@ -4281,7 +4280,7 @@ msgstr "Hilfe zum Kalibrierstern"
 
 #: templates/graph_view.html:167
 msgid "Show Framing"
-msgstr "Bildausschnitt"
+msgstr "Bildausschnitt anzeigen"
 
 #: templates/graph_view.html:168
 msgid "Open in Stellarium"
@@ -4304,7 +4303,7 @@ msgstr ""
 
 #: templates/graph_view.html:203
 msgid "Rig Name"
-msgstr "Rig-Name:"
+msgstr "Rig-Name"
 
 #: templates/graph_view.html:204
 msgid "Rig FOV"
@@ -4384,9 +4383,8 @@ msgstr ""
 #: templates/graph_view.html:280
 msgid "Go to <strong>Configuration > Manage Objects</strong> to add one."
 msgstr ""
-"Gehen Sie zu <strong>Konfiguration > Objekte verwalten</strong>, um "
-"„Inspiration-Inhalte\" (Bild-URLs, Credits, Beschreibungen) zu Ihren "
-"Zielen hinzuzufügen."
+"Gehen Sie zu <strong>Konfiguration > Objekte verwalten</strong>, um eines"
+" hinzuzufügen."
 
 #: templates/graph_view.html:303
 msgid "Framing Assistant"
@@ -4542,11 +4540,11 @@ msgstr ""
 
 #: templates/graph_view.html:485
 msgid "Consulting the star charts..."
-msgstr "Die Sternenkarten konsultieren..."
+msgstr "Sternkarten werden befragt..."
 
 #: templates/graph_view.html:487
 msgid "Scanning the cosmos..."
-msgstr "Den Himmel scannen..."
+msgstr "Der Kosmos wird durchsucht..."
 
 #: templates/graph_view.html:488
 msgid "Calculating from"
@@ -4558,7 +4556,7 @@ msgstr "Ihren Standort"
 
 #: templates/graph_view.html:491
 msgid "Nova has notes ready. What would you like to do?"
-msgstr "Nova hat eine Zusammenfassung bereit. Was möchtest du tun?"
+msgstr "Nova hat Notizen vorbereitet. Was möchten Sie tun?"
 
 #: templates/graph_view.html:495
 msgid "Nova couldn't load notes"
@@ -4606,7 +4604,7 @@ msgstr "Ortszeit"
 
 #: templates/index.html:50
 msgid "Astr. Dusk / Dawn"
-msgstr "Astr. Abend / Morgen"
+msgstr "Astr. Abend- / Morgendämmerung"
 
 #: templates/index.html:62
 msgid "Simulation"
@@ -4717,7 +4715,7 @@ msgstr "zum Mond (°)"
 
 #: templates/index.html:157
 msgid "Magnitude"
-msgstr "Helligkeit"
+msgstr "Magnitude"
 
 #: templates/index.html:158
 msgid "Size ("
@@ -4910,7 +4908,7 @@ msgstr "Standort auswählen (optional)"
 #: templates/journal_form.html:75
 #, python-format
 msgid "Moon Illumination at Session (%%):"
-msgstr "Mondphase bei Session (%%):"
+msgstr "Mondbeleuchtung während der Sequenz (%%):"
 
 #: templates/journal_form.html:76
 msgid "e.g., 34"
@@ -4918,7 +4916,7 @@ msgstr "z. B. 34"
 
 #: templates/journal_form.html:79
 msgid "Moon Angular Separation from Target (°):"
-msgstr "Mondwinkelabstand vom Ziel (°):"
+msgstr "Winkelabstand des Mondes zum Ziel (°):"
 
 #: templates/journal_form.html:80
 msgid "e.g., 45.5"
@@ -4926,11 +4924,11 @@ msgstr "z. B. 45,5"
 
 #: templates/journal_form.html:87
 msgid "Select a Rig (Optional)"
-msgstr "Wähle ein Rig aus (optional)"
+msgstr "Rig auswählen (optional)"
 
 #: templates/journal_form.html:89
 msgid "Manually Enter Setup Below"
-msgstr "Setup manuell eingeben"
+msgstr "Setup unten manuell eingeben"
 
 #: templates/journal_form.html:97
 msgid "e.g., C11+Reducer+ASI2600"
@@ -4942,7 +4940,7 @@ msgstr "Verwendeter Filter:"
 
 #: templates/journal_form.html:102
 msgid "e.g., L-Pro, Ha 7nm"
-msgstr "z. B. L-Pro, Ha 7 nm"
+msgstr "z. B. L-Pro, Ha 7nm"
 
 #: templates/journal_form.html:110
 msgid "Guiding Equipment (Scope, Camera, Software):"
@@ -4962,11 +4960,11 @@ msgstr "z. B. N.I.N.A., Sequence Generator Pro, Astroberry"
 
 #: templates/journal_form.html:125
 msgid "Sub Exposure (seconds):"
-msgstr "Belichtungszeit (Sekunden):"
+msgstr "Einzelbelichtung (Sekunden):"
 
 #: templates/journal_form.html:129
 msgid "Number of Light Subs:"
-msgstr "Anzahl der Aufnahmen:"
+msgstr "Anzahl Light-Subs:"
 
 #: templates/journal_form.html:155
 msgid "e.g., 1x1, 2x2"
@@ -5035,7 +5033,7 @@ msgstr "Rig:"
 
 #: templates/journal_report.html:775
 msgid "Temp (Set/Avg):"
-msgstr "Temp (Einstellung/Durchschnitt):"
+msgstr "Temp. (Soll/Ø):"
 
 #: templates/journal_report.html:779
 msgid "FL / Ratio:"
@@ -5043,7 +5041,7 @@ msgstr "FL / Verhältnis:"
 
 #: templates/journal_report.html:783
 msgid "Scale / FOV:"
-msgstr "Maßstab / Sichtfeld:"
+msgstr "Maßstab / Bildfeld:"
 
 #: templates/journal_report.html:787
 msgid "Setup:"
@@ -5055,7 +5053,7 @@ msgstr "Aufnahme SW:"
 
 #: templates/journal_report.html:794
 msgid "Guiding Equip.:"
-msgstr "Guiding Ausrüstung:"
+msgstr "Guiding-Ausr.:"
 
 #: templates/journal_report.html:798
 msgid "Dither Details:"
@@ -5159,7 +5157,7 @@ msgstr "Platte löst"
 #: templates/journal_report.html:1051 templates/journal_report.html:1093
 #: templates/project_report.html:1045
 msgid "AutoFocus Runs"
-msgstr "Autofokus läuft"
+msgstr "Autofokus-Läufe"
 
 #: templates/journal_report.html:1097 templates/project_report.html:1049
 msgid "Run"
@@ -5183,7 +5181,7 @@ msgstr "Autofokus-V-Kurven"
 
 #: templates/journal_report.html:1125
 msgid "Focus Position Drift"
-msgstr "Fokuspositionsdrift"
+msgstr "Drift der Fokusposition"
 
 #: templates/journal_report.html:1138
 msgid "Total Dithers"
@@ -5305,7 +5303,7 @@ msgstr "Hauptseite"
 
 #: templates/mobile_base.html:40
 msgid "Dusk/Dawn"
-msgstr "Astr. Abend / Morgen"
+msgstr "Abend-/Morgendämmerung"
 
 #: templates/mobile_edit_notes.html:3 templates/mobile_object_detail.html:556
 #: templates/mobile_object_detail.html:561
@@ -5436,11 +5434,11 @@ msgstr "Kopieren in die Zwischenablage fehlgeschlagen."
 
 #: templates/mobile_object_detail.html:508
 msgid "Obs"
-msgstr "Dauer"
+msgstr "Beob."
 
 #: templates/mobile_object_detail.html:528
 msgid "Log Session"
-msgstr "Sequenz hinzufügen"
+msgstr "Sequenz protokollieren"
 
 #: templates/mobile_object_detail.html:540
 msgid "Loading opportunities..."
@@ -5494,7 +5492,7 @@ msgstr "Für Ihre angepinnten Objekte wurden keine Aufnahmefenster gefunden."
 
 #: templates/mobile_up_now.html:874
 msgid "Scanning Sky..."
-msgstr "Den Himmel scannen..."
+msgstr "Himmel wird durchsucht..."
 
 #: templates/mobile_up_now.html:884
 msgid "Search objects..."
@@ -5510,7 +5508,7 @@ msgstr "Sortieren"
 
 #: templates/mobile_up_now.html:907
 msgid "No objects match your filters"
-msgstr "Es wurden keine Objekte gefunden, die Ihrem Filter entsprechen."
+msgstr "Keine Objekte entsprechen den Filtern"
 
 #: templates/mobile_up_now.html:923
 msgid "Reset"
@@ -5526,7 +5524,7 @@ msgstr "Alt Max"
 
 #: templates/mobile_up_now.html:984
 msgid "or type name..."
-msgstr "Name filtern..."
+msgstr "oder Namen eingeben..."
 
 #: templates/mobile_up_now.html:991
 msgid "Apply"
@@ -5542,7 +5540,7 @@ msgstr "Es wurden keine Objekte gefunden, die Ihrer Suche entsprechen."
 
 #: templates/mobile_up_now.html:1002
 msgid "No objects match your filter."
-msgstr "Es wurden keine Objekte gefunden, die Ihrem Filter entsprechen."
+msgstr "Keine Objekte entsprechen dem Filter."
 
 #: templates/mobile_up_now.html:1003
 #, python-format

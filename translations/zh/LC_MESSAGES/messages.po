@@ -145,7 +145,7 @@ msgstr "未找到会话"
 
 #: nova/blueprints/api.py:2567
 msgid "Object data not found or invalid."
-msgstr "未找到对象数据或数据无效。"
+msgstr "天体数据未找到或无效。"
 
 #: nova/blueprints/api.py:2571
 msgid "RA/DEC missing for object."
@@ -169,7 +169,7 @@ msgstr ""
 
 #: nova/blueprints/api.py:3833
 msgid "Invalid datetime format"
-msgstr "日期格式无效。"
+msgstr "日期时间格式无效"
 
 #: nova/blueprints/api.py:3853
 msgid "Calibration star catalog not found"
@@ -272,7 +272,7 @@ msgstr "未找到过滤器"
 
 #: nova/blueprints/core.py:1089 nova/blueprints/core.py:1109
 msgid "No object specified."
-msgstr "未指定对象。"
+msgstr "未指定天体。"
 
 #: nova/blueprints/core.py:1096 nova/blueprints/core.py:1746
 #: nova/blueprints/core.py:1772 templates/mobile_add_object.html:57
@@ -294,7 +294,7 @@ msgstr "数据获取期间发生错误：%(error)s"
 
 #: nova/blueprints/core.py:1878
 msgid "Please log in to view object details."
-msgstr "请登录以查看对象详细信息。"
+msgstr "请登录以查看天体详情。"
 
 #: nova/blueprints/core.py:1893
 #, python-format
@@ -631,7 +631,7 @@ msgstr "未选择文件用于照片导入。"
 
 #: nova/blueprints/tools.py:1168
 msgid "Please select a valid .zip file to import."
-msgstr "请选择有效的.zip文件进行导入。"
+msgstr "请选择要导入的有效 .zip 文件。"
 
 #: nova/blueprints/tools.py:1181
 msgid "Import failed: The uploaded file is not a valid ZIP archive."
@@ -694,7 +694,7 @@ msgstr "导入完成成功！"
 
 #: nova/blueprints/tools.py:1401
 msgid "Import failed. See server logs for details."
-msgstr "导入失败。请查看服务器日志以了解详细信息。"
+msgstr "导入失败。详情请查看服务器日志。"
 
 #: nova/blueprints/tools.py:1404
 msgid "Import crashed. Check logs."
@@ -788,7 +788,7 @@ msgstr "查看图表"
 
 #: templates/_inspiration_section.html:522
 msgid "Analyzing targets..."
-msgstr "分析目标中..."
+msgstr "正在分析目标..."
 
 #: templates/_inspiration_section.html:523 templates/journal_report.html:706
 #: templates/project_report.html:1116
@@ -801,7 +801,7 @@ msgstr "未知"
 
 #: templates/_inspiration_section.html:525
 msgid "Error rendering grid. Check console."
-msgstr "渲染网格时出错。检查控制台。"
+msgstr "渲染网格出错。请查看控制台。"
 
 #: templates/_inspiration_section.html:526
 msgid "Image unavailable"
@@ -841,7 +841,7 @@ msgstr "高度："
 
 #: templates/_inspiration_section.html:539
 msgid "Dur:"
-msgstr "持续时间："
+msgstr "时长:"
 
 #: templates/_inspiration_section.html:540
 msgid "hrs"
@@ -902,7 +902,7 @@ msgstr ""
 #: templates/_inspiration_section.html:640
 #: templates/_inspiration_section.html:641
 msgid "No Matching Targets"
-msgstr "正在处理目标..."
+msgstr "没有匹配的目标"
 
 #: templates/_inspiration_section.html:642
 msgid "Your current filters (Position Tab) are too restrictive."
@@ -910,7 +910,7 @@ msgstr "您当前的筛选器（位置选项卡）限制太多。"
 
 #: templates/_inspiration_section.html:648
 msgid "Loading Object Database..."
-msgstr "加载历史中..."
+msgstr "正在加载天体数据库..."
 
 #: templates/_inspiration_section.html:649
 msgid "Please wait while we calculate visibility and fetch data."
@@ -918,7 +918,7 @@ msgstr "请稍候，我们将计算可见度并获取数据。"
 
 #: templates/_inspiration_section.html:652
 msgid "Database Empty"
-msgstr "数据库修复完成。"
+msgstr "数据库为空"
 
 #: templates/_inspiration_section.html:653
 msgid "No objects found in your configuration."
@@ -975,7 +975,7 @@ msgstr "分钟"
 
 #: templates/_journal_section.html:1674
 msgid "Loading history..."
-msgstr "加载历史中..."
+msgstr "正在加载历史记录..."
 
 #: templates/_journal_section.html:1693
 msgid "Details for Session:"
@@ -991,7 +991,7 @@ msgstr "创建此会话的副本"
 
 #: templates/_journal_section.html:1697
 msgid "Duplicate"
-msgstr "复制"
+msgstr "创建副本"
 
 #: templates/_journal_section.html:1699
 msgid "Are you sure you want to delete this session permanently?"
@@ -1015,7 +1015,7 @@ msgstr "校准和结果"
 
 #: templates/_journal_section.html:1711
 msgid "Logs"
-msgstr "日志"
+msgstr "日志文件"
 
 #: templates/_journal_section.html:1713 templates/journal_report.html:6
 #: templates/journal_report.html:679
@@ -1151,11 +1151,11 @@ msgstr "视场："
 
 #: templates/_journal_section.html:1805 templates/_journal_section.html:2367
 msgid "Guiding Equipment:"
-msgstr "导星设备："
+msgstr "导星设备:"
 
 #: templates/_journal_section.html:1806
 msgid "Acquisition Sw:"
-msgstr "采集软件："
+msgstr "采集软件:"
 
 #: templates/_journal_section.html:1807 templates/journal_form.html:114
 msgid "Dither Settings:"
@@ -1280,7 +1280,7 @@ msgstr "对焦运行"
 
 #: templates/_journal_section.html:1928 templates/journal_report.html:999
 msgid "Pixel Scale"
-msgstr "像素比例"
+msgstr "像素比例尺"
 
 #: templates/_journal_section.html:1937 templates/journal_report.html:1064
 msgid "Plate Solve Results"
@@ -1452,7 +1452,7 @@ msgstr "滤镜"
 #: templates/_journal_section.html:2117 templates/journal_report.html:828
 #: templates/project_report.html:828 templates/project_report.html:1199
 msgid "Subs"
-msgstr "帧"
+msgstr "子帧"
 
 #: templates/_journal_section.html:2118 templates/project_report.html:829
 msgid "Per Sub"
@@ -1462,7 +1462,7 @@ msgstr "单张曝光"
 #: templates/journal_report.html:722 templates/project_report.html:830
 #: templates/project_report.html:1132
 msgid "Integration"
-msgstr "积分"
+msgstr "积分时间"
 
 #: templates/_journal_section.html:2140 templates/project_report.html:851
 msgid "Grand Total"
@@ -1474,7 +1474,7 @@ msgstr "目标和状态"
 
 #: templates/_journal_section.html:2156
 msgid "No goals defined."
-msgstr "未定义目标。"
+msgstr "未定义项目目标。"
 
 #: templates/_journal_section.html:2164 templates/_project_subtab.html:166
 msgid "Final Project Image"
@@ -1511,7 +1511,7 @@ msgstr "未记录处理工作流程。"
 
 #: templates/_journal_section.html:2212
 msgid "Editing Project"
-msgstr "编辑项目"
+msgstr "正在编辑项目"
 
 #: templates/_journal_section.html:2214 templates/_project_subtab.html:231
 msgid "Save Project"
@@ -1720,7 +1720,7 @@ msgstr "采集详细信息"
 
 #: templates/_journal_section.html:2372 templates/journal_form.html:118
 msgid "Acquisition Software:"
-msgstr "采集软件："
+msgstr "采集软件:"
 
 #: templates/_journal_section.html:2372
 msgid "e.g., N.I.N.A."
@@ -1925,7 +1925,7 @@ msgstr "请输入滤镜名称。"
 
 #: templates/_journal_section.html:2606
 msgid "Error adding filter."
-msgstr "添加滤镜时出错。"
+msgstr "添加滤镜出错。"
 
 #: templates/_journal_section.html:2607
 #, python-brace-format
@@ -1957,7 +1957,7 @@ msgstr "Ask Nova"
 
 #: templates/_journal_section.html:2614
 msgid "Analyzing your session..."
-msgstr "分析目标中..."
+msgstr "正在分析您的会话..."
 
 #: templates/_journal_section.html:2615
 msgid "Reviewing conditions..."
@@ -1965,7 +1965,7 @@ msgstr "审查条件..."
 
 #: templates/_journal_section.html:2616
 msgid "Checking guiding data..."
-msgstr "更新数据中..."
+msgstr "正在检查导星数据..."
 
 #: templates/_journal_section.html:2617 templates/base.html:288
 #: templates/graph_view.html:489
@@ -1978,7 +1978,7 @@ msgstr "Nova writing…"
 
 #: templates/_journal_section.html:2619
 msgid "words"
-msgstr "密码"
+msgstr "字"
 
 #: templates/_journal_section.html:2620
 msgid "Nova has a summary ready. What would you like to do?"
@@ -1986,7 +1986,7 @@ msgstr "Nova 已准备好摘要。你想怎么做？"
 
 #: templates/_journal_section.html:2621 templates/graph_view.html:492
 msgid "Overwrite"
-msgstr "概览"
+msgstr "覆盖"
 
 #: templates/_journal_section.html:2622 templates/graph_view.html:493
 msgid "Append"
@@ -2141,7 +2141,7 @@ msgstr "取消全选"
 
 #: templates/_objects_section.html:86
 msgid "0 Selected"
-msgstr "已选 0 项"
+msgstr "已选择 0 项"
 
 #: templates/_objects_section.html:89
 msgid "Selection Actions"
@@ -2278,7 +2278,7 @@ msgstr "例如 12.34 或 12:30:00"
 
 #: templates/_objects_section.html:296
 msgid "DEC (Deg)"
-msgstr "DEC（度）"
+msgstr "赤纬 (度)"
 
 #: templates/_objects_section.html:297
 msgid "e.g. +40.85 or 40:51:00"
@@ -2365,11 +2365,11 @@ msgstr "导入"
 
 #: templates/_objects_section.html:434
 msgid "No catalog packs are available on this server yet."
-msgstr "此服务器上尚未有可用的星表包。"
+msgstr "此服务器上暂无可用的目录包。"
 
 #: templates/_objects_section.html:442
 msgid "Potential Duplicates"
-msgstr "可能的重复项"
+msgstr "潜在重复项"
 
 #: templates/_objects_section.html:444
 msgid ""
@@ -2437,7 +2437,7 @@ msgstr "角距离（°）"
 
 #: templates/_opportunities_section.html:43
 msgid "Add to Cal"
-msgstr "添加到日历"
+msgstr "加入日历"
 
 #: templates/_project_subtab.html:145
 msgid ""
@@ -2477,7 +2477,7 @@ msgstr "日期（UTC）"
 #: templates/mobile_base.html:68 templates/mobile_journal_new.html:225
 #: templates/project_report.html:907
 msgid "Location"
-msgstr "位置"
+msgstr "地点"
 
 #: templates/_project_subtab.html:197
 msgid "Integ. Time"
@@ -2642,7 +2642,7 @@ msgstr "次登录"
 
 #: templates/analytics.html:290
 msgid "No login data available yet"
-msgstr "暂无登录数据可用"
+msgstr "暂无登录数据"
 
 #: templates/analytics.html:297
 msgid "Feature Usage"
@@ -2670,11 +2670,11 @@ msgstr "Nova DSO Tracker 分析 — 符合 GDPR，不存储个人身份信息"
 
 #: templates/base.html:109
 msgid "Calculating..."
-msgstr "加载中..."
+msgstr "正在计算..."
 
 #: templates/base.html:110
 msgid "Fetching..."
-msgstr "获取详情中..."
+msgstr "正在获取..."
 
 #: templates/base.html:111 templates/mobile_add_object.html:59
 #: templates/mobile_edit_notes.html:78
@@ -2683,7 +2683,7 @@ msgstr "保存中..."
 
 #: templates/base.html:112
 msgid "Saved"
-msgstr "保存"
+msgstr "已保存"
 
 #: templates/base.html:113
 msgid "Error"
@@ -2691,7 +2691,7 @@ msgstr "错误："
 
 #: templates/base.html:117
 msgid "None"
-msgstr "备注"
+msgstr "无"
 
 #: templates/base.html:118
 msgid "Mode"
@@ -2703,15 +2703,15 @@ msgstr "模拟"
 
 #: templates/base.html:120
 msgid "sep"
-msgstr "步"
+msgstr "角距"
 
 #: templates/base.html:122
 msgid "Importing..."
-msgstr "导入"
+msgstr "正在导入..."
 
 #: templates/base.html:131
 msgid "Name is required"
-msgstr "项目名称为必填项。"
+msgstr "名称为必填项"
 
 #: templates/base.html:132
 msgid "Data Load Failed"
@@ -2719,11 +2719,11 @@ msgstr "数据加载失败"
 
 #: templates/base.html:133
 msgid "No targets found matching your filters."
-msgstr "没有天体匹配您的筛选。"
+msgstr "未找到符合筛选条件的目标。"
 
 #: templates/base.html:134
 msgid "Updating location..."
-msgstr "更新数据中..."
+msgstr "正在更新地点..."
 
 #: templates/base.html:135
 msgid "No imaging opportunities found matching the criteria."
@@ -2735,19 +2735,19 @@ msgstr "等待后台任务..."
 
 #: templates/base.html:137
 msgid "No data available or error. Check server logs."
-msgstr "此服务器上尚未有可用的星表包。"
+msgstr "无可用数据或发生错误。请查看服务器日志。"
 
 #: templates/base.html:138
 msgid "Error fetching data. Check console for details."
-msgstr "渲染网格时出错。检查控制台。"
+msgstr "获取数据出错。详情请查看控制台。"
 
 #: templates/base.html:139
 msgid "Loading altitude data..."
-msgstr "加载历史中..."
+msgstr "正在加载高度数据..."
 
 #: templates/base.html:140
 msgid "Altitude data unavailable."
-msgstr "图像不可用"
+msgstr "高度数据不可用。"
 
 #: templates/base.html:141
 msgid "Above the horizon, but blocked by a mapped obstruction in this direction."
@@ -2765,11 +2765,11 @@ msgstr "高于您的高度阈值且无遮挡。"
 
 #: templates/base.html:144
 msgid "Select a saved view..."
-msgstr "删除选中的视图"
+msgstr "选择已保存的视图..."
 
 #: templates/base.html:145
 msgid "Error loading views"
-msgstr "加载数据时出错。"
+msgstr "加载视图出错"
 
 #: templates/base.html:146 templates/index.html:67
 msgid "Update in"
@@ -2777,15 +2777,15 @@ msgstr "更新倒计时"
 
 #: templates/base.html:147
 msgid "Latest version"
-msgstr "版本"
+msgstr "最新版本"
 
 #: templates/base.html:150
 msgid "Select Telescope"
-msgstr "-- 选择望远镜 --"
+msgstr "选择望远镜"
 
 #: templates/base.html:151
 msgid "Select Camera"
-msgstr "-- 选择相机 --"
+msgstr "选择相机"
 
 #: templates/base.html:152 templates/config_form.html:673
 #: templates/project_report.html:1174
@@ -2803,31 +2803,31 @@ msgstr "减焦镜 / 增距镜"
 
 #: templates/base.html:156
 msgid "Oversampled"
-msgstr "已完成"
+msgstr "过采样"
 
 #: templates/base.html:157
 msgid "Well sampled"
-msgstr "像素比例"
+msgstr "采样良好"
 
 #: templates/base.html:158
 msgid "Undersampled"
-msgstr "用户名"
+msgstr "欠采样"
 
 #: templates/base.html:159
 msgid "No telescopes defined."
-msgstr "未定义目标。"
+msgstr "未定义望远镜。"
 
 #: templates/base.html:160
 msgid "No cameras defined."
-msgstr "未定义目标。"
+msgstr "未定义相机。"
 
 #: templates/base.html:161
 msgid "Error loading shared items."
-msgstr "加载数据时出错。"
+msgstr "加载共享项目出错。"
 
 #: templates/base.html:162
 msgid "Import failed. See console for details."
-msgstr "导入失败。请查看服务器日志以了解详细信息。"
+msgstr "导入失败。详情请查看控制台。"
 
 #: templates/base.html:163
 msgid "Upload failed. See console."
@@ -2835,7 +2835,7 @@ msgstr "上传失败。请参见控制台。"
 
 #: templates/base.html:164
 msgid "Network error saving object."
-msgstr "网络错误。"
+msgstr "保存天体时出现网络错误。"
 
 #: templates/base.html:165
 msgid "Image upload failed: Network error."
@@ -2847,7 +2847,7 @@ msgstr "错误：找不到地平线掩码字段。"
 
 #: templates/base.html:167
 msgid "Error reading file. Please try again."
-msgstr "添加滤镜时出错。"
+msgstr "读取文件出错。请重试。"
 
 #: templates/base.html:168
 msgid "No valid horizon data found."
@@ -2855,11 +2855,11 @@ msgstr "未找到有效的地平线数据。"
 
 #: templates/base.html:169
 msgid "Shared Notes for"
-msgstr "共享备注"
+msgstr "共享备注:"
 
 #: templates/base.html:172
 msgid "No objects selected."
-msgstr "未指定对象。"
+msgstr "未选择天体。"
 
 #: templates/base.html:173
 msgid "Bulk action failed."
@@ -2867,11 +2867,11 @@ msgstr "批量操作失败。"
 
 #: templates/base.html:174
 msgid "Bulk fetch details failed."
-msgstr "获取详情"
+msgstr "批量获取详情失败。"
 
 #: templates/base.html:175
 msgid "No potential duplicates found."
-msgstr "可能的重复项"
+msgstr "未发现潜在重复项。"
 
 #: templates/base.html:176
 msgid "Keep A, merge B into A"
@@ -2887,27 +2887,27 @@ msgstr "忽略，两者都保留"
 
 #: templates/base.html:179
 msgid "Error scanning duplicates."
-msgstr "加载数据时出错。"
+msgstr "扫描重复项出错。"
 
 #: templates/base.html:180
 msgid "Confirm merge?"
-msgstr "确认添加"
+msgstr "确认合并？"
 
 #: templates/base.html:181
 msgid "All duplicates resolved."
-msgstr "板星求解"
+msgstr "所有重复项已解决。"
 
 #: templates/base.html:182
 msgid "Please enter an object identifier."
-msgstr "请登录以查看对象详细信息。"
+msgstr "请输入天体标识符。"
 
 #: templates/base.html:183
 msgid "Checking your local library..."
-msgstr "查看当地图书馆..."
+msgstr "正在检查您的本地库..."
 
 #: templates/base.html:184
 msgid "Object found in your library."
-msgstr "未找到对象数据或数据无效。"
+msgstr "已在您的库中找到该天体。"
 
 #: templates/base.html:185
 #, python-format
@@ -2916,15 +2916,15 @@ msgstr "找到：%(name)s。从 SIMBAD 加载的详细信息。"
 
 #: templates/base.html:186
 msgid "SIMBAD lookup failed."
-msgstr "剪贴板复制失败。"
+msgstr "SIMBAD 查询失败。"
 
 #: templates/base.html:187
 msgid "selected"
-msgstr "已选 0 项"
+msgstr "项已选择"
 
 #: templates/base.html:188 templates/mobile_object_detail.html:589
 msgid "No imaging opportunities found."
-msgstr "成像机会"
+msgstr "未找到成像机会。"
 
 #: templates/base.html:191
 msgid "Report frame not found."
@@ -2941,11 +2941,11 @@ msgstr "合并会话 %(current)d/%(total)d...%(total)d%(current)d"
 
 #: templates/base.html:195
 msgid "Add Session"
-msgstr "添加新会话"
+msgstr "添加会话"
 
 #: templates/base.html:196
 msgid "Editing Session"
-msgstr "编辑会话"
+msgstr "正在编辑会话"
 
 #: templates/base.html:197
 msgid "Save Changes"
@@ -2994,11 +2994,11 @@ msgstr "框架设置保存到数据库。"
 
 #: templates/base.html:209
 msgid "Error saving"
-msgstr "加载数据时出错。"
+msgstr "保存出错"
 
 #: templates/base.html:210
 msgid "Please select a rig first."
-msgstr "请选择有效的.zip文件进行导入。"
+msgstr "请先选择设备。"
 
 #: templates/base.html:211
 msgid "Failed to copy to clipboard. See console."
@@ -3006,15 +3006,15 @@ msgstr "复制到剪贴板失败。参见控制台。"
 
 #: templates/base.html:212
 msgid "Open Saved Framing"
-msgstr "保存构图"
+msgstr "打开已保存的构图"
 
 #: templates/base.html:213
 msgid "Delete Saved Framing"
-msgstr "保存构图"
+msgstr "删除已保存的构图"
 
 #: templates/base.html:214
 msgid "Image upload failed. See console for details."
-msgstr "导入失败。请查看服务器日志以了解详细信息。"
+msgstr "图片上传失败。详情请查看控制台。"
 
 #: templates/base.html:217
 msgid "No timeline data to display."
@@ -3022,19 +3022,19 @@ msgstr "无时间轴数据显示。"
 
 #: templates/base.html:218
 msgid "No PHD2 guide log data available."
-msgstr "暂无登录数据可用"
+msgstr "没有可用的 PHD2 导星日志数据。"
 
 #: templates/base.html:219
 msgid "Full"
-msgstr "全部"
+msgstr "全图"
 
 #: templates/base.html:221
 msgid "No dither data available."
-msgstr "暂无登录数据可用"
+msgstr "没有可用的抖动数据。"
 
 #: templates/base.html:222
 msgid "No autofocus data available."
-msgstr "暂无登录数据可用"
+msgstr "没有可用的自动对焦数据。"
 
 #: templates/base.html:225
 #, python-format
@@ -3043,7 +3043,7 @@ msgstr "已计算 %%(total)d 个天体中的 %(current)d 个..."
 
 #: templates/base.html:226
 msgid "No projects found. Adjust filters or add projects."
-msgstr "未找到天体。尝试添加一个！"
+msgstr "未找到项目。请调整筛选条件或添加项目。"
 
 #: templates/base.html:227
 msgid "Plotly library not loaded. Please refresh."
@@ -3051,7 +3051,7 @@ msgstr "Plotly 库未加载。请刷新。"
 
 #: templates/base.html:230
 msgid "Loading help content..."
-msgstr "加载历史中..."
+msgstr "正在加载帮助内容..."
 
 #: templates/base.html:231
 msgid "Error: Help content returned empty."
@@ -3064,12 +3064,12 @@ msgstr "网络错误：无法加载帮助主题。"
 #: templates/base.html:234
 #, python-format
 msgid "%(count)d object to review"
-msgstr "%(count)d 个待审核对象"
+msgstr "%(count)d 个天体待审核"
 
 #: templates/base.html:235
 #, python-format
 msgid "%(count)d objects to review"
-msgstr "%(count)d 个待审核对象"
+msgstr "%(count)d 个天体待审核"
 
 #: templates/base.html:238
 msgid "From pack: PACKNAME"
@@ -3134,7 +3134,7 @@ msgstr "您确定要%(action)s %(count)d 个对象吗？"
 #: templates/base.html:255
 #, python-format
 msgid "Fetching details for %(name)s..."
-msgstr "正在搜索 %%(name)s..."
+msgstr "正在获取 %(name)s 的详情..."
 
 #: templates/base.html:258
 #, python-format
@@ -3173,19 +3173,19 @@ msgstr "良好的抽样"
 
 #: templates/base.html:264
 msgid "Image Scale"
-msgstr "像素比例"
+msgstr "图像比例尺"
 
 #: templates/base.html:265
 msgid "No reducers defined."
-msgstr "未定义目标。"
+msgstr "未定义减焦镜。"
 
 #: templates/base.html:266
 msgid "Slightly oversampled"
-msgstr "已完成"
+msgstr "轻微过采样"
 
 #: templates/base.html:267
 msgid "Slightly undersampled"
-msgstr "用户名"
+msgstr "轻微欠采样"
 
 #: templates/base.html:270
 msgid "Add Your Own Inspiration!"
@@ -3242,15 +3242,15 @@ msgstr "询问Nova时出错。请再试一次。"
 
 #: templates/base.html:285
 msgid "Consulting star charts..."
-msgstr "查阅星图..."
+msgstr "正在查阅星图..."
 
 #: templates/base.html:286 templates/graph_view.html:486
 msgid "Checking your rigs..."
-msgstr "查看当地图书馆..."
+msgstr "正在检查您的设备..."
 
 #: templates/base.html:287
 msgid "Scanning cosmos..."
-msgstr "扫描天空中..."
+msgstr "正在扫描宇宙..."
 
 #: templates/base.html:289
 msgid "Recommended Rig"
@@ -3422,7 +3422,7 @@ msgstr "常规"
 
 #: templates/config_form.html:62
 msgid "Locations"
-msgstr "位置"
+msgstr "地点"
 
 #: templates/config_form.html:64 templates/config_form.html:76
 #: templates/config_form.html:93
@@ -4037,7 +4037,7 @@ msgstr "减焦镜/增距镜"
 
 #: templates/config_form.html:707
 msgid "Fetching Details..."
-msgstr "获取详情中..."
+msgstr "正在获取详情..."
 
 #: templates/config_form.html:711
 msgid "Please wait, communicating with SIMBAD..."
@@ -4394,7 +4394,7 @@ msgstr ""
 
 #: templates/graph_view.html:421
 msgid "steps"
-msgstr "步"
+msgstr "步长"
 
 #: templates/graph_view.html:484
 msgid "Ask Nova for observing notes"
@@ -4402,11 +4402,11 @@ msgstr ""
 
 #: templates/graph_view.html:485
 msgid "Consulting the star charts..."
-msgstr "查阅星图..."
+msgstr "正在查阅星图..."
 
 #: templates/graph_view.html:487
 msgid "Scanning the cosmos..."
-msgstr "扫描天空中..."
+msgstr "正在扫描宇宙..."
 
 #: templates/graph_view.html:488
 msgid "Calculating from"
@@ -4515,7 +4515,7 @@ msgstr "保存当前筛选和排序"
 
 #: templates/index.html:107
 msgid "Delete selected view"
-msgstr "删除选中的视图"
+msgstr "删除所选视图"
 
 #: templates/index.html:120
 msgid "Ask Nova to rank and recommend best objects"
@@ -4725,7 +4725,7 @@ msgstr "你的观测和项目图片将显示在这里。"
 
 #: templates/index.html:275
 msgid "Updating data..."
-msgstr "更新数据中..."
+msgstr "正在更新数据..."
 
 #: templates/index.html:290
 msgid "Graph"
@@ -4912,7 +4912,7 @@ msgstr "获取软件："
 
 #: templates/journal_report.html:794
 msgid "Guiding Equip.:"
-msgstr "导星设备："
+msgstr "导星设备:"
 
 #: templates/journal_report.html:798
 msgid "Dither Details:"
@@ -5011,12 +5011,12 @@ msgstr "ASIAIR 会话摘要"
 
 #: templates/journal_report.html:1045
 msgid "Plate Solves"
-msgstr "板星求解"
+msgstr "星图解析"
 
 #: templates/journal_report.html:1051 templates/journal_report.html:1093
 #: templates/project_report.html:1045
 msgid "AutoFocus Runs"
-msgstr "自动对焦运行"
+msgstr "自动对焦运行记录"
 
 #: templates/journal_report.html:1097 templates/project_report.html:1049
 msgid "Run"
@@ -5116,7 +5116,7 @@ msgstr "RA（小时）"
 
 #: templates/mobile_add_object.html:31
 msgid "DEC (degrees)"
-msgstr "DEC（度）"
+msgstr "赤纬 (度)"
 
 #: templates/mobile_add_object.html:36
 msgid "Project Notes"
@@ -5289,7 +5289,7 @@ msgstr "复制到剪贴板"
 
 #: templates/mobile_mosaic_copy.html:42
 msgid "Clipboard copy failed."
-msgstr "剪贴板复制失败。"
+msgstr "复制到剪贴板失败。"
 
 #: templates/mobile_object_detail.html:508
 msgid "Obs"
@@ -5321,7 +5321,7 @@ msgstr "最大高度："
 
 #: templates/mobile_object_detail.html:593 templates/mobile_outlook.html:186
 msgid "Duration:"
-msgstr "持续时间："
+msgstr "时长:"
 
 #: templates/mobile_object_detail.html:594 templates/mobile_outlook.html:187
 msgid "Moon:"
@@ -5349,7 +5349,7 @@ msgstr "未为您的已置顶天体找到成像机会。"
 
 #: templates/mobile_up_now.html:874
 msgid "Scanning Sky..."
-msgstr "扫描天空中..."
+msgstr "正在扫描天空..."
 
 #: templates/mobile_up_now.html:884
 msgid "Search objects..."
@@ -5365,7 +5365,7 @@ msgstr "排序"
 
 #: templates/mobile_up_now.html:907
 msgid "No objects match your filters"
-msgstr "没有天体匹配您的筛选。"
+msgstr "没有符合筛选条件的天体"
 
 #: templates/mobile_up_now.html:923
 msgid "Reset"
@@ -5389,7 +5389,7 @@ msgstr "申请"
 
 #: templates/mobile_up_now.html:1000
 msgid "No objects found. Try adding one!"
-msgstr "未找到天体。尝试添加一个！"
+msgstr "未找到天体。试着添加一个吧！"
 
 #: templates/mobile_up_now.html:1001
 msgid "No objects match your search."
@@ -5397,7 +5397,7 @@ msgstr "没有天体匹配您的搜索。"
 
 #: templates/mobile_up_now.html:1002
 msgid "No objects match your filter."
-msgstr "没有天体匹配您的筛选。"
+msgstr "没有符合筛选条件的天体。"
 
 #: templates/mobile_up_now.html:1003
 #, python-format
@@ -5406,7 +5406,7 @@ msgstr "已计算 %%(total)d 个天体中的 %(count)d 个..."
 
 #: templates/mobile_up_now.html:1004
 msgid "Error loading data."
-msgstr "加载数据时出错。"
+msgstr "加载数据出错。"
 
 #: templates/project_report.html:799
 msgid "Target:"
@@ -5510,7 +5510,7 @@ msgstr "统计"
 
 #: templates/project_report.html:1162
 msgid "Equipment"
-msgstr "设备"
+msgstr "器材"
 
 #: templates/project_report.html:1184
 msgid "Gain/Offset"

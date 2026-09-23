@@ -415,7 +415,7 @@ msgstr "No se puede editar la sesión: falta el nombre del objeto asociado."
 
 #: nova/blueprints/journal.py:846
 msgid "Project name is required."
-msgstr "Se requiere el nombre del proyecto."
+msgstr "El nombre del proyecto es obligatorio."
 
 #: nova/blueprints/journal.py:852
 #, python-format
@@ -734,7 +734,9 @@ msgstr "¡Importación completada con éxito!"
 
 #: nova/blueprints/tools.py:1401
 msgid "Import failed. See server logs for details."
-msgstr "Error al importar. Vea los registros del servidor para más detalles."
+msgstr ""
+"La importación falló. Consulte los registros del servidor para más "
+"detalles."
 
 #: nova/blueprints/tools.py:1404
 msgid "Import crashed. Check logs."
@@ -883,7 +885,7 @@ msgstr "Altitud:"
 
 #: templates/_inspiration_section.html:539
 msgid "Dur:"
-msgstr "Duración:"
+msgstr "Dur.:"
 
 #: templates/_inspiration_section.html:540
 msgid "hrs"
@@ -1197,7 +1199,7 @@ msgstr "Equipo de guiado:"
 
 #: templates/_journal_section.html:1806
 msgid "Acquisition Sw:"
-msgstr "Software de adquisición:"
+msgstr "Software de adq.:"
 
 #: templates/_journal_section.html:1807 templates/journal_form.html:114
 msgid "Dither Settings:"
@@ -2013,7 +2015,7 @@ msgstr "Revisando las condiciones..."
 
 #: templates/_journal_section.html:2616
 msgid "Checking guiding data..."
-msgstr "Actualizando datos..."
+msgstr "Comprobando datos de guiado..."
 
 #: templates/_journal_section.html:2617 templates/base.html:288
 #: templates/graph_view.html:489
@@ -2205,7 +2207,7 @@ msgstr "Deshabilitar"
 
 #: templates/_objects_section.html:92
 msgid "Fetch Details"
-msgstr "Recuperar detalles"
+msgstr "Obtener detalles"
 
 #: templates/_objects_section.html:113 templates/_objects_section.html:171
 msgid "Disabled"
@@ -2421,7 +2423,7 @@ msgstr "No hay paquetes de catálogo disponibles en este servidor todavía."
 
 #: templates/_objects_section.html:442
 msgid "Potential Duplicates"
-msgstr "Duplicados potenciales"
+msgstr "Posibles duplicados"
 
 #: templates/_objects_section.html:444
 msgid ""
@@ -2497,7 +2499,7 @@ msgstr "Sep angular (°)"
 
 #: templates/_opportunities_section.html:43
 msgid "Add to Cal"
-msgstr "Añadir al calendario"
+msgstr "Añadir al cal."
 
 #: templates/_project_subtab.html:145
 msgid ""
@@ -2737,11 +2739,11 @@ msgstr ""
 
 #: templates/base.html:109
 msgid "Calculating..."
-msgstr "Cargando..."
+msgstr "Calculando..."
 
 #: templates/base.html:110
 msgid "Fetching..."
-msgstr "Obteniendo detalles..."
+msgstr "Obteniendo..."
 
 #: templates/base.html:111 templates/mobile_add_object.html:59
 #: templates/mobile_edit_notes.html:78
@@ -2750,7 +2752,7 @@ msgstr "Guardando..."
 
 #: templates/base.html:112
 msgid "Saved"
-msgstr "Guardar"
+msgstr "Guardado"
 
 #: templates/base.html:113
 msgid "Error"
@@ -2774,11 +2776,11 @@ msgstr "sep"
 
 #: templates/base.html:122
 msgid "Importing..."
-msgstr "Importar"
+msgstr "Importando..."
 
 #: templates/base.html:131
 msgid "Name is required"
-msgstr "Se requiere el nombre del proyecto."
+msgstr "El nombre es obligatorio"
 
 #: templates/base.html:132
 msgid "Data Load Failed"
@@ -2786,15 +2788,15 @@ msgstr "Error en la carga de datos"
 
 #: templates/base.html:133
 msgid "No targets found matching your filters."
-msgstr "Ningún objeto coincide con su filtro."
+msgstr "No se encontraron objetivos que coincidan con sus filtros."
 
 #: templates/base.html:134
 msgid "Updating location..."
-msgstr "Actualizando datos..."
+msgstr "Actualizando ubicación..."
 
 #: templates/base.html:135
 msgid "No imaging opportunities found matching the criteria."
-msgstr "No se encontraron oportunidades de imágenes para sus proyectos activos."
+msgstr "No se encontraron oportunidades de imagen que coincidan con los criterios."
 
 #: templates/base.html:136
 msgid "Waiting for background task..."
@@ -2842,7 +2844,7 @@ msgstr "Seleccionar una vista guardada..."
 
 #: templates/base.html:145
 msgid "Error loading views"
-msgstr "Error al cargar datos."
+msgstr "Error al cargar las vistas"
 
 #: templates/base.html:146 templates/index.html:67
 msgid "Update in"
@@ -2850,15 +2852,15 @@ msgstr "Actualizar en"
 
 #: templates/base.html:147
 msgid "Latest version"
-msgstr "Versión"
+msgstr "Última versión"
 
 #: templates/base.html:150
 msgid "Select Telescope"
-msgstr "-- Seleccionar un telescopio --"
+msgstr "Seleccionar telescopio"
 
 #: templates/base.html:151
 msgid "Select Camera"
-msgstr "-- Seleccionar una cámara --"
+msgstr "Seleccionar cámara"
 
 #: templates/base.html:152 templates/config_form.html:673
 #: templates/project_report.html:1174
@@ -2872,7 +2874,7 @@ msgstr "Cámara"
 
 #: templates/base.html:154
 msgid "Reducer / Extender"
-msgstr "Reductores / Extensores"
+msgstr "Reductor / Extensor"
 
 #: templates/base.html:156
 msgid "Oversampled"
@@ -2896,11 +2898,11 @@ msgstr "No hay cámaras definidas."
 
 #: templates/base.html:161
 msgid "Error loading shared items."
-msgstr "Error al cargar datos."
+msgstr "Error al cargar los elementos compartidos."
 
 #: templates/base.html:162
 msgid "Import failed. See console for details."
-msgstr "Error al importar. Vea los registros del servidor para más detalles."
+msgstr "La importación falló. Consulte la consola para más detalles."
 
 #: templates/base.html:163
 msgid "Upload failed. See console."
@@ -2908,7 +2910,7 @@ msgstr "Carga fallida. Ver consola."
 
 #: templates/base.html:164
 msgid "Network error saving object."
-msgstr "Error de red."
+msgstr "Error de red al guardar el objeto."
 
 #: templates/base.html:165
 msgid "Image upload failed: Network error."
@@ -2928,11 +2930,11 @@ msgstr "No se han encontrado datos de horizonte válidos."
 
 #: templates/base.html:169
 msgid "Shared Notes for"
-msgstr "Notas compartidas"
+msgstr "Notas compartidas de"
 
 #: templates/base.html:172
 msgid "No objects selected."
-msgstr "No se especificó ningún objeto."
+msgstr "No hay objetos seleccionados."
 
 #: templates/base.html:173
 msgid "Bulk action failed."
@@ -2940,11 +2942,11 @@ msgstr "Acción masiva fallida."
 
 #: templates/base.html:174
 msgid "Bulk fetch details failed."
-msgstr "Recuperar detalles"
+msgstr "Falló la obtención masiva de detalles."
 
 #: templates/base.html:175
 msgid "No potential duplicates found."
-msgstr "Duplicados potenciales"
+msgstr "No se encontraron posibles duplicados."
 
 #: templates/base.html:176
 msgid "Keep A, merge B into A"
@@ -2960,7 +2962,7 @@ msgstr "Ignorar, conservar ambos"
 
 #: templates/base.html:179
 msgid "Error scanning duplicates."
-msgstr "Error al cargar datos."
+msgstr "Error al buscar duplicados."
 
 #: templates/base.html:180
 msgid "Confirm merge?"
@@ -2968,7 +2970,7 @@ msgstr "¿Confirmar fusión?"
 
 #: templates/base.html:181
 msgid "All duplicates resolved."
-msgstr "Soluciones de placa"
+msgstr "Todos los duplicados se resolvieron."
 
 #: templates/base.html:182
 msgid "Please enter an object identifier."
@@ -2980,7 +2982,7 @@ msgstr "Busca en tu biblioteca local..."
 
 #: templates/base.html:184
 msgid "Object found in your library."
-msgstr "Datos del objeto no encontrados o no válidos."
+msgstr "Objeto encontrado en su biblioteca."
 
 #: templates/base.html:185
 #, python-format
@@ -2997,7 +2999,7 @@ msgstr "seleccionados"
 
 #: templates/base.html:188 templates/mobile_object_detail.html:589
 msgid "No imaging opportunities found."
-msgstr "Oportunidades de imagen"
+msgstr "No se encontraron oportunidades de imagen."
 
 #: templates/base.html:191
 msgid "Report frame not found."
@@ -3014,11 +3016,11 @@ msgstr "Fusionando Sesión %(current)d/%(total)d..."
 
 #: templates/base.html:195
 msgid "Add Session"
-msgstr "Añadir nueva sesión"
+msgstr "Añadir sesión"
 
 #: templates/base.html:196
 msgid "Editing Session"
-msgstr "Editar sesión"
+msgstr "Editando sesión"
 
 #: templates/base.html:197
 msgid "Save Changes"
@@ -3091,7 +3093,7 @@ msgstr "Eliminar encuadre guardado"
 
 #: templates/base.html:214
 msgid "Image upload failed. See console for details."
-msgstr "Error al importar. Vea los registros del servidor para más detalles."
+msgstr "Error al subir la imagen. Consulte la consola para más detalles."
 
 #: templates/base.html:217
 msgid "No timeline data to display."
@@ -3251,7 +3253,7 @@ msgstr "Buen muestreo"
 
 #: templates/base.html:264
 msgid "Image Scale"
-msgstr "Escala de píxel"
+msgstr "Escala de imagen"
 
 #: templates/base.html:265
 msgid "No reducers defined."
@@ -3325,7 +3327,7 @@ msgstr "Error al preguntar a Nova. Por favor, inténtalo de nuevo."
 
 #: templates/base.html:285
 msgid "Consulting star charts..."
-msgstr "Consultando las cartas astrales..."
+msgstr "Consultando cartas estelares..."
 
 #: templates/base.html:286 templates/graph_view.html:486
 msgid "Checking your rigs..."
@@ -3333,7 +3335,7 @@ msgstr "Busca en tus rigs..."
 
 #: templates/base.html:287
 msgid "Scanning cosmos..."
-msgstr "Escaneando el cielo..."
+msgstr "Explorando el cosmos..."
 
 #: templates/base.html:289
 msgid "Recommended Rig"
@@ -3949,11 +3951,11 @@ msgstr "p. ej., Rig C11 Cielo Profundo"
 
 #: templates/config_form.html:512
 msgid "-- Select a Telescope --"
-msgstr "-- Seleccionar un telescopio --"
+msgstr "-- Seleccione un telescopio --"
 
 #: templates/config_form.html:518
 msgid "-- Select a Camera --"
-msgstr "-- Seleccionar una cámara --"
+msgstr "-- Seleccione una cámara --"
 
 #: templates/config_form.html:522
 msgid "Reducer / Extender (Optional):"
@@ -4499,7 +4501,7 @@ msgstr ""
 
 #: templates/graph_view.html:413
 msgid "Recenter to object"
-msgstr "Recentrar al objeto"
+msgstr "Recentrar en el objeto"
 
 #: templates/graph_view.html:415
 msgid "Nudge Up"
@@ -4527,11 +4529,11 @@ msgstr ""
 
 #: templates/graph_view.html:485
 msgid "Consulting the star charts..."
-msgstr "Consultando las cartas astrales..."
+msgstr "Consultando las cartas estelares..."
 
 #: templates/graph_view.html:487
 msgid "Scanning the cosmos..."
-msgstr "Escaneando el cielo..."
+msgstr "Explorando el cosmos..."
 
 #: templates/graph_view.html:488
 msgid "Calculating from"
@@ -4882,7 +4884,7 @@ msgstr "Información principal"
 
 #: templates/journal_form.html:28
 msgid "Target Object:"
-msgstr "Objetivo:"
+msgstr "Objeto objetivo:"
 
 #: templates/journal_form.html:30
 msgid "Select Target (Optional)"
@@ -5036,7 +5038,7 @@ msgstr "Configuración:"
 
 #: templates/journal_report.html:790
 msgid "Acquisition SW:"
-msgstr "Software de adquisición:"
+msgstr "Software de adq.:"
 
 #: templates/journal_report.html:794
 msgid "Guiding Equip.:"
@@ -5139,7 +5141,7 @@ msgstr "Resumen de sesión de ASIAIR"
 
 #: templates/journal_report.html:1045
 msgid "Plate Solves"
-msgstr "Soluciones de placa"
+msgstr "Resoluciones astrométricas"
 
 #: templates/journal_report.html:1051 templates/journal_report.html:1093
 #: templates/project_report.html:1045
@@ -5323,7 +5325,7 @@ msgstr "Volver"
 #: templates/mobile_framing_coords.html:46
 #: templates/mobile_framing_coords.html:56
 msgid "Copy CSV"
-msgstr "Copiar plan (CSV)"
+msgstr "Copiar CSV"
 
 #: templates/mobile_framing_coords.html:35
 msgid "View full mosaic plan"
@@ -5479,7 +5481,7 @@ msgstr "No se encontraron oportunidades de imágenes para tus objetos fijados."
 
 #: templates/mobile_up_now.html:874
 msgid "Scanning Sky..."
-msgstr "Escaneando el cielo..."
+msgstr "Explorando el cielo..."
 
 #: templates/mobile_up_now.html:884
 msgid "Search objects..."
@@ -5536,7 +5538,7 @@ msgstr "Calculados %%(count)d de %%(total)d objetos..."
 
 #: templates/mobile_up_now.html:1004
 msgid "Error loading data."
-msgstr "Error al cargar datos."
+msgstr "Error al cargar los datos."
 
 #: templates/project_report.html:799
 msgid "Target:"
@@ -5604,7 +5606,7 @@ msgstr "Pulso de guiado"
 
 #: templates/project_report.html:1051
 msgid "Focus Pos"
-msgstr "Posición de enfoque"
+msgstr "Pos. de enfoque"
 
 #: templates/project_report.html:1052 templates/project_report.html:1188
 msgid "Temp"
