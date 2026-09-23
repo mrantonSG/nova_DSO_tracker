@@ -3012,8 +3012,8 @@
                 const projectId = this.getAttribute('data-project-id');
 
                 if (isStub) {
-                    if (projectId) {
-                        window.location.href = `/project/report_page/${encodeURIComponent(projectId)}`;
+                    if (targetId) {
+                        window.location.href = `/graph_dashboard/${encodeURIComponent(targetId)}?tab=journal&project_id=${encodeURIComponent(projectId)}`;
                     }
                     return;
                 }
