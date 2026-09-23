@@ -3439,7 +3439,7 @@ def get_desktop_data_batch():
         else:
             local_date = current_datetime_local.strftime('%Y-%m-%d')
 
-        sampling_interval = 15 if nova.SINGLE_USER_MODE else int(os.environ.get('CALCULATION_PRECISION', 15))
+        sampling_interval = (g.user_config.get('sampling_interval_minutes') or 15) if nova.SINGLE_USER_MODE else int(os.environ.get('CALCULATION_PRECISION', 15))
         fixed_time_utc_str = get_utc_time_for_local_11pm(tz_name)
 
         # Moon / Ephem Prep
