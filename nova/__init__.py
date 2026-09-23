@@ -2036,7 +2036,9 @@ def warm_main_cache(username, location_name, user_config, sampling_interval):
         local_date = observing_date_for_calcs.strftime('%Y-%m-%d')
         lat = float(user_config["locations"][location_name]["lat"])
         lon = float(user_config["locations"][location_name]["lon"])
-        altitude_threshold = user_config.get("altitude_threshold", 20)
+        loc_threshold = user_config["locations"][location_name].get("altitude_threshold")
+        altitude_threshold = loc_threshold if loc_threshold is not None else user_config.get(
+            "altitude_threshold", 20)
         try:
             horizon_mask = user_config.get("locations", {}).get(location_name, {}).get("horizon_mask")
         except Exception:
@@ -2217,7 +2219,9 @@ def warm_main_cache(username, location_name, user_config, sampling_interval):
         local_date = observing_date_for_calcs.strftime('%Y-%m-%d')
         lat = float(user_config["locations"][location_name]["lat"])
         lon = float(user_config["locations"][location_name]["lon"])
-        altitude_threshold = user_config.get("altitude_threshold", 20)
+        loc_threshold = user_config["locations"][location_name].get("altitude_threshold")
+        altitude_threshold = loc_threshold if loc_threshold is not None else user_config.get(
+            "altitude_threshold", 20)
         try:
             horizon_mask = user_config.get("locations", {}).get(location_name, {}).get("horizon_mask")
         except Exception:
