@@ -1598,6 +1598,11 @@ msgstr "Projektname:"
 msgid "Status:"
 msgstr "Status:"
 
+#: templates/_journal_section.html:2223 templates/_journal_section.html:2293
+#: templates/base.html:128
+msgid "In Planning"
+msgstr "In Planung"
+
 #: templates/_journal_section.html:2221 templates/_journal_section.html:2291
 #: templates/base.html:124
 msgid "In Progress"
@@ -1954,6 +1959,10 @@ msgstr "Neueste"
 #: templates/_journal_section.html:2546
 msgid "Most Hours"
 msgstr "Meiste Stunden"
+
+#: templates/_journal_section.html:2550
+msgid "Filter by status"
+msgstr "Nach Status filtern"
 
 #: templates/_journal_section.html:2548
 msgid "In Progress only"

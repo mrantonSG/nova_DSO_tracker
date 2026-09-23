@@ -1543,6 +1543,11 @@ msgstr "项目名称："
 msgid "Status:"
 msgstr "状态："
 
+#: templates/_journal_section.html:2223 templates/_journal_section.html:2293
+#: templates/base.html:128
+msgid "In Planning"
+msgstr "计划中"
+
 #: templates/_journal_section.html:2221 templates/_journal_section.html:2291
 #: templates/base.html:124
 msgid "In Progress"
@@ -1897,6 +1902,10 @@ msgstr "最近"
 #: templates/_journal_section.html:2546
 msgid "Most Hours"
 msgstr "最多时长"
+
+#: templates/_journal_section.html:2550
+msgid "Filter by status"
+msgstr "筛选状态"
 
 #: templates/_journal_section.html:2548
 msgid "In Progress only"
