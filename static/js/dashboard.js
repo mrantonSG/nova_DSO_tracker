@@ -213,7 +213,8 @@
                         'In Progress': 'status_in_progress',
                         'Completed': 'status_completed',
                         'On Hold': 'status_on_hold',
-                        'Abandoned': 'status_abandoned'
+                        'Abandoned': 'status_abandoned',
+                        'In Planning': 'status_in_planning'
                     };
                     return statusMap[val] ? window.t(statusMap[val]) : String(val);
                 },
