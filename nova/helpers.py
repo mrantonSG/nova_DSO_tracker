@@ -107,7 +107,7 @@ def bust_nightly_curves_cache(username: str) -> None:
     """Invalidate all nightly curves cache entries for a user
     after any Location write (horizon mask or coordinates may
     have changed)."""
-    keys_to_remove = [k for k in nightly_curves_cache
+    keys_to_remove = [k for k in list(nightly_curves_cache.keys())
                       if k.startswith(f"{username}_")]
     for k in keys_to_remove:
         nightly_curves_cache.pop(k, None)
