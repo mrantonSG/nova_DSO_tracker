@@ -3148,7 +3148,7 @@ msgstr "Aucune donnée d'autofocus disponible."
 #: templates/base.html:225
 #, python-format
 msgid "Calculating month %(current)d of %(total)d..."
-msgstr "Calculé %(current)d sur %(total)d objets..."
+msgstr "Calcul du mois %(current)d sur %(total)d..."
 
 #: templates/base.html:226
 msgid "No projects found. Adjust filters or add projects."
@@ -3233,7 +3233,7 @@ msgstr "Affichage de %(count)d objets"
 #: templates/base.html:253
 #, python-format
 msgid "Showing %(shown)d of %(total)d objects"
-msgstr "Calculé %(shown)d sur %(total)d objets..."
+msgstr "Affichage de %(shown)d objets sur %(total)d"
 
 #: templates/base.html:254
 #, python-format
