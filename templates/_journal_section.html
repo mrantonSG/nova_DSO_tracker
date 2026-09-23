@@ -1327,7 +1327,8 @@
     }
 
     /* Sort select */
-    #jss-sort {
+    #jss-sort,
+    #jss-status-filter {
       flex-shrink: 0;
       border: 1px solid var(--border-color, #d0cdc8);
       border-radius: 6px;
@@ -1345,7 +1346,8 @@
       background-size: 10px 6px;
     }
 
-    [data-theme="dark"] #jss-sort {
+    [data-theme="dark"] #jss-sort,
+    [data-theme="dark"] #jss-status-filter {
       color: rgba(255,255,255,0.35);
       border-color: rgba(255,255,255,0.12);
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23666'/%3E%3C/svg%3E");
@@ -2545,7 +2547,12 @@
         <option value="recent">{{ _('Recent') }}</option>
         <option value="hours">{{ _('Most Hours') }}</option>
       </select>
-      <label><input type="checkbox" id="jss-in-progress-only" /> {{ _('In Progress only') }}</label>
+      <select id="jss-status-filter" title="{{ _('Filter by status') }}">
+        <option value="">{{ _('All') }}</option>
+        {% for status in project_statuses %}
+        <option value="{{ status }}">{{ _(status) }}</option>
+        {% endfor %}
+      </select>
     </div>
 
     <!-- SCROLLABLE MIDDLE: list -->
@@ -2633,6 +2640,7 @@ const journalI18n = {
     const closeButton = document.getElementById('jss-close-btn');
     const triggerBtn = document.getElementById('journal-switcher-trigger');
     const sortSelect = document.getElementById('jss-sort');
+    const statusFilterSelect = document.getElementById('jss-status-filter');
 
     // Fetch objects from API (cached)
     async function fetchObjects() {
@@ -2657,11 +2665,11 @@ const journalI18n = {
         return div.innerHTML;
     }
 
-    // Filter objects by in-progress-only checkbox
+    // Filter objects by status dropdown
     function getFiltered(items) {
-        const checkbox = document.getElementById('jss-in-progress-only');
-        if (checkbox && checkbox.checked) {
-            return items.filter(obj => obj.project_status === "In Progress");
+        const selectedStatus = statusFilterSelect ? statusFilterSelect.value : '';
+        if (selectedStatus) {
+            return items.filter(obj => obj.project_status === selectedStatus);
         }
         return items;
     }
@@ -2825,18 +2833,15 @@ const journalI18n = {
         });
     }
 
-    // Event: In-progress-only checkbox change
-    (function() {
-        const checkbox = document.getElementById('jss-in-progress-only');
-        if (checkbox) {
-            checkbox.addEventListener('change', function() {
-                // Use cached data — no re-fetch needed
-                const objects = objectsCache || [];
-                activeIndex = -1;
-                renderList(objects, currentSearchTerm);
-            });
-        }
-    })();
+    // Event: Status filter dropdown change
+    if (statusFilterSelect) {
+        statusFilterSelect.addEventListener('change', function() {
+            // Use cached data — no re-fetch needed
+            const objects = objectsCache || [];
+            activeIndex = -1;
+            renderList(objects, currentSearchTerm);
+        });
+    }
 
     // Event: Keyboard navigation
     document.addEventListener('keydown', function(e) {

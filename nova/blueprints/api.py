@@ -302,6 +302,37 @@ def get_journal_objects():
                 objects_map[object_name]['first_session_id'] = session.id
                 objects_map[object_name]['first_session_location'] = session.location_name
 
+    # Second pass: add zero-session projects as stub entries so they show up
+    # in the object switcher even without journal sessions yet.
+    # Known limitation: objects_map is keyed by object name, not project id,
+    # so a project sharing a target_object_name with a session-bearing object
+    # won't get its own separate entry here.
+    zero_session_projects = db.query(Project).filter(
+        Project.user_id == user_id,
+        Project.target_object_name.isnot(None),
+        ~Project.target_object_name.in_(list(objects_map.keys()))
+    ).all()
+    for project in zero_session_projects:
+        astro_object = db.query(AstroObject).filter(
+            AstroObject.user_id == user_id,
+            AstroObject.object_name == project.target_object_name
+        ).first()
+        if not astro_object:
+            continue
+
+        objects_map[project.target_object_name] = {
+            'id': astro_object.id,
+            'name': astro_object.common_name or project.target_object_name,
+            'catalog_id': project.target_object_name,
+            'total_minutes': 0,
+            'last_session': None,
+            'first_session_date': None,
+            'first_session_id': None,
+            'first_session_location': None,
+            'project_status': project.status,
+            'project_id': project.id
+        }
+
     result = []
     for obj in objects_map.values():
         total_hours = round(obj['total_minutes'] / 60.0, 1) if obj['total_minutes'] else 0.0
@@ -317,6 +348,8 @@ def get_journal_objects():
             url_params['session_id'] = first_session_id
         if first_session_location:
             url_params['location'] = first_session_location
+        if obj.get('project_id'):
+            url_params['project_id'] = obj['project_id']
 
         result.append({
             'id': obj['id'],
