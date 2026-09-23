@@ -432,7 +432,6 @@ def set_location_api():
 
         db.commit()
         bust_astro_context_cache(g.db_user.id)
-        bust_nightly_curves_cache(g.user_config.get('username') or g.db_user.username)
 
         # Update in-memory global state
         if hasattr(g, 'user_config'):
