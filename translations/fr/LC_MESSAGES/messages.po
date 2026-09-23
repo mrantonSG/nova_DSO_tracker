@@ -1631,7 +1631,7 @@ msgstr "En attente"
 #: templates/_journal_section.html:2221 templates/_journal_section.html:2291
 #: templates/base.html:125
 msgid "Completed"
-msgstr "Copié !"
+msgstr "Terminé"
 
 #: templates/_journal_section.html:2221 templates/_journal_section.html:2291
 #: templates/base.html:127
