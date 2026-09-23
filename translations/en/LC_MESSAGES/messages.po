@@ -3206,9 +3206,8 @@ msgid "Asking Nova..."
 msgstr "Asking Nova..."
 
 #: templates/base.html:278
-#, fuzzy
 msgid "Nova Ranking"
-msgstr "Reset Ranking"
+msgstr ""
 
 #: templates/base.html:279
 msgid "Nova Recommended"
@@ -3248,14 +3247,12 @@ msgid "Scanning cosmos..."
 msgstr ""
 
 #: templates/base.html:289
-#, fuzzy
 msgid "Recommended Rig"
-msgstr "Nova Recommended"
+msgstr ""
 
 #: templates/base.html:290
-#, fuzzy
 msgid "Recommended Rigs"
-msgstr "Nova Recommended"
+msgstr ""
 
 #: templates/base.html:322
 msgid "Demo Mode:"
@@ -3353,9 +3350,8 @@ msgid "Built by Anton Gutscher"
 msgstr ""
 
 #: templates/base.html:494
-#, fuzzy
 msgid "Translation Feedback"
-msgstr "Submit feedback"
+msgstr ""
 
 #: templates/base.html:495
 msgid "Help us improve the translations for this language."
@@ -4245,12 +4241,8 @@ msgid ""
 msgstr ""
 
 #: templates/graph_view.html:280
-#, fuzzy
 msgid "Go to <strong>Configuration > Manage Objects</strong> to add one."
 msgstr ""
-"Go to <strong>Configuration > Manage Objects</strong> to add "
-"\"Inspiration Content\" (Image URLs, Credits, Descriptions) to your "
-"targets."
 
 #: templates/graph_view.html:303
 msgid "Framing Assistant"
@@ -4377,9 +4369,8 @@ msgid "Tip: Click on the sky to move the FOV center."
 msgstr ""
 
 #: templates/graph_view.html:413
-#, fuzzy
 msgid "Recenter to object"
-msgstr "Nova recommends this object"
+msgstr ""
 
 #: templates/graph_view.html:415
 msgid "Nudge Up"
@@ -4523,9 +4514,8 @@ msgid "Delete selected view"
 msgstr ""
 
 #: templates/index.html:120
-#, fuzzy
 msgid "Ask Nova to rank and recommend best objects"
-msgstr "Nova recommends this object"
+msgstr ""
 
 #: templates/index.html:126
 msgid "About Nova AI"
