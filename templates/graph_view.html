@@ -228,6 +228,17 @@
             </tbody>
         </table>
     </div>
+    {% else %}
+    <div class="content-section">
+        <h3>{{ _('Framing With Your Rigs') }}</h3>
+        {% if not available_rigs %}
+        <p style="color: var(--text-tertiary);">{{ _('No rig is configured yet. Add a rig to see how this object fits your field of view.') }}</p>
+        <a href="{{ url_for('core.config_form', prefill_config_tab='rigs') }}" class="inline-button">{{ _('Manage Rigs') }}</a>
+        {% else %}
+        <p style="color: var(--text-tertiary);">{{ _('The size of this object is unknown, so its fit in your rigs cannot be assessed. Add a size to the object to enable this view.') }}</p>
+        <a href="{{ url_for('core.config_form', prefill_config_tab='objects') }}" class="inline-button">{{ _('Edit Object') }}</a>
+        {% endif %}
+    </div>
     {% endif %}
 </div>
 
@@ -236,7 +247,7 @@
             <h3 style="display:flex; justify-content:space-between; align-items:center;">
                 {{ _('Inspiration Content') }}
                 {% if not object_main_details.image_url and not object_main_details.description_text %}
-                <a href="{{ url_for('core.config_form') }}?active_tab=objects" style="font-size:13px; font-weight:normal;">{{ _('Edit Object to Add Content') }}</a>
+                <a href="{{ url_for('core.config_form') }}?prefill_config_tab=objects" style="font-size:13px; font-weight:normal;">{{ _('Edit Object to Add Content') }}</a>
                 {% endif %}
             </h3>
 
