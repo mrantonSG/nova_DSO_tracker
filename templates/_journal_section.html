@@ -2218,7 +2218,7 @@
                                 <h3>{{ _('Metadata') }}</h3>
                                 {{ form_group('name', _('Project Name:'), type='text', value=selected_project_data_journal.name, required=True, id_override='project-name') }}
                                 <input type="hidden" name="target_object_id" value="{{ object_name }}">
-                                {{ form_group('status', _('Status:'), type='select', options=[{'value': 'In Progress', 'label': _('In Progress')}, {'value': 'On Hold', 'label': _('On Hold')}, {'value': 'Completed', 'label': _('Completed')}, {'value': 'Abandoned', 'label': _('Abandoned')}], selected=selected_project_data_journal.status, id_override='project-status') }}
+                                {{ form_group('status', _('Status:'), type='select', options=[{'value': 'In Planning', 'label': _('In Planning')}, {'value': 'In Progress', 'label': _('In Progress')}, {'value': 'On Hold', 'label': _('On Hold')}, {'value': 'Completed', 'label': _('Completed')}, {'value': 'Abandoned', 'label': _('Abandoned')}], selected=selected_project_data_journal.status, id_override='project-status') }}
                             </div>
 
                             <div class="journal-project-notes-section">
@@ -2288,7 +2288,7 @@
                     <div class="journal-project-notes-section">
                         <h3>{{ _('Metadata') }}</h3>
                         {{ form_group('name', _('Project Name:'), type='text', required=True, placeholder=_('e.g., M31 Broadband'), id_override='new-project-name-add', extra_attrs='style="width:100%;"') }}
-                        {{ form_group('status', _('Status:'), type='select', options=[{'value': 'In Progress', 'label': _('In Progress')}, {'value': 'On Hold', 'label': _('On Hold')}, {'value': 'Completed', 'label': _('Completed')}, {'value': 'Abandoned', 'label': _('Abandoned')}], selected='In Progress', id_override='new-project-status-add', extra_attrs='style="width:100%;"') }}
+                        {{ form_group('status', _('Status:'), type='select', options=[{'value': 'In Planning', 'label': _('In Planning')}, {'value': 'In Progress', 'label': _('In Progress')}, {'value': 'On Hold', 'label': _('On Hold')}, {'value': 'Completed', 'label': _('Completed')}, {'value': 'Abandoned', 'label': _('Abandoned')}], selected='In Planning', id_override='new-project-status-add', extra_attrs='style="width:100%;"') }}
                     </div>
 
                     <div class="journal-project-notes-section">
