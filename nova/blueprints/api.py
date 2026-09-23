@@ -3517,8 +3517,9 @@ def get_desktop_data_batch():
                     times_local, times_utc = get_common_time_arrays(tz_name, local_date, sampling_interval)
                     sky_c = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
                     aa_frame = AltAz(obstime=times_utc, location=loc_earth)
-                    alts = sky_c.transform_to(aa_frame).alt.deg
-                    azs = sky_c.transform_to(aa_frame).az.deg
+                    altaz = sky_c.transform_to(aa_frame)
+                    alts = altaz.alt.deg
+                    azs = altaz.az.deg
 
                     cached = {
                         "times_local": times_local, "altitudes": alts, "azimuths": azs,
