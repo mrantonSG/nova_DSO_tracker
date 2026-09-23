@@ -3431,7 +3431,7 @@ msgstr "場所"
 #: templates/config_form.html:64 templates/config_form.html:76
 #: templates/config_form.html:93
 msgid "Rigs"
-msgstr "リグス"
+msgstr "リグ"
 
 #: templates/config_form.html:66
 msgid "Shared Items"
@@ -5158,7 +5158,7 @@ msgstr "Nova Companion"
 #: templates/mobile_base.html:24 templates/mobile_base.html:56
 #: templates/mobile_up_now.html:3 templates/mobile_up_now.html:4
 msgid "Up Now"
-msgstr "現在放送中"
+msgstr "今見える天体"
 
 #: templates/mobile_base.html:26
 msgid "Main Site"

@@ -2896,7 +2896,7 @@ msgstr "Télescope"
 #: templates/base.html:153 templates/config_form.html:674
 #: templates/project_report.html:1178
 msgid "Camera"
-msgstr "Chambre"
+msgstr "Caméra"
 
 #: templates/base.html:154
 msgid "Reducer / Extender"
