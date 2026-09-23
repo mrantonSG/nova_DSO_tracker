@@ -3039,7 +3039,7 @@ msgstr "没有可用的自动对焦数据。"
 #: templates/base.html:225
 #, python-format
 msgid "Calculating month %(current)d of %(total)d..."
-msgstr "已计算 %%(total)d 个天体中的 %(current)d 个..."
+msgstr "正在计算第 %(current)d 个月，共 %(total)d 个月..."
 
 #: templates/base.html:226
 msgid "No projects found. Adjust filters or add projects."
@@ -3124,7 +3124,7 @@ msgstr "显示 %(count)d 个对象"
 #: templates/base.html:253
 #, python-format
 msgid "Showing %(shown)d of %(total)d objects"
-msgstr "已计算 %%(total)d 个天体中的 %(shown)d 个..."
+msgstr "显示 %(total)d 个天体中的 %(shown)d 个"
 
 #: templates/base.html:254
 #, python-format
@@ -5402,7 +5402,7 @@ msgstr "没有符合筛选条件的天体。"
 #: templates/mobile_up_now.html:1003
 #, python-format
 msgid "Calculated %%(count)d of %%(total)d objects..."
-msgstr "已计算 %%(total)d 个天体中的 %(count)d 个..."
+msgstr "已计算 %%(total)d 个天体中的 %%(count)d 个..."
 
 #: templates/mobile_up_now.html:1004
 msgid "Error loading data."

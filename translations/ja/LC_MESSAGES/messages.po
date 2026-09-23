@@ -3041,7 +3041,7 @@ msgstr "オートフォーカスデータは利用できません。"
 #: templates/base.html:225
 #, python-format
 msgid "Calculating month %(current)d of %(total)d..."
-msgstr "%%(total)d個中%%(current)d個のオブジェクトを計算済み..."
+msgstr "%(total)dか月中%(current)dか月目を計算中..."
 
 #: templates/base.html:226
 msgid "No projects found. Adjust filters or add projects."
@@ -3126,7 +3126,7 @@ msgstr "(数)個のオブジェクトを表示%(count)d"
 #: templates/base.html:253
 #, python-format
 msgid "Showing %(shown)d of %(total)d objects"
-msgstr "%%(total)d個中%%(shown)d個のオブジェクトを計算済み..."
+msgstr "%(total)d個中%(shown)d個のオブジェクトを表示"
 
 #: templates/base.html:254
 #, python-format
