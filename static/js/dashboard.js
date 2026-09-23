@@ -2952,6 +2952,8 @@
             row.setAttribute('data-session-id', session.id);
             row.setAttribute('data-target-object-id', session.object_name);
             row.setAttribute('data-session-location', session.location_name || '');
+            row.setAttribute('data-is-stub', session.is_stub ? '1' : '');
+            row.setAttribute('data-project-id', session.project_id || '');
 
             for (const key in journalColumnConfig) {
                 const columnConfig = journalColumnConfig[key];
@@ -3006,6 +3008,15 @@
                 const targetId = this.getAttribute('data-target-object-id');
                 const sessionId = this.getAttribute('data-session-id');
                 const sessionLoc = this.getAttribute('data-session-location');
+                const isStub = this.getAttribute('data-is-stub') === '1';
+                const projectId = this.getAttribute('data-project-id');
+
+                if (isStub) {
+                    if (projectId) {
+                        window.location.href = `/project/report_page/${encodeURIComponent(projectId)}`;
+                    }
+                    return;
+                }
 
                 if (targetId && sessionId) {
                     let url = `/graph_dashboard/${encodeURIComponent(targetId)}?session_id=${encodeURIComponent(sessionId)}&tab=journal`;

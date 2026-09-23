@@ -75,6 +75,7 @@ from nova.models import (
     Location,
     Project,
     Rig,
+    session_projects,
     SessionLocal,
     UiPref,
     UserCustomFilter,
@@ -1480,6 +1481,39 @@ def index():
 
         sessions_for_template.append(session_dict)
     # --- END OF FIX ---
+
+    # --- Stub rows for projects with zero linked sessions ---
+    # A project only counts as "linked" if a session references it via
+    # EITHER the JournalSession.project_id FK OR the session_projects m2m
+    # table; otherwise a project with only m2m-linked sessions would wrongly
+    # get a stub row alongside its real ones.
+    linked_ids = {
+        pid for (pid,) in db.query(JournalSession.project_id).filter(
+            JournalSession.user_id == user.id,
+            JournalSession.project_id.isnot(None)
+        ).union(
+            db.query(session_projects.c.project_id).join(
+                JournalSession, JournalSession.id == session_projects.c.session_id
+            ).filter(JournalSession.user_id == user.id)
+        ).all()
+    }
+    stub_projects = db.query(Project).filter_by(user_id=user.id).filter(~Project.id.in_(linked_ids)).all()
+    for stub_index, project in enumerate(stub_projects, start=1):
+        sessions_for_template.append({
+            'id': -stub_index,
+            'is_stub': True,
+            'project_id': project.id,
+            'project_name': project.name,
+            'project_status': project.status,
+            'object_name': project.target_object_name or None,
+            'date_utc': None,
+            'location_name': None,
+            'telescope_setup_notes': None,
+            'calculated_integration_time_minutes': None,
+            'session_rating_subjective': None,
+            'other_projects': [],
+            'other_projects_count': 0,
+        })
 
     # Projects with a final image, for the dashboard "showcase" tiles.
     # Matches the grouping/aggregation logic used for the object graph dashboard
