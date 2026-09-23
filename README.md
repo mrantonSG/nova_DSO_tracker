@@ -24,7 +24,7 @@ A Flask-based web application for astrophotographers — track deep-sky objects,
 ## Technologies Used
 
 * **Backend:** Python (Flask, SQLAlchemy, AstroPy, Ephem)
-* **Database:** SQLite (with Alembic migrations)
+* **Database:** SQLite (schema changes applied via hand-written, idempotent patches)
 * **Frontend:** HTML5, JavaScript, Aladin Lite
 * **Integrations:** SIMBAD (Object data), Stellarium (Planetarium control)
 * **AI (optional):** Anthropic, OpenAI, or Ollama for Ask Nova features
