@@ -1201,6 +1201,9 @@ def confirm_object():
         description_source_link = req.get('description_source_link')
 
         if existing:
+            old_ra = existing.ra_hours
+            old_dec = existing.dec_deg
+            old_active = existing.active_project
             existing.common_name = common_name
             existing.ra_hours = ra_float
             existing.dec_deg = dec_float
@@ -1247,6 +1250,14 @@ def confirm_object():
 
         db.commit()
         bust_astro_context_cache(g.db_user.id)
+        if existing:
+            coords_changed = ra_float != old_ra or dec_float != old_dec
+            outlook = (active_project != bool(old_active)) or (coords_changed and bool(old_active))
+            invalidate_object_caches(g.db_user.id, username,
+                                     [object_name] if coords_changed else [],
+                                     curves=coords_changed, outlook=outlook)
+        else:
+            invalidate_object_caches(g.db_user.id, username, [], curves=False, outlook=active_project)
         return jsonify({"status": "success"})
 
     except ValueError as ve:
