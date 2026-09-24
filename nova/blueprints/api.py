@@ -389,6 +389,8 @@ def bulk_update_objects():
     db = get_db()
     try:
         user_id = g.db_user.id
+        deleted_names = []
+        outlook_needed = False
 
         query = db.query(AstroObject).filter(
             AstroObject.user_id == user_id,
@@ -418,6 +420,8 @@ def bulk_update_objects():
                     skipped_count += 1
                 else:
                     safe_to_delete.append(obj.object_name)
+                    if obj.active_project:
+                        outlook_needed = True
 
             if safe_to_delete:
                 # Perform the delete only on safe IDs
@@ -426,6 +430,7 @@ def bulk_update_objects():
                     AstroObject.object_name.in_(safe_to_delete)
                 )
                 count = delete_q.delete(synchronize_session=False)
+                deleted_names = list(safe_to_delete)
             else:
                 count = 0
 
@@ -443,6 +448,8 @@ def bulk_update_objects():
 
         db.commit()
         bust_astro_context_cache(g.db_user.id)
+        invalidate_object_caches(user_id, g.db_user.username, deleted_names,
+                                 curves=bool(deleted_names), outlook=outlook_needed)
         return jsonify({"status": "success", "message": msg})
     except Exception as e:
         db.rollback()
@@ -1889,10 +1896,13 @@ def merge_objects():
                 obj_keep.project_name += f"<br><hr><strong>Merged Notes ({merge_id}):</strong><br>{obj_merge.project_name}"
 
         # 6. Delete the Merged Object
+        merged_was_active = bool(obj_merge.active_project)
         db.delete(obj_merge)
 
         db.commit()
         bust_astro_context_cache(g.db_user.id)
+        invalidate_object_caches(user_id, g.db_user.username, [merge_id],
+                                 curves=True, outlook=merged_was_active)
         return jsonify({"status": "success", "message": f"Successfully merged '{merge_id}' into '{keep_id}'."})
 
     except Exception as e:
