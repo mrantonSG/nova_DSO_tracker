@@ -2013,7 +2013,7 @@ def update_outlook_cache(user_id, status_key, cache_filename, location_name, use
         finally:
             print(f"--- [OUTLOOK WORKER {status_key}] Finished (Status: {cache_worker_status.get(status_key)}) ---")
 
-def warm_main_cache(username, location_name, user_config, sampling_interval):
+def warm_main_cache(username, location_name, user_config, sampling_interval, trigger_outlook=True):
     """
     Warms the main data cache on startup and then triggers the Outlook cache
     update for the same location.
@@ -2202,6 +2202,10 @@ def warm_main_cache(username, location_name, user_config, sampling_interval):
                 "az_11pm": f"{az_11pm:.2f}",
                 "is_obstructed_at_11pm": is_obstructed_at_11pm
             }
+
+        # Curves are cached; skip the second loop and Outlook check.
+        if not trigger_outlook:
+            return
 
         # --- 4. TRIGGER OUTLOOK CACHE (Unchanged) ---
         try:
