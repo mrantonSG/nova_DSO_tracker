@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import hashlib
 import uuid
 import logging
 import tempfile
@@ -95,6 +96,46 @@ def get_outlook_cache_path(safe_log_key: str, lat: float,
     suffix = f"_{date_suffix}" if date_suffix else ""
     filename = f"outlook_cache_{safe_log_key}_{lat_grid:.1f}_{lon_grid:.1f}{suffix}.json"
     return os.path.join(CACHE_DIR, filename)
+
+
+def cache_fingerprint(parts: dict) -> str:
+    payload = json.dumps(parts, sort_keys=True, default=str)
+    return hashlib.sha1(payload.encode("utf-8")).hexdigest()[:12]
+
+
+def heatmap_fingerprint(location_id, lat, lon, tz_name, horizon_mask,
+                        altitude_threshold, week_start_date, objects) -> str:
+    """
+    Fingerprint of everything a heatmap chunk set depends on.
+    `objects` must be the exact list the heatmap iterates (enabled, RA/Dec set,
+    geometric visibility filter applied). The route and the worker both call
+    this so they always agree on the filename.
+    """
+    # Route passes a sorted mask, worker an unsorted one -> normalise both
+    mask = sorted([float(p[0]), float(p[1])] for p in (horizon_mask or []))
+    obj_parts = sorted(
+        (
+            (o.object_name, o.ra_hours, o.dec_deg, o.common_name, o.type,
+             bool(o.active_project), o.constellation, o.magnitude, o.size, o.sb)
+            for o in objects
+        ),
+        key=lambda t: (t[0] or "", json.dumps(t, default=str)),
+    )
+    return cache_fingerprint({
+        "version": "v6",
+        "location_id": location_id,
+        "lat": lat,
+        "lon": lon,
+        "tz": tz_name,
+        "horizon_mask": mask,
+        "altitude_threshold": altitude_threshold,
+        "week_start_date": week_start_date,
+        "objects": obj_parts,
+    })
+
+
+def heatmap_cache_path(user_id, location_id, fingerprint: str, part_index: int) -> str:
+    return os.path.join(CACHE_DIR, f"heatmap_v6_{user_id}_{location_id}_{fingerprint}.part{part_index}.json")
 
 
 def bust_astro_context_cache(user_id: int) -> None:

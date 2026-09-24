@@ -10,7 +10,7 @@ import ephem
 
 from nova.models import DbUser, Location, AstroObject, UiPref, SessionLocal
 from nova.config import CACHE_DIR
-from nova.helpers import get_db
+from nova.helpers import get_db, heatmap_fingerprint, heatmap_cache_path
 from modules.astro_calculations import calculate_observable_duration_vectorized
 
 
@@ -47,13 +47,10 @@ def heatmap_background_worker(app):
                     # Get Active Locations
                     locs = db.query(Location).filter_by(user_id=u.id, active=True).all()
 
-                    # Get Object Count (for cache key) - Only Enabled
-                    obj_count = db.query(AstroObject).filter_by(user_id=u.id, enabled=True).count()
-
                     for loc in locs:
                         tasks.append({
                             'user_id': u.id,
-                            'obj_count': obj_count,
+                            'loc_id': loc.id,
                             'loc_name': loc.name,
                             'lat': loc.lat,
                             'lon': loc.lon,
@@ -65,54 +62,50 @@ def heatmap_background_worker(app):
             # 2. Process Tasks
             for task in tasks:
                 user_id = task['user_id']
-                obj_count = task['obj_count']
 
-                lat_grid = round(task['lat'] * 2) / 2
-                lon_grid = round(task['lon'] * 2) / 2
-                loc_safe = f"{lat_grid:.1f}_{lon_grid:.1f}"
+                with app.app_context():
+                    db = get_db()
+                    # Only calculate heatmap for enabled objects
+                    all_objects = db.query(AstroObject).filter_by(user_id=user_id, enabled=True).all()
+                    valid_objects = [o for o in all_objects if o.ra_hours is not None and o.dec_deg is not None]
 
-                # Check the timestamp of the LAST chunk (part11) as a proxy for the whole set
-                base_filename = f"heatmap_v5_{user_id}_{loc_safe}_{obj_count}"
-                last_chunk_path = os.path.join(CACHE_DIR, f"{base_filename}.part11.json")
+                    # Filter Invisible (Geometric)
+                    visible_objects = []
+                    for obj in valid_objects:
+                        dec = float(obj.dec_deg)
+                        if (90 - abs(task['lat'] - dec)) >= task['alt_threshold']:
+                            visible_objects.append(obj)
+                    visible_objects.sort(key=lambda x: float(x.ra_hours))
 
-                should_update = True
-                if os.path.exists(last_chunk_path):
-                    age = time.time() - os.path.getmtime(last_chunk_path)
-                    if age < 86400:  # 24 Hours
-                        should_update = False
+                    # Validate Timezone
+                    try:
+                        local_tz = pytz.timezone(task['tz'])
+                        valid_tz = task['tz']
+                    except Exception:
+                        print(
+                            f"[HEATMAP WORKER] WARN: Invalid timezone '{task['tz']}' for '{task['loc_name']}'. Using UTC.")
+                        local_tz = pytz.utc
+                        valid_tz = 'UTC'
 
-                if should_update:
-                    print(f"[HEATMAP WORKER] Updating stale cache for User {user_id} @ {task['loc_name']}...")
+                    now = datetime.now(local_tz)
+                    start_date_year = now.date() - timedelta(days=now.weekday())
 
-                    # --- REGENERATE ALL 12 CHUNKS ---
-                    with app.app_context():
-                        db = get_db()
-                        # Only calculate heatmap for enabled objects
-                        all_objects = db.query(AstroObject).filter_by(user_id=user_id, enabled=True).all()
-                        valid_objects = [o for o in all_objects if o.ra_hours is not None and o.dec_deg is not None]
+                    fingerprint = heatmap_fingerprint(
+                        task['loc_id'], task['lat'], task['lon'], valid_tz, task['mask'],
+                        task['alt_threshold'], start_date_year, visible_objects
+                    )
+                    chunk_paths = [heatmap_cache_path(user_id, task['loc_id'], fingerprint, i) for i in range(12)]
 
-                        # Filter Invisible (Geometric)
-                        visible_objects = []
-                        for obj in valid_objects:
-                            dec = float(obj.dec_deg)
-                            if (90 - abs(task['lat'] - dec)) >= task['alt_threshold']:
-                                visible_objects.append(obj)
-                        visible_objects.sort(key=lambda x: float(x.ra_hours))
+                    # Regenerate if ANY of the 12 parts is missing or older than 24h
+                    should_update = any(
+                        not os.path.exists(p) or (time.time() - os.path.getmtime(p)) >= 86400
+                        for p in chunk_paths
+                    )
 
-                        # Validate Timezone
-                        try:
-                            local_tz = pytz.timezone(task['tz'])
-                            valid_tz = task['tz']
-                        except Exception:
-                            print(
-                                f"[HEATMAP WORKER] WARN: Invalid timezone '{task['tz']}' for '{task['loc_name']}'. Using UTC.")
-                            local_tz = pytz.utc
-                            valid_tz = 'UTC'
+                    if should_update:
+                        print(f"[HEATMAP WORKER] Updating stale cache for User {user_id} @ {task['loc_name']}...")
 
-                        now = datetime.now(local_tz)
-                        start_date_year = now.date() - timedelta(days=now.weekday())
-
-                        # Loop 12 chunks
+                        # --- REGENERATE ALL 12 CHUNKS ---
                         for chunk_idx in range(12):
                             weeks_per_chunk = 52 // 12
                             remainder = 52 % 12
@@ -191,13 +184,13 @@ def heatmap_background_worker(app):
                             }
 
                             # Save Chunk
-                            chunk_filename = os.path.join(CACHE_DIR, f"{base_filename}.part{chunk_idx}.json")
-                            with open(chunk_filename, 'w') as f:
+                            with open(chunk_paths[chunk_idx], 'w') as f:
                                 json.dump(chunk_data, f)
 
                             # Sleep briefly between chunks to yield CPU
                             time.sleep(2)
 
+                if should_update:
                     print(f"[HEATMAP WORKER] Finished updating {task['loc_name']}.")
                     # Sleep between locations
                     time.sleep(30)

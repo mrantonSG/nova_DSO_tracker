@@ -46,6 +46,7 @@ from nova.helpers import (
     get_all_mobile_up_now_data, get_ra_dec, safe_float,
     read_log_content, enable_user, disable_user, delete_user,
     bust_astro_context_cache, invalidate_object_caches,
+    heatmap_fingerprint, heatmap_cache_path,
 )
 from nova.models import (
     DbUser, AstroObject, JournalSession, Project,
@@ -3659,6 +3660,7 @@ def get_yearly_heatmap_chunk():
             tz_name = loc_data['timezone']
             horizon_mask = loc_data.get('horizon_mask')
             selected_loc_key = req_loc_name
+            location_id = loc_data['db_id']
         else:
             lat = float(request.args.get('lat', g.lat))
             lon = float(request.args.get('lon', g.lon))
@@ -3667,54 +3669,15 @@ def get_yearly_heatmap_chunk():
             if g.selected_location and g.selected_location in g.locations:
                 horizon_mask = g.locations[g.selected_location].get('horizon_mask')
             selected_loc_key = g.selected_location or "default"
+            location_id = "adhoc"
 
         local_tz = pytz.timezone(tz_name)
-
-        # 2. GENERATE CACHE KEY (Per Chunk)
         db = get_db()
         user_id = g.db_user.id
-        obj_count = db.query(AstroObject).filter_by(user_id=user_id, enabled=True).count()
-        lat_grid = round(lat * 2) / 2   # 0.5° resolution ≈ 55km
-        lon_grid = round(lon * 2) / 2
-        # Base filename
-        base_cache_name = f"heatmap_v5_{user_id}_{lat_grid:.1f}_{lon_grid:.1f}_{obj_count}"
-        # Specific chunk filename
-        chunk_cache_filename = os.path.join(CACHE_DIR, f"{base_cache_name}.part{chunk_idx}.json")
 
-        # 3. FAST PATH: Read existing chunk from disk
-        if os.path.exists(chunk_cache_filename):
-            mtime = os.path.getmtime(chunk_cache_filename)
-            if (time.time() - mtime) < 86400:  # 24 hours
-                try:
-                    with open(chunk_cache_filename, 'r') as f:
-                        # print(f"[HEATMAP] Serving chunk {chunk_idx} from cache: {chunk_cache_filename}")
-                        return jsonify(json.load(f))
-                except Exception as e:
-                    print(f"[HEATMAP] Error reading chunk cache: {e}")
-
-        # 4. SLOW PATH: Live Calculation
+        # Week anchor for the whole chunk set (computed once, part of the cache key)
         now = datetime.now(local_tz)
         start_date_year = now.date() - timedelta(days=now.weekday())
-
-        weeks_per_chunk = 52 // total_chunks
-        remainder = 52 % total_chunks
-        start_week = chunk_idx * weeks_per_chunk + min(chunk_idx, remainder)
-        end_week = start_week + weeks_per_chunk + (1 if chunk_idx < remainder else 0)
-
-        weeks_x = []
-        target_dates = []
-        moon_phases = []
-
-        for i in range(start_week, end_week):
-            d = start_date_year + timedelta(weeks=i)
-            weeks_x.append(d.strftime('%b %d'))
-            target_dates.append(d.strftime('%Y-%m-%d'))
-            try:
-                dt_moon = local_tz.localize(datetime.combine(d, datetime.min.time())).astimezone(pytz.utc)
-                m = ephem.Moon(dt_moon)
-                moon_phases.append(round(m.phase, 1))
-            except:
-                moon_phases.append(0)
 
         # --- Object Selection ---
         altitude_threshold = g.user_config.get("altitude_threshold", 20)
@@ -3735,6 +3698,45 @@ def get_yearly_heatmap_chunk():
                 visible_objects.append(obj)
 
         visible_objects.sort(key=lambda x: float(x.ra_hours))
+
+        # 2. GENERATE CACHE KEY (Per Chunk)
+        fingerprint = heatmap_fingerprint(
+            location_id, lat, lon, tz_name, horizon_mask,
+            altitude_threshold, start_date_year, visible_objects
+        )
+        chunk_cache_filename = heatmap_cache_path(user_id, location_id, fingerprint, chunk_idx)
+
+        # 3. FAST PATH: Read existing chunk from disk
+        if os.path.exists(chunk_cache_filename):
+            mtime = os.path.getmtime(chunk_cache_filename)
+            if (time.time() - mtime) < 86400:  # 24 hours
+                try:
+                    with open(chunk_cache_filename, 'r') as f:
+                        # print(f"[HEATMAP] Serving chunk {chunk_idx} from cache: {chunk_cache_filename}")
+                        return jsonify(json.load(f))
+                except Exception as e:
+                    print(f"[HEATMAP] Error reading chunk cache: {e}")
+
+        # 4. SLOW PATH: Live Calculation
+        weeks_per_chunk = 52 // total_chunks
+        remainder = 52 % total_chunks
+        start_week = chunk_idx * weeks_per_chunk + min(chunk_idx, remainder)
+        end_week = start_week + weeks_per_chunk + (1 if chunk_idx < remainder else 0)
+
+        weeks_x = []
+        target_dates = []
+        moon_phases = []
+
+        for i in range(start_week, end_week):
+            d = start_date_year + timedelta(weeks=i)
+            weeks_x.append(d.strftime('%b %d'))
+            target_dates.append(d.strftime('%Y-%m-%d'))
+            try:
+                dt_moon = local_tz.localize(datetime.combine(d, datetime.min.time())).astimezone(pytz.utc)
+                m = ephem.Moon(dt_moon)
+                moon_phases.append(round(m.phase, 1))
+            except:
+                moon_phases.append(0)
 
         # --- Data Generation ---
         z_scores_chunk = []
