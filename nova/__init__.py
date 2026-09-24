@@ -2405,6 +2405,27 @@ def warm_default_locations():
             SessionLocal.remove()
 
 
+_warm_started = False
+_warm_lock = threading.Lock()
+
+
+@app.before_request
+def _start_warming_once():
+    global _warm_started
+    if _warm_started or app.config.get('TESTING'):
+        return None
+    with _warm_lock:
+        if _warm_started:
+            return None
+        _warm_started = True
+    try:
+        t = threading.Thread(target=warm_default_locations, name="warm-defaults", daemon=True)
+        t.start()
+    except Exception as e:
+        print(f"[WARM] Could not start warm thread: {e}")
+    return None
+
+
 # --- Anonymous telemetry helpers ---
 def is_docker_env():
     try:
