@@ -28,7 +28,7 @@ import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay l
 from nova.config import (
     INSTANCE_PATH, BACKUP_DIR, ALLOWED_EXTENSIONS, SIMBAD_TIMEOUT,
     nightly_curves_cache, NOVA_CATALOG_URL, CATALOG_MANIFEST_CACHE, DEFAULT_HTTP_TIMEOUT,
-    CACHE_DIR, astro_context_cache,
+    CACHE_DIR, astro_context_cache, observable_objects_cache,
 )
 from modules.astro_calculations import (
     get_common_time_arrays, hms_to_hours, dms_to_degrees,
@@ -111,6 +111,66 @@ def bust_nightly_curves_cache(username: str) -> None:
                       if k.startswith(f"{username}_")]
     for k in keys_to_remove:
         nightly_curves_cache.pop(k, None)
+
+
+_CURVES_DATE_SUFFIX_RE = re.compile(r'^\d{4}-\d{2}-\d{2}_')
+
+
+def bust_object_curves(username: str, object_name: str) -> None:
+    """Invalidate nightly curves cache entries for a single object
+    (all dates/locations) after an AstroObject coordinate edit."""
+    norm = object_name.lower().replace(' ', '_')
+    prefix = f"{username}_{norm}_"
+    keys_to_remove = [k for k in list(nightly_curves_cache.keys())
+                      if k.startswith(prefix)
+                      and _CURVES_DATE_SUFFIX_RE.match(k[len(prefix):])]
+    for k in keys_to_remove:
+        nightly_curves_cache.pop(k, None)
+
+
+def bust_observable_objects_cache(username: str) -> None:
+    """Invalidate all observable objects cache entries for a user."""
+    prefix = f"obs_objects:{username}:"
+    keys_to_remove = [k for k in list(observable_objects_cache.keys())
+                      if k.startswith(prefix)]
+    for k in keys_to_remove:
+        observable_objects_cache.pop(k, None)
+
+
+def delete_outlook_files(user_id: int) -> None:
+    """Delete all outlook cache files for a user.
+    Filenames use the safe log-key format: outlook_cache_(123_Name)_lat_lon.json"""
+    import glob as _glob
+    cache_pattern = os.path.join(CACHE_DIR, f"outlook_cache_({user_id}_*.json")
+    for cf in _glob.glob(cache_pattern):
+        try:
+            os.remove(cf)
+        except FileNotFoundError:
+            pass
+
+
+def invalidate_object_caches(user_id: int, username: str, object_names=(),
+                             curves: bool = False, outlook: bool = False) -> None:
+    """Invalidate caches affected by AstroObject edits. Never raises."""
+    try:
+        bust_astro_context_cache(user_id)
+    except Exception as e:
+        print(f"[CACHE] Failed to bust astro context for user {user_id}: {e}")
+    try:
+        bust_observable_objects_cache(username)
+    except Exception as e:
+        print(f"[CACHE] Failed to bust observable objects for {username}: {e}")
+    if curves:
+        for name in object_names:
+            try:
+                bust_object_curves(username, name)
+            except Exception as e:
+                print(f"[CACHE] Failed to bust curves for {username}/{name}: {e}")
+    if outlook:
+        try:
+            delete_outlook_files(user_id)
+        except Exception as e:
+            print(f"[CACHE] Failed to delete outlook files for user {user_id}: {e}")
 
 
 # === File & YAML IO helpers ===
