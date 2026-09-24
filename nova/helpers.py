@@ -285,11 +285,7 @@ def invalidate_object_caches(user_id: int, username: str, object_names=(),
                 bust_object_curves(username, name)
             except Exception as e:
                 print(f"[CACHE] Failed to bust curves for {username}/{name}: {e}")
-    if outlook:
-        try:
-            delete_outlook_files(user_id)
-        except Exception as e:
-            print(f"[CACHE] Failed to delete outlook files for user {user_id}: {e}")
+    # outlook is kept for compatibility; fingerprinted Outlook filenames make deletion unnecessary.
 
 
 # === File & YAML IO helpers ===
