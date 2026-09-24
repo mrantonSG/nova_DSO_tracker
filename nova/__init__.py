@@ -2345,6 +2345,66 @@ def warm_main_cache(username, location_name, user_config, sampling_interval, tri
         print(f"❌ [CACHE WARMER] FATAL ERROR during cache warming for '{location_name}': {e}")
         traceback.print_exc()
 
+
+def warm_default_locations():
+    """
+    Warms the main data cache for each user's dashboard location only
+    (default if active, otherwise the first active one), one user at a time.
+    Runs synchronously; the caller is expected to run it in a daemon thread.
+    """
+    with app.app_context():
+        try:
+            if SINGLE_USER_MODE:
+                usernames_to_check = ["default"]
+            else:
+                try:
+                    _db = get_db()
+                    all_db_users = _db.query(DbUser).filter(DbUser.active == True).all()
+                    usernames_to_check = [u.username for u in all_db_users]
+                except Exception as e:
+                    print(f"[WARM] Could not query users: {e}")
+                    usernames_to_check = []
+
+            usernames = list(set(usernames_to_check))
+            for i, username in enumerate(usernames):
+                if len(nightly_curves_cache) >= 0.8 * nightly_curves_cache._maxsize:
+                    print("[WARM] cache 80% full, stopping")
+                    break
+
+                try:
+                    config = build_user_config_from_db(username)
+                    locations = config.get("locations", {}) if config else {}
+
+                    # Same rule as load_full_astro_context
+                    active_locations = [name for name, loc in locations.items() if loc.get('active')]
+                    location_name = config.get("default_location") if config else None
+                    if not location_name or location_name not in active_locations:
+                        location_name = next(iter(active_locations), None)
+
+                    if not location_name:
+                        print(f"[WARM] {username}: no active location, skipped")
+                        continue
+
+                    # Same rule as run_tasks_sequentially
+                    if SINGLE_USER_MODE:
+                        sampling_interval = config.get('sampling_interval_minutes') or 15
+                    else:
+                        sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
+
+                    warm_main_cache(username, location_name, config, sampling_interval, trigger_outlook=False)
+                    print(f"[WARM] {username}/{location_name}: done")
+                except Exception as e:
+                    print(f"[WARM] {username}: error: {e}")
+                finally:
+                    # Release this user's DB state before the pause
+                    SessionLocal.remove()
+
+                if i < len(usernames) - 1:
+                    time.sleep(15)
+        finally:
+            SessionLocal.remove()
+
+
 # --- Anonymous telemetry helpers ---
 def is_docker_env():
     try:
