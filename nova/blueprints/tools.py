@@ -27,7 +27,7 @@ from nova.helpers import (
     get_db, allowed_file, get_user_log_string,
     calculate_dither_recommendation,
     safe_int, _compute_rig_metrics_from_components,
-    sort_rigs, get_outlook_cache_path,
+    sort_rigs, outlook_cache_file,
     bust_astro_context_cache,
     bust_nightly_curves_cache,
     invalidate_object_caches,
@@ -785,24 +785,30 @@ def import_config():
         import_interval = 15
         if SINGLE_USER_MODE:
             import_interval = user_config_for_thread.get('sampling_interval_minutes') or 15
+        else:
+            import_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
 
         locations_in_import = user_config_for_thread.get('locations', {})
+
+        # The imported YAML has no location ids; look them up after the commit
+        imported_loc_ids = dict(
+            db.query(Location.name, Location.id).filter_by(user_id=user_id_for_thread).all()
+        )
+        for loc_name, loc_data in locations_in_import.items():
+            if loc_name in imported_loc_ids:
+                loc_data['db_id'] = imported_loc_ids[loc_name]
 
         for loc_name, loc_data in locations_in_import.items():
             # FILTER: Skip inactive locations to prevent CPU spikes
             if not loc_data.get('active', True):
                 continue
+            if loc_data.get('db_id') is None:
+                print(f"[IMPORT_CONFIG] Location '{loc_name}' not found in DB after import; skipping Outlook update.")
+                continue
 
-            # 1. Standardize filename construction (Matches Master Cache)
             user_log_key = get_user_log_string(user_id_for_thread, username)
-            safe_log_key = user_log_key.replace(" | ", "_").replace(".", "").replace(" ", "_")
-
             status_key = f"({user_log_key})_{loc_name}"
-            cache_filename = get_outlook_cache_path(
-                safe_log_key,
-                float(loc_data['lat']),
-                float(loc_data['lon']),
-            )
+            cache_filename = outlook_cache_file(user_id_for_thread, loc_name, user_config_for_thread)
 
             # 2. REMOVED 'if not os.path.exists': Always force update on import
 

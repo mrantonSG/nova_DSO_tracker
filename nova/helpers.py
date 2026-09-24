@@ -138,6 +138,78 @@ def heatmap_cache_path(user_id, location_id, fingerprint: str, part_index: int) 
     return os.path.join(CACHE_DIR, f"heatmap_v6_{user_id}_{location_id}_{fingerprint}.part{part_index}.json")
 
 
+def outlook_cache_file(user_id, location_name, user_config, sim_date=None) -> str:
+    """
+    Fingerprinted Outlook cache path for one user + location.
+    Hashes the same inputs update_outlook_cache reads (location, horizon,
+    threshold, sampling interval, imaging criteria, active objects, framings,
+    start date), so any change to them yields a new filename.
+    `user_config` must be the same dict passed to update_outlook_cache.
+    """
+    loc_cfg = (user_config.get("locations") or {}).get(location_name) or {}
+    db_id = loc_cfg.get("db_id")
+    if db_id is None:
+        raise ValueError(f"Location '{location_name}' has no db_id; cannot build Outlook cache filename.")
+
+    lat = loc_cfg.get("lat")
+    lon = loc_cfg.get("lon")
+    tz_name = loc_cfg.get("timezone", "UTC")
+    mask = sorted([float(p[0]), float(p[1])] for p in (loc_cfg.get("horizon_mask") or []))
+
+    # Same rule as the callers of update_outlook_cache
+    if nova.SINGLE_USER_MODE:
+        sampling_interval = user_config.get('sampling_interval_minutes', 15)
+    else:
+        sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
+
+    # Same queries as update_outlook_cache
+    db = get_db()
+    active_rows = db.query(AstroObject).filter_by(user_id=user_id, active_project=True).all()
+    obj_parts = sorted(
+        (
+            (o.object_name, o.ra_hours, o.dec_deg, o.common_name, o.type,
+             o.constellation, o.magnitude, o.size, o.sb, o.project_name)
+            for o in active_rows
+        ),
+        key=lambda t: (t[0] or "", json.dumps(t, default=str)),
+    )
+    try:
+        rows = db.query(SavedFraming.object_name).filter_by(user_id=user_id).all()
+        framed = sorted({r[0] for r in rows}, key=lambda n: n or "")
+    except Exception:
+        framed = []
+
+    # Start date: same parsing and fallback as update_outlook_cache
+    start_date = None
+    if sim_date:
+        try:
+            start_date = datetime.strptime(sim_date, '%Y-%m-%d').date()
+        except ValueError:
+            start_date = None
+    if start_date is None:
+        try:
+            start_date = datetime.now(pytz.timezone(tz_name)).date()
+        except pytz.exceptions.UnknownTimeZoneError:
+            start_date = datetime.now(pytz.utc).date()
+
+    fp = cache_fingerprint({
+        "version": "v2",
+        "location_id": db_id,
+        "lat": float(lat) if lat is not None else None,
+        "lon": float(lon) if lon is not None else None,
+        "tz": tz_name,
+        "horizon_mask": mask,
+        "altitude_threshold": user_config.get("altitude_threshold", 20),
+        "sampling_interval": sampling_interval,
+        "imaging_criteria": user_config.get("imaging_criteria"),
+        "objects": obj_parts,
+        "framed": framed,
+        "start_date": start_date.isoformat(),
+    })
+    suffix = f"_{sim_date}" if sim_date else ""
+    return os.path.join(CACHE_DIR, f"outlook_v2_{user_id}_{db_id}_{fp}{suffix}.json")
+
+
 def bust_astro_context_cache(user_id: int) -> None:
     """Invalidate the astro context cache for a user after any
     AstroObject or Location write."""
@@ -180,14 +252,20 @@ def bust_observable_objects_cache(username: str) -> None:
 
 def delete_outlook_files(user_id: int) -> None:
     """Delete all outlook cache files for a user.
-    Filenames use the safe log-key format: outlook_cache_(123_Name)_lat_lon.json"""
+    Current format: outlook_v2_{user_id}_{db_id}_{fp}[_{sim_date}].json (+ _debug.yaml).
+    Legacy format: outlook_cache_(123_Name)_lat_lon.json"""
     import glob as _glob
-    cache_pattern = os.path.join(CACHE_DIR, f"outlook_cache_({user_id}_*.json")
-    for cf in _glob.glob(cache_pattern):
-        try:
-            os.remove(cf)
-        except FileNotFoundError:
-            pass
+    patterns = (
+        f"outlook_v2_{user_id}_*.json",
+        f"outlook_v2_{user_id}_*_debug.yaml",
+        f"outlook_cache_({user_id}_*.json",
+    )
+    for pattern in patterns:
+        for cf in _glob.glob(os.path.join(CACHE_DIR, pattern)):
+            try:
+                os.remove(cf)
+            except FileNotFoundError:
+                pass
 
 
 def invalidate_object_caches(user_id: int, username: str, object_names=(),

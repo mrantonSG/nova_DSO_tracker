@@ -136,7 +136,7 @@ from nova.helpers import (
     load_full_astro_context, get_ra_dec,
     # Additional helpers extracted
     normalize_object_name, _parse_float_from_request, sort_rigs,
-    get_outlook_cache_path,
+    get_outlook_cache_path, outlook_cache_file,
 )
 from nova.config import DEFAULT_DITHER_MAIN_SHIFT_PX
 from nova.report_graphs import generate_session_charts
@@ -1652,14 +1652,14 @@ def trigger_outlook_update_for_user(username):
         def _process_locations_sequentially(uid, uname, loc_list, cfg, interval):
             for loc_name in loc_list:
                 user_log_key = get_user_log_string(uid, uname)
-                safe_log_key = user_log_key.replace(" | ", "_").replace(".", "").replace(" ", "_")
                 status_key = f"({user_log_key})_{loc_name}"
-                loc_cfg = cfg.get('locations', {}).get(loc_name, {})
-                cache_filename = get_outlook_cache_path(
-                    safe_log_key,
-                    float(loc_cfg['lat']),
-                    float(loc_cfg['lon']),
-                )
+                try:
+                    # App context so the fingerprint's DB session is cleaned up on exit
+                    with app.app_context():
+                        cache_filename = outlook_cache_file(uid, loc_name, cfg)
+                except Exception as e:
+                    print(f"Error building Outlook cache filename for {loc_name}: {e}")
+                    continue
 
                 cache_worker_status[status_key] = "starting"
                 # Call update_outlook_cache directly (blocking) to enforce sequential execution

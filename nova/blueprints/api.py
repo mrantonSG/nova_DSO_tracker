@@ -204,18 +204,7 @@ def update_object():
 
         coords_changed = (obj.ra_hours != old_ra) or (obj.dec_deg != old_dec)
         invalidate_object_caches(user.id, user.username, [obj.object_name],
-                                 curves=coords_changed, outlook=False)
-
-        # Bust all outlook cache files for this user (cache keyed by user log key)
-        try:
-            from nova.config import CACHE_DIR
-            import glob as _glob
-            # Filenames use the log-key format: outlook_cache_(123 | Name)_lat_lon.json
-            cache_pattern = _glob.path.join(CACHE_DIR, f"outlook_cache_({user.id}_*.json")
-            for cf in _glob.glob(cache_pattern):
-                os.remove(cf)
-        except Exception:
-            pass  # Non-critical: missing cache files just trigger a fresh compute
+                                 curves=coords_changed, outlook=True)
 
         return jsonify({"status": "success", "message": f"Object '{object_name}' updated."})
 

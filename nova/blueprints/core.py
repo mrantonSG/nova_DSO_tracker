@@ -57,7 +57,7 @@ from nova.helpers import (
     convert_to_native_python,
     dither_display,
     get_db,
-    get_outlook_cache_path,
+    outlook_cache_file,
     get_ra_dec,
     get_user_log_string,
     load_full_astro_context,
@@ -895,16 +895,8 @@ def get_outlook_data():
     date_suffix = f"_{sim_date_str}" if sim_date_str else ""
 
     # 3. Construct cache filename and status key
-    # We append the date suffix so simulated caches don't overwrite the realtime cache
-    safe_log_key = user_log_key.replace(" | ", "_").replace(".", "").replace(" ", "_")
-    loc_data = g.locations.get(location_name, {})
-
-    cache_filename = get_outlook_cache_path(
-        safe_log_key,
-        float(loc_data['lat']),
-        float(loc_data['lon']),
-        date_suffix if date_suffix else "",
-    )
+    # The sim_date suffix keeps simulated caches apart from the realtime cache
+    cache_filename = outlook_cache_file(user_id, location_name, g.user_config, sim_date_str or None)
     status_key = f"({user_log_key})_{location_name}{date_suffix}"
     # --- END OF CHANGES ---
 
@@ -996,13 +988,8 @@ def prewarm_outlook():
             return jsonify({"status": "skipped", "reason": "location_data_missing"}), 200
 
         user_log_key = get_user_log_string(user_id, username)
-        safe_log_key = user_log_key.replace(" | ", "_").replace(".", "").replace(" ", "_")
 
-        cache_filename = get_outlook_cache_path(
-            safe_log_key,
-            float(loc_data['lat']),
-            float(loc_data['lon']),
-        )
+        cache_filename = outlook_cache_file(user_id, location_name, g.user_config)
         status_key = f"({user_log_key})_{location_name}"
 
         # Skip if a worker is already running for this location
