@@ -1341,6 +1341,7 @@ def stream_fetch_details():
             if modified_count > 0:
                 yield f"data: {json.dumps({'progress': 99, 'message': 'Saving changes...'})}\n\n"
                 db.commit()
+                invalidate_object_caches(app_db_user.id, username, [], curves=False, outlook=False)
 
             # Send final done signal
             yield f"data: {json.dumps({'progress': 100, 'message': 'Complete!', 'done': True, 'modified': modified_count})}\n\n"
@@ -1401,6 +1402,7 @@ def fetch_all_details():
 
         if modified:
             db.commit()
+            invalidate_object_caches(app_db_user.id, username, [], curves=False, outlook=False)
             flash(_("Fetched and saved missing object details."), "success")
         else:
             flash(_("No missing data found or no updates needed."), "info")

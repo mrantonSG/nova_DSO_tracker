@@ -1723,6 +1723,7 @@ def bulk_fetch_details():
                     error_count += 1
 
         db.commit()
+        invalidate_object_caches(user_id, g.db_user.username, [], curves=False, outlook=False)
 
         msg = f"Updated details for {updated_count} object(s)."
         if error_count > 0:
