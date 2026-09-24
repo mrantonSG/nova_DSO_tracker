@@ -45,7 +45,7 @@ from nova.helpers import (
     get_db, load_full_astro_context, get_locale,
     get_all_mobile_up_now_data, get_ra_dec, safe_float,
     read_log_content, enable_user, disable_user, delete_user,
-    bust_astro_context_cache,
+    bust_astro_context_cache, invalidate_object_caches,
 )
 from nova.models import (
     DbUser, AstroObject, JournalSession, Project,
@@ -168,6 +168,9 @@ def update_object():
         if not obj:
             return jsonify({"status": "error", "message": _("Object not found")}), 404
 
+        old_ra = obj.ra_hours
+        old_dec = obj.dec_deg
+
         # Update all fields from the payload
         obj.common_name = data.get('name')
         obj.ra_hours = float(data.get('ra'))
@@ -197,6 +200,10 @@ def update_object():
                 obj.shared_notes = data.get('shared_notes')
 
         db.commit()
+
+        coords_changed = (obj.ra_hours != old_ra) or (obj.dec_deg != old_dec)
+        invalidate_object_caches(user.id, user.username, [obj.object_name],
+                                 curves=coords_changed, outlook=False)
 
         # Bust all outlook cache files for this user (cache keyed by user log key)
         try:
