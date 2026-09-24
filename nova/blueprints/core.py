@@ -64,6 +64,7 @@ from nova.helpers import (
     normalize_object_name,
     bust_astro_context_cache,
     bust_nightly_curves_cache,
+    invalidate_object_caches,
 )
 from nova.models import (
     AnalyticsEvent,
@@ -553,6 +554,9 @@ def config_form():
         if request.method == 'POST':
             location_written = False
             skyglow_locations = []
+            objects_written = False
+            curve_names = []
+            outlook_needed = False
             # --- General Settings Tab ---
             if 'submit_general' in request.form:
                 prefs = db.query(UiPref).filter_by(user_id=app_db_user.id).first()
@@ -719,8 +723,13 @@ def config_form():
                 for obj in objs_to_update:
                     # Handle deletion first
                     if request.form.get(f"delete_{obj.object_name}") == "on":
+                        curve_names.append(obj.object_name)
+                        if obj.active_project:
+                            outlook_needed = True
                         db.delete(obj);
                         continue
+
+                    old_ra, old_dec, old_active = obj.ra_hours, obj.dec_deg, obj.active_project
 
                     # Update standard fields
                     obj.common_name = request.form.get(f"name_{obj.object_name}")
@@ -738,15 +747,25 @@ def config_form():
                     obj.active_project = request.form.get(f"active_project_{obj.object_name}") == "on"
                     # --- END NEW LOGIC ---
 
+                    coords_changed = obj.ra_hours != old_ra or obj.dec_deg != old_dec
+                    if coords_changed:
+                        curve_names.append(obj.object_name)
+                    if obj.active_project != old_active or (coords_changed and old_active):
+                        outlook_needed = True
+
                     if not obj.original_user_id:
                         obj.is_shared = request.form.get(f"is_shared_{obj.object_name}") == "on"
                         obj.shared_notes = request.form.get(f"shared_notes_{obj.object_name}")
 
+                objects_written = True
                 message = "Objects updated."
 
             if not error:
                 db.commit()
                 bust_astro_context_cache(g.db_user.id)
+                if objects_written:
+                    invalidate_object_caches(g.db_user.id, username, curve_names,
+                                             curves=bool(curve_names), outlook=outlook_needed)
                 if location_written:
                     bust_nightly_curves_cache(g.user_config.get('username') or g.db_user.username)
                     if skyglow_locations:
