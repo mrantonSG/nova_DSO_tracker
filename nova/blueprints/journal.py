@@ -45,7 +45,7 @@ from nova.helpers import (
     save_log_to_filesystem, read_log_content, dither_display,
     # Moved from nova.__init__ for clean imports
     load_full_astro_context, generate_session_id,
-    _compute_rig_metrics_from_components, get_ra_dec
+    _compute_rig_metrics_from_components, get_ra_dec, invalidate_object_caches
 )
 from nova.analytics import record_event
 from nova.report_graphs import generate_session_charts
@@ -872,6 +872,8 @@ def add_project_from_journal():
                 should_trigger_outlook = True
 
         db.commit()
+
+        invalidate_object_caches(user.id, username, [], curves=False, outlook=False)
 
         if should_trigger_outlook:
             trigger_outlook_update_for_user(username)
