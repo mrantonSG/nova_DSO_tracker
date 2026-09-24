@@ -14,6 +14,33 @@ from nova.helpers import get_db, heatmap_fingerprint, heatmap_cache_path
 from modules.astro_calculations import calculate_observable_duration_vectorized
 
 
+def _cleanup_old_cache_files(max_age_days=3):
+    """
+    Delete heatmap_* and outlook_* files (incl. _debug.yaml companions) directly
+    inside CACHE_DIR whose mtime is older than max_age_days. Never raises.
+    """
+    try:
+        cutoff = time.time() - max_age_days * 86400
+        removed = 0
+        with os.scandir(CACHE_DIR) as entries:
+            for entry in entries:
+                if not entry.name.startswith(("heatmap_", "outlook_")):
+                    continue
+                try:
+                    if not entry.is_file(follow_symlinks=False):
+                        continue
+                    if entry.stat(follow_symlinks=False).st_mtime >= cutoff:
+                        continue
+                    os.remove(entry.path)
+                    removed += 1
+                except FileNotFoundError:
+                    # Another process removed it first
+                    continue
+        print(f"[HEATMAP WORKER] Cleanup: removed {removed} old cache files")
+    except Exception as e:
+        print(f"[HEATMAP WORKER] Cleanup failed: {e}")
+
+
 def heatmap_background_worker(app):
     """
     Background thread that gently checks for stale heatmap caches (older than 24h)
@@ -194,6 +221,8 @@ def heatmap_background_worker(app):
                     print(f"[HEATMAP WORKER] Finished updating {task['loc_name']}.")
                     # Sleep between locations
                     time.sleep(30)
+
+            _cleanup_old_cache_files()
 
             # Sleep 4 hours before next check
             print("[HEATMAP WORKER] Cycle done. Sleeping 4 hours.")
