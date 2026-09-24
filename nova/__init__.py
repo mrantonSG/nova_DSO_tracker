@@ -3633,10 +3633,6 @@ if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
 
             migrate_journal_data()
 
-            # Note: Cache warming should ideally run per-worker or be managed differently,
-            # but we keep it here to avoid load spikes on restart.
-            trigger_startup_cache_workers()
-
             try:
                 with open(tasks_ran_flag_path, 'w') as f:
                     f.write(datetime.now(timezone.utc).isoformat())
