@@ -33,7 +33,7 @@ from nova.models import (
     DbUser, Project, JournalSession, AstroObject
 )
 from nova.helpers import (
-    get_db, load_full_astro_context, read_log_content
+    get_db, load_full_astro_context, read_log_content, invalidate_object_caches
 )
 from nova.analytics import record_event
 from nova.report_graphs import generate_session_charts
@@ -121,6 +121,9 @@ def project_detail(project_id):
             if new_filename:
                 project.final_image_file = new_filename
 
+            # Track whether any active_project flag actually changes (drives Outlook rebuild)
+            active_changed = False
+
             # If the primary target is changed, check if the linked object has notes
             if project.target_object_name:
                 target_obj_in_config = db.query(AstroObject).filter_by(
@@ -129,7 +132,10 @@ def project_detail(project_id):
                 if target_obj_in_config:
                     # Update active_project status based on this primary project
                     # Set active if status is "In Progress", otherwise set inactive
+                    old_active = bool(target_obj_in_config.active_project)
                     target_obj_in_config.active_project = (project.status == "In Progress")
+                    if target_obj_in_config.active_project != old_active:
+                        active_changed = True
 
             # If the target changed, clear active_project on the old target — but only
             # if no other project still points at it.
@@ -144,9 +150,12 @@ def project_detail(project_id):
                         user_id=g.db_user.id, object_name=old_target_name
                     ).one_or_none()
                     if old_target_obj:
+                        if old_target_obj.active_project:
+                            active_changed = True
                         old_target_obj.active_project = False
 
             db.commit()
+            invalidate_object_caches(g.db_user.id, username, [], curves=False, outlook=active_changed)
             flash(_("Project updated successfully."), "success")
 
             # --- Redirect Logic (Updated) ---
@@ -385,6 +394,9 @@ def delete_project(project_id):
             flash(_("Project not found."), "error")
             return redirect(url_for('core.index'))
 
+        # Track whether the active_project flag actually changes (drives Outlook rebuild)
+        active_changed = False
+
         # Optional: Unset 'active_project' flag on the associated object if it exists
         if project.target_object_name:
             obj = db.query(AstroObject).filter_by(user_id=user.id, object_name=project.target_object_name).one_or_none()
@@ -395,6 +407,8 @@ def delete_project(project_id):
                     Project.target_object_name == project.target_object_name
                 ).first()
                 if not other_project_with_target:
+                    if obj.active_project:
+                        active_changed = True
                     obj.active_project = False
 
         # Delete the project.
@@ -402,6 +416,7 @@ def delete_project(project_id):
         # because of the ForeignKey(ondelete="SET NULL") definition in your model.
         db.delete(project)
         db.commit()
+        invalidate_object_caches(user.id, username, [], curves=False, outlook=active_changed)
 
         flash(_("Project '%(project_name)s' deleted. Sessions are now standalone.", project_name=project.name), "success")
 
