@@ -126,6 +126,7 @@ from nova.config import (
 from nova.helpers import (
     get_db, get_user_log_string, allowed_file, _yaml_dump_pretty,
     _mkdirp, _backup_with_rotation, _atomic_write_yaml, _FileLock,
+    try_acquire_file_lock, release_file_lock,
     to_yaml_filter, safe_float, safe_int, convert_to_native_python,
     load_effective_settings,
     get_imaging_criteria, _HAS_FCNTL,
@@ -1800,10 +1801,17 @@ def update_outlook_cache(user_id, status_key, cache_filename, location_name, use
     # e.g., cache_filename = ".../outlook_cache_123_FirstName_L_home.json"
 
     with app.app_context():  # Keep app context for potential future DB needs, but avoid using 'g'
-        print(f"--- [OUTLOOK WORKER {status_key}] Starting ---")
-        cache_worker_status[status_key] = "running"
+        # Only one process may calculate a given Outlook file at a time
+        lock_fh = try_acquire_file_lock(cache_filename)
+        if lock_fh is None:
+            print(f"[OUTLOOK WORKER {status_key}] Another process is calculating this file; skipping.")
+            cache_worker_status[status_key] = "idle"
+            return
 
         try:
+            print(f"--- [OUTLOOK WORKER {status_key}] Starting ---")
+            cache_worker_status[status_key] = "running"
+
             # --- Extract Location Data from ARGUMENTS ---
             all_locations_from_config = user_config.get("locations", {})
             loc_cfg = all_locations_from_config.get(location_name)
@@ -1871,7 +1879,9 @@ def update_outlook_cache(user_id, status_key, cache_filename, location_name, use
                 print(f"[OUTLOOK WORKER {status_key}] No active projects. Writing empty cache.")
                 cache_content = {"metadata": {"last_successful_run_utc": datetime.now(pytz.utc).isoformat(),
                                               "location": location_name, "user_id": user_id}, "opportunities": []}
-                with open(cache_filename, 'w') as f: json.dump(cache_content, f)
+                tmp_filename = cache_filename + ".tmp"
+                with open(tmp_filename, 'w') as f: json.dump(cache_content, f)
+                os.replace(tmp_filename, cache_filename)
                 cache_worker_status[status_key] = "complete"
                 print(f"--- [OUTLOOK WORKER {status_key}] Finished (no active projects) ---")
                 return  # Exit early
@@ -1995,8 +2005,10 @@ def update_outlook_cache(user_id, status_key, cache_filename, location_name, use
             # --- END CHANGE ---
 
             # --- START CHANGE (to use the passed-in cache_filename) ---
-            with open(cache_filename, 'w') as f:
+            tmp_filename = cache_filename + ".tmp"
+            with open(tmp_filename, 'w') as f:
                 json.dump(cache_content, f)
+            os.replace(tmp_filename, cache_filename)
             print(f"[OUTLOOK WORKER {status_key}] Successfully updated cache: {cache_filename}")
             try:
                 _atomic_write_yaml(cache_filename.replace('.json', '_debug.yaml'), cache_content)
@@ -2011,6 +2023,7 @@ def update_outlook_cache(user_id, status_key, cache_filename, location_name, use
             traceback.print_exc()
             cache_worker_status[status_key] = "error"
         finally:
+            release_file_lock(lock_fh)
             print(f"--- [OUTLOOK WORKER {status_key}] Finished (Status: {cache_worker_status.get(status_key)}) ---")
 
 def warm_main_cache(username, location_name, user_config, sampling_interval, trigger_outlook=True):

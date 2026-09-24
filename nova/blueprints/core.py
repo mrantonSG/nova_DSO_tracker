@@ -900,11 +900,8 @@ def get_outlook_data():
     status_key = f"({user_log_key})_{location_name}{date_suffix}"
     # --- END OF CHANGES ---
 
-    worker_status = cache_worker_status.get(status_key, "idle")
-    if worker_status in ["running", "starting"]:
-        print(f"[OUTLOOK] Worker for {status_key} is '{worker_status}'. Telling client to wait.")
-        return jsonify({"status": worker_status, "results": []})
-
+    # A fresh file wins over this process's worker status: another gunicorn
+    # worker may have calculated it.
     if os.path.exists(cache_filename):
         try:
             cache_mtime = os.path.getmtime(cache_filename)
@@ -927,6 +924,11 @@ def get_outlook_data():
         except (json.JSONDecodeError, IOError, OSError) as e:
             print(f"❌ ERROR: Could not read/parse outlook cache '{cache_filename}': {e}")
 
+    worker_status = cache_worker_status.get(status_key, "idle")
+    if worker_status in ["running", "starting"]:
+        print(f"[OUTLOOK] Worker for {status_key} is '{worker_status}'. Telling client to wait.")
+        return jsonify({"status": worker_status, "results": []})
+
     print(f"[OUTLOOK] Triggering new worker for {status_key} (current status: {worker_status}).")
     try:
         if not hasattr(g, 'user_config') or not g.user_config:
@@ -946,8 +948,8 @@ def get_outlook_data():
                                   args=(user_id, status_key, cache_filename, location_name, g.user_config.copy(),
                                         sampling_interval, sim_date_str))
         # --- END OF CHANGE ---
-        thread.start()
         cache_worker_status[status_key] = "starting"
+        thread.start()
         return jsonify({"status": "starting", "results": []})
 
     except Exception as e:
@@ -1019,8 +1021,8 @@ def prewarm_outlook():
             args=(user_id, status_key, cache_filename, location_name,
                   g.user_config.copy(), sampling_interval, None)
         )
-        thread.start()
         cache_worker_status[status_key] = "starting"
+        thread.start()
         print(f"[PREWARM] Started background outlook refresh for {status_key}")
         return jsonify({"status": "triggered"}), 200
 

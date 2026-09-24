@@ -388,6 +388,41 @@ class _FileLock:
             pass
 
 
+def try_acquire_file_lock(path: str):
+    """Non-blocking advisory lock on path + ".lock".
+
+    Returns the open handle if acquired, or None if another holder has it.
+    Without fcntl the handle is returned unlocked (no cross-process guard).
+    """
+    fh = open(path + ".lock", "a+")
+    if not _HAS_FCNTL:
+        return fh
+    try:
+        fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        fh.close()
+        return None
+    except OSError:
+        # flock unsupported here (e.g. some network filesystems): run unguarded
+        return fh
+    return fh
+
+
+def release_file_lock(fh) -> None:
+    """Release and close a handle from try_acquire_file_lock. Never raises."""
+    if not fh:
+        return
+    try:
+        if _HAS_FCNTL:
+            fcntl.flock(fh, fcntl.LOCK_UN)
+    except Exception:
+        pass
+    try:
+        fh.close()
+    except Exception:
+        pass
+
+
 def to_yaml_filter(data):
     """Jinja2 filter to convert a Python object to a YAML string for form display."""
     if data is None:
