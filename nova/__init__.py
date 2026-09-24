@@ -2366,11 +2366,13 @@ def warm_default_locations():
                     usernames_to_check = []
 
             usernames = list(set(usernames_to_check))
+            added_this_run = 0
             for i, username in enumerate(usernames):
-                if len(nightly_curves_cache) >= 0.8 * nightly_curves_cache._maxsize:
-                    print("[WARM] cache 80% full, stopping")
+                if added_this_run >= 0.8 * nightly_curves_cache._maxsize:
+                    print("[WARM] run limit reached, stopping")
                     break
 
+                warmed = False
                 try:
                     config = build_user_config_from_db(username)
                     locations = config.get("locations", {}) if config else {}
@@ -2391,7 +2393,28 @@ def warm_default_locations():
                     else:
                         sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
 
+                    # Same date, threshold and object rules as warm_main_cache
+                    location = locations[location_name]
+                    try:
+                        local_tz = pytz.timezone(location["timezone"])
+                    except pytz.exceptions.UnknownTimeZoneError:
+                        local_tz = pytz.timezone("UTC")
+                    local_date = (datetime.now(local_tz) - timedelta(hours=12)).strftime('%Y-%m-%d')
+                    loc_threshold = location.get("altitude_threshold")
+                    altitude_threshold = loc_threshold if loc_threshold is not None else config.get(
+                        "altitude_threshold", 20)
+                    enabled_count = len([o for o in config.get("objects", [])
+                                         if o.get("enabled", True) and o.get("Object")])
+
+                    signature = (location_name, local_date, sampling_interval, altitude_threshold,
+                                 location.get("lat"), location.get("lon"), enabled_count)
+                    if _last_warmed.get(username) == signature:
+                        continue
+
                     warm_main_cache(username, location_name, config, sampling_interval, trigger_outlook=False)
+                    _last_warmed[username] = signature
+                    added_this_run += enabled_count
+                    warmed = True
                     print(f"[WARM] {username}/{location_name}: done")
                 except Exception as e:
                     print(f"[WARM] {username}: error: {e}")
@@ -2399,12 +2422,23 @@ def warm_default_locations():
                     # Release this user's DB state before the pause
                     SessionLocal.remove()
 
-                if i < len(usernames) - 1:
+                if warmed and i < len(usernames) - 1:
                     time.sleep(15)
         finally:
             SessionLocal.remove()
 
 
+def _warm_loop():
+    while True:
+        try:
+            warm_default_locations()
+        except Exception as e:
+            print(f"[WARM] loop error: {e}")
+        time.sleep(WARM_INTERVAL_SECONDS)
+
+
+_last_warmed = {}
+WARM_INTERVAL_SECONDS = 1800  # re-warm every 30 min; picks up the noon date change
 _warm_started = False
 _warm_lock = threading.Lock()
 
@@ -2419,7 +2453,7 @@ def _start_warming_once():
             return None
         _warm_started = True
     try:
-        t = threading.Thread(target=warm_default_locations, name="warm-defaults", daemon=True)
+        t = threading.Thread(target=_warm_loop, name="warm-defaults-loop", daemon=True)
         t.start()
     except Exception as e:
         print(f"[WARM] Could not start warm thread: {e}")
