@@ -1764,6 +1764,7 @@ def update_project():
             # --- END OF FIX ---
 
             db.commit()
+            invalidate_object_caches(user.id, username, [], curves=False, outlook=False)
 
             # Only trigger expensive outlook update if status actually changed
             if did_change_active_status:
@@ -1794,6 +1795,7 @@ def update_project_active():
         if obj_to_update:
             obj_to_update.active_project = bool(is_active)
             db.commit()
+            invalidate_object_caches(user.id, username, [], curves=False, outlook=False)
             from nova import trigger_outlook_update_for_user  # Lazy import
             trigger_outlook_update_for_user(username)
             return jsonify({"status": "success", "active": obj_to_update.active_project})
