@@ -1393,7 +1393,20 @@ def import_yaml_for_user():
         cfg.save(cfg_path); rigs.save(rigs_path); jrn.save(jrn_path)
 
         clear_existing = (request.form.get("clear_existing", "false").lower() == "true")
+        db = get_db()
+        old_id = db.query(DbUser.id).filter_by(username=username).scalar()
         ok = import_user_from_yaml(username, cfg_path, rigs_path, jrn_path, clear_existing=clear_existing)
+
+        try:
+            if ok:
+                bust_nightly_curves_cache(username)
+                if old_id is not None:
+                    invalidate_object_caches(old_id, username, [], curves=False, outlook=True)
+                new_id = db.query(DbUser.id).filter_by(username=username).scalar()
+                if new_id is not None and new_id != old_id:
+                    invalidate_object_caches(new_id, username, [], curves=False, outlook=True)
+        except Exception as e:
+            print(f"[CACHE] post-import clear failed: {e}")
 
         # Cleanup temp
         for p in [cfg_path, rigs_path, jrn_path]:
