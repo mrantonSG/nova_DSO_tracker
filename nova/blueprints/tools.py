@@ -30,6 +30,7 @@ from nova.helpers import (
     sort_rigs, get_outlook_cache_path,
     bust_astro_context_cache,
     bust_nightly_curves_cache,
+    invalidate_object_caches,
 )
 from nova.models import (
     DbUser, AstroObject, Component, Rig, Location,
@@ -768,6 +769,7 @@ def import_config():
             db.commit()
             bust_astro_context_cache(user.id)
             bust_nightly_curves_cache(username)
+            invalidate_object_caches(user_id_for_thread, username, [], curves=False, outlook=False)
             flash(_("Config imported successfully! (Previous config was replaced)"), "success")
         except Exception as e:
             db.rollback()
@@ -850,6 +852,7 @@ def import_catalog(pack_id):
 
         created, enriched, skipped, conflicts = import_catalog_pack_for_user(db, user, catalog_data, pack_id)
         db.commit()
+        invalidate_object_caches(user.id, username, [], curves=False, outlook=False)
 
         pack_name = (meta or {}).get("name") or pack_id
         if conflicts:
@@ -953,6 +956,8 @@ def resolve_import_conflicts():
             updated += len(entries)
 
         db.commit()
+        bust_nightly_curves_cache(username)
+        invalidate_object_caches(user.id, username, [], curves=False, outlook=True)
 
         # Remove every entry whose object_name was decided in this request,
         # keeping only truly unresolved objects for future resolution.
