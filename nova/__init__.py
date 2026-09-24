@@ -2379,6 +2379,12 @@ def warm_default_locations():
                     usernames_to_check = []
 
             usernames = list(set(usernames_to_check))
+            if not SINGLE_USER_MODE:
+                cutoff = time.time() - RECENT_VISITOR_DAYS * 86400
+                for name, seen in list(_recent_visitors.items()):
+                    if seen < cutoff and _recent_visitors.get(name, 0) < cutoff:
+                        _recent_visitors.pop(name, None)
+                usernames = [u for u in usernames if _recent_visitors.get(u, 0) >= cutoff]
             added_this_run = 0
             for i, username in enumerate(usernames):
                 if added_this_run >= 0.8 * nightly_curves_cache._maxsize:
@@ -2451,6 +2457,8 @@ def _warm_loop():
 
 
 _last_warmed = {}
+_recent_visitors = {}          # username -> time.time() of last request, this process only
+RECENT_VISITOR_DAYS = 7
 WARM_INTERVAL_SECONDS = 1800  # re-warm every 30 min; picks up the noon date change
 _warm_started = False
 _warm_lock = threading.Lock()
@@ -2470,6 +2478,19 @@ def _start_warming_once():
         t.start()
     except Exception as e:
         print(f"[WARM] Could not start warm thread: {e}")
+    return None
+
+
+@app.before_request
+def _note_recent_visitor():
+    try:
+        if app.config.get('TESTING'):
+            return None
+        user = getattr(g, 'db_user', None)
+        if user is not None and getattr(user, 'username', None):
+            _recent_visitors[user.username] = time.time()
+    except Exception:
+        pass
     return None
 
 
