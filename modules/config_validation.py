@@ -1,5 +1,14 @@
 from cerberus import Validator
 import math
+import pytz
+
+
+# Custom cerberus check: a location timezone must be an IANA zone name.
+# (Cerberus convention: a plain check_with callable receives
+# (field, value, error) and reports via error(); its return value is ignored.)
+def _check_timezone_iana(field, value, error):
+    if not (isinstance(value, str) and value in pytz.all_timezones):
+        error(field, f"'{value}' is not a valid timezone name")
 
 
 # Coercion function for numeric fields that might be strings or placeholders
@@ -51,7 +60,12 @@ config_schema = {
             'schema': {
                 'lat': {'type': 'float', 'required': True, 'min': -90, 'max': 90},
                 'lon': {'type': 'float', 'required': True, 'min': -180, 'max': 180},
-                'timezone': {'type': 'string', 'required': True, 'empty': False},
+                'timezone': {
+                    'type': 'string',
+                    'required': True,
+                    'empty': False,
+                    'check_with': _check_timezone_iana,
+                },
             }
         }
     },
