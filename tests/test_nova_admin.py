@@ -5,7 +5,8 @@ Multi-user mode only — all tests are skipped if SINGLE_USER_MODE is True.
 import pytest
 import types
 from unittest.mock import patch
-from tests.conftest import *
+from nova import app, get_or_create_db_user, UserMixin
+from sqla_mocks import MockColumn, MockSelectQuery
 
 
 class AdminMockUser(UserMixin):

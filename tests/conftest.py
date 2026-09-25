@@ -1,14 +1,38 @@
 import pytest
 import sys, os
+import shutil
+import tempfile
 # Must be set before nova is imported: nova starts background workers and telemetry at import time.
 os.environ["NOVA_DISABLE_BACKGROUND_TASKS"] = "1"
+
+# --- Throwaway instance folder, set up before nova is imported ---
+# Importing nova creates/upgrades .env, runs schema patches and migrations against
+# app.db, and takes lock files, all under INSTANCE_PATH. Point it at a temp dir so
+# the developer's real instance/ is never touched. The dir must be named "instance":
+# helpers.read_log_content resolves "instance/logs/..." against dirname(INSTANCE_PATH).
+_TEST_INSTANCE_ROOT = tempfile.mkdtemp(prefix="nova-tests-")
+_TEST_INSTANCE_PATH = os.path.join(_TEST_INSTANCE_ROOT, "instance")
+os.makedirs(_TEST_INSTANCE_PATH)
+# Every key _ensure_env_defaults checks is present, so nothing is appended, and the
+# file exists, so FIRST_RUN_ENV_CREATED stays False.
+with open(os.path.join(_TEST_INSTANCE_PATH, ".env"), "w") as _f:
+    _f.write(
+        "SECRET_KEY=test-secret-key\n"
+        "INSTANCE_ID=test-instance-id\n"
+        "NOVA_TELEMETRY_ENDPOINT=\n"
+        "NOVA_CATALOG_URL=https://catalog.invalid\n"
+        "TELEMETRY_ENABLED=false\n"
+        "SINGLE_USER_MODE=True\n"
+        "NOVA_DISABLE_BACKGROUND_TASKS=1\n"
+    )
+# migrate_journal_data() only rewrites journal_*.yaml in the (temp) configs dir;
+# skip it so it doesn't run every session.
+with open(os.path.join(_TEST_INSTANCE_PATH, "startup.done"), "w") as _f:
+    _f.write("seeded by tests/conftest.py\n")
+os.environ["INSTANCE_PATH"] = _TEST_INSTANCE_PATH
 import http.cookiejar
 from datetime import date
 import types
-from sqlalchemy.sql.elements import BinaryExpression, ColumnElement
-# ADDING IMPORT for the literal value wrapper
-from sqlalchemy.sql.expression import literal
-from sqlalchemy.sql import operators
 from sqlalchemy.sql.selectable import Select
 from sqlalchemy import StaticPool, create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
@@ -16,15 +40,15 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 
-# --- Guard: the real instance/cache/ must not be touched by the test run ---
+# --- Guard: the real instance/ must not be touched by the test run ---
 # Snapshot taken before nova is imported, compared in pytest_terminal_summary.
-_REAL_CACHE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'instance', 'cache'))
+_REAL_INSTANCE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'instance'))
 
 
-def _snapshot_cache_dir():
+def _snapshot_instance_dir():
     snap = {}
-    if os.path.isdir(_REAL_CACHE_DIR):
-        for root, _dirs, files in os.walk(_REAL_CACHE_DIR):
+    if os.path.isdir(_REAL_INSTANCE_DIR):
+        for root, _dirs, files in os.walk(_REAL_INSTANCE_DIR):
             for name in files:
                 path = os.path.join(root, name)
                 try:
@@ -35,7 +59,7 @@ def _snapshot_cache_dir():
     return snap
 
 
-_CACHE_SNAPSHOT_BEFORE = _snapshot_cache_dir()
+_INSTANCE_SNAPSHOT_BEFORE = _snapshot_instance_dir()
 
 
 from nova import (
@@ -57,34 +81,7 @@ from nova.config import (
 )
 
 
-# --- MOCK COLUMN CLASSES (The definitive fix is here) ---
-class MockColumn(ColumnElement):
-    """Mocks a SQLAlchemy column for comparison operations."""
-
-    def __init__(self, name):
-        self.name = name
-        self.type = types.SimpleNamespace(python_type=str)
-
-    def __eq__(self, other):
-        # FIX: Wrap the raw string ('other') using literal() to satisfy SQLAlchemy's internal checks.
-        # This solves the AttributeError: 'str' object has no attribute '_propagate_attrs'.
-        return BinaryExpression(self, literal(other), operators.eq, type_=self.type)
-
-    def __hash__(self):
-        return hash(self.name)
-
-
-class MockSelectQuery(types.SimpleNamespace):
-    """Mocks the select object for the login route."""
-
-    def __init__(self, entities):
-        super().__init__()
-        self.entities = entities
-        self.whereclause = types.SimpleNamespace(right=types.SimpleNamespace(value=None))
-
-    def where(self, condition):
-        self.whereclause = condition
-        return self
+from sqla_mocks import MockColumn, MockSelectQuery
 
 
 # MOCK MODEL CLASS: Inherits from User and adds the missing attributes.
@@ -135,21 +132,28 @@ def isolated_cache_dir(_session_cache_dir, tmp_path, monkeypatch):
 
 
 def pytest_terminal_summary(terminalreporter):
-    after = _snapshot_cache_dir()
-    before = _CACHE_SNAPSHOT_BEFORE
+    after = _snapshot_instance_dir()
+    before = _INSTANCE_SNAPSHOT_BEFORE
     created = sorted(set(after) - set(before))
+    removed = sorted(set(before) - set(after))
     modified = sorted(p for p in set(after) & set(before) if after[p] != before[p])
-    if not (created or modified):
+    if not (created or removed or modified):
         return
     tr = terminalreporter
-    tr.write_sep("!", "WARNING: real instance/cache/ changed during test run", yellow=True, bold=True)
-    tr.write_line(f"Directory: {_REAL_CACHE_DIR}", yellow=True)
+    tr.write_sep("!", "WARNING: real instance/ changed during test run", yellow=True, bold=True)
+    tr.write_line(f"Directory: {_REAL_INSTANCE_DIR}", yellow=True)
     for p in created:
-        tr.write_line(f"  created:  {os.path.relpath(p, _REAL_CACHE_DIR)}", yellow=True)
+        tr.write_line(f"  created:  {os.path.relpath(p, _REAL_INSTANCE_DIR)}", yellow=True)
+    for p in removed:
+        tr.write_line(f"  removed:  {os.path.relpath(p, _REAL_INSTANCE_DIR)}", yellow=True)
     for p in modified:
-        tr.write_line(f"  modified: {os.path.relpath(p, _REAL_CACHE_DIR)}", yellow=True)
+        tr.write_line(f"  modified: {os.path.relpath(p, _REAL_INSTANCE_DIR)}", yellow=True)
     tr.write_line("Note: a running dev server (python nova.py) also writes here and can cause this.", yellow=True)
     tr.write_sep("!", yellow=True, bold=True)
+
+
+def pytest_unconfigure(config):
+    shutil.rmtree(_TEST_INSTANCE_ROOT, ignore_errors=True)
 
 
 @pytest.fixture(scope="function")
@@ -171,6 +175,21 @@ def db_session(monkeypatch):
     monkeypatch.setattr('nova.get_db', TestSessionLocal)
     monkeypatch.setattr(TestSessionLocal, 'remove', lambda: None)
 
+    # nova.analytics does `from nova.models import SessionLocal` at call time, so the
+    # patches above miss it. Give it its own in-memory DB rather than TestSessionLocal:
+    # record_event() closes the session it gets, which would detach the test's objects,
+    # and its writes would skew the exact counts test_analytics.py asserts on.
+    analytics_engine = create_engine(
+        "sqlite:///:memory:",
+        poolclass=StaticPool,
+        connect_args={"check_same_thread": False},
+    )
+    Base.metadata.create_all(analytics_engine)
+    monkeypatch.setattr(
+        'nova.models.SessionLocal',
+        scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=analytics_engine)),
+    )
+
     session = TestSessionLocal()
     guest_user = DbUser(username="guest_user")
     session.add(guest_user)
@@ -190,6 +209,7 @@ def db_session(monkeypatch):
             pass
         TestSessionLocal.remove()
         Base.metadata.drop_all(engine)
+        analytics_engine.dispose()
 
 
 @pytest.fixture
