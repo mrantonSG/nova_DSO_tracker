@@ -137,7 +137,7 @@ from nova.helpers import (
     load_full_astro_context, get_ra_dec,
     # Additional helpers extracted
     normalize_object_name, _parse_float_from_request, sort_rigs,
-    get_outlook_cache_path, outlook_cache_file,
+    outlook_cache_file,
 )
 from nova.config import DEFAULT_DITHER_MAIN_SHIFT_PX
 from nova.report_graphs import generate_session_charts
@@ -1685,107 +1685,6 @@ def trigger_outlook_update_for_user(username):
     except Exception as e:
         print(f"❌ ERROR: Failed to trigger background Outlook update: {e}")
 
-def trigger_startup_cache_workers():
-    """
-    REVISED FOR DATABASE: Gets users from the DB to warm caches for ACTIVE locations only.
-    """
-    print("[STARTUP] Checking all caches for freshness...")
-
-    # We need an application context to talk to the database
-    with app.app_context():
-        if SINGLE_USER_MODE:
-            usernames_to_check = ["default"]
-        else:
-            # Pull usernames from the unified DB (DbUser)
-            try:
-                _db = get_db()
-                # Query only active users from the DbUser table
-                all_db_users = _db.query(DbUser).filter(DbUser.active == True).all()
-                usernames_to_check = [u.username for u in all_db_users]
-            except Exception as e:
-                print(f"⚠️ [STARTUP] Could not query unified DB users. Error: {e}")
-                usernames_to_check = [] # Fallback to empty list on error
-
-        # Prepare tasks only for active locations
-        all_tasks = []
-        for username in set(usernames_to_check):
-            try:
-                print(f"--- Preparing tasks for user: {username} ---")
-                # Build the user's config dictionary directly from the database
-                config = build_user_config_from_db(username)
-                if not config or not config.get("locations"):
-                    print(f"    -> No locations in DB for user '{username}', skipping.")
-                    continue
-
-                locations = config.get("locations", {})
-                default_location_name = config.get("default_location")
-
-                # --- NEW FILTERING LOGIC ---
-                active_location_names = []
-                default_active_location = None
-                for loc_name, loc_details in locations.items():
-                    # Use .get('active', True) to default to active if the flag isn't set (older configs)
-                    # We check the 'active' flag from the config dict built from the DB
-                    if loc_details.get('active', True):
-                        active_location_names.append(loc_name)
-                        if loc_name == default_location_name:
-                            default_active_location = loc_name
-                # --- END NEW FILTERING LOGIC ---
-
-                if not active_location_names:
-                    print(f"    -> No ACTIVE locations found for user '{username}', skipping cache warming.")
-                    continue
-
-                # Prioritize the default location if it's active
-                if default_active_location:
-                    # Add the default location first
-                    all_tasks.insert(0, (username, default_active_location, config.copy()))
-                    # Add remaining active locations
-                    for loc_name in active_location_names:
-                        if loc_name != default_active_location:
-                            all_tasks.append((username, loc_name, config.copy()))
-                else:
-                    # If default isn't active (or doesn't exist), just add all active ones
-                     for loc_name in active_location_names:
-                         all_tasks.append((username, loc_name, config.copy()))
-
-            except Exception as e:
-                print(f"❌ [STARTUP] ERROR: Could not prepare startup tasks for user '{username}': {e}")
-                traceback.print_exc() # Print traceback for detailed debugging
-
-        # Function to run tasks sequentially with a delay
-        def run_tasks_sequentially(tasks):
-            if not tasks:
-                print("[STARTUP] All cache workers have completed.")
-                return
-
-            username, loc_name, cfg = tasks.pop(0)
-            print(f"[STARTUP] Now processing task for user '{username}' at location '{loc_name}'.")
-
-            # Determine the sampling interval to pass to the thread
-            sampling_interval = 15 # Default
-            if SINGLE_USER_MODE:
-                # In single-user mode, get it from the user's config (UiPref blob)
-                sampling_interval = cfg.get('sampling_interval_minutes') or 15
-            else:
-                # In multi-user mode, get it from environment variables (or default)
-                sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
-
-            # Start the cache warming thread for the main data cache
-            # This thread will subsequently trigger the outlook cache update
-            worker_thread = threading.Thread(target=warm_main_cache, args=(username, loc_name, cfg, sampling_interval))
-            worker_thread.start()
-
-            # Schedule the next task after a delay (e.g., 15 seconds)
-            threading.Timer(15.0, run_tasks_sequentially, args=[tasks]).start()
-
-        print(f"[STARTUP] Found a total of {len(all_tasks)} active user/location tasks to process.")
-        if all_tasks:
-            # Start the sequential processing
-            run_tasks_sequentially(all_tasks)
-        else:
-            print("[STARTUP] No active locations found across all users. No cache warming needed.")
-
 
 # --- CHANGE THIS (the function definition) ---
 def update_outlook_cache(user_id, status_key, cache_filename, location_name, user_config, sampling_interval,
@@ -2028,9 +1927,11 @@ def update_outlook_cache(user_id, status_key, cache_filename, location_name, use
 
 def warm_main_cache(username, location_name, user_config, sampling_interval, trigger_outlook=True):
     """
-    Warms the main data cache on startup and then triggers the Outlook cache
-    update for the same location.
+    Warms the main data cache (nightly_curves_cache) for one location.
     Refactored to use Vectorized Astropy operations for massive speedup.
+
+    trigger_outlook is kept for call-site compatibility and has no effect;
+    this function no longer triggers the Outlook cache update.
     """
     # print(f"[CACHE WARMER] Starting for main data at location '{location_name}'.")
     try:
@@ -2165,143 +2066,6 @@ def warm_main_cache(username, location_name, user_config, sampling_interval, tri
                 "is_obstructed_at_11pm": is_obstructed_at_11pm
             }
 
-        # Curves are cached; skip the second loop and Outlook check.
-        if not trigger_outlook:
-            return
-
-        # --- 4. TRIGGER OUTLOOK CACHE (Unchanged) ---
-        try:
-            tz_name = user_config["locations"][location_name]["timezone"]
-            local_tz = pytz.timezone(tz_name)
-        except pytz.exceptions.UnknownTimeZoneError:
-            print(
-                f"❌ [CACHE WARMER] WARN: Invalid timezone '{tz_name}' for user '{username}' at location '{location_name}'. Falling back to UTC.")
-            local_tz = pytz.timezone("UTC")
-            tz_name = "UTC"  # <-- This is the fix
-
-        # --- 2. GET LOCATION & DATE VARS (NOW OUTSIDE THE LOOP) ---
-        # These are now read only ONCE, using the corrected tz_name
-        observing_date_for_calcs = datetime.now(local_tz) - timedelta(hours=12)
-        local_date = observing_date_for_calcs.strftime('%Y-%m-%d')
-        lat = float(user_config["locations"][location_name]["lat"])
-        lon = float(user_config["locations"][location_name]["lon"])
-        loc_threshold = user_config["locations"][location_name].get("altitude_threshold")
-        altitude_threshold = loc_threshold if loc_threshold is not None else user_config.get(
-            "altitude_threshold", 20)
-        try:
-            horizon_mask = user_config.get("locations", {}).get(location_name, {}).get("horizon_mask")
-        except Exception:
-            horizon_mask = None
-
-        # --- 3. PROCESS ALL OBJECTS (LOOP) ---
-        for obj_entry in user_config.get("objects", []):
-            # Skip disabled objects to save CPU
-            if not obj_entry.get("enabled", True):
-                continue
-
-            time.sleep(0.01)
-            obj_name = obj_entry.get("Object")
-            if not obj_name: continue
-
-            cache_key = f"{username}_{obj_name.lower().replace(' ', '_')}_{local_date}_{lat:.4f}_{lon:.4f}_{altitude_threshold}_{sampling_interval}"
-            if cache_key in nightly_curves_cache:
-                continue
-
-            ra = float(obj_entry.get("RA", 0))
-            dec = float(obj_entry.get("DEC", 0))
-
-            # --- THE BUG IS REMOVED ---
-            # lat, lon, and tz_name are NO LONGER read here
-            # --- END OF BUG FIX ---
-
-            # This call is now safe because tz_name is the corrected one from step 1
-            times_local, times_utc = get_common_time_arrays(tz_name, local_date, sampling_interval)
-
-            location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
-            sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-            altaz_frame = AltAz(obstime=times_utc, location=location)
-            altitudes = sky_coord.transform_to(altaz_frame).alt.deg
-            azimuths = sky_coord.transform_to(altaz_frame).az.deg
-            transit_time = calculate_transit_time(ra, dec, lat, lon, tz_name, local_date)
-
-            obs_duration, max_alt, _, _ = calculate_observable_duration_vectorized(
-                ra, dec, lat, lon,
-                local_date, tz_name,
-                altitude_threshold, sampling_interval,
-                horizon_mask=horizon_mask
-            )
-            fixed_time_utc_str = get_utc_time_for_local_11pm(tz_name)
-            alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, lat, lon, fixed_time_utc_str)
-            is_obstructed_at_11pm = False
-            if horizon_mask and isinstance(horizon_mask, list) and len(horizon_mask) > 1:
-                sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
-                required_altitude_11pm = interpolate_horizon(az_11pm, sorted_mask, altitude_threshold)
-
-                if alt_11pm >= altitude_threshold and alt_11pm < required_altitude_11pm:
-                    is_obstructed_at_11pm = True
-
-            nightly_curves_cache[cache_key] = {
-                "times_local": times_local, "altitudes": altitudes, "azimuths": azimuths,
-                "transit_time": transit_time,
-                "obs_duration_minutes": int(obs_duration.total_seconds() / 60) if obs_duration else 0,
-                "max_altitude": round(max_alt, 1) if max_alt is not None else "N/A",
-                "alt_11pm": f"{alt_11pm:.2f}", "az_11pm": f"{az_11pm:.2f}",
-                "is_obstructed_at_11pm": is_obstructed_at_11pm
-            }
-
-        # --- 4. TRIGGER OUTLOOK CACHE (Unchanged) ---
-        # Generate standard filename keys
-        # We need the user ID here. In warm_main_cache, we only have 'username'.
-        # We must re-fetch the ID or pass it in.
-        # Since warm_main_cache is called from trigger_startup_cache_workers,
-        # let's look up the ID inside the function if we don't have it,
-        # OR rely on the fix below which fetches it before the thread starts.
-
-        db = get_db()
-        u_obj = db.query(DbUser).filter_by(username=username).first()
-        u_id = u_obj.id if u_obj else 0
-
-        user_log_key = get_user_log_string(u_id, username)
-        safe_log_key = user_log_key.replace(" | ", "_").replace(".", "").replace(" ", "_")
-
-        cache_filename = get_outlook_cache_path(safe_log_key, lat, lon)
-
-        needs_update = False
-        if not os.path.exists(cache_filename):
-            needs_update = True
-            print(f"    -> Outlook cache for '{location_name}' not found. Triggering update.")
-        else:
-            try:
-                with open(cache_filename, 'r') as f:
-                    data = json.load(f)
-                last_run_str = data.get("metadata", {}).get("last_successful_run_utc")
-                if not last_run_str or (
-                        datetime.now(pytz.utc) - datetime.fromisoformat(last_run_str)).total_seconds() > 86400:
-                    needs_update = True
-                    print(f"    -> Outlook cache for '{location_name}' is stale. Triggering update.")
-                else:
-                    print(f"    -> Outlook cache for '{location_name}' is already fresh. Skipping.")
-            except (json.JSONDecodeError, KeyError):
-                needs_update = True
-                print(f"    -> Outlook cache for '{location_name}' is corrupted. Triggering update.")
-
-        if needs_update:
-            # --- FIX START: Generate required arguments for the worker ---
-            db = get_db()
-            u_obj = db.query(DbUser).filter_by(username=username).first()
-            u_id = u_obj.id if u_obj else 0
-
-            user_log_key = get_user_log_string(u_id, username)
-            safe_log_key = user_log_key.replace(" | ", "_").replace(".", "").replace(" ", "_")
-            status_key = f"({user_log_key})_{location_name}"
-            cache_filename = get_outlook_cache_path(safe_log_key, lat, lon)
-
-            thread = threading.Thread(target=update_outlook_cache,
-                                      args=(u_id, status_key, cache_filename, location_name, user_config.copy(),
-                                            sampling_interval, None))  # Pass None for sim_date
-            # --- FIX END ---
-            thread.start()
-
     except Exception as e:
         import traceback
         print(f"❌ [CACHE WARMER] FATAL ERROR during cache warming for '{location_name}': {e}")
@@ -2355,7 +2119,7 @@ def warm_default_locations():
                         print(f"[WARM] {username}: no active location, skipped")
                         continue
 
-                    # Same rule as run_tasks_sequentially
+                    # Same sampling-interval rule as load_effective_settings
                     if SINGLE_USER_MODE:
                         sampling_interval = config.get('sampling_interval_minutes') or 15
                     else:

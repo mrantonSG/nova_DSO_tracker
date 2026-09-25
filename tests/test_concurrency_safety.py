@@ -8,7 +8,6 @@ from unittest.mock import MagicMock
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from nova import (
-    warm_main_cache,
     update_outlook_cache,
     trigger_outlook_update_for_user,
     app
@@ -53,35 +52,6 @@ def strict_thread_mock(monkeypatch):
 
 
 # --- 2. The Tests ---
-
-def test_warm_main_cache_calls_outlook_with_correct_args(strict_thread_mock, db_session):
-    """
-    Regression Test for Fix A:
-    Ensures warm_main_cache passes all 6 arguments to update_outlook_cache.
-    """
-    # Arrange: Dummy data to satisfy the function internals
-    username = "default"
-    loc_name = "Default Test Loc"
-    user_config = {
-        "locations": {
-            "Default Test Loc": {"lat": 10, "lon": 10, "timezone": "UTC"}
-        },
-        "objects": [
-            {"Object": "DummyObj", "RA": 10.0, "DEC": 10.0, "enabled": True}
-        ]
-    }
-
-    # Act: Call the function that spawns the thread
-    warm_main_cache(username, loc_name, user_config, sampling_interval=15)
-
-    # Assert: Check signatures
-    assert_thread_target_signature(strict_thread_mock)
-
-    # Verify specifically that it called update_outlook_cache
-    calls = strict_thread_mock.call_args_list
-    targets = [c.kwargs.get('target').__name__ for c in calls]
-    assert "update_outlook_cache" in targets
-
 
 def test_import_config_spawns_thread_with_correct_args(strict_thread_mock, client, db_session):
     """
