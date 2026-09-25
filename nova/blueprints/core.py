@@ -926,6 +926,12 @@ def get_outlook_data():
             print(f"❌ ERROR: Could not read/parse outlook cache '{cache_filename}': {e}")
 
     worker_status = cache_worker_status.get(status_key, "idle")
+    if worker_status == "error":
+        # Report a failed run once, then clear it so the next request retries
+        cache_worker_status.pop(status_key, None)
+        print(f"[OUTLOOK] Worker for {status_key} failed. Reporting error to client.")
+        return jsonify({"status": "error", "results": []})
+
     if worker_status in ["running", "starting"]:
         print(f"[OUTLOOK] Worker for {status_key} is '{worker_status}'. Telling client to wait.")
         return jsonify({"status": worker_status, "results": []})

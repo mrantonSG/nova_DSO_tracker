@@ -407,3 +407,53 @@ class TestUpdateOutlookCacheDirect:
         assert "date" in opp
         assert "score" in opp
         assert "rating" in opp
+
+
+# ---------------------------------------------------------------------------
+# /get_outlook_data after a failed worker run
+# ---------------------------------------------------------------------------
+
+def test_outlook_error_status_is_reported_once_then_retried(
+    su_client_logged_in, db_session, monkeypatch, tmp_path
+):
+    """A failed worker is reported as "error" without restarting; the next
+    request starts exactly one new worker."""
+    import types
+
+    import nova.blueprints.core as core
+    from nova import DbUser
+    from nova.helpers import get_user_log_string
+
+    location = "Default Test Loc"  # created by su_client_logged_in
+    user = db_session.query(DbUser).filter_by(username="default").one()
+    status_key = f"({get_user_log_string(user.id, user.username)})_{location}"
+
+    status = {status_key: "error"}
+    started = []
+
+    class RecordingThread:
+        def __init__(self, target=None, args=(), kwargs=None, **extra):
+            self.args = args
+
+        def start(self):
+            # Record the start; never run the worker
+            started.append(self.args)
+
+    # No fresh cache file: the path does not exist
+    monkeypatch.setattr(core, "outlook_cache_file", lambda *a, **k: str(tmp_path / "missing.json"))
+    monkeypatch.setattr(core, "cache_worker_status", status)
+    monkeypatch.setattr(core, "threading", types.SimpleNamespace(Thread=RecordingThread))
+
+    # (a) the error is reported, no worker starts, the status entry is removed
+    resp = su_client_logged_in.get(f"/get_outlook_data?location={location}")
+    assert resp.status_code == 200
+    assert resp.get_json() == {"status": "error", "results": []}
+    assert started == []
+    assert status_key not in status
+
+    # (b) the next request starts exactly one new worker
+    resp = su_client_logged_in.get(f"/get_outlook_data?location={location}")
+    assert resp.status_code == 200
+    assert resp.get_json()["status"] == "starting"
+    assert len(started) == 1
+    assert status == {status_key: "starting"}
