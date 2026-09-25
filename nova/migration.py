@@ -6,6 +6,7 @@ from datetime import datetime
 
 import yaml
 import requests
+import pytz
 from flask import current_app
 from sqlalchemy.orm import selectinload
 from astropy.coordinates import SkyCoord, get_constellation
@@ -109,6 +110,12 @@ def _migrate_locations(db, user: DbUser, config: dict):
             lat = float(loc.get("lat"))
             lon = float(loc.get("lon"))
             tz = loc.get("timezone", "UTC")
+            # Validate before any mutation: a present-but-invalid timezone raises
+            # so the per-location "Skip/repair" handler below logs it and skips
+            # the upsert (existing row left untouched). A missing key keeps the
+            # "UTC" default above.
+            if not isinstance(tz, str) or tz not in pytz.all_timezones:
+                raise ValueError(f"invalid timezone {tz!r} (not in pytz.all_timezones)")
             alt_thr_val = loc.get("altitude_threshold")
             alt_thr = float(alt_thr_val) if alt_thr_val is not None else None
             new_is_default = (name == default_name)
