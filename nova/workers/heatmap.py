@@ -10,7 +10,7 @@ import ephem
 
 from nova.models import DbUser, Location, AstroObject, UiPref, SessionLocal
 from nova.config import CACHE_DIR
-from nova.helpers import get_db, heatmap_fingerprint, heatmap_cache_path
+from nova.helpers import get_db, heatmap_fingerprint, heatmap_cache_path, get_user_log_string
 from modules.astro_calculations import calculate_observable_duration_vectorized
 
 
@@ -77,6 +77,7 @@ def heatmap_background_worker(app):
                     for loc in locs:
                         tasks.append({
                             'user_id': u.id,
+                            'username': u.username,
                             'loc_id': loc.id,
                             'loc_name': loc.name,
                             'lat': loc.lat,
@@ -88,139 +89,145 @@ def heatmap_background_worker(app):
 
             # 2. Process Tasks
             for task in tasks:
-                user_id = task['user_id']
+                try:
+                    user_id = task['user_id']
 
-                with app.app_context():
-                    db = get_db()
-                    # Only calculate heatmap for enabled objects
-                    all_objects = db.query(AstroObject).filter_by(user_id=user_id, enabled=True).all()
-                    valid_objects = [o for o in all_objects if o.ra_hours is not None and o.dec_deg is not None]
+                    with app.app_context():
+                        db = get_db()
+                        # Only calculate heatmap for enabled objects
+                        all_objects = db.query(AstroObject).filter_by(user_id=user_id, enabled=True).all()
+                        valid_objects = [o for o in all_objects if o.ra_hours is not None and o.dec_deg is not None]
 
-                    # Filter Invisible (Geometric)
-                    visible_objects = []
-                    for obj in valid_objects:
-                        dec = float(obj.dec_deg)
-                        if (90 - abs(task['lat'] - dec)) >= task['alt_threshold']:
-                            visible_objects.append(obj)
-                    visible_objects.sort(key=lambda x: float(x.ra_hours))
+                        # Filter Invisible (Geometric)
+                        visible_objects = []
+                        for obj in valid_objects:
+                            dec = float(obj.dec_deg)
+                            if (90 - abs(task['lat'] - dec)) >= task['alt_threshold']:
+                                visible_objects.append(obj)
+                        visible_objects.sort(key=lambda x: float(x.ra_hours))
 
-                    # Validate Timezone
-                    try:
-                        local_tz = pytz.timezone(task['tz'])
-                        valid_tz = task['tz']
-                    except Exception:
-                        print(
-                            f"[HEATMAP WORKER] WARN: Invalid timezone '{task['tz']}' for '{task['loc_name']}'. Using UTC.")
-                        local_tz = pytz.utc
-                        valid_tz = 'UTC'
+                        # Validate Timezone
+                        try:
+                            local_tz = pytz.timezone(task['tz'])
+                            valid_tz = task['tz']
+                        except Exception:
+                            print(
+                                f"[HEATMAP WORKER] WARN: Invalid timezone '{task['tz']}' for '{task['loc_name']}'. Using UTC.")
+                            local_tz = pytz.utc
+                            valid_tz = 'UTC'
 
-                    now = datetime.now(local_tz)
-                    start_date_year = now.date() - timedelta(days=now.weekday())
+                        now = datetime.now(local_tz)
+                        start_date_year = now.date() - timedelta(days=now.weekday())
 
-                    fingerprint = heatmap_fingerprint(
-                        task['loc_id'], task['lat'], task['lon'], valid_tz, task['mask'],
-                        task['alt_threshold'], start_date_year, visible_objects
-                    )
-                    chunk_paths = [heatmap_cache_path(user_id, task['loc_id'], fingerprint, i) for i in range(12)]
+                        fingerprint = heatmap_fingerprint(
+                            task['loc_id'], task['lat'], task['lon'], valid_tz, task['mask'],
+                            task['alt_threshold'], start_date_year, visible_objects
+                        )
+                        chunk_paths = [heatmap_cache_path(user_id, task['loc_id'], fingerprint, i) for i in range(12)]
 
-                    # Regenerate if ANY of the 12 parts is missing or older than 24h
-                    should_update = any(
-                        not os.path.exists(p) or (time.time() - os.path.getmtime(p)) >= 86400
-                        for p in chunk_paths
-                    )
+                        # Regenerate if ANY of the 12 parts is missing or older than 24h
+                        should_update = any(
+                            not os.path.exists(p) or (time.time() - os.path.getmtime(p)) >= 86400
+                            for p in chunk_paths
+                        )
+
+                        if should_update:
+                            print(f"[HEATMAP WORKER] Updating stale cache for User {user_id} @ {task['loc_name']}...")
+
+                            # --- REGENERATE ALL 12 CHUNKS ---
+                            for chunk_idx in range(12):
+                                weeks_per_chunk = 52 // 12
+                                remainder = 52 % 12
+                                start_week = chunk_idx * weeks_per_chunk + min(chunk_idx, remainder)
+                                end_week = start_week + weeks_per_chunk + (1 if chunk_idx < remainder else 0)
+
+                                weeks_x = []
+                                target_dates = []
+                                moon_phases = []
+
+                                for i in range(start_week, end_week):
+                                    d = start_date_year + timedelta(weeks=i)
+                                    weeks_x.append(d.strftime('%b %d'))
+                                    target_dates.append(d.strftime('%Y-%m-%d'))
+                                    try:
+                                        dt_moon = local_tz.localize(
+                                            datetime.combine(d, datetime.min.time())).astimezone(pytz.utc)
+                                        moon_phases.append(round(ephem.Moon(dt_moon).phase, 1))
+                                    except:
+                                        moon_phases.append(0)
+
+                                z_scores_chunk = []
+                                y_names, meta_ids, meta_active = [], [], []
+                                meta_types, meta_cons, meta_mags, meta_sizes, meta_sbs = [], [], [], [], []
+
+                                for obj in visible_objects:
+                                    ra, dec = float(obj.ra_hours), float(obj.dec_deg)
+                                    obj_scores = []
+                                    for i, date_str in enumerate(target_dates):
+                                        with warnings.catch_warnings():
+                                            warnings.filterwarnings("ignore", message=".*Tried to get polar motions.*")
+                                            obs_dur, max_alt, _, _ = calculate_observable_duration_vectorized(
+                                                ra, dec, task['lat'], task['lon'], date_str, valid_tz,
+                                                task['alt_threshold'], 60, horizon_mask=task['mask']
+                                            )
+                                        score = 0
+                                        duration_mins = obs_dur.total_seconds() / 60 if obs_dur else 0
+                                        if max_alt is not None and max_alt >= task[
+                                            'alt_threshold'] and duration_mins >= 45:
+                                            norm_alt = min(
+                                                (max_alt - task['alt_threshold']) / (90 - task['alt_threshold']), 1.0)
+                                            norm_dur = min(duration_mins / 480, 1.0)
+                                            score = (0.4 * norm_alt + 0.6 * norm_dur) * 100
+                                            if moon_phases[i] > 60:
+                                                score *= (1 - ((moon_phases[i] - 60) / 40) * 0.9)
+                                        obj_scores.append(round(score, 1))
+
+                                    z_scores_chunk.append(obj_scores)
+
+                                    # Metadata
+                                    dname = obj.common_name or obj.object_name
+                                    if obj.type: dname += f" [{obj.type}]"
+                                    y_names.append(dname)
+                                    meta_ids.append(obj.object_name)
+                                    meta_active.append(1 if obj.active_project else 0)
+                                    meta_types.append(str(obj.type or ""))
+                                    meta_cons.append(str(obj.constellation or ""))
+                                    try:
+                                        meta_mags.append(float(obj.magnitude))
+                                    except:
+                                        meta_mags.append(999.0)
+                                    try:
+                                        meta_sizes.append(float(obj.size))
+                                    except:
+                                        meta_sizes.append(0.0)
+                                    try:
+                                        meta_sbs.append(float(obj.sb))
+                                    except:
+                                        meta_sbs.append(999.0)
+
+                                chunk_data = {
+                                    "chunk_index": chunk_idx, "x": weeks_x, "z_chunk": z_scores_chunk,
+                                    "y": y_names, "moon_phases": moon_phases, "ids": meta_ids, "active": meta_active,
+                                    "dates": target_dates, "types": meta_types, "cons": meta_cons,
+                                    "mags": meta_mags, "sizes": meta_sizes, "sbs": meta_sbs
+                                }
+
+                                # Save Chunk
+                                with open(chunk_paths[chunk_idx], 'w') as f:
+                                    json.dump(chunk_data, f)
+
+                                # Sleep briefly between chunks to yield CPU
+                                time.sleep(2)
 
                     if should_update:
-                        print(f"[HEATMAP WORKER] Updating stale cache for User {user_id} @ {task['loc_name']}...")
-
-                        # --- REGENERATE ALL 12 CHUNKS ---
-                        for chunk_idx in range(12):
-                            weeks_per_chunk = 52 // 12
-                            remainder = 52 % 12
-                            start_week = chunk_idx * weeks_per_chunk + min(chunk_idx, remainder)
-                            end_week = start_week + weeks_per_chunk + (1 if chunk_idx < remainder else 0)
-
-                            weeks_x = []
-                            target_dates = []
-                            moon_phases = []
-
-                            for i in range(start_week, end_week):
-                                d = start_date_year + timedelta(weeks=i)
-                                weeks_x.append(d.strftime('%b %d'))
-                                target_dates.append(d.strftime('%Y-%m-%d'))
-                                try:
-                                    dt_moon = local_tz.localize(
-                                        datetime.combine(d, datetime.min.time())).astimezone(pytz.utc)
-                                    moon_phases.append(round(ephem.Moon(dt_moon).phase, 1))
-                                except:
-                                    moon_phases.append(0)
-
-                            z_scores_chunk = []
-                            y_names, meta_ids, meta_active = [], [], []
-                            meta_types, meta_cons, meta_mags, meta_sizes, meta_sbs = [], [], [], [], []
-
-                            for obj in visible_objects:
-                                ra, dec = float(obj.ra_hours), float(obj.dec_deg)
-                                obj_scores = []
-                                for i, date_str in enumerate(target_dates):
-                                    with warnings.catch_warnings():
-                                        warnings.filterwarnings("ignore", message=".*Tried to get polar motions.*")
-                                        obs_dur, max_alt, _, _ = calculate_observable_duration_vectorized(
-                                            ra, dec, task['lat'], task['lon'], date_str, valid_tz,
-                                            task['alt_threshold'], 60, horizon_mask=task['mask']
-                                        )
-                                    score = 0
-                                    duration_mins = obs_dur.total_seconds() / 60 if obs_dur else 0
-                                    if max_alt is not None and max_alt >= task[
-                                        'alt_threshold'] and duration_mins >= 45:
-                                        norm_alt = min(
-                                            (max_alt - task['alt_threshold']) / (90 - task['alt_threshold']), 1.0)
-                                        norm_dur = min(duration_mins / 480, 1.0)
-                                        score = (0.4 * norm_alt + 0.6 * norm_dur) * 100
-                                        if moon_phases[i] > 60:
-                                            score *= (1 - ((moon_phases[i] - 60) / 40) * 0.9)
-                                    obj_scores.append(round(score, 1))
-
-                                z_scores_chunk.append(obj_scores)
-
-                                # Metadata
-                                dname = obj.common_name or obj.object_name
-                                if obj.type: dname += f" [{obj.type}]"
-                                y_names.append(dname)
-                                meta_ids.append(obj.object_name)
-                                meta_active.append(1 if obj.active_project else 0)
-                                meta_types.append(str(obj.type or ""))
-                                meta_cons.append(str(obj.constellation or ""))
-                                try:
-                                    meta_mags.append(float(obj.magnitude))
-                                except:
-                                    meta_mags.append(999.0)
-                                try:
-                                    meta_sizes.append(float(obj.size))
-                                except:
-                                    meta_sizes.append(0.0)
-                                try:
-                                    meta_sbs.append(float(obj.sb))
-                                except:
-                                    meta_sbs.append(999.0)
-
-                            chunk_data = {
-                                "chunk_index": chunk_idx, "x": weeks_x, "z_chunk": z_scores_chunk,
-                                "y": y_names, "moon_phases": moon_phases, "ids": meta_ids, "active": meta_active,
-                                "dates": target_dates, "types": meta_types, "cons": meta_cons,
-                                "mags": meta_mags, "sizes": meta_sizes, "sbs": meta_sbs
-                            }
-
-                            # Save Chunk
-                            with open(chunk_paths[chunk_idx], 'w') as f:
-                                json.dump(chunk_data, f)
-
-                            # Sleep briefly between chunks to yield CPU
-                            time.sleep(2)
-
-                if should_update:
-                    print(f"[HEATMAP WORKER] Finished updating {task['loc_name']}.")
-                    # Sleep between locations
-                    time.sleep(30)
+                        print(f"[HEATMAP WORKER] Finished updating {task['loc_name']}.")
+                        # Sleep between locations
+                        time.sleep(30)
+                except Exception as e:
+                    # One bad user/location must not block the rest of the cycle
+                    print(f"[HEATMAP WORKER] Task failed for "
+                          f"{get_user_log_string(task['user_id'], task.get('username'))} "
+                          f"@ {task['loc_name']}: {e}")
 
             _cleanup_old_cache_files()
 
