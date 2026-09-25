@@ -1346,11 +1346,22 @@ def prefilter_debug():
         user_settings["min_observable_minutes"] = imaging_criteria.get("min_observable_minutes", 60)
         user_settings["min_max_altitude"] = imaging_criteria.get("min_max_altitude", 30)
 
+    db = get_db()
+
+    # Get user's default location for calculations
+    location = db.query(Location).filter_by(
+        user_id=g.db_user.id, is_default=True
+    ).first()
+    if not location:
+        location = db.query(Location).filter_by(
+            user_id=g.db_user.id
+        ).first()
+
     # Get moon phase (use 11 PM tonight)
     moon_phase = 0
     local_date_str = None
     try:
-        local_tz = pytz.timezone("UTC")
+        local_tz = pytz.timezone((location.timezone if location else None) or "UTC")
         now_local = datetime.now(local_tz)
         # If it's before noon, use "night of" previous day
         if now_local.hour < 12:
@@ -1369,7 +1380,6 @@ def prefilter_debug():
         local_date_str = datetime.now().strftime("%Y-%m-%d")
 
     # Get user's rigs to find max aperture
-    db = get_db()
     rig_rows = db.query(Rig).options(
         selectinload(Rig.telescope)
     ).filter_by(user_id=g.db_user.id).all()
@@ -1379,15 +1389,6 @@ def prefilter_debug():
         if rig.telescope and rig.telescope.aperture_mm:
             if max_aperture_mm is None or rig.telescope.aperture_mm > max_aperture_mm:
                 max_aperture_mm = rig.telescope.aperture_mm
-
-    # Get user's default location for calculations
-    location = db.query(Location).filter_by(
-        user_id=g.db_user.id, is_default=True
-    ).first()
-    if not location:
-        location = db.query(Location).filter_by(
-            user_id=g.db_user.id
-        ).first()
 
     # Get all enabled objects from DB for this user
     obj_records = db.query(AstroObject).filter_by(
