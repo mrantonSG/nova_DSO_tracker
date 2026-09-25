@@ -83,3 +83,38 @@ def test_warm_main_cache_uses_dark_window(monkeypatch):
             f"+ {SAMPLING} min sampling tolerance")
     finally:
         nightly_curves_cache.clear()
+
+
+# Dec -60 at 47.8N culminates at 90 - |47.8 - (-60)| = -17.8 deg -> never reaches ALT_THRESHOLD
+NEVER_RISES_NAME, NEVER_RISES_RA_H, NEVER_RISES_DEC = "Never Rises", 12.0, -60.0
+
+
+def _cache_key(obj_name):
+    return (f"{USERNAME}_{obj_name.lower().replace(' ', '_')}_{LOCAL_DATE}"
+            f"_{LAT:.4f}_{LON:.4f}_{ALT_THRESHOLD}_{SAMPLING}")
+
+
+def test_warm_main_cache_skips_geometrically_impossible(monkeypatch):
+    monkeypatch.setattr(nova, "datetime", _FixedDatetime)
+    monkeypatch.setattr("threading.Thread", _no_threads)
+    nightly_curves_cache.clear()
+
+    user_config = {
+        "locations": {LOC_NAME: {"lat": LAT, "lon": LON, "timezone": TZ,
+                                 "altitude_threshold": ALT_THRESHOLD}},
+        "objects": [
+            {"Object": NEVER_RISES_NAME, "RA": NEVER_RISES_RA_H, "DEC": NEVER_RISES_DEC, "enabled": True},
+            {"Object": OBJ_NAME, "RA": OBJ_RA_H, "DEC": OBJ_DEC, "enabled": True},
+        ],
+    }
+
+    try:
+        warm_main_cache(USERNAME, LOC_NAME, user_config, SAMPLING, trigger_outlook=False)
+
+        never_key = _cache_key(NEVER_RISES_NAME)
+        assert never_key not in nightly_curves_cache, (
+            f"never-rising object must not be cached (matches get_desktop_data_batch), "
+            f"got: {nightly_curves_cache.get(never_key)!r}")
+        assert _cache_key(OBJ_NAME) in nightly_curves_cache, "NGC 188 was not cached"
+    finally:
+        nightly_curves_cache.clear()

@@ -2082,20 +2082,8 @@ def warm_main_cache(username, location_name, user_config, sampling_interval, tri
                     max_culm = 90.0 - abs(lat - d)
 
                     if max_culm < altitude_threshold:
-                        # Object never rises above threshold. Cache immediately as impossible.
-                        cache_key = f"{username}_{obj_name.lower().replace(' ', '_')}_{local_date}_{lat:.4f}_{lon:.4f}_{altitude_threshold}_{sampling_interval}"
-                        nightly_curves_cache[cache_key] = {
-                            "times_local": [],
-                            "altitudes": [],
-                            "azimuths": [],
-                            "transit_time": "N/A",
-                            "obs_duration_minutes": 0,
-                            "max_altitude": round(max_culm, 1),
-                            "alt_11pm": "N/A",
-                            "az_11pm": "N/A",
-                            "is_obstructed_at_11pm": False,
-                            "is_geometrically_impossible": True
-                        }
+                        # Object never rises above threshold. Write no cache entry, matching
+                        # get_desktop_data_batch; readers compute real curves on a miss.
                         continue  # Skip adding to vectors
 
                 # If visible, add to lists for heavy calculation
