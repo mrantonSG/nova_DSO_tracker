@@ -27,7 +27,7 @@ from nova.ai.prompts import (
 from nova.ai.service import get_ai_response, AIServiceError
 import math
 
-from nova.helpers import get_db
+from nova.helpers import get_db, resolve_altitude_threshold
 from nova.models import AstroObject, Location, Rig, JournalSession, SavedFraming
 
 logger = logging.getLogger(__name__)
@@ -354,7 +354,7 @@ def generate_dso_notes():
             "lon": loc.lon,
             "timezone": loc.timezone,
             "is_default": loc.is_default,
-            "altitude_threshold": loc.altitude_threshold,
+            "altitude_threshold": resolve_altitude_threshold(getattr(g, "user_config", None), loc),
             "bortle_scale": loc.bortle_scale,
             "has_horizon_mask": bool(loc.horizon_points),
         }
@@ -384,7 +384,7 @@ def generate_dso_notes():
                         obj.ra_hours, obj.dec_deg,
                         loc["lat"], loc["lon"],
                         date_str_alt, loc["timezone"],
-                        loc.get("altitude_threshold", 20)
+                        resolve_altitude_threshold(getattr(g, "user_config", None), loc)
                     )
                     loc["max_altitude_deg"] = round(max_alt, 1) if max_alt is not None else None
                 except Exception:
@@ -1414,7 +1414,7 @@ def prefilter_debug():
             lat = location.lat
             lon = location.lon
             tz_name = location.timezone or "UTC"
-            altitude_threshold = location.altitude_threshold or 20
+            altitude_threshold = resolve_altitude_threshold(getattr(g, "user_config", None), location)
 
             # Calculate observable duration and max altitude
             obs_duration, max_altitude, _, _ = calculate_observable_duration_vectorized(
