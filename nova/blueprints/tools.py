@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import tempfile
 import uuid
 import zipfile
 import threading
@@ -51,10 +52,46 @@ from modules.config_validation import validate_config
 
 tools_bp = Blueprint('tools', __name__)
 
-# Single-process-Gunicorn-only: each worker has its own dict; acceptable known
-# limitation, not to be fixed here.  Keyed by user.id (matches single-user-mode
-# pattern used throughout this file).
-IMPORT_CONFLICTS_STORE: dict[int, dict] = {}
+# Pending catalog-import conflicts are stored as one JSON file per user in
+# CACHE_DIR rather than an in-process dict, so all Gunicorn workers share the
+# same state.  Keyed by user.id (matches single-user-mode pattern used
+# throughout this file).
+def _conflicts_path(user_id):
+    return os.path.join(CACHE_DIR, f"import_conflicts_{user_id}.json")
+
+
+def _load_conflicts(user_id):
+    try:
+        with open(_conflicts_path(user_id), "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return None
+
+
+def _save_conflicts(user_id, entry):
+    path = _conflicts_path(user_id)
+    dir_ = os.path.dirname(path)
+    os.makedirs(dir_, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(prefix=".tmp_", dir=dir_, text=True)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(entry, f, default=str)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)  # atomic on POSIX
+    finally:
+        try:
+            if os.path.exists(tmp):
+                os.remove(tmp)
+        except Exception:
+            pass
+
+
+def _clear_conflicts(user_id):
+    try:
+        os.remove(_conflicts_path(user_id))
+    except FileNotFoundError:
+        pass
 
 
 @tools_bp.route('/add_component', methods=['POST'])
@@ -864,11 +901,11 @@ def import_catalog(pack_id):
                 f"{skipped} skipped, {unique_names} object(s) have differences pending review.",
                 "warning",
             )
-            IMPORT_CONFLICTS_STORE[user.id] = {
+            _save_conflicts(user.id, {
                 "pack_id": pack_id,
                 "pack_name": pack_name,
                 "conflicts": conflicts,
-            }
+            })
         else:
             msg = f"Catalog '{pack_name}': {created} new, {enriched} enriched (updated), {skipped} skipped."
             flash(msg, "success")
@@ -895,7 +932,7 @@ def resolve_import_conflicts():
     try:
         user = db.query(DbUser).filter_by(username=username).one()
 
-        store_entry = IMPORT_CONFLICTS_STORE.get(user.id)
+        store_entry = _load_conflicts(user.id)
         if not store_entry:
             return jsonify({"error": "No pending conflicts for this user."}), 404
 
@@ -969,8 +1006,9 @@ def resolve_import_conflicts():
         ]
         if remaining:
             store_entry["conflicts"] = remaining
+            _save_conflicts(user.id, store_entry)
         else:
-            IMPORT_CONFLICTS_STORE.pop(user.id, None)
+            _clear_conflicts(user.id)
 
         return jsonify({"updated": updated, "kept": kept})
 
@@ -997,7 +1035,7 @@ def get_import_conflicts():
         db.rollback()
         return jsonify({"error": str(e)}), 500
 
-    store_entry = IMPORT_CONFLICTS_STORE.get(user.id)
+    store_entry = _load_conflicts(user.id)
     if not store_entry:
         return jsonify({"pending": False})
 
