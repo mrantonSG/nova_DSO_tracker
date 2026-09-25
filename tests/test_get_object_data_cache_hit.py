@@ -37,3 +37,41 @@ def test_get_object_data_cache_hit_with_skyglow(client, monkeypatch, tmp_path):
     assert data['error'] is False
     # Floor is 90° everywhere and there is no horizon mask, so the 11PM check must run and flag it
     assert data['below_skyglow_floor_11pm'] is True
+
+
+from datetime import datetime as _real_datetime
+
+import pytz
+
+from modules.astro_calculations import ra_dec_to_alt_az
+
+
+def test_get_object_data_11pm_uses_observing_night(client, monkeypatch):
+    """At 01:00 local the observing night is the previous day; Altitude 11PM must be that night's 23:00."""
+    tz = pytz.timezone("UTC")  # timezone of "Default Test Loc"
+    frozen_local = tz.localize(_real_datetime(2026, 1, 15, 1, 0, 0))
+
+    class _FrozenDatetime(_real_datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return frozen_local.astimezone(tz) if tz is not None else frozen_local.replace(tzinfo=None)
+
+    # Patch both modules so the old get_utc_time_for_local_11pm would see the same frozen clock
+    monkeypatch.setattr("nova.blueprints.api.datetime", _FrozenDatetime)
+    monkeypatch.setattr("modules.astro_calculations.datetime", _FrozenDatetime)
+    monkeypatch.delenv("NASA_EARTHDATA_TOKEN", raising=False)
+    nightly_curves_cache.clear()  # force the cache-miss path
+
+    response = client.get('/api/get_object_data/M42')
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data['error'] is False
+
+    ra, dec, lat, lon = 5.58, -5.4, 50, 10
+    # Observing night = 2026-01-14 -> 23:00 local that day
+    expected_alt, _ = ra_dec_to_alt_az(ra, dec, lat, lon, "2026-01-14T23:00:00")
+    # What the old clock-based code picks: 23:00 on the frozen calendar day
+    old_alt, _ = ra_dec_to_alt_az(ra, dec, lat, lon, "2026-01-15T23:00:00")
+    assert f"{expected_alt:.2f}" != f"{old_alt:.2f}", "guard: test would not discriminate"
+
+    assert data['Altitude 11PM'] == f"{expected_alt:.2f}"

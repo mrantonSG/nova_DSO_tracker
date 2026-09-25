@@ -59,7 +59,6 @@ from modules.astro_calculations import (
     calculate_observable_duration_vectorized,
     calculate_transit_time,
     ra_dec_to_alt_az,
-    get_utc_time_for_local_11pm,
     get_utc_time_for_local_11pm_on,
     interpolate_horizon,
     get_common_time_arrays,
@@ -3219,7 +3218,7 @@ def get_object_data(object_name):
                 ra, dec, lat, lon, local_date, tz_name, altitude_threshold, sampling_interval,
                 horizon_mask=horizon_mask  # Pass the specific mask
             )
-            fixed_time_utc_str = get_utc_time_for_local_11pm(tz_name)
+            fixed_time_utc_str = get_utc_time_for_local_11pm_on(local_date, tz_name)
             alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, lat, lon, fixed_time_utc_str)
             is_obstructed_at_11pm = False
             if horizon_mask and len(horizon_mask) > 1:
