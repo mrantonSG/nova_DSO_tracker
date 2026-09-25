@@ -1,5 +1,7 @@
 import pytest
 import sys, os
+# Must be set before nova is imported: nova starts background workers and telemetry at import time.
+os.environ["NOVA_DISABLE_BACKGROUND_TASKS"] = "1"
 import http.cookiejar
 from datetime import date
 import types

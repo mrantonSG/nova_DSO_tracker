@@ -23,6 +23,9 @@ load_dotenv(dotenv_path=ENV_FILE)
 
 FIRST_RUN_ENV_CREATED = False
 
+# Set by tests/conftest.py: no startup workers, warm loop or telemetry
+BACKGROUND_TASKS_DISABLED = os.environ.get("NOVA_DISABLE_BACKGROUND_TASKS") == "1"
+
 # --- Mode ---
 SINGLE_USER_MODE = config('SINGLE_USER_MODE', default='True') == 'True'
 

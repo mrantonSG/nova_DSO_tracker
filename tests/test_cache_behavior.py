@@ -240,6 +240,7 @@ def test_start_warming_once_starts_single_daemon_thread(monkeypatch):
             self.started = True  # never run target
 
     monkeypatch.setitem(app.config, "TESTING", False)
+    monkeypatch.setattr(nova, "BACKGROUND_TASKS_DISABLED", False)
     monkeypatch.setattr(nova, "_warm_started", False)
     monkeypatch.setattr(nova, "threading", types.SimpleNamespace(Thread=FakeThread))
 

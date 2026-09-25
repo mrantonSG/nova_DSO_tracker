@@ -115,6 +115,7 @@ from nova.models import (
 from nova.config import (
     APP_VERSION, TEMPLATE_DIR, CACHE_DIR, CONFIG_DIR, BACKUP_DIR,
     UPLOAD_FOLDER, ENV_FILE, FIRST_RUN_ENV_CREATED, SINGLE_USER_MODE,
+    BACKGROUND_TASKS_DISABLED,
     SECRET_KEY, STELLARIUM_ERROR_MESSAGE, NOVA_CATALOG_URL,
     ALLOWED_EXTENSIONS, MAX_ACTIVE_LOCATIONS, SENTRY_DSN,
     nightly_curves_cache, observable_objects_cache,
@@ -2177,7 +2178,7 @@ _warm_lock = threading.Lock()
 @app.before_request
 def _start_warming_once():
     global _warm_started
-    if _warm_started or app.config.get('TESTING'):
+    if _warm_started or app.config.get('TESTING') or BACKGROUND_TASKS_DISABLED:
         return None
     with _warm_lock:
         if _warm_started:
@@ -2318,6 +2319,8 @@ def build_telemetry_payload(user_config, browser_user_agent: str = ''):
 
 def send_telemetry_async(user_config, browser_user_agent: str = '', force: bool = False):
     """Non-blocking send; obeys enable flag and once-per-24h rule."""
+    if BACKGROUND_TASKS_DISABLED:
+        return
     # Hard gate via TELEMETRY_ENABLED env var.  Checked before anything else so
     # that background-daemon threads (which have no Flask `g`) also respect it.
     if os.getenv('TELEMETRY_ENABLED', 'true').lower() != 'true':
@@ -2384,6 +2387,8 @@ def send_telemetry_async(user_config, browser_user_agent: str = '', force: bool 
 # --- Telemetry startup + daily scheduler ---
 def _start_telemetry_scheduler_once():
     """On first request after (re)start: send telemetry once, then schedule daily pings."""
+    if BACKGROUND_TASKS_DISABLED:
+        return
     if _telemetry_startup_once.is_set():
         return
     _telemetry_startup_once.set()
@@ -2470,7 +2475,7 @@ def _telemetry_bootstrap_hook():
         pass
 
 # If this is a fresh first run (we just created .env), trigger telemetry scheduler shortly after startup
-if FIRST_RUN_ENV_CREATED:
+if FIRST_RUN_ENV_CREATED and not BACKGROUND_TASKS_DISABLED:
     def _telemetry_first_run_timer():
         try:
             _start_telemetry_scheduler_once()
@@ -3429,7 +3434,9 @@ if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
     scheduler_lock_fh = None
     should_start_threads = False
 
-    if _HAS_FCNTL:
+    if BACKGROUND_TASKS_DISABLED:
+        print("[STARTUP] NOVA_DISABLE_BACKGROUND_TASKS=1: skipping scheduler lock, background workers and telemetry.")
+    elif _HAS_FCNTL:
         try:
             # Open file for locking. We keep this file handle OPEN to hold the lock.
             # If the worker dies, the OS releases the lock automatically.

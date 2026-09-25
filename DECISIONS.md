@@ -50,6 +50,8 @@ One line per decision. Format: Date | What changed | Why
 
 2025-11-25 | Thread locks added for multi-worker gunicorn deployment | SQLite + multiple threads + in-memory caches = race conditions without coordination
 
+2026-09-25 | NOVA_DISABLE_BACKGROUND_TASKS=1 env flag, set in tests/conftest.py before importing nova; skips the scheduler lock, startup workers, warm loop and telemetry | Workers and telemetry start at import, before conftest can set app.config['TESTING'], so test runs hit real APIs and instance/ whenever no dev server held scheduler.lock
+
 ## Caching
 
 2025-09-03 | In-memory BoundedCache dicts instead of Redis | Single-process SQLite deployment doesn't need an external cache; BoundedCache caps memory to prevent unbounded growth on long-running instances
