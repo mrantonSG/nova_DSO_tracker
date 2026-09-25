@@ -8,6 +8,17 @@
     let currentFilteredY = [];
     let currentFilteredZ = [];
 
+    // One-time cleanup: the heatmap is no longer cached in localStorage
+    // (the server's disk cache is keyed by fingerprint), so drop old entries.
+    try {
+        const staleKeys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('nova_heatmap_')) staleKeys.push(key);
+        }
+        staleKeys.forEach(key => localStorage.removeItem(key));
+    } catch (e) { console.warn("LocalStorage cleanup failed", e); }
+
     // Force Plotly to resize when the browser window changes
     window.addEventListener('resize', function() {
         const plotDiv = document.getElementById('yearly-heatmap-plot');
@@ -41,25 +52,7 @@
             return;
         }
 
-        // 3. Check Browser Cache (LocalStorage)
-        const cacheKey = `nova_heatmap_${currentLoc.replace(/[^a-zA-Z0-9]/g, '_')}`;
-        try {
-            const cachedStr = localStorage.getItem(cacheKey);
-            if (cachedStr) {
-                const cachedObj = JSON.parse(cachedStr);
-                // 24 hour expiry
-                const age = (Date.now() - cachedObj.timestamp) / 1000;
-                if (age < 86400) {
-                    console.log("Loaded Heatmap from Browser Storage");
-                    globalHeatmapData = cachedObj.data;
-                    globalHeatmapData._location = currentLoc;
-                    renderHeatmapFromCache();
-                    return;
-                }
-            }
-        } catch (e) { console.warn("LocalStorage read failed", e); }
-
-        // 4. Start Chunked Fetch
+        // 3. Start Chunked Fetch
         isFetching = true;
         plotDiv.innerHTML = "";
         if (loadingDiv) loadingDiv.style.display = "block";
@@ -183,11 +176,6 @@
 
                 globalHeatmapData = stitchedData;
                 isFetching = false;
-
-                try {
-                    const cachePayload = { timestamp: Date.now(), data: stitchedData };
-                    localStorage.setItem(cacheKey, JSON.stringify(cachePayload));
-                } catch (e) { console.warn("LocalStorage quota exceeded", e); }
 
                 if (loadingDiv) loadingDiv.style.display = "none";
 
