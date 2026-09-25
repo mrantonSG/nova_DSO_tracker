@@ -223,7 +223,7 @@ def outlook_cache_file(user_id, location_name, user_config, sim_date=None) -> st
         "lon": float(lon) if lon is not None else None,
         "tz": tz_name,
         "horizon_mask": mask,
-        "altitude_threshold": user_config.get("altitude_threshold", 20),
+        "altitude_threshold": resolve_altitude_threshold(user_config, loc_cfg),
         "sampling_interval": sampling_interval,
         "imaging_criteria": user_config.get("imaging_criteria"),
         "objects": obj_parts,

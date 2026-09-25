@@ -408,6 +408,53 @@ class TestUpdateOutlookCacheDirect:
         assert "score" in opp
         assert "rating" in opp
 
+    def test_worker_uses_location_threshold_override(
+        self, outlook_test_db, tmp_path, monkeypatch
+    ):
+        """The location's altitude_threshold reaches the duration calculation, not the global one."""
+        from nova import update_outlook_cache
+
+        thresholds = []
+
+        def recording_duration(ra, dec, lat, lon, date_str, tz_name, altitude_threshold,
+                               sampling_interval, horizon_mask=None):
+            thresholds.append(altitude_threshold)
+            return _make_mock_duration()
+
+        monkeypatch.setattr("nova.calculate_observable_duration_vectorized", recording_duration)
+
+        location_name = outlook_test_db["location_name"]
+        user_config = {
+            "locations": {
+                location_name: {
+                    "lat": 47.83,
+                    "lon": 16.17,
+                    "timezone": "Europe/Vienna",
+                    "altitude_threshold": 35,
+                },
+            },
+            "imaging_criteria": {
+                "min_observable_minutes": 60,
+                "min_max_altitude": 30,
+                "max_moon_illumination": 20,
+                "min_angular_separation": 30,
+                "search_horizon_months": 1,
+            },
+            "altitude_threshold": 20,
+        }
+
+        update_outlook_cache(
+            user_id=outlook_test_db["user_id"],
+            status_key=f"test_override_{outlook_test_db['user_id']}",
+            cache_filename=str(tmp_path / "outlook_cache_override.json"),
+            location_name=location_name,
+            user_config=user_config,
+            sampling_interval=15,
+        )
+
+        assert thresholds, "calculate_observable_duration_vectorized was never called"
+        assert set(thresholds) == {35}
+
 
 # ---------------------------------------------------------------------------
 # /get_outlook_data after a failed worker run

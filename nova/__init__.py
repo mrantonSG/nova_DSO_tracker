@@ -1714,7 +1714,7 @@ def update_outlook_cache(user_id, status_key, cache_filename, location_name, use
             horizon_mask = loc_cfg.get("horizon_mask")
             if lat is None or lon is None: raise ValueError(f"Missing lat/lon for '{location_name}'.")
             print(f"[OUTLOOK WORKER {status_key}] Using Loc: lat={lat}, lon={lon}, tz={tz_name}")
-            altitude_threshold = user_config.get("altitude_threshold", 20)
+            altitude_threshold = resolve_altitude_threshold(user_config, loc_cfg)
 
             # --- Extract Imaging Criteria from ARGUMENTS ---
             def _get_criteria_from_config(cfg):
