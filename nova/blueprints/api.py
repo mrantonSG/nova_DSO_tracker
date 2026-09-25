@@ -3521,10 +3521,11 @@ def get_desktop_data_batch():
                     alt_11, az_11 = ra_dec_to_alt_az(ra, dec, lat, lon, fixed_time_utc_str)
 
                     is_obst_11 = False
-                    if horizon_mask:
-                        req_alt = interpolate_horizon(az_11, sorted(horizon_mask, key=lambda p: p[0]),
-                                                      altitude_threshold)
-                        if alt_11 >= altitude_threshold and alt_11 < req_alt: is_obst_11 = True
+                    if horizon_mask and len(horizon_mask) > 1:
+                        sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
+                        req_alt = interpolate_horizon(az_11, sorted_mask, altitude_threshold)
+                        if alt_11 >= altitude_threshold and alt_11 < req_alt:
+                            is_obst_11 = True
 
                     times_local, times_utc = get_common_time_arrays(tz_name, local_date, sampling_interval)
                     sky_c = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
