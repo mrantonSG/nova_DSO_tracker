@@ -127,7 +127,7 @@ FIXED_11PM_UTC = "2026-09-20T21:00:00"
 
 def test_warm_main_cache_11pm_obstruction_matches_interpolate_horizon(monkeypatch):
     monkeypatch.setattr(nova, "datetime", _FixedDatetime)
-    monkeypatch.setattr(nova, "get_utc_time_for_local_11pm", lambda tz_name: FIXED_11PM_UTC)
+    monkeypatch.setattr(nova, "get_utc_time_for_local_11pm_on", lambda local_date, tz_name: FIXED_11PM_UTC)
     monkeypatch.setattr("threading.Thread", _no_threads)
     nightly_curves_cache.clear()
 
@@ -155,5 +155,41 @@ def test_warm_main_cache_11pm_obstruction_matches_interpolate_horizon(monkeypatc
         assert cached["is_obstructed_at_11pm"] == expected, (
             f"is_obstructed_at_11pm: cached={cached['is_obstructed_at_11pm']!r} "
             f"expected={expected!r} (interpolate_horizon, required={required}, alt_11pm={alt_11pm:.2f})")
+    finally:
+        nightly_curves_cache.clear()
+
+
+# M74: RA 01h36.7m, Dec +15.78 -> culminates at 57.98 deg; ~36 deg up at 23:00 CEST, far from the meridian,
+# so one day's sidereal shift moves its altitude ~0.6 deg (NGC 188, circumpolar, moves only ~0.06)
+M74_NAME, M74_RA_H, M74_DEC = "M74", 1.611, 15.78
+
+
+def test_warm_main_cache_11pm_uses_observing_night(monkeypatch):
+    """At 03:00 local on 2026-09-21 the observing night is 2026-09-20; alt_11pm must be that night's 23:00."""
+    # Patch both modules so the old get_utc_time_for_local_11pm would see the same frozen clock
+    monkeypatch.setattr(nova, "datetime", _FixedDatetime)
+    monkeypatch.setattr("modules.astro_calculations.datetime", _FixedDatetime)
+    monkeypatch.setattr("threading.Thread", _no_threads)
+    nightly_curves_cache.clear()
+
+    # Observing night 2026-09-20 -> 23:00 CEST = 21:00 UTC
+    expected_alt, _ = ra_dec_to_alt_az(M74_RA_H, M74_DEC, LAT, LON, "2026-09-20T21:00:00")
+    # What the old clock-based code picks: 23:00 on the frozen calendar day 2026-09-21
+    old_alt, _ = ra_dec_to_alt_az(M74_RA_H, M74_DEC, LAT, LON, "2026-09-21T21:00:00")
+    assert f"{expected_alt:.2f}" != f"{old_alt:.2f}", "guard: test would not discriminate"
+
+    user_config = {
+        "locations": {LOC_NAME: {"lat": LAT, "lon": LON, "timezone": TZ,
+                                 "altitude_threshold": ALT_THRESHOLD}},
+        "objects": [{"Object": M74_NAME, "RA": M74_RA_H, "DEC": M74_DEC, "enabled": True}],
+    }
+
+    try:
+        warm_main_cache(USERNAME, LOC_NAME, user_config, SAMPLING)
+
+        cached = nightly_curves_cache[_cache_key(M74_NAME)]
+        assert cached["alt_11pm"] == f"{expected_alt:.2f}", (
+            f"alt_11pm: cached={cached['alt_11pm']!r} expected={expected_alt:.2f} "
+            f"(observing night 2026-09-20), old clock-based value={old_alt:.2f}")
     finally:
         nightly_curves_cache.clear()

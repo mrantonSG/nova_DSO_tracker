@@ -74,7 +74,7 @@ import jwt
 
 from modules.astro_calculations import (
     calculate_transit_time,
-    get_utc_time_for_local_11pm,
+    get_utc_time_for_local_11pm_on,
     hms_to_hours,
     dms_to_degrees,
     ra_dec_to_alt_az,
@@ -2020,7 +2020,7 @@ def warm_main_cache(username, location_name, user_config, sampling_interval):
         all_azs = all_azs.T
 
         # --- 5. PROCESS RESULTS & CACHE ---
-        fixed_time_utc_str = get_utc_time_for_local_11pm(tz_name)
+        fixed_time_utc_str = get_utc_time_for_local_11pm_on(local_date, tz_name)
 
         for i, obj_name in enumerate(obj_names):
             ra = ra_list[i]
