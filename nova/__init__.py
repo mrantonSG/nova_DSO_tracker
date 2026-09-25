@@ -138,7 +138,7 @@ from nova.helpers import (
     load_full_astro_context, get_ra_dec,
     # Additional helpers extracted
     normalize_object_name, _parse_float_from_request, sort_rigs,
-    outlook_cache_file, resolve_sampling_interval,
+    outlook_cache_file, resolve_sampling_interval, resolve_altitude_threshold,
 )
 from nova.config import DEFAULT_DITHER_MAIN_SHIFT_PX
 from nova.report_graphs import generate_session_charts
@@ -1940,9 +1940,7 @@ def warm_main_cache(username, location_name, user_config, sampling_interval):
         local_date = observing_date_for_calcs.strftime('%Y-%m-%d')
         lat = float(user_config["locations"][location_name]["lat"])
         lon = float(user_config["locations"][location_name]["lon"])
-        loc_threshold = user_config["locations"][location_name].get("altitude_threshold")
-        altitude_threshold = loc_threshold if loc_threshold is not None else user_config.get(
-            "altitude_threshold", 20)
+        altitude_threshold = resolve_altitude_threshold(user_config, user_config["locations"][location_name])
         try:
             horizon_mask = user_config.get("locations", {}).get(location_name, {}).get("horizon_mask")
         except Exception:
@@ -2119,9 +2117,7 @@ def warm_default_locations():
                     except pytz.exceptions.UnknownTimeZoneError:
                         local_tz = pytz.timezone("UTC")
                     local_date = (datetime.now(local_tz) - timedelta(hours=12)).strftime('%Y-%m-%d')
-                    loc_threshold = location.get("altitude_threshold")
-                    altitude_threshold = loc_threshold if loc_threshold is not None else config.get(
-                        "altitude_threshold", 20)
+                    altitude_threshold = resolve_altitude_threshold(config, location)
                     enabled_count = len([o for o in config.get("objects", [])
                                          if o.get("enabled", True) and o.get("Object")])
 

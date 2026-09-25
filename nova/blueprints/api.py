@@ -47,7 +47,7 @@ from nova.helpers import (
     read_log_content, enable_user, disable_user, delete_user,
     bust_astro_context_cache, invalidate_object_caches,
     heatmap_fingerprint, heatmap_cache_path,
-    resolve_sampling_interval,
+    resolve_sampling_interval, resolve_altitude_threshold,
 )
 from nova.models import (
     DbUser, AstroObject, JournalSession, Project,
@@ -2066,7 +2066,7 @@ def get_moon_data_for_session():
         if ra is not None and dec is not None:
             try:
                 # Attempt to resolve horizon mask and threshold from global context if location matches
-                alt_thresh = g.user_config.get("altitude_threshold", 20)
+                alt_thresh = resolve_altitude_threshold(g.user_config)
                 mask = None
 
                 # Heuristic lookup for location-specific settings
@@ -2076,8 +2076,7 @@ def get_moon_data_for_session():
                         if (abs(loc_details.get('lat', 999) - lat) < 0.001 and
                                 abs(loc_details.get('lon', 999) - lon) < 0.001):
                             mask = loc_details.get('horizon_mask')
-                            if loc_details.get('altitude_threshold') is not None:
-                                alt_thresh = loc_details.get('altitude_threshold')
+                            alt_thresh = resolve_altitude_threshold(g.user_config, loc_details)
                             break
 
                 # Use a standard sampling interval for this quick check
@@ -2679,14 +2678,7 @@ def get_plot_data(object_name):
 
     horizon_mask = location_config.get("horizon_mask")
 
-    altitude_threshold = 20
-    try:
-        user_cfg = getattr(g, 'user_config', {}) or {}
-        altitude_threshold = user_cfg.get("altitude_threshold", 20)
-    except Exception:
-        pass
-    if location_config.get("altitude_threshold") is not None:
-        altitude_threshold = location_config.get("altitude_threshold")
+    altitude_threshold = resolve_altitude_threshold(getattr(g, 'user_config', None), location_config)
 
     if horizon_mask and isinstance(horizon_mask, list) and len(horizon_mask) > 1:
         try:
@@ -2846,14 +2838,8 @@ def get_observable_objects():
     except (ValueError, TypeError) as e:
         return jsonify({"error": f"Invalid location parameters: {e}", "objects": []}), 400
 
-    altitude_threshold = 20
-
-    # Get user's altitude threshold from config
-    try:
-        user_cfg = getattr(g, 'user_config', {}) or {}
-        altitude_threshold = user_cfg.get("altitude_threshold", 20)
-    except Exception:
-        pass
+    # Global threshold; overridden below when ?location= names a location
+    altitude_threshold = resolve_altitude_threshold(getattr(g, 'user_config', None))
 
     if lat is None or lon is None:
         return jsonify({"error": _("Location not configured"), "objects": []}), 400
@@ -2919,8 +2905,7 @@ def get_observable_objects():
                     lat = location_obj.lat
                     lon = location_obj.lon
                     tz_name = location_obj.timezone
-                    if location_obj.altitude_threshold is not None:
-                        altitude_threshold = location_obj.altitude_threshold
+                    altitude_threshold = resolve_altitude_threshold(getattr(g, 'user_config', None), location_obj)
             except Exception as e:
                 print(f"[API Observable Objects] Error fetching location from DB: {e}")
 
@@ -3192,10 +3177,7 @@ def get_object_data(object_name):
                 user_prefs_dict = json.loads(prefs_record.json_blob)
             except:
                 pass
-        altitude_threshold = user_prefs_dict.get("altitude_threshold", 20)
-        # Use location-specific threshold if available
-        if selected_location.altitude_threshold is not None:
-            altitude_threshold = selected_location.altitude_threshold
+        altitude_threshold = resolve_altitude_threshold(user_prefs_dict, selected_location)
 
         # Determine sampling interval based on mode
         sampling_interval = resolve_sampling_interval(user_prefs_dict)
@@ -3408,8 +3390,7 @@ def get_desktop_data_batch():
         lat, lon, tz_name = location_obj.lat, location_obj.lon, location_obj.timezone
         horizon_mask = [[hp.az_deg, hp.alt_min_deg] for hp in
                         sorted(location_obj.horizon_points, key=lambda p: p.az_deg)]
-        altitude_threshold = location_obj.altitude_threshold if location_obj.altitude_threshold is not None else g.user_config.get(
-            "altitude_threshold", 20)
+        altitude_threshold = resolve_altitude_threshold(g.user_config, location_obj)
 
         # Load skyglow data for this location (batch cache)
         sg_data = {}

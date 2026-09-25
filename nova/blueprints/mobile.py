@@ -33,7 +33,7 @@ from nova.models import (
 )
 from nova.helpers import (
     get_db, load_full_astro_context, safe_float, safe_int, generate_session_id, _compute_rig_metrics_from_components,
-    resolve_sampling_interval,
+    resolve_sampling_interval, resolve_altitude_threshold,
 )
 from nova.analytics import record_event
 from uuid import uuid4
@@ -385,10 +385,7 @@ def mobile_object_detail(object_name):
         sampling_interval = resolve_sampling_interval(user_prefs)
 
         # Get altitude threshold
-        altitude_threshold = user_prefs.get("altitude_threshold", 20)
-        location_alt_thresh = location.get('altitude_threshold')
-        if location_alt_thresh is not None:
-            altitude_threshold = location_alt_thresh
+        altitude_threshold = resolve_altitude_threshold(user_prefs, location)
 
         # Calculate horizon mask
         horizon_mask = location.get('horizon_mask', [])

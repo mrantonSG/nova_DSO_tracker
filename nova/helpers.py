@@ -149,6 +149,22 @@ def resolve_sampling_interval(user_config) -> int:
     return int(os.environ.get('CALCULATION_PRECISION', 15))
 
 
+def resolve_altitude_threshold(user_config, location=None):
+    """
+    Altitude threshold in degrees: the location's override if set, else the
+    global setting, else 20. None counts as missing; 0 is a valid value.
+    `location` may be a location dict, a Location row or None.
+    """
+    if isinstance(location, dict):
+        loc_threshold = location.get("altitude_threshold")
+    else:
+        loc_threshold = getattr(location, "altitude_threshold", None)
+    if loc_threshold is not None:
+        return loc_threshold
+    global_threshold = (user_config or {}).get("altitude_threshold")
+    return global_threshold if global_threshold is not None else 20
+
+
 def outlook_cache_file(user_id, location_name, user_config, sim_date=None) -> str:
     """
     Fingerprinted Outlook cache path for one user + location.
@@ -1239,9 +1255,7 @@ def get_all_mobile_up_now_data(user, location, user_prefs_dict, objects_list, db
         local_date = current_datetime_local.strftime('%Y-%m-%d')
 
     # --- 2. Get Calculation Settings ---
-    altitude_threshold = user_prefs_dict.get("altitude_threshold", 20)
-    if location.altitude_threshold is not None:
-        altitude_threshold = location.altitude_threshold
+    altitude_threshold = resolve_altitude_threshold(user_prefs_dict, location)
 
     sampling_interval = resolve_sampling_interval(user_prefs_dict)
 
