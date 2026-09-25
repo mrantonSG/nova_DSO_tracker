@@ -58,6 +58,7 @@ from nova.helpers import (
     dither_display,
     get_db,
     outlook_cache_file,
+    resolve_sampling_interval,
     get_ra_dec,
     get_user_log_string,
     load_full_astro_context,
@@ -934,11 +935,7 @@ def get_outlook_data():
         if not hasattr(g, 'user_config') or not g.user_config:
              return jsonify({"status": "error", "message": "User configuration not loaded."}), 500
 
-        sampling_interval = 15 # Default
-        if nova.SINGLE_USER_MODE:
-            sampling_interval = g.user_config.get('sampling_interval_minutes', 15)
-        else:
-            sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
+        sampling_interval = resolve_sampling_interval(g.user_config)
 
         # --- START OF CHANGE (when starting the thread) ---
         # Lazy import to avoid circular dependency
@@ -1009,11 +1006,7 @@ def prewarm_outlook():
         if not hasattr(g, 'user_config') or not g.user_config:
             return jsonify({"status": "skipped", "reason": "no_user_config"}), 200
 
-        sampling_interval = 15
-        if nova.SINGLE_USER_MODE:
-            sampling_interval = g.user_config.get('sampling_interval_minutes', 15)
-        else:
-            sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
+        sampling_interval = resolve_sampling_interval(g.user_config)
 
         from nova import update_outlook_cache
         thread = threading.Thread(

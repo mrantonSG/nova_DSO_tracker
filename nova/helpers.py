@@ -138,6 +138,17 @@ def heatmap_cache_path(user_id, location_id, fingerprint: str, part_index: int) 
     return os.path.join(CACHE_DIR, f"heatmap_v6_{user_id}_{location_id}_{fingerprint}.part{part_index}.json")
 
 
+def resolve_sampling_interval(user_config) -> int:
+    """
+    Sampling interval in minutes, same rule as load_effective_settings but
+    without g: single-user reads the config value (None counts as missing),
+    multi-user reads CALCULATION_PRECISION. Defaults to 15.
+    """
+    if nova.SINGLE_USER_MODE:
+        return (user_config or {}).get('sampling_interval_minutes') or 15
+    return int(os.environ.get('CALCULATION_PRECISION', 15))
+
+
 def outlook_cache_file(user_id, location_name, user_config, sim_date=None) -> str:
     """
     Fingerprinted Outlook cache path for one user + location.
@@ -157,10 +168,7 @@ def outlook_cache_file(user_id, location_name, user_config, sim_date=None) -> st
     mask = sorted([float(p[0]), float(p[1])] for p in (loc_cfg.get("horizon_mask") or []))
 
     # Same rule as the callers of update_outlook_cache
-    if nova.SINGLE_USER_MODE:
-        sampling_interval = user_config.get('sampling_interval_minutes', 15)
-    else:
-        sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
+    sampling_interval = resolve_sampling_interval(user_config)
 
     # Same queries as update_outlook_cache
     db = get_db()

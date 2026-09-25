@@ -138,7 +138,7 @@ from nova.helpers import (
     load_full_astro_context, get_ra_dec,
     # Additional helpers extracted
     normalize_object_name, _parse_float_from_request, sort_rigs,
-    outlook_cache_file,
+    outlook_cache_file, resolve_sampling_interval,
 )
 from nova.config import DEFAULT_DITHER_MAIN_SHIFT_PX
 from nova.report_graphs import generate_session_charts
@@ -1640,15 +1640,7 @@ def trigger_outlook_update_for_user(username):
         user_cfg = build_user_config_from_db(username)
         locations = user_cfg.get('locations', {})
 
-        # --- START FIX: Determine sampling_interval correctly ---
-        sampling_interval = 15  # Default
-        if SINGLE_USER_MODE:
-            # In single-user mode, get it from the user's config (UiPref blob)
-            sampling_interval = user_cfg.get('sampling_interval_minutes', 15)
-        else:
-            # In multi-user mode, get it from environment variables (or default)
-            sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
-        # --- END FIX ---
+        sampling_interval = resolve_sampling_interval(user_cfg)
 
         # Define a sequential wrapper to prevent CPU spikes from parallel location processing
         def _process_locations_sequentially(uid, uname, loc_list, cfg, interval):

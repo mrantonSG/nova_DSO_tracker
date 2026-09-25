@@ -27,7 +27,7 @@ from nova.helpers import (
     get_db, allowed_file, get_user_log_string,
     calculate_dither_recommendation,
     safe_int, _compute_rig_metrics_from_components,
-    sort_rigs, outlook_cache_file,
+    sort_rigs, outlook_cache_file, resolve_sampling_interval,
     bust_astro_context_cache,
     bust_nightly_curves_cache,
     invalidate_object_caches,
@@ -781,12 +781,8 @@ def import_config():
         # (Force refresh to ensure active projects match the new config)
         user_config_for_thread = new_config.copy()
 
-        # Determine sampling interval from the imported config if possible, else fallback
-        import_interval = 15
-        if SINGLE_USER_MODE:
-            import_interval = user_config_for_thread.get('sampling_interval_minutes') or 15
-        else:
-            import_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
+        # Same rule as outlook_cache_file, so the filename matches the content
+        import_interval = resolve_sampling_interval(user_config_for_thread)
 
         locations_in_import = user_config_for_thread.get('locations', {})
 
