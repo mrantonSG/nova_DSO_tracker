@@ -3557,7 +3557,7 @@ def get_desktop_data_batch():
                     trend = '↑' if cached["altitudes"][next_idx] > cur_alt else '↓'
 
                 is_obst_now = False
-                if horizon_mask:
+                if horizon_mask and len(horizon_mask) > 1:
                     req = interpolate_horizon(cur_az, sorted(horizon_mask, key=lambda p: p[0]), altitude_threshold)
                     if cur_alt >= altitude_threshold and cur_alt < req: is_obst_now = True
 

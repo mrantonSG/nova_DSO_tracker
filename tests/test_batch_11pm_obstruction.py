@@ -89,3 +89,45 @@ def test_batch_11pm_follows_sim_date(client, monkeypatch):
     assert item["Altitude 11PM"] == f"{expected_alt:.2f}", (
         f"Altitude 11PM={item['Altitude 11PM']!r}, expected {expected_alt:.2f} (23:00 on {SIM_DATE}); "
         f"clock-based 11 PM gives {clock_alt:.2f}")
+
+
+class _FrozenNowDatetime(datetime):
+    """now() is fixed at FIXED_11PM_UTC (a 15-min grid sample), so the batch's current az is deterministic."""
+
+    @classmethod
+    def now(cls, tz=None):
+        fixed = pytz.utc.localize(datetime.strptime(FIXED_11PM_UTC, '%Y-%m-%dT%H:%M:%S'))
+        return fixed.astimezone(tz) if tz else fixed.replace(tzinfo=None)
+
+
+def test_batch_now_obstruction_ignores_one_point_mask(client, monkeypatch):
+    monkeypatch.setattr("nova.blueprints.api.datetime", _FrozenNowDatetime)
+
+    alt_now, az_now = ra_dec_to_alt_az(OBJ_RA_H, OBJ_DEC, LAT, LON, FIXED_11PM_UTC)
+    horizon_mask = [[float(az_now), 80.0]]
+
+    # Guard: the old `if horizon_mask:` guard interpolates the single point (required=80 at exactly
+    # az_now) -> obstructed; the reference `len(horizon_mask) > 1` guard skips it.
+    old_required = interpolate_horizon(az_now, sorted(horizon_mask, key=lambda p: p[0]), ALT_THRESHOLD)
+    old_rule = bool(ALT_THRESHOLD <= alt_now < old_required)
+    expected = False
+    assert old_rule is True and old_rule != expected, (
+        f"scenario not discriminating: alt_now={alt_now}, az_now={az_now}, old_required={old_required}")
+
+    db = get_db()
+    loc = db.query(Location).filter_by(name=LOC_NAME).one()
+    loc.altitude_threshold = ALT_THRESHOLD
+    db.add(HorizonPoint(location_id=loc.id, az_deg=float(az_now), alt_min_deg=80.0))
+    db.commit()
+    nightly_curves_cache.clear()  # force the cache-miss path
+
+    response = client.get('/api/get_desktop_data_batch', query_string={"location": LOC_NAME})
+    assert response.status_code == 200
+    item = next(r for r in response.get_json()["results"] if r.get("Object") == "M42")
+
+    assert item["error"] is False
+    assert item["Azimuth Current"] == f"{az_now:.2f}", "frozen clock not used"
+    assert item["Altitude Current"] == f"{alt_now:.2f}", "frozen clock not used"
+    assert item["is_obstructed_now"] is expected, (
+        f"is_obstructed_now={item['is_obstructed_now']!r}, expected={expected!r} "
+        f"(reference rule; old rule gave {old_rule}, alt_now={alt_now:.2f}, required={old_required})")
