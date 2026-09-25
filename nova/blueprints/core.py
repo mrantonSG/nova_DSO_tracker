@@ -59,6 +59,7 @@ from nova.helpers import (
     get_db,
     outlook_cache_file,
     resolve_sampling_interval,
+    resolve_altitude_threshold,
     get_ra_dec,
     get_user_log_string,
     load_full_astro_context,
@@ -2561,7 +2562,7 @@ def get_imaging_opportunities(object_name):
     final_results = []
 
     # Get altitude threshold and sampling interval (from 'g')
-    altitude_threshold = g.user_config.get("altitude_threshold", 20)
+    altitude_threshold = resolve_altitude_threshold(g.user_config)
     sampling_interval = resolve_sampling_interval(g.user_config)
 
     # --- Get Horizon Mask for the specific location ---
@@ -2578,6 +2579,7 @@ def get_imaging_opportunities(object_name):
                     abs(loc_details.get('lon', 999) - lon) < 0.001 and
                     loc_details.get('timezone') == tz_name):
                     horizon_mask = loc_details.get('horizon_mask')
+                    altitude_threshold = resolve_altitude_threshold(g.user_config, loc_details)
                     # print(f"[Opportunities] Found matching location '{loc_name}' for horizon mask.") # Debug
                     break # Use the first match
             # if not horizon_mask: print("[Opportunities] No matching location found for horizon mask.") # Debug

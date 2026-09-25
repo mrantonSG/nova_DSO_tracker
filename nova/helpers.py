@@ -893,7 +893,7 @@ def load_full_astro_context():
         validated_location = next(iter(g.active_locations), None)
 
     g.selected_location = validated_location
-    g.altitude_threshold = g.user_config.get("altitude_threshold", 20)
+    g.altitude_threshold = resolve_altitude_threshold(g.user_config, g.locations.get(g.selected_location))
 
     if g.selected_location:
         loc_cfg = g.locations.get(g.selected_location, {})

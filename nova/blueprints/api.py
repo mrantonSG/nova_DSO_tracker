@@ -2838,7 +2838,7 @@ def get_observable_objects():
     except (ValueError, TypeError) as e:
         return jsonify({"error": f"Invalid location parameters: {e}", "objects": []}), 400
 
-    # Global threshold; overridden below when ?location= names a location
+    # Global threshold; overridden below by the location found by name or by lat/lon/tz
     altitude_threshold = resolve_altitude_threshold(getattr(g, 'user_config', None))
 
     if lat is None or lon is None:
@@ -2916,6 +2916,7 @@ def get_observable_objects():
                     abs(loc_details.get('lon', 999) - lon) < 0.001 and
                     loc_details.get('timezone') == tz_name):
                     horizon_mask = loc_details.get('horizon_mask')
+                    altitude_threshold = resolve_altitude_threshold(getattr(g, 'user_config', None), loc_details)
                     break
 
         # Cache key: username + date + location + threshold uniquely identify the computation
