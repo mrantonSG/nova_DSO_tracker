@@ -406,7 +406,7 @@ def generate_dso_notes():
             date_obj = datetime(int(selected_year), int(selected_month), int(selected_day))
             date_str = date_obj.strftime('%Y-%m-%d')
 
-            # Use 11 PM local for moon phase and separation (matches dashboard "Ang. Sep." column)
+            # Use 11 PM local for moon phase and separation (the dashboard "Ang. Sep." column uses the current time instead)
             local_tz = pytz.timezone(tz_name)
             time_11pm_local = local_tz.localize(datetime.combine(date_obj, time(23, 0)))
             dt_utc = time_11pm_local.astimezone(pytz.utc)
@@ -1421,24 +1421,24 @@ def prefilter_debug():
                 ra, dec, lat, lon, local_date_str, tz_name, altitude_threshold
             )
 
-            # Calculate transit time (for 11 PM altitude reference)
+            # Calculate transit time (reference time for moon separation)
             transit_time = calculate_transit_time(
                 ra, dec, lat, lon, tz_name, local_date_str
             )
 
-            # Calculate moon separation at 11 PM
+            # Calculate moon separation at the object's transit time
             angular_sep = None
             try:
                 # Parse transit time for datetime conversion
                 if transit_time and transit_time != "N/A":
-                    time_11pm_local = pytz.timezone(tz_name).localize(
+                    transit_local = pytz.timezone(tz_name).localize(
                         datetime.combine(
                             datetime.strptime(local_date_str, "%Y-%m-%d"),
                             datetime.strptime(transit_time, "%H:%M").time()
                         )
                     )
-                    dt_11pm_utc = time_11pm_local.astimezone(pytz.utc)
-                    time_obj = Time(dt_11pm_utc)
+                    transit_utc = transit_local.astimezone(pytz.utc)
+                    time_obj = Time(transit_utc)
                     loc_obj = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
                     obj_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
                     frame = AltAz(obstime=time_obj, location=loc_obj)
