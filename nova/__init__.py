@@ -2124,38 +2124,6 @@ def warm_main_cache(username, location_name, user_config, sampling_interval, tri
         # --- 5. PROCESS RESULTS & CACHE ---
         fixed_time_utc_str = get_utc_time_for_local_11pm(tz_name)
 
-        # Pre-calculate Vectorized Horizon Mask (xp, fp) to avoid Python looping
-        mask_xp, mask_fp = None, None
-
-        if horizon_mask and len(horizon_mask) > 1:
-            # 1. Sort and Clamp: Ensure floors are met
-            sorted_clamped = sorted([[p[0], max(p[1], altitude_threshold)] for p in horizon_mask], key=lambda x: x[0])
-
-            # 2. Build Profile Arrays (Replicating the 'Wall' logic from interpolate_horizon)
-            # We construct the x (azimuth) and y (altitude) arrays once
-            xp = [0.0]
-            fp = [float(altitude_threshold)]
-
-            # Wall UP at start of mask
-            xp.append(sorted_clamped[0][0] - 0.001)
-            fp.append(float(altitude_threshold))
-
-            # Mask Points
-            for az, alt in sorted_clamped:
-                xp.append(az)
-                fp.append(alt)
-
-            # Wall DOWN at end of mask
-            xp.append(sorted_clamped[-1][0] + 0.001)
-            fp.append(float(altitude_threshold))
-
-            # End at 360
-            xp.append(360.0)
-            fp.append(float(altitude_threshold))
-
-            mask_xp = np.array(xp)
-            mask_fp = np.array(fp)
-
         for i, obj_name in enumerate(obj_names):
             ra = ra_list[i]
             dec = dec_list[i]
@@ -2179,9 +2147,9 @@ def warm_main_cache(username, location_name, user_config, sampling_interval, tri
             alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, lat, lon, fixed_time_utc_str)
 
             is_obstructed_at_11pm = False
-            if mask_xp is not None:
-                # Also optimize the single-point check
-                required_altitude_11pm = np.interp(az_11pm, mask_xp, mask_fp)
+            if horizon_mask and len(horizon_mask) > 1:
+                sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
+                required_altitude_11pm = interpolate_horizon(az_11pm, sorted_mask, altitude_threshold)
                 if alt_11pm >= altitude_threshold and alt_11pm < required_altitude_11pm:
                     is_obstructed_at_11pm = True
 

@@ -4,7 +4,8 @@ import pytz
 
 import nova
 from nova import warm_main_cache, nightly_curves_cache
-from modules.astro_calculations import calculate_observable_duration_vectorized, calculate_sun_events_cached
+from modules.astro_calculations import (calculate_observable_duration_vectorized, calculate_sun_events_cached,
+                                        interpolate_horizon, ra_dec_to_alt_az)
 
 USERNAME = "default"
 LOC_NAME = "Test Loc"
@@ -116,5 +117,43 @@ def test_warm_main_cache_skips_geometrically_impossible(monkeypatch):
             f"never-rising object must not be cached (matches get_desktop_data_batch), "
             f"got: {nightly_curves_cache.get(never_key)!r}")
         assert _cache_key(OBJ_NAME) in nightly_curves_cache, "NGC 188 was not cached"
+    finally:
+        nightly_curves_cache.clear()
+
+
+# 2026-09-20 23:00 Europe/Vienna (CEST, UTC+2) -> 21:00 UTC, the night of LOCAL_DATE
+FIXED_11PM_UTC = "2026-09-20T21:00:00"
+
+
+def test_warm_main_cache_11pm_obstruction_matches_interpolate_horizon(monkeypatch):
+    monkeypatch.setattr(nova, "datetime", _FixedDatetime)
+    monkeypatch.setattr(nova, "get_utc_time_for_local_11pm", lambda tz_name: FIXED_11PM_UTC)
+    monkeypatch.setattr("threading.Thread", _no_threads)
+    nightly_curves_cache.clear()
+
+    alt_11pm, az_11pm = ra_dec_to_alt_az(OBJ_RA_H, OBJ_DEC, LAT, LON, FIXED_11PM_UTC)
+    # Duplicate azimuth exactly at az_11pm. A key=p[0] sort is stable, so the order is kept:
+    # interpolate_horizon takes the first point (80), np.interp took the last (20).
+    horizon_mask = [[az_11pm, 80.0], [az_11pm, 20.0]]
+
+    required = interpolate_horizon(az_11pm, sorted(horizon_mask, key=lambda p: p[0]), ALT_THRESHOLD)
+    expected = bool(ALT_THRESHOLD <= alt_11pm < required)
+    # Guard: the scenario must discriminate (old np.interp profile gives required=20 -> False)
+    assert expected is True, f"scenario not discriminating: alt_11pm={alt_11pm}, required={required}"
+
+    user_config = {
+        "locations": {LOC_NAME: {"lat": LAT, "lon": LON, "timezone": TZ,
+                                 "altitude_threshold": ALT_THRESHOLD,
+                                 "horizon_mask": horizon_mask}},
+        "objects": [{"Object": OBJ_NAME, "RA": OBJ_RA_H, "DEC": OBJ_DEC, "enabled": True}],
+    }
+
+    try:
+        warm_main_cache(USERNAME, LOC_NAME, user_config, SAMPLING, trigger_outlook=False)
+
+        cached = nightly_curves_cache[_cache_key(OBJ_NAME)]
+        assert cached["is_obstructed_at_11pm"] == expected, (
+            f"is_obstructed_at_11pm: cached={cached['is_obstructed_at_11pm']!r} "
+            f"expected={expected!r} (interpolate_horizon, required={required}, alt_11pm={alt_11pm:.2f})")
     finally:
         nightly_curves_cache.clear()
