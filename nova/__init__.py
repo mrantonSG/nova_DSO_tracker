@@ -2180,16 +2180,9 @@ def warm_main_cache(username, location_name, user_config, sampling_interval, tri
             altitudes = all_alts[i]
             azimuths = all_azs[i]
 
-            # Calculate Visibility Mask using NumPy Interp (C-Speed)
-            if mask_xp is not None:
-                # This replaces the slow list comprehension
-                min_alts = np.interp(azimuths, mask_xp, mask_fp)
-                visible_mask = altitudes >= min_alts
-            else:
-                visible_mask = altitudes >= altitude_threshold
-
-            obs_duration_minutes = np.sum(visible_mask) * sampling_interval
-            max_alt = np.max(altitudes)
+            obs_duration, max_alt, _, _ = calculate_observable_duration_vectorized(
+                ra, dec, lat, lon, local_date, tz_name, altitude_threshold, sampling_interval, horizon_mask
+            )
 
             # Transit
             transit_time = calculate_transit_time(ra, dec, lat, lon, tz_name, local_date)
@@ -2209,8 +2202,8 @@ def warm_main_cache(username, location_name, user_config, sampling_interval, tri
                 "altitudes": altitudes,
                 "azimuths": azimuths,
                 "transit_time": transit_time,
-                "obs_duration_minutes": int(obs_duration_minutes),
-                "max_altitude": round(float(max_alt), 1),
+                "obs_duration_minutes": int(obs_duration.total_seconds() / 60) if obs_duration else 0,
+                "max_altitude": round(max_alt, 1) if max_alt is not None else "N/A",
                 "alt_11pm": f"{alt_11pm:.2f}",
                 "az_11pm": f"{az_11pm:.2f}",
                 "is_obstructed_at_11pm": is_obstructed_at_11pm
