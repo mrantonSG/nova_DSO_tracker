@@ -3234,6 +3234,10 @@ def get_object_data(object_name):
                 "alt_11pm": f"{alt_11pm:.2f}", "az_11pm": f"{az_11pm:.2f}",
                 "is_obstructed_at_11pm": is_obstructed_at_11pm
             }
+        else:
+            alt_11pm = float(nightly_curves_cache[cache_key]["alt_11pm"])
+            az_11pm = float(nightly_curves_cache[cache_key]["az_11pm"])
+            is_obstructed_at_11pm = nightly_curves_cache[cache_key].get("is_obstructed_at_11pm", False)
 
         cached_night_data = nightly_curves_cache[cache_key]
 
