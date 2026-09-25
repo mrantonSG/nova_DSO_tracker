@@ -16,9 +16,7 @@ def test_mobile_11pm_uses_observing_night(client, monkeypatch):
         def now(cls, tz=None):
             return frozen_local.astimezone(tz) if tz is not None else frozen_local.replace(tzinfo=None)
 
-    # Patch both modules so the old get_utc_time_for_local_11pm would see the same frozen clock
     monkeypatch.setattr("nova.helpers.datetime", _FrozenDatetime)
-    monkeypatch.setattr("modules.astro_calculations.datetime", _FrozenDatetime)
     nightly_curves_cache.clear()  # force the cache-miss path
 
     response = client.get('/api/mobile_data_chunk?offset=0&limit=10')

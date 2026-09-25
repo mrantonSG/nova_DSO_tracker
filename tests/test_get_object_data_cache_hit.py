@@ -56,9 +56,7 @@ def test_get_object_data_11pm_uses_observing_night(client, monkeypatch):
         def now(cls, tz=None):
             return frozen_local.astimezone(tz) if tz is not None else frozen_local.replace(tzinfo=None)
 
-    # Patch both modules so the old get_utc_time_for_local_11pm would see the same frozen clock
     monkeypatch.setattr("nova.blueprints.api.datetime", _FrozenDatetime)
-    monkeypatch.setattr("modules.astro_calculations.datetime", _FrozenDatetime)
     monkeypatch.delenv("NASA_EARTHDATA_TOKEN", raising=False)
     nightly_curves_cache.clear()  # force the cache-miss path
 

@@ -166,9 +166,7 @@ M74_NAME, M74_RA_H, M74_DEC = "M74", 1.611, 15.78
 
 def test_warm_main_cache_11pm_uses_observing_night(monkeypatch):
     """At 03:00 local on 2026-09-21 the observing night is 2026-09-20; alt_11pm must be that night's 23:00."""
-    # Patch both modules so the old get_utc_time_for_local_11pm would see the same frozen clock
     monkeypatch.setattr(nova, "datetime", _FixedDatetime)
-    monkeypatch.setattr("modules.astro_calculations.datetime", _FixedDatetime)
     monkeypatch.setattr("threading.Thread", _no_threads)
     nightly_curves_cache.clear()
 

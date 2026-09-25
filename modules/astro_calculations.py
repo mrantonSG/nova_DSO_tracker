@@ -108,25 +108,6 @@ def calculate_transit_time(ra, dec, lat, lon, tz_name, local_date_str):
     except Exception as e:
             return "N/A"
 
-def get_utc_time_for_local_11pm(tz_name):
-    local_tz = pytz.timezone(tz_name)
-    now_local = datetime.now(local_tz)
-
-    # Create a new naive datetime for today at 23:00:
-    today_naive = datetime(now_local.year, now_local.month, now_local.day, 23, 0, 0)
-    # Localize it (make it timezone aware):
-    eleven_pm_local = local_tz.localize(today_naive)
-
-    # If the current time is after (or equal to) today's 11pm,
-    # then we want to use tomorrow's 11pm.
-    if now_local >= eleven_pm_local:
-        eleven_pm_local += timedelta(days=1)
-
-    # Convert the 11pm local time to UTC:
-    utc_time = eleven_pm_local.astimezone(pytz.utc)
-    return utc_time.strftime('%Y-%m-%dT%H:%M:%S')
-
-
 def get_utc_time_for_local_11pm_on(local_date, tz_name):
     """UTC time of 23:00 local on the observing night local_date ('YYYY-MM-DD')."""
     local_tz = pytz.timezone(tz_name)

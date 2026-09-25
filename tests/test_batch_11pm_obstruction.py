@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import pytz
 
-from modules.astro_calculations import (get_utc_time_for_local_11pm, get_utc_time_for_local_11pm_on,
+from modules.astro_calculations import (get_utc_time_for_local_11pm_on,
                                         interpolate_horizon, ra_dec_to_alt_az)
 from nova import get_db
 from nova.config import nightly_curves_cache
@@ -68,7 +68,12 @@ def test_batch_11pm_follows_sim_date(client, monkeypatch):
 
     # Location tz is UTC, so 23:00 local on SIM_DATE == SIM_DATE 23:00 UTC
     expected_alt, _ = ra_dec_to_alt_az(OBJ_RA_H, OBJ_DEC, LAT, LON, get_utc_time_for_local_11pm_on(SIM_DATE, "UTC"))
-    clock_alt, _ = ra_dec_to_alt_az(OBJ_RA_H, OBJ_DEC, LAT, LON, get_utc_time_for_local_11pm("UTC"))
+    # Reproduces the removed clock-based 11 PM for the guard: next 23:00 UTC from the real clock
+    now_utc = datetime.now(pytz.utc)
+    clock_11pm = now_utc.replace(hour=23, minute=0, second=0, microsecond=0)
+    if now_utc >= clock_11pm:
+        clock_11pm += timedelta(days=1)
+    clock_alt, _ = ra_dec_to_alt_az(OBJ_RA_H, OBJ_DEC, LAT, LON, clock_11pm.strftime('%Y-%m-%dT%H:%M:%S'))
     # Guard: the clock-based 11 PM (old behaviour) must give a different value, so the test discriminates
     assert f"{expected_alt:.2f}" != f"{clock_alt:.2f}", (
         f"scenario not discriminating: sim={expected_alt:.2f}, clock={clock_alt:.2f}")
