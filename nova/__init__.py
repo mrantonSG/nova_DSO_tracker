@@ -2110,10 +2110,7 @@ def warm_default_locations():
                         continue
 
                     # Same sampling-interval rule as load_effective_settings
-                    if SINGLE_USER_MODE:
-                        sampling_interval = config.get('sampling_interval_minutes') or 15
-                    else:
-                        sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
+                    sampling_interval = resolve_sampling_interval(config)
 
                     # Same date, threshold and object rules as warm_main_cache
                     location = locations[location_name]

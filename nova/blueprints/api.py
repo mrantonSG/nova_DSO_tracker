@@ -47,6 +47,7 @@ from nova.helpers import (
     read_log_content, enable_user, disable_user, delete_user,
     bust_astro_context_cache, invalidate_object_caches,
     heatmap_fingerprint, heatmap_cache_path,
+    resolve_sampling_interval,
 )
 from nova.models import (
     DbUser, AstroObject, JournalSession, Project,
@@ -3197,11 +3198,7 @@ def get_object_data(object_name):
             altitude_threshold = selected_location.altitude_threshold
 
         # Determine sampling interval based on mode
-        sampling_interval = 15  # Default
-        if nova.SINGLE_USER_MODE:
-            sampling_interval = user_prefs_dict.get('sampling_interval_minutes') or 15
-        else:
-            sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
+        sampling_interval = resolve_sampling_interval(user_prefs_dict)
 
         cache_key = f"{username}_{object_name.lower().replace(' ', '_')}_{local_date}_{lat:.4f}_{lon:.4f}_{altitude_threshold}_{sampling_interval}"
 
@@ -3451,7 +3448,7 @@ def get_desktop_data_batch():
         else:
             local_date = current_datetime_local.strftime('%Y-%m-%d')
 
-        sampling_interval = (g.user_config.get('sampling_interval_minutes') or 15) if nova.SINGLE_USER_MODE else int(os.environ.get('CALCULATION_PRECISION', 15))
+        sampling_interval = resolve_sampling_interval(g.user_config)
         fixed_time_utc_str = get_utc_time_for_local_11pm_on(local_date, tz_name)
 
         # Moon / Ephem Prep

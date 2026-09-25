@@ -32,7 +32,8 @@ from nova.models import (
     DbUser, AstroObject, SavedFraming, Rig, Project, JournalSession, UserCustomFilter
 )
 from nova.helpers import (
-    get_db, load_full_astro_context, safe_float, safe_int, generate_session_id, _compute_rig_metrics_from_components
+    get_db, load_full_astro_context, safe_float, safe_int, generate_session_id, _compute_rig_metrics_from_components,
+    resolve_sampling_interval,
 )
 from nova.analytics import record_event
 from uuid import uuid4
@@ -381,12 +382,7 @@ def mobile_object_detail(object_name):
 
         # Get calculation settings
         from nova.config import nightly_curves_cache
-        sampling_interval = 15
-        if nova.SINGLE_USER_MODE:
-            sampling_interval = user_prefs.get('sampling_interval_minutes', 15)
-        else:
-            import os
-            sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
+        sampling_interval = resolve_sampling_interval(user_prefs)
 
         # Get altitude threshold
         altitude_threshold = user_prefs.get("altitude_threshold", 20)

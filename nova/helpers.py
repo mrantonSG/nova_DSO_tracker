@@ -687,7 +687,7 @@ def load_effective_settings():
     """
     if nova.SINGLE_USER_MODE:
         # In single-user mode, read from the user's config file.
-        g.sampling_interval = g.user_config.get('sampling_interval_minutes') or 15
+        g.sampling_interval = resolve_sampling_interval(g.user_config)
         # --- START FIX ---
         # Handle case where 'telemetry' key exists but is None
         telemetry_config = g.user_config.get('telemetry') or {}
@@ -696,7 +696,7 @@ def load_effective_settings():
 
     else:
         # In multi-user mode, read from the .env file with hardcoded defaults.
-        g.sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
+        g.sampling_interval = resolve_sampling_interval(g.user_config)
         g.telemetry_enabled = os.environ.get('TELEMETRY_ENABLED', 'true').lower() == 'true'
 
 
@@ -1243,11 +1243,7 @@ def get_all_mobile_up_now_data(user, location, user_prefs_dict, objects_list, db
     if location.altitude_threshold is not None:
         altitude_threshold = location.altitude_threshold
 
-    sampling_interval = 15  # Default
-    if nova.SINGLE_USER_MODE:
-        sampling_interval = user_prefs_dict.get('sampling_interval_minutes') or 15
-    else:
-        sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
+    sampling_interval = resolve_sampling_interval(user_prefs_dict)
 
     horizon_mask = [[hp.az_deg, hp.alt_min_deg] for hp in sorted(location.horizon_points, key=lambda p: p.az_deg)]
     location_name_key = location.name.lower().replace(' ', '_')

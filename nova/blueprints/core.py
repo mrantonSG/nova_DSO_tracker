@@ -2556,8 +2556,7 @@ def get_imaging_opportunities(object_name):
 
     # Get altitude threshold and sampling interval (from 'g')
     altitude_threshold = g.user_config.get("altitude_threshold", 20)
-    sampling_interval = (g.user_config.get('sampling_interval_minutes') or 15) if nova.SINGLE_USER_MODE else int(
-        os.environ.get('CALCULATION_PRECISION', 15))
+    sampling_interval = resolve_sampling_interval(g.user_config)
 
     # --- Get Horizon Mask for the specific location ---
     # We need the location *name* to look up the mask.
