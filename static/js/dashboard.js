@@ -108,6 +108,7 @@
         const HIDE_INVISIBLE_PREF = window.NOVA_INDEX.hideInvisible;
         let activeTab = localStorage.getItem('nova_last_tab') || 'position';
         let outlookDataLoaded = false;
+        let outlookPollTimer = null; // Single pending Outlook poll
         let activeFetchController = null; // Controls network cancellation
         let dataUpdateIntervalId = null; // 60-second interval for data updates
         let timerUpdateIntervalId = null; // 1-second interval for countdown display
@@ -3431,6 +3432,9 @@
     
     
         function fetchOutlookData() {
+            // Any new call replaces a pending poll
+            clearTimeout(outlookPollTimer);
+            outlookPollTimer = null;
             const tableBody = document.getElementById('outlook-body');
             const loadingDiv = document.getElementById("table-loading"); // Assuming you might have a general loading div
             if (!tableBody) return;
@@ -3488,11 +3492,10 @@
                             tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:${getColor('--primary-dark', '#6795a4')};">${window.t('waiting_background_task')}</td></tr>`;
                         }
                         // Poll again after a delay
-                        setTimeout(fetchOutlookData, 10000);
+                        outlookPollTimer = setTimeout(fetchOutlookData, 10000);
                     } else { // Handle 'idle' (should become 'starting' now) or 'error'
-                        tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:orange;">${window.t('no_data_available')} ${data.message || ''}</td></tr>`;
-                        // Optionally set outlookDataLoaded = true here too, to stop retrying on error
-                         if (!outlookDataLoaded) { outlookDataLoaded = true; }
+                        tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:orange;">${window.t('error_loading_outlook')} ${data.message || ''}</td></tr>`;
+                        // Leave outlookDataLoaded false so reopening the tab retries
                     }
                     // Hide general loading indicator if used
                     if (loadingDiv) loadingDiv.style.display = 'none';
