@@ -203,16 +203,14 @@ class _StopWorker(BaseException):
 
 def test_heatmap_worker_failing_task_does_not_block_other_users(db_session, monkeypatch, isolated_cache_dir):
     import contextlib
-    import json as _json
     from datetime import timedelta as _td
-    from nova.models import DbUser, Location, AstroObject, UiPref
+    from nova.models import DbUser, Location, AstroObject
 
-    # User A: null threshold in the settings blob -> TypeError in its task
+    # User A: the duration calculation raises for its location (lat 10)
     bad = DbUser(username="bad_user")
     good = DbUser(username="good_user")
     db_session.add_all([bad, good])
     db_session.flush()
-    db_session.add(UiPref(user_id=bad.id, json_blob=_json.dumps({"altitude_threshold": None})))
     for u, lat in ((bad, 10.0), (good, 45.0)):
         db_session.add(Location(user_id=u.id, name=f"{u.username}_loc", lat=lat, lon=10.0,
                                 timezone="UTC", active=True))
@@ -224,6 +222,8 @@ def test_heatmap_worker_failing_task_does_not_block_other_users(db_session, monk
 
     def fake_duration(ra, dec, lat, lon, date_str, tz, thr, step, horizon_mask=None):
         calls.append(lat)
+        if lat == 10.0:
+            raise RuntimeError("bad user's task fails")
         return _td(hours=2), 50.0, None, None
 
     def fake_sleep(secs):
@@ -240,5 +240,6 @@ def test_heatmap_worker_failing_task_does_not_block_other_users(db_session, monk
     with pytest.raises(_StopWorker):
         heatmap_worker.heatmap_background_worker(app)
 
+    assert 10.0 in calls  # bad user's task reached the failure trigger
     assert 45.0 in calls  # good user's location was computed
     assert len(list(isolated_cache_dir.glob(f"heatmap_v6_{good.id}_*.part*.json"))) == 12

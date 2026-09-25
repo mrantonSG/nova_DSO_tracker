@@ -3633,13 +3633,16 @@ def get_yearly_heatmap_chunk():
             horizon_mask = loc_data.get('horizon_mask')
             selected_loc_key = req_loc_name
             location_id = loc_data['db_id']
+            threshold_loc = loc_data
         else:
             lat = float(request.args.get('lat', g.lat))
             lon = float(request.args.get('lon', g.lon))
             tz_name = request.args.get('tz', g.tz_name)
             horizon_mask = None
+            threshold_loc = None
             if g.selected_location and g.selected_location in g.locations:
                 horizon_mask = g.locations[g.selected_location].get('horizon_mask')
+                threshold_loc = g.locations[g.selected_location]
             selected_loc_key = g.selected_location or "default"
             location_id = "adhoc"
 
@@ -3652,7 +3655,7 @@ def get_yearly_heatmap_chunk():
         start_date_year = now.date() - timedelta(days=now.weekday())
 
         # --- Object Selection ---
-        altitude_threshold = g.user_config.get("altitude_threshold", 20)
+        altitude_threshold = resolve_altitude_threshold(g.user_config, threshold_loc)
         sampling_interval = 60
 
         all_objects = db.query(AstroObject).filter_by(user_id=user_id, enabled=True).all()

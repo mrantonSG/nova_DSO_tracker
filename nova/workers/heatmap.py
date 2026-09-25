@@ -10,7 +10,8 @@ import ephem
 
 from nova.models import DbUser, Location, AstroObject, UiPref, SessionLocal
 from nova.config import CACHE_DIR
-from nova.helpers import get_db, heatmap_fingerprint, heatmap_cache_path, get_user_log_string
+from nova.helpers import (get_db, heatmap_fingerprint, heatmap_cache_path, get_user_log_string,
+                          resolve_altitude_threshold)
 from modules.astro_calculations import calculate_observable_duration_vectorized
 
 
@@ -84,7 +85,7 @@ def heatmap_background_worker(app):
                             'lon': loc.lon,
                             'tz': loc.timezone,
                             'mask': [[hp.az_deg, hp.alt_min_deg] for hp in loc.horizon_points],
-                            'alt_threshold': user_cfg.get("altitude_threshold", 20)
+                            'alt_threshold': resolve_altitude_threshold(user_cfg, loc)
                         })
 
             # 2. Process Tasks
