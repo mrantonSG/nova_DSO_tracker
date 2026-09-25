@@ -14,6 +14,28 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 
+# --- Guard: the real instance/cache/ must not be touched by the test run ---
+# Snapshot taken before nova is imported, compared in pytest_terminal_summary.
+_REAL_CACHE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'instance', 'cache'))
+
+
+def _snapshot_cache_dir():
+    snap = {}
+    if os.path.isdir(_REAL_CACHE_DIR):
+        for root, _dirs, files in os.walk(_REAL_CACHE_DIR):
+            for name in files:
+                path = os.path.join(root, name)
+                try:
+                    st = os.stat(path)
+                except FileNotFoundError:
+                    continue
+                snap[path] = (st.st_mtime_ns, st.st_size)
+    return snap
+
+
+_CACHE_SNAPSHOT_BEFORE = _snapshot_cache_dir()
+
+
 from nova import (
     app,
     Base,
@@ -71,6 +93,61 @@ class MockAuthDbUser(User):
 
 
 # --- END MOCK CLASSES ---
+
+
+# Every module that did `from nova.config import CACHE_DIR` holds its own binding,
+# so each one has to be patched.
+_CACHE_DIR_MODULES = (
+    'nova.config',
+    'nova',
+    'nova.helpers',
+    'nova.blueprints.api',
+    'nova.blueprints.core',
+    'nova.blueprints.tools',
+    'nova.workers.heatmap',
+)
+
+
+def _patch_cache_dir(mp, path):
+    for mod in _CACHE_DIR_MODULES:
+        mp.setattr(f'{mod}.CACHE_DIR', str(path))
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _session_cache_dir(tmp_path_factory):
+    # Fallback for background threads (e.g. trigger_outlook_update_for_user) that
+    # build their cache path after a test's own patch has been undone.
+    path = tmp_path_factory.mktemp("cache")
+    mp = pytest.MonkeyPatch()
+    _patch_cache_dir(mp, path)
+    yield path
+    mp.undo()
+
+
+@pytest.fixture(autouse=True)
+def isolated_cache_dir(_session_cache_dir, tmp_path, monkeypatch):
+    path = tmp_path / "cache"
+    path.mkdir()
+    _patch_cache_dir(monkeypatch, path)
+    return path
+
+
+def pytest_terminal_summary(terminalreporter):
+    after = _snapshot_cache_dir()
+    before = _CACHE_SNAPSHOT_BEFORE
+    created = sorted(set(after) - set(before))
+    modified = sorted(p for p in set(after) & set(before) if after[p] != before[p])
+    if not (created or modified):
+        return
+    tr = terminalreporter
+    tr.write_sep("!", "WARNING: real instance/cache/ changed during test run", yellow=True, bold=True)
+    tr.write_line(f"Directory: {_REAL_CACHE_DIR}", yellow=True)
+    for p in created:
+        tr.write_line(f"  created:  {os.path.relpath(p, _REAL_CACHE_DIR)}", yellow=True)
+    for p in modified:
+        tr.write_line(f"  modified: {os.path.relpath(p, _REAL_CACHE_DIR)}", yellow=True)
+    tr.write_line("Note: a running dev server (python nova.py) also writes here and can cause this.", yellow=True)
+    tr.write_sep("!", yellow=True, bold=True)
 
 
 @pytest.fixture(scope="function")
