@@ -55,6 +55,7 @@
         // 3. Start Chunked Fetch
         isFetching = true;
         plotDiv.innerHTML = "";
+        plotDiv.style.height = '';
         if (loadingDiv) loadingDiv.style.display = "block";
         if (progressBar) progressBar.style.width = "0%";
 
@@ -138,6 +139,7 @@
                     const firstError = chunks.map(c => c.error).find(Boolean);
                     errorDiv.textContent = `Error: ${firstError || 'unknown error'} (all ${totalChunks} chunks failed to load)`;
                     plotDiv.innerHTML = '';
+                    plotDiv.style.height = '';
                     plotDiv.appendChild(errorDiv);
                     return;
                 }
@@ -198,6 +200,7 @@
                 errorDiv.style.padding = '20px';
                 errorDiv.textContent = `Error: ${err.message}`;
                 plotDiv.innerHTML = '';
+                plotDiv.style.height = '';
                 plotDiv.appendChild(errorDiv);
             });
     }
@@ -223,6 +226,7 @@
 
         if (!data || data.error) {
             plotDiv.innerHTML = `<div style="color:red; text-align:center; padding:20px;">${data ? data.error : window.t('no_data_available')}</div>`;
+            plotDiv.style.height = '';
             return;
         }
 
@@ -289,6 +293,7 @@
 
         if (filteredY.length === 0) {
              plotDiv.innerHTML = `<div style="color:#666; text-align:center; padding:20px; padding-top:100px; font-size: 1.2em;">${window.t('no_projects_found')}</div>`;
+             plotDiv.style.height = '';
              return;
         } else {
             plotDiv.innerHTML = "";
@@ -391,6 +396,7 @@
         };
 
         loadPlotly().then(() => {
+            plotDiv.style.height = calculatedHeight + 'px';
             Plotly.newPlot(plotDiv, [trace], layout, config).then(() => {
                 heatmapLoaded = true;
                 plotDiv.removeAllListeners('plotly_click');
@@ -414,10 +420,12 @@
                 });
             }).catch(function(err) {
                 plotDiv.innerHTML = '<div style="color:orange; text-align:center; padding:20px;">Plotly library not loaded. Please check your internet connection or ad-blocker.</div>';
+                plotDiv.style.height = '';
                 console.error(err);
             });
         }).catch(function(err) {
             plotDiv.innerHTML = '<div style="color:orange; text-align:center; padding:20px;">Plotly library not loaded. Please check your internet connection or ad-blocker.</div>';
+            plotDiv.style.height = '';
             console.error(err);
         });
     }
@@ -534,6 +542,7 @@
 
         return loadPlotly().then(() => {
             // Re-plot the heatmap with new theme colors
+            plotDiv.style.height = calculatedHeight + 'px';
             return Plotly.newPlot(plotDiv, [trace], layout, config).then(() => {
                 // Re-attach click listener
                 plotDiv.removeAllListeners('plotly_click');
@@ -557,10 +566,12 @@
                 });
             }).catch(function(err) {
                 plotDiv.innerHTML = '<div style="color:orange; text-align:center; padding:20px;">Plotly library not loaded. Please check your internet connection or ad-blocker.</div>';
+                plotDiv.style.height = '';
                 console.error(err);
             });
         }).catch(function(err) {
             plotDiv.innerHTML = '<div style="color:orange; text-align:center; padding:20px;">Plotly library not loaded. Please check your internet connection or ad-blocker.</div>';
+            plotDiv.style.height = '';
             console.error(err);
         });
     }
