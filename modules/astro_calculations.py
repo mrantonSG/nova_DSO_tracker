@@ -545,7 +545,10 @@ def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_n
         dawn_dt = local_tz.localize(datetime.combine(date_obj, dawn_time))
 
     if dawn_dt <= dusk_dt:
-        dawn_dt += timedelta(days=1)
+        # Rebuild dawn on the next calendar day and localize it there, so a DST
+        # change overnight gets the correct UTC offset (adding 24h keeps the old one).
+        dawn_naive_next = dawn_dt.replace(tzinfo=None) + timedelta(days=1)
+        dawn_dt = local_tz.localize(dawn_naive_next, is_dst=False)
 
     sample_interval = timedelta(minutes=sampling_interval_minutes)
     times = []
