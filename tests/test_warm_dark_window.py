@@ -28,7 +28,7 @@ class _FixedDatetime(datetime):
 
 
 def _no_threads(*args, **kwargs):
-    raise AssertionError("warm_main_cache must not spawn threads with trigger_outlook=False")
+    raise AssertionError("warm_main_cache must not spawn threads")
 
 
 def _dark_window_minutes():
@@ -56,7 +56,7 @@ def test_warm_main_cache_uses_dark_window(monkeypatch):
     }
 
     try:
-        warm_main_cache(USERNAME, LOC_NAME, user_config, SAMPLING, trigger_outlook=False)
+        warm_main_cache(USERNAME, LOC_NAME, user_config, SAMPLING)
 
         cache_key = (f"{USERNAME}_{OBJ_NAME.lower().replace(' ', '_')}_{LOCAL_DATE}"
                      f"_{LAT:.4f}_{LON:.4f}_{ALT_THRESHOLD}_{SAMPLING}")
@@ -110,7 +110,7 @@ def test_warm_main_cache_skips_geometrically_impossible(monkeypatch):
     }
 
     try:
-        warm_main_cache(USERNAME, LOC_NAME, user_config, SAMPLING, trigger_outlook=False)
+        warm_main_cache(USERNAME, LOC_NAME, user_config, SAMPLING)
 
         never_key = _cache_key(NEVER_RISES_NAME)
         assert never_key not in nightly_curves_cache, (
@@ -149,7 +149,7 @@ def test_warm_main_cache_11pm_obstruction_matches_interpolate_horizon(monkeypatc
     }
 
     try:
-        warm_main_cache(USERNAME, LOC_NAME, user_config, SAMPLING, trigger_outlook=False)
+        warm_main_cache(USERNAME, LOC_NAME, user_config, SAMPLING)
 
         cached = nightly_curves_cache[_cache_key(OBJ_NAME)]
         assert cached["is_obstructed_at_11pm"] == expected, (

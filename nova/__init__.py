@@ -1925,13 +1925,10 @@ def update_outlook_cache(user_id, status_key, cache_filename, location_name, use
             release_file_lock(lock_fh)
             print(f"--- [OUTLOOK WORKER {status_key}] Finished (Status: {cache_worker_status.get(status_key)}) ---")
 
-def warm_main_cache(username, location_name, user_config, sampling_interval, trigger_outlook=True):
+def warm_main_cache(username, location_name, user_config, sampling_interval):
     """
     Warms the main data cache (nightly_curves_cache) for one location.
     Refactored to use Vectorized Astropy operations for massive speedup.
-
-    trigger_outlook is kept for call-site compatibility and has no effect;
-    this function no longer triggers the Outlook cache update.
     """
     # print(f"[CACHE WARMER] Starting for main data at location '{location_name}'.")
     try:
@@ -2143,7 +2140,7 @@ def warm_default_locations():
                     if _last_warmed.get(username) == signature:
                         continue
 
-                    warm_main_cache(username, location_name, config, sampling_interval, trigger_outlook=False)
+                    warm_main_cache(username, location_name, config, sampling_interval)
                     _last_warmed[username] = signature
                     added_this_run += enabled_count
                     warmed = True

@@ -60,7 +60,7 @@ def warm_env(db_session, monkeypatch):
     calls = []
     configs = {}
 
-    def fake_warm_main_cache(username, location_name, user_config, sampling_interval, trigger_outlook=True):
+    def fake_warm_main_cache(username, location_name, user_config, sampling_interval):
         calls.append(username)
 
     monkeypatch.setattr(nova, "warm_main_cache", fake_warm_main_cache)
