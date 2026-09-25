@@ -60,6 +60,7 @@ from modules.astro_calculations import (
     calculate_transit_time,
     ra_dec_to_alt_az,
     get_utc_time_for_local_11pm,
+    get_utc_time_for_local_11pm_on,
     interpolate_horizon,
     get_common_time_arrays,
 )
@@ -3452,7 +3453,7 @@ def get_desktop_data_batch():
             local_date = current_datetime_local.strftime('%Y-%m-%d')
 
         sampling_interval = (g.user_config.get('sampling_interval_minutes') or 15) if nova.SINGLE_USER_MODE else int(os.environ.get('CALCULATION_PRECISION', 15))
-        fixed_time_utc_str = get_utc_time_for_local_11pm(tz_name)
+        fixed_time_utc_str = get_utc_time_for_local_11pm_on(local_date, tz_name)
 
         # Moon / Ephem Prep
         time_obj_now = Time(current_datetime_local.astimezone(pytz.utc))

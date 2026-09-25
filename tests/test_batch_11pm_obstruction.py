@@ -1,4 +1,9 @@
-from modules.astro_calculations import interpolate_horizon, ra_dec_to_alt_az
+from datetime import datetime, timedelta
+
+import pytz
+
+from modules.astro_calculations import (get_utc_time_for_local_11pm, get_utc_time_for_local_11pm_on,
+                                        interpolate_horizon, ra_dec_to_alt_az)
 from nova import get_db
 from nova.config import nightly_curves_cache
 from nova.models import HorizonPoint, Location
@@ -12,7 +17,8 @@ FIXED_11PM_UTC = "2026-01-15T23:00:00"
 
 
 def test_batch_11pm_obstruction_ignores_one_point_mask(client, monkeypatch):
-    monkeypatch.setattr("nova.blueprints.api.get_utc_time_for_local_11pm", lambda tz_name: FIXED_11PM_UTC)
+    monkeypatch.setattr("nova.blueprints.api.get_utc_time_for_local_11pm_on",
+                        lambda local_date, tz_name: FIXED_11PM_UTC)
 
     alt_11pm, az_11pm = ra_dec_to_alt_az(OBJ_RA_H, OBJ_DEC, LAT, LON, FIXED_11PM_UTC)
     horizon_mask = [[float(az_11pm), 80.0]]
@@ -41,3 +47,40 @@ def test_batch_11pm_obstruction_ignores_one_point_mask(client, monkeypatch):
     assert item["is_obstructed_at_11pm"] is expected, (
         f"is_obstructed_at_11pm={item['is_obstructed_at_11pm']!r}, expected={expected!r} "
         f"(W4 rule; old rule gave {old_rule}, alt_11pm={alt_11pm:.2f}, required={old_required})")
+
+
+# Real "today" at 20:00 UTC: after noon, so the batch's observing night is sim_date itself
+_TODAY_UTC = datetime.now(pytz.utc).date()
+SIM_DATE = (_TODAY_UTC + timedelta(days=182)).strftime('%Y-%m-%d')
+
+
+class _AfterNoonDatetime(datetime):
+    """now() lands on today 20:00 UTC, so the sim_date observing night doesn't roll back a day."""
+
+    @classmethod
+    def now(cls, tz=None):
+        fixed = pytz.utc.localize(datetime.combine(_TODAY_UTC, datetime.min.time()).replace(hour=20))
+        return fixed.astimezone(tz) if tz else fixed.replace(tzinfo=None)
+
+
+def test_batch_11pm_follows_sim_date(client, monkeypatch):
+    monkeypatch.setattr("nova.blueprints.api.datetime", _AfterNoonDatetime)
+
+    # Location tz is UTC, so 23:00 local on SIM_DATE == SIM_DATE 23:00 UTC
+    expected_alt, _ = ra_dec_to_alt_az(OBJ_RA_H, OBJ_DEC, LAT, LON, get_utc_time_for_local_11pm_on(SIM_DATE, "UTC"))
+    clock_alt, _ = ra_dec_to_alt_az(OBJ_RA_H, OBJ_DEC, LAT, LON, get_utc_time_for_local_11pm("UTC"))
+    # Guard: the clock-based 11 PM (old behaviour) must give a different value, so the test discriminates
+    assert f"{expected_alt:.2f}" != f"{clock_alt:.2f}", (
+        f"scenario not discriminating: sim={expected_alt:.2f}, clock={clock_alt:.2f}")
+
+    nightly_curves_cache.clear()  # force the cache-miss path
+
+    response = client.get('/api/get_desktop_data_batch',
+                          query_string={"location": LOC_NAME, "sim_date": SIM_DATE})
+    assert response.status_code == 200
+    item = next(r for r in response.get_json()["results"] if r.get("Object") == "M42")
+
+    assert item["error"] is False
+    assert item["Altitude 11PM"] == f"{expected_alt:.2f}", (
+        f"Altitude 11PM={item['Altitude 11PM']!r}, expected {expected_alt:.2f} (23:00 on {SIM_DATE}); "
+        f"clock-based 11 PM gives {clock_alt:.2f}")

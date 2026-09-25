@@ -9,7 +9,7 @@ from nova.config import BoundedCache
 import numpy as np
 import ephem
 import pytz
-from datetime import datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from astropy.coordinates import EarthLocation, AltAz, SkyCoord
 from astropy.time import Time
 from astropy.utils import iers
@@ -125,6 +125,15 @@ def get_utc_time_for_local_11pm(tz_name):
     # Convert the 11pm local time to UTC:
     utc_time = eleven_pm_local.astimezone(pytz.utc)
     return utc_time.strftime('%Y-%m-%dT%H:%M:%S')
+
+
+def get_utc_time_for_local_11pm_on(local_date, tz_name):
+    """UTC time of 23:00 local on the observing night local_date ('YYYY-MM-DD')."""
+    local_tz = pytz.timezone(tz_name)
+    # Localize 23:00 on local_date itself so the offset is that night's (DST-safe)
+    eleven_pm_naive = datetime.combine(date.fromisoformat(local_date), time(23, 0))
+    eleven_pm_local = local_tz.localize(eleven_pm_naive, is_dst=None)
+    return eleven_pm_local.astimezone(pytz.utc).strftime('%Y-%m-%dT%H:%M:%S')
 
 
 def is_decimal(value):
