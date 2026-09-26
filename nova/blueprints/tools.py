@@ -29,6 +29,7 @@ from nova.helpers import (
     calculate_dither_recommendation,
     safe_int, _compute_rig_metrics_from_components,
     sort_rigs, outlook_cache_file, resolve_sampling_interval,
+    resolve_default_location_name,
     bust_astro_context_cache,
     bust_nightly_curves_cache,
     invalidate_object_caches,
@@ -456,7 +457,7 @@ def download_config():
 
         # --- 2. Load Locations ---
         locs = db.query(Location).options(selectinload(Location.horizon_points)).filter_by(user_id=u.id).all()
-        default_loc_name = next((l.name for l in locs if l.is_default), None)
+        default_loc_name = resolve_default_location_name(locs, config_doc.get("default_location"))
         config_doc["default_location"] = default_loc_name
         config_doc["locations"] = {
             l.name: {

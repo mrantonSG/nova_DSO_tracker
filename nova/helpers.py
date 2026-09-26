@@ -165,6 +165,27 @@ def resolve_altitude_threshold(user_config, location=None):
     return global_threshold if global_threshold is not None else 20
 
 
+def resolve_default_location_name(locations, ui_pref_value=None):
+    """
+    Default location name for config export, so it is never None while the
+    user has locations. `locations` is a list of Location rows. Order:
+    the is_default row, else `ui_pref_value` if it names an active location,
+    else the first active location by name (same order as /get_locations),
+    else the first location by name. None only when there are no locations.
+    Pure: no DB access, no writes.
+    """
+    ordered = sorted(locations or [], key=lambda l: l.name)
+    if not ordered:
+        return None
+    flagged = next((l.name for l in ordered if l.is_default), None)
+    if flagged:
+        return flagged
+    active = [l for l in ordered if l.active]
+    if ui_pref_value and any(l.name == ui_pref_value for l in active):
+        return ui_pref_value
+    return (active or ordered)[0].name
+
+
 def outlook_cache_file(user_id, location_name, user_config, sim_date=None) -> str:
     """
     Fingerprinted Outlook cache path for one user + location.

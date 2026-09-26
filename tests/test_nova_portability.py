@@ -1231,3 +1231,58 @@ def test_import_updates_existing_session_project_ids(db_session):
 
     # Legacy column should also reflect the update
     assert updated_sess.project_id == "update_proj_new"
+
+
+# --- default_location fallback on export (never null while locations exist) ---
+
+def _set_default_user_locations(locations, ui_pref_default=None):
+    """Replace the 'default' user's locations with (name, active) pairs, none flagged is_default."""
+    from nova.models import UiPref
+    db = get_db()
+    user = db.query(DbUser).filter_by(username="default").one()
+    db.query(Location).filter_by(user_id=user.id).delete()
+    for name, active in locations:
+        db.add(Location(user_id=user.id, name=name, lat=50, lon=10, timezone="UTC",
+                        is_default=False, active=active))
+    prefs = db.query(UiPref).filter_by(user_id=user.id).first()
+    if not prefs:
+        prefs = UiPref(user_id=user.id, json_blob='{}')
+        db.add(prefs)
+    prefs.json_blob = json.dumps({"default_location": ui_pref_default} if ui_pref_default else {})
+    db.commit()
+
+
+def _download_config_default_location(client):
+    response = client.get('/download_config')
+    assert response.status_code == 200
+    return yaml.safe_load(response.data.decode('utf-8'))["default_location"]
+
+
+def test_export_default_location_without_is_default_row(client, tmp_path):
+    _set_default_user_locations([("Zeta", True), ("Alpha", True)], ui_pref_default="Zeta")
+
+    assert _download_config_default_location(client) == "Zeta"
+
+    # export_user_to_yaml has no UiPref input: first active by name
+    assert export_user_to_yaml("default", out_dir=str(tmp_path))
+    with open(tmp_path / "config_default.yaml") as f:
+        assert yaml.safe_load(f)["default_location"] == "Alpha"
+
+
+def test_export_default_location_stale_ui_pref_falls_back_to_first_active(client):
+    _set_default_user_locations([("Zeta", True), ("Beta", True), ("Alpha", False)],
+                                ui_pref_default="Deleted Site")
+
+    assert _download_config_default_location(client) == "Beta"
+
+
+def test_export_default_location_no_active_falls_back_to_first_by_name(client):
+    _set_default_user_locations([("Zeta", False), ("Alpha", False)])
+
+    assert _download_config_default_location(client) == "Alpha"
+
+
+def test_export_default_location_none_without_locations(client):
+    _set_default_user_locations([])
+
+    assert _download_config_default_location(client) is None

@@ -21,6 +21,7 @@ from nova.helpers import (
     get_db, normalize_object_name, _atomic_write_yaml,
     _read_yaml, discover_catalog_packs,
     _compute_rig_metrics_from_components, dither_display,
+    resolve_default_location_name,
 )
 from nova.models import (
     DbUser, Location, HorizonPoint, AstroObject,
@@ -1017,7 +1018,7 @@ def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
 
     # CONFIG (locations + objects + defaults)
     locs = db.query(Location).options(selectinload(Location.horizon_points)).filter_by(user_id=u.id).all()
-    default_loc = next((l.name for l in locs if l.is_default), None)
+    default_loc = resolve_default_location_name(locs, ui_pref_value=None)
     saved_framings_db = db.query(SavedFraming).filter_by(user_id=u.id).all()
     saved_framings_list = []
     for sf in saved_framings_db:
