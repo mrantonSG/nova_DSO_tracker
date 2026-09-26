@@ -38,7 +38,7 @@ def coerce_to_float_or_none(value):
 
 config_schema = {
     'altitude_threshold': {'type': 'integer', 'required': True, 'min': 0, 'max': 90},
-    'default_location': {'type': 'string', 'required': True, 'empty': False},
+    'default_location': {'type': 'string', 'required': True, 'empty': False, 'nullable': True},
     'imaging_criteria': {
         'type': 'dict',
         'required': True,  # MODIFIED: Now required, as pre-processing in import will ensure it exists

@@ -202,6 +202,15 @@ def _migrate_locations(db, user: DbUser, config: dict):
         except Exception as e:
             print(f"[MIGRATION] Skip/repair location '{name}': {e}")
 
+    # A null, unmatched or skipped default_location leaves no row flagged:
+    # flag the same location the config export would name.
+    db.flush()
+    rows = db.query(Location).filter_by(user_id=user.id).all()
+    if rows and not any(l.is_default for l in rows):
+        fallback_name = resolve_default_location_name(rows, None)
+        next(l for l in rows if l.name == fallback_name).is_default = True
+        db.flush()
+
 
 
 def _heal_saved_framings(db, user: DbUser):
@@ -979,10 +988,15 @@ def _migrate_ui_prefs(db, user: DbUser, config: dict):
     Saves all general, user-specific settings from the config YAML
     into a single JSON blob in the ui_prefs table.
     """
+    # default_location mirrors the row _migrate_locations flagged (it runs first),
+    # so UiPref and Location.is_default agree even when the YAML value was
+    # null or unmatched.
+    default_row = db.query(Location).filter_by(user_id=user.id, is_default=True).first()
+
     # Gather all the top-level settings we want to save
     settings_to_save = {
         "altitude_threshold": config.get("altitude_threshold"),
-        "default_location": config.get("default_location"),
+        "default_location": default_row.name if default_row else None,
         "imaging_criteria": config.get("imaging_criteria"),
         "sampling_interval_minutes": config.get("sampling_interval_minutes"),
         "telemetry": config.get("telemetry"),

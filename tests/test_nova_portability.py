@@ -1286,3 +1286,120 @@ def test_export_default_location_none_without_locations(client):
     _set_default_user_locations([])
 
     assert _download_config_default_location(client) is None
+
+
+# --- default_location on import: null/unmatched/skipped still leaves exactly one default ---
+
+_IMPORT_YAML_TEMPLATE = """
+altitude_threshold: 20
+default_location: {default}
+imaging_criteria:
+    max_moon_illumination: 20
+    min_angular_distance: 30
+    min_max_altitude: 30
+    min_observable_minutes: 60
+    search_horizon_months: 6
+locations:
+    Zeta:
+        lat: 50
+        lon: 10
+        timezone: UTC
+        active: true
+    Beta:
+        lat: 50
+        lon: 10
+        timezone: UTC
+        active: true
+    Alpha:
+        lat: 50
+        lon: 10
+        timezone: UTC
+        active: false
+objects: []
+"""
+
+
+def _post_import_config(client, yaml_text):
+    return client.post('/import_config',
+                       data={'file': (io.BytesIO(yaml_text.encode('utf-8')), 'config.yaml')},
+                       content_type='multipart/form-data')
+
+
+def _assert_single_default(username, expected_name):
+    """Exactly one is_default row, named expected_name, and UiPref agrees."""
+    from nova.models import UiPref
+    db = get_db()
+    db.expire_all()
+    user = db.query(DbUser).filter_by(username=username).one()
+    flagged = [l.name for l in db.query(Location).filter_by(user_id=user.id, is_default=True).all()]
+    assert flagged == [expected_name]
+    prefs = db.query(UiPref).filter_by(user_id=user.id).one()
+    assert json.loads(prefs.json_blob)["default_location"] == expected_name
+
+
+def test_import_null_default_location_flags_first_active(client):
+    _post_import_config(client, _IMPORT_YAML_TEMPLATE.format(default="null"))
+
+    _assert_single_default("default", "Beta")
+
+
+def test_import_unmatched_default_location_flags_first_active(client):
+    _post_import_config(client, _IMPORT_YAML_TEMPLATE.format(default="Nowhere"))
+
+    _assert_single_default("default", "Beta")
+
+
+def test_import_skipped_default_location_flags_remaining(client, tmp_path):
+    # /import_config rejects bad timezones up front, so go through import_user_from_yaml,
+    # where _migrate_locations skips the location instead.
+    cfg_path = tmp_path / "cfg.yaml"
+    rigs_path = tmp_path / "rigs.yaml"
+    jrn_path = tmp_path / "jrn.yaml"
+    cfg_path.write_text("""
+default_location: Nuuk
+locations:
+    Nuuk:
+        lat: 64.17
+        lon: -51.67
+        timezone: Greenland/Sermersooq
+    Vienna:
+        lat: 48.21
+        lon: 16.37
+        timezone: Europe/Vienna
+objects: []
+""")
+    rigs_path.write_text("components: {}\nrigs: []")
+    jrn_path.write_text("projects: []\nsessions: []")
+
+    assert import_user_from_yaml("default", str(cfg_path), str(rigs_path), str(jrn_path),
+                                 clear_existing=True)
+
+    _assert_single_default("default", "Vienna")
+
+
+def test_import_null_default_location_without_locations(db_session):
+    from nova.models import UiPref
+    from nova.migration import _upsert_user, _migrate_locations, _migrate_ui_prefs
+    user = _upsert_user(db_session, "no_locations_user")
+    config = {"default_location": None, "locations": {}, "altitude_threshold": 20}
+
+    with app.test_request_context():
+        _migrate_locations(db_session, user, config)
+        _migrate_ui_prefs(db_session, user, config)
+        db_session.commit()
+
+    assert db_session.query(Location).filter_by(user_id=user.id).count() == 0
+    prefs = db_session.query(UiPref).filter_by(user_id=user.id).one()
+    assert json.loads(prefs.json_blob)["default_location"] is None
+
+
+def test_default_location_round_trip(client):
+    _set_default_user_locations([("Zeta", True), ("Beta", True), ("Alpha", False)])
+
+    exported = client.get('/download_config').data.decode('utf-8')
+    assert yaml.safe_load(exported)["default_location"] == "Beta"
+
+    _post_import_config(client, exported)
+    _assert_single_default("default", "Beta")
+
+    assert _download_config_default_location(client) == "Beta"
