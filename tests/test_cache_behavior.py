@@ -122,6 +122,41 @@ def test_outlook_status_is_starting_before_thread_start(su_client_logged_in, mon
     assert value == "starting"
 
 
+@pytest.mark.skipif(not _HAS_FCNTL, reason="fcntl not available; file lock is a no-op")
+def test_outlook_waits_without_thread_when_lock_held(su_client_logged_in, monkeypatch, tmp_path):
+    cache_filename = str(tmp_path / "missing.json")
+    started = []
+
+    class RecordingThread:
+        def __init__(self, target=None, args=(), kwargs=None, **extra):
+            started.append(target)
+
+        def start(self):
+            pass  # never run the worker
+
+    monkeypatch.setattr(core, "outlook_cache_file", lambda *a, **k: cache_filename)
+    monkeypatch.setattr(core, "cache_worker_status", {})
+    monkeypatch.setattr(core, "threading", types.SimpleNamespace(Thread=RecordingThread))
+
+    # Another process is calculating: wait, no thread
+    held = try_acquire_file_lock(cache_filename)
+    assert held is not None
+    try:
+        resp = su_client_logged_in.get(f"/get_outlook_data?location={LOCATION}")
+    finally:
+        release_file_lock(held)
+
+    assert resp.status_code == 200
+    assert resp.get_json() == {"status": "running", "results": []}
+    assert started == []
+
+    # Lock free again: a worker starts as before
+    resp = su_client_logged_in.get(f"/get_outlook_data?location={LOCATION}")
+    assert resp.status_code == 200
+    assert resp.get_json()["status"] == "starting"
+    assert len(started) == 1
+
+
 # ---------------------------------------------------------------------------
 # update_outlook_cache
 # ---------------------------------------------------------------------------

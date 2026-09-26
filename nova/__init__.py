@@ -28,6 +28,7 @@ import threading
 import glob
 from datetime import datetime, timedelta, timezone, UTC, date
 import traceback
+from contextlib import nullcontext
 import io
 import zipfile
 import pytz
@@ -49,7 +50,7 @@ from math import atan, degrees
 from flask import render_template, jsonify, request, send_file, redirect, url_for, flash, g, current_app, make_response, Response, stream_with_context
 from flask_login import login_user, login_required, current_user, logout_user
 from flask import session
-from flask import Flask, send_from_directory, has_request_context
+from flask import Flask, send_from_directory, has_request_context, has_app_context
 from flask_babel import Babel, gettext as _
 import math
 from astropy.utils.exceptions import AstropyWarning
@@ -1633,7 +1634,8 @@ def migrate_journal_data():
 
 def trigger_outlook_update_for_user(username):
     """
-    Loads a user's config and starts Outlook cache workers for all their locations.
+    Loads a user's config and brings the Outlook caches of all their active
+    locations in line with the current active objects (sync_outlook_cache).
     """
     print(f"[TRIGGER] Firing Outlook cache update for user '{username}' due to a project note change.")
     try:
@@ -1656,9 +1658,9 @@ def trigger_outlook_update_for_user(username):
                     continue
 
                 cache_worker_status[status_key] = "starting"
-                # Call update_outlook_cache directly (blocking) to enforce sequential execution
+                # Call sync_outlook_cache directly (blocking) to enforce sequential execution
                 try:
-                    update_outlook_cache(uid, status_key, cache_filename, loc_name, cfg, interval, None)
+                    sync_outlook_cache(uid, status_key, cache_filename, loc_name, cfg, interval, None)
                 except Exception as e:
                     print(f"Error in sequential update for {loc_name}: {e}")
 
@@ -1677,6 +1679,194 @@ def trigger_outlook_update_for_user(username):
 
     except Exception as e:
         print(f"❌ ERROR: Failed to trigger background Outlook update: {e}")
+
+
+# Seconds after its last full run that an Outlook file is served / synced
+OUTLOOK_MAX_AGE_SECONDS = 86400
+
+
+def _outlook_criteria(cfg):
+    defaults = {"min_observable_minutes": 60, "min_max_altitude": 30, "max_moon_illumination": 20,
+                "min_angular_separation": 30, "search_horizon_months": 6}
+    raw = (cfg or {}).get("imaging_criteria") or {};
+    out = dict(defaults)
+    if isinstance(raw, dict):
+        def _update_key(key, cast_func):
+            if key in raw and raw[key] is not None:
+                try:
+                    out[key] = cast_func(str(raw[key]))
+                except:
+                    pass
+
+        _update_key("min_observable_minutes", int);
+        _update_key("min_max_altitude", float);
+        _update_key("max_moon_illumination", int);
+        _update_key("min_angular_separation", int);
+        _update_key("search_horizon_months", int)
+    out["min_observable_minutes"] = max(0, out.get("min_observable_minutes", 0));
+    out["min_max_altitude"] = max(0.0, min(90.0, out.get("min_max_altitude", 0.0)));
+    out["max_moon_illumination"] = max(0, min(100, out.get("max_moon_illumination", 100)));
+    out["min_angular_separation"] = max(0, min(180, out.get("min_angular_separation", 0)));
+    out["search_horizon_months"] = max(1, min(12, out.get("search_horizon_months", 1)))
+    return out
+
+
+def _outlook_location_inputs(location_name, user_config, status_key):
+    """Location data and imaging criteria shared by every object of one Outlook run."""
+    all_locations_from_config = user_config.get("locations", {})
+    loc_cfg = all_locations_from_config.get(location_name)
+    if not loc_cfg: raise ValueError(f"Location '{location_name}' not found.")
+    lat = loc_cfg.get("lat");
+    lon = loc_cfg.get("lon");
+    tz_name = loc_cfg.get("timezone", "UTC")
+    horizon_mask = loc_cfg.get("horizon_mask")
+    if lat is None or lon is None: raise ValueError(f"Missing lat/lon for '{location_name}'.")
+    print(f"[OUTLOOK WORKER {status_key}] Using Loc: lat={lat}, lon={lon}, tz={tz_name}")
+    return {
+        "lat": lat, "lon": lon, "tz_name": tz_name, "horizon_mask": horizon_mask,
+        "altitude_threshold": resolve_altitude_threshold(user_config, loc_cfg),
+        "criteria": _outlook_criteria(user_config),
+    }
+
+
+def load_outlook_active_objects(user_id, status_key):
+    """Active project objects (live DB), their RA/DEC lookup map and the framed set."""
+    db = get_db()
+    active_rows = db.query(AstroObject).filter_by(user_id=user_id, active_project=True).all()
+    project_objects = [o.to_dict() for o in active_rows]
+
+    # Fetch framing status for Outlook
+    framed_objects = set()
+    try:
+        rows = db.query(SavedFraming.object_name).filter_by(user_id=user_id).all()
+        framed_objects = {r[0] for r in rows}
+    except Exception as e:
+        # Fail gracefully if table is missing (e.g. during tests/migrations)
+        print(f"[OUTLOOK WORKER {status_key}] WARN: Could not fetch framings: {e}")
+
+    # Build object map for RA/DEC lookup (local_objects_map)
+    local_objects_map = {
+        str(o.get("Object", "")).lower(): o
+        for o in project_objects if o.get("Object")
+    }
+    return project_objects, local_objects_map, framed_objects
+
+
+def _outlook_start_date(tz_name, sim_date_str=None):
+    """First night of an Outlook run: the simulated date, else today at the location."""
+    if sim_date_str:
+        try:
+            return datetime.strptime(sim_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    try:
+        return datetime.now(pytz.timezone(tz_name)).date()
+    except pytz.exceptions.UnknownTimeZoneError:
+        return datetime.now(pytz.utc).date()
+
+
+def _outlook_object_keys(project_objects):
+    """{object_name: [ra_hours, dec_deg]} as stored in the file's metadata."""
+    return {o.get("Object", "Unknown"): [o.get("RA"), o.get("DEC")] for o in project_objects}
+
+
+def compute_outlook_object_opportunities(obj_config_entry, objects_map, framed_objects, inputs,
+                                         local_tz, dates_to_check, sampling_interval, status_key):
+    """
+    Good imaging nights for ONE object at one location. Independent of every
+    other object; the caller merges and sorts the results.
+    """
+    lat, lon, tz_name = inputs["lat"], inputs["lon"], inputs["tz_name"]
+    horizon_mask, altitude_threshold, criteria = inputs["horizon_mask"], inputs["altitude_threshold"], inputs["criteria"]
+    opportunities = []
+    object_name_from_config = obj_config_entry.get("Object", "Unknown")
+    try:
+        time.sleep(0.01)
+
+        # --- START FIX: Call get_ra_dec with the local map ---
+        obj_details = get_ra_dec(object_name_from_config, objects_map=objects_map)
+        # --- END FIX ---
+
+        object_name, ra, dec = obj_details.get("Object"), obj_details.get("RA (hours)"), obj_details.get(
+            "DEC (degrees)")
+        if not all([object_name, ra is not None, dec is not None]):
+            print(
+                f"[OUTLOOK WORKER {status_key}] Skipping {object_name_from_config}: Missing RA/DEC or lookup failed.")
+            return opportunities
+
+        for d in dates_to_check:
+            date_str = d.strftime('%Y-%m-%d')
+
+            obs_duration, max_altitude, obs_from, obs_to = calculate_observable_duration_vectorized(
+                ra, dec, lat, lon, date_str, tz_name,
+                altitude_threshold, sampling_interval, horizon_mask=horizon_mask
+            )
+
+            if max_altitude < criteria["min_max_altitude"] or (obs_duration.total_seconds() / 60) < \
+                    criteria["min_observable_minutes"]: continue
+
+            moon_phase = ephem.Moon(
+                local_tz.localize(datetime.combine(d, datetime.min.time().replace(hour=12))).astimezone(
+                    pytz.utc)).phase
+            if moon_phase > criteria["max_moon_illumination"]: continue
+
+            sun_events = calculate_sun_events_cached(date_str, tz_name, lat, lon)
+            dusk = sun_events.get("astronomical_dusk", "20:00")
+            try:
+                dusk_time_obj = datetime.strptime(dusk, "%H:%M").time()
+            except ValueError:
+                dusk_time_obj = datetime.strptime("20:00", "%H:%M").time()
+            dusk_dt = local_tz.localize(datetime.combine(d, dusk_time_obj))
+            location_obj = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+            time_obj = Time(dusk_dt.astimezone(pytz.utc))
+            frame = AltAz(obstime=time_obj, location=location_obj)
+            obj_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+
+            # --- THIS IS THE CORRECTED LINE ---
+            moon_coord = get_body('moon', time_obj, location=location_obj)
+            # --- END CORRECTION ---
+
+            try:
+                separation = obj_coord.transform_to(frame).separation(moon_coord.transform_to(frame)).deg
+                if separation < criteria["min_angular_separation"]: continue
+            except Exception as sep_e:
+                print(
+                    f"[OUTLOOK WORKER {status_key}] WARN Sep calc fail for {object_name} on {date_str}: {sep_e}")
+                continue
+
+            score_alt = max(0, min((max_altitude - 20) / 70, 1))
+            score_duration = min(obs_duration.total_seconds() / SCORING_WINDOW_SECONDS, 1)
+            score_moon_illum = 1 - min(moon_phase / 100, 1)
+            score_moon_sep_dynamic = (1 - (moon_phase / 100)) + (moon_phase / 100) * min(separation / 180,
+                                                                                         1)
+            composite_score = 100 * (
+                        0.20 * score_alt + 0.15 * score_duration + 0.45 * score_moon_illum + 0.20 * score_moon_sep_dynamic)
+
+            if composite_score > 75:
+                stars = int(round((composite_score / 100) * 4)) + 1
+                # --- Ensure native Python floats are stored ---
+                opportunity_score = float(composite_score)
+                opportunity_max_alt = float(max_altitude)
+                # --- End ensure native floats ---
+                good_night_opportunity = {
+                    "object_name": object_name, "common_name": obj_details.get("Common Name", object_name),
+                    "has_framing": object_name in framed_objects,
+                    "date": date_str, "score": opportunity_score, "rating": "★" * stars + "☆" * (5 - stars),
+                    "rating_num": stars, "max_alt": round(opportunity_max_alt, 1),
+                    "obs_dur": int(obs_duration.total_seconds() / 60),
+                    "moon_illumination": round(moon_phase, 1),
+                    "project": obj_config_entry.get("Project", "none"),
+                    "type": obj_details.get("Type", "N/A"),
+                    "constellation": obj_details.get("Constellation", "N/A"),
+                    "magnitude": obj_details.get("Magnitude", "N/A"),
+                    "size": obj_details.get("Size", "N/A"), "sb": obj_details.get("SB", "N/A")
+                }
+                opportunities.append(good_night_opportunity)
+
+    except Exception as e:
+        print(f"❌ [OUTLOOK WORKER {status_key}] ERROR processing object '{object_name_from_config}': {e}")
+        # traceback.print_exc() # Uncomment for more detail if needed
+    return opportunities
 
 
 # --- CHANGE THIS (the function definition) ---
@@ -1704,65 +1894,13 @@ def update_outlook_cache(user_id, status_key, cache_filename, location_name, use
             print(f"--- [OUTLOOK WORKER {status_key}] Starting ---")
             cache_worker_status[status_key] = "running"
 
-            # --- Extract Location Data from ARGUMENTS ---
-            all_locations_from_config = user_config.get("locations", {})
-            loc_cfg = all_locations_from_config.get(location_name)
-            if not loc_cfg: raise ValueError(f"Location '{location_name}' not found.")
-            lat = loc_cfg.get("lat");
-            lon = loc_cfg.get("lon");
-            tz_name = loc_cfg.get("timezone", "UTC")
-            horizon_mask = loc_cfg.get("horizon_mask")
-            if lat is None or lon is None: raise ValueError(f"Missing lat/lon for '{location_name}'.")
-            print(f"[OUTLOOK WORKER {status_key}] Using Loc: lat={lat}, lon={lon}, tz={tz_name}")
-            altitude_threshold = resolve_altitude_threshold(user_config, loc_cfg)
-
-            # --- Extract Imaging Criteria from ARGUMENTS ---
-            def _get_criteria_from_config(cfg):
-                defaults = {"min_observable_minutes": 60, "min_max_altitude": 30, "max_moon_illumination": 20,
-                            "min_angular_separation": 30, "search_horizon_months": 6}
-                raw = (cfg or {}).get("imaging_criteria") or {};
-                out = dict(defaults)
-                if isinstance(raw, dict):
-                    def _update_key(key, cast_func):
-                        if key in raw and raw[key] is not None:
-                            try:
-                                out[key] = cast_func(str(raw[key]))
-                            except:
-                                pass
-
-                    _update_key("min_observable_minutes", int);
-                    _update_key("min_max_altitude", float);
-                    _update_key("max_moon_illumination", int);
-                    _update_key("min_angular_separation", int);
-                    _update_key("search_horizon_months", int)
-                out["min_observable_minutes"] = max(0, out.get("min_observable_minutes", 0));
-                out["min_max_altitude"] = max(0.0, min(90.0, out.get("min_max_altitude", 0.0)));
-                out["max_moon_illumination"] = max(0, min(100, out.get("max_moon_illumination", 100)));
-                out["min_angular_separation"] = max(0, min(180, out.get("min_angular_separation", 0)));
-                out["search_horizon_months"] = max(1, min(12, out.get("search_horizon_months", 1)))
-                return out
-
-            criteria = _get_criteria_from_config(user_config)
+            # --- Extract Location Data and Imaging Criteria from ARGUMENTS ---
+            inputs = _outlook_location_inputs(location_name, user_config, status_key)
+            tz_name = inputs["tz_name"]
+            criteria = inputs["criteria"]
 
             # Fetch active objects from the database (live query, not stale user_config)
-            db = get_db()
-            active_rows = db.query(AstroObject).filter_by(user_id=user_id, active_project=True).all()
-            project_objects = [o.to_dict() for o in active_rows]
-
-            # Fetch framing status for Outlook
-            framed_objects = set()
-            try:
-                rows = db.query(SavedFraming.object_name).filter_by(user_id=user_id).all()
-                framed_objects = {r[0] for r in rows}
-            except Exception as e:
-                # Fail gracefully if table is missing (e.g. during tests/migrations)
-                print(f"[OUTLOOK WORKER {status_key}] WARN: Could not fetch framings: {e}")
-
-            # Build object map for RA/DEC lookup (local_objects_map)
-            local_objects_map = {
-                str(o.get("Object", "")).lower(): o
-                for o in project_objects if o.get("Object")
-            }
+            project_objects, local_objects_map, framed_objects = load_outlook_active_objects(user_id, status_key)
 
             active_object_names = [o.get('Object', 'Unnamed') for o in project_objects]
             print(f"[OUTLOOK WORKER {status_key}] Found {len(project_objects)} active projects: {active_object_names}")
@@ -1770,7 +1908,10 @@ def update_outlook_cache(user_id, status_key, cache_filename, location_name, use
             if not project_objects:
                 print(f"[OUTLOOK WORKER {status_key}] No active projects. Writing empty cache.")
                 cache_content = {"metadata": {"last_successful_run_utc": datetime.now(pytz.utc).isoformat(),
-                                              "location": location_name, "user_id": user_id}, "opportunities": []}
+                                              "location": location_name, "user_id": user_id,
+                                              "objects": {},
+                                              "start_date": _outlook_start_date(tz_name, sim_date_str).isoformat()},
+                                 "opportunities": []}
                 tmp_filename = cache_filename + ".tmp"
                 with open(tmp_filename, 'w') as f: json.dump(cache_content, f)
                 os.replace(tmp_filename, cache_filename)
@@ -1783,105 +1924,14 @@ def update_outlook_cache(user_id, status_key, cache_filename, location_name, use
             local_tz = pytz.timezone(tz_name)
 
             # Use simulated date if provided, otherwise 'now'
-            if sim_date_str:
-                try:
-                    start_date = datetime.strptime(sim_date_str, '%Y-%m-%d').date()
-                except ValueError:
-                    start_date = datetime.now(local_tz).date()
-            else:
-                start_date = datetime.now(local_tz).date()
+            start_date = _outlook_start_date(tz_name, sim_date_str)
 
             dates_to_check = [start_date + timedelta(days=i) for i in range(criteria["search_horizon_months"] * 30)]
 
             for obj_config_entry in project_objects:
-                object_name_from_config = obj_config_entry.get("Object", "Unknown")
-                try:
-                    time.sleep(0.01)
-
-                    # --- START FIX: Call get_ra_dec with the local map ---
-                    obj_details = get_ra_dec(object_name_from_config, objects_map=local_objects_map)
-                    # --- END FIX ---
-
-                    object_name, ra, dec = obj_details.get("Object"), obj_details.get("RA (hours)"), obj_details.get(
-                        "DEC (degrees)")
-                    if not all([object_name, ra is not None, dec is not None]):
-                        print(
-                            f"[OUTLOOK WORKER {status_key}] Skipping {object_name_from_config}: Missing RA/DEC or lookup failed.")
-                        continue
-
-                    for d in dates_to_check:
-                        date_str = d.strftime('%Y-%m-%d')
-
-                        obs_duration, max_altitude, obs_from, obs_to = calculate_observable_duration_vectorized(
-                            ra, dec, lat, lon, date_str, tz_name,
-                            altitude_threshold, sampling_interval, horizon_mask=horizon_mask
-                        )
-
-                        if max_altitude < criteria["min_max_altitude"] or (obs_duration.total_seconds() / 60) < \
-                                criteria["min_observable_minutes"]: continue
-
-                        moon_phase = ephem.Moon(
-                            local_tz.localize(datetime.combine(d, datetime.min.time().replace(hour=12))).astimezone(
-                                pytz.utc)).phase
-                        if moon_phase > criteria["max_moon_illumination"]: continue
-
-                        sun_events = calculate_sun_events_cached(date_str, tz_name, lat, lon)
-                        dusk = sun_events.get("astronomical_dusk", "20:00")
-                        try:
-                            dusk_time_obj = datetime.strptime(dusk, "%H:%M").time()
-                        except ValueError:
-                            dusk_time_obj = datetime.strptime("20:00", "%H:%M").time()
-                        dusk_dt = local_tz.localize(datetime.combine(d, dusk_time_obj))
-                        location_obj = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
-                        time_obj = Time(dusk_dt.astimezone(pytz.utc))
-                        frame = AltAz(obstime=time_obj, location=location_obj)
-                        obj_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-
-                        # --- THIS IS THE CORRECTED LINE ---
-                        moon_coord = get_body('moon', time_obj, location=location_obj)
-                        # --- END CORRECTION ---
-
-                        try:
-                            separation = obj_coord.transform_to(frame).separation(moon_coord.transform_to(frame)).deg
-                            if separation < criteria["min_angular_separation"]: continue
-                        except Exception as sep_e:
-                            print(
-                                f"[OUTLOOK WORKER {status_key}] WARN Sep calc fail for {object_name} on {date_str}: {sep_e}")
-                            continue
-
-                        score_alt = max(0, min((max_altitude - 20) / 70, 1))
-                        score_duration = min(obs_duration.total_seconds() / SCORING_WINDOW_SECONDS, 1)
-                        score_moon_illum = 1 - min(moon_phase / 100, 1)
-                        score_moon_sep_dynamic = (1 - (moon_phase / 100)) + (moon_phase / 100) * min(separation / 180,
-                                                                                                     1)
-                        composite_score = 100 * (
-                                    0.20 * score_alt + 0.15 * score_duration + 0.45 * score_moon_illum + 0.20 * score_moon_sep_dynamic)
-
-                        if composite_score > 75:
-                            stars = int(round((composite_score / 100) * 4)) + 1
-                            # --- Ensure native Python floats are stored ---
-                            opportunity_score = float(composite_score)
-                            opportunity_max_alt = float(max_altitude)
-                            # --- End ensure native floats ---
-                            good_night_opportunity = {
-                                "object_name": object_name, "common_name": obj_details.get("Common Name", object_name),
-                                "has_framing": object_name in framed_objects,
-                                "date": date_str, "score": opportunity_score, "rating": "★" * stars + "☆" * (5 - stars),
-                                "rating_num": stars, "max_alt": round(opportunity_max_alt, 1),
-                                "obs_dur": int(obs_duration.total_seconds() / 60),
-                                "moon_illumination": round(moon_phase, 1),
-                                "project": obj_config_entry.get("Project", "none"),
-                                "type": obj_details.get("Type", "N/A"),
-                                "constellation": obj_details.get("Constellation", "N/A"),
-                                "magnitude": obj_details.get("Magnitude", "N/A"),
-                                "size": obj_details.get("Size", "N/A"), "sb": obj_details.get("SB", "N/A")
-                            }
-                            all_good_opportunities.append(good_night_opportunity)
-
-                except Exception as e:
-                    print(f"❌ [OUTLOOK WORKER {status_key}] ERROR processing object '{object_name_from_config}': {e}")
-                    # traceback.print_exc() # Uncomment for more detail if needed
-                    continue
+                all_good_opportunities.extend(compute_outlook_object_opportunities(
+                    obj_config_entry, local_objects_map, framed_objects, inputs,
+                    local_tz, dates_to_check, sampling_interval, status_key))
             # --- End Calculation Loop ---
 
             print(f"[OUTLOOK WORKER {status_key}] Found {len(all_good_opportunities)} total opportunities.")
@@ -1891,7 +1941,10 @@ def update_outlook_cache(user_id, status_key, cache_filename, location_name, use
             # --- START CHANGE (inside the cache_content dictionary) ---
             cache_content = {
                 "metadata": {"last_successful_run_utc": datetime.now(pytz.utc).isoformat(), "location": location_name,
-                             "user_id": user_id},  # Use the real user_id
+                             "user_id": user_id,  # Use the real user_id
+                             # Every object this run covered, incl. those with no good nights
+                             "objects": _outlook_object_keys(project_objects),
+                             "start_date": start_date.isoformat()},
                 "opportunities": opportunities_sorted_by_date
             }
             # --- END CHANGE ---
@@ -1917,6 +1970,166 @@ def update_outlook_cache(user_id, status_key, cache_filename, location_name, use
         finally:
             release_file_lock(lock_fh)
             print(f"--- [OUTLOOK WORKER {status_key}] Finished (Status: {cache_worker_status.get(status_key)}) ---")
+
+
+def load_outlook_sync_base(cache_filename):
+    """
+    (data, mtime) of an Outlook file that sync_outlook_cache can update in place,
+    or None: missing, older than OUTLOOK_MAX_AGE_SECONDS, unreadable, written
+    before the "objects" metadata existed, or entries without has_framing.
+    """
+    try:
+        mtime = os.path.getmtime(cache_filename)
+        if datetime.now().timestamp() - mtime > OUTLOOK_MAX_AGE_SECONDS:
+            return None
+        with open(cache_filename, 'r') as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return None
+    meta = data.get("metadata") if isinstance(data, dict) else None
+    if not isinstance(meta, dict) or not isinstance(meta.get("objects"), dict) or not meta.get("start_date"):
+        return None
+    opportunities = data.get("opportunities")
+    if not isinstance(opportunities, list):
+        return None
+    if opportunities and 'has_framing' not in opportunities[0]:
+        return None
+    return data, mtime
+
+
+def outlook_sync_plan(data, project_objects):
+    """
+    Compares a file's "objects" metadata with the current active objects,
+    case-insensitively. Returns (current keys, lower-case names to drop, names
+    to calculate); an object whose RA/DEC changed is dropped and recalculated.
+    """
+    current = _outlook_object_keys(project_objects)
+    stored = {str(n).lower(): v for n, v in data["metadata"]["objects"].items()}
+    current_lower = {str(n).lower(): (n, v) for n, v in current.items()}
+    drop = {k for k, v in stored.items() if k not in current_lower or current_lower[k][1] != v}
+    calculate = [n for k, (n, v) in current_lower.items() if k not in stored or stored[k] != v]
+    return current, drop, calculate
+
+
+def outlook_merged_content(data, current, drop, new_entries, local_objects_map, framed_objects):
+    """
+    New file content: dropped objects' entries removed, new entries added,
+    display fields of every entry refreshed from the DB rows and framed set
+    (no astronomy), sorted by date. `data` is not modified.
+    """
+    details_by_name = {}
+
+    def _details(name):
+        key = str(name).lower()
+        if key not in details_by_name:
+            obj = local_objects_map.get(key)
+            # Only the config path of get_ra_dec: never a SIMBAD lookup
+            if obj and obj.get("RA") is not None and obj.get("DEC") is not None:
+                details_by_name[key] = (obj, get_ra_dec(obj.get("Object", name), objects_map=local_objects_map))
+            else:
+                details_by_name[key] = (obj, None)
+        return details_by_name[key]
+
+    kept = [e for e in data.get("opportunities", []) if str(e.get("object_name", "")).lower() not in drop]
+    opportunities = []
+    for entry in kept + list(new_entries):
+        name = entry.get("object_name", "")
+        entry = dict(entry)
+        obj, details = _details(name)
+        if obj is not None:
+            entry["project"] = obj.get("Project", "none")
+        entry["has_framing"] = name in framed_objects
+        if details is not None:
+            entry["common_name"] = details.get("Common Name", name)
+            entry["type"] = details.get("Type", "N/A")
+            entry["constellation"] = details.get("Constellation", "N/A")
+            entry["magnitude"] = details.get("Magnitude", "N/A")
+            entry["size"] = details.get("Size", "N/A")
+            entry["sb"] = details.get("SB", "N/A")
+        opportunities.append(entry)
+
+    metadata = dict(data.get("metadata", {}))
+    metadata["objects"] = current
+    return {"metadata": metadata, "opportunities": sorted(opportunities, key=lambda x: x['date'])}
+
+
+def sync_outlook_cache(user_id, status_key, cache_filename, location_name, user_config, sampling_interval,
+                       sim_date_str=None, full_fallback=True):
+    """
+    Brings an Outlook file in line with the current active objects: drops
+    unpinned objects, calculates only new objects or objects whose RA/DEC
+    changed, and refreshes display fields. Falls back to update_outlook_cache
+    when there is no usable file (unless full_fallback is False). Keeps the
+    file's mtime, so the 24h freshness still counts from the last full run.
+    """
+    if load_outlook_sync_base(cache_filename) is None:
+        if not full_fallback:
+            return
+        return update_outlook_cache(user_id, status_key, cache_filename, location_name, user_config,
+                                    sampling_interval, sim_date_str)
+
+    full_update = False
+    # Inside a request (inline sync) reuse its context: popping a nested one
+    # would run teardown_appcontext and remove the request's DB session
+    with (nullcontext() if has_app_context() else app.app_context()):
+        lock_fh = try_acquire_file_lock(cache_filename)
+        if lock_fh is None:
+            print(f"[OUTLOOK SYNC {status_key}] Another process is calculating this file; skipping.")
+            cache_worker_status[status_key] = "idle"
+            return
+
+        try:
+            # Re-read under the lock: another process may have rewritten the file
+            base = load_outlook_sync_base(cache_filename)
+            if base is None:
+                full_update = True
+            else:
+                data, base_mtime = base
+                cache_worker_status[status_key] = "running"
+                inputs = _outlook_location_inputs(location_name, user_config, status_key)
+                project_objects, local_objects_map, framed_objects = load_outlook_active_objects(user_id, status_key)
+                current, drop, calculate = outlook_sync_plan(data, project_objects)
+
+                new_entries = []
+                if calculate:
+                    print(f"[OUTLOOK SYNC {status_key}] Calculating {calculate}")
+                    local_tz = pytz.timezone(inputs["tz_name"])
+                    start_date = datetime.strptime(data["metadata"]["start_date"], '%Y-%m-%d').date()
+                    dates_to_check = [start_date + timedelta(days=i)
+                                      for i in range(inputs["criteria"]["search_horizon_months"] * 30)]
+                    by_name = {o.get("Object", "Unknown"): o for o in project_objects}
+                    for name in calculate:
+                        new_entries.extend(compute_outlook_object_opportunities(
+                            by_name[name], local_objects_map, framed_objects, inputs,
+                            local_tz, dates_to_check, sampling_interval, status_key))
+
+                cache_content = outlook_merged_content(data, current, drop, new_entries,
+                                                       local_objects_map, framed_objects)
+                if cache_content != data:
+                    tmp_filename = cache_filename + ".tmp"
+                    with open(tmp_filename, 'w') as f:
+                        json.dump(cache_content, f)
+                    os.replace(tmp_filename, cache_filename)
+                    # Freshness counts from the last full run, not from this sync
+                    os.utime(cache_filename, (time.time(), base_mtime))
+                    print(f"[OUTLOOK SYNC {status_key}] Dropped {sorted(drop)}, added {len(new_entries)} entries.")
+                    try:
+                        _atomic_write_yaml(cache_filename.replace('.json', '_debug.yaml'), cache_content)
+                    except Exception as e:
+                        print(f"[OUTLOOK SYNC {status_key}] warning: failed to write debug YAML: {e}")
+                cache_worker_status[status_key] = "complete"
+
+        except Exception as e:
+            print(f"❌❌ [OUTLOOK SYNC {status_key}] FATAL ERROR: {e}")
+            traceback.print_exc()
+            cache_worker_status[status_key] = "error"
+        finally:
+            release_file_lock(lock_fh)
+
+    if full_update and full_fallback:
+        return update_outlook_cache(user_id, status_key, cache_filename, location_name, user_config,
+                                    sampling_interval, sim_date_str)
+
 
 def warm_main_cache(username, location_name, user_config, sampling_interval):
     """

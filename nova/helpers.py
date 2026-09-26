@@ -168,9 +168,10 @@ def resolve_altitude_threshold(user_config, location=None):
 def outlook_cache_file(user_id, location_name, user_config, sim_date=None) -> str:
     """
     Fingerprinted Outlook cache path for one user + location.
-    Hashes the same inputs update_outlook_cache reads (location, horizon,
-    threshold, sampling interval, imaging criteria, active objects, framings,
-    start date), so any change to them yields a new filename.
+    Hashes the location inputs update_outlook_cache reads (location, horizon,
+    threshold, sampling interval, imaging criteria, start date), so any change
+    to them yields a new filename. Active objects and framings are not part of
+    it: sync_outlook_cache updates the file in place when they change.
     `user_config` must be the same dict passed to update_outlook_cache.
     """
     loc_cfg = (user_config.get("locations") or {}).get(location_name) or {}
@@ -186,23 +187,6 @@ def outlook_cache_file(user_id, location_name, user_config, sim_date=None) -> st
     # Same rule as the callers of update_outlook_cache
     sampling_interval = resolve_sampling_interval(user_config)
 
-    # Same queries as update_outlook_cache
-    db = get_db()
-    active_rows = db.query(AstroObject).filter_by(user_id=user_id, active_project=True).all()
-    obj_parts = sorted(
-        (
-            (o.object_name, o.ra_hours, o.dec_deg, o.common_name, o.type,
-             o.constellation, o.magnitude, o.size, o.sb, o.project_name)
-            for o in active_rows
-        ),
-        key=lambda t: (t[0] or "", json.dumps(t, default=str)),
-    )
-    try:
-        rows = db.query(SavedFraming.object_name).filter_by(user_id=user_id).all()
-        framed = sorted({r[0] for r in rows}, key=lambda n: n or "")
-    except Exception:
-        framed = []
-
     # Start date: same parsing and fallback as update_outlook_cache
     start_date = None
     if sim_date:
@@ -217,7 +201,7 @@ def outlook_cache_file(user_id, location_name, user_config, sim_date=None) -> st
             start_date = datetime.now(pytz.utc).date()
 
     fp = cache_fingerprint({
-        "version": "v2",
+        "version": "v3",
         "location_id": db_id,
         "lat": float(lat) if lat is not None else None,
         "lon": float(lon) if lon is not None else None,
@@ -226,12 +210,10 @@ def outlook_cache_file(user_id, location_name, user_config, sim_date=None) -> st
         "altitude_threshold": resolve_altitude_threshold(user_config, loc_cfg),
         "sampling_interval": sampling_interval,
         "imaging_criteria": user_config.get("imaging_criteria"),
-        "objects": obj_parts,
-        "framed": framed,
         "start_date": start_date.isoformat(),
     })
     suffix = f"_{sim_date}" if sim_date else ""
-    return os.path.join(CACHE_DIR, f"outlook_v2_{user_id}_{db_id}_{fp}{suffix}.json")
+    return os.path.join(CACHE_DIR, f"outlook_v3_{user_id}_{db_id}_{fp}{suffix}.json")
 
 
 def bust_astro_context_cache(user_id: int) -> None:
@@ -276,10 +258,12 @@ def bust_observable_objects_cache(username: str) -> None:
 
 def delete_outlook_files(user_id: int) -> None:
     """Delete all outlook cache files for a user.
-    Current format: outlook_v2_{user_id}_{db_id}_{fp}[_{sim_date}].json (+ _debug.yaml).
-    Legacy format: outlook_cache_(123_Name)_lat_lon.json"""
+    Current format: outlook_v3_{user_id}_{db_id}_{fp}[_{sim_date}].json (+ _debug.yaml).
+    Legacy formats: outlook_v2_..., outlook_cache_(123_Name)_lat_lon.json"""
     import glob as _glob
     patterns = (
+        f"outlook_v3_{user_id}_*.json",
+        f"outlook_v3_{user_id}_*_debug.yaml",
         f"outlook_v2_{user_id}_*.json",
         f"outlook_v2_{user_id}_*_debug.yaml",
         f"outlook_cache_({user_id}_*.json",

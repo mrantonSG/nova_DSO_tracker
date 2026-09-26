@@ -67,6 +67,8 @@ from nova.helpers import (
     bust_astro_context_cache,
     bust_nightly_curves_cache,
     invalidate_object_caches,
+    try_acquire_file_lock,
+    release_file_lock,
 )
 from nova.models import (
     AnalyticsEvent,
@@ -902,6 +904,10 @@ def get_outlook_data():
     status_key = f"({user_log_key})_{location_name}{date_suffix}"
     # --- END OF CHANGES ---
 
+    # Worker for a missing/stale file; a sync when only some objects need calculating
+    from nova import update_outlook_cache, sync_outlook_cache
+    worker_target = update_outlook_cache
+
     # A fresh file wins over this process's worker status: another gunicorn
     # worker may have calculated it.
     if os.path.exists(cache_filename):
@@ -919,6 +925,23 @@ def get_outlook_data():
                 if opportunities and 'has_framing' not in opportunities[0]:
                     print(f"[OUTLOOK] Cache for {status_key} is missing 'has_framing'. Forcing update.")
                     # Fall through to trigger new worker
+                elif isinstance((data.get("metadata") or {}).get("objects"), dict):
+                    # Compare the file's objects with the current active objects
+                    from nova import load_outlook_active_objects, outlook_sync_plan, outlook_merged_content
+                    project_objects, objects_map, framed = load_outlook_active_objects(user_id, status_key)
+                    current, drop, calculate = outlook_sync_plan(data, project_objects)
+                    if calculate:
+                        print(f"[OUTLOOK] Cache for {status_key} lacks {calculate}. Will start a sync.")
+                        worker_target = sync_outlook_cache
+                        # Fall through to trigger the sync worker
+                    else:
+                        # Removals and display changes only: no astronomy, update inline
+                        merged = outlook_merged_content(data, current, drop, [], objects_map, framed)
+                        if merged != data:
+                            sync_outlook_cache(user_id, status_key, cache_filename, location_name,
+                                               g.user_config.copy(), resolve_sampling_interval(g.user_config),
+                                               sim_date_str, full_fallback=False)
+                        return jsonify({"status": "complete", "results": merged["opportunities"]})
                 else:
                     return jsonify({"status": "complete", "results": opportunities})
             else:
@@ -937,18 +960,24 @@ def get_outlook_data():
         print(f"[OUTLOOK] Worker for {status_key} is '{worker_status}'. Telling client to wait.")
         return jsonify({"status": worker_status, "results": []})
 
-    print(f"[OUTLOOK] Triggering new worker for {status_key} (current status: {worker_status}).")
     try:
         if not hasattr(g, 'user_config') or not g.user_config:
              return jsonify({"status": "error", "message": "User configuration not loaded."}), 500
 
         sampling_interval = resolve_sampling_interval(g.user_config)
 
+        # Another gunicorn process holding the file lock is already calculating
+        # it; a thread started here would only skip. Tell the client to wait.
+        lock_fh = try_acquire_file_lock(cache_filename)
+        if lock_fh is None:
+            print(f"[OUTLOOK] {status_key} is being calculated by another process. Telling client to wait.")
+            return jsonify({"status": "running", "results": []})
+        release_file_lock(lock_fh)
+        print(f"[OUTLOOK] Triggering new worker for {status_key} (current status: {worker_status}).")
+
         # --- START OF CHANGE (when starting the thread) ---
-        # Lazy import to avoid circular dependency
-        from nova import update_outlook_cache
         # We pass the user_id (for metadata), the status_key (for logging), and the cache_filename
-        thread = threading.Thread(target=update_outlook_cache,
+        thread = threading.Thread(target=worker_target,
                                   args=(user_id, status_key, cache_filename, location_name, g.user_config.copy(),
                                         sampling_interval, sim_date_str))
         # --- END OF CHANGE ---
