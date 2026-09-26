@@ -585,7 +585,9 @@ def config_form():
                     settings['sampling_interval_minutes'] = int(request.form.get("sampling_interval", 15))
                     settings.setdefault('telemetry', {})['enabled'] = bool(request.form.get('telemetry_enabled'))
 
-                imaging_criteria = settings.setdefault("imaging_criteria", {})
+                if not isinstance(settings.get("imaging_criteria"), dict):
+                    settings["imaging_criteria"] = {}
+                imaging_criteria = settings["imaging_criteria"]
                 imaging_criteria["min_observable_minutes"] = int(request.form.get("min_observable_minutes", 60))
                 imaging_criteria["min_max_altitude"] = int(request.form.get("min_max_altitude", 30))
                 imaging_criteria["max_moon_illumination"] = int(request.form.get("max_moon_illumination", 20))
