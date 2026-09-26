@@ -33,7 +33,6 @@ from nova.helpers import (
     bust_astro_context_cache,
     bust_nightly_curves_cache,
     invalidate_object_caches,
-    read_log_content,
 )
 from nova.models import (
     DbUser, AstroObject, Component, Rig, Location,
@@ -613,9 +612,8 @@ def download_journal():
                 "reducer_name_snapshot": s.reducer_name_snapshot,
                 "camera_name_snapshot": s.camera_name_snapshot,
                 "custom_filter_data": s.custom_filter_data,
-                "asiair_log_content": read_log_content(s.asiair_log_content),
-                "phd2_log_content": read_log_content(s.phd2_log_content),
-                "nina_log_content": read_log_content(s.nina_log_content),
+                "asiair_log_content": s.asiair_log_content,
+                "phd2_log_content": s.phd2_log_content,
                 "log_analysis_cache": s.log_analysis_cache,
             })
 

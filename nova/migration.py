@@ -930,7 +930,6 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
             "custom_filter_data": s.get("custom_filter_data"),
             "asiair_log_content": s.get("asiair_log_content"),
             "phd2_log_content": s.get("phd2_log_content"),
-            "nina_log_content": s.get("nina_log_content"),
             "log_analysis_cache": s.get("log_analysis_cache"),
         }
         # *** START: Simplified Upsert Logic ***
