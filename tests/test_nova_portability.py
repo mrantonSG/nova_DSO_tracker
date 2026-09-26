@@ -1081,10 +1081,14 @@ def test_import_roundtrip_multi_project_session(db_session, tmp_path):
     ).one()
 
     assert len(imported_sess.projects) == 2
-    project_ids = {p.id for p in imported_sess.projects}
-    assert project_ids == {"rt_proj_a", "rt_proj_b"}
-    # Legacy column should also be set
-    assert imported_sess.project_id == "rt_proj_a"
+    # Imported projects are new copies owned by the importer; originals stay with the source user
+    assert {p.name for p in imported_sess.projects} == {"Roundtrip A", "Roundtrip B"}
+    assert all(p.user_id == importing_user.id for p in imported_sess.projects)
+    assert db_session.get(Project, "rt_proj_a").user_id == user.id
+    assert db_session.get(Project, "rt_proj_b").user_id == user.id
+    # Legacy column should point at the importer's copy of project A
+    copy_a = next(p for p in imported_sess.projects if p.name == "Roundtrip A")
+    assert imported_sess.project_id == copy_a.id
 
 
 def test_import_old_format_yaml_populates_m2m_fallback(db_session):

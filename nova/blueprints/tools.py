@@ -614,6 +614,7 @@ def download_journal():
                 "custom_filter_data": s.custom_filter_data,
                 "asiair_log_content": s.asiair_log_content,
                 "phd2_log_content": s.phd2_log_content,
+                "nina_log_content": s.nina_log_content,
                 "log_analysis_cache": s.log_analysis_cache,
             })
 
@@ -1162,21 +1163,45 @@ def download_journal_photos():
 
     user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
 
-    # Check if the user's upload directory exists and has files
-    if not os.path.isdir(user_upload_dir):
-        flash(_("No journal photos found to download."), "info")
-        return redirect(url_for('core.config_form'))
-
     # Use an in-memory buffer to build the ZIP file without writing to disk
     memory_file = io.BytesIO()
 
     with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
-        # Walk through the user's directory and add all files to the ZIP
-        for root, dirs, files in os.walk(user_upload_dir):
-            for file in files:
-                file_path = os.path.join(root, file)
-                # Add the file to the zip, using just the filename as the archive name
-                zf.write(file_path, arcname=file)
+        # Walk through the user's directory (if any) and add all files to the ZIP
+        if os.path.isdir(user_upload_dir):
+            for root, dirs, files in os.walk(user_upload_dir):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    # Add the file to the zip, using just the filename as the archive name
+                    zf.write(file_path, arcname=file)
+
+        # Add session log files referenced by this user's journal sessions
+        db = get_db()
+        u = db.query(DbUser).filter_by(username=username).one_or_none()
+        if u:
+            logs_root = os.path.realpath(os.path.join(INSTANCE_PATH, 'logs'))
+            sessions = db.query(JournalSession).filter_by(user_id=u.id).all()
+            for s in sessions:
+                for log_type, value in (
+                    ('asiair', s.asiair_log_content),
+                    ('phd2', s.phd2_log_content),
+                    ('nina', s.nina_log_content),
+                ):
+                    if not value or not value.startswith('instance/logs/'):
+                        continue
+                    log_path = os.path.realpath(os.path.join(os.path.dirname(INSTANCE_PATH), value))
+                    # Guard against paths escaping instance/logs (e.g. via imported YAML)
+                    if not log_path.startswith(logs_root + os.sep):
+                        continue
+                    if not os.path.isfile(log_path):
+                        continue
+                    zf.write(log_path, arcname=f"logs/{log_type}/{os.path.basename(log_path)}")
+
+        file_count = len(zf.namelist())
+
+    if file_count == 0:
+        flash(_("No journal photos found to download."), "info")
+        return redirect(url_for('core.config_form'))
 
     # After the 'with' block, the ZIP is built in memory_file.
     # Move the buffer's cursor to the beginning.
@@ -1234,6 +1259,26 @@ def import_journal_photos():
             for member in zf.infolist():
                 # Skip directories
                 if member.is_dir():
+                    continue
+
+                # Session log files: restore only exact logs/<type>/<filename> entries
+                if member.filename.startswith('logs/'):
+                    parts = member.filename.split('/')
+                    if len(parts) != 3 or parts[1] not in ('asiair', 'phd2', 'nina'):
+                        continue
+                    log_type = parts[1]
+                    log_filename = os.path.basename(member.filename)
+                    if not log_filename or log_filename.startswith('.') or '/' in log_filename or '\\' in log_filename:
+                        continue
+                    log_dir = os.path.join(INSTANCE_PATH, 'logs', log_type)
+                    os.makedirs(log_dir, exist_ok=True)
+                    log_target = os.path.join(log_dir, log_filename)
+                    # Never overwrite existing log files
+                    if os.path.exists(log_target):
+                        continue
+                    with zf.open(member) as source, open(log_target, "wb") as target:
+                        target.write(source.read())
+                    extracted_count += 1
                     continue
 
                 # Get just the filename, stripping all parent directories

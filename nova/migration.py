@@ -2,6 +2,7 @@ import os
 import re
 import json
 import traceback
+import uuid
 from datetime import datetime
 
 import yaml
@@ -757,6 +758,8 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
 
     # --- 1. Migrate Projects & Track Valid IDs ---
     valid_project_ids = set()
+    # File project id -> id actually used, for projects re-created under a new id
+    id_map = {}
 
     for p in (data.get("projects") or []):
         # Check if both project_id and project_name are present and non-empty
@@ -782,7 +785,19 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
                 "status": p.get("status", "In Progress"),
             }
 
-            if existing_project:
+            if existing_project and existing_project.user_id != user.id:
+                # Owned by another user: leave that row untouched.
+                # Reuse this user's project with the same name, else import as a new copy.
+                existing_by_name = db.query(Project).filter_by(user_id=user.id, name=project_data["name"]).one_or_none()
+                if existing_by_name:
+                    id_map[str(project_id_val)] = existing_by_name.id
+                else:
+                    new_id = uuid.uuid4().hex
+                    id_map[str(project_id_val)] = new_id
+                    new_project = Project(id=new_id, **project_data)
+                    db.add(new_project)
+                    db.flush()
+            elif existing_project:
                 # Update existing project
                 for key, value in project_data.items():
                     if value is not None:
@@ -832,11 +847,15 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
                 # ...check if it exists in the DB (maybe from a previous import)
                 exists_in_db = db.query(Project).filter_by(id=sess_project_id).first()
 
-                if not exists_in_db:
+                # A project owned by another user counts as missing for this user
+                if not exists_in_db or exists_in_db.user_id != user.id:
                     # ORPHAN DETECTED: Auto-create a placeholder project to satisfy Foreign Key
                     print(f"[MIGRATION] Auto-creating missing project {sess_project_id} for session.")
+                    placeholder_id = uuid.uuid4().hex if exists_in_db else sess_project_id
+                    if placeholder_id != sess_project_id:
+                        id_map[sess_project_id] = placeholder_id
                     placeholder_project = Project(
-                        id=sess_project_id,
+                        id=placeholder_id,
                         user_id=user.id,
                         name=s.get("project_name") or f"Legacy Project {sess_project_id[:8]}",
                         status="Completed" # Assume legacy projects are done
@@ -844,6 +863,8 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
                     db.add(placeholder_project)
                     db.flush() # Commit immediately so the session insert works
                     valid_project_ids.add(sess_project_id)
+            # Point at the id actually used for this user's copy
+            sess_project_id = id_map.get(sess_project_id, sess_project_id)
         # === END: Orphan Project Check ===
 
         # === START: Multi-project m2m population ===
@@ -851,7 +872,7 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
         imported_project_ids = s.get("project_ids")
         if imported_project_ids:
             for pid in imported_project_ids:
-                pid_str = str(pid)
+                pid_str = id_map.get(str(pid), str(pid))
                 p = db.query(Project).filter_by(id=pid_str, user_id=user.id).one_or_none()
                 if p:
                     ownership_validated_projects.append(p)
@@ -930,6 +951,7 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
             "custom_filter_data": s.get("custom_filter_data"),
             "asiair_log_content": s.get("asiair_log_content"),
             "phd2_log_content": s.get("phd2_log_content"),
+            "nina_log_content": s.get("nina_log_content"),
             "log_analysis_cache": s.get("log_analysis_cache"),
         }
         # *** START: Simplified Upsert Logic ***
