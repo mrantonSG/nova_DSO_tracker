@@ -583,7 +583,9 @@ def config_form():
 
                 if nova.SINGLE_USER_MODE:
                     settings['sampling_interval_minutes'] = int(request.form.get("sampling_interval", 15))
-                    settings.setdefault('telemetry', {})['enabled'] = bool(request.form.get('telemetry_enabled'))
+                    if not isinstance(settings.get('telemetry'), dict):
+                        settings['telemetry'] = {}
+                    settings['telemetry']['enabled'] = bool(request.form.get('telemetry_enabled'))
 
                 if not isinstance(settings.get("imaging_criteria"), dict):
                     settings["imaging_criteria"] = {}
