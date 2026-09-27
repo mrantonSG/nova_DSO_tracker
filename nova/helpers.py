@@ -1419,7 +1419,9 @@ def disable_user(username: str) -> bool:
 
 def delete_user(username: str) -> bool:
     """
-    Hard-delete a user record. Optionally remove that user's on-disk files if you add that logic.
+    Hard-delete a user's login, then purge their app.db data and files.
+    Returns True if the login was deleted (even if the purge was incomplete,
+    which is logged as a warning), False if not found or the delete failed.
     """
     from nova.auth import db as auth_db, User
     with current_app.app_context():
@@ -1430,12 +1432,18 @@ def delete_user(username: str) -> bool:
             auth_db.session.delete(user)
             auth_db.session.commit()
             print(f"✅ Deleted user '{username}' from DB.")
-            # If you also want to remove YAML/journal/config files, call your remover here.
-            return True
         except Exception as e:
             auth_db.session.rollback()
             print(f"❌ Failed to delete user '{username}': {e}")
             return False
+        try:
+            summary = purge_user_app_data(username, dry_run=False)
+        except Exception as e:
+            logger.warning("[DELETE] Deleted login '%s' but app data purge raised: %s", username, e)
+            return True
+        if summary["refused"] is not None or summary["file_errors"]:
+            logger.warning("[DELETE] Deleted login '%s' but app data purge was incomplete: %s", username, summary)
+        return True
 
 
 def _path_within(path: str, base: str) -> bool:

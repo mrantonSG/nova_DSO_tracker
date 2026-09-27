@@ -17,7 +17,7 @@ from nova.models import (
     SavedView, SavedFraming, JournalSession, Project, UiPref,
     UserCustomFilter, session_projects,
 )
-from nova.helpers import purge_user_app_data
+from nova.helpers import purge_user_app_data, delete_user
 from sqla_mocks import MockColumn, MockSelectQuery
 
 
@@ -59,14 +59,28 @@ class _LoginUser:
     username = MockColumn("username")
 
 
-def _install_auth_mock(monkeypatch, logins):
-    """users.db lookup that finds a login row only for names in `logins`."""
+def _install_auth_mock(monkeypatch, logins, fail_commit=False):
+    """users.db lookup that finds a login row only for names in `logins`.
+    delete + commit removes the name from `logins`; fail_commit makes commit raise."""
     import nova.auth
 
     class _Session:
+        pending = None
+
         def scalar(self, stmt):
             name = stmt.whereclause.right.value
             return types.SimpleNamespace(username=name) if name in logins else None
+
+        def delete(self, user):
+            self.pending = user.username
+
+        def commit(self):
+            if fail_commit:
+                raise RuntimeError("users.db is locked")
+            logins.discard(self.pending)
+
+        def rollback(self):
+            self.pending = None
 
     monkeypatch.setattr(nova.auth, "db", types.SimpleNamespace(session=_Session(), select=MockSelectQuery))
     monkeypatch.setattr(nova.auth, "User", _LoginUser)
@@ -330,3 +344,56 @@ def test_exact_id_matching_spares_b_files(env):
     assert os.path.exists(os.path.join(env.dirs["cache"], f"import_conflicts_{B_ID}.json"))
     assert env.s.get(JournalSession, B_SESSION) is not None
     assert env.s.get(DbUser, B_ID) is not None
+
+
+# --- delete_user() ---
+
+@pytest.fixture
+def app_ctx():
+    from nova import app
+    with app.app_context():
+        yield
+
+
+@pytest.fixture
+def purge_spy(monkeypatch):
+    """Replaces purge_user_app_data in nova.helpers; set .result to change what it returns."""
+    spy = types.SimpleNamespace(calls=[], result={"refused": None, "file_errors": []})
+
+    def fake(*args, **kwargs):
+        spy.calls.append((args, kwargs))
+        return spy.result
+
+    monkeypatch.setattr("nova.helpers.purge_user_app_data", fake)
+    return spy
+
+
+def test_delete_user_removes_login_then_purges(app_ctx, monkeypatch, purge_spy):
+    logins = {A_NAME}
+    _install_auth_mock(monkeypatch, logins)
+
+    assert delete_user(A_NAME) is True
+    assert A_NAME not in logins
+    assert purge_spy.calls == [((A_NAME,), {"dry_run": False})]
+
+
+def test_delete_user_failed_login_delete_skips_purge(app_ctx, monkeypatch, purge_spy):
+    logins = {A_NAME}
+    _install_auth_mock(monkeypatch, logins, fail_commit=True)
+
+    assert delete_user(A_NAME) is False
+    assert A_NAME in logins
+    assert purge_spy.calls == []
+
+
+def test_delete_user_refused_purge_still_true_and_warns(app_ctx, monkeypatch, purge_spy, caplog):
+    logins = {A_NAME}
+    _install_auth_mock(monkeypatch, logins)
+    purge_spy.result = {"refused": "user is in ADMIN_USERS", "file_errors": []}
+
+    with caplog.at_level("WARNING", logger="nova.helpers"):
+        assert delete_user(A_NAME) is True
+
+    assert len(purge_spy.calls) == 1
+    assert any("purge was incomplete" in r.getMessage() and "user is in ADMIN_USERS" in r.getMessage()
+               for r in caplog.records)

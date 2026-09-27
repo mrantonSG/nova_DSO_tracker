@@ -3153,6 +3153,26 @@ if not SINGLE_USER_MODE:
         db.session.commit()
         print(f"✅ User '{username}' deleted from credentials database.")
 
+        from nova.helpers import purge_user_app_data
+        try:
+            summary = purge_user_app_data(username, dry_run=False)
+        except Exception as e:
+            print(f"⚠️  App data purge failed: {e}")
+            return
+        if summary["refused"]:
+            print(f"⚠️  App data was not removed: {summary['refused']}")
+        else:
+            rows = {table: n for table, n in summary["deleted_rows"].items() if n}
+            if rows:
+                print("Rows deleted:")
+                for table, n in sorted(rows.items()):
+                    print(f"  {table}: {n}")
+            else:
+                print("No app data rows found.")
+            print(f"Files removed: {len(summary['deleted_files'])}")
+        for err in summary["file_errors"]:
+            print(f"⚠️  Could not remove: {err}")
+
     @app.cli.command("migrate-yaml-to-db")
     def migrate_yaml_command():
         """
