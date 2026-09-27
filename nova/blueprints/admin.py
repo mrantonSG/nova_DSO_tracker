@@ -34,7 +34,7 @@ def admin_users():
         return guard
     from nova import db, User
     users = db.session.scalars(db.select(User).order_by(User.id)).all()
-    return render_template("admin_users.html", users=users)
+    return render_template("admin_users.html", users=users, admin_users=ADMIN_USERS)
 
 
 @admin_bp.route("/admin/users/create", methods=["POST"])

@@ -79,7 +79,7 @@
             <td>{{ user.id }}</td>
             <td>
               {{ user.username }}
-              {% if user.username == 'admin' %}<span class="badge badge-admin">{{ _('admin') }}</span>{% endif %}
+              {% if user.username in admin_users %}<span class="badge badge-admin">{{ _('admin') }}</span>{% endif %}
             </td>
             <td>
               {% if user.active %}
@@ -89,7 +89,7 @@
               {% endif %}
             </td>
             <td class="actions-cell">
-              {% if user.username != 'admin' %}
+              {% if user.id != current_user.id and user.username not in admin_users %}
                 <!-- Toggle active/inactive -->
                 <form method="POST" action="{{ url_for('admin.admin_toggle_user', user_id=user.id) }}" style="display:inline;">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -102,7 +102,7 @@
               <!-- Reset password (for all users including admin) -->
               <button type="button" class="btn-small btn-secondary" onclick="toggleResetForm({{ user.id }})">{{ _('Reset Password') }}</button>
 
-              {% if user.username != 'admin' %}
+              {% if user.id != current_user.id and user.username not in admin_users %}
                 <!-- Delete -->
                 <form method="POST" action="{{ url_for('admin.admin_delete_user', user_id=user.id) }}" style="display:inline;"
                       data-confirm="{{ _('Delete user \'%(username)s\'? This removes their login credentials. Their observing data in app.db is NOT deleted.', username=user.username) }}">

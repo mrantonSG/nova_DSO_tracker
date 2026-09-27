@@ -123,7 +123,8 @@ from nova.config import (
     cache_worker_status, LATEST_VERSION_INFO,
     weather_cache, CATALOG_MANIFEST_CACHE,
     _telemetry_startup_once, TELEMETRY_DEBUG_STATE, TRANSLATION_STATUS,
-    AI_PROVIDER, AI_API_KEY, AI_MODEL, AI_BASE_URL, AI_ALLOWED_USERS
+    AI_PROVIDER, AI_API_KEY, AI_MODEL, AI_BASE_URL, AI_ALLOWED_USERS,
+    ADMIN_USERS
 )
 from nova.helpers import (
     get_db, get_user_log_string, allowed_file, _yaml_dump_pretty,
@@ -3134,7 +3135,7 @@ if not SINGLE_USER_MODE:
     def delete_user_command():
         """Deletes a user account from the credentials database."""
         username = input("Username to delete: ")
-        if username == "admin":
+        if username in ADMIN_USERS:
             print("❌ Cannot delete the admin account.")
             return
 
