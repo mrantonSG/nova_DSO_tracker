@@ -2163,9 +2163,15 @@ def provision_user():
         existing_user = auth_db.session.scalar(auth_db.select(User).where(User.username == username))
 
         if existing_user:
-            # If the user exists, UPDATE their password
+            # If the user exists, UPDATE their password (and re-enable if disabled)
+            was_disabled = not existing_user.active
             existing_user.set_password(password)
+            if was_disabled:
+                existing_user.active = True
             auth_db.session.commit()
+            if was_disabled:
+                print(f"✅ Password updated and account re-enabled for '{username}' via API.")
+                return jsonify({"status": "success", "message": f"User {username} password updated and re-enabled"}), 200
             print(f"✅ Password updated for user '{username}' via API.")
             return jsonify({"status": "success", "message": f"User {username} password updated"}), 200
         else:
