@@ -143,6 +143,25 @@ def nonadmin_client(_mu_admin_env):
         yield client
 
 
+def _get_flashes(client):
+    with client.session_transaction() as sess:
+        return list(sess.get('_flashes', []))
+
+
+@pytest.fixture
+def purge_calls(monkeypatch):
+    """Replace purge_user_app_data in the admin blueprint; record calls, return a configurable summary."""
+    calls = []
+    result = {"refused": None, "file_errors": []}
+
+    def fake_purge(username, dry_run=True):
+        calls.append((username, dry_run))
+        return {"username": username, "dry_run": dry_run, **result}
+
+    monkeypatch.setattr('nova.blueprints.admin.purge_user_app_data', fake_purge)
+    return types.SimpleNamespace(calls=calls, result=result)
+
+
 class TestAdminGuard:
     def test_single_user_mode_redirects_to_index(self, client):
         """In single-user mode, /admin/users redirects to index."""
@@ -201,6 +220,48 @@ class TestAdminDeleteUser:
         """Delete request for nonexistent user_id redirects with error."""
         resp = admin_client.post("/admin/users/999999/delete")
         assert resp.status_code == 302
+
+    def test_delete_user_purges_app_data(self, admin_client, purge_calls):
+        """Successful delete removes the login row and purges app data once."""
+        import nova
+        resp = admin_client.post("/admin/users/2/delete")
+        assert resp.status_code == 302
+        assert nova.db.session.get(nova.User, 2) is None
+        assert purge_calls.calls == [("testuser", False)]
+        assert _get_flashes(admin_client) == [("success", "User 'testuser' deleted.")]
+
+    @pytest.mark.parametrize("outcome", [
+        {"refused": "database error, rolled back: boom"},
+        {"file_errors": ["/instance/uploads/testuser/x.jpg: Permission denied"]},
+    ])
+    def test_delete_user_incomplete_purge_flashes_error(self, admin_client, purge_calls, outcome):
+        """Refused purge or file errors: login still deleted, error flash shown."""
+        import nova
+        purge_calls.result.update(outcome)
+        resp = admin_client.post("/admin/users/2/delete")
+        assert resp.status_code == 302
+        assert nova.db.session.get(nova.User, 2) is None
+        assert purge_calls.calls == [("testuser", False)]
+        assert _get_flashes(admin_client) == [
+            ("error", "User deleted, but some data could not be removed. Check the server log."),
+        ]
+
+    def test_cannot_delete_self_does_not_purge(self, admin_client, purge_calls):
+        """Self-delete is rejected and purge is not called."""
+        import nova
+        resp = admin_client.post("/admin/users/1/delete")
+        assert resp.status_code == 302
+        assert nova.db.session.get(nova.User, 1) is not None
+        assert purge_calls.calls == []
+
+    def test_cannot_delete_other_admin_does_not_purge(self, admin_client, purge_calls, monkeypatch):
+        """Deleting another ADMIN_USERS member is rejected and purge is not called."""
+        import nova
+        monkeypatch.setattr('nova.blueprints.admin.ADMIN_USERS', {"admin", "testuser"})
+        resp = admin_client.post("/admin/users/2/delete")
+        assert resp.status_code == 302
+        assert nova.db.session.get(nova.User, 2) is not None
+        assert purge_calls.calls == []
 
 
 class TestAdminToggleUser:

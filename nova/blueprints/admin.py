@@ -1,10 +1,15 @@
+import logging
+
 from flask import Blueprint, request, redirect, url_for, render_template, flash
 from flask_login import login_required, current_user
 from flask_babel import gettext as _
 
 from nova.config import SINGLE_USER_MODE, ADMIN_USERS
+from nova.helpers import purge_user_app_data
 
 admin_bp = Blueprint('admin', __name__)
+
+logger = logging.getLogger(__name__)
 
 
 def _admin_guard():
@@ -119,5 +124,10 @@ def admin_delete_user(user_id):
     uname = user.username
     db.session.delete(user)
     db.session.commit()
-    flash(_("User '%(username)s' deleted.", username=uname), "success")
+    summary = purge_user_app_data(uname, dry_run=False)
+    if summary["refused"] is None and not summary["file_errors"]:
+        flash(_("User '%(username)s' deleted.", username=uname), "success")
+    else:
+        logger.warning("[ADMIN] Deleted login '%s' but app data purge was incomplete: %s", uname, summary)
+        flash(_("User deleted, but some data could not be removed. Check the server log."), "error")
     return redirect(url_for("admin.admin_users"))
