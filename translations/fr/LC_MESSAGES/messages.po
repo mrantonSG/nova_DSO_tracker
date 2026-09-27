@@ -5687,6 +5687,23 @@ msgstr "Gain/Décalage"
 msgid "Exp"
 msgstr "Expérience"
 
+#: templates/admin_users.html:108
+#, python-format
+msgid ""
+"Permanently delete user '%(username)s' and all their data (journal, "
+"projects, locations, rigs, images)? This cannot be undone."
+msgstr ""
+"Supprimer définitivement l'utilisateur « %(username)s » et toutes ses "
+"données (journal, projets, emplacements, montures, images) ? Cette action "
+"est irréversible."
+
+#: nova/blueprints/admin.py:132
+msgid ""
+"User deleted, but some data could not be removed. Check the server log."
+msgstr ""
+"Utilisateur supprimé, mais certaines données n'ont pas pu être supprimées."
+" Consultez le journal du serveur."
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Suggestions de rafraîchissement"
 

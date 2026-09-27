@@ -5520,6 +5520,18 @@ msgstr "增益/偏移"
 msgid "Exp"
 msgstr "曝光"
 
+#: templates/admin_users.html:108
+#, python-format
+msgid ""
+"Permanently delete user '%(username)s' and all their data (journal, "
+"projects, locations, rigs, images)? This cannot be undone."
+msgstr "永久删除用户'%(username)s'及其所有数据（日志、项目、地点、设备、图像）？此操作无法撤销。"
+
+#: nova/blueprints/admin.py:132
+msgid ""
+"User deleted, but some data could not be removed. Check the server log."
+msgstr "用户已删除，但部分数据无法移除。请查看服务器日志。"
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "刷新建议"
 

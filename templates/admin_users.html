@@ -105,7 +105,7 @@
               {% if user.id != current_user.id and user.username not in admin_users %}
                 <!-- Delete -->
                 <form method="POST" action="{{ url_for('admin.admin_delete_user', user_id=user.id) }}" style="display:inline;"
-                      data-confirm="{{ _('Delete user \'%(username)s\'? This removes their login credentials. Their observing data in app.db is NOT deleted.', username=user.username) }}">
+                      data-confirm="{{ _('Permanently delete user \'%(username)s\' and all their data (journal, projects, locations, rigs, images)? This cannot be undone.', username=user.username) }}">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button type="submit" class="btn-small btn-danger">{{ _('Delete') }}</button>
                 </form>

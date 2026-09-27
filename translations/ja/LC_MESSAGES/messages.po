@@ -5524,6 +5524,19 @@ msgstr "ゲイン/オフセット"
 msgid "Exp"
 msgstr "実験"
 
+#: templates/admin_users.html:108
+#, python-format
+msgid ""
+"Permanently delete user '%(username)s' and all their data (journal, "
+"projects, locations, rigs, images)? This cannot be undone."
+msgstr ""
+"ユーザー '%(username)s' とそのすべてのデータ（日誌、プロジェクト、場所、リグ、画像）を完全に削除しますか？この操作は元に戻せません。"
+
+#: nova/blueprints/admin.py:132
+msgid ""
+"User deleted, but some data could not be removed. Check the server log."
+msgstr "ユーザーは削除されましたが、一部のデータを削除できませんでした。サーバーログを確認してください。"
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "更新提案"
 
