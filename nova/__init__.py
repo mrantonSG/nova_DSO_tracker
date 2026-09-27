@@ -3173,6 +3173,72 @@ if not SINGLE_USER_MODE:
         for err in summary["file_errors"]:
             print(f"⚠️  Could not remove: {err}")
 
+    @app.cli.command("purge-orphaned-users")
+    def purge_orphaned_users_command():
+        """Finds and purges app data of users whose login no longer exists."""
+        from nova.helpers import find_orphaned_usernames, purge_user_app_data
+
+        def report(name, summary):
+            """Print one user's purge summary; return (rows, files)."""
+            if summary["refused"]:
+                print(f"  {name}: refused ({summary['refused']})")
+                return 0, 0
+            rows = {table: n for table, n in summary["deleted_rows"].items() if n}
+            files = len(summary["deleted_files"])
+            print(f"  {name}: {sum(rows.values())} rows, {files} files")
+            for table, n in sorted(rows.items()):
+                print(f"      {table}: {n}")
+            for err in summary["file_errors"]:
+                print(f"      ⚠️  {err}")
+            return sum(rows.values()), files
+
+        try:
+            orphans = find_orphaned_usernames()
+        except Exception as e:
+            print(f"❌ {e}")
+            print("Nothing was changed.")
+            return
+        if not orphans:
+            print("No orphaned users found.")
+            return
+
+        print(f"--- Dry run: {len(orphans)} orphaned user(s), nothing changed yet ---")
+        to_purge = []
+        total_rows = total_files = 0
+        for name in orphans:
+            try:
+                summary = purge_user_app_data(name, dry_run=True)
+            except Exception as e:
+                print(f"  {name}: dry run failed ({e})")
+                continue
+            rows, files = report(name, summary)
+            total_rows += rows
+            total_files += files
+            if not summary["refused"]:
+                to_purge.append(name)
+        print(f"Total: {len(to_purge)} user(s) to purge, {total_rows} rows, {total_files} files "
+              f"({len(orphans) - len(to_purge)} skipped)")
+        if not to_purge:
+            return
+
+        confirm = input(f"Permanently purge app data of these {len(to_purge)} user(s)? (yes/no): ")
+        if confirm.lower() != "yes":
+            print("Cancelled. Nothing was changed.")
+            return
+
+        print("--- Purging ---")
+        purged = 0
+        for name in to_purge:
+            try:
+                summary = purge_user_app_data(name, dry_run=False)
+            except Exception as e:
+                print(f"  {name}: purge failed ({e})")
+                continue
+            report(name, summary)
+            if not summary["refused"]:
+                purged += 1
+        print(f"✅ Purged {purged} of {len(to_purge)} user(s).")
+
     @app.cli.command("migrate-yaml-to-db")
     def migrate_yaml_command():
         """

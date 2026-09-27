@@ -1675,6 +1675,42 @@ def purge_user_app_data(username: str, dry_run: bool = True) -> dict:
     return summary
 
 
+def find_orphaned_usernames() -> list[str]:
+    """
+    Usernames that still have app data (an app.db user row or a folder
+    under UPLOAD_FOLDER) but no login in users.db. ADMIN_USERS, "default"
+    and "guest_user" are never returned.
+
+    Raises RuntimeError, and returns nothing, when the login list can't be
+    trusted: SINGLE_USER_MODE is on, users.db can't be read, or it has
+    zero logins (which would make every user look orphaned).
+    """
+    import nova.auth as _auth
+
+    if nova.SINGLE_USER_MODE or _auth.db is None:
+        raise RuntimeError("SINGLE_USER_MODE is on; there are no logins to compare against.")
+    try:
+        logins = set(_auth.db.session.scalars(_auth.db.select(_auth.User.username)))
+    except Exception as e:
+        raise RuntimeError(f"Could not read the users.db login table: {e}") from e
+    if not logins:
+        raise RuntimeError("users.db contains zero logins; refusing to treat every user as orphaned.")
+
+    db = SessionLocal.session_factory()
+    try:
+        candidates = {name for (name,) in db.query(DbUser.username)}
+    finally:
+        db.close()
+    try:
+        with os.scandir(UPLOAD_FOLDER) as entries:
+            candidates |= {e.name for e in entries if e.is_dir(follow_symlinks=False)}
+    except FileNotFoundError:
+        pass
+
+    protected = set(ADMIN_USERS) | {"default", "guest_user"}
+    return sorted(candidates - logins - protected)
+
+
 def _read_yaml(path: str) -> tuple[dict | None, str | None]:
     """
     Safely reads and parses a YAML file, returning data and any error.

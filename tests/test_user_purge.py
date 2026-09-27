@@ -17,7 +17,7 @@ from nova.models import (
     SavedView, SavedFraming, JournalSession, Project, UiPref,
     UserCustomFilter, session_projects,
 )
-from nova.helpers import purge_user_app_data, delete_user
+from nova.helpers import purge_user_app_data, delete_user, find_orphaned_usernames
 from sqla_mocks import MockColumn, MockSelectQuery
 
 
@@ -60,8 +60,9 @@ class _LoginUser:
 
 
 def _install_auth_mock(monkeypatch, logins, fail_commit=False):
-    """users.db lookup that finds a login row only for names in `logins`.
-    delete + commit removes the name from `logins`; fail_commit makes commit raise."""
+    """users.db lookup that finds a login row only for names in `logins`; scalars()
+    lists all of them. delete + commit removes the name from `logins`;
+    fail_commit makes commit raise."""
     import nova.auth
 
     class _Session:
@@ -70,6 +71,9 @@ def _install_auth_mock(monkeypatch, logins, fail_commit=False):
         def scalar(self, stmt):
             name = stmt.whereclause.right.value
             return types.SimpleNamespace(username=name) if name in logins else None
+
+        def scalars(self, stmt):
+            return list(logins)
 
         def delete(self, user):
             self.pending = user.username
@@ -397,3 +401,54 @@ def test_delete_user_refused_purge_still_true_and_warns(app_ctx, monkeypatch, pu
     assert len(purge_spy.calls) == 1
     assert any("purge was incomplete" in r.getMessage() and "user is in ADMIN_USERS" in r.getMessage()
                for r in caplog.records)
+
+
+# --- find_orphaned_usernames() ---
+
+@pytest.fixture
+def multi_user(monkeypatch):
+    monkeypatch.setattr("nova.SINGLE_USER_MODE", False)
+
+
+def test_find_orphans_returns_db_users_without_login(env, multi_user):
+    env.logins.update({B_NAME, "carol"})
+    for name in ("admin", "default", "guest_user"):
+        if name != "guest_user":  # conftest's db_session already seeds guest_user
+            env.s.add(DbUser(username=name))
+        os.makedirs(os.path.join(env.dirs["uploads"], name))
+    env.s.commit()
+
+    assert find_orphaned_usernames() == [A_NAME]
+
+
+def test_find_orphans_includes_upload_folder_without_login_or_db_user(env, multi_user):
+    env.logins.update({A_NAME, B_NAME})
+    os.makedirs(os.path.join(env.dirs["uploads"], "ghost"))
+    _write(os.path.join(env.dirs["uploads"], "stray.txt"))  # plain files are not users
+
+    assert find_orphaned_usernames() == ["ghost"]
+
+
+def test_find_orphans_zero_logins_raises(env, multi_user):
+    with pytest.raises(RuntimeError, match="zero logins"):
+        find_orphaned_usernames()
+
+
+def test_find_orphans_unreadable_login_table_raises(env, multi_user, monkeypatch):
+    import nova.auth
+    env.logins.add(B_NAME)
+
+    def boom(stmt):
+        raise RuntimeError("no such table: user")
+
+    monkeypatch.setattr(nova.auth.db.session, "scalars", boom)
+    with pytest.raises(RuntimeError, match="Could not read"):
+        find_orphaned_usernames()
+
+
+def test_find_orphans_single_user_mode_raises(env, monkeypatch):
+    monkeypatch.setattr("nova.SINGLE_USER_MODE", True)
+    env.logins.add(B_NAME)
+
+    with pytest.raises(RuntimeError, match="SINGLE_USER_MODE"):
+        find_orphaned_usernames()
