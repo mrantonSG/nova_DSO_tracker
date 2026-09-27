@@ -71,7 +71,7 @@ def admin_toggle_user(user_id):
     if not user:
         flash(_("User not found."), "error")
         return redirect(url_for("admin.admin_users"))
-    if user.username == "admin":
+    if user.id == current_user.id or user.username in ADMIN_USERS:
         flash(_("Cannot deactivate the admin account."), "error")
         return redirect(url_for("admin.admin_users"))
     user.active = not user.active
@@ -113,7 +113,7 @@ def admin_delete_user(user_id):
     if not user:
         flash(_("User not found."), "error")
         return redirect(url_for("admin.admin_users"))
-    if user.username == "admin":
+    if user.id == current_user.id or user.username in ADMIN_USERS:
         flash(_("Cannot delete the admin account."), "error")
         return redirect(url_for("admin.admin_users"))
     uname = user.username
