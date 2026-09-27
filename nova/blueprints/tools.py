@@ -20,6 +20,7 @@ from sqlalchemy import func, delete as sa_delete, select as sa_select
 from sqlalchemy.orm import selectinload
 
 from nova.config import (
+    ADMIN_USERS,
     SINGLE_USER_MODE, UPLOAD_FOLDER, INSTANCE_PATH,
     CONFIG_DIR, CACHE_DIR,
     DEFAULT_DITHER_MAIN_SHIFT_PX,
@@ -1420,7 +1421,7 @@ def upload_editor_image():
 @login_required
 def export_yaml_for_user(username):
     # Only allow exporting self in multi-user; admin can export anyone (basic guard, adjust as needed)
-    if not SINGLE_USER_MODE and current_user.username != username and current_user.username != "admin":
+    if not SINGLE_USER_MODE and current_user.username != username and current_user.username not in ADMIN_USERS:
         flash(_("Not authorized to export another user's data."), "error")
         return redirect(url_for("core.index"))
     ok = export_user_to_yaml(username, out_dir=CONFIG_DIR)
@@ -1458,7 +1459,7 @@ def import_yaml_for_user():
         return redirect(url_for("core.index"))
 
     # Basic guard: only allow importing for self unless admin
-    if not SINGLE_USER_MODE and current_user.username != username and current_user.username != "admin":
+    if not SINGLE_USER_MODE and current_user.username != username and current_user.username not in ADMIN_USERS:
         flash(_("Not authorized to import for another user."), "error")
         return redirect(url_for("core.index"))
 
@@ -1511,7 +1512,7 @@ def import_yaml_for_user():
 @tools_bp.route("/tools/repair_db", methods=["POST"])
 @login_required
 def repair_db_now():
-    if not SINGLE_USER_MODE and current_user.username != "admin":
+    if not SINGLE_USER_MODE and current_user.username not in ADMIN_USERS:
         flash(_("Not authorized."), "error")
         return redirect(url_for("core.index"))
     try:

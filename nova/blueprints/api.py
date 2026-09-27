@@ -26,7 +26,7 @@ import pytz
 
 import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay live (see nova/config.py)
 from nova.config import (
-    TELEMETRY_DEBUG_STATE, LATEST_VERSION_INFO,
+    ADMIN_USERS, TELEMETRY_DEBUG_STATE, LATEST_VERSION_INFO,
     nightly_curves_cache, observable_objects_cache,
     weather_cache, CACHE_DIR, DEFAULT_HTTP_TIMEOUT,
 )
@@ -77,7 +77,7 @@ _scan_frame_cache = {}
 @api_bp.route('/telemetry/debug', methods=['GET'])
 @login_required
 def telemetry_debug():
-    if not nova.SINGLE_USER_MODE and (not current_user.is_authenticated or current_user.username != "admin"):
+    if not nova.SINGLE_USER_MODE and (not current_user.is_authenticated or current_user.username not in ADMIN_USERS):
         return jsonify({"error": "Not authorized"}), 403
     # Report current telemetry config and last attempt
     try:

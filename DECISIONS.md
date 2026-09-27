@@ -42,6 +42,8 @@ One line per decision. Format: Date | What changed | Why
 
 2026-04-09 | Blueprint migration complete: all routes now in nova/blueprints/*.py | __init__.py now contains only app factory, hooks, and helpers
 
+2026-09-28 | Remaining literal `"admin"` checks in api_bp/tools_bp (telemetry/debug, cross-user export/import, repair_db) now use `ADMIN_USERS` | `ADMIN_USERS` in `instance/.env` is the single source of truth for admin status, so extra admins can use these features without renaming their account to `admin`
+
 ## Background Processing
 
 2025-10-24 | Weather cache worker (2h daemon thread) | Open-Meteo API is rate-limited and slow; pre-fetching avoids blocking user requests
