@@ -24,12 +24,17 @@ from astropy.coordinates import SkyCoord, get_constellation, EarthLocation, AltA
 from astropy.time import Time
 import astropy.units as u
 
-from nova.models import SessionLocal, Location, AstroObject, Component, SavedFraming
+from nova.models import (
+    SessionLocal, Location, AstroObject, Component, SavedFraming,
+    DbUser, Project, SavedView, HorizonPoint, Rig, JournalSession, UiPref,
+    UserCustomFilter, session_projects,
+)
 import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay live (see nova/config.py)
 from nova.config import (
     INSTANCE_PATH, BACKUP_DIR, ALLOWED_EXTENSIONS, SIMBAD_TIMEOUT,
     nightly_curves_cache, NOVA_CATALOG_URL, CATALOG_MANIFEST_CACHE, DEFAULT_HTTP_TIMEOUT,
     CACHE_DIR, astro_context_cache, observable_objects_cache,
+    UPLOAD_FOLDER, CONFIG_DIR, ADMIN_USERS,
 )
 from modules.astro_calculations import (
     get_common_time_arrays, hms_to_hours, dms_to_degrees,
@@ -1431,6 +1436,235 @@ def delete_user(username: str) -> bool:
             auth_db.session.rollback()
             print(f"❌ Failed to delete user '{username}': {e}")
             return False
+
+
+def _path_within(path: str, base: str) -> bool:
+    """True if `path` resolves to a location strictly inside `base`."""
+    return os.path.realpath(path).startswith(os.path.realpath(base) + os.sep)
+
+
+def purge_user_app_data(username: str, dry_run: bool = True) -> dict:
+    """
+    Remove all app.db rows and on-disk files of a user whose login was
+    already deleted from users.db.
+
+    dry_run=True changes nothing and reports what would be removed.
+    DB work runs in one transaction using explicit bulk statements (SQLite
+    FKs are not enforced, so cascades are never relied on). Files are
+    deleted only after a successful commit.
+    """
+    import glob as _glob
+    from sqlalchemy import delete, update, select, func, and_, or_
+    import nova.auth as _auth
+
+    summary = {
+        "username": username,
+        "user_id": None,
+        "dry_run": dry_run,
+        "refused": None,
+        "deleted_rows": {},
+        "nullified_references": {},
+        "deleted_files": [],
+        "file_errors": [],
+        "caches_invalidated": [],
+    }
+
+    def _refuse(reason):
+        logger.warning(f"[PURGE] Refusing to purge user '{username}': {reason}")
+        summary["refused"] = reason
+        return summary
+
+    # --- Guards ---
+    if not username or not str(username).strip():
+        return _refuse("empty username")
+    if username in ADMIN_USERS:
+        return _refuse("user is in ADMIN_USERS")
+    if username in ("default", "guest_user"):
+        return _refuse("protected system user")
+    if _auth.db is not None:
+        try:
+            login = _auth.db.session.scalar(
+                _auth.db.select(_auth.User).where(_auth.User.username == username))
+        except Exception as e:
+            return _refuse(f"could not check users.db login table: {e}")
+        if login is not None:
+            return _refuse("login row still exists in users.db")
+
+    # --- DB: collect ids and build statements ---
+    db = SessionLocal.session_factory()  # own session: never commit a caller's pending work
+    user_id = None
+    session_ids = []
+    try:
+        db_user = db.query(DbUser).filter_by(username=username).one_or_none()
+        if db_user is not None:
+            user_id = db_user.id
+            summary["user_id"] = user_id
+
+            def _ids(model):
+                return list(db.scalars(select(model.id).where(model.user_id == user_id)))
+
+            session_ids = _ids(JournalSession)
+            project_ids = _ids(Project)
+            location_ids = _ids(Location)
+            rig_ids = _ids(Rig)
+            component_ids = _ids(Component)
+
+            # (summary key, table, where clause) — executed in this order
+            deletes = [
+                ("session_projects", session_projects,
+                 or_(session_projects.c.session_id.in_(session_ids),
+                     session_projects.c.project_id.in_(project_ids))),
+                ("horizon_points", HorizonPoint.__table__,
+                 HorizonPoint.location_id.in_(location_ids)),
+            ]
+            for model in (JournalSession, Project, SavedFraming, SavedView, Rig,
+                          Component, AstroObject, Location, UiPref, UserCustomFilter):
+                deletes.append((model.__tablename__, model.__table__, model.user_id == user_id))
+
+            # (summary key, table, where clause, values) on OTHER users' rows.
+            # The user_id filter only matters for dry-run counts; in a real run
+            # the user's own rows are already gone.
+            def _others(model):
+                return or_(model.user_id.is_(None), model.user_id != user_id)
+
+            nullifies = []
+            for model in (AstroObject, Component, SavedView):
+                nullifies.append((
+                    f"{model.__tablename__}.original_user_id",
+                    model.__table__,
+                    and_(model.original_user_id == user_id, _others(model)),
+                    {"original_user_id": None, "original_item_id": None},
+                ))
+            nullifies += [
+                ("journal_sessions.project_id", JournalSession.__table__,
+                 and_(JournalSession.project_id.in_(project_ids), _others(JournalSession)),
+                 {"project_id": None}),
+                ("journal_sessions.rig_id_snapshot", JournalSession.__table__,
+                 and_(JournalSession.rig_id_snapshot.in_(rig_ids), _others(JournalSession)),
+                 {"rig_id_snapshot": None}),
+                ("saved_framings.rig_id", SavedFraming.__table__,
+                 and_(SavedFraming.rig_id.in_(rig_ids), _others(SavedFraming)),
+                 {"rig_id": None}),
+            ]
+            for col in ("telescope_id", "camera_id", "reducer_extender_id",
+                        "guide_telescope_id", "guide_camera_id"):
+                column = getattr(Rig, col)
+                nullifies.append((f"rigs.{col}", Rig.__table__,
+                                  and_(column.in_(component_ids), _others(Rig)),
+                                  {col: None}))
+
+            if dry_run:
+                for key, table, where in deletes:
+                    summary["deleted_rows"][key] = db.scalar(
+                        select(func.count()).select_from(table).where(where))
+                for key, table, where, _values in nullifies:
+                    summary["nullified_references"][key] = db.scalar(
+                        select(func.count()).select_from(table).where(where))
+                summary["deleted_rows"]["users"] = 1
+            else:
+                for key, table, where in deletes:
+                    summary["deleted_rows"][key] = db.execute(delete(table).where(where)).rowcount
+                for key, table, where, values in nullifies:
+                    summary["nullified_references"][key] = db.execute(
+                        update(table).where(where).values(**values)).rowcount
+                summary["deleted_rows"]["users"] = db.execute(
+                    delete(DbUser.__table__).where(DbUser.id == user_id)).rowcount
+                db.commit()
+        else:
+            logger.info(f"[PURGE] No app.db user row for '{username}'; cleaning username-keyed files only.")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"[PURGE] DB purge failed for user '{username}', rolled back: {e}")
+        summary["deleted_rows"] = {}
+        summary["nullified_references"] = {}
+        summary["refused"] = f"database error, rolled back: {e}"
+        return summary
+    finally:
+        db.close()
+
+    # --- Files: collect (path, base) pairs; everything must stay inside its base ---
+    candidates = [(os.path.join(UPLOAD_FOLDER, username), UPLOAD_FOLDER)]
+    for name in (f"config_{username}.yaml", f"journal_{username}.yaml", f"rigs_{username}.yaml"):
+        candidates.append((os.path.join(CONFIG_DIR, name), CONFIG_DIR))
+
+    outlook_files = []
+    if user_id is not None:
+        sid_strs = {str(s) for s in session_ids}
+        for log_dir in (ASIAIR_LOGS_DIR, PHD2_LOGS_DIR, NINA_LOGS_DIR):
+            try:
+                names = os.listdir(log_dir)
+            except FileNotFoundError:
+                continue
+            except OSError as e:
+                summary["file_errors"].append(f"{log_dir}: {e}")
+                continue
+            for name in names:
+                if "_" in name and name.split("_", 1)[0] in sid_strs:
+                    candidates.append((os.path.join(log_dir, name), log_dir))
+        for path in _glob.glob(os.path.join(CACHE_DIR, f"heatmap_v6_{user_id}_*")):
+            candidates.append((path, CACHE_DIR))
+        candidates.append((os.path.join(CACHE_DIR, f"import_conflicts_{user_id}.json"), CACHE_DIR))
+        # Same patterns as delete_outlook_files, used only for reporting
+        for pattern in (f"outlook_v3_{user_id}_*.json", f"outlook_v3_{user_id}_*_debug.yaml",
+                        f"outlook_v2_{user_id}_*.json", f"outlook_v2_{user_id}_*_debug.yaml",
+                        f"outlook_cache_({user_id}_*.json"):
+            outlook_files.extend(_glob.glob(os.path.join(CACHE_DIR, pattern)))
+
+    for path, base in candidates:
+        if not os.path.lexists(path):
+            continue
+        if not _path_within(path, base):
+            logger.warning(f"[PURGE] Skipping path outside {base}: {path}")
+            summary["file_errors"].append(f"{path}: outside base folder")
+            continue
+        if dry_run:
+            summary["deleted_files"].append(path)
+            continue
+        try:
+            if os.path.isdir(path) and not os.path.islink(path):
+                shutil.rmtree(path)
+            else:
+                os.remove(path)
+            summary["deleted_files"].append(path)
+        except Exception as e:
+            logger.warning(f"[PURGE] Could not delete {path}: {e}")
+            summary["file_errors"].append(f"{path}: {e}")
+
+    if user_id is not None:
+        if dry_run:
+            summary["deleted_files"].extend(outlook_files)
+        else:
+            try:
+                delete_outlook_files(user_id)
+            except Exception as e:
+                logger.warning(f"[PURGE] Could not delete outlook files for user {user_id}: {e}")
+                summary["file_errors"].append(f"outlook files: {e}")
+            for path in outlook_files:
+                if os.path.lexists(path):
+                    summary["file_errors"].append(f"{path}: still present after delete_outlook_files")
+                else:
+                    summary["deleted_files"].append(path)
+
+    # --- In-memory caches ---
+    cache_busts = [("nightly_curves_cache", bust_nightly_curves_cache, username),
+                   ("observable_objects_cache", bust_observable_objects_cache, username)]
+    if user_id is not None:
+        cache_busts.insert(0, ("astro_context_cache", bust_astro_context_cache, user_id))
+    for name, fn, arg in cache_busts:
+        if dry_run:
+            summary["caches_invalidated"].append(name)
+            continue
+        try:
+            fn(arg)
+            summary["caches_invalidated"].append(name)
+        except Exception as e:
+            logger.warning(f"[PURGE] Could not invalidate {name} for '{username}': {e}")
+
+    logger.info(f"[PURGE] {'Dry run for' if dry_run else 'Purged'} user '{username}' "
+                f"(id={user_id}): rows={summary['deleted_rows']}, "
+                f"nullified={summary['nullified_references']}, files={len(summary['deleted_files'])}, "
+                f"file_errors={len(summary['file_errors'])}")
+    return summary
 
 
 def _read_yaml(path: str) -> tuple[dict | None, str | None]:
