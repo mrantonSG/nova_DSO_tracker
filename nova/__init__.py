@@ -2807,6 +2807,7 @@ def inject_user_mode():
         current_language = session.get("language", "en")
     return {
         "SINGLE_USER_MODE": SINGLE_USER_MODE,
+        "admin_users": ADMIN_USERS,
         "current_user": current_user,
         "is_guest": getattr(g, "is_guest", False),
         "user_theme_preference": theme_preference,
