@@ -226,9 +226,8 @@ def set_language(lang):
         flash(_("Language '%(lang)s' is not supported.", lang=lang), "error")
         return redirect(request.referrer or url_for('core.index'))
 
-    # Get the current user
-    if not hasattr(g, 'db_user') or not g.db_user:
-        # For guest users, just set session and redirect
+    # Logged-out visitors share the guest_user account: store their choice only in their own session
+    if getattr(g, 'is_guest', False) or not hasattr(g, 'db_user') or not g.db_user:
         session['language'] = lang
         return redirect(request.referrer or url_for('core.index'))
 

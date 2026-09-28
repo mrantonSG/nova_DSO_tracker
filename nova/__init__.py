@@ -258,7 +258,13 @@ def _seed_user_from_guest_data(db_session, user_to_seed: 'DbUser'):
         if not existing_prefs:
             guest_prefs = db_session.query(UiPref).filter_by(user_id=guest_user_id).first()  # Use .first()
             if guest_prefs:
-                new_prefs = UiPref(user_id=new_user_id, json_blob=guest_prefs.json_blob)
+                # Don't inherit a language left on the shared guest_user account
+                try:
+                    seeded_settings = json.loads(guest_prefs.json_blob or '{}')
+                except json.JSONDecodeError:
+                    seeded_settings = {}
+                seeded_settings.pop('language', None)
+                new_prefs = UiPref(user_id=new_user_id, json_blob=json.dumps(seeded_settings))
                 db_session.add(new_prefs)
                 print("      -> Copied UiPref.")
         else:
@@ -2801,10 +2807,14 @@ def inject_user_mode():
     from flask_login import current_user
     user_config = getattr(g, "user_config", {})
     theme_preference = user_config.get("theme_preference", "follow_system") if user_config else "follow_system"
-    # Get current language from user config or session
-    current_language = user_config.get("language") if user_config else None
-    if not current_language:
-        current_language = session.get("language", "en")
+    if getattr(g, "is_guest", False):
+        # Same rules as get_locale, so the picker and <html lang> match the rendered page
+        current_language = get_locale()
+    else:
+        # Get current language from user config or session
+        current_language = user_config.get("language") if user_config else None
+        if not current_language:
+            current_language = session.get("language", "en")
     return {
         "SINGLE_USER_MODE": SINGLE_USER_MODE,
         "admin_users": ADMIN_USERS,
