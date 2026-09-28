@@ -1,4 +1,5 @@
 """Multi-user, logged-out, no guest_mode: the auth gate redirects pages to /login and 401s data endpoints."""
+from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qs, urlsplit
 
 GATE_401 = {"error": "authentication required"}
@@ -167,3 +168,56 @@ def test_login_rejects_protocol_relative_next(mu_client_logged_out):
     assert location.path == "/"
     assert location.netloc in ("", "localhost")
     assert "evil.com" not in response.headers["Location"]
+
+
+# --- SSO ----------------------------------------------------------------------
+
+def _sso_token(username, secret):
+    import jwt
+    payload = {"username": username, "exp": datetime.now(timezone.utc) + timedelta(minutes=5)}
+    return jwt.encode(payload, secret, algorithm="HS256")
+
+
+def test_sso_login_after_guest_clears_guest_mode(mu_client_logged_out, monkeypatch):
+    monkeypatch.setenv("JWT_SECRET_KEY", "test-jwt-secret-at-least-32-bytes-long")
+    mu_client_logged_out.get("/guest")
+    token = _sso_token("UserA", "test-jwt-secret-at-least-32-bytes-long")
+    response = mu_client_logged_out.get(f"/sso/login?token={token}")
+    assert _redirects_to_index(response)
+    with mu_client_logged_out.session_transaction() as sess:
+        assert "guest_mode" not in sess
+
+
+def test_sso_login_without_token_redirects_to_login(mu_client_logged_out):
+    _login_redirect(mu_client_logged_out.get("/sso/login"))
+
+
+# --- Fingerprint rejection ----------------------------------------------------
+
+def _change_password_hash(user_id):
+    import nova.auth
+    nova.auth.db.session.get(None, user_id).password_hash = "hash_for_rotated"
+
+
+def test_changed_password_hash_invalidates_session(mu_client_logged_out):
+    mu_client_logged_out.post("/login", data={"username": "UserA", "password": "password123"})
+    assert mu_client_logged_out.get("/").status_code == 200
+    _change_password_hash(1)
+    _login_redirect(mu_client_logged_out.get("/"))
+
+
+def test_changed_password_hash_after_guest_login_does_not_fall_back_to_guest(mu_client_logged_out):
+    mu_client_logged_out.get("/guest")
+    mu_client_logged_out.post("/login", data={"username": "UserA", "password": "password123"})
+    _change_password_hash(1)
+    _login_redirect(mu_client_logged_out.get("/"))
+    with mu_client_logged_out.session_transaction() as sess:
+        assert "guest_mode" not in sess
+
+
+# --- Mode switch --------------------------------------------------------------
+
+def test_single_user_session_id_in_multi_user_mode_redirects(mu_client_logged_out):
+    with mu_client_logged_out.session_transaction() as sess:
+        sess["_user_id"] = "default"
+    _login_redirect(mu_client_logged_out.get("/"))
