@@ -221,3 +221,80 @@ def test_single_user_session_id_in_multi_user_mode_redirects(mu_client_logged_ou
     with mu_client_logged_out.session_transaction() as sess:
         sess["_user_id"] = "default"
     _login_redirect(mu_client_logged_out.get("/"))
+
+
+# --- Admin guards -------------------------------------------------------------
+
+import pytest
+
+import nova
+import nova.blueprints.core as core_module
+
+
+class _UpdaterCalls:
+    def __init__(self):
+        self.popen = []
+        self.exit = []
+
+
+class _FakeExit(Exception):
+    """Raised by the fake sys.exit; trigger_update's `except Exception` turns it into a JSON response."""
+
+
+@pytest.fixture
+def updater_calls(monkeypatch):
+    calls = _UpdaterCalls()
+
+    def fake_popen(*args, **kwargs):
+        calls.popen.append((args, kwargs))
+
+    def fake_exit(code=0):
+        calls.exit.append(code)
+        raise _FakeExit(code)
+
+    monkeypatch.setattr(core_module.subprocess, "Popen", fake_popen)
+    monkeypatch.setattr(core_module.sys, "exit", fake_exit)
+    return calls
+
+
+def test_trigger_update_anonymous_is_401(updater_calls, mu_client_logged_out):
+    assert _is_gate_401(mu_client_logged_out.post("/trigger_update"))
+    assert updater_calls.popen == []
+
+
+def test_trigger_update_non_admin_is_403(updater_calls, multi_user_client, monkeypatch):
+    client, _ = multi_user_client
+    monkeypatch.setattr(core_module, "ADMIN_USERS", set())
+    response = client.post("/trigger_update")
+    assert response.status_code == 403
+    assert response.get_json() == {"status": "error", "message": "forbidden"}
+    assert updater_calls.popen == []
+
+
+def test_trigger_update_admin_runs_updater(updater_calls, multi_user_client, monkeypatch):
+    client, _ = multi_user_client
+    monkeypatch.setattr(core_module, "ADMIN_USERS", {"UserA"})
+    client.post("/trigger_update")
+    assert len(updater_calls.popen) == 1
+    assert updater_calls.exit == [0]
+
+
+_ai_registered = pytest.mark.skipif(
+    "ai" not in nova.app.blueprints,
+    reason="AI blueprint is only registered when AI_API_KEY is set",
+)
+
+
+@_ai_registered
+def test_prefilter_debug_anonymous_is_401(mu_client_logged_out):
+    assert _is_gate_401(mu_client_logged_out.get("/api/ai/prefilter_debug"))
+
+
+@_ai_registered
+def test_prefilter_debug_non_admin_is_403(multi_user_client, monkeypatch):
+    import nova.ai.routes
+    client, _ = multi_user_client
+    monkeypatch.setattr(nova.ai.routes, "ADMIN_USERS", set())
+    response = client.get("/api/ai/prefilter_debug")
+    assert response.status_code == 403
+    assert response.get_json() == {"error": "Not authorized"}
