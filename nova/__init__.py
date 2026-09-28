@@ -1572,6 +1572,7 @@ def load_global_request_context():
             'core.sso_login', 'core.analytics_dashboard',
             'api.provision_user', 'api.deprovision_user',
             'api.get_latest_version', 'api.telemetry_ping',
+            'mobile.service_worker',
         )
         if not session.get('guest_mode') and request.endpoint not in _gate_exempt:
             g.db_user = None
