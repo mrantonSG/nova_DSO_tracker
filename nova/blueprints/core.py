@@ -16,6 +16,7 @@ import sys
 import threading
 import traceback
 from math import degrees, atan
+from urllib.parse import urlsplit
 
 # =============================================================================
 # Third-Party Imports
@@ -95,7 +96,7 @@ import modules.nova_data_fetcher as nova_data_fetcher
 from ics import Calendar, Event
 import arrow
 
-from nova.config import CACHE_DIR, UPLOAD_FOLDER, cache_worker_status
+from nova.config import ADMIN_USERS, CACHE_DIR, UPLOAD_FOLDER, cache_worker_status
 from nova.helpers import (
     _compute_rig_metrics_from_components,
     _parse_float_from_request,
@@ -286,7 +287,16 @@ def login():
 
                 # Security check: Only redirect if 'next' is a relative path
                 # Use 303 redirect to ensure browser does a fresh GET with the new session cookie
-                if next_page and next_page.startswith('/'):
+                if (
+                    next_page
+                    and next_page.startswith('/')
+                    and not next_page.startswith('//')          # protocol-relative (//evil.com)
+                    and not next_page.startswith('/\\')         # browser path backslash quirk
+                    and '\\' not in next_page                   # no backslash anywhere
+                    and not any(ord(c) < 32 for c in next_page)  # browsers strip tabs/newlines
+                    and not urlsplit(next_page).scheme          # defense in depth: no scheme
+                    and not urlsplit(next_page).netloc          # defense in depth: no netloc
+                ):
                     return redirect(next_page, code=303)
 
                 # Default redirect if 'next' is missing or invalid
@@ -1106,6 +1116,8 @@ def delete_custom_filter(filter_key):
 
 @core_bp.route('/trigger_update', methods=['POST'])
 def trigger_update():
+    if not nova.SINGLE_USER_MODE and (not current_user.is_authenticated or current_user.username not in ADMIN_USERS):
+        return jsonify({"status": "error", "message": "forbidden"}), 403
     try:
         script_path = os.path.join(os.path.dirname(__file__), 'updater.py')
         subprocess.Popen([sys.executable, script_path])

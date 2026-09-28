@@ -17,6 +17,7 @@ import astropy.units as u
 
 from flask import Blueprint, current_app, jsonify, g, request, Response, stream_with_context
 from sqlalchemy.orm import selectinload
+from flask_login import current_user
 
 from nova.ai.config import ai_enabled, user_has_ai_access
 from nova.ai.prompts import (
@@ -27,6 +28,8 @@ from nova.ai.prompts import (
 from nova.ai.service import get_ai_response, AIServiceError
 import math
 
+import nova
+from nova.config import ADMIN_USERS
 from nova.helpers import get_db, resolve_altitude_threshold
 from nova.models import AstroObject, Location, Rig, JournalSession, SavedFraming
 
@@ -1336,6 +1339,11 @@ def prefilter_debug():
             "surviving_objects": [...]
         }
     """
+    if not nova.SINGLE_USER_MODE and (
+        not current_user.is_authenticated or current_user.username not in ADMIN_USERS
+    ):
+        return jsonify({"error": "Not authorized"}), 403
+
     # Get user settings
     user_settings = {
         "min_observable_minutes": 60,
