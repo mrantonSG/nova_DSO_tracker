@@ -16,7 +16,7 @@
   {% endwith %}
 
 <form method="POST" action="{{ url_for('core.login') }}">
-    <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
+    <input type="hidden" name="next" value="{{ request.form.get('next') or request.args.get('next', '') }}">
     <label for="username">{{ _('Username') }}</label>
     <input type="text" id="username" name="username" required autofocus>
 
