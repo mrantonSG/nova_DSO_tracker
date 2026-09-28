@@ -2165,7 +2165,8 @@ def provision_user():
         if existing_user:
             # If the user exists, UPDATE their password (and re-enable if disabled)
             was_disabled = not existing_user.active
-            existing_user.set_password(password)
+            if not existing_user.check_password(password):
+                existing_user.set_password(password)
             if was_disabled:
                 existing_user.active = True
             auth_db.session.commit()
