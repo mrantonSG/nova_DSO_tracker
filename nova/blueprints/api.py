@@ -2199,8 +2199,13 @@ def deprovision_user():
         return jsonify({"status":"error","message":"missing username"}), 400
 
     if action == 'delete':
+        existing = auth_db.session.scalar(auth_db.select(User).where(User.username == username))
+        if existing is None:
+            return jsonify({"status": "not_found"}), 404
         ok = delete_user(username)
-        return (jsonify({"status": "success", "message": "deleted"}), 200) if ok else (jsonify({"status":"not_found"}), 404)
+        if ok:
+            return jsonify({"status": "success", "message": "deleted"}), 200
+        return jsonify({"status": "error", "message": "delete failed"}), 500
     else:
         ok = disable_user(username)
         return (jsonify({"status": "success", "message": "disabled"}), 200) if ok else (jsonify({"status":"not_found"}), 404)
