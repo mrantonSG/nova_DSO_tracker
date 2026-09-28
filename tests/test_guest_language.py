@@ -97,3 +97,22 @@ def test_new_user_does_not_inherit_guest_language(db_session):
     settings = json.loads(prefs.json_blob)
     assert 'language' not in settings
     assert settings['theme_preference'] == 'dark'
+
+
+def test_logout_sets_nova_lang_cookie(multi_user_client, db_session):
+    client, ids = multi_user_client
+    db_session.add(UiPref(user_id=ids["user_a_id"], json_blob=json.dumps({'language': 'de'})))
+    db_session.commit()
+
+    response = client.post('/logout')
+    assert response.status_code == 302
+
+    cookies = [h for h in response.headers.getlist('Set-Cookie') if h.startswith('nova_lang=')]
+    assert cookies, "logout did not set nova_lang"
+    assert cookies[0].split(';', 1)[0] == 'nova_lang=de'
+
+
+def test_guest_login_page_uses_nova_lang_cookie(mu_client_logged_out):
+    mu_client_logged_out.set_cookie('nova_lang', 'en')
+    response = mu_client_logged_out.get('/login', headers={'Accept-Language': 'de-DE,de;q=0.9'})
+    assert _html_lang(response) == 'en'

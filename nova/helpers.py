@@ -1265,7 +1265,7 @@ def sort_rigs(rigs, sort_key: str):
 def get_locale():
     """
     Locale selector for Flask-Babel.
-    Logged-out visitors: session choice, then the browser's first Accept-Language entry, then 'en'.
+    Logged-out visitors: session choice, then nova_lang cookie, then the browser's first Accept-Language entry, then 'en'.
     Logged-in users: saved preference, then session, then browser preference, then 'en'.
     """
     # Logged-out visitors share the guest_user account, so its saved language is ignored
@@ -1274,6 +1274,9 @@ def get_locale():
         session_lang = session.get('language')
         if session_lang in supported:
             return session_lang
+        cookie_lang = request.cookies.get('nova_lang')
+        if cookie_lang in supported:
+            return cookie_lang
         # Only the highest-priority browser language counts (not best_match)
         for browser_lang, _quality in request.accept_languages:
             primary = browser_lang.replace('_', '-').split('-')[0].lower()

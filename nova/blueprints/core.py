@@ -109,6 +109,7 @@ from nova.helpers import (
     normalize_object_name,
     sort_rigs,
 )
+from nova.helpers import get_locale
 
 # Note: User is defined conditionally in nova/__init__.py, lazy-imported where needed
 
@@ -212,10 +213,13 @@ def _fire_skyglow_for_locations(app, locations, instance_path):
 
 @core_bp.route('/logout', methods=['POST'])
 def logout():
+    lang = get_locale()
     logout_user()
     session.clear()  # Optional: reset session if needed
     flash(_("Logged out successfully!"), "success")
-    return redirect(url_for('core.login'))
+    resp = redirect(url_for('core.login'))
+    resp.set_cookie("nova_lang", lang, max_age=60*60*24*365, samesite="Lax", httponly=True, secure=request.is_secure)
+    return resp
 
 
 @core_bp.route('/guest')
@@ -240,7 +244,9 @@ def set_language(lang):
     # Logged-out visitors share the guest_user account: store their choice only in their own session
     if getattr(g, 'is_guest', False) or not hasattr(g, 'db_user') or not g.db_user:
         session['language'] = lang
-        return redirect(request.referrer or url_for('core.index'))
+        resp = redirect(request.referrer or url_for('core.index'))
+        resp.set_cookie("nova_lang", lang, max_age=60*60*24*365, samesite="Lax", httponly=True, secure=request.is_secure)
+        return resp
 
     # Save to UiPref.json_blob for authenticated users
     db = get_db()
@@ -269,7 +275,9 @@ def set_language(lang):
         print(f"[SET_LANGUAGE] Error saving language preference: {e}")
 
     # Redirect back to the previous page
-    return redirect(request.referrer or url_for('core.index'))
+    resp = redirect(request.referrer or url_for('core.index'))
+    resp.set_cookie("nova_lang", lang, max_age=60*60*24*365, samesite="Lax", httponly=True, secure=request.is_secure)
+    return resp
 
 
 @core_bp.route('/login', methods=['GET', 'POST'])
