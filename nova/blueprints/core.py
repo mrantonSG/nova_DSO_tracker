@@ -218,6 +218,16 @@ def logout():
     return redirect(url_for('core.login'))
 
 
+@core_bp.route('/guest')
+def guest_entry():
+    if nova.SINGLE_USER_MODE:
+        return redirect(url_for('core.index'))
+    if current_user.is_authenticated:
+        return redirect(url_for('core.index'))
+    session['guest_mode'] = True
+    return redirect(url_for('core.index'))
+
+
 @core_bp.route('/set_language/<lang>')
 def set_language(lang):
     """Set the user's preferred language and redirect back."""
