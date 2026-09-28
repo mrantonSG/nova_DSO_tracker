@@ -1544,7 +1544,7 @@ def _fix_mode_switch_sessions():
     if not SINGLE_USER_MODE:
         try:
             uid = session.get('_user_id')
-            if uid is not None and not str(uid).isdigit():
+            if uid is not None and not str(uid).split(":", 1)[0].isdigit():
                 # purge stale login state
                 session.pop('_user_id', None)
                 session.pop('_fresh', None)

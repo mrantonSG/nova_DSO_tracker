@@ -56,7 +56,7 @@ def test_login_success(mu_client_logged_out, db_session):
 
     # Check that the session cookie was set
     with client.session_transaction() as sess:
-        assert sess['_user_id'] == '1'  # Auth ID for UserA
+        assert sess['_user_id'].startswith('1:')  # Auth ID for UserA + fingerprint
         assert sess['_fresh'] is True
 
 

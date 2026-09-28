@@ -6,6 +6,7 @@ import pytest
 import types
 from unittest.mock import patch
 from nova import app, get_or_create_db_user, UserMixin
+from nova.auth import session_id_for
 from sqla_mocks import MockColumn, MockSelectQuery
 
 
@@ -26,6 +27,10 @@ class AdminMockUser(UserMixin):
 
     def check_password(self, password):
         return True
+
+    def get_id(self):
+        import nova.auth
+        return nova.auth.session_id_for(self)
 
     @property
     def is_active(self):
@@ -128,7 +133,7 @@ def admin_client(_mu_admin_env):
     """Authenticated client logged in as admin (user_id=1)."""
     with app.test_client() as client:
         with client.session_transaction() as sess:
-            sess['_user_id'] = '1'
+            sess['_user_id'] = session_id_for(AdminMockUser(id=1, username="admin"))
             sess['_fresh'] = True
         yield client
 
@@ -138,7 +143,7 @@ def nonadmin_client(_mu_admin_env):
     """Authenticated client logged in as testuser (user_id=2)."""
     with app.test_client() as client:
         with client.session_transaction() as sess:
-            sess['_user_id'] = '2'
+            sess['_user_id'] = session_id_for(AdminMockUser(id=2, username="testuser"))
             sess['_fresh'] = True
         yield client
 

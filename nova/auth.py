@@ -9,6 +9,8 @@ Call ``init_auth(app)`` once from the app factory to bind everything to the
 Flask application.
 """
 
+import hashlib
+import hmac
 import os
 
 from flask_login import LoginManager, UserMixin  # noqa: F401 — re-exported for test compatibility
@@ -21,6 +23,22 @@ from nova.config import SINGLE_USER_MODE, USER_ADMIN_USERNAME, USER_ADMIN_PASSWO
 from nova.models import INSTANCE_PATH
 
 login_manager = LoginManager()
+
+
+def _session_fingerprint(user_id, username, password_hash):
+    """First 16 hex chars of sha256("id:username:password_hash")."""
+    raw = f"{user_id}:{username}:{password_hash or ''}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+
+
+def session_id_for(user):
+    """
+    Flask-Login id for a users.db account: "<id>:<fingerprint>".
+    The fingerprint changes when the account is re-created under a reused
+    id, renamed, or given a new password, so old cookies stop loading.
+    No part of password_hash is stored in the cookie.
+    """
+    return f"{user.id}:{_session_fingerprint(user.id, user.username, getattr(user, 'password_hash', None))}"
 
 # ---------------------------------------------------------------------------
 # Conditional db & User
@@ -40,6 +58,9 @@ if not SINGLE_USER_MODE:
 
         def check_password(self, password):
             return check_password_hash(self.password_hash, password)
+
+        def get_id(self):
+            return session_id_for(self)
 
         @property
         def is_active(self):
@@ -123,13 +144,20 @@ def load_user(user_id):
     """
     Unified loader:
     - SINGLE_USER_MODE: expect sentinel 'default'
-    - Multi-user: only accept integer IDs; stale values → None
+    - Multi-user: expect "<id>:<fingerprint>" (see session_id_for); a wrong
+      format (e.g. an old plain-id cookie) or a fingerprint that doesn't
+      match the loaded account → None
     """
     if SINGLE_USER_MODE:
         return User(user_id="default", username="default") if user_id == "default" else None
 
     try:
-        uid = int(user_id)
-    except (TypeError, ValueError):
+        uid_str, fp = user_id.split(":", 1)
+        uid = int(uid_str)
+    except (TypeError, ValueError, AttributeError):
         return None
-    return db.session.get(User, uid)
+    user = db.session.get(User, uid)
+    if user is None:
+        return None
+    expected = _session_fingerprint(user.id, user.username, user.password_hash)
+    return user if hmac.compare_digest(fp, expected) else None

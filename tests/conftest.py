@@ -302,6 +302,10 @@ def multi_user_client(db_session, monkeypatch):
 
         def check_password(self, password): return True
 
+        def get_id(self):
+            import nova.auth
+            return nova.auth.session_id_for(self)
+
         @property
         def is_active(self): return True
 
@@ -367,7 +371,7 @@ def multi_user_client(db_session, monkeypatch):
     # 5. Create and log in the client
     with app.test_client() as client:
         with client.session_transaction() as sess:
-            sess['_user_id'] = '1'
+            sess['_user_id'] = nova.auth.session_id_for(mock_auth_users[1])
             sess['_fresh'] = True
         client.get('/')
         yield client, {"user_a_id": user_a_app_id, "user_b_id": user_b_app_id}
@@ -392,6 +396,10 @@ def mu_client_logged_out(db_session, monkeypatch):
 
         def check_password(self, password):
             return self.mock_password == password
+
+        def get_id(self):
+            import nova.auth
+            return nova.auth.session_id_for(self)
 
         @property
         def is_active(self): return True

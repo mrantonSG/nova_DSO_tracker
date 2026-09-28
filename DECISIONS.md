@@ -85,3 +85,4 @@ One line per decision. Format: Date | What changed | Why
 2025-10-20 | `_fix_mode_switch_sessions()` guard on every request | Switching between single-user and multi-user mode leaves stale session IDs in cookies; this prevents 500 errors from dangling foreign keys
 
 2026-02-22 | Automatic DB migration for journal log content columns | Log format changes between app versions; auto-migration patches the schema on startup so users don't hit column-not-found errors after an update
+2026-09-28 | Flask-Login id is now "<id>:<sha256 fingerprint of id, username, password_hash>" (nova/auth.py get_id/load_user); plain-id cookies are rejected | SQLite reuses the highest users.db id after a delete, so a deleted user's old session could load a new account; logs everyone out once on deploy, and a password reset or rename logs out other sessions
