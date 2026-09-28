@@ -287,6 +287,7 @@ def login():
             user = db.session.scalar(db.select(User).where(User.username == username))
             if user and user.check_password(password):
                 login_user(user)
+                session.pop('guest_mode', None)
                 record_login()
                 session.modified = True  # Force session save before redirect
                 flash(_("Logged in successfully!"), "success")
@@ -352,6 +353,7 @@ def sso_login():
 
         if user and user.is_active:
             login_user(user)  # Log the user in using Flask-Login
+            session.pop('guest_mode', None)
             record_login()
             session.modified = True  # Force session save before redirect
             flash(_("Welcome back, %(username)s!", username=user.username), "success")
