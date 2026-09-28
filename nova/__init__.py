@@ -141,6 +141,8 @@ from nova.helpers import (
     # Additional helpers extracted
     normalize_object_name, _parse_float_from_request, sort_rigs,
     outlook_cache_file, resolve_sampling_interval, resolve_altitude_threshold,
+    bust_astro_context_cache, bust_nightly_curves_cache, bust_observable_objects_cache,
+    purge_note_path, read_purge_note,
 )
 from nova.config import DEFAULT_DITHER_MAIN_SHIFT_PX
 from nova.report_graphs import generate_session_charts
@@ -1471,6 +1473,73 @@ if not SINGLE_USER_MODE:
 
 # --- Auth setup (db, User, login_manager live in nova.auth) ---
 init_auth(app)
+
+
+# --- Purge sync: drop purged users' in-memory caches in every Gunicorn worker ---
+# purge_user_app_data appends to a shared note on disk; each worker applies
+# entries it hasn't seen yet. Registered first so caches are clean before use.
+_purge_note_stamp = None       # (st_mtime_ns, st_ino) last seen, () = no note, None = never checked
+_purge_note_applied = set()    # (user_id, username, purged_at) handled by this worker
+_purge_note_lock = threading.Lock()
+
+
+def _drop_purged_user_caches(user_id, username):
+    """Remove one purged user's entries from this worker's in-memory caches."""
+    if user_id is not None:
+        bust_astro_context_cache(user_id)
+        prefix = f"({get_user_log_string(user_id, username)})_"
+        for k in [k for k in list(cache_worker_status.keys())
+                  if isinstance(k, str) and k.startswith(prefix)]:
+            cache_worker_status.pop(k, None)
+    if username:
+        bust_nightly_curves_cache(username)
+        bust_observable_objects_cache(username)
+        _last_warmed.pop(username, None)
+        _recent_visitors.pop(username, None)
+
+
+def apply_purge_note():
+    """Apply purge note entries this worker hasn't handled yet. One os.stat
+    when the note is unchanged. A worker's first check only marks existing
+    entries as applied (its caches start empty). Never raises."""
+    global _purge_note_stamp, _purge_note_applied
+    try:
+        try:
+            st = os.stat(purge_note_path())
+            stamp = (st.st_mtime_ns, st.st_ino)
+        except FileNotFoundError:
+            stamp = ()
+        if stamp == _purge_note_stamp:
+            return
+        with _purge_note_lock:
+            if stamp == _purge_note_stamp:
+                return
+            first_check = _purge_note_stamp is None
+            # Record the stamp first: a bad note warns once, not on every request
+            _purge_note_stamp = stamp
+            entries = read_purge_note() if stamp else []
+            seen = set()
+            for entry in entries:
+                key = (entry.get("user_id"), entry.get("username"), entry.get("purged_at"))
+                seen.add(key)
+                if key in _purge_note_applied:
+                    continue
+                if not first_check:
+                    try:
+                        _drop_purged_user_caches(entry.get("user_id"), entry.get("username"))
+                    except Exception as e:
+                        app.logger.warning(f"[PURGE SYNC] Could not drop caches for {key}: {e}")
+                _purge_note_applied.add(key)
+            # Entries trimmed from the note never come back
+            _purge_note_applied = _purge_note_applied & seen
+    except Exception as e:
+        app.logger.warning(f"[PURGE SYNC] Could not apply purge note: {e}")
+
+
+@app.before_request
+def _apply_purge_note_hook():
+    if not SINGLE_USER_MODE:
+        apply_purge_note()
 
 
 @app.before_request

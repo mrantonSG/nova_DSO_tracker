@@ -12,7 +12,7 @@ import yaml
 import requests
 import numpy as np
 import pytz
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from math import atan, degrees
 from typing import Optional
@@ -280,6 +280,58 @@ def bust_observable_objects_cache(username: str) -> None:
                       if k.startswith(prefix)]
     for k in keys_to_remove:
         observable_objects_cache.pop(k, None)
+
+
+PURGE_NOTE_FILENAME = "purged_users.json"
+PURGE_NOTE_MAX_ENTRIES = 500
+
+
+def purge_note_path() -> str:
+    """Shared note of purged users, read by every Gunicorn worker (see
+    nova.apply_purge_note). Built per call so a patched CACHE_DIR is used."""
+    return os.path.join(CACHE_DIR, PURGE_NOTE_FILENAME)
+
+
+def read_purge_note() -> list:
+    """Purge note entries, oldest first. A missing note is empty; an
+    unreadable or malformed one raises."""
+    try:
+        with open(purge_note_path(), "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        return []
+    if not isinstance(data, list):
+        raise ValueError("purge note is not a JSON list")
+    return [e for e in data if isinstance(e, dict)]
+
+
+def append_purge_note(user_id, username: str) -> None:
+    """Add a purged user to the shared note (last PURGE_NOTE_MAX_ENTRIES kept).
+    Atomic replace under _FileLock, which is a no-op without fcntl. Never raises."""
+    path = purge_note_path()
+    try:
+        with _FileLock(path):
+            try:
+                entries = read_purge_note()
+            except Exception as e:
+                logger.warning(f"[PURGE] Purge note unreadable, starting a new one: {e}")
+                entries = []
+            entries.append({"user_id": user_id, "username": username,
+                            "purged_at": datetime.now(timezone.utc).isoformat()})
+            entries = entries[-PURGE_NOTE_MAX_ENTRIES:]
+            fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".purged_users.", suffix=".tmp")
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8") as f:
+                    json.dump(entries, f)
+                os.replace(tmp, path)
+            except BaseException:
+                try:
+                    os.remove(tmp)
+                except OSError:
+                    pass
+                raise
+    except Exception as e:
+        logger.warning(f"[PURGE] Could not record purge of '{username}' for other workers: {e}")
 
 
 def delete_outlook_files(user_id: int) -> None:
@@ -1683,6 +1735,10 @@ def purge_user_app_data(username: str, dry_run: bool = True) -> dict:
             summary["caches_invalidated"].append(name)
         except Exception as e:
             logger.warning(f"[PURGE] Could not invalidate {name} for '{username}': {e}")
+
+    # Other workers drop their in-memory copies on their next request
+    if not dry_run:
+        append_purge_note(user_id, username)
 
     logger.info(f"[PURGE] {'Dry run for' if dry_run else 'Purged'} user '{username}' "
                 f"(id={user_id}): rows={summary['deleted_rows']}, "
