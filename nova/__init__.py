@@ -1566,7 +1566,20 @@ def load_global_request_context():
         g.db_user = None
         return
     else:
-        # Fallback for unauthenticated multi-user or authenticated single-user.
+        # Multi-user, unauthenticated: guest mode only when explicitly entered via /guest.
+        _gate_exempt = (
+            'core.login', 'core.guest_entry', 'core.set_language', 'core.logout',
+            'core.sso_login', 'core.analytics_dashboard',
+            'api.provision_user', 'api.deprovision_user',
+            'api.get_latest_version', 'api.telemetry_ping',
+        )
+        if not session.get('guest_mode') and request.endpoint not in _gate_exempt:
+            g.db_user = None
+            if request.path.startswith(('/api/', '/telemetry/', '/get_', '/sun_events', '/trigger_update')):
+                return jsonify({"error": "authentication required"}), 401
+            if request.method == 'GET' and request.path != '/':
+                return redirect(url_for('core.login', next=request.full_path.rstrip('?')))
+            return redirect(url_for('core.login'))
         username = "guest_user"
         g.is_guest = True
 
