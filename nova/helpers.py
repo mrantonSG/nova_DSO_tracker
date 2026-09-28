@@ -1433,8 +1433,12 @@ def delete_user(username: str) -> bool:
     """
     Hard-delete a user's login, then purge their app.db data and files.
     Returns True if the login was deleted (even if the purge was incomplete,
-    which is logged as a warning), False if not found or the delete failed.
+    which is logged as a warning), False if not found, the user is in
+    ADMIN_USERS, or the delete failed.
     """
+    if username in ADMIN_USERS:
+        logger.warning("[DELETE] Refused to delete admin account '%s'", username)
+        return False
     from nova.auth import db as auth_db, User
     with current_app.app_context():
         user = auth_db.session.scalar(auth_db.select(User).where(User.username == username))

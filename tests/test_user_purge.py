@@ -403,6 +403,19 @@ def test_delete_user_refused_purge_still_true_and_warns(app_ctx, monkeypatch, pu
                for r in caplog.records)
 
 
+def test_delete_user_refuses_admin(app_ctx, monkeypatch, purge_spy, caplog):
+    logins = {A_NAME}
+    _install_auth_mock(monkeypatch, logins)
+    monkeypatch.setattr("nova.helpers.ADMIN_USERS", {"admin", A_NAME})
+
+    with caplog.at_level("WARNING", logger="nova.helpers"):
+        assert delete_user(A_NAME) is False
+
+    assert A_NAME in logins
+    assert purge_spy.calls == []
+    assert any("Refused to delete admin account" in r.getMessage() for r in caplog.records)
+
+
 # --- find_orphaned_usernames() ---
 
 @pytest.fixture

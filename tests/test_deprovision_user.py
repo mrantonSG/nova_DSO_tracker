@@ -1,4 +1,4 @@
-"""Tests for POST /api/internal/deprovision_user with action "delete"."""
+"""Tests for POST /api/internal/deprovision_user."""
 import types
 
 import pytest
@@ -57,12 +57,16 @@ def auth_session(mu_client_logged_out, monkeypatch):
     return session
 
 
-def _delete(client, username):
+def _post(client, username, action):
     return client.post(
         URL,
-        json={"username": username, "action": "delete"},
+        json={"username": username, "action": action},
         headers={"X-Api-Key": API_KEY},
     )
+
+
+def _delete(client, username):
+    return _post(client, username, "delete")
 
 
 def test_delete_unknown_user_returns_404(mu_client_logged_out, auth_session):
@@ -88,3 +92,39 @@ def test_delete_failure_returns_500_and_keeps_user(mu_client_logged_out, auth_se
     assert resp.status_code == 500
     assert resp.get_json() == {"status": "error", "message": "delete failed"}
     assert "UserA" in auth_session.users
+
+
+@pytest.fixture
+def admin_is_userb(monkeypatch):
+    monkeypatch.setattr("nova.blueprints.api.ADMIN_USERS", {"UserB"})
+
+
+def test_delete_admin_returns_403_and_skips_delete(mu_client_logged_out, auth_session, admin_is_userb, monkeypatch):
+    calls = []
+    monkeypatch.setattr("nova.blueprints.api.delete_user", lambda username: calls.append(username) or True)
+
+    resp = _delete(mu_client_logged_out, "UserB")
+
+    assert resp.status_code == 403
+    assert resp.get_json() == {"status": "forbidden", "message": "admin accounts cannot be deprovisioned"}
+    assert calls == []
+    assert "UserB" in auth_session.users
+
+
+def test_disable_admin_returns_403_and_skips_disable(mu_client_logged_out, auth_session, admin_is_userb, monkeypatch):
+    calls = []
+    monkeypatch.setattr("nova.blueprints.api.disable_user", lambda username: calls.append(username) or True)
+
+    resp = _post(mu_client_logged_out, "UserB", "disable")
+
+    assert resp.status_code == 403
+    assert resp.get_json() == {"status": "forbidden", "message": "admin accounts cannot be deprovisioned"}
+    assert calls == []
+
+
+def test_delete_non_admin_unaffected_by_admin_guard(mu_client_logged_out, auth_session, admin_is_userb):
+    resp = _delete(mu_client_logged_out, "UserA")
+
+    assert resp.status_code == 200
+    assert resp.get_json() == {"status": "success", "message": "deleted"}
+    assert "UserA" not in auth_session.users

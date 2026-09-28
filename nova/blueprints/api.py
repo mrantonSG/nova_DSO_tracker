@@ -2198,6 +2198,10 @@ def deprovision_user():
     if not username:
         return jsonify({"status":"error","message":"missing username"}), 400
 
+    if username in ADMIN_USERS:
+        current_app.logger.warning(f"[DEPROVISION] Refused '{action}' for admin account '{username}'")
+        return jsonify({"status": "forbidden", "message": "admin accounts cannot be deprovisioned"}), 403
+
     if action == 'delete':
         existing = auth_db.session.scalar(auth_db.select(User).where(User.username == username))
         if existing is None:
