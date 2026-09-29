@@ -19,6 +19,7 @@ from flask import (
     Blueprint, render_template, redirect, url_for, flash,
     request, g, current_app
 )
+from markupsafe import escape
 
 from flask_login import login_required, current_user
 from flask_babel import gettext as _
@@ -208,7 +209,7 @@ def mobile_mosaic_view(object_name):
     ).one_or_none()
 
     if not framing:
-        return f"<h3>No saved framing found for {object_name}</h3><p>Please save a framing on the desktop first.</p>"
+        return f"<h3>No saved framing found for {escape(object_name)}</h3><p>Please save a framing on the desktop first.</p>"
 
     # Get Rig Data
     rig = db.get(Rig, framing.rig_id) if framing.rig_id else None
