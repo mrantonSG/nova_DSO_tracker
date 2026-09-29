@@ -1895,3 +1895,17 @@ def is_safe_redirect_target(target: Optional[str]) -> bool:
     if parsed.scheme or parsed.netloc:  # defense in depth
         return False
     return True
+
+
+_USERNAME_RE = re.compile(r'[A-Za-z0-9_][A-Za-z0-9_.-]{0,79}')
+
+
+def is_valid_username(name) -> bool:
+    """Return True only if name is a str of 1-80 chars from [A-Za-z0-9_.-].
+
+    The first character must not be '.' or '-'. The 80-char cap matches
+    the String(80) username columns on User and DbUser.
+    """
+    if not isinstance(name, str):
+        return False
+    return _USERNAME_RE.fullmatch(name) is not None
