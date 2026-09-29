@@ -58,6 +58,7 @@ from nova.helpers import (
     convert_to_native_python,
     dither_display,
     get_db,
+    is_safe_redirect_target,
     outlook_cache_file,
     resolve_sampling_interval,
     resolve_altitude_threshold,
@@ -232,6 +233,23 @@ def guest_entry():
     return redirect(url_for('core.index'))
 
 
+def _safe_referrer_path(fallback):
+    """Return request.referrer as a same-origin path, or fallback if unsafe.
+
+    The raw referrer is only trusted when its urlsplit netloc matches
+    request.host; the rebuilt path(+query) is then validated by
+    is_safe_redirect_target before use.
+    """
+    referrer = request.referrer
+    if referrer:
+        parts = urlsplit(referrer)
+        if parts.netloc == request.host:
+            target = parts.path + ("?" + parts.query if parts.query else "")
+            if is_safe_redirect_target(target):
+                return target
+    return fallback
+
+
 @core_bp.route('/set_language/<lang>')
 def set_language(lang):
     """Set the user's preferred language and redirect back."""
@@ -239,12 +257,12 @@ def set_language(lang):
     supported_locales = current_app.config.get('BABEL_SUPPORTED_LOCALES', ['en'])
     if lang not in supported_locales:
         flash(_("Language '%(lang)s' is not supported.", lang=lang), "error")
-        return redirect(request.referrer or url_for('core.index'))
+        return redirect(_safe_referrer_path(url_for('core.index')))
 
     # Logged-out visitors share the guest_user account: store their choice only in their own session
     if getattr(g, 'is_guest', False) or not hasattr(g, 'db_user') or not g.db_user:
         session['language'] = lang
-        resp = redirect(request.referrer or url_for('core.index'))
+        resp = redirect(_safe_referrer_path(url_for('core.index')))
         resp.set_cookie("nova_lang", lang, max_age=60*60*24*365, samesite="Lax", httponly=True, secure=request.is_secure)
         return resp
 
@@ -275,7 +293,7 @@ def set_language(lang):
         print(f"[SET_LANGUAGE] Error saving language preference: {e}")
 
     # Redirect back to the previous page
-    resp = redirect(request.referrer or url_for('core.index'))
+    resp = redirect(_safe_referrer_path(url_for('core.index')))
     resp.set_cookie("nova_lang", lang, max_age=60*60*24*365, samesite="Lax", httponly=True, secure=request.is_secure)
     return resp
 
