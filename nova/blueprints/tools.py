@@ -10,7 +10,7 @@ import traceback
 import yaml
 from flask import (
     Blueprint, request, jsonify, redirect, url_for,
-    flash, send_file
+    flash, send_file, abort
 )
 from flask_login import login_required, current_user
 from flask_babel import gettext as _
@@ -1246,6 +1246,9 @@ def import_journal_photos():
         username = current_user.username
 
     user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+    # 🔒 Security Check: resolved upload dir must stay inside UPLOAD_FOLDER
+    if os.path.commonpath([os.path.realpath(UPLOAD_FOLDER), os.path.realpath(user_upload_dir)]) != os.path.realpath(UPLOAD_FOLDER):
+        abort(400)
     os.makedirs(user_upload_dir, exist_ok=True)  # Ensure the destination exists
 
     try:
@@ -1399,6 +1402,9 @@ def upload_editor_image():
 
             # Create the user's upload directory if it doesn't exist
             user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+            # 🔒 Security Check: resolved upload dir must stay inside UPLOAD_FOLDER
+            if os.path.commonpath([os.path.realpath(UPLOAD_FOLDER), os.path.realpath(user_upload_dir)]) != os.path.realpath(UPLOAD_FOLDER):
+                return jsonify({"error": "Invalid upload path."}), 400
             os.makedirs(user_upload_dir, exist_ok=True)
 
             # Save the file
