@@ -39,6 +39,24 @@ window.novaState.config = Object.assign(window.novaState.config || {}, {
     indexData: window.NOVA_INDEX || { isGuest: false, hideInvisible: false, altitudeThreshold: 15 }
 });
 
+// ============================================
+// GLOBAL UTILITIES
+// ============================================
+
+// Escape a value for safe interpolation into HTML (text or attributes).
+// Returns '' for null/undefined; otherwise String(str) with the
+// five significant characters replaced (& first).
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+window.escapeHtml = escapeHtml;
+
 // State functions (exposed globally for backward compatibility)
 // IMPORTANT: Preserve existing functions (like ModalController, getModal)
 const existingFn = window.novaState.fn || {};
