@@ -897,7 +897,7 @@
 
                     // 1. Normalize the name, just as you requested
                     const normName = normalizeObjectNameJS(objectName);
-                    resultDiv.innerHTML = '<p class="progress-message">Checking your local library for ' + normName + '...</p>';
+                    resultDiv.innerHTML = '<p class="progress-message">Checking your local library for ' + window.escapeHtml(normName) + '...</p>';
 
                     // --- 2. NEW LOGIC: PATH A (Check Local DB First) ---
                     // It calls the /api/get_object_data/ endpoint with the *normalized* name
@@ -911,7 +911,7 @@
                     })
                     .then(data => {
                         // --- PATH A: SUCCESS - Object Found Locally ---
-                        resultDiv.innerHTML = `<p class="message">Object '${normName}' found in your library. Loading for edit.</p>`;
+                        resultDiv.innerHTML = `<p class="message">Object '${window.escapeHtml(normName)}' found in your library. Loading for edit.</p>`;
 
                         // Populate form with YOUR LOCAL data
                         objectNameInput.value = data.Object; // Use the canonical name
@@ -971,12 +971,12 @@
                           document.getElementById('new_is_active').checked = true;
                           // --- END NEW ---
 
-                          resultDiv.innerHTML = `<p class="message">Found: ${data.data["Common Name"]}. <span class="progress-message">Fetching details...</span></p>`;
+                          resultDiv.innerHTML = `<p class="message">Found: ${window.escapeHtml(data.data["Common Name"])}. <span class="progress-message">Fetching details...</span></p>`;
                           return fetch("/fetch_object_details", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ object: objectName }) });
                         })
                         .then(r => r.json()).then(extra => {
                           const commonName = document.getElementById('new_name').value;
-                          resultDiv.innerHTML = `<p class="message">Found: ${commonName}. Details loaded from SIMBAD.</p>`;
+                          resultDiv.innerHTML = `<p class="message">Found: ${window.escapeHtml(commonName)}. Details loaded from SIMBAD.</p>`;
                           if (extra.status === 'success') {
                               document.getElementById('new_type').value = extra.data.Type || '';
                               document.getElementById('new_magnitude').value = extra.data.Magnitude || '';
