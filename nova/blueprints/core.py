@@ -2827,4 +2827,4 @@ def generate_ics(object_name):
 
     except Exception as ex:
         print(f"ERROR generating ICS file: {ex}")
-        return f"An error occurred while generating the calendar file: {ex}", 500
+        return "An error occurred while generating the calendar file.", 500
