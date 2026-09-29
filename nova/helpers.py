@@ -15,6 +15,7 @@ import pytz
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from math import atan, degrees
+from urllib.parse import urlsplit
 from typing import Optional
 
 from flask import g, has_request_context, current_app, session, request
@@ -1871,3 +1872,26 @@ def discover_catalog_packs() -> list[dict]:
     except Exception as e:
         print(f"[CATALOG DISCOVER] Error: {e}")
         return []
+
+
+def is_safe_redirect_target(target: Optional[str]) -> bool:
+    """Return True only if target is a safe intra-site relative redirect path.
+
+    Mirrors the security checks in the login route (core.py): relative
+    path only, no protocol-relative (//), no backslash, no control
+    characters, and no scheme or netloc per urlsplit.
+    """
+    if not target or not target.startswith('/'):
+        return False
+    if target.startswith('//'):      # protocol-relative (//evil.com)
+        return False
+    if target.startswith('/\\'):     # browser path backslash quirk
+        return False
+    if '\\' in target:               # no backslash anywhere
+        return False
+    if any(ord(c) < 32 for c in target):  # browsers strip tabs/newlines
+        return False
+    parsed = urlsplit(target)
+    if parsed.scheme or parsed.netloc:  # defense in depth
+        return False
+    return True
