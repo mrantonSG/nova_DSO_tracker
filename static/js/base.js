@@ -350,7 +350,7 @@ function openHelp(topicId) {
         })
         .catch(err => {
             console.error('[base.js] Error fetching help content:', err);
-            body.innerHTML = `<p style="color:red">${window.t('help_network_error')} '${topicId}'.</p>`;
+            body.innerHTML = `<p style="color:red">${window.t('help_network_error')} '${window.escapeHtml(topicId)}'.</p>`;
         });
 }
 

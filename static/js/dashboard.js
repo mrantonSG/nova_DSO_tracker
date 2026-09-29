@@ -1382,7 +1382,7 @@
             if (error.name !== 'AbortError') {
                 console.error("Batch Fetch Error:", error);
                 if(tbody.innerHTML === '') {
-                    tbody.innerHTML = `<tr><td colspan="18" style="text-align:center; color:red;">${window.t('data_load_failed')}: ${error.message}</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="18" style="text-align:center; color:red;">${window.t('data_load_failed')}: ${window.escapeHtml(error.message)}</td></tr>`;
                 }
                 // Ensure loader is hidden on error
                 _hideFetchLoader(loadingDiv);
