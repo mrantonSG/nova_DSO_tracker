@@ -33,7 +33,8 @@ from nova.models import (
     DbUser, Project, JournalSession, AstroObject
 )
 from nova.helpers import (
-    get_db, load_full_astro_context, read_log_content, invalidate_object_caches
+    get_db, load_full_astro_context, read_log_content, invalidate_object_caches,
+    is_safe_redirect_target
 )
 from nova.analytics import record_event
 from nova.report_graphs import generate_session_charts
@@ -161,7 +162,7 @@ def project_detail(project_id):
             # --- Redirect Logic (Updated) ---
             # Check if we should return to a specific page (like the Journal tab)
             next_url = request.args.get('next')
-            if next_url:
+            if next_url and is_safe_redirect_target(next_url):
                 return redirect(next_url)
 
             # Redirect to graph dashboard with project's target object
