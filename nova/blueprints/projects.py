@@ -62,7 +62,8 @@ def project_detail(project_id):
     try:
         project = db.query(Project).filter_by(id=project_id, user_id=g.db_user.id).one_or_none()
         if not project:
-            flash(_("Error deleting old image."), "warning")
+            flash(_("Project not found."), "warning")
+            return redirect(url_for('core.index'))
 
         # --- Aggregated Statistics ---
         # Match sessions via the session_projects m2m relationship (JournalSession.projects),
