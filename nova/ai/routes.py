@@ -1098,9 +1098,13 @@ def get_best_objects():
             else:
                 # Fallback: try to extract object names from text
                 ranked_objects = _extract_objects_from_text(ranking_response, objects_for_prompt)
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as parse_err:
             # Not JSON, try to extract from text
             logger.warning(f"Raw AI response was: '{ranking_response[:500]}'")
+            logger.warning(
+                f"AI response JSON parse failed: {parse_err} "
+                f"(length={len(ranking_response)}, last 300 chars: '{ranking_response[-300:]}')"
+            )
             ranked_objects = _extract_objects_from_text(ranking_response, objects_for_prompt)
 
         # Ensure all ranked objects have rank, reason, and recommended_rigs array
