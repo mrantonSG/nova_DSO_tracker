@@ -395,31 +395,32 @@
                         }
 
                         const dataAttrs = `
-                            data-id="${obj.id}"
+                            data-id="${window.escapeHtml(obj.id)}"
                             data-status="${status}"
-                            data-object_name="${obj.object_name}"
-                            data-common_name="${obj.common_name}"
-                            data-type="${obj.type || ''}"
-                            data-constellation="${obj.constellation || ''}"
-                            data-shared_by_user="${obj.shared_by_user}"
+                            data-object_name="${window.escapeHtml(obj.object_name)}"
+                            data-common_name="${window.escapeHtml(obj.common_name)}"
+                            data-type="${window.escapeHtml(obj.type || '')}"
+                            data-constellation="${window.escapeHtml(obj.constellation || '')}"
+                            data-shared_by_user="${window.escapeHtml(obj.shared_by_user)}"
                         `;
 
                         const imgHtml = obj.image_url
-                            ? `<img src="${obj.image_url}" style="width: 34px; height: 34px; object-fit: cover; border-radius: 3px; vertical-align: middle; border: 1px solid ${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--border-medium', '#ddd') : '#ddd'};" title="Has image">`
+                            ? `<img src="${window.escapeHtml(obj.image_url)}" style="width: 34px; height: 34px; object-fit: cover; border-radius: 3px; vertical-align: middle; border: 1px solid ${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--border-medium', '#ddd') : '#ddd'};" title="Has image">`
                             : '';
 
                         return `
                         <tr ${dataAttrs}>
                             <td style="text-align: center; padding: 4px;">${imgHtml}</td>
-                            <td><strong>${obj.object_name}</strong></td>
-                            <td>${obj.common_name}</td>
-                            <td>${obj.type || 'N/A'}</td>
-                            <td>${obj.constellation || 'N/A'}</td>
-                            <td>${obj.shared_by_user}</td>
+                            <td><strong>${window.escapeHtml(obj.object_name)}</strong></td>
+                            <td>${window.escapeHtml(obj.common_name)}</td>
+                            <td>${window.escapeHtml(obj.type || 'N/A')}</td>
+                            <td>${window.escapeHtml(obj.constellation || 'N/A')}</td>
+                            <td>${window.escapeHtml(obj.shared_by_user)}</td>
                             <td class="notes-cell">
                                 <button class="action-button notes-button"
-                                        data-notes="${(obj.shared_notes || '').replace(/"/g, '&quot;')}"
-                                        onclick="showSharedNotes('${obj.object_name}', this.dataset.notes)">
+                                        data-action="show-shared-notes"
+                                        data-object-name="${window.escapeHtml(obj.object_name)}"
+                                        data-notes="${window.escapeHtml(obj.shared_notes || '')}">
                                     View
                                 </button>
                             </td>
@@ -447,18 +448,18 @@
                         }
 
                         const dataAttrs = `
-                            data-id="${comp.id}"
+                            data-id="${window.escapeHtml(comp.id)}"
                             data-status="${status}"
-                            data-name="${comp.name}"
-                            data-kind="${comp.kind}"
-                            data-shared_by_user="${comp.shared_by_user}"
+                            data-name="${window.escapeHtml(comp.name)}"
+                            data-kind="${window.escapeHtml(comp.kind)}"
+                            data-shared_by_user="${window.escapeHtml(comp.shared_by_user)}"
                         `;
 
                         return `
                         <tr ${dataAttrs}>
-                            <td><strong>${comp.name}</strong></td>
-                            <td>${comp.kind}</td>
-                            <td>${comp.shared_by_user}</td>
+                            <td><strong>${window.escapeHtml(comp.name)}</strong></td>
+                            <td>${window.escapeHtml(comp.kind)}</td>
+                            <td>${window.escapeHtml(comp.shared_by_user)}</td>
                             <td class="action-cell">${actionButton}</td>
                         </tr>`;
                     }).join('');
@@ -483,18 +484,18 @@
                         }
 
                         const dataAttrs = `
-                            data-id="${view.id}"
+                            data-id="${window.escapeHtml(view.id)}"
                             data-status="${status}"
-                            data-name="${view.name}"
-                            data-description="${view.description || ''}"
-                            data-shared_by_user="${view.shared_by_user}"
+                            data-name="${window.escapeHtml(view.name)}"
+                            data-description="${window.escapeHtml(view.description || '')}"
+                            data-shared_by_user="${window.escapeHtml(view.shared_by_user)}"
                         `;
 
                         return `
                         <tr ${dataAttrs}>
-                            <td><strong>${view.name}</strong></td>
-                            <td>${view.description || '-'}</td>
-                            <td>${view.shared_by_user}</td>
+                            <td><strong>${window.escapeHtml(view.name)}</strong></td>
+                            <td>${window.escapeHtml(view.description || '-')}</td>
+                            <td>${window.escapeHtml(view.shared_by_user)}</td>
                             <td class="action-cell">${actionButton}</td>
                         </tr>`;
                     }).join('');
