@@ -48,6 +48,7 @@ from nova.helpers import (
     bust_astro_context_cache, invalidate_object_caches,
     heatmap_fingerprint, heatmap_cache_path,
     resolve_sampling_interval, resolve_altitude_threshold,
+    is_valid_username,
 )
 from nova.models import (
     DbUser, AstroObject, JournalSession, Project,
@@ -2153,10 +2154,13 @@ def provision_user():
     if not expected_key or provided_key != expected_key:
         return jsonify({"status": "error", "message": "Unauthorized"}), 401
 
-    username = data.get('username')
+    raw = data.get('username')
+    username = raw.strip() if isinstance(raw, str) else ''
     password = data.get('password')
     if not username or not password:
         return jsonify({"status": "error", "message": "Username and password required"}), 400
+    if not is_valid_username(username):
+        return jsonify({"status": "error", "message": "Invalid username format."}), 400
 
     with current_app.app_context():
         # Check if the user already exists
