@@ -805,7 +805,7 @@ def generate_session_summary():
     notes = session_data.get("general_notes_problems_learnings")
     if notes:
         # Remove HTML tags but preserve content
-        session_data["general_notes_problems_learnings"] = re.sub(r'<[^>]+>', ' ', notes).strip()
+        session_data["general_notes_problems_learnings"] = re.sub(r'<[^<>]*>', ' ', notes).strip()
 
     # Get current locale using lazy import to avoid circular dependency
     from nova import get_locale
@@ -939,7 +939,7 @@ def generate_session_summary():
     notes = session_data.get("general_notes_problems_learnings")
     if notes:
         # Remove HTML tags but preserve content
-        session_data["general_notes_problems_learnings"] = re.sub(r'<[^>]+>', ' ', notes).strip()
+        session_data["general_notes_problems_learnings"] = re.sub(r'<[^<>]*>', ' ', notes).strip()
 
     # Get current locale using lazy import to avoid circular dependency
     from nova import get_locale
