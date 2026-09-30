@@ -2214,10 +2214,14 @@ def graph_dashboard(object_name):
             ).one_or_none()
 
             if selected_project_data_journal:
-                # Calculate total integration
+                # Calculate total integration via the session_projects m2m links
+                # (not the single project_id FK) so multi-project sessions count too.
                 total_int_min = db.query(
                     func.sum(JournalSession.calculated_integration_time_minutes)
-                ).filter_by(project_id=selected_project_data_journal.id, user_id=user.id).scalar() or 0
+                ).filter(
+                    JournalSession.projects.any(Project.id == selected_project_data_journal.id),
+                    JournalSession.user_id == user.id
+                ).scalar() or 0
                 total_minutes = int(total_int_min)
                 total_integration_str_journal = f"{total_minutes // 60}h {total_minutes % 60}m"
 
@@ -2234,8 +2238,9 @@ def graph_dashboard(object_name):
                 }
 
                 # --- NEW: Fetch all sessions for this project to explain the integration time ---
-                project_sessions_db = db.query(JournalSession).filter_by(
-                    project_id=selected_project_data_journal.id, user_id=user.id
+                project_sessions_db = db.query(JournalSession).filter(
+                    JournalSession.projects.any(Project.id == selected_project_data_journal.id),
+                    JournalSession.user_id == user.id
                 ).order_by(JournalSession.date_utc.desc()).all()
 
                 project_sessions_list_journal = []
