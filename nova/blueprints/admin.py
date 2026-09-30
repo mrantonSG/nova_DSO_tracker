@@ -5,7 +5,7 @@ from flask_login import login_required, current_user
 from flask_babel import gettext as _
 
 from nova.config import SINGLE_USER_MODE, ADMIN_USERS
-from nova.helpers import purge_user_app_data
+from nova.helpers import purge_user_app_data, is_valid_username
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -53,6 +53,9 @@ def admin_create_user():
     password = request.form.get("password", "")
     if not username or not password:
         flash(_("Username and password are required."), "error")
+        return redirect(url_for("admin.admin_users"))
+    if not is_valid_username(username):
+        flash(_("Username may only contain letters, digits, _ . - (max 80), and cannot start with . or -."), "error")
         return redirect(url_for("admin.admin_users"))
     if db.session.scalar(db.select(User).where(User.username == username)):
         flash(_("User '%(username)s' already exists.", username=username), "error")
