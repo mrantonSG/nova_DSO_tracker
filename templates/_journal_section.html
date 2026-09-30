@@ -257,6 +257,7 @@
     /* FACELIFT: Right Column (Session Detail Form) */
     .session-detail-column {
         flex: 1 1 auto;
+        min-width: 0;                        /* flex item may shrink below its content: no page overflow at ~1000px */
         padding: 0 24px 24px 24px;
         background: var(--nova-surface, var(--bg-white));
     }
@@ -1963,12 +1964,20 @@
 
     /* REDESIGN pass 2: star rating — radios in DOM order 5..1, row-reverse puts 1 on the left,
        so "checked ~ label" fills the checked star and every lower one */
+    #journal-detail-form .star-rating-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
     #journal-detail-form .star-rating {
+        --star-empty: var(--border-color, #e5e2dc);
         position: relative;
         display: inline-flex;
         flex-direction: row-reverse;
         gap: 2px;
     }
+    /* --border-color is 7% white in dark mode: the empty stars would vanish */
+    [data-theme="dark"] #journal-detail-form .star-rating { --star-empty: var(--text-faint); }
     #journal-detail-form .star-rating input[type="radio"] {
         position: absolute;
         width: 1px;
@@ -1980,17 +1989,18 @@
     }
     /* !important on colors: beats the dark-mode "!important" label color rule */
     #journal-detail-form .star-rating label {
+        display: inline-flex;
+        width: auto;                         /* beats graph_view.css .form-group label { width: 320px } */
+        flex: none;
         margin: 0;
-        padding: 0 1px;
-        font-size: 20px;
-        line-height: 1;
-        text-transform: none;
-        letter-spacing: 0;
+        padding: 0;
+        line-height: 0;
         cursor: pointer;
-        color: var(--text-faint) !important;
+        color: var(--star-empty) !important;
     }
+    #journal-detail-form .star-rating label svg { display: block; width: 22px; height: 22px; }
     #journal-detail-form .star-rating input:checked ~ label { color: var(--primary-color) !important; }
-    #journal-detail-form .star-rating:hover input ~ label { color: var(--text-faint) !important; }
+    #journal-detail-form .star-rating:hover input ~ label { color: var(--star-empty) !important; }
     #journal-detail-form .star-rating:hover label:hover,
     #journal-detail-form .star-rating:hover label:hover ~ label { color: var(--primary-color) !important; }
     #journal-detail-form .star-rating input:focus-visible + label {
@@ -2026,23 +2036,191 @@
     #journal-detail-form .journal-field-grid .form-group:has(> [name="filter_used_session"]) {
         grid-column: span 2;
     }
-    /* Dither notes fills the last Acquisition row next to "Dither every N" */
+    /* Dither notes: own full-width row; the margin leaves room for the floating rig hint above it */
     #journal-detail-form .journal-field-grid .form-group:has(> [name="dither_notes"]) {
-        grid-column: span 3;
-    }
-    /* Rig dither hint may wrap in the narrower column (!important: beats its inline nowrap) */
-    #journal-detail-form .journal-field-grid #dither-hint {
-        white-space: normal !important;
+        grid-column: 1 / -1;
+        margin-top: 6px;
     }
     @media (max-width: 900px) {
         #journal-detail-form .journal-field-grid { --jfg-cols: 2; }
-        #journal-detail-form .journal-field-grid .form-group:has(> [name="dither_notes"]) {
-            grid-column: 1 / -1;             /* span 3 would add an implicit column at 2 cols */
-        }
     }
+
+    /* REDESIGN pass 3: mockup parity (edit/add session form only) */
+    /* Form runs edge to edge in the detail column; header and panels carry the 24px inset */
+    #journal-detail-form { margin: 0 -24px; }
+    .is-editing #journal-detail-form > .detail-header,
+    .is-adding #journal-detail-form > .detail-header { padding: 10px 24px 0; }
+    #journal-detail-form .form-tab-panel { padding: 22px 24px 28px; }
+
+    /* Header: "Editing session" + mono meta, 30px buttons, 28px-spaced tabs */
+    #journal-detail-form #form-detail-title {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 2px 10px;
+        margin: 0;
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    #journal-detail-form .form-detail-meta {
+        font-family: var(--font-mono, 'DM Mono', monospace);
+        font-size: 12px;
+        font-weight: 400;
+        color: var(--text-muted);
+    }
+    #journal-detail-form .journal-form-actions .inline-button {
+        height: 30px;
+        padding: 0 14px !important;          /* beats the 6px 14px !important button rules above */
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    #journal-detail-form .form-tabs { gap: 28px; }
+    #journal-detail-form .form-tab-button { height: 40px; padding: 0; }
+
+    /* Sections: 26px apart, micro-label on a light rule */
+    #journal-detail-form .form-section-title {
+        margin: 26px 0 14px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border-light);
+    }
+    #journal-detail-form .form-tab-panel > .form-section-title:first-child { margin-top: 0; }
+
+    /* Grid rhythm */
+    #journal-detail-form .form-group { margin-bottom: 14px; }
+    #journal-detail-form .journal-field-grid { gap: 14px 16px; margin-bottom: 14px; }
+    #journal-detail-form .journal-field-grid--align-start { align-items: start; }   /* rows with helper text under a field */
+    #journal-detail-form .journal-field-grid .form-group.project-picker { grid-column: span 2; }
+    #journal-detail-form .journal-field-grid #new_project_name_group { grid-column: 1 / -1; }
+
+    /* Labels: 12px/500 secondary, units as a muted span */
+    #journal-detail-form .form-group:not(.filter-exp-name) > label,
+    #journal-detail-form .journal-field-label {
+        display: block;
+        width: auto;                         /* beats graph_view.css .form-group label { width: 320px } */
+        margin-bottom: 5px;
+        font-size: 12px;
+        font-weight: 500;
+        letter-spacing: 0;
+        text-transform: none;
+        color: var(--text-secondary) !important;   /* !important: beats the dark-mode "!important" label colour */
+    }
+    #journal-detail-form .field-unit {
+        margin-left: 4px;
+        font-size: 11px;
+        font-weight: 400;
+        color: var(--text-muted);
+    }
+    #journal-detail-form .field-auto-tag {
+        display: inline-block;
+        margin-left: 6px;
+        padding: 1px 6px;
+        border-radius: 4px;
+        background: var(--primary-bg);
+        color: var(--primary-color);
+        font-family: var(--font-mono, 'DM Mono', monospace);
+        font-size: 10px;
+        font-weight: 400;
+        line-height: 1.4;
+        vertical-align: 1px;
+    }
+    #journal-detail-form .field-help {
+        margin-top: 5px;
+        font-size: 11px;
+        color: var(--text-muted);
+    }
+
+    /* Inputs: 34px, 6px radius, teal focus ring (number inputs keep their mono 12px) */
+    #journal-detail-form .form-group input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+    #journal-detail-form .form-group select {
+        height: 34px;
+        padding: 0 10px;
+        border: 1px solid var(--border-color, #e5e2dc);
+        border-radius: 6px;
+        background-color: var(--bg-secondary);
+    }
+    #journal-detail-form .form-group select { padding-right: 28px; }
+    #journal-detail-form .form-group textarea {
+        min-height: 0;                       /* rows attribute sets the height */
+        padding: 9px 10px;
+        border: 1px solid var(--border-color, #e5e2dc);
+        border-radius: 6px;
+        background-color: var(--bg-secondary);
+        line-height: 1.45;
+        resize: vertical;
+    }
+    #journal-detail-form .form-group input:focus,
+    #journal-detail-form .form-group select:focus,
+    #journal-detail-form .form-group textarea:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px var(--primary-bg);
+        outline: none;
+    }
+    /* Moon fields stay editable but read as auto-filled (!important: beats the dark-mode input background) */
+    #journal-detail-form .form-group input[name="moon_illumination_session"],
+    #journal-detail-form .form-group input[name="moon_angular_separation_session"] {
+        background-color: var(--bg-tertiary) !important;
+        color: var(--text-secondary) !important;
+    }
+    #journal-detail-form .project-picker-bar { min-height: 34px; }
+
+    /* Dither: both inputs in one cell; the rig hint floats under it so the row stays aligned */
+    #journal-detail-form .journal-dither-field { position: relative; }
+    #journal-detail-form .journal-dither-inputs {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 6px;
+    }
+    #journal-detail-form .journal-dither-field #dither-hint {
+        position: absolute;
+        top: calc(100% + 3px);
+        left: 0;
+        font-size: 11px;
+        line-height: 1.3;
+        font-weight: 500;
+        color: var(--primary-color);
+        white-space: nowrap;
+    }
+    #journal-detail-form #dither-hint-spacer { display: none !important; }   /* no second label to balance any more */
+
+    /* Filter exposures: rows match the 34px inputs; empty state = one dashed box, button inside */
+    #journal-detail-form .filter-exposure-table .filter-exp-name,
+    #journal-detail-form .filter-exp-total,
+    #journal-detail-form .filter-exp-actions { min-height: 34px; }
+    #journal-detail-form .filter-exp-section:has(.filter-exposure-table.is-empty) {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px 16px;
+        padding: 14px 16px;
+        border: 1px dashed var(--border-color, #e5e2dc);
+        border-radius: 8px;
+        background: var(--bg-tertiary);
+    }
+    #journal-detail-form .filter-exp-section:has(.filter-exposure-table.is-empty) .filter-exposure-table {
+        border: none;
+        overflow: visible;
+    }
+    #journal-detail-form .filter-exp-section:has(.filter-exposure-table.is-empty) .filter-exp-empty { padding: 0; }
+    #journal-detail-form .filter-exp-section:has(.filter-exposure-table.is-empty) .filter-exp-toolbar { margin-top: 0; }
+
+    #journal-detail-form .star-rating-value {
+        font-family: var(--font-mono, 'DM Mono', monospace);
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+    #journal-detail-form .session-image-card .field-help { margin-top: -5px; }   /* sits under the card title despite the 8px flex gap */
+    #journal-detail-form trix-toolbar .trix-button-row { flex-wrap: wrap; row-gap: 4px; }   /* narrow column: wrap instead of hiding button groups */
 </style>
 
 {% from "macros.html" import form_group, stat_box, tab_button, detail_row %}
+
+{# Edit-form label: text + muted unit/qualifier + optional "auto" tag. Returns markup, so form_group doesn't escape it. #}
+{% macro field_label(text, unit='', auto=False) -%}
+{{ text }}{% if unit %}<span class="field-unit">{{ unit }}</span>{% endif %}{% if auto %}<span class="field-auto-tag">{{ _('auto') }}</span>{% endif %}
+{%- endmacro %}
 
 <div class="journal-container">
     <div class="session-list-column">
@@ -2053,7 +2231,7 @@
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                   {{ _('Switch Object') }}
                 </button>
-                <button type="button" class="btn-primary block" data-action="add-project">{{ _('Add New Project') }}</button>
+                <button type="button" class="btn-secondary block" data-action="add-project">{{ _('Add New Project') }}</button>
                 <button type="button" class="btn-secondary block" data-action="add-session">{{ _('Add New Session') }}</button>
             </div>
         </div>
@@ -2732,10 +2910,13 @@
                   data-today-date="{{ today_date }}"
                   data-default-location="{{ header_location_name or default_location or (available_locations[0].name if available_locations else '') }}"
                   data-add-title="{{ _('Add New Session for') }} {{ alt_name | default(object_name, True) }}"
+                  data-edit-heading="{{ _('Editing session') }}"
+                  data-new-heading="{{ _('New session') }}"
+                  data-object-id="{{ object_name }}"
                   data-object-ra="{{ object_main_details['RA (hours)'] | default('', True) }}"
                   data-object-dec="{{ object_main_details['DEC (degrees)'] | default('', True) }}">
                  <div class="detail-header">
-                    <h4 id="form-detail-title">{{ _('Edit Session') }}</h4>
+                    <h4 id="form-detail-title">{{ _('Editing session') }}</h4>
                     <div class="journal-form-actions">
                         <button type="button" id="form-save-draft-button" data-action="save-draft" class="inline-button inline-button-ghost">{{ _('Save Draft') }}</button>
                         <button type="submit" id="form-submit-button" data-action="save-close" class="inline-button">{{ _('Save & Close') }}</button>
@@ -2752,12 +2933,13 @@
                 <input type="hidden" name="session_id" value="{{ selected_session_data.id if selected_session_data else '' }}">
                 <input type="hidden" id="form-action-hidden" name="form_action" value="save_close">
                 <div id="form-sky-tab" class="form-tab-panel" data-form-panel="overview">
+                <div class="journal-field-grid journal-field-grid--4">
                 <div class="form-row">
-                    {{ form_group('session_date', _('Session Date:'), type='date', value=today_date, extra_attrs='autocomplete="off"') }}
-                    <div class="form-group"><label for="location_name">{{ _('Location:') }}</label><select id="location_name" name="location_name">{% for loc in available_locations %}<option value="{{ loc.name }}" data-lat="{{ loc.lat }}" data-lon="{{ loc.lon }}" data-tz="{{ loc.timezone }}">{{ loc.name }}{{ _(' (Inactive)') if not loc.active else '' }}</option>{% endfor %}</select></div>
+                    {{ form_group('session_date', _('Session date'), type='date', value=today_date, extra_attrs='autocomplete="off"') }}
+                    <div class="form-group"><label for="location_name">{{ _('Location') }}</label><select id="location_name" name="location_name">{% for loc in available_locations %}<option value="{{ loc.name }}" data-lat="{{ loc.lat }}" data-lon="{{ loc.lon }}" data-tz="{{ loc.timezone }}">{{ loc.name }}{{ _(' (Inactive)') if not loc.active else '' }}</option>{% endfor %}</select></div>
                 </div>
                 <div class="form-group full-width project-picker">
-                    <label>{{ _('Link to Project (Optional)') }}</label>
+                    <label>{{ _('Project') }}</label>
                     <div class="project-picker-bar">
                         <div class="project-chips" aria-live="polite"></div>
                         <div class="project-picker-actions">
@@ -2787,19 +2969,20 @@
                     </div>
                 </div>
                 <div class="form-group full-width" id="new_project_name_group" style="display: none;"><label for="new_project_name">{{ _('New Project Name:') }}</label><input type="text" name="new_project_name" id="new_project_name" placeholder="{{ _('e.g., M31 Galaxy - 2025') }}"></div>
+                </div>
                     <div class="form-section-title">{{ _('Sky Conditions (Observed)') }}</div>
                     <div class="journal-field-grid journal-field-grid--5">
-                        <div class="form-row">{{ form_group('seeing_observed_fwhm', _('Seeing (FWHM, arcsec):'), type='number', step=0.01) }}{{ form_group('transparency_observed_scale', _('Transparency Scale:'), type='text', placeholder=_('e.g., Good (4/5), Clear')) }}</div>
-                        <div class="form-row">{{ form_group('sky_sqm_observed', _('SQM Reading:'), type='number', step=0.01) }}<div class="form-group"> </div></div>
-                        <div class="form-row">{{ form_group('moon_illumination_session', _('Moon Illumination (%%):'), type='number', step=0.1, placeholder=_('Auto-fills on date/loc change')) }}{{ form_group('moon_angular_separation_session', _('Moon Angular Separation (°):'), type='number', step=0.1, placeholder=_('Auto-fills on date/loc change')) }}</div>
+                        <div class="form-row">{{ form_group('seeing_observed_fwhm', field_label(_('Seeing'), 'FWHM ″'), type='number', step=0.01) }}{{ form_group('transparency_observed_scale', _('Transparency'), type='text', placeholder=_('e.g., Good (4/5), Clear')) }}</div>
+                        <div class="form-row">{{ form_group('sky_sqm_observed', 'SQM', type='number', step=0.01) }}<div class="form-group"> </div></div>
+                        <div class="form-row">{{ form_group('moon_illumination_session', field_label(_('Moon illumination'), '%', auto=True), type='number', step=0.1, placeholder=_('Auto-fills on date/loc change')) }}{{ form_group('moon_angular_separation_session', field_label(_('Moon separation'), '°', auto=True), type='number', step=0.1, placeholder=_('Auto-fills on date/loc change')) }}</div>
                     </div>
-                    {{ form_group('weather_notes', _('Weather Notes:'), type='textarea') }}
+                    {{ form_group('weather_notes', _('Weather notes'), type='textarea') }}
                 </div>
                 <div id="form-acq-tab" class="form-tab-panel form-tab-panel--hidden" data-form-panel="acq">
                     <div class="form-section-title">{{ _('Equipment & Guiding') }}</div>
-                    <div class="journal-field-grid journal-field-grid--4">
+                    <div class="journal-field-grid journal-field-grid--4 journal-field-grid--align-start">
                         <div class="form-group">
-                            <label for="rig-selector-edit">{{ _('Select a Rig (Optional - Overwrites notes below)') }}</label>
+                            <label for="rig-selector-edit">{{ _('Rig') }}</label>
                             <div style="display:flex; align-items:center; gap:8px;">
                                 <select id="rig-selector-edit" name="rig_id_snapshot">
                                     <option value="">{{ _('-- Manually Enter Below --') }}</option>
@@ -2811,43 +2994,38 @@
                                 <!-- DEBUG: rig_id_snapshot = {{ selected_session_data_dict.rig_id_snapshot if selected_session_data_dict else 'N/A' }} -->
                                 <!-- DEBUG: rig_name_snapshot = {{ selected_session_data_dict.rig_name_snapshot if selected_session_data_dict else 'N/A' }} -->
                             </div>
+                            <div class="field-help">{{ _('Choosing a rig fills in the guiding equipment.') }}</div>
                         </div>
-                        {{ form_group('guiding_equipment', _('Guiding Equipment:'), type='text', placeholder=_('e.g., OAG + ASI174MM')) }}
-                        {{ form_group('guiding_rms_avg_arcsec', _('Guiding RMS (avg, arcsec):'), type='number', step=0.01) }}
+                        {{ form_group('guiding_equipment', _('Guiding equipment'), type='text', placeholder=_('e.g., OAG + ASI174MM')) }}
+                        {{ form_group('guiding_rms_avg_arcsec', field_label(_('Guiding RMS'), '″ ' ~ _('avg')), type='number', step=0.01) }}
                     </div>
-                    {{ form_group('telescope_setup_notes', _('Telescope Setup Notes:'), type='textarea', rows=3) }}
+                    {{ form_group('telescope_setup_notes', _('Telescope setup notes'), type='textarea', rows=2) }}
                     <div class="form-section-title">{{ _('Acquisition Details') }}</div>
                     <div class="journal-field-grid journal-field-grid--4">
-                        {{ form_group('acquisition_software', _('Acquisition Software:'), type='text', placeholder=_('e.g., N.I.N.A.')) }}
-                        {{ form_group('filter_used_session', _('Filter Used (if broadband/single):'), type='text', placeholder=_('e.g., L-Pro, None')) }}
+                        {{ form_group('acquisition_software', _('Software'), type='text', placeholder=_('e.g., N.I.N.A.')) }}
+                        {{ form_group('filter_used_session', field_label(_('Filter'), _('broadband / dual-band')), type='text', placeholder=_('e.g., L-Pro, None')) }}
                         <div class="form-row">
-                            {{ form_group('exposure_time_per_sub_sec', _('Sub Exposure (sec):'), type='number', min=0, extra_attrs='class="calc-trigger"') }}
-                            <div class="form-group"><label>{{ _('# Light Subs') }} <span id="max-subs-main" style="font-weight:normal; color:var(--info-color); font-size:0.85em;"></span>:</label><input type="number" name="number_of_subs_light" min="0" class="calc-trigger"></div>
+                            {{ form_group('exposure_time_per_sub_sec', field_label(_('Sub exposure'), 's'), type='number', min=0, extra_attrs='class="calc-trigger"') }}
+                            <div class="form-group"><label>{{ _('Light subs') }} <span id="max-subs-main" style="font-weight:normal; color:var(--info-color); font-size:0.85em;"></span></label><input type="number" name="number_of_subs_light" min="0" class="calc-trigger"></div>
                         </div>
-                        <div class="form-row">{{ form_group('gain_setting', _('Gain:'), type='number') }}{{ form_group('offset_setting', _('Offset:'), type='number') }}</div>
-                        <div class="form-row">{{ form_group('camera_temp_setpoint_c', _('Camera Temp Setpoint (°C):'), type='number', step=0.1) }}{{ form_group('camera_temp_actual_avg_c', _('Camera Temp Actual Avg (°C):'), type='number', step=0.1) }}</div>
-                        {{ form_group('binning_session', _('Binning:'), type='text', placeholder=_('e.g., 1x1')) }}
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="dither-pixels" style="display:inline;">
-                                    {{ _('Dither Pixels:') }}
-                                    <span id="dither-hint" style="display:none; font-size:var(--font-size-xs, 11px); color:var(--primary-color); font-weight:500; margin-left:6px; white-space:nowrap;"></span>
-                                </label>
-                                <input type="number" id="dither-pixels" name="dither_pixels" min="1" max="50" step="1" placeholder="{{ _('e.g. 7') }}">
+                        <div class="form-row">{{ form_group('gain_setting', _('Gain'), type='number') }}{{ form_group('offset_setting', _('Offset'), type='number') }}</div>
+                        <div class="form-row">{{ form_group('camera_temp_setpoint_c', field_label(_('Cam temp set'), '°C'), type='number', step=0.1) }}{{ form_group('camera_temp_actual_avg_c', field_label(_('Cam temp avg'), '°C'), type='number', step=0.1) }}</div>
+                        {{ form_group('binning_session', _('Binning'), type='text', placeholder=_('e.g., 1x1')) }}
+                        <div class="form-group journal-dither-field">
+                            <label for="dither-pixels">{{ field_label(_('Dither'), 'px / ' ~ _('every N')) }}</label>
+                            <div class="journal-dither-inputs">
+                                <input type="number" id="dither-pixels" name="dither_pixels" min="1" max="50" step="1" placeholder="{{ _('e.g. 7') }}" aria-label="{{ _('Dither pixels') }}">
+                                <input type="number" id="dither-every-n" name="dither_every_n" min="1" max="99" step="1" placeholder="{{ _('e.g. 3') }}" aria-label="{{ _('Dither every N subs') }}">
                             </div>
-                            <div class="form-group">
-                                <label for="dither-every-n" style="display:inline;">
-                                    {{ _('Dither every ___ subs:') }}
-                                    <span id="dither-hint-spacer" style="display:none; font-size:var(--font-size-xs, 11px); color:var(--primary-color); font-weight:500; margin-left:6px; white-space:nowrap; visibility:hidden;"></span>
-                                </label>
-                                <input type="number" id="dither-every-n" name="dither_every_n" min="1" max="99" step="1" placeholder="{{ _('e.g. 3') }}">
-                            </div>
+                            <span id="dither-hint" style="display:none;"></span>
+                            <span id="dither-hint-spacer" style="display:none;"></span>
                         </div>
-                        {{ form_group('dither_notes', _('Dither Notes (optional):'), type='text') }}
+                        {{ form_group('dither_notes', field_label(_('Dither notes'), _('optional')), type='text') }}
                     </div>
-                    <div class="form-section-title" style="margin-top:20px;">{{ _('Monochrome Filter Exposures') }}</div>
+                    <div class="form-section-title">{{ _('Monochrome Filter Exposures') }}</div>
                     {% set mono_filters = [('L', 'Luminance'), ('R', 'Red'), ('G', 'Green'), ('B', 'Blue'), ('Ha', 'H-alpha'), ('OIII', 'OIII'), ('SII', 'SII')] %}
                     {% set cf_data = (selected_session_data_dict.get('custom_filter_data_parsed') or {}) if selected_session_data_dict else {} %}
+                    <div class="filter-exp-section">
                     <div class="filter-exposure-table" id="filter-exposure-table">
                         <div class="filter-exp-head" aria-hidden="true">
                             <span>{{ _('Filter') }}</span><span>{{ _('Subs') }}</span><span>{{ _('Exp (s)') }}</span><span style="text-align:right;">{{ _('Total') }}</span><span></span>
@@ -2920,28 +3098,32 @@
                         </div>
                         <span id="custom-filter-msg" style="font-size:12px; color:var(--text-secondary);"></span>
                     </div>
+                    </div>
                 </div>
                 <div id="form-outcome-tab" class="form-tab-panel form-tab-panel--hidden" data-form-panel="outcome">
                     <div class="form-section-title">{{ _('Calibration Strategy') }}</div>
                     <div class="journal-field-grid journal-field-grid--3">
-                        {{ form_group('darks_strategy', _('Darks:'), type='text', placeholder=_('e.g., Library match, Taken post-session')) }}
-                        {{ form_group('flats_strategy', _('Flats:'), type='text', placeholder=_('e.g., Morning sky, Panel')) }}
-                        {{ form_group('bias_darkflats_strategy', _('Bias / Dark Flats:'), type='text', placeholder=_('e.g., Library match')) }}
+                        {{ form_group('darks_strategy', _('Darks'), type='text', placeholder=_('e.g., Library match, Taken post-session')) }}
+                        {{ form_group('flats_strategy', _('Flats'), type='text', placeholder=_('e.g., Morning sky, Panel')) }}
+                        {{ form_group('bias_darkflats_strategy', _('Bias / dark flats'), type='text', placeholder=_('e.g., Library match')) }}
                     </div>
                     <div class="form-section-title">{{ _('Outcome & Reflections') }}</div>
                     <div class="form-group">
-                        <label id="session-rating-label">{{ _('Session Rating (1-5 ★):') }}</label>
+                        <label id="session-rating-label">{{ _('Session rating') }}</label>
                         {# DOM order 5..1 + row-reverse = the CSS-only "checked ~ label" fill; JS: click again clears, arrows follow the visual order #}
-                        <div class="star-rating" id="session_rating_subjective" role="radiogroup" aria-labelledby="session-rating-label">
-                            {% for n in range(5, 0, -1) %}
-                            <input type="radio" id="session-rating-{{ n }}" name="session_rating_subjective" value="{{ n }}" aria-label="{{ _('%(num)d of 5 stars', num=n) }}">
-                            <label for="session-rating-{{ n }}" aria-hidden="true">★</label>
-                            {% endfor %}
+                        <div class="star-rating-row">
+                            <div class="star-rating" id="session_rating_subjective" role="radiogroup" aria-labelledby="session-rating-label">
+                                {% for n in range(5, 0, -1) %}
+                                <input type="radio" id="session-rating-{{ n }}" name="session_rating_subjective" value="{{ n }}" aria-label="{{ _('%(num)d of 5 stars', num=n) }}">
+                                <label for="session-rating-{{ n }}" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.5l2.94 6.1 6.56.86-4.8 4.56 1.22 6.48L12 17.3l-5.92 3.2 1.22-6.48-4.8-4.56 6.56-.86z"/></svg></label>
+                                {% endfor %}
+                            </div>
+                            <span class="star-rating-value" data-empty-text="{{ _('Not rated') }}" aria-hidden="true">{{ _('Not rated') }}</span>
                         </div>
                     </div>
                     <div class="form-group">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                            <label style="margin:0;">{{ _('General Notes, Problems, Learnings:') }}</label>
+                            <label class="journal-field-label" style="margin:0;">{{ _('Notes, problems, learnings') }}</label>
                             <button type="button" id="ai-session-summary-btn"
                               class="btn-nova-ai"
                               title="{{ _('Ask Nova for session summary') }}"
@@ -2959,6 +3141,8 @@
                 </div>
                 <div id="form-logs-tab" class="form-tab-panel form-tab-panel--hidden" data-form-panel="logs">
                     <div class="session-image-card">
+                        <label for="session_image">{{ _('Session image') }}</label>
+                        <div class="field-help">{{ _('JPG, PNG or GIF · max 5 MB') }}</div>
                         {% if selected_session_data and selected_session_data.session_image_file %}
                         <div class="session-image-current">
                             <label>{{ _('Current Image:') }}</label>
@@ -2968,12 +3152,11 @@
                             </div>
                         </div>
                         {% endif %}
-                        <label for="session_image">{{ _('Upload New or Replace Image (optional, max 5MB)') }}</label>
                         <input type="file" id="session_image" name="session_image" accept="image/jpeg, image/png, image/gif">
                     </div>
 
                     {# --- Session Logs Section --- #}
-                    <div class="form-section-title" style="margin-top: 20px; font-weight: 600; color: var(--text-secondary); font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">{{ _('Session Logs (Optional)') }}</div>
+                    <div class="form-section-title">{{ _('Session Logs (Optional)') }}</div>
                     <div class="session-logs-row">
                         <div class="session-log-item">
                             <label>{{ _('ASIAIR Log (Autorun)') }}</label>

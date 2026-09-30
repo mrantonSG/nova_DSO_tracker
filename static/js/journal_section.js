@@ -263,6 +263,26 @@
         refreshSessionFormWidgets();
     }
 
+    // Form header: heading + muted mono meta ("15.08.2026 · CED 201"); strings come from data-* on the form
+    function renderFormTitle(titleEl, heading, meta) {
+        titleEl.textContent = heading;
+        if (!meta) return;
+        const metaEl = document.createElement('span');
+        metaEl.className = 'form-detail-meta';
+        metaEl.textContent = meta;
+        titleEl.appendChild(metaEl);
+    }
+
+    function formatSessionDateEu(dateUtc) {
+        const [y, m, d] = String(dateUtc || '').split('T')[0].split('-');
+        return y && m && d ? `${d}.${m}.${y}` : '';
+    }
+
+    function renderEditFormTitle(form, titleEl, data) {
+        const meta = [formatSessionDateEu(data.date_utc), form.dataset.objectId].filter(Boolean).join(' · ');
+        renderFormTitle(titleEl, form.dataset.editHeading || 'Editing session', meta);
+    }
+
     function setupAddMode() {
         const wrapper = document.getElementById('session-detail-wrapper');
         const form = document.getElementById('journal-detail-form');
@@ -315,9 +335,7 @@
         const deleteCheckbox = form.elements['delete_session_image']; if (deleteCheckbox) deleteCheckbox.checked = false;
         const fileInput = form.elements['session_image']; if(fileInput) fileInput.value = '';
 
-        const titleText = form.getAttribute('data-add-title');
-        if (titleText) formDetailTitle.textContent = titleText;
-        else formDetailTitle.textContent = window.t('add_new_session');
+        renderFormTitle(formDetailTitle, form.dataset.newHeading || window.t('add_new_session'), form.dataset.objectId);
 
         cancelButton.onclick = cancelForm;
 
@@ -357,7 +375,7 @@
         showFormTab('overview');
 
         if (window.selectedSessionData) {
-            formDetailTitle.textContent = 'Editing Session: ' + new Date(window.selectedSessionData.date_utc).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            renderEditFormTitle(form, formDetailTitle, window.selectedSessionData);
             form.action = `/journal/edit/${window.selectedSessionData.id}`;
             form.elements.session_id.value = window.selectedSessionData.id;
             form.elements.session_date.value = window.selectedSessionData.date_utc.split('T')[0];
@@ -652,6 +670,13 @@
         menu.querySelector('button')?.focus();
     }
 
+    function updateStarRatingValue() {
+        const out = document.querySelector('#journal-detail-form .star-rating-value');
+        if (!out) return;
+        const checked = document.querySelector('#journal-detail-form .star-rating input:checked');
+        out.textContent = checked ? `${checked.value} / 5` : (out.dataset.emptyText || '');
+    }
+
     function refreshSessionFormWidgets() {
         const filterInput = document.querySelector('#journal-detail-form .project-picker-filter');
         if (filterInput) {
@@ -660,6 +685,7 @@
         }
         renderProjectChips();
         resetFilterRowVisibility();
+        updateStarRatingValue();
     }
 
     // Expose for the inline custom-filter add/remove script
@@ -675,6 +701,7 @@
         // All delegated: the form lives inside .session-detail-column, which loadSessionViaAjax replaces
         document.addEventListener('change', function(e) {
             if (e.target.matches('#journal-detail-form input[name="project_selection"]')) renderProjectChips();
+            else if (e.target.matches('#journal-detail-form .star-rating input[type="radio"]')) updateStarRatingValue();
         });
 
         document.addEventListener('input', function(e) {
@@ -1484,8 +1511,8 @@
 
             if (window.selectedSessionData) {
                 const formDetailTitle = document.getElementById('form-detail-title');
-                if (formDetailTitle) {
-                    formDetailTitle.textContent = 'Editing Session: ' + new Date(window.selectedSessionData.date_utc).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                if (formDetailTitle && form) {
+                    renderEditFormTitle(form, formDetailTitle, window.selectedSessionData);
                 }
                 if (form) {
                     form.action = `/journal/edit/${window.selectedSessionData.id}`;
