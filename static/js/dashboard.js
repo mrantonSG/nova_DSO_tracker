@@ -3494,7 +3494,7 @@
                         // Poll again after a delay
                         outlookPollTimer = setTimeout(fetchOutlookData, 10000);
                     } else { // Handle 'idle' (should become 'starting' now) or 'error'
-                        tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:orange;">${window.t('error_loading_outlook')} ${data.message || ''}</td></tr>`;
+                        tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:orange;">${window.t('error_loading_outlook')} ${window.escapeHtml(data.message || '')}</td></tr>`;
                         // Leave outlookDataLoaded false so reopening the tab retries
                     }
                     // Hide general loading indicator if used

@@ -225,7 +225,7 @@
         }
 
         if (!data || data.error) {
-            plotDiv.innerHTML = `<div style="color:red; text-align:center; padding:20px;">${data ? data.error : window.t('no_data_available')}</div>`;
+            plotDiv.innerHTML = `<div style="color:red; text-align:center; padding:20px;">${data ? window.escapeHtml(data.error) : window.t('no_data_available')}</div>`;
             plotDiv.style.height = '';
             return;
         }

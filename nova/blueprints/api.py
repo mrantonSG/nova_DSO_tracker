@@ -67,6 +67,7 @@ from modules.astro_calculations import (
 )
 import modules.nova_data_fetcher as nova_data_fetcher
 import markdown
+from markupsafe import escape
 
 api_bp = Blueprint('api', __name__)
 
@@ -486,7 +487,7 @@ def get_help_content(topic_id):
             html_content = markdown.markdown(text, extensions=['fenced_code', 'tables'])
             return jsonify({"status": "success", "html": html_content})
     except Exception as e:
-        return jsonify({"error": True, "html": _("<p>Error reading help file: %(error)s</p>", error=str(e))}), 500
+        return jsonify({"error": True, "html": _("<p>Error reading help file: %(error)s</p>", error=escape(str(e)))}), 500
 
 
 @api_bp.route('/api/get_saved_views')
