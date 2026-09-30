@@ -1540,28 +1540,37 @@ def index():
                 # self-hosted users never need a manual backfill script.
                 session_thumb_path = os.path.join(session_user_upload_dir, session_thumb_filename)
                 session_original_path = os.path.join(session_user_upload_dir, session_image_filename)
+                session_upload_root = os.path.realpath(session_user_upload_dir)
                 try:
-                    if os.path.getsize(session_original_path) < 1024:
-                        current_app.logger.warning(
-                            f"[DASHBOARD] Skipping likely-corrupt file, too small to be a "
-                            f"valid image: '{session_image_filename}'"
-                        )
-                    else:
-                        session_file_extension = session_image_filename.rsplit('.', 1)[1].lower()
-                        with Image.open(session_original_path) as session_img:
-                            session_img.thumbnail((480, 480))
-                            if session_file_extension in ('jpg', 'jpeg'):
-                                session_img.save(session_thumb_path, quality=85)
-                            elif session_file_extension == 'png':
-                                session_img.save(session_thumb_path, optimize=True)
-                            else:
-                                session_img.save(session_thumb_path)
-                        session_image_filename = session_thumb_filename
-                except Exception as session_thumb_err:
-                    current_app.logger.warning(
-                        f"[DASHBOARD] Failed to generate thumbnail for session image "
-                        f"'{session_image_filename}': {session_thumb_err}"
+                    session_paths_within_user_dir = all(
+                        os.path.commonpath([os.path.realpath(p), session_upload_root]) == session_upload_root
+                        for p in (session_original_path, session_thumb_path)
                     )
+                except ValueError:
+                    session_paths_within_user_dir = False
+                if session_paths_within_user_dir:
+                    try:
+                        if os.path.getsize(session_original_path) < 1024:
+                            current_app.logger.warning(
+                                f"[DASHBOARD] Skipping likely-corrupt file, too small to be a "
+                                f"valid image: '{session_image_filename}'"
+                            )
+                        else:
+                            session_file_extension = session_image_filename.rsplit('.', 1)[1].lower()
+                            with Image.open(session_original_path) as session_img:
+                                session_img.thumbnail((480, 480))
+                                if session_file_extension in ('jpg', 'jpeg'):
+                                    session_img.save(session_thumb_path, quality=85)
+                                elif session_file_extension == 'png':
+                                    session_img.save(session_thumb_path, optimize=True)
+                                else:
+                                    session_img.save(session_thumb_path)
+                            session_image_filename = session_thumb_filename
+                    except Exception as session_thumb_err:
+                        current_app.logger.warning(
+                            f"[DASHBOARD] Failed to generate thumbnail for session image "
+                            f"'{session_image_filename}': {session_thumb_err}"
+                        )
             session_dict['image_url'] = url_for('core.get_uploaded_image', username=username,
                                                 filename=session_image_filename)
         else:
@@ -1650,28 +1659,37 @@ def index():
             # self-hosted users never need a manual backfill script.
             project_thumb_path = os.path.join(project_user_upload_dir, project_thumb_filename)
             project_original_path = os.path.join(project_user_upload_dir, project_image_filename)
+            project_upload_root = os.path.realpath(project_user_upload_dir)
             try:
-                if os.path.getsize(project_original_path) < 1024:
-                    current_app.logger.warning(
-                        f"[DASHBOARD] Skipping likely-corrupt file, too small to be a "
-                        f"valid image: '{project_image_filename}'"
-                    )
-                else:
-                    project_file_extension = project_image_filename.rsplit('.', 1)[1].lower()
-                    with Image.open(project_original_path) as project_img:
-                        project_img.thumbnail((480, 480))
-                        if project_file_extension in ('jpg', 'jpeg'):
-                            project_img.save(project_thumb_path, quality=85)
-                        elif project_file_extension == 'png':
-                            project_img.save(project_thumb_path, optimize=True)
-                        else:
-                            project_img.save(project_thumb_path)
-                    project_image_filename = project_thumb_filename
-            except Exception as project_thumb_err:
-                current_app.logger.warning(
-                    f"[DASHBOARD] Failed to generate thumbnail for project image "
-                    f"'{project_image_filename}': {project_thumb_err}"
+                project_paths_within_user_dir = all(
+                    os.path.commonpath([os.path.realpath(p), project_upload_root]) == project_upload_root
+                    for p in (project_original_path, project_thumb_path)
                 )
+            except ValueError:
+                project_paths_within_user_dir = False
+            if project_paths_within_user_dir:
+                try:
+                    if os.path.getsize(project_original_path) < 1024:
+                        current_app.logger.warning(
+                            f"[DASHBOARD] Skipping likely-corrupt file, too small to be a "
+                            f"valid image: '{project_image_filename}'"
+                        )
+                    else:
+                        project_file_extension = project_image_filename.rsplit('.', 1)[1].lower()
+                        with Image.open(project_original_path) as project_img:
+                            project_img.thumbnail((480, 480))
+                            if project_file_extension in ('jpg', 'jpeg'):
+                                project_img.save(project_thumb_path, quality=85)
+                            elif project_file_extension == 'png':
+                                project_img.save(project_thumb_path, optimize=True)
+                            else:
+                                project_img.save(project_thumb_path)
+                        project_image_filename = project_thumb_filename
+                except Exception as project_thumb_err:
+                    current_app.logger.warning(
+                        f"[DASHBOARD] Failed to generate thumbnail for project image "
+                        f"'{project_image_filename}': {project_thumb_err}"
+                    )
         projects_for_template.append({
             'id': project.id,
             'name': project.name,
