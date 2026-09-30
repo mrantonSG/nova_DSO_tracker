@@ -239,7 +239,13 @@ def outlook_cache_file(user_id, location_name, user_config, sim_date=None) -> st
         "imaging_criteria": user_config.get("imaging_criteria"),
         "start_date": start_date.isoformat(),
     })
-    suffix = f"_{sim_date}" if sim_date else ""
+    suffix = ""
+    if sim_date:
+        try:
+            parsed = datetime.strptime(sim_date, "%Y-%m-%d")
+            suffix = f"_{parsed.date().isoformat()}"
+        except ValueError:
+            pass
     return os.path.join(CACHE_DIR, f"outlook_v3_{user_id}_{db_id}_{fp}{suffix}.json")
 
 
