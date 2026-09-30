@@ -57,6 +57,12 @@ from nova.report_graphs import generate_session_charts
 journal_bp = Blueprint('journal', __name__)
 
 
+def _flash_rejected_upload(action, message):
+    """Warn that an uploaded file was skipped. Draft saves reply with JSON, so they skip silently."""
+    if action != "save_draft":
+        flash(message, "error")
+
+
 # =============================================================================
 # Journal Routes
 # =============================================================================
@@ -288,34 +294,34 @@ def journal_add():
                     # 5MB size check for session images
                     file.seek(0, os.SEEK_END)
                     if file.tell() > 5 * 1024 * 1024:
-                        flash(_("Session image is too large. Maximum size is 5 MB."), "error")
-                        return redirect(url_for('core.graph_dashboard', object_name=request.form.get("target_object_id", "")))
-                    file.seek(0)
-                    file_extension = file.filename.rsplit('.', 1)[1].lower()
-                    new_filename = f"{new_session.id}.{file_extension}"
-                    user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
-                    os.makedirs(user_upload_dir, exist_ok=True)
-                    saved_image_path = os.path.join(user_upload_dir, new_filename)
-                    file.save(saved_image_path)
-                    new_session.session_image_file = new_filename
+                        _flash_rejected_upload(action, _("Session image is too large. Maximum size is 5 MB."))
+                    else:
+                        file.seek(0)
+                        file_extension = file.filename.rsplit('.', 1)[1].lower()
+                        new_filename = f"{new_session.id}.{file_extension}"
+                        user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+                        os.makedirs(user_upload_dir, exist_ok=True)
+                        saved_image_path = os.path.join(user_upload_dir, new_filename)
+                        file.save(saved_image_path)
+                        new_session.session_image_file = new_filename
 
-                    # Best-effort thumbnail generation — must not fail the request
-                    # or roll back the original upload if it errors (corrupt image,
-                    # unsupported format, etc).
-                    try:
-                        thumb_path = os.path.join(user_upload_dir, f"thumb_{new_filename}")
-                        with Image.open(saved_image_path) as img:
-                            img.thumbnail((480, 480))
-                            if file_extension in ('jpg', 'jpeg'):
-                                img.save(thumb_path, quality=85)
-                            elif file_extension == 'png':
-                                img.save(thumb_path, optimize=True)
-                            else:
-                                img.save(thumb_path)
-                    except Exception as thumb_err:
-                        current_app.logger.warning(
-                            f"[JOURNAL] Failed to generate thumbnail for session image '{new_filename}': {thumb_err}"
-                        )
+                        # Best-effort thumbnail generation — must not fail the request
+                        # or roll back the original upload if it errors (corrupt image,
+                        # unsupported format, etc).
+                        try:
+                            thumb_path = os.path.join(user_upload_dir, f"thumb_{new_filename}")
+                            with Image.open(saved_image_path) as img:
+                                img.thumbnail((480, 480))
+                                if file_extension in ('jpg', 'jpeg'):
+                                    img.save(thumb_path, quality=85)
+                                elif file_extension == 'png':
+                                    img.save(thumb_path, optimize=True)
+                                else:
+                                    img.save(thumb_path)
+                        except Exception as thumb_err:
+                            current_app.logger.warning(
+                                f"[JOURNAL] Failed to generate thumbnail for session image '{new_filename}': {thumb_err}"
+                            )
 
             # --- Log file uploads (stored on filesystem, path in DB) ---
             # Read content first, we'll save after commit when we have the session ID
@@ -329,48 +335,47 @@ def journal_add():
             if 'asiair_log' in request.files:
                 log_file = request.files['asiair_log']
                 if log_file and log_file.filename != '':
+                    log_file.seek(0, os.SEEK_END)
+                    file_size = log_file.tell()
+                    log_file.seek(0)
                     # Reject Chinese-language ASIAir logs before extension check
                     if '_CHN' in log_file.filename:
-                        flash(_("This is the Chinese-language version of the ASIAir log. Please upload the standard English log file instead."), "error")
-                        return redirect(url_for('core.graph_dashboard', object_name=request.form.get("target_object_id", "")))
-                    if not log_file.filename.lower().endswith('.txt'):
-                        flash(_("ASIAir log file must be a .txt file."), "error")
-                        return redirect(url_for('core.graph_dashboard', object_name=request.form.get("target_object_id", "")))
-                    log_file.seek(0, os.SEEK_END)
-                    if log_file.tell() > 10 * 1024 * 1024:
-                        flash(_("ASIAir log file is too large. Maximum size is 10 MB."), "error")
-                        return redirect(url_for('core.graph_dashboard', object_name=request.form.get("target_object_id", "")))
-                    log_file.seek(0)
-                    asiair_content = log_file.read().decode('utf-8', errors='ignore')
-                    asiair_filename = log_file.filename
+                        _flash_rejected_upload(action, _("This is the Chinese-language version of the ASIAir log. Please upload the standard English log file instead."))
+                    elif not log_file.filename.lower().endswith('.txt'):
+                        _flash_rejected_upload(action, _("ASIAir log file must be a .txt file."))
+                    elif file_size > 10 * 1024 * 1024:
+                        _flash_rejected_upload(action, _("ASIAir log file is too large. Maximum size is 10 MB."))
+                    else:
+                        asiair_content = log_file.read().decode('utf-8', errors='ignore')
+                        asiair_filename = log_file.filename
 
             if 'phd2_log' in request.files:
                 log_file = request.files['phd2_log']
                 if log_file and log_file.filename != '':
-                    if not log_file.filename.lower().endswith('.txt'):
-                        flash(_("PHD2 log file must be a .txt file."), "error")
-                        return redirect(url_for('core.graph_dashboard', object_name=request.form.get("target_object_id", "")))
                     log_file.seek(0, os.SEEK_END)
-                    if log_file.tell() > 10 * 1024 * 1024:
-                        flash(_("PHD2 log file is too large. Maximum size is 10 MB."), "error")
-                        return redirect(url_for('core.graph_dashboard', object_name=request.form.get("target_object_id", "")))
+                    file_size = log_file.tell()
                     log_file.seek(0)
-                    phd2_content = log_file.read().decode('utf-8', errors='ignore')
-                    phd2_filename = log_file.filename
+                    if not log_file.filename.lower().endswith('.txt'):
+                        _flash_rejected_upload(action, _("PHD2 log file must be a .txt file."))
+                    elif file_size > 10 * 1024 * 1024:
+                        _flash_rejected_upload(action, _("PHD2 log file is too large. Maximum size is 10 MB."))
+                    else:
+                        phd2_content = log_file.read().decode('utf-8', errors='ignore')
+                        phd2_filename = log_file.filename
 
             if 'nina_log' in request.files:
                 log_file = request.files['nina_log']
                 if log_file and log_file.filename != '':
-                    if not log_file.filename.lower().endswith('.log'):
-                        flash(_("NINA log file must be a .log file."), "error")
-                        return redirect(url_for('core.graph_dashboard', object_name=request.form.get("target_object_id", "")))
                     log_file.seek(0, os.SEEK_END)
-                    if log_file.tell() > 10 * 1024 * 1024:
-                        flash(_("NINA log file is too large. Maximum size is 10 MB."), "error")
-                        return redirect(url_for('core.graph_dashboard', object_name=request.form.get("target_object_id", "")))
+                    file_size = log_file.tell()
                     log_file.seek(0)
-                    nina_content = log_file.read().decode('utf-8', errors='ignore')
-                    nina_filename = log_file.filename
+                    if not log_file.filename.lower().endswith('.log'):
+                        _flash_rejected_upload(action, _("NINA log file must be a .log file."))
+                    elif file_size > 10 * 1024 * 1024:
+                        _flash_rejected_upload(action, _("NINA log file is too large. Maximum size is 10 MB."))
+                    else:
+                        nina_content = log_file.read().decode('utf-8', errors='ignore')
+                        nina_filename = log_file.filename
 
             db.commit()  # Commit to get session ID
 
@@ -669,17 +674,15 @@ def journal_edit(session_id):
                     # 5MB size check for session images
                     file.seek(0, os.SEEK_END)
                     if file.tell() > 5 * 1024 * 1024:
-                        flash(_("Session image is too large. Maximum size is 5 MB."), "error")
-                        return redirect(
-                            url_for('core.graph_dashboard', object_name=session_to_edit.object_name,
-                                    session_id=session_id, location=session_to_edit.location_name))
-                    file.seek(0)
-                    file_extension = file.filename.rsplit('.', 1)[1].lower()
-                    new_filename = f"{session_to_edit.id}.{file_extension}"
-                    user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
-                    os.makedirs(user_upload_dir, exist_ok=True)
-                    file.save(os.path.join(user_upload_dir, new_filename))
-                    session_to_edit.session_image_file = new_filename
+                        _flash_rejected_upload(action, _("Session image is too large. Maximum size is 5 MB."))
+                    else:
+                        file.seek(0)
+                        file_extension = file.filename.rsplit('.', 1)[1].lower()
+                        new_filename = f"{session_to_edit.id}.{file_extension}"
+                        user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+                        os.makedirs(user_upload_dir, exist_ok=True)
+                        file.save(os.path.join(user_upload_dir, new_filename))
+                        session_to_edit.session_image_file = new_filename
 
             # --- Log file handling (stored as TEXT in DB) ---
             # Track if we need to invalidate the analysis cache
@@ -689,88 +692,65 @@ def journal_edit(session_id):
             if 'asiair_log' in request.files:
                 log_file = request.files['asiair_log']
                 if log_file and log_file.filename != '':
-                    # Reject Chinese-language ASIAir logs before extension check
-                    if '_CHN' in log_file.filename:
-                        flash(_("This is the Chinese-language version of the ASIAir log. Please upload the standard English log file instead."), "error")
-                        return redirect(
-                            url_for('core.graph_dashboard', object_name=session_to_edit.object_name,
-                                    session_id=session_id, location=session_to_edit.location_name))
-
-                    if not log_file.filename.lower().endswith('.txt'):
-                        flash(_("ASIAir log file must be a .txt file."), "error")
-                        return redirect(
-                            url_for('core.graph_dashboard', object_name=session_to_edit.object_name,
-                                    session_id=session_id, location=session_to_edit.location_name))
-
                     log_file.seek(0, os.SEEK_END)
                     file_size = log_file.tell()
                     log_file.seek(0)
 
                     MAX_SIZE = 10 * 1024 * 1024  # 10 MB
-                    if file_size > MAX_SIZE:
-                        flash(_("ASIAir log file is too large. Maximum size is 10 MB."), "error")
-                        return redirect(
-                            url_for('core.graph_dashboard', object_name=session_to_edit.object_name,
-                                    session_id=session_id, location=session_to_edit.location_name))
-
-                    content = log_file.read().decode('utf-8', errors='ignore')
-                    path = save_log_to_filesystem(session_to_edit.id, 'asiair', content, log_file.filename)
-                    session_to_edit.asiair_log_content = path
-                    invalidate_cache = True
+                    # Reject Chinese-language ASIAir logs before extension check
+                    if '_CHN' in log_file.filename:
+                        _flash_rejected_upload(action, _("This is the Chinese-language version of the ASIAir log. Please upload the standard English log file instead."))
+                    elif not log_file.filename.lower().endswith('.txt'):
+                        _flash_rejected_upload(action, _("ASIAir log file must be a .txt file."))
+                    elif file_size > MAX_SIZE:
+                        _flash_rejected_upload(action, _("ASIAir log file is too large. Maximum size is 10 MB."))
+                    else:
+                        content = log_file.read().decode('utf-8', errors='ignore')
+                        path = save_log_to_filesystem(session_to_edit.id, 'asiair', content, log_file.filename)
+                        session_to_edit.asiair_log_content = path
+                        invalidate_cache = True
 
             if 'phd2_log' in request.files:
                 log_file = request.files['phd2_log']
                 if log_file and log_file.filename != '':
-                    if not log_file.filename.lower().endswith('.txt'):
-                        flash(_("PHD2 log file must be a .txt file."), "error")
-                        return redirect(
-                            url_for('core.graph_dashboard', object_name=session_to_edit.object_name,
-                                    session_id=session_id, location=session_to_edit.location_name))
-
                     log_file.seek(0, os.SEEK_END)
                     file_size = log_file.tell()
                     log_file.seek(0)
 
                     MAX_SIZE = 10 * 1024 * 1024  # 10 MB
-                    if file_size > MAX_SIZE:
-                        flash(_("PHD2 log file is too large. Maximum size is 10 MB."), "error")
-                        return redirect(
-                            url_for('core.graph_dashboard', object_name=session_to_edit.object_name,
-                                    session_id=session_id, location=session_to_edit.location_name))
-
-                    content = log_file.read().decode('utf-8', errors='ignore')
-                    path = save_log_to_filesystem(session_to_edit.id, 'phd2', content, log_file.filename)
-                    session_to_edit.phd2_log_content = path
-                    invalidate_cache = True
+                    if not log_file.filename.lower().endswith('.txt'):
+                        _flash_rejected_upload(action, _("PHD2 log file must be a .txt file."))
+                    elif file_size > MAX_SIZE:
+                        _flash_rejected_upload(action, _("PHD2 log file is too large. Maximum size is 10 MB."))
+                    else:
+                        content = log_file.read().decode('utf-8', errors='ignore')
+                        path = save_log_to_filesystem(session_to_edit.id, 'phd2', content, log_file.filename)
+                        session_to_edit.phd2_log_content = path
+                        invalidate_cache = True
 
             # NINA log upload with validation
+            nina_imported = False
             if 'nina_log' in request.files:
                 log_file = request.files['nina_log']
                 if log_file and log_file.filename != '':
-                    # Validate file extension
-                    if not log_file.filename.lower().endswith('.log'):
-                        flash(_("NINA log file must be a .log file."), "error")
-                        return redirect(
-                            url_for('core.graph_dashboard', object_name=session_to_edit.object_name,
-                                    session_id=session_id, location=session_to_edit.location_name))
-    
                     # Validate file size (10 MB max)
                     log_file.seek(0, os.SEEK_END)
                     file_size = log_file.tell()
                     log_file.seek(0)  # Reset to beginning for reading
     
                     MAX_SIZE = 10 * 1024 * 1024  # 10 MB
-                    if file_size > MAX_SIZE:
-                        flash(_("NINA log file is too large. Maximum size is 10 MB."), "error")
-                        return redirect(
-                            url_for('core.graph_dashboard', object_name=session_to_edit.object_name,
-                                    session_id=session_id, location=session_to_edit.location_name))
-    
-                    content = log_file.read().decode('utf-8', errors='ignore')
-                    path = save_log_to_filesystem(session_to_edit.id, 'nina', content, log_file.filename)
-                    session_to_edit.nina_log_content = path
-                    invalidate_cache = True
-                    flash(_("NINA log imported successfully."), "success")
+                    # Validate file extension
+                    if not log_file.filename.lower().endswith('.log'):
+                        _flash_rejected_upload(action, _("NINA log file must be a .log file."))
+                    elif file_size > MAX_SIZE:
+                        _flash_rejected_upload(action, _("NINA log file is too large. Maximum size is 10 MB."))
+                    else:
+                        content = log_file.read().decode('utf-8', errors='ignore')
+                        path = save_log_to_filesystem(session_to_edit.id, 'nina', content, log_file.filename)
+                        session_to_edit.nina_log_content = path
+                        invalidate_cache = True
+                        nina_imported = True
+                        flash(_("NINA log imported successfully."), "success")
     
             # Log deletion via checkbox
             if request.form.get('delete_asiair_log') == '1':
@@ -799,7 +779,7 @@ def journal_edit(session_id):
                 # save_close or no action (legacy): save as non-draft and redirect
                 session_to_edit.draft = False
                 db.commit()
-                if not request.files.get('nina_log') or request.files['nina_log'].filename == '':
+                if not nina_imported:
                     flash(_("Journal entry updated successfully!"), "success")
                 record_event('journal_session_edited')
                 # Fix: Pass the session's location to the redirect so the dashboard loads the correct context
