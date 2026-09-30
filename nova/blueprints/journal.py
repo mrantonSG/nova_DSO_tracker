@@ -914,7 +914,9 @@ def journal_duplicate(session_id):
         new_session = JournalSession()
 
         # Fields to EXCLUDE from copy
-        exclude_cols = {'id', 'external_id', 'session_image_file', '_sa_instance_state'}
+        # Moon values are date-specific; the copy gets today's date, so the edit form refetches them
+        exclude_cols = {'id', 'external_id', 'session_image_file', '_sa_instance_state',
+                        'moon_illumination_session', 'moon_angular_separation_session'}
 
         # Dynamically copy all other columns
         for col in source_session.__table__.columns:

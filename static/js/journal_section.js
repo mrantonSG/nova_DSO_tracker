@@ -312,7 +312,7 @@
             form.elements.location_name.value = window.selectedSessionData.location_name;
             console.log('[setupEditMode] Calling populateEditForm...');
             populateEditForm(window.selectedSessionData);
-            updateMoonData();
+            updateMoonData({ keepExisting: true });
         } else {
             console.error('[setupEditMode] No selectedSessionData found!');
         }
@@ -327,7 +327,9 @@
         window.location.href = url.toString();
     }
 
-    async function updateMoonData() {
+    async function updateMoonData(options) {
+        // keepExisting: only fill empty moon fields (Edit mode); listeners pass an Event, which never counts as options
+        const keepExisting = !!(options && !(options instanceof Event) && options.keepExisting);
         const dateInput = document.getElementById('session_date');
         const locationSelect = document.getElementById('location_name');
         if (!dateInput || !locationSelect) return;
@@ -357,8 +359,12 @@
             const data = await response.json();
 
             if (data.status === 'success') {
-                illumInput.value = data.moon_illumination !== null ? data.moon_illumination : '';
-                sepInput.value = data.angular_separation !== null ? data.angular_separation : '';
+                if (!keepExisting || illumInput.value === '') {
+                    illumInput.value = data.moon_illumination !== null ? data.moon_illumination : '';
+                }
+                if (!keepExisting || sepInput.value === '') {
+                    sepInput.value = data.angular_separation !== null ? data.angular_separation : '';
+                }
 
                 // Store duration globally for calculation
                 window.currentObsDurationMinutes = data.observable_duration_min || 0;
@@ -1161,8 +1167,10 @@
             if (form) form.style.display = 'none';
         }
 
-         if (wrapper && (wrapper.classList.contains('is-adding') || wrapper.classList.contains('is-editing'))) {
+         if (wrapper && wrapper.classList.contains('is-adding')) {
             updateMoonData();
+        } else if (wrapper && wrapper.classList.contains('is-editing')) {
+            updateMoonData({ keepExisting: true });
         }
 
         if(wrapper && wrapper.querySelector('.view-mode .detail-header')){
