@@ -430,16 +430,21 @@ def get_uploaded_image(username, filename):
     if nova.SINGLE_USER_MODE and username != "default":
         candidate_dirs.append(os.path.join(UPLOAD_FOLDER, "default"))
 
+    root = os.path.realpath(UPLOAD_FOLDER)
+
     for user_upload_dir in candidate_dirs:
-        base_dir = os.path.abspath(user_upload_dir)
-        target_path = os.path.abspath(os.path.join(user_upload_dir, filename))
+        user_dir = os.path.realpath(user_upload_dir)
+        if os.path.commonpath([root, user_dir]) != root or user_dir == root:
+            abort(404)
+
+        target_path = os.path.realpath(os.path.join(user_dir, filename))
 
         # Prevent path traversal
-        if not target_path.startswith(base_dir + os.sep):
+        if not target_path.startswith(user_dir + os.sep):
             continue
 
         if os.path.exists(target_path):
-            return send_from_directory(user_upload_dir, filename)
+            return send_from_directory(user_dir, filename)
 
     return "Not Found", 404
 
