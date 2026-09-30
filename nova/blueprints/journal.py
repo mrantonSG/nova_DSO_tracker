@@ -648,8 +648,14 @@ def journal_edit(session_id):
                 old_image = session_to_edit.session_image_file
                 if old_image:
                     user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+                    user_upload_root = os.path.realpath(user_upload_dir)
                     old_image_path = os.path.join(user_upload_dir, old_image)
-                    if os.path.exists(old_image_path):
+                    try:
+                        is_within_user_dir = os.path.commonpath(
+                            [os.path.realpath(old_image_path), user_upload_root]) == user_upload_root
+                    except ValueError:
+                        is_within_user_dir = False
+                    if is_within_user_dir and os.path.isfile(old_image_path):
                         try:
                             os.remove(old_image_path)
                         except Exception as e:
@@ -962,8 +968,14 @@ def journal_delete(session_id):
         object_name_redirect = session_to_delete.object_name
         # Delete associated image file
         if session_to_delete.session_image_file:
+            user_upload_root = os.path.realpath(os.path.join(UPLOAD_FOLDER, username))
             image_path = os.path.join(UPLOAD_FOLDER, username, session_to_delete.session_image_file)
-            if os.path.exists(image_path):
+            try:
+                is_within_user_dir = os.path.commonpath(
+                    [os.path.realpath(image_path), user_upload_root]) == user_upload_root
+            except ValueError:
+                is_within_user_dir = False
+            if is_within_user_dir and os.path.isfile(image_path):
                 os.remove(image_path)
 
         db.delete(session_to_delete)
