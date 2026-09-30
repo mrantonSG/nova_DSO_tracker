@@ -241,25 +241,31 @@
        JOURNAL SPLIT PANE - FACELIFT
        ================================================================ */
 
-    .journal-container { display: flex; gap: 0; align-items: flex-start; }
+    .journal-container { display: flex; gap: 20px; align-items: flex-start; }
 
-    /* FACELIFT: Sticky Left Column (Session List) */
+    /* Session History card: sticky, as tall as its content; scrolls only once it outgrows the viewport */
     .session-list-column {
-        flex: 0 0 420px;
+        flex: 0 0 300px;
+        min-width: 0;
         position: sticky;
         top: 20px;
-        max-height: calc(100vh - 40px);
+        max-height: calc(100vh - 20px - 20px);   /* sticky top + 20px bottom gap: long lists scroll inside the card */
         overflow-y: auto;
-        border-right: 1px solid var(--nova-border, var(--border-medium));
-        background: var(--nova-surface-alt, var(--bg-light));
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color, #e5e2dc);
+        border-radius: 10px;
     }
 
-    /* FACELIFT: Right Column (Session Detail Form) */
+    /* Detail card. overflow: clip (not hidden) rounds the corners without making the card a
+       scroll container, so the sticky edit header keeps sticking to the viewport */
     .session-detail-column {
         flex: 1 1 auto;
         min-width: 0;                        /* flex item may shrink below its content: no page overflow at ~1000px */
-        padding: 0 24px 24px 24px;
-        background: var(--nova-surface, var(--bg-white));
+        padding: 20px 24px 24px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color, #e5e2dc);
+        border-radius: 10px;
+        overflow: clip;
     }
 
     /* Detail tabs container - grows on zoom, scrolls before collision */
@@ -409,27 +415,21 @@
         flex-direction: column;
         gap: 12px;
         padding: 16px;
-        border-bottom: 1px solid var(--nova-border-light, var(--border-light));
+        border-bottom: 1px solid var(--border-light);
     }
 
     .history-header h4 {
         font-size: 13px;
         font-weight: 600;
-        color: var(--nova-text, var(--text-primary));
+        color: var(--text-primary);
         margin: 0;
     }
 
-    /* FACELIFT: Full-width buttons in history header */
-    .history-header .inline-button {
-        width: 100%;
-        font-size: 12px;
-        font-weight: 600;
-        padding: 8px 14px;
-        margin-right: 0;
-        border-radius: 6px;
-        cursor: pointer;
-        transition: all 0.15s ease;
-        text-align: center;
+    .history-header-actions { display: flex; flex-direction: column; gap: 8px; }
+    .history-add-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
     }
 
     .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em; }
@@ -513,120 +513,104 @@
     .form-group.full-width { flex-basis: 100%; }
     .form-group.full-width label { width: auto; }
 
-    /* FACELIFT: Session History Table */
-    .session-history-table {
+    /* FACELIFT: Session History list — table markup, row layout.
+       Scoped to .journal-container to beat graph_view.css / objects_section.css table rules. */
+    .journal-container .session-history-table {
         width: 100%;
+        margin: 0;
         border-collapse: collapse;
         font-size: 13px;
     }
-
-    .session-history-table th,
-    .session-history-table td {
+    .journal-container .session-history-table th,
+    .journal-container .session-history-table td {
         border: none !important;
         padding: 0;
         text-align: left;
         vertical-align: middle;
+        background: transparent;
     }
+    .journal-container .session-history-table thead { display: none; }   /* rows carry their own layout */
 
-    /* FACELIFT: Session rows in list */
-    .session-history-table tbody tr.clickable-session-row,
-    .session-history-table tbody tr.project-header-clickable {
-        padding: 10px 16px;
-        border-bottom: 1px solid var(--nova-border-light, var(--border-light-alt2));
+    /* Group label: "PROJECT NAME · 16.8 H" */
+    .journal-container .session-history-table th[colspan="3"] {
+        padding: 12px 16px 6px;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+        color: var(--text-muted);
+    }
+    .journal-container .session-history-table tbody tr:not(:first-child) > th[colspan="3"] {
+        border-top: 1px solid var(--border-light) !important;
+    }
+    .journal-container .session-history-table .group-hours {
+        font-family: var(--font-mono, 'DM Mono', monospace);
+        letter-spacing: 0.02em;
+    }
+    .journal-container .session-history-table th.project-header-clickable {
         cursor: pointer;
         transition: background 0.1s ease;
-        display: flex;
-        align-items: stretch;
+    }
+    .journal-container .session-history-table th.project-header-clickable:hover {
+        background: var(--hover-bg) !important;
     }
 
-    .session-history-table tbody tr.clickable-session-row:hover {
-        background: var(--nova-row-hover, var(--bg-light-gray));
-    }
-
-    /* FACELIFT: Active/selected session row */
-    .session-history-table tbody tr.current-session-item {
-        background: var(--nova-accent-bg, var(--highlight-blue)) !important;
-        border-left: 2px solid var(--nova-accent, var(--primary-color));
-        padding-left: 14px;
-    }
-
-    /* FACELIFT: Project header row */
-    .session-history-table th[colspan="3"] {
-        padding: 8px 16px;
-        background: var(--nova-surface-alt, var(--border-light-alt3));
-        border-bottom: 1px solid var(--nova-border, var(--border-medium));
-        border-top: 2px solid var(--nova-border, var(--border-medium));
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        color: var(--nova-text-2, var(--text-secondary));
-    }
-
-    .session-history-table th[colspan="3"].project-header-clickable {
-        background: var(--nova-surface-alt, var(--bg-light-gray));
-    }
-
-    .session-history-table th[colspan="3"].project-header-clickable:hover {
-        background: var(--nova-row-hover, var(--info-bg-light)) !important;
-    }
-
-    .session-history-table th[colspan="3"].current-project-item {
-        background: var(--nova-accent-bg, var(--highlight-blue)) !important;
-        border-left: 2px solid var(--nova-accent, var(--link-color));
-        padding-left: 14px;
-    }
-
-    /* FACELIFT: Date in session row */
-    .session-history-table td.col-date {
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--nova-text, var(--text-primary));
-        flex: 1;
-        min-width: 140px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        padding: 10px 0 10px 16px;
-    }
-
-    .session-history-table td.col-date small {
-        font-size: 11px;
-        color: var(--nova-text-3, var(--text-tertiary));
-        font-weight: 400;
-    }
-
-    .session-history-table td.col-integ,
-    .session-history-table td.col-rating {
-        width: auto;
-        text-align: left;
+    /* Session row: date + location left, "320 min · 4★" right */
+    .journal-container .session-history-table tbody tr.clickable-session-row {
         display: flex;
         align-items: center;
-        padding: 10px 16px 10px 0;
-        font-size: 12px;
-        font-family: var(--nova-font-mono, 'DM Mono', monospace);
-        color: var(--nova-text-2, var(--text-secondary));
-    }
-
-    .session-history-table th.col-date,
-    .session-history-table th.col-integ,
-    .session-history-table th.col-rating {
-        display: none; /* Hide table headers, using row-based layout */
-    }
-
-    /* Styles for the Journal Project View */
-    .project-header-clickable {
+        padding: 12px 16px;
+        border-top: 1px solid var(--border-light);
+        font-weight: 400;
         cursor: pointer;
-        transition: background-color 0.2s;
-        background-color: var(--bg-light-gray);
-        border-top: 2px solid var(--border-medium) !important;
+        transition: background 0.1s ease;
     }
-    .project-header-clickable:hover {
-        background-color: var(--info-bg-light) !important;
+    .journal-container .session-history-table tbody tr.clickable-session-row:hover {
+        background: var(--hover-bg);
     }
-    .current-project-item {
-        background-color: var(--highlight-blue) !important;
-        border-left: 4px solid var(--link-color);
+    .journal-container .session-history-table td.col-date {
+        flex: 1 1 auto;
+        width: auto;                         /* beats graph_view.css td.col-date { width: 120px } */
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding-right: 12px;
+        font-family: var(--font-mono, 'DM Mono', monospace);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-primary);
     }
+    .journal-container .session-history-table .session-row-location {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-family: 'DM Sans', 'Roboto', system-ui, sans-serif;
+        font-size: 11px;
+        font-weight: 400;
+        color: var(--text-secondary);
+    }
+    .journal-container .session-history-table .session-row-editing { display: none; }
+    .journal-container .session-history-table tr.is-edit-target .session-row-editing { display: inline; }
+    .journal-container .session-history-table td.col-integ,
+    .journal-container .session-history-table td.col-rating {
+        flex: 0 0 auto;
+        width: auto;                         /* beats graph_view.css td.col-integ/col-rating { width: 100px } */
+        white-space: nowrap;
+        font-family: var(--font-mono, 'DM Mono', monospace);
+        font-size: 12px;
+        font-weight: 400;
+        color: var(--text-secondary);
+    }
+    .journal-container .session-history-table td.col-rating:empty { display: none; }
+
+    /* Active session / project */
+    .journal-container .session-history-table tbody tr.clickable-session-row.current-session-item,
+    .journal-container .session-history-table th[colspan="3"].current-project-item {
+        background: var(--primary-bg) !important;
+        box-shadow: inset 2px 0 0 var(--primary-color);
+    }
+
     .journal-project-stat-box {
         padding: 12px; background-color: var(--border-light-alt3); border-radius: 6px; text-align: center; margin-bottom: 15px;
     }
@@ -670,17 +654,6 @@
     /* ===================================================================
        DARK MODE OVERRIDES
        ================================================================ */
-
-    /* FACELIFT: Session list column */
-    [data-theme="dark"] .session-list-column {
-        border-right-color: var(--nova-border, rgba(255,255,255,0.07));
-        background: var(--nova-surface-alt, var(--bg-dark-primary));
-    }
-
-    /* FACELIFT: Session detail column */
-    [data-theme="dark"] .session-detail-column {
-        background: var(--nova-surface, var(--bg-dark-secondary));
-    }
 
     [data-theme="dark"] .session-list-column h4,
     [data-theme="dark"] .session-detail-column h4 {
@@ -747,66 +720,6 @@
     [data-theme="dark"] .form-section-title {
         color: var(--text-primary);
         border-bottom-color: var(--border-medium);
-    }
-
-    /* FACELIFT: Session history table */
-    [data-theme="dark"] .session-history-table th,
-    [data-theme="dark"] .session-history-table td {
-        color: var(--nova-text, rgba(255,255,255,0.92));
-    }
-
-    [data-theme="dark"] .session-history-table th[colspan="3"] {
-        background: var(--nova-surface-alt, var(--bg-dark-primary));
-        border-bottom-color: var(--nova-border, rgba(255,255,255,0.07));
-        border-top-color: var(--nova-border, rgba(255,255,255,0.12));
-        color: var(--nova-text-2, rgba(255,255,255,0.55));
-    }
-
-    [data-theme="dark"] .session-history-table th[colspan="3"].project-header-clickable {
-        background: var(--nova-surface-alt, var(--bg-dark-primary));
-    }
-
-    [data-theme="dark"] .session-history-table th[colspan="3"].project-header-clickable:hover {
-        background: var(--nova-row-hover, rgba(122,175,192,0.06)) !important;
-    }
-
-    [data-theme="dark"] .session-history-table tr.clickable-session-row:hover {
-        background: var(--nova-row-hover, rgba(122,175,192,0.06));
-    }
-
-    [data-theme="dark"] .session-history-table tr.current-session-item {
-        background: var(--nova-accent-bg, rgba(122,175,192,0.08)) !important;
-        border-left-color: var(--nova-accent, #7aafc0);
-    }
-
-    [data-theme="dark"] .session-history-table td.col-date {
-        color: var(--nova-text, rgba(255,255,255,0.92));
-    }
-
-    [data-theme="dark"] .session-history-table td.col-date small {
-        color: var(--nova-text-3, rgba(255,255,255,0.30));
-    }
-
-    [data-theme="dark"] .session-history-table td.col-integ,
-    [data-theme="dark"] .session-history-table td.col-rating {
-        color: var(--nova-text-2, rgba(255,255,255,0.55));
-    }
-
-    /* FACELIFT: History header buttons */
-    [data-theme="dark"] .history-header {
-        border-bottom-color: var(--nova-border-light, rgba(255,255,255,0.04));
-    }
-
-    /* Project header */
-    [data-theme="dark"] .project-header-clickable {
-        background-color: var(--bg-medium);
-    }
-    [data-theme="dark"] .project-header-clickable:hover {
-        background-color: var(--bg-medium-alt) !important;
-    }
-    [data-theme="dark"] .current-project-item {
-        background-color: var(--nova-accent-bg, rgba(122,175,192,0.08)) !important;
-        border-left-color: var(--nova-accent, #7aafc0);
     }
 
     /* Journal project stat box */
@@ -1322,7 +1235,8 @@
        JOURNAL OBJECT SWITCHER - SIDEBAR BUTTON
        ================================================================ */
 
-    .journal-switcher-btn {
+    .journal-switcher-btn,
+    .history-add-btn {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1338,13 +1252,15 @@
       font-weight: 500;
       font-family: 'DM Sans', sans-serif;
       cursor: pointer;
-      margin-bottom: 10px;
+      white-space: nowrap;
       transition: background 0.15s ease;
     }
-    .journal-switcher-btn:hover {
+    .journal-switcher-btn:hover,
+    .history-add-btn:hover {
       background: var(--bg-tertiary);
     }
-    [data-theme="dark"] .journal-switcher-btn {
+    [data-theme="dark"] .journal-switcher-btn,
+    [data-theme="dark"] .history-add-btn {
       color: rgba(255,255,255,0.55);
       border-color: rgba(255,255,255,0.15);
     }
@@ -2047,7 +1963,7 @@
 
     /* REDESIGN pass 3: mockup parity (edit/add session form only) */
     /* Form runs edge to edge in the detail column; header and panels carry the 24px inset */
-    #journal-detail-form { margin: 0 -24px; }
+    #journal-detail-form { margin: -20px -24px 0; }   /* header sits flush with the card top */
     .is-editing #journal-detail-form > .detail-header,
     .is-adding #journal-detail-form > .detail-header { padding: 10px 24px 0; }
     #journal-detail-form .form-tab-panel { padding: 22px 24px 28px; }
@@ -2062,6 +1978,30 @@
         font-size: 15px;
         font-weight: 600;
         color: var(--text-primary);
+    }
+    #journal-detail-form .form-title-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 2px 14px;
+        min-width: 0;
+    }
+    #journal-detail-form .form-unsaved-marker {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: var(--text-muted);
+        white-space: nowrap;
+    }
+    #journal-detail-form .form-unsaved-marker[hidden] { display: none; }
+    #journal-detail-form .form-unsaved-marker::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        flex-shrink: 0;
     }
     #journal-detail-form .form-detail-meta {
         font-family: var(--font-mono, 'DM Mono', monospace);
@@ -2226,13 +2166,15 @@
     <div class="session-list-column">
         <div class="history-header">
             <h4>{{ _('Session History') }}</h4>
-            <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="history-header-actions">
                 <button id="journal-switcher-trigger" class="journal-switcher-btn">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                   {{ _('Switch Object') }}
                 </button>
-                <button type="button" class="btn-secondary block" data-action="add-project">{{ _('Add New Project') }}</button>
-                <button type="button" class="btn-secondary block" data-action="add-session">{{ _('Add New Session') }}</button>
+                <div class="history-add-actions">
+                    <button type="button" class="history-add-btn" data-action="add-project" title="{{ _('Add New Project') }}">{{ _('+ Project') }}</button>
+                    <button type="button" class="history-add-btn" data-action="add-session" title="{{ _('Add New Session') }}">{{ _('+ Session') }}</button>
+                </div>
             </div>
         </div>
         <div class="table-wrapper" style="border: none; border-radius: 0; box-shadow: none; background: transparent;">
@@ -2244,7 +2186,6 @@
                         <th colspan="3"
                             class="{{ 'project-header-clickable' if group.is_project else '' }} {{ 'current-project-item' if group.is_project and group.project_id|string == current_project_id|string else '' }} {{ 'project-group-expanded' if group.is_latest else 'project-group-collapsed' if group.is_project else '' }}"
                             {% if group.is_project %}data-project-id="{{ group.project_id }}"{% endif %}
-                            style="padding: 8px 5px; border-top: 1px solid var(--text-lighter);"
                             {% if group.is_project %}
                             {# Fix: Pass current location to prevent fallback to default #}
                             data-action="load-session"
@@ -2253,8 +2194,7 @@
                             {% endif %}
                         >
                             {% if group.is_project %}{% set project_total_h = (group.total_integration_time / 60) | round(1) %}
-                                {{ _('Project:') }} {{ group.project_name }}
-                                {% if project_total_h > 0 %}<span style="font-weight: normal; color: var(--text-quaternary); font-size: 0.9em; margin-left: 8px;">({{ _('Total:') }} {{ project_total_h }}h)</span>{% endif %}
+                                {{ group.project_name }}{% if project_total_h > 0 %} · <span class="group-hours">{{ project_total_h }} h</span>{% endif %}
                             {% else %}{{ group.project_name }}{% endif %}
                         </th>
                     </tr>
@@ -2264,9 +2204,10 @@
                             style="{% if not group.is_project %}{% elif not group.is_latest %}display: none;{% endif %}"
                             data-action="load-session"
                             data-url="{% if session_item.location_name %}{{ url_for('core.graph_dashboard', object_name=object_name, session_id=session_item.id, location=session_item.location_name, tab='journal') }}{% else %}{{ url_for('core.graph_dashboard', object_name=object_name, session_id=session_item.id, tab='journal') }}{% endif %}">
-                            <td class="col-date">{{ session_item.date_utc | date_eu | default("-") }}<br><small style="color:var(--text-secondary);">{{ session_item.location_name | default("-") }}</small></td>
-                            <td class="col-integ">{% set integ_min = session_item.calculated_integration_time_minutes %}{{ integ_min | round(0) if integ_min is number else '-' }} {{ _('min') }}</td>
-                            <td class="col-rating">{{ session_item.session_rating_subjective | default("-") }}{% if session_item.session_rating_subjective %} ★{% endif %}</td>
+                            <td class="col-date">{{ session_item.date_utc | date_eu | default("-", true) }}<span class="session-row-location">{{ session_item.location_name | default("-", true) }}</span></td>
+                            <td class="col-integ">{% set integ_min = session_item.calculated_integration_time_minutes %}{{ integ_min | round(0) | int if integ_min is number else '-' }} {{ _('min') }}</td>
+                            {% set rating = session_item.session_rating_subjective %}
+                            <td class="col-rating">{%- if rating and rating | string | lower != 'none' -%}&nbsp;·&nbsp;{{ rating }}★{%- endif -%}</td>
                         </tr>
                     {% endfor %}
                 {% endfor %}
@@ -2916,11 +2857,14 @@
                   data-object-ra="{{ object_main_details['RA (hours)'] | default('', True) }}"
                   data-object-dec="{{ object_main_details['DEC (degrees)'] | default('', True) }}">
                  <div class="detail-header">
-                    <h4 id="form-detail-title">{{ _('Editing session') }}</h4>
+                    <div class="form-title-row">
+                        <h4 id="form-detail-title">{{ _('Editing session') }}</h4>
+                        <span class="form-unsaved-marker" hidden>{{ _('Unsaved changes') }}</span>
+                    </div>
                     <div class="journal-form-actions">
+                        <button id="form-cancel-button" type="button" class="inline-button" style="background-color:var(--accent-gray-medium);" data-action="cancel-form">{{ _('Cancel') }}</button>
                         <button type="button" id="form-save-draft-button" data-action="save-draft" class="inline-button inline-button-ghost">{{ _('Save Draft') }}</button>
                         <button type="submit" id="form-submit-button" data-action="save-close" class="inline-button">{{ _('Save & Close') }}</button>
-                        <button id="form-cancel-button" type="button" class="inline-button" style="background-color:var(--accent-gray-medium);" data-action="cancel-form">{{ _('Cancel') }}</button>
                     </div>
                     <div class="form-tabs" role="tablist">
                         <button type="button" class="form-tab-button is-active" role="tab" aria-selected="true" data-form-tab="overview">{{ _('Overview') }}</button>
@@ -3309,6 +3253,7 @@ const journalI18n = {
   removeRow:             {{ _("Remove row") | tojson }},
   noProjectLinked:       {{ _("No project linked") | tojson }},
   removeProject:         {{ _("Remove {name}") | tojson }},
+  editing:               {{ _("editing") | tojson }},
 };
 
 (function() {
@@ -3700,6 +3645,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 // Show feedback
                 saveDraftBtn.textContent = journalI18n.draftSaved;
+                document.dispatchEvent(new CustomEvent('journal:draft-saved'));   // clears the "Unsaved changes" marker
                 setTimeout(function() {
                     saveDraftBtn.textContent = originalText;
                     saveDraftBtn.disabled = false;

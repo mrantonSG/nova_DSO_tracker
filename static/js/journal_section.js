@@ -283,6 +283,46 @@
         renderFormTitle(titleEl, form.dataset.editHeading || 'Editing session', meta);
     }
 
+    // --- Form-open state: "Unsaved changes" marker + " · editing" on the active sidebar row ---
+    function setUnsavedMarker(show) {
+        const marker = document.querySelector('#journal-detail-form .form-unsaved-marker');
+        if (marker) marker.hidden = !show;
+    }
+
+    function setSidebarEditingRow(isEditing) {
+        document.querySelectorAll('.clickable-session-row.is-edit-target').forEach(r => r.classList.remove('is-edit-target'));
+        if (!isEditing) return;
+        const row = document.querySelector('.clickable-session-row.current-session-item');
+        const loc = row && row.querySelector('.session-row-location');
+        if (!loc) return;
+        if (!loc.querySelector('.session-row-editing')) {
+            const suffix = document.createElement('span');
+            suffix.className = 'session-row-editing';
+            suffix.textContent = ' · ' + jt('editing', 'editing');
+            loc.appendChild(suffix);
+        }
+        row.classList.add('is-edit-target');
+    }
+
+    // Not edits: the project filter box, and the custom filter name (saved by its own request)
+    const UNSAVED_IGNORE = '.project-picker-filter, #custom-filter-name-input';
+
+    function attachUnsavedChangesListeners() {
+        // Delegated: the form lives inside .session-detail-column, which loadSessionViaAjax replaces
+        const markDirty = function(e) {
+            if (!(e.target instanceof Element) || !e.target.closest('#journal-detail-form')) return;
+            if (e.target.matches(UNSAVED_IGNORE)) return;
+            setUnsavedMarker(true);
+        };
+        document.addEventListener('input', markDirty);
+        document.addEventListener('change', markDirty);
+        // Trix: count only edits made while focused (loadHTML during populate also fires trix-change)
+        document.addEventListener('trix-change', function(e) {
+            if (document.activeElement === e.target) markDirty(e);
+        });
+        document.addEventListener('journal:draft-saved', function() { setUnsavedMarker(false); });
+    }
+
     function setupAddMode() {
         const wrapper = document.getElementById('session-detail-wrapper');
         const form = document.getElementById('journal-detail-form');
@@ -336,6 +376,8 @@
         const fileInput = form.elements['session_image']; if(fileInput) fileInput.value = '';
 
         renderFormTitle(formDetailTitle, form.dataset.newHeading || window.t('add_new_session'), form.dataset.objectId);
+        setUnsavedMarker(false);
+        setSidebarEditingRow(false);
 
         cancelButton.onclick = cancelForm;
 
@@ -386,6 +428,8 @@
         } else {
             console.error('[setupEditMode] No selectedSessionData found!');
         }
+        setUnsavedMarker(false);
+        setSidebarEditingRow(true);
 
         cancelButton.onclick = cancelForm;
     }
@@ -1251,6 +1295,7 @@
         // UI Feedback: Reset all highlights first
         document.querySelectorAll('.clickable-session-row').forEach(r => r.classList.remove('current-session-item'));
         document.querySelectorAll('.project-header-clickable').forEach(r => r.classList.remove('current-project-item'));
+        setSidebarEditingRow(false);   // the swapped-in detail column opens in view mode
 
         // Apply highlight based on the type of element clicked
         if (rowElement) {
@@ -1539,6 +1584,8 @@
             showDetailTab('summary');
         }
 
+        setUnsavedMarker(false);
+        setSidebarEditingRow(!!startInEditMode);
         refreshSessionFormWidgets();
     }
 
@@ -1549,6 +1596,7 @@
         attachInputListeners();
         attachFormTabListeners();
         attachSessionFormWidgetListeners();
+        attachUnsavedChangesListeners();
         initializeFormState();
     });
 
