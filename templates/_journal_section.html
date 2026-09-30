@@ -1872,14 +1872,22 @@
     #journal-detail-form .filter-add-menu {
         position: absolute;
         top: calc(100% + 4px);
-        left: 0;
+        right: 0;                            /* right-aligned: the toggle sits at the card's right edge */
+        left: auto;
         z-index: var(--z-layer-2, 3);        /* stays below the sticky form header (--z-layer-3) */
         min-width: 180px;
+        max-height: 280px;                   /* last resort: "Custom…" stays reachable in tight space */
+        overflow-y: auto;
         padding: 4px;
         background: var(--bg-secondary);
         border: 1px solid var(--border-color, #d0cdc8);
         border-radius: 6px;
         box-shadow: var(--shadow-md);
+    }
+    /* Opened upward when the space below (card's overflow: clip / viewport) is too short */
+    #journal-detail-form .filter-add-menu.filter-add-menu--up {
+        top: auto;
+        bottom: calc(100% + 4px);
     }
     #journal-detail-form .filter-add-menu[hidden] { display: none; }
     #journal-detail-form .filter-add-menu button {

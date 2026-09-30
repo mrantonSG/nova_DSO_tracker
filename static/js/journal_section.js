@@ -727,6 +727,17 @@
             items.appendChild(item);
         });
         menu.hidden = false;
+        // Open upward if the menu doesn't fit between the toggle and the bottom of the
+        // clipping detail card / viewport; direction is re-measured on every open
+        menu.classList.remove('filter-add-menu--up');
+        const card = toggle.closest('.session-detail-column');
+        const t = toggle.getBoundingClientRect();
+        const c = card ? card.getBoundingClientRect() : { top: 0, bottom: window.innerHeight };
+        const spaceBelow = Math.min(c.bottom, window.innerHeight) - t.bottom - 4;
+        const spaceAbove = t.top - Math.max(c.top, 0) - 4;
+        if (menu.offsetHeight > spaceBelow && spaceAbove > spaceBelow) {
+            menu.classList.add('filter-add-menu--up');
+        }
         toggle.setAttribute('aria-expanded', 'true');
         menu.querySelector('button')?.focus();
     }
