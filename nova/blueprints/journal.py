@@ -312,26 +312,35 @@ def journal_add():
                         user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
                         os.makedirs(user_upload_dir, exist_ok=True)
                         saved_image_path = os.path.join(user_upload_dir, new_filename)
-                        file.save(saved_image_path)
-                        new_session.session_image_file = new_filename
-
-                        # Best-effort thumbnail generation — must not fail the request
-                        # or roll back the original upload if it errors (corrupt image,
-                        # unsupported format, etc).
+                        upload_root = os.path.realpath(UPLOAD_FOLDER)
                         try:
-                            thumb_path = os.path.join(user_upload_dir, f"thumb_{new_filename}")
-                            with Image.open(saved_image_path) as img:
-                                img.thumbnail((480, 480))
-                                if file_extension in ('jpg', 'jpeg'):
-                                    img.save(thumb_path, quality=85)
-                                elif file_extension == 'png':
-                                    img.save(thumb_path, optimize=True)
-                                else:
-                                    img.save(thumb_path)
-                        except Exception as thumb_err:
-                            current_app.logger.warning(
-                                f"[JOURNAL] Failed to generate thumbnail for session image '{new_filename}': {thumb_err}"
-                            )
+                            is_within_uploads = os.path.commonpath(
+                                [os.path.realpath(saved_image_path), upload_root]) == upload_root
+                        except ValueError:
+                            is_within_uploads = False
+                        if not is_within_uploads:
+                            _flash_rejected_upload(action, _("Invalid session image filename."))
+                        else:
+                            file.save(saved_image_path)
+                            new_session.session_image_file = new_filename
+
+                            # Best-effort thumbnail generation — must not fail the request
+                            # or roll back the original upload if it errors (corrupt image,
+                            # unsupported format, etc).
+                            try:
+                                thumb_path = os.path.join(user_upload_dir, f"thumb_{new_filename}")
+                                with Image.open(saved_image_path) as img:
+                                    img.thumbnail((480, 480))
+                                    if file_extension in ('jpg', 'jpeg'):
+                                        img.save(thumb_path, quality=85)
+                                    elif file_extension == 'png':
+                                        img.save(thumb_path, optimize=True)
+                                    else:
+                                        img.save(thumb_path)
+                            except Exception as thumb_err:
+                                current_app.logger.warning(
+                                    f"[JOURNAL] Failed to generate thumbnail for session image '{new_filename}': {thumb_err}"
+                                )
 
             # --- Log file uploads (stored on filesystem, path in DB) ---
             # Read content first, we'll save after commit when we have the session ID
@@ -693,8 +702,18 @@ def journal_edit(session_id):
                         new_filename = f"{session_to_edit.id}.{file_extension}"
                         user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
                         os.makedirs(user_upload_dir, exist_ok=True)
-                        file.save(os.path.join(user_upload_dir, new_filename))
-                        session_to_edit.session_image_file = new_filename
+                        saved_image_path = os.path.join(user_upload_dir, new_filename)
+                        upload_root = os.path.realpath(UPLOAD_FOLDER)
+                        try:
+                            is_within_uploads = os.path.commonpath(
+                                [os.path.realpath(saved_image_path), upload_root]) == upload_root
+                        except ValueError:
+                            is_within_uploads = False
+                        if not is_within_uploads:
+                            _flash_rejected_upload(action, _("Invalid session image filename."))
+                        else:
+                            file.save(saved_image_path)
+                            session_to_edit.session_image_file = new_filename
 
             # --- Log file handling (stored as TEXT in DB) ---
             # Track if we need to invalidate the analysis cache
