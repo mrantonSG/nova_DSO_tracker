@@ -5690,3 +5690,7 @@ msgstr ""
 #~ msgid "In Progress only"
 #~ msgstr "Solo en progreso"
 
+#: nova/blueprints/admin.py:58
+msgid "Username may only contain letters, digits, _ . - (max 80), and cannot start with . or -."
+msgstr "El nombre de usuario solo puede contener letras, dígitos y _ . - (máx. 80) y no puede empezar por . ni -."
+

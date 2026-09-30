@@ -5553,3 +5553,7 @@ msgstr "用户已删除，但部分数据无法移除。请查看服务器日志
 #~ msgid "In Progress only"
 #~ msgstr "仅进行中"
 
+#: nova/blueprints/admin.py:58
+msgid "Username may only contain letters, digits, _ . - (max 80), and cannot start with . or -."
+msgstr "用户名只能包含字母、数字和 _ . -（最多 80 个字符），且不能以 . 或 - 开头。"
+

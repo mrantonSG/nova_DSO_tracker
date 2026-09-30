@@ -5558,3 +5558,7 @@ msgstr "ユーザーは削除されましたが、一部のデータを削除で
 #~ msgid "In Progress only"
 #~ msgstr "進行中のみ"
 
+#: nova/blueprints/admin.py:58
+msgid "Username may only contain letters, digits, _ . - (max 80), and cannot start with . or -."
+msgstr "ユーザー名には英字、数字、_ . - のみ使用できます（最大80文字）。また、. または - で始めることはできません。"
+
