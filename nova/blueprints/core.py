@@ -2147,7 +2147,8 @@ def graph_dashboard(object_name):
         }
 
         # --- 5. Handle Journal Data ---
-        requested_session_id = request.args.get('session_id')
+        # Add mode (?add=true) renders a blank session form; the session_id stays in the URL only so Cancel can return to it
+        requested_session_id = None if request.args.get('add') == 'true' else request.args.get('session_id')
         requested_project_id_journal = request.args.get('project_id')
 
         # Auto-select the primary project if no specific session/project is requested

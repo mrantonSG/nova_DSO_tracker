@@ -1675,7 +1675,7 @@
     </div>
 
     <div class="session-detail-column">
-        <div id="session-detail-wrapper" class="{{ 'is-editing' if request.args.get('edit') == 'true' else '' }}">
+        <div id="session-detail-wrapper" class="{{ 'is-editing' if request.args.get('edit') == 'true' else ('is-adding' if request.args.get('add') == 'true' else '') }}">
 
             {# --- VIEW MODE: SESSION SELECTED --- #}
             {% if selected_session_data %}

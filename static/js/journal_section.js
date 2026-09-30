@@ -279,10 +279,20 @@
         if (titleText) formDetailTitle.textContent = titleText;
         else formDetailTitle.textContent = window.t('add_new_session');
 
-        cancelButton.onclick = () => window.location.reload();
+        cancelButton.onclick = cancelForm;
 
         updateMoonData();
         toggleNewProjectField();
+    }
+
+    // Add mode is always rendered by the server (?add=true) so the form never
+    // inherits the viewed session's values, rig, custom filters or uploaded logs.
+    function navigateToAddMode() {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('edit');
+        url.searchParams.set('tab', 'journal');
+        url.searchParams.set('add', 'true');
+        window.location.href = url.toString();
     }
 
     function setupEditMode() {
@@ -321,9 +331,10 @@
     }
 
     function cancelForm() {
-        // Remove 'edit' parameter to ensure we return to View Mode (fixes loop after Duplicate)
+        // Remove 'edit'/'add' parameters to ensure we return to View Mode (fixes loop after Duplicate)
         const url = new URL(window.location.href);
         url.searchParams.delete('edit');
+        url.searchParams.delete('add');
         window.location.href = url.toString();
     }
 
@@ -988,7 +999,7 @@
                 case 'add-session':
                     console.log('[JOURNAL_SECTION] add-session');
                     e.preventDefault();
-                    setupAddMode();
+                    navigateToAddMode();
                     break;
                 case 'add-project':
                     console.log('[JOURNAL_SECTION] add-project');
@@ -1168,7 +1179,7 @@
         }
 
          if (wrapper && wrapper.classList.contains('is-adding')) {
-            updateMoonData();
+            setupAddMode();
         } else if (wrapper && wrapper.classList.contains('is-editing')) {
             updateMoonData({ keepExisting: true });
         }

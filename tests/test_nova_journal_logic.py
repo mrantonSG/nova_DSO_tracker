@@ -8,8 +8,9 @@ from contextlib import contextmanager
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from nova import (
-    app, DbUser, AstroObject, Project, JournalSession
+    app, DbUser, AstroObject, Project, JournalSession, Component, Rig
 )
+from nova.models import UserCustomFilter
 
 
 @contextmanager
@@ -215,3 +216,41 @@ def test_journal_add_links_existing_and_new_project_together(client, db_session)
     new_sess = db_session.query(JournalSession).filter_by(user_id=user.id, object_name="NGC 5678").one()
     assert {p.id for p in new_sess.projects} == {"existing-proj-1", new_proj.id}
     assert new_sess.project_id == "existing-proj-1"
+
+
+def test_graph_dashboard_add_mode_ignores_selected_session(client, db_session):
+    """?add=true renders a blank session form even when session_id points at a filled session."""
+    user = db_session.query(DbUser).filter_by(username="default").one()
+    scope = Component(user_id=user.id, kind="telescope", name="Add Scope", aperture_mm=80, focal_length_mm=400)
+    cam = Component(user_id=user.id, kind="camera", name="Add Cam", sensor_width_mm=20, sensor_height_mm=15, pixel_size_um=3.8)
+    db_session.add_all([scope, cam])
+    db_session.commit()
+    rig = Rig(user_id=user.id, rig_name="Add Mode Rig", telescope_id=scope.id, camera_id=cam.id)
+    db_session.add_all([rig, UserCustomFilter(user_id=user.id, filter_key="NBX", filter_label="NB-X")])
+    db_session.commit()
+    sess = JournalSession(
+        user_id=user.id, date_utc=date(2025, 3, 3), object_name="M42",
+        rig_id_snapshot=rig.id,
+        custom_filter_data='{"filter_NBX_subs": 4321, "filter_NBX_exposure_sec": 987}',
+        asiair_log_content="asiair.log", phd2_log_content="phd2.log", nina_log_content="nina.log",
+    )
+    db_session.add(sess)
+    db_session.commit()
+    rig_selected = f'value="{rig.id}" selected'.encode()
+    file_inputs = [b'name="asiair_log"', b'name="phd2_log"', b'name="nina_log"']
+
+    # Control: without add=true the form carries the session's values
+    view = client.get(f'/graph_dashboard/M42?tab=journal&session_id={sess.id}').data
+    assert rig_selected in view
+    assert b'value="4321"' in view
+    assert not any(fi in view for fi in file_inputs)
+
+    resp = client.get(f'/graph_dashboard/M42?tab=journal&session_id={sess.id}&add=true')
+    assert resp.status_code == 200
+    data = resp.data
+    assert b'id="session-detail-wrapper" class="is-adding"' in data
+    assert rig_selected not in data
+    assert b'value="4321"' not in data
+    assert b'value="987"' not in data
+    for fi in file_inputs:
+        assert fi in data
