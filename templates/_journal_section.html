@@ -2875,12 +2875,13 @@ const journalI18n = {
 
 {# --- Custom Filter Add/Remove JavaScript --- #}
 (function() {
-    const addBtn        = document.getElementById('add-custom-filter-btn');
-    const nameInput     = document.getElementById('custom-filter-name-input');
-    const rowsContainer = document.getElementById('custom-filter-rows');
-    const msg           = document.getElementById('custom-filter-msg');
+    // Delegated on document: the filter controls live inside .session-detail-column,
+    // which loadSessionViaAjax replaces. Guard so the listener is bound only once.
+    if (window.journalCustomFilterDelegationBound) return;
+    window.journalCustomFilterDelegationBound = true;
 
     function showMsg(text, isError) {
+        const msg = document.getElementById('custom-filter-msg');
         if (!msg) return;
         msg.textContent  = text;
         msg.style.color  = isError ? 'var(--danger-color)' : 'var(--success-color)';
@@ -2912,62 +2913,69 @@ const journalI18n = {
         return row;
     }
 
-    if (addBtn) {
-        addBtn.addEventListener('click', async function() {
-            const label = (nameInput.value || '').trim();
-            if (!label) { showMsg(journalI18n.enterFilterName, true); return; }
-            addBtn.disabled = true;
-            try {
-                const res  = await fetch('/api/journal/custom-filters', {
-                    method:  'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body:    JSON.stringify({label})
-                });
-                const data = await res.json();
-                if (!res.ok) { showMsg(data.error || journalI18n.errorAddingFilter, true); return; }
-                rowsContainer.appendChild(buildRow(data.key, data.label));
-                nameInput.value = '';
-                showMsg(journalI18n.filterAdded.replace('{label}', data.label), false);
-                // Trigger max-subs calculation for the new row
-                if (window.triggerAllMaxSubsCalculations) window.triggerAllMaxSubsCalculations();
-            } catch(e) {
-                showMsg(journalI18n.networkError, true);
-            } finally {
-                addBtn.disabled = false;
-            }
-        });
-    }
+    // Add filter
+    document.addEventListener('click', async function(e) {
+        const addBtn = e.target.closest('#add-custom-filter-btn');
+        if (!addBtn) return;
+        const nameInput     = document.getElementById('custom-filter-name-input');
+        const rowsContainer = document.getElementById('custom-filter-rows');
+        const label = (nameInput.value || '').trim();
+        if (!label) { showMsg(journalI18n.enterFilterName, true); return; }
+        addBtn.disabled = true;
+        try {
+            const res  = await fetch('/api/journal/custom-filters', {
+                method:  'POST',
+                headers: {'Content-Type': 'application/json'},
+                body:    JSON.stringify({label})
+            });
+            const data = await res.json();
+            if (!res.ok) { showMsg(data.error || journalI18n.errorAddingFilter, true); return; }
+            rowsContainer.appendChild(buildRow(data.key, data.label));
+            nameInput.value = '';
+            showMsg(journalI18n.filterAdded.replace('{label}', data.label), false);
+            // Trigger max-subs calculation for the new row
+            if (window.triggerAllMaxSubsCalculations) window.triggerAllMaxSubsCalculations();
+        } catch(e) {
+            showMsg(journalI18n.networkError, true);
+        } finally {
+            addBtn.disabled = false;
+        }
+    });
 
-    if (rowsContainer) {
-        rowsContainer.addEventListener('click', async function(e) {
-            const btn = e.target.closest('.remove-custom-filter-btn');
-            if (!btn) return;
-            const key   = btn.dataset.filterKey;
-            const row   = btn.closest('.custom-filter-row');
-            const label = row.querySelector('label').textContent.replace(':', '').trim();
-            if (!confirm(journalI18n.confirmRemoveFilter.replace('{label}', label))) return;
-            try {
-                const res = await fetch(`/api/journal/custom-filters/${key}`, {method: 'DELETE'});
-                if (!res.ok) { showMsg(journalI18n.errorRemovingFilter, true); return; }
-                row.remove();
-                showMsg(journalI18n.filterRemoved.replace('{label}', label), false);
-                // Recalculate max-subs for remaining rows
-                if (window.triggerAllMaxSubsCalculations) window.triggerAllMaxSubsCalculations();
-            } catch(e) {
-                showMsg(journalI18n.networkError, true);
-            }
-        });
-    }
+    // Remove filter (✕)
+    document.addEventListener('click', async function(e) {
+        const btn = e.target.closest('#custom-filter-rows .remove-custom-filter-btn');
+        if (!btn) return;
+        const key   = btn.dataset.filterKey;
+        const row   = btn.closest('.custom-filter-row');
+        const label = row.querySelector('label').textContent.replace(':', '').trim();
+        if (!confirm(journalI18n.confirmRemoveFilter.replace('{label}', label))) return;
+        try {
+            const res = await fetch(`/api/journal/custom-filters/${key}`, {method: 'DELETE'});
+            if (!res.ok) { showMsg(journalI18n.errorRemovingFilter, true); return; }
+            row.remove();
+            showMsg(journalI18n.filterRemoved.replace('{label}', label), false);
+            // Recalculate max-subs for remaining rows
+            if (window.triggerAllMaxSubsCalculations) window.triggerAllMaxSubsCalculations();
+        } catch(e) {
+            showMsg(journalI18n.networkError, true);
+        }
+    });
 })();
 </script>
 
 {# --- Journal Form Action Handlers (Draft Support) --- #}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Delegated on document: these buttons live inside .session-detail-column,
+    // which loadSessionViaAjax replaces. Guard so the listeners are bound only once.
+    if (window.journalFormActionDelegationBound) return;
+    window.journalFormActionDelegationBound = true;
+
     // Handle Save Draft button click
-    var saveDraftBtn = document.querySelector('button[data-action="save-draft"]');
-    if (saveDraftBtn) {
-        saveDraftBtn.addEventListener('click', async function(e) {
+    document.addEventListener('click', async function(e) {
+        var saveDraftBtn = e.target.closest('button[data-action="save-draft"]');
+        if (saveDraftBtn) {
             e.preventDefault();
             var form = document.getElementById('journal-detail-form');
             if (!form) return;
@@ -3025,13 +3033,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 saveDraftBtn.disabled = false;
                 alert('Failed to save draft. Please try again.');
             }
-        });
-    }
+        }
+    });
 
     // Handle Save & Close button click
-    var saveCloseBtn = document.getElementById('form-submit-button');
-    if (saveCloseBtn) {
-        saveCloseBtn.addEventListener('click', function(e) {
+    document.addEventListener('click', function(e) {
+        var saveCloseBtn = e.target.closest('#form-submit-button');
+        if (saveCloseBtn) {
             e.preventDefault();
             var actionInput = document.getElementById('form-action-hidden');
             if (actionInput) {
@@ -3056,8 +3064,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 form.submit();
             }
-        });
-    }
+        }
+    });
 });
 </script>
 

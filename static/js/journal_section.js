@@ -1067,24 +1067,22 @@
     }
 
     function attachFormListeners() {
-        // Form submission handler for the journal project edit form to update hidden inputs
-        const projectEditForm = document.getElementById('journal-project-edit-form');
-        if (projectEditForm) {
-            projectEditForm.addEventListener('submit', function(e) {
+        // Delegated submit handlers: these forms live inside .session-detail-column,
+        // which loadSessionViaAjax replaces, so bind on document instead of the form.
+        document.addEventListener('submit', function(e) {
+            // Journal project edit form: update hidden inputs
+            if (e.target.id === 'journal-project-edit-form') {
                 document.getElementById('goals-hidden-journal').value = document.getElementById('goals-editor-journal').value;
                 document.getElementById('description-hidden-journal').value = document.getElementById('description-editor-journal').value;
                 document.getElementById('framing-hidden-journal').value = document.getElementById('framing-editor-journal').value;
                 document.getElementById('processing-hidden-journal').value = document.getElementById('processing-editor-journal').value;
-            });
-        }
+            }
 
-        // New Project Form Listener
-        const projectAddForm = document.getElementById('journal-project-add-form');
-        if (projectAddForm) {
-            projectAddForm.addEventListener('submit', function(e) {
+            // New Project Form
+            if (e.target.id === 'journal-project-add-form') {
                 document.getElementById('goals-hidden-add').value = document.getElementById('goals-editor-add').value;
-            });
-        }
+            }
+        });
 
         // Rig info modal click handlers (close button and backdrop - not using data-action)
         document.addEventListener('click', function(e) {
@@ -1109,20 +1107,19 @@
     }
 
     function attachInputListeners() {
-        // Direct listeners for specific form fields
-        const sessionDate = document.getElementById('session_date');
-        const locationName = document.getElementById('location_name');
-        if (sessionDate) sessionDate.addEventListener('change', updateMoonData);
-        if (locationName) locationName.addEventListener('change', updateMoonData);
-
-        const showNewToggle = document.getElementById('show_new_project_toggle');
-        if (showNewToggle) showNewToggle.addEventListener('change', toggleNewProjectField);
-
-        // Rig selector change handler - auto-populate guiding equipment and dither hint
-        const rigSelector = document.getElementById('rig-selector-edit');
-        if (rigSelector) {
-            rigSelector.addEventListener('change', handleRigSelectionChange);
-        }
+        // Delegated change listeners for specific form fields (survive the
+        // .session-detail-column swap in loadSessionViaAjax)
+        document.addEventListener('change', function(e) {
+            const id = e.target.id;
+            if (id === 'session_date' || id === 'location_name') {
+                updateMoonData(e);
+            } else if (id === 'show_new_project_toggle') {
+                toggleNewProjectField(e);
+            } else if (id === 'rig-selector-edit') {
+                // Rig selector change handler - auto-populate guiding equipment and dither hint
+                handleRigSelectionChange(e);
+            }
+        });
 
         // Class-based delegation for calculation triggers
         document.addEventListener('input', function(e) {
