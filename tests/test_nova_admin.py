@@ -345,7 +345,7 @@ class TestDefaultAdminCreation:
         self._created_users = created_users
 
     def test_default_admin_created_when_db_empty(self, monkeypatch):
-        """init_auth() creates admin/admin when user table exists but is empty."""
+        """init_auth() creates admin with a generated password when USER_ADMIN_PASSWORD is empty."""
         self._setup_auth_mock(count=0, username='admin', password='', monkeypatch=monkeypatch)
 
         from nova import app
@@ -354,7 +354,8 @@ class TestDefaultAdminCreation:
 
         assert len(self._created_users) == 1
         assert self._created_users[0].username == 'admin'
-        assert self._created_users[0].password_hash == 'admin'
+        pwd = self._created_users[0].password_hash
+        assert pwd != 'admin' and len(pwd) >= 20
 
     def test_custom_admin_created_from_env(self, monkeypatch):
         """init_auth() uses USER_ADMIN_USERNAME/PASSWORD when set."""

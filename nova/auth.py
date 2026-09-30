@@ -12,6 +12,7 @@ Flask application.
 import hashlib
 import hmac
 import os
+import secrets
 
 from flask_login import LoginManager, UserMixin  # noqa: F401 — re-exported for test compatibility
 from flask_sqlalchemy import SQLAlchemy
@@ -100,7 +101,7 @@ def init_auth(app):
                 ).scalar()
                 if user_count == 0:
                     try:
-                        _pwd = USER_ADMIN_PASSWORD if USER_ADMIN_PASSWORD else 'admin'
+                        _pwd = USER_ADMIN_PASSWORD if USER_ADMIN_PASSWORD else secrets.token_urlsafe(16)
                         default_user = User(username=USER_ADMIN_USERNAME)
                         default_user.set_password(_pwd)
                         db.session.add(default_user)
@@ -108,8 +109,7 @@ def init_auth(app):
                         if USER_ADMIN_PASSWORD:
                             print(f"[STARTUP] Admin user '{USER_ADMIN_USERNAME}' created from environment.")
                         else:
-                            print(f"⚠️  [STARTUP] Default admin user created (username: {USER_ADMIN_USERNAME}, password: admin).")
-                            print("⚠️  [STARTUP] CHANGE THE DEFAULT PASSWORD IMMEDIATELY via /admin/users.")
+                            print(f"[AUTH] Generated admin password for '{USER_ADMIN_USERNAME}': {_pwd} (set USER_ADMIN_PASSWORD to choose your own)")
                     except IntegrityError:
                         db.session.rollback()
                         print("[STARTUP] Admin user already created by another worker. Skipping.")
@@ -119,7 +119,7 @@ def init_auth(app):
                     db.create_all()
                     print("✅ [MIGRATION] Database initialized.")
                     try:
-                        _pwd = USER_ADMIN_PASSWORD if USER_ADMIN_PASSWORD else 'admin'
+                        _pwd = USER_ADMIN_PASSWORD if USER_ADMIN_PASSWORD else secrets.token_urlsafe(16)
                         default_user = User(username=USER_ADMIN_USERNAME)
                         default_user.set_password(_pwd)
                         db.session.add(default_user)
@@ -127,8 +127,7 @@ def init_auth(app):
                         if USER_ADMIN_PASSWORD:
                             print(f"[STARTUP] Admin user '{USER_ADMIN_USERNAME}' created from environment.")
                         else:
-                            print(f"⚠️  [STARTUP] Default admin user created (username: {USER_ADMIN_USERNAME}, password: admin).")
-                            print("⚠️  [STARTUP] CHANGE THE DEFAULT PASSWORD IMMEDIATELY via /admin/users.")
+                            print(f"[AUTH] Generated admin password for '{USER_ADMIN_USERNAME}': {_pwd} (set USER_ADMIN_PASSWORD to choose your own)")
                     except IntegrityError:
                         db.session.rollback()
                         print("[STARTUP] Admin user already created by another worker. Skipping.")
