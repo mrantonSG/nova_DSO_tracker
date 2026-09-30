@@ -92,7 +92,15 @@ def project_detail(project_id):
             # 1. Handle image deletion
             if request.form.get('delete_final_image') == '1' and project.final_image_file:
                 try:
-                    os.remove(os.path.join(UPLOAD_FOLDER, username, project.final_image_file))
+                    user_upload_root = os.path.realpath(os.path.join(UPLOAD_FOLDER, username))
+                    final_image_path = os.path.join(UPLOAD_FOLDER, username, project.final_image_file)
+                    try:
+                        is_within_user_dir = os.path.commonpath(
+                            [os.path.realpath(final_image_path), user_upload_root]) == user_upload_root
+                    except ValueError:
+                        is_within_user_dir = False
+                    if is_within_user_dir:
+                        os.remove(final_image_path)
                     project.final_image_file = None
                 except Exception as e:
                     print(f"Error deleting final image: {e}")
