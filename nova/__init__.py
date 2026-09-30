@@ -1349,9 +1349,6 @@ print(f"[INIT] Final Stellarium API URL base for requests: {STELLARIUM_API_URL_B
 if not os.path.exists(ENV_FILE):
     secret_key = secrets.token_hex(32)
 
-    default_user = "admin"
-    default_password = "admin123"
-
     with open(ENV_FILE, "w") as f:
         f.write(f"SECRET_KEY={secret_key}\n")
         f.write(
@@ -1359,6 +1356,11 @@ if not os.path.exists(ENV_FILE):
         instance_id = secrets.token_hex(16)
         f.write(f"INSTANCE_ID={instance_id}\n")
         f.write(f"NOVA_CATALOG_URL=https://catalogs.nova-tracker.com\n")
+
+    try:
+        os.chmod(ENV_FILE, 0o600)
+    except OSError:
+        pass  # e.g. Windows / filesystems without POSIX perms
 
     # After creating the .env, reload it into the current process and set the first-run flag
     try:
