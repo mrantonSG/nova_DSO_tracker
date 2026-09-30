@@ -221,6 +221,8 @@
         form.elements['filter_used_session'].value = data.filter_used_session || '';
         form.elements['gain_setting'].value = data.gain_setting || '';
         form.elements['offset_setting'].value = data.offset_setting || '';
+        // Radio group: setting .value to '' matches no radio, so clear explicitly first
+        form.querySelectorAll('input[name="session_rating_subjective"]').forEach(r => { r.checked = false; });
         form.elements['session_rating_subjective'].value = data.session_rating_subjective || '';
         const journalEditor = document.getElementById('journal-notes-editor');
         if (journalEditor && journalEditor.editor) {
@@ -258,6 +260,7 @@
             });
         }
         toggleNewProjectField();
+        refreshSessionFormWidgets();
     }
 
     function setupAddMode() {
@@ -320,6 +323,7 @@
 
         updateMoonData();
         toggleNewProjectField();
+        refreshSessionFormWidgets();
     }
 
     // Add mode is always rendered by the server (?add=true) so the form never
@@ -528,6 +532,286 @@
                 if (nameInput) nameInput.value = '';
             }
         }
+    }
+
+    // --- Session form widgets: project chips, filter exposure table, star rating ---
+    // Display only: the existing form inputs stay the source of truth and keep their names.
+
+    function jt(key, fallback) {
+        return (typeof journalI18n !== 'undefined' && journalI18n[key]) || fallback;
+    }
+
+    function renderProjectChips() {
+        const form = document.getElementById('journal-detail-form');
+        const chips = form && form.querySelector('.project-chips');
+        if (!chips) return;
+        chips.textContent = '';
+        const checked = form.querySelectorAll('input[name="project_selection"]:checked:not(#show_new_project_toggle)');
+        checked.forEach(cb => {
+            const name = (cb.closest('label')?.textContent || '').trim();
+            const chip = document.createElement('span');
+            chip.className = 'project-chip';
+            chip.textContent = name;
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'project-chip-remove';
+            removeBtn.dataset.projectId = cb.value;
+            removeBtn.setAttribute('aria-label', jt('removeProject', 'Remove {name}').replace('{name}', name));
+            removeBtn.textContent = '✕';
+            chip.appendChild(removeBtn);
+            chips.appendChild(chip);
+        });
+
+        const newToggle = document.getElementById('show_new_project_toggle');
+        const creatingNew = !!(newToggle && newToggle.checked);
+        if (!checked.length && !creatingNew) {
+            const empty = document.createElement('span');
+            empty.className = 'project-chips-empty';
+            empty.textContent = jt('noProjectLinked', 'No project linked');
+            chips.appendChild(empty);
+        }
+        const newBtn = form.querySelector('[data-project-picker="new-project"]');
+        if (newBtn) {
+            newBtn.classList.toggle('is-active', creatingNew);
+            newBtn.setAttribute('aria-pressed', creatingNew ? 'true' : 'false');
+        }
+    }
+
+    function filterProjectGrid(filterInput) {
+        const panel = filterInput.closest('.project-picker-panel');
+        if (!panel) return;
+        const term = filterInput.value.trim().toLowerCase();
+        panel.querySelectorAll('input[name="project_selection"]:not(#show_new_project_toggle)').forEach(cb => {
+            const label = cb.closest('label');
+            if (label) label.classList.toggle('is-filtered-out', !!term && !label.textContent.toLowerCase().includes(term));
+        });
+    }
+
+    function filterRowHasValues(row) {
+        return Array.from(row.querySelectorAll('input[type="number"]')).some(input => input.value.trim() !== '');
+    }
+
+    function formatIntegration(seconds) {
+        const totalMin = Math.round(seconds / 60);
+        return `${Math.floor(totalMin / 60)}h ${String(totalMin % 60).padStart(2, '0')}m`;
+    }
+
+    function updateFilterRowTotal(row) {
+        const cell = row.querySelector('.filter-exp-total');
+        if (!cell) return;
+        const subs = parseFloat(row.querySelector('input[name$="_subs"]')?.value) || 0;
+        const exp = parseFloat(row.querySelector('input[name$="_exposure_sec"]')?.value) || 0;
+        cell.textContent = subs > 0 && exp > 0 ? formatIntegration(subs * exp) : '–';
+    }
+
+    // Totals + empty state; leaves row visibility alone (rows the user just revealed stay open)
+    function updateFilterTableState() {
+        const table = document.getElementById('filter-exposure-table');
+        if (!table) return;
+        const rows = Array.from(table.querySelectorAll('.filter-exp-row'));
+        rows.forEach(updateFilterRowTotal);
+        table.classList.toggle('is-empty', !rows.some(row => !row.classList.contains('filter-exp-row--hidden')));
+    }
+
+    // Visibility from the input values: after populate, add-mode reset and the AJAX swap
+    function resetFilterRowVisibility() {
+        const table = document.getElementById('filter-exposure-table');
+        if (!table) return;
+        table.querySelectorAll('.filter-exp-row').forEach(row => {
+            row.classList.toggle('filter-exp-row--hidden', !filterRowHasValues(row));
+        });
+        const customAdd = document.querySelector('#journal-detail-form .custom-filter-add');
+        if (customAdd) customAdd.hidden = true;
+        closeFilterAddMenu();
+        updateFilterTableState();
+    }
+
+    function closeFilterAddMenu() {
+        const menu = document.querySelector('#journal-detail-form .filter-add-menu');
+        const toggle = document.querySelector('#journal-detail-form .filter-add-toggle');
+        if (menu) menu.hidden = true;
+        if (toggle) toggle.setAttribute('aria-expanded', 'false');
+    }
+
+    function openFilterAddMenu(toggle) {
+        const menu = toggle.parentElement.querySelector('.filter-add-menu');
+        const items = menu && menu.querySelector('.filter-add-menu-items');
+        if (!items) return;
+        items.textContent = '';
+        document.querySelectorAll('#filter-exposure-table .filter-exp-row.filter-exp-row--hidden').forEach(row => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.setAttribute('role', 'menuitem');
+            if (row.dataset.standardFilter) item.dataset.revealStandard = row.dataset.standardFilter;
+            else item.dataset.revealCustom = row.dataset.filterKey;
+            item.textContent = (row.querySelector('label')?.textContent || '').trim();
+            items.appendChild(item);
+        });
+        menu.hidden = false;
+        toggle.setAttribute('aria-expanded', 'true');
+        menu.querySelector('button')?.focus();
+    }
+
+    function refreshSessionFormWidgets() {
+        const filterInput = document.querySelector('#journal-detail-form .project-picker-filter');
+        if (filterInput) {
+            filterInput.value = '';
+            filterProjectGrid(filterInput);
+        }
+        renderProjectChips();
+        resetFilterRowVisibility();
+    }
+
+    // Expose for the inline custom-filter add/remove script
+    window.updateFilterExposureTable = updateFilterTableState;
+
+    function setStarRating(radio) {
+        radio.checked = true;
+        radio.focus();
+        radio.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    function attachSessionFormWidgetListeners() {
+        // All delegated: the form lives inside .session-detail-column, which loadSessionViaAjax replaces
+        document.addEventListener('change', function(e) {
+            if (e.target.matches('#journal-detail-form input[name="project_selection"]')) renderProjectChips();
+        });
+
+        document.addEventListener('input', function(e) {
+            if (e.target.matches('#journal-detail-form .project-picker-filter')) {
+                filterProjectGrid(e.target);
+                return;
+            }
+            const row = e.target.closest('#filter-exposure-table .filter-exp-row');
+            if (row) updateFilterRowTotal(row);
+        });
+
+        document.addEventListener('click', function(e) {
+            const inMenuWrap = e.target.closest('#journal-detail-form .filter-add-menu-wrap');
+            if (!inMenuWrap) closeFilterAddMenu();
+
+            const chipRemove = e.target.closest('#journal-detail-form .project-chip-remove');
+            if (chipRemove) {
+                const form = document.getElementById('journal-detail-form');
+                const cb = form.querySelector(`input[name="project_selection"][value="${CSS.escape(chipRemove.dataset.projectId)}"]`);
+                if (cb) {
+                    cb.checked = false;
+                    cb.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                return;
+            }
+
+            const pickerBtn = e.target.closest('#journal-detail-form [data-project-picker]');
+            if (pickerBtn) {
+                if (pickerBtn.dataset.projectPicker === 'toggle-grid') {
+                    const panel = pickerBtn.closest('.project-picker').querySelector('.project-picker-panel');
+                    const open = panel.classList.toggle('is-open');
+                    pickerBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    if (open) panel.querySelector('.project-picker-filter')?.focus();
+                } else if (pickerBtn.dataset.projectPicker === 'new-project') {
+                    const newToggle = document.getElementById('show_new_project_toggle');
+                    if (newToggle) {
+                        newToggle.checked = !newToggle.checked;
+                        newToggle.dispatchEvent(new Event('change', { bubbles: true }));
+                        if (newToggle.checked) document.getElementById('new_project_name')?.focus();
+                    }
+                }
+                return;
+            }
+
+            const addToggle = e.target.closest('#journal-detail-form .filter-add-toggle');
+            if (addToggle) {
+                if (addToggle.getAttribute('aria-expanded') === 'true') closeFilterAddMenu();
+                else openFilterAddMenu(addToggle);
+                return;
+            }
+
+            const revealItem = e.target.closest('#journal-detail-form .filter-add-menu [data-reveal-standard], #journal-detail-form .filter-add-menu [data-reveal-custom]');
+            if (revealItem) {
+                const selector = revealItem.dataset.revealStandard
+                    ? `.filter-exp-row[data-standard-filter="${CSS.escape(revealItem.dataset.revealStandard)}"]`
+                    : `.custom-filter-row[data-filter-key="${CSS.escape(revealItem.dataset.revealCustom)}"]`;
+                const row = document.querySelector(`#filter-exposure-table ${selector}`);
+                closeFilterAddMenu();
+                if (row) {
+                    row.classList.remove('filter-exp-row--hidden');
+                    updateFilterTableState();
+                    row.querySelector('input[type="number"]')?.focus();
+                }
+                return;
+            }
+
+            if (e.target.closest('#journal-detail-form .filter-add-menu [data-add-custom-filter]')) {
+                closeFilterAddMenu();
+                const customAdd = document.querySelector('#journal-detail-form .custom-filter-add');
+                if (customAdd) {
+                    customAdd.hidden = false;
+                    document.getElementById('custom-filter-name-input')?.focus();
+                }
+                return;
+            }
+
+            const clearBtn = e.target.closest('#filter-exposure-table .filter-exp-clear-btn');
+            if (clearBtn) {
+                const row = clearBtn.closest('.filter-exp-row');
+                row.querySelectorAll('input[type="number"]').forEach(input => {
+                    input.value = '';
+                    input.dispatchEvent(new Event('input', { bubbles: true })); // Max/Real recalculation
+                });
+                row.classList.add('filter-exp-row--hidden');
+                updateFilterTableState();
+                return;
+            }
+
+            // Star rating: clicking the selected star again clears the rating
+            const star = e.target.closest('#journal-detail-form .star-rating input[type="radio"]');
+            if (star) {
+                if (star.dataset.wasChecked === '1') {
+                    star.checked = false;
+                    star.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                star.dataset.wasChecked = '';
+            }
+        });
+
+        // Record the pre-click state (click fires after the radio is already checked)
+        document.addEventListener('pointerdown', function(e) {
+            const starLabel = e.target.closest('#journal-detail-form .star-rating label');
+            if (!starLabel) return;
+            const radio = document.getElementById(starLabel.htmlFor);
+            if (radio) radio.dataset.wasChecked = radio.checked ? '1' : '';
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && e.target.closest('#journal-detail-form .filter-add-menu-wrap')) {
+                closeFilterAddMenu();
+                document.querySelector('#journal-detail-form .filter-add-toggle')?.focus();
+                return;
+            }
+            // The filter box has no name, but Enter in it would still submit the form
+            if (e.key === 'Enter' && e.target.matches('#journal-detail-form .project-picker-filter')) {
+                e.preventDefault();
+                return;
+            }
+            // Star rating: DOM order is 5..1 (row-reverse), so map arrows to the visual order
+            const star = e.target.closest('#journal-detail-form .star-rating input[type="radio"]');
+            if (!star) return;
+            const group = star.closest('.star-rating');
+            const current = parseInt(group.querySelector('input:checked')?.value || '0', 10);
+            let next = null;
+            if (e.key === 'ArrowRight' || e.key === 'ArrowUp') next = Math.min(5, current + 1);
+            else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') next = Math.max(1, current - 1);
+            else if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') {
+                e.preventDefault();
+                group.querySelectorAll('input').forEach(r => { r.checked = false; });
+                star.dispatchEvent(new Event('change', { bubbles: true }));
+                return;
+            }
+            if (next === null) return;
+            e.preventDefault();
+            const target = group.querySelector(`input[value="${next}"]`);
+            if (target) setStarRating(target);
+        });
     }
 
     // --- Rig Info Modal Functions ---
@@ -964,6 +1248,7 @@
 
             if (newContent && currentContent) {
                 currentContent.innerHTML = newContent.innerHTML;
+                refreshSessionFormWidgets();
             }
 
             // 1.5. Update Header Bar Elements from the AJAX response
@@ -1226,6 +1511,8 @@
         if(wrapper && wrapper.querySelector('.view-mode .detail-header')){
             showDetailTab('summary');
         }
+
+        refreshSessionFormWidgets();
     }
 
     // --- Initialization ---
@@ -1234,6 +1521,7 @@
         attachFormListeners();
         attachInputListeners();
         attachFormTabListeners();
+        attachSessionFormWidgetListeners();
         initializeFormState();
     });
 

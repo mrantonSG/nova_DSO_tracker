@@ -368,12 +368,6 @@
 
     .edit-mode-form .form-group textarea { min-height: 100px; }
 
-    /* FACELIFT: Session Rating Stars - accent color */
-    .edit-mode-form input[type="number"][name="session_rating_subjective"],
-    input[name="session_rating_subjective"] {
-        accent-color: var(--nova-accent, var(--primary-color));
-    }
-
     /* REDESIGN step 2: session form typography (edit mode only) */
     #journal-detail-form .form-section-title {
         font-size: 10px !important;          /* !important: beats inline style on "Session Logs" */
@@ -386,8 +380,8 @@
         color: var(--text-secondary) !important;  /* --text-muted too faint at 10px in dark */
     }
 
-    /* Numeric inputs in mono (session rating excluded — replaced in a later step) */
-    #journal-detail-form input[type="number"]:not([name="session_rating_subjective"]) {
+    /* Numeric inputs in mono */
+    #journal-detail-form input[type="number"] {
         font-family: var(--font-mono, 'DM Mono', monospace);
         font-size: 12px;
     }
@@ -746,12 +740,6 @@
     }
     [data-theme="dark"] .edit-mode-form .form-group label {
         color: var(--nova-text-2, rgba(255,255,255,0.55)) !important;
-    }
-
-    /* FACELIFT: Session rating stars - accent color in dark mode */
-    [data-theme="dark"] .edit-mode-form input[type="number"][name="session_rating_subjective"],
-    [data-theme="dark"] input[name="session_rating_subjective"] {
-        accent-color: var(--nova-accent, #7aafc0);
     }
 
     /* Form section title */
@@ -1763,6 +1751,254 @@
         flex: 0 0 auto;
     }
 
+    /* REDESIGN pass 2: project chip picker (checkbox grid stays the submitted source of truth) */
+    #journal-detail-form .project-picker-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px 12px;
+    }
+    #journal-detail-form .project-chips {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+    }
+    #journal-detail-form .project-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 4px 3px 10px;
+        border-radius: 6px;
+        background: var(--primary-bg);
+        color: var(--primary-color);
+        font-size: 12px;
+        font-weight: 600;
+    }
+    #journal-detail-form .project-chip-remove {
+        background: none;
+        border: none;
+        padding: 0 4px;
+        color: inherit;
+        font-size: 11px;
+        line-height: 1;
+        cursor: pointer;
+        opacity: 0.7;
+    }
+    #journal-detail-form .project-chip-remove:hover { opacity: 1; }
+    #journal-detail-form .project-chips-empty {
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+    #journal-detail-form .project-picker-actions {
+        display: inline-flex;
+        gap: 12px;
+    }
+    #journal-detail-form .project-picker-link {
+        background: none;
+        border: none;
+        padding: 0;
+        color: var(--primary-color);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    #journal-detail-form .project-picker-link:hover { text-decoration: underline; }
+    #journal-detail-form .project-picker-link.is-active { color: var(--text-secondary); }
+    #journal-detail-form .project-picker-panel { display: none; margin-top: 8px; }
+    #journal-detail-form .project-picker-panel.is-open { display: block; }
+    #journal-detail-form .form-group input.project-picker-filter {
+        max-width: 240px;
+        margin-bottom: 4px;
+    }
+    .project-checkbox-grid label.is-filtered-out { display: none !important; }  /* beats inline display:flex */
+
+    /* REDESIGN pass 2: per-filter exposure table (existing inputs reused in place) */
+    #journal-detail-form .filter-exposure-table {
+        --fet-cols: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) 72px 52px;
+        border: 1px solid var(--border-color, #d0cdc8);
+        border-radius: 6px;
+        overflow: hidden;
+    }
+    #journal-detail-form .filter-exp-head,
+    #journal-detail-form .filter-exposure-table .filter-exp-row {
+        display: grid;
+        grid-template-columns: var(--fet-cols);
+        gap: 0 10px;
+        align-items: start;
+        padding: 6px 10px;
+    }
+    #journal-detail-form .filter-exp-head {
+        background: var(--bg-tertiary);
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+        color: var(--text-faint);
+    }
+    #journal-detail-form .filter-exposure-table .filter-exp-row { border-top: 1px solid var(--border-light); }
+    #journal-detail-form #custom-filter-rows { display: contents; }
+    #journal-detail-form .filter-exposure-table .filter-exp-row--hidden { display: none; }
+    #journal-detail-form .filter-exposure-table .form-group {
+        min-width: 0;                        /* beats .form-row .form-group { min-width: 200px } */
+        margin: 0;
+    }
+    #journal-detail-form .filter-exposure-table .filter-exp-name {
+        display: flex;
+        align-items: center;
+        min-height: 30px;
+    }
+    #journal-detail-form .filter-exposure-table .filter-exp-name label {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 500;
+        text-transform: none;
+        letter-spacing: 0;
+        color: var(--text-primary);
+    }
+    #journal-detail-form .filter-exposure-table .filter-max-subs {
+        display: block;
+        margin-top: 2px;
+        font-size: 11px;
+    }
+    #journal-detail-form .filter-exp-total {
+        min-height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        font-family: var(--font-mono, 'DM Mono', monospace);
+        font-size: 12px;
+        color: var(--text-secondary);
+    }
+    #journal-detail-form .filter-exp-actions {
+        min-height: 30px;
+        display: flex;
+        align-items: center;
+        gap: 2px;
+    }
+    #journal-detail-form .filter-exp-clear-btn {
+        background: none;
+        border: none;
+        padding: 2px 4px;
+        font-size: 13px;
+        color: var(--text-muted);
+        cursor: pointer;
+    }
+    #journal-detail-form .filter-exp-clear-btn:hover { color: var(--text-primary); }
+    /* Custom rows: trash = delete the filter definition (API + confirm); ✕ only clears the row */
+    #journal-detail-form .filter-exposure-table .remove-custom-filter-btn {
+        display: inline-flex;
+        align-items: center;
+        background: none;
+        border: none;
+        padding: 2px 4px;
+        color: var(--text-faint);
+        cursor: pointer;
+    }
+    #journal-detail-form .filter-exposure-table .remove-custom-filter-btn:hover { color: var(--danger-color); }
+    #journal-detail-form .filter-exp-empty {
+        display: none;
+        padding: 10px;
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+    #journal-detail-form .filter-exposure-table.is-empty .filter-exp-head { display: none; }
+    #journal-detail-form .filter-exposure-table.is-empty .filter-exp-empty { display: block; }
+    #journal-detail-form .filter-exp-toolbar {
+        margin-top: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+    }
+    #journal-detail-form .filter-add-menu-wrap { position: relative; }
+    #journal-detail-form .filter-add-toggle {
+        background: transparent;
+        color: var(--text-secondary, #4a4a4a);
+        border: 1px solid var(--border-color, #d0cdc8);
+        padding: 6px 14px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+    #journal-detail-form .filter-add-toggle:hover { background: var(--bg-tertiary); }
+    [data-theme="dark"] #journal-detail-form .filter-add-toggle {
+        color: rgba(255,255,255,0.55);
+        border-color: rgba(255,255,255,0.15);
+    }
+    #journal-detail-form .filter-add-menu {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        z-index: var(--z-layer-2, 3);        /* stays below the sticky form header (--z-layer-3) */
+        min-width: 180px;
+        padding: 4px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color, #d0cdc8);
+        border-radius: 6px;
+        box-shadow: var(--shadow-md);
+    }
+    #journal-detail-form .filter-add-menu[hidden] { display: none; }
+    #journal-detail-form .filter-add-menu button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        background: none;
+        border: none;
+        border-radius: 6px;
+        padding: 6px 10px;
+        font-size: 12px;
+        color: var(--text-primary);
+        cursor: pointer;
+    }
+    #journal-detail-form .filter-add-menu button:hover,
+    #journal-detail-form .filter-add-menu button:focus-visible {
+        background: var(--hover-bg);
+        outline: none;
+    }
+    #journal-detail-form .filter-add-menu-custom { border-top: 1px solid var(--border-light); margin-top: 4px; padding-top: 4px; }
+    #journal-detail-form .custom-filter-add { display: flex; align-items: center; gap: 10px; }
+    #journal-detail-form .custom-filter-add[hidden] { display: none; }
+
+    /* REDESIGN pass 2: star rating — radios in DOM order 5..1, row-reverse puts 1 on the left,
+       so "checked ~ label" fills the checked star and every lower one */
+    #journal-detail-form .star-rating {
+        position: relative;
+        display: inline-flex;
+        flex-direction: row-reverse;
+        gap: 2px;
+    }
+    #journal-detail-form .star-rating input[type="radio"] {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: 0;
+        padding: 0;
+        opacity: 0;
+        pointer-events: none;
+    }
+    /* !important on colors: beats the dark-mode "!important" label color rule */
+    #journal-detail-form .star-rating label {
+        margin: 0;
+        padding: 0 1px;
+        font-size: 20px;
+        line-height: 1;
+        text-transform: none;
+        letter-spacing: 0;
+        cursor: pointer;
+        color: var(--text-faint) !important;
+    }
+    #journal-detail-form .star-rating input:checked ~ label { color: var(--primary-color) !important; }
+    #journal-detail-form .star-rating:hover input ~ label { color: var(--text-faint) !important; }
+    #journal-detail-form .star-rating:hover label:hover,
+    #journal-detail-form .star-rating:hover label:hover ~ label { color: var(--primary-color) !important; }
+    #journal-detail-form .star-rating input:focus-visible + label {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+        border-radius: 6px;
+    }
+
     /* REDESIGN step 3: dense field grid (edit/add session form only) */
     #journal-detail-form .journal-field-grid {
         display: grid;
@@ -2520,8 +2756,21 @@
                     {{ form_group('session_date', _('Session Date:'), type='date', value=today_date, extra_attrs='autocomplete="off"') }}
                     <div class="form-group"><label for="location_name">{{ _('Location:') }}</label><select id="location_name" name="location_name">{% for loc in available_locations %}<option value="{{ loc.name }}" data-lat="{{ loc.lat }}" data-lon="{{ loc.lon }}" data-tz="{{ loc.timezone }}">{{ loc.name }}{{ _(' (Inactive)') if not loc.active else '' }}</option>{% endfor %}</select></div>
                 </div>
-                <div class="form-group full-width">
+                <div class="form-group full-width project-picker">
                     <label>{{ _('Link to Project (Optional)') }}</label>
+                    <div class="project-picker-bar">
+                        <div class="project-chips" aria-live="polite"></div>
+                        <div class="project-picker-actions">
+                            {% if all_projects %}
+                            <button type="button" class="project-picker-link" data-project-picker="toggle-grid" aria-expanded="false">{{ _('Change') }}</button>
+                            {% endif %}
+                            <button type="button" class="project-picker-link" data-project-picker="new-project" aria-pressed="false">{{ _('+ New project') }}</button>
+                        </div>
+                    </div>
+                    <div class="project-picker-panel">
+                    {% if all_projects %}
+                    <input type="text" class="project-picker-filter" placeholder="{{ _('Filter projects…') }}" aria-label="{{ _('Filter projects…') }}" autocomplete="off">
+                    {% endif %}
                     <div class="project-checkbox-grid">
                         {% for project in all_projects %}
                         <label style="display:flex; align-items:center; gap:8px;">
@@ -2534,6 +2783,7 @@
                         <label style="display:flex; align-items:center; gap:8px;">
                             <input type="checkbox" id="show_new_project_toggle" name="project_selection" value="new_project"> {{ _('-- Create New Project --') }}
                         </label>
+                    </div>
                     </div>
                 </div>
                 <div class="form-group full-width" id="new_project_name_group" style="display: none;"><label for="new_project_name">{{ _('New Project Name:') }}</label><input type="text" name="new_project_name" id="new_project_name" placeholder="{{ _('e.g., M31 Galaxy - 2025') }}"></div>
@@ -2597,54 +2847,77 @@
                     </div>
                     <div class="form-section-title" style="margin-top:20px;">{{ _('Monochrome Filter Exposures') }}</div>
                     {% set mono_filters = [('L', 'Luminance'), ('R', 'Red'), ('G', 'Green'), ('B', 'Blue'), ('Ha', 'H-alpha'), ('OIII', 'OIII'), ('SII', 'SII')] %}
-                    {% for filt_key, filt_name in mono_filters %}
-                    <div class="form-row">
-                        <div class="form-group" style="flex: 0 0 200px; align-self: center;"><label style="margin-bottom:0;">{{ filt_name }} ({{ filt_key }}):</label></div>
-                        <div class="form-group"><label>{{ _('# Subs') }} <span id="max-subs-{{ filt_key }}" style="font-weight:normal; color:var(--info-color); font-size:0.85em;"></span>:</label><input type="number" name="filter_{{ filt_key }}_subs" min="0" step="1" placeholder="{{ _('Count') }}" class="calc-trigger"></div>
-                        <div class="form-group"><label>{{ _('Exp (sec/sub):') }}</label><input type="number" name="filter_{{ filt_key }}_exposure_sec" min="0" step="1" placeholder="{{ _('Seconds') }}" class="calc-trigger"></div>
-                    </div>
-                    {% endfor %}
+                    {% set cf_data = (selected_session_data_dict.get('custom_filter_data_parsed') or {}) if selected_session_data_dict else {} %}
+                    <div class="filter-exposure-table" id="filter-exposure-table">
+                        <div class="filter-exp-head" aria-hidden="true">
+                            <span>{{ _('Filter') }}</span><span>{{ _('Subs') }}</span><span>{{ _('Exp (s)') }}</span><span style="text-align:right;">{{ _('Total') }}</span><span></span>
+                        </div>
+                        {% for filt_key, filt_name in mono_filters %}
+                        <div class="form-row filter-exp-row" data-standard-filter="{{ filt_key }}">
+                            <div class="form-group filter-exp-name"><label>{{ filt_name }} ({{ filt_key }})</label></div>
+                            <div class="form-group">
+                                <input type="number" name="filter_{{ filt_key }}_subs" min="0" step="1" placeholder="{{ _('Count') }}" class="calc-trigger" aria-label="{{ filt_name }} – {{ _('Subs') }}">
+                                <span id="max-subs-{{ filt_key }}" class="filter-max-subs" style="font-weight:normal; color:var(--info-color); font-size:0.85em;"></span>
+                            </div>
+                            <div class="form-group"><input type="number" name="filter_{{ filt_key }}_exposure_sec" min="0" step="1" placeholder="{{ _('Seconds') }}" class="calc-trigger" aria-label="{{ filt_name }} – {{ _('Exp (s)') }}"></div>
+                            <div class="filter-exp-total">–</div>
+                            <div class="filter-exp-actions"><button type="button" class="filter-exp-clear-btn" title="{{ _('Remove row') }}" aria-label="{{ _('Remove row') }}">✕</button></div>
+                        </div>
+                        {% endfor %}
 
-                    {# --- User-Defined Custom Filters --- #}
-                    <div id="custom-filter-rows">
-                    {% for cf in custom_mono_filters %}
-                    <div class="form-row custom-filter-row" data-filter-key="{{ cf.filter_key }}">
-                        <div class="form-group" style="flex:0 0 200px; align-self:center; display:flex; align-items:center; gap:8px;">
-                            <label style="margin-bottom:0;">{{ cf.filter_label }}:</label>
-                            <button type="button"
-                                    class="remove-custom-filter-btn"
-                                    data-filter-key="{{ cf.filter_key }}"
-                                    style="background:none; border:none; color:var(--danger-color); cursor:pointer; font-size:13px; padding:2px 4px;"
-                                    title="{{ _('Remove filter') }}">✕</button>
+                        {# --- User-Defined Custom Filters (first label = filter name; the ✕ handler reads it) --- #}
+                        <div id="custom-filter-rows">
+                        {% for cf in custom_mono_filters %}
+                        <div class="form-row custom-filter-row filter-exp-row" data-filter-key="{{ cf.filter_key }}">
+                            <div class="form-group filter-exp-name"><label>{{ cf.filter_label }}</label></div>
+                            <div class="form-group">
+                                <input type="number"
+                                       name="filter_{{ cf.filter_key }}_subs"
+                                       min="0" step="1" placeholder="{{ _('Count') }}" class="calc-trigger"
+                                       aria-label="{{ cf.filter_label }} – {{ _('Subs') }}"
+                                       value="{{ cf_data.get('filter_' ~ cf.filter_key ~ '_subs', '') }}">
+                                <span id="max-subs-{{ cf.filter_key }}" class="filter-max-subs" style="font-weight:normal; color:var(--info-color); font-size:0.85em;"></span>
+                            </div>
+                            <div class="form-group">
+                                <input type="number"
+                                       name="filter_{{ cf.filter_key }}_exposure_sec"
+                                       min="0" step="1" placeholder="{{ _('Seconds') }}" class="calc-trigger"
+                                       aria-label="{{ cf.filter_label }} – {{ _('Exp (s)') }}"
+                                       value="{{ cf_data.get('filter_' ~ cf.filter_key ~ '_exposure_sec', '') }}">
+                            </div>
+                            <div class="filter-exp-total">–</div>
+                            <div class="filter-exp-actions">
+                                <button type="button" class="filter-exp-clear-btn" title="{{ _('Remove row') }}" aria-label="{{ _('Remove row') }}">✕</button>
+                                <button type="button"
+                                        class="remove-custom-filter-btn"
+                                        data-filter-key="{{ cf.filter_key }}"
+                                        title="{{ _('Remove filter') }}" aria-label="{{ _('Remove filter') }}"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4h11M6.5 4V2.5h3V4M4 4l.7 9.5h6.6L12 4M6.8 6.5v4.5M9.2 6.5v4.5"/></svg></button>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>{{ _('# Subs') }} <span id="max-subs-{{ cf.filter_key }}" style="font-weight:normal; color:var(--info-color); font-size:0.85em;"></span>:</label>
-                            <input type="number"
-                                   name="filter_{{ cf.filter_key }}_subs"
-                                   min="0" step="1" placeholder="{{ _('Count') }}" class="calc-trigger"
-                                   value="{{ (selected_session_data_dict.get('custom_filter_data_parsed') or {}).get('filter_' ~ cf.filter_key ~ '_subs', '') if selected_session_data_dict else '' }}">
+                        {% endfor %}
                         </div>
-                        <div class="form-group">
-                            <label>{{ _('Exp (sec/sub):') }}</label>
-                            <input type="number"
-                                   name="filter_{{ cf.filter_key }}_exposure_sec"
-                                   min="0" step="1" placeholder="{{ _('Seconds') }}" class="calc-trigger"
-                                   value="{{ (selected_session_data_dict.get('custom_filter_data_parsed') or {}).get('filter_' ~ cf.filter_key ~ '_exposure_sec', '') if selected_session_data_dict else '' }}">
-                        </div>
-                    </div>
-                    {% endfor %}
+                        <div class="filter-exp-empty">{{ _('No filter exposures logged.') }}</div>
                     </div>
 
-                    <div style="margin-top:10px; display:flex; align-items:center; gap:10px;">
-                        <input type="text" id="custom-filter-name-input"
-                               placeholder="{{ _('Filter name (e.g. NB-II)') }}" maxlength="30"
-                               style="width:160px; padding:6px 10px; border:1px solid var(--border-medium);
-                                      border-radius:6px; font-size:12px; background:var(--bg-white); color:var(--text-primary);">
-                        <button type="button" id="add-custom-filter-btn"
-                                style="background:var(--primary-color); color:#fff; border:none;
-                                       padding:6px 14px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;">
-                            {{ _('+ Add Filter') }}
-                        </button>
+                    <div class="filter-exp-toolbar">
+                        <div class="filter-add-menu-wrap">
+                            <button type="button" class="filter-add-toggle" id="filter-add-toggle" aria-haspopup="true" aria-expanded="false">{{ _('+ Add filter row') }}</button>
+                            <div class="filter-add-menu" role="menu" aria-labelledby="filter-add-toggle" hidden>
+                                <div class="filter-add-menu-items"></div>
+                                <div class="filter-add-menu-custom"><button type="button" role="menuitem" data-add-custom-filter>{{ _('Custom…') }}</button></div>
+                            </div>
+                        </div>
+                        <div class="custom-filter-add" hidden>
+                            <input type="text" id="custom-filter-name-input"
+                                   placeholder="{{ _('Filter name (e.g. NB-II)') }}" maxlength="30"
+                                   style="width:160px; padding:6px 10px; border:1px solid var(--border-medium);
+                                          border-radius:6px; font-size:12px; background:var(--bg-white); color:var(--text-primary);">
+                            <button type="button" id="add-custom-filter-btn"
+                                    style="background:var(--primary-color); color:#fff; border:none;
+                                           padding:6px 14px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;">
+                                {{ _('+ Add Filter') }}
+                            </button>
+                        </div>
                         <span id="custom-filter-msg" style="font-size:12px; color:var(--text-secondary);"></span>
                     </div>
                 </div>
@@ -2656,7 +2929,16 @@
                         {{ form_group('bias_darkflats_strategy', _('Bias / Dark Flats:'), type='text', placeholder=_('e.g., Library match')) }}
                     </div>
                     <div class="form-section-title">{{ _('Outcome & Reflections') }}</div>
-                    {{ form_group('session_rating_subjective', _('Session Rating (1-5 ★):'), type='number', min=1, max=5) }}
+                    <div class="form-group">
+                        <label id="session-rating-label">{{ _('Session Rating (1-5 ★):') }}</label>
+                        {# DOM order 5..1 + row-reverse = the CSS-only "checked ~ label" fill; JS: click again clears, arrows follow the visual order #}
+                        <div class="star-rating" id="session_rating_subjective" role="radiogroup" aria-labelledby="session-rating-label">
+                            {% for n in range(5, 0, -1) %}
+                            <input type="radio" id="session-rating-{{ n }}" name="session_rating_subjective" value="{{ n }}" aria-label="{{ _('%(num)d of 5 stars', num=n) }}">
+                            <label for="session-rating-{{ n }}" aria-hidden="true">★</label>
+                            {% endfor %}
+                        </div>
+                    </div>
                     <div class="form-group">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
                             <label style="margin:0;">{{ _('General Notes, Problems, Learnings:') }}</label>
@@ -2839,6 +3121,11 @@ const journalI18n = {
   novaError:             {{ _("Nova error") | tojson }},
   draftSaved:            {{ _("Draft saved") | tojson }},
   askNovaSaveFirst:      {{ _("Please save the session first before asking Nova.") | tojson }},
+  subs:                  {{ _("Subs") | tojson }},
+  expSeconds:            {{ _("Exp (s)") | tojson }},
+  removeRow:             {{ _("Remove row") | tojson }},
+  noProjectLinked:       {{ _("No project linked") | tojson }},
+  removeProject:         {{ _("Remove {name}") | tojson }},
 };
 
 (function() {
@@ -3104,27 +3391,31 @@ const journalI18n = {
     }
 
     function buildRow(key, label) {
+        // Same structure as the server-rendered custom rows in #filter-exposure-table
         const row = document.createElement('div');
-        row.className        = 'form-row custom-filter-row';
+        row.className        = 'form-row custom-filter-row filter-exp-row';
         row.dataset.filterKey = key;
         row.innerHTML = `
-                <div class="form-group" style="flex:0 0 200px;align-self:center;display:flex;align-items:center;gap:8px;">
-                    <label style="margin-bottom:0;">${label}:</label>
-                    <button type="button" class="remove-custom-filter-btn"
-                            data-filter-key="${key}"
-                            style="background:none;border:none;color:var(--danger-color);cursor:pointer;font-size:13px;padding:2px 4px;"
-                            title="${journalI18n.removeFilter}">✕</button>
-                </div>
+                <div class="form-group filter-exp-name"><label></label></div>
                 <div class="form-group">
-                    <label>${journalI18n.numSubs} <span id="max-subs-${key}" style="font-weight:normal;color:var(--info-color);font-size:0.85em;"></span>:</label>
                     <input type="number" name="filter_${key}_subs"
                            min="0" step="1" placeholder="${journalI18n.count}" class="calc-trigger">
+                    <span id="max-subs-${key}" class="filter-max-subs" style="font-weight:normal;color:var(--info-color);font-size:0.85em;"></span>
                 </div>
                 <div class="form-group">
-                    <label>${journalI18n.expPerSub}</label>
                     <input type="number" name="filter_${key}_exposure_sec"
                            min="0" step="1" placeholder="${journalI18n.seconds}" class="calc-trigger">
+                </div>
+                <div class="filter-exp-total">–</div>
+                <div class="filter-exp-actions">
+                    <button type="button" class="filter-exp-clear-btn" title="${journalI18n.removeRow}" aria-label="${journalI18n.removeRow}">✕</button>
+                    <button type="button" class="remove-custom-filter-btn"
+                            data-filter-key="${key}"
+                            title="${journalI18n.removeFilter}" aria-label="${journalI18n.removeFilter}"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4h11M6.5 4V2.5h3V4M4 4l.7 9.5h6.6L12 4M6.8 6.5v4.5M9.2 6.5v4.5"/></svg></button>
                 </div>`;
+        row.querySelector('label').textContent = label;
+        row.querySelector('input[name$="_subs"]').setAttribute('aria-label', `${label} – ${journalI18n.subs}`);
+        row.querySelector('input[name$="_exposure_sec"]').setAttribute('aria-label', `${label} – ${journalI18n.expSeconds}`);
         return row;
     }
 
@@ -3150,6 +3441,7 @@ const journalI18n = {
             showMsg(journalI18n.filterAdded.replace('{label}', data.label), false);
             // Trigger max-subs calculation for the new row
             if (window.triggerAllMaxSubsCalculations) window.triggerAllMaxSubsCalculations();
+            if (window.updateFilterExposureTable) window.updateFilterExposureTable();
         } catch(e) {
             showMsg(journalI18n.networkError, true);
         } finally {
@@ -3172,6 +3464,7 @@ const journalI18n = {
             showMsg(journalI18n.filterRemoved.replace('{label}', label), false);
             // Recalculate max-subs for remaining rows
             if (window.triggerAllMaxSubsCalculations) window.triggerAllMaxSubsCalculations();
+            if (window.updateFilterExposureTable) window.updateFilterExposureTable();
         } catch(e) {
             showMsg(journalI18n.networkError, true);
         }
