@@ -311,17 +311,12 @@ def journal_add():
                         new_filename = f"{new_session.id}.{file_extension}"
                         user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
                         os.makedirs(user_upload_dir, exist_ok=True)
-                        saved_image_path = os.path.join(user_upload_dir, new_filename)
                         upload_root = os.path.realpath(UPLOAD_FOLDER)
-                        try:
-                            is_within_uploads = os.path.commonpath(
-                                [os.path.realpath(saved_image_path), upload_root]) == upload_root
-                        except ValueError:
-                            is_within_uploads = False
-                        if not is_within_uploads:
+                        safe_image_path = os.path.realpath(os.path.join(user_upload_dir, new_filename))
+                        if not safe_image_path.startswith(upload_root + os.sep):
                             _flash_rejected_upload(action, _("Invalid session image filename."))
                         else:
-                            file.save(saved_image_path)
+                            file.save(safe_image_path)
                             new_session.session_image_file = new_filename
 
                             # Best-effort thumbnail generation — must not fail the request
@@ -329,7 +324,7 @@ def journal_add():
                             # unsupported format, etc).
                             try:
                                 thumb_path = os.path.join(user_upload_dir, f"thumb_{new_filename}")
-                                with Image.open(saved_image_path) as img:
+                                with Image.open(safe_image_path) as img:
                                     img.thumbnail((480, 480))
                                     if file_extension in ('jpg', 'jpeg'):
                                         img.save(thumb_path, quality=85)
@@ -702,17 +697,12 @@ def journal_edit(session_id):
                         new_filename = f"{session_to_edit.id}.{file_extension}"
                         user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
                         os.makedirs(user_upload_dir, exist_ok=True)
-                        saved_image_path = os.path.join(user_upload_dir, new_filename)
                         upload_root = os.path.realpath(UPLOAD_FOLDER)
-                        try:
-                            is_within_uploads = os.path.commonpath(
-                                [os.path.realpath(saved_image_path), upload_root]) == upload_root
-                        except ValueError:
-                            is_within_uploads = False
-                        if not is_within_uploads:
+                        safe_image_path = os.path.realpath(os.path.join(user_upload_dir, new_filename))
+                        if not safe_image_path.startswith(upload_root + os.sep):
                             _flash_rejected_upload(action, _("Invalid session image filename."))
                         else:
-                            file.save(saved_image_path)
+                            file.save(safe_image_path)
                             session_to_edit.session_image_file = new_filename
 
             # --- Log file handling (stored as TEXT in DB) ---
