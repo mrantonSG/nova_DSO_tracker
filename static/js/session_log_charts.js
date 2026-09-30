@@ -2211,10 +2211,10 @@
                 color: var(--text-primary);
                 margin-bottom: 6px;
             `;
-            const filterPart = afRun._filter ? ` — ${afRun._filter}` : '';
+            const filterPart = afRun._filter ? ` — ${window.escapeHtml(afRun._filter)}` : '';
             const statusText = isSuccess ? '✓ Successful' : '✗ Failed';
             const statusColor = isSuccess ? 'var(--nova-trend-up, #2a9060)' : '#a04040';
-            header.innerHTML = `Run ${afRun.run}${filterPart} <span style="color: ${statusColor};">${statusText}</span>`;
+            header.innerHTML = `Run ${window.escapeHtml(afRun.run)}${filterPart} <span style="color: ${statusColor};">${statusText}</span>`;
             card.appendChild(header);
 
             // META LINE: timestamp · trigger (if present)
@@ -2599,7 +2599,7 @@
         // Helper to add totals item
         const addTotalsItem = (label, value, valueColor = 'var(--text-primary)') => {
             const span = document.createElement('span');
-            span.innerHTML = `${label}: <span style="font-family: var(--font-mono, 'DM Mono', monospace); font-weight: 600; color: ${valueColor};">${value}</span>`;
+            span.innerHTML = `${label}: <span style="font-family: var(--font-mono, 'DM Mono', monospace); font-weight: 600; color: ${valueColor};">${window.escapeHtml(value)}</span>`;
             totalsBar.appendChild(span);
         };
 
@@ -3434,7 +3434,7 @@
         // Helper to add item
         const addItem = (label, value) => {
             const span = document.createElement('span');
-            span.innerHTML = `${label}: <span class="value">${value}</span>`;
+            span.innerHTML = `${label}: <span class="value">${window.escapeHtml(value)}</span>`;
             container.appendChild(span);
         };
 

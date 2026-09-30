@@ -629,12 +629,12 @@
                 }
                 opportunitiesLoaded = true;
             } else {
-                tableBody.innerHTML = '<tr><td colspan="9">' + window.t('error_loading_opportunities', { error: data.message || 'Unknown error' }) + '</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="9">' + window.t('error_loading_opportunities', { error: window.escapeHtml(data.message || 'Unknown error') }) + '</td></tr>';
                 opportunitiesLoaded = true;
             }
         } catch (error) {
             console.error('Error fetching imaging opportunities:', error);
-            tableBody.innerHTML = '<tr><td colspan="9">' + window.t('failed_load_opportunities', { error: error.message }) + '</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="9">' + window.t('failed_load_opportunities', { error: window.escapeHtml(error.message) }) + '</td></tr>';
             opportunitiesLoaded = true;
         }
     }

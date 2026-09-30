@@ -611,7 +611,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     var errDiv = document.createElement('div');
                     errDiv.id = 'ai-notes-error';
                     errDiv.style.cssText = 'color: var(--danger-color, #c00); font-size: 13px; margin-top: 6px;';
-                    errDiv.innerHTML = graphI18n.novaError + ': ' + err.message + ' <button style="margin-left:6px;cursor:pointer;border:none;background:none;font-weight:bold;">[x]</button>';
+                    errDiv.innerHTML = graphI18n.novaError + ': ' + window.escapeHtml(err.message) + ' <button style="margin-left:6px;cursor:pointer;border:none;background:none;font-weight:bold;">[x]</button>';
 
                     var closeBtn = errDiv.querySelector('button');
                     closeBtn.addEventListener('click', function() { errDiv.remove(); });

@@ -3389,8 +3389,8 @@
                                 ? d.extract.slice(0, 220) + '…' : d.extract;
                             _wikiDiv.style.fontStyle = 'normal';
                             _wikiDiv.style.color = 'var(--text-secondary)';
-                            _wikiDiv.innerHTML = '<span>' + extract + '</span> '
-                                + '<a href="' + d.content_urls.desktop.page + '"'
+                            _wikiDiv.innerHTML = '<span>' + window.escapeHtml(extract) + '</span> '
+                                + '<a href="' + window.escapeHtml(d.content_urls.desktop.page) + '"'
                                 + ' target="_blank" rel="noopener"'
                                 + ' style="color:var(--primary-color);text-decoration:none;'
                                 + 'font-weight:600;white-space:nowrap;">Wikipedia →</a>';

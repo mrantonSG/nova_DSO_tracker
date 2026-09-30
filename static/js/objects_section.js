@@ -954,7 +954,7 @@
                     .catch(err => {
                         // --- 3. PATH B: FAILED - Object Not Local, Search SIMBAD ---
                         // This is the ORIGINAL search logic, running only if the local check fails
-                        resultDiv.innerHTML = `<p class="progress-message">${err.message}</p>`;
+                        resultDiv.innerHTML = `<p class="progress-message">${window.escapeHtml(err.message)}</p>`;
 
                         fetch("/search_object", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ object: objectName })})
                         .then(r => r.json()).then(data => {
@@ -991,7 +991,7 @@
                         })
                         .catch(simbadErr => {
                           // --- 4. PATH C: BOTH LOCAL AND SIMBAD FAILED ---
-                          resultDiv.innerHTML = `<p class="error">Error: ${simbadErr.message}.<br>You can now add the object manually and click 'Confirm Add'.</p>`;
+                          resultDiv.innerHTML = `<p class="error">Error: ${window.escapeHtml(simbadErr.message)}.<br>You can now add the object manually and click 'Confirm Add'.</p>`;
                           ['confirm_add_object', 'edit_object', 'cancel_add_object'].forEach(id => {
                               if (document.getElementById(id)) document.getElementById(id).style.display = 'inline-block';
                           });
@@ -1061,7 +1061,7 @@
                     .then(r => r.json()).then(data => {
                         if (data.status === "success") { window.location.reload(); }
                         else { throw new Error(data.message); }
-                    }).catch(err => { resultDiv.innerHTML = `<p class="error">Error: ${err.message}</p>`; });
+                    }).catch(err => { resultDiv.innerHTML = `<p class="error">Error: ${window.escapeHtml(err.message)}</p>`; });
                 });
             }
             if (editObjectBtn) {
