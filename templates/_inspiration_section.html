@@ -926,17 +926,26 @@
 
         // 4. Handle Attribution
         const attrib = document.getElementById('modal-attribution');
+        const safeWikiUrl = /^https?:\/\//i.test(wikiUrl || '') ? wikiUrl : '';
         if (source === "Wiki") {
-            attrib.innerHTML = inspirationI18n.source + ' <a href="${wikiUrl}" target="_blank">' + inspirationI18n.sourceWikipedia + '</a>';
+            if (safeWikiUrl) {
+                attrib.innerHTML = inspirationI18n.source + ' <a href="' + window.escapeHtml(safeWikiUrl) + '" target="_blank">' + inspirationI18n.sourceWikipedia + '</a>';
+            } else {
+                attrib.innerHTML = inspirationI18n.source + ' ' + inspirationI18n.sourceWikipedia;
+            }
         } else if (source === "NASA") {
-            attrib.innerHTML = inspirationI18n.source + ' <a href="${wikiUrl}" target="_blank">' + inspirationI18n.sourceNasa + '</a>';
+            if (safeWikiUrl) {
+                attrib.innerHTML = inspirationI18n.source + ' <a href="' + window.escapeHtml(safeWikiUrl) + '" target="_blank">' + inspirationI18n.sourceNasa + '</a>';
+            } else {
+                attrib.innerHTML = inspirationI18n.source + ' ' + inspirationI18n.sourceNasa;
+            }
         } else if (source === "DSS2") {
             attrib.innerHTML = inspirationI18n.source + ' ' + inspirationI18n.sourceDss2;
         } else {
-            if (wikiUrl) {
-                attrib.innerHTML = inspirationI18n.source + ` <a href="${wikiUrl}" target="_blank">${source}</a>`;
+            if (safeWikiUrl) {
+                attrib.innerHTML = inspirationI18n.source + ` <a href="${window.escapeHtml(safeWikiUrl)}" target="_blank">${window.escapeHtml(source)}</a>`;
             } else {
-                attrib.innerHTML = inspirationI18n.source + ' ' + source;
+                attrib.innerHTML = inspirationI18n.source + ' ' + window.escapeHtml(source);
             }
         }
 
