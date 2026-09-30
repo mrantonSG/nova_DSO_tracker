@@ -42,6 +42,7 @@
     .journal-btn-ghost,
     button[data-action="cancel-form"],
     #form-cancel-button,
+    .journal-form-actions .inline-button-ghost,
     .btn-secondary[data-cancel-url],
     /* Targeting inline-styled Duplicate button */
     .action-button-group form[action*="duplicate"] button,
@@ -65,6 +66,7 @@
     .journal-btn-ghost:hover,
     button[data-action="cancel-form"]:hover,
     #form-cancel-button:hover,
+    .journal-form-actions .inline-button-ghost:hover,
     .btn-secondary[data-cancel-url]:hover,
     .action-button-group form[action*="duplicate"] button:hover,
     .journal-form-actions form[action*="duplicate"] button:hover,
@@ -192,6 +194,7 @@
     [data-theme="dark"] .journal-btn-ghost,
     [data-theme="dark"] button[data-action="cancel-form"],
     [data-theme="dark"] #form-cancel-button,
+    [data-theme="dark"] .journal-form-actions .inline-button-ghost,
     [data-theme="dark"] .btn-secondary[data-cancel-url],
     [data-theme="dark"] .action-button-group form[action*="duplicate"] button,
     [data-theme="dark"] .journal-form-actions form[action*="duplicate"] button,
@@ -205,6 +208,7 @@
     [data-theme="dark"] .journal-btn-ghost:hover,
     [data-theme="dark"] button[data-action="cancel-form"]:hover,
     [data-theme="dark"] #form-cancel-button:hover,
+    [data-theme="dark"] .journal-form-actions .inline-button-ghost:hover,
     [data-theme="dark"] .btn-secondary[data-cancel-url]:hover,
     [data-theme="dark"] .action-button-group form[action*="duplicate"] button:hover,
     [data-theme="dark"] .journal-form-actions form[action*="duplicate"] button:hover,
@@ -401,6 +405,21 @@
     .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em; }
     .detail-header .action-button-group { margin: 0; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 
+    /* Sticky Save/Cancel header while editing or adding a session (window scrolls) */
+    .is-editing #journal-detail-form > .detail-header,
+    .is-adding #journal-detail-form > .detail-header {
+        position: sticky;
+        top: 0;
+        z-index: var(--z-layer-3);
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border-color);
+        padding: 10px 0;
+    }
+    .is-editing #journal-detail-form > .detail-header .journal-form-actions,
+    .is-adding #journal-detail-form > .detail-header .journal-form-actions {
+        margin-top: 0;
+    }
+
     /* Journal Form Actions Grid (Draft Support) */
     .journal-form-actions {
         display: grid;
@@ -408,11 +427,9 @@
         gap: 8px;
         margin-top: 12px;
     }
+    /* Save Draft is a ghost button: neutralise the primary hover-darken from journal_form.css */
     .journal-form-actions button[data-action="save-draft"]:hover {
-        filter: brightness(0.9);
-    }
-    [data-theme="dark"] .journal-form-actions button[data-action="save-draft"] {
-        box-shadow: 0 0 14px rgba(122,175,192,0.2);
+        filter: none;
     }
     .journal-form-actions button[data-action="save-close"]:hover {
         filter: brightness(0.9);
@@ -2313,7 +2330,7 @@
                  <div class="detail-header">
                     <h4 id="form-detail-title">{{ _('Edit Session') }}</h4>
                     <div class="journal-form-actions">
-                        <button type="button" id="form-save-draft-button" data-action="save-draft" class="inline-button">{{ _('Save Draft') }}</button>
+                        <button type="button" id="form-save-draft-button" data-action="save-draft" class="inline-button inline-button-ghost">{{ _('Save Draft') }}</button>
                         <button type="submit" id="form-submit-button" data-action="save-close" class="inline-button">{{ _('Save & Close') }}</button>
                         <button id="form-cancel-button" type="button" class="inline-button" style="background-color:var(--accent-gray-medium);" data-action="cancel-form">{{ _('Cancel') }}</button>
                     </div>
