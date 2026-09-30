@@ -128,6 +128,7 @@ from nova.config import (
 )
 from nova.helpers import (
     get_db, get_user_log_string, allowed_file, _yaml_dump_pretty,
+    is_valid_username,
     _mkdirp, _backup_with_rotation, _atomic_write_yaml, _FileLock,
     try_acquire_file_lock, release_file_lock,
     to_yaml_filter, safe_float, safe_int, convert_to_native_python,
@@ -3150,7 +3151,10 @@ if not SINGLE_USER_MODE:
 
         # If no users exist, prompt to create the first one
         print("--- Create First Admin User ---")
-        username = input("Enter username for admin: ")
+        username = input("Enter username for admin: ").strip()
+        if not is_valid_username(username):
+            print("❌ Invalid username: use letters, digits, _ . - (max 80), not starting with . or -.")
+            return
         password = getpass.getpass("Enter password for admin: ")
 
         # Create the user object and save it to the database
@@ -3164,7 +3168,10 @@ if not SINGLE_USER_MODE:
     def add_user_command():
         """Creates a new user account."""
         print("--- Create New User ---")
-        username = input("Enter username: ")
+        username = input("Enter username: ").strip()
+        if not is_valid_username(username):
+            print("❌ Invalid username: use letters, digits, _ . - (max 80), not starting with . or -.")
+            return
 
         # Check if username already exists
         existing = db.session.scalar(db.select(User).where(User.username == username))
@@ -3196,6 +3203,9 @@ if not SINGLE_USER_MODE:
         new_name = input("New username: ").strip()
         if not new_name:
             print("❌ Username cannot be empty.")
+            return
+        if not is_valid_username(new_name):
+            print("❌ Invalid username: use letters, digits, _ . - (max 80), not starting with . or -.")
             return
 
         if db.session.scalar(db.select(User).where(User.username == new_name)):
