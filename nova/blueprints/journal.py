@@ -252,11 +252,11 @@ def journal_add():
             # --- Custom filter data (user-defined filters stored as JSON) ---
             custom_data = {}
             for cf in db.query(UserCustomFilter).filter_by(user_id=user.id).all():
-                subs = request.form.get(f'filter_{cf.filter_key}_subs')
-                exp = request.form.get(f'filter_{cf.filter_key}_exposure_sec')
-                if subs or exp:
-                    custom_data[f'filter_{cf.filter_key}_subs'] = int(subs) if subs else None
-                    custom_data[f'filter_{cf.filter_key}_exposure_sec'] = int(exp) if exp else None
+                subs = safe_int(request.form.get(f'filter_{cf.filter_key}_subs'))
+                exp = safe_int(request.form.get(f'filter_{cf.filter_key}_exposure_sec'))
+                if subs is not None or exp is not None:
+                    custom_data[f'filter_{cf.filter_key}_subs'] = subs
+                    custom_data[f'filter_{cf.filter_key}_exposure_sec'] = exp
             new_session.custom_filter_data = json.dumps(custom_data) if custom_data else None
 
             # --- Total exposure calculation (light frames + fixed + custom filters) ---
@@ -566,13 +566,22 @@ def journal_edit(session_id):
             # --- END: Update Rig Snapshot Fields ---
     
             # --- Custom filter data (user-defined filters stored as JSON) ---
-            custom_data = {}
+            # Start from stored data so values for filters whose definition was deleted
+            # survive a re-save; only filters submitted in the form are updated.
+            custom_data = json.loads(session_to_edit.custom_filter_data) if session_to_edit.custom_filter_data else {}
             for cf in db.query(UserCustomFilter).filter_by(user_id=user.id).all():
-                subs = request.form.get(f'filter_{cf.filter_key}_subs')
-                exp = request.form.get(f'filter_{cf.filter_key}_exposure_sec')
-                if subs or exp:
-                    custom_data[f'filter_{cf.filter_key}_subs'] = int(subs) if subs else None
-                    custom_data[f'filter_{cf.filter_key}_exposure_sec'] = int(exp) if exp else None
+                subs_key = f'filter_{cf.filter_key}_subs'
+                exp_key = f'filter_{cf.filter_key}_exposure_sec'
+                if subs_key not in request.form and exp_key not in request.form:
+                    continue
+                subs = safe_int(request.form.get(subs_key))
+                exp = safe_int(request.form.get(exp_key))
+                if subs is not None or exp is not None:
+                    custom_data[subs_key] = subs
+                    custom_data[exp_key] = exp
+                else:
+                    custom_data.pop(subs_key, None)
+                    custom_data.pop(exp_key, None)
             session_to_edit.custom_filter_data = json.dumps(custom_data) if custom_data else None
     
             # Project logic (Multi-value safe)
@@ -639,12 +648,12 @@ def journal_edit(session_id):
                 exp = getattr(session_to_edit, f'filter_{fk}_exposure_sec', None) or 0
                 total_seconds += int(subs) * int(exp)
     
-            if session_to_edit.custom_filter_data:
-                custom_data_parsed = json.loads(session_to_edit.custom_filter_data)
-                for cf in db.query(UserCustomFilter).filter_by(user_id=user.id).all():
-                    subs = custom_data_parsed.get(f'filter_{cf.filter_key}_subs') or 0
-                    exp = custom_data_parsed.get(f'filter_{cf.filter_key}_exposure_sec') or 0
-                    total_seconds += int(subs) * int(exp)
+            # Iterate stored keys (not current definitions) so filters whose
+            # definition was deleted still count toward integration time.
+            for key, subs in custom_data.items():
+                if key.startswith('filter_') and key.endswith('_subs'):
+                    exp = custom_data.get(key[:-len('_subs')] + '_exposure_sec')
+                    total_seconds += (safe_int(subs) or 0) * (safe_int(exp) or 0)
     
             session_to_edit.calculated_integration_time_minutes = round(total_seconds / 60.0,
                                                                         1) if total_seconds > 0 else None
