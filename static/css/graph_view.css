@@ -1526,6 +1526,13 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     margin-bottom: 25px;
 }
 
+/* A card that opens a tab sits at the same height as the Chart/Journal
+   content — the tab's own padding is the only gap below the tab bar.
+   (:first-of-type skips the inline <style> in _opportunities_section.html) */
+.tab-content > .content-section:first-of-type {
+    margin-top: 0;
+}
+
 /* Chart section and tab content backgrounds */
 #chart-section,
 #chart-tab,
