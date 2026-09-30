@@ -603,6 +603,23 @@
         return (typeof journalI18n !== 'undefined' && journalI18n[key]) || fallback;
     }
 
+    function chipRemoveIcon() {
+        const NS = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(NS, 'svg');
+        svg.setAttribute('viewBox', '0 0 12 12');
+        svg.setAttribute('width', '12');
+        svg.setAttribute('height', '12');
+        svg.setAttribute('fill', 'none');
+        svg.setAttribute('aria-hidden', 'true');
+        const path = document.createElementNS(NS, 'path');
+        path.setAttribute('d', 'M3 3l6 6M9 3l-6 6');
+        path.setAttribute('stroke', 'currentColor');
+        path.setAttribute('stroke-width', '1.6');
+        path.setAttribute('stroke-linecap', 'round');
+        svg.appendChild(path);
+        return svg;
+    }
+
     function renderProjectChips() {
         const form = document.getElementById('journal-detail-form');
         const chips = form && form.querySelector('.project-chips');
@@ -619,7 +636,7 @@
             removeBtn.className = 'project-chip-remove';
             removeBtn.dataset.projectId = cb.value;
             removeBtn.setAttribute('aria-label', jt('removeProject', 'Remove {name}').replace('{name}', name));
-            removeBtn.textContent = '✕';
+            removeBtn.appendChild(chipRemoveIcon());
             chip.appendChild(removeBtn);
             chips.appendChild(chip);
         });
@@ -730,6 +747,34 @@
         renderProjectChips();
         resetFilterRowVisibility();
         updateStarRatingValue();
+        syncAllFileCards();
+    }
+
+    // --- Logs & Files cards: display only; the hidden file input and delete_* checkbox are submitted ---
+
+    function syncFileCard(card) {
+        const input = card.querySelector('[data-file-input]');
+        const del = card.querySelector('[data-file-delete]');
+        const nameText = card.querySelector('[data-file-name]');
+        const picked = input && input.files && input.files[0];
+        const removed = !!(del && del.checked);
+        const storedName = nameText ? nameText.dataset.storedName : '';
+        if (nameText) nameText.textContent = picked ? picked.name : storedName;
+        const nameRow = card.querySelector('.session-file-name');
+        if (nameRow) nameRow.hidden = !picked && !storedName;
+        const newTag = card.querySelector('.session-file-new');
+        if (newTag) newTag.hidden = !picked;
+        card.classList.toggle('is-picked', !!picked);
+        card.classList.toggle('is-removed', removed);
+        const removeBtn = card.querySelector('[data-file-remove]');
+        if (removeBtn) {
+            removeBtn.textContent = removed ? removeBtn.dataset.labelUndo : removeBtn.dataset.labelRemove;
+            removeBtn.setAttribute('aria-pressed', removed ? 'true' : 'false');
+        }
+    }
+
+    function syncAllFileCards() {
+        document.querySelectorAll('#journal-detail-form [data-file-card]').forEach(syncFileCard);
     }
 
     // Expose for the inline custom-filter add/remove script
@@ -746,6 +791,18 @@
         document.addEventListener('change', function(e) {
             if (e.target.matches('#journal-detail-form input[name="project_selection"]')) renderProjectChips();
             else if (e.target.matches('#journal-detail-form .star-rating input[type="radio"]')) updateStarRatingValue();
+            else if (e.target.matches('#journal-detail-form [data-file-input]')) {
+                // Replace and Remove are mutually exclusive: picking a file unmarks Remove
+                const card = e.target.closest('[data-file-card]');
+                const del = card.querySelector('[data-file-delete]');
+                if (del && e.target.files.length) del.checked = false;
+                syncFileCard(card);
+            }
+        });
+
+        // form.reset() (Add mode) clears inputs after the event fires
+        document.addEventListener('reset', function(e) {
+            if (e.target.id === 'journal-detail-form') setTimeout(syncAllFileCards, 0);
         });
 
         document.addEventListener('input', function(e) {
@@ -769,6 +826,23 @@
                     cb.checked = false;
                     cb.dispatchEvent(new Event('change', { bubbles: true }));
                 }
+                return;
+            }
+
+            const filePick = e.target.closest('#journal-detail-form [data-file-pick]');
+            if (filePick) {
+                filePick.closest('[data-file-card]').querySelector('[data-file-input]').click();
+                return;
+            }
+
+            const fileRemove = e.target.closest('#journal-detail-form [data-file-remove]');
+            if (fileRemove) {
+                const card = fileRemove.closest('[data-file-card]');
+                const del = card.querySelector('[data-file-delete]');
+                del.checked = !del.checked;
+                if (del.checked) card.querySelector('[data-file-input]').value = '';   // marking Remove drops a picked replacement
+                del.dispatchEvent(new Event('change', { bubbles: true }));             // unsaved-changes marker
+                syncFileCard(card);
                 return;
             }
 

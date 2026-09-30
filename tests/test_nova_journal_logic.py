@@ -238,12 +238,14 @@ def test_graph_dashboard_add_mode_ignores_selected_session(client, db_session):
     db_session.commit()
     rig_selected = f'value="{rig.id}" selected'.encode()
     file_inputs = [b'name="asiair_log"', b'name="phd2_log"', b'name="nina_log"']
+    # Stored logs render a Remove toggle backed by these checkboxes; empty cards don't
+    log_deletes = [b'name="delete_asiair_log"', b'name="delete_phd2_log"', b'name="delete_nina_log"']
 
     # Control: without add=true the form carries the session's values
     view = client.get(f'/graph_dashboard/M42?tab=journal&session_id={sess.id}').data
     assert rig_selected in view
     assert b'value="4321"' in view
-    assert not any(fi in view for fi in file_inputs)
+    assert all(ld in view for ld in log_deletes)
 
     resp = client.get(f'/graph_dashboard/M42?tab=journal&session_id={sess.id}&add=true')
     assert resp.status_code == 200
@@ -254,3 +256,4 @@ def test_graph_dashboard_add_mode_ignores_selected_session(client, db_session):
     assert b'value="987"' not in data
     for fi in file_inputs:
         assert fi in data
+    assert not any(ld in data for ld in log_deletes)

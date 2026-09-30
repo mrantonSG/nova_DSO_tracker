@@ -1483,19 +1483,14 @@
 
     .session-logs-row {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 16px;
       margin-top: 8px;
     }
 
-    @media (max-width: 768px) {
-      .session-logs-row {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .session-log-item,
-    .session-image-card {
+    /* Logs & Files cards: stored file (Replace / Remove) or empty (Upload). The hidden file
+       input and delete_* checkbox inside each card are what the form submits. */
+    #journal-detail-form .session-file-card {
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -1505,108 +1500,113 @@
       border: 1px solid var(--border-color, #d0cdc8);
       border-radius: 6px;
     }
-    .session-image-card { margin-bottom: 20px; }
-    .session-image-current { display: flex; flex-direction: column; gap: 8px; }
-
-    .session-log-item label:first-child,
-    .session-image-card label:not(.delete-label) {
-      font-weight: 600;
-      color: var(--text-primary);
-      font-size: 12px;
-    }
-
-    /* Native file input: text in muted 12px, selector button as a ghost button */
-    #journal-detail-form .session-log-item input[type="file"],
-    #journal-detail-form .session-image-card input[type="file"] {
-      width: 100%;
-      max-width: 100%;
-      padding: 0;
-      border: none;
-      background: transparent;
-      color: var(--text-muted);
-      font-family: inherit;
-      font-size: 12px;
-    }
-    #journal-detail-form input[type="file"]::file-selector-button {
-      margin-right: 10px;
-      padding: 6px 14px;
-      background: transparent;
-      color: var(--text-secondary, #4a4a4a);
-      border: 1px solid var(--border-color, #d0cdc8);
-      border-radius: 6px;
-      font-family: inherit;
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.15s ease;
-    }
-    #journal-detail-form input[type="file"]::file-selector-button:hover {
+    #journal-detail-form .session-file-card.is-empty {
+      border-style: dashed;
       background: var(--bg-tertiary);
     }
-    [data-theme="dark"] #journal-detail-form input[type="file"]::file-selector-button {
-      color: rgba(255,255,255,0.55);
-      border-color: rgba(255,255,255,0.15);
-    }
-
-    .session-log-uploaded {
+    #journal-detail-form .session-image-card { margin-bottom: 20px; }
+    #journal-detail-form .session-file-head {
       display: flex;
-      flex-wrap: wrap;
       align-items: center;
+      justify-content: space-between;
       gap: 8px;
+      min-width: 0;
     }
-
-    .session-log-uploaded .uploaded-status {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 3px 9px;
-      background: var(--primary-bg);
-      color: var(--primary-color);
-      border-radius: 6px;
-      font-size: 11px;
+    #journal-detail-form .session-file-title {
+      min-width: 0;
+      font-size: 13px;
       font-weight: 600;
+      color: var(--text-primary);
+    }
+    #journal-detail-form .session-file-badge {
+      flex: none;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: var(--primary-bg);
+      color: #2d7d95;
+      font-family: var(--font-mono, 'DM Mono', monospace);
+      font-size: 11px;
+      font-weight: 500;
       white-space: nowrap;
     }
-
-    .session-image-filename {
+    [data-theme="dark"] #journal-detail-form .session-file-badge { color: var(--primary-color); }
+    #journal-detail-form .session-file-state {
+      flex: none;
+      font-size: 11px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    #journal-detail-form .session-file-name {
       font-family: var(--font-mono, 'DM Mono', monospace);
       font-size: 12px;
       color: var(--text-secondary);
       overflow-wrap: anywhere;
     }
-
-    .session-log-uploaded .delete-label {
+    #journal-detail-form .session-file-name[hidden] { display: none; }
+    #journal-detail-form .session-file-new,
+    #journal-detail-form .session-file-removed {
+      margin-left: 4px;
+      font-family: var(--nova-font-sans, 'DM Sans', sans-serif);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    #journal-detail-form .session-file-new[hidden],
+    #journal-detail-form .session-file-removed { display: none; }
+    #journal-detail-form .session-file-card.is-removed .session-file-name-text {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+    #journal-detail-form .session-file-card.is-removed .session-file-removed { display: inline; }
+    #journal-detail-form .session-file-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    #journal-detail-form .session-file-btn {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
-      padding: 3px 9px;
+      height: 26px;
+      padding: 0 12px;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    #journal-detail-form .session-file-btn:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+    /* Ghost: Replace / Upload, and Remove once it reads "Undo" */
+    #journal-detail-form .session-file-btn--ghost,
+    #journal-detail-form .session-file-btn--danger[aria-pressed="true"] {
+      background: transparent;
+      color: var(--text-secondary, #4a4a4a);
+      border: 1px solid var(--border-color, #d0cdc8);
+      font-weight: 500;
+    }
+    #journal-detail-form .session-file-btn--ghost:hover,
+    #journal-detail-form .session-file-btn--danger[aria-pressed="true"]:hover { background: var(--bg-tertiary); }
+    #journal-detail-form .session-file-card.is-empty .session-file-btn--ghost:hover { background: var(--bg-secondary); }
+    #journal-detail-form .session-file-btn--danger:not([aria-pressed="true"]) {
       background: rgba(180,60,60,0.08);
       color: #a04040;
       border: 1px solid rgba(180,60,60,0.18);
-      border-radius: 6px;
-      font-size: 11px;
       font-weight: 600;
-      cursor: pointer;
-      white-space: nowrap;
     }
-    .session-log-uploaded .delete-label:hover {
-      background: rgba(180,60,60,0.15);
+    #journal-detail-form .session-file-btn--danger:not([aria-pressed="true"]):hover { background: rgba(180,60,60,0.15); }
+    [data-theme="dark"] #journal-detail-form .session-file-btn--ghost,
+    [data-theme="dark"] #journal-detail-form .session-file-btn--danger[aria-pressed="true"] {
+      color: rgba(255,255,255,0.55);
+      border-color: rgba(255,255,255,0.15);
     }
-
-    /* Dark mode for session logs */
-    [data-theme="dark"] .session-log-item label:first-child,
-    [data-theme="dark"] .session-image-card label:not(.delete-label) {
-      color: var(--text-primary);
-    }
-
-    [data-theme="dark"] .session-log-uploaded .delete-label {
+    [data-theme="dark"] #journal-detail-form .session-file-btn--danger:not([aria-pressed="true"]) {
       background: rgba(200,80,80,0.1);
       color: #d06060;
+      border-color: rgba(200,80,80,0.2);
     }
-
-    .session-log-uploaded .delete-label input[type="checkbox"] {
-      margin: 0;
-      cursor: pointer;
+    [data-theme="dark"] #journal-detail-form .session-file-btn--danger:not([aria-pressed="true"]):hover {
+      background: rgba(200,80,80,0.18);
     }
 
     /* AI Notes Button (Ask Nova) */
@@ -1674,6 +1674,7 @@
         flex-wrap: wrap;
         align-items: center;
         gap: 6px 12px;
+        min-height: 34px;                    /* same row height as the inputs beside it */
     }
     #journal-detail-form .project-chips {
         display: flex;
@@ -1684,42 +1685,66 @@
     #journal-detail-form .project-chip {
         display: inline-flex;
         align-items: center;
-        gap: 4px;
-        padding: 3px 4px 3px 10px;
+        gap: 6px;
+        box-sizing: border-box;
+        height: 28px;
+        padding: 0 6px 0 12px;
+        border: 1px solid var(--primary-light);
         border-radius: 6px;
         background: var(--primary-bg);
-        color: var(--primary-color);
+        color: #2d7d95;
         font-size: 12px;
         font-weight: 600;
+        line-height: 1;
+    }
+    [data-theme="dark"] #journal-detail-form .project-chip {
+        color: var(--primary-color);
+        border-color: rgba(142,200,218,0.28);
     }
     #journal-detail-form .project-chip-remove {
-        background: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2px;
         border: none;
-        padding: 0 4px;
+        border-radius: 4px;
+        background: transparent;
         color: inherit;
-        font-size: 11px;
-        line-height: 1;
+        line-height: 0;
         cursor: pointer;
-        opacity: 0.7;
+        transition: background 0.15s ease;
     }
-    #journal-detail-form .project-chip-remove:hover { opacity: 1; }
+    #journal-detail-form .project-chip-remove svg { display: block; width: 12px; height: 12px; }
+    #journal-detail-form .project-chip-remove:hover { background: rgba(131,180,197,0.32); }
+    [data-theme="dark"] #journal-detail-form .project-chip-remove:hover { background: rgba(142,200,218,0.16); }
+    #journal-detail-form .project-chip-remove:focus-visible {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 1px;
+    }
     #journal-detail-form .project-chips-empty {
         font-size: 12px;
         color: var(--text-muted);
     }
     #journal-detail-form .project-picker-actions {
         display: inline-flex;
-        gap: 12px;
+        align-items: center;
+        gap: 8px;
+    }
+    #journal-detail-form .project-picker-sep {
+        font-size: 12px;
+        color: var(--text-muted);
     }
     #journal-detail-form .project-picker-link {
         background: none;
         border: none;
         padding: 0;
-        color: var(--primary-color);
+        color: #2d7d95;
         font-size: 12px;
-        font-weight: 600;
+        font-weight: 500;
+        line-height: 1;
         cursor: pointer;
     }
+    [data-theme="dark"] #journal-detail-form .project-picker-link { color: var(--primary-color); }
     #journal-detail-form .project-picker-link:hover { text-decoration: underline; }
     #journal-detail-form .project-picker-link.is-active { color: var(--text-secondary); }
     #journal-detail-form .project-picker-panel { display: none; margin-top: 8px; }
@@ -1957,8 +1982,54 @@
         grid-column: 1 / -1;
         margin-top: 6px;
     }
-    @media (max-width: 900px) {
+    /* Grids follow the form's own width (the sidebar eats into the viewport), not the viewport */
+    #journal-detail-form { container-type: inline-size; }
+    @container (max-width: 860px) {
+        #journal-detail-form .journal-field-grid--5 { --jfg-cols: 3; }
+    }
+    @container (max-width: 640px) {
         #journal-detail-form .journal-field-grid { --jfg-cols: 2; }
+        #journal-detail-form .session-logs-row { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    /* Project edit: sticky title + Cancel · Save Project bar, same chrome as the session edit header.
+       #journal-project-edit-mode is display:none unless a project is being edited. */
+    #journal-project-edit-form > .detail-header {
+        position: sticky;
+        top: 0;
+        z-index: var(--z-layer-3);
+        margin: 0 -24px 1em;                 /* bottom border spans the card like the session header */
+        padding: 10px 24px;
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border-color);
+    }
+    #journal-project-edit-form > .detail-header h4 {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    #journal-project-edit-form > .detail-header .action-button-group .inline-button {
+        height: 30px;
+        padding: 0 14px !important;          /* beats the 6px 14px !important button rules above */
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    /* Cancel shares data-action with the primary "Edit Project" button, so it is re-ghosted here */
+    #journal-project-edit-form > .detail-header button[data-action="toggle-project-edit"][data-enable="false"] {
+        background: transparent !important;
+        color: var(--text-secondary, #4a4a4a) !important;
+        border: 1px solid var(--border-color, #d0cdc8) !important;
+        font-weight: 500 !important;
+        box-shadow: none !important;
+    }
+    #journal-project-edit-form > .detail-header button[data-action="toggle-project-edit"][data-enable="false"]:hover {
+        background: var(--bg-tertiary) !important;
+        filter: none;
+    }
+    [data-theme="dark"] #journal-project-edit-form > .detail-header button[data-action="toggle-project-edit"][data-enable="false"] {
+        color: rgba(255,255,255,0.55) !important;
+        border-color: rgba(255,255,255,0.15) !important;
     }
 
     /* REDESIGN pass 3: mockup parity (edit/add session form only) */
@@ -2160,6 +2231,40 @@
 {# Edit-form label: text + muted unit/qualifier + optional "auto" tag. Returns markup, so form_group doesn't escape it. #}
 {% macro field_label(text, unit='', auto=False) -%}
 {{ text }}{% if unit %}<span class="field-unit">{{ unit }}</span>{% endif %}{% if auto %}<span class="field-auto-tag">{{ _('auto') }}</span>{% endif %}
+{%- endmacro %}
+
+{# Display name of a stored session log: basename of a single-line path (/ or \ separators);
+   multi-line values are raw log text from before logs moved to the filesystem #}
+{% macro stored_log_name(value) -%}
+{%- if value -%}
+{%- if '\n' in value -%}{{ _('Legacy log') }}{%- else -%}{{ value.replace('\\', '/').rsplit('/', 1)[-1] }}{%- endif -%}
+{%- endif -%}
+{%- endmacro %}
+
+{# Logs & Files card. The hidden file input and delete_* checkbox are what the form submits;
+   journal_section.js only mirrors their state (Replace / Remove / Undo / Upload). #}
+{% macro file_card(title, input_name, accept, delete_name, stored_name, extra_class='', help='') -%}
+<div class="session-file-card {{ extra_class }} {{ 'is-uploaded' if stored_name else 'is-empty' }}" data-file-card>
+    <div class="session-file-head">
+        <span class="session-file-title" id="{{ input_name }}-title">{{ title }}</span>
+        {% if stored_name %}<span class="session-file-badge">✓ {{ _('uploaded') }}</span>{% else %}<span class="session-file-state">{{ _('not uploaded') }}</span>{% endif %}
+    </div>
+    {% if help %}<div class="field-help">{{ help }}</div>{% endif %}
+    <div class="session-file-name"{% if not stored_name %} hidden{% endif %}>
+        <span class="session-file-name-text" data-file-name data-stored-name="{{ stored_name }}">{{ stored_name }}</span><span class="session-file-new" hidden>{{ _('(new)') }}</span><span class="session-file-removed">{{ _('Removed on save') }}</span>
+    </div>
+    <div class="session-file-actions">
+        {% if stored_name %}
+        <button type="button" class="session-file-btn session-file-btn--ghost" data-file-pick>{{ _('Replace') }}</button>
+        <button type="button" class="session-file-btn session-file-btn--danger" data-file-remove aria-pressed="false"
+                data-label-remove="{{ _('Remove') }}" data-label-undo="{{ _('Undo') }}">{{ _('Remove') }}</button>
+        <input type="checkbox" class="sr-only" name="{{ delete_name }}" value="1" data-file-delete tabindex="-1" aria-hidden="true">
+        {% else %}
+        <button type="button" class="session-file-btn session-file-btn--ghost" data-file-pick>{{ _('Upload') }}</button>
+        {% endif %}
+        <input type="file" class="sr-only" id="{{ input_name }}" name="{{ input_name }}" accept="{{ accept }}" tabindex="-1" aria-labelledby="{{ input_name }}-title" data-file-input>
+    </div>
+</div>
 {%- endmacro %}
 
 <div class="journal-container">
@@ -2754,8 +2859,8 @@
                             <div class="detail-header">
                                 <h4 style="margin:0;">{{ _('Editing Project') }}</h4>
                                 <div class="action-button-group">
-                                    <button type="submit" class="inline-button" style="background-color:var(--success-color);">{{ _('Save Project') }}</button>
                                     <button type="button" class="inline-button" style="background-color:var(--accent-gray-medium);" data-action="toggle-project-edit" data-enable="false">{{ _('Cancel') }}</button>
+                                    <button type="submit" class="inline-button" style="background-color:var(--success-color);">{{ _('Save Project') }}</button>
                                 </div>
                             </div>
 
@@ -2889,6 +2994,7 @@
                         <div class="project-picker-actions">
                             {% if all_projects %}
                             <button type="button" class="project-picker-link" data-project-picker="toggle-grid" aria-expanded="false">{{ _('Change') }}</button>
+                            <span class="project-picker-sep" aria-hidden="true">·</span>
                             {% endif %}
                             <button type="button" class="project-picker-link" data-project-picker="new-project" aria-pressed="false">{{ _('+ New project') }}</button>
                         </div>
@@ -3084,63 +3190,17 @@
                     </div>
                 </div>
                 <div id="form-logs-tab" class="form-tab-panel form-tab-panel--hidden" data-form-panel="logs">
-                    <div class="session-image-card">
-                        <label for="session_image">{{ _('Session image') }}</label>
-                        <div class="field-help">{{ _('JPG, PNG or GIF · max 5 MB') }}</div>
-                        {% if selected_session_data and selected_session_data.session_image_file %}
-                        <div class="session-image-current">
-                            <label>{{ _('Current Image:') }}</label>
-                            <div class="session-log-uploaded">
-                                <span class="session-image-filename">{{ selected_session_data.session_image_file }}</span>
-                                <label class="delete-label"><input type="checkbox" name="delete_session_image" value="1"> {{ _('Delete Image') }}</label>
-                            </div>
-                        </div>
-                        {% endif %}
-                        <input type="file" id="session_image" name="session_image" accept="image/jpeg, image/png, image/gif">
-                    </div>
+                    {% set sd = selected_session_data %}
+                    {{ file_card(_('Session image'), 'session_image', 'image/jpeg, image/png, image/gif', 'delete_session_image',
+                                 sd.session_image_file if (sd and sd.session_image_file) else '',
+                                 extra_class='session-image-card', help=_('JPG, PNG or GIF · max 5 MB')) }}
 
                     {# --- Session Logs Section --- #}
                     <div class="form-section-title">{{ _('Session Logs (Optional)') }}</div>
                     <div class="session-logs-row">
-                        <div class="session-log-item">
-                            <label>{{ _('ASIAIR Log (Autorun)') }}</label>
-                            {% if selected_session_data and selected_session_data.asiair_log_content %}
-                            <div class="session-log-uploaded">
-                                <span class="uploaded-status">✓ {{ _('Uploaded') }}</span>
-                                <label class="delete-label">
-                                    <input type="checkbox" name="delete_asiair_log" value="1"> {{ _('Delete') }}
-                                </label>
-                            </div>
-                            {% else %}
-                            <input type="file" id="asiair_log" name="asiair_log" accept=".txt">
-                            {% endif %}
-                        </div>
-                        <div class="session-log-item">
-                            <label>{{ _('PHD2 Guide Log') }}</label>
-                            {% if selected_session_data and selected_session_data.phd2_log_content %}
-                            <div class="session-log-uploaded">
-                                <span class="uploaded-status">✓ {{ _('Uploaded') }}</span>
-                                <label class="delete-label">
-                                    <input type="checkbox" name="delete_phd2_log" value="1"> {{ _('Delete') }}
-                                </label>
-                            </div>
-                            {% else %}
-                            <input type="file" id="phd2_log" name="phd2_log" accept=".txt">
-                            {% endif %}
-                        </div>
-                        <div class="session-log-item">
-                            <label>{{ _('NINA Log') }}</label>
-                            {% if selected_session_data and selected_session_data.nina_log_content %}
-                            <div class="session-log-uploaded">
-                                <span class="uploaded-status">✓ {{ _('Uploaded') }}</span>
-                                <label class="delete-label">
-                                    <input type="checkbox" name="delete_nina_log" value="1"> {{ _('Delete') }}
-                                </label>
-                            </div>
-                            {% else %}
-                            <input type="file" id="nina_log" name="nina_log" accept=".log">
-                            {% endif %}
-                        </div>
+                        {{ file_card(_('ASIAIR Log (Autorun)'), 'asiair_log', '.txt', 'delete_asiair_log', stored_log_name(sd.asiair_log_content) if sd else '') }}
+                        {{ file_card(_('PHD2 Guide Log'), 'phd2_log', '.txt', 'delete_phd2_log', stored_log_name(sd.phd2_log_content) if sd else '') }}
+                        {{ file_card(_('NINA Log'), 'nina_log', '.log', 'delete_nina_log', stored_log_name(sd.nina_log_content) if sd else '') }}
                     </div>
                 </div>
             </form>
