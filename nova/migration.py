@@ -336,8 +336,6 @@ def _migrate_objects(db, user: DbUser, config: dict):
     target_username = user.username
     # This regex finds '/uploads/', captures the (old) username, and the rest of the path
     link_pattern = re.compile(r'(/uploads/)([^/\n]{1,100})(/[^"\'\n]{0,1000}["\'])')
-    # This builds the replacement string, e.g., '/uploads/default/image.jpg"'
-    replacement_str = r'\1' + re.escape(target_username) + r'\3'
     # === END: Link Rewriting Logic ===
 
     # Safely get the list of objects, defaulting to an empty list if missing.
@@ -375,9 +373,9 @@ def _migrate_objects(db, user: DbUser, config: dict):
 
             # Rewrite image links to point to the *importer's* directory
             if project_name:
-                project_name = link_pattern.sub(replacement_str, project_name)
+                project_name = link_pattern.sub(lambda m: m.group(1) + target_username + m.group(3), project_name)
             if shared_notes:
-                shared_notes = link_pattern.sub(replacement_str, shared_notes)
+                shared_notes = link_pattern.sub(lambda m: m.group(1) + target_username + m.group(3), shared_notes)
             # === END: Link Rewriting Application ===
 
             # Default to True for backward compatibility with old backups
@@ -752,8 +750,6 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
     target_username = user.username
     # This regex finds '/uploads/', captures the (old) username, and the rest of the path
     link_pattern = re.compile(r'(/uploads/)([^/\n]{1,100})(/[^"\'\n]{0,1000}["\'])')
-    # This builds the replacement string, e.g., '/uploads/default/image.jpg"'
-    replacement_str = r'\1' + re.escape(target_username) + r'\3'
     # === END: Link Rewriting Logic ===
 
     # --- 1. Migrate Projects & Track Valid IDs ---
@@ -835,7 +831,7 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
 
         # Rewrite image links to point to the *importer's* directory
         if notes_html:
-            notes_html = link_pattern.sub(replacement_str, notes_html)
+            notes_html = link_pattern.sub(lambda m: m.group(1) + target_username + m.group(3), notes_html)
         # === END: Link Rewriting Application ===
 
         # === START: Orphan Project Check ===
