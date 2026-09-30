@@ -660,11 +660,11 @@ def mobile_journal_new():
         from nova.models import UserCustomFilter
         custom_data = {}
         for cf in db.query(UserCustomFilter).filter_by(user_id=user.id).all():
-            subs = request.form.get(f'filter_{cf.filter_key}_subs')
-            exp = request.form.get(f'filter_{cf.filter_key}_exposure_sec')
-            if subs or exp:
-                custom_data[f'filter_{cf.filter_key}_subs'] = int(subs) if subs else None
-                custom_data[f'filter_{cf.filter_key}_exposure_sec'] = int(exp) if exp else None
+            subs = safe_int(request.form.get(f'filter_{cf.filter_key}_subs'))
+            exp = safe_int(request.form.get(f'filter_{cf.filter_key}_exposure_sec'))
+            if subs is not None or exp is not None:
+                custom_data[f'filter_{cf.filter_key}_subs'] = subs
+                custom_data[f'filter_{cf.filter_key}_exposure_sec'] = exp
         new_session.custom_filter_data = json.dumps(custom_data) if custom_data else None
 
         # Total exposure calculation
