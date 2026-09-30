@@ -335,7 +335,7 @@ def _migrate_objects(db, user: DbUser, config: dict):
     # Get the target username (e.g., 'default' or 'mrantonSG')
     target_username = user.username
     # This regex finds '/uploads/', captures the (old) username, and the rest of the path
-    link_pattern = re.compile(r'(/uploads/)([^/]+)(/.*?["\'])')
+    link_pattern = re.compile(r'(/uploads/)([^/\n]{1,100})(/[^"\'\n]{0,1000}["\'])')
     # This builds the replacement string, e.g., '/uploads/default/image.jpg"'
     replacement_str = r'\1' + re.escape(target_username) + r'\3'
     # === END: Link Rewriting Logic ===
@@ -751,7 +751,7 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
     # Get the target username (e.g., 'default' or 'mrantonSG')
     target_username = user.username
     # This regex finds '/uploads/', captures the (old) username, and the rest of the path
-    link_pattern = re.compile(r'(/uploads/)([^/]+)(/.*?["\'])')
+    link_pattern = re.compile(r'(/uploads/)([^/\n]{1,100})(/[^"\'\n]{0,1000}["\'])')
     # This builds the replacement string, e.g., '/uploads/default/image.jpg"'
     replacement_str = r'\1' + re.escape(target_username) + r'\3'
     # === END: Link Rewriting Logic ===
