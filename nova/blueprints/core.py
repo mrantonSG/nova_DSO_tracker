@@ -578,14 +578,13 @@ def proxy_focus():
     except requests.exceptions.HTTPError as http_err:
         # Specific error for HTTP errors from Stellarium (e.g., API errors)
         error_details = http_err.response.text if http_err.response is not None else "No response details"
-        message = f"Stellarium at {STELLARIUM_API_URL_BASE} returned an error: {http_err}. Details: {error_details}"
         status_code = http_err.response.status_code if http_err.response is not None else 500
-        print(f"[PROXY FOCUS ERROR] HTTPError {status_code}: {message}")
-        return jsonify({"status": "error", "message": message}), status_code
+        print(f"[PROXY FOCUS ERROR] HTTPError {status_code}: Stellarium at {STELLARIUM_API_URL_BASE} returned an error: {http_err}. Details: {error_details}")
+        return jsonify({"status": "error", "message": "Stellarium returned an error."}), status_code
 
     except Exception as e:
         # Catch-all for other unexpected errors
-        message = STELLARIUM_ERROR_MESSAGE or f"An unexpected error occurred while attempting to contact Stellarium: {str(e)}"
+        message = STELLARIUM_ERROR_MESSAGE or "An unexpected error occurred while attempting to contact Stellarium."
         print(f"[PROXY FOCUS ERROR] Unexpected error: {e}")  # Log the actual error
         return jsonify({"status": "error", "message": message}), 500
 
