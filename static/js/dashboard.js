@@ -1792,7 +1792,9 @@
             });
 
             // Write cache after successful AI parse with >=1 entry
-            sessionStorage.setItem(getNovaCacheKey(), JSON.stringify({ rankMap: novaRankMap, size: originalTableData.length }));
+            if (rankedObjects.length > 0) {
+                sessionStorage.setItem(getNovaCacheKey(), JSON.stringify({ rankMap: novaRankMap, size: originalTableData.length }));
+            }
 
             // Re-render with ranked data (data-level sorting, not DOM manipulation)
             const sortedData = applyNovaRankSorting(window.latestDSOData);
