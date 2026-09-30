@@ -882,7 +882,8 @@ def config_form():
                 escaped_text = bleach.clean(raw_private_notes, tags=[], strip=True)
                 private_notes_html = escaped_text.replace("\n", "<br>")
             else:
-                private_notes_html = raw_private_notes
+                from nova import sanitize_html_filter  # Lazy import: defined after blueprints are imported
+                private_notes_html = sanitize_html_filter(raw_private_notes)
             # --- END: Rich Text Upgrade ---
 
             # --- START: Rich Text Upgrade for SHARED Notes ---
@@ -891,7 +892,8 @@ def config_form():
                 escaped_text = bleach.clean(raw_shared_notes, tags=[], strip=True)
                 shared_notes_html = escaped_text.replace("\n", "<br>")
             else:
-                shared_notes_html = raw_shared_notes
+                from nova import sanitize_html_filter  # Lazy import: defined after blueprints are imported
+                shared_notes_html = sanitize_html_filter(raw_shared_notes)
             # --- END: Rich Text Upgrade ---
 
             # 1. Get all standard fields from the new method
