@@ -178,7 +178,7 @@ body {
     padding: var(--space-5);
     background-color: var(--bg-light);
     border: 1px solid var(--border-light-alt2);
-    border-radius: var(--radius-lg);
+    border-radius: 10px;
     margin-bottom: 25px;
 }
 
@@ -285,49 +285,49 @@ hr.detail-separator {
     margin: 10px 0;
 }
 
+/* Opportunities tab — card comes from .content-section (same as Rig Data);
+   the wide table scrolls horizontally inside the card. */
+#opportunities-container {
+    overflow-x: auto;
+}
+
 #opportunities-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 20px;
-    font-size: var(--font-size-sm);
-    table-layout: fixed;
-}
-
-#opportunities-table th, #opportunities-table td {
-    border: 1px solid var(--border-medium-alt);
-    padding: var(--space-2) var(--space-3);
-    text-align: left;
-}
-
-#opportunities-table th {
-    background-color: var(--primary-color);
-    color: white;
-    font-weight: var(--font-weight-normal);
-}
-
-#opportunities-table tr:nth-child(even) {
-    background-color: var(--bg-light-gray-alt2);
-}
-
-#opportunities-table tr:hover {
-    background-color: var(--info-bg-light);
-}
-
-#opportunities-section {
-    margin-top: 0;
-}
-
-.opportunities-heading {
-    font-size: 1.2em;
-    font-weight: var(--font-weight-semibold);
-    color: var(--text-heading-dark);
-    margin-bottom: 10px;
+    margin-top: 15px;
+    font-size: var(--font-size-2xs);
 }
 
 #opportunities-table th,
 #opportunities-table td {
-    text-align: center !important;
-    vertical-align: middle !important;
+    white-space: nowrap;
+}
+
+/* Date, from, to, duration, max alt, moon illum, ang sep */
+#opportunities-body td:nth-child(-n+7):not([colspan]) {
+    font-family: var(--font-mono);
+    font-size: 12px;
+}
+
+/* Loading / empty / error message rows */
+#opportunities-body td[colspan] {
+    color: var(--text-muted);
+    white-space: normal;
+}
+
+/* Calendar emoji: keep row height in line with Rig Data */
+#opportunities-body a[data-stop-propagation] {
+    display: inline-block;
+    line-height: 1;
+}
+
+#opportunities-body tr:hover td {
+    background-color: var(--hover-bg);
+}
+
+#opportunities-body tr.highlight,
+#opportunities-body tr.highlight td {
+    background-color: var(--primary-bg) !important;
 }
 
 .highlight {
@@ -466,18 +466,38 @@ div.form-data-value.preserve-newlines {
     width: 100%;
     border-collapse: collapse;
     margin-top: 15px;
+    font-size: var(--font-size-2xs);
 }
 
-.framing-table th, .framing-table td {
-    border: 1px solid var(--border-light);
+/* Shared detail-page table look (Rig Data + Opportunities):
+   tertiary header, muted micro-label headers, horizontal rules only. */
+.framing-table th, .framing-table td,
+#opportunities-table th, #opportunities-table td {
+    border: none;
+    border-bottom: 1px solid var(--border-light);
     padding: var(--space-2-5);
     text-align: left;
-    font-size: var(--font-size-sm);
+    vertical-align: middle;
 }
 
-.framing-table th {
-    background-color: var(--bg-light-alt);
-    font-weight: var(--font-weight-semibold);
+.framing-table td,
+#opportunities-table td {
+    color: var(--text-primary);
+}
+
+.framing-table th,
+#opportunities-table th {
+    background-color: var(--bg-tertiary);
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+}
+
+:root[data-theme="dark"] .framing-table th,
+:root[data-theme="dark"] #opportunities-table th {
+    color: var(--text-secondary);
 }
 
 .modal {
@@ -1050,25 +1070,6 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     color: var(--text-primary);
 }
 
-/* Framing table */
-[data-theme="dark"] .framing-table {
-    background-color: var(--bg-light);
-}
-
-[data-theme="dark"] .framing-table th,
-[data-theme="dark"] .framing-table td {
-    border-color: var(--border-medium);
-    color: var(--text-primary);
-}
-
-[data-theme="dark"] .framing-table th {
-    background-color: var(--bg-medium);
-}
-
-[data-theme="dark"] .framing-table td {
-    background-color: var(--bg-light);
-}
-
 /* Modal close and fullscreen buttons */
 [data-theme="dark"] .fullscreen-btn,
 [data-theme="dark"] .close-btn {
@@ -1521,7 +1522,7 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     padding: var(--space-5);
     background-color: var(--nova-surface, var(--bg-white));
     border: 1px solid var(--nova-border, var(--border-light-alt2));
-    border-radius: var(--radius-lg, 12px);
+    border-radius: 10px;
     margin-bottom: 25px;
 }
 
