@@ -30,11 +30,11 @@ from sqlalchemy import func
 import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay live (see nova/config.py)
 from nova.config import UPLOAD_FOLDER
 from nova.models import (
-    DbUser, Project, JournalSession, AstroObject
+    DbUser, Project, JournalSession, AstroObject, UserCustomFilter
 )
 from nova.helpers import (
     get_db, load_full_astro_context, read_log_content, invalidate_object_caches,
-    is_safe_redirect_target
+    is_safe_redirect_target, safe_int
 )
 from nova.analytics import record_event
 from nova.report_graphs import generate_session_charts
@@ -209,6 +209,21 @@ def _build_project_exposure_summary(sessions):
     # {filter_name: {subs: int, total_sec: int, durations: set()}}
     agg = {}
 
+    # Custom filter labels, loaded once for all sessions: {(user_id, filter_key): label}
+    user_ids = {s.user_id for s in sessions}
+    custom_labels = {}
+    if user_ids:
+        for cf in get_db().query(UserCustomFilter).filter(UserCustomFilter.user_id.in_(user_ids)).all():
+            custom_labels[(cf.user_id, cf.filter_key)] = cf.filter_label
+
+    def _custom_label(user_id, filter_key):
+        label = custom_labels.get((user_id, filter_key))
+        if label:
+            return label
+        # Definition deleted: derive a readable label from the key ("custom_nb_ii" -> "nb ii")
+        base = filter_key[len('custom_'):] if filter_key.startswith('custom_') else filter_key
+        return base.replace('_', ' ')
+
     def _add(name, subs, exp_sec):
         if not subs:
             return
@@ -226,19 +241,24 @@ def _build_project_exposure_summary(sessions):
             exp_sec = getattr(s, f'filter_{key}_exposure_sec', None)
             _add(key, subs, exp_sec)
 
-        # Custom filters (JSON column — raw string, needs parsing)
+        # Custom filters (JSON column, stored flat:
+        # {"filter_<key>_subs": n, "filter_<key>_exposure_sec": sec})
         raw = getattr(s, 'custom_filter_data', None)
         if raw:
             try:
                 custom = _json.loads(raw)
-                if isinstance(custom, dict):
-                    for fname, fdata in custom.items():
-                        if isinstance(fdata, dict):
-                            _add(fname,
-                                 fdata.get('subs') or fdata.get('number_of_subs'),
-                                 fdata.get('exposure_sec') or fdata.get('exposure_time_per_sub_sec'))
             except (ValueError, TypeError):
-                pass
+                custom = None
+            if isinstance(custom, dict):
+                for data_key, subs_val in custom.items():
+                    if not (data_key.startswith('filter_') and data_key.endswith('_subs')):
+                        continue
+                    filter_key = data_key[len('filter_'):-len('_subs')]
+                    if not filter_key:
+                        continue
+                    _add(_custom_label(s.user_id, filter_key),
+                         safe_int(subs_val),
+                         safe_int(custom.get(f'filter_{filter_key}_exposure_sec')))
 
         # Simple mode sessions — use filter_used_session as the key
         simple_subs = getattr(s, 'number_of_subs_light', None)
