@@ -3063,26 +3063,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
 {# --- AI Session Summary Script --- #}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+window.initAskNovaButton = function () {
+    var btn = document.getElementById('ai-session-summary-btn');
+    if (!btn) return;
+    if (btn.dataset.novaInit) return;
+    btn.dataset.novaInit = '1';
+
     fetch('/api/ai/status')
         .then(r => {
             if (!r.ok) {
                 console.error('[Ask Nova] status check failed: HTTP ' + r.status);
+                return null;
             }
             return r.json();
         })
         .then(data => {
             if (data && data.enabled === true) {
-                document.getElementById('ai-session-summary-btn')
-                    .style.display = 'inline-block';
+                btn.style.display = 'inline-block';
             }
         })
         .catch(err => {
             console.error('[Ask Nova] status check failed:', err);
         });
-
-    var btn = document.getElementById('ai-session-summary-btn');
-    if (!btn) return;
 
     var novaMessages = [
         journalI18n.analyzingSession,
@@ -3117,7 +3119,9 @@ document.addEventListener('DOMContentLoaded', function() {
             novaSessionFetch('overwrite');
         }
     });
-});
+};
+
+document.addEventListener('DOMContentLoaded', window.initAskNovaButton);
 
 var novaMsgInterval = null;
 

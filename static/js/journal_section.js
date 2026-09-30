@@ -937,6 +937,8 @@
                 }
             }
 
+            if (typeof window.initAskNovaButton === 'function') window.initAskNovaButton();
+
             // 3. Update Browser URL without reloading
             window.history.pushState({}, '', url);
 
