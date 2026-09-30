@@ -811,8 +811,8 @@ Use your astrophotography knowledge to assess each object's narrowband capabilit
 
 MOON PENALTY RULES — apply these BEFORE scoring:
 
-- LSB targets (large diffuse galaxies, extended emission nebulae, objects with angular size >60 arcmin, or known very low surface brightness): if moon illumination is >60%, DEMOTE them — apply a severe score penalty regardless of angular separation, rank them at the bottom, and note "moon-limited" in the reason field. Scattered moonlight floods the sky background and destroys SNR on faint extended structure; large separation (even 90°+) does NOT protect them. Demotion is not exclusion: these targets stay in the output unless the COMPOUND EXCLUSION below also applies.
-- COMPOUND EXCLUSION (the only rule that removes a target from the output): If a target simultaneously meets ALL of the following — Bortle >= 7, moon illumination > 50%, and the target is an LSB broadband-only object (large diffuse galaxy, low-surface-brightness galaxy, extended reflection nebula, or any object with known very low surface brightness) — exclude it from the ranked output entirely. Do not include it even to reach a minimum count. These conditions together make the target non-viable; including it misleads the user.
+- LSB targets (large diffuse galaxies, extended emission nebulae, objects with angular size >60 arcmin, or known very low surface brightness): if moon illumination is >60%, DEMOTE them — apply a severe score penalty regardless of angular separation, rank them at the bottom, and note "moon-limited" in the reason field. Scattered moonlight floods the sky background and destroys SNR on faint extended structure; large separation (even 90°+) does NOT protect them. Demoted targets rank below all non-demoted targets. If 20 stronger targets exist, leave demoted targets out.
+- COMPOUND EXCLUSION: If a target simultaneously meets ALL of the following — Bortle >= 7, moon illumination > 50%, and the target is an LSB broadband-only object (large diffuse galaxy, low-surface-brightness galaxy, extended reflection nebula, or any object with known very low surface brightness) — exclude it from the ranked output entirely. Do not include it even to reach a minimum count. These conditions together make the target non-viable; including it misleads the user.
 - Bright emission nebulae with narrowband: exempt from this penalty — narrowband filters block scattered moonlight effectively regardless of moon brightness.
 - Standard broadband targets (galaxies <60 arcmin, reflection nebulae, globular clusters): use existing angular separation thresholds as normal. Separation still matters for these compact targets.
 
@@ -841,7 +841,7 @@ Each object in the array must have these exact keys:
 Example:
 [
   {{"Object": "M31", "rank": 1, "reason": "Large galaxy with excellent surface brightness, well above 50° all night. Moon at 15% won't affect it.", "recommended_rigs": ["Main Imaging Rig", "Portable Setup"]}},
-  {{"Object": "M27", "rank": 2, "reason": "Compact nebula, high surface brightness. Fits well in narrowband through the 8\" scope.", "recommended_rigs": ["Portable Setup", "Widefield Rig"]}}
+  {{"Object": "M27", "rank": 2, "reason": "Compact nebula, high surface brightness. Fits well in narrowband through the 8-inch scope.", "recommended_rigs": ["Portable Setup", "Widefield Rig"]}}
 ]
 
 CRITICAL rules:
@@ -939,7 +939,7 @@ Respond in the language of this ISO locale code: {locale}."""
             cam_name = camera.get("name", "")
             camera_type = rig.get("camera_type", "")
 
-            parts = [f"{rig_name}:"]
+            parts = [f'name="{rig_name}"']
             if telescope.get("name"):
                 parts.append(f"telescope={telescope['name']}")
             if aperture:
