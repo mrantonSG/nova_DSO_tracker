@@ -1120,6 +1120,9 @@ def normalize_object_name(name: str) -> str:
     name_str = str(name).strip().upper()
     if not name_str: return None  # Catches whitespace-only input
 
+    # Skip regex rules on overlong input
+    if len(name_str) > 100: return " ".join(name_str.split())
+
     # --- 1. Fix known "corrupt" inputs (add spaces/hyphens) ---
     # This list should mirror the rules from the Python repair script.
 
