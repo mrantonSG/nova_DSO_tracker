@@ -374,6 +374,41 @@
         accent-color: var(--nova-accent, var(--primary-color));
     }
 
+    /* REDESIGN step 2: session form typography (edit mode only) */
+    #journal-detail-form .form-section-title {
+        font-size: 10px !important;          /* !important: beats inline style on "Session Logs" */
+        font-weight: 700 !important;
+        text-transform: uppercase;
+        letter-spacing: 0.09em !important;
+        color: var(--text-muted) !important;
+    }
+    [data-theme="dark"] #journal-detail-form .form-section-title {
+        color: var(--text-secondary) !important;  /* --text-muted too faint at 10px in dark */
+    }
+
+    /* Numeric inputs in mono (session rating excluded — replaced in a later step) */
+    #journal-detail-form input[type="number"]:not([name="session_rating_subjective"]) {
+        font-family: var(--font-mono, 'DM Mono', monospace);
+        font-size: 12px;
+    }
+
+    /* Select arrow — restores the design-system arrow wiped by the background shorthand above */
+    #journal-detail-form .form-group select {
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23aaa'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        background-size: 10px 6px;
+        padding-right: 28px;
+    }
+    [data-theme="dark"] #journal-detail-form .form-group select {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E") !important;
+        background-repeat: no-repeat !important;
+        background-position: right 10px center !important;
+        background-size: 10px 6px !important;
+    }
+
     .history-header {
         display: flex;
         flex-direction: column;
