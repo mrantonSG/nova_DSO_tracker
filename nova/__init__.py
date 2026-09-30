@@ -2785,17 +2785,29 @@ def _handle_project_image_upload(file_object, project_id: str, username: str, ex
     """
     if file_object and file_object.filename != '' and allowed_file(file_object.filename):
         try:
+            user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+            user_upload_root = os.path.realpath(user_upload_dir)
+
+            def _is_within_user_dir(path):
+                try:
+                    real_path = os.path.realpath(path)
+                    return os.path.commonpath([real_path, user_upload_root]) == user_upload_root
+                except ValueError:
+                    return False
+
             # Delete old image if replacing
             if existing_filename:
-                old_image_path = os.path.join(UPLOAD_FOLDER, username, existing_filename)
-                if os.path.exists(old_image_path):
+                old_image_path = os.path.join(user_upload_dir, existing_filename)
+                if _is_within_user_dir(old_image_path) and os.path.exists(old_image_path):
                     os.remove(old_image_path)
 
             file_extension = file_object.filename.rsplit('.', 1)[1].lower()
             new_filename = f"project_{project_id}.{file_extension}"
-            user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+            new_image_path = os.path.join(user_upload_dir, new_filename)
+            if not _is_within_user_dir(new_image_path):
+                raise ValueError(f"Refusing to save project image outside user upload dir: {new_image_path}")
             os.makedirs(user_upload_dir, exist_ok=True)
-            file_object.save(os.path.join(user_upload_dir, new_filename))
+            file_object.save(new_image_path)
 
             # Best-effort thumbnail generation — must not fail the request
             # or affect the original upload if it errors (corrupt image,
