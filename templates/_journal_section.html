@@ -454,6 +454,49 @@
     .is-adding #journal-detail-form > .detail-header .journal-form-actions {
         margin-top: 0;
     }
+    /* Section tabs: second row of the sticky header, underline sits on its border */
+    #journal-detail-form > .detail-header {
+        flex-wrap: wrap;
+        row-gap: 6px;
+        padding-bottom: 0;
+    }
+    .form-tabs {
+        flex: 0 0 100%;
+        display: flex;
+        overflow-x: auto;
+        margin-bottom: -1px;
+    }
+    .form-tab-button {
+        position: relative;
+        height: 40px;
+        display: inline-flex;
+        align-items: center;
+        padding: 0 14px;
+        border: none;
+        background: transparent;
+        color: var(--text-muted);
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        white-space: nowrap;
+        flex-shrink: 0;
+        cursor: pointer;
+    }
+    .form-tab-button:hover { color: var(--text-secondary); }
+    .form-tab-button.is-active {
+        color: var(--primary-color);
+        font-weight: 600;
+    }
+    .form-tab-button.is-active::after {
+        content: '';
+        position: absolute;
+        bottom: 0; left: 0; right: 0;
+        height: 2px;
+        background: var(--primary-color);
+        border-radius: 2px 2px 0 0;
+    }
+    .form-tab-panel { padding-top: 4px; }
+    .form-tab-panel--hidden { display: none; }
 
     /* Journal Form Actions Grid (Draft Support) */
     .journal-form-actions {
@@ -1546,63 +1589,114 @@
       }
     }
 
-    .session-log-item {
+    .session-log-item,
+    .session-image-card {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 8px;
+      min-width: 0;
+      padding: 12px 14px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color, #d0cdc8);
+      border-radius: 6px;
     }
+    .session-image-card { margin-bottom: 20px; }
+    .session-image-current { display: flex; flex-direction: column; gap: 8px; }
 
-    .session-log-item label:first-child {
+    .session-log-item label:first-child,
+    .session-image-card label:not(.delete-label) {
       font-weight: 600;
       color: var(--text-primary);
-      font-size: var(--font-size-sm, 14px);
+      font-size: 12px;
     }
 
-    .session-log-item input[type="file"] {
+    /* Native file input: text in muted 12px, selector button as a ghost button */
+    #journal-detail-form .session-log-item input[type="file"],
+    #journal-detail-form .session-image-card input[type="file"] {
       width: 100%;
       max-width: 100%;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: inherit;
       font-size: 12px;
-      padding: 4px 0;
+    }
+    #journal-detail-form input[type="file"]::file-selector-button {
+      margin-right: 10px;
+      padding: 6px 14px;
+      background: transparent;
+      color: var(--text-secondary, #4a4a4a);
+      border: 1px solid var(--border-color, #d0cdc8);
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    #journal-detail-form input[type="file"]::file-selector-button:hover {
+      background: var(--bg-tertiary);
+    }
+    [data-theme="dark"] #journal-detail-form input[type="file"]::file-selector-button {
+      color: rgba(255,255,255,0.55);
+      border-color: rgba(255,255,255,0.15);
     }
 
     .session-log-uploaded {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: 12px;
-      padding: 6px 0;
+      gap: 8px;
     }
 
     .session-log-uploaded .uploaded-status {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      color: var(--success-color, #4a90a4);
-      font-size: 12px;
+      padding: 3px 9px;
+      background: var(--primary-bg);
+      color: var(--primary-color);
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
       white-space: nowrap;
+    }
+
+    .session-image-filename {
+      font-family: var(--font-mono, 'DM Mono', monospace);
+      font-size: 12px;
+      color: var(--text-secondary);
+      overflow-wrap: anywhere;
     }
 
     .session-log-uploaded .delete-label {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
-      color: var(--danger-color, #b44a4a);
-      font-size: 12px;
+      gap: 5px;
+      padding: 3px 9px;
+      background: rgba(180,60,60,0.08);
+      color: #a04040;
+      border: 1px solid rgba(180,60,60,0.18);
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
       cursor: pointer;
       white-space: nowrap;
     }
+    .session-log-uploaded .delete-label:hover {
+      background: rgba(180,60,60,0.15);
+    }
 
     /* Dark mode for session logs */
-    [data-theme="dark"] .session-log-item label {
+    [data-theme="dark"] .session-log-item label:first-child,
+    [data-theme="dark"] .session-image-card label:not(.delete-label) {
       color: var(--text-primary);
     }
 
-    [data-theme="dark"] .session-log-uploaded .uploaded-status {
-      color: var(--success-color);
-    }
-
     [data-theme="dark"] .session-log-uploaded .delete-label {
-      color: var(--danger-color);
+      background: rgba(200,80,80,0.1);
+      color: #d06060;
     }
 
     .session-log-uploaded .delete-label input[type="checkbox"] {
@@ -2411,10 +2505,17 @@
                         <button type="submit" id="form-submit-button" data-action="save-close" class="inline-button">{{ _('Save & Close') }}</button>
                         <button id="form-cancel-button" type="button" class="inline-button" style="background-color:var(--accent-gray-medium);" data-action="cancel-form">{{ _('Cancel') }}</button>
                     </div>
+                    <div class="form-tabs" role="tablist">
+                        <button type="button" class="form-tab-button is-active" role="tab" aria-selected="true" data-form-tab="overview">{{ _('Overview') }}</button>
+                        <button type="button" class="form-tab-button" role="tab" aria-selected="false" data-form-tab="acq">{{ _('Equipment & Acquisition') }}</button>
+                        <button type="button" class="form-tab-button" role="tab" aria-selected="false" data-form-tab="outcome">{{ _('Calibration & Outcome') }}</button>
+                        <button type="button" class="form-tab-button" role="tab" aria-selected="false" data-form-tab="logs">{{ _('Logs & Files') }}</button>
+                    </div>
                 </div>
                 <input type="hidden" name="target_object_id" value="{{ object_name }}">
                 <input type="hidden" name="session_id" value="{{ selected_session_data.id if selected_session_data else '' }}">
                 <input type="hidden" id="form-action-hidden" name="form_action" value="save_close">
+                <div id="form-sky-tab" class="form-tab-panel" data-form-panel="overview">
                 <div class="form-row">
                     {{ form_group('session_date', _('Session Date:'), type='date', value=today_date, extra_attrs='autocomplete="off"') }}
                     <div class="form-group"><label for="location_name">{{ _('Location:') }}</label><select id="location_name" name="location_name">{% for loc in available_locations %}<option value="{{ loc.name }}" data-lat="{{ loc.lat }}" data-lon="{{ loc.lon }}" data-tz="{{ loc.timezone }}">{{ loc.name }}{{ _(' (Inactive)') if not loc.active else '' }}</option>{% endfor %}</select></div>
@@ -2436,7 +2537,6 @@
                     </div>
                 </div>
                 <div class="form-group full-width" id="new_project_name_group" style="display: none;"><label for="new_project_name">{{ _('New Project Name:') }}</label><input type="text" name="new_project_name" id="new_project_name" placeholder="{{ _('e.g., M31 Galaxy - 2025') }}"></div>
-                <div id="form-sky-tab">
                     <div class="form-section-title">{{ _('Sky Conditions (Observed)') }}</div>
                     <div class="journal-field-grid journal-field-grid--5">
                         <div class="form-row">{{ form_group('seeing_observed_fwhm', _('Seeing (FWHM, arcsec):'), type='number', step=0.01) }}{{ form_group('transparency_observed_scale', _('Transparency Scale:'), type='text', placeholder=_('e.g., Good (4/5), Clear')) }}</div>
@@ -2444,6 +2544,8 @@
                         <div class="form-row">{{ form_group('moon_illumination_session', _('Moon Illumination (%%):'), type='number', step=0.1, placeholder=_('Auto-fills on date/loc change')) }}{{ form_group('moon_angular_separation_session', _('Moon Angular Separation (°):'), type='number', step=0.1, placeholder=_('Auto-fills on date/loc change')) }}</div>
                     </div>
                     {{ form_group('weather_notes', _('Weather Notes:'), type='textarea') }}
+                </div>
+                <div id="form-acq-tab" class="form-tab-panel form-tab-panel--hidden" data-form-panel="acq">
                     <div class="form-section-title">{{ _('Equipment & Guiding') }}</div>
                     <div class="journal-field-grid journal-field-grid--4">
                         <div class="form-group">
@@ -2464,8 +2566,6 @@
                         {{ form_group('guiding_rms_avg_arcsec', _('Guiding RMS (avg, arcsec):'), type='number', step=0.01) }}
                     </div>
                     {{ form_group('telescope_setup_notes', _('Telescope Setup Notes:'), type='textarea', rows=3) }}
-                </div>
-                <div id="form-acq-tab">
                     <div class="form-section-title">{{ _('Acquisition Details') }}</div>
                     <div class="journal-field-grid journal-field-grid--4">
                         {{ form_group('acquisition_software', _('Acquisition Software:'), type='text', placeholder=_('e.g., N.I.N.A.')) }}
@@ -2548,7 +2648,7 @@
                         <span id="custom-filter-msg" style="font-size:12px; color:var(--text-secondary);"></span>
                     </div>
                 </div>
-                <div id="form-outcome-tab">
+                <div id="form-outcome-tab" class="form-tab-panel form-tab-panel--hidden" data-form-panel="outcome">
                     <div class="form-section-title">{{ _('Calibration Strategy') }}</div>
                     <div class="journal-field-grid journal-field-grid--3">
                         {{ form_group('darks_strategy', _('Darks:'), type='text', placeholder=_('e.g., Library match, Taken post-session')) }}
@@ -2574,8 +2674,21 @@
                         <trix-editor input="journal-notes-hidden" id="journal-notes-editor" style="min-height: 120px; height: auto; background-color: var(--bg-white);"></trix-editor>
                         <div id="journal-nova-disclaimer" style="display:none;margin-top:4px;"></div>
                     </div>
-                    {% if selected_session_data and selected_session_data.session_image_file %}<div class="form-group full-width"><label>{{ _('Current Image:') }}</label><div style="display: flex; align-items: center; gap: 15px;"><span style="font-family: monospace; font-size: 13px;">{{ selected_session_data.session_image_file }}</span><label style="color: var(--danger-color); cursor: pointer; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;"><input type="checkbox" name="delete_session_image" value="1"> {{ _('Delete Image') }}</label></div></div>{% endif %}
-                    <div class="form-group full-width"><label for="session_image">{{ _('Upload New or Replace Image (optional, max 5MB)') }}</label><input type="file" id="session_image" name="session_image" accept="image/jpeg, image/png, image/gif"></div>
+                </div>
+                <div id="form-logs-tab" class="form-tab-panel form-tab-panel--hidden" data-form-panel="logs">
+                    <div class="session-image-card">
+                        {% if selected_session_data and selected_session_data.session_image_file %}
+                        <div class="session-image-current">
+                            <label>{{ _('Current Image:') }}</label>
+                            <div class="session-log-uploaded">
+                                <span class="session-image-filename">{{ selected_session_data.session_image_file }}</span>
+                                <label class="delete-label"><input type="checkbox" name="delete_session_image" value="1"> {{ _('Delete Image') }}</label>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <label for="session_image">{{ _('Upload New or Replace Image (optional, max 5MB)') }}</label>
+                        <input type="file" id="session_image" name="session_image" accept="image/jpeg, image/png, image/gif">
+                    </div>
 
                     {# --- Session Logs Section --- #}
                     <div class="form-section-title" style="margin-top: 20px; font-weight: 600; color: var(--text-secondary); font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">{{ _('Session Logs (Optional)') }}</div>

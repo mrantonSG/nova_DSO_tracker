@@ -117,6 +117,42 @@
         }
     }
 
+    // Section tabs of the session edit/add form (panels stay inside the one form)
+    function showFormTab(tabName) {
+        const form = document.getElementById('journal-detail-form');
+        if (!form) return;
+        form.querySelectorAll('.form-tab-panel').forEach(panel => {
+            panel.classList.toggle('form-tab-panel--hidden', panel.dataset.formPanel !== tabName);
+        });
+        form.querySelectorAll('.form-tab-button').forEach(button => {
+            const isActive = button.dataset.formTab === tabName;
+            button.classList.toggle('is-active', isActive);
+            button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+    }
+
+    function attachFormTabListeners() {
+        // Delegated: the form lives inside .session-detail-column, which loadSessionViaAjax replaces
+        document.addEventListener('click', function(e) {
+            const tabBtn = e.target.closest('#journal-detail-form .form-tab-button');
+            if (!tabBtn) return;
+            e.preventDefault();
+            showFormTab(tabBtn.dataset.formTab);
+        });
+
+        // 'invalid' does not bubble, so listen in the capture phase. Switch only
+        // for the first invalid field of a validation pass (the one the browser focuses).
+        let switchedThisPass = false;
+        document.addEventListener('invalid', function(e) {
+            if (switchedThisPass) return;
+            const panel = e.target.closest && e.target.closest('#journal-detail-form .form-tab-panel');
+            if (!panel) return;
+            switchedThisPass = true;
+            setTimeout(() => { switchedThisPass = false; }, 0);
+            showFormTab(panel.dataset.formPanel);
+        }, true);
+    }
+
     function populateEditForm(data) {
         if (!data) return;
         const form = document.getElementById('journal-detail-form');
@@ -248,6 +284,7 @@
         form.style.display = 'block';
         wrapper.classList.remove('is-editing');
         wrapper.classList.add('is-adding');
+        showFormTab('overview');
 
         form.reset();
         const journalEditor = document.getElementById('journal-notes-editor');
@@ -313,6 +350,7 @@
         form.style.display = 'block';
         wrapper.classList.add('is-editing');
         wrapper.classList.remove('is-adding');
+        showFormTab('overview');
 
         if (window.selectedSessionData) {
             formDetailTitle.textContent = 'Editing Session: ' + new Date(window.selectedSessionData.date_utc).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -1157,6 +1195,7 @@
         if (startInEditMode) {
             // If we loaded in edit mode (e.g. duplicate), ensure form is visible and populated
             if (form) form.style.display = 'block';
+            showFormTab('overview');
 
             if (window.selectedSessionData) {
                 const formDetailTitle = document.getElementById('form-detail-title');
@@ -1194,6 +1233,7 @@
         attachClickDelegation();
         attachFormListeners();
         attachInputListeners();
+        attachFormTabListeners();
         initializeFormState();
     });
 
