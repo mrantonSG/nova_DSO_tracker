@@ -590,6 +590,8 @@ def get_shared_items():
     if nova.SINGLE_USER_MODE:
         return jsonify({"objects": [], "components": [], "views": [], "imported_object_ids": [], "imported_component_ids": [], "imported_view_ids": []})
 
+    from nova import sanitize_html_filter  # lazy to avoid circular import
+
     db = get_db()
     try:
         current_user_id = g.db_user.id
@@ -613,7 +615,7 @@ def get_shared_items():
                 "ra": obj.ra_hours,
                 "dec": obj.dec_deg,
                 "shared_by_user": username,
-                "shared_notes": obj.shared_notes or "",
+                "shared_notes": sanitize_html_filter(obj.shared_notes),
                 # --- Inspiration Metadata ---
                 "image_url": obj.image_url,
                 "image_credit": obj.image_credit,
