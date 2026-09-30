@@ -191,3 +191,27 @@ def test_journal_add_creates_new_project_and_links(client, db_session):
     # Check Session Linkage
     new_sess = db_session.query(JournalSession).filter_by(user_id=user.id, object_name="NGC 1234").one()
     assert new_sess.project_id == new_proj.id
+    assert [p.id for p in new_sess.projects] == [new_proj.id]
+
+
+def test_journal_add_links_existing_and_new_project_together(client, db_session):
+    """Existing project + 'Create New Project' checked together -> both linked."""
+    user = db_session.query(DbUser).filter_by(username="default").one()
+    existing = Project(id="existing-proj-1", user_id=user.id, name="Existing Project")
+    db_session.add(existing)
+    db_session.commit()
+
+    payload = {
+        "session_date": "2025-01-01",
+        "target_object_id": "NGC 5678",
+        "project_selection": ["existing-proj-1", "new_project"],
+        "new_project_name": "Second Fresh Project",
+    }
+
+    response = client.post('/journal/add', data=payload, follow_redirects=True)
+    assert response.status_code == 200
+
+    new_proj = db_session.query(Project).filter_by(user_id=user.id, name="Second Fresh Project").one()
+    new_sess = db_session.query(JournalSession).filter_by(user_id=user.id, object_name="NGC 5678").one()
+    assert {p.id for p in new_sess.projects} == {"existing-proj-1", new_proj.id}
+    assert new_sess.project_id == "existing-proj-1"

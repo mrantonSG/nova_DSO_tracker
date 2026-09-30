@@ -63,6 +63,22 @@ def _flash_rejected_upload(action, message):
         flash(message, "error")
 
 
+def _get_or_create_named_project(db, user, name, target_object_id):
+    """Return this user's project called `name`, creating it if missing.
+
+    Reusing by name keeps repeated Save Draft clicks from hitting uq_user_project_name.
+    """
+    project = db.query(Project).filter_by(user_id=user.id, name=name).one_or_none()
+    if project:
+        return project
+    project = Project(id=uuid.uuid4().hex, user_id=user.id, name=name)
+    if target_object_id:
+        project.target_object_name = target_object_id
+    db.add(project)
+    db.flush()
+    return project
+
+
 # =============================================================================
 # Journal Routes
 # =============================================================================
@@ -114,14 +130,13 @@ def journal_add():
             # --- END FIX ---
 
             # --- Handle Project Creation/Selection (Multi-value safe) ---
-            project_id_for_session = None
-            project_selection = request.form.get("project_selection")
             projects_list = []
 
             # Support both single value (get) and multi-select (getlist)
             raw_selections = request.form.getlist("project_selection")
             if not isinstance(raw_selections, list):
                 raw_selections = [raw_selections]
+            wants_new_project = "new_project" in raw_selections
 
             # Filter out sentinel / empty values
             raw_selections = [
@@ -131,27 +146,22 @@ def journal_add():
 
             new_project_name = request.form.get("new_project_name", "").strip()
 
-            newly_created_project_id = None
-            if project_selection == "new_project" and new_project_name:
-                new_project = Project(id=uuid.uuid4().hex, user_id=user.id, name=new_project_name)
-                db.add(new_project)
-                db.flush()
-                newly_created_project_id = new_project.id
-                project_id_for_session = new_project.id
-                target_object_id = request.form.get("target_object_id", "").strip()
-                if target_object_id:
-                    new_project.target_object_name = target_object_id
-
             # Collect ownership-validated existing projects
             for pid in raw_selections:
                 p = db.query(Project).filter_by(id=pid, user_id=user.id).one_or_none()
                 if p:
                     projects_list.append(p)
 
-            # Set project_id_for_session from the ownership-validated list.
-            # Only override when the new-project path didn't already set it.
-            if project_id_for_session is None:
-                project_id_for_session = projects_list[0].id if projects_list else None
+            # The "Create New Project" toggle sits after the project checkboxes,
+            # so the new (or same-named, reused) project is appended last.
+            if wants_new_project and new_project_name:
+                new_project = _get_or_create_named_project(
+                    db, user, new_project_name, request.form.get("target_object_id", "").strip()
+                )
+                if new_project not in projects_list:
+                    projects_list.append(new_project)
+
+            project_id_for_session = projects_list[0].id if projects_list else None
 
             # --- NEW: Get Rig Snapshot Specs and Component Names ---
             rig_id_str = request.form.get("rig_id_snapshot")
@@ -585,14 +595,13 @@ def journal_edit(session_id):
             session_to_edit.custom_filter_data = json.dumps(custom_data) if custom_data else None
     
             # Project logic (Multi-value safe)
-            project_id_for_session = None
-            project_selection = request.form.get("project_selection")
             projects_list = []
 
             # Support both single value (get) and multi-select (getlist)
             raw_selections = request.form.getlist("project_selection")
             if not isinstance(raw_selections, list):
                 raw_selections = [raw_selections]
+            wants_new_project = "new_project" in raw_selections
 
             # Filter out sentinel / empty values
             raw_selections = [
@@ -605,33 +614,27 @@ def journal_edit(session_id):
 
             new_project_name = request.form.get("new_project_name", "").strip()
 
-            newly_created_project_id = None
-            if project_selection == "new_project" and new_project_name:
-                new_project = Project(id=uuid.uuid4().hex, user_id=user.id, name=new_project_name)
-                db.add(new_project)
-                db.flush()
-                newly_created_project_id = new_project.id
-                project_id_for_session = new_project.id
-
-                # Link the NEW project to the object
-                if target_object_id:
-                    new_project.target_object_name = target_object_id
-
             # Collect ownership-validated existing projects
             for pid in raw_selections:
                 p = db.query(Project).filter_by(id=pid, user_id=user.id).one_or_none()
                 if p:
                     projects_list.append(p)
 
-            # Set project_id_for_session from the ownership-validated list.
-            # Only override when the new-project path didn't already set it.
-            if project_id_for_session is None:
-                project_id_for_session = projects_list[0].id if projects_list else None
-
-            # Link target_object_name on every selected project except the newly created one
+            # Link target_object_name on every selected existing project
             for p in projects_list:
-                if p.id != newly_created_project_id and target_object_id:
+                if target_object_id:
                     p.target_object_name = target_object_id
+
+            # The "Create New Project" toggle sits after the project checkboxes,
+            # so the new (or same-named, reused) project is appended last.
+            if wants_new_project and new_project_name:
+                new_project = _get_or_create_named_project(
+                    db, user, new_project_name, target_object_id
+                )
+                if new_project not in projects_list:
+                    projects_list.append(new_project)
+
+            project_id_for_session = projects_list[0].id if projects_list else None
 
             session_to_edit.project_id = project_id_for_session
             session_to_edit.projects = projects_list
