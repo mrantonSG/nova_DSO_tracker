@@ -847,7 +847,14 @@
                             </tr>
                             {% endif %}
                         {% endfor %}
-                        {% if not (session.number_of_subs_light or session.filter_L_subs or session.filter_R_subs or session.filter_G_subs or session.filter_B_subs or session.filter_Ha_subs or session.filter_OIII_subs or session.filter_SII_subs) %}
+                        {% for row in custom_filter_rows %}
+                            <tr>
+                                <td class="label-cell">{{ row.name }}</td>
+                                <td>{{ display_value(row.subs) }}</td>
+                                <td>{{ display_value(row.exposure_sec) }}s</td>
+                            </tr>
+                        {% endfor %}
+                        {% if not (session.number_of_subs_light or session.filter_L_subs or session.filter_R_subs or session.filter_G_subs or session.filter_B_subs or session.filter_Ha_subs or session.filter_OIII_subs or session.filter_SII_subs or custom_filter_rows) %}
                         <tr>
                             <td colspan="3" class="text-center" style="color: var(--text-muted);">-</td>
                         </tr>

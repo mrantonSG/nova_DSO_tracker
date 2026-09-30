@@ -1029,8 +1029,39 @@ def show_journal_report_page(session_id):
         rating = session_dict.get('session_rating_subjective') or 0
         rating_stars = "★" * rating + "☆" * (5 - rating)
 
-        integ_min = session_dict.get('calculated_integration_time_minutes') or 0
-        integ_str = f"{integ_min // 60}h {integ_min % 60:.0f}m" if integ_min > 0 else "N/A"
+        integ_min = int(round(session_dict.get('calculated_integration_time_minutes') or 0))
+        integ_str = f"{integ_min // 60}h {integ_min % 60}m" if integ_min > 0 else "N/A"
+
+        # Custom filters (JSON column, stored flat:
+        # {"filter_<key>_subs": n, "filter_<key>_exposure_sec": sec})
+        custom_filter_rows = []
+        custom = None
+        if session.custom_filter_data:
+            try:
+                custom = json.loads(session.custom_filter_data)
+            except (ValueError, TypeError):
+                custom = None
+        if isinstance(custom, dict):
+            custom_labels = {cf.filter_key: cf.filter_label for cf in
+                             db.query(UserCustomFilter).filter_by(user_id=session.user_id).all()}
+            for data_key, subs_val in custom.items():
+                if not (data_key.startswith('filter_') and data_key.endswith('_subs')):
+                    continue
+                filter_key = data_key[len('filter_'):-len('_subs')]
+                subs = safe_int(subs_val)
+                if not filter_key or not subs:
+                    continue
+                label = custom_labels.get(filter_key)
+                if not label:
+                    # Definition deleted: derive a readable label from the key ("custom_nb_ii" -> "nb ii")
+                    base = filter_key[len('custom_'):] if filter_key.startswith('custom_') else filter_key
+                    label = base.replace('_', ' ')
+                custom_filter_rows.append({
+                    'name': label,
+                    'subs': subs,
+                    'exposure_sec': safe_int(custom.get(f'filter_{filter_key}_exposure_sec')),
+                })
+            custom_filter_rows.sort(key=lambda r: r['name'].lower())
 
         image_url = None
         image_source_label = "Session Image"
@@ -1117,7 +1148,8 @@ def show_journal_report_page(session_id):
             logo_url=logo_url,
             today_date=datetime.now().strftime('%d.%m.%Y'),
             log_analysis=log_analysis,
-            chart_images=chart_images
+            chart_images=chart_images,
+            custom_filter_rows=custom_filter_rows
         )
 
     except Exception as e:
