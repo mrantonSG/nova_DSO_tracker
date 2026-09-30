@@ -1872,8 +1872,8 @@
     #journal-detail-form .filter-add-menu {
         position: absolute;
         top: calc(100% + 4px);
-        right: 0;                            /* right-aligned: the toggle sits at the card's right edge */
-        left: auto;
+        left: 0;                             /* left-aligned: the toggle sits at the card's left edge */
+        right: auto;
         z-index: var(--z-layer-2, 3);        /* stays below the sticky form header (--z-layer-3) */
         min-width: 180px;
         max-height: 280px;                   /* last resort: "Custom…" stays reachable in tight space */
@@ -2203,27 +2203,18 @@
     }
     #journal-detail-form #dither-hint-spacer { display: none !important; }   /* no second label to balance any more */
 
-    /* Filter exposures: rows match the 34px inputs; empty state = one dashed box, button inside */
+    /* Filter exposures: rows match the 34px inputs; empty state = dashed box with the text only,
+       the toolbar stays below it (same place as with rows) */
     #journal-detail-form .filter-exposure-table .filter-exp-name,
     #journal-detail-form .filter-exp-total,
     #journal-detail-form .filter-exp-actions { min-height: 34px; }
-    #journal-detail-form .filter-exp-section:has(.filter-exposure-table.is-empty) {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px 16px;
+    #journal-detail-form .filter-exposure-table.is-empty {
         padding: 14px 16px;
         border: 1px dashed var(--border-color, #e5e2dc);
         border-radius: 8px;
         background: var(--bg-tertiary);
     }
-    #journal-detail-form .filter-exp-section:has(.filter-exposure-table.is-empty) .filter-exposure-table {
-        border: none;
-        overflow: visible;
-    }
-    #journal-detail-form .filter-exp-section:has(.filter-exposure-table.is-empty) .filter-exp-empty { padding: 0; }
-    #journal-detail-form .filter-exp-section:has(.filter-exposure-table.is-empty) .filter-exp-toolbar { margin-top: 0; }
+    #journal-detail-form .filter-exposure-table.is-empty .filter-exp-empty { padding: 0; }
 
     #journal-detail-form .star-rating-value {
         font-family: var(--font-mono, 'DM Mono', monospace);
