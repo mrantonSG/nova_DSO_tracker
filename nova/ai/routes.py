@@ -1063,6 +1063,7 @@ def get_best_objects():
         # Parse ranking response to extract ranked objects
         # Expected format: JSON array with objects having "Object" key
         ranked_objects = []
+        used_text_fallback = False
 
         try:
             import json
@@ -1097,6 +1098,7 @@ def get_best_objects():
                 ranked_objects = parsed["objects"]
             else:
                 # Fallback: try to extract object names from text
+                used_text_fallback = True
                 ranked_objects = _extract_objects_from_text(ranking_response, objects_for_prompt)
         except json.JSONDecodeError as parse_err:
             # Not JSON, try to extract from text
@@ -1105,7 +1107,12 @@ def get_best_objects():
                 f"AI response JSON parse failed: {parse_err} "
                 f"(length={len(ranking_response)}, last 300 chars: '{ranking_response[-300:]}')"
             )
+            used_text_fallback = True
             ranked_objects = _extract_objects_from_text(ranking_response, objects_for_prompt)
+
+        # Fallback found nothing: this is a parse failure, not a genuine empty result
+        if used_text_fallback and not ranked_objects:
+            raise AIServiceError("Could not parse AI ranking response")
 
         # Ensure all ranked objects have rank, reason, and recommended_rigs array
         for i, obj in enumerate(ranked_objects, 1):
