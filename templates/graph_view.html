@@ -63,21 +63,6 @@
 {% block body %}
 {{ flash_messages() }}
 
-<script>
-    // Self-hiding flash messages
-    document.addEventListener('DOMContentLoaded', function() {
-        const flashMessages = document.querySelectorAll('.flash-message');
-        if (flashMessages.length > 0) {
-            setTimeout(() => {
-                flashMessages.forEach(el => {
-                    el.style.transition = 'opacity 0.5s ease';
-                    el.style.opacity = '0';
-                    setTimeout(() => el.remove(), 500); // Remove from DOM after fade
-                });
-            }, 4000); // Message disappears after 4 seconds
-        }
-    });
-</script>
 <div class="tab-container">
     <button class="tab-button" data-tab="chart" data-action="show-tab">{{ _('Chart') }}</button>
     <button class="tab-button" data-tab="framing" data-action="show-tab">{{ _('Notes & Framing') }}</button>

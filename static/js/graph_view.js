@@ -7,20 +7,6 @@
     var DATA = window.NOVA_GRAPH_DATA || {};
     var objectName = DATA.objectName || '';
 
-    // --- Self-hiding flash messages ---
-    document.addEventListener('DOMContentLoaded', function() {
-        var flashMessages = document.querySelectorAll('.flash-message');
-        if (flashMessages.length > 0) {
-            setTimeout(function() {
-                flashMessages.forEach(function(el) {
-                    el.style.transition = 'opacity 0.5s ease';
-                    el.style.opacity = '0';
-                    setTimeout(function() { el.remove(); }, 500);
-                });
-            }, 4000);
-        }
-    });
-
     // --- URL-based tab restoration ---
     (function() {
         var params = new URLSearchParams(window.location.search);

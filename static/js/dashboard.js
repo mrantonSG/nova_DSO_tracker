@@ -3774,18 +3774,7 @@
             }
         }
     
-        // --- REPLACED: New flash message script ---
         document.addEventListener("DOMContentLoaded", function () {
-            const flashMessages = document.querySelectorAll(".flash-message");
-            if (flashMessages.length > 0) {
-                setTimeout(() => {
-                    flashMessages.forEach(el => {
-                        el.style.transition = "opacity 0.5s ease";
-                        el.style.opacity = "0";
-                        setTimeout(() => el.remove(), 500); // Remove from DOM after fade
-                    });
-                }, 4000); // Message disappears after 4 seconds
-            }
 
             // --- Event listener for location selector ---
             const locationSelect = document.getElementById('location-select');

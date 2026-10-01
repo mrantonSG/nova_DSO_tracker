@@ -30,22 +30,6 @@
 
     {{ flash_messages() }}
 
-    <script>
-        // Self-hiding flash messages (same behaviour as journal)
-        document.addEventListener('DOMContentLoaded', function() {
-            const flashMessages = document.querySelectorAll('.flash-message');
-            if (flashMessages.length > 0) {
-                setTimeout(() => {
-                    flashMessages.forEach(el => {
-                        el.style.transition = 'opacity 0.5s ease';
-                        el.style.opacity = '0';
-                        setTimeout(() => el.remove(), 500);
-                    });
-                }, 4000);
-            }
-        });
-    </script>
-
   <div class="tab-container">
         <div class="tabs-left">
             <button class="tab-button" data-tab="general">{{ _('General') }}</button>
