@@ -14,6 +14,7 @@ instance/logs/
 
 __pycache__/
 *.pyc
+messages.pot
 /.claude/
 /scratch/
 CLAUDE.md
