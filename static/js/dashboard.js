@@ -1282,7 +1282,7 @@
             const sortedData = applyNovaRankSorting(cachedData);
             renderRows(sortedData);
             if (signal.aborted) return;
-            finalizeFetch();
+            finalizeFetch(isBackground);
             return;
         }
     
@@ -1395,7 +1395,7 @@
             }
             // Fix: Do not hide the loader or reset UI if this request was aborted (e.g., by a new fetch)
             if (!signal.aborted) {
-                finalizeFetch();
+                finalizeFetch(isBackground);
             }
         }
     }  // closes fetchData
@@ -2192,7 +2192,7 @@
         });
     }
     
-    function finalizeFetch() {
+    function finalizeFetch(isBackground = false) {
         const tbody = document.getElementById("data-body");
         const loadingDiv = document.getElementById("table-loading");
         _hideFetchLoader(loadingDiv);
@@ -2208,7 +2208,8 @@
         fetchSunEvents();
 
         // 2. NOW it is safe to update the Inspiration grid with filtered data
-        if (activeTab === 'inspiration' && typeof renderInspirationGrid === 'function') {
+        // Skip on background refresh: auto-refresh was removed intentionally (see renderRows note — prevents jarring shuffles).
+        if (activeTab === 'inspiration' && !isBackground && typeof renderInspirationGrid === 'function') {
             // If Nova ranking is active, show ranked objects in Inspiration tab
             const novaSortedData = buildNovaSortedInspirationData();
             if (novaSortedData) {
