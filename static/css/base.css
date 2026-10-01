@@ -1297,7 +1297,7 @@
 /* ===== Toast notifications (flash messages) ===== */
 #flash-message-container.nova-toast-stack {
   position: fixed;
-  top: var(--toast-top, 104px);
+  top: var(--toast-top, 134px);
   right: 24px;
   left: auto;
   transform: none;
