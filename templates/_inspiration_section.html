@@ -594,8 +594,9 @@
     let inspirationPage = 0;
     const INSPIRATION_PAGE_SIZE = 20;
     let lastDataSourceRef = null;
+    let inspirationCandidatesSnapshot = null; // Frozen ordered candidate list for Next/Prev pagination
 
-    async function renderInspirationGrid(event) {
+    async function renderInspirationGrid(event, options) {
         if(event) { event.preventDefault(); event.stopPropagation(); }
 
         const grid = document.getElementById('inspiration-grid');
@@ -606,6 +607,19 @@
             grid.innerHTML = '';
             loading.style.display = 'block';
             loading.textContent = inspirationI18n.analyzingTargets;
+
+            // Pagination mode: Next/Prev page through the frozen snapshot from the last
+            // normal render, so a background data refresh can't reset or reshuffle the grid.
+            if (options && options.paginate && inspirationCandidatesSnapshot) {
+                const maxPage = Math.max(0, Math.ceil(inspirationCandidatesSnapshot.length / INSPIRATION_PAGE_SIZE) - 1);
+                inspirationPage = Math.min(Math.max(inspirationPage, 0), maxPage);
+                const snapStart = inspirationPage * INSPIRATION_PAGE_SIZE;
+                const snapEnd = (inspirationPage + 1) * INSPIRATION_PAGE_SIZE;
+                updatePaginationUI(inspirationCandidatesSnapshot.length, snapStart, snapEnd);
+                loading.style.display = 'none';
+                renderInspirationTiles(grid, inspirationCandidatesSnapshot.slice(snapStart, snapEnd));
+                return;
+            }
 
             // 1. Get Data (Safety Check)
             let dataSource = window.currentFilteredData;
@@ -668,6 +682,7 @@
                             </ul>
                         </div>
                     </div>`;
+                inspirationCandidatesSnapshot = null; // Empty list: don't let a stale snapshot survive into pagination
                 return;
             }
 
@@ -693,6 +708,9 @@
                     return altB - altA;
                 });
             }
+
+            // Freeze the final ordered list so Next/Prev pagination reads a stable snapshot
+            inspirationCandidatesSnapshot = candidates;
 
             const pageStart = inspirationPage * INSPIRATION_PAGE_SIZE;
             const pageEnd = (inspirationPage + 1) * INSPIRATION_PAGE_SIZE;
@@ -732,116 +750,123 @@
             }
 
             // 3. Render Tiles
-            for (const obj of topPicks) {
-                const raDeg = (parseFloat(obj['RA (hours)']) || 0) * 15;
-                const decDeg = parseFloat(obj['DEC (degrees)']) || 0;
-                const dssUrl = getAladinFallbackUrl(raDeg, decDeg, obj.Size);
-                const hasCoords = (dssUrl !== null);
-
-                // Create Skeleton
-                const tile = document.createElement('div');
-                tile.className = 'astro-tile';
-                tile.innerHTML = `
-                    <div class="tile-image skeleton-pulse">
-                        <img style="opacity:0;">
-                        <div class="img-source-badge" style="display:none;"></div>
-                    </div>
-                    <div class="tile-content">
-                        <div class="tile-header">
-                            <span class="tile-title">${obj.Object}</span>
-                            <span class="tile-type">${obj.Type || ''}</span>
-                        </div>
-                        <div class="tile-common-name">${obj['Common Name'] || ''}</div>
-                        <div class="tile-summary skeleton-text">${inspirationI18n.loading}</div>
-                        <div class="tile-stats">
-                            <div class="tile-stat-pill">${inspirationI18n.alt} ${obj['Max Altitude (°)']}</div>
-                            <div class="tile-stat-pill">${inspirationI18n.dur} ${Math.round((parseFloat(obj['Observable Duration (min)'])||0)/60*1)/1}${inspirationI18n.h}</div>
-                        </div>
-                    </div>
-                `;
-                grid.appendChild(tile);
-
-                // Async Resolve
-                (async () => {
-                    const imgEl = tile.querySelector('img');
-                    const badgeEl = tile.querySelector('.img-source-badge');
-                    const sumEl = tile.querySelector('.tile-summary');
-
-                    let finalImg = null;
-                    let finalImgSource = "";
-                    let finalImgLink = "";
-
-                    let finalText = "";
-                    let finalDescSource = "";
-                    let finalDescLink = "";
-
-                    // 1. Database Content (Primary)
-                    if (obj.image_url) {
-                        finalImg = obj.image_url;
-                        finalImgSource = obj.image_credit || "Catalog";
-                        finalImgLink = obj.image_source_link || "";
-                    }
-
-                    if (obj.description_text) {
-                        finalText = obj.description_text;
-                        finalDescSource = obj.description_credit || "";
-                        finalDescLink = obj.description_source_link || "";
-                    }
-
-                    // 2. Fallback: DSS2 (Image Only)
-                    if (!finalImg && hasCoords) {
-                        finalImg = dssUrl;
-                        finalImgSource = "DSS2";
-                    }
-
-                    // 5. Update UI
-                    const setOfflineState = () => {
-                        tile.querySelector('.tile-image').classList.remove('skeleton-pulse');
-                        tile.querySelector('.tile-image').innerHTML = `
-                            <div class="offline-message" style="height:100%; min-height:0; border:none; background:var(--bg-light); border-radius:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0;">
-                                <div style="font-size:24px; opacity:0.3; margin-bottom:5px; filter: grayscale(1);">📡</div>
-                                <div style="font-size:12px; color:var(--text-muted-alt);">Offline</div>
-                            </div>`;
-                    };
-
-                    imgEl.onload = () => {
-                        imgEl.style.opacity = '1';
-                        tile.querySelector('.tile-image').classList.remove('skeleton-pulse');
-                    };
-
-                    imgEl.onerror = () => {
-                        // Image failed to load (e.g. broken link or network drop)
-                        setOfflineState();
-                    };
-
-                    if (!navigator.onLine) {
-                        // Browser is strictly offline
-                        setOfflineState();
-                    } else if (finalImg) {
-                        imgEl.src = finalImg;
-                        badgeEl.textContent = finalImgSource;
-                        badgeEl.style.display = 'block';
-                    } else {
-                        // No image URL found
-                        tile.querySelector('.tile-image').innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;color:var(--text-muted-alt);">' + inspirationI18n.noImage + '</div>';
-                        tile.querySelector('.tile-image').classList.remove('skeleton-pulse');
-                    }
-
-                    if (finalText) {
-                        sumEl.textContent = finalText;
-                    } else {
-                        sumEl.textContent = `${inspirationI18n.type} ${obj.Type || inspirationI18n.dso}. ${inspirationI18n.locatedIn} ${obj.Constellation || inspirationI18n.unknown}.`;
-                    }
-                    sumEl.classList.remove('skeleton-text');
-
-                    tile.onclick = () => openInspirationModal(obj, finalImg, finalText || sumEl.textContent, finalImgSource, finalImgLink, finalDescSource, finalDescLink);
-
-                })();
-            }
+            renderInspirationTiles(grid, topPicks);
         } catch (err) {
             console.error("Critical Grid Error:", err);
+            inspirationCandidatesSnapshot = null;
             grid.innerHTML = '<div class="empty-state"><p>' + inspirationI18n.errorRenderGrid + '</p></div>';
             loading.style.display = 'none';
+        }
+    }
+
+    // Shared tile rendering (normal and pagination renders): builds a tile
+    // skeleton per object, then resolves image/description asynchronously.
+    function renderInspirationTiles(grid, topPicks) {
+        for (const obj of topPicks) {
+            const raDeg = (parseFloat(obj['RA (hours)']) || 0) * 15;
+            const decDeg = parseFloat(obj['DEC (degrees)']) || 0;
+            const dssUrl = getAladinFallbackUrl(raDeg, decDeg, obj.Size);
+            const hasCoords = (dssUrl !== null);
+
+            // Create Skeleton
+            const tile = document.createElement('div');
+            tile.className = 'astro-tile';
+            tile.innerHTML = `
+                <div class="tile-image skeleton-pulse">
+                    <img style="opacity:0;">
+                    <div class="img-source-badge" style="display:none;"></div>
+                </div>
+                <div class="tile-content">
+                    <div class="tile-header">
+                        <span class="tile-title">${obj.Object}</span>
+                        <span class="tile-type">${obj.Type || ''}</span>
+                    </div>
+                    <div class="tile-common-name">${obj['Common Name'] || ''}</div>
+                    <div class="tile-summary skeleton-text">${inspirationI18n.loading}</div>
+                    <div class="tile-stats">
+                        <div class="tile-stat-pill">${inspirationI18n.alt} ${obj['Max Altitude (°)']}</div>
+                        <div class="tile-stat-pill">${inspirationI18n.dur} ${Math.round((parseFloat(obj['Observable Duration (min)'])||0)/60*1)/1}${inspirationI18n.h}</div>
+                    </div>
+                </div>
+            `;
+            grid.appendChild(tile);
+
+            // Async Resolve
+            (async () => {
+                const imgEl = tile.querySelector('img');
+                const badgeEl = tile.querySelector('.img-source-badge');
+                const sumEl = tile.querySelector('.tile-summary');
+
+                let finalImg = null;
+                let finalImgSource = "";
+                let finalImgLink = "";
+
+                let finalText = "";
+                let finalDescSource = "";
+                let finalDescLink = "";
+
+                // 1. Database Content (Primary)
+                if (obj.image_url) {
+                    finalImg = obj.image_url;
+                    finalImgSource = obj.image_credit || "Catalog";
+                    finalImgLink = obj.image_source_link || "";
+                }
+
+                if (obj.description_text) {
+                    finalText = obj.description_text;
+                    finalDescSource = obj.description_credit || "";
+                    finalDescLink = obj.description_source_link || "";
+                }
+
+                // 2. Fallback: DSS2 (Image Only)
+                if (!finalImg && hasCoords) {
+                    finalImg = dssUrl;
+                    finalImgSource = "DSS2";
+                }
+
+                // 5. Update UI
+                const setOfflineState = () => {
+                    tile.querySelector('.tile-image').classList.remove('skeleton-pulse');
+                    tile.querySelector('.tile-image').innerHTML = `
+                        <div class="offline-message" style="height:100%; min-height:0; border:none; background:var(--bg-light); border-radius:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0;">
+                            <div style="font-size:24px; opacity:0.3; margin-bottom:5px; filter: grayscale(1);">📡</div>
+                            <div style="font-size:12px; color:var(--text-muted-alt);">Offline</div>
+                        </div>`;
+                };
+
+                imgEl.onload = () => {
+                    imgEl.style.opacity = '1';
+                    tile.querySelector('.tile-image').classList.remove('skeleton-pulse');
+                };
+
+                imgEl.onerror = () => {
+                    // Image failed to load (e.g. broken link or network drop)
+                    setOfflineState();
+                };
+
+                if (!navigator.onLine) {
+                    // Browser is strictly offline
+                    setOfflineState();
+                } else if (finalImg) {
+                    imgEl.src = finalImg;
+                    badgeEl.textContent = finalImgSource;
+                    badgeEl.style.display = 'block';
+                } else {
+                    // No image URL found
+                    tile.querySelector('.tile-image').innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;color:var(--text-muted-alt);">' + inspirationI18n.noImage + '</div>';
+                    tile.querySelector('.tile-image').classList.remove('skeleton-pulse');
+                }
+
+                if (finalText) {
+                    sumEl.textContent = finalText;
+                } else {
+                    sumEl.textContent = `${inspirationI18n.type} ${obj.Type || inspirationI18n.dso}. ${inspirationI18n.locatedIn} ${obj.Constellation || inspirationI18n.unknown}.`;
+                }
+                sumEl.classList.remove('skeleton-text');
+
+                tile.onclick = () => openInspirationModal(obj, finalImg, finalText || sumEl.textContent, finalImgSource, finalImgLink, finalDescSource, finalDescLink);
+
+            })();
         }
     }
 
@@ -986,12 +1011,12 @@
             case 'inspiration-previous':
                 if (inspirationPage > 0) {
                     inspirationPage--;
-                    renderInspirationGrid();
+                    renderInspirationGrid(null, { paginate: true });
                 }
                 return;
             case 'inspiration-next':
                 inspirationPage++;
-                renderInspirationGrid();
+                renderInspirationGrid(null, { paginate: true });
                 return;
             case 'close-inspiration-modal':
                 closeInspirationModal();
