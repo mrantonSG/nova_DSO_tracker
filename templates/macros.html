@@ -127,15 +127,29 @@
      {{ flash_messages() }}
 #}
 {% macro flash_messages() %}
-  <div id="flash-message-container" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 2000; width: 90%; max-width: 500px; text-align: center;">
-      {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-              {% for category, message in messages %}
-                  <div class="flash-message" style="padding: 12px 20px; border-radius: 6px; color: white; font-weight: bold; background-color: {{ 'var(--danger-color)' if category == 'error' else 'var(--success-color-alt)' }}; margin-bottom: 10px; box-shadow: 0 4px 12px var(--shadow-medium);">
-                      {{ message }}
-                  </div>
-              {% endfor %}
-          {% endif %}
-      {% endwith %}
+  <div id="flash-message-container" class="nova-toast-stack" role="status" aria-live="polite">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        {% set kind = category if category in ['success', 'warning', 'error'] else 'info' %}
+        <div class="flash-message nova-toast nova-toast--{{ kind }}">
+          <span class="nova-toast-icon" aria-hidden="true">
+            {% if kind == 'success' %}
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"/></svg>
+            {% elif kind == 'warning' %}
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5l6 11H2z"/><path d="M8 7v2.8"/><path d="M8 11.6v.01"/></svg>
+            {% elif kind == 'error' %}
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5l6 6M11 5l-6 6"/></svg>
+            {% else %}
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 7.5v4.5M8 4.5v.01"/></svg>
+            {% endif %}
+          </span>
+          <span class="nova-toast-text">{{ message }}</span>
+          <button type="button" class="nova-toast-close" aria-label="{{ _('Dismiss') }}">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3.5 3.5l7 7M10.5 3.5l-7 7"/></svg>
+          </button>
+          <span class="nova-toast-bar" aria-hidden="true"></span>
+        </div>
+      {% endfor %}
+    {% endwith %}
   </div>
 {% endmacro %}
