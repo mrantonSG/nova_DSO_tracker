@@ -120,3 +120,22 @@
 <dt class="{{ extra_class }}">{{ label }}</dt>
 <dd class="{{ extra_class }}">{{ value }}</dd>
 {% endmacro %}
+
+{# Flash Messages Macro
+   Renders the fixed-position flash message container
+   Usage:
+     {{ flash_messages() }}
+#}
+{% macro flash_messages() %}
+  <div id="flash-message-container" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 2000; width: 90%; max-width: 500px; text-align: center;">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+              {% for category, message in messages %}
+                  <div class="flash-message" style="padding: 12px 20px; border-radius: 6px; color: white; font-weight: bold; background-color: {{ 'var(--danger-color)' if category == 'error' else 'var(--success-color-alt)' }}; margin-bottom: 10px; box-shadow: 0 4px 12px var(--shadow-medium);">
+                      {{ message }}
+                  </div>
+              {% endfor %}
+          {% endif %}
+      {% endwith %}
+  </div>
+{% endmacro %}

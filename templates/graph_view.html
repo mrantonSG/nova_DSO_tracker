@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import status_item, form_group, help_badge, action_button %}
+{% from "macros.html" import status_item, form_group, help_badge, action_button, flash_messages %}
 
 {% block title %}{{ alt_name | default(object_name, True) }} ({{ object_name }}) – {{ _('Nova DSO Tracker') }}{% endblock %}
 
@@ -61,17 +61,7 @@
 {% endblock %}
 
 {% block body %}
-<div id="flash-message-container" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 2000; width: 90%; max-width: 500px; text-align: center;">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="flash-message" style="padding: 12px 20px; border-radius: 6px; color: white; font-weight: bold; background-color: {{ 'var(--danger-color)' if category == 'error' else 'var(--success-color-alt)' }}; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-                    {{ message }}
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-</div>
+{{ flash_messages() }}
 
 <script>
     // Self-hiding flash messages
