@@ -562,3 +562,20 @@ document.addEventListener('change', function(e) {
         clearTranslationBannerFlags();
     }
 });;
+// Toast notifications: close button + auto-dismiss when the CSS countdown ends
+(function () {
+  function dismiss(toast) {
+    if (!toast || !toast.isConnected || toast.classList.contains('is-leaving')) return;
+    toast.classList.add('is-leaving');
+    setTimeout(function () { if (toast.isConnected) toast.remove(); }, 260);
+  }
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.nova-toast-close');
+    if (btn) dismiss(btn.closest('.nova-toast'));
+  });
+  document.addEventListener('animationend', function (e) {
+    if (e.animationName !== 'nova-toast-countdown') return;
+    dismiss(e.target.closest('.nova-toast'));
+  });
+  window.novaDismissToast = dismiss;
+})();
