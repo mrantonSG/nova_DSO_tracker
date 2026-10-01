@@ -1294,3 +1294,104 @@
     .footer { display: none; }
 }
 
+/* ===== Toast notifications (flash messages) ===== */
+#flash-message-container.nova-toast-stack {
+  position: fixed;
+  top: var(--toast-top, 104px);
+  right: 24px;
+  left: auto;
+  transform: none;
+  z-index: 2000;
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+.nova-toast {
+  --toast-fg: #2d7d95;
+  --toast-tint: var(--primary-bg);
+  --toast-bar: var(--primary-color);
+  --toast-duration: 4s;
+  pointer-events: auto;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 12px 16px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color, #e5e2dc);
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(20,20,20,0.10), var(--shadow-sm);
+  overflow: clip;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  text-align: left;
+  transition: opacity .25s ease, transform .25s ease;
+}
+.nova-toast.is-leaving { opacity: 0; transform: translateX(12px); }
+.nova-toast-icon {
+  flex: none; width: 28px; height: 28px; border-radius: 7px;
+  background: var(--toast-tint); color: var(--toast-fg);
+  display: flex; align-items: center; justify-content: center;
+}
+.nova-toast-text {
+  flex: 1 1 auto; min-width: 0; padding-top: 5px;
+  font-size: 13px; font-weight: 600; line-height: 1.35;
+  color: var(--text-primary); overflow-wrap: anywhere;
+}
+.nova-toast-close {
+  appearance: none; flex: none; width: 32px; height: 32px; min-width: 0;
+  margin: -4px -2px 0 0; padding: 0; border: none; border-radius: 6px;
+  background: transparent; box-shadow: none; color: var(--text-muted);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.nova-toast-close:hover { background: var(--bg-tertiary); color: var(--text-secondary); }
+.nova-toast-bar {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+  background: var(--border-light); overflow: hidden;
+}
+.nova-toast-bar::after {
+  content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 100%;
+  background: var(--toast-bar); transform-origin: left;
+  animation: nova-toast-countdown var(--toast-duration) linear forwards;
+}
+.nova-toast:hover .nova-toast-bar::after { animation-play-state: paused; }
+@keyframes nova-toast-countdown { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+.nova-toast--success { --toast-fg: #2a9060; --toast-tint: rgba(42,144,96,0.10); --toast-bar: #2a9060; }
+.nova-toast--warning { --toast-fg: #94600f; --toast-tint: rgba(176,120,30,0.12); --toast-bar: #b8862e; --toast-duration: 8s; }
+.nova-toast--error   { --toast-fg: #a04040; --toast-tint: rgba(180,60,60,0.08); --toast-bar: #a04040; }
+.nova-toast--error .nova-toast-bar { display: none; }
+
+.nova-toast--loading .nova-toast-close { display: none; }
+.nova-toast--loading .nova-toast-bar::after {
+  width: 34%; animation: nova-toast-indeterminate 1.2s ease-in-out infinite;
+}
+@keyframes nova-toast-indeterminate { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+.nova-toast-spinner { animation: nova-toast-spin .9s linear infinite; }
+@keyframes nova-toast-spin { to { transform: rotate(360deg); } }
+
+[data-theme="dark"] .nova-toast {
+  background: var(--bg-tertiary);
+  border-color: rgba(255,255,255,0.09);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.45), var(--shadow-sm);
+}
+[data-theme="dark"] .nova-toast-close { color: rgba(255,255,255,0.45); }
+[data-theme="dark"] .nova-toast--info,
+[data-theme="dark"] .nova-toast--loading { --toast-fg: #8ec8da; --toast-tint: rgba(142,200,218,0.12); --toast-bar: #8ec8da; }
+[data-theme="dark"] .nova-toast--success { --toast-fg: #6dcab0; --toast-tint: rgba(109,202,176,0.14); --toast-bar: #6dcab0; }
+[data-theme="dark"] .nova-toast--warning { --toast-fg: #e0aa50; --toast-tint: rgba(224,170,80,0.14); --toast-bar: #e0aa50; }
+[data-theme="dark"] .nova-toast--error   { --toast-fg: #d06060; --toast-tint: rgba(200,80,80,0.14); --toast-bar: #d06060; }
+
+@media (max-width: 640px) {
+  #flash-message-container.nova-toast-stack {
+    top: auto; bottom: 28px; left: 12px; right: 12px;
+    width: auto; max-width: none; flex-direction: column-reverse;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nova-toast { transition: none; }
+  .nova-toast-spinner { animation: none; }
+}
+
