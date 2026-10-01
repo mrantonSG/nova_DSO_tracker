@@ -679,7 +679,16 @@
 
                 // 1. Show a "please wait" message
                 const msgContainer = document.getElementById('flash-message-container');
-                if (msgContainer) msgContainer.innerHTML = `<div class="flash-message" style="padding: 12px 20px; border-radius: 6px; color: white; font-weight: bold; background-color: ${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--info-color-alt2', '#007bff') : '#007bff'}; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">Importing ${entityName}, please wait...</div>`;
+                if (msgContainer) {
+                    msgContainer.innerHTML =
+                        '<div class="flash-message nova-toast nova-toast--loading">' +
+                        '<span class="nova-toast-icon" aria-hidden="true">' +
+                        '<svg class="nova-toast-spinner" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 2.5a5.5 5.5 0 1 1-5.5 5.5"/></svg>' +
+                        '</span><span class="nova-toast-text"></span>' +
+                        '<span class="nova-toast-bar" aria-hidden="true"></span></div>';
+                    msgContainer.querySelector('.nova-toast-text').textContent =
+                        `Importing ${entityName}, please wait...`;
+                }
 
                 fetch(url, {
                     method: "POST",
