@@ -731,6 +731,10 @@
                         <div class="stat-cell">
                             <div class="stat-cell-label">{{ _('Guiding (RMS)') }}</div>
                             <div class="stat-cell-value">{{ display_value(session.guiding_rms_avg_arcsec) }}{% if session.guiding_rms_avg_arcsec %}"{% endif %}</div>
+                            {% set guiding_band = guiding_rms_band(session.guiding_rms_avg_arcsec, session.rig_scale_snapshot) %}
+                            {% if guiding_band %}
+                            <div class="guiding-card-sub">{{ {'excellent': _('Excellent'), 'good': _('Good'), 'acceptable': _('Acceptable'), 'borderline': _('Borderline'), 'unusable': _('Unusable')}[guiding_band] }}</div>
+                            {% endif %}
                         </div>
                         <div class="stat-cell">
                             <div class="stat-cell-label">{{ _('Sky Quality (SQM)') }}</div>
@@ -983,6 +987,11 @@
                                 {{ '%.2f' % log_analysis.phd2.stats.total_rms_as }}"
                             {% endif %}
                         </div>
+                        {% set imaging_rms = log_analysis.phd2.stats.imaging.total_rms_as if log_analysis.phd2.stats.imaging else log_analysis.phd2.stats.total_rms_as %}
+                        {% set imaging_band = guiding_rms_band(imaging_rms, session.rig_scale_snapshot) %}
+                        {% if imaging_band %}
+                        <div class="guiding-card-sub">{{ {'excellent': _('Excellent'), 'good': _('Good'), 'acceptable': _('Acceptable'), 'borderline': _('Borderline'), 'unusable': _('Unusable')}[imaging_band] }}</div>
+                        {% endif %}
                         <div class="guiding-card-sub">
                             {% if log_analysis.phd2.stats.imaging %}
                                 {{ log_analysis.phd2.stats.imaging.frame_count }} {{ _('frames') }}
@@ -1012,6 +1021,12 @@
                         </div>
                     </div>
                 </div>
+
+                {% if chart_images.guiding_quality %}
+                <div class="chart-container">
+                    <img src="data:image/png;base64,{{ chart_images.guiding_quality }}" alt="{{ _('Guiding Quality') }}">
+                </div>
+                {% endif %}
 
                 {% if chart_images.guiding_rms %}
                 <div class="chart-container">

@@ -7,6 +7,7 @@ Uses matplotlib with a print-friendly style matching the Nova design system.
 
 import io
 import base64
+import math
 from typing import Dict, List, Any, Optional, Tuple
 import numpy as np
 
@@ -170,6 +171,52 @@ def generate_guiding_rms_chart(phd2_data: Dict[str, Any]) -> Optional[str]:
     ax.set_ylim(0, min(max_rms, 5.0))  # Cap at 5" for readability
 
     ax.legend(loc='upper right', fontsize=8, framealpha=0.9)
+
+    return _fig_to_base64(fig)
+
+
+def generate_guiding_quality_chart(phd2_data: Dict[str, Any], limits: Optional[Tuple[float, ...]]) -> Optional[str]:
+    """
+    Generate a Total RMS over time chart against the session's guiding band limits.
+
+    Args:
+        phd2_data: Parsed PHD2 log data containing 'rms' array
+        limits: (excellent, good, acceptable, borderline) upper limits in arcsec
+
+    Returns:
+        Base64 PNG string or None if no data or no limits
+    """
+    if limits is None:
+        return None
+    if not phd2_data or not phd2_data.get('rms'):
+        return None
+
+    rms_data = phd2_data['rms']
+    if len(rms_data) < 2:
+        return None
+
+    # Extract data: [h, ra_rms_as, dec_rms_as, total_rms_as]
+    hours = np.array([r[0] for r in rms_data])
+    total_rms = np.array([r[3] for r in rms_data])
+
+    fig, ax = _create_figure(6.5, 3.0)
+    ax.grid(False, axis='y')
+
+    ax.plot(hours, total_rms, color=COLORS['total'], linewidth=1.5, label='Total RMS')
+
+    # Band limits as dashed reference lines, labelled just right of the plot area
+    band_names = ('Excellent', 'Good', 'Acceptable', 'Borderline')
+    for name, limit in zip(band_names, limits):
+        ax.axhline(y=limit, color=COLORS['text_secondary'], linewidth=0.8, linestyle='--')
+        ax.text(1.01, limit, f'{name} \u2264{limit:.2f}\u2033', transform=ax.get_yaxis_transform(),
+                fontsize=7, color=COLORS['text_secondary'], va='center', ha='left', clip_on=False)
+
+    # Labels and styling
+    ax.set_xlabel('Time (hours)', fontsize=9, color=COLORS['text_secondary'])
+    ax.set_ylabel('RMS (arcsec)', fontsize=9, color=COLORS['text_secondary'])
+    ax.set_title('Guiding Quality', fontsize=11, color=COLORS['text'], fontweight='600', pad=10)
+
+    ax.set_ylim(0, math.ceil(limits[3] * 1.25 * 10) / 10)
 
     return _fig_to_base64(fig)
 
@@ -440,17 +487,20 @@ def generate_autocenter_chart(asiair_data: Dict[str, Any]) -> Optional[str]:
 # BATCH GENERATION HELPERS
 # =============================================================================
 
-def generate_session_charts(log_analysis: Dict[str, Any]) -> Dict[str, Optional[str]]:
+def generate_session_charts(log_analysis: Dict[str, Any],
+                            guiding_limits: Optional[Tuple[float, ...]] = None) -> Dict[str, Optional[str]]:
     """
     Generate all available charts for a session's log analysis data.
 
     Args:
         log_analysis: Dict with 'has_logs', 'asiair', 'phd2' keys
+        guiding_limits: Optional guiding band limits for the Guiding Quality chart
 
     Returns:
         Dict with chart names as keys and base64 strings (or None) as values
     """
     charts = {
+        'guiding_quality': None,
         'guiding_rms': None,
         'guiding_scatter': None,
         'dither_settle': None,
@@ -465,6 +515,7 @@ def generate_session_charts(log_analysis: Dict[str, Any]) -> Dict[str, Optional[
     # PHD2 charts
     phd2 = log_analysis.get('phd2')
     if phd2:
+        charts['guiding_quality'] = generate_guiding_quality_chart(phd2, guiding_limits)
         charts['guiding_rms'] = generate_guiding_rms_chart(phd2)
         charts['guiding_scatter'] = generate_guiding_scatter_chart(phd2)
 

@@ -45,7 +45,8 @@ from nova.helpers import (
     save_log_to_filesystem, read_log_content, dither_display,
     # Moved from nova.__init__ for clean imports
     load_full_astro_context, generate_session_id,
-    _compute_rig_metrics_from_components, get_ra_dec, invalidate_object_caches
+    _compute_rig_metrics_from_components, get_ra_dec, invalidate_object_caches,
+    guiding_rms_limits
 )
 from nova.analytics import record_event
 from nova.report_graphs import generate_session_charts
@@ -1112,6 +1113,7 @@ def show_journal_report_page(session_id):
         # --- 4. Parse Log Files and Generate Charts ---
         log_analysis = {'has_logs': False, 'asiair': None, 'phd2': None}
         chart_images = {
+            'guiding_quality': None,
             'guiding_rms': None,
             'guiding_scatter': None,
             'dither_settle': None,
@@ -1139,7 +1141,7 @@ def show_journal_report_page(session_id):
                     'phd2': phd2_data
                 }
                 # Generate all charts
-                chart_images = generate_session_charts(log_analysis)
+                chart_images = generate_session_charts(log_analysis, guiding_rms_limits(session.rig_scale_snapshot))
         except Exception as log_error:
             print(f"[report] Error parsing logs for session {session_id}: {log_error}")
             traceback.print_exc()
