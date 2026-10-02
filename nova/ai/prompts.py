@@ -31,6 +31,8 @@ Locale handling in Nova:
 
 from typing import Dict, List, Optional
 
+from nova.helpers import guiding_rms_limits
+
 BORTLE_LABELS = {
     1: "Exceptional dark sky",
     2: "Truly dark sky",
@@ -340,7 +342,7 @@ CRITICAL RULE — NON-OBVIOUS ANALYSIS REQUIRED: You must identify at least one 
 
 CRITICAL RULE — NO GENERIC ADVICE: Every recommendation must cite a specific number or observation from this session. "Consider using a wind shield" is generic. "Your 6.0″ guiding peaks correlate with the wind notes — a shield or sheltered pier position would directly address the 60 discarded frames" is specific. If you cannot tie a recommendation to a data point, do not make it. If there is nothing to recommend, do not force a recommendation just to satisfy this rule.
 
-Output: 120-180 words of plain prose, no headers or labels, no bullet points. Lead with the 2-3 metrics that most matter for this session (e.g. integration time, guiding RMS vs. threshold for the focal length, moon impact if relevant, autofocus/thermal stability if anomalous).
+Output: 120-180 words of plain prose, no headers or labels, no bullet points. Lead with the 2-3 metrics that most matter for this session (e.g. integration time, guiding RMS vs. the given limits, moon impact if relevant, autofocus/thermal stability if anomalous).
 
 Only surface an issue, discrepancy, or anomaly if a value is actually outside normal/expected range or logs disagree in a meaningful way. If guiding/focus/thermal all performed normally, say so briefly and stop — do not manufacture narrative tension or walk through calculations in prose.
 
@@ -352,17 +354,10 @@ If general_notes_problems_learnings contains user-written content, reference it 
 
 Recommendations: cap at 2-3 short sentences max, only if something is actually worth flagging as an action.
 
-GUIDING RMS: Compute thresholds from imaging_scale (arcsec/px):
-- Excellent: RMS < imaging_scale × 0.33
-- Good: RMS < imaging_scale × 1.0
-- Needs work: RMS < imaging_scale × 1.5
-- Problematic: RMS ≥ imaging_scale × 1.5
-Always state the computed threshold values inline with the formula shown. State which category the session RMS falls into and what it means for star shape at this focal length and f-ratio. excellent < imaging_scale × 0.33 — good < imaging_scale × 1.0 — needs work < imaging_scale × 1.5 — problematic ≥ imaging_scale × 1.5. The excellent threshold is the tightest. Never label the excellent threshold as the good threshold.
-Only state the computed threshold values and formula inline if the session falls into the 'needs work' or 'problematic' band. If the band is 'excellent' or 'good', state the band and one-line implication only — do not show the formula or threshold math.
+GUIDING RMS: There are five bands: Excellent, Good, Acceptable, Borderline, Unusable. The session data gives this session's guiding RMS limits in arcsec. Classify every guiding RMS value (the manual average and the PHD2 log RMS) against those limits. A value at or below a limit belongs to that band; a value above the Borderline limit is Unusable. Never compute your own thresholds from imaging scale, focal length or pixel size. If no guiding RMS limits are given in the session data, do not rate guiding against image scale.
+State which band the session RMS falls into and what it means for star shape at this focal length and f-ratio. Only quote the limit numbers if the session falls into the Borderline or Unusable band. If the band is Excellent, Good or Acceptable, state the band and one-line implication only — do not quote the limits.
 
-The thresholds define bands, not cutoff points. A session RMS of X falls into the band where it exceeds the lower threshold but not the upper. Specifically: RMS between imaging_scale×1.0 and imaging_scale×1.5 = "needs work". RMS ≥ imaging_scale×1.5 = "problematic". Never describe a threshold as "above X needs work" — instead say "your RMS of X falls between the good threshold (Y) and the problematic threshold (Z), placing it in the needs-work band".
-
-"0.80" RMS with an imaging scale of 1.44"/px: 0.80 > 0.48 (excellent threshold), therefore this is in the GOOD band, not excellent. A value must be BELOW the threshold to qualify for that category. Never promote a value to a better category than it belongs in.
+Example: 0.80" RMS with limits Excellent ≤ 0.48, Good ≤ 0.72, Acceptable ≤ 1.44, Borderline ≤ 2.16: 0.80 is above the Good limit and at or below the Acceptable limit, therefore it is in the ACCEPTABLE band. Never promote a value to a better band than it belongs in.
 
 DITHER ANALYSIS: Compute and report separately:
 - Total dither time = dither_count × avg_settle_seconds
@@ -498,13 +493,17 @@ Respond in the language of this ISO locale code: {locale}. Use informal address 
     guiding_rms = session_data.get("guiding_rms_avg_arcsec")
     if guiding_rms:
         prompt_lines.append(f"Average guiding RMS: {guiding_rms:.2f}\" arcsec.")
-        # Use actual imaging_scale if available, otherwise compute approximate
         if imaging_scale:
-            prompt_lines.append(f"Imaging scale: {imaging_scale:.2f}\"/px (use this for RMS threshold calculations)")
-        elif efl:
-            # Approximate pixel scale assuming ~3.8um pixel (common for OSC cameras)
-            pixel_scale = 206.265 * 3.8 / efl
-            prompt_lines.append(f"Approximate pixel scale (3.8um assumed): ~{pixel_scale:.2f}\"/px")
+            prompt_lines.append(f"Imaging scale: {imaging_scale:.2f}\"/px")
+    # Band limits come from the same helper as the journal indicator; given
+    # whenever the scale is known so PHD2-only sessions are rated too
+    rms_limits = guiding_rms_limits(imaging_scale)
+    if rms_limits:
+        excellent, good, acceptable, borderline = rms_limits
+        prompt_lines.append(
+            f"Guiding RMS limits for this session (arcsec): Excellent <= {excellent:.2f}, Good <= {good:.2f}, "
+            f"Acceptable <= {acceptable:.2f}, Borderline <= {borderline:.2f}, Unusable above {borderline:.2f}."
+        )
 
     # Session rating
     rating = session_data.get("session_rating_subjective")

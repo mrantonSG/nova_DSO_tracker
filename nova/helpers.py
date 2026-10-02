@@ -772,25 +772,44 @@ GUIDING_RMS_FACTORS = (1 / 3, 0.5, 1.0, 1.5)
 GUIDING_RMS_MIN_SCALE = 1.0
 
 
+def guiding_rms_limits(scale):
+    """
+    Guiding RMS band limits (arcsec) for the rig's image scale (arcsec/px).
+
+    Returns (excellent, good, acceptable, borderline) upper limits, or None
+    when scale is missing, non-numeric, or <= 0.
+    Limits are max(scale, 1.0) x factor, rounded to 2 decimals half-up
+    (floor(x * 100 + 0.5) / 100) to match the JS Math.round.
+    """
+    try:
+        scale_f = float(scale)
+    except (TypeError, ValueError):
+        return None
+    if not isfinite(scale_f) or scale_f <= 0:
+        return None
+
+    return tuple(floor(max(scale_f, GUIDING_RMS_MIN_SCALE) * factor * 100 + 0.5) / 100 for factor in GUIDING_RMS_FACTORS)
+
+
 def guiding_rms_band(rms, scale):
     """
     Classify guiding RMS against the rig's image scale (arcsec/px).
 
     Returns 'excellent', 'good', 'acceptable', 'borderline' or 'unusable',
     or None when rms or scale is missing, non-numeric, or <= 0.
-    Band limits are max(scale, 1.0) x factor, rounded to 2 decimals half-up
-    (floor(x * 100 + 0.5) / 100) to match the JS Math.round; the first band
-    whose rounded limit rms does not exceed wins, above all four -> 'unusable'.
+    Limits come from guiding_rms_limits(); the first band whose rounded
+    limit rms does not exceed wins, above all four -> 'unusable'.
     """
     try:
         rms_f = float(rms)
-        scale_f = float(scale)
     except (TypeError, ValueError):
         return None
-    if not (isfinite(rms_f) and isfinite(scale_f)) or rms_f <= 0 or scale_f <= 0:
+    if not isfinite(rms_f) or rms_f <= 0:
         return None
 
-    limits = [floor(max(scale_f, GUIDING_RMS_MIN_SCALE) * factor * 100 + 0.5) / 100 for factor in GUIDING_RMS_FACTORS]
+    limits = guiding_rms_limits(scale)
+    if limits is None:
+        return None
     for band, limit in zip(('excellent', 'good', 'acceptable', 'borderline'), limits):
         if rms_f <= limit:
             return band
