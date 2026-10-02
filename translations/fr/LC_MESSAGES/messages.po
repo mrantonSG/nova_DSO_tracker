@@ -1882,7 +1882,7 @@ msgstr "Notes météo"
 
 #: templates/_journal_section.html:3043 templates/journal_form.html:84
 msgid "Equipment & Guiding"
-msgstr "Équipement et accompagnement"
+msgstr "Équipement et guidage"
 
 #: templates/_journal_section.html:3046 templates/graph_view.html:303
 #: templates/index.html:153 templates/mobile_journal_new.html:237
@@ -5384,7 +5384,7 @@ msgstr "Événements de dithering"
 
 #: templates/journal_report.html:1033
 msgid "Guiding RMS Chart"
-msgstr "Tableau RMS indicatif"
+msgstr "Graphique RMS du guidage"
 
 #: templates/journal_report.html:1039
 msgid "Guide Pulse Distribution"

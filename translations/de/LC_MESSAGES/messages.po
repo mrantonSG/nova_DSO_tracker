@@ -5336,7 +5336,7 @@ msgstr "Meridian-Flips"
 
 #: templates/journal_report.html:978 templates/project_report.html:1011
 msgid "PHD2 Guiding Performance"
-msgstr "PHD2-Leistungssteuerung"
+msgstr "PHD2-Guiding-Leistung"
 
 #: templates/journal_report.html:982 templates/project_report.html:1014
 msgid "Imaging RMS"
@@ -5361,7 +5361,7 @@ msgstr "Dither-Ereignisse"
 
 #: templates/journal_report.html:1033
 msgid "Guiding RMS Chart"
-msgstr "Leitfaden RMS-Diagramm"
+msgstr "Guiding-RMS-Diagramm"
 
 #: templates/journal_report.html:1039
 msgid "Guide Pulse Distribution"
