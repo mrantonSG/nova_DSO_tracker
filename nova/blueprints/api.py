@@ -48,7 +48,7 @@ from nova.helpers import (
     bust_astro_context_cache, invalidate_object_caches,
     heatmap_fingerprint, heatmap_cache_path,
     resolve_sampling_interval, resolve_altitude_threshold,
-    is_valid_username,
+    is_valid_username, guiding_rms_limits,
 )
 from nova.models import (
     DbUser, AstroObject, JournalSession, Project,
@@ -1616,6 +1616,11 @@ def get_session_log_analysis(session_id):
     if not session:
         return jsonify({'error': _('Session not found')}), 404
 
+    # Guiding RMS band limits are derived from the session's rig scale at
+    # request time and never stored in log_analysis_cache.
+    limits = guiding_rms_limits(session.rig_scale_snapshot)
+    guiding_limits = list(limits) if limits is not None else None
+
     # 1. Return cached result if available and valid (has session_start for clock time)
     if session.log_analysis_cache:
         try:
@@ -1626,6 +1631,7 @@ def get_session_log_analysis(session_id):
             nina = cached.get('nina')
             has_session_start = (asiair and asiair.get('session_start')) or (phd2 and phd2.get('session_start')) or (nina and nina.get('session_start'))
             if has_session_start:
+                cached['guiding_limits'] = guiding_limits
                 return jsonify(cached)
             # Old cache without session_start - fall through to re-parse
         except json.JSONDecodeError:
@@ -1660,6 +1666,7 @@ def get_session_log_analysis(session_id):
         session.log_analysis_cache = json.dumps(result)
         db.commit()
 
+    result['guiding_limits'] = guiding_limits
     return jsonify(result)
 
 

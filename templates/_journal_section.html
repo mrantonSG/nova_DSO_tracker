@@ -2631,6 +2631,9 @@
                                     <span>{{ _('Dec:') }} <strong id="log-all-dec-rms">-</strong>"</span>
                                     <span>{{ _('Total:') }} <strong id="log-all-total-rms">-</strong>"</span>
                                 </div>
+                                <div class="log-chart-container" id="log-guiding-quality-container" style="display:none;">
+                                    <canvas id="log-guiding-quality-chart"></canvas>
+                                </div>
                                 <div class="log-chart-container" style="position: relative;">
                                     <button type="button" id="log-guiding-zoom-btn" class="btn btn-sm btn-outline-secondary" style="position: absolute; top: 8px; right: 8px; font-size: 0.75em; padding: 2px 8px; z-index: 10;">⛶ {{ _('Zoom') }}</button>
                                     <canvas id="log-guiding-chart"></canvas>
@@ -3334,6 +3337,7 @@ const journalI18n = {
   guidingAcceptable:     {{ _("Acceptable") | tojson }},
   guidingBorderline:     {{ _("Borderline") | tojson }},
   guidingUnusable:       {{ _("Unusable") | tojson }},
+  guidingQualityTitle:   {{ _("Guiding Quality") | tojson }},
 };
 
 (function() {

@@ -76,6 +76,7 @@
         guidePulseScatter: null,
         guidePulseDuration: null,
         guidingSnr: null,
+        guidingQuality: null,
         autocenter: null
     };
 
@@ -1331,6 +1332,11 @@
         // Dark theme flag (used by all charts in this tab)
         const dark = isDarkTheme();
 
+        // Guiding Quality chart: hidden unless the session has a rig scale (limits) and RMS data
+        const qualityContainer = document.getElementById('log-guiding-quality-container');
+        if (charts.guidingQuality) { charts.guidingQuality.destroy(); charts.guidingQuality = null; }
+        if (qualityContainer) qualityContainer.style.display = 'none';
+
         // RMS Chart
         const rmsCanvas = document.getElementById('log-guiding-chart');
         if (rmsCanvas && phd2.rms && phd2.rms.length > 0) {
@@ -1480,6 +1486,123 @@
                     }
                     charts.guiding.update('none'); // Instant update without animation
                 };
+            }
+
+            // Guiding Quality chart: Total RMS against the session's four band limits
+            // guiding_limits: [excellent, good, acceptable, borderline] in arcsec, or null
+            const limits = logData.guiding_limits;
+            const qualityCanvas = document.getElementById('log-guiding-quality-chart');
+            const hasLimits = Array.isArray(limits) && limits.length === 4
+                && limits.every(v => typeof v === 'number' && isFinite(v) && v > 0);
+            if (qualityContainer && qualityCanvas && hasLimits) {
+                qualityContainer.style.display = '';
+                const i18n = (typeof journalI18n !== 'undefined') ? journalI18n : {};
+                const bandNames = [
+                    i18n.guidingExcellent || 'Excellent',
+                    i18n.guidingGood || 'Good',
+                    i18n.guidingAcceptable || 'Acceptable',
+                    i18n.guidingBorderline || 'Borderline'
+                ];
+                const themeColors = getThemeColors();
+
+                charts.guidingQuality = new Chart(qualityCanvas, {
+                    type: 'line',
+                    data: {
+                        datasets: [
+                            {
+                                label: 'Total RMS (")',
+                                data: totalData.slice(),  // Same converted points (incl. gap nulls) as the RMS chart
+                                borderColor: COLORS.total,
+                                backgroundColor: 'transparent',
+                                borderWidth: 2,
+                                pointRadius: 0,
+                                tension: 0.2,
+                                fill: false,
+                                spanGaps: false
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: false,
+                        layout: { padding: { right: 120 } },  // Room for the limit labels outside the plot
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: i18n.guidingQualityTitle || 'Guiding Quality',
+                                color: themeColors.text
+                            },
+                            legend: { display: false },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    title: function(items) {
+                                        if (items.length > 0) {
+                                            return hoursToTime(items[0].parsed.x);
+                                        }
+                                        return '';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                type: 'linear',
+                                min: 0,
+                                max: maxHours,
+                                title: { display: true, text: 'Time (Local)', color: themeColors.text },
+                                ticks: {
+                                    color: themeColors.textMuted,
+                                    callback: function(value) {
+                                        return hoursToTime(value);
+                                    }
+                                },
+                                grid: { color: themeColors.grid }
+                            },
+                            y: {
+                                min: 0,
+                                max: Math.ceil(limits[3] * 1.25 * 10) / 10,  // Borderline limit + 25%, rounded up to 0.1; larger spikes are clipped
+                                title: { display: true, text: 'RMS (arcsec)', color: themeColors.text },
+                                ticks: { color: themeColors.textMuted },
+                                grid: { display: false }  // Limit lines replace the horizontal grid
+                            }
+                        }
+                    },
+                    plugins: [{
+                        id: 'guidingLimitLines',
+                        beforeDraw: function(chart) {
+                            const ctx = chart.ctx;
+                            const yAxis = chart.scales.y;
+                            // Read colours at draw time so a theme toggle redraws correctly
+                            const lineColor = getThemeColors().textMuted;
+
+                            ctx.save();
+                            ctx.strokeStyle = lineColor;
+                            ctx.fillStyle = lineColor;
+                            ctx.lineWidth = 1;
+                            ctx.setLineDash([6, 4]);
+                            ctx.font = '10px system-ui, -apple-system, sans-serif';
+                            ctx.textAlign = 'left';
+                            ctx.textBaseline = 'middle';
+
+                            limits.forEach(function(limit, i) {
+                                const y = yAxis.getPixelForValue(limit);
+                                if (y < chart.chartArea.top || y > chart.chartArea.bottom) return;
+
+                                ctx.beginPath();
+                                ctx.moveTo(chart.chartArea.left, y);
+                                ctx.lineTo(chart.chartArea.right, y);
+                                ctx.stroke();
+
+                                // Label in the right padding, level with its line
+                                ctx.fillText(bandNames[i] + ' \u2264' + limit.toFixed(2) + '\u2033', chart.chartArea.right + 6, y);
+                            });
+                            ctx.restore();
+                        }
+                    }]
+                });
             }
         }
 
@@ -3560,6 +3683,7 @@
                 resizeChart(charts.autocenter);
                 break;
             case 'guiding':
+                resizeChart(charts.guidingQuality);
                 resizeChart(charts.guiding);
                 resizeChart(charts.guidePulseScatter);
                 resizeChart(charts.guidePulseDuration);
@@ -3587,6 +3711,7 @@
      */
     window.cleanupSessionLogCharts = function() {
         if (charts.guiding) { charts.guiding.destroy(); charts.guiding = null; }
+        if (charts.guidingQuality) { charts.guidingQuality.destroy(); charts.guidingQuality = null; }
         if (charts.dither) { charts.dither.destroy(); charts.dither = null; }
         if (charts.guidePulseScatter) { charts.guidePulseScatter.destroy(); charts.guidePulseScatter = null; }
         if (charts.guidePulseDuration) { charts.guidePulseDuration.destroy(); charts.guidePulseDuration = null; }
