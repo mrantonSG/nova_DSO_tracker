@@ -765,9 +765,11 @@ def recursively_clean_numpy_types(data):
 
 # === Guiding RMS Quality Bands ===
 
-# MUST STAY IN SYNC with GUIDING_RMS_FACTORS in static/js/journal_section.js
-# (updateGuidingRmsHint uses the same fractions of the rig's image scale).
+# MUST STAY IN SYNC with GUIDING_RMS_FACTORS and GUIDING_RMS_MIN_SCALE in
+# static/js/journal_section.js (updateGuidingRmsHint uses the same fractions
+# of the rig's image scale, floored at the 1.0 arcsec/px minimum scale).
 GUIDING_RMS_FACTORS = (1 / 3, 0.5, 1.0, 1.5)
+GUIDING_RMS_MIN_SCALE = 1.0
 
 
 def guiding_rms_band(rms, scale):
@@ -776,7 +778,7 @@ def guiding_rms_band(rms, scale):
 
     Returns 'excellent', 'good', 'acceptable', 'borderline' or 'unusable',
     or None when rms or scale is missing, non-numeric, or <= 0.
-    Band limits are scale x factor, rounded to 2 decimals half-up
+    Band limits are max(scale, 1.0) x factor, rounded to 2 decimals half-up
     (floor(x * 100 + 0.5) / 100) to match the JS Math.round; the first band
     whose rounded limit rms does not exceed wins, above all four -> 'unusable'.
     """
@@ -788,7 +790,7 @@ def guiding_rms_band(rms, scale):
     if not (isfinite(rms_f) and isfinite(scale_f)) or rms_f <= 0 or scale_f <= 0:
         return None
 
-    limits = [floor(scale_f * factor * 100 + 0.5) / 100 for factor in GUIDING_RMS_FACTORS]
+    limits = [floor(max(scale_f, GUIDING_RMS_MIN_SCALE) * factor * 100 + 0.5) / 100 for factor in GUIDING_RMS_FACTORS]
     for band, limit in zip(('excellent', 'good', 'acceptable', 'borderline'), limits):
         if rms_f <= limit:
             return band

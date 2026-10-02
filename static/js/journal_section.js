@@ -764,6 +764,7 @@
 
     // Guiding RMS quality bands as fractions of the rig's image scale (″/px).
     const GUIDING_RMS_FACTORS = [1/3, 0.5, 1.0, 1.5];
+    const GUIDING_RMS_MIN_SCALE = 1.0;
 
     function updateGuidingRmsHint() {
         const hint = document.getElementById('guiding-rms-hint');
@@ -791,7 +792,7 @@
         }
 
         // Rounded to 2 decimals; the rounded values drive both display and comparison.
-        const limits = GUIDING_RMS_FACTORS.map(f => Math.round(scale * f * 100) / 100);
+        const limits = GUIDING_RMS_FACTORS.map(f => Math.round(Math.max(scale, GUIDING_RMS_MIN_SCALE) * f * 100) / 100);
         const bands = [
             { key: 'guidingExcellent', label: 'Excellent', limit: limits[0], op: '≤' },
             { key: 'guidingGood', label: 'Good', limit: limits[1], op: '≤' },
@@ -818,11 +819,6 @@
             if (i === activeIndex) span.classList.add('is-active');
             hint.appendChild(span);
         });
-        if (scale < 1.0) {
-            const note = document.createElement('span');
-            note.textContent = ` (${jt('guidingTheoretical', 'theoretical, seeing usually sets the limit')})`;
-            hint.appendChild(note);
-        }
         hint.hidden = false;
     }
 
