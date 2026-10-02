@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 14:00+0800\n"
+"POT-Creation-Date: 2026-10-02 17:41+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -788,7 +788,7 @@ msgstr "星座"
 msgid "Source: Wiki"
 msgstr "出典: Wiki"
 
-#: templates/_inspiration_section.html:510 templates/_journal_section.html:3246
+#: templates/_inspiration_section.html:510 templates/_journal_section.html:3262
 #: templates/_objects_section.html:451 templates/_objects_section.html:467
 #: templates/_objects_section.html:474 templates/base.html:417
 #: templates/base.html:435 templates/base.html:440 templates/base.html:449
@@ -914,105 +914,105 @@ msgstr "表示中"
 msgid "of"
 msgstr ""
 
-#: templates/_inspiration_section.html:640
-#: templates/_inspiration_section.html:641
+#: templates/_inspiration_section.html:654
+#: templates/_inspiration_section.html:655
 msgid "No Matching Targets"
 msgstr "一致するターゲットなし"
 
-#: templates/_inspiration_section.html:642
+#: templates/_inspiration_section.html:656
 msgid "Your current filters (Position Tab) are too restrictive."
 msgstr "現在のフィルター（ポジションタブ）は制限が多すぎます。"
 
-#: templates/_inspiration_section.html:648
+#: templates/_inspiration_section.html:662
 msgid "Loading Object Database..."
 msgstr "オブジェクトデータベースを読み込み中..."
 
-#: templates/_inspiration_section.html:649
+#: templates/_inspiration_section.html:663
 msgid "Please wait while we calculate visibility and fetch data."
 msgstr "視認性の計算とデータの取得を行いますので、しばらくお待ちください。"
 
-#: templates/_inspiration_section.html:652
+#: templates/_inspiration_section.html:666
 msgid "Database Empty"
 msgstr "データベースは空です"
 
-#: templates/_inspiration_section.html:653
+#: templates/_inspiration_section.html:667
 msgid "No objects found in your configuration."
 msgstr "設定にオブジェクトが見つかりません。"
 
-#: templates/_journal_section.html:2232
+#: templates/_journal_section.html:2234
 msgid "auto"
 msgstr "自動"
 
-#: templates/_journal_section.html:2239
+#: templates/_journal_section.html:2241
 msgid "Legacy log"
 msgstr "旧形式のログ"
 
-#: templates/_journal_section.html:2249
+#: templates/_journal_section.html:2251
 msgid "uploaded"
 msgstr "アップロード済み"
 
-#: templates/_journal_section.html:2249
+#: templates/_journal_section.html:2251
 msgid "not uploaded"
 msgstr "未アップロード"
 
-#: templates/_journal_section.html:2253
+#: templates/_journal_section.html:2255
 msgid "(new)"
 msgstr "（新規）"
 
-#: templates/_journal_section.html:2253
+#: templates/_journal_section.html:2255
 msgid "Removed on save"
 msgstr "保存時に削除"
 
-#: templates/_journal_section.html:2257
+#: templates/_journal_section.html:2259
 msgid "Replace"
 msgstr "差し替え"
 
-#: templates/_journal_section.html:2259
+#: templates/_journal_section.html:2261
 msgid "Remove"
 msgstr "削除"
 
-#: templates/_journal_section.html:2259
+#: templates/_journal_section.html:2261
 msgid "Undo"
 msgstr "元に戻す"
 
-#: templates/_journal_section.html:2262 templates/_objects_section.html:206
+#: templates/_journal_section.html:2264 templates/_objects_section.html:206
 #: templates/_objects_section.html:337
 msgid "Upload"
 msgstr "アップロード"
 
-#: templates/_journal_section.html:2272
+#: templates/_journal_section.html:2274
 msgid "Session History"
 msgstr "セッション履歴"
 
-#: templates/_journal_section.html:2276
+#: templates/_journal_section.html:2278
 msgid "Switch Object"
 msgstr "オブジェクトを切り替える"
 
-#: templates/_journal_section.html:2279 templates/_journal_section.html:2929
+#: templates/_journal_section.html:2281 templates/_journal_section.html:2938
 msgid "Add New Project"
 msgstr "新しいプロジェクトを追加"
 
-#: templates/_journal_section.html:2279
+#: templates/_journal_section.html:2281
 msgid "+ Project"
 msgstr "+ プロジェクト"
 
-#: templates/_journal_section.html:2280 templates/base.html:195
+#: templates/_journal_section.html:2282 templates/base.html:195
 msgid "Add New Session"
 msgstr "新しいセッションを追加"
 
-#: templates/_journal_section.html:2280
+#: templates/_journal_section.html:2282
 msgid "+ Session"
 msgstr "+ セッション"
 
-#: templates/_journal_section.html:2286
+#: templates/_journal_section.html:2288
 msgid "Date & Location"
 msgstr "日付と場所"
 
-#: templates/_journal_section.html:2286 templates/project_report.html:908
+#: templates/_journal_section.html:2288 templates/project_report.html:908
 msgid "Integ."
 msgstr "積分"
 
-#: templates/_journal_section.html:2286
+#: templates/_journal_section.html:2288
 #: templates/_opportunities_section.html:42 templates/_project_subtab.html:196
 #: templates/index.html:204 templates/index.html:239
 #: templates/journal_report.html:692 templates/project_report.html:909
@@ -1020,564 +1020,584 @@ msgstr "積分"
 msgid "Rating"
 msgstr "評価"
 
-#: templates/_journal_section.html:2297
+#: templates/_journal_section.html:2299
 msgid "Click to view project details"
 msgstr "クリックしてプロジェクトの詳細を表示"
 
-#: templates/_journal_section.html:2312 templates/_project_subtab.html:209
+#: templates/_journal_section.html:2314 templates/_project_subtab.html:209
 msgid "min"
 msgstr "分"
 
-#: templates/_journal_section.html:2321
+#: templates/_journal_section.html:2323
 msgid "Loading history..."
 msgstr "履歴を読み込み中..."
 
-#: templates/_journal_section.html:2340
+#: templates/_journal_section.html:2342
 msgid "Details for Session:"
 msgstr "セッションの詳細："
 
-#: templates/_journal_section.html:2342
+#: templates/_journal_section.html:2344
 msgid "Edit This Session"
 msgstr "このセッションを編集"
 
-#: templates/_journal_section.html:2344
+#: templates/_journal_section.html:2346
 msgid "Create a copy of this session"
 msgstr "このセッションのコピーを作成する"
 
-#: templates/_journal_section.html:2344
+#: templates/_journal_section.html:2346
 msgid "Duplicate"
 msgstr "重複"
 
-#: templates/_journal_section.html:2346
+#: templates/_journal_section.html:2348
 msgid "Are you sure you want to delete this session permanently?"
 msgstr "このセッションを完全に削除してもよろしいですか？"
 
-#: templates/_journal_section.html:2347
+#: templates/_journal_section.html:2349
 msgid "Delete This Session"
 msgstr "このセッションを削除"
 
-#: templates/_journal_section.html:2354
+#: templates/_journal_section.html:2356
 msgid "Summary"
 msgstr "要約"
 
-#: templates/_journal_section.html:2355 templates/_journal_section.html:2975
+#: templates/_journal_section.html:2357 templates/_journal_section.html:2984
 #: templates/journal_report.html:752
 msgid "Equipment & Acquisition"
 msgstr "設備と取得"
 
-#: templates/_journal_section.html:2356 templates/_journal_section.html:2976
+#: templates/_journal_section.html:2358 templates/_journal_section.html:2985
 msgid "Calibration & Outcome"
 msgstr "校正と結果"
 
-#: templates/_journal_section.html:2358
+#: templates/_journal_section.html:2360
 msgid "Logs"
 msgstr "ログ"
 
-#: templates/_journal_section.html:2360 templates/journal_report.html:6
+#: templates/_journal_section.html:2362 templates/journal_report.html:6
 #: templates/journal_report.html:679
 msgid "Session Report"
 msgstr "セッション報告書"
 
-#: templates/_journal_section.html:2366
+#: templates/_journal_section.html:2368
 msgid "SEEING (FWHM)"
 msgstr "可視化（FWHM）"
 
-#: templates/_journal_section.html:2367
+#: templates/_journal_section.html:2371
 msgid "GUIDING (RMS)"
 msgstr "ガイディング（RMS）"
 
-#: templates/_journal_section.html:2368
+#: templates/_journal_section.html:2374 templates/_journal_section.html:3332
+msgid "Excellent"
+msgstr "優秀"
+
+#: templates/_journal_section.html:2374 templates/_journal_section.html:3333
+msgid "Good"
+msgstr "良好"
+
+#: templates/_journal_section.html:2374 templates/_journal_section.html:3334
+msgid "Acceptable"
+msgstr "許容範囲"
+
+#: templates/_journal_section.html:2374 templates/_journal_section.html:3335
+msgid "Borderline"
+msgstr "限界"
+
+#: templates/_journal_section.html:2374 templates/_journal_section.html:3336
+msgid "Unusable"
+msgstr "不可"
+
+#: templates/_journal_section.html:2377
 msgid "SKY QUALITY (SQM)"
 msgstr "空の質 (SQM)"
 
-#: templates/_journal_section.html:2379
+#: templates/_journal_section.html:2388
 msgid "Multiple"
 msgstr "複数"
 
-#: templates/_journal_section.html:2381
+#: templates/_journal_section.html:2390
 msgid "x"
 msgstr "x"
 
-#: templates/_journal_section.html:2381
+#: templates/_journal_section.html:2390
 msgid "s"
 msgstr "秒"
 
-#: templates/_journal_section.html:2383
+#: templates/_journal_section.html:2392
 msgid "EXPOSURES"
 msgstr "露出"
 
-#: templates/_journal_section.html:2387 templates/_journal_section.html:2458
+#: templates/_journal_section.html:2396 templates/_journal_section.html:2467
 #: templates/journal_form.html:164
 msgid "Filter:"
 msgstr "フィルター："
 
-#: templates/_journal_section.html:2391 templates/_journal_section.html:2435
+#: templates/_journal_section.html:2400 templates/_journal_section.html:2444
 msgid "Rig Used:"
 msgstr "使用したリグ:"
 
-#: templates/_journal_section.html:2392 templates/_journal_section.html:2441
+#: templates/_journal_section.html:2401 templates/_journal_section.html:2450
 msgid "Rig Specs:"
 msgstr "リグの仕様:"
 
-#: templates/_journal_section.html:2394 templates/_journal_section.html:2436
+#: templates/_journal_section.html:2403 templates/_journal_section.html:2445
 #: templates/config_form.html:484 templates/journal_report.html:757
 msgid "Telescope:"
 msgstr "望遠鏡："
 
-#: templates/_journal_section.html:2395 templates/_journal_section.html:2440
+#: templates/_journal_section.html:2404 templates/_journal_section.html:2449
 #: templates/config_form.html:490 templates/journal_report.html:767
 msgid "Camera:"
 msgstr "カメラ："
 
-#: templates/_journal_section.html:2396
+#: templates/_journal_section.html:2405
 msgid "FL:"
 msgstr "焦点距離："
 
-#: templates/_journal_section.html:2397 templates/_journal_section.html:2444
+#: templates/_journal_section.html:2406 templates/_journal_section.html:2453
 msgid "Scale:"
 msgstr "スケール:"
 
-#: templates/_journal_section.html:2400 templates/_journal_section.html:2447
+#: templates/_journal_section.html:2409 templates/_journal_section.html:2456
 msgid "Setup Notes:"
 msgstr "セットアップに関する注意事項"
 
-#: templates/_journal_section.html:2403 templates/_journal_section.html:2449
+#: templates/_journal_section.html:2412 templates/_journal_section.html:2458
 msgid "Telescope Setup:"
 msgstr "望遠鏡の設置"
 
-#: templates/_journal_section.html:2407
+#: templates/_journal_section.html:2416
 msgid "Session Image:"
 msgstr "セッション画像"
 
-#: templates/_journal_section.html:2410
+#: templates/_journal_section.html:2419
 msgid "Click to view full size"
 msgstr "クリックしてフルサイズで表示"
 
-#: templates/_journal_section.html:2411 templates/journal_report.html:700
+#: templates/_journal_section.html:2420 templates/journal_report.html:700
 #: templates/journal_report.html:703 templates/project_report.html:1110
 #: templates/project_report.html:1114
 msgid "Session Image"
 msgstr "セッション画像"
 
-#: templates/_journal_section.html:2420 templates/journal_report.html:718
+#: templates/_journal_section.html:2429 templates/journal_report.html:718
 msgid "Statistics & Conditions"
 msgstr "統計と条件"
 
-#: templates/_journal_section.html:2422
+#: templates/_journal_section.html:2431
 msgid "Seeing (FWHM):"
 msgstr "シーイング（FWHM）："
 
-#: templates/_journal_section.html:2423
+#: templates/_journal_section.html:2432
 msgid "Guiding RMS:"
 msgstr "ガイディングRMS:"
 
-#: templates/_journal_section.html:2424
+#: templates/_journal_section.html:2433
 msgid "SQM:"
 msgstr "SQM:"
 
-#: templates/_journal_section.html:2425 templates/journal_form.html:58
+#: templates/_journal_section.html:2434 templates/journal_form.html:58
 msgid "Transparency Scale:"
 msgstr "透明度尺度："
 
-#: templates/_journal_section.html:2426
+#: templates/_journal_section.html:2435
 msgid "Moon Illum/Sep:"
 msgstr "月光/分離："
 
-#: templates/_journal_section.html:2427 templates/journal_form.html:70
+#: templates/_journal_section.html:2436 templates/journal_form.html:70
 msgid "Weather Notes:"
 msgstr "天気メモ："
 
-#: templates/_journal_section.html:2432
+#: templates/_journal_section.html:2441
 msgid "Equipment & Acquisition Details"
 msgstr "装備品及び取得の詳細"
 
-#: templates/_journal_section.html:2438 templates/journal_report.html:762
+#: templates/_journal_section.html:2447 templates/journal_report.html:762
 msgid "Reducer/Ext.:"
 msgstr "縮小/拡張："
 
-#: templates/_journal_section.html:2443
+#: templates/_journal_section.html:2452
 msgid "FL/Ratio:"
 msgstr "FL / 比率:"
 
-#: templates/_journal_section.html:2445
+#: templates/_journal_section.html:2454
 msgid "FOV:"
 msgstr "視野："
 
-#: templates/_journal_section.html:2452
+#: templates/_journal_section.html:2461
 msgid "Guiding Equipment:"
 msgstr "ガイド機材:"
 
-#: templates/_journal_section.html:2453
+#: templates/_journal_section.html:2462
 msgid "Acquisition Sw:"
 msgstr "撮影ソフト:"
 
-#: templates/_journal_section.html:2454 templates/journal_form.html:114
+#: templates/_journal_section.html:2463 templates/journal_form.html:114
 msgid "Dither Settings:"
 msgstr "ディザ設定："
 
-#: templates/_journal_section.html:2455 templates/journal_form.html:154
+#: templates/_journal_section.html:2464 templates/journal_form.html:154
 msgid "Binning:"
 msgstr "ビンニング:"
 
-#: templates/_journal_section.html:2456 templates/journal_report.html:771
+#: templates/_journal_section.html:2465 templates/journal_report.html:771
 msgid "Gain / Offset:"
 msgstr "ゲイン／オフセット："
 
-#: templates/_journal_section.html:2457
+#: templates/_journal_section.html:2466
 msgid "Camera Temp (Set/Avg):"
 msgstr "カメラ温度 (設定/平均):"
 
-#: templates/_journal_section.html:2459
+#: templates/_journal_section.html:2468
 msgid "Sub Exposure:"
 msgstr "サブ露出:"
 
-#: templates/_journal_section.html:2460
+#: templates/_journal_section.html:2469
 msgid "# Light Subs:"
 msgstr "ライトフレーム枚数:"
 
-#: templates/_journal_section.html:2480
+#: templates/_journal_section.html:2489
 msgid "Monochrome Exposures"
 msgstr "モノクローム・エクスポージャー"
 
-#: templates/_journal_section.html:2486 templates/_journal_section.html:2496
+#: templates/_journal_section.html:2495 templates/_journal_section.html:2505
 msgid "subs x "
 msgstr "枚 × "
 
-#: templates/_journal_section.html:2506 templates/_journal_section.html:3153
+#: templates/_journal_section.html:2515 templates/_journal_section.html:3169
 #: templates/journal_form.html:176 templates/journal_report.html:803
 msgid "Calibration Strategy"
 msgstr "校正戦略"
 
-#: templates/_journal_section.html:2508 templates/journal_form.html:178
+#: templates/_journal_section.html:2517 templates/journal_form.html:178
 msgid "Darks:"
 msgstr "ダークス："
 
-#: templates/_journal_section.html:2509 templates/journal_form.html:182
+#: templates/_journal_section.html:2518 templates/journal_form.html:182
 msgid "Flats:"
 msgstr "フラット："
 
-#: templates/_journal_section.html:2510
+#: templates/_journal_section.html:2519
 msgid "Bias/DarkFlats:"
 msgstr "バイアス/ダークフラット："
 
-#: templates/_journal_section.html:2515 templates/_journal_section.html:3159
+#: templates/_journal_section.html:2524 templates/_journal_section.html:3175
 #: templates/journal_form.html:190
 msgid "Outcome & Reflections"
 msgstr "成果と考察"
 
-#: templates/_journal_section.html:2517
+#: templates/_journal_section.html:2526
 msgid "Session Rating:"
 msgstr "セッション評価："
 
-#: templates/_journal_section.html:2518 templates/project_report.html:935
+#: templates/_journal_section.html:2527 templates/project_report.html:935
 msgid "Notes:"
 msgstr "注記："
 
-#: templates/_journal_section.html:2526 templates/_journal_section.html:2839
+#: templates/_journal_section.html:2535 templates/_journal_section.html:2848
 msgid "Download CSV"
 msgstr "CSVをダウンロード"
 
-#: templates/_journal_section.html:2532 templates/_journal_section.html:2845
+#: templates/_journal_section.html:2541 templates/_journal_section.html:2854
 msgid "Download PDF"
 msgstr "PDFをダウンロード"
 
-#: templates/_journal_section.html:2543 templates/_journal_section.html:2736
-#: templates/_journal_section.html:2974
+#: templates/_journal_section.html:2552 templates/_journal_section.html:2745
+#: templates/_journal_section.html:2983
 msgid "Overview"
 msgstr "概要"
 
-#: templates/_journal_section.html:2544 templates/base.html:156
+#: templates/_journal_section.html:2553 templates/base.html:156
 msgid "Guiding"
 msgstr "ガイディング"
 
-#: templates/_journal_section.html:2545
+#: templates/_journal_section.html:2554
 msgid "Dithering"
 msgstr "ディザリング"
 
-#: templates/_journal_section.html:2546 templates/journal_report.html:941
+#: templates/_journal_section.html:2555 templates/journal_report.html:941
 #: templates/journal_report.html:958 templates/project_report.html:979
 #: templates/project_report.html:996
 msgid "AutoFocus"
 msgstr "オートフォーカス"
 
-#: templates/_journal_section.html:2547
+#: templates/_journal_section.html:2556
 msgid "NINA"
 msgstr "NINA"
 
-#: templates/_journal_section.html:2555 templates/journal_report.html:823
+#: templates/_journal_section.html:2564 templates/journal_report.html:823
 #: templates/journal_report.html:937 templates/journal_report.html:954
 #: templates/journal_report.html:1038 templates/project_report.html:975
 #: templates/project_report.html:992 templates/project_report.html:1194
 msgid "Exposures"
 msgstr "露出"
 
-#: templates/_journal_section.html:2559 templates/journal_report.html:1042
+#: templates/_journal_section.html:2568 templates/journal_report.html:1042
 msgid "Total Time"
 msgstr "合計時間"
 
-#: templates/_journal_section.html:2563 templates/_journal_section.html:3049
+#: templates/_journal_section.html:2572 templates/_journal_section.html:3059
 #: templates/project_report.html:1031 templates/project_report.html:1146
 msgid "Guiding RMS"
 msgstr "ガイディングRMS"
 
-#: templates/_journal_section.html:2567 templates/journal_report.html:945
+#: templates/_journal_section.html:2576 templates/journal_report.html:945
 #: templates/journal_report.html:962 templates/project_report.html:983
 #: templates/project_report.html:1000
 msgid "Dithers"
 msgstr "ディザ"
 
-#: templates/_journal_section.html:2571
+#: templates/_journal_section.html:2580
 msgid "AF Runs"
 msgstr "AFランズ"
 
-#: templates/_journal_section.html:2575 templates/journal_report.html:1006
+#: templates/_journal_section.html:2584 templates/journal_report.html:1006
 msgid "Pixel Scale"
 msgstr "ピクセルスケール"
 
-#: templates/_journal_section.html:2584 templates/journal_report.html:1071
+#: templates/_journal_section.html:2593 templates/journal_report.html:1071
 msgid "Plate Solve Results"
 msgstr "プレートソルブ結果"
 
-#: templates/_journal_section.html:2588
+#: templates/_journal_section.html:2597
 msgid "#"
 msgstr "#"
 
-#: templates/_journal_section.html:2589 templates/journal_report.html:1075
+#: templates/_journal_section.html:2598 templates/journal_report.html:1075
 #: templates/journal_report.html:1105 templates/journal_report.html:1184
 #: templates/project_report.html:1050
 msgid "Time"
 msgstr "時刻"
 
-#: templates/_journal_section.html:2590 templates/graph_view.html:673
+#: templates/_journal_section.html:2599 templates/graph_view.html:673
 #: templates/journal_report.html:1076
 msgid "RA"
 msgstr "RA"
 
-#: templates/_journal_section.html:2591 templates/graph_view.html:674
+#: templates/_journal_section.html:2600 templates/graph_view.html:674
 #: templates/journal_report.html:1077
 msgid "Dec"
 msgstr "Dec"
 
-#: templates/_journal_section.html:2592 templates/journal_report.html:1078
+#: templates/_journal_section.html:2601 templates/journal_report.html:1078
 msgid "Angle"
 msgstr "角度"
 
-#: templates/_journal_section.html:2593 templates/journal_report.html:1079
+#: templates/_journal_section.html:2602 templates/journal_report.html:1079
 msgid "Stars"
 msgstr "星"
 
-#: templates/_journal_section.html:2594 templates/_journal_section.html:2752
+#: templates/_journal_section.html:2603 templates/_journal_section.html:2761
 #: templates/_objects_section.html:49 templates/_project_subtab.html:154
 #: templates/admin_users.html:63 templates/index.html:199
 #: templates/journal_report.html:1186
 msgid "Status"
 msgstr "ステータス"
 
-#: templates/_journal_section.html:2603
+#: templates/_journal_section.html:2612
 msgid "Autocenter Accuracy Over Time"
 msgstr "オートセンター精度経時変化"
 
-#: templates/_journal_section.html:2604
+#: templates/_journal_section.html:2613
 msgid "Distance from target center per centering attempt"
 msgstr "目標中心からの距離（センタリング試行ごと）"
 
-#: templates/_journal_section.html:2615
+#: templates/_journal_section.html:2624
 msgid "RA RMS:"
 msgstr "赤経 RMS:"
 
-#: templates/_journal_section.html:2616
+#: templates/_journal_section.html:2625
 msgid "Dec RMS:"
 msgstr "Dec RMS："
 
-#: templates/_journal_section.html:2617
+#: templates/_journal_section.html:2626
 msgid "Total RMS:"
 msgstr "合計 RMS:"
 
-#: templates/_journal_section.html:2618
+#: templates/_journal_section.html:2627
 msgid "Imaging Frames:"
 msgstr "撮影フレーム:"
 
-#: templates/_journal_section.html:2621
+#: templates/_journal_section.html:2630
 msgid "Including dithers — RA:"
 msgstr "ディザを含む — RA:"
 
-#: templates/_journal_section.html:2622 templates/journal_report.html:998
+#: templates/_journal_section.html:2631 templates/journal_report.html:998
 msgid "Dec:"
 msgstr "Dec："
 
-#: templates/_journal_section.html:2623
+#: templates/_journal_section.html:2632
 msgid "Total:"
 msgstr "合計："
 
-#: templates/_journal_section.html:2626 templates/base.html:221
+#: templates/_journal_section.html:2635 templates/base.html:221
 msgid "Zoom"
 msgstr "ズーム"
 
-#: templates/_journal_section.html:2631
+#: templates/_journal_section.html:2640
 msgid "Avg RA Pulse:"
 msgstr "平均RAパルス："
 
-#: templates/_journal_section.html:2632
+#: templates/_journal_section.html:2641
 msgid "Avg Dec Pulse:"
 msgstr "平均赤緯パルス:"
 
-#: templates/_journal_section.html:2633
+#: templates/_journal_section.html:2642
 msgid "Avg RA Dur:"
 msgstr "平均RA持続時間："
 
-#: templates/_journal_section.html:2634
+#: templates/_journal_section.html:2643
 msgid "Avg Dec Dur:"
 msgstr "平均Dec持続時間："
 
-#: templates/_journal_section.html:2635
+#: templates/_journal_section.html:2644
 msgid "RA Dir:"
 msgstr "赤経方向:"
 
-#: templates/_journal_section.html:2636
+#: templates/_journal_section.html:2645
 msgid "Dec Dir:"
 msgstr "Dec 方向："
 
-#: templates/_journal_section.html:2655
+#: templates/_journal_section.html:2664
 msgid "Total Dithers:"
 msgstr "総ディザ数"
 
-#: templates/_journal_section.html:2656
+#: templates/_journal_section.html:2665
 msgid "Settle Success:"
 msgstr "成功を収める："
 
-#: templates/_journal_section.html:2657
+#: templates/_journal_section.html:2666
 msgid "Settle Timeout:"
 msgstr "安定化タイムアウト:"
 
-#: templates/_journal_section.html:2667
+#: templates/_journal_section.html:2676
 msgid "AF Runs:"
 msgstr "AFランズ"
 
-#: templates/_journal_section.html:2677
+#: templates/_journal_section.html:2686
 msgid "Autofocus V-Curves – EAF Position vs Star Size"
 msgstr "オートフォーカスVカーブ – EAF位置と星の大きさの関係"
 
-#: templates/_journal_section.html:2683
+#: templates/_journal_section.html:2692
 msgid "Focus Position Drift Over Night"
 msgstr "夜間のフォーカス位置のドリフト"
 
-#: templates/_journal_section.html:2691
+#: templates/_journal_section.html:2700
 msgid "Individual V-Curves"
 msgstr "個々のVカーブ"
 
-#: templates/_journal_section.html:2705
+#: templates/_journal_section.html:2714
 msgid "Expand all"
 msgstr "すべてを拡大する"
 
-#: templates/_journal_section.html:2707
+#: templates/_journal_section.html:2716
 msgid "Collapse all"
 msgstr "すべてを折りたたむ"
 
-#: templates/_journal_section.html:2724 templates/_project_subtab.html:150
+#: templates/_journal_section.html:2733 templates/_project_subtab.html:150
 msgid "Project:"
 msgstr "プロジェクト："
 
-#: templates/_journal_section.html:2726 templates/_project_subtab.html:147
+#: templates/_journal_section.html:2735 templates/_project_subtab.html:147
 msgid "Edit Project"
 msgstr "プロジェクトを編集"
 
-#: templates/_journal_section.html:2728
+#: templates/_journal_section.html:2737
 msgid ""
 "Are you sure you want to delete this project? Linked sessions will become"
 " standalone."
 msgstr "このプロジェクトを削除してもよろしいですか？リンクされたセッションはスタンドアロンになります。"
 
-#: templates/_journal_section.html:2730
+#: templates/_journal_section.html:2739
 msgid "Delete Project"
 msgstr "プロジェクトを削除"
 
-#: templates/_journal_section.html:2737 templates/project_report.html:6
+#: templates/_journal_section.html:2746 templates/project_report.html:6
 #: templates/project_report.html:794
 msgid "Project Report"
 msgstr "プロジェクト報告書"
 
-#: templates/_journal_section.html:2746 templates/project_report.html:805
+#: templates/_journal_section.html:2755 templates/project_report.html:805
 msgid "Total Integration"
 msgstr "完全統合"
 
-#: templates/_journal_section.html:2759
+#: templates/_journal_section.html:2768
 msgid "Exposure Summary"
 msgstr "露出サマリー"
 
-#: templates/_journal_section.html:2763 templates/_journal_section.html:3055
-#: templates/_journal_section.html:3080 templates/journal_report.html:827
+#: templates/_journal_section.html:2772 templates/_journal_section.html:3071
+#: templates/_journal_section.html:3096 templates/journal_report.html:827
 #: templates/project_report.html:827 templates/project_report.html:1198
 msgid "Filter"
 msgstr "フィルター"
 
-#: templates/_journal_section.html:2764 templates/_journal_section.html:3080
-#: templates/_journal_section.html:3086 templates/_journal_section.html:3104
-#: templates/_journal_section.html:3310 templates/journal_report.html:828
+#: templates/_journal_section.html:2773 templates/_journal_section.html:3096
+#: templates/_journal_section.html:3102 templates/_journal_section.html:3120
+#: templates/_journal_section.html:3326 templates/journal_report.html:828
 #: templates/project_report.html:828 templates/project_report.html:1199
 msgid "Subs"
 msgstr "サブフレーム"
 
-#: templates/_journal_section.html:2765 templates/project_report.html:829
+#: templates/_journal_section.html:2774 templates/project_report.html:829
 msgid "Per Sub"
 msgstr "サブあたり"
 
-#: templates/_journal_section.html:2766 templates/index.html:203
+#: templates/_journal_section.html:2775 templates/index.html:203
 #: templates/journal_report.html:722 templates/project_report.html:830
 #: templates/project_report.html:1132
 msgid "Integration"
 msgstr "統合"
 
-#: templates/_journal_section.html:2787 templates/project_report.html:851
+#: templates/_journal_section.html:2796 templates/project_report.html:851
 msgid "Grand Total"
 msgstr "合計"
 
-#: templates/_journal_section.html:2802 templates/_project_subtab.html:158
+#: templates/_journal_section.html:2811 templates/_project_subtab.html:158
 msgid "Goals & Status"
 msgstr "目標と現状"
 
-#: templates/_journal_section.html:2803
+#: templates/_journal_section.html:2812
 msgid "No goals defined."
 msgstr "目標が定義されていません。"
 
-#: templates/_journal_section.html:2811 templates/_project_subtab.html:166
+#: templates/_journal_section.html:2820 templates/_project_subtab.html:166
 msgid "Final Project Image"
 msgstr "最終プロジェクト画像"
 
-#: templates/_journal_section.html:2814 templates/_journal_section.html:2882
+#: templates/_journal_section.html:2823 templates/_journal_section.html:2891
 #: templates/_project_subtab.html:168 templates/_project_subtab.html:262
 msgid "Final Image"
 msgstr "最終画像"
 
-#: templates/_journal_section.html:2819 templates/_project_subtab.html:175
+#: templates/_journal_section.html:2828 templates/_project_subtab.html:175
 msgid "Project Story & Learnings"
 msgstr "プロジェクトの経緯と学び"
 
-#: templates/_journal_section.html:2820
+#: templates/_journal_section.html:2829
 msgid "No description added."
 msgstr "説明は追加されていません。"
 
-#: templates/_journal_section.html:2824 templates/_project_subtab.html:180
+#: templates/_journal_section.html:2833 templates/_project_subtab.html:180
 msgid "Framing Notes"
 msgstr "フレーミングに関する注記"
 
-#: templates/_journal_section.html:2825 templates/_project_subtab.html:181
+#: templates/_journal_section.html:2834 templates/_project_subtab.html:181
 msgid "No framing notes added."
 msgstr "フレームに関する注記は追加されていません。"
 
-#: templates/_journal_section.html:2829 templates/_project_subtab.html:185
+#: templates/_journal_section.html:2838 templates/_project_subtab.html:185
 msgid "Processing Notes"
 msgstr "処理に関する注意事項"
 
-#: templates/_journal_section.html:2830 templates/_project_subtab.html:186
+#: templates/_journal_section.html:2839 templates/_project_subtab.html:186
 msgid "No processing workflow recorded."
 msgstr "処理ワークフローは記録されていません。"
 
-#: templates/_journal_section.html:2859
+#: templates/_journal_section.html:2868
 msgid "Editing Project"
 msgstr "編集プロジェクト："
 
-#: templates/_journal_section.html:2861 templates/_journal_section.html:2932
-#: templates/_journal_section.html:2969 templates/_journal_section.html:3306
+#: templates/_journal_section.html:2870 templates/_journal_section.html:2941
+#: templates/_journal_section.html:2978 templates/_journal_section.html:3322
 #: templates/_objects_section.html:364 templates/_project_subtab.html:232
 #: templates/admin_users.html:111 templates/base.html:521
 #: templates/graph_view.html:467 templates/index.html:298
@@ -1585,130 +1605,130 @@ msgstr "編集プロジェクト："
 msgid "Cancel"
 msgstr "キャンセル"
 
-#: templates/_journal_section.html:2862 templates/_project_subtab.html:231
+#: templates/_journal_section.html:2871 templates/_project_subtab.html:231
 msgid "Save Project"
 msgstr "プロジェクトを保存"
 
-#: templates/_journal_section.html:2867 templates/_journal_section.html:2938
+#: templates/_journal_section.html:2876 templates/_journal_section.html:2947
 #: templates/_project_subtab.html:239
 msgid "Metadata"
 msgstr "メタデータ"
 
-#: templates/_journal_section.html:2868 templates/_journal_section.html:2939
+#: templates/_journal_section.html:2877 templates/_journal_section.html:2948
 #: templates/_project_subtab.html:240
 msgid "Project Name:"
 msgstr "プロジェクト名:"
 
-#: templates/_journal_section.html:2870 templates/_journal_section.html:2940
+#: templates/_journal_section.html:2879 templates/_journal_section.html:2949
 #: templates/_project_subtab.html:249 templates/project_report.html:799
 msgid "Status:"
 msgstr "ステータス:"
 
-#: templates/_journal_section.html:2870 templates/_journal_section.html:2940
+#: templates/_journal_section.html:2879 templates/_journal_section.html:2949
 #: templates/base.html:128
 msgid "In Planning"
 msgstr "計画中"
 
-#: templates/_journal_section.html:2870 templates/_journal_section.html:2940
+#: templates/_journal_section.html:2879 templates/_journal_section.html:2949
 #: templates/base.html:124
 msgid "In Progress"
 msgstr "進行中"
 
-#: templates/_journal_section.html:2870 templates/_journal_section.html:2940
+#: templates/_journal_section.html:2879 templates/_journal_section.html:2949
 #: templates/base.html:126
 msgid "On Hold"
 msgstr "保留中"
 
-#: templates/_journal_section.html:2870 templates/_journal_section.html:2940
+#: templates/_journal_section.html:2879 templates/_journal_section.html:2949
 #: templates/base.html:125
 msgid "Completed"
 msgstr "完了"
 
-#: templates/_journal_section.html:2870 templates/_journal_section.html:2940
+#: templates/_journal_section.html:2879 templates/_journal_section.html:2949
 #: templates/base.html:127
 msgid "Abandoned"
 msgstr "放棄された"
 
-#: templates/_journal_section.html:2874 templates/_journal_section.html:2944
+#: templates/_journal_section.html:2883 templates/_journal_section.html:2953
 #: templates/_project_subtab.html:256
 msgid "Goals & Status:"
 msgstr "目標と状況："
 
-#: templates/_journal_section.html:2884 templates/_project_subtab.html:264
+#: templates/_journal_section.html:2893 templates/_project_subtab.html:264
 msgid "Current file:"
 msgstr "現在のファイル:"
 
-#: templates/_journal_section.html:2885 templates/_project_subtab.html:265
+#: templates/_journal_section.html:2894 templates/_project_subtab.html:265
 msgid "Delete Current Image"
 msgstr "現在の画像を削除"
 
-#: templates/_journal_section.html:2888 templates/_project_subtab.html:268
+#: templates/_journal_section.html:2897 templates/_project_subtab.html:268
 msgid "Upload New Final Image (optional, max 5MB)"
 msgstr "新しい最終画像をアップロード (任意、最大5MB)"
 
-#: templates/_journal_section.html:2894 templates/_project_subtab.html:275
+#: templates/_journal_section.html:2903 templates/_project_subtab.html:275
 msgid "Project Story & Learnings:"
 msgstr "プロジェクトの経緯と学び："
 
-#: templates/_journal_section.html:2901
+#: templates/_journal_section.html:2910
 msgid "Framing Notes:"
 msgstr "フレーミングに関する注記"
 
-#: templates/_journal_section.html:2908
+#: templates/_journal_section.html:2917
 msgid "Processing Notes:"
 msgstr "処理に関する注意事項"
 
-#: templates/_journal_section.html:2919
+#: templates/_journal_section.html:2928
 msgid "No session selected"
 msgstr "セッションが選択されていません"
 
-#: templates/_journal_section.html:2921
+#: templates/_journal_section.html:2930
 msgid ""
 "Select a session or project from the list on the left to view details, or"
 " click 'Add New Session'."
 msgstr "左側のリストからセッションまたはプロジェクトを選択して詳細を表示するか、「新規セッションを追加」をクリックしてください。"
 
-#: templates/_journal_section.html:2931
+#: templates/_journal_section.html:2940
 msgid "Create Project"
 msgstr "プロジェクトを作成"
 
-#: templates/_journal_section.html:2939
+#: templates/_journal_section.html:2948
 msgid "e.g., M31 Broadband"
 msgstr "例：M31 ブロードバンド"
 
-#: templates/_journal_section.html:2957
+#: templates/_journal_section.html:2966
 msgid "Add New Session for"
 msgstr "新しいセッションを追加:"
 
-#: templates/_journal_section.html:2958 templates/_journal_section.html:2965
+#: templates/_journal_section.html:2967 templates/_journal_section.html:2974
 msgid "Editing session"
 msgstr "セッションを編集中"
 
-#: templates/_journal_section.html:2959
+#: templates/_journal_section.html:2968
 msgid "New session"
 msgstr "新しいセッション"
 
-#: templates/_journal_section.html:2966
+#: templates/_journal_section.html:2975
 msgid "Unsaved changes"
 msgstr "未保存の変更"
 
-#: templates/_journal_section.html:2970
+#: templates/_journal_section.html:2979
 msgid "Save Draft"
 msgstr "下書き保存"
 
-#: templates/_journal_section.html:2971
+#: templates/_journal_section.html:2980
 msgid "Save & Close"
 msgstr "保存して閉じる"
 
-#: templates/_journal_section.html:2977
+#: templates/_journal_section.html:2986
 msgid "Logs & Files"
 msgstr "ログとファイル"
 
-#: templates/_journal_section.html:2986
+#: templates/_journal_section.html:2995
 msgid "Session date"
 msgstr "セッション日付"
 
-#: templates/_journal_section.html:2987 templates/_project_subtab.html:195
+#: templates/_journal_section.html:2996 templates/_project_subtab.html:195
 #: templates/graph_view.html:52 templates/index.html:39
 #: templates/index.html:201 templates/index.html:219
 #: templates/journal_report.html:688 templates/mobile_base.html:30
@@ -1717,453 +1737,453 @@ msgstr "セッション日付"
 msgid "Location"
 msgstr "場所"
 
-#: templates/_journal_section.html:2987
+#: templates/_journal_section.html:2996
 msgid " (Inactive)"
 msgstr " (無効)"
 
-#: templates/_journal_section.html:2990 templates/index.html:198
+#: templates/_journal_section.html:2999 templates/index.html:198
 #: templates/journal_report.html:690
 msgid "Project"
 msgstr "プロジェクト"
 
-#: templates/_journal_section.html:2995
+#: templates/_journal_section.html:3004
 msgid "Change"
 msgstr "変更"
 
-#: templates/_journal_section.html:2998
+#: templates/_journal_section.html:3007
 msgid "+ New project"
 msgstr "+ 新規プロジェクト"
 
-#: templates/_journal_section.html:3003
+#: templates/_journal_section.html:3012
 msgid "Filter projects…"
 msgstr "プロジェクトを絞り込む…"
 
-#: templates/_journal_section.html:3015
+#: templates/_journal_section.html:3024
 msgid "-- Create New Project --"
 msgstr "-- 新規プロジェクトを作成 --"
 
-#: templates/_journal_section.html:3020
+#: templates/_journal_section.html:3029
 msgid "New Project Name:"
 msgstr "新規プロジェクト名:"
 
-#: templates/_journal_section.html:3020
+#: templates/_journal_section.html:3029
 msgid "e.g., M31 Galaxy - 2025"
 msgstr "例: M31 銀河 - 2025"
 
-#: templates/_journal_section.html:3022 templates/journal_form.html:51
+#: templates/_journal_section.html:3031 templates/journal_form.html:51
 msgid "Sky Conditions (Observed)"
 msgstr "空の状態（観測値）"
 
-#: templates/_journal_section.html:3024 templates/_project_subtab.html:199
+#: templates/_journal_section.html:3033 templates/_project_subtab.html:199
 #: templates/project_report.html:1142
 msgid "Seeing"
 msgstr "シーイング"
 
-#: templates/_journal_section.html:3024 templates/journal_report.html:746
+#: templates/_journal_section.html:3033 templates/journal_report.html:746
 msgid "Transparency"
 msgstr "透明性"
 
-#: templates/_journal_section.html:3024 templates/journal_form.html:59
+#: templates/_journal_section.html:3033 templates/journal_form.html:59
 msgid "e.g., Good (4/5), Clear"
 msgstr "例：良い（4/5）、明確"
 
-#: templates/_journal_section.html:3026
+#: templates/_journal_section.html:3035
 msgid "Moon illumination"
 msgstr "月の輝面比"
 
-#: templates/_journal_section.html:3026
+#: templates/_journal_section.html:3035
 msgid "Auto-fills on date/loc change"
 msgstr "日付/場所変更時の自動入力"
 
-#: templates/_journal_section.html:3026
+#: templates/_journal_section.html:3035
 msgid "Moon separation"
 msgstr "月との離角"
 
-#: templates/_journal_section.html:3028
+#: templates/_journal_section.html:3037
 msgid "Weather notes"
 msgstr "天気メモ"
 
-#: templates/_journal_section.html:3031 templates/journal_form.html:84
+#: templates/_journal_section.html:3040 templates/journal_form.html:84
 msgid "Equipment & Guiding"
 msgstr "装備とガイド"
 
-#: templates/_journal_section.html:3034 templates/graph_view.html:303
+#: templates/_journal_section.html:3043 templates/graph_view.html:303
 #: templates/index.html:153 templates/mobile_journal_new.html:237
 #: templates/project_report.html:1167
 msgid "Rig"
 msgstr "リグ"
 
-#: templates/_journal_section.html:3037
+#: templates/_journal_section.html:3046
 msgid "-- Manually Enter Below --"
 msgstr "-- 下に手動で入力 --"
 
-#: templates/_journal_section.html:3042
+#: templates/_journal_section.html:3051
 msgid "View rig details"
 msgstr "リグの詳細を表示"
 
-#: templates/_journal_section.html:3046
+#: templates/_journal_section.html:3055
 msgid "Choosing a rig fills in the guiding equipment."
 msgstr "リグを選ぶとガイド機材が自動入力されます。"
 
-#: templates/_journal_section.html:3048
+#: templates/_journal_section.html:3057
 msgid "Guiding equipment"
 msgstr "ガイド機材"
 
-#: templates/_journal_section.html:3048
+#: templates/_journal_section.html:3057
 msgid "e.g., OAG + ASI174MM"
 msgstr "例：OAG + ASI174MM"
 
-#: templates/_journal_section.html:3049
+#: templates/_journal_section.html:3059
 msgid "avg"
 msgstr "平均"
 
-#: templates/_journal_section.html:3051
+#: templates/_journal_section.html:3067
 msgid "Telescope setup notes"
 msgstr "望遠鏡セットアップメモ"
 
-#: templates/_journal_section.html:3052 templates/journal_form.html:122
+#: templates/_journal_section.html:3068 templates/journal_form.html:122
 msgid "Acquisition Details"
 msgstr "取得の詳細"
 
-#: templates/_journal_section.html:3054
+#: templates/_journal_section.html:3070
 msgid "Software"
 msgstr "ソフトウェア"
 
-#: templates/_journal_section.html:3054
+#: templates/_journal_section.html:3070
 msgid "e.g., N.I.N.A."
 msgstr "例: N.I.N.A."
 
-#: templates/_journal_section.html:3055
+#: templates/_journal_section.html:3071
 msgid "broadband / dual-band"
 msgstr "ブロードバンド / デュアルバンド"
 
-#: templates/_journal_section.html:3055
+#: templates/_journal_section.html:3071
 msgid "e.g., L-Pro, None"
 msgstr "例: L-Pro, なし"
 
-#: templates/_journal_section.html:3057
+#: templates/_journal_section.html:3073
 msgid "Sub exposure"
 msgstr "サブ露出"
 
-#: templates/_journal_section.html:3058
+#: templates/_journal_section.html:3074
 msgid "Light subs"
 msgstr "ライトフレーム"
 
-#: templates/_journal_section.html:3060 templates/mobile_journal_new.html:338
+#: templates/_journal_section.html:3076 templates/mobile_journal_new.html:338
 msgid "Gain"
 msgstr "ゲイン"
 
-#: templates/_journal_section.html:3060 templates/journal_report.html:1196
+#: templates/_journal_section.html:3076 templates/journal_report.html:1196
 #: templates/mobile_journal_new.html:343
 msgid "Offset"
 msgstr "オフセット"
 
-#: templates/_journal_section.html:3061
+#: templates/_journal_section.html:3077
 msgid "Cam temp set"
 msgstr "カメラ温度 設定"
 
-#: templates/_journal_section.html:3061
+#: templates/_journal_section.html:3077
 msgid "Cam temp avg"
 msgstr "カメラ温度 平均"
 
-#: templates/_journal_section.html:3062
+#: templates/_journal_section.html:3078
 msgid "Binning"
 msgstr "ビンニング"
 
-#: templates/_journal_section.html:3062
+#: templates/_journal_section.html:3078
 msgid "e.g., 1x1"
 msgstr "例: 1x1"
 
-#: templates/_journal_section.html:3064
+#: templates/_journal_section.html:3080
 msgid "Dither"
 msgstr "ディザ"
 
-#: templates/_journal_section.html:3064
+#: templates/_journal_section.html:3080
 msgid "every N"
 msgstr "N 枚ごと"
 
-#: templates/_journal_section.html:3066
+#: templates/_journal_section.html:3082
 msgid "e.g. 7"
 msgstr "例: 7"
 
-#: templates/_journal_section.html:3066
+#: templates/_journal_section.html:3082
 msgid "Dither pixels"
 msgstr "ディザピクセル"
 
-#: templates/_journal_section.html:3067
+#: templates/_journal_section.html:3083
 msgid "e.g. 3"
 msgstr "例: 3"
 
-#: templates/_journal_section.html:3067
+#: templates/_journal_section.html:3083
 msgid "Dither every N subs"
 msgstr "N 枚ごとにディザ"
 
-#: templates/_journal_section.html:3072
+#: templates/_journal_section.html:3088
 msgid "Dither notes"
 msgstr "ディザメモ"
 
-#: templates/_journal_section.html:3072 templates/base.html:515
+#: templates/_journal_section.html:3088 templates/base.html:515
 msgid "optional"
 msgstr "(任意)"
 
-#: templates/_journal_section.html:3074 templates/journal_form.html:157
+#: templates/_journal_section.html:3090 templates/journal_form.html:157
 msgid "Monochrome Filter Exposures"
 msgstr "モノクロームフィルターによる露出"
 
-#: templates/_journal_section.html:3080 templates/_journal_section.html:3089
-#: templates/_journal_section.html:3112 templates/_journal_section.html:3311
+#: templates/_journal_section.html:3096 templates/_journal_section.html:3105
+#: templates/_journal_section.html:3128 templates/_journal_section.html:3327
 msgid "Exp (s)"
 msgstr "露出 (s)"
 
-#: templates/_journal_section.html:3080
+#: templates/_journal_section.html:3096
 msgid "Total"
 msgstr "合計"
 
-#: templates/_journal_section.html:3086 templates/_journal_section.html:3103
-#: templates/_journal_section.html:3285 templates/journal_form.html:168
+#: templates/_journal_section.html:3102 templates/_journal_section.html:3119
+#: templates/_journal_section.html:3301 templates/journal_form.html:168
 msgid "Count"
 msgstr "カウント"
 
-#: templates/_journal_section.html:3089 templates/_journal_section.html:3111
-#: templates/_journal_section.html:3287 templates/journal_form.html:172
+#: templates/_journal_section.html:3105 templates/_journal_section.html:3127
+#: templates/_journal_section.html:3303 templates/journal_form.html:172
 msgid "Seconds"
 msgstr "秒"
 
-#: templates/_journal_section.html:3091 templates/_journal_section.html:3117
-#: templates/_journal_section.html:3312
+#: templates/_journal_section.html:3107 templates/_journal_section.html:3133
+#: templates/_journal_section.html:3328
 msgid "Remove row"
 msgstr "行を削除"
 
-#: templates/_journal_section.html:3121 templates/_journal_section.html:3283
+#: templates/_journal_section.html:3137 templates/_journal_section.html:3299
 msgid "Remove filter"
 msgstr "フィルターを削除"
 
-#: templates/_journal_section.html:3126
+#: templates/_journal_section.html:3142
 msgid "No filter exposures logged."
 msgstr "フィルター別の露出は記録されていません。"
 
-#: templates/_journal_section.html:3131
+#: templates/_journal_section.html:3147
 msgid "+ Add filter row"
 msgstr "+ フィルター行を追加"
 
-#: templates/_journal_section.html:3134
+#: templates/_journal_section.html:3150
 msgid "Custom…"
 msgstr "カスタム…"
 
-#: templates/_journal_section.html:3139
+#: templates/_journal_section.html:3155
 msgid "Filter name (e.g. NB-II)"
 msgstr "フィルター名 (例: NB-II)"
 
-#: templates/_journal_section.html:3145
+#: templates/_journal_section.html:3161
 msgid "+ Add Filter"
 msgstr "+ フィルターを追加"
 
-#: templates/_journal_section.html:3155 templates/journal_report.html:807
+#: templates/_journal_section.html:3171 templates/journal_report.html:807
 msgid "Darks"
 msgstr "ダークス"
 
-#: templates/_journal_section.html:3155 templates/journal_form.html:179
+#: templates/_journal_section.html:3171 templates/journal_form.html:179
 msgid "e.g., Library match, Taken post-session"
 msgstr "例：ライブラリ一致、セッション終了後に取得"
 
-#: templates/_journal_section.html:3156 templates/journal_report.html:811
+#: templates/_journal_section.html:3172 templates/journal_report.html:811
 msgid "Flats"
 msgstr "フラット"
 
-#: templates/_journal_section.html:3156 templates/journal_form.html:183
+#: templates/_journal_section.html:3172 templates/journal_form.html:183
 msgid "e.g., Morning sky, Panel"
 msgstr "例：朝の空、パネル"
 
-#: templates/_journal_section.html:3157
+#: templates/_journal_section.html:3173
 msgid "Bias / dark flats"
 msgstr "Bias / Dark Flats"
 
-#: templates/_journal_section.html:3157 templates/journal_form.html:187
+#: templates/_journal_section.html:3173 templates/journal_form.html:187
 msgid "e.g., Library match"
 msgstr "例：ライブラリ一致"
 
-#: templates/_journal_section.html:3161
+#: templates/_journal_section.html:3177
 msgid "Session rating"
 msgstr "セッション評価"
 
-#: templates/_journal_section.html:3166
+#: templates/_journal_section.html:3182
 #, python-format
 msgid "%(num)d of 5 stars"
 msgstr "5つ星中 %(num)d"
 
-#: templates/_journal_section.html:3170
+#: templates/_journal_section.html:3186
 msgid "Not rated"
 msgstr "未評価"
 
-#: templates/_journal_section.html:3175
+#: templates/_journal_section.html:3191
 msgid "Notes, problems, learnings"
 msgstr "メモ・問題点・学び"
 
-#: templates/_journal_section.html:3178 templates/_journal_section.html:3296
+#: templates/_journal_section.html:3194 templates/_journal_section.html:3312
 msgid "Ask Nova for session summary"
 msgstr "Ask Nova for session summary"
 
-#: templates/_journal_section.html:3193
+#: templates/_journal_section.html:3209
 msgid "Session image"
 msgstr "セッション画像"
 
-#: templates/_journal_section.html:3195
+#: templates/_journal_section.html:3211
 msgid "JPG, PNG or GIF · max 5 MB"
 msgstr "JPG・PNG・GIF · 最大 5 MB"
 
-#: templates/_journal_section.html:3198
+#: templates/_journal_section.html:3214
 msgid "Session Logs (Optional)"
 msgstr "セッションログ（任意）"
 
-#: templates/_journal_section.html:3200
+#: templates/_journal_section.html:3216
 msgid "ASIAIR Log (Autorun)"
 msgstr "ASIAIRログ（自動実行）"
 
-#: templates/_journal_section.html:3201
+#: templates/_journal_section.html:3217
 msgid "PHD2 Guide Log"
 msgstr "PHD2ガイドログ"
 
-#: templates/_journal_section.html:3202
+#: templates/_journal_section.html:3218
 msgid "NINA Log"
 msgstr "NINAログ"
 
-#: templates/_journal_section.html:3228
+#: templates/_journal_section.html:3244
 msgid "Search objects…"
 msgstr "オブジェクトを検索…"
 
-#: templates/_journal_section.html:3229
+#: templates/_journal_section.html:3245
 msgid "Sort order"
 msgstr "並べ替え順"
 
-#: templates/_journal_section.html:3230
+#: templates/_journal_section.html:3246
 msgid "Recent"
 msgstr "最近"
 
-#: templates/_journal_section.html:3231
+#: templates/_journal_section.html:3247
 msgid "Most Hours"
 msgstr "最多時間"
 
-#: templates/_journal_section.html:3233
+#: templates/_journal_section.html:3249
 msgid "Filter by status"
 msgstr "ステータスでフィルター"
 
-#: templates/_journal_section.html:3234 templates/config_form.html:590
+#: templates/_journal_section.html:3250 templates/config_form.html:590
 #: templates/config_form.html:619 templates/config_form.html:655
 #: templates/index.html:180 templates/index.html:212
 msgid "All"
 msgstr "すべて"
 
-#: templates/_journal_section.html:3281
+#: templates/_journal_section.html:3297
 msgid "Failed to fetch objects"
 msgstr "オブジェクトの取得に失敗しました"
 
-#: templates/_journal_section.html:3282
+#: templates/_journal_section.html:3298
 msgid "No objects found"
 msgstr "オブジェクトが見つかりません"
 
-#: templates/_journal_section.html:3284
+#: templates/_journal_section.html:3300
 msgid "# Subs"
 msgstr "枚数"
 
-#: templates/_journal_section.html:3286 templates/journal_form.html:171
+#: templates/_journal_section.html:3302 templates/journal_form.html:171
 msgid "Exp (sec/sub):"
 msgstr "Exp (秒/サブ):"
 
-#: templates/_journal_section.html:3288
+#: templates/_journal_section.html:3304
 msgid "Enter a filter name."
 msgstr "フィルター名を入力してください。"
 
-#: templates/_journal_section.html:3289
+#: templates/_journal_section.html:3305
 msgid "Error adding filter."
 msgstr "フィルターの追加エラー。"
 
-#: templates/_journal_section.html:3290
+#: templates/_journal_section.html:3306
 #, python-brace-format
 msgid "{label} added."
 msgstr "{label} を追加しました。"
 
-#: templates/_journal_section.html:3291
+#: templates/_journal_section.html:3307
 msgid "Network error."
 msgstr "ネットワークエラー。"
 
-#: templates/_journal_section.html:3292
+#: templates/_journal_section.html:3308
 #, python-brace-format
 msgid "Remove \"{label}\"? Historical session data for this filter is kept."
 msgstr "「{label}」を削除しますか？このフィルターの履歴セッションデータは保持されます。"
 
-#: templates/_journal_section.html:3293
+#: templates/_journal_section.html:3309
 msgid "Error removing filter."
 msgstr "フィルターの削除エラー。"
 
-#: templates/_journal_section.html:3294
+#: templates/_journal_section.html:3310
 #, python-brace-format
 msgid "{label} removed."
 msgstr "{label} を削除しました。"
 
-#: templates/_journal_section.html:3295 templates/base.html:277
+#: templates/_journal_section.html:3311 templates/base.html:277
 #: templates/graph_view.html:456 templates/index.html:115
 msgid "Ask Nova"
 msgstr "Ask Nova"
 
-#: templates/_journal_section.html:3297
+#: templates/_journal_section.html:3313
 msgid "Analyzing your session..."
 msgstr "セッションを分析中..."
 
-#: templates/_journal_section.html:3298
+#: templates/_journal_section.html:3314
 msgid "Reviewing conditions..."
 msgstr "コンディションの見直し..."
 
-#: templates/_journal_section.html:3299
+#: templates/_journal_section.html:3315
 msgid "Checking guiding data..."
 msgstr "ガイディングデータを確認中..."
 
-#: templates/_journal_section.html:3300 templates/base.html:289
+#: templates/_journal_section.html:3316 templates/base.html:289
 #: templates/graph_view.html:462
 msgid "Almost there..."
 msgstr "もう少しだ..."
 
-#: templates/_journal_section.html:3301
+#: templates/_journal_section.html:3317
 msgid "Nova writing…"
 msgstr "Nova writing…"
 
-#: templates/_journal_section.html:3302
+#: templates/_journal_section.html:3318
 msgid "words"
 msgstr "語"
 
-#: templates/_journal_section.html:3303
+#: templates/_journal_section.html:3319
 msgid "Nova has a summary ready. What would you like to do?"
 msgstr "Nova がサマリーを用意しました。どうしますか？"
 
-#: templates/_journal_section.html:3304 templates/graph_view.html:465
+#: templates/_journal_section.html:3320 templates/graph_view.html:465
 msgid "Overwrite"
 msgstr "上書き"
 
-#: templates/_journal_section.html:3305 templates/graph_view.html:466
+#: templates/_journal_section.html:3321 templates/graph_view.html:466
 msgid "Append"
 msgstr "追記"
 
-#: templates/_journal_section.html:3307
+#: templates/_journal_section.html:3323
 msgid "Nova error"
 msgstr "Nova error"
 
-#: templates/_journal_section.html:3308
+#: templates/_journal_section.html:3324
 msgid "Draft saved"
 msgstr "下書きを保存しました"
 
-#: templates/_journal_section.html:3309
+#: templates/_journal_section.html:3325
 msgid "Please save the session first before asking Nova."
 msgstr "Nova に質問する前に、セッションを保存してください。"
 
-#: templates/_journal_section.html:3313
+#: templates/_journal_section.html:3329
 msgid "No project linked"
 msgstr "プロジェクト未リンク"
 
-#: templates/_journal_section.html:3314
+#: templates/_journal_section.html:3330
 #, python-brace-format
 msgid "Remove {name}"
 msgstr "{name} を削除"
 
-#: templates/_journal_section.html:3315
+#: templates/_journal_section.html:3331
 msgid "editing"
 msgstr "編集中"
 
