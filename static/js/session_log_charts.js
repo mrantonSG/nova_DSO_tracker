@@ -201,6 +201,9 @@
             renderAutoFocusTab();
             renderNinaTab();
 
+            // Apply theme colours on first render (configs reference missing COLORS.text/grid)
+            applyThemeColorsToAllCharts();
+
         } catch (err) {
             console.error('Error loading log analysis:', err);
             showErrorMessage(err.message);
@@ -333,6 +336,9 @@
             if (chart.options.plugins.title) {
                 chart.options.plugins.title.color = themeColors.text;
             }
+            if (chart.options.plugins.subtitle) {
+                chart.options.plugins.subtitle.color = themeColors.textMuted;
+            }
             if (chart.options.plugins.legend && chart.options.plugins.legend.labels) {
                 chart.options.plugins.legend.labels.color = themeColors.text;
             }
@@ -358,6 +364,21 @@
                     scale.grid.color = themeColors.grid;
                 }
             }
+        });
+    }
+
+    /**
+     * Apply theme colours to every registered chart, as the themeChanged listener does.
+     */
+    function applyThemeColorsToAllCharts() {
+        Object.keys(charts).forEach(function(key) {
+            const list = key === 'afCurves' ? charts.afCurves : [charts[key]];
+            list.forEach(function(chart) {
+                if (chart && typeof chart.update === 'function') {
+                    updateChartThemeColors(chart);
+                    chart.update('none');
+                }
+            });
         });
     }
 
