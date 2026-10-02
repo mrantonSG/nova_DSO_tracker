@@ -33,6 +33,35 @@ def read_inspiration_template():
         return f.read()
 
 
+def extract_click_handler(content):
+    """Return the body of the first document-level click delegation handler.
+
+    A non-greedy regex ending in ``}\\s*\\);`` stops at the FIRST nested
+    ``});`` sequence (e.g. an object-literal argument like
+    ``{ paginate: true }`` in the pagination cases), truncating the captured
+    handler before later cases appear. Instead, scan from the handler's
+    opening brace and count brace depth to find its true closing brace.
+    (Assumes no braces inside strings or comments in the handler body,
+    which holds for this template.)
+    """
+    match = re.search(
+        r'document\.addEventListener\([\'"]click[\'"]\s*,\s*function\(e\)\s*\{',
+        content
+    )
+    if not match:
+        return None
+    body_start = match.end()
+    depth = 0
+    for offset, char in enumerate(content[body_start - 1:], start=body_start - 1):
+        if char == '{':
+            depth += 1
+        elif char == '}':
+            depth -= 1
+            if depth == 0:
+                return content[body_start:offset]
+    return None
+
+
 class TestInspirationModalStructure:
     """Tests verifying the modal HTML structure is correct."""
 
@@ -113,15 +142,10 @@ class TestInspirationModalEventHandling:
         """
         content = read_inspiration_template()
 
-        # Extract the event delegation JavaScript block
-        event_handler_match = re.search(
-            r'document\.addEventListener\([\'"]click[\'"]\s*,\s*function\(e\)\s*\{(.*?)\}\s*\);',
-            content,
-            re.DOTALL
-        )
-        assert event_handler_match, "Could not find click event delegation handler"
-
-        handler_code = event_handler_match.group(1)
+        # Extract the event delegation JavaScript block (brace counting,
+        # not a naive regex - see extract_click_handler).
+        handler_code = extract_click_handler(content)
+        assert handler_code, "Could not find click event delegation handler"
 
         # Verify the handler uses closest('[data-action]') pattern
         closest_pattern = re.search(r"e\.target\.closest\(.*data-action", handler_code)
