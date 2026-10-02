@@ -2149,6 +2149,7 @@
         font-size: 11px;
         color: var(--text-muted);
     }
+    #guiding-rms-hint .is-active { color: var(--text-primary); font-weight: 600; }
 
     /* Inputs: 34px, 6px radius, teal focus ring (number inputs keep their mono 12px) */
     #journal-detail-form .form-group input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
@@ -3046,7 +3047,14 @@
                             <div class="field-help">{{ _('Choosing a rig fills in the guiding equipment.') }}</div>
                         </div>
                         {{ form_group('guiding_equipment', _('Guiding equipment'), type='text', placeholder=_('e.g., OAG + ASI174MM')) }}
-                        {{ form_group('guiding_rms_avg_arcsec', field_label(_('Guiding RMS'), '″ ' ~ _('avg')), type='number', step=0.01) }}
+                        <div class="form-group">
+                            <label for="guiding_rms_avg_arcsec">{{ field_label(_('Guiding RMS'), '″ ' ~ _('avg')) }}</label>
+                            <input type="number"
+                                   id="guiding_rms_avg_arcsec"
+                                   name="guiding_rms_avg_arcsec"
+                                   step="0.01">
+                            <div class="field-help" id="guiding-rms-hint" hidden></div>
+                        </div>
                     </div>
                     {{ form_group('telescope_setup_notes', _('Telescope setup notes'), type='textarea', rows=2) }}
                     <div class="form-section-title">{{ _('Acquisition Details') }}</div>
@@ -3313,6 +3321,12 @@ const journalI18n = {
   noProjectLinked:       {{ _("No project linked") | tojson }},
   removeProject:         {{ _("Remove {name}") | tojson }},
   editing:               {{ _("editing") | tojson }},
+  guidingExcellent:      {{ _("Excellent") | tojson }},
+  guidingGood:           {{ _("Good") | tojson }},
+  guidingAcceptable:     {{ _("Acceptable") | tojson }},
+  guidingBorderline:     {{ _("Borderline") | tojson }},
+  guidingUnusable:       {{ _("Unusable") | tojson }},
+  guidingTheoretical:    {{ _("theoretical, seeing usually sets the limit") | tojson }},
 };
 
 (function() {

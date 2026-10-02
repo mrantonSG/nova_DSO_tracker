@@ -759,6 +759,71 @@
         resetFilterRowVisibility();
         updateStarRatingValue();
         syncAllFileCards();
+        updateGuidingRmsHint();
+    }
+
+    // Guiding RMS quality bands as fractions of the rig's image scale (″/px).
+    const GUIDING_RMS_FACTORS = [1/3, 0.5, 1.0, 1.5];
+
+    function updateGuidingRmsHint() {
+        const hint = document.getElementById('guiding-rms-hint');
+        if (!hint) return;
+
+        const rigSelector = document.getElementById('rig-selector-edit');
+        const rmsInput = document.getElementById('guiding_rms_avg_arcsec');
+
+        // Scale comes from the selected rig; the saved session's snapshot covers
+        // rigs that no longer exist in availableRigs.
+        let scale = null;
+        if (rigSelector && rigSelector.value) {
+            const rig = (window.availableRigs || []).find(r => String(r.rig_id) === String(rigSelector.value));
+            if (rig) {
+                scale = rig.image_scale;
+            } else if (window.selectedSessionData) {
+                scale = window.selectedSessionData.rig_scale_snapshot;
+            }
+        }
+        scale = Number(scale) || 0;
+        if (!(scale > 0)) {
+            hint.textContent = '';
+            hint.hidden = true;
+            return;
+        }
+
+        // Rounded to 2 decimals; the rounded values drive both display and comparison.
+        const limits = GUIDING_RMS_FACTORS.map(f => Math.round(scale * f * 100) / 100);
+        const bands = [
+            { key: 'guidingExcellent', label: 'Excellent', limit: limits[0], op: '≤' },
+            { key: 'guidingGood', label: 'Good', limit: limits[1], op: '≤' },
+            { key: 'guidingAcceptable', label: 'Acceptable', limit: limits[2], op: '≤' },
+            { key: 'guidingBorderline', label: 'Borderline', limit: limits[3], op: '≤' },
+            { key: 'guidingUnusable', label: 'Unusable', limit: limits[3], op: '>' }
+        ];
+
+        // First band whose limit the entered RMS does not exceed; above all → Unusable.
+        const rms = rmsInput ? parseFloat(rmsInput.value) : NaN;
+        let activeIndex = -1;
+        if (isFinite(rms) && rms > 0) {
+            for (let i = 0; i < limits.length; i++) {
+                if (rms <= limits[i]) { activeIndex = i; break; }
+            }
+            if (activeIndex === -1) activeIndex = bands.length - 1;
+        }
+
+        hint.textContent = '';
+        bands.forEach((band, i) => {
+            if (i > 0) hint.appendChild(document.createTextNode(' · '));
+            const span = document.createElement('span');
+            span.textContent = `${jt(band.key, band.label)} ${band.op}${band.limit.toFixed(2)}″`;
+            if (i === activeIndex) span.classList.add('is-active');
+            hint.appendChild(span);
+        });
+        if (scale < 1.0) {
+            const note = document.createElement('span');
+            note.textContent = ` (${jt('guidingTheoretical', 'theoretical, seeing usually sets the limit')})`;
+            hint.appendChild(note);
+        }
+        hint.hidden = false;
     }
 
     // --- Logs & Files cards: display only; the hidden file input and delete_* checkbox are submitted ---
@@ -1615,11 +1680,15 @@
             } else if (id === 'rig-selector-edit') {
                 // Rig selector change handler - auto-populate guiding equipment and dither hint
                 handleRigSelectionChange(e);
+                updateGuidingRmsHint();
             }
         });
 
         // Class-based delegation for calculation triggers
         document.addEventListener('input', function(e) {
+            if (e.target.id === 'guiding_rms_avg_arcsec') {
+                updateGuidingRmsHint();
+            }
             if (e.target.classList.contains('calc-trigger')) {
                 console.log('[JOURNAL_SECTION] Input calc-trigger:', e.target.name || e.target.id);
                 triggerAllMaxSubsCalculations();
