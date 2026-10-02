@@ -418,6 +418,7 @@ def parse_phd2_log(content: str) -> Dict[str, Any]:
         'pixel_scale': float,  # arcsec/px
         'frames': [[h, ra_px, dec_px, snr, ra_guide_dist, dec_guide_dist, ra_dir, dec_dir, ra_dur, dec_dur], ...],
         'rms': [[h, ra_rms_as, dec_rms_as, total_rms_as], ...],  # rolling 30-frame RMS
+        'rms_imaging': [[h, total_rms_as], ...],  # rolling 30-frame Total RMS, settle frames excluded
         'settle': [{'h': float, 'dur': float, 'ok': bool}, ...],
         'run_bounds': [{'run': int, 'h': float, 'type': str}, ...],
         'stats': {
@@ -738,6 +739,22 @@ def parse_phd2_log(content: str) -> Dict[str, Any]:
                 'outliers_removed': imaging_outliers
             }
 
+    # --- Rolling Total RMS over imaging frames only (Guiding Quality chart) ---
+    # Same 30-frame window and formula as result['rms'], but over frames outside
+    # settle windows so dither/settle spikes disappear. No IQR filtering.
+    rms_imaging_frames = imaging_frames if settle_windows else all_frames
+    for i in range(window, len(rms_imaging_frames)):
+        window_frames = rms_imaging_frames[i - window:i]
+        ra_vals = [f[1] for f in window_frames]
+        dec_vals = [f[2] for f in window_frames]
+
+        total_rms_px = math.sqrt(sum(r * r + d * d for r, d in zip(ra_vals, dec_vals)) / len(ra_vals))
+
+        result['rms_imaging'].append([
+            rms_imaging_frames[i][0],
+            round(total_rms_px * ps, 3)
+        ])
+
     # Store "all frames" stats under 'all' key for consistency
     result['stats']['all'] = {
         'ra_rms_as': result['stats']['ra_rms_as'],
@@ -762,12 +779,16 @@ def parse_phd2_log(content: str) -> Dict[str, Any]:
         result['stats']['rms_original_count'] = original_rms_count
         result['stats']['rms_decimated'] = True
 
+    if len(result['rms_imaging']) > DECIMATION_THRESHOLD:
+        result['rms_imaging'] = lttb_downsample(result['rms_imaging'], DECIMATION_THRESHOLD, x_idx=0, y_idx=1)
+
     # --- Precision reduction: Round all floats to 4 decimal places ---
     def round_point(point):
         return [round(v, 4) if isinstance(v, float) else v for v in point]
 
     result['frames'] = [round_point(f) for f in result['frames']]
     result['rms'] = [round_point(r) for r in result['rms']]
+    result['rms_imaging'] = [round_point(r) for r in result['rms_imaging']]
 
     # Store session start time for clock time display
     if first_session_start:
@@ -817,6 +838,7 @@ def _empty_phd2_result() -> Dict[str, Any]:
         'session_start': None,  # ISO datetime string of first guiding session
         'frames': [],  # [[h, ra_px, dec_px, snr, ra_guide_dist, dec_guide_dist, ra_dir, dec_dir, ra_dur, dec_dur], ...]
         'rms': [],
+        'rms_imaging': [],
         'settle': [],
         'run_bounds': [],
         'stats': {

@@ -1363,24 +1363,25 @@
                 : 0.1;  // Default 6 minutes if no intervals
 
             // Build datasets with null gaps where time difference > typicalInterval * 5
-            const raData = [];
-            const decData = [];
-            const totalData = [];
             const gapThreshold = typicalInterval * 5;
 
-            for (let i = 0; i < rms.length; i++) {
-                raData.push({ x: rms[i][0], y: rms[i][1] });
-                decData.push({ x: rms[i][0], y: rms[i][2] });
-                totalData.push({ x: rms[i][0], y: rms[i][3] });
+            // Convert [h, ...values] rows to one {x, y} array per yIndex, inserting a
+            // null point wherever the gap to the next row exceeds the threshold
+            function toGapBrokenSeries(rows, yIndices, threshold) {
+                const out = yIndices.map(() => []);
+                for (let i = 0; i < rows.length; i++) {
+                    yIndices.forEach((yi, k) => out[k].push({ x: rows[i][0], y: rows[i][yi] }));
 
-                // If gap to next point exceeds threshold, insert null to break the line
-                if (i < rms.length - 1 && (rms[i + 1][0] - rms[i][0]) > gapThreshold) {
-                    const nullX = rms[i][0] + 0.001;
-                    raData.push({ x: nullX, y: null });
-                    decData.push({ x: nullX, y: null });
-                    totalData.push({ x: nullX, y: null });
+                    // If gap to next point exceeds threshold, insert null to break the line
+                    if (i < rows.length - 1 && (rows[i + 1][0] - rows[i][0]) > threshold) {
+                        const nullX = rows[i][0] + 0.001;
+                        out.forEach(series => series.push({ x: nullX, y: null }));
+                    }
                 }
+                return out;
             }
+
+            const [raData, decData, totalData] = toGapBrokenSeries(rms, [1, 2, 3], gapThreshold);
 
             charts.guiding = new Chart(rmsCanvas, {
                 type: 'line',
@@ -1496,6 +1497,12 @@
                 && limits.every(v => typeof v === 'number' && isFinite(v) && v > 0);
             if (qualityContainer && qualityCanvas && hasLimits) {
                 qualityContainer.style.display = '';
+                // Prefer the imaging-only series (settle/dither frames excluded); older
+                // caches without it fall back to the Total series of the RMS chart
+                const rmsImaging = phd2.rms_imaging;
+                const qualityData = (Array.isArray(rmsImaging) && rmsImaging.length > 0)
+                    ? toGapBrokenSeries(rmsImaging, [1], gapThreshold)[0]
+                    : totalData.slice();
                 const i18n = (typeof journalI18n !== 'undefined') ? journalI18n : {};
                 const bandNames = [
                     i18n.guidingExcellent || 'Excellent',
@@ -1511,7 +1518,7 @@
                         datasets: [
                             {
                                 label: 'Total RMS (")',
-                                data: totalData.slice(),  // Same converted points (incl. gap nulls) as the RMS chart
+                                data: qualityData,
                                 borderColor: COLORS.total,
                                 backgroundColor: 'transparent',
                                 borderWidth: 2,

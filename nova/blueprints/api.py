@@ -1631,6 +1631,21 @@ def get_session_log_analysis(session_id):
             nina = cached.get('nina')
             has_session_start = (asiair and asiair.get('session_start')) or (phd2 and phd2.get('session_start')) or (nina and nina.get('session_start'))
             if has_session_start:
+                # Cache from before rms_imaging existed: try to re-parse the PHD2 log.
+                # Only replace the stored cache when the re-parse yields real data
+                # (session_start and a non-empty rms series); a missing, truncated or
+                # corrupt log keeps the old cache untouched and serves it.
+                if phd2 and 'rms_imaging' not in phd2:
+                    try:
+                        phd2_content = read_log_content(session.phd2_log_content)
+                        reparsed = parse_phd2_log(phd2_content) if phd2_content else None
+                        if reparsed and reparsed.get('session_start') and reparsed.get('rms'):
+                            cached['phd2'] = reparsed
+                            session.log_analysis_cache = json.dumps(cached)
+                            db.commit()
+                    except Exception:
+                        db.rollback()
+                        cached['phd2'] = phd2
                 cached['guiding_limits'] = guiding_limits
                 return jsonify(cached)
             # Old cache without session_start - fall through to re-parse

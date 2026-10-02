@@ -180,7 +180,8 @@ def generate_guiding_quality_chart(phd2_data: Dict[str, Any], limits: Optional[T
     Generate a Total RMS over time chart against the session's guiding band limits.
 
     Args:
-        phd2_data: Parsed PHD2 log data containing 'rms' array
+        phd2_data: Parsed PHD2 log data containing 'rms' array, and 'rms_imaging'
+            (settle frames excluded) when parsed by a current version
         limits: (excellent, good, acceptable, borderline) upper limits in arcsec
 
     Returns:
@@ -188,16 +189,22 @@ def generate_guiding_quality_chart(phd2_data: Dict[str, Any], limits: Optional[T
     """
     if limits is None:
         return None
-    if not phd2_data or not phd2_data.get('rms'):
+    if not phd2_data:
         return None
 
-    rms_data = phd2_data['rms']
-    if len(rms_data) < 2:
-        return None
+    rms_imaging = phd2_data.get('rms_imaging')
+    if rms_imaging and len(rms_imaging) >= 2:
+        # Imaging-only series: [h, total_rms_as]
+        hours = np.array([r[0] for r in rms_imaging])
+        total_rms = np.array([r[1] for r in rms_imaging])
+    else:
+        rms_data = phd2_data.get('rms')
+        if not rms_data or len(rms_data) < 2:
+            return None
 
-    # Extract data: [h, ra_rms_as, dec_rms_as, total_rms_as]
-    hours = np.array([r[0] for r in rms_data])
-    total_rms = np.array([r[3] for r in rms_data])
+        # Extract data: [h, ra_rms_as, dec_rms_as, total_rms_as]
+        hours = np.array([r[0] for r in rms_data])
+        total_rms = np.array([r[3] for r in rms_data])
 
     fig, ax = _create_figure(6.5, 3.0)
     ax.grid(False, axis='y')
