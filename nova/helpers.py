@@ -14,7 +14,7 @@ import numpy as np
 import pytz
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from math import atan, degrees
+from math import atan, degrees, floor, isfinite
 from urllib.parse import urlsplit
 from typing import Optional
 
@@ -761,6 +761,38 @@ def recursively_clean_numpy_types(data):
     elif isinstance(data, np.generic):
         return data.item()
     return data
+
+
+# === Guiding RMS Quality Bands ===
+
+# MUST STAY IN SYNC with GUIDING_RMS_FACTORS in static/js/journal_section.js
+# (updateGuidingRmsHint uses the same fractions of the rig's image scale).
+GUIDING_RMS_FACTORS = (1 / 3, 0.5, 1.0, 1.5)
+
+
+def guiding_rms_band(rms, scale):
+    """
+    Classify guiding RMS against the rig's image scale (arcsec/px).
+
+    Returns 'excellent', 'good', 'acceptable', 'borderline' or 'unusable',
+    or None when rms or scale is missing, non-numeric, or <= 0.
+    Band limits are scale x factor, rounded to 2 decimals half-up
+    (floor(x * 100 + 0.5) / 100) to match the JS Math.round; the first band
+    whose rounded limit rms does not exceed wins, above all four -> 'unusable'.
+    """
+    try:
+        rms_f = float(rms)
+        scale_f = float(scale)
+    except (TypeError, ValueError):
+        return None
+    if not (isfinite(rms_f) and isfinite(scale_f)) or rms_f <= 0 or scale_f <= 0:
+        return None
+
+    limits = [floor(scale_f * factor * 100 + 0.5) / 100 for factor in GUIDING_RMS_FACTORS]
+    for band, limit in zip(('excellent', 'good', 'acceptable', 'borderline'), limits):
+        if rms_f <= limit:
+            return band
+    return 'unusable'
 
 
 # === Settings helpers ===

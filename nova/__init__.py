@@ -1402,11 +1402,12 @@ app.config['BABEL_SUPPORTED_LOCALES'] = ['en', 'de', 'fr', 'es', 'ja', 'zh']
 app.config['BABEL_TRANSLATION_DIRECTORIES'] = os.path.join(os.path.dirname(__file__), '..', 'translations')
 babel = Babel()  # Create without app - will init with locale_selector below
 
-from nova.helpers import get_locale
+from nova.helpers import get_locale, guiding_rms_band
 
 # Initialize Babel with the app and locale_selector in one call
 babel.init_app(app, locale_selector=get_locale)
 app.jinja_env.globals['get_locale'] = get_locale
+app.jinja_env.globals['guiding_rms_band'] = guiding_rms_band
 
 # --- Performance: gzip response compression ---
 from flask_compress import Compress

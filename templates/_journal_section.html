@@ -343,6 +343,7 @@
     .summary-box { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 20px; text-align: center; padding: 15px; background-color: var(--border-light-alt3); border-radius: 6px; margin-bottom: 25px; }
     .summary-box .stat-value { font-size: 1.4em; font-weight: 600; color: var(--text-primary); display: block; }
     .summary-box .stat-label { font-size: 0.8em; color: var(--accent-gray-medium); text-transform: uppercase; }
+    .summary-box .stat-band { display: block; font-size: 11px; color: var(--text-muted); }
     .detail-grid { display: grid; grid-template-columns: max-content 1fr; gap: 12px 20px; align-items: flex-start; }
     .detail-grid > dt { font-weight: 600; color: var(--accent-gray-text); }
     .detail-grid > dd { margin: 0; color: var(--text-primary); }
@@ -2365,7 +2366,14 @@
                     <div id="summary-tab" class="detail-tab-content active">
                          <div class="summary-box">
                             <div class="stat"><span class="stat-value">{{ display_safe_value(entry.seeing_observed_fwhm) }}{% if entry.seeing_observed_fwhm and entry.seeing_observed_fwhm|lower != 'none' %}"{% endif %}</span><span class="stat-label">{{ _('SEEING (FWHM)') }}</span></div>
-                            <div class="stat"><span class="stat-value">{{ display_safe_value(entry.guiding_rms_avg_arcsec) }}{% if entry.guiding_rms_avg_arcsec and entry.guiding_rms_avg_arcsec|lower != 'none' %}"{% endif %}</span><span class="stat-label">{{ _('GUIDING (RMS)') }}</span></div>
+                            <div class="stat">
+                                <span class="stat-value">{{ display_safe_value(entry.guiding_rms_avg_arcsec) }}{% if entry.guiding_rms_avg_arcsec and entry.guiding_rms_avg_arcsec|lower != 'none' %}"{% endif %}</span>
+                                {% set guiding_band = guiding_rms_band(entry.guiding_rms_avg_arcsec, entry.rig_scale_snapshot) %}
+                                {% if guiding_band %}
+                                    <span class="stat-band">{{ {'excellent': _('Excellent'), 'good': _('Good'), 'acceptable': _('Acceptable'), 'borderline': _('Borderline'), 'unusable': _('Unusable')}[guiding_band] }}</span>
+                                {% endif %}
+                                <span class="stat-label">{{ _('GUIDING (RMS)') }}</span>
+                            </div>
                             <div class="stat"><span class="stat-value">{{ display_safe_value(entry.sky_sqm_observed) }}</span><span class="stat-label">{{ _('SKY QUALITY (SQM)') }}</span></div>
                             <div class="stat">
                                 <span class="stat-value">
