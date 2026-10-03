@@ -84,6 +84,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentSort = 'dur';
 
+    // Max altitude for the duration-sort tie-break; a value that is not a
+    // number counts as -1 so it sorts below any real altitude.
+    function sortMaxAlt(item) {
+        const v = parseFloat(item.dataset.maxAlt);
+        return Number.isNaN(v) ? -1 : v;
+    }
+
     function renderList() {
         let searchedItems = [];
         if (currentSearch === '') {
@@ -110,7 +117,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } else {
             itemsToShow.sort((a, b) => {
-                return parseFloat(b.dataset.sortDur) - parseFloat(a.dataset.sortDur);
+                const byDur = parseFloat(b.dataset.sortDur) - parseFloat(a.dataset.sortDur);
+                return byDur !== 0 ? byDur : sortMaxAlt(b) - sortMaxAlt(a);
             });
         }
 
@@ -523,9 +531,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const sorted = allItems.filter(i => i.style.display !== 'none');
         const sortByAlt = currentSort === 'alt';
-        sorted.sort((a, b) => sortByAlt
-            ? parseFloat(b.dataset.sortAlt) - parseFloat(a.dataset.sortAlt)
-            : parseInt(b.dataset.sortDur)   - parseInt(a.dataset.sortDur));
+        sorted.sort((a, b) => {
+            if (sortByAlt) {
+                return parseFloat(b.dataset.sortAlt) - parseFloat(a.dataset.sortAlt);
+            }
+            const byDur = parseInt(b.dataset.sortDur) - parseInt(a.dataset.sortDur);
+            return byDur !== 0 ? byDur : sortMaxAlt(b) - sortMaxAlt(a);
+        });
         const list = document.getElementById('object-list');
         sorted.forEach(item => list.appendChild(item));
 
