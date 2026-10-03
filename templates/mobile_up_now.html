@@ -1007,6 +1007,8 @@ body.sheet-open {
     // API endpoint URLs — resolved server-side so the static file stays pure JS.
     window.mobileDataChunkUrl  = "{{ url_for('api.api_mobile_data_chunk') }}";
     window.mobileStatusUrl     = "{{ url_for('api.api_mobile_status') }}";
+    window.mobileUpNowInputsUrl = "{{ url_for('api.api_mobile_up_now_inputs') }}";
 </script>
-<script src="{{ url_for('static', filename='js/mobile_up_now.js') }}"></script>
+<script src="{{ url_for('static', filename='js/nova_astro.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/mobile_up_now.js', v=version) }}"></script>
 {% endblock %}
