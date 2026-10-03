@@ -1981,6 +1981,73 @@ def api_mobile_data_chunk():
     })
 
 
+@api_bp.route('/api/mobile_up_now_inputs')
+@login_required
+def api_mobile_up_now_inputs():
+    """Returns the raw inputs for the mobile 'Up Now' list (no astronomical calculation)."""
+    load_full_astro_context()
+
+    user = g.db_user
+    location_name = g.selected_location
+    user_prefs_dict = g.user_config or {}
+
+    # Same behavior as api_mobile_data_chunk when there is no user/location.
+    if not user or not location_name:
+        return jsonify({"location": None, "objects": []})
+
+    db = get_db()
+
+    # 1. Get Location
+    location = db.query(Location).options(
+        selectinload(Location.horizon_points)
+    ).filter_by(user_id=user.id, name=location_name).one_or_none()
+
+    # Same behavior as api_mobile_data_chunk when the location is not found.
+    if not location:
+        return jsonify({"location": None, "objects": []})
+
+    # 2. Get All Objects (same filters/order, but no offset/limit)
+    objects = db.query(AstroObject).filter_by(user_id=user.id).order_by(AstroObject.id).all()
+
+    # 3. Saved-framings lookup (same as get_all_mobile_up_now_data)
+    framed_objects = set()
+    try:
+        rows = db.query(SavedFraming.object_name).filter_by(user_id=user.id).all()
+        framed_objects = {r[0] for r in rows}
+    except Exception:
+        pass
+
+    # 4. Assemble raw inputs (first six keys match get_all_mobile_up_now_data)
+    objects_data = []
+    for obj_record in objects:
+        objects_data.append({
+            "Object": obj_record.object_name,
+            "Common Name": obj_record.common_name or obj_record.object_name,
+            "ActiveProject": obj_record.active_project,
+            "has_framing": obj_record.object_name in framed_objects,
+            "Type": obj_record.type or "N/A",
+            "Constellation": obj_record.constellation or "",
+            "ra": obj_record.ra_hours,
+            "dec": obj_record.dec_deg,
+        })
+
+    horizon_mask = [[hp.az_deg, hp.alt_min_deg]
+                    for hp in sorted(location.horizon_points, key=lambda p: p.az_deg)]
+
+    return jsonify({
+        "location": {
+            "name": location.name,
+            "lat": location.lat,
+            "lon": location.lon,
+            "timezone": location.timezone,
+            "altitude_threshold": resolve_altitude_threshold(user_prefs_dict, location),
+            "sampling_interval": resolve_sampling_interval(user_prefs_dict),
+            "horizon_mask": horizon_mask
+        },
+        "objects": objects_data
+    })
+
+
 @api_bp.route('/api/mobile_status')
 @login_required
 def api_mobile_status():
