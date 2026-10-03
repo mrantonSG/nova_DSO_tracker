@@ -321,9 +321,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return val + 'm';
     }
 
-    // --- Client-side astro engine, enabled with ?engine=js ---
-    const USE_JS_ENGINE = new URLSearchParams(window.location.search).get('engine') === 'js'
-        && typeof window.NovaAstro !== 'undefined';
+    // --- Client-side astro engine (default); add ?engine=server to opt out ---
+    const USE_JS_ENGINE = new URLSearchParams(window.location.search).get('engine') !== 'server'
+        && typeof window.NovaAstro !== 'undefined'
+        && !!window.mobileUpNowInputsUrl;
 
     function computeUpNowWithEngine(inputs) {
         const A = window.NovaAstro, loc = inputs.location;
@@ -387,13 +388,21 @@ document.addEventListener('DOMContentLoaded', () => {
         list.style.display = 'none';
 
         try {
+            let engineRows = null;
             if (USE_JS_ENGINE) {
-                const t0 = performance.now();
-                const inputs = await (await fetch(window.mobileUpNowInputsUrl)).json();
-                const rows = computeUpNowWithEngine(inputs);
-                console.log('[UpNow] engine=js:', rows.length, 'objects in',
-                            Math.round(performance.now() - t0), 'ms');
-                rows.forEach(obj => createListItem(obj));
+                try {
+                    const t0 = performance.now();
+                    const inputs = await (await fetch(window.mobileUpNowInputsUrl)).json();
+                    engineRows = computeUpNowWithEngine(inputs);
+                    console.log('[UpNow] engine=js:', engineRows.length, 'objects in',
+                                Math.round(performance.now() - t0), 'ms');
+                } catch (e) {
+                    console.warn('[UpNow] engine failed, using server calculation', e);
+                    engineRows = null;
+                }
+            }
+            if (engineRows) {
+                engineRows.forEach(obj => createListItem(obj));
             } else {
                 while (offset < total) {
                     const response = await fetch(window.mobileDataChunkUrl + '?offset=' + offset + '&limit=' + CHUNK_SIZE);
