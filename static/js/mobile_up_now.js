@@ -313,21 +313,62 @@ document.addEventListener('DOMContentLoaded', () => {
         return val + 'm';
     }
 
-    async function fetchMobileData() {
-        const cachedRaw = sessionStorage.getItem(CACHE_KEY);
-        if (cachedRaw) {
-            try {
-                const cached = JSON.parse(cachedRaw);
-                if (Date.now() - cached.timestamp < CACHE_EXPIRY) {
-                    loadingContainer.style.display = 'none';
-                    list.style.display = 'block';
+    // --- Client-side astro engine, enabled with ?engine=js ---
+    const USE_JS_ENGINE = new URLSearchParams(window.location.search).get('engine') === 'js'
+        && typeof window.NovaAstro !== 'undefined';
 
-                    cached.data.forEach(obj => createListItem(obj));
-                    populateConstChips();
-                    refreshListItemsAndSort();
-                    return;
-                }
-            } catch (e) { console.warn("Cache parse failed, fetching fresh."); }
+    function computeUpNowWithEngine(inputs) {
+        const A = window.NovaAstro, loc = inputs.location;
+        if (!loc) return [];
+        const now = Date.now();
+        const date = A.observingDate(now, loc.timezone);
+        const win = A.nightWindow(date, loc.timezone, loc.lat, loc.lon, loc.sampling_interval);
+        const frame = A.frameFor(now);
+        const seps = A.moonSeparations(inputs.objects, now, loc.lat, loc.lon, frame);
+        const opts = {
+            threshold: loc.altitude_threshold, interval: loc.sampling_interval,
+            mask: loc.horizon_mask, window: win
+        };
+        return inputs.objects.map((o, i) => {
+            const cur = A.altAz(o.ra, o.dec, loc.lat, loc.lon, now, frame);
+            const next = A.altAz(o.ra, o.dec, loc.lat, loc.lon, now + 300000, frame);
+            const d = win
+                ? A.observableDuration(o.ra, o.dec, loc.lat, loc.lon, date, loc.timezone, opts)
+                : { minutes: 0, maxAltitude: 0 };
+            return {
+                'Object': o['Object'],
+                'Common Name': o['Common Name'],
+                'ActiveProject': o['ActiveProject'],
+                'has_framing': o['has_framing'],
+                'Type': o['Type'],
+                'Constellation': o['Constellation'],
+                'Altitude Current': cur.alt.toFixed(2),
+                'Azimuth Current': cur.az.toFixed(2),
+                'Trend': next.alt > cur.alt ? '↑' : next.alt < cur.alt ? '↓' : '–',
+                'Observable Duration (min)': d.minutes,
+                'Max Altitude (°)': Math.round(d.maxAltitude * 10) / 10,
+                'Angular Separation (°)': Math.round(seps[i])
+            };
+        });
+    }
+
+    async function fetchMobileData() {
+        if (!USE_JS_ENGINE) {
+            const cachedRaw = sessionStorage.getItem(CACHE_KEY);
+            if (cachedRaw) {
+                try {
+                    const cached = JSON.parse(cachedRaw);
+                    if (Date.now() - cached.timestamp < CACHE_EXPIRY) {
+                        loadingContainer.style.display = 'none';
+                        list.style.display = 'block';
+
+                        cached.data.forEach(obj => createListItem(obj));
+                        populateConstChips();
+                        refreshListItemsAndSort();
+                        return;
+                    }
+                } catch (e) { console.warn("Cache parse failed, fetching fresh."); }
+            }
         }
 
         let offset = 0;
@@ -338,31 +379,40 @@ document.addEventListener('DOMContentLoaded', () => {
         list.style.display = 'none';
 
         try {
-            while (offset < total) {
-                const response = await fetch(window.mobileDataChunkUrl + '?offset=' + offset + '&limit=' + CHUNK_SIZE);
-                const json = await response.json();
+            if (USE_JS_ENGINE) {
+                const t0 = performance.now();
+                const inputs = await (await fetch(window.mobileUpNowInputsUrl)).json();
+                const rows = computeUpNowWithEngine(inputs);
+                console.log('[UpNow] engine=js:', rows.length, 'objects in',
+                            Math.round(performance.now() - t0), 'ms');
+                rows.forEach(obj => createListItem(obj));
+            } else {
+                while (offset < total) {
+                    const response = await fetch(window.mobileDataChunkUrl + '?offset=' + offset + '&limit=' + CHUNK_SIZE);
+                    const json = await response.json();
 
-                if (!json.data) break;
+                    if (!json.data) break;
 
-                total = json.total;
+                    total = json.total;
 
-                json.data.forEach(obj => {
-                    createListItem(obj);
-                    gatheredData.push(obj);
-                });
+                    json.data.forEach(obj => {
+                        createListItem(obj);
+                        gatheredData.push(obj);
+                    });
 
-                offset += CHUNK_SIZE;
-                const percentage = Math.min(100, Math.round((offset / total) * 100));
-                progressFill.style.width = percentage + '%';
-                loadingText.textContent = i18n.calculatedOf.replace('%(count)d', Math.min(offset, total)).replace('%(total)d', total);
+                    offset += CHUNK_SIZE;
+                    const percentage = Math.min(100, Math.round((offset / total) * 100));
+                    progressFill.style.width = percentage + '%';
+                    loadingText.textContent = i18n.calculatedOf.replace('%(count)d', Math.min(offset, total)).replace('%(total)d', total);
+                }
+
+                try {
+                    sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+                        timestamp: Date.now(),
+                        data: gatheredData
+                    }));
+                } catch (e) { console.warn("Cache save failed (quota?)", e); }
             }
-
-            try {
-                sessionStorage.setItem(CACHE_KEY, JSON.stringify({
-                    timestamp: Date.now(),
-                    data: gatheredData
-                }));
-            } catch (e) { console.warn("Cache save failed (quota?)", e); }
 
             loadingContainer.style.display = 'none';
             list.style.display = 'block';
