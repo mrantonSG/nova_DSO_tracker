@@ -515,6 +515,51 @@ def test_mobile_up_now_renders_via_api(client):
 
     assert found_m42, "API did not return M42/Orion Nebula data"
 
+
+def test_mobile_up_now_inputs(client):
+    """
+    Tests /api/mobile_up_now_inputs, the raw-inputs endpoint used for
+    client-side Up Now. It must return the location and the raw object
+    fields only, with no astronomical calculation performed.
+    """
+    response = client.get('/api/mobile_up_now_inputs')
+
+    # 1. Status code
+    assert response.status_code == 200
+
+    json_data = response.get_json()
+
+    # 2. Exactly the two top-level keys.
+    assert set(json_data.keys()) == {"location", "objects"}
+
+    # 3. "objects" is a list.
+    assert isinstance(json_data["objects"], list)
+
+    # The fixtures seed a location and M42, so both must be present.
+    assert json_data["location"] is not None
+    assert len(json_data["objects"]) > 0
+    assert any(o["Object"] == "M42" for o in json_data["objects"])
+
+    # 4. Location shape (only when a location is selected).
+    if json_data["location"] is not None:
+        assert set(json_data["location"].keys()) == {
+            "name", "lat", "lon", "timezone",
+            "altitude_threshold", "sampling_interval", "horizon_mask",
+        }
+        assert isinstance(json_data["location"]["horizon_mask"], list)
+
+    # 5. Object shape.
+    for item in json_data["objects"]:
+        assert set(item.keys()) == {
+            "Object", "Common Name", "ActiveProject", "has_framing",
+            "Type", "Constellation", "ra", "dec",
+        }
+        assert isinstance(item["ra"], (int, float))
+        assert isinstance(item["dec"], (int, float))
+
+        # 6. No calculation ran (raw inputs only).
+        assert "Altitude Current" not in item
+
 # ===================================================================
 # --- NEW SAVED VIEWS API TESTS ---
 # ===================================================================
