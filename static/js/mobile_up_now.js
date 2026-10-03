@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    let currentSort = 'alt';
+    let currentSort = 'dur';
 
     function renderList() {
         let searchedItems = [];
@@ -200,6 +200,14 @@ document.addEventListener('DOMContentLoaded', () => {
         refreshListItemsAndSort();
     });
 
+    // Sync sort UI with the initial currentSort
+    const initialSortOption = sortDropdown?.querySelector(`.m-sort-option[data-sort="${currentSort}"]`);
+    if (initialSortOption) {
+        sortDropdown.querySelectorAll('.m-sort-option')
+            .forEach(o => o.classList.toggle('active', o === initialSortOption));
+        sortLabelEl.textContent = initialSortOption.textContent.trim();
+    }
+
     // ── Filter sheet ──
     const filterSheet   = document.getElementById('filter-sheet');
     const filterOverlay = document.getElementById('filter-overlay');
@@ -280,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Chunked Data Fetching & Caching ---
-    const CHUNK_SIZE = 25;
+    const CHUNK_SIZE = 200;
 
     const activeLoc = sessionStorage.getItem('nova_mobile_location') || 'default';
     const CACHE_KEY = `nova_mobile_cache_${activeLoc}`;
@@ -356,12 +364,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }));
             } catch (e) { console.warn("Cache save failed (quota?)", e); }
 
-            setTimeout(() => {
-                loadingContainer.style.display = 'none';
-                list.style.display = 'block';
-                populateConstChips();
-                refreshListItemsAndSort();
-            }, 500);
+            loadingContainer.style.display = 'none';
+            list.style.display = 'block';
+            populateConstChips();
+            refreshListItemsAndSort();
 
         } catch (e) {
             loadingText.textContent = i18n.errorLoading;
