@@ -1412,10 +1412,32 @@ def get_all_mobile_up_now_data(user, location, user_prefs_dict, objects_list, db
     except Exception:
         moon_in_frame = None  # Handle moon calc failure
 
+    # Batch moon separation for all objects (per-object fallback in the loop)
+    moon_sep_by_index = {}
+    if moon_in_frame:
+        try:
+            batch_indices, batch_ra, batch_dec = [], [], []
+            for obj_idx, obj_record in enumerate(objects_list):
+                try:
+                    obj_ra = float(obj_record.ra_hours)
+                    obj_dec = float(obj_record.dec_deg)
+                except (TypeError, ValueError):
+                    continue
+                batch_indices.append(obj_idx)
+                batch_ra.append(obj_ra)
+                batch_dec.append(obj_dec)
+            if batch_indices:
+                batch_coords = SkyCoord(ra=np.array(batch_ra) * u.hourangle, dec=np.array(batch_dec) * u.deg)
+                batch_seps = batch_coords.transform_to(frame_now).separation(moon_in_frame).deg
+                moon_sep_by_index = dict(zip(batch_indices, batch_seps))
+        except Exception:
+            moon_sep_by_index = {}
+
     # --- 4. Loop Through All Objects ---
     all_objects_data = []
+    times_local = times_utc = None  # Computed once on the first cache miss
 
-    for obj_record in objects_list:
+    for obj_idx, obj_record in enumerate(objects_list):
         try:
             object_name = obj_record.object_name
             ra = obj_record.ra_hours
@@ -1428,12 +1450,14 @@ def get_all_mobile_up_now_data(user, location, user_prefs_dict, objects_list, db
             cache_key = f"{user.username}_{object_name.lower().replace(' ', '_')}_{local_date}_{lat:.4f}_{lon:.4f}_{altitude_threshold}_{sampling_interval}"
             if cache_key not in nightly_curves_cache:
                 # Cache miss - calculate it now
-                times_local, times_utc = get_common_time_arrays(tz_name, local_date, sampling_interval)
+                if times_utc is None:
+                    times_local, times_utc = get_common_time_arrays(tz_name, local_date, sampling_interval)
                 location_ephem = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
                 sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
                 altaz_frame = AltAz(obstime=times_utc, location=location_ephem)
-                altitudes = sky_coord.transform_to(altaz_frame).alt.deg
-                azimuths = sky_coord.transform_to(altaz_frame).az.deg
+                altaz_coords = sky_coord.transform_to(altaz_frame)
+                altitudes = altaz_coords.alt.deg
+                azimuths = altaz_coords.az.deg
                 transit_time = calculate_transit_time(ra, dec, lat, lon, tz_name, local_date)
                 obs_duration, max_alt, _, _ = calculate_observable_duration_vectorized(
                     ra, dec, lat, lon, local_date, tz_name, altitude_threshold, sampling_interval,
@@ -1474,9 +1498,12 @@ def get_all_mobile_up_now_data(user, location, user_prefs_dict, objects_list, db
             angular_sep = "N/A"
             if moon_in_frame:
                 try:
-                    obj_coord_sky = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-                    obj_in_frame = obj_coord_sky.transform_to(frame_now)
-                    angular_sep = round(obj_in_frame.separation(moon_in_frame).deg)
+                    if obj_idx in moon_sep_by_index:
+                        angular_sep = round(float(moon_sep_by_index[obj_idx]))
+                    else:
+                        obj_coord_sky = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+                        obj_in_frame = obj_coord_sky.transform_to(frame_now)
+                        angular_sep = round(obj_in_frame.separation(moon_in_frame).deg)
                 except Exception:
                     pass  # Keep N/A
 
