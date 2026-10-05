@@ -29,7 +29,9 @@ from nova.models import (
     SavedFraming, SavedView, Component, Rig,
     JournalSession, Project, UserCustomFilter, UiPref,
 )
-from nova.record_links import sync_rig_links
+from nova.record_links import (
+    sync_framing_links, sync_project_link, sync_rig_links, sync_session_links, uid_of,
+)
 
 def load_catalog_pack(pack_id: str) -> tuple[dict | None, dict | None]:
     """Load a specific catalog pack from the central web repository."""
@@ -233,6 +235,7 @@ def _heal_saved_framings(db, user: DbUser):
             rig = db.query(Rig).filter_by(user_id=user.id, rig_name=f.rig_name).one_or_none()
             if rig:
                 f.rig_id = rig.id
+                f.rig_record_uid = uid_of(rig, user.id)
                 count += 1
 
         if count > 0:
@@ -269,6 +272,8 @@ def _migrate_saved_framings(db, user: DbUser, config: dict):
             if existing:
                 existing.rig_id = rig_id
                 existing.rig_name = rig_name_str  # <-- Always save the name
+                # rig_id is the rig resolved above (or None); object_name is the lookup key
+                sync_framing_links(db, existing)
                 existing.ra = f.get("ra")
                 existing.dec = f.get("dec")
                 existing.rotation = f.get("rotation")
@@ -310,6 +315,7 @@ def _migrate_saved_framings(db, user: DbUser, config: dict):
                     # Overlay Preferences (legacy safe with .get() and default)
                     geo_belt_enabled=f.get("geo_belt_enabled", True)
                 )
+                sync_framing_links(db, new_sf)
                 db.add(new_sf)
 
         except Exception as e:
@@ -795,6 +801,7 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
                     new_id = uuid.uuid4().hex
                     id_map[str(project_id_val)] = new_id
                     new_project = Project(id=new_id, **project_data)
+                    sync_project_link(db, new_project)
                     db.add(new_project)
                     db.flush()
             elif existing_project:
@@ -802,11 +809,14 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
                 for key, value in project_data.items():
                     if value is not None:
                         setattr(existing_project, key, value)
+                # From the final target_object_name: a None in the file keeps the old one
+                sync_project_link(db, existing_project)
             else:
                 # Check if a project with the same name already exists for the user (to avoid name duplicates if ID differs)
                 existing_by_name = db.query(Project).filter_by(user_id=user.id, name=project_data["name"]).one_or_none()
                 if not existing_by_name:
                     new_project = Project(id=str(project_id_val), **project_data)
+                    sync_project_link(db, new_project)
                     db.add(new_project)
 
     db.flush()  # Flush after adding all valid projects from the YAML
@@ -964,18 +974,26 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
 
             if existing_session:
                 # UPDATE: Session found, update its fields
+                old_rig_id_snapshot = existing_session.rig_id_snapshot
                 for k, v in row_values.items():
                     # Only update if the new value is not None
                     if v is not None:
                         setattr(existing_session, k, v)
+                # The rig UID is never resolved on import: it stays while rig_id_snapshot
+                # stays, and is cleared when the file changes rig_id_snapshot.
+                if existing_session.rig_id_snapshot != old_rig_id_snapshot:
+                    existing_session.rig_record_uid = None
+                sync_session_links(db, existing_session, include_rig=False)
                 # No need to db.add() here
             else:
                 # INSERT: Session not found, create a new one
                 new_session = JournalSession(**row_values)
+                sync_session_links(db, new_session, include_rig=False)  # rig UID stays NULL
                 db.add(new_session)
         else:
             # INSERT (No external ID provided): Always create a new session
             new_session = JournalSession(**row_values)
+            sync_session_links(db, new_session, include_rig=False)  # rig UID stays NULL
             db.add(new_session)
 
         # *** START: Legacy dither migration ***
