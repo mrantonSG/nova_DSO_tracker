@@ -837,9 +837,11 @@ def save_framing():
         # Lookup rig_name so we save it for portability (Backup/Restore)
         rig_name_val = None
         if rig_id_val:
-            r = db.get(Rig, rig_id_val)
+            r = db.query(Rig).filter_by(id=rig_id_val, user_id=g.db_user.id).one_or_none()
             if r:
                 rig_name_val = r.rig_name
+            else:
+                rig_id_val = None
 
         framing.rig_id = rig_id_val
         framing.rig_name = rig_name_val  # <-- Important: Saves name for portability
@@ -3478,8 +3480,10 @@ def get_desktop_data_batch():
         framing_map = {
             f.object_name: f.rig_name
             for f in db.query(SavedFraming.object_name, SavedFraming.rig_name)
+            .outerjoin(Rig, Rig.id == SavedFraming.rig_id)
             .filter(SavedFraming.user_id == user.id,
-                    SavedFraming.object_name.in_(object_names)).all()
+                    SavedFraming.object_name.in_(object_names),
+                    or_(Rig.id.is_(None), Rig.user_id == user.id)).all()
         }
         session_map = {
             row[0]: row[1] for row in db.query(JournalSession.object_name, func.count(JournalSession.id))

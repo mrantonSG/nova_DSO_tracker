@@ -212,7 +212,7 @@ def mobile_mosaic_view(object_name):
         return f"<h3>No saved framing found for {escape(object_name)}</h3><p>Please save a framing on the desktop first.</p>"
 
     # Get Rig Data
-    rig = db.get(Rig, framing.rig_id) if framing.rig_id else None
+    rig = db.query(Rig).filter_by(id=framing.rig_id, user_id=g.db_user.id).one_or_none() if framing.rig_id else None
     if not rig or not rig.fov_w_arcmin:
         return "<h3>Error: Rig data missing in saved framing.</h3>"
 

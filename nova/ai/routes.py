@@ -300,9 +300,11 @@ def generate_dso_notes():
     obj = None
 
     if object_id and object_id != 0:
-        obj = db.query(AstroObject).filter(AstroObject.id == object_id).first()
+        obj = db.query(AstroObject).filter(AstroObject.id == object_id,
+                                           AstroObject.user_id == g.db_user.id).first()
     elif object_name:
-        obj = db.query(AstroObject).filter(AstroObject.object_name == object_name).first()
+        obj = db.query(AstroObject).filter(AstroObject.object_name == object_name,
+                                           AstroObject.user_id == g.db_user.id).first()
     else:
         return jsonify({"error": "object_id or object_name is required"}), 400
 
@@ -485,7 +487,7 @@ def generate_dso_notes():
         rig = db.query(Rig).options(
             selectinload(Rig.telescope),
             selectinload(Rig.camera)
-        ).filter_by(id=framing.rig_id).one_or_none()
+        ).filter_by(id=framing.rig_id, user_id=g.db_user.id).one_or_none()
 
         if rig is None and framing.rig_name:
             rig = next((r for r in rig_rows if r.rig_name == framing.rig_name), None)
@@ -671,10 +673,12 @@ def generate_session_summary():
         guide_FL_mm = None
 
         if session.rig_id_snapshot:
-            rig = db.query(Rig).filter(Rig.id == session.rig_id_snapshot).first()
+            rig = db.query(Rig).filter(Rig.id == session.rig_id_snapshot,
+                                       Rig.user_id == g.db_user.id).first()
             if rig and (not rig.guide_camera_id or not rig.guide_telescope_id):
                 # Fallback: try to find rig by partial name match if guide hardware IDs are missing
                 rig = db.query(Rig).filter(
+                    Rig.user_id == g.db_user.id,
                     Rig.rig_name.ilike(f"%{session.rig_name_snapshot}%"),
                     Rig.guide_camera_id.isnot(None)
                 ).first()
