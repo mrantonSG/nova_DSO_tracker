@@ -40,7 +40,7 @@ from nova.models import (
     DbUser, Project, JournalSession, Rig,
     AstroObject, UserCustomFilter
 )
-from nova.record_links import sync_session_links
+from nova.record_links import sync_session_links, sync_project_link
 from nova.helpers import (
     get_db, allowed_file, safe_float, safe_int,
     save_log_to_filesystem, read_log_content, dither_display,
@@ -76,6 +76,7 @@ def _get_or_create_named_project(db, user, name, target_object_id):
     project = Project(id=uuid.uuid4().hex, user_id=user.id, name=name)
     if target_object_id:
         project.target_object_name = target_object_id
+    sync_project_link(db, project)
     db.add(project)
     db.flush()
     return project
@@ -632,6 +633,7 @@ def journal_edit(session_id):
             for p in projects_list:
                 if target_object_id:
                     p.target_object_name = target_object_id
+                    sync_project_link(db, p)
 
             # The "Create New Project" toggle sits after the project checkboxes,
             # so the new (or same-named, reused) project is appended last.
@@ -872,6 +874,7 @@ def add_project_from_journal():
             status=status,
             goals=goals
         )
+        sync_project_link(db, new_project)
         db.add(new_project)
 
         # Auto-activate object if project is In Progress

@@ -32,6 +32,7 @@ from nova.config import UPLOAD_FOLDER
 from nova.models import (
     DbUser, Project, JournalSession, AstroObject, UserCustomFilter
 )
+from nova.record_links import sync_project_link
 from nova.helpers import (
     get_db, load_full_astro_context, read_log_content, invalidate_object_caches,
     is_safe_redirect_target, safe_int
@@ -119,6 +120,7 @@ def project_detail(project_id):
             old_target_name = project.target_object_name
             project.name = request.form.get('name')
             project.target_object_name = request.form.get('target_object_id')  # Note: Renamed from 'target_object_name'
+            sync_project_link(db, project)
             project.status = request.form.get('status')
 
             # Rich text notes (Trix content is received as raw HTML)

@@ -32,7 +32,7 @@ import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay l
 from nova.models import (
     DbUser, AstroObject, SavedFraming, Rig, Project, JournalSession, UserCustomFilter
 )
-from nova.record_links import sync_session_links
+from nova.record_links import sync_session_links, sync_project_link
 from nova.helpers import (
     get_db, load_full_astro_context, safe_float, safe_int, generate_session_id, _compute_rig_metrics_from_components,
     resolve_sampling_interval, resolve_altitude_threshold,
@@ -560,6 +560,7 @@ def mobile_journal_new():
                 target_object_id = request.form.get("target_object_id", "").strip()
                 if target_object_id:
                     new_project.target_object_name = target_object_id
+                    sync_project_link(db, new_project)
         elif project_selection and project_selection != "standalone":
             project_id_for_session = project_selection
 

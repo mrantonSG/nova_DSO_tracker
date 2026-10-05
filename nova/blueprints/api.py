@@ -54,6 +54,7 @@ from nova.models import (
     DbUser, AstroObject, JournalSession, Project,
     Component, SavedView, SavedFraming, Rig, Location, UiPref
 )
+from nova.record_links import sync_framing_links
 from nova.auth import db as auth_db, User
 from nova.analytics import record_event
 from modules.astro_calculations import (
@@ -845,6 +846,7 @@ def save_framing():
 
         framing.rig_id = rig_id_val
         framing.rig_name = rig_name_val  # <-- Important: Saves name for portability
+        sync_framing_links(db, framing)
 
         framing.ra = float(data['ra']) if data.get('ra') is not None else None
         framing.dec = float(data['dec']) if data.get('dec') is not None else None
