@@ -30,6 +30,7 @@ from nova.models import (
     DbUser, Project, SavedView, HorizonPoint, Rig, JournalSession, UiPref,
     UserCustomFilter, session_projects,
 )
+from nova.record_links import framed_object_uids
 import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay live (see nova/config.py)
 from nova.config import (
     INSTANCE_PATH, BACKUP_DIR, ALLOWED_EXTENSIONS, SIMBAD_TIMEOUT,
@@ -1366,12 +1367,11 @@ def get_all_mobile_up_now_data(user, location, user_prefs_dict, objects_list, db
     """
     Server-side function to get all data for the mobile 'Up Now' page in one pass.
     """
-    # Pre-fetch framing status for the user
-    framed_objects = set()
+    # Pre-fetch framing status for the user, by object record_uid
+    framed_uids = set()
     if db:
         try:
-            rows = db.query(SavedFraming.object_name).filter_by(user_id=user.id).all()
-            framed_objects = {r[0] for r in rows}
+            framed_uids = framed_object_uids(db, user.id)
         except Exception:
             pass
 
@@ -1513,7 +1513,7 @@ def get_all_mobile_up_now_data(user, location, user_prefs_dict, objects_list, db
                 "Object": obj_record.object_name,
                 "Common Name": obj_record.common_name or obj_record.object_name,
                 "ActiveProject": obj_record.active_project,
-                "has_framing": obj_record.object_name in framed_objects,
+                "has_framing": obj_record.record_uid in framed_uids,
 
                 # Calculated data
                 'Altitude Current': f"{current_alt:.2f}",

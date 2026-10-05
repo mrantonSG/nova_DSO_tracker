@@ -10,8 +10,10 @@ everywhere:
   space-sensitive), and only when exactly one row matches.
 - An empty old link gives None.
 
-Rig component reads use these UIDs (components_for_rig / rig_components).
-Every other link is still read from its old column.
+Rig and object reads use these UIDs (components_for_rig / rig_components,
+objects_by_uid / object_for_uid, framing_for_object / framed_object_uids).
+The location link is written but not yet read: session locations still come
+from the stored location_name text.
 """
 
 from typing import NamedTuple, Optional
@@ -129,6 +131,48 @@ def rig_for_uid(db, user_id, uid):
         return None
     return db.scalars(select(Rig).where(
         Rig.user_id == user_id, Rig.record_uid == uid).limit(1)).first()
+
+
+def objects_by_uid(db, user_id):
+    """{record_uid: AstroObject} for every object of user_id. For pages with many rows."""
+    if user_id is None:
+        return {}
+    return {
+        o.record_uid: o
+        for o in db.scalars(select(AstroObject).where(
+            AstroObject.user_id == user_id,
+            AstroObject.record_uid.isnot(None),
+            AstroObject.record_uid != ""))
+    }
+
+
+def object_for_uid(db, user_id, uid):
+    """The object of user_id with record_uid `uid`, or None. The UID alone decides:
+    an empty UID, or one with no object of that user, is no object."""
+    if not uid or user_id is None:
+        return None
+    return db.scalars(select(AstroObject).where(
+        AstroObject.user_id == user_id, AstroObject.record_uid == uid).limit(1)).first()
+
+
+def framing_for_object(db, user_id, object_uid):
+    """The saved framing of user_id whose object_record_uid is `object_uid`, or None.
+    An empty UID, or one with no framing of that user, is no framing."""
+    if not object_uid or user_id is None:
+        return None
+    return db.scalars(select(SavedFraming).where(
+        SavedFraming.user_id == user_id,
+        SavedFraming.object_record_uid == object_uid).limit(1)).first()
+
+
+def framed_object_uids(db, user_id):
+    """record_uids of user_id's objects that have a saved framing. For list pages."""
+    if user_id is None:
+        return set()
+    return set(db.scalars(select(SavedFraming.object_record_uid).where(
+        SavedFraming.user_id == user_id,
+        SavedFraming.object_record_uid.isnot(None),
+        SavedFraming.object_record_uid != "")))
 
 
 # --- Target -> record_uid ------------------------------------------------------

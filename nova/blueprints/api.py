@@ -54,7 +54,10 @@ from nova.models import (
     DbUser, AstroObject, JournalSession, Project,
     Component, SavedView, SavedFraming, Rig, Location, UiPref
 )
-from nova.record_links import sync_framing_links, sync_project_link, sync_session_links, uid_for_name
+from nova.record_links import (
+    framed_object_uids, object_for_uid, sync_framing_links, sync_project_link,
+    sync_session_links, uid_for_name,
+)
 from nova.auth import db as auth_db, User
 from nova.analytics import record_event
 from modules.astro_calculations import (
@@ -248,6 +251,7 @@ def get_journal_objects():
     sessions_with_data = db.query(
         JournalSession.id,
         JournalSession.object_name,
+        JournalSession.object_record_uid,
         JournalSession.date_utc,
         JournalSession.calculated_integration_time_minutes,
         JournalSession.location_name,
@@ -256,10 +260,20 @@ def get_journal_objects():
         Project.status.label('project_status')
     ).outerjoin(
         AstroObject,
-        and_(AstroObject.user_id == user_id, AstroObject.object_name == JournalSession.object_name)
+        and_(AstroObject.user_id == user_id,
+             AstroObject.record_uid == JournalSession.object_record_uid,
+             JournalSession.object_record_uid.isnot(None),
+             JournalSession.object_record_uid != "",
+             AstroObject.record_uid.isnot(None),
+             AstroObject.record_uid != "")
     ).outerjoin(
         Project,
-        and_(Project.user_id == user_id, Project.target_object_name == JournalSession.object_name)
+        and_(Project.user_id == user_id,
+             Project.target_object_record_uid == JournalSession.object_record_uid,
+             JournalSession.object_record_uid.isnot(None),
+             JournalSession.object_record_uid != "",
+             Project.target_object_record_uid.isnot(None),
+             Project.target_object_record_uid != "")
     ).filter(
         JournalSession.user_id == user_id
     ).order_by(
@@ -267,12 +281,18 @@ def get_journal_objects():
         JournalSession.date_utc.desc()
     ).all()
 
-    # Aggregate by object_name
+    # Aggregate by object_name. A session whose object UID is empty or points
+    # at no object of this user has no object link and is left out (rule 2).
     objects_map = {}
+    linked_uids = []
     for session in sessions_with_data:
+        if session.astro_id is None:
+            continue
         object_name = session.object_name
         if not object_name:
             continue
+        if session.object_record_uid not in linked_uids:
+            linked_uids.append(session.object_record_uid)
 
         if object_name not in objects_map:
             objects_map[object_name] = {
@@ -304,27 +324,24 @@ def get_journal_objects():
                 objects_map[object_name]['first_session_location'] = session.location_name
 
     # Second pass: add zero-session projects as stub entries so they show up
-    # in the object switcher even without journal sessions yet.
-    # Known limitation: objects_map is keyed by object name, not project id,
-    # so a project sharing a target_object_name with a session-bearing object
-    # won't get its own separate entry here.
+    # in the object switcher even without journal sessions yet. Keyed by object
+    # name like the first pass, so an object with both sessions and a project
+    # appears once.
     zero_session_projects = db.query(Project).filter(
         Project.user_id == user_id,
-        Project.target_object_name.isnot(None),
-        ~Project.target_object_name.in_(list(objects_map.keys()))
+        Project.target_object_record_uid.isnot(None),
+        Project.target_object_record_uid != "",
+        ~Project.target_object_record_uid.in_(linked_uids)
     ).all()
     for project in zero_session_projects:
-        astro_object = db.query(AstroObject).filter(
-            AstroObject.user_id == user_id,
-            AstroObject.object_name == project.target_object_name
-        ).first()
+        astro_object = object_for_uid(db, user_id, project.target_object_record_uid)
         if not astro_object:
             continue
 
-        objects_map[project.target_object_name] = {
+        objects_map[astro_object.object_name] = {
             'id': astro_object.id,
-            'name': astro_object.common_name or project.target_object_name,
-            'catalog_id': project.target_object_name,
+            'name': astro_object.common_name or astro_object.object_name,
+            'catalog_id': astro_object.object_name,
             'total_minutes': 0,
             'last_session': None,
             'first_session_date': None,
@@ -400,15 +417,15 @@ def bulk_update_objects():
             objects_to_check = query.all()
 
             for obj in objects_to_check:
-                # Check for journal sessions using this object name
-                has_journals = db.query(JournalSession).filter_by(
-                    user_id=user_id, object_name=obj.object_name
-                ).first()
-
-                # Check for projects targeting this object
-                has_projects = db.query(Project).filter_by(
-                    user_id=user_id, target_object_name=obj.object_name
-                ).first()
+                # Linked rows are found by UID; an object with no UID has none.
+                has_journals = has_projects = None
+                if obj.record_uid:
+                    has_journals = db.query(JournalSession).filter_by(
+                        user_id=user_id, object_record_uid=obj.record_uid
+                    ).first()
+                    has_projects = db.query(Project).filter_by(
+                        user_id=user_id, target_object_record_uid=obj.record_uid
+                    ).first()
 
                 if has_journals or has_projects:
                     skipped_count += 1
@@ -2018,11 +2035,10 @@ def api_mobile_up_now_inputs():
     # 2. Get All Objects (same filters/order, but no offset/limit)
     objects = db.query(AstroObject).filter_by(user_id=user.id).order_by(AstroObject.id).all()
 
-    # 3. Saved-framings lookup (same as get_all_mobile_up_now_data)
-    framed_objects = set()
+    # 3. Saved-framings lookup (same as get_all_mobile_up_now_data), by object UID
+    framed_uids = set()
     try:
-        rows = db.query(SavedFraming.object_name).filter_by(user_id=user.id).all()
-        framed_objects = {r[0] for r in rows}
+        framed_uids = framed_object_uids(db, user.id)
     except Exception:
         pass
 
@@ -2033,7 +2049,7 @@ def api_mobile_up_now_inputs():
             "Object": obj_record.object_name,
             "Common Name": obj_record.common_name or obj_record.object_name,
             "ActiveProject": obj_record.active_project,
-            "has_framing": obj_record.object_name in framed_objects,
+            "has_framing": obj_record.record_uid in framed_uids,
             "Type": obj_record.type or "N/A",
             "Constellation": obj_record.constellation or "",
             "ra": obj_record.ra_hours,
@@ -3482,21 +3498,21 @@ def get_desktop_data_batch():
 
         # Determine has_more flag based on whether we got a full page
 
-        # --- Bulk framing & session-count lookups ---
-        object_names = [obj.object_name for obj in batch_objects]
+        # --- Bulk framing & session-count lookups, keyed by the object UID ---
+        object_uids = [obj.record_uid for obj in batch_objects if obj.record_uid]
         framing_map = {
-            f.object_name: f.rig_name
-            for f in db.query(SavedFraming.object_name, SavedFraming.rig_name)
+            f.object_record_uid: f.rig_name
+            for f in db.query(SavedFraming.object_record_uid, SavedFraming.rig_name)
             .outerjoin(Rig, Rig.id == SavedFraming.rig_id)
             .filter(SavedFraming.user_id == user.id,
-                    SavedFraming.object_name.in_(object_names),
+                    SavedFraming.object_record_uid.in_(object_uids),
                     or_(Rig.id.is_(None), Rig.user_id == user.id)).all()
         }
         session_map = {
-            row[0]: row[1] for row in db.query(JournalSession.object_name, func.count(JournalSession.id))
+            row[0]: row[1] for row in db.query(JournalSession.object_record_uid, func.count(JournalSession.id))
             .filter(JournalSession.user_id == user.id,
-                    JournalSession.object_name.in_(object_names))
-            .group_by(JournalSession.object_name).all()
+                    JournalSession.object_record_uid.in_(object_uids))
+            .group_by(JournalSession.object_record_uid).all()
         }
 
         has_more = len(batch_objects) == limit
@@ -3573,9 +3589,9 @@ def get_desktop_data_batch():
                 if ra is None or dec is None:
                     item.update({'error': True, 'Common Name': 'Error: Missing RA/DEC'})
                     item.update({
-                        'framing_rig': framing_map.get(obj.object_name) or '',
+                        'framing_rig': framing_map.get(obj.record_uid) or '',
                         'has_notes': bool(re.sub(r'<[^>]+>', '', obj.project_name or '').strip().lower() not in ('none', '')),
-                        'session_count': session_map.get(obj.object_name, 0)
+                        'session_count': session_map.get(obj.record_uid, 0)
                     })
                     results.append(item)
                     continue
@@ -3602,9 +3618,9 @@ def get_desktop_data_batch():
                             'error': False
                         })
                         item.update({
-                            'framing_rig': framing_map.get(obj.object_name) or '',
+                            'framing_rig': framing_map.get(obj.record_uid) or '',
                             'has_notes': bool(re.sub(r'<[^>]+>', '', obj.project_name or '').strip().lower() not in ('none', '')),
-                            'session_count': session_map.get(obj.object_name, 0)
+                            'session_count': session_map.get(obj.record_uid, 0)
                         })
                         results.append(item)
                         continue
@@ -3710,9 +3726,9 @@ def get_desktop_data_batch():
                     'error': False
                 })
                 item.update({
-                    'framing_rig': framing_map.get(obj.object_name) or '',
+                    'framing_rig': framing_map.get(obj.record_uid) or '',
                     'has_notes': bool(re.sub(r'<[^>]+>', '', obj.project_name or '').strip().lower() not in ('none', '')),
-                    'session_count': session_map.get(obj.object_name, 0)
+                    'session_count': session_map.get(obj.record_uid, 0)
                 })
                 results.append(item)
 

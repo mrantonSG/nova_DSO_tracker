@@ -113,7 +113,9 @@ from nova.models import (
     DbUser, Project, SavedView, Location, SavedFraming, HorizonPoint,
     AstroObject, Component, Rig, JournalSession, UiPref, UserCustomFilter
 )
-from nova.record_links import LINKS as UID_LINKS, sync_rig_links, sync_session_links
+from nova.record_links import (
+    LINKS as UID_LINKS, framed_object_uids, sync_rig_links, sync_session_links,
+)
 from nova.config import (
     APP_VERSION, TEMPLATE_DIR, CACHE_DIR, CONFIG_DIR, BACKUP_DIR,
     UPLOAD_FOLDER, ENV_FILE, FIRST_RUN_ENV_CREATED, SINGLE_USER_MODE,
@@ -1908,8 +1910,13 @@ def load_outlook_active_objects(user_id, status_key):
     # Fetch framing status for Outlook
     framed_objects = set()
     try:
-        rows = db.query(SavedFraming.object_name).filter_by(user_id=user_id).all()
-        framed_objects = {r[0] for r in rows}
+        framed_uids = framed_object_uids(db, user_id)
+        if framed_uids:
+            framed_objects = {
+                name for (name,) in db.query(AstroObject.object_name).filter(
+                    AstroObject.user_id == user_id,
+                    AstroObject.record_uid.in_(framed_uids))
+            }
     except Exception as e:
         # Fail gracefully if table is missing (e.g. during tests/migrations)
         print(f"[OUTLOOK WORKER {status_key}] WARN: Could not fetch framings: {e}")

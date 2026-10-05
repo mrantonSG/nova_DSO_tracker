@@ -15,7 +15,7 @@ from nova import (
     Rig,
     get_db
 )
-from nova.record_links import sync_rig_links
+from nova.record_links import sync_rig_links, sync_session_links
 
 
 def test_graph_dashboard_full_context(client, db_session):
@@ -39,6 +39,7 @@ def test_graph_dashboard_full_context(client, db_session):
         notes="Test session notes for dashboard"
     )
     db_session.add(journal)
+    sync_session_links(db_session, journal)   # the object page finds sessions by UID
 
     # Add a Component (Telescope)
     scope = Component(

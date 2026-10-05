@@ -1519,7 +1519,7 @@ def index():
     all_projects = db.query(Project).filter_by(user_id=user.id).all()
     project_map = {p.id: {'name': p.name, 'status': p.status} for p in all_projects}
     objects_from_db = db.query(AstroObject).filter_by(user_id=user.id).all()
-    object_names_lookup = {o.object_name: o.common_name for o in objects_from_db}
+    object_names_lookup = {o.record_uid: o.common_name for o in objects_from_db if o.record_uid}
 
     # --- THIS IS THE CRITICAL FIX ---
     # Convert the list of objects into a list of JSON-safe dictionaries
@@ -1533,7 +1533,8 @@ def index():
             session_dict['date_utc'] = session_dict['date_utc'].isoformat()
 
         # Add the common name for convenience in the template
-        session_dict['target_common_name'] = object_names_lookup.get(session.object_name, session.object_name)
+        session_dict['target_common_name'] = object_names_lookup.get(
+            session.object_record_uid, session.object_name)
 
         if session_dict.get('session_image_file'):
             session_image_filename = session_dict['session_image_file']
@@ -2086,9 +2087,9 @@ def graph_dashboard(object_name):
             project_record = db.query(Project).filter_by(
                 id=project_id_param, user_id=user.id
             ).one_or_none()
-        if not project_record:
+        if not project_record and obj_record.record_uid:
             project_record = db.query(Project).filter_by(
-                user_id=user.id, target_object_name=object_name
+                user_id=user.id, target_object_record_uid=obj_record.record_uid
             ).order_by(Project.status).first()
 
         project_id_for_this_object = None
@@ -2258,9 +2259,11 @@ def graph_dashboard(object_name):
 
         # (The rest of grouping logic is unchanged)
         all_projects_for_user = db.query(Project).filter_by(user_id=user.id).order_by(Project.name).all()
-        object_specific_sessions_db = db.query(JournalSession).filter_by(user_id=user.id,
-                                                                         object_name=object_name).order_by(
-            JournalSession.date_utc.desc()).all()
+        object_specific_sessions_db = []
+        if obj_record.record_uid:
+            object_specific_sessions_db = db.query(JournalSession).filter_by(
+                user_id=user.id, object_record_uid=obj_record.record_uid
+            ).order_by(JournalSession.date_utc.desc()).all()
 
         object_specific_sessions_list = []
         for s in object_specific_sessions_db:
@@ -2283,7 +2286,9 @@ def graph_dashboard(object_name):
 
         # 2. Explicitly ensure empty projects targeting this object appear in the list
         # This fixes the issue where a newly created project (with no sessions yet) remains invisible
-        target_projects = [p for p in all_projects_for_user if p.target_object_name == object_name]
+        target_projects = [p for p in all_projects_for_user
+                           if obj_record.record_uid
+                           and p.target_object_record_uid == obj_record.record_uid]
         for tp in target_projects:
             if tp.id not in grouped_sessions_dict:
                 grouped_sessions_dict[tp.id] = []

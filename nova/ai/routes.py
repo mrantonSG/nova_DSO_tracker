@@ -32,7 +32,9 @@ import nova
 from nova.config import ADMIN_USERS
 from nova.helpers import get_db, resolve_altitude_threshold
 from nova.models import AstroObject, Location, Rig, JournalSession, SavedFraming
-from nova.record_links import components_by_uid, components_for_rig, rig_components, rig_for_uid
+from nova.record_links import (
+    components_by_uid, components_for_rig, framing_for_object, rig_components, rig_for_uid,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -475,11 +477,8 @@ def generate_dso_notes():
             } if rc.camera else None,
         })
 
-    # Query for saved framing for this object
-    framing = db.query(SavedFraming).filter_by(
-        user_id=g.db_user.id,
-        object_name=obj.object_name
-    ).one_or_none()
+    # Query for saved framing for this object: the object's UID decides
+    framing = framing_for_object(db, g.db_user.id, obj.record_uid)
 
     # The UID alone decides which rig a framing names; no row-number or name fallback.
     rig = rig_for_uid(db, g.db_user.id, framing.rig_record_uid) if framing else None

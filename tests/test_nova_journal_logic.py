@@ -11,6 +11,7 @@ from nova import (
     app, DbUser, AstroObject, Project, JournalSession, Component, Rig
 )
 from nova.models import UserCustomFilter
+from nova.record_links import sync_project_link
 
 
 @contextmanager
@@ -139,6 +140,8 @@ def test_project_deletion_preserves_sessions(client, db_session):
     sess = JournalSession(user_id=user.id, project_id="p_del_test", date_utc=date(2025, 1, 1), object_name="M31")
 
     db_session.add_all([obj, proj, sess])
+    db_session.flush()
+    sync_project_link(db_session, proj)
     db_session.commit()
 
     # Capture ID as a simple integer to avoid DetachedInstanceError later

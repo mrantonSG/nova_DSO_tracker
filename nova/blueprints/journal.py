@@ -39,7 +39,9 @@ from nova.models import (
     DbUser, Project, JournalSession, Rig,
     AstroObject, UserCustomFilter
 )
-from nova.record_links import components_for_rig, rig_for_uid, sync_session_links, sync_project_link
+from nova.record_links import (
+    components_for_rig, object_for_uid, rig_for_uid, sync_session_links, sync_project_link,
+)
 from nova.helpers import (
     get_db, allowed_file, safe_float, safe_int,
     save_log_to_filesystem, read_log_content, dither_display,
@@ -887,10 +889,11 @@ def add_project_from_journal():
         sync_project_link(db, new_project)
         db.add(new_project)
 
-        # Auto-activate object if project is In Progress
+        # Auto-activate object if project is In Progress (the object is the
+        # one the project's target UID names, after sync_project_link above)
         should_trigger_outlook = False
         if target_object_id and status == 'In Progress':
-            obj = db.query(AstroObject).filter_by(user_id=user.id, object_name=target_object_id).first()
+            obj = object_for_uid(db, user.id, new_project.target_object_record_uid)
             if obj and not obj.active_project:
                 obj.active_project = True
                 should_trigger_outlook = True
@@ -1037,8 +1040,7 @@ def show_journal_report_page(session_id):
                 project_name = project.name
 
         # --- 2. Get Related Data ---
-        obj_record = db.query(AstroObject).filter_by(user_id=g.db_user.id,
-                                                     object_name=session.object_name).one_or_none()
+        obj_record = object_for_uid(db, g.db_user.id, session.object_record_uid)
 
         if obj_record:
             object_details = {

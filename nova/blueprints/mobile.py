@@ -31,7 +31,9 @@ import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay l
 from nova.models import (
     DbUser, AstroObject, SavedFraming, Rig, Project, JournalSession, UserCustomFilter
 )
-from nova.record_links import components_for_rig, rig_for_uid, sync_session_links, sync_project_link
+from nova.record_links import (
+    components_for_rig, framing_for_object, rig_for_uid, sync_session_links, sync_project_link,
+)
 from nova.helpers import (
     get_db, load_full_astro_context, safe_float, safe_int, generate_session_id, _compute_rig_metrics_from_components,
     resolve_sampling_interval, resolve_altitude_threshold,
@@ -437,11 +439,13 @@ def mobile_object_detail(object_name):
         # Get transit time
         transit_time_str = calculate_transit_time(ra, dec, lat, lon, tz_name, local_date)
 
-        # Get framing status
+        # Get framing status: the object is the one named in the URL (rule 3),
+        # the framing is found by that object's UID (rule 1)
         db = get_db()
-        has_framing = db.query(SavedFraming).filter_by(
-            user_id=g.db_user.id, object_name=object_name
-        ).first() is not None
+        obj_row = db.query(AstroObject).filter_by(
+            user_id=g.db_user.id, object_name=object_name).one_or_none()
+        has_framing = bool(obj_row) and framing_for_object(
+            db, g.db_user.id, obj_row.record_uid) is not None
 
     except Exception as e:
         print(f"[Mobile Object Detail] Error calculating object data: {e}")

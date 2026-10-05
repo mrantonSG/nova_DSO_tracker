@@ -175,12 +175,14 @@ def test_session_reused_row_number_never_uses_the_newer_rig(mu, db_session, monk
 
 def test_framing_reused_row_number_never_uses_the_newer_rig(mu, db_session, monkeypatch):
     client, a_id, _ = mu
-    db_session.add(AstroObject(user_id=a_id, object_name="M42", ra_hours=5.58, dec_deg=-5.4))
+    m42 = AstroObject(user_id=a_id, object_name="M42", ra_hours=5.58, dec_deg=-5.4)
+    db_session.add(m42)
     comps_old = _components(db_session, a_id, "Old")
     old = _rig(db_session, a_id, "Old", comps_old)
     comps_new = _components(db_session, a_id, "New", focal_mm=1000)
     newer = _rig(db_session, a_id, "New", comps_new)
     f = _framing(db_session, a_id, rig=old)
+    f.object_record_uid = m42.record_uid   # the framing belongs to the object by UID
     f.rig_id = newer.id                   # the row number now names the newer rig
     db_session.commit()
 
