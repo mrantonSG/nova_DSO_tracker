@@ -18,7 +18,7 @@ from the stored location_name text.
 
 from typing import NamedTuple, Optional
 
-from sqlalchemy import func, inspect, or_, select, text
+from sqlalchemy import and_, func, inspect, or_, select, text
 
 from nova.models import (
     AstroObject, Component, JournalSession, Location, Project, Rig, SavedFraming, _new_record_uid,
@@ -317,6 +317,147 @@ def sync_framing_links(db, framing):
 def sync_project_link(db, project):
     """Set the target object UID of a project."""
     _sync_uid(db, project, "target_object_record_uid", AstroObject, project.target_object_name)
+
+
+# --- Adopt on create and move between objects ----------------------------------
+
+def _empty_uid_rows(db, user_id, model, uid_col, name_col, uid, name):
+    """This user's `model` rows whose UID equals `uid`, or whose UID is empty
+    (NULL or "") and whose name column equals `name` exactly. A row whose UID
+    points elsewhere is never returned."""
+    clauses = []
+    if name is not None:
+        clauses.append(and_(or_(uid_col.is_(None), uid_col == ""), name_col == name))
+    if uid:
+        clauses.append(uid_col == uid)
+    if not clauses:
+        return []
+    return db.query(model).filter(model.user_id == user_id, or_(*clauses)).all()
+
+
+def adopt_unlinked_rows(db, row):
+    """Link a just-flushed AstroObject or Location to this user's rows that name it.
+
+    A row is adopted only when it belongs to the same user, its stored name
+    equals `row`'s name exactly ("=", as the sync helpers compare), and its UID
+    column is empty (NULL or ""). A row whose UID points at anything, including
+    a deleted record, is never touched. Returns the number of rows adopted.
+    """
+    if isinstance(row, AstroObject):
+        name, targets = row.object_name, (
+            (JournalSession, JournalSession.object_name, JournalSession.object_record_uid),
+            (Project, Project.target_object_name, Project.target_object_record_uid),
+            (SavedFraming, SavedFraming.object_name, SavedFraming.object_record_uid),
+        )
+    elif isinstance(row, Location):
+        name, targets = row.name, (
+            (JournalSession, JournalSession.location_name, JournalSession.location_record_uid),
+        )
+    else:
+        raise ValueError(f"{type(row).__name__} is not adopted on create")
+    uid = row.record_uid
+    if not uid or name is None:
+        return 0
+    adopted = 0
+    for model, name_col, uid_col in targets:
+        adopted += db.query(model).filter(
+            model.user_id == row.user_id, name_col == name,
+            or_(uid_col.is_(None), uid_col == ""),
+        ).update({uid_col: uid}, synchronize_session=False)
+    # Loaded rows still hold the empty UID; reload it on next access
+    # (SessionLocal uses expire_on_commit=False).
+    for model, _name_col, uid_col in targets:
+        for obj in list(db.identity_map.values()):
+            if isinstance(obj, model) and obj.user_id == row.user_id:
+                db.expire(obj, [uid_col.key])
+    return adopted
+
+
+def adopt_unlinked_rows_for_user(db, user_id, links=NAME_LINKS):
+    """Link every empty-UID row of `user_id` whose stored name names one of the
+    user's objects or locations, in one set-based UPDATE per link.
+
+    Only rows whose UID column is empty (NULL or "") change; a row with any
+    non-empty UID, including a dangling one, is never touched. Call once after
+    a bulk create, with a flush first so the new rows are seen. Returns
+    {link name: rows changed}.
+    """
+    db.flush()
+    changed = {}
+    for link in links:
+        if link.by_id:
+            raise ValueError(f"{link.name} is a row-number link and is never adopted in bulk")
+        expected = _expected_uid_sql(link, link.table)
+        empty = f"NULLIF({link.table}.{link.uid_col}, '') IS NULL"
+        changed[link.name] = db.execute(
+            text(f"UPDATE {link.table} SET {link.uid_col} = {expected} "
+                 f"WHERE user_id = :user_id AND {empty} AND {expected} IS NOT NULL"),
+            {"user_id": user_id},
+        ).rowcount
+        # Loaded rows still hold the empty UID; reload it on next access.
+        model = _TABLE_MODELS[link.table]
+        for obj in list(db.identity_map.values()):
+            if isinstance(obj, model) and obj.user_id == user_id:
+                db.expire(obj, [link.uid_col])
+    return changed
+
+
+def repoint_object_links(db, user_id, old_uid, old_name, new_uid, new_name,
+                         delete_conflicting_framing=False):
+    """Point this user's rows linked to one object at another object.
+
+    A row is linked to the old object when its UID equals `old_uid`, or when its
+    UID is empty (NULL or "") and its name equals `old_name` exactly. Each such
+    row gets the new name text and the new UID. A row already linked to the new
+    object (its UID equals `new_uid`) only gets the new name text, its UID
+    untouched. A row whose UID points at any other object is never touched. When
+    `delete_conflicting_framing` is set, a saved framing already linked to the
+    target wins and the linked framing is deleted instead of moved (the merge
+    rule). The rig UID of a framing is not touched.
+    Returns {"sessions": n, "projects": n, "framings": n}.
+    """
+    moved = {"sessions": 0, "projects": 0, "framings": 0}
+    for model, key, uid_col, name_col in (
+        (JournalSession, "sessions", JournalSession.object_record_uid, JournalSession.object_name),
+        (Project, "projects", Project.target_object_record_uid, Project.target_object_name),
+    ):
+        for r in _empty_uid_rows(db, user_id, model, uid_col, name_col, old_uid, old_name):
+            setattr(r, name_col.key, new_name)
+            setattr(r, uid_col.key, new_uid)
+            moved[key] += 1
+        if new_uid:
+            for r in db.query(model).filter(model.user_id == user_id, uid_col == new_uid).all():
+                if getattr(r, name_col.key) != new_name:
+                    setattr(r, name_col.key, new_name)
+                    moved[key] += 1
+    framing_keep = None
+    if delete_conflicting_framing:
+        framing_keep = db.query(SavedFraming).filter_by(
+            user_id=user_id, object_name=new_name).one_or_none()
+    for f in _empty_uid_rows(db, user_id, SavedFraming, SavedFraming.object_record_uid,
+                             SavedFraming.object_name, old_uid, old_name):
+        if framing_keep is not None and framing_keep.id != f.id:
+            db.delete(f)
+        else:
+            f.object_name = new_name
+            f.object_record_uid = new_uid
+            moved["framings"] += 1
+    if new_uid:
+        for f in db.query(SavedFraming).filter(
+                SavedFraming.user_id == user_id,
+                SavedFraming.object_record_uid == new_uid).all():
+            if f.object_name == new_name:
+                continue
+            # A framing name is unique per user: do not collide with another one.
+            clash = db.query(SavedFraming).filter(
+                SavedFraming.user_id == user_id,
+                SavedFraming.object_name == new_name,
+                SavedFraming.id != f.id,
+            ).first()
+            if clash is None:
+                f.object_name = new_name
+                moved["framings"] += 1
+    return moved
 
 
 # --- Bulk ------------------------------------------------------------------------

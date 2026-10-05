@@ -99,7 +99,9 @@ from ics import Calendar, Event
 import arrow
 
 from nova.config import ADMIN_USERS, CACHE_DIR, UPLOAD_FOLDER, cache_worker_status
-from nova.record_links import components_by_uid, location_references, object_references, rig_components
+from nova.record_links import (
+    adopt_unlinked_rows, components_by_uid, location_references, object_references, rig_components,
+)
 from nova.helpers import (
     _compute_rig_metrics_from_components,
     _parse_float_from_request,
@@ -688,6 +690,7 @@ def config_form():
                     )
                     db.add(new_loc);
                     db.flush()
+                    adopt_unlinked_rows(db, new_loc)
                     skyglow_locations.append(new_loc)
                     mask_str = request.form.get("new_horizon_mask", "").strip()
                     if mask_str:
@@ -1360,6 +1363,8 @@ def confirm_object():
                 description_source_link=description_source_link
             )
             db.add(new_obj)
+            db.flush()
+            adopt_unlinked_rows(db, new_obj)
 
         db.commit()
         bust_astro_context_cache(g.db_user.id)

@@ -55,8 +55,8 @@ from nova.models import (
     Component, SavedView, SavedFraming, Rig, Location, UiPref
 )
 from nova.record_links import (
-    framed_object_uids, object_for_uid, object_references, sync_framing_links,
-    sync_project_link, sync_session_links, uid_for_name,
+    adopt_unlinked_rows, framed_object_uids, object_for_uid, object_references,
+    repoint_object_links, sync_framing_links,
 )
 from nova.auth import db as auth_db, User
 from nova.analytics import record_event
@@ -762,6 +762,8 @@ def import_item():
                 description_source_link=original_obj.description_source_link
             )
             db.add(new_obj)
+            db.flush()
+            adopt_unlinked_rows(db, new_obj)
 
         elif item_type == 'component':
             # --- Import a Component ---
@@ -1890,6 +1892,11 @@ def merge_objects():
     try:
         user_id = g.db_user.id
 
+        # A merge of an object into itself would delete it; refuse before any change.
+        if keep_id == merge_id:
+            return jsonify({"status": "error",
+                            "message": "Cannot merge an object into itself."}), 400
+
         # 1. Fetch Objects
         obj_keep = db.query(AstroObject).filter_by(user_id=user_id, object_name=keep_id).one_or_none()
         obj_merge = db.query(AstroObject).filter_by(user_id=user_id, object_name=merge_id).one_or_none()
@@ -1899,35 +1906,16 @@ def merge_objects():
 
         print(f"[MERGE] Merging '{merge_id}' INTO '{keep_id}'...")
 
-        # 2. Re-link Journals
-        journals = db.query(JournalSession).filter_by(user_id=user_id, object_name=merge_id).all()
-        for j in journals:
-            j.object_name = keep_id
-            sync_session_links(db, j, include_rig=False)
-        print(f"   -> Moved {len(journals)} journal sessions.")
-
-        # 3. Re-link Projects
-        projects = db.query(Project).filter_by(user_id=user_id, target_object_name=merge_id).all()
-        for p in projects:
-            p.target_object_name = keep_id
-            sync_project_link(db, p)
-        print(f"   -> Updated {len(projects)} projects.")
-
-        # 4. Handle Framings
-        framing_keep = db.query(SavedFraming).filter_by(user_id=user_id, object_name=keep_id).one_or_none()
-        framing_merge = db.query(SavedFraming).filter_by(user_id=user_id, object_name=merge_id).one_or_none()
-
-        if framing_merge:
-            if not framing_keep:
-                # Move framing to the kept object
-                framing_merge.object_name = keep_id
-                # Only the object moves: the rig UID is left as it is
-                framing_merge.object_record_uid = uid_for_name(db, AstroObject, user_id, keep_id)
-                print(f"   -> Moved framing from {merge_id} to {keep_id}.")
-            else:
-                # Conflict: Keep existing framing on target, delete merged one
-                db.delete(framing_merge)
-                print(f"   -> Deleted conflicting framing from {merge_id}.")
+        # 2-4. Move only the rows linked to the merged object onto the kept one:
+        #      by UID, or an empty UID with the exact merged name. A UID that
+        #      points elsewhere is never moved. A row already linked to the kept
+        #      object only gets the kept name text. Framings keep the conflict rule.
+        moved = repoint_object_links(db, user_id, obj_merge.record_uid, merge_id,
+                                     obj_keep.record_uid, keep_id,
+                                     delete_conflicting_framing=True)
+        print(f"   -> Moved {moved['sessions']} journal sessions.")
+        print(f"   -> Updated {moved['projects']} projects.")
+        print(f"   -> Moved or deleted {moved['framings']} framing(s).")
 
         # 5. Merge Notes (Append if different)
         if obj_merge.project_name:

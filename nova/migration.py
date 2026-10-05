@@ -30,7 +30,8 @@ from nova.models import (
     JournalSession, Project, UserCustomFilter, UiPref,
 )
 from nova.record_links import (
-    sync_framing_links, sync_project_link, sync_rig_links, sync_session_links, uid_of,
+    adopt_unlinked_rows_for_user, sync_framing_links, sync_project_link, sync_rig_links,
+    sync_session_links, uid_of,
 )
 
 def load_catalog_pack(pack_id: str) -> tuple[dict | None, dict | None]:
@@ -214,6 +215,9 @@ def _migrate_locations(db, user: DbUser, config: dict):
         fallback_name = resolve_default_location_name(rows, None)
         next(l for l in rows if l.name == fallback_name).is_default = True
         db.flush()
+
+    # New locations adopt this user's empty-UID rows that name them, in one pass.
+    adopt_unlinked_rows_for_user(db, user.id)
 
 
 
@@ -506,6 +510,9 @@ def _migrate_objects(db, user: DbUser, config: dict):
             # If one object entry is malformed, log the error and continue with the rest.
             db.rollback()
             print(f"[MIGRATION] Could not process object entry '{o}'. Error: {e}")
+
+    # The new objects adopt this user's empty-UID rows that name them, in one pass.
+    adopt_unlinked_rows_for_user(db, user.id)
 
 
 
@@ -1593,6 +1600,9 @@ def import_catalog_pack_for_user(db, user: DbUser, catalog_config: dict, pack_id
         except Exception as e:
             print(f"[CATALOG IMPORT] Error processing '{o}': {e}")
             skipped += 1
+
+    # The new objects adopt this user's empty-UID rows that name them, in one pass.
+    adopt_unlinked_rows_for_user(db, user.id)
 
     return (created, enriched, skipped, conflicts)
 

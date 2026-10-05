@@ -114,7 +114,8 @@ from nova.models import (
     AstroObject, Component, Rig, JournalSession, UiPref, UserCustomFilter
 )
 from nova.record_links import (
-    LINKS as UID_LINKS, framed_object_uids, sync_rig_links, sync_session_links,
+    LINKS as UID_LINKS, adopt_unlinked_rows_for_user, framed_object_uids,
+    repoint_object_links, sync_rig_links,
 )
 from nova.config import (
     APP_VERSION, TEMPLATE_DIR, CACHE_DIR, CONFIG_DIR, BACKUP_DIR,
@@ -389,6 +390,10 @@ def _seed_user_from_guest_data(db_session, user_to_seed: 'DbUser'):
             db_session.add(new_rig)
             rigs_added += 1
     print(f"      -> Copied {rigs_added} new rigs (skipped {len(guest_rigs) - rigs_added} existing).")
+
+    # The copied objects and locations adopt this user's empty-UID rows that name
+    # them, in one pass.
+    adopt_unlinked_rows_for_user(db_session, new_user_id)
 
     print(f"   -> [SEEDING] Granular seeding complete for '{user_to_seed.username}'.")
 
@@ -3753,13 +3758,12 @@ def repair_corrupt_ids_command():
                                 existing_correct_obj.project_name = (
                                                                                 existing_correct_obj.project_name or "") + f"<br>---<br><em>(Merged from corrupt: {corrupt_name})</em><br>{notes_to_merge}"
 
-                        # 2. Re-link journals that point to the corrupt name
-                        db.query(JournalSession).filter_by(user_id=user.id, object_name=corrupt_name).update(
-                            {'object_name': repaired_name})
-                        # The bulk update skips the ORM rows: sync their object UID by the new name.
-                        db.flush()
-                        for j in db.query(JournalSession).filter_by(user_id=user.id, object_name=repaired_name).all():
-                            sync_session_links(db, j, include_rig=False)
+                        # 2. Move every row that points at the corrupt object onto the
+                        #    surviving one: by UID, or an empty UID with the exact
+                        #    corrupt name. The merge rule keeps the surviving framing.
+                        repoint_object_links(db, user.id, obj_to_fix.record_uid, corrupt_name,
+                                             existing_correct_obj.record_uid, repaired_name,
+                                             delete_conflicting_framing=True)
 
                         # 3. Delete the corrupt object
                         db.delete(obj_to_fix)
@@ -3772,14 +3776,11 @@ def repair_corrupt_ids_command():
                         # 1. Rename the object
                         obj_to_fix.object_name = repaired_name
 
-                        # 2. Update all journal entries that pointed to the corrupt name
-                        db.query(JournalSession).filter_by(user_id=user.id, object_name=corrupt_name).update(
-                            {'object_name': repaired_name})
-                        # The bulk update skips the ORM rows: sync their object UID by the new name.
-                        # Flush first, the object's rename is still pending.
-                        db.flush()
-                        for j in db.query(JournalSession).filter_by(user_id=user.id, object_name=repaired_name).all():
-                            sync_session_links(db, j, include_rig=False)
+                        # 2. Give every row that points at the renamed object the new
+                        #    name text: by UID, or an empty UID with the exact old
+                        #    name, which is linked at the same time. The UID is kept.
+                        repoint_object_links(db, user.id, obj_to_fix.record_uid, corrupt_name,
+                                             obj_to_fix.record_uid, repaired_name)
 
                         # 3. Update the lookup map for this user
                         objects_by_name[repaired_name] = obj_to_fix
