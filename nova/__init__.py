@@ -941,6 +941,25 @@ def _run_schema_patches(conn):
             f"(table may not exist yet): {patch_err}"
         )
 
+    # --- Per-user record_uid on locations, components, rigs, astro_objects ---
+    # Index names must match the Index() entries in nova/models.py so create_all
+    # and this patch never produce two indexes for the same columns.
+    for table in ("locations", "components", "rigs", "astro_objects"):
+        cols = {row[1] for row in conn.exec_driver_sql(f"PRAGMA table_info({table});").fetchall()}
+        if "record_uid" not in cols:
+            conn.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN record_uid VARCHAR(36);")
+            print(f"[DB PATCH] Added missing column {table}.record_uid")
+        # Backfill before the index so duplicate '' values can't block its creation.
+        filled = conn.exec_driver_sql(
+            f"UPDATE {table} SET record_uid = lower(hex(randomblob(16))) "
+            f"WHERE record_uid IS NULL OR record_uid = '';"
+        ).rowcount
+        if filled:
+            print(f"[DB PATCH] Backfilled record_uid for {filled} row(s) in {table}")
+        conn.exec_driver_sql(
+            f"CREATE UNIQUE INDEX IF NOT EXISTS uq_{table}_user_record_uid ON {table}(user_id, record_uid);"
+        )
+
 
 def ensure_db_initialized_unified():
     """

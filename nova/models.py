@@ -1,9 +1,10 @@
 import os
+import uuid
 from datetime import datetime
 
 from sqlalchemy import (
     create_engine, Column, Integer, Float, String, Boolean, Date,
-    ForeignKey, Text, UniqueConstraint, CheckConstraint, Table
+    ForeignKey, Text, UniqueConstraint, CheckConstraint, Table, Index
 )
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker, scoped_session
 
@@ -24,6 +25,10 @@ session_projects = Table(
     Column('session_id', Integer, ForeignKey('journal_sessions.id', ondelete='CASCADE'), primary_key=True),
     Column('project_id', String(64), ForeignKey('projects.id', ondelete='CASCADE'), primary_key=True),
 )
+
+
+def _new_record_uid():
+    return uuid.uuid4().hex
 
 
 # --- MODELS ------------------------------------------------------------------
@@ -91,6 +96,7 @@ class Location(Base):
     __tablename__ = 'locations'
     id = Column(Integer, primary_key=True)
     stable_uid = Column(String(36), unique=True, nullable=True)
+    record_uid = Column(String(36), nullable=True, default=_new_record_uid)
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
     name = Column(String(128), nullable=False)
     lat = Column(Float, nullable=False)
@@ -108,6 +114,7 @@ class Location(Base):
     __table_args__ = (
         UniqueConstraint('user_id', 'name', name='uq_user_location_name'),
         CheckConstraint('bortle_scale IS NULL OR (bortle_scale >= 1 AND bortle_scale <= 9)', name='ck_bortle_scale_range'),
+        Index('uq_locations_user_record_uid', 'user_id', 'record_uid', unique=True),
     )
 
 
@@ -160,6 +167,7 @@ class HorizonPoint(Base):
 class AstroObject(Base):
     __tablename__ = 'astro_objects'
     id = Column(Integer, primary_key=True)
+    record_uid = Column(String(36), nullable=True, default=_new_record_uid)
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
     object_name = Column(String(256), nullable=False, index=True)
     common_name = Column(String(256), nullable=True)
@@ -190,7 +198,10 @@ class AstroObject(Base):
     description_credit = Column(String(256), nullable=True)
     description_source_link = Column(String(500), nullable=True)
 
-    __table_args__ = (UniqueConstraint('user_id', 'object_name', name='uq_user_object'),)
+    __table_args__ = (
+        UniqueConstraint('user_id', 'object_name', name='uq_user_object'),
+        Index('uq_astro_objects_user_record_uid', 'user_id', 'record_uid', unique=True),
+    )
 
     def to_dict(self):
         """Converts this object into a YAML-safe dictionary."""
@@ -240,6 +251,7 @@ class Component(Base):
     __tablename__ = 'components'
     id = Column(Integer, primary_key=True)
     stable_uid = Column(String(36), unique=True, nullable=True)
+    record_uid = Column(String(36), nullable=True, default=_new_record_uid)
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
     kind = Column(String(32), nullable=False)  # 'telescope' | 'camera' | 'reducer_extender'
     name = Column(String(256), nullable=False)
@@ -254,12 +266,16 @@ class Component(Base):
     original_item_id = Column(Integer, nullable=True, index=True)
     user = relationship("DbUser", foreign_keys=[user_id], back_populates="components")
     rigs_using = relationship("Rig", back_populates="telescope", foreign_keys="Rig.telescope_id")
+    __table_args__ = (
+        Index('uq_components_user_record_uid', 'user_id', 'record_uid', unique=True),
+    )
 
 
 class Rig(Base):
     __tablename__ = 'rigs'
     id = Column(Integer, primary_key=True)
     stable_uid = Column(String(36), unique=True, nullable=True)
+    record_uid = Column(String(36), nullable=True, default=_new_record_uid)
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
     rig_name = Column(String(256), nullable=False, index=True)
     telescope_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)
@@ -285,7 +301,10 @@ class Rig(Base):
     reducer_extender = relationship("Component", foreign_keys=[reducer_extender_id])
     guide_telescope = relationship("Component", foreign_keys=[guide_telescope_id])
     guide_camera = relationship("Component", foreign_keys=[guide_camera_id])
-    __table_args__ = (UniqueConstraint('user_id', 'rig_name', name='uq_user_rig_name'),)
+    __table_args__ = (
+        UniqueConstraint('user_id', 'rig_name', name='uq_user_rig_name'),
+        Index('uq_rigs_user_record_uid', 'user_id', 'record_uid', unique=True),
+    )
 
 
 class JournalSession(Base):
