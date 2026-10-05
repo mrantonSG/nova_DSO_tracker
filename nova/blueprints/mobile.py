@@ -23,7 +23,6 @@ from markupsafe import escape
 
 from flask_login import login_required, current_user
 from flask_babel import gettext as _
-from sqlalchemy.orm import selectinload
 
 # =============================================================================
 # Nova Package Imports (no circular import)
@@ -32,7 +31,7 @@ import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay l
 from nova.models import (
     DbUser, AstroObject, SavedFraming, Rig, Project, JournalSession, UserCustomFilter
 )
-from nova.record_links import sync_session_links, sync_project_link
+from nova.record_links import components_for_rig, sync_session_links, sync_project_link
 from nova.helpers import (
     get_db, load_full_astro_context, safe_float, safe_int, generate_session_id, _compute_rig_metrics_from_components,
     resolve_sampling_interval, resolve_altitude_threshold,
@@ -223,8 +222,9 @@ def mobile_mosaic_view(object_name):
     fov_h_deg = (rig.fov_w_arcmin / 60.0)  # Default square if missing
 
     # Try to be precise if components exist
-    if rig.camera and rig.camera.sensor_height_mm and rig.effective_focal_length:
-        fov_h_deg = math.degrees(2 * math.atan((rig.camera.sensor_height_mm / 2.0) / rig.effective_focal_length))
+    rc = components_for_rig(db, rig)
+    if rc.camera and rc.camera.sensor_height_mm and rig.effective_focal_length:
+        fov_h_deg = math.degrees(2 * math.atan((rc.camera.sensor_height_mm / 2.0) / rig.effective_focal_length))
 
     cols = framing.mosaic_cols or 1
     rows = framing.mosaic_rows or 1
@@ -502,9 +502,7 @@ def mobile_journal_new():
         return redirect(url_for('mobile.mobile_up_now'))
 
     # Fetch rigs for this user (same as graph_dashboard)
-    rigs_from_db = db.query(Rig).options(
-        selectinload(Rig.telescope), selectinload(Rig.camera), selectinload(Rig.reducer_extender)
-    ).filter_by(user_id=user.id).all()
+    rigs_from_db = db.query(Rig).filter_by(user_id=user.id).all()
 
     # GET request - render form
     if request.method == 'GET':
@@ -572,22 +570,21 @@ def mobile_journal_new():
         if rig_id_str:
             try:
                 rig_id = int(rig_id_str)
-                rig = db.query(Rig).options(
-                    selectinload(Rig.telescope), selectinload(Rig.camera), selectinload(Rig.reducer_extender)
-                ).filter_by(id=rig_id, user_id=user.id).one_or_none()
+                rig = db.query(Rig).filter_by(id=rig_id, user_id=user.id).one_or_none()
 
                 if rig:
                     rig_id_snap = rig.id
                     rig_name_snap = rig.rig_name
+                    rc = components_for_rig(db, rig)
                     efl_snap, fr_snap, scale_snap, fov_w_snap = _compute_rig_metrics_from_components(
-                        rig.telescope, rig.camera, rig.reducer_extender
+                        rc.telescope, rc.camera, rc.reducer_extender
                     )
-                    if rig.camera and rig.camera.sensor_height_mm and efl_snap:
-                        fov_h_snap = (degrees(2 * atan((rig.camera.sensor_height_mm / 2.0) / efl_snap)) * 60.0)
+                    if rc.camera and rc.camera.sensor_height_mm and efl_snap:
+                        fov_h_snap = (degrees(2 * atan((rc.camera.sensor_height_mm / 2.0) / efl_snap)) * 60.0)
 
-                    tel_name_snap = rig.telescope.name if rig.telescope else None
-                    reducer_name_snap = rig.reducer_extender.name if rig.reducer_extender else None
-                    camera_name_snap = rig.camera.name if rig.camera else None
+                    tel_name_snap = rc.telescope.name if rc.telescope else None
+                    reducer_name_snap = rc.reducer_extender.name if rc.reducer_extender else None
+                    camera_name_snap = rc.camera.name if rc.camera else None
             except (ValueError, TypeError):
                 pass  # rig_id_str was invalid (e.g., "")
 

@@ -32,6 +32,7 @@ from nova import (
     SavedView,
     SavedFraming
 )
+from nova.record_links import sync_rig_links
 
 
 # --- Existing Tests (from your file) ---
@@ -742,6 +743,7 @@ def test_add_journal_session_with_full_rig_snapshot(client, db_session):
     # Create Rig (EFL: 2030*0.7 = 1421.0, f/ratio: 1421/203 = 7.0)
     rig = Rig(user_id=user.id, rig_name="EHD8 + 533", telescope_id=scope.id, reducer_extender_id=reducer.id,
               camera_id=cam.id)
+    sync_rig_links(db_session, rig)
     db_session.add(rig)
     db_session.commit()
 
@@ -806,6 +808,7 @@ def test_journal_edit_fills_missing_snapshots(client, db_session):
     db_session.commit()
 
     rig = Rig(user_id=user.id, rig_name="Apo-183", telescope_id=scope.id, camera_id=cam.id)
+    sync_rig_links(db_session, rig)
     db_session.add(rig)
     db_session.commit()
 

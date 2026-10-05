@@ -15,6 +15,7 @@ from nova import (
     Rig,
     get_db
 )
+from nova.record_links import sync_rig_links
 
 
 def test_graph_dashboard_full_context(client, db_session):
@@ -70,6 +71,7 @@ def test_graph_dashboard_full_context(client, db_session):
         telescope_id=scope.id,
         camera_id=cam.id
     )
+    sync_rig_links(db_session, rig)
     db_session.add(rig)
     db_session.commit()
 

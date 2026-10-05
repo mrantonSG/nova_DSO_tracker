@@ -40,7 +40,7 @@ from nova.models import (
     JournalSession, Project, UserCustomFilter, session_projects,
     SavedFraming, SavedView, UiPref,
 )
-from nova.record_links import NAME_LINKS, resync_user_links, sync_rig_links
+from nova.record_links import NAME_LINKS, resync_user_links, rig_components, sync_rig_links
 from nova.migration import (
     _upsert_user,
     validate_journal_data, repair_journals,
@@ -364,6 +364,8 @@ def get_rig_data():
     telescopes = [c for c in components if c.kind == 'telescope']
     cameras = [c for c in components if c.kind == 'camera']
     reducers = [c for c in components if c.kind == 'reducer_extender']
+    # A rig's components are found by their record_uid links, not by row number
+    by_uid = {c.record_uid: c for c in components if c.record_uid}
 
     # Fetch all rigs and their related components eagerly
     rigs_from_db = db.query(Rig).filter_by(user_id=user.id).all()
@@ -394,15 +396,13 @@ def get_rig_data():
     rigs_list = []
     for r in rigs_from_db:
         # Use the already fetched components to calculate rig data
-        tel_obj = next((c for c in telescopes if c.id == r.telescope_id), None)
-        cam_obj = next((c for c in cameras if c.id == r.camera_id), None)
-        red_obj = next((c for c in reducers if c.id == r.reducer_extender_id), None)
+        rc = rig_components(r, by_uid)
+        tel_obj, cam_obj, red_obj = rc.telescope, rc.camera, rc.reducer_extender
         efl, f_ratio, scale, fov_w = _compute_rig_metrics_from_components(tel_obj, cam_obj, red_obj)
         fov_h = (degrees(2 * atan((cam_obj.sensor_height_mm / 2.0) / efl)) * 60.0) if cam_obj and cam_obj.sensor_height_mm and efl else None
 
         # Resolve guide optics FK references
-        guide_tel_obj = next((c for c in telescopes if c.id == r.guide_telescope_id), None) if r.guide_telescope_id else None
-        guide_cam_obj = next((c for c in cameras if c.id == r.guide_camera_id), None) if r.guide_camera_id else None
+        guide_tel_obj, guide_cam_obj = rc.guide_telescope, rc.guide_camera
 
         # Calculate dither recommendation if guide optics are configured
         dither_rec = None

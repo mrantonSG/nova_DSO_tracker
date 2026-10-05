@@ -32,6 +32,7 @@ import nova
 from nova.config import ADMIN_USERS
 from nova.helpers import get_db, resolve_altitude_threshold
 from nova.models import AstroObject, Location, Rig, JournalSession, SavedFraming
+from nova.record_links import components_by_uid, components_for_rig, rig_components
 
 logger = logging.getLogger(__name__)
 
@@ -442,16 +443,14 @@ def generate_dso_notes():
             target_transit_time = None
 
     # Gather rig context
-    rig_rows = db.query(Rig).options(
-        selectinload(Rig.telescope),
-        selectinload(Rig.camera),
-        selectinload(Rig.reducer_extender)
-    ).filter_by(user_id=g.db_user.id).all()
+    rig_rows = db.query(Rig).filter_by(user_id=g.db_user.id).all()
+    by_uid = components_by_uid(db, g.db_user.id)
 
     rigs = []
     for rig in rig_rows:
+        rc = rig_components(rig, by_uid)
         # Detect camera type (OSC vs mono) from camera name
-        cam_name = rig.camera.name if rig.camera else None
+        cam_name = rc.camera.name if rc.camera else None
         cam_name_lower = (cam_name or "").lower()
         is_mono = any(x in cam_name_lower for x in ["mm", "mono", " m "])
         camera_type = "mono" if is_mono else "OSC"
@@ -462,18 +461,18 @@ def generate_dso_notes():
             "f_ratio": rig.f_ratio,
             "fov_w_arcmin": rig.fov_w_arcmin,
             "image_scale": rig.image_scale,
-            "aperture_mm": rig.telescope.aperture_mm if rig.telescope else None,
+            "aperture_mm": rc.telescope.aperture_mm if rc.telescope else None,
             "camera_type": camera_type,
             "telescope": {
-                "name": rig.telescope.name if rig.telescope else None,
-                "aperture_mm": rig.telescope.aperture_mm if rig.telescope else None,
-                "focal_length_mm": rig.telescope.focal_length_mm if rig.telescope else None,
-            } if rig.telescope else None,
+                "name": rc.telescope.name if rc.telescope else None,
+                "aperture_mm": rc.telescope.aperture_mm if rc.telescope else None,
+                "focal_length_mm": rc.telescope.focal_length_mm if rc.telescope else None,
+            } if rc.telescope else None,
             "camera": {
-                "name": rig.camera.name if rig.camera else None,
-                "sensor_width_mm": rig.camera.sensor_width_mm if rig.camera else None,
-                "pixel_size_um": rig.camera.pixel_size_um if rig.camera else None,
-            } if rig.camera else None,
+                "name": rc.camera.name if rc.camera else None,
+                "sensor_width_mm": rc.camera.sensor_width_mm if rc.camera else None,
+                "pixel_size_um": rc.camera.pixel_size_um if rc.camera else None,
+            } if rc.camera else None,
         })
 
     # Query for saved framing for this object
@@ -484,10 +483,7 @@ def generate_dso_notes():
 
     rig = None
     if framing and framing.rig_id:
-        rig = db.query(Rig).options(
-            selectinload(Rig.telescope),
-            selectinload(Rig.camera)
-        ).filter_by(id=framing.rig_id, user_id=g.db_user.id).one_or_none()
+        rig = db.query(Rig).filter_by(id=framing.rig_id, user_id=g.db_user.id).one_or_none()
 
         if rig is None and framing.rig_name:
             rig = next((r for r in rig_rows if r.rig_name == framing.rig_name), None)
@@ -495,17 +491,18 @@ def generate_dso_notes():
     # Build framing context if a saved framing exists with a rig
     framing_context = None
     if rig:
+        rc = components_for_rig(db, rig)
         # Calculate FOV height from sensor dimensions and focal length
         # Formula: (sensor_height_mm / focal_length_mm) * 3437.75 = arcmin
         fov_h_arcmin = None
-        if rig.camera and rig.camera.sensor_height_mm and rig.effective_focal_length:
-            fov_h_arcmin = (rig.camera.sensor_height_mm / rig.effective_focal_length) * 3437.75
+        if rc.camera and rc.camera.sensor_height_mm and rig.effective_focal_length:
+            fov_h_arcmin = (rc.camera.sensor_height_mm / rig.effective_focal_length) * 3437.75
 
         framing_context = {
             "rig_name": rig.rig_name,
-            "telescope_name": rig.telescope.name if rig.telescope else None,
+            "telescope_name": rc.telescope.name if rc.telescope else None,
             "focal_length_mm": rig.effective_focal_length,
-            "sensor_width_mm": rig.camera.sensor_width_mm if rig.camera else None,
+            "sensor_width_mm": rc.camera.sensor_width_mm if rc.camera else None,
             "pixel_scale_arcsec_px": rig.image_scale,
             "fov_w_deg": (rig.fov_w_arcmin / 60) if rig.fov_w_arcmin else None,
             "fov_h_deg": (fov_h_arcmin / 60) if fov_h_arcmin else None,
@@ -675,26 +672,28 @@ def generate_session_summary():
         if session.rig_id_snapshot:
             rig = db.query(Rig).filter(Rig.id == session.rig_id_snapshot,
                                        Rig.user_id == g.db_user.id).first()
-            if rig and (not rig.guide_camera_id or not rig.guide_telescope_id):
+            rc = components_for_rig(db, rig) if rig else None
+            if rig and (rc.guide_camera is None or rc.guide_telescope is None):
                 # Fallback: try to find rig by partial name match if guide hardware IDs are missing
                 rig = db.query(Rig).filter(
                     Rig.user_id == g.db_user.id,
                     Rig.rig_name.ilike(f"%{session.rig_name_snapshot}%"),
-                    Rig.guide_camera_id.isnot(None)
+                    Rig.guide_camera_record_uid.isnot(None)
                 ).first()
+                rc = components_for_rig(db, rig) if rig else None
 
             if rig:
                 # Resolve guide_pixel_um with legacy-column fallback
-                if rig.guide_camera and rig.guide_camera.pixel_size_um is not None:
-                    guide_pixel_um = rig.guide_camera.pixel_size_um
+                if rc.guide_camera and rc.guide_camera.pixel_size_um is not None:
+                    guide_pixel_um = rc.guide_camera.pixel_size_um
                 elif rig.guide_pixel_size_um is not None:
                     guide_pixel_um = rig.guide_pixel_size_um
 
                 # Resolve guide_FL_mm with legacy-column fallback
                 if rig.guide_is_oag:
                     guide_FL_mm = rig.effective_focal_length
-                elif rig.guide_telescope and rig.guide_telescope.focal_length_mm is not None:
-                    guide_FL_mm = rig.guide_telescope.focal_length_mm
+                elif rc.guide_telescope and rc.guide_telescope.focal_length_mm is not None:
+                    guide_FL_mm = rc.guide_telescope.focal_length_mm
                 elif not rig.guide_is_oag and rig.guide_focal_length_mm is not None:
                     guide_FL_mm = rig.guide_focal_length_mm
 
@@ -978,25 +977,23 @@ def get_best_objects():
         user_settings["min_max_altitude"] = imaging_criteria.get("min_max_altitude", 30)
 
     # Gather rig context and find max aperture
-    rig_rows = db.query(Rig).options(
-        selectinload(Rig.telescope),
-        selectinload(Rig.camera),
-        selectinload(Rig.reducer_extender)
-    ).filter_by(user_id=g.db_user.id).all()
+    rig_rows = db.query(Rig).filter_by(user_id=g.db_user.id).all()
+    by_uid = components_by_uid(db, g.db_user.id)
 
     rigs = []
     max_aperture_mm = None
     for rig in rig_rows:
+        rc = rig_components(rig, by_uid)
         # Detect camera type (OSC vs mono) from camera name
-        cam_name = rig.camera.name if rig.camera else None
+        cam_name = rc.camera.name if rc.camera else None
         cam_name_lower = (cam_name or "").lower()
         is_mono = any(x in cam_name_lower for x in ["mm", "mono", " m "])
         camera_type = "mono" if is_mono else "OSC"
 
         # Track max aperture
-        if rig.telescope and rig.telescope.aperture_mm:
-            if max_aperture_mm is None or rig.telescope.aperture_mm > max_aperture_mm:
-                max_aperture_mm = rig.telescope.aperture_mm
+        if rc.telescope and rc.telescope.aperture_mm:
+            if max_aperture_mm is None or rc.telescope.aperture_mm > max_aperture_mm:
+                max_aperture_mm = rc.telescope.aperture_mm
 
         rigs.append({
             "name": rig.rig_name,
@@ -1004,18 +1001,18 @@ def get_best_objects():
             "f_ratio": rig.f_ratio,
             "fov_w_arcmin": rig.fov_w_arcmin,
             "image_scale": rig.image_scale,
-            "aperture_mm": rig.telescope.aperture_mm if rig.telescope else None,
+            "aperture_mm": rc.telescope.aperture_mm if rc.telescope else None,
             "camera_type": camera_type,
             "telescope": {
-                "name": rig.telescope.name if rig.telescope else None,
-                "aperture_mm": rig.telescope.aperture_mm if rig.telescope else None,
-                "focal_length_mm": rig.telescope.focal_length_mm if rig.telescope else None,
-            } if rig.telescope else None,
+                "name": rc.telescope.name if rc.telescope else None,
+                "aperture_mm": rc.telescope.aperture_mm if rc.telescope else None,
+                "focal_length_mm": rc.telescope.focal_length_mm if rc.telescope else None,
+            } if rc.telescope else None,
             "camera": {
-                "name": rig.camera.name if rig.camera else None,
-                "sensor_width_mm": rig.camera.sensor_width_mm if rig.camera else None,
-                "pixel_size_um": rig.camera.pixel_size_um if rig.camera else None,
-            } if rig.camera else None,
+                "name": rc.camera.name if rc.camera else None,
+                "sensor_width_mm": rc.camera.sensor_width_mm if rc.camera else None,
+                "pixel_size_um": rc.camera.pixel_size_um if rc.camera else None,
+            } if rc.camera else None,
         })
 
     # Run pre_filter_objects on incoming object list
@@ -1269,15 +1266,15 @@ def prefilter_debug():
         local_date_str = datetime.now().strftime("%Y-%m-%d")
 
     # Get user's rigs to find max aperture
-    rig_rows = db.query(Rig).options(
-        selectinload(Rig.telescope)
-    ).filter_by(user_id=g.db_user.id).all()
+    rig_rows = db.query(Rig).filter_by(user_id=g.db_user.id).all()
+    by_uid = components_by_uid(db, g.db_user.id)
 
     max_aperture_mm = None
     for rig in rig_rows:
-        if rig.telescope and rig.telescope.aperture_mm:
-            if max_aperture_mm is None or rig.telescope.aperture_mm > max_aperture_mm:
-                max_aperture_mm = rig.telescope.aperture_mm
+        rc = rig_components(rig, by_uid)
+        if rc.telescope and rc.telescope.aperture_mm:
+            if max_aperture_mm is None or rc.telescope.aperture_mm > max_aperture_mm:
+                max_aperture_mm = rc.telescope.aperture_mm
 
     # Get all enabled objects from DB for this user
     obj_records = db.query(AstroObject).filter_by(

@@ -29,7 +29,6 @@ from flask import (
 )
 from flask_login import login_required, current_user
 from flask_babel import gettext as _
-from sqlalchemy.orm import selectinload
 
 # =============================================================================
 # Nova Package Imports (no circular import)
@@ -40,7 +39,7 @@ from nova.models import (
     DbUser, Project, JournalSession, Rig,
     AstroObject, UserCustomFilter
 )
-from nova.record_links import sync_session_links, sync_project_link
+from nova.record_links import components_for_rig, sync_session_links, sync_project_link
 from nova.helpers import (
     get_db, allowed_file, safe_float, safe_int,
     save_log_to_filesystem, read_log_content, dither_display,
@@ -174,24 +173,22 @@ def journal_add():
             if rig_id_str:
                 try:
                     rig_id = int(rig_id_str)
-                    # Use selectinload to ensure components are fetched efficiently
-                    rig = db.query(Rig).options(
-                        selectinload(Rig.telescope), selectinload(Rig.camera), selectinload(Rig.reducer_extender)
-                    ).filter_by(id=rig_id, user_id=user.id).one_or_none()
+                    rig = db.query(Rig).filter_by(id=rig_id, user_id=user.id).one_or_none()
 
                     if rig:
                         rig_id_snap = rig.id # <-- SAVE THE ID
                         rig_name_snap = rig.rig_name
+                        rc = components_for_rig(db, rig)
                         efl_snap, fr_snap, scale_snap, fov_w_snap = _compute_rig_metrics_from_components(
-                            rig.telescope, rig.camera, rig.reducer_extender
+                            rc.telescope, rc.camera, rc.reducer_extender
                         )
-                        if rig.camera and rig.camera.sensor_height_mm and efl_snap:
-                            fov_h_snap = (degrees(2 * atan((rig.camera.sensor_height_mm / 2.0) / efl_snap)) * 60.0)
+                        if rc.camera and rc.camera.sensor_height_mm and efl_snap:
+                            fov_h_snap = (degrees(2 * atan((rc.camera.sensor_height_mm / 2.0) / efl_snap)) * 60.0)
 
                         # --- NEW: Save Component Names ---
-                        tel_name_snap = rig.telescope.name if rig.telescope else None
-                        reducer_name_snap = rig.reducer_extender.name if rig.reducer_extender else None
-                        camera_name_snap = rig.camera.name if rig.camera else None
+                        tel_name_snap = rc.telescope.name if rc.telescope else None
+                        reducer_name_snap = rc.reducer_extender.name if rc.reducer_extender else None
+                        camera_name_snap = rc.camera.name if rc.camera else None
                         # --- END NEW ---
                 except (ValueError, TypeError):
                     pass # rig_id_str was invalid (e.g., "")
@@ -498,23 +495,22 @@ def journal_edit(session_id):
             if rig_id_str:
                 try:
                     rig_id = int(rig_id_str)
-                    rig = db.query(Rig).options(
-                        selectinload(Rig.telescope), selectinload(Rig.camera), selectinload(Rig.reducer_extender)
-                    ).filter_by(id=rig_id, user_id=user.id).one_or_none()
-    
+                    rig = db.query(Rig).filter_by(id=rig_id, user_id=user.id).one_or_none()
+
                     if rig:
                         rig_id_snap = rig.id  # <-- SAVE THE ID
                         rig_name_snap = rig.rig_name
+                        rc = components_for_rig(db, rig)
                         efl_snap, fr_snap, scale_snap, fov_w_snap = _compute_rig_metrics_from_components(
-                            rig.telescope, rig.camera, rig.reducer_extender
+                            rc.telescope, rc.camera, rc.reducer_extender
                         )
-                        if rig.camera and rig.camera.sensor_height_mm and efl_snap:
-                            fov_h_snap = (degrees(2 * atan((rig.camera.sensor_height_mm / 2.0) / efl_snap)) * 60.0)
-    
+                        if rc.camera and rc.camera.sensor_height_mm and efl_snap:
+                            fov_h_snap = (degrees(2 * atan((rc.camera.sensor_height_mm / 2.0) / efl_snap)) * 60.0)
+
                         # --- GET AND SAVE COMPONENT NAMES ---
-                        tel_name_snap = rig.telescope.name if rig.telescope else None
-                        reducer_name_snap = rig.reducer_extender.name if rig.reducer_extender else None
-                        camera_name_snap = rig.camera.name if rig.camera else None
+                        tel_name_snap = rc.telescope.name if rc.telescope else None
+                        reducer_name_snap = rc.reducer_extender.name if rc.reducer_extender else None
+                        camera_name_snap = rc.camera.name if rc.camera else None
                         # --- END COMPONENT NAMES ---
                 except (ValueError, TypeError):
                     pass

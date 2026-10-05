@@ -98,6 +98,7 @@ from ics import Calendar, Event
 import arrow
 
 from nova.config import ADMIN_USERS, CACHE_DIR, UPLOAD_FOLDER, cache_worker_status
+from nova.record_links import components_by_uid, rig_components
 from nova.helpers import (
     _compute_rig_metrics_from_components,
     _parse_float_from_request,
@@ -2385,17 +2386,17 @@ def graph_dashboard(object_name):
             moon_separation_for_effective_date = "N/A"
 
         # --- 7. Load Rigs (No change) ---
-        rigs_from_db = db.query(Rig).options(
-            selectinload(Rig.telescope), selectinload(Rig.camera), selectinload(Rig.reducer_extender)
-        ).filter_by(user_id=user.id).all()
+        rigs_from_db = db.query(Rig).filter_by(user_id=user.id).all()
+        by_uid = components_by_uid(db, user.id)
         final_rigs_for_template = []
         for rig in rigs_from_db:
-            efl, f_ratio, scale, fov_w = _compute_rig_metrics_from_components(rig.telescope, rig.camera,
-                                                                              rig.reducer_extender)
+            rc = rig_components(rig, by_uid)
+            efl, f_ratio, scale, fov_w = _compute_rig_metrics_from_components(
+                rc.telescope, rc.camera, rc.reducer_extender)
             fov_h = None
-            if rig.camera and rig.camera.sensor_height_mm and efl:
+            if rc.camera and rc.camera.sensor_height_mm and efl:
                 try:
-                    fov_h = (degrees(2 * atan((rig.camera.sensor_height_mm / 2.0) / efl)) * 60.0)
+                    fov_h = (degrees(2 * atan((rc.camera.sensor_height_mm / 2.0) / efl)) * 60.0)
                 except:
                     pass
             final_rigs_for_template.append({

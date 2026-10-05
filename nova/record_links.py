@@ -10,10 +10,11 @@ everywhere:
   space-sensitive), and only when exactly one row matches.
 - An empty old link gives None.
 
-The app still reads the old columns; nothing reads the UID columns yet.
+Rig component reads use these UIDs (components_for_rig / rig_components).
+Every other link is still read from its old column.
 """
 
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 
 from sqlalchemy import inspect, select, text
 
@@ -65,6 +66,49 @@ _RIG_COMPONENT_COLUMNS = (
     ("guide_telescope_record_uid", "guide_telescope_id"),
     ("guide_camera_record_uid", "guide_camera_id"),
 )
+
+
+class RigComponents(NamedTuple):
+    """A rig's five components, each resolved through its record_uid link."""
+    telescope: Optional[Component]
+    camera: Optional[Component]
+    reducer_extender: Optional[Component]
+    guide_telescope: Optional[Component]
+    guide_camera: Optional[Component]
+
+
+def components_by_uid(db, user_id):
+    """{record_uid: Component} for every component of user_id. For pages with many rigs."""
+    if user_id is None:
+        return {}
+    return {
+        c.record_uid: c
+        for c in db.scalars(select(Component).where(
+            Component.user_id == user_id, Component.record_uid.isnot(None)))
+    }
+
+
+def rig_components(rig, by_uid):
+    """The rig's five components from a components_by_uid map.
+
+    The record_uid alone decides: an empty UID, or one not in the map, is a
+    missing component, never the row its *_id column names.
+    """
+    return RigComponents(
+        *(by_uid.get(getattr(rig, uid_col)) for uid_col, _ in _RIG_COMPONENT_COLUMNS))
+
+
+def components_for_rig(db, rig):
+    """RigComponents of a single rig, one query. Empty or unknown UIDs are missing."""
+    uids = {getattr(rig, uid_col) for uid_col, _ in _RIG_COMPONENT_COLUMNS} - {None, ""}
+    by_uid = {}
+    if uids:
+        by_uid = {
+            c.record_uid: c
+            for c in db.scalars(select(Component).where(
+                Component.user_id == rig.user_id, Component.record_uid.in_(uids)))
+        }
+    return rig_components(rig, by_uid)
 
 
 # --- Target -> record_uid ------------------------------------------------------
