@@ -595,6 +595,11 @@ def mobile_journal_new():
         from nova.helpers import safe_float, safe_int, generate_session_id
         import json
 
+        # Only link a project the user owns; otherwise save as standalone
+        if project_id_for_session and db.query(Project).filter_by(
+                id=project_id_for_session, user_id=user.id).one_or_none() is None:
+            project_id_for_session = None
+
         # Create New Session Object
         new_session = JournalSession(
             user_id=user.id,
