@@ -47,7 +47,7 @@ from nova.migration import (
     _upsert_user,
     validate_journal_data, repair_journals,
     load_catalog_pack, import_catalog_pack_for_user,
-    export_user_to_yaml, import_user_from_yaml,
+    export_user_data, export_user_to_yaml, import_user_from_yaml,
     _migrate_components_and_rigs, _migrate_journal,
     _migrate_locations, _migrate_objects,
     _migrate_ui_prefs, _migrate_saved_views,
@@ -472,70 +472,10 @@ def download_config():
             flash(_("User not found."), "error")
             return redirect(url_for('core.config_form'))
 
-        # --- 1. Load base settings from UiPref ---
-        config_doc = {}
-        prefs = db.query(UiPref).filter_by(user_id=u.id).first()
-        if prefs and prefs.json_blob:
-            try:
-                config_doc = json.loads(prefs.json_blob)
-            except json.JSONDecodeError:
-                pass  # Start with empty doc if JSON is corrupt
+        # --- Build the shared config document (union of every exporter) ---
+        config_doc, _rigs_doc, _journal_doc = export_user_data(db, u)
 
-        # --- 2. Load Locations ---
-        locs = db.query(Location).options(selectinload(Location.horizon_points)).filter_by(user_id=u.id).all()
-        default_loc_name = resolve_default_location_name(locs, config_doc.get("default_location"))
-        config_doc["default_location"] = default_loc_name
-        config_doc["locations"] = {
-            l.name: {
-                **{
-                    "lat": l.lat, "lon": l.lon, "timezone": l.timezone,
-                    "altitude_threshold": l.altitude_threshold,
-                    "active": l.active,
-                    "comments": l.comments,
-                    "horizon_mask": [[hp.az_deg, hp.alt_min_deg] for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)]
-                },
-                **({"bortle_scale": l.bortle_scale} if l.bortle_scale is not None else {})
-            } for l in locs
-        }
-
-        # --- 3. Load Objects ---
-        db_objects = db.query(AstroObject).filter_by(user_id=u.id).order_by(AstroObject.object_name).all()
-        config_doc["objects"] = [o.to_dict() for o in db_objects]
-
-        # --- 4. Load Saved Framings (NEW) ---
-        saved_framings_db = db.query(SavedFraming).filter_by(user_id=u.id).all()
-        saved_framings_list = []
-        for sf in saved_framings_db:
-            # Resolve rig name for portability (ID is local to DB)
-            r_name = None
-            if sf.rig_id:
-                rig_obj = db.get(Rig, sf.rig_id)
-                if rig_obj: r_name = rig_obj.rig_name
-
-            saved_framings_list.append({
-                "object_name": sf.object_name,
-                "rig_name": r_name,
-                "ra": sf.ra,
-                "dec": sf.dec,
-                "rotation": sf.rotation,
-                "survey": sf.survey,
-                "blend_survey": sf.blend_survey,
-                "blend_opacity": sf.blend_opacity
-            })
-        config_doc["saved_framings"] = saved_framings_list
-
-        # --- 5. Load Saved Views ---
-        db_views = db.query(SavedView).filter_by(user_id=u.id).order_by(SavedView.name).all()
-        config_doc["saved_views"] = [
-            {
-                "name": v.name,
-                "description": v.description,
-                "is_shared": v.is_shared,
-                "settings": json.loads(v.settings_json)
-            } for v in db_views
-        ]
-
-        # --- 6. Create in-memory file ---
+        # --- Create in-memory file ---
         yaml_string = yaml.dump(config_doc, sort_keys=False, allow_unicode=True, indent=2, default_flow_style=False)
         str_io = io.BytesIO(yaml_string.encode('utf-8'))
 
@@ -564,100 +504,10 @@ def download_journal():
             flash(_("User not found."), "error")
             return redirect(url_for('core.config_form'))
 
-        # --- 1. Load Projects (Including new fields) ---
-        projects = db.query(Project).filter_by(user_id=u.id).order_by(Project.name).all()
-        projects_list = [
-            {
-                "project_id": p.id,
-                "project_name": p.name,
-                "target_object_id": p.target_object_name,
-                "description_notes": p.description_notes,
-                "framing_notes": p.framing_notes,
-                "processing_notes": p.processing_notes,
-                "final_image_file": p.final_image_file,
-                "goals": p.goals,
-                "status": p.status,
-            } for p in projects
-        ]
+        # --- Build the shared journal document (union of every exporter) ---
+        _config_doc, _rigs_doc, journal_doc = export_user_data(db, u)
 
-        # --- 2. Load Sessions ---
-        sessions = db.query(JournalSession).filter_by(user_id=u.id).order_by(JournalSession.date_utc.asc()).all()
-        sessions_list = []
-
-        for s in sessions:
-            sessions_list.append({
-                "session_id": s.external_id or s.id,
-                "project_id": s.project_id,
-                "session_date": s.date_utc.isoformat(),
-                "target_object_id": s.object_name,
-                "general_notes_problems_learnings": s.notes,
-                "session_image_file": s.session_image_file,
-                "location_name": s.location_name,
-                "seeing_observed_fwhm": s.seeing_observed_fwhm,
-                "sky_sqm_observed": s.sky_sqm_observed,
-                "moon_illumination_session": s.moon_illumination_session,
-                "moon_angular_separation_session": s.moon_angular_separation_session,
-                "weather_notes": s.weather_notes,
-                "telescope_setup_notes": s.telescope_setup_notes,
-                "filter_used_session": s.filter_used_session,
-                "guiding_rms_avg_arcsec": s.guiding_rms_avg_arcsec,
-                "guiding_equipment": s.guiding_equipment,
-                "dither_details": s.dither_details,
-                "dither_pixels": s.dither_pixels,
-                "dither_every_n": s.dither_every_n,
-                "dither_notes": s.dither_notes,
-                "acquisition_software": s.acquisition_software,
-                "gain_setting": s.gain_setting,
-                "offset_setting": s.offset_setting,
-                "camera_temp_setpoint_c": s.camera_temp_setpoint_c,
-                "camera_temp_actual_avg_c": s.camera_temp_actual_avg_c,
-                "binning_session": s.binning_session,
-                "darks_strategy": s.darks_strategy,
-                "flats_strategy": s.flats_strategy,
-                "bias_darkflats_strategy": s.bias_darkflats_strategy,
-                "session_rating_subjective": s.session_rating_subjective,
-                "transparency_observed_scale": s.transparency_observed_scale,
-                "number_of_subs_light": s.number_of_subs_light,
-                "exposure_time_per_sub_sec": s.exposure_time_per_sub_sec,
-                "filter_L_subs": s.filter_L_subs, "filter_L_exposure_sec": s.filter_L_exposure_sec,
-                "filter_R_subs": s.filter_R_subs, "filter_R_exposure_sec": s.filter_R_exposure_sec,
-                "filter_G_subs": s.filter_G_subs, "filter_G_exposure_sec": s.filter_G_exposure_sec,
-                "filter_B_subs": s.filter_B_subs, "filter_B_exposure_sec": s.filter_B_exposure_sec,
-                "filter_Ha_subs": s.filter_Ha_subs, "filter_Ha_exposure_sec": s.filter_Ha_exposure_sec,
-                "filter_OIII_subs": s.filter_OIII_subs, "filter_OIII_exposure_sec": s.filter_OIII_exposure_sec,
-                "filter_SII_subs": s.filter_SII_subs, "filter_SII_exposure_sec": s.filter_SII_exposure_sec,
-                "calculated_integration_time_minutes": s.calculated_integration_time_minutes,
-                "rig_id_snapshot": s.rig_id_snapshot,  # <-- ADDED
-                "rig_name_snapshot": s.rig_name_snapshot,
-                "rig_efl_snapshot": s.rig_efl_snapshot,
-                "rig_fr_snapshot": s.rig_fr_snapshot,
-                "rig_scale_snapshot": s.rig_scale_snapshot,
-                "rig_fov_w_snapshot": s.rig_fov_w_snapshot,
-                "rig_fov_h_snapshot": s.rig_fov_h_snapshot,
-                "telescope_name_snapshot": s.telescope_name_snapshot,
-                "reducer_name_snapshot": s.reducer_name_snapshot,
-                "camera_name_snapshot": s.camera_name_snapshot,
-                "custom_filter_data": s.custom_filter_data,
-                "asiair_log_content": s.asiair_log_content,
-                "phd2_log_content": s.phd2_log_content,
-                "nina_log_content": s.nina_log_content,
-                "log_analysis_cache": s.log_analysis_cache,
-            })
-
-        # --- 3. Load Custom Filter Definitions ---
-        custom_filters_db = db.query(UserCustomFilter).filter_by(user_id=u.id).order_by(UserCustomFilter.created_at).all()
-        custom_filters_list = [
-            {'key': cf.filter_key, 'label': cf.filter_label}
-            for cf in custom_filters_db
-        ]
-
-        journal_doc = {
-            "projects": projects_list,
-            "custom_mono_filters": custom_filters_list,
-            "sessions": sessions_list
-        }
-
-        # --- 3. Create in-memory file ---
+        # --- Create in-memory file ---
         yaml_string = yaml.dump(journal_doc, sort_keys=False, allow_unicode=True, indent=2, default_flow_style=False)
         str_io = io.BytesIO(yaml_string.encode('utf-8'))
 
@@ -1090,77 +940,8 @@ def download_rig_config():
             flash(_("User not found."), "error")
             return redirect(url_for('core.config_form'))
 
-        # --- Generate rigs doc from DB ---
-        comps = db.query(Component).filter_by(user_id=u.id).all()
-        rigs = db.query(Rig).filter_by(user_id=u.id).order_by(Rig.rig_name).all()
-
-        def bykind(k):
-            return [c for c in comps if c.kind == k]
-
-        rigs_doc = {
-            "components": {
-                "telescopes": [
-                    {"id": c.id, "name": c.name, "aperture_mm": c.aperture_mm, "focal_length_mm": c.focal_length_mm,
-                     # --- ADD THESE 3 LINES ---
-                     "is_shared": c.is_shared, "original_user_id": c.original_user_id,
-                     "original_item_id": c.original_item_id
-                     }
-                    for c in bykind("telescope")
-                ],
-                "cameras": [
-                    {"id": c.id, "name": c.name, "sensor_width_mm": c.sensor_width_mm,
-                     "sensor_height_mm": c.sensor_height_mm, "pixel_size_um": c.pixel_size_um,
-                     # --- ADD THESE 3 LINES ---
-                     "is_shared": c.is_shared, "original_user_id": c.original_user_id,
-                     "original_item_id": c.original_item_id
-                     }
-                    for c in bykind("camera")
-                ],
-                "reducers_extenders": [
-                    {"id": c.id, "name": c.name, "factor": c.factor,
-                     # --- ADD THESE 3 LINES ---
-                     "is_shared": c.is_shared, "original_user_id": c.original_user_id,
-                     "original_item_id": c.original_item_id
-                     }
-                    for c in bykind("reducer_extender")
-                ],
-            },
-            "rigs": []  # We will populate this next
-        }
-
-        # --- Calculate metrics for each rig ---
-        final_rigs_list = []
-        for r in rigs:
-            tel_obj = next((c for c in comps if c.id == r.telescope_id), None)
-            cam_obj = next((c for c in comps if c.id == r.camera_id), None)
-            red_obj = next((c for c in comps if c.id == r.reducer_extender_id), None)
-            guide_tel_obj = next((c for c in comps if c.id == r.guide_telescope_id), None)
-            guide_cam_obj = next((c for c in comps if c.id == r.guide_camera_id), None)
-
-            efl, f_ratio, scale, fov_w = _compute_rig_metrics_from_components(tel_obj, cam_obj, red_obj)
-
-            final_rigs_list.append({
-                "rig_id": r.id,  # Legacy: kept for backward compatibility
-                "rig_name": r.rig_name,
-                "telescope_name": tel_obj.name if tel_obj else None,  # Natural key
-                "camera_name": cam_obj.name if cam_obj else None,  # Natural key
-                "reducer_extender_name": red_obj.name if red_obj else None,  # Natural key
-                "telescope_id": r.telescope_id,  # Legacy: kept for backward compatibility
-                "camera_id": r.camera_id,  # Legacy: kept for backward compatibility
-                "reducer_extender_id": r.reducer_extender_id,  # Legacy: kept for backward compatibility
-                "effective_focal_length": efl,
-                "f_ratio": f_ratio,
-                "image_scale": scale,
-                "fov_w_arcmin": fov_w,
-                # Guiding equipment
-                "guide_telescope_name": guide_tel_obj.name if guide_tel_obj else None,
-                "guide_camera_name": guide_cam_obj.name if guide_cam_obj else None,
-                "guide_telescope_id": r.guide_telescope_id,
-                "guide_camera_id": r.guide_camera_id,
-                "guide_is_oag": r.guide_is_oag
-            })
-
-        rigs_doc["rigs"] = final_rigs_list  # Add the populated list to the doc
+        # --- Build the shared rigs document (union of every exporter) ---
+        _config_doc, rigs_doc, _journal_doc = export_user_data(db, u)
 
         # --- Create in-memory file ---
         yaml_string = yaml.dump(rigs_doc, sort_keys=False, allow_unicode=True)
@@ -1471,7 +1252,7 @@ def export_yaml_for_user(username):
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
         cfg_file = "config_default.yaml" if (SINGLE_USER_MODE and username == "default") else f"config_{username}.yaml"
         jrn_file = "journal_default.yaml" if (SINGLE_USER_MODE and username == "default") else f"journal_{username}.yaml"
-        rigs_file = "rigs_default.yaml"
+        rigs_file = "rigs_default.yaml" if (SINGLE_USER_MODE and username == "default") else f"rigs_{username}.yaml"
         for fn in [cfg_file, jrn_file, rigs_file]:
             full = os.path.join(CONFIG_DIR, fn)
             if os.path.exists(full):

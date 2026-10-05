@@ -305,7 +305,7 @@ def test_yaml_upsert_keeps_record_uid(db_session):
 
 # --- 7. Leak guard -----------------------------------------------------------
 
-def test_record_uid_not_in_to_dict_or_yaml_export(db_session, tmp_path):
+def test_record_uid_in_yaml_export_but_not_in_to_dict(db_session, tmp_path):
     user = _new_user(db_session, "leak_user")
     tel = Component(user_id=user.id, kind="telescope", name="Scope", aperture_mm=100, focal_length_mm=500)
     cam = Component(user_id=user.id, kind="camera", name="Cam", sensor_width_mm=10, sensor_height_mm=8,
@@ -316,18 +316,25 @@ def test_record_uid_not_in_to_dict_or_yaml_export(db_session, tmp_path):
     db_session.add(Rig(user_id=user.id, rig_name="Main", telescope_id=tel.id, camera_id=cam.id))
     db_session.commit()
 
+    # to_dict() is the API shape and still must not carry the UID.
     assert "record_uid" not in obj.to_dict()
 
     out_dir = tmp_path / "export"
     assert export_user_to_yaml(user.username, out_dir=str(out_dir)) is True
     files = sorted(os.listdir(out_dir))
     assert files
+    by_name = {}
     for name in files:
         with open(out_dir / name, encoding="utf-8") as f:
-            content = f.read()
-        assert "record_uid" not in content, name
-        for row in (obj, tel, cam):
-            assert row.record_uid not in content, name
+            by_name[name] = f.read()
+
+    # The config file carries the record and link UID keys; so do the rigs.
+    cfg = next(c for n, c in by_name.items() if n.startswith("config_"))
+    rigs = next(c for n, c in by_name.items() if n.startswith("rigs_"))
+    assert "record_uid" in cfg and "record_uid" in rigs
+    # The object UID is in the config file; the component UIDs in the rigs file.
+    assert obj.record_uid in cfg
+    assert tel.record_uid in rigs and cam.record_uid in rigs
 
 
 # --- (g) stable_uid untouched ------------------------------------------------

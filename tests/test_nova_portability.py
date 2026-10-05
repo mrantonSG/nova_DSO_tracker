@@ -1267,10 +1267,11 @@ def test_export_default_location_without_is_default_row(client, tmp_path):
 
     assert _download_config_default_location(client) == "Zeta"
 
-    # export_user_to_yaml has no UiPref input: first active by name
+    # The export now uses the user's stored default location in every entry
+    # point, so export_user_to_yaml agrees with /download_config.
     assert export_user_to_yaml("default", out_dir=str(tmp_path))
     with open(tmp_path / "config_default.yaml") as f:
-        assert yaml.safe_load(f)["default_location"] == "Alpha"
+        assert yaml.safe_load(f)["default_location"] == "Zeta"
 
 
 def test_export_default_location_stale_ui_pref_falls_back_to_first_active(client):

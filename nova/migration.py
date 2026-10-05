@@ -31,7 +31,7 @@ from nova.models import (
 )
 from nova.record_links import (
     adopt_unlinked_rows_for_user, sync_framing_links, sync_project_link, sync_rig_links,
-    sync_session_links, uid_of,
+    sync_session_links, uid_of, rig_for_uid,
 )
 
 def load_catalog_pack(pack_id: str) -> tuple[dict | None, dict | None]:
@@ -1065,10 +1065,290 @@ def _migrate_ui_prefs(db, user: DbUser, config: dict):
 
 
 
+def export_user_data(db, user: DbUser) -> tuple[dict, dict, dict]:
+    """Build the (config, rigs, journal) documents for one user.
+
+    The single source of truth for every export entry point. Writes the union
+    of the fields the old exporters wrote, plus each record's record_uid and
+    each link's record_uid. Reads only `user`'s own rows.
+    """
+    uid = user.id
+
+    # Components of this user, looked up by record_uid only.
+    comps = db.query(Component).filter_by(user_id=uid).all()
+    comp_by_uid = {c.record_uid: c for c in comps if c.record_uid}
+
+    def component(record_uid):
+        """Component from its UID link. An empty or unknown UID is no component."""
+        return comp_by_uid.get(record_uid)
+
+    # =========================== CONFIG ===========================
+    # Start from UiPref so every general setting download_config wrote is kept.
+    config_doc = {}
+    prefs = db.query(UiPref).filter_by(user_id=uid).first()
+    if prefs and prefs.json_blob:
+        try:
+            config_doc = json.loads(prefs.json_blob)
+        except json.JSONDecodeError:
+            config_doc = {}
+
+    locs = db.query(Location).options(selectinload(Location.horizon_points)).filter_by(user_id=uid).all()
+    config_doc["format_version"] = 2
+    config_doc["default_location"] = resolve_default_location_name(locs, config_doc.get("default_location"))
+    config_doc["locations"] = {
+        l.name: {
+            "record_uid": l.record_uid,
+            "lat": l.lat,
+            "lon": l.lon,
+            "timezone": l.timezone,
+            "altitude_threshold": l.altitude_threshold,
+            "active": l.active,
+            "comments": l.comments,
+            "horizon_mask": [[hp.az_deg, hp.alt_min_deg]
+                             for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)],
+            **({"bortle_scale": l.bortle_scale} if l.bortle_scale is not None else {}),
+            **({"elevation": l.elevation} if l.elevation is not None else {}),
+            **({"sqm_zenith": l.sqm_zenith} if l.sqm_zenith is not None else {}),
+        }
+        for l in locs
+    }
+
+    config_doc["objects"] = [
+        {**o.to_dict(), "record_uid": o.record_uid}
+        for o in db.query(AstroObject).filter_by(user_id=uid).order_by(AstroObject.object_name).all()
+    ]
+
+    framings_list = []
+    for sf in db.query(SavedFraming).filter_by(user_id=uid).all():
+        # Rig name by user + UID; the stored text when there is no such rig.
+        rig = rig_for_uid(db, uid, sf.rig_record_uid)
+        framings_list.append({
+            "object_name": sf.object_name,
+            "rig_name": rig.rig_name if rig else sf.rig_name,
+            "rig_record_uid": sf.rig_record_uid,
+            "object_record_uid": sf.object_record_uid,
+            "ra": sf.ra,
+            "dec": sf.dec,
+            "rotation": sf.rotation,
+            "survey": sf.survey,
+            "blend_survey": sf.blend_survey,
+            "blend_opacity": sf.blend_opacity,
+            "mosaic_cols": sf.mosaic_cols,
+            "mosaic_rows": sf.mosaic_rows,
+            "mosaic_overlap": sf.mosaic_overlap,
+            "img_brightness": sf.img_brightness,
+            "img_contrast": sf.img_contrast,
+            "img_gamma": sf.img_gamma,
+            "img_saturation": sf.img_saturation,
+            "geo_belt_enabled": sf.geo_belt_enabled,
+        })
+    config_doc["saved_framings"] = framings_list
+
+    config_doc["saved_views"] = [
+        {
+            "name": v.name,
+            "description": v.description,
+            "is_shared": v.is_shared,
+            "settings": json.loads(v.settings_json),
+        }
+        for v in db.query(SavedView).filter_by(user_id=uid).order_by(SavedView.name).all()
+    ]
+
+    # ============================ RIGS ============================
+    rigs = db.query(Rig).filter_by(user_id=uid).all()
+
+    def by_kind(kind):
+        return [c for c in comps if c.kind == kind]
+
+    rigs_doc = {
+        "format_version": 2,
+        "components": {
+            "telescopes": [
+                {"id": c.id, "record_uid": c.record_uid, "name": c.name,
+                 "aperture_mm": c.aperture_mm, "focal_length_mm": c.focal_length_mm,
+                 "is_shared": c.is_shared, "original_user_id": c.original_user_id,
+                 "original_item_id": c.original_item_id}
+                for c in by_kind("telescope")
+            ],
+            "cameras": [
+                {"id": c.id, "record_uid": c.record_uid, "name": c.name,
+                 "sensor_width_mm": c.sensor_width_mm, "sensor_height_mm": c.sensor_height_mm,
+                 "pixel_size_um": c.pixel_size_um, "is_shared": c.is_shared,
+                 "original_user_id": c.original_user_id, "original_item_id": c.original_item_id}
+                for c in by_kind("camera")
+            ],
+            "reducers_extenders": [
+                {"id": c.id, "record_uid": c.record_uid, "name": c.name, "factor": c.factor,
+                 "is_shared": c.is_shared, "original_user_id": c.original_user_id,
+                 "original_item_id": c.original_item_id}
+                for c in by_kind("reducer_extender")
+            ],
+        },
+        "rigs": [],
+    }
+
+    def stored_or_computed(stored, computed):
+        # E1 wrote the stored column, E4 the computed value: keep both possible.
+        return stored if stored is not None else computed
+
+    for r in rigs:
+        tel = component(r.telescope_record_uid)
+        cam = component(r.camera_record_uid)
+        red = component(r.reducer_extender_record_uid)
+        guide_tel = component(r.guide_telescope_record_uid)
+        guide_cam = component(r.guide_camera_record_uid)
+        efl, f_ratio, scale, fov_w = _compute_rig_metrics_from_components(tel, cam, red)
+        rigs_doc["rigs"].append({
+            "rig_id": r.id,                                   # E4 parity
+            "rig_name": r.rig_name,
+            "record_uid": r.record_uid,
+            "telescope_id": r.telescope_id,
+            "telescope_name": tel.name if tel else None,
+            "telescope_record_uid": r.telescope_record_uid,
+            "camera_id": r.camera_id,
+            "camera_name": cam.name if cam else None,
+            "camera_record_uid": r.camera_record_uid,
+            "reducer_extender_id": r.reducer_extender_id,
+            "reducer_extender_name": red.name if red else None,
+            "reducer_extender_record_uid": r.reducer_extender_record_uid,
+            "effective_focal_length": stored_or_computed(r.effective_focal_length, efl),
+            "f_ratio": stored_or_computed(r.f_ratio, f_ratio),
+            "image_scale": stored_or_computed(r.image_scale, scale),
+            "fov_w_arcmin": stored_or_computed(r.fov_w_arcmin, fov_w),
+            "guide_telescope_id": r.guide_telescope_id,
+            "guide_telescope_name": guide_tel.name if guide_tel else None,
+            "guide_telescope_record_uid": r.guide_telescope_record_uid,
+            "guide_camera_id": r.guide_camera_id,
+            "guide_camera_name": guide_cam.name if guide_cam else None,
+            "guide_camera_record_uid": r.guide_camera_record_uid,
+            "guide_is_oag": r.guide_is_oag or False,
+        })
+
+    # =========================== JOURNAL ==========================
+    db_projects = db.query(Project).filter_by(user_id=uid).all()
+    project_lookup = {p.id: p.name for p in db_projects}
+    projects_list = [
+        {
+            "project_id": p.id,
+            "project_name": p.name,
+            "target_object_id": p.target_object_name,
+            "target_object_record_uid": p.target_object_record_uid,
+            "status": p.status,
+            "goals": p.goals,
+            "description_notes": p.description_notes,
+            "framing_notes": p.framing_notes,
+            "processing_notes": p.processing_notes,
+            "final_image_file": p.final_image_file,
+        }
+        for p in db_projects
+    ]
+
+    custom_filters_list = [
+        {"key": cf.filter_key, "label": cf.filter_label}
+        for cf in db.query(UserCustomFilter).filter_by(user_id=uid).order_by(UserCustomFilter.created_at).all()
+    ]
+
+    sessions = db.query(JournalSession).filter_by(user_id=uid).order_by(JournalSession.date_utc.asc()).all()
+    sessions_list = []
+    for s in sessions:
+        iso_date = s.date_utc.isoformat()
+        sessions_list.append({
+            # old key names kept on both sides, same value: the importer reads
+            # session_date / target_object_id / general_notes_problems_learnings
+            "date": iso_date,
+            "session_date": iso_date,
+            "object_name": s.object_name,
+            "target_object_id": s.object_name,
+            "notes": s.notes,
+            "general_notes_problems_learnings": s.notes,
+            "session_id": s.external_id or s.id,
+            "project_id": s.project_id,
+            "project_name": project_lookup.get(s.project_id) if s.project_id else None,
+            "project_ids": [p.id for p in s.projects],
+            "object_record_uid": s.object_record_uid,
+            "location_record_uid": s.location_record_uid,
+            "rig_record_uid": s.rig_record_uid,
+            "session_image_file": s.session_image_file,
+
+            # Capture Details
+            "number_of_subs_light": s.number_of_subs_light,
+            "exposure_time_per_sub_sec": s.exposure_time_per_sub_sec,
+            "filter_used_session": s.filter_used_session,
+            "gain_setting": s.gain_setting,
+            "offset_setting": s.offset_setting,
+            "binning_session": s.binning_session,
+            "camera_temp_setpoint_c": s.camera_temp_setpoint_c,
+            "camera_temp_actual_avg_c": s.camera_temp_actual_avg_c,
+            "calculated_integration_time_minutes": s.calculated_integration_time_minutes,
+
+            # Environmental & Location
+            "location_name": s.location_name,
+            "seeing_observed_fwhm": s.seeing_observed_fwhm,
+            "sky_sqm_observed": s.sky_sqm_observed,
+            "transparency_observed_scale": s.transparency_observed_scale,
+            "moon_illumination_session": s.moon_illumination_session,
+            "moon_angular_separation_session": s.moon_angular_separation_session,
+            "weather_notes": s.weather_notes,
+
+            # Gear & Guiding
+            "telescope_setup_notes": s.telescope_setup_notes,
+            "guiding_rms_avg_arcsec": s.guiding_rms_avg_arcsec,
+            "guiding_equipment": s.guiding_equipment,
+            "dither_details": s.dither_details,
+            "dither_pixels": s.dither_pixels,
+            "dither_every_n": s.dither_every_n,
+            "dither_notes": s.dither_notes,
+            "dither_display": dither_display(s),
+            "acquisition_software": s.acquisition_software,
+
+            # Calibration Strategy
+            "darks_strategy": s.darks_strategy,
+            "flats_strategy": s.flats_strategy,
+            "bias_darkflats_strategy": s.bias_darkflats_strategy,
+            "session_rating_subjective": s.session_rating_subjective,
+
+            # Mono Filters
+            "filter_L_subs": s.filter_L_subs, "filter_L_exposure_sec": s.filter_L_exposure_sec,
+            "filter_R_subs": s.filter_R_subs, "filter_R_exposure_sec": s.filter_R_exposure_sec,
+            "filter_G_subs": s.filter_G_subs, "filter_G_exposure_sec": s.filter_G_exposure_sec,
+            "filter_B_subs": s.filter_B_subs, "filter_B_exposure_sec": s.filter_B_exposure_sec,
+            "filter_Ha_subs": s.filter_Ha_subs, "filter_Ha_exposure_sec": s.filter_Ha_exposure_sec,
+            "filter_OIII_subs": s.filter_OIII_subs, "filter_OIII_exposure_sec": s.filter_OIII_exposure_sec,
+            "filter_SII_subs": s.filter_SII_subs, "filter_SII_exposure_sec": s.filter_SII_exposure_sec,
+
+            # Rig Snapshots
+            "rig_id_snapshot": s.rig_id_snapshot,
+            "rig_name_snapshot": s.rig_name_snapshot,
+            "rig_efl_snapshot": s.rig_efl_snapshot,
+            "rig_fr_snapshot": s.rig_fr_snapshot,
+            "rig_scale_snapshot": s.rig_scale_snapshot,
+            "rig_fov_w_snapshot": s.rig_fov_w_snapshot,
+            "rig_fov_h_snapshot": s.rig_fov_h_snapshot,
+            "telescope_name_snapshot": s.telescope_name_snapshot,
+            "reducer_name_snapshot": s.reducer_name_snapshot,
+            "camera_name_snapshot": s.camera_name_snapshot,
+
+            # Custom filter data (JSON string for user-defined filters)
+            "custom_filter_data": s.custom_filter_data,
+
+            # Session logs (download_journal wrote these)
+            "asiair_log_content": s.asiair_log_content,
+            "phd2_log_content": s.phd2_log_content,
+            "nina_log_content": s.nina_log_content,
+            "log_analysis_cache": s.log_analysis_cache,
+        })
+
+    journal_doc = {
+        "format_version": 2,
+        "projects": projects_list,
+        "custom_mono_filters": custom_filters_list,
+        "sessions": sessions_list,
+    }
+    return config_doc, rigs_doc, journal_doc
+
+
 def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
-    """
-    Write three YAML files (config_*.yaml, rigs_default.yaml, journal_*.yaml) in out_dir.
-    """
+    """Write the three YAML files for one user. Thin wrapper over export_user_data."""
     db = get_db()
     out_dir = out_dir or CONFIG_DIR
     os.makedirs(out_dir, exist_ok=True)
@@ -1077,237 +1357,19 @@ def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
     if not u:
         return False
 
-    # CONFIG (locations + objects + defaults)
-    locs = db.query(Location).options(selectinload(Location.horizon_points)).filter_by(user_id=u.id).all()
-    default_loc = resolve_default_location_name(locs, ui_pref_value=None)
-    saved_framings_db = db.query(SavedFraming).filter_by(user_id=u.id).all()
-    saved_framings_list = []
-    for sf in saved_framings_db:
-        # Resolve rig name for portability (ID is local to DB)
-        r_name = None
-        if sf.rig_id:
-            # We can query efficiently or just let it be lazy if N is small
-            rig_obj = db.get(Rig, sf.rig_id)
-            if rig_obj: r_name = rig_obj.rig_name
+    config_doc, rigs_doc, journal_doc = export_user_data(db, u)
 
-        saved_framings_list.append({
-            "object_name": sf.object_name,
-            "rig_name": r_name,
-            "ra": sf.ra,
-            "dec": sf.dec,
-            "rotation": sf.rotation,
-            "survey": sf.survey,
-            "blend_survey": sf.blend_survey,
-            "blend_opacity": sf.blend_opacity,
-            # Mosaic Data
-            "mosaic_cols": sf.mosaic_cols,
-            "mosaic_rows": sf.mosaic_rows,
-            "mosaic_overlap": sf.mosaic_overlap,
-            # Image Adjustment Data
-            "img_brightness": sf.img_brightness,
-            "img_contrast": sf.img_contrast,
-            "img_gamma": sf.img_gamma,
-            "img_saturation": sf.img_saturation,
-            # Overlay Preferences
-            "geo_belt_enabled": sf.geo_belt_enabled
-        })
-    cfg = {
-        "default_location": default_loc,
-        "locations": {
-            l.name: {
-                **{
-                    "lat": l.lat, "lon": l.lon, "timezone": l.timezone,
-                    "altitude_threshold": l.altitude_threshold,
-                    "horizon_mask": [[hp.az_deg, hp.alt_min_deg] for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)]
-                },
-                **({"bortle_scale": l.bortle_scale} if l.bortle_scale is not None else {}),
-                **({"elevation": l.elevation} if l.elevation is not None else {}),
-                **({"sqm_zenith": l.sqm_zenith} if l.sqm_zenith is not None else {}),
-                **({"comments": l.comments} if l.comments else {})
-            } for l in locs
-        },
-        "objects": [
-            o.to_dict() for o in db.query(AstroObject).filter_by(user_id=u.id).all()
-        ],
-        "saved_framings": saved_framings_list,
-        "saved_views": [
-            {
-                "name": v.name,
-                "description": v.description,
-                "is_shared": v.is_shared,
-                "settings": json.loads(v.settings_json)
-            }
-            for v in db.query(SavedView).filter_by(user_id=u.id).order_by(SavedView.name).all()
-        ]
-    }
     cfg_file = "config_default.yaml" if (nova.SINGLE_USER_MODE and username == "default") else f"config_{username}.yaml"
-    _atomic_write_yaml(os.path.join(out_dir, cfg_file), cfg)
-
-    # RIGS/COMPONENTS
-    comps = db.query(Component).filter_by(user_id=u.id).all()
-    rigs = db.query(Rig).filter_by(user_id=u.id).all()
-
-    # Create a lookup map for component names by ID to ensure portable exports
-    comp_map = {c.id: c.name for c in comps}
-
-    def bykind(k):
-        return [c for c in comps if c.kind == k]
-
-    rigs_doc = {
-        "components": {
-            "telescopes": [
-                {"id": c.id, "name": c.name, "aperture_mm": c.aperture_mm, "focal_length_mm": c.focal_length_mm,
-                 "is_shared": c.is_shared, "original_user_id": c.original_user_id,
-                 "original_item_id": c.original_item_id}
-                for c in bykind("telescope")
-            ],
-            "cameras": [
-                {"id": c.id, "name": c.name, "sensor_width_mm": c.sensor_width_mm,
-                 "sensor_height_mm": c.sensor_height_mm, "pixel_size_um": c.pixel_size_um, "is_shared": c.is_shared,
-                 "original_user_id": c.original_user_id, "original_item_id": c.original_item_id}
-                for c in bykind("camera")
-            ],
-            "reducers_extenders": [
-                {"id": c.id, "name": c.name, "factor": c.factor, "is_shared": c.is_shared,
-                 "original_user_id": c.original_user_id, "original_item_id": c.original_item_id}
-                for c in bykind("reducer_extender")
-            ],
-        },
-        "rigs": [
-            {
-                "rig_name": r.rig_name,
-                "telescope_id": r.telescope_id,
-                "telescope_name": comp_map.get(r.telescope_id),  # Export name for portability
-                "camera_id": r.camera_id,
-                "camera_name": comp_map.get(r.camera_id),  # Export name for portability
-                "reducer_extender_id": r.reducer_extender_id,
-                "reducer_extender_name": comp_map.get(r.reducer_extender_id),  # Export name
-                "effective_focal_length": r.effective_focal_length,
-                "f_ratio": r.f_ratio,
-                "image_scale": r.image_scale,
-                "fov_w_arcmin": r.fov_w_arcmin,
-                # Guide optics fields
-                "guide_telescope_id": r.guide_telescope_id,
-                "guide_telescope_name": comp_map.get(r.guide_telescope_id),
-                "guide_camera_id": r.guide_camera_id,
-                "guide_camera_name": comp_map.get(r.guide_camera_id),
-                "guide_is_oag": r.guide_is_oag or False
-            } for r in rigs
-        ]
-    }
     rig_file = "rigs_default.yaml" if (nova.SINGLE_USER_MODE and username == "default") else f"rigs_{username}.yaml"
+    jfile = "journal_default.yaml" if (nova.SINGLE_USER_MODE and username == "default") else f"journal_{username}.yaml"
+
+    _atomic_write_yaml(os.path.join(out_dir, cfg_file), config_doc)
     _atomic_write_yaml(os.path.join(out_dir, rig_file), rigs_doc)
+    _atomic_write_yaml(os.path.join(out_dir, jfile), journal_doc)
     try:
-        print(f"[EXPORT] Rigs for '{username}' written to {rig_file} (count={len(rigs)})")
+        print(f"[EXPORT] Rigs for '{username}' written to {rig_file} (count={len(rigs_doc['rigs'])})")
     except Exception:
         pass
-
-    # JOURNAL
-    sessions = db.query(JournalSession).filter_by(user_id=u.id).order_by(JournalSession.date_utc.asc()).all()
-
-    db_projects = db.query(Project).filter_by(user_id=u.id).all()
-    projects_list = []
-    # FIX: Build project lookup dict for session export (natural key resolution)
-    project_lookup = {p.id: p.name for p in db_projects}
-    
-    for p in db_projects:
-        projects_list.append({
-            "project_id": p.id,  # Legacy: kept for backward compatibility
-            "project_name": p.name,
-            "target_object_id": p.target_object_name,
-            "status": p.status,
-            "goals": p.goals,
-            "description_notes": p.description_notes,
-            "framing_notes": p.framing_notes,
-            "processing_notes": p.processing_notes,
-            "final_image_file": p.final_image_file
-        })
-
-    # Custom filter definitions for this user
-    custom_filters_db = db.query(UserCustomFilter).filter_by(user_id=u.id).order_by(UserCustomFilter.created_at).all()
-    custom_filters_list = [
-        {'key': cf.filter_key, 'label': cf.filter_label}
-        for cf in custom_filters_db
-    ]
-
-    jdoc = {
-        "projects": projects_list,
-        "custom_mono_filters": custom_filters_list,
-        "sessions": [
-            {
-                "date": s.date_utc.isoformat(),
-                "object_name": s.object_name,
-                "notes": s.notes,
-                "session_id": s.external_id or s.id,
-                "project_id": s.project_id,  # Legacy: kept for backward compatibility
-                "project_name": project_lookup.get(s.project_id) if s.project_id else None,
-                "project_ids": [p.id for p in s.projects],
-
-                # Capture Details
-                "number_of_subs_light": s.number_of_subs_light,
-                "exposure_time_per_sub_sec": s.exposure_time_per_sub_sec,
-                "filter_used_session": s.filter_used_session,
-                "gain_setting": s.gain_setting,
-                "offset_setting": s.offset_setting,
-                "binning_session": s.binning_session,
-                "camera_temp_setpoint_c": s.camera_temp_setpoint_c,
-                "camera_temp_actual_avg_c": s.camera_temp_actual_avg_c,
-                "calculated_integration_time_minutes": s.calculated_integration_time_minutes,
-
-                # Environmental & Location
-                "location_name": s.location_name,
-                "seeing_observed_fwhm": s.seeing_observed_fwhm,
-                "sky_sqm_observed": s.sky_sqm_observed,
-                "transparency_observed_scale": s.transparency_observed_scale,
-                "moon_illumination_session": s.moon_illumination_session,
-                "moon_angular_separation_session": s.moon_angular_separation_session,
-                "weather_notes": s.weather_notes,
-
-                # Gear & Guiding
-                "telescope_setup_notes": s.telescope_setup_notes,
-                "guiding_rms_avg_arcsec": s.guiding_rms_avg_arcsec,
-                "guiding_equipment": s.guiding_equipment,
-                "dither_details": s.dither_details,
-                "dither_pixels": s.dither_pixels,
-                "dither_every_n": s.dither_every_n,
-                "dither_notes": s.dither_notes,
-                "dither_display": dither_display(s),
-                "acquisition_software": s.acquisition_software,
-
-                # Calibration Strategy
-                "darks_strategy": s.darks_strategy,
-                "flats_strategy": s.flats_strategy,
-                "bias_darkflats_strategy": s.bias_darkflats_strategy,
-                "session_rating_subjective": s.session_rating_subjective,
-
-                # Mono Filters
-                "filter_L_subs": s.filter_L_subs, "filter_L_exposure_sec": s.filter_L_exposure_sec,
-                "filter_R_subs": s.filter_R_subs, "filter_R_exposure_sec": s.filter_R_exposure_sec,
-                "filter_G_subs": s.filter_G_subs, "filter_G_exposure_sec": s.filter_G_exposure_sec,
-                "filter_B_subs": s.filter_B_subs, "filter_B_exposure_sec": s.filter_B_exposure_sec,
-                "filter_Ha_subs": s.filter_Ha_subs, "filter_Ha_exposure_sec": s.filter_Ha_exposure_sec,
-                "filter_OIII_subs": s.filter_OIII_subs, "filter_OIII_exposure_sec": s.filter_OIII_exposure_sec,
-                "filter_SII_subs": s.filter_SII_subs, "filter_SII_exposure_sec": s.filter_SII_exposure_sec,
-
-                # Rig Snapshots
-                "rig_id_snapshot": s.rig_id_snapshot,
-                "rig_name_snapshot": s.rig_name_snapshot,
-                "rig_efl_snapshot": s.rig_efl_snapshot,
-                "rig_fr_snapshot": s.rig_fr_snapshot,
-                "rig_scale_snapshot": s.rig_scale_snapshot,
-                "rig_fov_w_snapshot": s.rig_fov_w_snapshot,
-                "rig_fov_h_snapshot": s.rig_fov_h_snapshot,
-                "telescope_name_snapshot": s.telescope_name_snapshot,
-                "reducer_name_snapshot": s.reducer_name_snapshot,
-                "camera_name_snapshot": s.camera_name_snapshot,
-
-                # Custom filter data (JSON string for user-defined filters)
-                "custom_filter_data": s.custom_filter_data,
-            } for s in sessions
-        ]
-    }
-    jfile = "journal_default.yaml" if (nova.SINGLE_USER_MODE and username == "default") else f"journal_{username}.yaml"
-    _atomic_write_yaml(os.path.join(out_dir, jfile), jdoc)
     return True
 
 
