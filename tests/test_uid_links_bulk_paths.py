@@ -190,7 +190,9 @@ def test_journal_import_route_sets_name_uids_and_no_rig_uid(mu, db_session):
 
     db_session.expire_all()
     s = db_session.query(JournalSession).filter_by(user_id=a_id).one()  # the old session was wiped
-    assert (s.external_id, s.rig_id_snapshot) == ("jr_s1", a.rig_id)
+    # No rig_record_uid key in the file and the wiped session's external_id was
+    # never "jr_s1", so the new row has no rig and no row number (I6).
+    assert (s.external_id, s.rig_id_snapshot) == ("jr_s1", None)
     assert (s.object_record_uid, s.location_record_uid, s.rig_record_uid) == (a.m31_uid, a.home_uid, None)
     assert db_session.query(Project).filter_by(user_id=a_id).one().target_object_record_uid == a.m31_uid
     _assert_name_links_clean(db_session, a_id)

@@ -2,6 +2,7 @@ import pytest
 import sys, os
 import shutil
 import tempfile
+import threading
 # Must be set before nova is imported: nova starts background workers and telemetry at import time.
 os.environ["NOVA_DISABLE_BACKGROUND_TASKS"] = "1"
 
@@ -156,6 +157,22 @@ def pytest_unconfigure(config):
     shutil.rmtree(_TEST_INSTANCE_ROOT, ignore_errors=True)
 
 
+def _join_test_threads(threads_before, timeout=5.0):
+    """Wait for non-daemon threads started during the test before the tables are dropped.
+
+    Some routes (e.g. /update_project) call trigger_outlook_update_for_user, which
+    starts a non-daemon worker thread that keeps using the test database. If it is
+    still running when the fixture drops the tables, SQLite answers "database table
+    is locked". A thread still alive after the timeout is left as it is.
+    """
+    current = threading.current_thread()
+    for thread in threading.enumerate():
+        if thread in threads_before or thread is current or thread.daemon:
+            continue
+        if thread.is_alive():
+            thread.join(timeout)
+
+
 @pytest.fixture(scope="function")
 def db_session(monkeypatch):
     # ... (content remains unchanged) ...
@@ -195,9 +212,12 @@ def db_session(monkeypatch):
     session.add(guest_user)
     session.commit()
 
+    _threads_before = set(threading.enumerate())
+
     try:
         yield session
     finally:
+        _join_test_threads(_threads_before)
         # Clear module-level caches to prevent cross-test leakage
         observable_objects_cache.clear()
         nightly_curves_cache.clear()

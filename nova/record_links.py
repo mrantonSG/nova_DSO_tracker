@@ -319,6 +319,32 @@ def sync_project_link(db, project):
     _sync_uid(db, project, "target_object_record_uid", AstroObject, project.target_object_name)
 
 
+def refresh_rig_row_numbers(db, user_id):
+    """Point the old rig columns of this user's sessions and framings at the rigs
+    their UIDs name (I6).
+
+    Only a rig UID that resolves to a rig of this user sets rig_id_snapshot /
+    rig_id to that rig's row number. A row whose UID is empty, or is non-empty
+    and resolves to nothing, is left untouched: the row keeps whatever its old
+    column held.
+
+    Run at the end of a rig import, so a session or framing linked before the
+    rigs came back still names the right row number.
+    """
+    if user_id is None:
+        return
+    rigs = {
+        r.record_uid: r.id
+        for r in db.scalars(select(Rig).where(
+            Rig.user_id == user_id, Rig.record_uid.isnot(None), Rig.record_uid != ""))
+    }
+    for model, col in ((JournalSession, "rig_id_snapshot"), (SavedFraming, "rig_id")):
+        for row in db.scalars(select(model).where(model.user_id == user_id)):
+            if row.rig_record_uid in rigs:
+                setattr(row, col, rigs[row.rig_record_uid])
+    db.flush()
+
+
 # --- Adopt on create and move between objects ----------------------------------
 
 def _empty_uid_rows(db, user_id, model, uid_col, name_col, uid, name):

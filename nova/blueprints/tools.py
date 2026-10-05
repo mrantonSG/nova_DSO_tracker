@@ -45,7 +45,7 @@ from nova.record_links import (
 )
 from nova.migration import (
     _upsert_user,
-    capture_record_uids,
+    capture_record_uids, capture_session_rig_uids,
     validate_journal_data, repair_journals,
     load_catalog_pack, import_catalog_pack_for_user,
     export_user_data, export_user_to_yaml, import_user_from_yaml,
@@ -563,6 +563,9 @@ def import_journal():
                 # We must delete Sessions first (they depend on Projects), then Projects.
                 print(f"[IMPORT_JOURNAL] Wiping existing sessions and projects for user '{username}'...")
 
+                # I2: the sessions about to be wiped keep their rig UID by external_id.
+                saved_session_rigs = capture_session_rig_uids(db, user)
+
                 # Delete association rows first: PRAGMA foreign_keys is never enabled,
                 # so the table's ondelete='CASCADE' never fires at the DB level.
                 session_ids_subq = sa_select(JournalSession.id).where(JournalSession.user_id == user.id)
@@ -574,7 +577,7 @@ def import_journal():
                 db.flush()  # Ensure deletion happens before insertion
 
                 # 2. Import New Data
-                _migrate_journal(db, user, new_journal_data)
+                _migrate_journal(db, user, new_journal_data, saved_session_rigs)
 
                 db.commit()
                 flash(_("Journal imported successfully! (Previous journal data was replaced)"), "success")
@@ -682,7 +685,7 @@ def import_config():
             _migrate_saved_views(db, user, new_config)
 
             # 7. Import Saved Framings
-            _migrate_saved_framings(db, user, new_config)
+            _migrate_saved_framings(db, user, new_config, remap)
 
             # 8. Sessions and projects still hold the UIDs of the deleted objects and
             #    locations: re-link them by exact name. Framings got theirs above.

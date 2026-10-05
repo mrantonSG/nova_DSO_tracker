@@ -7,11 +7,31 @@ fails the import (I7), and every lookup is per user (I8).
 """
 
 import io
+import json
+from datetime import date
 
+import pytest
 import yaml
 
-from nova.migration import export_user_data, export_user_to_yaml, import_user_from_yaml
-from nova.models import AstroObject, Component, DbUser, Location, Rig
+from nova.migration import (
+    _migrate_journal, export_user_data, export_user_to_yaml, import_user_from_yaml,
+)
+from nova.models import (
+    AstroObject, Component, DbUser, JournalSession, Location, Project, Rig,
+    SavedFraming, SavedView, UiPref,
+)
+from nova.record_links import (
+    LINKS, count_link_disagreements,
+    sync_framing_links, sync_project_link, sync_session_links,
+)
+
+
+@pytest.fixture(autouse=True)
+def _no_outlook_worker(monkeypatch):
+    """The import routes start the background outlook worker, which keeps a
+    connection to the test database open (SQLite: "database table is locked" at
+    teardown). Same no-op patch as tests/test_uid_links_bulk_paths.py."""
+    monkeypatch.setattr("nova.update_outlook_cache", lambda *args, **kwargs: None)
 
 
 def _user(db, username):
@@ -236,3 +256,331 @@ def test_second_user_rows_unchanged(client, db_session, tmp_path):
     assert _post_file(client, "/import_config", tmp_path / "config_default.yaml").status_code == 302
     db_session.expire_all()
     assert _uids(db_session, "Second") == before
+
+
+# --- Link UIDs and fidelity (6b part 2) ---------------------------------------
+
+ZERO = {"wrong": 0, "missing": 0}
+
+
+def _populate_links(db, username):
+    """`_populate` plus one journal session, one framing, one project and one view."""
+    u = _populate(db, username)
+    rig = db.query(Rig).filter_by(user_id=u.id, rig_name="Main").one()
+
+    s = db.query(JournalSession).filter_by(user_id=u.id, external_id=f"{username}_s1").one_or_none()
+    if s is None:
+        s = JournalSession(user_id=u.id, date_utc=date(2026, 1, 5), external_id=f"{username}_s1",
+                           object_name="M42", location_name="Home", rig_id_snapshot=rig.id)
+        db.add(s)
+        sync_session_links(db, s)
+    f = db.query(SavedFraming).filter_by(user_id=u.id, object_name="M42").one_or_none()
+    if f is None:
+        f = SavedFraming(user_id=u.id, object_name="M42", rig_name="Main", rig_id=rig.id)
+        db.add(f)
+        sync_framing_links(db, f)
+    p = db.query(Project).filter_by(user_id=u.id, name="Orion").one_or_none()
+    if p is None:
+        p = Project(id=f"{username}_p1", user_id=u.id, name="Orion", target_object_name="M42")
+        db.add(p)
+        sync_project_link(db, p)
+    if db.query(SavedView).filter_by(user_id=u.id, name="Wide").one_or_none() is None:
+        db.add(SavedView(user_id=u.id, name="Wide", description="d", is_shared=True,
+                         settings_json='{"zoom": 3}'))
+    db.commit()
+    return u
+
+
+def _links(db, username):
+    """Every linked row's UIDs, keyed by a natural key that survives a re-import."""
+    u = _user(db, username)
+    return {
+        "sessions": {s.external_id: (s.object_record_uid, s.location_record_uid, s.rig_record_uid)
+                     for s in db.query(JournalSession).filter_by(user_id=u.id)},
+        "framings": {f.object_name: (f.object_record_uid, f.rig_record_uid)
+                     for f in db.query(SavedFraming).filter_by(user_id=u.id)},
+        "projects": {p.name: p.target_object_record_uid
+                     for p in db.query(Project).filter_by(user_id=u.id)},
+    }
+
+
+def _every_session_has_its_rig(db, username):
+    u = _user(db, username)
+    rigs = {r.record_uid: r.id for r in db.query(Rig).filter_by(user_id=u.id)}
+    sessions = db.query(JournalSession).filter_by(user_id=u.id).all()
+    assert sessions
+    for s in sessions:
+        assert s.rig_record_uid, s.external_id
+        assert s.rig_id_snapshot == rigs[s.rig_record_uid], s.external_id
+
+
+def _export(tmp_path, username="default"):
+    assert export_user_to_yaml(username, out_dir=str(tmp_path)) is True
+    return (tmp_path / f"config_{username}.yaml",
+            tmp_path / f"rigs_{username}.yaml",
+            tmp_path / f"journal_{username}.yaml")
+
+
+# --- Round trip: every entry point keeps every link ---------------------------
+
+def test_every_route_and_the_full_import_keep_every_link(client, db_session, tmp_path):
+    _populate_links(db_session, "default")
+    before_uids, before_links = _uids(db_session, "default"), _links(db_session, "default")
+    cfg, rigs, jrn = _export(tmp_path)
+
+    assert _post_file(client, "/import_config", cfg).status_code == 302
+    db_session.expire_all()
+    assert _links(db_session, "default") == before_links
+    assert _post_file(client, "/import_rig_config", rigs).status_code == 302
+    db_session.expire_all()
+    assert _links(db_session, "default") == before_links
+    assert _post_file(client, "/import_journal", jrn).status_code == 302
+    db_session.expire_all()
+    assert _links(db_session, "default") == before_links
+    _every_session_has_its_rig(db_session, "default")
+
+    assert _post_full(client, cfg, rigs, jrn, clear=True).status_code == 302
+    db_session.expire_all()
+    assert _uids(db_session, "default") == before_uids
+    assert _links(db_session, "default") == before_links
+    _every_session_has_its_rig(db_session, "default")
+
+
+def test_the_three_buttons_in_any_order_keep_every_link(client, db_session, tmp_path):
+    _populate_links(db_session, "default")
+    before_uids, before_links = _uids(db_session, "default"), _links(db_session, "default")
+    cfg, rigs, jrn = _export(tmp_path)
+
+    assert _post_file(client, "/import_journal", jrn).status_code == 302
+    assert _post_file(client, "/import_rig_config", rigs).status_code == 302
+    assert _post_file(client, "/import_config", cfg).status_code == 302
+    db_session.expire_all()
+    assert _uids(db_session, "default") == before_uids
+    assert _links(db_session, "default") == before_links
+    _every_session_has_its_rig(db_session, "default")
+
+
+# --- Files without UIDs: the links survive by name or by the previous UID ------
+
+def test_rigs_without_uids_keep_every_rig_link(client, db_session, tmp_path):
+    _populate_links(db_session, "default")
+    before_links = _links(db_session, "default")
+    cfg, rigs, _jrn = _export(tmp_path)
+
+    stripped = _without_uids(tmp_path, "rigs_old.yaml", rigs)
+    assert _post_file(client, "/import_rig_config", stripped).status_code == 302
+    db_session.expire_all()
+    assert _links(db_session, "default") == before_links
+    _every_session_has_its_rig(db_session, "default")
+
+
+def test_journal_without_uids_keeps_every_rig_link(client, db_session, tmp_path):
+    _populate_links(db_session, "default")
+    before_links = _links(db_session, "default")
+    _cfg, _rigs, jrn = _export(tmp_path)
+
+    stripped = _without_uids(tmp_path, "journal_old.yaml", jrn)
+    assert _post_file(client, "/import_journal", stripped).status_code == 302
+    db_session.expire_all()
+    assert _links(db_session, "default") == before_links
+    _every_session_has_its_rig(db_session, "default")
+
+
+def test_config_without_uids_keeps_every_name_link(client, db_session, tmp_path):
+    _populate_links(db_session, "default")
+    before_links = _links(db_session, "default")
+    cfg, _rigs, _jrn = _export(tmp_path)
+
+    stripped = _without_uids(tmp_path, "config_old.yaml", cfg)
+    assert _post_file(client, "/import_config", stripped).status_code == 302
+    db_session.expire_all()
+    assert _links(db_session, "default") == before_links
+
+
+# --- 6b part 2: the corrected rules ------------------------------------------
+
+def test_journal_rig_key_null_clears_the_rig_and_absent_restores_it(client, db_session, tmp_path):
+    _populate_links(db_session, "default")
+    _cfg, _rigs, jrn = _export(tmp_path)
+    u = _user(db_session, "default")
+    rig = db_session.query(Rig).filter_by(user_id=u.id).one()
+
+    # Key removed (an old-format file): I2 gives the session its previous rig back.
+    doc = yaml.safe_load(jrn.read_text())
+    del doc["sessions"][0]["rig_record_uid"]
+    absent = tmp_path / "jrn_absent.yaml"
+    absent.write_text(yaml.safe_dump(doc))
+    assert _post_file(client, "/import_journal", absent).status_code == 302
+    db_session.expire_all()
+    s = db_session.query(JournalSession).filter_by(user_id=u.id).one()
+    assert (s.rig_record_uid, s.rig_id_snapshot) == (rig.record_uid, rig.id)
+
+    # Key present, null: the file says the session has no rig.
+    doc = yaml.safe_load(jrn.read_text())
+    doc["sessions"][0]["rig_record_uid"] = None
+    nulled = tmp_path / "jrn_null.yaml"
+    nulled.write_text(yaml.safe_dump(doc))
+    assert _post_file(client, "/import_journal", nulled).status_code == 302
+    db_session.expire_all()
+    s = db_session.query(JournalSession).filter_by(user_id=u.id).one()
+    assert (s.rig_record_uid, s.rig_id_snapshot) == (None, None)
+
+
+def test_rig_row_number_in_the_file_is_never_stored(db_session, tmp_path):
+    _populate_links(db_session, "default")
+    cfg, rigs, jrn = _export(tmp_path)
+    other = _user(db_session, "Second")
+    assert import_user_from_yaml("Second", str(cfg), str(rigs), str(jrn),
+                                 clear_existing=True) is True
+    db_session.expire_all()
+    rig = db_session.query(Rig).filter_by(user_id=other.id).one()
+
+    # The file names a real row number, but carries no UID: nothing is stored.
+    doc = {"projects": [], "sessions": [
+        {"session_id": "rowid_s1", "session_date": "2026-02-01",
+         "rig_id_snapshot": rig.id, "rig_name_snapshot": "Main"}]}
+    p = tmp_path / "jrn_rowid.yaml"
+    p.write_text(yaml.safe_dump(doc))
+    assert import_user_from_yaml("Second", str(cfg), str(rigs), str(p),
+                                 clear_existing=False) is True
+    db_session.expire_all()
+    s = db_session.query(JournalSession).filter_by(user_id=other.id, external_id="rowid_s1").one()
+    assert (s.rig_record_uid, s.rig_id_snapshot) == (None, None)
+
+
+def test_journal_before_rigs_fixes_old_columns_to_the_new_row_numbers(client, db_session, tmp_path):
+    _populate_links(db_session, "default")
+    cfg, rigs, jrn = _export(tmp_path)
+    u = _user(db_session, "default")
+    old_rig_id = db_session.query(Rig).filter_by(user_id=u.id).one().id
+
+    # Another user's rig, created later, so the re-imported rig gets a NEW row number.
+    other = _user(db_session, "Second")
+    db_session.add(Rig(user_id=other.id, rig_name="Other Rig"))
+    db_session.commit()
+    other_rig_id = db_session.query(Rig).filter_by(user_id=other.id).one().id
+
+    assert _post_file(client, "/import_journal", jrn).status_code == 302
+    db_session.expire_all()
+    s = db_session.query(JournalSession).filter_by(user_id=u.id).one()
+    assert s.rig_id_snapshot == old_rig_id  # the rig has not moved yet
+
+    assert _post_file(client, "/import_rig_config", rigs).status_code == 302
+    db_session.expire_all()
+    rig = db_session.query(Rig).filter_by(user_id=u.id).one()
+    assert rig.id == other_rig_id + 1 and rig.id != old_rig_id
+    s = db_session.query(JournalSession).filter_by(user_id=u.id).one()
+    f = db_session.query(SavedFraming).filter_by(user_id=u.id).one()
+    assert (s.rig_record_uid, s.rig_id_snapshot) == (rig.record_uid, rig.id)
+    assert (f.rig_record_uid, f.rig_id) == (rig.record_uid, rig.id)
+
+
+def test_rig_role_uid_and_row_number_agree_after_the_import(client, db_session, tmp_path):
+    _populate_links(db_session, "default")
+    rigs = _export(tmp_path)[1]
+    assert _post_file(client, "/import_rig_config", rigs).status_code == 302
+    db_session.expire_all()
+    u = _user(db_session, "default")
+    rig = db_session.query(Rig).filter_by(user_id=u.id).one()
+    tel = db_session.query(Component).filter_by(user_id=u.id, kind="telescope").one()
+    cam = db_session.query(Component).filter_by(user_id=u.id, kind="camera").one()
+
+    assert (rig.telescope_record_uid, rig.telescope_id) == (tel.record_uid, tel.id)
+    assert (rig.camera_record_uid, rig.camera_id) == (cam.record_uid, cam.id)
+    assert count_link_disagreements(db_session, user_id=u.id, links=LINKS) == {
+        link.name: dict(ZERO) for link in LINKS}
+
+
+# --- Settings, views and session ids survive the round trip (I9) ---------------
+
+def test_saved_views_settings_and_session_ids_survive_the_round_trip(client, db_session, tmp_path):
+    _populate_links(db_session, "default")
+    u = _user(db_session, "default")
+    db_session.query(UiPref).filter_by(user_id=u.id).delete()
+    db_session.add(UiPref(user_id=u.id, json_blob=json.dumps({
+        "altitude_threshold": 22, "imaging_criteria": {"min_max_altitude": 35},
+        "sampling_interval_minutes": 10, "telemetry": False, "rig_sort": "name",
+        "language": "de"})))
+    db_session.commit()
+
+    # A session with no id: the import gives it one, so a second import updates it.
+    cfg, rigs, _jrn = _export(tmp_path)
+    first = tmp_path / "jrn_noid.yaml"
+    first.write_text(yaml.safe_dump({"projects": [], "sessions": [
+        {"session_date": "2026-03-01", "object_name": "M42", "location_name": "Home"}]}))
+    assert _post_full(client, cfg, rigs, first, clear=True).status_code == 302
+    db_session.expire_all()
+    session = db_session.query(JournalSession).filter_by(user_id=u.id).one()
+    assert session.external_id
+
+    cfg, rigs, jrn = _export(tmp_path)
+    assert _post_full(client, cfg, rigs, jrn, clear=True).status_code == 302
+    db_session.expire_all()
+    assert db_session.query(JournalSession).filter_by(user_id=u.id).count() == 1
+
+    view = db_session.query(SavedView).filter_by(user_id=u.id).one()
+    assert (view.name, view.description, view.is_shared,
+            json.loads(view.settings_json)) == ("Wide", "d", True, {"zoom": 3})
+    blob = json.loads(db_session.query(UiPref).filter_by(user_id=u.id).one().json_blob)
+    assert (blob["altitude_threshold"], blob["sampling_interval_minutes"]) == (22, 10)
+    assert blob["imaging_criteria"] == {"min_max_altitude": 35}
+    assert blob["telemetry"] is False
+    assert blob["rig_sort"] == "name"
+    assert blob["language"] == "de"
+    for forbidden in ("format_version", "record_uid", "locations", "objects",
+                      "saved_framings", "saved_views"):
+        assert forbidden not in blob
+
+
+# --- Another account's files (I8) --------------------------------------------
+
+def test_other_account_journal_links_by_name_and_keeps_the_file_rig_uid(db_session, tmp_path):
+    _populate_links(db_session, "default")
+    _cfg, _rigs, jrn = _export(tmp_path)
+    other = _user(db_session, "Second")
+    db_session.add_all([
+        Location(user_id=other.id, name="Home", lat=9.0, lon=9.0, timezone="UTC"),
+        AstroObject(user_id=other.id, object_name="M42", ra_hours=9.0, dec_deg=9.0)])
+    db_session.commit()
+
+    file_rig_uid = yaml.safe_load(jrn.read_text())["sessions"][0]["rig_record_uid"]
+    assert file_rig_uid
+    _migrate_journal(db_session, other, yaml.safe_load(jrn.read_text()))
+    db_session.commit()
+
+    s = db_session.query(JournalSession).filter_by(user_id=other.id).one()
+    obj = db_session.query(AstroObject).filter_by(user_id=other.id, object_name="M42").one()
+    loc = db_session.query(Location).filter_by(user_id=other.id, name="Home").one()
+    assert s.object_record_uid == obj.record_uid
+    assert s.location_record_uid == loc.record_uid
+    assert s.rig_record_uid == file_rig_uid  # kept exactly, even though it dangles here
+    assert s.rig_id_snapshot is None
+
+
+def test_other_account_full_set_ends_consistent(db_session, tmp_path):
+    _populate_links(db_session, "default")
+    before_uids = _uids(db_session, "default")
+    cfg, rigs, jrn = _export(tmp_path)
+
+    assert import_user_from_yaml("Second", str(cfg), str(rigs), str(jrn),
+                                 clear_existing=True) is True
+    db_session.expire_all()
+    other = _user(db_session, "Second")
+    assert _uids(db_session, "Second") == before_uids
+    result = count_link_disagreements(db_session, user_id=other.id, links=LINKS)
+    assert result == {link.name: dict(ZERO) for link in LINKS}, result
+    _every_session_has_its_rig(db_session, "Second")
+
+
+def test_second_users_links_never_change_on_the_three_buttons(client, db_session, tmp_path):
+    _populate_links(db_session, "default")
+    _populate_links(db_session, "Second")
+    before_uids, before_links = _uids(db_session, "Second"), _links(db_session, "Second")
+    cfg, rigs, jrn = _export(tmp_path)
+
+    assert _post_file(client, "/import_config", cfg).status_code == 302
+    assert _post_file(client, "/import_rig_config", rigs).status_code == 302
+    assert _post_file(client, "/import_journal", jrn).status_code == 302
+    db_session.expire_all()
+    assert _uids(db_session, "Second") == before_uids
+    assert _links(db_session, "Second") == before_links

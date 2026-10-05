@@ -31,7 +31,7 @@ from nova.models import (
 )
 from nova.record_links import (
     adopt_unlinked_rows_for_user, sync_framing_links, sync_project_link, sync_rig_links,
-    sync_session_links, uid_of, rig_for_uid,
+    sync_session_links, uid_of, uid_for_name, rig_for_uid, refresh_rig_row_numbers,
 )
 
 def load_catalog_pack(pack_id: str) -> tuple[dict | None, dict | None]:
@@ -151,6 +151,73 @@ def capture_record_uids(db, user) -> dict:
         "rigs": {r.rig_name: r.record_uid
                  for r in db.query(Rig).filter_by(user_id=user.id)},
     }
+
+
+def _link_uid(entry, key) -> str | None:
+    """A link UID an import entry carries under `key`, or None.
+
+    The same shape as _file_uid, but for the link columns (rig_record_uid,
+    object_record_uid, ...) instead of the record's own record_uid.
+    """
+    if not isinstance(entry, dict):
+        return None
+    uid = entry.get(key)
+    return str(uid).strip() if uid else None
+
+
+def _uid_resolves(db, user_id, model, uid) -> bool:
+    """True when `uid` is the record_uid of one of this user's `model` rows (I3, I5)."""
+    if not uid:
+        return False
+    return db.query(model.id).filter_by(user_id=user_id, record_uid=uid).first() is not None
+
+
+def _link_uid_from_file(db, user_id, model, file_uid, remap, by_name_uid):
+    """The UID an object or location link gets, in this order (I3, I7):
+
+    - the file's UID when it resolves to a record of this user (after remap);
+    - the UID found by exact name, as today;
+    - the file's UID as it is, so a record that comes back later can find it.
+    """
+    wanted = remap.get(file_uid, file_uid) if file_uid else None
+    if wanted and _uid_resolves(db, user_id, model, wanted):
+        return wanted
+    if by_name_uid:
+        return by_name_uid
+    return wanted
+
+
+def capture_session_rig_uids(db, user) -> dict:
+    """{external_id: rig_record_uid} of the user's sessions, before a wipe (I2).
+
+    Only a session that carries an external_id can be matched again by it.
+    """
+    return {s.external_id: s.rig_record_uid
+            for s in db.query(JournalSession).filter_by(user_id=user.id)
+            if s.external_id}
+
+
+# The five component links a rig file can carry, by column name; the exporter
+# writes each under the same key as the column.
+_RIG_ROLE_UID_KEYS = (
+    "telescope_record_uid", "camera_record_uid", "reducer_extender_record_uid",
+    "guide_telescope_record_uid", "guide_camera_record_uid",
+)
+
+
+def _apply_rig_role_uids(db, user_id, entry, rig, remap):
+    """I5: a role UID the file carries wins when, after remap, it names one of
+    this user's components. The old column follows that component's row number.
+    Otherwise the UID sync_rig_links wrote from the resolved row stands."""
+    for key in _RIG_ROLE_UID_KEYS:
+        file_uid = _link_uid(entry, key)
+        if not file_uid:
+            continue
+        wanted = remap.get(file_uid, file_uid)
+        component = db.query(Component).filter_by(user_id=user_id, record_uid=wanted).one_or_none()
+        if component is not None:
+            setattr(rig, key, wanted)
+            setattr(rig, key[:-len("record_uid")] + "id", component.id)
 
 
 def _migrate_locations(db, user: DbUser, config: dict, saved_uids=None, remap=None):
@@ -290,6 +357,8 @@ def _heal_saved_framings(db, user: DbUser):
     """
     Scans for SavedFraming records that have a rig_name but no rig_id
     (orphaned because config was imported before rigs) and tries to link them.
+    A framing that carries a rig UID keeps it exactly (I4): only rows whose
+    rig UID is empty are healed by rig name.
     """
     try:
         orphans = db.query(SavedFraming).filter(
@@ -300,6 +369,8 @@ def _heal_saved_framings(db, user: DbUser):
 
         count = 0
         for f in orphans:
+            if f.rig_record_uid:
+                continue
             # Try to find the rig by name
             rig = db.query(Rig).filter_by(user_id=user.id, rig_name=f.rig_name).one_or_none()
             if rig:
@@ -316,21 +387,31 @@ def _heal_saved_framings(db, user: DbUser):
 
 
 
-def _migrate_saved_framings(db, user: DbUser, config: dict):
+def _migrate_saved_framings(db, user: DbUser, config: dict, remap=None):
     framings = config.get("saved_framings", []) or []
+    if remap is None:
+        remap = {}
 
     for f in framings:
         try:
             obj_name = f.get("object_name")
             if not obj_name: continue
 
-            # Resolve rig_id from rig_name if possible
+            # The file's rig UID is kept exactly (I4); without one (absent or
+            # null), the rig is found by name as today.
             rig_name_str = f.get("rig_name")
+            file_rig_uid = _link_uid(f, "rig_record_uid")
             rig_id = None
-            if rig_name_str:
+            if file_rig_uid:
+                rig = rig_for_uid(db, user.id, remap.get(file_rig_uid, file_rig_uid))
+                if rig:
+                    rig_id = rig.id
+            elif rig_name_str:
                 rig = db.query(Rig).filter_by(user_id=user.id, rig_name=rig_name_str).one_or_none()
                 if rig:
                     rig_id = rig.id
+
+            file_object_uid = _link_uid(f, "object_record_uid")
 
             # Upsert Logic
             existing = db.query(SavedFraming).filter_by(
@@ -341,8 +422,14 @@ def _migrate_saved_framings(db, user: DbUser, config: dict):
             if existing:
                 existing.rig_id = rig_id
                 existing.rig_name = rig_name_str  # <-- Always save the name
-                # rig_id is the rig resolved above (or None); object_name is the lookup key
+                # rig_id is the rig named above (or None); object_name is the lookup key
                 sync_framing_links(db, existing)
+                if file_rig_uid:
+                    existing.rig_record_uid = remap.get(file_rig_uid, file_rig_uid)
+                if file_object_uid:
+                    existing.object_record_uid = _link_uid_from_file(
+                        db, user.id, AstroObject, file_object_uid, remap,
+                        uid_for_name(db, AstroObject, user.id, existing.object_name))
                 existing.ra = f.get("ra")
                 existing.dec = f.get("dec")
                 existing.rotation = f.get("rotation")
@@ -385,6 +472,12 @@ def _migrate_saved_framings(db, user: DbUser, config: dict):
                     geo_belt_enabled=f.get("geo_belt_enabled", True)
                 )
                 sync_framing_links(db, new_sf)
+                if file_rig_uid:
+                    new_sf.rig_record_uid = remap.get(file_rig_uid, file_rig_uid)
+                if file_object_uid:
+                    new_sf.object_record_uid = _link_uid_from_file(
+                        db, user.id, AstroObject, file_object_uid, remap,
+                        uid_for_name(db, AstroObject, user.id, obj_name))
                 db.add(new_sf)
 
         except Exception as e:
@@ -827,6 +920,7 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
                 existing_rig.effective_focal_length, existing_rig.f_ratio, existing_rig.image_scale, existing_rig.fov_w_arcmin = eff_fl, f_ratio, scale, fov_w
                 existing_rig.guide_telescope_id, existing_rig.guide_camera_id, existing_rig.guide_is_oag = guide_tel_id, guide_cam_id, guide_is_oag
                 sync_rig_links(db, existing_rig)
+                _apply_rig_role_uids(db, user.id, r, existing_rig, remap)
             else:
                 rig_uid = keep_rig_uid or saved_rigs.get(rig_name)
                 new_rig = Rig(user_id=user.id, rig_name=rig_name, telescope_id=tel_id, camera_id=cam_id,
@@ -835,6 +929,7 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
                               guide_camera_id=guide_cam_id, guide_is_oag=guide_is_oag,
                               **({"record_uid": rig_uid} if rig_uid else {}))
                 sync_rig_links(db, new_rig)
+                _apply_rig_role_uids(db, user.id, r, new_rig, remap)
                 db.add(new_rig)
             db.flush()
 
@@ -845,10 +940,25 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
             print(f"[MIGRATION] Skip/repair rig '{r}': {e}")
 
     _heal_saved_framings(db, user)
+    # The rigs may have come back under new row numbers: the old columns of the
+    # sessions and framings that link them follow their UIDs (I6).
+    refresh_rig_row_numbers(db, user.id)
 
 
 
-def _migrate_journal(db, user: DbUser, journal_yaml: dict):
+def _apply_project_target_uid(db, user, project, entry, remap):
+    """I3: a project's target object link. The file's UID when it resolves for
+    this user (after remap), else the final target_object_name by exact name,
+    else the file's UID. Called after the project's fields are set."""
+    file_uid = _link_uid(entry, "target_object_record_uid")
+    if not file_uid:
+        return
+    project.target_object_record_uid = _link_uid_from_file(
+        db, user.id, AstroObject, file_uid, remap,
+        uid_for_name(db, AstroObject, user.id, project.target_object_name))
+
+
+def _migrate_journal(db, user: DbUser, journal_yaml: dict, saved_rig_uids=None, remap=None):
     data = journal_yaml or {}
     # Normalize old list-based journals to the new dict structure
     if isinstance(data, list):
@@ -857,6 +967,8 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
         # Ensure 'projects' and 'sessions' keys exist, handle legacy 'entries' key
         data.setdefault("projects", [])
         data.setdefault("sessions", data.get("entries", [])) # Use 'entries' as fallback
+    if remap is None:
+        remap = {}
 
     # === START: Link Rewriting Logic ===
     # Get the target username (e.g., 'default' or 'mrantonSG')
@@ -905,6 +1017,7 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
                     id_map[str(project_id_val)] = new_id
                     new_project = Project(id=new_id, **project_data)
                     sync_project_link(db, new_project)
+                    _apply_project_target_uid(db, user, new_project, p, remap)
                     db.add(new_project)
                     db.flush()
             elif existing_project:
@@ -914,12 +1027,14 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
                         setattr(existing_project, key, value)
                 # From the final target_object_name: a None in the file keeps the old one
                 sync_project_link(db, existing_project)
+                _apply_project_target_uid(db, user, existing_project, p, remap)
             else:
                 # Check if a project with the same name already exists for the user (to avoid name duplicates if ID differs)
                 existing_by_name = db.query(Project).filter_by(user_id=user.id, name=project_data["name"]).one_or_none()
                 if not existing_by_name:
                     new_project = Project(id=str(project_id_val), **project_data)
                     sync_project_link(db, new_project)
+                    _apply_project_target_uid(db, user, new_project, p, remap)
                     db.add(new_project)
 
     db.flush()  # Flush after adding all valid projects from the YAML
@@ -928,6 +1043,10 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
     for s in (data.get("sessions") or []):
         # Get external ID, preferring 'session_id' then 'id'
         ext_id = s.get("session_id") or s.get("id")
+        # I9: a session without an id gets one, so a second import of the
+        # exported file updates this row instead of duplicating it.
+        if not ext_id:
+            ext_id = uuid.uuid4().hex
         # Get date, preferring 'session_date' then 'date'
         date_str = s.get("session_date") or s.get("date")
         if not date_str: continue # Skip if no date
@@ -1047,7 +1166,6 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
             "filter_OIII_exposure_sec": _as_int(s.get("filter_OIII_exposure_sec")),
             "filter_SII_subs": _as_int(s.get("filter_SII_subs")),
             "filter_SII_exposure_sec": _as_int(s.get("filter_SII_exposure_sec")),
-            "rig_id_snapshot": _as_int(s.get("rig_id_snapshot")),
             "rig_name_snapshot": s.get("rig_name_snapshot"),
             "rig_efl_snapshot": _try_float(s.get("rig_efl_snapshot")),
             "rig_fr_snapshot": _try_float(s.get("rig_fr_snapshot")),
@@ -1068,50 +1186,68 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
             "log_analysis_cache": s.get("log_analysis_cache"),
         }
         # *** START: Simplified Upsert Logic ***
-        if ext_id:
-            # Try to find an existing session with this external_id for this user
-            existing_session = db.query(JournalSession).filter_by(
-                user_id=user.id,
-                external_id=str(ext_id)
-            ).one_or_none()
+        # Try to find an existing session with this external_id for this user
+        existing_session = db.query(JournalSession).filter_by(
+            user_id=user.id,
+            external_id=str(ext_id)
+        ).one_or_none()
 
-            if existing_session:
-                # UPDATE: Session found, update its fields
-                old_rig_id_snapshot = existing_session.rig_id_snapshot
-                for k, v in row_values.items():
-                    # Only update if the new value is not None
-                    if v is not None:
-                        setattr(existing_session, k, v)
-                # The rig UID is never resolved on import: it stays while rig_id_snapshot
-                # stays, and is cleared when the file changes rig_id_snapshot.
-                if existing_session.rig_id_snapshot != old_rig_id_snapshot:
-                    existing_session.rig_record_uid = None
-                sync_session_links(db, existing_session, include_rig=False)
-                # No need to db.add() here
-            else:
-                # INSERT: Session not found, create a new one
-                new_session = JournalSession(**row_values)
-                sync_session_links(db, new_session, include_rig=False)  # rig UID stays NULL
-                db.add(new_session)
+        if existing_session:
+            # UPDATE: Session found, update its fields
+            for k, v in row_values.items():
+                # Only update if the new value is not None
+                if v is not None:
+                    setattr(existing_session, k, v)
+            session_obj = existing_session
         else:
-            # INSERT (No external ID provided): Always create a new session
-            new_session = JournalSession(**row_values)
-            sync_session_links(db, new_session, include_rig=False)  # rig UID stays NULL
-            db.add(new_session)
+            # INSERT: Session not found, create a new one
+            session_obj = JournalSession(**row_values)
+            db.add(session_obj)
+
+        sync_session_links(db, session_obj, include_rig=False)
+
+        # Object and location links (I3): the file's UID when it resolves for
+        # this user, else the exact name, else the file's UID as it is.
+        file_object_uid = _link_uid(s, "object_record_uid")
+        if file_object_uid:
+            session_obj.object_record_uid = _link_uid_from_file(
+                db, user.id, AstroObject, file_object_uid, remap,
+                uid_for_name(db, AstroObject, user.id, session_obj.object_name))
+        file_location_uid = _link_uid(s, "location_record_uid")
+        if file_location_uid:
+            session_obj.location_record_uid = _link_uid_from_file(
+                db, user.id, Location, file_location_uid, remap,
+                uid_for_name(db, Location, user.id, session_obj.location_name))
+
+        # The rig link (I4, I2, correction 1). A present key is decided by the
+        # file: a UID is kept exactly, a null means the session has no rig. An
+        # absent key (an old-format file) restores the session's previous rig
+        # UID by external_id; otherwise a new row gets none and an existing row
+        # keeps the one it has.
+        if "rig_record_uid" in s:
+            file_rig_uid = _link_uid(s, "rig_record_uid")
+            session_obj.rig_record_uid = remap.get(file_rig_uid, file_rig_uid) if file_rig_uid else None
+        else:
+            restored_rig_uid = (saved_rig_uids or {}).get(str(ext_id))
+            if restored_rig_uid:
+                session_obj.rig_record_uid = restored_rig_uid
+            elif not existing_session:
+                session_obj.rig_record_uid = None
+
+        # I6: the old column follows the UID; the file's row number is never used.
+        rig = rig_for_uid(db, user.id, session_obj.rig_record_uid)
+        session_obj.rig_id_snapshot = rig.id if rig else None
 
         # *** START: Legacy dither migration ***
         # If new structured fields are absent but old dither_details is present,
         # migrate the old text into dither_notes
         if row_values.get("dither_pixels") is None and row_values.get("dither_details"):
-            # Get the session object (either existing_session or new_session)
-            session_obj = existing_session if existing_session else new_session
             session_obj.dither_notes = row_values.get("dither_details")
         # *** END: Legacy dither migration ***
         # *** END: Simplified Upsert Logic ***
 
         # Assign ownership-validated projects to the m2m relationship
         if ownership_validated_projects:
-            session_obj = existing_session if existing_session else new_session
             session_obj.projects = ownership_validated_projects
 
     # --- Import custom filter definitions ---
@@ -1123,6 +1259,8 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
         if not db.query(UserCustomFilter).filter_by(user_id=user.id, filter_key=key).first():
             db.add(UserCustomFilter(user_id=user.id, filter_key=key, filter_label=label))
     db.flush()
+    # The old rig columns of the sessions above follow their UIDs (I6).
+    refresh_rig_row_numbers(db, user.id)
 
 
 
@@ -1136,15 +1274,17 @@ def _migrate_ui_prefs(db, user: DbUser, config: dict):
     # null or unmatched.
     default_row = db.query(Location).filter_by(user_id=user.id, is_default=True).first()
 
-    # Gather all the top-level settings we want to save
-    settings_to_save = {
-        "altitude_threshold": config.get("altitude_threshold"),
-        "default_location": default_row.name if default_row else None,
-        "imaging_criteria": config.get("imaging_criteria"),
-        "sampling_interval_minutes": config.get("sampling_interval_minutes"),
-        "telemetry": config.get("telemetry"),
-        "rig_sort": (config.get("ui") or {}).get("rig_sort")
-    }
+    # I9: keep every top-level setting the file carries (the exporter starts the
+    # config from this blob), but never the format marker or the record
+    # sections, which have their own import paths. 'ui' is folded into
+    # rig_sort below and not stored, so the blob keeps today's flat shape.
+    reserved = ("format_version", "record_uid", "locations", "objects",
+                "saved_framings", "saved_views", "ui")
+    settings_to_save = {k: v for k, v in (config or {}).items() if k not in reserved}
+    settings_to_save["default_location"] = default_row.name if default_row else None
+    # The exporter writes rig_sort top-level; an old file nested it under 'ui'.
+    if settings_to_save.get("rig_sort") is None:
+        settings_to_save["rig_sort"] = ((config or {}).get("ui") or {}).get("rig_sort")
 
     # Only create a record if there's at least one setting to save
     if any(v is not None for v in settings_to_save.values()):
@@ -1481,8 +1621,10 @@ def import_user_from_yaml(username: str,
     try:
         user = _upsert_user(db, username)
         saved_uids = None
+        saved_session_rigs = None
         if clear_existing:
             saved_uids = capture_record_uids(db, user)
+            saved_session_rigs = capture_session_rig_uids(db, user)
             # cascades remove all
             db.delete(user); db.flush()
             user = _upsert_user(db, username)
@@ -1501,9 +1643,10 @@ def import_user_from_yaml(username: str,
         _migrate_locations(db, user, cfg_data, saved_uids, remap)
         _migrate_objects(db, user, cfg_data, saved_uids, remap)
         _migrate_components_and_rigs(db, user, rigs_data, username, saved_uids, remap)
-        _migrate_saved_framings(db, user, cfg_data)
-        _migrate_journal(db, user, jrn_data)
+        _migrate_saved_framings(db, user, cfg_data, remap)
+        _migrate_journal(db, user, jrn_data, saved_session_rigs, remap)
         _migrate_ui_prefs(db, user, cfg_data)
+        _migrate_saved_views(db, user, cfg_data)
         db.commit()
         return True
     except Exception as import_err:

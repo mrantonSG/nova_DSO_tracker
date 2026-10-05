@@ -1,15 +1,19 @@
 """
-YAML import writes set the record_uid links (diff 6, nova/migration.py).
+YAML import writes set the record_uid links (diff 6, nova/migration.py; 6b part 2).
 
-- Saved framings: the rig UID follows the rig the import (or
-  _heal_saved_framings) resolved by name for the same user; the object UID is
-  found by exact name.
-- Journal sessions: the rig UID is never resolved on import. A new session
-  gets NULL; an existing session keeps its rig UID while rig_id_snapshot stays
-  the same and gets NULL when the import changes it. Object and location UIDs
-  are found by exact name from the row's final names.
-- Projects: the target object UID follows the row's final target_object_name.
-The old columns are written exactly as before.
+- Saved framings: the file's rig UID is kept exactly (I4); without one (absent
+  or null) the rig is found by name for the same user. The file's object UID
+  wins when it resolves, else the exact name, else the file's UID (I3).
+- Journal sessions: the file's rig UID is kept exactly (I4); with no
+  rig_record_uid key at all a session that comes back under the same
+  external_id gets its previous rig UID (I2), a new row gets NULL, and an
+  existing row keeps its own. A present key with null means no rig.
+  Object and location UIDs use the file's UID when it resolves, else the exact
+  name from the row's final names (I3).
+- Projects: the file's target UID when it resolves, else the row's final
+  target_object_name (I3).
+- The old rig columns follow the UID (I6): the row number in the file is never
+  stored.
 """
 from datetime import date
 
@@ -162,9 +166,14 @@ def test_journal_import_new_session_has_no_rig_uid(w, ext_id):
     _import_journal(w, [{"session_id": ext_id, "session_date": "2026-01-10",
                          "object_name": "M42", "location_name": "Home",
                          "rig_id_snapshot": w.rig1.id, "rig_name_snapshot": "A1 Rig"}])
-    s = _session(w, ext_id)
+    if ext_id is None:
+        # I9: a session without an id gets one, so it is not found by external_id=None
+        s = w.db.query(JournalSession).filter_by(user_id=w.a.id).one()
+        assert s.external_id
+    else:
+        s = _session(w, "s1")
 
-    assert s.rig_id_snapshot == w.rig1.id  # written as before
+    assert s.rig_id_snapshot is None  # I6: the file's row number is never stored
     assert s.rig_record_uid is None
     assert (s.object_record_uid, s.location_record_uid) == (w.m42.record_uid, w.home.record_uid)
 
@@ -183,14 +192,16 @@ def test_journal_import_unchanged_rig_snapshot_keeps_rig_uid(w, yaml_rig):
 
 
 @pytest.mark.parametrize("new_rig", ["rig2", "rig_b", "unknown"])
-def test_journal_import_changed_rig_snapshot_gives_null(w, new_rig):
+def test_journal_import_row_number_never_replaces_the_kept_rig(w, new_rig):
     _existing_session(w, w.rig1)
     new_id = {"rig2": w.rig2.id, "rig_b": w.rig_b.id, "unknown": 999999}[new_rig]
     _import_journal(w, [{"session_id": "s1", "session_date": "2026-01-10", "rig_id_snapshot": new_id}])
     s = _session(w, "s1")
 
-    assert s.rig_id_snapshot == new_id  # written as before
-    assert s.rig_record_uid is None
+    # No rig_record_uid key: the row keeps its rig (I2/I4), and the old column
+    # follows that UID (I6). The file's row number is never stored.
+    assert s.rig_record_uid == w.rig1.record_uid
+    assert s.rig_id_snapshot == w.rig1.id
 
 
 def test_journal_import_object_and_location_by_exact_name(w):
