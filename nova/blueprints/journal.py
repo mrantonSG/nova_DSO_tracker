@@ -40,6 +40,7 @@ from nova.models import (
     DbUser, Project, JournalSession, Rig,
     AstroObject, UserCustomFilter
 )
+from nova.record_links import sync_session_links
 from nova.helpers import (
     get_db, allowed_file, safe_float, safe_int,
     save_log_to_filesystem, read_log_content, dither_display,
@@ -259,6 +260,7 @@ def journal_add():
                 reducer_name_snapshot=reducer_name_snap,
                 camera_name_snapshot=camera_name_snap
             )
+            sync_session_links(db, new_session)
 
             # --- Custom filter data (user-defined filters stored as JSON) ---
             custom_data = {}
@@ -579,6 +581,7 @@ def journal_edit(session_id):
             session_to_edit.reducer_name_snapshot = reducer_name_snap
             session_to_edit.camera_name_snapshot = camera_name_snap
             # --- END: Update Rig Snapshot Fields ---
+            sync_session_links(db, session_to_edit)
     
             # --- Custom filter data (user-defined filters stored as JSON) ---
             # Start from stored data so values for filters whose definition was deleted

@@ -32,6 +32,7 @@ import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay l
 from nova.models import (
     DbUser, AstroObject, SavedFraming, Rig, Project, JournalSession, UserCustomFilter
 )
+from nova.record_links import sync_session_links
 from nova.helpers import (
     get_db, load_full_astro_context, safe_float, safe_int, generate_session_id, _compute_rig_metrics_from_components,
     resolve_sampling_interval, resolve_altitude_threshold,
@@ -660,6 +661,7 @@ def mobile_journal_new():
             reducer_name_snapshot=reducer_name_snap,
             camera_name_snapshot=camera_name_snap
         )
+        sync_session_links(db, new_session)
 
         # Custom filter data (user-defined filters stored as JSON)
         from nova.models import UserCustomFilter
