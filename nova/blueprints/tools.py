@@ -432,7 +432,7 @@ def get_rig_data():
             )
 
         rigs_list.append({
-            "rig_id": r.id, "rig_name": r.rig_name,
+            "rig_id": r.id, "rig_uid": r.record_uid, "rig_name": r.rig_name,
             "telescope_id": r.telescope_id, "camera_id": r.camera_id, "reducer_extender_id": r.reducer_extender_id,
             "effective_focal_length": efl, "f_ratio": f_ratio,
             "image_scale": scale, "fov_w_arcmin": fov_w, "fov_h_arcmin": fov_h,

@@ -39,7 +39,7 @@ from nova.models import (
     DbUser, Project, JournalSession, Rig,
     AstroObject, UserCustomFilter
 )
-from nova.record_links import components_for_rig, sync_session_links, sync_project_link
+from nova.record_links import components_for_rig, rig_for_uid, sync_session_links, sync_project_link
 from nova.helpers import (
     get_db, allowed_file, safe_float, safe_int,
     save_log_to_filesystem, read_log_content, dither_display,
@@ -487,34 +487,18 @@ def journal_edit(session_id):
                     parsed_date_utc = session_to_edit.date_utc if session_to_edit.date_utc else datetime.now().date()
             # --- END FIX ---
 
-            # --- NEW: Get Rig Snapshot Specs and Component Names ---
+            # --- Resolve the submitted rig within the user (rule 5); the specs are
+            # decided below (rules 3, 4, 9) ---
             rig_id_str = request.form.get("rig_id_snapshot")
-            rig_id_snap, rig_name_snap, efl_snap, fr_snap, scale_snap, fov_w_snap, fov_h_snap = None, None, None, None, None, None, None
-            tel_name_snap, reducer_name_snap, camera_name_snap = None, None, None  # Initialize new snapshots
-    
+            submitted_rig = None
             if rig_id_str:
                 try:
-                    rig_id = int(rig_id_str)
-                    rig = db.query(Rig).filter_by(id=rig_id, user_id=user.id).one_or_none()
-
-                    if rig:
-                        rig_id_snap = rig.id  # <-- SAVE THE ID
-                        rig_name_snap = rig.rig_name
-                        rc = components_for_rig(db, rig)
-                        efl_snap, fr_snap, scale_snap, fov_w_snap = _compute_rig_metrics_from_components(
-                            rc.telescope, rc.camera, rc.reducer_extender
-                        )
-                        if rc.camera and rc.camera.sensor_height_mm and efl_snap:
-                            fov_h_snap = (degrees(2 * atan((rc.camera.sensor_height_mm / 2.0) / efl_snap)) * 60.0)
-
-                        # --- GET AND SAVE COMPONENT NAMES ---
-                        tel_name_snap = rc.telescope.name if rc.telescope else None
-                        reducer_name_snap = rc.reducer_extender.name if rc.reducer_extender else None
-                        camera_name_snap = rc.camera.name if rc.camera else None
-                        # --- END COMPONENT NAMES ---
+                    submitted_rig = db.query(Rig).filter_by(
+                        id=int(rig_id_str), user_id=user.id).one_or_none()
                 except (ValueError, TypeError):
                     pass
-    
+            submitted_uid = submitted_rig.record_uid if submitted_rig else None
+
             # --- Update ALL fields from the form ---
             session_to_edit.date_utc = parsed_date_utc
             session_to_edit.object_name = request.form.get("target_object_id", "").strip()
@@ -564,21 +548,51 @@ def journal_edit(session_id):
             session_to_edit.bias_darkflats_strategy = form.get("bias_darkflats_strategy", "").strip() or None
             session_to_edit.transparency_observed_scale = form.get("transparency_observed_scale", "").strip() or None
     
-            # --- START: Update Rig Snapshot Fields (Crucial Assignment) ---
-            session_to_edit.rig_id_snapshot = rig_id_snap
-            session_to_edit.rig_name_snapshot = rig_name_snap
-            session_to_edit.rig_efl_snapshot = efl_snap
-            session_to_edit.rig_fr_snapshot = fr_snap
-            session_to_edit.rig_scale_snapshot = scale_snap
-            session_to_edit.rig_fov_w_snapshot = fov_w_snap
-            session_to_edit.rig_fov_h_snapshot = fov_h_snap
-    
-            # --- ASSIGN NEW COMPONENT NAME SNAPSHOTS ---
-            session_to_edit.telescope_name_snapshot = tel_name_snap
-            session_to_edit.reducer_name_snapshot = reducer_name_snap
-            session_to_edit.camera_name_snapshot = camera_name_snap
-            # --- END: Update Rig Snapshot Fields ---
-            sync_session_links(db, session_to_edit)
+            # --- Rules 3, 4, 9 and the Q1 exception ---
+            SPEC_COLS = ("rig_efl_snapshot", "rig_fr_snapshot", "rig_scale_snapshot",
+                         "rig_fov_w_snapshot", "rig_fov_h_snapshot", "telescope_name_snapshot",
+                         "reducer_name_snapshot", "camera_name_snapshot")
+            same_rig = submitted_uid is not None and submitted_uid == session_to_edit.rig_record_uid
+            all_specs_empty = all(getattr(session_to_edit, c) is None for c in SPEC_COLS)
+            fill_specs = False
+            write_rig = False
+            if submitted_rig is not None:
+                session_to_edit.rig_id_snapshot = submitted_rig.id  # old column still written
+                write_rig = True
+                if not same_rig:
+                    # changed rig: recompute everything
+                    fill_specs = True
+                    session_to_edit.rig_name_snapshot = submitted_rig.rig_name
+                elif all_specs_empty:
+                    # Q1 exception: heal a session whose specs are all blank
+                    fill_specs = True
+                    if not session_to_edit.rig_name_snapshot:
+                        session_to_edit.rig_name_snapshot = submitted_rig.rig_name
+                # same rig with some specs: leave every stored *_snapshot column untouched
+            elif session_to_edit.rig_record_uid and rig_for_uid(
+                    db, user.id, session_to_edit.rig_record_uid) is not None:
+                # empty submission removes a rig that still exists
+                for col in ("rig_id_snapshot", "rig_name_snapshot") + SPEC_COLS:
+                    setattr(session_to_edit, col, None)
+                write_rig = True
+            # else: no rig before, or the linked rig was deleted: keep link and specs (rule 4)
+
+            if fill_specs:
+                rc = components_for_rig(db, submitted_rig)
+                efl, fr, scale, fov_w = _compute_rig_metrics_from_components(
+                    rc.telescope, rc.camera, rc.reducer_extender)
+                session_to_edit.rig_efl_snapshot = efl
+                session_to_edit.rig_fr_snapshot = fr
+                session_to_edit.rig_scale_snapshot = scale
+                session_to_edit.rig_fov_w_snapshot = fov_w
+                session_to_edit.rig_fov_h_snapshot = (
+                    degrees(2 * atan((rc.camera.sensor_height_mm / 2.0) / efl)) * 60.0
+                    if rc.camera and rc.camera.sensor_height_mm and efl else None)
+                session_to_edit.telescope_name_snapshot = rc.telescope.name if rc.telescope else None
+                session_to_edit.reducer_name_snapshot = rc.reducer_extender.name if rc.reducer_extender else None
+                session_to_edit.camera_name_snapshot = rc.camera.name if rc.camera else None
+
+            sync_session_links(db, session_to_edit, include_rig=write_rig)
     
             # --- Custom filter data (user-defined filters stored as JSON) ---
             # Start from stored data so values for filters whose definition was deleted

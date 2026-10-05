@@ -230,7 +230,7 @@ def test_graph_dashboard_add_mode_ignores_selected_session(client, db_session):
     db_session.commit()
     sess = JournalSession(
         user_id=user.id, date_utc=date(2025, 3, 3), object_name="M42",
-        rig_id_snapshot=rig.id,
+        rig_id_snapshot=rig.id, rig_record_uid=rig.record_uid,
         custom_filter_data='{"filter_NBX_subs": 4321, "filter_NBX_exposure_sec": 987}',
         asiair_log_content="asiair.log", phd2_log_content="phd2.log", nina_log_content="nina.log",
     )

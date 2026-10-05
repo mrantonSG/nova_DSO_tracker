@@ -32,7 +32,7 @@ import nova
 from nova.config import ADMIN_USERS
 from nova.helpers import get_db, resolve_altitude_threshold
 from nova.models import AstroObject, Location, Rig, JournalSession, SavedFraming
-from nova.record_links import components_by_uid, components_for_rig, rig_components
+from nova.record_links import components_by_uid, components_for_rig, rig_components, rig_for_uid
 
 logger = logging.getLogger(__name__)
 
@@ -481,12 +481,8 @@ def generate_dso_notes():
         object_name=obj.object_name
     ).one_or_none()
 
-    rig = None
-    if framing and framing.rig_id:
-        rig = db.query(Rig).filter_by(id=framing.rig_id, user_id=g.db_user.id).one_or_none()
-
-        if rig is None and framing.rig_name:
-            rig = next((r for r in rig_rows if r.rig_name == framing.rig_name), None)
+    # The UID alone decides which rig a framing names; no row-number or name fallback.
+    rig = rig_for_uid(db, g.db_user.id, framing.rig_record_uid) if framing else None
 
     # Build framing context if a saved framing exists with a rig
     framing_context = None
@@ -669,18 +665,9 @@ def generate_session_summary():
         guide_pixel_um = None
         guide_FL_mm = None
 
-        if session.rig_id_snapshot:
-            rig = db.query(Rig).filter(Rig.id == session.rig_id_snapshot,
-                                       Rig.user_id == g.db_user.id).first()
+        if session.rig_record_uid:
+            rig = rig_for_uid(db, g.db_user.id, session.rig_record_uid)
             rc = components_for_rig(db, rig) if rig else None
-            if rig and (rc.guide_camera is None or rc.guide_telescope is None):
-                # Fallback: try to find rig by partial name match if guide hardware IDs are missing
-                rig = db.query(Rig).filter(
-                    Rig.user_id == g.db_user.id,
-                    Rig.rig_name.ilike(f"%{session.rig_name_snapshot}%"),
-                    Rig.guide_camera_record_uid.isnot(None)
-                ).first()
-                rc = components_for_rig(db, rig) if rig else None
 
             if rig:
                 # Resolve guide_pixel_um with legacy-column fallback

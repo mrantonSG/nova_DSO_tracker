@@ -31,7 +31,7 @@ import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay l
 from nova.models import (
     DbUser, AstroObject, SavedFraming, Rig, Project, JournalSession, UserCustomFilter
 )
-from nova.record_links import components_for_rig, sync_session_links, sync_project_link
+from nova.record_links import components_for_rig, rig_for_uid, sync_session_links, sync_project_link
 from nova.helpers import (
     get_db, load_full_astro_context, safe_float, safe_int, generate_session_id, _compute_rig_metrics_from_components,
     resolve_sampling_interval, resolve_altitude_threshold,
@@ -211,8 +211,8 @@ def mobile_mosaic_view(object_name):
     if not framing:
         return f"<h3>No saved framing found for {escape(object_name)}</h3><p>Please save a framing on the desktop first.</p>"
 
-    # Get Rig Data
-    rig = db.query(Rig).filter_by(id=framing.rig_id, user_id=g.db_user.id).one_or_none() if framing.rig_id else None
+    # Get Rig Data — the framing's record_uid alone decides which rig it names
+    rig = rig_for_uid(db, g.db_user.id, framing.rig_record_uid)
     if not rig or not rig.fov_w_arcmin:
         return "<h3>Error: Rig data missing in saved framing.</h3>"
 

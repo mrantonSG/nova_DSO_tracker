@@ -111,6 +111,26 @@ def components_for_rig(db, rig):
     return rig_components(rig, by_uid)
 
 
+def rigs_by_uid(db, user_id):
+    """{record_uid: Rig} for every rig of user_id. For pages with many sessions or framings."""
+    if user_id is None:
+        return {}
+    return {
+        r.record_uid: r
+        for r in db.scalars(select(Rig).where(
+            Rig.user_id == user_id, Rig.record_uid.isnot(None)))
+    }
+
+
+def rig_for_uid(db, user_id, uid):
+    """The rig of user_id with record_uid `uid`, or None. The UID alone decides:
+    an empty UID, or one with no rig of that user, is no rig."""
+    if not uid or user_id is None:
+        return None
+    return db.scalars(select(Rig).where(
+        Rig.user_id == user_id, Rig.record_uid == uid).limit(1)).first()
+
+
 # --- Target -> record_uid ------------------------------------------------------
 
 def uid_of(row, user_id):

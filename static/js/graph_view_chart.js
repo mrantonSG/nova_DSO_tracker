@@ -1560,6 +1560,7 @@
 
         const result = {
             rig: q.get('rig'),
+            rigUid: q.get('rig_uid'),
             ra: parseFloat(q.get('ra')),
             dec: parseFloat(q.get('dec')),
             rot: parseFloat(q.get('rot')),
@@ -1596,11 +1597,11 @@
             haveRigRestored: false
         };
 
-        // Restore rig selection
-        if (params.rig) {
+        // Restore rig selection — the record_uid alone decides, never the row number
+        if (params.rigUid) {
             const sel = document.getElementById('framing-rig-select');
             if (sel) {
-                const idx = Array.from(sel.options).findIndex(o => o.value === params.rig);
+                const idx = Array.from(sel.options).findIndex(o => o.dataset.rigUid === params.rigUid);
                 if (idx >= 0) {
                     sel.selectedIndex = idx;
                     flags.haveRigRestored = true;
@@ -1808,11 +1809,11 @@
             haveRigRestored: false
         };
 
-        // Restore rig selection
-        if (params.rig) {
+        // Restore rig selection — the record_uid alone decides, never the row number
+        if (params.rigUid) {
             const sel = document.getElementById('framing-rig-select');
             if (sel) {
-                const idx = Array.from(sel.options).findIndex(o => o.value === params.rig);
+                const idx = Array.from(sel.options).findIndex(o => o.dataset.rigUid === params.rigUid);
                 if (idx >= 0) {
                     sel.selectedIndex = idx;
                     flags.haveRigRestored = true;
@@ -2694,7 +2695,7 @@
         });
     }
     
-        function buildFramingQuery() { const sel = document.getElementById('framing-rig-select'), rig = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].value : '', rotInput = document.getElementById('framing-rotation'), rot = rotInput ? (parseFloat(rotInput.value) || 0) : 0, sSel = document.getElementById('survey-select'), survey = sSel ? sSel.value : '', bSel = document.getElementById('blend-survey-select'), bOp = document.getElementById('blend-opacity'), blend = bSel ? bSel.value : '', blend_op = bOp ? (parseFloat(bOp.value) || 0) : 0; const { ra, dec } = (fovCenter || (aladin && (() => { const rc = aladin.getRaDec(); return { ra: rc[0], dec: rc[1] }; })()) || { ra: NaN, dec: NaN });
+        function buildFramingQuery() { const sel = document.getElementById('framing-rig-select'), rig = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].value : '', rigUid = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].dataset.rigUid : '', rotInput = document.getElementById('framing-rotation'), rot = rotInput ? (parseFloat(rotInput.value) || 0) : 0, sSel = document.getElementById('survey-select'), survey = sSel ? sSel.value : '', bSel = document.getElementById('blend-survey-select'), bOp = document.getElementById('blend-opacity'), blend = bSel ? bSel.value : '', blend_op = bOp ? (parseFloat(bOp.value) || 0) : 0; const { ra, dec } = (fovCenter || (aladin && (() => { const rc = aladin.getRaDec(); return { ra: rc[0], dec: rc[1] }; })()) || { ra: NaN, dec: NaN });
             const cols = document.getElementById('mosaic-cols')?.value || 1;
         const rows = document.getElementById('mosaic-rows')?.value || 1;
         const overlap = document.getElementById('mosaic-overlap')?.value || 10;
@@ -2705,6 +2706,7 @@
         const imgSat = parseFloat(document.getElementById('img-sat')?.value || 0);
         const qp = new URLSearchParams();
         if (rig) qp.set('rig', rig);
+        if (rigUid) qp.set('rig_uid', rigUid);
         if (Number.isFinite(ra)) qp.set('ra', ra.toFixed(6));
         if (Number.isFinite(dec)) qp.set('dec', dec.toFixed(6));
         const utils = fu();

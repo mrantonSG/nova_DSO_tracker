@@ -71,6 +71,7 @@ def test_existing_framing_with_foreign_rig_does_not_leak(multi_user_client, db_s
                                ra_hours=5.58, dec_deg=-5.4, enabled=True))
     db_session.add(SavedFraming(user_id=ids["user_a_id"], object_name="M42",
                                 rig_id=rig_b.id, rig_name="B Secret Rig",
+                                rig_record_uid=rig_b.record_uid,
                                 ra=83.8, dec=-5.4, rotation=0.0,
                                 mosaic_cols=2, mosaic_rows=2, mosaic_overlap=10.0))
     db_session.commit()
@@ -115,13 +116,14 @@ def test_session_summary_ignores_foreign_rig(multi_user_client, db_session, monk
     rig_b = _make_rig(db_session, ids["user_b_id"], "Shared Name Rig", guide=True)
     if case == "snapshot_id":
         # Old bad row: A's session points straight at B's rig.
-        snapshot_id = rig_b.id
+        rig = rig_b
     else:
-        # A's own rig has no guide optics, so the name fallback runs; B's rig
-        # has a matching name and guide optics.
-        snapshot_id = _make_rig(db_session, ids["user_a_id"], "Shared Name Rig A").id
+        # A's own same-named rig has no guide optics; the UID must not fall
+        # back to B's guide-equipped rig.
+        rig = _make_rig(db_session, ids["user_a_id"], "Shared Name Rig A")
     session = JournalSession(user_id=ids["user_a_id"], object_name="M42",
-                             date_utc=date(2026, 1, 10), rig_id_snapshot=snapshot_id,
+                             date_utc=date(2026, 1, 10), rig_id_snapshot=rig.id,
+                             rig_record_uid=rig.record_uid,
                              rig_name_snapshot="Shared Name Rig")
     db_session.add(session)
     db_session.commit()

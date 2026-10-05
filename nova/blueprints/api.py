@@ -1001,6 +1001,7 @@ def get_framing(object_name):
             return jsonify({
                 "status": "found",
                 "rig": framing.rig_id,
+                "rig_uid": framing.rig_record_uid,
                 "ra": framing.ra,
                 "dec": framing.dec,
                 "rotation": framing.rotation,
