@@ -10,7 +10,7 @@ import traceback
 import yaml
 from flask import (
     Blueprint, request, jsonify, redirect, url_for,
-    flash, send_file, abort
+    flash, send_file, abort, g
 )
 from flask_login import login_required, current_user
 from flask_babel import gettext as _
@@ -181,6 +181,12 @@ def update_component():
         flash(_("Error updating component: %(error)s", error=e), "error")
     return redirect(url_for('core.config_form'))
 
+def _own_component(db, user_id, comp_id):
+    """Return the component if it belongs to user_id, else None."""
+    if comp_id is None:
+        return None
+    return db.query(Component).filter_by(id=comp_id, user_id=user_id).one_or_none()
+
 @tools_bp.route('/add_rig', methods=['POST'])
 @login_required
 def add_rig():
@@ -198,9 +204,19 @@ def add_rig():
 
         # --- NEW LOGIC START ---
         # 1. Fetch the component objects needed for calculation
-        tel_obj = db.get(Component, tel_id)
-        cam_obj = db.get(Component, cam_id)
-        red_obj = db.get(Component, red_id) if red_id else None
+        tel_obj = _own_component(db, user.id, tel_id)
+        cam_obj = _own_component(db, user.id, cam_id)
+        red_obj = _own_component(db, user.id, red_id)
+        guide_tel_id = safe_int(form.get('guide_telescope_id'))
+        guide_cam_id = safe_int(form.get('guide_camera_id'))
+        if ((tel_id is not None and tel_obj is None)
+                or (cam_id is not None and cam_obj is None)
+                or (red_id is not None and red_obj is None)
+                or (guide_tel_id is not None and _own_component(db, user.id, guide_tel_id) is None)
+                or (guide_cam_id is not None and _own_component(db, user.id, guide_cam_id) is None)):
+            db.rollback()
+            flash(_("Component not found."), "error")
+            return redirect(url_for('core.config_form'))
 
         # 2. Calculate the derived properties (EFL, f-ratio, scale, FOV)
         efl, f_ratio, scale, fov_w = _compute_rig_metrics_from_components(tel_obj, cam_obj, red_obj)
@@ -213,12 +229,16 @@ def add_rig():
                 pass
 
         if rig_id:  # Update
-            rig = db.get(Rig, int(rig_id))
+            rig = db.query(Rig).filter_by(id=int(rig_id), user_id=user.id).one_or_none()
+            if rig is None:
+                db.rollback()
+                flash(_("Rig not found."), "error")
+                return redirect(url_for('core.config_form'))
             rig.rig_name = form.get('rig_name')
             rig.telescope_id, rig.camera_id, rig.reducer_extender_id = tel_id, cam_id, red_id
             # Guide optics FK fields and OAG flag
-            rig.guide_telescope_id = safe_int(form.get('guide_telescope_id'))
-            rig.guide_camera_id = safe_int(form.get('guide_camera_id'))
+            rig.guide_telescope_id = guide_tel_id
+            rig.guide_camera_id = guide_cam_id
             rig.guide_is_oag = form.get('guide_is_oag') == 'on'
             flash(_("Rig '%(rig_name)s' updated successfully.", rig_name=rig.rig_name), "success")
         else:  # Add
@@ -226,8 +246,8 @@ def add_rig():
                 user_id=user.id, rig_name=form.get('rig_name'),
                 telescope_id=tel_id, camera_id=cam_id, reducer_extender_id=red_id,
                 # Guide optics FK fields and OAG flag
-                guide_telescope_id=safe_int(form.get('guide_telescope_id')),
-                guide_camera_id=safe_int(form.get('guide_camera_id')),
+                guide_telescope_id=guide_tel_id,
+                guide_camera_id=guide_cam_id,
                 guide_is_oag=form.get('guide_is_oag') == 'on'
             )
             db.add(new_rig)
@@ -262,6 +282,7 @@ def delete_component():
         comp_id = int(request.form.get('component_id'))
         # Check if component is in use by any rig for this user
         in_use = db.query(Rig).filter(
+            Rig.user_id == g.db_user.id,
             (Rig.telescope_id == comp_id) |
             (Rig.camera_id == comp_id) |
             (Rig.reducer_extender_id == comp_id)
@@ -270,10 +291,13 @@ def delete_component():
         if in_use:
             flash(_("Cannot delete component: It is used in at least one rig."), "error")
         else:
-            comp_to_delete = db.get(Component, comp_id)
-            db.delete(comp_to_delete)
-            db.commit()
-            flash(_("Component deleted successfully."), "success")
+            comp_to_delete = db.query(Component).filter_by(id=comp_id, user_id=g.db_user.id).one_or_none()
+            if comp_to_delete is None:
+                flash(_("Component not found."), "error")
+            else:
+                db.delete(comp_to_delete)
+                db.commit()
+                flash(_("Component deleted successfully."), "success")
     except Exception as e:
         db.rollback()
         flash(_("Error deleting component: %(error)s", error=e), "error")
@@ -285,7 +309,10 @@ def delete_rig():
     db = get_db()
     try:
         rig_id = int(request.form.get('rig_id'))
-        rig_to_delete = db.get(Rig, rig_id)
+        rig_to_delete = db.query(Rig).filter_by(id=rig_id, user_id=g.db_user.id).one_or_none()
+        if rig_to_delete is None:
+            flash(_("Rig not found."), "error")
+            return redirect(url_for('core.config_form'))
         db.delete(rig_to_delete)
         db.commit()
         flash(_("Rig deleted successfully."), "success")

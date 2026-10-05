@@ -415,8 +415,13 @@ def get_uploaded_image(username, filename):
 
     candidate_dirs = []
 
-    # 1) Directory that matches the URL segment (legacy behaviour)
-    candidate_dirs.append(os.path.join(UPLOAD_FOLDER, username))
+    # 1) Directory that matches the URL segment (legacy behaviour).
+    #    In multi-user mode another user's folder only serves editor images
+    #    (note_img_*, embedded in shared notes); session/project photos stay private.
+    if (nova.SINGLE_USER_MODE
+            or username == getattr(current_user, "username", None)
+            or (filename == os.path.basename(filename) and filename.startswith("note_img_"))):
+        candidate_dirs.append(os.path.join(UPLOAD_FOLDER, username))
 
     # 2) In multi-user mode, also try the current user's directory.
     #    This fixes MU→MU migrations where the username changed:

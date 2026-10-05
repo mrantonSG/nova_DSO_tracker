@@ -1016,7 +1016,7 @@ def show_journal_report_page(session_id):
         project_name = "Standalone Session"
 
         if session.project_id:
-            project = db.query(Project).filter_by(id=session.project_id).one_or_none()
+            project = db.query(Project).filter_by(id=session.project_id, user_id=g.db_user.id).one_or_none()
             if project:
                 project_name = project.name
 

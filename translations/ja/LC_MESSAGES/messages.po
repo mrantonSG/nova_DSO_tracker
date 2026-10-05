@@ -5730,6 +5730,14 @@ msgstr "ゲイン/オフセット"
 msgid "Exp"
 msgstr "実験"
 
+#: nova/blueprints/tools.py:235 nova/blueprints/tools.py:314
+msgid "Rig not found."
+msgstr "リグが見つかりません。"
+
+#: nova/blueprints/tools.py:218 nova/blueprints/tools.py:296
+msgid "Component not found."
+msgstr "コンポーネントが見つかりません。"
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "更新提案"
 

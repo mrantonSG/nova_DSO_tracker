@@ -212,7 +212,7 @@ def mobile_mosaic_view(object_name):
         return f"<h3>No saved framing found for {escape(object_name)}</h3><p>Please save a framing on the desktop first.</p>"
 
     # Get Rig Data
-    rig = db.get(Rig, framing.rig_id) if framing.rig_id else None
+    rig = db.query(Rig).filter_by(id=framing.rig_id, user_id=g.db_user.id).one_or_none() if framing.rig_id else None
     if not rig or not rig.fov_w_arcmin:
         return "<h3>Error: Rig data missing in saved framing.</h3>"
 
@@ -589,11 +589,16 @@ def mobile_journal_new():
             except (ValueError, TypeError):
                 pass  # rig_id_str was invalid (e.g., "")
 
-        # Import JournalSession and Project models
-        from nova.models import JournalSession, Project
+        # Import JournalSession model
+        from nova.models import JournalSession
         from uuid import uuid4
         from nova.helpers import safe_float, safe_int, generate_session_id
         import json
+
+        # Only link a project the user owns; otherwise save as standalone
+        if project_id_for_session and db.query(Project).filter_by(
+                id=project_id_for_session, user_id=user.id).one_or_none() is None:
+            project_id_for_session = None
 
         # Create New Session Object
         new_session = JournalSession(
