@@ -54,7 +54,7 @@ from nova.models import (
     DbUser, AstroObject, JournalSession, Project,
     Component, SavedView, SavedFraming, Rig, Location, UiPref
 )
-from nova.record_links import sync_framing_links
+from nova.record_links import sync_framing_links, sync_project_link, sync_session_links, uid_for_name
 from nova.auth import db as auth_db, User
 from nova.analytics import record_event
 from modules.astro_calculations import (
@@ -1888,12 +1888,14 @@ def merge_objects():
         journals = db.query(JournalSession).filter_by(user_id=user_id, object_name=merge_id).all()
         for j in journals:
             j.object_name = keep_id
+            sync_session_links(db, j, include_rig=False)
         print(f"   -> Moved {len(journals)} journal sessions.")
 
         # 3. Re-link Projects
         projects = db.query(Project).filter_by(user_id=user_id, target_object_name=merge_id).all()
         for p in projects:
             p.target_object_name = keep_id
+            sync_project_link(db, p)
         print(f"   -> Updated {len(projects)} projects.")
 
         # 4. Handle Framings
@@ -1904,6 +1906,8 @@ def merge_objects():
             if not framing_keep:
                 # Move framing to the kept object
                 framing_merge.object_name = keep_id
+                # Only the object moves: the rig UID is left as it is
+                framing_merge.object_record_uid = uid_for_name(db, AstroObject, user_id, keep_id)
                 print(f"   -> Moved framing from {merge_id} to {keep_id}.")
             else:
                 # Conflict: Keep existing framing on target, delete merged one

@@ -1678,6 +1678,7 @@ def repair_journals(dry_run: bool = False):
                         if names:
                             # pick the first available name for that date
                             r.object_name = names[0]
+                            sync_session_links(db, r, include_rig=False)
                             filled += 1
                 if filled:
                     changes.append(f"[JOURNAL REPAIR] user={u.username} backfilled object_name for {filled} sessions")

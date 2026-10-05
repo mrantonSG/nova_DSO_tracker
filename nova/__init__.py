@@ -113,7 +113,7 @@ from nova.models import (
     DbUser, Project, SavedView, Location, SavedFraming, HorizonPoint,
     AstroObject, Component, Rig, JournalSession, UiPref, UserCustomFilter
 )
-from nova.record_links import LINKS as UID_LINKS, sync_rig_links
+from nova.record_links import LINKS as UID_LINKS, sync_rig_links, sync_session_links
 from nova.config import (
     APP_VERSION, TEMPLATE_DIR, CACHE_DIR, CONFIG_DIR, BACKUP_DIR,
     UPLOAD_FOLDER, ENV_FILE, FIRST_RUN_ENV_CREATED, SINGLE_USER_MODE,
@@ -3749,6 +3749,10 @@ def repair_corrupt_ids_command():
                         # 2. Re-link journals that point to the corrupt name
                         db.query(JournalSession).filter_by(user_id=user.id, object_name=corrupt_name).update(
                             {'object_name': repaired_name})
+                        # The bulk update skips the ORM rows: sync their object UID by the new name.
+                        db.flush()
+                        for j in db.query(JournalSession).filter_by(user_id=user.id, object_name=repaired_name).all():
+                            sync_session_links(db, j, include_rig=False)
 
                         # 3. Delete the corrupt object
                         db.delete(obj_to_fix)
@@ -3764,6 +3768,11 @@ def repair_corrupt_ids_command():
                         # 2. Update all journal entries that pointed to the corrupt name
                         db.query(JournalSession).filter_by(user_id=user.id, object_name=corrupt_name).update(
                             {'object_name': repaired_name})
+                        # The bulk update skips the ORM rows: sync their object UID by the new name.
+                        # Flush first, the object's rename is still pending.
+                        db.flush()
+                        for j in db.query(JournalSession).filter_by(user_id=user.id, object_name=repaired_name).all():
+                            sync_session_links(db, j, include_rig=False)
 
                         # 3. Update the lookup map for this user
                         objects_by_name[repaired_name] = obj_to_fix

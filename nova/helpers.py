@@ -1625,6 +1625,7 @@ def purge_user_app_data(username: str, dry_run: bool = True) -> dict:
     import glob as _glob
     from sqlalchemy import delete, update, select, func, and_, or_
     import nova.auth as _auth
+    from nova.record_links import LINKS as _UID_LINKS
 
     summary = {
         "username": username,
@@ -1704,23 +1705,25 @@ def purge_user_app_data(username: str, dry_run: bool = True) -> dict:
                     and_(model.original_user_id == user_id, _others(model)),
                     {"original_user_id": None, "original_item_id": None},
                 ))
+            # Clearing an old link clears its record_uid (the sync rule for an empty link)
+            rig_uid_cols = {link.old_col: link.uid_col for link in _UID_LINKS if link.table == "rigs"}
             nullifies += [
                 ("journal_sessions.project_id", JournalSession.__table__,
                  and_(JournalSession.project_id.in_(project_ids), _others(JournalSession)),
                  {"project_id": None}),
                 ("journal_sessions.rig_id_snapshot", JournalSession.__table__,
                  and_(JournalSession.rig_id_snapshot.in_(rig_ids), _others(JournalSession)),
-                 {"rig_id_snapshot": None}),
+                 {"rig_id_snapshot": None, "rig_record_uid": None}),
                 ("saved_framings.rig_id", SavedFraming.__table__,
                  and_(SavedFraming.rig_id.in_(rig_ids), _others(SavedFraming)),
-                 {"rig_id": None}),
+                 {"rig_id": None, "rig_record_uid": None}),
             ]
             for col in ("telescope_id", "camera_id", "reducer_extender_id",
                         "guide_telescope_id", "guide_camera_id"):
                 column = getattr(Rig, col)
                 nullifies.append((f"rigs.{col}", Rig.__table__,
                                   and_(column.in_(component_ids), _others(Rig)),
-                                  {col: None}))
+                                  {col: None, rig_uid_cols[col]: None}))
 
             if dry_run:
                 for key, table, where in deletes:

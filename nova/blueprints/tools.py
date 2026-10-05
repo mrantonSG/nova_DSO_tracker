@@ -40,7 +40,7 @@ from nova.models import (
     JournalSession, Project, UserCustomFilter, session_projects,
     SavedFraming, SavedView, UiPref,
 )
-from nova.record_links import sync_rig_links
+from nova.record_links import NAME_LINKS, resync_user_links, sync_rig_links
 from nova.migration import (
     _upsert_user,
     validate_journal_data, repair_journals,
@@ -833,6 +833,11 @@ def import_config():
 
             # 7. Import Saved Framings
             _migrate_saved_framings(db, user, new_config)
+
+            # 8. Sessions and projects still hold the UIDs of the deleted objects and
+            #    locations: re-link them by exact name. Framings got theirs above.
+            resync_user_links(db, user.id, links=tuple(
+                link for link in NAME_LINKS if link.table != "saved_framings"))
 
             # Capture ID for thread
             user_id_for_thread = user.id
