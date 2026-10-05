@@ -218,20 +218,22 @@ def test_delete_component_blocked_when_used_and_allowed_when_unused(mu, db_sessi
 
 # --- 4 & 6 (location): delete location, then recreate the same name -------------
 
-def test_delete_location_keeps_session_links(mu, db_session):
+def test_config_form_refuses_location_delete_when_a_session_links_it(mu, db_session):
     client, a_id, b_id = mu
     _populate(db_session, b_id, "B")
     a = _populate(db_session, a_id, "A")
+    before_a = _snapshot(db_session, a_id)
     before_b = _snapshot(db_session, b_id)
 
-    # The fixture gave A a second location ("UserA_Home"), so "Home" may be deleted.
+    # A's session refers to "Home" by UID, so the delete is refused and nothing changes.
     resp = _delete_location_via_form(client, "Home", "UserA_Home")
     assert resp.status_code == 302
 
     db_session.expire_all()
-    assert db_session.query(Location).filter_by(user_id=a_id, name="Home").one_or_none() is None
+    assert db_session.query(Location).filter_by(user_id=a_id, name="Home").one_or_none() is not None
     s = db_session.get(JournalSession, a.session_id)
     assert (s.location_name, s.location_record_uid) == ("Home", a.home_uid)
+    assert _snapshot(db_session, a_id) == before_a
     _assert_links_clean(db_session, a_id, links=NAME_LINKS)
     assert _snapshot(db_session, b_id) == before_b
 
@@ -242,7 +244,9 @@ def test_new_location_same_name_does_not_relink_old_session(mu, db_session):
     a = _populate(db_session, a_id, "A")
     before_b = _snapshot(db_session, b_id)
 
-    assert _delete_location_via_form(client, "Home", "UserA_Home").status_code == 302
+    # Existing data with a dangling UID: the old "Home" is removed directly, not through the form.
+    db_session.delete(db_session.query(Location).filter_by(user_id=a_id, name="Home").one())
+    db_session.commit()
     assert _create_location_via_form(client, "Home").status_code == 302
 
     db_session.expire_all()
@@ -258,23 +262,26 @@ def test_new_location_same_name_does_not_relink_old_session(mu, db_session):
 
 # --- 5 & 6 (object): delete object, then recreate the same name -----------------
 
-def test_delete_object_keeps_session_project_framing_links(mu, db_session):
+def test_config_form_refuses_object_delete_when_a_session_project_or_framing_links_it(mu, db_session):
     client, a_id, b_id = mu
     _populate(db_session, b_id, "B")
     a = _populate(db_session, a_id, "A")
+    before_a = _snapshot(db_session, a_id)
     before_b = _snapshot(db_session, b_id)
 
+    # A's session and project refer to M42 by UID, so the delete is refused and nothing changes.
     resp = _delete_object_via_form(client, "M42", "M31", 0.7, 41.3)
     assert resp.status_code == 302
 
     db_session.expire_all()
-    assert db_session.query(AstroObject).filter_by(user_id=a_id, object_name="M42").one_or_none() is None
+    assert db_session.query(AstroObject).filter_by(user_id=a_id, object_name="M42").one_or_none() is not None
     s = db_session.get(JournalSession, a.session_id)
     p = db_session.get(Project, a.project_id)
     f = db_session.get(SavedFraming, a.framing_id)
     assert (s.object_name, s.object_record_uid) == ("M42", a.m42_uid)
     assert (p.target_object_name, p.target_object_record_uid) == ("M42", a.m42_uid)
     assert (f.object_name, f.object_record_uid) == ("M42", a.m42_uid)
+    assert _snapshot(db_session, a_id) == before_a
     _assert_links_clean(db_session, a_id, links=NAME_LINKS)
     assert _snapshot(db_session, b_id) == before_b
 
@@ -285,7 +292,9 @@ def test_new_object_same_name_does_not_relink_old_links(mu, db_session):
     a = _populate(db_session, a_id, "A")
     before_b = _snapshot(db_session, b_id)
 
-    assert _delete_object_via_form(client, "M42", "M31", 0.7, 41.3).status_code == 302
+    # Existing data with a dangling UID: the old M42 is removed directly, not through the form.
+    db_session.delete(db_session.query(AstroObject).filter_by(user_id=a_id, object_name="M42").one())
+    db_session.commit()
     assert _create_object(client, "M42").status_code == 200
 
     db_session.expire_all()

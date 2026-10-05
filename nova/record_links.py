@@ -18,7 +18,7 @@ from the stored location_name text.
 
 from typing import NamedTuple, Optional
 
-from sqlalchemy import inspect, select, text
+from sqlalchemy import func, inspect, or_, select, text
 
 from nova.models import (
     AstroObject, Component, JournalSession, Location, Project, Rig, SavedFraming, _new_record_uid,
@@ -173,6 +173,53 @@ def framed_object_uids(db, user_id):
         SavedFraming.user_id == user_id,
         SavedFraming.object_record_uid.isnot(None),
         SavedFraming.object_record_uid != "")))
+
+
+# --- Reference counts: what a delete would break --------------------------------
+
+class ObjectReferences(NamedTuple):
+    """Rows of one user that point at an object by UID."""
+    sessions: int
+    projects: int
+    framings: int
+
+
+def object_references(db, user_id, uid):
+    """Sessions, projects and framings of user_id linked to object `uid` by UID.
+
+    An empty UID, or no user, links nothing: all counts are 0.
+    """
+    if not uid or user_id is None:
+        return ObjectReferences(0, 0, 0)
+
+    def count(model, column):
+        return db.scalar(select(func.count()).select_from(model).where(
+            model.user_id == user_id, column == uid)) or 0
+
+    return ObjectReferences(
+        count(JournalSession, JournalSession.object_record_uid),
+        count(Project, Project.target_object_record_uid),
+        count(SavedFraming, SavedFraming.object_record_uid),
+    )
+
+
+def location_references(db, user_id, uid):
+    """Journal sessions of user_id linked to location `uid` by UID. An empty UID links nothing."""
+    if not uid or user_id is None:
+        return 0
+    return db.scalar(select(func.count()).select_from(JournalSession).where(
+        JournalSession.user_id == user_id, JournalSession.location_record_uid == uid)) or 0
+
+
+def component_rig_usage(db, user_id, uid):
+    """Rigs of user_id that use component `uid` in any of the five roles, by UID.
+
+    The record_uid alone decides: an empty UID is used by no rig.
+    """
+    if not uid or user_id is None:
+        return []
+    roles = [getattr(Rig, uid_col) == uid for uid_col, _ in _RIG_COMPONENT_COLUMNS]
+    return list(db.scalars(select(Rig).where(Rig.user_id == user_id, or_(*roles))))
 
 
 # --- Target -> record_uid ------------------------------------------------------

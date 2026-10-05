@@ -82,6 +82,7 @@ from nova.models import (
     Location,
     Project,
     Rig,
+    SavedFraming,
     session_projects,
     SessionLocal,
     UiPref,
@@ -98,7 +99,7 @@ from ics import Calendar, Event
 import arrow
 
 from nova.config import ADMIN_USERS, CACHE_DIR, UPLOAD_FOLDER, cache_worker_status
-from nova.record_links import components_by_uid, rig_components
+from nova.record_links import components_by_uid, location_references, object_references, rig_components
 from nova.helpers import (
     _compute_rig_metrics_from_components,
     _parse_float_from_request,
@@ -618,6 +619,8 @@ def config_form():
             objects_written = False
             curve_names = []
             outlook_needed = False
+            blocked_locations = {}  # name -> session count; refused by D1
+            blocked_objects = []    # (name, sessions, projects); refused by D1
             # --- General Settings Tab ---
             if 'submit_general' in request.form:
                 prefs = db.query(UiPref).filter_by(user_id=app_db_user.id).first()
@@ -708,9 +711,16 @@ def config_form():
                 locs_marked_for_deletion = 0
                 active_locations_after_update = 0
                 for loc in locs_to_update:
-                    if request.form.get(f"delete_loc_{loc.name}") == "on":
-                        locs_marked_for_deletion += 1
-                    else:
+                    marked = request.form.get(f"delete_loc_{loc.name}") == "on"
+                    if marked:
+                        # A location a session refers to by UID cannot be deleted (D1).
+                        used = location_references(db, app_db_user.id, loc.record_uid)
+                        if used:
+                            blocked_locations[loc.name] = used
+                            marked = False  # it survives, so it is not a deletion
+                        else:
+                            locs_marked_for_deletion += 1
+                    if not marked:
                         # This location survives - check if it will be active
                         will_be_active = request.form.get(f"active_{loc.name}") == "on"
                         if will_be_active:
@@ -729,7 +739,9 @@ def config_form():
                 # Safe to proceed with deletions and updates
                 for loc in locs_to_update:
                     if request.form.get(f"delete_loc_{loc.name}") == "on":
-                        db.delete(loc);
+                        if loc.name in blocked_locations:
+                            continue
+                        db.delete(loc)
                         continue
 
                     tz_name_from_form = request.form.get(f"timezone_{loc.name}")
@@ -788,10 +800,21 @@ def config_form():
                 for obj in objs_to_update:
                     # Handle deletion first
                     if request.form.get(f"delete_{obj.object_name}") == "on":
+                        refs = object_references(db, app_db_user.id, obj.record_uid)
+                        if refs.sessions or refs.projects:
+                            # A session or project refers to it by UID: refuse (D1).
+                            blocked_objects.append((obj.object_name, refs.sessions, refs.projects))
+                            continue
+                        if refs.framings:
+                            # Only a saved framing refers to it: it goes with the object (Q1).
+                            db.query(SavedFraming).filter_by(
+                                user_id=app_db_user.id,
+                                object_record_uid=obj.record_uid,
+                            ).delete(synchronize_session=False)
                         curve_names.append(obj.object_name)
                         if obj.active_project:
                             outlook_needed = True
-                        db.delete(obj);
+                        db.delete(obj)
                         continue
 
                     old_ra, old_dec, old_active = obj.ra_hours, obj.dec_deg, obj.active_project
@@ -840,6 +863,13 @@ def config_form():
                             instance_path=current_app.instance_path
                         )
                 flash(_("%(message)s updated successfully.", message=message or 'Configuration'), "success")
+                for name, s_count, p_count in blocked_objects:
+                    flash(_("Cannot delete object '%(name)s': it is still used by "
+                            "%(sessions)d session(s) and %(projects)d project(s).",
+                            name=name, sessions=s_count, projects=p_count), "error")
+                for name, s_count in blocked_locations.items():
+                    flash(_("Cannot delete location '%(name)s': it is used by "
+                            "%(sessions)d session(s).", name=name, sessions=s_count), "error")
                 return redirect(url_for('core.config_form'))
             else:
                 db.rollback()

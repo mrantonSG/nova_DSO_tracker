@@ -232,6 +232,7 @@ def test_delete_component_and_rig_routes(client, db_session):
     # Create a rig using the components
     rig = Rig(user_id=user.id, rig_name="Rig to Delete",
               telescope_id=scope.id, camera_id=cam.id)
+    sync_rig_links(db_session, rig)
     db_session.add(rig)
     db_session.commit()
 

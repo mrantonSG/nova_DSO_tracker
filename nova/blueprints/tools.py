@@ -40,7 +40,9 @@ from nova.models import (
     JournalSession, Project, UserCustomFilter, session_projects,
     SavedFraming, SavedView, UiPref,
 )
-from nova.record_links import NAME_LINKS, resync_user_links, rig_components, sync_rig_links
+from nova.record_links import (
+    NAME_LINKS, component_rig_usage, resync_user_links, rig_components, sync_rig_links,
+)
 from nova.migration import (
     _upsert_user,
     validate_journal_data, repair_journals,
@@ -284,24 +286,16 @@ def delete_component():
     db = get_db()
     try:
         comp_id = int(request.form.get('component_id'))
-        # Check if component is in use by any rig for this user
-        in_use = db.query(Rig).filter(
-            Rig.user_id == g.db_user.id,
-            (Rig.telescope_id == comp_id) |
-            (Rig.camera_id == comp_id) |
-            (Rig.reducer_extender_id == comp_id)
-        ).first()
-
-        if in_use:
+        comp_to_delete = db.query(Component).filter_by(id=comp_id, user_id=g.db_user.id).one_or_none()
+        if comp_to_delete is None:
+            flash(_("Component not found."), "error")
+        elif component_rig_usage(db, g.db_user.id, comp_to_delete.record_uid):
+            # Any of the five roles, found by UID (D3).
             flash(_("Cannot delete component: It is used in at least one rig."), "error")
         else:
-            comp_to_delete = db.query(Component).filter_by(id=comp_id, user_id=g.db_user.id).one_or_none()
-            if comp_to_delete is None:
-                flash(_("Component not found."), "error")
-            else:
-                db.delete(comp_to_delete)
-                db.commit()
-                flash(_("Component deleted successfully."), "success")
+            db.delete(comp_to_delete)
+            db.commit()
+            flash(_("Component deleted successfully."), "success")
     except Exception as e:
         db.rollback()
         flash(_("Error deleting component: %(error)s", error=e), "error")

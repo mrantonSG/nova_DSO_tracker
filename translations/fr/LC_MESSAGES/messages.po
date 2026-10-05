@@ -5907,6 +5907,21 @@ msgstr "Rig non trouvé."
 msgid "Component not found."
 msgstr "Composant non trouvé."
 
+#: nova/blueprints/core.py:867
+msgid ""
+"Cannot delete object '%(name)s': it is still used by %(sessions)d session(s)"
+" and %(projects)d project(s)."
+msgstr ""
+"Impossible de supprimer l'objet '%(name)s' : il est encore utilisé par "
+"%(sessions)d séance(s) et %(projects)d projet(s)."
+
+#: nova/blueprints/core.py:871
+msgid ""
+"Cannot delete location '%(name)s': it is used by %(sessions)d session(s)."
+msgstr ""
+"Impossible de supprimer le lieu '%(name)s' : il est utilisé par %(sessions)d"
+" séance(s)."
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Suggestions de rafraîchissement"
 

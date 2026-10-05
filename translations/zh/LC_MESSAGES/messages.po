@@ -5736,6 +5736,17 @@ msgstr "未找到rig。"
 msgid "Component not found."
 msgstr "未找到组件。"
 
+#: nova/blueprints/core.py:867
+msgid ""
+"Cannot delete object '%(name)s': it is still used by %(sessions)d session(s)"
+" and %(projects)d project(s)."
+msgstr "无法删除对象 '%(name)s'：它仍被 %(sessions)d 个会话和 %(projects)d 个项目使用。"
+
+#: nova/blueprints/core.py:871
+msgid ""
+"Cannot delete location '%(name)s': it is used by %(sessions)d session(s)."
+msgstr "无法删除地点 '%(name)s'：它被 %(sessions)d 个会话使用。"
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "刷新建议"
 

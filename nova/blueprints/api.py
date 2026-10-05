@@ -55,8 +55,8 @@ from nova.models import (
     Component, SavedView, SavedFraming, Rig, Location, UiPref
 )
 from nova.record_links import (
-    framed_object_uids, object_for_uid, sync_framing_links, sync_project_link,
-    sync_session_links, uid_for_name,
+    framed_object_uids, object_for_uid, object_references, sync_framing_links,
+    sync_project_link, sync_session_links, uid_for_name,
 )
 from nova.auth import db as auth_db, User
 from nova.analytics import record_event
@@ -418,18 +418,15 @@ def bulk_update_objects():
 
             for obj in objects_to_check:
                 # Linked rows are found by UID; an object with no UID has none.
-                has_journals = has_projects = None
-                if obj.record_uid:
-                    has_journals = db.query(JournalSession).filter_by(
-                        user_id=user_id, object_record_uid=obj.record_uid
-                    ).first()
-                    has_projects = db.query(Project).filter_by(
-                        user_id=user_id, target_object_record_uid=obj.record_uid
-                    ).first()
-
-                if has_journals or has_projects:
+                refs = object_references(db, user_id, obj.record_uid)
+                if refs.sessions or refs.projects:
                     skipped_count += 1
                 else:
+                    if refs.framings:
+                        # Only a saved framing refers to it: it goes with the object (Q1).
+                        db.query(SavedFraming).filter_by(
+                            user_id=user_id, object_record_uid=obj.record_uid
+                        ).delete(synchronize_session=False)
                     safe_to_delete.append(obj.object_name)
                     if obj.active_project:
                         outlook_needed = True
