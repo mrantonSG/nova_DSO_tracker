@@ -5747,6 +5747,64 @@ msgid ""
 "Cannot delete location '%(name)s': it is used by %(sessions)d session(s)."
 msgstr "无法删除地点 '%(name)s'：它被 %(sessions)d 个会话使用。"
 
+#: nova/blueprints/tools.py:533
+#, python-format
+msgid ""
+"Import refused: the file has format version %(found)s, but this version of"
+" Nova reads files up to version %(known)s. Nothing was changed."
+msgstr "导入被拒绝：文件的格式版本为 %(found)s，但此版本的 Nova 只能读取不高于 %(known)s 的版本。未做任何更改。"
+
+#: nova/blueprints/tools.py:538
+msgid "Component"
+msgstr "组件"
+
+#: nova/blueprints/tools.py:539
+msgid "Saved view"
+msgstr "已保存视图"
+
+#: nova/blueprints/tools.py:540
+msgid "Journal session"
+msgstr "日志会话"
+
+#: nova/blueprints/tools.py:540
+msgid "Custom filter"
+msgstr "自定义滤镜"
+
+#: nova/blueprints/tools.py:543
+msgid "the name is missing"
+msgstr "缺少名称"
+
+#: nova/blueprints/tools.py:544
+msgid "the ID is missing"
+msgstr "缺少 ID"
+
+#: nova/blueprints/tools.py:545
+msgid "the date is missing"
+msgstr "缺少日期"
+
+#: nova/blueprints/tools.py:546
+msgid "the date is not valid"
+msgstr "日期无效"
+
+#: nova/blueprints/tools.py:547
+msgid "the settings are missing"
+msgstr "缺少设置"
+
+#: nova/blueprints/tools.py:548
+msgid "a horizon point is not valid"
+msgstr "地平线点无效"
+
+#: nova/blueprints/tools.py:549
+msgid "its record_uid already belongs to another record"
+msgstr "其 record_uid 已属于另一条记录"
+
+#: nova/blueprints/tools.py:551
+#, python-format
+msgid ""
+"Import refused: %(record)s '%(name)s' could not be imported (%(reason)s). "
+"Nothing was changed."
+msgstr "导入被拒绝：%(record)s '%(name)s' 无法导入（%(reason)s）。未做任何更改。"
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "刷新建议"
 

@@ -46,6 +46,7 @@ from nova.record_links import (
 from nova.migration import (
     _upsert_user,
     capture_record_uids, capture_session_rig_uids,
+    FORMAT_VERSION, FormatTooNew, ImportRefused, check_format_version, wipe_user_data,
     validate_journal_data, repair_journals,
     load_catalog_pack, import_catalog_pack_for_user,
     export_user_data, export_user_to_yaml, import_user_from_yaml,
@@ -526,6 +527,32 @@ def download_journal():
         traceback.print_exc()  # Log the full error to the console
         return redirect(url_for('core.config_form'))
 
+def _import_refused_message(err):
+    """The flash text for an import that changed nothing (C1, C5)."""
+    if isinstance(err, FormatTooNew):
+        return _("Import refused: the file has format version %(found)s, but this version of Nova reads files up to version %(known)s. Nothing was changed.",
+                 found=err.found, known=FORMAT_VERSION)
+    if err.section == "file":
+        return _("Import failed: %(error)s", error=err.reason)
+    records = {
+        "location": _("Location"), "object": _("Object"), "component": _("Component"),
+        "rig": _("Rig"), "framing": _("Framing"), "view": _("Saved view"),
+        "project": _("Project"), "session": _("Journal session"), "filter": _("Custom filter"),
+    }
+    reasons = {
+        "missing_name": _("the name is missing"),
+        "missing_id": _("the ID is missing"),
+        "missing_date": _("the date is missing"),
+        "invalid_date": _("the date is not valid"),
+        "missing_settings": _("the settings are missing"),
+        "invalid_horizon_point": _("a horizon point is not valid"),
+        "uid_clash": _("its record_uid already belongs to another record"),
+    }
+    return _("Import refused: %(record)s '%(name)s' could not be imported (%(reason)s). Nothing was changed.",
+             record=records.get(err.section, err.section), name=err.label,
+             reason=reasons.get(err.reason, err.reason))
+
+
 @tools_bp.route('/import_journal', methods=['POST'])
 @login_required
 def import_journal():
@@ -545,6 +572,8 @@ def import_journal():
 
             if new_journal_data is None:
                 new_journal_data = {"projects": [], "sessions": []}  # Handle empty file
+
+            check_format_version(new_journal_data)
 
             # Basic validation
             is_valid, message = validate_journal_data(new_journal_data)
@@ -566,18 +595,11 @@ def import_journal():
                 # I2: the sessions about to be wiped keep their rig UID by external_id.
                 saved_session_rigs = capture_session_rig_uids(db, user)
 
-                # Delete association rows first: PRAGMA foreign_keys is never enabled,
-                # so the table's ondelete='CASCADE' never fires at the DB level.
-                session_ids_subq = sa_select(JournalSession.id).where(JournalSession.user_id == user.id)
-                db.execute(sa_delete(session_projects).where(session_projects.c.session_id.in_(session_ids_subq)))
-                db.query(JournalSession).filter_by(user_id=user.id).delete()
-                # Projects are safe to delete after sessions are gone
-                db.query(Project).filter_by(user_id=user.id).delete()
-
-                db.flush()  # Ensure deletion happens before insertion
+                # Sessions, projects and their session_projects rows (C4)
+                wipe_user_data(db, user, journal=True)
 
                 # 2. Import New Data
-                _migrate_journal(db, user, new_journal_data, saved_session_rigs)
+                _migrate_journal(db, user, new_journal_data, saved_session_rigs, strict=True)
 
                 db.commit()
                 flash(_("Journal imported successfully! (Previous journal data was replaced)"), "success")
@@ -593,6 +615,9 @@ def import_journal():
         except yaml.YAMLError as ye:
             print(f"[IMPORT JOURNAL ERROR] Invalid YAML format: {ye}")
             flash(_("Import failed: Invalid YAML format in the journal file. %(error)s", error=ye), "error")
+            return redirect(url_for('core.config_form'))
+        except (ImportRefused, FormatTooNew) as e:
+            flash(_import_refused_message(e), "error")
             return redirect(url_for('core.config_form'))
         except Exception as e:
             print(f"[IMPORT JOURNAL ERROR] {e}")
@@ -631,6 +656,8 @@ def import_config():
         contents = file.read().decode('utf-8')
         new_config = yaml.safe_load(contents)
 
+        check_format_version(new_config)
+
         valid, errors = validate_config(new_config)
         if not valid:
             error_message = f"Configuration validation failed: {json.dumps(errors, indent=2)}"
@@ -663,29 +690,18 @@ def import_config():
             saved_uids = capture_record_uids(db, user)
             remap = {}
 
-            # 1. Delete existing locations (only if import has locations)
-            db.query(Location).filter_by(user_id=user.id).delete()
-
-            # 2. Delete existing objects
-            db.query(AstroObject).filter_by(user_id=user.id).delete()
-
-            # 3. Delete existing saved views
-            db.query(SavedView).filter_by(user_id=user.id).delete()
-
-            # 4. Delete existing saved framings (ADDED THIS)
-            db.query(SavedFraming).filter_by(user_id=user.id).delete()
-
-            # 5. Flush deletions
-            db.flush()
+            # 1-5. Locations with their horizon points, objects, saved views
+            #      and saved framings (C4)
+            wipe_user_data(db, user, config=True)
 
             # 6. Import New Data
-            _migrate_locations(db, user, new_config, saved_uids, remap)
-            _migrate_objects(db, user, new_config, saved_uids, remap)
+            _migrate_locations(db, user, new_config, saved_uids, remap, strict=True)
+            _migrate_objects(db, user, new_config, saved_uids, remap, strict=True)
             _migrate_ui_prefs(db, user, new_config)
-            _migrate_saved_views(db, user, new_config)
+            _migrate_saved_views(db, user, new_config, strict=True)
 
             # 7. Import Saved Framings
-            _migrate_saved_framings(db, user, new_config, remap)
+            _migrate_saved_framings(db, user, new_config, remap, strict=True)
 
             # 8. Sessions and projects still hold the UIDs of the deleted objects and
             #    locations: re-link them by exact name. Framings got theirs above.
@@ -747,6 +763,9 @@ def import_config():
 
     except yaml.YAMLError as ye:
         flash(_("Import failed: Invalid YAML. (%(error)s)", error=ye), "error")
+        return redirect(url_for('core.config_form'))
+    except (ImportRefused, FormatTooNew) as e:
+        flash(_import_refused_message(e), "error")
         return redirect(url_for('core.config_form'))
     except Exception as e:
         flash(_("Import failed: %(error)s", error=str(e)), "error")
@@ -1153,6 +1172,7 @@ def import_rig_config():
             new_rigs_data = yaml.safe_load(file.read().decode('utf-8'))
             if not isinstance(new_rigs_data, dict) or 'components' not in new_rigs_data or 'rigs' not in new_rigs_data:
                 raise yaml.YAMLError("Invalid rigs file structure. Missing 'components' or 'rigs' keys.")
+            check_format_version(new_rigs_data)
 
             username = "default" if SINGLE_USER_MODE else current_user.username
 
@@ -1167,16 +1187,11 @@ def import_rig_config():
                 saved_uids = capture_record_uids(db, user)
                 remap = {}
 
-                # 1. Delete existing Rigs (must be done first due to foreign keys)
-                db.query(Rig).filter_by(user_id=user.id).delete()
-
-                # 2. Delete existing Components
-                db.query(Component).filter_by(user_id=user.id).delete()
-
-                # 3. Flush the deletions
-                db.flush()
+                # 1. The user's rigs and components (C4)
+                wipe_user_data(db, user, rigs=True)
                 # Use the migration helper to load data directly into the DB
-                _migrate_components_and_rigs(db, user, new_rigs_data, username, saved_uids, remap)
+                _migrate_components_and_rigs(db, user, new_rigs_data, username, saved_uids, remap,
+                                             strict=True)
 
                 db.commit()
                 flash(_("Rigs configuration imported and synced to database successfully!"), "success")
@@ -1186,6 +1201,8 @@ def import_rig_config():
                 raise e  # Re-throw to be caught by the outer block
             # === END REFACTOR ===
 
+        except (ImportRefused, FormatTooNew) as e:
+            flash(_import_refused_message(e), "error")
         except (yaml.YAMLError, Exception) as e:
             flash(_("Error importing rigs file: %(error)s", error=e), "error")
 
@@ -1312,7 +1329,12 @@ def import_yaml_for_user():
         clear_existing = (request.form.get("clear_existing", "false").lower() == "true")
         db = get_db()
         old_id = db.query(DbUser.id).filter_by(username=username).scalar()
-        ok = import_user_from_yaml(username, cfg_path, rigs_path, jrn_path, clear_existing=clear_existing)
+        refused = None
+        try:
+            ok = import_user_from_yaml(username, cfg_path, rigs_path, jrn_path,
+                                       clear_existing=clear_existing)
+        except (ImportRefused, FormatTooNew) as e:
+            ok, refused = False, e
 
         try:
             if ok:
@@ -1332,6 +1354,8 @@ def import_yaml_for_user():
 
         if ok:
             flash(_("Import completed successfully!"), "success")
+        elif refused is not None:
+            flash(_import_refused_message(refused), "error")
         else:
             flash(_("Import failed. See server logs for details."), "error")
     except Exception as e:

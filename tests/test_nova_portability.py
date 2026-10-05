@@ -1354,13 +1354,13 @@ def test_import_unmatched_default_location_flags_first_active(client):
     _assert_single_default("default", "Beta")
 
 
-def test_import_skipped_default_location_flags_remaining(client, tmp_path):
-    # /import_config rejects bad timezones up front, so go through import_user_from_yaml,
-    # where _migrate_locations skips the location instead.
-    cfg_path = tmp_path / "cfg.yaml"
-    rigs_path = tmp_path / "rigs.yaml"
-    jrn_path = tmp_path / "jrn.yaml"
-    cfg_path.write_text("""
+def test_import_skipped_default_location_flags_remaining(db_session):
+    # /import_config rejects bad timezones up front, and the strict imports refuse
+    # them (tests/test_import_atomic.py). A tolerant import skips the location:
+    # call _migrate_locations as the seeding paths do.
+    from nova.migration import _upsert_user, _migrate_locations, _migrate_ui_prefs
+    user = _upsert_user(db_session, "skipped_default_user")
+    config = yaml.safe_load("""
 default_location: Nuuk
 locations:
     Nuuk:
@@ -1373,13 +1373,13 @@ locations:
         timezone: Europe/Vienna
 objects: []
 """)
-    rigs_path.write_text("components: {}\nrigs: []")
-    jrn_path.write_text("projects: []\nsessions: []")
 
-    assert import_user_from_yaml("default", str(cfg_path), str(rigs_path), str(jrn_path),
-                                 clear_existing=True)
+    with app.test_request_context():
+        _migrate_locations(db_session, user, config)
+        _migrate_ui_prefs(db_session, user, config)
+        db_session.commit()
 
-    _assert_single_default("default", "Vienna")
+    _assert_single_default("skipped_default_user", "Vienna")
 
 
 def test_import_null_default_location_without_locations(db_session):

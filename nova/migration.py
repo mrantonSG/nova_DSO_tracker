@@ -3,12 +3,15 @@ import re
 import json
 import traceback
 import uuid
-from datetime import datetime
+from contextlib import contextmanager
+from datetime import date, datetime
+from types import SimpleNamespace
 
 import yaml
 import requests
 import pytz
 from flask import current_app
+from sqlalchemy import delete as sa_delete, or_, select as sa_select
 from sqlalchemy.orm import selectinload
 from astropy.coordinates import SkyCoord, get_constellation
 import astropy.units as u
@@ -27,7 +30,7 @@ from nova.helpers import (
 from nova.models import (
     DbUser, Location, HorizonPoint, AstroObject,
     SavedFraming, SavedView, Component, Rig,
-    JournalSession, Project, UserCustomFilter, UiPref,
+    JournalSession, Project, UserCustomFilter, UiPref, session_projects,
 )
 from nova.record_links import (
     adopt_unlinked_rows_for_user, sync_framing_links, sync_project_link, sync_rig_links,
@@ -99,6 +102,128 @@ def _upsert_user(db, username: str) -> DbUser:
 
 class UidClash(Exception):
     """A file record_uid already belongs to a different record of this user."""
+
+
+# The format_version the exporter writes; an import refuses a higher one (C5).
+FORMAT_VERSION = 2
+
+
+class ImportRefused(Exception):
+    """A strict import stops on this entry (C1). The caller rolls the whole
+    transaction back and tells the user `section`, `label` and `reason`."""
+
+    def __init__(self, section, label, reason):
+        super().__init__(f"{section} {label!r}: {reason}")
+        self.section, self.label, self.reason = section, label, reason
+
+
+class FormatTooNew(Exception):
+    """The file's format_version is higher than this Nova reads (C5)."""
+
+    def __init__(self, found):
+        super().__init__(f"format_version {found!r} is newer than {FORMAT_VERSION}")
+        self.found = found
+
+
+def check_format_version(doc):
+    """C5: refuse a file newer than this Nova. No key means an old file."""
+    if not isinstance(doc, dict) or doc.get("format_version") is None:
+        return
+    found = doc["format_version"]
+    try:
+        newer = int(found) > FORMAT_VERSION
+    except (TypeError, ValueError):
+        newer = True
+    if newer:
+        raise FormatTooNew(found)
+
+
+def _entry_label(entry, keys, index):
+    """A name for an import entry in messages: its first non-empty key, else its position."""
+    if isinstance(entry, dict):
+        for key in keys:
+            value = entry.get(key)
+            if value is not None and str(value).strip():
+                return str(value).strip()
+    return f"#{index}"
+
+
+def _refuse_if_strict(strict, section, label, reason):
+    """An entry a tolerant import skips stops a strict one (C1, C3)."""
+    if strict:
+        raise ImportRefused(section, label, reason)
+
+
+def _open_transaction(db):
+    """pysqlite opens its transaction only at the first INSERT/UPDATE/DELETE. A
+    SAVEPOINT issued before that opens it instead, and releasing the savepoint
+    commits. Open the transaction first, so a savepoint only ever nests."""
+    conn = db.connection()
+    if getattr(conn.connection.dbapi_connection, "in_transaction", True) is False:
+        conn.exec_driver_sql("BEGIN")
+
+
+@contextmanager
+def _import_entry(db, strict, section, label):
+    """One entry of an import (C1, C3).
+
+    Strict: an error stops the import as ImportRefused naming this entry; the
+    caller rolls everything back. Tolerant: the entry runs in a savepoint, so an
+    error undoes this entry only; it is logged, `failed` is set and the import
+    goes on. A UID clash still stops a tolerant import, as before.
+    """
+    state = SimpleNamespace(failed=False)
+    try:
+        if strict:
+            yield state
+            db.flush()
+        else:
+            _open_transaction(db)
+            with db.begin_nested():
+                yield state
+    except ImportRefused:
+        raise
+    except UidClash as e:
+        if strict:
+            raise ImportRefused(section, label, "uid_clash") from e
+        raise
+    except Exception as e:
+        if strict:
+            raise ImportRefused(section, label, str(e)) from e
+        state.failed = True
+        print(f"[MIGRATION] Skipped {section} {label!r}: {e}")
+
+
+def wipe_user_data(db, user, config=False, rigs=False, journal=False, everything=False):
+    """Delete the user's rows of the scopes an import replaces (C4).
+
+    Bulk deletes skip the ORM cascades and PRAGMA foreign_keys is off, so child
+    rows go explicitly: horizon points with their locations, session_projects
+    rows with their sessions and projects. `everything` is the full clear: all
+    three scopes plus settings and custom filters. The user row stays.
+    """
+    uid = user.id
+    if journal or everything:
+        session_ids = sa_select(JournalSession.id).where(JournalSession.user_id == uid)
+        project_ids = sa_select(Project.id).where(Project.user_id == uid)
+        db.execute(sa_delete(session_projects).where(or_(
+            session_projects.c.session_id.in_(session_ids),
+            session_projects.c.project_id.in_(project_ids))))
+        db.query(JournalSession).filter_by(user_id=uid).delete()
+        db.query(Project).filter_by(user_id=uid).delete()
+    if config or everything:
+        location_ids = sa_select(Location.id).where(Location.user_id == uid)
+        db.query(HorizonPoint).filter(HorizonPoint.location_id.in_(location_ids)).delete(
+            synchronize_session="fetch")
+        for model in (Location, AstroObject, SavedView, SavedFraming):
+            db.query(model).filter_by(user_id=uid).delete()
+    if rigs or everything:
+        db.query(Rig).filter_by(user_id=uid).delete()
+        db.query(Component).filter_by(user_id=uid).delete()
+    if everything:
+        db.query(UiPref).filter_by(user_id=uid).delete()
+        db.query(UserCustomFilter).filter_by(user_id=uid).delete()
+    db.flush()
 
 
 def _file_uid(entry) -> str | None:
@@ -220,7 +345,7 @@ def _apply_rig_role_uids(db, user_id, entry, rig, remap):
             setattr(rig, key[:-len("record_uid")] + "id", component.id)
 
 
-def _migrate_locations(db, user: DbUser, config: dict, saved_uids=None, remap=None):
+def _migrate_locations(db, user: DbUser, config: dict, saved_uids=None, remap=None, strict=False):
     """
     Idempotent import of locations:
       - Upsert per (user_id, name)
@@ -238,13 +363,13 @@ def _migrate_locations(db, user: DbUser, config: dict, saved_uids=None, remap=No
     db.flush()
 
     for name, loc in locs.items():
-        try:
+        with _import_entry(db, strict, "location", name):
             lat = float(loc.get("lat"))
             lon = float(loc.get("lon"))
             tz = loc.get("timezone", "UTC")
-            # Validate before any mutation: a present-but-invalid timezone raises
-            # so the per-location "Skip/repair" handler below logs it and skips
-            # the upsert (existing row left untouched). A missing key keeps the
+            # Validate before any mutation: a present-but-invalid timezone raises,
+            # so the entry is refused (strict) or skipped (tolerant) and an
+            # existing row is left untouched. A missing key keeps the
             # "UTC" default above.
             if not isinstance(tz, str) or tz not in pytz.all_timezones:
                 raise ValueError(f"invalid timezone {tz!r} (not in pytz.all_timezones)")
@@ -292,6 +417,7 @@ def _migrate_locations(db, user: DbUser, config: dict, saved_uids=None, remap=No
                                 HorizonPoint(az_deg=az, alt_min_deg=altmin)
                             )
                         except (ValueError, TypeError, IndexError) as hp_err:
+                            _refuse_if_strict(strict, "location", name, "invalid_horizon_point")
                             current_app.logger.warning(f"[MIGRATION] Invalid horizon point skipped for location '{name}': {pair} - {hp_err}")
 
                 # Assigning the new list triggers the 'delete-orphan' cascade.
@@ -331,13 +457,10 @@ def _migrate_locations(db, user: DbUser, config: dict, saved_uids=None, remap=No
                                 HorizonPoint(az_deg=az, alt_min_deg=altmin)
                             )
                         except (ValueError, TypeError, IndexError) as hp_err:
+                            _refuse_if_strict(strict, "location", name, "invalid_horizon_point")
                             current_app.logger.warning(f"[MIGRATION] Invalid horizon point skipped for new location '{name}': {pair} - {hp_err}")
 
                 row.horizon_points = new_horizon_points
-        except UidClash:
-            raise
-        except Exception as e:
-            print(f"[MIGRATION] Skip/repair location '{name}': {e}")
 
     # A null, unmatched or skipped default_location leaves no row flagged:
     # flag the same location the config export would name.
@@ -353,14 +476,14 @@ def _migrate_locations(db, user: DbUser, config: dict, saved_uids=None, remap=No
 
 
 
-def _heal_saved_framings(db, user: DbUser):
+def _heal_saved_framings(db, user: DbUser, strict=False):
     """
     Scans for SavedFraming records that have a rig_name but no rig_id
     (orphaned because config was imported before rigs) and tries to link them.
     A framing that carries a rig UID keeps it exactly (I4): only rows whose
     rig UID is empty are healed by rig name.
     """
-    try:
+    with _import_entry(db, strict, "framing", "(rig links)"):
         orphans = db.query(SavedFraming).filter(
             SavedFraming.user_id == user.id,
             SavedFraming.rig_name != None,
@@ -381,21 +504,23 @@ def _heal_saved_framings(db, user: DbUser):
         if count > 0:
             print(f"[MIGRATION] Healed {count} saved framing links (connected to newly imported rigs).")
             db.flush()
-    except Exception as e:
-        db.rollback()
-        print(f"[MIGRATION] Error healing saved framings: {e}")
 
 
 
-def _migrate_saved_framings(db, user: DbUser, config: dict, remap=None):
+def _migrate_saved_framings(db, user: DbUser, config: dict, remap=None, strict=False):
     framings = config.get("saved_framings", []) or []
     if remap is None:
         remap = {}
 
-    for f in framings:
-        try:
+    for index, f in enumerate(framings, 1):
+        with _import_entry(db, strict, "framing", _entry_label(f, ("object_name",), index)):
             obj_name = f.get("object_name")
-            if not obj_name: continue
+            if obj_name is None:
+                _refuse_if_strict(strict, "framing", f"#{index}", "missing_name")
+                continue
+            # An empty name is a valid stored framing: strict imports it as it is
+            if not obj_name and not strict:
+                continue
 
             # The file's rig UID is kept exactly (I4); without one (absent or
             # null), the rig is found by name as today.
@@ -480,15 +605,11 @@ def _migrate_saved_framings(db, user: DbUser, config: dict, remap=None):
                         uid_for_name(db, AstroObject, user.id, obj_name))
                 db.add(new_sf)
 
-        except Exception as e:
-            db.rollback()
-            print(f"[MIGRATION] Error migrating saved framing for {f.get('object_name')}: {e}")
-
     db.flush()
 
 
 
-def _migrate_objects(db, user: DbUser, config: dict, saved_uids=None, remap=None):
+def _migrate_objects(db, user: DbUser, config: dict, saved_uids=None, remap=None, strict=False):
     """
     Idempotently migrates astronomical objects from a YAML configuration dictionary to the database.
 
@@ -513,8 +634,9 @@ def _migrate_objects(db, user: DbUser, config: dict, saved_uids=None, remap=None
     # Safely get the list of objects, defaulting to an empty list if missing.
     objs = (config or {}).get("objects", []) or []
 
-    for o in objs:
-        try:
+    for index, o in enumerate(objs, 1):
+        with _import_entry(db, strict, "object",
+                           _entry_label(o, ("Object", "object", "object_name"), index)):
             # --- 1. Robustly Parse Object Data from Dictionary ---
             # Use .get() with fallbacks to handle different key names found in older YAML files.
             ra_val = o.get("RA") if o.get("RA") is not None else o.get("RA (hours)")
@@ -523,6 +645,7 @@ def _migrate_objects(db, user: DbUser, config: dict, saved_uids=None, remap=None
             # The canonical object identifier is crucial. Skip if it's missing or blank.
             raw_obj_name = o.get("Object") or o.get("object") or o.get("object_name")
             if not raw_obj_name or not str(raw_obj_name).strip():
+                _refuse_if_strict(strict, "object", f"#{index}", "missing_name")
                 print(f"[MIGRATION][OBJECT SKIP] Entry is missing an 'Object' identifier: {o}")
                 continue
             object_name = normalize_object_name(raw_obj_name)
@@ -668,13 +791,6 @@ def _migrate_objects(db, user: DbUser, config: dict, saved_uids=None, remap=None
                 db.add(new_object)
                 db.flush()
 
-        except UidClash:
-            raise
-        except Exception as e:
-            # If one object entry is malformed, log the error and continue with the rest.
-            db.rollback()
-            print(f"[MIGRATION] Could not process object entry '{o}'. Error: {e}")
-
     # The new objects adopt this user's empty-UID rows that name them, in one pass.
     adopt_unlinked_rows_for_user(db, user.id)
 
@@ -709,13 +825,14 @@ def _norm_name(s: str | None) -> str | None:
 
 
 def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: str,
-                                 saved_uids=None, remap=None):
+                                 saved_uids=None, remap=None, strict=False):
     """
     Idempotent import for components and rigs that unifies all logic.
     - UPSERTS components by (user_id, kind, normalized_name), preventing duplicates.
     - Creates components on-the-fly if referenced by a rig but not explicitly defined.
     - UPSERTS rigs by (user_id, rig_name).
-    - Skips creating rigs if a valid telescope or camera cannot be found/created.
+    - Skips creating rigs if a valid telescope or camera cannot be found/created
+      (tolerant); a strict import keeps such a rig with the missing roles empty.
     - Removes the need for post-migration deduplication or cleanup.
     """
     if not isinstance(rigs_yaml, dict):
@@ -738,7 +855,8 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
 
     # This helper function is already correct from our previous step.
     def _get_or_create_component(kind: str, name: str, record_uid=None, **fields) -> Component | None:
-        if not kind or not name:
+        # An empty name is a valid stored component: strict imports it as it is
+        if not kind or name is None or (not name and not strict):
             return None
         trimmed_name = " ".join(str(name).strip().split())
         file_uid = record_uid or None
@@ -821,30 +939,39 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
         return None
 
     # --- 1. Process Components Section ---
-    for t in comps.get("telescopes", []):
-        row = _get_or_create_component("telescope", _get_alias(t, "name"), _file_uid(t),
-                                       aperture_mm=_get_alias(t, "aperture_mm"),
-                                       focal_length_mm=_get_alias(t, "focal_length_mm"),
-                                       is_shared=t.get("is_shared"), original_user_id=t.get("original_user_id"),
-                                       original_item_id=t.get("original_item_id")
-                                       )
-        _remember_component(row, "telescope", _get_alias(t, "name"), t.get("id"))
-    for c in comps.get("cameras", []):
-        row = _get_or_create_component("camera", _get_alias(c, "name"), _file_uid(c),
-                                       sensor_width_mm=_get_alias(c, "sensor_width_mm"),
-                                       sensor_height_mm=_get_alias(c, "sensor_height_mm"),
-                                       pixel_size_um=_get_alias(c, "pixel_size_um"),
-                                       is_shared=c.get("is_shared"), original_user_id=c.get("original_user_id"),
-                                       original_item_id=c.get("original_item_id")
-                                       )
-        _remember_component(row, "camera", _get_alias(c, "name"), c.get("id"))
-    for r in comps.get("reducers_extenders", []):
-        row = _get_or_create_component("reducer_extender", _get_alias(r, "name"), _file_uid(r),
-                                       factor=_get_alias(r, "factor"),
-                                       is_shared=r.get("is_shared"), original_user_id=r.get("original_user_id"),
-                                       original_item_id=r.get("original_item_id")
-                                       )
-        _remember_component(row, "reducer_extender", _get_alias(r, "name"), r.get("id"))
+    for index, t in enumerate(comps.get("telescopes", []), 1):
+        with _import_entry(db, strict, "component", _entry_label(t, ("name",), index)):
+            if _get_alias(t, "name") is None:
+                _refuse_if_strict(strict, "component", f"#{index}", "missing_name")
+            row = _get_or_create_component("telescope", _get_alias(t, "name"), _file_uid(t),
+                                           aperture_mm=_get_alias(t, "aperture_mm"),
+                                           focal_length_mm=_get_alias(t, "focal_length_mm"),
+                                           is_shared=t.get("is_shared"), original_user_id=t.get("original_user_id"),
+                                           original_item_id=t.get("original_item_id")
+                                           )
+            _remember_component(row, "telescope", _get_alias(t, "name"), t.get("id"))
+    for index, c in enumerate(comps.get("cameras", []), 1):
+        with _import_entry(db, strict, "component", _entry_label(c, ("name",), index)):
+            if _get_alias(c, "name") is None:
+                _refuse_if_strict(strict, "component", f"#{index}", "missing_name")
+            row = _get_or_create_component("camera", _get_alias(c, "name"), _file_uid(c),
+                                           sensor_width_mm=_get_alias(c, "sensor_width_mm"),
+                                           sensor_height_mm=_get_alias(c, "sensor_height_mm"),
+                                           pixel_size_um=_get_alias(c, "pixel_size_um"),
+                                           is_shared=c.get("is_shared"), original_user_id=c.get("original_user_id"),
+                                           original_item_id=c.get("original_item_id")
+                                           )
+            _remember_component(row, "camera", _get_alias(c, "name"), c.get("id"))
+    for index, r in enumerate(comps.get("reducers_extenders", []), 1):
+        with _import_entry(db, strict, "component", _entry_label(r, ("name",), index)):
+            if _get_alias(r, "name") is None:
+                _refuse_if_strict(strict, "component", f"#{index}", "missing_name")
+            row = _get_or_create_component("reducer_extender", _get_alias(r, "name"), _file_uid(r),
+                                           factor=_get_alias(r, "factor"),
+                                           is_shared=r.get("is_shared"), original_user_id=r.get("original_user_id"),
+                                           original_item_id=r.get("original_item_id")
+                                           )
+            _remember_component(row, "reducer_extender", _get_alias(r, "name"), r.get("id"))
 
     def _resolve_component_id(kind: str, legacy_id, name) -> int | None:
         if legacy_id is not None:
@@ -868,10 +995,15 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
 
 
     # --- 2. Process Rigs Section ---
-    for r in rig_list:
-        try:
+    for index, r in enumerate(rig_list, 1):
+        with _import_entry(db, strict, "rig", _entry_label(r, ("rig_name", "name"), index)):
             rig_name = _get_alias(r, "rig_name", "name")
-            if not rig_name: continue
+            if rig_name is None:
+                _refuse_if_strict(strict, "rig", f"#{index}", "missing_name")
+                continue
+            # An empty name is a valid stored rig: strict imports it as it is
+            if not rig_name and not strict:
+                continue
 
             tel_name = _get_alias(r, "telescope", "telescope_name")
             cam_name = _get_alias(r, "camera", "camera_name")
@@ -896,7 +1028,8 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
             guide_cam_id = _resolve_component_id("camera", r.get("guide_camera_id"), guide_cam_name)
             guide_is_oag = bool(r.get("guide_is_oag", False))
 
-            if not (tel_id and cam_id):
+            # Strict keeps the rig with the missing roles empty (correction 2)
+            if not (tel_id and cam_id) and not strict:
                 print(
                     f"[MIGRATION][RIG SKIP] Rig '{rig_name}' for user '{username}' is missing a valid telescope or camera link. Skipping.")
                 continue
@@ -904,7 +1037,8 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
             eff_fl, f_ratio, scale, fov_w = (_coerce_float(r.get(k)) for k in
                                              ["effective_focal_length", "f_ratio", "image_scale", "fov_w_arcmin"])
             if any(v is None for v in [eff_fl, f_ratio, scale, fov_w]):
-                tel_obj, cam_obj = db.get(Component, tel_id), db.get(Component, cam_id)
+                tel_obj = db.get(Component, tel_id) if tel_id else None
+                cam_obj = db.get(Component, cam_id) if cam_id else None
                 red_obj = db.get(Component, red_id) if red_id else None
                 ce_fl, cf_ratio, c_scale, c_fovw = _compute_rig_metrics_from_components(tel_obj, cam_obj, red_obj)
                 eff_fl, f_ratio, scale, fov_w = (ce_fl if eff_fl is None else eff_fl,
@@ -933,13 +1067,7 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
                 db.add(new_rig)
             db.flush()
 
-        except UidClash:
-            raise
-        except Exception as e:
-            db.rollback()
-            print(f"[MIGRATION] Skip/repair rig '{r}': {e}")
-
-    _heal_saved_framings(db, user)
+    _heal_saved_framings(db, user, strict)
     # The rigs may have come back under new row numbers: the old columns of the
     # sessions and framings that link them follow their UIDs (I6).
     refresh_rig_row_numbers(db, user.id)
@@ -958,7 +1086,8 @@ def _apply_project_target_uid(db, user, project, entry, remap):
         uid_for_name(db, AstroObject, user.id, project.target_object_name))
 
 
-def _migrate_journal(db, user: DbUser, journal_yaml: dict, saved_rig_uids=None, remap=None):
+def _migrate_journal(db, user: DbUser, journal_yaml: dict, saved_rig_uids=None, remap=None,
+                     strict=False):
     data = journal_yaml or {}
     # Normalize old list-based journals to the new dict structure
     if isinstance(data, list):
@@ -982,279 +1111,292 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict, saved_rig_uids=None, 
     # File project id -> id actually used, for projects re-created under a new id
     id_map = {}
 
-    for p in (data.get("projects") or []):
-        # Check if both project_id and project_name are present and non-empty
-        project_id_val = p.get("project_id")
-        project_name_val = p.get("project_name")
+    for index, p in enumerate(data.get("projects") or [], 1):
+        label = _entry_label(p, ("project_name", "project_id"), index)
+        with _import_entry(db, strict, "project", label):
+            # Check if both project_id and project_name are present and non-empty
+            project_id_val = p.get("project_id")
+            project_name_val = p.get("project_name")
 
-        if project_id_val and str(project_id_val).strip():
-            valid_project_ids.add(str(project_id_val)) # Track valid IDs from the import file
+            if project_id_val and str(project_id_val).strip():
+                valid_project_ids.add(str(project_id_val)) # Track valid IDs from the import file
 
-            # Check if project already exists by ID
-            existing_project = db.query(Project).filter_by(id=str(project_id_val)).one_or_none()
+                # Check if project already exists by ID
+                existing_project = db.query(Project).filter_by(id=str(project_id_val)).one_or_none()
 
-            # --- NEW: Fields to set/update (Safely defaults to None if key missing) ---
-            project_data = {
-                "user_id": user.id,
-                "name": str(project_name_val).strip() if project_name_val else "Unnamed Project",
-                "target_object_name": p.get("target_object_id"),
-                "description_notes": p.get("description_notes"),
-                "framing_notes": p.get("framing_notes"),
-                "processing_notes": p.get("processing_notes"),
-                "final_image_file": p.get("final_image_file"),
-                "goals": p.get("goals"),
-                "status": p.get("status", "In Progress"),
-            }
+                # --- NEW: Fields to set/update (Safely defaults to None if key missing) ---
+                project_data = {
+                    "user_id": user.id,
+                    "name": str(project_name_val).strip() if project_name_val else "Unnamed Project",
+                    "target_object_name": p.get("target_object_id"),
+                    "description_notes": p.get("description_notes"),
+                    "framing_notes": p.get("framing_notes"),
+                    "processing_notes": p.get("processing_notes"),
+                    "final_image_file": p.get("final_image_file"),
+                    "goals": p.get("goals"),
+                    "status": p.get("status", "In Progress"),
+                }
 
-            if existing_project and existing_project.user_id != user.id:
-                # Owned by another user: leave that row untouched.
-                # Reuse this user's project with the same name, else import as a new copy.
-                existing_by_name = db.query(Project).filter_by(user_id=user.id, name=project_data["name"]).one_or_none()
-                if existing_by_name:
-                    id_map[str(project_id_val)] = existing_by_name.id
+                if existing_project and existing_project.user_id != user.id:
+                    # Owned by another user: leave that row untouched.
+                    # Reuse this user's project with the same name, else import as a new copy.
+                    existing_by_name = db.query(Project).filter_by(user_id=user.id, name=project_data["name"]).one_or_none()
+                    if existing_by_name:
+                        id_map[str(project_id_val)] = existing_by_name.id
+                    else:
+                        new_id = uuid.uuid4().hex
+                        id_map[str(project_id_val)] = new_id
+                        new_project = Project(id=new_id, **project_data)
+                        sync_project_link(db, new_project)
+                        _apply_project_target_uid(db, user, new_project, p, remap)
+                        db.add(new_project)
+                        db.flush()
+                elif existing_project:
+                    # Update existing project
+                    for key, value in project_data.items():
+                        if value is not None:
+                            setattr(existing_project, key, value)
+                    # From the final target_object_name: a None in the file keeps the old one
+                    sync_project_link(db, existing_project)
+                    _apply_project_target_uid(db, user, existing_project, p, remap)
                 else:
-                    new_id = uuid.uuid4().hex
-                    id_map[str(project_id_val)] = new_id
-                    new_project = Project(id=new_id, **project_data)
-                    sync_project_link(db, new_project)
-                    _apply_project_target_uid(db, user, new_project, p, remap)
-                    db.add(new_project)
-                    db.flush()
-            elif existing_project:
-                # Update existing project
-                for key, value in project_data.items():
-                    if value is not None:
-                        setattr(existing_project, key, value)
-                # From the final target_object_name: a None in the file keeps the old one
-                sync_project_link(db, existing_project)
-                _apply_project_target_uid(db, user, existing_project, p, remap)
+                    # Check if a project with the same name already exists for the user (to avoid name duplicates if ID differs)
+                    existing_by_name = db.query(Project).filter_by(user_id=user.id, name=project_data["name"]).one_or_none()
+                    if not existing_by_name:
+                        new_project = Project(id=str(project_id_val), **project_data)
+                        sync_project_link(db, new_project)
+                        _apply_project_target_uid(db, user, new_project, p, remap)
+                        db.add(new_project)
             else:
-                # Check if a project with the same name already exists for the user (to avoid name duplicates if ID differs)
-                existing_by_name = db.query(Project).filter_by(user_id=user.id, name=project_data["name"]).one_or_none()
-                if not existing_by_name:
-                    new_project = Project(id=str(project_id_val), **project_data)
-                    sync_project_link(db, new_project)
-                    _apply_project_target_uid(db, user, new_project, p, remap)
-                    db.add(new_project)
+                _refuse_if_strict(strict, "project", label, "missing_id")
 
     db.flush()  # Flush after adding all valid projects from the YAML
 
     # --- 2. Migrate Sessions with ALL fields ---
-    for s in (data.get("sessions") or []):
-        # Get external ID, preferring 'session_id' then 'id'
-        ext_id = s.get("session_id") or s.get("id")
-        # I9: a session without an id gets one, so a second import of the
-        # exported file updates this row instead of duplicating it.
-        if not ext_id:
-            ext_id = uuid.uuid4().hex
-        # Get date, preferring 'session_date' then 'date'
-        date_str = s.get("session_date") or s.get("date")
-        if not date_str: continue # Skip if no date
+    for index, s in enumerate(data.get("sessions") or [], 1):
+        label = _entry_label(s, ("session_date", "date", "session_id", "id"), index)
+        with _import_entry(db, strict, "session", label):
+            # Get external ID, preferring 'session_id' then 'id'
+            ext_id = s.get("session_id") or s.get("id")
+            # I9: a session without an id gets one, so a second import of the
+            # exported file updates this row instead of duplicating it.
+            if not ext_id:
+                ext_id = uuid.uuid4().hex
+            # Get date, preferring 'session_date' then 'date'
+            date_str = s.get("session_date") or s.get("date")
+            if not date_str:
+                _refuse_if_strict(strict, "session", label, "missing_date")
+                continue # Skip if no date
+            # An unquoted YAML date arrives as a date object, not a string
+            if isinstance(date_str, date):
+                date_str = date_str.isoformat()
 
-        # Try parsing date (ISO or YYYY-MM-DD)
-        try:
-            dt = datetime.fromisoformat(date_str).date()
-        except:
+            # Try parsing date (ISO or YYYY-MM-DD)
             try:
-                dt = datetime.strptime(date_str, "%Y-%m-%d").date()
+                dt = datetime.fromisoformat(date_str).date()
             except:
-                print(f"[MIGRATION][SESSION SKIP] Invalid date format '{date_str}' for session with external_id '{ext_id}'. Skipping.")
-                continue # Skip if date parsing fails
+                try:
+                    dt = datetime.strptime(date_str, "%Y-%m-%d").date()
+                except:
+                    _refuse_if_strict(strict, "session", label, "invalid_date")
+                    print(f"[MIGRATION][SESSION SKIP] Invalid date format '{date_str}' for session with external_id '{ext_id}'. Skipping.")
+                    continue # Skip if date parsing fails
 
-        # === START: Link Rewriting Application ===
-        # Get the raw HTML notes from the YAML
-        notes_html = s.get("general_notes_problems_learnings") or s.get("notes")
+            # === START: Link Rewriting Application ===
+            # Get the raw HTML notes from the YAML
+            notes_html = s.get("general_notes_problems_learnings") or s.get("notes")
 
-        # Rewrite image links to point to the *importer's* directory
-        if notes_html:
-            notes_html = link_pattern.sub(lambda m: m.group(1) + target_username + m.group(3), notes_html)
-        # === END: Link Rewriting Application ===
+            # Rewrite image links to point to the *importer's* directory
+            if notes_html:
+                notes_html = link_pattern.sub(lambda m: m.group(1) + target_username + m.group(3), notes_html)
+            # === END: Link Rewriting Application ===
 
-        # === START: Orphan Project Check ===
-        sess_project_id = s.get("project_id")
-        if sess_project_id:
-            sess_project_id = str(sess_project_id)
-            # If this ID wasn't in the YAML projects block...
-            if sess_project_id not in valid_project_ids:
-                # ...check if it exists in the DB (maybe from a previous import)
-                exists_in_db = db.query(Project).filter_by(id=sess_project_id).first()
+            # === START: Orphan Project Check ===
+            sess_project_id = s.get("project_id")
+            if sess_project_id:
+                sess_project_id = str(sess_project_id)
+                # If this ID wasn't in the YAML projects block...
+                if sess_project_id not in valid_project_ids:
+                    # ...check if it exists in the DB (maybe from a previous import)
+                    exists_in_db = db.query(Project).filter_by(id=sess_project_id).first()
 
-                # A project owned by another user counts as missing for this user
-                if not exists_in_db or exists_in_db.user_id != user.id:
-                    # ORPHAN DETECTED: Auto-create a placeholder project to satisfy Foreign Key
-                    print(f"[MIGRATION] Auto-creating missing project {sess_project_id} for session.")
-                    placeholder_id = uuid.uuid4().hex if exists_in_db else sess_project_id
-                    if placeholder_id != sess_project_id:
-                        id_map[sess_project_id] = placeholder_id
-                    placeholder_project = Project(
-                        id=placeholder_id,
-                        user_id=user.id,
-                        name=s.get("project_name") or f"Legacy Project {sess_project_id[:8]}",
-                        status="Completed" # Assume legacy projects are done
-                    )
-                    db.add(placeholder_project)
-                    db.flush() # Commit immediately so the session insert works
-                    valid_project_ids.add(sess_project_id)
-            # Point at the id actually used for this user's copy
-            sess_project_id = id_map.get(sess_project_id, sess_project_id)
-        # === END: Orphan Project Check ===
+                    # A project owned by another user counts as missing for this user
+                    if not exists_in_db or exists_in_db.user_id != user.id:
+                        # ORPHAN DETECTED: Auto-create a placeholder project to satisfy Foreign Key
+                        print(f"[MIGRATION] Auto-creating missing project {sess_project_id} for session.")
+                        placeholder_id = uuid.uuid4().hex if exists_in_db else sess_project_id
+                        if placeholder_id != sess_project_id:
+                            id_map[sess_project_id] = placeholder_id
+                        placeholder_project = Project(
+                            id=placeholder_id,
+                            user_id=user.id,
+                            name=s.get("project_name") or f"Legacy Project {sess_project_id[:8]}",
+                            status="Completed" # Assume legacy projects are done
+                        )
+                        db.add(placeholder_project)
+                        db.flush() # Commit immediately so the session insert works
+                        valid_project_ids.add(sess_project_id)
+                # Point at the id actually used for this user's copy
+                sess_project_id = id_map.get(sess_project_id, sess_project_id)
+            # === END: Orphan Project Check ===
 
-        # === START: Multi-project m2m population ===
-        ownership_validated_projects = []
-        imported_project_ids = s.get("project_ids")
-        if imported_project_ids:
-            for pid in imported_project_ids:
-                pid_str = id_map.get(str(pid), str(pid))
-                p = db.query(Project).filter_by(id=pid_str, user_id=user.id).one_or_none()
-                if p:
-                    ownership_validated_projects.append(p)
-                else:
-                    print(f"[MIGRATION] Skipping orphan project_id {pid_str} for session {ext_id}: not owned by importing user.")
-        # Fallback for old-format YAML (no project_ids key): use project_id
-        if not imported_project_ids and sess_project_id:
-            fallback_p = db.query(Project).filter_by(id=sess_project_id, user_id=user.id).one_or_none()
-            if fallback_p:
-                ownership_validated_projects.append(fallback_p)
-        # *** END: Multi-project m2m population ***
+            # === START: Multi-project m2m population ===
+            ownership_validated_projects = []
+            imported_project_ids = s.get("project_ids")
+            if imported_project_ids:
+                for pid in imported_project_ids:
+                    pid_str = id_map.get(str(pid), str(pid))
+                    p = db.query(Project).filter_by(id=pid_str, user_id=user.id).one_or_none()
+                    if p:
+                        ownership_validated_projects.append(p)
+                    else:
+                        print(f"[MIGRATION] Skipping orphan project_id {pid_str} for session {ext_id}: not owned by importing user.")
+            # Fallback for old-format YAML (no project_ids key): use project_id
+            if not imported_project_ids and sess_project_id:
+                fallback_p = db.query(Project).filter_by(id=sess_project_id, user_id=user.id).one_or_none()
+                if fallback_p:
+                    ownership_validated_projects.append(fallback_p)
+            # *** END: Multi-project m2m population ***
 
-        # Map all YAML keys to DB columns
-        row_values = {
-            "user_id": user.id,
-            "project_id": sess_project_id, # Use the stringified/checked ID
-            "date_utc": dt,
-            "object_name": normalize_object_name(s.get("target_object_id") or s.get("object_name")),
-            "notes": notes_html,  # <-- USE THE FIXED HTML
-            "session_image_file": s.get("session_image_file"),
-            "location_name": s.get("location_name"),
-            "seeing_observed_fwhm": _try_float(s.get("seeing_observed_fwhm")),
-            "sky_sqm_observed": _try_float(s.get("sky_sqm_observed")),
-            "moon_illumination_session": _as_int(s.get("moon_illumination_session")),
-            "moon_angular_separation_session": _try_float(s.get("moon_angular_separation_session")),
-            "weather_notes": s.get("weather_notes"),
-            "telescope_setup_notes": s.get("telescope_setup_notes"),
-            "filter_used_session": s.get("filter_used_session"),
-            "guiding_rms_avg_arcsec": _try_float(s.get("guiding_rms_avg_arcsec")),
-            "guiding_equipment": s.get("guiding_equipment"),
-            "dither_details": s.get("dither_details"),
-            "dither_pixels": _as_int(s.get("dither_pixels")),  # None for old backups
-            "dither_every_n": _as_int(s.get("dither_every_n")),  # None for old backups
-            "dither_notes": s.get("dither_notes"),  # None for old backups
-            "acquisition_software": s.get("acquisition_software"),
-            "gain_setting": _as_int(s.get("gain_setting")),
-            "offset_setting": _as_int(s.get("offset_setting")),
-            "camera_temp_setpoint_c": _try_float(s.get("camera_temp_setpoint_c")),
-            "camera_temp_actual_avg_c": _try_float(s.get("camera_temp_actual_avg_c")),
-            "binning_session": s.get("binning_session"),
-            "darks_strategy": s.get("darks_strategy"),
-            "flats_strategy": s.get("flats_strategy"),
-            "bias_darkflats_strategy": s.get("bias_darkflats_strategy"),
-            "session_rating_subjective": _as_int(s.get("session_rating_subjective")),
-            "transparency_observed_scale": s.get("transparency_observed_scale"),
-            "number_of_subs_light": _as_int(s.get("number_of_subs_light")),
-            "exposure_time_per_sub_sec": _as_int(s.get("exposure_time_per_sub_sec")),
-            "filter_L_subs": _as_int(s.get("filter_L_subs")),
-            "filter_L_exposure_sec": _as_int(s.get("filter_L_exposure_sec")),
-            "filter_R_subs": _as_int(s.get("filter_R_subs")),
-            "filter_R_exposure_sec": _as_int(s.get("filter_R_exposure_sec")),
-            "filter_G_subs": _as_int(s.get("filter_G_subs")),
-            "filter_G_exposure_sec": _as_int(s.get("filter_G_exposure_sec")),
-            "filter_B_subs": _as_int(s.get("filter_B_subs")),
-            "filter_B_exposure_sec": _as_int(s.get("filter_B_exposure_sec")),
-            "filter_Ha_subs": _as_int(s.get("filter_Ha_subs")),
-            "filter_Ha_exposure_sec": _as_int(s.get("filter_Ha_exposure_sec")),
-            "filter_OIII_subs": _as_int(s.get("filter_OIII_subs")),
-            "filter_OIII_exposure_sec": _as_int(s.get("filter_OIII_exposure_sec")),
-            "filter_SII_subs": _as_int(s.get("filter_SII_subs")),
-            "filter_SII_exposure_sec": _as_int(s.get("filter_SII_exposure_sec")),
-            "rig_name_snapshot": s.get("rig_name_snapshot"),
-            "rig_efl_snapshot": _try_float(s.get("rig_efl_snapshot")),
-            "rig_fr_snapshot": _try_float(s.get("rig_fr_snapshot")),
-            "rig_scale_snapshot": _try_float(s.get("rig_scale_snapshot")),
-            "rig_fov_w_snapshot": _try_float(s.get("rig_fov_w_snapshot")),
-            "rig_fov_h_snapshot": _try_float(s.get("rig_fov_h_snapshot")),
-            "telescope_name_snapshot": s.get("telescope_name_snapshot"),
-            "reducer_name_snapshot": s.get("reducer_name_snapshot"),
-            "camera_name_snapshot": s.get("camera_name_snapshot"),
-            "calculated_integration_time_minutes": _try_float(s.get("calculated_integration_time_minutes")),
-            # Ensure external_id is stored as string if it exists
-            "external_id": str(ext_id) if ext_id else None,
-            # Custom filter data (JSON string for user-defined filters)
-            "custom_filter_data": s.get("custom_filter_data"),
-            "asiair_log_content": s.get("asiair_log_content"),
-            "phd2_log_content": s.get("phd2_log_content"),
-            "nina_log_content": s.get("nina_log_content"),
-            "log_analysis_cache": s.get("log_analysis_cache"),
-        }
-        # *** START: Simplified Upsert Logic ***
-        # Try to find an existing session with this external_id for this user
-        existing_session = db.query(JournalSession).filter_by(
-            user_id=user.id,
-            external_id=str(ext_id)
-        ).one_or_none()
+            # Map all YAML keys to DB columns
+            row_values = {
+                "user_id": user.id,
+                "project_id": sess_project_id, # Use the stringified/checked ID
+                "date_utc": dt,
+                "object_name": normalize_object_name(s.get("target_object_id") or s.get("object_name")),
+                "notes": notes_html,  # <-- USE THE FIXED HTML
+                "session_image_file": s.get("session_image_file"),
+                "location_name": s.get("location_name"),
+                "seeing_observed_fwhm": _try_float(s.get("seeing_observed_fwhm")),
+                "sky_sqm_observed": _try_float(s.get("sky_sqm_observed")),
+                "moon_illumination_session": _as_int(s.get("moon_illumination_session")),
+                "moon_angular_separation_session": _try_float(s.get("moon_angular_separation_session")),
+                "weather_notes": s.get("weather_notes"),
+                "telescope_setup_notes": s.get("telescope_setup_notes"),
+                "filter_used_session": s.get("filter_used_session"),
+                "guiding_rms_avg_arcsec": _try_float(s.get("guiding_rms_avg_arcsec")),
+                "guiding_equipment": s.get("guiding_equipment"),
+                "dither_details": s.get("dither_details"),
+                "dither_pixels": _as_int(s.get("dither_pixels")),  # None for old backups
+                "dither_every_n": _as_int(s.get("dither_every_n")),  # None for old backups
+                "dither_notes": s.get("dither_notes"),  # None for old backups
+                "acquisition_software": s.get("acquisition_software"),
+                "gain_setting": _as_int(s.get("gain_setting")),
+                "offset_setting": _as_int(s.get("offset_setting")),
+                "camera_temp_setpoint_c": _try_float(s.get("camera_temp_setpoint_c")),
+                "camera_temp_actual_avg_c": _try_float(s.get("camera_temp_actual_avg_c")),
+                "binning_session": s.get("binning_session"),
+                "darks_strategy": s.get("darks_strategy"),
+                "flats_strategy": s.get("flats_strategy"),
+                "bias_darkflats_strategy": s.get("bias_darkflats_strategy"),
+                "session_rating_subjective": _as_int(s.get("session_rating_subjective")),
+                "transparency_observed_scale": s.get("transparency_observed_scale"),
+                "number_of_subs_light": _as_int(s.get("number_of_subs_light")),
+                "exposure_time_per_sub_sec": _as_int(s.get("exposure_time_per_sub_sec")),
+                "filter_L_subs": _as_int(s.get("filter_L_subs")),
+                "filter_L_exposure_sec": _as_int(s.get("filter_L_exposure_sec")),
+                "filter_R_subs": _as_int(s.get("filter_R_subs")),
+                "filter_R_exposure_sec": _as_int(s.get("filter_R_exposure_sec")),
+                "filter_G_subs": _as_int(s.get("filter_G_subs")),
+                "filter_G_exposure_sec": _as_int(s.get("filter_G_exposure_sec")),
+                "filter_B_subs": _as_int(s.get("filter_B_subs")),
+                "filter_B_exposure_sec": _as_int(s.get("filter_B_exposure_sec")),
+                "filter_Ha_subs": _as_int(s.get("filter_Ha_subs")),
+                "filter_Ha_exposure_sec": _as_int(s.get("filter_Ha_exposure_sec")),
+                "filter_OIII_subs": _as_int(s.get("filter_OIII_subs")),
+                "filter_OIII_exposure_sec": _as_int(s.get("filter_OIII_exposure_sec")),
+                "filter_SII_subs": _as_int(s.get("filter_SII_subs")),
+                "filter_SII_exposure_sec": _as_int(s.get("filter_SII_exposure_sec")),
+                "rig_name_snapshot": s.get("rig_name_snapshot"),
+                "rig_efl_snapshot": _try_float(s.get("rig_efl_snapshot")),
+                "rig_fr_snapshot": _try_float(s.get("rig_fr_snapshot")),
+                "rig_scale_snapshot": _try_float(s.get("rig_scale_snapshot")),
+                "rig_fov_w_snapshot": _try_float(s.get("rig_fov_w_snapshot")),
+                "rig_fov_h_snapshot": _try_float(s.get("rig_fov_h_snapshot")),
+                "telescope_name_snapshot": s.get("telescope_name_snapshot"),
+                "reducer_name_snapshot": s.get("reducer_name_snapshot"),
+                "camera_name_snapshot": s.get("camera_name_snapshot"),
+                "calculated_integration_time_minutes": _try_float(s.get("calculated_integration_time_minutes")),
+                # Ensure external_id is stored as string if it exists
+                "external_id": str(ext_id) if ext_id else None,
+                # Custom filter data (JSON string for user-defined filters)
+                "custom_filter_data": s.get("custom_filter_data"),
+                "asiair_log_content": s.get("asiair_log_content"),
+                "phd2_log_content": s.get("phd2_log_content"),
+                "nina_log_content": s.get("nina_log_content"),
+                "log_analysis_cache": s.get("log_analysis_cache"),
+            }
+            # *** START: Simplified Upsert Logic ***
+            # Try to find an existing session with this external_id for this user
+            existing_session = db.query(JournalSession).filter_by(
+                user_id=user.id,
+                external_id=str(ext_id)
+            ).one_or_none()
 
-        if existing_session:
-            # UPDATE: Session found, update its fields
-            for k, v in row_values.items():
-                # Only update if the new value is not None
-                if v is not None:
-                    setattr(existing_session, k, v)
-            session_obj = existing_session
-        else:
-            # INSERT: Session not found, create a new one
-            session_obj = JournalSession(**row_values)
-            db.add(session_obj)
+            if existing_session:
+                # UPDATE: Session found, update its fields
+                for k, v in row_values.items():
+                    # Only update if the new value is not None
+                    if v is not None:
+                        setattr(existing_session, k, v)
+                session_obj = existing_session
+            else:
+                # INSERT: Session not found, create a new one
+                session_obj = JournalSession(**row_values)
+                db.add(session_obj)
 
-        sync_session_links(db, session_obj, include_rig=False)
+            sync_session_links(db, session_obj, include_rig=False)
 
-        # Object and location links (I3): the file's UID when it resolves for
-        # this user, else the exact name, else the file's UID as it is.
-        file_object_uid = _link_uid(s, "object_record_uid")
-        if file_object_uid:
-            session_obj.object_record_uid = _link_uid_from_file(
-                db, user.id, AstroObject, file_object_uid, remap,
-                uid_for_name(db, AstroObject, user.id, session_obj.object_name))
-        file_location_uid = _link_uid(s, "location_record_uid")
-        if file_location_uid:
-            session_obj.location_record_uid = _link_uid_from_file(
-                db, user.id, Location, file_location_uid, remap,
-                uid_for_name(db, Location, user.id, session_obj.location_name))
+            # Object and location links (I3): the file's UID when it resolves for
+            # this user, else the exact name, else the file's UID as it is.
+            file_object_uid = _link_uid(s, "object_record_uid")
+            if file_object_uid:
+                session_obj.object_record_uid = _link_uid_from_file(
+                    db, user.id, AstroObject, file_object_uid, remap,
+                    uid_for_name(db, AstroObject, user.id, session_obj.object_name))
+            file_location_uid = _link_uid(s, "location_record_uid")
+            if file_location_uid:
+                session_obj.location_record_uid = _link_uid_from_file(
+                    db, user.id, Location, file_location_uid, remap,
+                    uid_for_name(db, Location, user.id, session_obj.location_name))
 
-        # The rig link (I4, I2, correction 1). A present key is decided by the
-        # file: a UID is kept exactly, a null means the session has no rig. An
-        # absent key (an old-format file) restores the session's previous rig
-        # UID by external_id; otherwise a new row gets none and an existing row
-        # keeps the one it has.
-        if "rig_record_uid" in s:
-            file_rig_uid = _link_uid(s, "rig_record_uid")
-            session_obj.rig_record_uid = remap.get(file_rig_uid, file_rig_uid) if file_rig_uid else None
-        else:
-            restored_rig_uid = (saved_rig_uids or {}).get(str(ext_id))
-            if restored_rig_uid:
-                session_obj.rig_record_uid = restored_rig_uid
-            elif not existing_session:
-                session_obj.rig_record_uid = None
+            # The rig link (I4, I2, correction 1). A present key is decided by the
+            # file: a UID is kept exactly, a null means the session has no rig. An
+            # absent key (an old-format file) restores the session's previous rig
+            # UID by external_id; otherwise a new row gets none and an existing row
+            # keeps the one it has.
+            if "rig_record_uid" in s:
+                file_rig_uid = _link_uid(s, "rig_record_uid")
+                session_obj.rig_record_uid = remap.get(file_rig_uid, file_rig_uid) if file_rig_uid else None
+            else:
+                restored_rig_uid = (saved_rig_uids or {}).get(str(ext_id))
+                if restored_rig_uid:
+                    session_obj.rig_record_uid = restored_rig_uid
+                elif not existing_session:
+                    session_obj.rig_record_uid = None
 
-        # I6: the old column follows the UID; the file's row number is never used.
-        rig = rig_for_uid(db, user.id, session_obj.rig_record_uid)
-        session_obj.rig_id_snapshot = rig.id if rig else None
+            # I6: the old column follows the UID; the file's row number is never used.
+            rig = rig_for_uid(db, user.id, session_obj.rig_record_uid)
+            session_obj.rig_id_snapshot = rig.id if rig else None
 
-        # *** START: Legacy dither migration ***
-        # If new structured fields are absent but old dither_details is present,
-        # migrate the old text into dither_notes
-        if row_values.get("dither_pixels") is None and row_values.get("dither_details"):
-            session_obj.dither_notes = row_values.get("dither_details")
-        # *** END: Legacy dither migration ***
-        # *** END: Simplified Upsert Logic ***
+            # *** START: Legacy dither migration ***
+            # If new structured fields are absent but old dither_details is present,
+            # migrate the old text into dither_notes
+            if row_values.get("dither_pixels") is None and row_values.get("dither_details"):
+                session_obj.dither_notes = row_values.get("dither_details")
+            # *** END: Legacy dither migration ***
+            # *** END: Simplified Upsert Logic ***
 
-        # Assign ownership-validated projects to the m2m relationship
-        if ownership_validated_projects:
-            session_obj.projects = ownership_validated_projects
+            # Assign ownership-validated projects to the m2m relationship
+            if ownership_validated_projects:
+                session_obj.projects = ownership_validated_projects
 
     # --- Import custom filter definitions ---
-    for cf_def in data.get('custom_mono_filters', []):
+    for index, cf_def in enumerate(data.get('custom_mono_filters', []), 1):
         key = (cf_def.get('key') or '').strip()
         label = (cf_def.get('label') or '').strip()
         if not key or not label:
+            _refuse_if_strict(strict, "filter", key or label or f"#{index}", "missing_name")
             continue
         if not db.query(UserCustomFilter).filter_by(user_id=user.id, filter_key=key).first():
             db.add(UserCustomFilter(user_id=user.id, filter_key=key, filter_label=label))
@@ -1329,7 +1471,7 @@ def export_user_data(db, user: DbUser) -> tuple[dict, dict, dict]:
             config_doc = {}
 
     locs = db.query(Location).options(selectinload(Location.horizon_points)).filter_by(user_id=uid).all()
-    config_doc["format_version"] = 2
+    config_doc["format_version"] = FORMAT_VERSION
     config_doc["default_location"] = resolve_default_location_name(locs, config_doc.get("default_location"))
     config_doc["locations"] = {
         l.name: {
@@ -1397,7 +1539,7 @@ def export_user_data(db, user: DbUser) -> tuple[dict, dict, dict]:
         return [c for c in comps if c.kind == kind]
 
     rigs_doc = {
-        "format_version": 2,
+        "format_version": FORMAT_VERSION,
         "components": {
             "telescopes": [
                 {"id": c.id, "record_uid": c.record_uid, "name": c.name,
@@ -1575,7 +1717,7 @@ def export_user_data(db, user: DbUser) -> tuple[dict, dict, dict]:
         })
 
     journal_doc = {
-        "format_version": 2,
+        "format_version": FORMAT_VERSION,
         "projects": projects_list,
         "custom_mono_filters": custom_filters_list,
         "sessions": sessions_list,
@@ -1616,39 +1758,46 @@ def import_user_from_yaml(username: str,
                           clear_existing: bool = False) -> bool:
     """
     Upsert from YAML into DB. Optionally clears existing user data first.
+
+    Strict (C1): an entry that cannot be imported, a provided file that cannot
+    be read or a newer format_version rolls everything back and raises
+    ImportRefused or FormatTooNew. A file that was not provided (no path, or no
+    file at the path) is not part of the import and reads as empty, as before.
     """
     db = get_db()
     try:
+        docs = []
+        for role, path in (("config", config_path), ("rigs", rigs_path), ("journal", journal_path)):
+            data, error = _read_yaml(path) if path else ({}, None)
+            if data is None:
+                raise ImportRefused("file", role, error)
+            check_format_version(data)
+            docs.append(data)
+        cfg_data, rigs_data, jrn_data = docs
+
         user = _upsert_user(db, username)
         saved_uids = None
         saved_session_rigs = None
         if clear_existing:
             saved_uids = capture_record_uids(db, user)
             saved_session_rigs = capture_session_rig_uids(db, user)
-            # cascades remove all
-            db.delete(user); db.flush()
-            user = _upsert_user(db, username)
-
-        cfg_tuple = _read_yaml(config_path);
-        rigs_tuple = _read_yaml(rigs_path);
-        jrn_tuple = _read_yaml(journal_path)
-
-        # Extract the data dictionary (first element) from each tuple
-        cfg_data = cfg_tuple[0]
-        rigs_data = rigs_tuple[0]
-        jrn_data = jrn_tuple[0]
+            # The full clear keeps the user row (C4)
+            wipe_user_data(db, user, everything=True)
 
         # Pass the extracted dictionaries to the migration functions
         remap = {}
-        _migrate_locations(db, user, cfg_data, saved_uids, remap)
-        _migrate_objects(db, user, cfg_data, saved_uids, remap)
-        _migrate_components_and_rigs(db, user, rigs_data, username, saved_uids, remap)
-        _migrate_saved_framings(db, user, cfg_data, remap)
-        _migrate_journal(db, user, jrn_data, saved_session_rigs, remap)
+        _migrate_locations(db, user, cfg_data, saved_uids, remap, strict=True)
+        _migrate_objects(db, user, cfg_data, saved_uids, remap, strict=True)
+        _migrate_components_and_rigs(db, user, rigs_data, username, saved_uids, remap, strict=True)
+        _migrate_saved_framings(db, user, cfg_data, remap, strict=True)
+        _migrate_journal(db, user, jrn_data, saved_session_rigs, remap, strict=True)
         _migrate_ui_prefs(db, user, cfg_data)
-        _migrate_saved_views(db, user, cfg_data)
+        _migrate_saved_views(db, user, cfg_data, strict=True)
         db.commit()
         return True
+    except (ImportRefused, FormatTooNew):
+        db.rollback()
+        raise
     except Exception as import_err:
         db.rollback()
         current_app.logger.error(f"[YAML IMPORT] Failed to import config for user '{username}': {import_err}")
@@ -1676,8 +1825,9 @@ def import_catalog_pack_for_user(db, user: DbUser, catalog_config: dict, pack_id
         parts.add(new_id)
         return ",".join(sorted(parts))
 
-    for o in objs:
-        try:
+    for index, o in enumerate(objs, 1):
+        with _import_entry(db, False, "object",
+                           _entry_label(o, ("Object", "object", "object_name"), index)) as entry:
             # --- 1. Parse Common Data ---
             ra_val = o.get("RA") if o.get("RA") is not None else o.get("RA (hours)")
             dec_val = o.get("DEC") if o.get("DEC") is not None else o.get("DEC (degrees)")
@@ -1899,10 +2049,9 @@ def import_catalog_pack_for_user(db, user: DbUser, catalog_config: dict, pack_id
                 description_source_link=pack_desc_link,
             )
             db.add(new_object)
+            db.flush()
             created += 1
-
-        except Exception as e:
-            print(f"[CATALOG IMPORT] Error processing '{o}': {e}")
+        if entry.failed:
             skipped += 1
 
     # The new objects adopt this user's empty-UID rows that name them, in one pass.
@@ -2037,7 +2186,7 @@ def validate_journal_data(journal_data):
 
 
 
-def _migrate_saved_views(db, user: DbUser, config: dict):
+def _migrate_saved_views(db, user: DbUser, config: dict, strict=False):
     """
     Idempotent import of saved views. Deletes all existing views and replaces them.
     Now includes description and sharing status.
@@ -2049,11 +2198,13 @@ def _migrate_saved_views(db, user: DbUser, config: dict):
     # 2. Add new views from the config
     views_list = (config or {}).get("saved_views", []) or []
     if not isinstance(views_list, list):
+        _refuse_if_strict(strict, "view", "saved_views", "not a list")
         print("[MIGRATION] 'saved_views' is not a list, skipping.")
         return
 
-    for view_entry in views_list:
-        try:
+    for index, view_entry in enumerate(views_list, 1):
+        label = _entry_label(view_entry, ("name",), index)
+        with _import_entry(db, strict, "view", label):
             name = view_entry.get("name")
             settings = view_entry.get("settings")
 
@@ -2061,7 +2212,12 @@ def _migrate_saved_views(db, user: DbUser, config: dict):
             description = view_entry.get("description")
             is_shared = bool(view_entry.get("is_shared", False))
 
-            if not name or not settings:
+            if not name:
+                _refuse_if_strict(strict, "view", label, "missing_name")
+            if "settings" not in view_entry:
+                _refuse_if_strict(strict, "view", label, "missing_settings")
+            # Tolerant keeps skipping empty settings; strict imports them as they are
+            if not name or (not settings and not strict):
                 print(f"[MIGRATION] Skipping invalid saved view (missing name or settings): {view_entry}")
                 continue
 
@@ -2076,9 +2232,6 @@ def _migrate_saved_views(db, user: DbUser, config: dict):
                 settings_json=settings_str
             )
             db.add(new_view)
-        except Exception as e:
-            db.rollback()
-            print(f"[MIGRATION] Could not process saved view '{view_entry.get('name')}'. Error: {e}")
 
     db.flush()
 

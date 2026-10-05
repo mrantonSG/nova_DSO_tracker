@@ -5751,6 +5751,68 @@ msgid ""
 "Cannot delete location '%(name)s': it is used by %(sessions)d session(s)."
 msgstr "場所 '%(name)s' を削除できません：%(sessions)d 件のセッションで使用されています。"
 
+#: nova/blueprints/tools.py:533
+#, python-format
+msgid ""
+"Import refused: the file has format version %(found)s, but this version of"
+" Nova reads files up to version %(known)s. Nothing was changed."
+msgstr ""
+"インポートが拒否されました：ファイルの形式バージョンは %(found)s ですが、このバージョンの Nova はバージョン %(known)s "
+"までのファイルしか読み込めません。何も変更されていません。"
+
+#: nova/blueprints/tools.py:538
+msgid "Component"
+msgstr "コンポーネント"
+
+#: nova/blueprints/tools.py:539
+msgid "Saved view"
+msgstr "保存したビュー"
+
+#: nova/blueprints/tools.py:540
+msgid "Journal session"
+msgstr "ジャーナルセッション"
+
+#: nova/blueprints/tools.py:540
+msgid "Custom filter"
+msgstr "カスタムフィルター"
+
+#: nova/blueprints/tools.py:543
+msgid "the name is missing"
+msgstr "名前がありません"
+
+#: nova/blueprints/tools.py:544
+msgid "the ID is missing"
+msgstr "ID がありません"
+
+#: nova/blueprints/tools.py:545
+msgid "the date is missing"
+msgstr "日付がありません"
+
+#: nova/blueprints/tools.py:546
+msgid "the date is not valid"
+msgstr "日付が無効です"
+
+#: nova/blueprints/tools.py:547
+msgid "the settings are missing"
+msgstr "設定がありません"
+
+#: nova/blueprints/tools.py:548
+msgid "a horizon point is not valid"
+msgstr "地平線ポイントが無効です"
+
+#: nova/blueprints/tools.py:549
+msgid "its record_uid already belongs to another record"
+msgstr "その record_uid は既に別のレコードに属しています"
+
+#: nova/blueprints/tools.py:551
+#, python-format
+msgid ""
+"Import refused: %(record)s '%(name)s' could not be imported (%(reason)s). "
+"Nothing was changed."
+msgstr ""
+"インポートが拒否されました：%(record)s '%(name)s' "
+"をインポートできませんでした（%(reason)s）。何も変更されていません。"
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "更新提案"
 

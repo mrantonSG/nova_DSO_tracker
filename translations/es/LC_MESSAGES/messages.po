@@ -5888,6 +5888,69 @@ msgstr ""
 "No se puede eliminar la ubicación '%(name)s': la usan %(sessions)d "
 "sesión(es)."
 
+#: nova/blueprints/tools.py:533
+#, python-format
+msgid ""
+"Import refused: the file has format version %(found)s, but this version of"
+" Nova reads files up to version %(known)s. Nothing was changed."
+msgstr ""
+"Importación rechazada: el archivo tiene la versión de formato %(found)s, "
+"pero esta versión de Nova lee archivos hasta la versión %(known)s. No se "
+"cambió nada."
+
+#: nova/blueprints/tools.py:538
+msgid "Component"
+msgstr "Componente"
+
+#: nova/blueprints/tools.py:539
+msgid "Saved view"
+msgstr "Vista guardada"
+
+#: nova/blueprints/tools.py:540
+msgid "Journal session"
+msgstr "Sesión del diario"
+
+#: nova/blueprints/tools.py:540
+msgid "Custom filter"
+msgstr "Filtro personalizado"
+
+#: nova/blueprints/tools.py:543
+msgid "the name is missing"
+msgstr "falta el nombre"
+
+#: nova/blueprints/tools.py:544
+msgid "the ID is missing"
+msgstr "falta el ID"
+
+#: nova/blueprints/tools.py:545
+msgid "the date is missing"
+msgstr "falta la fecha"
+
+#: nova/blueprints/tools.py:546
+msgid "the date is not valid"
+msgstr "la fecha no es válida"
+
+#: nova/blueprints/tools.py:547
+msgid "the settings are missing"
+msgstr "faltan los ajustes"
+
+#: nova/blueprints/tools.py:548
+msgid "a horizon point is not valid"
+msgstr "un punto del horizonte no es válido"
+
+#: nova/blueprints/tools.py:549
+msgid "its record_uid already belongs to another record"
+msgstr "su record_uid ya pertenece a otro registro"
+
+#: nova/blueprints/tools.py:551
+#, python-format
+msgid ""
+"Import refused: %(record)s '%(name)s' could not be imported (%(reason)s). "
+"Nothing was changed."
+msgstr ""
+"Importación rechazada: no se pudo importar %(record)s '%(name)s' "
+"(%(reason)s). No se cambió nada."
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Actualizar sugerencias"
 
