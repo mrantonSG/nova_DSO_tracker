@@ -5876,6 +5876,14 @@ msgstr "Gain/Offset"
 msgid "Exp"
 msgstr "Exp"
 
+#: nova/blueprints/tools.py:235 nova/blueprints/tools.py:314
+msgid "Rig not found."
+msgstr "Rig nicht gefunden."
+
+#: nova/blueprints/tools.py:218 nova/blueprints/tools.py:296
+msgid "Component not found."
+msgstr "Komponente nicht gefunden."
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Vorschläge aktualisieren"
 

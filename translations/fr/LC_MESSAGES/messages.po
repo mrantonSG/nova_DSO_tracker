@@ -5899,6 +5899,14 @@ msgstr "Gain/Décalage"
 msgid "Exp"
 msgstr "Expérience"
 
+#: nova/blueprints/tools.py:235 nova/blueprints/tools.py:314
+msgid "Rig not found."
+msgstr "Rig non trouvé."
+
+#: nova/blueprints/tools.py:218 nova/blueprints/tools.py:296
+msgid "Component not found."
+msgstr "Composant non trouvé."
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Suggestions de rafraîchissement"
 
