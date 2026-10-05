@@ -113,6 +113,7 @@ from nova.models import (
     DbUser, Project, SavedView, Location, SavedFraming, HorizonPoint,
     AstroObject, Component, Rig, JournalSession, UiPref, UserCustomFilter
 )
+from nova.record_links import LINKS as UID_LINKS
 from nova.config import (
     APP_VERSION, TEMPLATE_DIR, CACHE_DIR, CONFIG_DIR, BACKUP_DIR,
     UPLOAD_FOLDER, ENV_FILE, FIRST_RUN_ENV_CREATED, SINGLE_USER_MODE,
@@ -963,21 +964,9 @@ def _run_schema_patches(conn):
     # --- record_uid link columns, filled once from the existing links ---
     # Each column stores the target row's record_uid. The app still reads and
     # writes the old id/name columns; nothing reads these yet.
-    # (table, new column, old column, target table, target match column)
-    # Target match column "id" = row-number link, anything else = exact name link.
-    uid_links = (
-        ("rigs", "telescope_record_uid", "telescope_id", "components", "id"),
-        ("rigs", "camera_record_uid", "camera_id", "components", "id"),
-        ("rigs", "reducer_extender_record_uid", "reducer_extender_id", "components", "id"),
-        ("rigs", "guide_telescope_record_uid", "guide_telescope_id", "components", "id"),
-        ("rigs", "guide_camera_record_uid", "guide_camera_id", "components", "id"),
-        ("journal_sessions", "rig_record_uid", "rig_id_snapshot", "rigs", "id"),
-        ("journal_sessions", "object_record_uid", "object_name", "astro_objects", "object_name"),
-        ("journal_sessions", "location_record_uid", "location_name", "locations", "name"),
-        ("saved_framings", "rig_record_uid", "rig_id", "rigs", "id"),
-        ("saved_framings", "object_record_uid", "object_name", "astro_objects", "object_name"),
-        ("projects", "target_object_record_uid", "target_object_name", "astro_objects", "object_name"),
-    )
+    # (table, new column, old column, target table, target match column);
+    # the list lives in nova/record_links.py.
+    uid_links = UID_LINKS
     for table, new_col, _old, _target, _match in uid_links:
         cols = {row[1] for row in conn.exec_driver_sql(f"PRAGMA table_info({table});").fetchall()}
         if new_col not in cols:
