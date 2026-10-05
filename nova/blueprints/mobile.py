@@ -589,8 +589,8 @@ def mobile_journal_new():
             except (ValueError, TypeError):
                 pass  # rig_id_str was invalid (e.g., "")
 
-        # Import JournalSession and Project models
-        from nova.models import JournalSession, Project
+        # Import JournalSession model
+        from nova.models import JournalSession
         from uuid import uuid4
         from nova.helpers import safe_float, safe_int, generate_session_id
         import json
