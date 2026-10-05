@@ -40,6 +40,7 @@ from nova.models import (
     JournalSession, Project, UserCustomFilter, session_projects,
     SavedFraming, SavedView, UiPref,
 )
+from nova.record_links import sync_rig_links
 from nova.migration import (
     _upsert_user,
     validate_journal_data, repair_journals,
@@ -253,6 +254,9 @@ def add_rig():
             db.add(new_rig)
             rig = new_rig  # Reference the new object for update below
             flash(_("Rig '%(rig_name)s' created successfully.", rig_name=new_rig.rig_name), "success")
+
+        # Component UIDs follow the *_id columns just written (both paths)
+        sync_rig_links(db, rig)
 
         # 3. Persist calculated values to the Rig object (for both ADD and UPDATE)
         rig.effective_focal_length = efl

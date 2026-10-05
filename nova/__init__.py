@@ -113,7 +113,7 @@ from nova.models import (
     DbUser, Project, SavedView, Location, SavedFraming, HorizonPoint,
     AstroObject, Component, Rig, JournalSession, UiPref, UserCustomFilter
 )
-from nova.record_links import LINKS as UID_LINKS
+from nova.record_links import LINKS as UID_LINKS, sync_rig_links
 from nova.config import (
     APP_VERSION, TEMPLATE_DIR, CACHE_DIR, CONFIG_DIR, BACKUP_DIR,
     UPLOAD_FOLDER, ENV_FILE, FIRST_RUN_ENV_CREATED, SINGLE_USER_MODE,
@@ -382,6 +382,8 @@ def _seed_user_from_guest_data(db_session, user_to_seed: 'DbUser'):
                 effective_focal_length=g_rig.effective_focal_length, f_ratio=g_rig.f_ratio,
                 image_scale=g_rig.image_scale, fov_w_arcmin=g_rig.fov_w_arcmin
             )
+            # Mapped ids are the new user's own components (flushed above), never the guest's
+            sync_rig_links(db_session, new_rig)
             db_session.add(new_rig)
             rigs_added += 1
     print(f"      -> Copied {rigs_added} new rigs (skipped {len(guest_rigs) - rigs_added} existing).")

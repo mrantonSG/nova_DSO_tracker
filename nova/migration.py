@@ -29,6 +29,7 @@ from nova.models import (
     SavedFraming, SavedView, Component, Rig,
     JournalSession, Project, UserCustomFilter, UiPref,
 )
+from nova.record_links import sync_rig_links
 
 def load_catalog_pack(pack_id: str) -> tuple[dict | None, dict | None]:
     """Load a specific catalog pack from the central web repository."""
@@ -720,11 +721,14 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
                 existing_rig.telescope_id, existing_rig.camera_id, existing_rig.reducer_extender_id = tel_id, cam_id, red_id
                 existing_rig.effective_focal_length, existing_rig.f_ratio, existing_rig.image_scale, existing_rig.fov_w_arcmin = eff_fl, f_ratio, scale, fov_w
                 existing_rig.guide_telescope_id, existing_rig.guide_camera_id, existing_rig.guide_is_oag = guide_tel_id, guide_cam_id, guide_is_oag
+                sync_rig_links(db, existing_rig)
             else:
-                db.add(Rig(user_id=user.id, rig_name=rig_name, telescope_id=tel_id, camera_id=cam_id,
-                           reducer_extender_id=red_id, effective_focal_length=eff_fl, f_ratio=f_ratio,
-                           image_scale=scale, fov_w_arcmin=fov_w, guide_telescope_id=guide_tel_id,
-                           guide_camera_id=guide_cam_id, guide_is_oag=guide_is_oag))
+                new_rig = Rig(user_id=user.id, rig_name=rig_name, telescope_id=tel_id, camera_id=cam_id,
+                              reducer_extender_id=red_id, effective_focal_length=eff_fl, f_ratio=f_ratio,
+                              image_scale=scale, fov_w_arcmin=fov_w, guide_telescope_id=guide_tel_id,
+                              guide_camera_id=guide_cam_id, guide_is_oag=guide_is_oag)
+                sync_rig_links(db, new_rig)
+                db.add(new_rig)
             db.flush()
 
         except Exception as e:
