@@ -960,6 +960,72 @@ def _run_schema_patches(conn):
             f"CREATE UNIQUE INDEX IF NOT EXISTS uq_{table}_user_record_uid ON {table}(user_id, record_uid);"
         )
 
+    # --- record_uid link columns, filled once from the existing links ---
+    # Each column stores the target row's record_uid. The app still reads and
+    # writes the old id/name columns; nothing reads these yet.
+    # (table, new column, old column, target table, target match column)
+    # Target match column "id" = row-number link, anything else = exact name link.
+    uid_links = (
+        ("rigs", "telescope_record_uid", "telescope_id", "components", "id"),
+        ("rigs", "camera_record_uid", "camera_id", "components", "id"),
+        ("rigs", "reducer_extender_record_uid", "reducer_extender_id", "components", "id"),
+        ("rigs", "guide_telescope_record_uid", "guide_telescope_id", "components", "id"),
+        ("rigs", "guide_camera_record_uid", "guide_camera_id", "components", "id"),
+        ("journal_sessions", "rig_record_uid", "rig_id_snapshot", "rigs", "id"),
+        ("journal_sessions", "object_record_uid", "object_name", "astro_objects", "object_name"),
+        ("journal_sessions", "location_record_uid", "location_name", "locations", "name"),
+        ("saved_framings", "rig_record_uid", "rig_id", "rigs", "id"),
+        ("saved_framings", "object_record_uid", "object_name", "astro_objects", "object_name"),
+        ("projects", "target_object_record_uid", "target_object_name", "astro_objects", "object_name"),
+    )
+    for table, new_col, _old, _target, _match in uid_links:
+        cols = {row[1] for row in conn.exec_driver_sql(f"PRAGMA table_info({table});").fetchall()}
+        if new_col not in cols:
+            conn.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN {new_col} VARCHAR(36);")
+            print(f"[DB PATCH] Added missing column {table}.{new_col}")
+    # Index names must match the Index() entries in nova/models.py.
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS ix_journal_sessions_user_object_record_uid "
+        "ON journal_sessions(user_id, object_record_uid);"
+    )
+    conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS ix_saved_framings_user_object_record_uid "
+        "ON saved_framings(user_id, object_record_uid);"
+    )
+
+    # Run the fill once only: the old columns stay filled, so a rerun after a
+    # user unlinks something would link it again. The marker is written in the
+    # same transaction as the fill.
+    conn.exec_driver_sql(
+        "CREATE TABLE IF NOT EXISTS nova_migrations ("
+        "name VARCHAR(64) PRIMARY KEY, applied_at VARCHAR(32) NOT NULL);"
+    )
+    already_linked = conn.exec_driver_sql(
+        "SELECT 1 FROM nova_migrations WHERE name = 'uid_links_v1';"
+    ).fetchone()
+    if not already_linked:
+        for table, new_col, old_col, target, match_col in uid_links:
+            # Same user only; only empty values are filled; a missing or broken
+            # link stays NULL. Names compare with plain "=" (case- and
+            # space-sensitive), exactly as the app's lookups do.
+            target_ok = (f"t.{match_col} = {table}.{old_col} AND t.user_id = {table}.user_id "
+                         f"AND t.record_uid IS NOT NULL AND t.record_uid <> ''")
+            if match_col == "id":
+                old_present = f"{old_col} IS NOT NULL"
+                single_target = f"EXISTS (SELECT 1 FROM {target} t WHERE {target_ok})"
+            else:
+                old_present = f"{old_col} IS NOT NULL AND {old_col} <> ''"
+                single_target = f"(SELECT COUNT(*) FROM {target} t WHERE {target_ok}) = 1"
+            linked = conn.exec_driver_sql(
+                f"UPDATE {table} SET {new_col} = (SELECT t.record_uid FROM {target} t WHERE {target_ok}) "
+                f"WHERE ({new_col} IS NULL OR {new_col} = '') AND {old_present} AND {single_target};"
+            ).rowcount
+            print(f"[DB PATCH] uid_links_v1: linked {linked} row(s) in {table}.{new_col}")
+        conn.exec_driver_sql(
+            "INSERT OR IGNORE INTO nova_migrations (name, applied_at) "
+            "VALUES ('uid_links_v1', datetime('now'));"
+        )
+
 
 def ensure_db_initialized_unified():
     """

@@ -64,6 +64,7 @@ class Project(Base):
 
     # --- NEW FIELDS FOR PROJECT DETAIL PAGE ---
     target_object_name = Column(String(256), nullable=True)  # Primary object for the project
+    target_object_record_uid = Column(String(36), nullable=True)  # AstroObject.record_uid; not read yet
     description_notes = Column(Text, nullable=True)  # Project-level story/learnings (rich text)
     framing_notes = Column(Text, nullable=True)  # Framing/composition notes (rich text)
     processing_notes = Column(Text, nullable=True)  # Processing workflow (rich text)
@@ -128,6 +129,8 @@ class SavedFraming(Base):
     rig_id = Column(Integer, ForeignKey('rigs.id', ondelete="SET NULL"), nullable=True)
     rig_stable_uid = Column(String(36), nullable=True)  # Stable UID for cross-boundary resolution
     rig_name = Column(String(256), nullable=True)
+    rig_record_uid = Column(String(36), nullable=True)  # Rig.record_uid; not read yet
+    object_record_uid = Column(String(36), nullable=True)  # AstroObject.record_uid; not read yet
     ra = Column(Float, nullable=True)
     dec = Column(Float, nullable=True)
     rotation = Column(Float, nullable=True)
@@ -154,7 +157,11 @@ class SavedFraming(Base):
     updated_at = Column(Date, default=datetime.utcnow)
 
     user = relationship("DbUser", backref="saved_framings")
-    __table_args__ = (UniqueConstraint('user_id', 'object_name', name='uq_user_object_framing'),)
+    __table_args__ = (
+        UniqueConstraint('user_id', 'object_name', name='uq_user_object_framing'),
+        # Name must match the index created in _run_schema_patches.
+        Index('ix_saved_framings_user_object_record_uid', 'user_id', 'object_record_uid'),
+    )
 
 class HorizonPoint(Base):
     __tablename__ = 'horizon_points'
@@ -289,6 +296,12 @@ class Rig(Base):
     guide_telescope_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)
     guide_camera_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)
     guide_is_oag = Column(Boolean, nullable=False, default=False, server_default='1')
+    # Component.record_uid of each linked component; filled from the *_id columns, not read yet
+    telescope_record_uid = Column(String(36), nullable=True)
+    camera_record_uid = Column(String(36), nullable=True)
+    reducer_extender_record_uid = Column(String(36), nullable=True)
+    guide_telescope_record_uid = Column(String(36), nullable=True)
+    guide_camera_record_uid = Column(String(36), nullable=True)
     # Legacy guide optics columns (kept for backwards compatibility)
     guide_scope_name = Column(String(256), nullable=True)
     guide_focal_length_mm = Column(Float, nullable=True)
@@ -319,6 +332,10 @@ class JournalSession(Base):
 
     # --- NEW & CORRECTED COLUMNS START HERE ---
     location_name = Column(String(128), nullable=True)
+    # record_uid of the linked object, location and rig; filled from the old columns, not read yet
+    object_record_uid = Column(String(36), nullable=True)
+    location_record_uid = Column(String(36), nullable=True)
+    rig_record_uid = Column(String(36), nullable=True)
     seeing_observed_fwhm = Column(Float, nullable=True)
     sky_sqm_observed = Column(Float, nullable=True)
     moon_illumination_session = Column(Integer, nullable=True)
@@ -397,6 +414,10 @@ class JournalSession(Base):
         "Project", secondary=session_projects, back_populates="journal_sessions_m2m"
     )
     rig_snapshot = relationship("Rig", foreign_keys=[rig_id_snapshot]) # <-- ADDED THIS
+    # Name must match the index created in _run_schema_patches.
+    __table_args__ = (
+        Index('ix_journal_sessions_user_object_record_uid', 'user_id', 'object_record_uid'),
+    )
 
 class UiPref(Base):
     __tablename__ = 'ui_prefs'
