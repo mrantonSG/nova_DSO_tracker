@@ -45,6 +45,7 @@ from nova.record_links import (
 )
 from nova.migration import (
     _upsert_user,
+    capture_record_uids,
     validate_journal_data, repair_journals,
     load_catalog_pack, import_catalog_pack_for_user,
     export_user_data, export_user_to_yaml, import_user_from_yaml,
@@ -654,6 +655,11 @@ def import_config():
                 flash(_("Cannot import: Configuration must contain at least one active location."), "error")
                 return redirect(url_for('core.config_form'))
 
+            # Capture the UIDs of the rows this import is about to replace, so a
+            # record that comes back under the same natural key keeps its UID (I2).
+            saved_uids = capture_record_uids(db, user)
+            remap = {}
+
             # 1. Delete existing locations (only if import has locations)
             db.query(Location).filter_by(user_id=user.id).delete()
 
@@ -670,8 +676,8 @@ def import_config():
             db.flush()
 
             # 6. Import New Data
-            _migrate_locations(db, user, new_config)
-            _migrate_objects(db, user, new_config)
+            _migrate_locations(db, user, new_config, saved_uids, remap)
+            _migrate_objects(db, user, new_config, saved_uids, remap)
             _migrate_ui_prefs(db, user, new_config)
             _migrate_saved_views(db, user, new_config)
 
@@ -1154,6 +1160,10 @@ def import_rig_config():
                 user = _upsert_user(db, username)  # Get or create the user in app.db
                 print(f"[IMPORT_RIGS] Deleting all existing rigs and components for user '{username}' before import...")
 
+                # Capture the UIDs this import is about to replace (I2).
+                saved_uids = capture_record_uids(db, user)
+                remap = {}
+
                 # 1. Delete existing Rigs (must be done first due to foreign keys)
                 db.query(Rig).filter_by(user_id=user.id).delete()
 
@@ -1163,7 +1173,7 @@ def import_rig_config():
                 # 3. Flush the deletions
                 db.flush()
                 # Use the migration helper to load data directly into the DB
-                _migrate_components_and_rigs(db, user, new_rigs_data, username)
+                _migrate_components_and_rigs(db, user, new_rigs_data, username, saved_uids, remap)
 
                 db.commit()
                 flash(_("Rigs configuration imported and synced to database successfully!"), "success")

@@ -97,7 +97,63 @@ def _upsert_user(db, username: str) -> DbUser:
     return u
 
 
-def _migrate_locations(db, user: DbUser, config: dict):
+class UidClash(Exception):
+    """A file record_uid already belongs to a different record of this user."""
+
+
+def _file_uid(entry) -> str | None:
+    """The record_uid an import entry carries, or None."""
+    if not isinstance(entry, dict):
+        return None
+    uid = entry.get("record_uid")
+    return str(uid).strip() if uid else None
+
+
+def _uid_holder(db, user_id, model, uid):
+    """This user's `model` row that already carries `uid`, or None (I8)."""
+    if not uid:
+        return None
+    return db.query(model).filter_by(user_id=user_id, record_uid=uid).one_or_none()
+
+
+def _find_row(db, user_id, model, key_filter, file_uid, remap, same_key):
+    """The row this entry updates, and the UID to store if it inserts (I1, I7).
+
+    UID first: a row holding the file's UID is the row, but only when its
+    natural key agrees (`same_key(row)`) -- otherwise it is a clash and raises.
+    Then the natural key: the row keeps its UID, and `remap` records
+    file_uid -> that UID for the link columns in this same import.
+    Returns (row_or_None, keep_uid).
+    """
+    if file_uid:
+        holder = _uid_holder(db, user_id, model, file_uid)
+        if holder is not None:
+            if not same_key(holder):
+                raise UidClash(f"{model.__name__} record_uid {file_uid!r} is already in use")
+            return holder, file_uid
+    row = db.query(model).filter_by(user_id=user_id, **key_filter).one_or_none()
+    if row is not None:
+        if file_uid and row.record_uid != file_uid:
+            remap[file_uid] = row.record_uid
+        return row, file_uid
+    return None, file_uid
+
+
+def capture_record_uids(db, user) -> dict:
+    """{type: {natural key: record_uid}} for the user's rows, before a wipe (I2)."""
+    return {
+        "locations": {l.name: l.record_uid
+                      for l in db.query(Location).filter_by(user_id=user.id)},
+        "objects": {o.object_name: o.record_uid
+                    for o in db.query(AstroObject).filter_by(user_id=user.id)},
+        "components": {(c.kind, _norm_name(c.name)): c.record_uid
+                       for c in db.query(Component).filter_by(user_id=user.id)},
+        "rigs": {r.rig_name: r.record_uid
+                 for r in db.query(Rig).filter_by(user_id=user.id)},
+    }
+
+
+def _migrate_locations(db, user: DbUser, config: dict, saved_uids=None, remap=None):
     """
     Idempotent import of locations:
       - Upsert per (user_id, name)
@@ -106,6 +162,9 @@ def _migrate_locations(db, user: DbUser, config: dict):
     """
     locs = (config or {}).get("locations", {}) or {}
     default_name = (config or {}).get("default_location")
+    saved = (saved_uids or {}).get("locations", {}) or {}
+    if remap is None:
+        remap = {}
 
     # First, clear default flags for this user's locations. We'll set the correct one below.
     db.query(Location).filter_by(user_id=user.id).update({Location.is_default: False})
@@ -137,7 +196,9 @@ def _migrate_locations(db, user: DbUser, config: dict):
                 except (ValueError, TypeError):
                     pass
 
-            existing = db.query(Location).filter_by(user_id=user.id, name=name).one_or_none()
+            existing, keep_uid = _find_row(
+                db, user.id, Location, {"name": name}, _file_uid(loc), remap,
+                same_key=lambda row: row.name == name)
             if existing:
                 # --- UPDATE existing row
                 existing.lat = lat
@@ -173,6 +234,7 @@ def _migrate_locations(db, user: DbUser, config: dict):
 
             else:
                 # --- INSERT new row
+                uid = keep_uid or saved.get(name)
                 row = Location(
                     user_id=user.id,
                     name=name,
@@ -185,7 +247,8 @@ def _migrate_locations(db, user: DbUser, config: dict):
                     bortle_scale=bortle_val,
                     elevation=loc.get("elevation"),
                     sqm_zenith=loc.get("sqm_zenith"),
-                    comments=loc.get("comments")
+                    comments=loc.get("comments"),
+                    **({"record_uid": uid} if uid else {}),
                 )
                 db.add(row);
                 db.flush()  # Flush to get the row.id
@@ -204,6 +267,8 @@ def _migrate_locations(db, user: DbUser, config: dict):
                             current_app.logger.warning(f"[MIGRATION] Invalid horizon point skipped for new location '{name}': {pair} - {hp_err}")
 
                 row.horizon_points = new_horizon_points
+        except UidClash:
+            raise
         except Exception as e:
             print(f"[MIGRATION] Skip/repair location '{name}': {e}")
 
@@ -330,7 +395,7 @@ def _migrate_saved_framings(db, user: DbUser, config: dict):
 
 
 
-def _migrate_objects(db, user: DbUser, config: dict):
+def _migrate_objects(db, user: DbUser, config: dict, saved_uids=None, remap=None):
     """
     Idempotently migrates astronomical objects from a YAML configuration dictionary to the database.
 
@@ -341,6 +406,9 @@ def _migrate_objects(db, user: DbUser, config: dict):
     *** V2: Automatically rewrites '/uploads/...' image links in notes to point to
     *** the importing user's directory.
     """
+    saved = (saved_uids or {}).get("objects", {}) or {}
+    if remap is None:
+        remap = {}
 
     # === START: Link Rewriting Logic ===
     # Get the target username (e.g., 'default' or 'mrantonSG')
@@ -420,10 +488,9 @@ def _migrate_objects(db, user: DbUser, config: dict):
 
             # --- 3. Perform the Idempotent "Upsert" ---
             # Query for an existing object with the normalized name.
-            existing = db.query(AstroObject).filter_by(
-                user_id=user.id,
-                object_name=object_name
-            ).one_or_none()
+            existing, keep_uid = _find_row(
+                db, user.id, AstroObject, {"object_name": object_name}, _file_uid(o), remap,
+                same_key=lambda row: row.object_name == object_name)
             if existing:
                 # UPDATE PATH: The object already exists, so we update its fields.
                 # This overwrites existing data with what's in the YAML, ensuring the
@@ -475,6 +542,7 @@ def _migrate_objects(db, user: DbUser, config: dict):
                 existing.description_source_link = description_source_link
             else:
                 # INSERT PATH: The object is new, so we create a new database record.
+                uid = keep_uid or saved.get(object_name)
                 new_object = AstroObject(
                     user_id=user.id,
                     object_name=object_name,
@@ -502,10 +570,13 @@ def _migrate_objects(db, user: DbUser, config: dict):
                     description_text=description_text,
                     description_credit=description_credit,
                     description_source_link=description_source_link,
+                    **({"record_uid": uid} if uid else {}),
                 )
                 db.add(new_object)
                 db.flush()
 
+        except UidClash:
+            raise
         except Exception as e:
             # If one object entry is malformed, log the error and continue with the rest.
             db.rollback()
@@ -544,7 +615,8 @@ def _norm_name(s: str | None) -> str | None:
 
 
 
-def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: str):
+def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: str,
+                                 saved_uids=None, remap=None):
     """
     Idempotent import for components and rigs that unifies all logic.
     - UPSERTS components by (user_id, kind, normalized_name), preventing duplicates.
@@ -558,6 +630,10 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
 
     comps = rigs_yaml.get("components", {}) or {}
     rig_list = rigs_yaml.get("rigs", []) or []
+    saved_comps = (saved_uids or {}).get("components", {}) or {}
+    saved_rigs = (saved_uids or {}).get("rigs", {}) or {}
+    if remap is None:
+        remap = {}
 
     # --- Internal Helper Functions ---
 
@@ -568,15 +644,25 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
             return None
 
     # This helper function is already correct from our previous step.
-    def _get_or_create_component(kind: str, name: str, **fields) -> Component | None:
+    def _get_or_create_component(kind: str, name: str, record_uid=None, **fields) -> Component | None:
         if not kind or not name:
             return None
         trimmed_name = " ".join(str(name).strip().split())
-        existing_row = db.query(Component).filter(
-            Component.user_id == user.id,
-            Component.kind == kind,
-            Component.name.collate('NOCASE') == trimmed_name
-        ).one_or_none()
+        file_uid = record_uid or None
+        holder = _uid_holder(db, user.id, Component, file_uid)
+        if holder is not None:
+            if not (holder.kind == kind
+                    and (holder.name or "").casefold() == trimmed_name.casefold()):
+                raise UidClash(f"Component record_uid {file_uid!r} is already in use")
+            existing_row = holder
+        else:
+            existing_row = db.query(Component).filter(
+                Component.user_id == user.id,
+                Component.kind == kind,
+                Component.name.collate('NOCASE') == trimmed_name
+            ).one_or_none()
+            if existing_row is not None and file_uid and existing_row.record_uid != file_uid:
+                remap[file_uid] = existing_row.record_uid
 
         # --- NEW: Get sharing fields from the 'fields' dict ---
         is_shared = bool(fields.get("is_shared", False))
@@ -607,6 +693,7 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
             db.flush()
             return existing_row
 
+        uid = file_uid or saved_comps.get((kind, _norm_name(trimmed_name)))
         new_row = Component(
             user_id=user.id, kind=kind, name=trimmed_name,
             aperture_mm=_coerce_float(fields.get("aperture_mm")),
@@ -617,7 +704,8 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
             factor=_coerce_float(fields.get("factor")),
             is_shared=is_shared,
             original_user_id=original_user_id,
-            original_item_id=original_item_id
+            original_item_id=original_item_id,
+            **({"record_uid": uid} if uid else {}),
         )
         db.add(new_row)
         db.flush()
@@ -641,14 +729,15 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
 
     # --- 1. Process Components Section ---
     for t in comps.get("telescopes", []):
-        row = _get_or_create_component("telescope", _get_alias(t, "name"), aperture_mm=_get_alias(t, "aperture_mm"),
+        row = _get_or_create_component("telescope", _get_alias(t, "name"), _file_uid(t),
+                                       aperture_mm=_get_alias(t, "aperture_mm"),
                                        focal_length_mm=_get_alias(t, "focal_length_mm"),
                                        is_shared=t.get("is_shared"), original_user_id=t.get("original_user_id"),
                                        original_item_id=t.get("original_item_id")
                                        )
         _remember_component(row, "telescope", _get_alias(t, "name"), t.get("id"))
     for c in comps.get("cameras", []):
-        row = _get_or_create_component("camera", _get_alias(c, "name"),
+        row = _get_or_create_component("camera", _get_alias(c, "name"), _file_uid(c),
                                        sensor_width_mm=_get_alias(c, "sensor_width_mm"),
                                        sensor_height_mm=_get_alias(c, "sensor_height_mm"),
                                        pixel_size_um=_get_alias(c, "pixel_size_um"),
@@ -657,7 +746,8 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
                                        )
         _remember_component(row, "camera", _get_alias(c, "name"), c.get("id"))
     for r in comps.get("reducers_extenders", []):
-        row = _get_or_create_component("reducer_extender", _get_alias(r, "name"), factor=_get_alias(r, "factor"),
+        row = _get_or_create_component("reducer_extender", _get_alias(r, "name"), _file_uid(r),
+                                       factor=_get_alias(r, "factor"),
                                        is_shared=r.get("is_shared"), original_user_id=r.get("original_user_id"),
                                        original_item_id=r.get("original_item_id")
                                        )
@@ -729,21 +819,27 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
                                                  c_scale if scale is None else scale,
                                                  c_fovw if fov_w is None else fov_w)
 
-            existing_rig = db.query(Rig).filter_by(user_id=user.id, rig_name=rig_name).one_or_none()
+            existing_rig, keep_rig_uid = _find_row(
+                db, user.id, Rig, {"rig_name": rig_name}, _file_uid(r), remap,
+                same_key=lambda row: row.rig_name == rig_name)
             if existing_rig:
                 existing_rig.telescope_id, existing_rig.camera_id, existing_rig.reducer_extender_id = tel_id, cam_id, red_id
                 existing_rig.effective_focal_length, existing_rig.f_ratio, existing_rig.image_scale, existing_rig.fov_w_arcmin = eff_fl, f_ratio, scale, fov_w
                 existing_rig.guide_telescope_id, existing_rig.guide_camera_id, existing_rig.guide_is_oag = guide_tel_id, guide_cam_id, guide_is_oag
                 sync_rig_links(db, existing_rig)
             else:
+                rig_uid = keep_rig_uid or saved_rigs.get(rig_name)
                 new_rig = Rig(user_id=user.id, rig_name=rig_name, telescope_id=tel_id, camera_id=cam_id,
                               reducer_extender_id=red_id, effective_focal_length=eff_fl, f_ratio=f_ratio,
                               image_scale=scale, fov_w_arcmin=fov_w, guide_telescope_id=guide_tel_id,
-                              guide_camera_id=guide_cam_id, guide_is_oag=guide_is_oag)
+                              guide_camera_id=guide_cam_id, guide_is_oag=guide_is_oag,
+                              **({"record_uid": rig_uid} if rig_uid else {}))
                 sync_rig_links(db, new_rig)
                 db.add(new_rig)
             db.flush()
 
+        except UidClash:
+            raise
         except Exception as e:
             db.rollback()
             print(f"[MIGRATION] Skip/repair rig '{r}': {e}")
@@ -1384,7 +1480,9 @@ def import_user_from_yaml(username: str,
     db = get_db()
     try:
         user = _upsert_user(db, username)
+        saved_uids = None
         if clear_existing:
+            saved_uids = capture_record_uids(db, user)
             # cascades remove all
             db.delete(user); db.flush()
             user = _upsert_user(db, username)
@@ -1399,9 +1497,10 @@ def import_user_from_yaml(username: str,
         jrn_data = jrn_tuple[0]
 
         # Pass the extracted dictionaries to the migration functions
-        _migrate_locations(db, user, cfg_data)
-        _migrate_objects(db, user, cfg_data)
-        _migrate_components_and_rigs(db, user, rigs_data, username)
+        remap = {}
+        _migrate_locations(db, user, cfg_data, saved_uids, remap)
+        _migrate_objects(db, user, cfg_data, saved_uids, remap)
+        _migrate_components_and_rigs(db, user, rigs_data, username, saved_uids, remap)
         _migrate_saved_framings(db, user, cfg_data)
         _migrate_journal(db, user, jrn_data)
         _migrate_ui_prefs(db, user, cfg_data)

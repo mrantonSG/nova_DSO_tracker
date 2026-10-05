@@ -154,7 +154,7 @@ def test_config_import_relinks_sessions_and_projects_by_exact_name(mu, db_sessio
     m42 = db_session.query(AstroObject).filter_by(user_id=a_id, object_name="M42").one()
     m45 = db_session.query(AstroObject).filter_by(user_id=a_id, object_name="M45").one()
     home = db_session.query(Location).filter_by(user_id=a_id, name="Home").one()
-    assert (m42.record_uid, home.record_uid) != (a.m42_uid, a.home_uid)  # recreated by the import
+    assert (m42.record_uid, home.record_uid) == (a.m42_uid, a.home_uid)  # the import keeps the UIDs
 
     s = db_session.get(JournalSession, a.session_id)
     assert (s.object_name, s.location_name, s.rig_id_snapshot) == ("M42", "Home", a.rig_id)  # old columns as before
