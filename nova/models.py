@@ -64,7 +64,7 @@ class Project(Base):
 
     # --- NEW FIELDS FOR PROJECT DETAIL PAGE ---
     target_object_name = Column(String(256), nullable=True)  # Primary object for the project
-    target_object_record_uid = Column(String(36), nullable=True)  # AstroObject.record_uid; not read yet
+    target_object_record_uid = Column(String(36), nullable=True)  # AstroObject.record_uid; the project's object is read by this UID
     description_notes = Column(Text, nullable=True)  # Project-level story/learnings (rich text)
     framing_notes = Column(Text, nullable=True)  # Framing/composition notes (rich text)
     processing_notes = Column(Text, nullable=True)  # Processing workflow (rich text)
@@ -129,8 +129,8 @@ class SavedFraming(Base):
     rig_id = Column(Integer, ForeignKey('rigs.id', ondelete="SET NULL"), nullable=True)
     rig_stable_uid = Column(String(36), nullable=True)  # Stable UID for cross-boundary resolution
     rig_name = Column(String(256), nullable=True)
-    rig_record_uid = Column(String(36), nullable=True)  # Rig.record_uid; not read yet
-    object_record_uid = Column(String(36), nullable=True)  # AstroObject.record_uid; not read yet
+    rig_record_uid = Column(String(36), nullable=True)  # Rig.record_uid; the framing's rig is read by this UID
+    object_record_uid = Column(String(36), nullable=True)  # AstroObject.record_uid; the framing's object is read by this UID
     ra = Column(Float, nullable=True)
     dec = Column(Float, nullable=True)
     rotation = Column(Float, nullable=True)
@@ -296,7 +296,7 @@ class Rig(Base):
     guide_telescope_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)
     guide_camera_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)
     guide_is_oag = Column(Boolean, nullable=False, default=False, server_default='1')
-    # Component.record_uid of each linked component; filled from the *_id columns, not read yet
+    # Component.record_uid of each linked component; the rig's components are read by these UIDs
     telescope_record_uid = Column(String(36), nullable=True)
     camera_record_uid = Column(String(36), nullable=True)
     reducer_extender_record_uid = Column(String(36), nullable=True)
@@ -332,7 +332,7 @@ class JournalSession(Base):
 
     # --- NEW & CORRECTED COLUMNS START HERE ---
     location_name = Column(String(128), nullable=True)
-    # record_uid of the linked object, location and rig; filled from the old columns, not read yet
+    # record_uid of the linked object, location and rig; links are read by these UIDs (location only for the delete rule)
     object_record_uid = Column(String(36), nullable=True)
     location_record_uid = Column(String(36), nullable=True)
     rig_record_uid = Column(String(36), nullable=True)

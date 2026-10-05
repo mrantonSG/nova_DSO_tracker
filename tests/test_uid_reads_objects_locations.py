@@ -11,7 +11,7 @@ from datetime import date
 
 import pytest
 
-from nova.models import AstroObject, JournalSession, Project, SavedFraming
+from nova.models import AstroObject, JournalSession, Project, Rig, SavedFraming
 from nova.record_links import (
     framed_object_uids, framing_for_object, object_for_uid, objects_by_uid,
     sync_project_link,
@@ -247,6 +247,37 @@ def test_desktop_batch_counts_and_framing_follow_the_uid(mu, db_session):
     item = _desktop_item(client)
     assert item["session_count"] == 2
     assert item["framing_rig"] == "A Rig"
+
+
+def test_desktop_batch_framing_rig_follows_the_rig_uid(mu, db_session):
+    client, a_id, b_id = mu
+    b_rig = Rig(user_id=b_id, rig_name="B Rig")
+    a_rig = Rig(user_id=a_id, rig_name="A Own Rig")
+    db_session.add_all([b_rig, a_rig])
+    db_session.flush()
+    obj = _object(db_session, a_id, "M42")
+    # rig_id is the row number of B's rig; the UID names A's own rig.
+    _framing(db_session, a_id, obj=obj, rig_id=b_rig.id, rig_name="Stale Text",
+             rig_record_uid=a_rig.record_uid)
+    db_session.commit()
+
+    assert _desktop_item(client)["framing_rig"] == "A Own Rig"
+
+    a_rig.rig_name = "A Renamed Rig"
+    db_session.commit()
+    assert _desktop_item(client)["framing_rig"] == "A Renamed Rig"
+
+
+def test_desktop_batch_framing_without_rig_uid_shows_stored_text(mu, db_session):
+    client, a_id, _ = mu
+    a_rig = Rig(user_id=a_id, rig_name="A Own Rig")
+    db_session.add(a_rig)
+    db_session.flush()
+    obj = _object(db_session, a_id, "M42")
+    _framing(db_session, a_id, obj=obj, rig_id=a_rig.id, rig_name="Stored Text")
+    db_session.commit()
+
+    assert _desktop_item(client)["framing_rig"] == "Stored Text"
 
 
 # --- has_framing follows the UID --------------------------------------------------------

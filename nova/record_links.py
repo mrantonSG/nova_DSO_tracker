@@ -12,13 +12,14 @@ everywhere:
 
 Rig and object reads use these UIDs (components_for_rig / rig_components,
 objects_by_uid / object_for_uid, framing_for_object / framed_object_uids).
-The location link is written but not yet read: session locations still come
-from the stored location_name text.
+The location link is read by location_references for the delete rule;
+session locations shown elsewhere still come from the stored location_name text.
 """
 
 from typing import NamedTuple, Optional
 
 from sqlalchemy import and_, func, inspect, or_, select, text
+from sqlalchemy.orm.exc import ObjectDeletedError
 
 from nova.models import (
     AstroObject, Component, JournalSession, Location, Project, Rig, SavedFraming, _new_record_uid,
@@ -86,7 +87,9 @@ def components_by_uid(db, user_id):
     return {
         c.record_uid: c
         for c in db.scalars(select(Component).where(
-            Component.user_id == user_id, Component.record_uid.isnot(None)))
+            Component.user_id == user_id,
+            Component.record_uid.isnot(None),
+            Component.record_uid != ""))
     }
 
 
@@ -120,7 +123,9 @@ def rigs_by_uid(db, user_id):
     return {
         r.record_uid: r
         for r in db.scalars(select(Rig).where(
-            Rig.user_id == user_id, Rig.record_uid.isnot(None)))
+            Rig.user_id == user_id,
+            Rig.record_uid.isnot(None),
+            Rig.record_uid != ""))
     }
 
 
@@ -361,6 +366,17 @@ def _empty_uid_rows(db, user_id, model, uid_col, name_col, uid, name):
     return db.query(model).filter(model.user_id == user_id, or_(*clauses)).all()
 
 
+def _loaded_row_of_user(obj, model, user_id):
+    """True if obj is a `model` of user_id. An expired instance whose row is
+    gone (e.g. bulk-deleted) is skipped instead of raising."""
+    if not isinstance(obj, model):
+        return False
+    try:
+        return obj.user_id == user_id
+    except ObjectDeletedError:
+        return False
+
+
 def adopt_unlinked_rows(db, row):
     """Link a just-flushed AstroObject or Location to this user's rows that name it.
 
@@ -394,7 +410,7 @@ def adopt_unlinked_rows(db, row):
     # (SessionLocal uses expire_on_commit=False).
     for model, _name_col, uid_col in targets:
         for obj in list(db.identity_map.values()):
-            if isinstance(obj, model) and obj.user_id == row.user_id:
+            if _loaded_row_of_user(obj, model, row.user_id):
                 db.expire(obj, [uid_col.key])
     return adopted
 
@@ -423,7 +439,7 @@ def adopt_unlinked_rows_for_user(db, user_id, links=NAME_LINKS):
         # Loaded rows still hold the empty UID; reload it on next access.
         model = _TABLE_MODELS[link.table]
         for obj in list(db.identity_map.values()):
-            if isinstance(obj, model) and obj.user_id == user_id:
+            if _loaded_row_of_user(obj, model, user_id):
                 db.expire(obj, [link.uid_col])
     return changed
 
@@ -520,7 +536,7 @@ def resync_user_links(db, user_id, links=NAME_LINKS):
         # Loaded rows still hold the old value; reload it on next access.
         model = _TABLE_MODELS[link.table]
         for obj in list(db.identity_map.values()):
-            if isinstance(obj, model) and obj.user_id == user_id:
+            if _loaded_row_of_user(obj, model, user_id):
                 db.expire(obj, [link.uid_col])
     return changed
 

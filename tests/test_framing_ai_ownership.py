@@ -67,9 +67,12 @@ def test_existing_framing_with_foreign_rig_does_not_leak(multi_user_client, db_s
     fix) must not expose that rig's name or specs on any read path."""
     client, ids = multi_user_client
     rig_b = _make_rig(db_session, ids["user_b_id"], "B Secret Rig")
-    db_session.add(AstroObject(user_id=ids["user_a_id"], object_name="M42",
-                               ra_hours=5.58, dec_deg=-5.4, enabled=True))
+    obj = AstroObject(user_id=ids["user_a_id"], object_name="M42",
+                      ra_hours=5.58, dec_deg=-5.4, enabled=True)
+    db_session.add(obj)
+    db_session.flush()
     db_session.add(SavedFraming(user_id=ids["user_a_id"], object_name="M42",
+                                object_record_uid=obj.record_uid,
                                 rig_id=rig_b.id, rig_name="B Secret Rig",
                                 rig_record_uid=rig_b.record_uid,
                                 ra=83.8, dec=-5.4, rotation=0.0,

@@ -428,7 +428,10 @@ def get_rig_data():
 
         rigs_list.append({
             "rig_id": r.id, "rig_uid": r.record_uid, "rig_name": r.rig_name,
-            "telescope_id": r.telescope_id, "camera_id": r.camera_id, "reducer_extender_id": r.reducer_extender_id,
+            # Row numbers of the components resolved by UID, so they match the figures
+            "telescope_id": tel_obj.id if tel_obj else None,
+            "camera_id": cam_obj.id if cam_obj else None,
+            "reducer_extender_id": red_obj.id if red_obj else None,
             "effective_focal_length": efl, "f_ratio": f_ratio,
             "image_scale": scale, "fov_w_arcmin": fov_w, "fov_h_arcmin": fov_h,
             # Main equipment names for display
@@ -436,8 +439,8 @@ def get_rig_data():
             "camera_name": cam_obj.name if cam_obj else None,
             "reducer_name": red_obj.name if red_obj else None,
             # Guide optics FK fields and OAG flag
-            "guide_telescope_id": r.guide_telescope_id,
-            "guide_camera_id": r.guide_camera_id,
+            "guide_telescope_id": guide_tel_obj.id if guide_tel_obj else None,
+            "guide_camera_id": guide_cam_obj.id if guide_cam_obj else None,
             "guide_is_oag": r.guide_is_oag,
             # Resolved guide equipment names for display
             "guide_telescope_name": guide_tel_obj.name if guide_tel_obj else None,

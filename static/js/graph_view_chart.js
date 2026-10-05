@@ -3000,6 +3000,7 @@
                     btn.onclick = () => {
                         const params = new URLSearchParams();
                         if(data.rig != null) params.set('rig', data.rig);
+                        if (data.rig_uid) params.set('rig_uid', data.rig_uid);
                         if(data.ra != null) params.set('ra', data.ra);
                         if(data.dec != null) params.set('dec', data.dec);
                         if(data.rotation != null) params.set('rot', data.rotation);

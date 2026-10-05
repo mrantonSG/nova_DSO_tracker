@@ -15,7 +15,7 @@ from flask import (
 )
 from flask_login import login_required, current_user
 from flask_babel import gettext as _
-from sqlalchemy import and_, or_, func
+from sqlalchemy import and_, func
 from sqlalchemy.orm import selectinload
 
 from astropy.coordinates import EarthLocation, SkyCoord, AltAz, get_body, search_around_sky, get_constellation
@@ -56,7 +56,7 @@ from nova.models import (
 )
 from nova.record_links import (
     adopt_unlinked_rows, framed_object_uids, object_for_uid, object_references,
-    repoint_object_links, sync_framing_links,
+    repoint_object_links, rigs_by_uid, sync_framing_links,
 )
 from nova.auth import db as auth_db, User
 from nova.analytics import record_event
@@ -3485,14 +3485,19 @@ def get_desktop_data_batch():
 
         # --- Bulk framing & session-count lookups, keyed by the object UID ---
         object_uids = [obj.record_uid for obj in batch_objects if obj.record_uid]
-        framing_map = {
-            f.object_record_uid: f.rig_name
-            for f in db.query(SavedFraming.object_record_uid, SavedFraming.rig_name)
-            .outerjoin(Rig, Rig.id == SavedFraming.rig_id)
-            .filter(SavedFraming.user_id == user.id,
-                    SavedFraming.object_record_uid.in_(object_uids),
-                    or_(Rig.id.is_(None), Rig.user_id == user.id)).all()
-        }
+        # framing_rig label: the user's rig found by the framing's rig UID; the
+        # stored rig_name text only when the framing has no rig UID.
+        user_rigs = rigs_by_uid(db, user.id)
+        framing_map = {}
+        for f in db.query(SavedFraming.object_record_uid, SavedFraming.rig_record_uid,
+                          SavedFraming.rig_name)\
+                .filter(SavedFraming.user_id == user.id,
+                        SavedFraming.object_record_uid.in_(object_uids)).all():
+            if f.rig_record_uid:
+                rig = user_rigs.get(f.rig_record_uid)
+                framing_map[f.object_record_uid] = rig.rig_name if rig else None
+            else:
+                framing_map[f.object_record_uid] = f.rig_name
         session_map = {
             row[0]: row[1] for row in db.query(JournalSession.object_record_uid, func.count(JournalSession.id))
             .filter(JournalSession.user_id == user.id,

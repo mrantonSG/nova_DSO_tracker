@@ -488,6 +488,29 @@ def test_adopt_unlinked_rows_for_user_links_only_exact_empty_uid_rows(db_session
     assert db.get(JournalSession, foreign.id).object_record_uid is None
 
 
+def test_adopt_unlinked_rows_for_user_skips_expired_deleted_instance(db_session):
+    db = db_session
+    u = DbUser(username="adopt_gone")
+    db.add(u)
+    db.flush()
+    db.add(AstroObject(user_id=u.id, object_name="M42", ra_hours=5.6, dec_deg=-5.4))
+    gone = _session(db, u.id, name="M42")
+    kept = _session(db, u.id, name="M42")
+    db.commit()
+
+    # Bulk delete leaves the loaded instance in the session; expire it so the
+    # next attribute access would try to reload a row that no longer exists.
+    db.query(JournalSession).filter_by(id=gone.id).delete(synchronize_session=False)
+    db.expire(gone)
+
+    changed = adopt_unlinked_rows_for_user(db, u.id)
+    db.commit()
+
+    assert changed["journal_sessions.object_record_uid"] == 1
+    db.expire_all()
+    assert db.get(JournalSession, kept.id).object_record_uid is not None
+
+
 # --- D4: merge by UID ---------------------------------------------------------------
 
 def test_merge_objects_moves_only_uid_linked_and_empty_uid_rows(mu, db_session):

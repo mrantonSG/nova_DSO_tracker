@@ -112,9 +112,25 @@ def test_row_number_reuse_shows_the_uid_component(mu, db_session):
     db_session.commit()                    # telescope_record_uid still points at Old Scope
 
     row = _row(client, rig.id)
-    assert row["telescope_id"] == new_tel.id            # old column reported as before
+    assert row["telescope_id"] == old["tel"].id         # the UID component's id, not the row number
     assert row["telescope_name"] == "Old Scope"         # the UID decides
     assert row["effective_focal_length"] == pytest.approx(384.0)  # Old Scope 480*0.8, not 1000*0.8
+
+
+def test_rig_data_reports_the_uid_components_ids(mu, db_session):
+    """The *_id keys carry the ids of the components resolved by UID."""
+    client, a_id, _ = mu
+    comps = _components(db_session, a_id, "A")
+    rig = _rig(db_session, a_id, "A", comps)
+    other = _components(db_session, a_id, "Other")
+    rig.telescope_id = other["tel"].id     # row numbers now differ from the UIDs
+    rig.camera_id = other["cam"].id
+    rig.reducer_extender_id = other["red"].id
+    db_session.commit()
+
+    row = _row(client, rig.id)
+    assert (row["telescope_id"], row["camera_id"], row["reducer_extender_id"]) == (
+        comps["tel"].id, comps["cam"].id, comps["red"].id)
 
 
 def test_guide_row_number_reuse_shows_the_uid_component(mu, db_session):
@@ -127,7 +143,7 @@ def test_guide_row_number_reuse_shows_the_uid_component(mu, db_session):
     db_session.commit()                    # guide_telescope_record_uid still points at A Guide Scope
 
     row = _row(client, rig.id)
-    assert row["guide_telescope_id"] == new_gt.id
+    assert row["guide_telescope_id"] == comps["guide_tel"].id   # the UID component's id
     assert row["guide_telescope_name"] == "A Guide Scope"
 
 
@@ -141,7 +157,7 @@ def test_empty_and_unknown_uid_are_missing_not_the_row(mu, db_session):
 
     for rid in (empty.id, dead.id):
         row = _row(client, rid)
-        assert row["telescope_id"] is not None           # the row still exists
+        assert row["telescope_id"] is None               # no component for this UID, so no id
         assert row["telescope_name"] is None             # but is treated as missing
         assert row["effective_focal_length"] is None     # no error
 
