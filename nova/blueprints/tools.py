@@ -16,7 +16,7 @@ from flask_login import login_required, current_user
 from flask_babel import gettext as _
 from math import atan, degrees
 from datetime import datetime, UTC
-from sqlalchemy import func, delete as sa_delete, select as sa_select
+from sqlalchemy import func
 from sqlalchemy.orm import selectinload
 
 from nova.config import (
@@ -37,8 +37,7 @@ from nova.helpers import (
 )
 from nova.models import (
     DbUser, AstroObject, Component, Rig, Location,
-    JournalSession, Project, UserCustomFilter, session_projects,
-    SavedFraming, SavedView, UiPref,
+    JournalSession, UserCustomFilter, UiPref,
 )
 from nova.record_links import (
     NAME_LINKS, component_rig_usage, resync_user_links, rig_components, sync_rig_links,

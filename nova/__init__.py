@@ -115,7 +115,7 @@ from nova.models import (
 )
 from nova.record_links import (
     LINKS as UID_LINKS, adopt_unlinked_rows_for_user, framed_object_uids,
-    repoint_object_links, sync_rig_links,
+    repoint_object_links, rig_for_uid, sync_rig_links,
 )
 from nova.config import (
     APP_VERSION, TEMPLATE_DIR, CACHE_DIR, CONFIG_DIR, BACKUP_DIR,
@@ -1164,14 +1164,10 @@ def build_user_config_from_db(username: str) -> dict:
     saved_framings_db = db.query(SavedFraming).filter_by(user_id=u.id).all()
     saved_framings_list = []
     for sf in saved_framings_db:
-        # Resolve rig name for portability (ID is local to DB)
-        r_name = None
-        # Prefer the saved name if available (for portability), fallback to lookup
-        if sf.rig_name:
-            r_name = sf.rig_name
-        elif sf.rig_id:
-            rig_obj = db.get(Rig, sf.rig_id)
-            if rig_obj: r_name = rig_obj.rig_name
+        # Rig name by user + UID; the stored text when there is no such rig.
+        # Never by row number: rig_id can name another user's rig.
+        rig_obj = rig_for_uid(db, u.id, sf.rig_record_uid)
+        r_name = rig_obj.rig_name if rig_obj else sf.rig_name
 
         saved_framings_list.append({
             "object_name": sf.object_name,

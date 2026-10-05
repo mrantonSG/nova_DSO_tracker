@@ -477,3 +477,28 @@ def test_catalog_pack_skips_bad_entry(db_session):
     assert (created, skipped) == (2, 1)
     assert sorted(o.object_name for o in db_session.query(AstroObject).filter_by(user_id=u.id)) == \
         ["M31", "M45"]
+
+
+# --- 6c-2: build_user_config_from_db reads a framing's rig by user + UID ------------
+
+def test_framing_rig_name_never_comes_from_another_users_row_number(db_session):
+    from nova import build_user_config_from_db
+    _populate(db_session, "framing_a")
+    b = _populate(db_session, "framing_b")
+    a = _user(db_session, "framing_a")
+    b_rig = db_session.query(Rig).filter_by(user_id=b.id).one()
+    b_rig.rig_name = "B Private Rig"
+    # rig_id is the other user's row number; no rig UID of this user
+    db_session.add_all([
+        SavedFraming(user_id=a.id, object_name="M31", rig_id=b_rig.id, rig_name="Stored Name"),
+        SavedFraming(user_id=a.id, object_name="M45", rig_id=b_rig.id, rig_name=None),
+    ])
+    db_session.commit()
+
+    framings = {f["object_name"]: f["rig_name"]
+                for f in build_user_config_from_db("framing_a")["saved_framings"]}
+
+    assert framings["M31"] == "Stored Name"
+    assert framings["M45"] is None
+    assert framings["M42"] == "Main"  # resolved by its own rig UID
+    assert "B Private Rig" not in framings.values()
