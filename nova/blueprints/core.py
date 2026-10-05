@@ -199,7 +199,7 @@ def _fire_skyglow_for_locations(app, locations, instance_path):
     """Launch fire-and-forget skyglow computation threads for a list of locations."""
     cache_dir = os.path.join(instance_path, 'skyglow')
     for loc in locations:
-        uid = loc.stable_uid or str(loc.id)
+        uid = str(loc.id)
         cache_path = os.path.join(cache_dir, f'{uid}.json')
         BORTLE_TO_SQM = {1: 22.0, 2: 21.5, 3: 21.3, 4: 20.8, 5: 20.0,
                          6: 19.1, 7: 18.4, 8: 17.0, 9: 15.5}
