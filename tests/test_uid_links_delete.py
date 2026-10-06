@@ -131,22 +131,24 @@ def _create_object(client, name, ra=5.6, dec=-5.4):
 
 # --- 1 & 2: delete_rig ----------------------------------------------------------
 
-def test_delete_rig_keeps_rig_uids_in_sessions_and_framings(mu, db_session):
+def test_delete_rig_blocked_when_a_session_or_framing_links_it(mu, db_session):
     client, a_id, b_id = mu
     _populate(db_session, b_id, "B")
     a = _populate(db_session, a_id, "A")
+    before_a = _snapshot(db_session, a_id)
     before_b = _snapshot(db_session, b_id)
 
+    # A's session refers to the rig by UID, so the delete is refused and nothing changes.
     resp = client.post('/delete_rig', data={'rig_id': a.rig_id})
     assert resp.status_code == 302
 
     db_session.expire_all()
-    assert db_session.get(Rig, a.rig_id) is None
+    assert db_session.get(Rig, a.rig_id) is not None
     s = db_session.get(JournalSession, a.session_id)
     f = db_session.get(SavedFraming, a.framing_id)
-    # Old columns keep today's behaviour: they still hold the deleted row number.
     assert (s.rig_id_snapshot, s.rig_record_uid) == (a.rig_id, a.rig_uid)
     assert (f.rig_id, f.rig_record_uid) == (a.rig_id, a.rig_uid)
+    assert _snapshot(db_session, a_id) == before_a
     _assert_links_clean(db_session, a_id)
     assert _snapshot(db_session, b_id) == before_b
 
@@ -156,6 +158,15 @@ def test_new_rig_after_delete_does_not_relink_old_rows(mu, db_session):
     _populate(db_session, b_id, "B")  # B first, so A's rig is the highest row number
     a = _populate(db_session, a_id, "A")
     before_b = _snapshot(db_session, b_id)
+
+    # Dangling/empty UID links: the session and framing still point at the rig by row
+    # number only. Empty UIDs are not references, so the rig may be deleted, and the
+    # framing is not removed with it.
+    s = db_session.get(JournalSession, a.session_id)
+    f = db_session.get(SavedFraming, a.framing_id)
+    s.rig_record_uid = ""
+    f.rig_record_uid = ""
+    db_session.commit()
 
     assert client.post('/delete_rig', data={'rig_id': a.rig_id}).status_code == 302
     db_session.expire_all()
@@ -172,10 +183,8 @@ def test_new_rig_after_delete_does_not_relink_old_rows(mu, db_session):
     s = db_session.get(JournalSession, a.session_id)
     f = db_session.get(SavedFraming, a.framing_id)
     assert (s.rig_id_snapshot, f.rig_id) == (new_rig.id, new_rig.id)  # old columns point at the new row
-    # The UIDs still hold the OLD rig's UID, never the new rig's.
-    assert s.rig_record_uid == a.rig_uid and s.rig_record_uid != new_rig.record_uid
-    assert f.rig_record_uid == a.rig_uid and f.rig_record_uid != new_rig.record_uid
-    _assert_links_clean(db_session, a_id)
+    # The empty UIDs stay empty: the new rig's UID is never written into them.
+    assert s.rig_record_uid == "" and f.rig_record_uid == ""
     assert _snapshot(db_session, b_id) == before_b
 
 

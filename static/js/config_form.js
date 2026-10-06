@@ -292,12 +292,24 @@
                 ? `<strong>${rig.rig_name}</strong>`
                 : `<strong class="rig-name-inactive">${rig.rig_name}</strong><span class="rig-inactive-tag">${window.t('rig_inactive')}</span>`;
 
+            // A rig a session refers to is not deletable: no data-confirm, so the form
+            // submits and the server answers with the blocked flash.
+            const deleteConfirm = rig.session_count > 0
+                ? ''
+                : window.t(
+                    rig.framing_count > 0 ? 'rig_delete_confirm_framings' : 'rig_delete_confirm',
+                    { name: rig.rig_name, framings: rig.framing_count }
+                );
+            const deleteConfirmAttr = deleteConfirm
+                ? ` data-confirm="${escapeHtmlAttr(deleteConfirm)}"`
+                : '';
+
             return `<li data-rig-id="${rig.rig_id}" ${ditherDataAttrs} style="display:block;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                             ${nameHtml}
                             <div style="display:flex; gap:6px; flex-shrink:0;">
                                 <button type="button" class="edit-btn" onclick="populateRigFormForEdit('${rig.rig_id}')">${window.t('edit')}</button>
-                                <form action="${window.NOVA_CONFIG_FORM.urls.deleteRig}" method="post" data-confirm="Are you sure you want to delete the rig '${escapeHtmlAttr(rig.rig_name)}'?" style="display:inline;">
+                                <form action="${window.NOVA_CONFIG_FORM.urls.deleteRig}" method="post"${deleteConfirmAttr} style="display:inline;">
                                     <input type="hidden" name="rig_id" value="${rig.rig_id}">
                                     <button type="submit" class="delete-btn">${window.t('delete')}</button>
                                 </form>

@@ -37,10 +37,11 @@ from nova.helpers import (
 )
 from nova.models import (
     DbUser, AstroObject, Component, Rig, Location,
-    JournalSession, UserCustomFilter, UiPref,
+    JournalSession, SavedFraming, UserCustomFilter, UiPref,
 )
 from nova.record_links import (
-    NAME_LINKS, component_rig_usage, resync_user_links, rig_components, sync_rig_links,
+    NAME_LINKS, component_rig_usage, resync_user_links, rig_components, rig_references,
+    sync_rig_links,
 )
 from nova.migration import (
     _upsert_user,
@@ -319,9 +320,24 @@ def delete_rig():
         if rig_to_delete is None:
             flash(_("Rig not found."), "error")
             return redirect(url_for('core.config_form'))
+        refs = rig_references(db, g.db_user.id, rig_to_delete.record_uid)
+        if refs.sessions:
+            flash(_("Cannot delete rig '%(name)s': it is used by %(sessions)d session(s). "
+                    "Untick Active to hide it instead.",
+                    name=rig_to_delete.rig_name, sessions=refs.sessions), "error")
+            return redirect(url_for('core.config_form'))
+        framings_deleted = 0
+        if rig_to_delete.record_uid:
+            framings_deleted = db.query(SavedFraming).filter_by(
+                user_id=g.db_user.id, rig_record_uid=rig_to_delete.record_uid
+            ).delete(synchronize_session=False)
         db.delete(rig_to_delete)
         db.commit()
-        flash(_("Rig deleted successfully."), "success")
+        if framings_deleted:
+            flash(_("Rig deleted successfully. Deleted %(count)d saved framing(s) that used it.",
+                    count=framings_deleted), "success")
+        else:
+            flash(_("Rig deleted successfully."), "success")
     except Exception as e:
         db.rollback()
         flash(_("Error deleting rig: %(error)s", error=e), "error")
@@ -400,6 +416,7 @@ def get_rig_data():
         # Use the already fetched components to calculate rig data
         rc = rig_components(r, by_uid)
         tel_obj, cam_obj, red_obj = rc.telescope, rc.camera, rc.reducer_extender
+        refs = rig_references(db, user.id, r.record_uid)
         efl, f_ratio, scale, fov_w = _compute_rig_metrics_from_components(tel_obj, cam_obj, red_obj)
         fov_h = (degrees(2 * atan((cam_obj.sensor_height_mm / 2.0) / efl)) * 60.0) if cam_obj and cam_obj.sensor_height_mm and efl else None
 
@@ -436,6 +453,8 @@ def get_rig_data():
         rigs_list.append({
             "rig_id": r.id, "rig_uid": r.record_uid, "rig_name": r.rig_name,
             "active": bool(r.active),
+            "session_count": refs.sessions,
+            "framing_count": refs.framings,
             # Row numbers of the components resolved by UID, so they match the figures
             "telescope_id": tel_obj.id if tel_obj else None,
             "camera_id": cam_obj.id if cam_obj else None,

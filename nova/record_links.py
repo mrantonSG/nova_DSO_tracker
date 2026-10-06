@@ -208,6 +208,30 @@ def object_references(db, user_id, uid):
     )
 
 
+class RigReferences(NamedTuple):
+    """Rows of one user that point at a rig by UID."""
+    sessions: int
+    framings: int
+
+
+def rig_references(db, user_id, uid):
+    """Sessions and saved framings of user_id linked to rig `uid` by UID.
+
+    An empty UID, or no user, links nothing: both counts are 0.
+    """
+    if not uid or user_id is None:
+        return RigReferences(0, 0)
+
+    def count(model, column):
+        return db.scalar(select(func.count()).select_from(model).where(
+            model.user_id == user_id, column == uid)) or 0
+
+    return RigReferences(
+        count(JournalSession, JournalSession.rig_record_uid),
+        count(SavedFraming, SavedFraming.rig_record_uid),
+    )
+
+
 def location_references(db, user_id, uid):
     """Journal sessions of user_id linked to location `uid` by UID. An empty UID links nothing."""
     if not uid or user_id is None:

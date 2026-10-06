@@ -8,13 +8,17 @@ No route, template, export or import reads the flag yet.
 
 import os
 import sys
+from datetime import date
 
 from sqlalchemy import create_engine
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from nova import _run_schema_patches
-from nova.models import Component, DbUser, Rig
+from nova.models import Component, DbUser, JournalSession, Rig, SavedFraming
+from nova.record_links import (
+    rig_references, sync_framing_links, sync_rig_links, sync_session_links,
+)
 
 from test_db_upgrade_simulation import MINIMAL_BASELINE_STATEMENTS
 
@@ -33,6 +37,44 @@ def _rig_form_data(tel_id, cam_id, **extra):
     data = {"rig_name": "Form Rig", "telescope_id": tel_id, "camera_id": cam_id}
     data.update(extra)
     return data
+
+
+def _default_user(db_session):
+    return db_session.query(DbUser).filter_by(username="default").one()
+
+
+def _make_linked_rig(db_session, user_id, name, active=True):
+    """A rig plus its own telescope/camera, with record_uid links synced."""
+    tel = Component(user_id=user_id, kind="telescope", name=f"{name} Scope",
+                    aperture_mm=100.0, focal_length_mm=500.0)
+    cam = Component(user_id=user_id, kind="camera", name=f"{name} Cam",
+                    sensor_width_mm=20.0, sensor_height_mm=15.0, pixel_size_um=3.0)
+    db_session.add_all([tel, cam])
+    db_session.flush()
+    rig = Rig(user_id=user_id, rig_name=f"{name} Rig", telescope_id=tel.id,
+              camera_id=cam.id, active=active)
+    sync_rig_links(db_session, rig)
+    db_session.add(rig)
+    db_session.commit()
+    return rig
+
+
+def _link_session(db_session, user_id, rig_id):
+    session = JournalSession(user_id=user_id, date_utc=date(2026, 1, 1),
+                             object_name="M42", rig_id_snapshot=rig_id)
+    sync_session_links(db_session, session)
+    db_session.add(session)
+    db_session.commit()
+    return session.id
+
+
+def _link_framing(db_session, user_id, rig, object_name="M42"):
+    framing = SavedFraming(user_id=user_id, object_name=object_name,
+                           rig_id=rig.id, rig_name=rig.rig_name)
+    sync_framing_links(db_session, framing)
+    db_session.add(framing)
+    db_session.commit()
+    return framing.id
 
 
 def _baseline_engine():
@@ -240,3 +282,135 @@ def test_get_rig_data_reports_active_for_each_rig(su_client_logged_in, db_sessio
     actives = {r["rig_name"]: r["active"] for r in payload["rigs"]}
     assert actives["Live Rig"] is True
     assert actives["Off Rig"] is False
+
+
+# --- 5. rig_references -------------------------------------------------------
+
+def test_rig_references_counts_sessions_and_framings(db_session):
+    user = DbUser(username="refs_user")
+    db_session.add(user)
+    db_session.commit()
+    rig = _make_linked_rig(db_session, user.id, "Refs")
+    _link_session(db_session, user.id, rig.id)
+    _link_framing(db_session, user.id, rig)
+
+    refs = rig_references(db_session, user.id, rig.record_uid)
+
+    assert (refs.sessions, refs.framings) == (1, 1)
+
+
+def test_rig_references_without_uid_counts_nothing(db_session):
+    user = DbUser(username="refs_empty")
+    db_session.add(user)
+    db_session.commit()
+
+    assert rig_references(db_session, user.id, "") == (0, 0)
+    assert rig_references(db_session, user.id, None) == (0, 0)
+
+
+# --- 6. The delete guard -----------------------------------------------------
+
+def test_delete_rig_blocked_while_a_session_refers_to_it(su_client_logged_in, db_session):
+    client = su_client_logged_in
+    user = _default_user(db_session)
+    rig = _make_linked_rig(db_session, user.id, "Busy")
+    session_id = _link_session(db_session, user.id, rig.id)
+
+    resp = client.post('/delete_rig', data={'rig_id': rig.id}, follow_redirects=True)
+
+    assert resp.status_code == 200
+    assert "Cannot delete rig" in resp.get_data(as_text=True)
+    db_session.expire_all()
+    assert db_session.get(Rig, rig.id) is not None
+    assert db_session.get(JournalSession, session_id) is not None
+
+
+def test_delete_rig_blocked_flash_names_the_session_count(su_client_logged_in, db_session):
+    client = su_client_logged_in
+    user = _default_user(db_session)
+    rig = _make_linked_rig(db_session, user.id, "Two")
+    _link_session(db_session, user.id, rig.id)
+    _link_session(db_session, user.id, rig.id)
+
+    resp = client.post('/delete_rig', data={'rig_id': rig.id}, follow_redirects=True)
+
+    assert "used by 2 session(s)" in resp.get_data(as_text=True)
+    db_session.expire_all()
+    assert db_session.get(Rig, rig.id) is not None
+
+
+def test_delete_rig_blocked_even_when_the_rig_is_inactive(su_client_logged_in, db_session):
+    client = su_client_logged_in
+    user = _default_user(db_session)
+    rig = _make_linked_rig(db_session, user.id, "Off", active=False)
+    _link_session(db_session, user.id, rig.id)
+
+    client.post('/delete_rig', data={'rig_id': rig.id}, follow_redirects=True)
+
+    db_session.expire_all()
+    assert db_session.get(Rig, rig.id) is not None
+
+
+def test_delete_rig_with_only_framings_removes_them_with_the_rig(su_client_logged_in, db_session):
+    client = su_client_logged_in
+    user = _default_user(db_session)
+    rig = _make_linked_rig(db_session, user.id, "Framed")
+    other = _make_linked_rig(db_session, user.id, "Other")
+    mine_id = _link_framing(db_session, user.id, rig)
+    other_id = _link_framing(db_session, user.id, other, object_name="M31")
+
+    resp = client.post('/delete_rig', data={'rig_id': rig.id}, follow_redirects=True)
+
+    assert resp.status_code == 200
+    db_session.expire_all()
+    assert db_session.get(Rig, rig.id) is None
+    assert db_session.get(SavedFraming, mine_id) is None
+    assert db_session.get(SavedFraming, other_id) is not None
+
+
+def test_delete_rig_with_nothing_linked_still_works(su_client_logged_in, db_session):
+    client = su_client_logged_in
+    user = _default_user(db_session)
+    rig = _make_linked_rig(db_session, user.id, "Spare")
+
+    resp = client.post('/delete_rig', data={'rig_id': rig.id}, follow_redirects=True)
+
+    assert resp.status_code == 200
+    assert "Rig deleted successfully." in resp.get_data(as_text=True)
+    db_session.expire_all()
+    assert db_session.get(Rig, rig.id) is None
+
+
+def test_delete_rig_leaves_another_users_rows_untouched(multi_user_client, monkeypatch, db_session):
+    monkeypatch.setattr('nova.blueprints.tools.SINGLE_USER_MODE', False)
+    client, ids = multi_user_client
+    a_id, b_id = ids["user_a_id"], ids["user_b_id"]
+    rig_a = _make_linked_rig(db_session, a_id, "A")
+    rig_b = _make_linked_rig(db_session, b_id, "B")
+    fa = _link_framing(db_session, a_id, rig_a)
+    fb = _link_framing(db_session, b_id, rig_b)
+
+    resp = client.post('/delete_rig', data={'rig_id': rig_a.id})
+
+    assert resp.status_code == 302
+    db_session.expire_all()
+    assert db_session.get(Rig, rig_a.id) is None
+    assert db_session.get(SavedFraming, fa) is None
+    assert db_session.get(Rig, rig_b.id) is not None
+    assert db_session.get(SavedFraming, fb) is not None
+
+
+# --- 7. /get_rig_data reports both counts ------------------------------------
+
+def test_get_rig_data_reports_the_session_and_framing_counts(su_client_logged_in, db_session):
+    client = su_client_logged_in
+    user = _default_user(db_session)
+    rig = _make_linked_rig(db_session, user.id, "Counted")
+    _link_session(db_session, user.id, rig.id)
+    _link_framing(db_session, user.id, rig)
+
+    payload = client.get('/get_rig_data').get_json()
+    row = {r["rig_name"]: r for r in payload["rigs"]}["Counted Rig"]
+
+    assert row["session_count"] == 1
+    assert row["framing_count"] == 1

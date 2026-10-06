@@ -709,6 +709,10 @@
     // Rig "Inactive" tag: translated here, read in config_form.js via window.t()
     window.novaI18n.rig_inactive = {{ _('Inactive') | tojson }};
 
+    // Rig delete confirm text, read in config_form.js via window.t()
+    window.novaI18n.rig_delete_confirm = {{ _("Are you sure you want to delete the rig '{name}'?") | tojson }};
+    window.novaI18n.rig_delete_confirm_framings = {{ _("Are you sure you want to delete the rig '{name}'? This will also delete {framings} saved framing(s) that use it.") | tojson }};
+
     // --- Global variables ---
     const CURRENT_USERNAME = "{{ 'default' if SINGLE_USER_MODE else (current_user.username if current_user.is_authenticated else '') }}";
     let rigsData = {}; // Store all rig data globally
