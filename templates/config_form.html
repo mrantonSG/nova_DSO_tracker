@@ -481,6 +481,11 @@
                 <input type="hidden" name="rig_id" value="">
                 <div class="form-group"><label for="rig_name">{{ _('Rig Name:') }}</label><input type="text" name="rig_name" id="rig_name" required placeholder="{{ _('e.g., C11 Deep Sky Rig') }}"></div>
                 <div class="form-group">
+                    <label class="short-label" for="rig_active">{{ _('Active:') }}</label>
+                    <input type="checkbox" name="rig_active" id="rig_active" class="active-rig-checkbox" checked>
+                    <input type="hidden" name="rig_active_present" value="1">
+                </div>
+                <div class="form-group">
                     <label for="tele_select">{{ _('Telescope:') }}</label>
                     <select name="telescope_id" id="tele_select" required>
                         <option value="" disabled selected>{{ _('-- Select a Telescope --') }}</option>
@@ -700,6 +705,9 @@
             uploadEditorImage: "{{ url_for('tools.upload_editor_image') }}"
         }
     };
+
+    // Rig "Inactive" tag: translated here, read in config_form.js via window.t()
+    window.novaI18n.rig_inactive = {{ _('Inactive') | tojson }};
 
     // --- Global variables ---
     const CURRENT_USERNAME = "{{ 'default' if SINGLE_USER_MODE else (current_user.username if current_user.is_authenticated else '') }}";

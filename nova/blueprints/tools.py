@@ -206,6 +206,10 @@ def add_rig():
         red_id_str = form.get('reducer_extender_id')
         red_id = int(red_id_str) if red_id_str else None
 
+        # The Active checkbox is trusted only when its marker field is present,
+        # so a POST that did not come from this form never deactivates a rig.
+        active_flag = (form.get('rig_active') == 'on') if form.get('rig_active_present') else None
+
         # --- NEW LOGIC START ---
         # 1. Fetch the component objects needed for calculation
         tel_obj = _own_component(db, user.id, tel_id)
@@ -244,6 +248,8 @@ def add_rig():
             rig.guide_telescope_id = guide_tel_id
             rig.guide_camera_id = guide_cam_id
             rig.guide_is_oag = form.get('guide_is_oag') == 'on'
+            if active_flag is not None:
+                rig.active = active_flag
             flash(_("Rig '%(rig_name)s' updated successfully.", rig_name=rig.rig_name), "success")
         else:  # Add
             new_rig = Rig(
@@ -252,7 +258,8 @@ def add_rig():
                 # Guide optics FK fields and OAG flag
                 guide_telescope_id=guide_tel_id,
                 guide_camera_id=guide_cam_id,
-                guide_is_oag=form.get('guide_is_oag') == 'on'
+                guide_is_oag=form.get('guide_is_oag') == 'on',
+                active=True if active_flag is None else active_flag
             )
             db.add(new_rig)
             rig = new_rig  # Reference the new object for update below
@@ -428,6 +435,7 @@ def get_rig_data():
 
         rigs_list.append({
             "rig_id": r.id, "rig_uid": r.record_uid, "rig_name": r.rig_name,
+            "active": bool(r.active),
             # Row numbers of the components resolved by UID, so they match the figures
             "telescope_id": tel_obj.id if tel_obj else None,
             "camera_id": cam_obj.id if cam_obj else None,

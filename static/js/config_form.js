@@ -67,6 +67,10 @@
         console.log('[CONFIG_FORM] Form found:', form);
         form.querySelector('input[name="rig_id"]').value = rig.rig_id;
         form.querySelector('input[name="rig_name"]').value = rig.rig_name;
+        const activeCheckbox = form.querySelector('input[name="rig_active"]');
+        if (activeCheckbox) {
+            activeCheckbox.checked = rig.active !== false;
+        }
         form.querySelector('select[name="telescope_id"]').value = rig.telescope_id;
         form.querySelector('select[name="camera_id"]').value = rig.camera_id;
         form.querySelector('select[name="reducer_extender_id"]').value = rig.reducer_extender_id || '';
@@ -282,9 +286,15 @@
                 ditherDataAttrs = `data-dither-px="${d.recommended_pixels}" data-dither-main="${d.main_scale_arcsec_px}" data-dither-guide="${d.guide_scale_arcsec_px}" data-dither-ratio="${d.ratio}"`;
             }
 
+            // Inactive rigs stay listed: muted name plus a small "Inactive" tag
+            const isActive = rig.active !== false;
+            const nameHtml = isActive
+                ? `<strong>${rig.rig_name}</strong>`
+                : `<strong class="rig-name-inactive">${rig.rig_name}</strong><span class="rig-inactive-tag">${window.t('rig_inactive')}</span>`;
+
             return `<li data-rig-id="${rig.rig_id}" ${ditherDataAttrs} style="display:block;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                            <strong>${rig.rig_name}</strong>
+                            ${nameHtml}
                             <div style="display:flex; gap:6px; flex-shrink:0;">
                                 <button type="button" class="edit-btn" onclick="populateRigFormForEdit('${rig.rig_id}')">${window.t('edit')}</button>
                                 <form action="${window.NOVA_CONFIG_FORM.urls.deleteRig}" method="post" data-confirm="Are you sure you want to delete the rig '${escapeHtmlAttr(rig.rig_name)}'?" style="display:inline;">
