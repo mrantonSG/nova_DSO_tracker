@@ -6,6 +6,7 @@ database whose rigs table predates the column, including idempotency.
 No route, template, export or import reads the flag yet.
 """
 
+import json
 import os
 import sys
 from contextlib import contextmanager
@@ -103,6 +104,15 @@ def _rig_selector_block(html):
     assert start != -1, "rig selector not found in the rendered page"
     end = html.find('</select>', start)
     assert end != -1, "closing </select> for the rig selector not found"
+    return html[start:end]
+
+
+def _framing_rig_select_block(html):
+    """Only the #framing-rig-select markup, from its id to the next </select>."""
+    start = html.find('id="framing-rig-select"')
+    assert start != -1, "framing rig select not found in the rendered page"
+    end = html.find('</select>', start)
+    assert end != -1, "closing </select> for the framing rig select not found"
     return html[start:end]
 
 
@@ -608,3 +618,70 @@ def test_journal_edit_post_keeps_the_inactive_rig_and_its_snapshots(su_client_lo
     s = db_session.get(JournalSession, session.id)
     assert (s.rig_record_uid, s.rig_name_snapshot, s.rig_efl_snapshot, s.rig_fr_snapshot,
             s.rig_scale_snapshot, s.telescope_name_snapshot) == expected
+
+
+def test_framing_modal_rig_select_hides_inactive_rigs_without_a_saved_framing(
+        su_client_logged_in, db_session):
+    client = su_client_logged_in
+    user = _default_user(db_session)
+    live = _make_linked_rig(db_session, user.id, "Live")
+    off = _make_linked_rig(db_session, user.id, "Off", active=False)
+
+    html = client.get('/graph_dashboard/M42').get_data(as_text=True)
+    block = _framing_rig_select_block(html)
+
+    assert f'value="{live.id}"' in block
+    assert "Live Rig" in block
+    assert f'value="{off.id}"' not in block
+    assert "Off Rig" not in block
+
+
+def test_framing_modal_keeps_the_data_the_restore_needs_for_an_inactive_rig(
+        su_client_logged_in, db_session):
+    """The framing's inactive rig is not rendered as an option (the restore adds
+    it in JS), but window.availableRigs still carries what that needs."""
+    client = su_client_logged_in
+    user = _default_user(db_session)
+    off = _make_linked_rig(db_session, user.id, "Off", active=False)
+    _link_framing(db_session, user.id, off)
+
+    html = client.get('/graph_dashboard/M42').get_data(as_text=True)
+    block = _framing_rig_select_block(html)
+    assert f'value="{off.id}"' not in block
+    assert "Off Rig" not in block
+
+    marker = 'window.availableRigs = '
+    start = html.find(marker)
+    assert start != -1, "availableRigs not found in the rendered page"
+    start += len(marker)
+    rigs = json.loads(html[start:html.find('];', start) + 1])
+    entry = next(r for r in rigs if r["rig_id"] == off.id)
+    assert entry["active"] is False
+    assert entry["rig_uid"] == off.record_uid
+    assert entry["rig_name"] == "Off Rig"
+    assert entry["fov_w_arcmin"] and entry["fov_h_arcmin"]
+
+
+def test_save_framing_with_an_inactive_rig_keeps_its_uid_and_name(
+        su_client_logged_in, db_session):
+    client = su_client_logged_in
+    user = _default_user(db_session)
+    off = _make_linked_rig(db_session, user.id, "Off", active=False)
+    _make_linked_rig(db_session, user.id, "Live")
+    framing_id = _link_framing(db_session, user.id, off)
+
+    resp = client.post('/api/save_framing', json={
+        "object_name": "M42",
+        "rig": str(off.id),
+        "ra": 83.8,
+        "dec": -5.4,
+        "rotation": 12.0,
+    })
+    assert resp.status_code == 200
+    assert resp.get_json()["status"] == "success"
+
+    db_session.expire_all()
+    framing = db_session.get(SavedFraming, framing_id)
+    assert framing.rig_id == off.id
+    assert framing.rig_record_uid == off.record_uid
+    assert framing.rig_name == "Off Rig"

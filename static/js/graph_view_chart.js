@@ -1583,6 +1583,32 @@
     }
 
     /**
+     * List the saved framing's own rig in the modal select even when it is
+     * inactive: the server renders active rigs only, but a framing that already
+     * points at an inactive rig must still show and select it. Options added
+     * here carry data-injected-inactive-rig and are dropped again on the next
+     * open.
+     */
+    function _ensureInactiveRigOption(sel, params) {
+        if (!sel) return;
+        sel.querySelectorAll('option[data-injected-inactive-rig]')
+           .forEach(o => o.remove());
+        if (!params || !params.rigUid) return;
+        if (Array.from(sel.options).some(o => o.dataset.rigUid === params.rigUid)) return;
+        const rig = (window.availableRigs || []).find(r => (r.rig_uid || '') === params.rigUid);
+        if (!rig || rig.active) return;
+        const opt = document.createElement('option');
+        opt.value = rig.rig_id;
+        opt.dataset.rigUid = rig.rig_uid || '';
+        opt.dataset.fovw = rig.fov_w_arcmin;
+        opt.dataset.fovh = rig.fov_h_arcmin;
+        opt.dataset.injectedInactiveRig = '1';
+        opt.textContent = `${rig.rig_name} (${sel.dataset.inactiveLabel})`;
+        sel.appendChild(opt);
+        sel.value = opt.value;
+    }
+
+    /**
      * Restore framing assistant state from parsed query parameters
      * @param {Object} params - Parsed query parameters
      * @param {Function} setSurvey - Function to set survey
@@ -1950,6 +1976,10 @@
         // --- END OF MODIFICATION ---
 
         const framingRigSelect = document.getElementById('framing-rig-select');
+        let _rigParams = null;
+        try { _rigParams = _parseFramingQueryString(optionalQueryString || location.search); }
+        catch (e) { console.warn('[nova] Query parsing error:', e); }
+        _ensureInactiveRigOption(framingRigSelect, _rigParams);
         if (framingRigSelect.options.length === 0 || framingRigSelect.value === "") {
             await novaAlert(window.t('no_rigs_configured'));
             return;
