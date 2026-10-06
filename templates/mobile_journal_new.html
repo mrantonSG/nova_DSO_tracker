@@ -238,7 +238,7 @@
                     <select id="rig_id_snapshot" name="rig_id_snapshot" class="form-select">
                         <option value="">{{ _("Select Rig") }}</option>
                         {% for rig in rigs %}
-                            <option value="{{ rig.rig_id }}">
+                            <option value="{{ rig.id }}">
                                 {{ rig.rig_name }}
                             </option>
                         {% endfor %}
