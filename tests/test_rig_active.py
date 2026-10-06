@@ -79,6 +79,33 @@ def _link_framing(db_session, user_id, rig, object_name="M42"):
     return framing.id
 
 
+def _make_session_on_rig(db_session, user_id, rig, **snapshots):
+    """A journal session linked to `rig`, with any extra *_snapshot columns set."""
+    session = JournalSession(user_id=user_id, date_utc=date(2026, 2, 2),
+                             object_name="M42", rig_id_snapshot=rig.id)
+    sync_session_links(db_session, session)
+    for key, value in snapshots.items():
+        setattr(session, key, value)
+    db_session.add(session)
+    db_session.commit()
+    return session
+
+
+def _edit_form_html(client, session_id):
+    return client.get(
+        f'/graph_dashboard/M42?session_id={session_id}&edit=true'
+    ).get_data(as_text=True)
+
+
+def _rig_selector_block(html):
+    """Only the #rig-selector-edit markup, from its id to the next </select>."""
+    start = html.find('id="rig-selector-edit"')
+    assert start != -1, "rig selector not found in the rendered page"
+    end = html.find('</select>', start)
+    assert end != -1, "closing </select> for the rig selector not found"
+    return html[start:end]
+
+
 @contextmanager
 def _captured_templates():
     """Collect (template name, context) for every render during the block."""
@@ -512,3 +539,72 @@ def test_ai_best_objects_uses_active_rigs_only(su_client_logged_in, db_session, 
 
     assert resp.status_code == 200
     assert sorted(r["name"] for r in captured["rigs"]) == ["Live Rig"]
+
+
+# --- 9. The journal rig selector ---------------------------------------------
+
+def test_journal_rig_selector_keeps_the_sessions_own_inactive_rig(su_client_logged_in, db_session):
+    client = su_client_logged_in
+    user = _default_user(db_session)
+    rig = _make_linked_rig(db_session, user.id, "Off", active=False)
+    session = _make_session_on_rig(db_session, user.id, rig,
+                                   rig_name_snapshot="Off Rig", rig_efl_snapshot=480.0)
+
+    block = _rig_selector_block(_edit_form_html(client, session.id))
+
+    assert f'<option value="{rig.id}" selected>Off Rig (Inactive)</option>' in block
+
+
+def test_journal_rig_selector_lists_no_inactive_rig_for_an_active_session(su_client_logged_in, db_session):
+    client = su_client_logged_in
+    user = _default_user(db_session)
+    live = _make_linked_rig(db_session, user.id, "Live")
+    off = _make_linked_rig(db_session, user.id, "Off", active=False)
+    session = _make_session_on_rig(db_session, user.id, live)
+
+    block = _rig_selector_block(_edit_form_html(client, session.id))
+
+    assert f'<option value="{live.id}" selected>Live Rig</option>' in block
+    assert f'value="{off.id}"' not in block
+    assert "Off Rig" not in block
+
+
+def test_journal_rig_selector_never_lists_a_second_inactive_rig(su_client_logged_in, db_session):
+    client = su_client_logged_in
+    user = _default_user(db_session)
+    off = _make_linked_rig(db_session, user.id, "Off", active=False)
+    other_off = _make_linked_rig(db_session, user.id, "Other Off", active=False)
+    session = _make_session_on_rig(db_session, user.id, off,
+                                   rig_name_snapshot="Off Rig", rig_efl_snapshot=480.0)
+
+    block = _rig_selector_block(_edit_form_html(client, session.id))
+
+    assert f'<option value="{off.id}" selected>Off Rig (Inactive)</option>' in block
+    assert f'value="{other_off.id}"' not in block
+    assert "Other Off" not in block
+
+
+def test_journal_edit_post_keeps_the_inactive_rig_and_its_snapshots(su_client_logged_in, db_session):
+    client = su_client_logged_in
+    user = _default_user(db_session)
+    rig = _make_linked_rig(db_session, user.id, "Off", active=False)
+    session = _make_session_on_rig(db_session, user.id, rig,
+                                   rig_name_snapshot="Off Rig",
+                                   rig_efl_snapshot=480.0, rig_fr_snapshot=6.0,
+                                   rig_scale_snapshot=1.62,
+                                   telescope_name_snapshot="Off Rig Scope")
+    expected = (session.rig_record_uid, session.rig_name_snapshot, session.rig_efl_snapshot,
+                session.rig_fr_snapshot, session.rig_scale_snapshot, session.telescope_name_snapshot)
+
+    resp = client.post(f'/journal/edit/{session.id}', data={
+        'session_date': '2026-02-02',
+        'target_object_id': 'M42',
+        'rig_id_snapshot': str(rig.id),
+        'form_action': 'save_close',
+    })
+
+    assert resp.status_code == 302
+    db_session.expire_all()
+    s = db_session.get(JournalSession, session.id)
+    assert (s.rig_record_uid, s.rig_name_snapshot, s.rig_efl_snapshot, s.rig_fr_snapshot,
+            s.rig_scale_snapshot, s.telescope_name_snapshot) == expected

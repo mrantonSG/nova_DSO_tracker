@@ -2441,6 +2441,7 @@ def graph_dashboard(object_name):
                     pass
             final_rigs_for_template.append({
                 "rig_id": rig.id, "rig_uid": rig.record_uid, "rig_name": rig.rig_name,
+                "active": bool(rig.active),
                 "effective_focal_length": efl, "f_ratio": f_ratio,
                 "image_scale": scale, "fov_w_arcmin": fov_w, "fov_h_arcmin": fov_h
             })
