@@ -445,7 +445,7 @@ def generate_dso_notes():
             target_transit_time = None
 
     # Gather rig context
-    rig_rows = db.query(Rig).filter_by(user_id=g.db_user.id).all()
+    rig_rows = db.query(Rig).filter_by(user_id=g.db_user.id, active=True).all()
     by_uid = components_by_uid(db, g.db_user.id)
 
     rigs = []
@@ -963,7 +963,7 @@ def get_best_objects():
         user_settings["min_max_altitude"] = imaging_criteria.get("min_max_altitude", 30)
 
     # Gather rig context and find max aperture
-    rig_rows = db.query(Rig).filter_by(user_id=g.db_user.id).all()
+    rig_rows = db.query(Rig).filter_by(user_id=g.db_user.id, active=True).all()
     by_uid = components_by_uid(db, g.db_user.id)
 
     rigs = []
@@ -1252,7 +1252,7 @@ def prefilter_debug():
         local_date_str = datetime.now().strftime("%Y-%m-%d")
 
     # Get user's rigs to find max aperture
-    rig_rows = db.query(Rig).filter_by(user_id=g.db_user.id).all()
+    rig_rows = db.query(Rig).filter_by(user_id=g.db_user.id, active=True).all()
     by_uid = components_by_uid(db, g.db_user.id)
 
     max_aperture_mm = None

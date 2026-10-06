@@ -168,7 +168,7 @@
 </div>
 
 <div id="rigdata-tab" class="tab-content">
-    {% if available_rigs and object_main_details.Size and object_main_details.Size != "N/A" %}
+    {% if active_rigs and object_main_details.Size and object_main_details.Size != "N/A" %}
     <div class="content-section">
         <h3>{{ _('Framing With Your Rigs') }}</h3>
         <p style="font-size:13px; color: var(--text-tertiary); margin-top: -8px;"><em>{{ _('Assessment is based on the object\'s largest dimension and may not reflect framing of specific features.') }}</em></p>
@@ -183,7 +183,7 @@
             </thead>
             <tbody>
             {% set object_size = object_main_details.Size | float %}
-            {% for rig in available_rigs %}
+            {% for rig in active_rigs %}
             {% if rig.fov_w_arcmin and rig.fov_h_arcmin %}
             {% set fov_max = [rig.fov_w_arcmin, rig.fov_h_arcmin] | max %}
             {% set fov_min = [rig.fov_w_arcmin, rig.fov_h_arcmin] | min %}
@@ -206,7 +206,7 @@
     {% else %}
     <div class="content-section">
         <h3>{{ _('Framing With Your Rigs') }}</h3>
-        {% if not available_rigs %}
+        {% if not active_rigs %}
         <p style="color: var(--text-tertiary);">{{ _('No rig is configured yet. Add a rig to see how this object fits your field of view.') }}</p>
         <a href="{{ url_for('core.config_form', prefill_config_tab='rigs') }}" class="inline-button">{{ _('Manage Rigs') }}</a>
         {% else %}

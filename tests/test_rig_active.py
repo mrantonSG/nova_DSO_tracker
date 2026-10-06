@@ -8,14 +8,16 @@ No route, template, export or import reads the flag yet.
 
 import os
 import sys
+from contextlib import contextmanager
 from datetime import date
 
+from flask import template_rendered
 from sqlalchemy import create_engine
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from nova import _run_schema_patches
-from nova.models import Component, DbUser, JournalSession, Rig, SavedFraming
+from nova import _run_schema_patches, app
+from nova.models import AstroObject, Component, DbUser, JournalSession, Rig, SavedFraming
 from nova.record_links import (
     rig_references, sync_framing_links, sync_rig_links, sync_session_links,
 )
@@ -75,6 +77,21 @@ def _link_framing(db_session, user_id, rig, object_name="M42"):
     db_session.add(framing)
     db_session.commit()
     return framing.id
+
+
+@contextmanager
+def _captured_templates():
+    """Collect (template name, context) for every render during the block."""
+    recorded = []
+
+    def record(sender, template, context, **extra):
+        recorded.append((template.name, context))
+
+    template_rendered.connect(record, app)
+    try:
+        yield recorded
+    finally:
+        template_rendered.disconnect(record, app)
 
 
 def _baseline_engine():
@@ -414,3 +431,84 @@ def test_get_rig_data_reports_the_session_and_framing_counts(su_client_logged_in
 
     assert row["session_count"] == 1
     assert row["framing_count"] == 1
+
+
+# --- 8. Inactive rigs are hidden where rigs are only listed -------------------
+
+def test_object_page_context_offers_active_rigs_and_keeps_available_rigs(su_client_logged_in, db_session):
+    client = su_client_logged_in
+    user = _default_user(db_session)
+    _make_linked_rig(db_session, user.id, "Live")
+    _make_linked_rig(db_session, user.id, "Off", active=False)
+
+    with _captured_templates() as rendered:
+        resp = client.get('/graph_dashboard/M42')
+
+    assert resp.status_code == 200
+    ctx = next(c for name, c in rendered if name == 'graph_view.html')
+    assert {r["rig_name"] for r in ctx["available_rigs"]} == {"Live Rig", "Off Rig"}
+    assert {r["rig_name"] for r in ctx["active_rigs"]} == {"Live Rig"}
+
+
+def test_rig_data_tab_hides_inactive_rigs(su_client_logged_in, db_session):
+    client = su_client_logged_in
+    user = _default_user(db_session)
+    db_session.query(AstroObject).filter_by(user_id=user.id, object_name="M42").one().size = "60'"
+    db_session.commit()
+    _make_linked_rig(db_session, user.id, "Live")
+    _make_linked_rig(db_session, user.id, "Off", active=False)
+
+    html = client.get('/graph_dashboard/M42').get_data(as_text=True)
+
+    # <td><strong>…</strong></td> is the framing-table row markup from the Rig Data tab.
+    assert "<td><strong>Live Rig</strong></td>" in html
+    assert "<td><strong>Off Rig</strong></td>" not in html
+
+
+def test_mobile_journal_form_offers_active_rigs_only(su_client_logged_in, db_session):
+    client = su_client_logged_in
+    user = _default_user(db_session)
+    _make_linked_rig(db_session, user.id, "Live")
+    _make_linked_rig(db_session, user.id, "Off", active=False)
+
+    with _captured_templates() as rendered:
+        resp = client.get('/m/journal/new')
+
+    assert resp.status_code == 200
+    ctx = next(c for name, c in rendered if name == 'mobile_journal_new.html')
+    assert sorted(r.rig_name for r in ctx["rigs"]) == ["Live Rig"]
+
+
+def test_ai_best_objects_uses_active_rigs_only(su_client_logged_in, db_session, monkeypatch):
+    # The AI blueprint is only registered when AI_API_KEY is set, so call the view directly.
+    import nova.ai.routes as ai_routes
+    from flask import g
+
+    user = _default_user(db_session)
+    _make_linked_rig(db_session, user.id, "Live")
+    _make_linked_rig(db_session, user.id, "Off", active=False)
+
+    captured = {}
+
+    def fake_prompt(**kwargs):
+        captured["rigs"] = kwargs["rigs"]
+        return {"system": "sys", "user": "usr"}
+
+    monkeypatch.setattr(ai_routes, "user_has_ai_access", lambda username: True)
+    monkeypatch.setattr(ai_routes, "build_best_objects_prompt", fake_prompt)
+    monkeypatch.setattr(ai_routes, "get_ai_response",
+                        lambda *a, **k: '[{"Object": "M42", "reason": "test"}]')
+
+    with app.test_request_context('/api/ai/best_objects', method='POST', json={
+        "object_list": [{
+            "Object": "M42", "enabled": True,
+            "Observable Duration (min)": 120, "Max Altitude (°)": 60,
+            "Angular Separation (°)": 90, "Size": "60'", "Magnitude": 99,
+        }],
+        "location_name": "Default Test Loc",
+    }):
+        g.db_user = user
+        resp = ai_routes.get_best_objects()
+
+    assert resp.status_code == 200
+    assert sorted(r["name"] for r in captured["rigs"]) == ["Live Rig"]

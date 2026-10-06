@@ -506,7 +506,7 @@ def mobile_journal_new():
         return redirect(url_for('mobile.mobile_up_now'))
 
     # Fetch rigs for this user (same as graph_dashboard)
-    rigs_from_db = db.query(Rig).filter_by(user_id=user.id).all()
+    rigs_from_db = db.query(Rig).filter_by(user_id=user.id, active=True).all()
 
     # GET request - render form
     if request.method == 'GET':

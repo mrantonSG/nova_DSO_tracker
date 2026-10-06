@@ -2454,6 +2454,12 @@ def graph_dashboard(object_name):
                 pass
         sorted_rigs = sort_rigs(final_rigs_for_template, sort_preference)
 
+        # Advice views (the Rig Data tab, mobile, AI) offer active rigs only.
+        # available_rigs keeps every rig for the session selector and the framing
+        # modal, which change in later diffs.
+        active_rig_ids = {rig.id for rig in rigs_from_db if rig.active}
+        active_rigs = [rig for rig in sorted_rigs if rig["rig_id"] in active_rig_ids]
+
         # --- 8. Load Other Template Data (No change) ---
         all_projects = db.query(Project).filter_by(user_id=user.id).order_by(Project.name).all()
         available_locations = db.query(Location).filter_by(user_id=user.id).order_by(Location.name).all()
@@ -2555,6 +2561,7 @@ def graph_dashboard(object_name):
                                alt_name=object_main_details.get("Common Name", object_name),
                                object_main_details=object_main_details,
                                available_rigs=sorted_rigs,
+                               active_rigs=active_rigs,
                                custom_mono_filters=custom_filters_for_template,
                                selected_day=effective_date_obj.day,
                                selected_month=effective_date_obj.month,
