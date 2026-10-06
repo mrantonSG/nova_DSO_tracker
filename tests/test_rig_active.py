@@ -1,9 +1,11 @@
 """
-Rig.active: the model default and the schema patch.
+Rig.active: the defaults, the schema patch, and where the app reads the flag.
 
-Covers the default on a fresh insert and the upgrade path for an existing
-database whose rigs table predates the column, including idempotency.
-No route, template, export or import reads the flag yet.
+Covers the default on a fresh insert and on a fresh schema, the upgrade path
+for an existing database whose rigs table predates the column (including
+idempotency), the rig form, rig_references and the delete guard,
+/get_rig_data, and the pickers that hide inactive rigs while a session or
+saved framing keeps showing its own rig.
 """
 
 import json
@@ -18,7 +20,7 @@ from sqlalchemy import create_engine
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from nova import _run_schema_patches, app
-from nova.models import AstroObject, Component, DbUser, JournalSession, Rig, SavedFraming
+from nova.models import AstroObject, Base, Component, DbUser, JournalSession, Rig, SavedFraming
 from nova.record_links import (
     rig_references, sync_framing_links, sync_rig_links, sync_session_links,
 )
@@ -170,6 +172,26 @@ def test_new_rig_is_active_by_default(db_session):
     db_session.commit()
 
     assert rig.active is True
+
+
+def test_fresh_schema_gives_active_a_database_default():
+    """create_all gives rigs.active DEFAULT 1, like the upgrade ALTER, so an
+    INSERT that omits the column (older code after a rollback) still works."""
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+
+    with engine.begin() as conn:
+        info = {row[1]: row for row in
+                conn.exec_driver_sql("PRAGMA table_info(rigs);").fetchall()}
+        assert info["active"][3] == 1        # NOT NULL
+        assert info["active"][4] == "1"      # dflt_value
+        conn.exec_driver_sql(
+            "INSERT INTO users (id, username, active) VALUES (1, 'fresh_user', 1);")
+        conn.exec_driver_sql(
+            "INSERT INTO rigs (user_id, rig_name) VALUES (1, 'Old Code Rig');")
+
+    with engine.connect() as conn:
+        assert _rig_actives(conn) == {1: 1}
 
 
 # --- 2. Upgrade path ---------------------------------------------------------

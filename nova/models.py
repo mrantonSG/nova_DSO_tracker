@@ -4,7 +4,7 @@ from datetime import datetime
 
 from sqlalchemy import (
     create_engine, Column, Integer, Float, String, Boolean, Date,
-    ForeignKey, Text, UniqueConstraint, CheckConstraint, Table, Index
+    ForeignKey, Text, UniqueConstraint, CheckConstraint, Table, Index, text
 )
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker, scoped_session
 
@@ -285,7 +285,10 @@ class Rig(Base):
     record_uid = Column(String(36), nullable=True, default=_new_record_uid)
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
     rig_name = Column(String(256), nullable=False, index=True)
-    active = Column(Boolean, nullable=False, default=True, index=True)
+    # server_default matches the upgrade ALTER (DEFAULT 1), so a fresh install
+    # accepts inserts that omit the column, as an upgraded database does.
+    active = Column(Boolean, nullable=False, default=True, server_default=text("1"),
+                    index=True)
     telescope_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)
     camera_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)
     reducer_extender_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)

@@ -1027,11 +1027,12 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
             guide_tel_id = _resolve_component_id("telescope", r.get("guide_telescope_id"), guide_tel_name)
             guide_cam_id = _resolve_component_id("camera", r.get("guide_camera_id"), guide_cam_name)
             guide_is_oag = bool(r.get("guide_is_oag", False))
-            # Rig.active: an absent key means active on insert and leaves the
-            # rig alone on update (old and seed files carry no key). A wrong
-            # type is coerced like guide_is_oag.
-            has_active = "active" in r
-            rig_active = bool(r.get("active", True))
+            # Rig.active: a key that is absent, null or empty means active on
+            # insert and leaves the rig alone on update (old and seed files
+            # carry no key). Any other value is coerced like guide_is_oag.
+            raw_active = r.get("active")
+            has_active = raw_active is not None and raw_active != ""
+            rig_active = bool(raw_active) if has_active else True
 
             # Strict keeps the rig with the missing roles empty (correction 2)
             if not (tel_id and cam_id) and not strict:

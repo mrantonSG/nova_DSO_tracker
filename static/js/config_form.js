@@ -203,7 +203,7 @@
 
         document.getElementById('telescope-list').innerHTML = telescopes.map(t => `
             <li>
-                <div class="item-info">${t.name} (${t.aperture_mm}mm / ${t.focal_length_mm}mm)${createIndicator(t)}</div>
+                <div class="item-info">${window.escapeHtml(t.name)} (${t.aperture_mm}mm / ${t.focal_length_mm}mm)${createIndicator(t)}</div>
                 <div class="item-actions">
                     <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('telescope', '${t.id}')">${window.t('edit')}</button>
                     <form action="${window.NOVA_CONFIG_FORM.urls.deleteComponent}" method="post" data-confirm="Deleting a component is permanent and cannot be undone. Are you sure?">
@@ -215,7 +215,7 @@
 
         document.getElementById('camera-list').innerHTML = cameras.map(c => `
             <li>
-                <div class="item-info">${c.name} (${c.pixel_size_um}μm pixel)${createIndicator(c)}</div>
+                <div class="item-info">${window.escapeHtml(c.name)} (${c.pixel_size_um}μm pixel)${createIndicator(c)}</div>
                 <div class="item-actions">
                     <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('camera', '${c.id}')">${window.t('edit')}</button>
                     <form action="${window.NOVA_CONFIG_FORM.urls.deleteComponent}" method="post" data-confirm="Deleting a component is permanent and cannot be undone. Are you sure?">
@@ -227,7 +227,7 @@
 
         document.getElementById('reducer-list').innerHTML = reducers_extenders.map(r => `
             <li>
-                <div class="item-info">${r.name} (${r.factor}x)${createIndicator(r)}</div>
+                <div class="item-info">${window.escapeHtml(r.name)} (${r.factor}x)${createIndicator(r)}</div>
                 <div class="item-actions">
                     <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('reducer_extender', '${r.id}')">${window.t('edit')}</button>
                     <form action="${window.NOVA_CONFIG_FORM.urls.deleteComponent}" method="post" data-confirm="Deleting a component is permanent and cannot be undone. Are you sure?">
@@ -258,16 +258,16 @@
 
             // Build spec lines: Telescope, Camera, Reducer, Guiding (if configured)
             let specLines = [];
-            specLines.push(`${window.t('telescope')}: ${tele ? tele.name : 'N/A'}`);
-            specLines.push(`${window.t('camera')}: ${cam ? cam.name : 'N/A'}`);
-            if (red) specLines.push(`${window.t('reducer_extender')}: ${red.name}`);
+            specLines.push(`${window.t('telescope')}: ${tele ? window.escapeHtml(tele.name) : 'N/A'}`);
+            specLines.push(`${window.t('camera')}: ${cam ? window.escapeHtml(cam.name) : 'N/A'}`);
+            if (red) specLines.push(`${window.t('reducer_extender')}: ${window.escapeHtml(red.name)}`);
             // Add guiding line if guide equipment is configured
             if (rig.guide_camera_id) {
                 let guidingDisplay;
                 if (rig.guide_is_oag) {
-                    guidingDisplay = `OAG + ${rig.guide_camera_name || 'guide camera'}`;
+                    guidingDisplay = `OAG + ${window.escapeHtml(rig.guide_camera_name || 'guide camera')}`;
                 } else {
-                    guidingDisplay = `${rig.guide_telescope_name || 'guide scope'} + ${rig.guide_camera_name || 'guide camera'}`;
+                    guidingDisplay = `${window.escapeHtml(rig.guide_telescope_name || 'guide scope')} + ${window.escapeHtml(rig.guide_camera_name || 'guide camera')}`;
                 }
                 specLines.push(`${window.t('guiding')}: ${guidingDisplay}`);
             }
@@ -288,9 +288,10 @@
 
             // Inactive rigs stay listed: muted name plus a small "Inactive" tag
             const isActive = rig.active !== false;
+            const safeName = window.escapeHtml(rig.rig_name);
             const nameHtml = isActive
-                ? `<strong>${rig.rig_name}</strong>`
-                : `<strong class="rig-name-inactive">${rig.rig_name}</strong><span class="rig-inactive-tag">${window.t('rig_inactive')}</span>`;
+                ? `<strong>${safeName}</strong>`
+                : `<strong class="rig-name-inactive">${safeName}</strong><span class="rig-inactive-tag">${window.t('rig_inactive')}</span>`;
 
             // A rig a session refers to is not deletable: no data-confirm, so the form
             // submits and the server answers with the blocked flash.

@@ -334,6 +334,40 @@ def test_update_without_the_key_leaves_an_inactive_rig_inactive(db_session, tmp_
     assert db_session.query(Rig).filter_by(user_id=u.id, rig_name="Packed").one().active is True
 
 
+def test_null_active_counts_as_missing_on_insert_and_on_update(db_session, tmp_path):
+    u = _populate(db_session, "default")
+    _packed_rig(db_session, u, active=False)
+    assert export_user_to_yaml("default", out_dir=str(tmp_path)) is True
+    doc = yaml.safe_load((tmp_path / "rigs_default.yaml").read_text())
+    for row in doc["rigs"]:
+        row["active"] = None
+    null_rigs = tmp_path / "rigs_null.yaml"
+    null_rigs.write_text(yaml.safe_dump(doc))
+
+    # Insert: another user, so every rig is new and starts active.
+    assert import_user_from_yaml("Second",
+                                 str(tmp_path / "config_default.yaml"),
+                                 str(null_rigs),
+                                 str(tmp_path / "journal_default.yaml"),
+                                 clear_existing=True) is True
+    db_session.expire_all()
+    second = {r.rig_name: r.active
+              for r in db_session.query(Rig).filter_by(user_id=_user(db_session, "Second").id)}
+    assert second["Packed"] is True
+    assert all(active is True for active in second.values())
+
+    # Update: the same user without a wipe, so null leaves each flag as it was.
+    assert import_user_from_yaml("default",
+                                 str(tmp_path / "config_default.yaml"),
+                                 str(null_rigs),
+                                 str(tmp_path / "journal_default.yaml"),
+                                 clear_existing=False) is True
+    db_session.expire_all()
+    mine = {r.rig_name: r.active for r in db_session.query(Rig).filter_by(user_id=u.id)}
+    assert mine["Main"] is True
+    assert mine["Packed"] is False
+
+
 def test_second_user_rows_unchanged(client, db_session, tmp_path):
     _populate(db_session, "default")
     other = _user(db_session, "Second")
