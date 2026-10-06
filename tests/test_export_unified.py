@@ -132,6 +132,22 @@ def test_export_key_parity_with_old_exporters(client, db_session):
     assert OLD_SESSION <= set(jdoc["sessions"][0])
 
 
+def test_export_writes_active_for_every_rig(db_session):
+    r = _populate(db_session, "active_export_user")
+    off = Rig(user_id=r.u.id, rig_name="Packed", telescope_id=r.tel.id,
+              camera_id=r.cam.id, active=False)
+    db_session.add(off)
+    sync_rig_links(db_session, off)
+    db_session.commit()
+
+    _cfg, rigs, _jdoc = export_user_data(db_session, r.u)
+    by_name = {row["rig_name"]: row for row in rigs["rigs"]}
+
+    assert by_name["Main"]["active"] is True
+    assert by_name["Packed"]["active"] is False
+    assert all(isinstance(row["active"], bool) for row in rigs["rigs"])
+
+
 def test_export_never_leaks_another_user(db_session):
     r = _populate(db_session, "owner")
     other = _user(db_session, "intruder")

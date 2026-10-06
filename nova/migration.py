@@ -1027,6 +1027,11 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
             guide_tel_id = _resolve_component_id("telescope", r.get("guide_telescope_id"), guide_tel_name)
             guide_cam_id = _resolve_component_id("camera", r.get("guide_camera_id"), guide_cam_name)
             guide_is_oag = bool(r.get("guide_is_oag", False))
+            # Rig.active: an absent key means active on insert and leaves the
+            # rig alone on update (old and seed files carry no key). A wrong
+            # type is coerced like guide_is_oag.
+            has_active = "active" in r
+            rig_active = bool(r.get("active", True))
 
             # Strict keeps the rig with the missing roles empty (correction 2)
             if not (tel_id and cam_id) and not strict:
@@ -1053,6 +1058,8 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
                 existing_rig.telescope_id, existing_rig.camera_id, existing_rig.reducer_extender_id = tel_id, cam_id, red_id
                 existing_rig.effective_focal_length, existing_rig.f_ratio, existing_rig.image_scale, existing_rig.fov_w_arcmin = eff_fl, f_ratio, scale, fov_w
                 existing_rig.guide_telescope_id, existing_rig.guide_camera_id, existing_rig.guide_is_oag = guide_tel_id, guide_cam_id, guide_is_oag
+                if has_active:
+                    existing_rig.active = rig_active
                 sync_rig_links(db, existing_rig)
                 _apply_rig_role_uids(db, user.id, r, existing_rig, remap)
             else:
@@ -1061,6 +1068,7 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
                               reducer_extender_id=red_id, effective_focal_length=eff_fl, f_ratio=f_ratio,
                               image_scale=scale, fov_w_arcmin=fov_w, guide_telescope_id=guide_tel_id,
                               guide_camera_id=guide_cam_id, guide_is_oag=guide_is_oag,
+                              active=rig_active,
                               **({"record_uid": rig_uid} if rig_uid else {}))
                 sync_rig_links(db, new_rig)
                 _apply_rig_role_uids(db, user.id, r, new_rig, remap)
@@ -1600,6 +1608,7 @@ def export_user_data(db, user: DbUser) -> tuple[dict, dict, dict]:
             "guide_camera_name": guide_cam.name if guide_cam else None,
             "guide_camera_record_uid": r.guide_camera_record_uid,
             "guide_is_oag": r.guide_is_oag or False,
+            "active": bool(r.active),
         })
 
     # =========================== JOURNAL ==========================

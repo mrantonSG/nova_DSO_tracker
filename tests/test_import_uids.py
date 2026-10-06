@@ -22,7 +22,7 @@ from nova.models import (
 )
 from nova.record_links import (
     LINKS, count_link_disagreements,
-    sync_framing_links, sync_project_link, sync_session_links,
+    sync_framing_links, sync_project_link, sync_rig_links, sync_session_links,
 )
 
 
@@ -111,6 +111,28 @@ def _without_uids(tmp_path, name, src):
     dst = tmp_path / name
     dst.write_text(yaml.safe_dump(old))
     return dst
+
+
+def _without_active(src, tmp_path, name):
+    """The same rigs document with every "active" key removed (an older file)."""
+    doc = yaml.safe_load(src.read_text())
+    for row in doc.get("rigs", []):
+        row.pop("active", None)
+    dst = tmp_path / name
+    dst.write_text(yaml.safe_dump(doc))
+    return dst
+
+
+def _packed_rig(db, user, active):
+    """A second rig of `user`, on the same telescope and camera as "Main"."""
+    main = db.query(Rig).filter_by(user_id=user.id, rig_name="Main").one()
+    rig = Rig(user_id=user.id, rig_name="Packed",
+              telescope_id=main.telescope_id, camera_id=main.camera_id,
+              active=active)
+    db.add(rig)
+    sync_rig_links(db, rig)
+    db.commit()
+    return rig
 
 
 # --- Every entry point keeps the UIDs the file carries ------------------------
@@ -241,6 +263,75 @@ def test_two_accounts_can_import_the_same_file(db_session, tmp_path):
     assert ok is True
     db_session.expire_all()
     assert _uids(db_session, "Second") == _uids(db_session, "default")
+
+
+def test_full_clear_round_trip_keeps_the_active_flag_and_the_uid(db_session, tmp_path):
+    u = _populate(db_session, "default")
+    _packed_rig(db_session, u, active=False)
+    before = {r.rig_name: (r.record_uid, r.active)
+              for r in db_session.query(Rig).filter_by(user_id=u.id)}
+
+    assert export_user_to_yaml("default", out_dir=str(tmp_path)) is True
+    assert import_user_from_yaml("default",
+                                 str(tmp_path / "config_default.yaml"),
+                                 str(tmp_path / "rigs_default.yaml"),
+                                 str(tmp_path / "journal_default.yaml"),
+                                 clear_existing=True) is True
+    db_session.expire_all()
+    after = {r.rig_name: (r.record_uid, r.active)
+             for r in db_session.query(Rig).filter_by(user_id=u.id)}
+
+    assert after == before
+    assert after["Main"][1] is True
+    assert after["Packed"][1] is False
+
+
+def test_file_without_the_key_imports_every_rig_as_active(db_session, tmp_path):
+    _populate(db_session, "default")
+    assert export_user_to_yaml("default", out_dir=str(tmp_path)) is True
+    old_rigs = _without_active(tmp_path / "rigs_default.yaml", tmp_path, "rigs_old.yaml")
+
+    assert import_user_from_yaml("Second",
+                                 str(tmp_path / "config_default.yaml"),
+                                 str(old_rigs),
+                                 str(tmp_path / "journal_default.yaml"),
+                                 clear_existing=True) is True
+    db_session.expire_all()
+    rows = db_session.query(Rig).filter_by(user_id=_user(db_session, "Second").id).all()
+    assert rows
+    assert all(r.active is True for r in rows)
+
+
+def test_update_without_the_key_leaves_an_inactive_rig_inactive(db_session, tmp_path):
+    u = _populate(db_session, "default")
+    _packed_rig(db_session, u, active=False)
+    assert export_user_to_yaml("default", out_dir=str(tmp_path)) is True
+    old_rigs = _without_active(tmp_path / "rigs_default.yaml", tmp_path, "rigs_old.yaml")
+
+    # No wipe: the same user, so every rig goes through the UPDATE branch.
+    assert import_user_from_yaml("default",
+                                 str(tmp_path / "config_default.yaml"),
+                                 str(old_rigs),
+                                 str(tmp_path / "journal_default.yaml"),
+                                 clear_existing=False) is True
+    db_session.expire_all()
+    assert db_session.query(Rig).filter_by(user_id=u.id, rig_name="Packed").one().active is False
+
+    # And with the key present the update branch does apply it.
+    with_key = tmp_path / "rigs_on.yaml"
+    doc = yaml.safe_load((tmp_path / "rigs_default.yaml").read_text())
+    for row in doc["rigs"]:
+        if row["rig_name"] == "Packed":
+            row["active"] = True
+    with_key.write_text(yaml.safe_dump(doc))
+
+    assert import_user_from_yaml("default",
+                                 str(tmp_path / "config_default.yaml"),
+                                 str(with_key),
+                                 str(tmp_path / "journal_default.yaml"),
+                                 clear_existing=False) is True
+    db_session.expire_all()
+    assert db_session.query(Rig).filter_by(user_id=u.id, rig_name="Packed").one().active is True
 
 
 def test_second_user_rows_unchanged(client, db_session, tmp_path):
