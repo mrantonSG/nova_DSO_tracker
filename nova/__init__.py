@@ -749,6 +749,10 @@ def _run_schema_patches(conn):
     cols_rigs = conn.exec_driver_sql("PRAGMA table_info(rigs);").fetchall()
     colnames_rigs = {row[1] for row in cols_rigs}
 
+    if "active" not in colnames_rigs:
+        conn.exec_driver_sql("ALTER TABLE rigs ADD COLUMN active BOOLEAN DEFAULT 1 NOT NULL;")
+        print("[DB PATCH] Added missing column rigs.active")
+
     if "stable_uid" not in colnames_rigs:
         conn.exec_driver_sql("ALTER TABLE rigs ADD COLUMN stable_uid VARCHAR(36);")
         print("[DB PATCH] Added missing column rigs.stable_uid")
@@ -880,6 +884,7 @@ def _run_schema_patches(conn):
 
     # Indexes for frequently filtered columns
     conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_locations_active ON locations(active);")
+    conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_rigs_active ON rigs(active);")
     conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_locations_is_default ON locations(is_default);")
     conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_astro_objects_object_name ON astro_objects(object_name);")
     conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_rigs_rig_name ON rigs(rig_name);")

@@ -285,6 +285,7 @@ class Rig(Base):
     record_uid = Column(String(36), nullable=True, default=_new_record_uid)
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
     rig_name = Column(String(256), nullable=False, index=True)
+    active = Column(Boolean, nullable=False, default=True, index=True)
     telescope_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)
     camera_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)
     reducer_extender_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)
