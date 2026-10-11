@@ -1195,7 +1195,7 @@ def test_search_object_config_path_common_name_unchanged(client, monkeypatch):
         }
     monkeypatch.setattr("nova.blueprints.core.get_ra_dec", fake_get_ra_dec)
 
-    resp = client.post("/search_object", json={"object": "M42"})
+    resp = client.post("/search_object", json={"object": "NGC 1234"})
     assert resp.status_code == 200
     body = resp.get_json()
     assert body["status"] == "success"
@@ -1219,3 +1219,32 @@ def test_search_object_lookup_failure_response_unchanged(client, monkeypatch):
     body = resp.get_json()
     assert body["status"] == "error"
     assert body["message"] == "Error: SIMBAD lookup failed (ValueError)"
+
+
+def test_search_object_rejects_object_already_in_library(client, monkeypatch):
+    fake = MagicMock()
+    monkeypatch.setattr("nova.blueprints.core.get_ra_dec", fake)
+
+    resp = client.post("/search_object", json={"object": "M 42"})
+
+    assert resp.status_code == 409
+    body = resp.get_json()
+    assert body["status"] == "error"
+    assert body["message"]
+    fake.assert_not_called()
+
+
+def test_search_object_looks_up_object_not_in_library(client, monkeypatch):
+    def fake_get_ra_dec(object_name):
+        return {
+            "Object": object_name, "Constellation": "N/A", "Common Name": object_name,
+            "RA (hours)": 1.0, "DEC (degrees)": 2.0, "Project": "none", "Type": "N/A",
+            "SIMBAD Names": [], "SIMBAD Name": None,
+            "Magnitude": "N/A", "Size": "N/A", "SB": "N/A", "ActiveProject": False,
+        }
+    monkeypatch.setattr("nova.blueprints.core.get_ra_dec", fake_get_ra_dec)
+
+    resp = client.post("/search_object", json={"object": "NGC 1234"})
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["status"] == "success"

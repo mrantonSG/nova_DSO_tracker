@@ -1222,6 +1222,17 @@ def search_object():
     if not object_name:
         return jsonify({"status": "error", "message": _("No object specified.")}), 400
 
+    if isinstance(object_name, str):
+        username = "default" if nova.SINGLE_USER_MODE else current_user.username
+        db = get_db()
+        app_db_user = db.query(DbUser).filter_by(username=username).one()
+        existing = db.query(AstroObject).filter_by(
+            user_id=app_db_user.id,
+            object_name=normalize_object_name(object_name)
+        ).one_or_none()
+        if existing:
+            return jsonify({"status": "error", "message": _("This object is already in your library.")}), 409
+
     data = get_ra_dec(object_name)
     if data and data.get("RA (hours)") is not None:
         simbad_name = data.get("SIMBAD Name")
