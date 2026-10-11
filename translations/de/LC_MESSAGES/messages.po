@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-06 15:47+0800\n"
+"POT-Creation-Date: 2026-10-11 19:35+0300\n"
 "PO-Revision-Date: 2026-03-27 13:26+0800\n"
 "Last-Translator: \n"
 "Language: de\n"
@@ -310,64 +310,68 @@ msgstr "Filter existiert bereits"
 msgid "Filter not found"
 msgstr "Filter nicht gefunden"
 
-#: nova/blueprints/core.py:1223 nova/blueprints/core.py:1243
+#: nova/blueprints/core.py:1223 nova/blueprints/core.py:1257
 msgid "No object specified."
 msgstr "Kein Objekt angegeben."
 
-#: nova/blueprints/core.py:1230 nova/blueprints/core.py:1915
-#: nova/blueprints/core.py:1942 templates/mobile_add_object.html:57
+#: nova/blueprints/core.py:1234
+msgid "This object is already in your library."
+msgstr "Dieses Objekt ist bereits in Ihrer Bibliothek."
+
+#: nova/blueprints/core.py:1244 nova/blueprints/core.py:1939
+#: nova/blueprints/core.py:1966 templates/mobile_add_object.html:57
 msgid "Object not found."
 msgstr "Objekt nicht gefunden."
 
-#: nova/blueprints/core.py:1524
+#: nova/blueprints/core.py:1548
 msgid "Fetched and saved missing object details."
 msgstr "Fehlende Objektdetails abgerufen und gespeichert."
 
-#: nova/blueprints/core.py:1526
+#: nova/blueprints/core.py:1550
 msgid "No missing data found or no updates needed."
 msgstr ""
 "Es wurden keine fehlenden Daten gefunden oder es sind keine "
 "Aktualisierungen erforderlich."
 
-#: nova/blueprints/core.py:1530
+#: nova/blueprints/core.py:1554
 #, python-format
 msgid "An error occurred during data fetching: %(error)s"
 msgstr "Beim Abrufen der Daten ist ein Fehler aufgetreten: %(error)s"
 
-#: nova/blueprints/core.py:2048
+#: nova/blueprints/core.py:2072
 msgid "Please log in to view object details."
 msgstr "Bitte melden Sie sich an, um die Objektdetails anzuzeigen."
 
-#: nova/blueprints/core.py:2063
+#: nova/blueprints/core.py:2087
 #, python-format
 msgid "User '%(username)s' not found."
 msgstr "Benutzer '%(username)s' nicht gefunden."
 
-#: nova/blueprints/core.py:2079
+#: nova/blueprints/core.py:2103
 #, python-format
 msgid "Requested location '%(location_name)s' not found, using default."
 msgstr ""
 "Der angeforderte Standort „%(location_name)s“ wurde nicht gefunden, "
 "Standard wird verwendet."
 
-#: nova/blueprints/core.py:2097
+#: nova/blueprints/core.py:2121
 msgid "Error: No valid location configured or selected for this user."
 msgstr ""
 "Fehler: Für diesen Benutzer ist kein gültiger Standort konfiguriert oder "
 "ausgewählt."
 
-#: nova/blueprints/core.py:2115
+#: nova/blueprints/core.py:2139
 #, python-format
 msgid "Object '%(object_name)s' not found in your configuration."
 msgstr "Objekt '%(object_name)s' wurde in Ihrer Konfiguration nicht gefunden."
 
-#: nova/blueprints/core.py:2396
+#: nova/blueprints/core.py:2420
 msgid "Invalid date components provided, defaulting to current date."
 msgstr ""
 "Ungültige Datumskomponenten angegeben, Standardwert ist das aktuelle "
 "Datum."
 
-#: nova/blueprints/core.py:2616
+#: nova/blueprints/core.py:2640
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
 msgstr "Beim Laden der Details für %(object_name)s ist ein Fehler aufgetreten."
