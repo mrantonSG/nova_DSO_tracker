@@ -1019,3 +1019,83 @@ def test_api_scan_frame_timeout(client, db_session, monkeypatch):
     response = client.post('/api/scan_frame', json=payload)
     assert response.status_code == 200
     assert response.get_json()['status'] == 'error'
+
+
+# --- /search_object: uses the SIMBAD descriptive name for Common Name ---
+
+def test_search_object_uses_simbad_name(client, monkeypatch):
+    def fake_get_ra_dec(object_name):
+        return {
+            "Object": object_name,
+            "Constellation": "Cyg",
+            "Common Name": object_name,
+            "RA (hours)": 20.98,
+            "DEC (degrees)": 44.33,
+            "Project": "none",
+            "Type": "N/A",
+            "SIMBAD Names": ["North America Nebula", "Bermuda Cluster", "North America"],
+            "SIMBAD Name": "North America Nebula",
+            "Magnitude": "N/A", "Size": "N/A", "SB": "N/A", "ActiveProject": False,
+        }
+    monkeypatch.setattr("nova.blueprints.core.get_ra_dec", fake_get_ra_dec)
+
+    resp = client.post("/search_object", json={"object": "NGC 7000"})
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["status"] == "success"
+    assert body["data"]["Common Name"] == "North America Nebula"
+    assert body["data"]["SIMBAD Names"] == ["North America Nebula", "Bermuda Cluster", "North America"]
+    assert body["data"]["Object"] == "NGC 7000"   # still the typed text
+
+
+def test_search_object_keeps_typed_name_when_no_simbad_name(client, monkeypatch):
+    def fake_get_ra_dec(object_name):
+        return {
+            "Object": object_name, "Constellation": "N/A", "Common Name": object_name,
+            "RA (hours)": 1.0, "DEC (degrees)": 2.0, "Project": "none", "Type": "N/A",
+            "SIMBAD Names": [], "SIMBAD Name": None,
+            "Magnitude": "N/A", "Size": "N/A", "SB": "N/A", "ActiveProject": False,
+        }
+    monkeypatch.setattr("nova.blueprints.core.get_ra_dec", fake_get_ra_dec)
+
+    resp = client.post("/search_object", json={"object": "NGC 6992"})
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["status"] == "success"
+    assert body["data"]["Common Name"] == "NGC 6992"
+    assert body["data"]["SIMBAD Names"] == []
+
+
+def test_search_object_config_path_common_name_unchanged(client, monkeypatch):
+    def fake_get_ra_dec(object_name):
+        return {
+            "Object": object_name, "Constellation": "Ori", "Common Name": "Orion Nebula",
+            "RA (hours)": 5.58, "DEC (degrees)": -5.4, "Project": "none", "Type": "N/A",
+            "Magnitude": "N/A", "Size": "N/A", "SB": "N/A", "ActiveProject": False,
+        }
+    monkeypatch.setattr("nova.blueprints.core.get_ra_dec", fake_get_ra_dec)
+
+    resp = client.post("/search_object", json={"object": "M42"})
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["status"] == "success"
+    assert body["data"]["Common Name"] == "Orion Nebula"
+    assert "SIMBAD Names" not in body["data"]
+
+
+def test_search_object_lookup_failure_response_unchanged(client, monkeypatch):
+    def fake_get_ra_dec(object_name):
+        return {
+            "Object": object_name, "Constellation": "N/A",
+            "Common Name": "Error: SIMBAD lookup failed (ValueError)",
+            "RA (hours)": None, "DEC (degrees)": None, "Project": "none", "Type": "N/A",
+            "SIMBAD Names": [], "SIMBAD Name": None,
+            "Magnitude": "N/A", "Size": "N/A", "SB": "N/A", "ActiveProject": False,
+        }
+    monkeypatch.setattr("nova.blueprints.core.get_ra_dec", fake_get_ra_dec)
+
+    resp = client.post("/search_object", json={"object": "Nope"})
+    assert resp.status_code == 404
+    body = resp.get_json()
+    assert body["status"] == "error"
+    assert body["message"] == "Error: SIMBAD lookup failed (ValueError)"

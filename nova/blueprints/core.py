@@ -1224,6 +1224,9 @@ def search_object():
 
     data = get_ra_dec(object_name)
     if data and data.get("RA (hours)") is not None:
+        simbad_name = data.get("SIMBAD Name")
+        if simbad_name:
+            data["Common Name"] = simbad_name
         return jsonify({"status": "success", "data": data})
     else:
         # Return an error message from the lookup.
