@@ -1248,3 +1248,34 @@ def test_search_object_looks_up_object_not_in_library(client, monkeypatch):
     assert resp.status_code == 200
     body = resp.get_json()
     assert body["status"] == "success"
+
+
+def test_search_object_already_in_library_has_code(client, monkeypatch):
+    fake = MagicMock()
+    monkeypatch.setattr("nova.blueprints.core.get_ra_dec", fake)
+
+    resp = client.post("/search_object", json={"object": "M 42"})
+
+    assert resp.status_code == 409
+    body = resp.get_json()
+    assert body["status"] == "error"
+    assert body["message"]
+    assert body["code"] == "already_in_library"
+    fake.assert_not_called()
+
+
+def test_search_object_whitespace_name_skips_library_check(client, monkeypatch):
+    def fake_get_ra_dec(object_name):
+        return {
+            "Object": object_name, "Constellation": "N/A", "Common Name": object_name,
+            "RA (hours)": 1.0, "DEC (degrees)": 2.0, "Project": "none", "Type": "N/A",
+            "SIMBAD Names": [], "SIMBAD Name": None,
+            "Magnitude": "N/A", "Size": "N/A", "SB": "N/A", "ActiveProject": False,
+        }
+    monkeypatch.setattr("nova.blueprints.core.get_ra_dec", fake_get_ra_dec)
+
+    resp = client.post("/search_object", json={"object": "   "})
+
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["status"] == "success"

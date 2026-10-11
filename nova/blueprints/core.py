@@ -1223,15 +1223,21 @@ def search_object():
         return jsonify({"status": "error", "message": _("No object specified.")}), 400
 
     if isinstance(object_name, str):
-        username = "default" if nova.SINGLE_USER_MODE else current_user.username
-        db = get_db()
-        app_db_user = db.query(DbUser).filter_by(username=username).one()
-        existing = db.query(AstroObject).filter_by(
-            user_id=app_db_user.id,
-            object_name=normalize_object_name(object_name)
-        ).one_or_none()
-        if existing:
-            return jsonify({"status": "error", "message": _("This object is already in your library.")}), 409
+        normalized_name = normalize_object_name(object_name)
+        if normalized_name:
+            username = "default" if nova.SINGLE_USER_MODE else current_user.username
+            db = get_db()
+            app_db_user = db.query(DbUser).filter_by(username=username).one()
+            existing = db.query(AstroObject).filter_by(
+                user_id=app_db_user.id,
+                object_name=normalized_name
+            ).one_or_none()
+            if existing:
+                return jsonify({
+                    "status": "error",
+                    "message": _("This object is already in your library."),
+                    "code": "already_in_library",
+                }), 409
 
     data = get_ra_dec(object_name)
     if data and data.get("RA (hours)") is not None:

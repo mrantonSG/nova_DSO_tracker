@@ -1021,6 +1021,11 @@
 
                         fetch("/search_object", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ object: objectName })})
                         .then(r => r.json()).then(data => {
+                          if (data && data.code === "already_in_library") {
+                            const alreadyErr = new Error(data.message);
+                            alreadyErr.alreadyInLibrary = true;
+                            throw alreadyErr;
+                          }
                           if (data.status !== "success") throw new Error(data.message);
 
                           // Populate with SIMBAD data
@@ -1055,6 +1060,12 @@
                           submitNewObjectBtn.style.display = 'none';
                         })
                         .catch(simbadErr => {
+                          if (simbadErr && simbadErr.alreadyInLibrary) {
+                            // Already in the library: show only the server message and
+                            // leave the form exactly as it was before the search.
+                            resultDiv.innerHTML = `<p class="error">${window.escapeHtml(simbadErr.message)}</p>`;
+                            return;
+                          }
                           // --- 4. PATH C: BOTH LOCAL AND SIMBAD FAILED ---
                           resultDiv.innerHTML = `<p class="error">Error: ${window.escapeHtml(simbadErr.message)}.<br>You can now add the object manually and click 'Confirm Add'.</p>`;
                           ['confirm_add_object', 'edit_object', 'cancel_add_object'].forEach(id => {
