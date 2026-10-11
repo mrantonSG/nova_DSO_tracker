@@ -26,6 +26,48 @@
       margin-bottom: 10px;
       align-items: center;
     }
+    /* Clickable SIMBAD name suggestions under the Common Name input (#new_name) */
+    .name-suggestions[hidden] {
+        display: none;
+    }
+    .object-add-container .row > div:has(> .name-suggestions) {
+        position: relative;
+    }
+    .name-suggestions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: var(--space-1);
+        position: absolute;
+        top: 100%;
+        left: calc(70px + 2 * var(--space-1));
+        margin: 5px 0 0 0;
+        width: max-content;
+        max-width: 560px;
+    }
+    .name-suggestion {
+        appearance: none;
+        background: none;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+        height: auto;
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 500;
+        line-height: inherit;
+        color: #2d7d95;
+        cursor: pointer;
+    }
+    .name-suggestion:hover {
+        text-decoration: underline;
+    }
+    .name-suggestion-sep {
+        color: var(--text-muted);
+    }
+    [data-theme="dark"] .name-suggestion {
+        color: var(--primary-color);
+    }
     .add-object-details-indent {
       margin-left: 0px;
     }

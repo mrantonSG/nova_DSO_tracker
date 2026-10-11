@@ -783,6 +783,63 @@
         // editor.focus();
     }
 
+    // --- Clickable SIMBAD name suggestions under the Common Name input (#new_name) ---
+    let simbadNameList = [];
+
+    function getNameSuggestionsContainer() {
+        let box = document.getElementById('new_name_suggestions');
+        if (box) return box;
+        const input = document.getElementById('new_name');
+        if (!input) return null;
+        box = document.createElement('div');
+        box.id = 'new_name_suggestions';
+        box.className = 'name-suggestions';
+        box.hidden = true;
+        input.insertAdjacentElement('afterend', box);
+        return box;
+    }
+
+    function clearNameSuggestions() {
+        simbadNameList = [];
+        const box = document.getElementById('new_name_suggestions');
+        if (box) {
+            box.textContent = '';
+            box.hidden = true;
+        }
+    }
+
+    function renderNameSuggestions() {
+        const box = getNameSuggestionsContainer();
+        if (!box) return;
+        const input = document.getElementById('new_name');
+        const current = input ? input.value : '';
+        const names = simbadNameList.filter(n => n && n !== current);
+        box.textContent = '';
+        if (!names.length) {
+            box.hidden = true;
+            return;
+        }
+        names.forEach((name, i) => {
+            if (i > 0) {
+                const sep = document.createElement('span');
+                sep.className = 'name-suggestion-sep';
+                sep.textContent = '·';
+                box.appendChild(sep);
+            }
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'name-suggestion';
+            btn.textContent = name;
+            btn.addEventListener('click', () => {
+                const target = document.getElementById('new_name');
+                if (target) target.value = name;
+                renderNameSuggestions();
+            });
+            box.appendChild(btn);
+        });
+        box.hidden = false;
+    }
+
     function resetAddObjectForm() {
         const fieldsToClear = [
             'new_object', 'new_name', 'new_ra', 'new_dec', 'new_constellation',
@@ -799,6 +856,8 @@
                 el.readOnly = false; // Ensure all are unlocked
             }
         });
+
+        clearNameSuggestions();
 
         // --- NEW: Reset new_is_active checkbox ---
         const newIsActive = document.getElementById('new_is_active');
@@ -885,9 +944,13 @@
             const editObjectBtn = document.getElementById('edit_object');
             const cancelAddObjectBtn = document.getElementById('cancel_add_object');
 
+            // Clickable name suggestions under #new_name (created once)
+            getNameSuggestionsContainer();
+
             if (submitNewObjectBtn) {
                 submitNewObjectBtn.addEventListener('click', async e => {
                     e.preventDefault();
+                    clearNameSuggestions();
                     const objectNameInput = document.getElementById('new_object');
                     const objectName = objectNameInput.value.trim();
                     if (!objectName) {
@@ -966,6 +1029,8 @@
                           document.getElementById('new_dec').value = data.data["DEC (degrees)"];
                           document.getElementById('new_constellation').value = data.data["Constellation"] || '';
                           ['new_name', 'new_ra', 'new_dec'].forEach(id => document.getElementById(id).readOnly = true);
+                          simbadNameList = Array.isArray(data.data["SIMBAD Names"]) ? data.data["SIMBAD Names"] : [];
+                          renderNameSuggestions();
 
                           // --- NEW: Set Active Project state for SIMBAD data (default true) ---
                           document.getElementById('new_is_active').checked = true;
