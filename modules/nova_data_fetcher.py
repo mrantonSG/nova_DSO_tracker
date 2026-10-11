@@ -23,12 +23,12 @@ __all__ = [
 
 # --- Object Type ---
 def get_object_type_from_simbad(object_name):
-    """Fetch object type from SIMBAD, trying otype, morph_type, and otypedef."""
+    """Fetch object type from SIMBAD, trying otype and morph_type."""
     print(f"[DEBUG] Attempting SIMBAD query for type of '{object_name}'...")
     custom_simbad = Simbad()
     custom_simbad.TIMEOUT = 60
     custom_simbad.ROW_LIMIT = 1
-    custom_simbad.add_votable_fields('otype', 'morph_type', 'otypedef')
+    custom_simbad.add_votable_fields('otype', 'morph_type')
 
     try:
         result_table = custom_simbad.query_object(object_name)
@@ -62,10 +62,9 @@ def get_object_type_from_simbad(object_name):
 
         otype = get_field_value(result_table, ['otype', 'OTYPE'])
         morph_type = get_field_value(result_table, ['morph_type', 'MORPH_TYPE'])
-        otype_def = get_field_value(result_table, ['otypedef', 'OTYPEDEF'])
 
         print(
-            f"[DEBUG] SIMBAD raw types for '{object_name}': otype='{otype}', morph_type='{morph_type}', otype_def='{otype_def}'")
+            f"[DEBUG] SIMBAD raw types for '{object_name}': otype='{otype}', morph_type='{morph_type}'")
 
         generic_otypes = ['--', '?', '*', 'Object', 'Region', 'Unknown', 'Candidate', '']
         galaxy_activity_types = ["AGN", "SyG", "Sy1", "Sy2", "LINER", "SBG", "GiG",
@@ -80,12 +79,6 @@ def get_object_type_from_simbad(object_name):
                         f"[INFO] SIMBAD using morph_type '{morph_type}' (host) for AGN-like otype '{otype}' for '{object_name}'")
                     return morph_type
                 else:  # morph_type is generic or missing, use the activity type or a general "Galaxy"
-                    # If otype_def gives a more specific galaxy type (e.g. "Starburst Galaxy" for SBG)
-                    if otype_def and "galaxy" in otype_def.lower() and otype_def.lower() != "galaxy":
-                        if "starburst" in otype_def.lower(): return "SBG"
-                        print(
-                            f"[INFO] SIMBAD using otypedef '{otype_def}' for AGN-like otype '{otype}' for '{object_name}'")
-                        return otype_def  # Could be "Seyfert 1 Galaxy", etc.
                     print(f"[INFO] SIMBAD object type (from otype - activity) found for '{object_name}': {otype}")
                     return otype  # Return the specific activity type like AGN, SyG
             else:  # Not an activity type, but a specific otype (e.g., PN, SNR)
@@ -96,29 +89,6 @@ def get_object_type_from_simbad(object_name):
         if morph_type and morph_type not in generic_otypes:
             print(f"[INFO] SIMBAD object type (from morph_type) found for '{object_name}': {morph_type}")
             return morph_type
-
-        # Priority 3: otypedef (description of the main type)
-        if otype_def and otype_def not in generic_otypes:
-            # Try to map common descriptions to codes
-            otype_dscr_lower = otype_def.lower()
-            if "starburst galaxy" in otype_dscr_lower: return "SBG"
-            if "seyfert 1 galaxy" in otype_dscr_lower: return "Sy1"  # More specific
-            if "seyfert 2 galaxy" in otype_dscr_lower: return "Sy2"  # More specific
-            if "seyfert galaxy" in otype_dscr_lower: return "SyG"
-            if "liner-type active galaxy nucleus" in otype_dscr_lower: return "LINER"
-            if "galaxy" in otype_dscr_lower: return "Galaxy"
-            if "planetary nebula" in otype_dscr_lower: return "PN"
-            if "hii region" in otype_dscr_lower: return "HII"
-            if "emission nebula" in otype_dscr_lower: return "EmN"
-            if "reflection nebula" in otype_dscr_lower: return "RfN"
-            if "dark nebula" in otype_dscr_lower: return "DkN"
-            if "open cluster" in otype_dscr_lower: return "OpC"
-            if "globular cluster" in otype_dscr_lower: return "GlC"
-            if "supernova remnant" in otype_dscr_lower: return "SNR"
-            if "nebula" in otype_dscr_lower: return "Nebula"
-            if len(otype_def) < 30:
-                print(f"[INFO] SIMBAD object type (from otypedef) for '{object_name}': {otype_def}")
-                return otype_def
 
         print(f"[DEBUG] No definitive type found in SIMBAD for '{object_name}'.")
         return None
@@ -237,7 +207,7 @@ def get_angular_size_from_simbad(object_name):
     custom_simbad = Simbad();
     custom_simbad.TIMEOUT = 60;
     custom_simbad.ROW_LIMIT = 1
-    custom_simbad.add_votable_fields('galdim_majaxis', 'dimensions')
+    custom_simbad.add_votable_fields('galdim_majaxis')
     try:
         result = custom_simbad.query_object(object_name)
         if result is None or len(result) == 0: return None
@@ -259,30 +229,6 @@ def get_angular_size_from_simbad(object_name):
                         return {"value": size, "source": "SIMBAD (galdim_majaxis)"}
                 except (ValueError, TypeError) as e:
                     print(f"[DEBUG] Error converting SIMBAD '{actual_col_name}' ({value}): {e}")
-        dimensions_col_name = None
-        dim_variants = ['dimensions', 'DIMENSIONS']
-        for dv in dim_variants:
-            if dv in result.colnames:
-                dimensions_col_name = dv
-                break
-        if dimensions_col_name and len(result[dimensions_col_name]) > 0 and not np.ma.is_masked(
-                result[dimensions_col_name][0]):
-            dims_bytes = result[dimensions_col_name][0]
-            dims = dims_bytes.decode('utf-8').strip() if isinstance(dims_bytes, bytes) else str(dims_bytes).strip()
-            if dims and dims != "--" and dims != "":
-                try:
-                    tokens = dims.replace('x', ' ').split()
-                    if len(tokens) > 0:
-                        match = re.search(r'([-+]?\d*\.?\d+)', tokens[0])
-                        if match:
-                            size_str = match.group(0);
-                            size = float(size_str)
-                            if not np.isnan(size) and size > 0:
-                                print(
-                                    f"[DEBUG] SIMBAD angular size (from dimensions '{dims}') for {object_name}: {size} arcmin")
-                                return {"value": size, "source": "SIMBAD (dimensions)"}
-                except Exception as e:
-                    print(f"[DEBUG] Error parsing dimensions '{dims}': {e}")
         return None
     except Exception as e:
         print(f"[ERROR] Failed to query SIMBAD for angular size of {object_name}: {e}")
@@ -304,7 +250,7 @@ def get_angular_size_from_vizier(object_name):
             cat_id = table.meta.get('ID', 'Unknown Catalog')
             size_cols_to_check = {
                 'MajAx': 1, 'maj': 1, 'Diam': 1, 'diam': 1,
-                'Size': 1, 'AngSize': 1, 'D25': 1, ' основных размеров ': 1, 'rad': 1,
+                'Size': 1, 'AngSize': 1, 'D25': 1, 'rad': 1,
                 'MajAxs': 1 / 60.0, 'majax': 1 / 60.0, 'Diamas': 1 / 60.0,
             }
             for col, multiplier in size_cols_to_check.items():

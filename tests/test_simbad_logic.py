@@ -206,3 +206,90 @@ def test_get_ra_dec_simbad_names_empty_without_ids_column(mock_app_context):
 
         assert result['SIMBAD Names'] == []
         assert result['SIMBAD Name'] is None
+
+
+# --- modules/nova_data_fetcher: object type and angular size helpers ---
+
+import modules.nova_data_fetcher as ndf
+
+
+def _ndf_simbad_table(colnames, rows):
+    """MagicMock SIMBAD table in the style used above; rows maps column -> [value]."""
+    table = MagicMock()
+    table.__len__.return_value = 1
+    table.colnames = colnames
+
+    def get_column_data(col_name):
+        return rows.get(col_name, ['Unknown'])
+
+    table.__getitem__.side_effect = get_column_data
+    return table
+
+
+def test_ndf_object_type_specific_otype_is_returned():
+    table = _ndf_simbad_table(
+        ['main_id', 'otype', 'morph_type'],
+        {'otype': ['PN'], 'morph_type': ['']},
+    )
+    with patch('modules.nova_data_fetcher.Simbad') as MockSimbad:
+        MockSimbad.return_value.query_object.return_value = table
+        assert ndf.get_object_type_from_simbad("M 57") == "PN"
+
+
+def test_ndf_object_type_generic_otype_uses_morph_type():
+    table = _ndf_simbad_table(
+        ['main_id', 'otype', 'morph_type'],
+        {'otype': ['Object'], 'morph_type': ['SA(s)b']},
+    )
+    with patch('modules.nova_data_fetcher.Simbad') as MockSimbad:
+        MockSimbad.return_value.query_object.return_value = table
+        assert ndf.get_object_type_from_simbad("TestObj") == "SA(s)b"
+
+
+def test_ndf_object_type_generic_otype_without_morph_type_returns_none():
+    table = _ndf_simbad_table(
+        ['main_id', 'otype', 'morph_type'],
+        {'otype': ['Object'], 'morph_type': ['']},
+    )
+    with patch('modules.nova_data_fetcher.Simbad') as MockSimbad:
+        MockSimbad.return_value.query_object.return_value = table
+        assert ndf.get_object_type_from_simbad("TestObj") is None
+
+
+def test_ndf_angular_size_galdim_majaxis_is_returned():
+    table = _ndf_simbad_table(
+        ['main_id', 'galdim_majaxis'],
+        {'galdim_majaxis': [199.53]},
+    )
+    with patch('modules.nova_data_fetcher.Simbad') as MockSimbad:
+        MockSimbad.return_value.query_object.return_value = table
+        assert ndf.get_angular_size_from_simbad("M 31") == {
+            "value": 199.53, "source": "SIMBAD (galdim_majaxis)"
+        }
+
+
+def test_ndf_angular_size_without_galdim_majaxis_returns_none():
+    table = _ndf_simbad_table(['main_id'], {})
+    with patch('modules.nova_data_fetcher.Simbad') as MockSimbad:
+        MockSimbad.return_value.query_object.return_value = table
+        assert ndf.get_angular_size_from_simbad("NGC 7000") is None
+
+
+def test_ndf_object_type_activity_otype_with_morph_type_uses_morph_type():
+    table = _ndf_simbad_table(
+        ['main_id', 'otype', 'morph_type'],
+        {'otype': ['AGN'], 'morph_type': ['SA(s)b']},
+    )
+    with patch('modules.nova_data_fetcher.Simbad') as MockSimbad:
+        MockSimbad.return_value.query_object.return_value = table
+        assert ndf.get_object_type_from_simbad("M 31") == "SA(s)b"
+
+
+def test_ndf_object_type_activity_otype_without_morph_type_returns_otype():
+    table = _ndf_simbad_table(
+        ['main_id', 'otype', 'morph_type'],
+        {'otype': ['AGN'], 'morph_type': ['']},
+    )
+    with patch('modules.nova_data_fetcher.Simbad') as MockSimbad:
+        MockSimbad.return_value.query_object.return_value = table
+        assert ndf.get_object_type_from_simbad("M 31") == "AGN"
