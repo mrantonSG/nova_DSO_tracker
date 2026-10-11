@@ -1323,18 +1323,28 @@ def confirm_object():
             old_ra = existing.ra_hours
             old_dec = existing.dec_deg
             old_active = existing.active_project
-            existing.common_name = common_name
+            if 'name' in req:
+                existing.common_name = common_name
             existing.ra_hours = ra_float
             existing.dec_deg = dec_float
-            existing.project_name = private_notes_html
-            existing.constellation = constellation
-            existing.type = obj_type
-            existing.magnitude = magnitude
-            existing.size = size
-            existing.sb = sb
-            existing.shared_notes = shared_notes_html
-            existing.is_shared = is_shared
-            existing.active_project = active_project
+            if 'project' in req:
+                existing.project_name = private_notes_html
+            if 'constellation' in req:
+                existing.constellation = constellation
+            if 'type' in req:
+                existing.type = obj_type
+            if 'magnitude' in req:
+                existing.magnitude = magnitude
+            if 'size' in req:
+                existing.size = size
+            if 'sb' in req:
+                existing.sb = sb
+            if 'shared_notes' in req:
+                existing.shared_notes = shared_notes_html
+            if 'is_shared' in req:
+                existing.is_shared = is_shared
+            if 'is_active' in req:
+                existing.active_project = active_project
             # Update inspiration fields if provided (or clear them if empty string passed)
             if image_url is not None: existing.image_url = image_url
             if image_credit is not None: existing.image_credit = image_credit
@@ -1373,7 +1383,7 @@ def confirm_object():
         bust_astro_context_cache(g.db_user.id)
         if existing:
             coords_changed = ra_float != old_ra or dec_float != old_dec
-            outlook = (active_project != bool(old_active)) or (coords_changed and bool(old_active))
+            outlook = (existing.active_project != bool(old_active)) or (coords_changed and bool(old_active))
             invalidate_object_caches(g.db_user.id, username,
                                      [object_name] if coords_changed else [],
                                      curves=coords_changed, outlook=outlook)

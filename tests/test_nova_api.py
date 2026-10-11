@@ -33,6 +33,7 @@ from nova import (
     SavedFraming
 )
 from nova.record_links import sync_rig_links
+from nova.helpers import normalize_object_name
 
 
 # --- Existing Tests (from your file) ---
@@ -358,6 +359,125 @@ def test_api_confirm_object_normalization(client, db_session):
         object_name="M 42"
     ).one_or_none()
     assert obj_corrupt is None
+
+
+# --- NEW TESTS: confirm_object must keep fields the request did not send ---
+
+def _make_existing_m101(db_session, **overrides):
+    user = db_session.query(DbUser).filter_by(username="default").one()
+    fields = dict(
+        object_name=normalize_object_name("M101"), common_name="Old Name",
+        ra_hours=14.0, dec_deg=54.0,
+        project_name="<p>old notes</p>", constellation="UMa", type="Galaxy",
+        magnitude="7.9", size="28x26", sb="14.3",
+        shared_notes="<p>old shared</p>", is_shared=True, active_project=False,
+    )
+    fields.update(overrides)
+    obj = AstroObject(user_id=user.id, **fields)
+    db_session.add(obj)
+    db_session.commit()
+    return obj
+
+
+def test_confirm_object_mobile_payload_keeps_unsent_fields(client, db_session):
+    _make_existing_m101(db_session)
+    resp = client.post('/confirm_object', json={
+        "object": "M101", "name": "New Name", "ra": 14.1, "dec": 54.1,
+        "project": "<p>new notes</p>", "is_active": True,
+    })
+    assert resp.status_code == 200
+    db_session.expire_all()
+    obj = db_session.query(AstroObject).filter_by(
+        object_name=normalize_object_name("M101")).one()
+    # keys present in the request are applied
+    assert obj.common_name == "New Name"
+    assert obj.ra_hours == 14.1
+    assert obj.dec_deg == 54.1
+    assert obj.project_name == "<p>new notes</p>"
+    assert obj.active_project is True
+    # keys absent from the request keep their previous values
+    assert obj.constellation == "UMa"
+    assert obj.type == "Galaxy"
+    assert obj.magnitude == "7.9"
+    assert obj.size == "28x26"
+    assert obj.sb == "14.3"
+    assert obj.shared_notes == "<p>old shared</p>"
+    assert obj.is_shared is True
+
+
+def test_confirm_object_desktop_payload_overwrites_all_fields(client, db_session):
+    _make_existing_m101(db_session)
+    payload = {
+        "object": "M101", "name": "Desktop Name", "ra": 15.0, "dec": 60.0,
+        "project": "<p>desktop notes</p>", "type": "Nebula",
+        "magnitude": "8.1", "size": "10x10", "constellation": "Cyg",
+        "sb": "13.0", "shared_notes": "<p>desktop shared</p>",
+        "is_shared": False, "is_active": False,
+        "image_url": "", "image_credit": "", "image_source_link": "",
+        "description_text": "", "description_credit": "", "description_source_link": "",
+    }
+    resp = client.post('/confirm_object', json=payload)
+    assert resp.status_code == 200
+    db_session.expire_all()
+    obj = db_session.query(AstroObject).filter_by(
+        object_name=normalize_object_name("M101")).one()
+    assert obj.common_name == "Desktop Name"
+    assert obj.ra_hours == 15.0
+    assert obj.dec_deg == 60.0
+    assert obj.project_name == "<p>desktop notes</p>"
+    assert obj.constellation == "Cyg"
+    assert obj.type == "Nebula"
+    assert obj.magnitude == "8.1"
+    assert obj.size == "10x10"
+    assert obj.sb == "13.0"
+    assert obj.shared_notes == "<p>desktop shared</p>"
+    assert obj.is_shared is False
+    assert obj.active_project is False
+
+
+def test_confirm_object_present_empty_key_clears_field(client, db_session):
+    _make_existing_m101(db_session)
+    resp = client.post('/confirm_object', json={
+        "object": "M101", "name": "M101", "ra": 14.0, "dec": 54.0,
+        "project": "<p>old notes</p>", "is_active": False,
+        "magnitude": "", "constellation": None, "shared_notes": "", "is_shared": False,
+    })
+    assert resp.status_code == 200
+    db_session.expire_all()
+    obj = db_session.query(AstroObject).filter_by(
+        object_name=normalize_object_name("M101")).one()
+    assert obj.magnitude == ''
+    assert obj.constellation is None
+    assert obj.shared_notes == ''
+    assert obj.is_shared is False
+    # type/size/sb were not sent -> kept
+    assert obj.type == "Galaxy"
+    assert obj.size == "28x26"
+    assert obj.sb == "14.3"
+
+
+def test_confirm_object_mobile_payload_creates_new_object(client, db_session):
+    user = db_session.query(DbUser).filter_by(username="default").one()
+    target = normalize_object_name("NGC 891")
+    assert db_session.query(AstroObject).filter_by(
+        user_id=user.id, object_name=target).one_or_none() is None
+    resp = client.post('/confirm_object', json={
+        "object": "NGC 891", "name": "Silver Sliver Galaxy",
+        "ra": 2.375, "dec": 42.35,
+        "project": "<p>notes</p>", "is_active": False,
+    })
+    assert resp.status_code == 200
+    assert resp.get_json()['status'] == 'success'
+    db_session.expire_all()
+    obj = db_session.query(AstroObject).filter_by(
+        user_id=user.id, object_name=target).one_or_none()
+    assert obj is not None
+    assert obj.common_name == "Silver Sliver Galaxy"
+    assert obj.ra_hours == 2.375
+    assert obj.dec_deg == 42.35
+    assert obj.type is None
+    assert obj.magnitude == ''
+    assert obj.active_project is False
 
 
 # --- NEW TEST: Update Project Notes ---
