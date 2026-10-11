@@ -1041,6 +1041,65 @@ def load_full_astro_context():
 
 # === RA/DEC Lookup ===
 
+def list_simbad_common_names(ids):
+    """
+    Collect the human-readable "NAME ..." identifiers from a SIMBAD 'ids'
+    value, ordered so the best candidate for a user to pick comes first.
+
+    Pure function: no network, no astropy types. `ids` is the pipe-separated
+    identifier string (e.g. "NAME Crab Nebula|NAME Crab|NGC  1952"). Returns a
+    de-duplicated, sorted list of names (possibly empty).
+    """
+    if ids is None:
+        return []
+    if np.ma.is_masked(ids):
+        return []
+    if isinstance(ids, (bytes, bytearray)):
+        try:
+            ids = ids.decode('utf-8')
+        except UnicodeDecodeError:
+            return []
+    if not isinstance(ids, str):
+        return []
+
+    seen = set()
+    names = []
+    for part in ids.split('|'):
+        part = part.strip()
+        if not part.startswith('NAME '):
+            continue
+        name = ' '.join(part[len('NAME '):].split()).strip()
+        if not name or not any(c.islower() for c in name):
+            continue
+        if name in seen:
+            continue
+        seen.add(name)
+        names.append(name)
+
+    def sort_key(name):
+        words = name.split()
+        last_word = words[-1] if words else ''
+        return (
+            1 if any(c.isdigit() for c in name) else 0,
+            0 if last_word in ('Nebula', 'Galaxy', 'Cluster') else 1,
+            -len(name),
+            name,
+        )
+
+    return sorted(names, key=sort_key)
+
+
+def pick_simbad_common_name(names):
+    """
+    Best short name from list_simbad_common_names(): the first entry that
+    contains no digit, or None if there is none. Pure function.
+    """
+    for name in names or []:
+        if not any(c.isdigit() for c in name):
+            return name
+    return None
+
+
 def get_ra_dec(object_name, objects_map=None):
     """
     Looks up RA/DEC and other details for an object.
@@ -1114,7 +1173,7 @@ def get_ra_dec(object_name, objects_map=None):
         custom_simbad.TIMEOUT = SIMBAD_TIMEOUT
         # Request standard coordinates.
         # Our parsing logic handles both Decimal (try block) and Sexagesimal (except block).
-        custom_simbad.add_votable_fields('main_id', 'ra', 'dec', 'otype')
+        custom_simbad.add_votable_fields('main_id', 'ra', 'dec', 'otype', 'ids')
 
         result = custom_simbad.query_object(object_name)
         if result is None or len(result) == 0:
@@ -1140,17 +1199,20 @@ def get_ra_dec(object_name, objects_map=None):
             ra_hours_simbad = hms_to_hours(str(val_ra))
             dec_degrees_simbad = dms_to_degrees(str(val_dec))
 
-        simbad_main_id = str(result['MAIN_ID'][0]) if 'MAIN_ID' in result.colnames else object_name
         try:
             coords = SkyCoord(ra=ra_hours_simbad * u.hourangle, dec=dec_degrees_simbad * u.deg)
             constellation_simbad = get_constellation(coords, short_name=True)
         except Exception:
             constellation_simbad = "N/A"
 
+        simbad_ids = result['ids'][0] if 'ids' in result.colnames and len(result['ids']) > 0 else None
+        simbad_names = list_simbad_common_names(simbad_ids)
         return {
-            "Object": object_name, "Constellation": constellation_simbad, "Common Name": simbad_main_id,
+            "Object": object_name, "Constellation": constellation_simbad, "Common Name": object_name,
             "RA (hours)": ra_hours_simbad, "DEC (degrees)": dec_degrees_simbad, "Project": project_to_use,
-            "Type": str(result['OTYPE'][0]) if 'OTYPE' in result.colnames else "N/A",
+            "Type": "N/A",
+            "SIMBAD Names": simbad_names,
+            "SIMBAD Name": pick_simbad_common_name(simbad_names),
             "Magnitude": "N/A", "Size": "N/A", "SB": "N/A", "ActiveProject": active_project_to_use
         }
     except Exception as ex:
@@ -1158,6 +1220,7 @@ def get_ra_dec(object_name, objects_map=None):
             "Object": object_name, "Constellation": "N/A",
             "Common Name": f"Error: SIMBAD lookup failed ({type(ex).__name__})",
             "RA (hours)": None, "DEC (degrees)": None, "Project": project_to_use, "Type": "N/A",
+            "SIMBAD Names": [], "SIMBAD Name": None,
             "Magnitude": "N/A", "Size": "N/A", "SB": "N/A", "ActiveProject": active_project_to_use
         }
 
