@@ -77,4 +77,4 @@ typing_extensions==4.12.2
 tzdata==2025.1
 urllib3==2.7.0
 webencodings==0.5.1
-Werkzeug==3.1.6
+Werkzeug==3.1.9
