@@ -935,7 +935,7 @@ def get_best_objects():
             # Sim mode: use the provided date
             date_obj = datetime.strptime(sim_date, "%Y-%m-%d")
         else:
-            # Live mode: use current date at 11 PM local time
+            # Live mode: tonight's date, measured at the night's local midnight below
             now_local = datetime.now(local_tz)
             # If it's before noon, use "night of" previous day
             if now_local.hour < 12:

@@ -2065,7 +2065,10 @@ def _up_now_inputs_payload(db, user, location, user_prefs_dict, include_enabled=
 
     `include_outlook_fields` adds the seven fields a browser-built Outlook row
     needs (_outlook_row_fields), so it does not have to join /api/desktop_library,
-    which only carries enabled objects. The mobile payload must not carry them.
+    which only carries enabled objects. Only active-project rows get them, the only
+    rows Outlook covers, so the constellation fallback runs for those alone and the
+    other rows (project notes included) stay as small as before. The mobile
+    payload must not carry them.
     """
     # Every object of the user, in id order (no enabled filter, no pagination).
     objects = db.query(AstroObject).filter_by(user_id=user.id).order_by(AstroObject.id).all()
@@ -2091,7 +2094,7 @@ def _up_now_inputs_payload(db, user, location, user_prefs_dict, include_enabled=
         }
         if include_enabled:
             row["enabled"] = bool(obj_record.enabled)
-        if include_outlook_fields:
+        if include_outlook_fields and obj_record.active_project:
             row.update(_outlook_row_fields(obj_record))
         objects_data.append(row)
 
@@ -2190,7 +2193,7 @@ def api_desktop_inputs():
     (graph day/month/year), both on nova_astro.js and nova_transit.js, and the
     Outlook table. No DB writes, no calculation.
 
-    Each object row also carries the seven fields a browser-built Outlook row
+    Each active-project row also carries the seven fields a browser-built Outlook row
     needs (_outlook_row_fields) and the settings block the two imaging criteria
     its filters use, so it never has to join /api/desktop_library: that endpoint
     only serves enabled objects, and Outlook covers the active projects.

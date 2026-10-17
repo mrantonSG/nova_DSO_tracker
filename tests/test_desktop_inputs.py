@@ -70,7 +70,12 @@ def _write_skyglow(tmp_path, monkeypatch, loc_id, sectors=SG_SECTORS):
 
 # --- single-user happy path --------------------------------------------------------------
 
-def test_desktop_inputs_returns_the_documented_shape(client):
+def test_desktop_inputs_returns_the_documented_shape(client, db_session):
+    user = db_session.query(DbUser).filter_by(username="default").one()
+    db_session.add(AstroObject(user_id=user.id, object_name="M13", common_name="Hercules Cluster",
+                               ra_hours=16.69, dec_deg=36.46, active_project=True))
+    db_session.commit()
+
     response = client.get('/api/desktop_inputs')
 
     assert response.status_code == 200
@@ -84,10 +89,15 @@ def test_desktop_inputs_returns_the_documented_shape(client):
     assert data["location"]["name"] == LOC_NAME
     assert isinstance(data["location"]["horizon_mask"], list)
 
-    # All of the user's objects, each carrying the enabled flag and the Outlook fields.
-    assert any(o["Object"] == "M42" for o in data["objects"])
+    # All of the user's objects, each carrying the enabled flag; only the active
+    # projects (the rows Outlook covers) also carry the Outlook fields.
+    kinds = {o["Object"]: o["ActiveProject"] for o in data["objects"]}
+    assert kinds["M42"] is False and kinds["M13"] is True
     for item in data["objects"]:
-        assert set(item.keys()) == MOBILE_OBJECT_KEYS | {"enabled"} | OUTLOOK_ROW_KEYS
+        if item["ActiveProject"]:
+            assert set(item.keys()) == MOBILE_OBJECT_KEYS | {"enabled"} | OUTLOOK_ROW_KEYS
+        else:
+            assert set(item.keys()) == MOBILE_OBJECT_KEYS | {"enabled"}
         # No calculation ran (raw inputs only).
         assert "Altitude Current" not in item
 
@@ -283,14 +293,17 @@ def test_desktop_inputs_outlook_fields_match_get_ra_dec(client, db_session):
     same object: the raw column with its `or "N/A"` fallbacks, a recomputed
     constellation where the column is empty, and null (not "") common_name/project."""
     user = db_session.query(DbUser).filter_by(username="default").one()
+    # Active projects, the only rows that carry the fields (M42 from the fixture too).
+    db_session.query(AstroObject).filter_by(user_id=user.id, object_name="M42").one().active_project = True
     db_session.add(AstroObject(
         user_id=user.id, object_name="NGC 7000", common_name=None,
         ra_hours=20.98, dec_deg=44.5, type=None, constellation="",
-        magnitude=None, size="", sb=None, project_name=None))
+        magnitude=None, size="", sb=None, project_name=None, active_project=True))
     db_session.add(AstroObject(
         user_id=user.id, object_name="M13", common_name="Hercules Cluster",
         ra_hours=16.69, dec_deg=36.46, type="GCl", constellation="Her",
-        magnitude="5.8", size="20", sb="11.5", project_name="<div>plan</div>"))
+        magnitude="5.8", size="20", sb="11.5", project_name="<div>plan</div>",
+        active_project=True))
     db_session.commit()
     astro_context_cache.clear()
 
@@ -303,7 +316,7 @@ def test_desktop_inputs_outlook_fields_match_get_ra_dec(client, db_session):
         for o in db_session.query(AstroObject).filter_by(user_id=user.id).all()
     }
 
-    for row in data["objects"]:
+    for row in (r for r in data["objects"] if r["ActiveProject"]):
         expected = get_ra_dec(row["Object"], objects_map=objects_map)
         assert row["common_name"] == expected["Common Name"]
         assert row["project"] == expected["Project"]
@@ -333,6 +346,33 @@ def test_desktop_inputs_outlook_fields_match_get_ra_dec(client, db_session):
     assert rows["M13"]["project"] == "<div>plan</div>"
 
 
+def test_desktop_inputs_outlook_fields_only_on_active_projects(client, db_session, monkeypatch):
+    """A row outside the active projects keeps today's keys: no project notes, and no
+    constellation recompute even where its column is blank."""
+    import nova.blueprints.api as api_module
+    looked_up = []
+    real_get_constellation = api_module.get_constellation
+    monkeypatch.setattr(api_module, "get_constellation",
+                        lambda *a, **k: looked_up.append(1) or real_get_constellation(*a, **k))
+
+    user = db_session.query(DbUser).filter_by(username="default").one()
+    db_session.add(AstroObject(
+        user_id=user.id, object_name="NGC 7000", ra_hours=20.98, dec_deg=44.5,
+        constellation="", project_name="<div>long notes</div>", active_project=False))
+    db_session.add(AstroObject(
+        user_id=user.id, object_name="IC 1396", ra_hours=21.65, dec_deg=57.5,
+        constellation="", active_project=True))
+    db_session.commit()
+
+    rows = {o["Object"]: o for o in client.get('/api/desktop_inputs').get_json()["objects"]}
+
+    assert set(rows["NGC 7000"].keys()) == MOBILE_OBJECT_KEYS | {"enabled"}
+    assert set(rows["IC 1396"].keys()) == MOBILE_OBJECT_KEYS | {"enabled"} | OUTLOOK_ROW_KEYS
+    assert rows["IC 1396"]["constellation"] == "Cep"
+    # Once, for the active row; never for the inactive one.
+    assert looked_up == [1]
+
+
 def test_desktop_inputs_settings_pair_with_outlook_criteria(client, monkeypatch):
     """min_max_altitude and search_horizon_months must be the two values
     _outlook_criteria() gives the server worker, clamps included."""
@@ -353,9 +393,16 @@ def test_desktop_inputs_settings_pair_with_outlook_criteria(client, monkeypatch)
 
 # --- the existing endpoint is untouched --------------------------------------------------
 
-def test_mobile_up_now_inputs_keys_are_unchanged(client):
-    """The shared helper must not leak new keys into the mobile payload."""
+def test_mobile_up_now_inputs_keys_are_unchanged(client, db_session):
+    """The shared helper must not leak new keys into the mobile payload, active
+    projects included."""
+    user = db_session.query(DbUser).filter_by(username="default").one()
+    db_session.add(AstroObject(user_id=user.id, object_name="M13", ra_hours=16.69,
+                               dec_deg=36.46, active_project=True))
+    db_session.commit()
+
     data = client.get('/api/mobile_up_now_inputs').get_json()
+    assert any(o["ActiveProject"] for o in data["objects"])
 
     assert set(data.keys()) == {"location", "objects"}
     assert set(data["location"].keys()) == {

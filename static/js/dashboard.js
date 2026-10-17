@@ -3669,6 +3669,9 @@
                 if (!res.ok) throw new Error(`desktop_inputs HTTP ${res.status}`);
                 const inputs = await res.json();
                 if (generation !== outlookLoadGeneration) return;
+                // Again: a server response that landed during the await may have set one
+                clearTimeout(outlookPollTimer);
+                outlookPollTimer = null;
                 if (!inputs.location || inputs.location.name !== location) throw new Error('desktop_inputs: not this location');
 
                 const nowMs = Date.now();
@@ -3745,9 +3748,16 @@
             }
             // --- END FIX ---
     
+            // A newer loadOutlook() or another location makes this response stale:
+            // it must not touch the table or schedule a poll.
+            const generation = outlookLoadGeneration;
+            const isStale = () => generation !== outlookLoadGeneration
+                || sessionStorage.getItem('selectedLocation') !== currentSelectedLocation;
+
             fetch(fetchUrl) // <-- Use the modified URL
                 .then(response => response.json())
                 .then(data => {
+                    if (isStale()) return;
                     // --- FIX: Only set outlookDataLoaded to true when data is actually complete ---
                     // if (!outlookDataLoaded) { outlookDataLoaded = true; } // REMOVE THIS LINE (it was a bug)
     
@@ -3781,6 +3791,7 @@
                     if (loadingDiv) loadingDiv.style.display = 'none';
                 })
                 .catch(error => {
+                    if (isStale()) return;
                     // outlookDataLoaded = true; // Set flag even on error to stop retries
                     console.error("Error fetching outlook data:", error);
                     tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:red;">${window.t('error_fetching_data')}</td></tr>`;

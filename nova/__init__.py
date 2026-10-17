@@ -1910,7 +1910,10 @@ def _outlook_location_inputs(location_name, user_config, status_key):
 def load_outlook_active_objects(user_id, status_key):
     """Active project objects (live DB), their RA/DEC lookup map and the framed set."""
     db = get_db()
-    active_rows = db.query(AstroObject).filter_by(user_id=user_id, active_project=True).all()
+    # Id order: the browser-built Outlook (static/js/nova_outlook.js) walks
+    # /api/desktop_inputs's id-ordered rows, so same-date rows keep one order.
+    active_rows = db.query(AstroObject).filter_by(user_id=user_id, active_project=True)\
+        .order_by(AstroObject.id).all()
     project_objects = [o.to_dict() for o in active_rows]
 
     # Fetch framing status for Outlook

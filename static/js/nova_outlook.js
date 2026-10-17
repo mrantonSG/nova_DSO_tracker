@@ -18,9 +18,9 @@
  *             lon, timezone, altitude_threshold, sampling_interval, horizon_mask),
  *             settings (min_observable_minutes, max_moon_illumination,
  *             min_angular_separation, min_max_altitude, search_horizon_months) and
- *             objects, each with Object, ra, dec, ActiveProject, has_framing and
- *             the seven fields the row needs (common_name, project, type,
- *             constellation, magnitude, size, sb)
+ *             objects, each with Object, ra, dec, ActiveProject and has_framing,
+ *             the active projects also with the seven fields the row needs
+ *             (common_name, project, type, constellation, magnitude, size, sb)
  *   nowMs     the current instant, UTC milliseconds (Date.now())
  *   simDate   the simulation date 'YYYY-MM-DD', or null/'' for live
  *
