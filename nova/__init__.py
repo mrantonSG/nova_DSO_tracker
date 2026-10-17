@@ -1988,9 +1988,11 @@ def compute_outlook_object_opportunities(obj_config_entry, objects_map, framed_o
             if max_altitude < criteria["min_max_altitude"] or (obs_duration.total_seconds() / 60) < \
                     criteria["min_observable_minutes"]: continue
 
+            # The night's Moon: local midnight between d and d+1 (raw, as before —
+            # the filter and the score use the unrounded value).
             moon_phase = ephem.Moon(
-                local_tz.localize(datetime.combine(d, datetime.min.time().replace(hour=12))).astimezone(
-                    pytz.utc)).phase
+                local_tz.localize(datetime.combine(d + timedelta(days=1),
+                                                   datetime.min.time())).astimezone(pytz.utc)).phase
             if moon_phase > criteria["max_moon_illumination"]: continue
 
             sun_events = calculate_sun_events_cached(date_str, tz_name, lat, lon)

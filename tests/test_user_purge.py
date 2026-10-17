@@ -136,6 +136,9 @@ def _seed_files(dirs, username, uid, session_id):
     targets = [upload_dir, os.path.join(dirs["configs"], f"config_{username}.yaml")]
     for key in ("logs/asiair", "logs/phd2", "logs/nina"):
         targets.append(os.path.join(dirs[key], f"{session_id}_x.txt"))
+    # Both heatmap generations must be swept: the current one and the one before
+    # the Moon rule changed, which is still on disk for every existing install.
+    targets.append(os.path.join(dirs["cache"], f"heatmap_v7_{uid}_loc_fp.part0.json"))
     targets.append(os.path.join(dirs["cache"], f"heatmap_v6_{uid}_loc_fp.part0.json"))
     targets.append(os.path.join(dirs["cache"], f"import_conflicts_{uid}.json"))
     for path in targets[1:]:
@@ -343,11 +346,33 @@ def test_exact_id_matching_spares_b_files(env):
     for key in ("logs/asiair", "logs/phd2", "logs/nina"):
         assert not os.path.exists(os.path.join(env.dirs[key], f"{A_SESSION}_x.txt"))
         assert os.path.exists(os.path.join(env.dirs[key], f"{B_SESSION}_x.txt"))
+    assert not os.path.exists(os.path.join(env.dirs["cache"], f"heatmap_v7_{A_ID}_loc_fp.part0.json"))
     assert not os.path.exists(os.path.join(env.dirs["cache"], f"heatmap_v6_{A_ID}_loc_fp.part0.json"))
+    assert os.path.exists(os.path.join(env.dirs["cache"], f"heatmap_v7_{B_ID}_loc_fp.part0.json"))
     assert os.path.exists(os.path.join(env.dirs["cache"], f"heatmap_v6_{B_ID}_loc_fp.part0.json"))
     assert os.path.exists(os.path.join(env.dirs["cache"], f"import_conflicts_{B_ID}.json"))
     assert env.s.get(JournalSession, B_SESSION) is not None
     assert env.s.get(DbUser, B_ID) is not None
+
+
+def test_heatmap_glob_is_anchored_after_the_user_id(env):
+    """"heatmap_v*_{user_id}_*" would match another user's file: bob is id 21, so a
+    chunk of his at location id 2 is heatmap_v7_21_2_x.part0.json, and the wildcard
+    absorbs "7_21" before matching "_2_". Purging alice (id 2) must leave it alone."""
+    cache = env.dirs["cache"]
+    theirs = os.path.join(cache, f"heatmap_v7_{B_ID}_{A_ID}_bb.part0.json")
+    theirs_v6 = os.path.join(cache, f"heatmap_v6_{B_ID}_{A_ID}_cc.part0.json")
+    mine = os.path.join(cache, f"heatmap_v7_{A_ID}_{A_ID}_aa.part0.json")
+    for path in (theirs, theirs_v6, mine):
+        _write(path)
+
+    summary = _purge(env, A_NAME, dry_run=False)
+
+    assert not os.path.exists(mine), "the purged user's own chunk was not deleted"
+    assert os.path.exists(theirs), "another user's heatmap_v7 chunk was deleted"
+    assert os.path.exists(theirs_v6), "another user's heatmap_v6 chunk was deleted"
+    assert theirs not in summary["deleted_files"]
+    assert theirs_v6 not in summary["deleted_files"]
 
 
 # --- delete_user() ---

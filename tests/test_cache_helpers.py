@@ -242,4 +242,4 @@ def test_heatmap_worker_failing_task_does_not_block_other_users(db_session, monk
 
     assert 10.0 in calls  # bad user's task reached the failure trigger
     assert 45.0 in calls  # good user's location was computed
-    assert len(list(isolated_cache_dir.glob(f"heatmap_v6_{good.id}_*.part*.json"))) == 12
+    assert len(list(isolated_cache_dir.glob(f"heatmap_v7_{good.id}_*.part*.json"))) == 12

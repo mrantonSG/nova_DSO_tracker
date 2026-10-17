@@ -152,7 +152,8 @@ def heatmap_background_worker(app):
                                     target_dates.append(d.strftime('%Y-%m-%d'))
                                     try:
                                         dt_moon = local_tz.localize(
-                                            datetime.combine(d, datetime.min.time())).astimezone(pytz.utc)
+                                            datetime.combine(d + timedelta(days=1),
+                                                             datetime.min.time())).astimezone(pytz.utc)
                                         moon_phases.append(round(ephem.Moon(dt_moon).phase, 1))
                                     except:
                                         moon_phases.append(0)

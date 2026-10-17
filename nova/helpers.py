@@ -129,7 +129,7 @@ def heatmap_fingerprint(location_id, lat, lon, tz_name, horizon_mask,
         key=lambda t: (t[0] or "", json.dumps(t, default=str)),
     )
     return cache_fingerprint({
-        "version": "v6",
+        "version": "v7",
         "location_id": location_id,
         "lat": lat,
         "lon": lon,
@@ -142,7 +142,7 @@ def heatmap_fingerprint(location_id, lat, lon, tz_name, horizon_mask,
 
 
 def heatmap_cache_path(user_id, location_id, fingerprint: str, part_index: int) -> str:
-    return os.path.join(CACHE_DIR, f"heatmap_v6_{user_id}_{location_id}_{fingerprint}.part{part_index}.json")
+    return os.path.join(CACHE_DIR, f"heatmap_v7_{user_id}_{location_id}_{fingerprint}.part{part_index}.json")
 
 
 def resolve_sampling_interval(user_config) -> int:
@@ -229,7 +229,7 @@ def outlook_cache_file(user_id, location_name, user_config, sim_date=None) -> st
             start_date = datetime.now(pytz.utc).date()
 
     fp = cache_fingerprint({
-        "version": "v3",
+        "version": "v4",
         "location_id": db_id,
         "lat": float(lat) if lat is not None else None,
         "lon": float(lon) if lon is not None else None,
@@ -247,7 +247,7 @@ def outlook_cache_file(user_id, location_name, user_config, sim_date=None) -> st
             suffix = f"_{parsed.date().isoformat()}"
         except ValueError:
             pass
-    return os.path.join(CACHE_DIR, f"outlook_v3_{user_id}_{db_id}_{fp}{suffix}.json")
+    return os.path.join(CACHE_DIR, f"outlook_v4_{user_id}_{db_id}_{fp}{suffix}.json")
 
 
 def bust_astro_context_cache(user_id: int) -> None:
@@ -344,11 +344,14 @@ def append_purge_note(user_id, username: str) -> None:
 
 def delete_outlook_files(user_id: int) -> None:
     """Delete all outlook cache files for a user.
-    Current format: outlook_v3_{user_id}_{db_id}_{fp}[_{sim_date}].json (+ _debug.yaml).
-    Legacy formats: outlook_v2_..., outlook_cache_(123_Name)_lat_lon.json"""
+    Current format: outlook_v4_{user_id}_{db_id}_{fp}[_{sim_date}].json (+ _debug.yaml).
+    Legacy formats: outlook_v3_... (the local-noon Moon), outlook_v2_...,
+    outlook_cache_(123_Name)_lat_lon.json"""
     import glob as _glob
     patterns = (
-        f"outlook_v3_{user_id}_*.json",
+        f"outlook_v4_{user_id}_*.json",
+        f"outlook_v4_{user_id}_*_debug.yaml",
+        f"outlook_v3_{user_id}_*.json",          # files written before the Moon rule
         f"outlook_v3_{user_id}_*_debug.yaml",
         f"outlook_v2_{user_id}_*.json",
         f"outlook_v2_{user_id}_*_debug.yaml",
@@ -1836,11 +1839,16 @@ def purge_user_app_data(username: str, dry_run: bool = True) -> dict:
             for name in names:
                 if "_" in name and name.split("_", 1)[0] in sid_strs:
                     candidates.append((os.path.join(log_dir, name), log_dir))
-        for path in _glob.glob(os.path.join(CACHE_DIR, f"heatmap_v6_{user_id}_*")):
-            candidates.append((path, CACHE_DIR))
+        # Enumerate the versions rather than globbing "heatmap_v*": a wildcard there
+        # also matches another user's file (purging user 1 would match
+        # heatmap_v7_12_1_...). Each pattern stays anchored to "{user_id}_".
+        for pattern in (f"heatmap_v7_{user_id}_*", f"heatmap_v6_{user_id}_*"):
+            for path in _glob.glob(os.path.join(CACHE_DIR, pattern)):
+                candidates.append((path, CACHE_DIR))
         candidates.append((os.path.join(CACHE_DIR, f"import_conflicts_{user_id}.json"), CACHE_DIR))
         # Same patterns as delete_outlook_files, used only for reporting
-        for pattern in (f"outlook_v3_{user_id}_*.json", f"outlook_v3_{user_id}_*_debug.yaml",
+        for pattern in (f"outlook_v4_{user_id}_*.json", f"outlook_v4_{user_id}_*_debug.yaml",
+                        f"outlook_v3_{user_id}_*.json", f"outlook_v3_{user_id}_*_debug.yaml",
                         f"outlook_v2_{user_id}_*.json", f"outlook_v2_{user_id}_*_debug.yaml",
                         f"outlook_cache_({user_id}_*.json"):
             outlook_files.extend(_glob.glob(os.path.join(CACHE_DIR, pattern)))

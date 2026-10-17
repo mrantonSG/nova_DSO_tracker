@@ -1885,7 +1885,7 @@ def sun_events():
 
     # Calculate moon phase using determined variables
     try:
-        moon_phase = calculate_moon_phase_cached(local_date, lat, lon)
+        moon_phase = calculate_moon_phase_cached(local_date, lat, lon, tz_name)
     except Exception as e:
         print(f"[API Sun Events] Error calculating moon phase: {e}")
         moon_phase = "N/A"
@@ -2439,7 +2439,8 @@ def graph_dashboard(object_name):
             dt_utc_astropy = dt_for_moon_local.astimezone(pytz.utc)
 
             # Moon Phase
-            moon_phase_for_effective_date = calculate_moon_phase_cached(effective_date_str, effective_lat, effective_lon)
+            moon_phase_for_effective_date = calculate_moon_phase_cached(
+                effective_date_str, effective_lat, effective_lon, effective_tz_name)
 
             # Angular Separation
             time_obj_sep = Time(dt_utc_astropy)
@@ -2666,7 +2667,7 @@ def get_date_info(object_name):
 
     local_time = tz.localize(datetime(year, month, day, now.hour, now.minute))
 
-    phase = calculate_moon_phase_cached(local_date_str, g.lat, g.lon)
+    phase = calculate_moon_phase_cached(local_date_str, g.lat, g.lon, g.tz_name)
 
     # Calculate display string for the UI (e.g. "11.12.2025 - 12.12.2025")
     curr_dt = datetime(year, month, day)
@@ -2804,8 +2805,10 @@ def get_imaging_opportunities(object_name):
             continue
 
         # Calculate Moon phase using determined local_tz
-        time_for_moon_phase = local_tz.localize(datetime.combine(d, datetime.min.time().replace(hour=12))) # Use local noon
-        moon_phase = ephem.Moon(time_for_moon_phase.astimezone(pytz.utc)).phase
+        # Raw, as before; only the instant moves to the night's local midnight.
+        moon_phase = ephem.Moon(
+            local_tz.localize(datetime.combine(d + timedelta(days=1), datetime.min.time()))
+            .astimezone(pytz.utc)).phase
         if moon_phase > max_moon:
             continue
 

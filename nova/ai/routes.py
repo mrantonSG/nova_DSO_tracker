@@ -31,6 +31,7 @@ import math
 import nova
 from nova.config import ADMIN_USERS
 from nova.helpers import get_db, resolve_altitude_threshold
+from modules.astro_calculations import night_midnight_utc
 from nova.models import AstroObject, Location, Rig, JournalSession, SavedFraming
 from nova.record_links import (
     components_by_uid, components_for_rig, framing_for_object, rig_components, rig_for_uid,
@@ -419,8 +420,8 @@ def generate_dso_notes():
             time_11pm_local = local_tz.localize(datetime.combine(date_obj, time(23, 0)))
             dt_utc = time_11pm_local.astimezone(pytz.utc)
 
-            # Moon Phase
-            moon_phase = round(ephem.Moon(dt_utc).phase, 1)
+            # Moon Phase: the night's local midnight, not the 11 PM the separation below uses.
+            moon_phase = round(ephem.Moon(night_midnight_utc(date_str, tz_name)).phase, 1)
 
             # Angular Separation between moon and target object at 11 PM local
             time_obj_sep = Time(dt_utc)
@@ -942,12 +943,9 @@ def get_best_objects():
             else:
                 date_obj = now_local.date()
 
-        # Use 11 PM local for moon phase calculation (matches dashboard)
-        time_11pm_local = local_tz.localize(
-            datetime.combine(date_obj, time(23, 0))
-        )
-        dt_utc = time_11pm_local.astimezone(pytz.utc)
-        moon_phase = round(ephem.Moon(dt_utc).phase, 1)
+        # The night's local midnight, not 11 PM.
+        local_date_str = date_obj.strftime('%Y-%m-%d')
+        moon_phase = round(ephem.Moon(night_midnight_utc(local_date_str, local_tz.zone)).phase, 1)
     except Exception as e:
         logger.warning(f"Failed to calculate moon phase: {e}")
         moon_phase = None
@@ -1229,7 +1227,7 @@ def prefilter_debug():
             user_id=g.db_user.id
         ).first()
 
-    # Get moon phase (use 11 PM tonight)
+    # Get moon phase (the night's local midnight)
     moon_phase = 0
     local_date_str = None
     try:
@@ -1241,11 +1239,7 @@ def prefilter_debug():
         else:
             date_obj = now_local.date()
         local_date_str = date_obj.strftime("%Y-%m-%d")
-        time_11pm_local = local_tz.localize(
-            datetime.combine(date_obj, time(23, 0))
-        )
-        dt_utc = time_11pm_local.astimezone(pytz.utc)
-        moon_phase = round(ephem.Moon(dt_utc).phase, 1)
+        moon_phase = round(ephem.Moon(night_midnight_utc(local_date_str, local_tz.zone)).phase, 1)
     except Exception as e:
         logger.warning(f"Failed to calculate moon phase for debug: {e}")
         # Fallback to today

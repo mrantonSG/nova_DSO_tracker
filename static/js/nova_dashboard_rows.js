@@ -210,6 +210,13 @@
         return dateString(wall.year, wall.month, wall.day - (wall.hour < 12 ? 1 : 0));
     }
 
+    /** 00:00 local on the day after `dateStr`, as UTC ms — the night's Moon instant.
+     *  Matches modules/astro_calculations.py:night_midnight_utc(). */
+    function nightMidnightUtc(dateStr, tz, A) {
+        const d = parseDate(dateStr);
+        return localize(d.year, d.month, d.day + 1, 0, 0, tz, A, false);
+    }
+
     // ------------------------------------------------------------------ the night
 
     /** calculate_observable_duration_vectorized()'s sample times, or null for no darkness. */
@@ -428,8 +435,9 @@
      *          with simDate that date as given (no noon rule), or the wall date where
      *          strptime would reject it
      *   time   the location's wall clock 'HH:MM', in simulation too (localize() keeps it)
-     *   phase  NovaAstro.moonPhase(date): 12:00 UTC, one decimal; ephem's
-     *          calculate_moon_phase_cached() agrees to within 0.1
+     *   phase  NovaAstro.moonPhaseAt() at 00:00 local on the day after the night's
+     *          date, one decimal; ephem's calculate_moon_phase_cached() agrees to
+     *          within 0.1
      *   astronomical_dusk, astronomical_dawn   calculate_sun_events() of that date
      * plus astronomical_dusk_utc / astronomical_dawn_utc (UTC ms, or null), for tests.
      * Throws on a missing location, a non-finite coordinate or any engine failure.
@@ -452,7 +460,7 @@
         return {
             date: date,
             time: pad2(wall.hour) + ':' + pad2(wall.minute),
-            phase: finite(A.moonPhase(date), 'moon phase'),
+            phase: finite(A.moonPhaseAt(nightMidnightUtc(date, tz, A)), 'moon phase'),
             astronomical_dusk: events.astronomical_dusk,
             astronomical_dawn: events.astronomical_dawn,
             astronomical_dusk_utc: events.astronomical_dusk_utc,

@@ -6,7 +6,13 @@ from flask import g
 
 import modules.astro_calculations as astro
 import nova.ai.routes as ai_routes
+from modules.astro_calculations import night_midnight_utc
 from nova import app, get_or_create_db_user, Location, AstroObject
+
+
+def night_midnight_phase(night, tz):
+    """The Moon at 00:00 local on the day after `night`, 1 dp — the rule's instant."""
+    return round(ephem.Moon(night_midnight_utc(night, tz.zone)).phase, 1)
 
 
 def test_prefilter_debug_uses_location_observing_night(db_session, monkeypatch):
@@ -41,9 +47,10 @@ def test_prefilter_debug_uses_location_observing_night(db_session, monkeypatch):
         g.user_config = {}
         body = ai_routes.prefilter_debug().get_json()
 
-    # Observing night in Singapore = 2026-03-15 -> 23:00 SGT = 15:00 UTC
+    # Observing night in Singapore = 2026-03-15, measured at its local midnight:
+    # 2026-03-16 00:00 SGT = 2026-03-15 16:00 UTC.
     expected_night = "2026-03-15"
-    expected_phase = round(ephem.Moon(sgt.localize(_real_datetime(2026, 3, 15, 23, 0)).astimezone(pytz.utc)).phase, 1)
+    expected_phase = night_midnight_phase(expected_night, sgt)
 
     # Guard: the old UTC-based derivation picks a different night and moon instant
     now_utc = frozen_local.astimezone(pytz.utc)
@@ -52,6 +59,11 @@ def test_prefilter_debug_uses_location_observing_night(db_session, monkeypatch):
     old_phase = round(ephem.Moon(pytz.utc.localize(_real_datetime.combine(old_date, _time(23, 0)))).phase, 1)
     assert old_night != expected_night, "guard: night would not discriminate"
     assert old_phase != expected_phase, "guard: moon phase would not discriminate"
+
+    # The 11 PM instants this used to read must now differ too, or the test would
+    # pass with the old rule intact.
+    old_11pm = round(ephem.Moon(sgt.localize(_real_datetime(2026, 3, 15, 23, 0)).astimezone(pytz.utc)).phase, 1)
+    assert old_11pm != expected_phase, "guard: the phase must move off 11 PM"
 
     assert seen_dates == [expected_night]
     assert body["moon_phase"] == expected_phase

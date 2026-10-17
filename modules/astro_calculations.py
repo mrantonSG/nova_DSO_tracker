@@ -330,6 +330,20 @@ def calculate_sun_events(date_str, tz_name, lat, lon):
         "astronomical_dusk": astro_dusk_local
     }
 
+def night_midnight_utc(date_str, tz_name):
+    """UTC instant of 00:00 local on the day after `date_str`.
+
+    The Moon rule: the night that starts on the evening of `date_str` is measured at
+    the local midnight between that date and the next. pytz's localize() default
+    (is_dst=False) reads a midnight the clocks skip with the offset before the change
+    and a repeated one as the later, standard reading; the JS replica in
+    static/js/nova_dashboard_rows.js agrees on every case tested.
+    """
+    local_tz = pytz.timezone(tz_name)
+    day = date.fromisoformat(date_str) if isinstance(date_str, str) else date_str
+    return local_tz.localize(datetime.combine(day + timedelta(days=1), time(0, 0))).astimezone(pytz.utc)
+
+
 # Global cache for sun events: key = (date_str, tz_name, lat, lon)
 SUN_EVENTS_CACHE = BoundedCache(maxsize=1000)
 
@@ -349,21 +363,23 @@ def calculate_sun_events_cached(date_str, tz_name, lat, lon):
 
 MOON_PHASE_CACHE = BoundedCache(maxsize=1000)
 
-def calculate_moon_phase_cached(date_str, lat, lon):
-    """Return moon illumination % (0–100, one decimal) for a given date and location.
-    Deterministic per (date, lat, lon) — no TTL needed.
+def calculate_moon_phase_cached(date_str, lat, lon, tz_name=None):
+    """Return moon illumination % (0–100, one decimal) for an observing night.
+
+    The night that starts on the evening of `date_str` is measured at 00:00 local on
+    the next day in `tz_name` (see night_midnight_utc). With no timezone the instant is
+    12:00 UTC of `date_str`, the older reading, which tools/gen_astro_fixture.py still
+    uses to build the reference the JS engine's moonPhase() is checked against.
+    Deterministic per (date, tz, lat, lon) — no TTL needed.
     """
-    key = (date_str, str(lat), str(lon))
+    # "noon-utc" not "UTC": 12:00 UTC and 00:00 UTC on the next day must not collide.
+    key = (date_str, "noon-utc" if tz_name is None else tz_name, str(lat), str(lon))
     if key in MOON_PHASE_CACHE:
         return MOON_PHASE_CACHE[key]
 
-    observer = ephem.Observer()
-    observer.lat = str(lat)
-    observer.lon = str(lon)
-    observer.date = ephem.Date(date_str + " 12:00:00")
-    moon = ephem.Moon()
-    moon.compute(observer)
-    phase = round(moon.phase, 1)
+    instant = (pytz.utc.localize(datetime.combine(date.fromisoformat(date_str), time(12, 0)))
+               if tz_name is None else night_midnight_utc(date_str, tz_name))
+    phase = round(ephem.Moon(instant).phase, 1)
     MOON_PHASE_CACHE[key] = phase
     return phase
 

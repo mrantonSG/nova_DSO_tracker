@@ -2281,10 +2281,12 @@ def api_mobile_status():
     else:
         local_date = current_datetime_local.strftime('%Y-%m-%d')
 
-    # Calculate moon phase
+    # Calculate moon phase (0 dp, as this endpoint has always rounded it).
+    # Was local noon of *today*; the observing night's local midnight is local_date.
     try:
+        local_date_obj = datetime.strptime(local_date, '%Y-%m-%d')
         time_for_phase_local = local_tz.localize(
-            datetime.combine(datetime.now().date(), datetime.min.time().replace(hour=12)))
+            datetime.combine(local_date_obj + timedelta(days=1), datetime.min.time()))
         moon_phase = round(ephem.Moon(time_for_phase_local.astimezone(pytz.utc)).phase, 0)
     except Exception:
         moon_phase = None
@@ -2329,9 +2331,9 @@ def get_moon_data_for_session():
         # --- Calculate Moon Phase (always possible) ---
         local_tz = pytz.timezone(tz_name)
         date_obj = datetime.strptime(date_str, '%Y-%m-%d')
-        # Use a consistent time (e.g., local noon) for phase calculation
+        # The session's night, measured at its local midnight.
         time_for_phase_local = local_tz.localize(
-            datetime.combine(date_obj.date(), datetime.min.time().replace(hour=12)))
+            datetime.combine(date_obj.date() + timedelta(days=1), datetime.min.time()))
         moon_phase = round(ephem.Moon(time_for_phase_local.astimezone(pytz.utc)).phase, 1)
 
         # --- Calculate Separation (only if RA/DEC are present) ---
@@ -3995,7 +3997,9 @@ def get_yearly_heatmap_chunk():
             weeks_x.append(d.strftime('%b %d'))
             target_dates.append(d.strftime('%Y-%m-%d'))
             try:
-                dt_moon = local_tz.localize(datetime.combine(d, datetime.min.time())).astimezone(pytz.utc)
+                # d is the week anchor; the night it opens ends at d+1's local midnight.
+                dt_moon = local_tz.localize(
+                    datetime.combine(d + timedelta(days=1), datetime.min.time())).astimezone(pytz.utc)
                 m = ephem.Moon(dt_moon)
                 moon_phases.append(round(m.phase, 1))
             except:
