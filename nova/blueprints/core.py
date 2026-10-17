@@ -2651,7 +2651,18 @@ def graph_dashboard(object_name):
 @core_bp.route('/get_date_info/<path:object_name>')
 def get_date_info(object_name):
     load_full_astro_context()
-    tz = pytz.timezone(g.tz_name)
+    lat, lon, tz_name = g.lat, g.lon, g.tz_name
+    # ?location=: the graph page's location. One of the user's own locations, as
+    # graph_dashboard looks it up (user_id + name, no active filter); missing or not
+    # found falls back to the default above.
+    requested_location_name = request.args.get('location', '').strip()
+    if requested_location_name and g.db_user:
+        requested_location = get_db().query(Location).filter_by(
+            user_id=g.db_user.id, name=requested_location_name).one_or_none()
+        if requested_location:
+            lat, lon, tz_name = requested_location.lat, requested_location.lon, requested_location.timezone
+
+    tz = pytz.timezone(tz_name)
     now = datetime.now(tz)  # current time in user's local timezone
 
     day = int(request.args.get('day') or now.day)
@@ -2664,11 +2675,11 @@ def get_date_info(object_name):
     day = min(max(day, 1), days_in_month)
 
     local_date_str = f"{year}-{month:02d}-{day:02d}"
-    sun_events = calculate_sun_events_cached(local_date_str, g.tz_name, g.lat, g.lon)
+    sun_events = calculate_sun_events_cached(local_date_str, tz_name, lat, lon)
 
     local_time = tz.localize(datetime(year, month, day, now.hour, now.minute))
 
-    phase = calculate_moon_phase_cached(local_date_str, g.lat, g.lon, g.tz_name)
+    phase = calculate_moon_phase_cached(local_date_str, lat, lon, tz_name)
 
     # Calculate display string for the UI (e.g. "11.12.2025 - 12.12.2025")
     curr_dt = datetime(year, month, day)
@@ -2682,7 +2693,7 @@ def get_date_info(object_name):
         try:
             dt_utc_astropy = local_time.astimezone(pytz.utc)
             time_obj_sep = Time(dt_utc_astropy)
-            loc_obj_sep = EarthLocation(lat=g.lat * u.deg, lon=g.lon * u.deg)
+            loc_obj_sep = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
             moon_coord_sep = get_body('moon', time_obj_sep, loc_obj_sep)
             obj_coord_sep = SkyCoord(ra=obj_data["RA (hours)"] * u.hourangle, dec=obj_data["DEC (degrees)"] * u.deg)
             frame_sep = AltAz(obstime=time_obj_sep, location=loc_obj_sep)

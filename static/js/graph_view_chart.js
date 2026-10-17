@@ -2720,7 +2720,7 @@
         });
 
         const day = document.getElementById('day-select').value, month = document.getElementById('month-select').value, year = document.getElementById('year-select').value, objectName = NOVA_GRAPH_DATA.objectName;
-        fetch(`/get_date_info/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}`)
+        fetch(`/get_date_info/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}&location=${encodeURIComponent(NOVA_GRAPH_DATA.plotLocName || '')}`)
             .then(response => response.json())
             .then(data => {
                 if (!skipPhaseUpdate) {

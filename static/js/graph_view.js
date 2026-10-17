@@ -27,7 +27,7 @@
             var m = document.getElementById('month-select').value;
             var y = document.getElementById('year-select').value;
             try {
-                var url = '/get_date_info/' + encodeURIComponent(objectName) + '?day=' + d + '&month=' + m + '&year=' + y;
+                var url = '/get_date_info/' + encodeURIComponent(objectName) + '?day=' + d + '&month=' + m + '&year=' + y + '&location=' + encodeURIComponent(DATA.plotLocName || '');
                 var res = await fetch(url);
                 var data = await res.json();
                 if (data.separation && document.getElementById('separation-display')) {
