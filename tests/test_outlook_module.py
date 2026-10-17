@@ -201,6 +201,10 @@ def test_fields_round_as_the_server_rounds_them(tmp_path):
                                {"minutes": 720, "maxAltitude": 39.25, "phase": 0.25, "sep": 180})])
     row2 = r2["y"]["rows"][0]
     assert row2["max_alt"] == 39.2 and row2["moon_illumination"] == 0.2
+    # score is not rounded: the worker stores float(composite_score) as it is.
+    # (phase 0.25 here is moonPhaseAt()'s one decimal, so the worker's terms are the same.)
+    alt, sd, sm, ss = (39.25 - 20) / 70, 1, 1 - 0.25 / 100, (1 - 0.25 / 100) + (0.25 / 100) * 1
+    assert row2["score"] == 100 * (0.20 * alt + 0.15 * sd + 0.45 * sm + 0.20 * ss)
 
 
 # --- the start date --------------------------------------------------------------

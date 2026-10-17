@@ -52,9 +52,10 @@
  *     * 4) + 1, Python's round, halves to even.
  *   - Once per night, shared by every object: the sun events, the Moon's
  *     illumination and the night window.
- *   - Printed as the server prints them: score, max_alt, moon_illumination via
- *     round(x, 1) (halves to even — NovaDashboardRows._py); obs_dur is int(...), a
- *     truncation of the minutes. The catalogue strings (type, magnitude, size, sb)
+ *   - Printed as the server prints them: score is the composite float itself, not
+ *     rounded (the worker stores float(composite_score)); max_alt and
+ *     moon_illumination via round(x, 1) (halves to even — NovaDashboardRows._py);
+ *     obs_dur is int(...), a truncation of the minutes. The catalogue strings (type, magnitude, size, sb)
  *     are passed through as they come; common_name and project stay null where the
  *     column is null.
  *
@@ -229,7 +230,7 @@
                     common_name: obj.common_name === undefined ? null : obj.common_name,
                     has_framing: !!obj.has_framing,
                     date: date,
-                    score: D._py.round(compositeScore, 1),
+                    score: compositeScore,
                     rating: rating(rowStars),
                     rating_num: rowStars,
                     max_alt: D._py.round(dur.maxAltitude, 1),
