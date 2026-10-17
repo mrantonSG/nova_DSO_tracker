@@ -1404,6 +1404,17 @@
         if (e.ctrlKey || e.metaKey) return;
 
         e.preventDefault();
+
+        // A session taken at another location: load the page for that location instead
+        // (the chart's time zone is fixed at load). ?location= only drives this page;
+        // the saved default location (/set_location, sessionStorage) is left alone.
+        const sessionLocation = new URL(url, window.location.origin).searchParams.get('location');
+        const pageLocation = window.NOVA_GRAPH_DATA && window.NOVA_GRAPH_DATA.plotLocName;
+        if (sessionLocation && pageLocation && sessionLocation !== pageLocation) {
+            window.location.href = url;
+            return;
+        }
+
         document.body.style.cursor = 'wait';
 
         // UI Feedback: Reset all highlights first
@@ -1468,21 +1479,7 @@
             // 3. Update Browser URL without reloading
             window.history.pushState({}, '', url);
 
-            // 4. Update status strip location from URL params
-            try {
-                const urlObj = new URL(url, window.location.origin);
-                const newLocation = urlObj.searchParams.get('location');
-                if (newLocation) {
-                    const locationDisplay = document.getElementById('location-display');
-                    if (locationDisplay) {
-                        locationDisplay.textContent = newLocation;
-                    }
-                }
-            } catch (err) {
-                console.warn('Failed to update location display:', err);
-            }
-
-            // 5. Re-initialize Tabs if needed
+            // 4. Re-initialize Tabs if needed
             if (typeof showDetailTab === 'function') {
                 showDetailTab('summary');
             }
