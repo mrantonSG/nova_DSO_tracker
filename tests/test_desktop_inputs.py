@@ -229,6 +229,36 @@ def test_desktop_inputs_multi_user_defaults_are_per_user(multi_user_client, db_s
     assert settings["min_observable_minutes"] == 60
 
 
+# --- auth: logged out and guest, as the batch --------------------------------------------
+
+def test_desktop_inputs_auth_matches_the_batch(mu_client_logged_out):
+    """Logged out in multi-user mode: the same refusal as the batch."""
+    inputs = mu_client_logged_out.get('/api/desktop_inputs')
+    batch = mu_client_logged_out.get('/api/get_desktop_data_batch')
+
+    assert inputs.status_code == 401
+    assert (inputs.status_code, inputs.get_json()) == (batch.status_code, batch.get_json())
+
+
+def test_desktop_inputs_serves_the_guest_user_like_the_batch(mu_client_logged_out, db_session):
+    guest = db_session.query(DbUser).filter_by(username="guest_user").one()
+    db_session.add(Location(user_id=guest.id, name="Guest Site", lat=50, lon=10,
+                            timezone="UTC", is_default=True))
+    db_session.add(AstroObject(user_id=guest.id, object_name="Guest M31",
+                               ra_hours=0.71, dec_deg=41.3))
+    db_session.commit()
+    with mu_client_logged_out.session_transaction() as sess:
+        sess['guest_mode'] = True
+
+    inputs = mu_client_logged_out.get('/api/desktop_inputs', query_string={"location": "Guest Site"})
+    batch = mu_client_logged_out.get('/api/get_desktop_data_batch', query_string={"location": "Guest Site"})
+
+    assert (inputs.status_code, batch.status_code) == (200, 200)
+    data = inputs.get_json()
+    assert data["location"]["name"] == "Guest Site"
+    assert "Guest M31" in [o["Object"] for o in data["objects"]]
+
+
 # --- the existing endpoint is untouched --------------------------------------------------
 
 def test_mobile_up_now_inputs_keys_are_unchanged(client):

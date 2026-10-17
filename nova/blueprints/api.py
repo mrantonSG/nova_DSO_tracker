@@ -2026,8 +2026,9 @@ def _up_now_inputs_payload(db, user, location, user_prefs_dict, include_enabled=
     Shared by /api/mobile_up_now_inputs (which returns exactly these two keys)
     and /api/desktop_inputs (which adds the settings and skyglow blocks).
 
-    `include_enabled` adds the row's `enabled` flag, which the desktop dashboard
-    needs (it only shows enabled objects) and the mobile payload must not carry.
+    `include_enabled` adds the row's `enabled` flag to /api/desktop_inputs rows;
+    the mobile payload must not carry it. (The dashboard takes its enabled rows
+    from /api/desktop_library; the graph view looks objects up here, disabled too.)
     """
     # Every object of the user, in id order (no enabled filter, no pagination).
     objects = db.query(AstroObject).filter_by(user_id=user.id).order_by(AstroObject.id).all()
@@ -2145,7 +2146,10 @@ def _desktop_library_fields(db, user_id, objects):
 @api_bp.route('/api/desktop_inputs')
 def api_desktop_inputs():
     """Read-only inputs for the desktop dashboard and graph view, so the browser
-    can compute them with static/js/nova_astro.js. No DB writes, no calculation.
+    can compute them: static/js/nova_dashboard_rows.js (dashboard rows and status
+    strip, with the rows from /api/desktop_library) and static/js/nova_plot_data.js
+    (graph day/month/year), both on nova_astro.js and nova_transit.js. No DB
+    writes, no calculation.
 
     ?location=<name> picks one of the caller's own locations; an unknown name, or
     another user's, is 404 with no data. Without the parameter the active location

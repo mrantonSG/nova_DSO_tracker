@@ -1151,7 +1151,9 @@
         clearTimeout(fetchLoaderTimer);
         fetchLoaderTimer = setTimeout(() => {
             fetchLoaderTimer = null;
-            if (loadingDiv) loadingDiv.style.display = 'block';
+            // Only over the table: updateTabDisplay shows it on return if still loading
+            const tableTab = activeTab === 'position' || activeTab === 'properties';
+            if (loadingDiv && tableTab) loadingDiv.style.display = 'block';
         }, 400);
     }
 
@@ -1268,8 +1270,14 @@
             localDashboardState = null;
             return false;
         }
-        renderRows(applyNovaRankSorting(rows));
-        finalizeFetch(true);
+        try {
+            renderRows(applyNovaRankSorting(rows));
+            finalizeFetch(true);
+        } catch (e) {
+            // Handled: the caller still resets the countdown; the next tick uses the server.
+            console.warn('Client-side dashboard tick render failed, using the server next time:', e);
+            localDashboardState = null;
+        }
         return true;
     }
 
