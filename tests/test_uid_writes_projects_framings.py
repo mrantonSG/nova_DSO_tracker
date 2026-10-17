@@ -11,7 +11,7 @@ from datetime import date
 import pytest
 
 from nova.models import AstroObject, Component, JournalSession, Project, Rig, SavedFraming
-from nova.record_links import LINKS, count_link_disagreements
+from nova.record_links import LINKS, count_link_disagreements, sync_project_link
 
 
 CHECKED_LINKS = tuple(link for link in LINKS if link.table in ("projects", "saved_framings"))
@@ -227,6 +227,51 @@ def test_project_edit_sets_changes_and_clears(w):
 
     # Empty field.
     assert _target(_edit_project(w, p.id, "")) == ("", None)
+    _assert_links_clean(w.db)
+
+
+# --- editing a project never touches the object's pin ---------------------------------
+
+def _edit_project_status(w, project_id, status):
+    resp = w.client.post(f'/project/{project_id}', data={
+        'name': "Edit P", 'target_object_id': "M 42", 'status': status,
+    })
+    assert resp.status_code == 302
+
+
+def _new_project(w, name):
+    p = Project(id=("f" * 30) + name[-2:], user_id=w.a, name=name,
+                target_object_name="M 42")
+    w.db.add(p)
+    w.db.commit()
+    sync_project_link(w.db, p)
+    w.db.commit()
+    return p
+
+
+@pytest.mark.parametrize("status", ["In Planning", "In Progress", "Completed", "On Hold", "Abandoned"])
+def test_pinned_object_stays_pinned_whatever_the_project_status(w, status):
+    """A pinned object is not unpinned by editing its project."""
+    w.m42.active_project = True
+    p = _new_project(w, "PinP")
+
+    _edit_project_status(w, p.id, status)
+
+    w.db.expire_all()
+    assert w.db.query(AstroObject).filter_by(id=w.m42.id).one().active_project is True
+    _assert_links_clean(w.db)
+
+
+@pytest.mark.parametrize("status", ["In Planning", "In Progress", "Completed", "On Hold", "Abandoned"])
+def test_unpinned_object_stays_unpinned_whatever_the_project_status(w, status):
+    """An unpinned object is not pinned by editing its project."""
+    w.m42.active_project = False
+    p = _new_project(w, "NoPinP")
+
+    _edit_project_status(w, p.id, status)
+
+    w.db.expire_all()
+    assert w.db.query(AstroObject).filter_by(id=w.m42.id).one().active_project is False
     _assert_links_clean(w.db)
 
 

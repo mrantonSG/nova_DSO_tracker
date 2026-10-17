@@ -162,9 +162,9 @@ def test_project_deletion_preserves_sessions(client, db_session):
     assert reloaded_sess is not None
     assert reloaded_sess.project_id is None
 
-    # Object active_project flag should be cleared
+    # The object's pin is manual: deleting a project must not touch it
     reloaded_obj = db_session.query(AstroObject).filter_by(object_name="M31").one()
-    assert reloaded_obj.active_project is False
+    assert reloaded_obj.active_project is True
 
 
 def test_journal_add_creates_new_project_and_links(client, db_session):

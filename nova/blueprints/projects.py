@@ -30,9 +30,9 @@ from sqlalchemy import func
 import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay live (see nova/config.py)
 from nova.config import UPLOAD_FOLDER
 from nova.models import (
-    DbUser, Project, JournalSession, AstroObject, UserCustomFilter
+    DbUser, Project, JournalSession, UserCustomFilter
 )
-from nova.record_links import object_for_uid, sync_project_link
+from nova.record_links import sync_project_link
 from nova.helpers import (
     get_db, load_full_astro_context, read_log_content, invalidate_object_caches,
     is_safe_redirect_target, safe_int
@@ -117,7 +117,6 @@ def project_detail(project_id):
             )
 
             # 3. Update all new fields (including the rich text from Trix)
-            old_target_uid = project.target_object_record_uid
             project.name = request.form.get('name')
             project.target_object_name = request.form.get('target_object_id')  # Note: Renamed from 'target_object_name'
             sync_project_link(db, project)
@@ -133,38 +132,8 @@ def project_detail(project_id):
             if new_filename:
                 project.final_image_file = new_filename
 
-            # Track whether any active_project flag actually changes (drives Outlook rebuild)
-            active_changed = False
-
-            # If the primary target is changed, check if the linked object has notes
-            if project.target_object_record_uid:
-                target_obj_in_config = object_for_uid(
-                    db, g.db_user.id, project.target_object_record_uid)
-                if target_obj_in_config:
-                    # Update active_project status based on this primary project
-                    # Set active if status is "In Progress", otherwise set inactive
-                    old_active = bool(target_obj_in_config.active_project)
-                    target_obj_in_config.active_project = (project.status == "In Progress")
-                    if target_obj_in_config.active_project != old_active:
-                        active_changed = True
-
-            # If the target changed, clear active_project on the old target — but only
-            # if no other project still points at it.
-            if old_target_uid and old_target_uid != project.target_object_record_uid:
-                other_project_with_old_target = db.query(Project).filter(
-                    Project.id != project.id,
-                    Project.user_id == g.db_user.id,
-                    Project.target_object_record_uid == old_target_uid
-                ).first()
-                if not other_project_with_old_target:
-                    old_target_obj = object_for_uid(db, g.db_user.id, old_target_uid)
-                    if old_target_obj:
-                        if old_target_obj.active_project:
-                            active_changed = True
-                        old_target_obj.active_project = False
-
             db.commit()
-            invalidate_object_caches(g.db_user.id, username, [], curves=False, outlook=active_changed)
+            invalidate_object_caches(g.db_user.id, username, [], curves=False)
             flash(_("Project updated successfully."), "success")
 
             # --- Redirect Logic (Updated) ---
@@ -423,29 +392,12 @@ def delete_project(project_id):
             flash(_("Project not found."), "error")
             return redirect(url_for('core.index'))
 
-        # Track whether the active_project flag actually changes (drives Outlook rebuild)
-        active_changed = False
-
-        # Optional: Unset 'active_project' flag on the associated object if it exists
-        if project.target_object_record_uid:
-            obj = object_for_uid(db, user.id, project.target_object_record_uid)
-            if obj:
-                other_project_with_target = db.query(Project).filter(
-                    Project.id != project.id,
-                    Project.user_id == user.id,
-                    Project.target_object_record_uid == project.target_object_record_uid
-                ).first()
-                if not other_project_with_target:
-                    if obj.active_project:
-                        active_changed = True
-                    obj.active_project = False
-
         # Delete the project.
         # Note: Sessions will NOT be deleted. Their project_id will automatically set to NULL
         # because of the ForeignKey(ondelete="SET NULL") definition in your model.
         db.delete(project)
         db.commit()
-        invalidate_object_caches(user.id, username, [], curves=False, outlook=active_changed)
+        invalidate_object_caches(user.id, username, [], curves=False)
 
         flash(_("Project '%(project_name)s' deleted. Sessions are now standalone.", project_name=project.name), "success")
 

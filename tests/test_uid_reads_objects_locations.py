@@ -306,11 +306,11 @@ def test_framing_with_dangling_uid_is_not_a_framing(mu, db_session):
     assert _desktop_item(client)["framing_rig"] == ""
 
 
-# --- active_project follows the UID (project save and delete) --------------------------
+# --- the project save and delete paths never write active_project -----------------------
 
-def test_project_save_sets_active_project_on_the_uid_object(mu, db_session):
+def test_project_save_leaves_active_project_alone(mu, db_session):
     client, a_id, _ = mu
-    obj = _object(db_session, a_id, "M42")
+    obj = _object(db_session, a_id, "M42", active_project=True)
     project = _project(db_session, a_id, obj=None, name="P1", uid="dangling-uid")
     db_session.commit()
     pid = project.id
@@ -323,7 +323,7 @@ def test_project_save_sets_active_project_on_the_uid_object(mu, db_session):
     assert db_session.get(AstroObject, obj.id).active_project is True
 
 
-def test_project_delete_clears_active_project_on_the_uid_object(mu, db_session):
+def test_project_delete_leaves_active_project_alone(mu, db_session):
     client, a_id, _ = mu
     obj = _object(db_session, a_id, "M42", active_project=True)
     project = _project(db_session, a_id, obj=obj, name="P1")
@@ -333,7 +333,7 @@ def test_project_delete_clears_active_project_on_the_uid_object(mu, db_session):
     resp = client.post(f"/project/delete/{pid}")
     assert resp.status_code in (200, 302)
     db_session.expire_all()
-    assert db_session.get(AstroObject, obj.id).active_project is False
+    assert db_session.get(AstroObject, obj.id).active_project is True
 
 
 # --- another user's object is never resolved -------------------------------------------
