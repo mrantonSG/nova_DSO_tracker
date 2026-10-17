@@ -5,9 +5,12 @@ locations, the page's location selected. An inactive location is listed only whe
 it is the page's location (an old ?location= link), then disabled and selected.
 """
 
+from datetime import date
 from html.parser import HTMLParser
+from urllib.parse import parse_qs, urlsplit
 
-from nova.models import AstroObject, DbUser, Location
+from nova.models import AstroObject, DbUser, JournalSession, Location
+from nova.record_links import sync_session_links
 
 LOC_NAME = "Default Test Loc"  # created by the conftest client fixture (is_default=True)
 
@@ -124,3 +127,39 @@ def test_header_has_no_location_display_for_the_journal_ajax_write(client):
     switch; on the select that would wipe the options, so the id must not exist."""
     page = client.get('/graph_dashboard/M42').get_data(as_text=True)
     assert 'id="location-display"' not in page
+
+
+class _SessionRowParser(HTMLParser):
+    """Collects the data-url of every journal session row (data-action="load-session")."""
+
+    def __init__(self):
+        super().__init__()
+        self.urls = []
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag == "tr" and attrs.get("data-action") == "load-session":
+            self.urls.append(attrs.get("data-url"))
+
+
+def test_session_without_location_links_to_the_pages_location(client, db_session):
+    """A session with no saved location opens at the page's location: its row's
+    data-url carries ?location=, so the journal's AJAX swap renders the header for
+    the page's location instead of the saved default."""
+    _add_locations(db_session)
+    user = db_session.query(DbUser).filter_by(username="default").one()
+    session = JournalSession(user_id=user.id, date_utc=date(2026, 1, 1),
+                             object_name="M42", location_name=None)
+    sync_session_links(db_session, session)
+    db_session.add(session)
+    db_session.commit()
+
+    response = client.get('/graph_dashboard/M42?location=Second Site')
+    assert response.status_code == 200
+    parser = _SessionRowParser()
+    parser.feed(response.get_data(as_text=True))
+
+    row_urls = [u for u in parser.urls
+                if parse_qs(urlsplit(u).query).get("session_id") == [str(session.id)]]
+    assert len(row_urls) == 1, parser.urls
+    assert parse_qs(urlsplit(row_urls[0]).query).get("location") == ["Second Site"]

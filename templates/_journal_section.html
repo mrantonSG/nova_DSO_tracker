@@ -2309,7 +2309,7 @@
                             {% if group.is_project %}data-project-group="{{ group.project_id }}"{% else %}data-project-group="standalone"{% endif %}
                             style="{% if not group.is_project %}{% elif not group.is_latest %}display: none;{% endif %}"
                             data-action="load-session"
-                            data-url="{% if session_item.location_name %}{{ url_for('core.graph_dashboard', object_name=object_name, session_id=session_item.id, location=session_item.location_name, tab='journal') }}{% else %}{{ url_for('core.graph_dashboard', object_name=object_name, session_id=session_item.id, tab='journal') }}{% endif %}">
+                            data-url="{% if session_item.location_name %}{{ url_for('core.graph_dashboard', object_name=object_name, session_id=session_item.id, location=session_item.location_name, tab='journal') }}{% else %}{{ url_for('core.graph_dashboard', object_name=object_name, session_id=session_item.id, location=header_location_name, tab='journal') }}{% endif %}">
                             <td class="col-date">{{ session_item.date_utc | date_eu | default("-", true) }}<span class="session-row-location">{{ session_item.location_name | default("-", true) }}</span></td>
                             <td class="col-integ">{% set integ_min = session_item.calculated_integration_time_minutes %}{{ integ_min | round(0) | int if integ_min is number else '-' }} {{ _('min') }}</td>
                             {% set rating = session_item.session_rating_subjective %}
