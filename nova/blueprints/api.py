@@ -2020,7 +2020,40 @@ def api_mobile_data_chunk():
     })
 
 
-def _up_now_inputs_payload(db, user, location, user_prefs_dict, include_enabled=False):
+def _outlook_row_fields(obj_record):
+    """The seven non-astronomy fields of one Outlook result row, each exactly the
+    value get_ra_dec() hands the server worker for the same object.
+
+    The Outlook row is built in compute_outlook_object_opportunities()
+    (nova/__init__.py:2037-2047) from get_ra_dec(obj_name, objects_map=to_dict()):
+    the raw column with that function's `or "N/A"` fallbacks, and the constellation
+    it recomputes whenever the column is empty (None, "" or "N/A").
+
+    `common_name` and `project` stay null where the column is NULL: get_ra_dec()
+    returns those keys present-and-None, so the caller's `.get(key, default)` never
+    fires. The browser gets the same value, not a friendlier one.
+    """
+    constellation = obj_record.constellation
+    if constellation in (None, "N/A", ""):
+        try:
+            constellation = get_constellation(
+                SkyCoord(ra=obj_record.ra_hours * u.hourangle,
+                         dec=obj_record.dec_deg * u.deg), short_name=True)
+        except Exception:
+            constellation = "N/A"
+    return {
+        "common_name": obj_record.common_name,
+        "project": obj_record.project_name,
+        "type": obj_record.type or "N/A",
+        "constellation": constellation,
+        "magnitude": obj_record.magnitude or "N/A",
+        "size": obj_record.size or "N/A",
+        "sb": obj_record.sb or "N/A",
+    }
+
+
+def _up_now_inputs_payload(db, user, location, user_prefs_dict, include_enabled=False,
+                           include_outlook_fields=False):
     """Location block and every raw object row, no astronomical calculation.
 
     Shared by /api/mobile_up_now_inputs (which returns exactly these two keys)
@@ -2029,6 +2062,10 @@ def _up_now_inputs_payload(db, user, location, user_prefs_dict, include_enabled=
     `include_enabled` adds the row's `enabled` flag to /api/desktop_inputs rows;
     the mobile payload must not carry it. (The dashboard takes its enabled rows
     from /api/desktop_library; the graph view looks objects up here, disabled too.)
+
+    `include_outlook_fields` adds the seven fields a browser-built Outlook row
+    needs (_outlook_row_fields), so it does not have to join /api/desktop_library,
+    which only carries enabled objects. The mobile payload must not carry them.
     """
     # Every object of the user, in id order (no enabled filter, no pagination).
     objects = db.query(AstroObject).filter_by(user_id=user.id).order_by(AstroObject.id).all()
@@ -2054,6 +2091,8 @@ def _up_now_inputs_payload(db, user, location, user_prefs_dict, include_enabled=
         }
         if include_enabled:
             row["enabled"] = bool(obj_record.enabled)
+        if include_outlook_fields:
+            row.update(_outlook_row_fields(obj_record))
         objects_data.append(row)
 
     horizon_mask = [[hp.az_deg, hp.alt_min_deg]
@@ -2147,9 +2186,14 @@ def _desktop_library_fields(db, user_id, objects):
 def api_desktop_inputs():
     """Read-only inputs for the desktop dashboard and graph view, so the browser
     can compute them: static/js/nova_dashboard_rows.js (dashboard rows and status
-    strip, with the rows from /api/desktop_library) and static/js/nova_plot_data.js
-    (graph day/month/year), both on nova_astro.js and nova_transit.js. No DB
-    writes, no calculation.
+    strip, with the rows from /api/desktop_library), static/js/nova_plot_data.js
+    (graph day/month/year), both on nova_astro.js and nova_transit.js, and the
+    Outlook table. No DB writes, no calculation.
+
+    Each object row also carries the seven fields a browser-built Outlook row
+    needs (_outlook_row_fields) and the settings block the two imaging criteria
+    its filters use, so it never has to join /api/desktop_library: that endpoint
+    only serves enabled objects, and Outlook covers the active projects.
 
     ?location=<name> picks one of the caller's own locations; an unknown name, or
     another user's, is 404 with no data. Without the parameter the active location
@@ -2173,6 +2217,14 @@ def api_desktop_inputs():
         "min_observable_minutes": criteria["min_observable_minutes"],
         "max_moon_illumination": criteria["max_moon_illumination"],
         "min_angular_separation": criteria["min_angular_separation"],
+        # The two criteria the browser-built Outlook row filters on, passed through
+        # as get_imaging_criteria() clamped them, which is what _outlook_criteria()
+        # (nova/__init__.py:1866) gives the worker: search_horizon_months always an
+        # int, min_max_altitude a float once configured and otherwise the int 30
+        # (the clamp is max(0.0, min(90.0, x)), and both builtins return an argument
+        # that already passes unchanged).
+        "min_max_altitude": criteria["min_max_altitude"],
+        "search_horizon_months": criteria["search_horizon_months"],
         # The dashboard's skyglow gate: get_desktop_data_batch only sets its
         # below_skyglow_floor flags when this token is set.
         "skyglow_flags": bool(os.environ.get("NASA_EARTHDATA_TOKEN")),
@@ -2204,7 +2256,8 @@ def api_desktop_inputs():
 
     # 2. Location block and object rows (shared with /api/mobile_up_now_inputs)
     location_dict, objects_data = _up_now_inputs_payload(
-        db, user, location, user_prefs_dict, include_enabled=True)
+        db, user, location, user_prefs_dict, include_enabled=True,
+        include_outlook_fields=True)
 
     # 3. Skyglow floor for this location, in the smallest exact form
     skyglow = _skyglow_floor_series(current_app.instance_path, location.id)

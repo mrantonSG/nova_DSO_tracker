@@ -7,8 +7,9 @@ returns. It takes an optional ?location= limited to the caller's own locations.
 
 import json
 
-from nova import app, get_db
+from nova import app, get_db, _outlook_criteria
 from nova.config import astro_context_cache
+from nova.helpers import get_ra_dec
 from nova.models import AstroObject, DbUser, Location, UiPref
 
 LOC_NAME = "Default Test Loc"  # created by the conftest client fixture (lat 50, lon 10, UTC)
@@ -23,6 +24,21 @@ SG_SECTORS = [
 MOBILE_OBJECT_KEYS = {
     "Object", "Common Name", "ActiveProject", "has_framing",
     "Type", "Constellation", "ra", "dec",
+}
+
+# The seven fields a browser-built Outlook row needs on top of MOBILE_OBJECT_KEYS,
+# the ones the server row (compute_outlook_object_opportunities) takes from
+# get_ra_dec(). The mobile payload must not carry them.
+OUTLOOK_ROW_KEYS = {
+    "common_name", "project", "type", "constellation",
+    "magnitude", "size", "sb",
+}
+
+SETTINGS_KEYS = {
+    "hide_invisible", "calc_invisible",
+    "min_observable_minutes", "max_moon_illumination", "min_angular_separation",
+    "min_max_altitude", "search_horizon_months",
+    "skyglow_flags",
 }
 
 
@@ -68,18 +84,14 @@ def test_desktop_inputs_returns_the_documented_shape(client):
     assert data["location"]["name"] == LOC_NAME
     assert isinstance(data["location"]["horizon_mask"], list)
 
-    # All of the user's objects, each carrying the enabled flag.
+    # All of the user's objects, each carrying the enabled flag and the Outlook fields.
     assert any(o["Object"] == "M42" for o in data["objects"])
     for item in data["objects"]:
-        assert set(item.keys()) == MOBILE_OBJECT_KEYS | {"enabled"}
+        assert set(item.keys()) == MOBILE_OBJECT_KEYS | {"enabled"} | OUTLOOK_ROW_KEYS
         # No calculation ran (raw inputs only).
         assert "Altitude Current" not in item
 
-    assert set(data["settings"].keys()) == {
-        "hide_invisible", "calc_invisible",
-        "min_observable_minutes", "max_moon_illumination", "min_angular_separation",
-        "skyglow_flags",
-    }
+    assert set(data["settings"].keys()) == SETTINGS_KEYS
 
 
 def test_desktop_inputs_settings_reflect_ui_prefs(client, monkeypatch):
@@ -102,6 +114,9 @@ def test_desktop_inputs_settings_reflect_ui_prefs(client, monkeypatch):
         "min_observable_minutes": 90,
         "max_moon_illumination": 45,
         "min_angular_separation": 12,
+        # Not configured here, so the untouched default: the int 30, not 30.0.
+        "min_max_altitude": 30,
+        "search_horizon_months": 6,
         "skyglow_flags": False,
     }
 
@@ -121,11 +136,7 @@ def test_desktop_inputs_without_a_location_returns_the_null_shape(client, db_ses
     assert data["location"] is None
     assert data["objects"] == []
     assert data["skyglow"] is None
-    assert set(data["settings"].keys()) == {
-        "hide_invisible", "calc_invisible",
-        "min_observable_minutes", "max_moon_illumination", "min_angular_separation",
-        "skyglow_flags",
-    }
+    assert set(data["settings"].keys()) == SETTINGS_KEYS
 
 
 def test_desktop_inputs_settings_defaults(client):
@@ -137,6 +148,12 @@ def test_desktop_inputs_settings_defaults(client):
     assert settings["min_observable_minutes"] == 60
     assert settings["max_moon_illumination"] == 20
     assert settings["min_angular_separation"] == 30
+    # Exactly what _outlook_criteria() hands the worker. The min_max_altitude
+    # default is an int 30, not 30.0: the clamp is max(0.0, min(90.0, x)), and both
+    # builtins return an argument that already passes unchanged. It only becomes a
+    # float once min_max_altitude is configured. search_horizon_months is always int.
+    assert settings["min_max_altitude"] == _outlook_criteria({})["min_max_altitude"] == 30
+    assert settings["search_horizon_months"] == _outlook_criteria({})["search_horizon_months"] == 6
 
 
 def test_desktop_inputs_marks_disabled_objects(client, db_session):
@@ -257,6 +274,81 @@ def test_desktop_inputs_serves_the_guest_user_like_the_batch(mu_client_logged_ou
     data = inputs.get_json()
     assert data["location"]["name"] == "Guest Site"
     assert "Guest M31" in [o["Object"] for o in data["objects"]]
+
+
+# --- the Outlook fields ------------------------------------------------------------------
+
+def test_desktop_inputs_outlook_fields_match_get_ra_dec(client, db_session):
+    """Every row field must be the value get_ra_dec() gives the server worker for the
+    same object: the raw column with its `or "N/A"` fallbacks, a recomputed
+    constellation where the column is empty, and null (not "") common_name/project."""
+    user = db_session.query(DbUser).filter_by(username="default").one()
+    db_session.add(AstroObject(
+        user_id=user.id, object_name="NGC 7000", common_name=None,
+        ra_hours=20.98, dec_deg=44.5, type=None, constellation="",
+        magnitude=None, size="", sb=None, project_name=None))
+    db_session.add(AstroObject(
+        user_id=user.id, object_name="M13", common_name="Hercules Cluster",
+        ra_hours=16.69, dec_deg=36.46, type="GCl", constellation="Her",
+        magnitude="5.8", size="20", sb="11.5", project_name="<div>plan</div>"))
+    db_session.commit()
+    astro_context_cache.clear()
+
+    data = client.get('/api/desktop_inputs').get_json()
+    rows = {o["Object"]: o for o in data["objects"]}
+
+    # The map the server worker builds: every object of the user, keyed by lower name.
+    objects_map = {
+        str(o.to_dict().get("Object", "")).lower(): o.to_dict()
+        for o in db_session.query(AstroObject).filter_by(user_id=user.id).all()
+    }
+
+    for row in data["objects"]:
+        expected = get_ra_dec(row["Object"], objects_map=objects_map)
+        assert row["common_name"] == expected["Common Name"]
+        assert row["project"] == expected["Project"]
+        assert row["type"] == expected["Type"]
+        assert row["constellation"] == expected["Constellation"]
+        assert row["magnitude"] == expected["Magnitude"]
+        assert row["size"] == expected["Size"]
+        assert row["sb"] == expected["SB"]
+
+    # M42 comes from the fixture with no type/constellation at all.
+    assert rows["M42"]["type"] == "N/A"
+    assert rows["M42"]["magnitude"] == "N/A"
+    assert rows["M42"]["size"] == "N/A"
+    assert rows["M42"]["sb"] == "N/A"
+    assert rows["M42"]["project"] is None
+    # Blank constellation: recomputed from RA/Dec, not left empty.
+    assert rows["NGC 7000"]["constellation"] == "Cyg"
+    # A blank magnitude is "N/A", never an empty string or a number.
+    assert rows["NGC 7000"]["magnitude"] == "N/A"
+    assert rows["NGC 7000"]["size"] == "N/A"
+    assert rows["NGC 7000"]["sb"] == "N/A"
+    # common_name stays null where the column is NULL: the server's value, not a fallback.
+    assert rows["NGC 7000"]["common_name"] is None
+    # A populated row is passed through as it is, numbers still strings.
+    assert rows["M13"]["type"] == "GCl"
+    assert rows["M13"]["magnitude"] == "5.8"
+    assert rows["M13"]["project"] == "<div>plan</div>"
+
+
+def test_desktop_inputs_settings_pair_with_outlook_criteria(client, monkeypatch):
+    """min_max_altitude and search_horizon_months must be the two values
+    _outlook_criteria() gives the server worker, clamps included."""
+    monkeypatch.delenv("NASA_EARTHDATA_TOKEN", raising=False)
+    _set_prefs({"imaging_criteria": {"min_max_altitude": 120, "search_horizon_months": 0}})
+
+    settings = client.get('/api/desktop_inputs').get_json()["settings"]
+    criteria = _outlook_criteria({"imaging_criteria": {"min_max_altitude": 120,
+                                                       "search_horizon_months": 0}})
+
+    # Value and type both, so the browser is handed what the worker actually reads
+    # (a configured min_max_altitude is a float here, the default one is an int).
+    assert settings["min_max_altitude"] == criteria["min_max_altitude"] == 90.0
+    assert type(settings["min_max_altitude"]) is type(criteria["min_max_altitude"]) is float
+    assert settings["search_horizon_months"] == criteria["search_horizon_months"] == 1
+    assert type(settings["search_horizon_months"]) is type(criteria["search_horizon_months"]) is int
 
 
 # --- the existing endpoint is untouched --------------------------------------------------
