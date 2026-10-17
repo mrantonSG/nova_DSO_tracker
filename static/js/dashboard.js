@@ -314,7 +314,7 @@
                 // Reset outlook flag so it re-calculates for the new reference date
                 outlookDataLoaded = false;
                 fetchData();
-                fetchSunEvents();
+                if (!_localEngineLoaded()) fetchSunEvents(); // else finalizeFetch renders the strip
             }
     
             simModeToggle.addEventListener('change', function() {
@@ -2310,7 +2310,7 @@
         filterTable();
 
         tbody.dataset.loading = 'false';
-        fetchSunEvents();
+        updateStatusStrip();
 
         // 2. NOW it is safe to update the Inspiration grid with filtered data
         // Skip on background refresh: auto-refresh was removed intentionally (see renderRows note — prevents jarring shuffles).
@@ -2754,7 +2754,12 @@
             }
             fetch(url)
             .then(response => response.json())
-            .then(data => {
+            .then(_renderStatusStrip)
+            .catch(error => { console.error('Error fetching sun events:', error);});
+        }
+
+        /** Fills the status strip from a /sun_events-shaped object. */
+        function _renderStatusStrip(data) {
               document.getElementById('dawn').textContent = data.astronomical_dawn;
               document.getElementById('dusk').textContent = data.astronomical_dusk;
               const dateEl = document.getElementById('date');
@@ -2763,8 +2768,51 @@
               if(dateEl && data.date) dateEl.textContent = formatDateISOtoEuropean(data.date);
               if(timeEl && data.time) timeEl.textContent = data.time;
               if(phaseEl && data.phase !== undefined) phaseEl.textContent = `${data.phase}%`;
-            })
-            .catch(error => { console.error('Error fetching sun events:', error);});
+        }
+
+        /**
+         * The strip from the browser (NovaDashboardRows.statusStrip) for the location and
+         * date the table was last computed for there, or null when there is none (server
+         * fallback, another location, another sim date). Throws on an engine failure.
+         */
+        function _localStatusStrip() {
+            const state = localDashboardState;
+            const simModeOn = document.getElementById('sim-mode-toggle')?.checked;
+            const simDateVal = document.getElementById('sim-date-input')?.value;
+            const effectiveDate = simModeOn && simDateVal ? simDateVal : null;
+            if (!state || state.location !== sessionStorage.getItem('selectedLocation')
+                    || (state.simDate || null) !== effectiveDate) return null;
+            return window.NovaDashboardRows.statusStrip({
+                inputs: state.inputs, nowMs: Date.now(), simDate: state.simDate
+            });
+        }
+
+        /** The status strip from the browser when it can, else from /sun_events as before. */
+        function updateStatusStrip() {
+            try {
+                const strip = _localStatusStrip();
+                if (strip) {
+                    _renderStatusStrip(strip);
+                    return;
+                }
+            } catch (e) {
+                console.warn('Client-side status strip failed, using the server:', e);
+            }
+            fetchSunEvents();
+        }
+
+        /** Live, with the strip from the browser: re-render it when the wall-clock minute changes. */
+        function _tickStatusStripClock() {
+            const state = localDashboardState;
+            const timeEl = document.getElementById('time');
+            if (!state || state.simDate || !timeEl) return;
+            try {
+                if (window.NovaAstro.formatHM(Date.now(), state.inputs.location.timezone) === timeEl.textContent) return;
+                const strip = _localStatusStrip();
+                if (strip) _renderStatusStrip(strip);
+            } catch (e) {
+                // Left as it is; the next table refresh renders the strip.
+            }
         }
     
         // ========================================================================
@@ -3238,8 +3286,10 @@
           dataUpdateIntervalId = setInterval(() => {
             if (document.getElementById('sim-mode-toggle')?.checked) return;
             // Recompute in the browser; else TRUE enables background mode (no progress bar)
-            if (!_tickLocalDashboardRows()) fetchData(true);
-            fetchSunEvents();
+            if (!_tickLocalDashboardRows()) {
+                fetchData(true);
+                fetchSunEvents();
+            }
             timeToNextUpdate = updateIntervalInSeconds; // Reset the timer
             if (timerSpan) timerSpan.textContent = timeToNextUpdate + 's'; // Update text immediately
           }, updateIntervalInSeconds * 1000); // 60000ms
@@ -3254,6 +3304,7 @@
               if (timerSpan) {
                   timerSpan.textContent = timeToNextUpdate + 's';
               }
+              _tickStatusStripClock();
           }, 1000); // Run every 1 second
 
           // Clean up intervals when navigating away or reloading (prevents memory leaks)
@@ -3315,7 +3366,7 @@
           // Chain data fetches AFTER locations are loaded to ensure correct location value
           // This prevents using stale guest-mode location from sessionStorage
           fetchLocations().then(() => {
-              fetchSunEvents();
+              if (!_localEngineLoaded()) fetchSunEvents(); // else finalizeFetch renders the strip
               fetchData();
           });
 

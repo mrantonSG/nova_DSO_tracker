@@ -419,9 +419,50 @@
         return build(opts, false);
     }
 
+    // ------------------------------------------------------------------ status strip
+
+    /**
+     * statusStrip({inputs, nowMs, simDate}) returns the fields of
+     * nova/blueprints/core.py:sun_events() that the dashboard's status strip shows:
+     *   date   live: the wall date, or the day before when the wall hour is < 12;
+     *          with simDate that date as given (no noon rule), or the wall date where
+     *          strptime would reject it
+     *   time   the location's wall clock 'HH:MM', in simulation too (localize() keeps it)
+     *   phase  NovaAstro.moonPhase(date): 12:00 UTC, one decimal; ephem's
+     *          calculate_moon_phase_cached() agrees to within 0.1
+     *   astronomical_dusk, astronomical_dawn   calculate_sun_events() of that date
+     * plus astronomical_dusk_utc / astronomical_dawn_utc (UTC ms, or null), for tests.
+     * Throws on a missing location, a non-finite coordinate or any engine failure.
+     */
+    function statusStrip(opts) {
+        const o = opts || {};
+        const A = engine().A;
+        const loc = (o.inputs || {}).location;
+        if (!loc) throw new Error('nova_dashboard_rows: no location');
+        const lat = finite(loc.lat, 'lat'), lon = finite(loc.lon, 'lon'), tz = String(loc.timezone);
+        const wall = A.localParts(finite(o.nowMs, 'nowMs'), tz);
+        let date;
+        if (o.simDate) {
+            const sim = parseSimDate(o.simDate);
+            date = sim ? dateString(sim.year, sim.month, sim.day) : dateString(wall.year, wall.month, wall.day);
+        } else {
+            date = observingNight(wall);
+        }
+        const events = A.sunEvents(date, tz, lat, lon);
+        return {
+            date: date,
+            time: pad2(wall.hour) + ':' + pad2(wall.minute),
+            phase: finite(A.moonPhase(date), 'moon phase'),
+            astronomical_dusk: events.astronomical_dusk,
+            astronomical_dawn: events.astronomical_dawn,
+            astronomical_dusk_utc: events.astronomical_dusk_utc,
+            astronomical_dawn_utc: events.astronomical_dawn_utc,
+        };
+    }
+
     function explain(opts) {
         return build(opts, true);
     }
 
-    return { rows: rows, explain: explain, _py: { fixed: pyFixed, round: pyRound, roundInt: pyRoundInt } };
+    return { rows: rows, explain: explain, statusStrip: statusStrip, _py: { fixed: pyFixed, round: pyRound, roundInt: pyRoundInt } };
 });

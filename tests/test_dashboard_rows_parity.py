@@ -42,9 +42,11 @@ import pytz
 import yaml
 
 import nova.blueprints.api as batch_module
+import nova.blueprints.core as core_module
 from nova import app
 from nova.config import astro_context_cache, nightly_curves_cache
 from nova.models import AstroObject, DbUser, HorizonPoint, Location, UiPref
+import modules.astro_calculations as astro_calculations
 from modules.astro_calculations import calculate_sun_events_cached
 
 REPO = Path(__file__).resolve().parent.parent
@@ -75,6 +77,7 @@ THRESHOLDS = {"London": None, "Perth": 35.0, "Singapore": 0.0, "Vienna Mask": 20
 EPS_DEG = 0.002
 EPS_MOON = 0.05
 EPS_S = 2.0
+EPS_PHASE = 0.1
 NIGHT_EDGE_SAMPLES = 2
 NIGHT_EDGE_MAX_ALT = 0.3
 
@@ -604,3 +607,95 @@ def test_index_loads_the_engine_before_dashboard_js(client):
     scripts = re.findall(r'<script[^>]*\ssrc="[^"]*/js/([^"/?]+\.js)\?v=[^"]*"[^>]*>', html)
     order = [name for name in scripts if name in ENGINE_FILES + ("dashboard.js",)]
     assert order == list(ENGINE_FILES) + ["dashboard.js"]
+
+
+# The status strip: the template sites plus one with no astronomical night at midsummer,
+# either side of noon (the live date rule) and of midnight.
+STRIP_HIGH_LAT_SITE = ("Tromso", 69.6492, 18.9553, "Europe/Oslo")
+STRIP_NIGHTS = NIGHTS + ("2026-06-21",)
+STRIP_CLOCKS = [
+    ("11:59:59.5", time(11, 59, 59, 500000)),
+    ("12:00:00.5", time(12, 0, 0, 500000)),
+    ("23:59:59.5", time(23, 59, 59, 500000)),
+    ("00:00:00.5", time(0, 0, 0, 500000)),
+    ("evening", time(21, 7, 30)),
+]
+
+
+@pytest.mark.skipif(NODE is None, reason="node is not installed")
+def test_status_strip_agrees_with_sun_events(client, db_session, tmp_path, monkeypatch):
+    """NovaDashboardRows.statusStrip() against /sun_events, live and simulated. Date and
+    time are identical; a twilight may differ only where the browser's instant is within
+    EPS_S of the minute it is truncated to, and the Moon by EPS_PHASE."""
+    user = db_session.query(DbUser).filter_by(username="default").one()
+    sites = _sites(_template()) + [STRIP_HIGH_LAT_SITE]
+    for name, lat, lon, tz_name in sites:
+        db_session.add(Location(user_id=user.id, name=name, lat=lat, lon=lon, timezone=tz_name))
+    db_session.commit()
+    astro_context_cache.clear()
+    monkeypatch.setattr(core_module, "datetime", _FrozenDatetime)
+    # /sun_events adds date, time and phase to the dict it gets from this cache, so the
+    # entries it touches would leak those keys into later tests' sun events.
+    monkeypatch.setattr(astro_calculations, "SUN_EVENTS_CACHE", {})
+
+    cases = []
+    for name, _, _, tz_name in sites:
+        tz = pytz.timezone(tz_name)
+        inputs = client.get('/api/desktop_inputs', query_string={"location": name}).get_json()
+        for night in STRIP_NIGHTS:
+            night_day = date.fromisoformat(night)
+            for label, clock in STRIP_CLOCKS:
+                for sim_date, day in ((None, night_day), (night, SIM_TODAY)):
+                    frozen = tz.localize(datetime.combine(day, clock))
+                    _FROZEN[0] = frozen
+                    query = {"location": name}
+                    if sim_date:
+                        query["sim_date"] = sim_date
+                    response = client.get('/sun_events', query_string=query)
+                    assert response.status_code == 200, f"/sun_events {query}: HTTP {response.status_code}"
+                    cases.append({
+                        "id": f"{name} | {label} | {frozen.isoformat()}" + (f" sim {sim_date}" if sim_date else ""),
+                        "wall_date": day, "server": response.get_json(),
+                        "opts": {"inputs": inputs, "nowMs": _ms(frozen), "simDate": sim_date},
+                    })
+    results = _run_node(tmp_path, [{"id": c["id"], "kind": "statusStrip", "opts": c["opts"]} for c in cases])
+
+    allowed, problems = {}, []
+    for case in cases:
+        result, server = results[case["id"]], case["server"]
+        if "error" in result:
+            problems.append(f"{case['id']}: browser threw: {result['error']}")
+            continue
+        browser = result["data"]
+        for key in ("date", "time"):
+            if browser[key] != server[key]:
+                problems.append(f"{case['id']} {key}: server {server[key]!r}, browser {browser[key]!r}")
+        for key in ("astronomical_dusk", "astronomical_dawn"):
+            if browser[key] == server[key]:
+                continue
+            instant = browser[f"{key}_utc"]
+            seconds = instant / 1000 % 60 if instant is not None else None
+            if seconds is not None and min(seconds, 60 - seconds) < EPS_S:
+                allowed.setdefault((key, "minute edge"), []).append(
+                    f"{case['id']}: server {server[key]!r}, browser {browser[key]!r}")
+            else:
+                problems.append(f"{case['id']} {key}: server {server[key]!r}, browser {browser[key]!r}")
+        if isinstance(server["phase"], bool) or not isinstance(server["phase"], (int, float)):
+            problems.append(f"{case['id']} phase: server {server['phase']!r}")
+        elif browser["phase"] != server["phase"]:
+            if abs(browser["phase"] - server["phase"]) <= EPS_PHASE + 1e-9:
+                allowed.setdefault(("phase", f"within {EPS_PHASE}"), []).append(
+                    f"{case['id']}: server {server['phase']!r}, browser {browser['phase']!r}")
+            else:
+                problems.append(f"{case['id']} phase: server {server['phase']!r}, browser {browser['phase']!r}")
+
+    # The matrix must reach both sides of the live date rule and a night without darkness.
+    live = [c for c in cases if not c["opts"]["simDate"]]
+    assert any(c["server"]["date"] == c["wall_date"].isoformat() for c in live)
+    assert any(c["server"]["date"] == (c["wall_date"] - timedelta(days=1)).isoformat() for c in live)
+    assert any(c["server"]["astronomical_dusk"] == "N/A" for c in cases)
+
+    print(f"\n{len(cases)} strips compared")
+    for (field, reason), where in sorted(allowed.items()):
+        print(f"  allowed: {field} ({reason}): {len(where)}, e.g. {where[0]}")
+    assert not problems, f"{len(problems)} difference(s):\n" + "\n".join(problems[:40])
