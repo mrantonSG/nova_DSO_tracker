@@ -1319,6 +1319,53 @@
     // --- END SECONDARY OBJECT COMPARISON FUNCTIONS ---
 
 
+    // ==========================================================================
+    // CLIENT-SIDE PLOT DATA (day view only)
+    // ==========================================================================
+
+    // /api/desktop_inputs for one location, kept until the location changes, so a
+    // date change does not refetch it.
+    let plotInputsLocName = null;
+    let plotInputsData = null;
+
+    async function fetchPlotInputs(locName) {
+        if (plotInputsData && plotInputsLocName === locName) return plotInputsData;
+        const resp = await fetch('/api/desktop_inputs?location=' + encodeURIComponent(locName));
+        if (!resp.ok) throw new Error(`desktop_inputs HTTP ${resp.status}`);
+        const inputs = await resp.json();
+        plotInputsLocName = locName;
+        plotInputsData = inputs;
+        return inputs;
+    }
+
+    /**
+     * The /api/get_plot_data payload from the three local scripts, or null when the
+     * caller should just fetch it. Returns null only for a reason it can see
+     * (engine missing, unknown location, object without coordinates); anything that
+     * throws is the caller's to catch, so it fails closed onto the endpoint.
+     */
+    async function computeLocalPlotData(day, month, year) {
+        if (!(window.NovaAstro && window.NovaTransit && window.NovaPlotData)) return null;
+        const locName = NOVA_GRAPH_DATA.plotLocName;
+        if (!locName) return null;
+        const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+        const inputs = await fetchPlotInputs(locName);
+        const loc = inputs.location;
+        if (!loc || loc.name !== locName) return null;   // not a location this user has
+
+        const wanted = String(NOVA_GRAPH_DATA.objectName).toLowerCase();
+        const obj = (inputs.objects || []).find(o => String(o.Object).toLowerCase() === wanted);
+        if (!obj || obj.ra === null || obj.dec === null) return null;
+
+        return window.NovaPlotData.build({
+            raHours: obj.ra, decDeg: obj.dec,
+            lat: loc.lat, lon: loc.lon, tz: loc.timezone, date: date,
+            threshold: loc.altitude_threshold, interval: loc.sampling_interval,
+            mask: loc.horizon_mask, skyglow: inputs.skyglow
+        });
+    }
+
     async function renderClientSideChart() {
         const chartLoadingDiv = document.getElementById('chart-loading');
         chartLoadingDiv?.classList.remove('hidden');
@@ -1339,9 +1386,21 @@
                 clearInterval(currentTimeUpdateInterval);
                 currentTimeUpdateInterval = null;
             }
-            const resp = await fetch(apiUrl);
-            if (!resp.ok) throw new Error(`Failed to fetch chart data: ${resp.status} ${resp.statusText}`);
-            const data = await resp.json();
+            // Day view: compute locally when the engine is loaded, else (and on any
+            // failure at all) take the endpoint's answer, which is byte-for-byte the
+            // same shape this branch produces.
+            let data = null;
+            try {
+                data = await computeLocalPlotData(day, month, year);
+            } catch (localErr) {
+                console.warn('Client-side plot data failed, using the server:', localErr);
+                data = null;
+            }
+            if (!data) {
+                const resp = await fetch(apiUrl);
+                if (!resp.ok) throw new Error(`Failed to fetch chart data: ${resp.status} ${resp.statusText}`);
+                data = await resp.json();
+            }
 
             // Convert times to milliseconds using helper
             const labels = data.times.map(val => _convertToMilliseconds(val, plotTz));
@@ -3536,8 +3595,14 @@
         if (window.altitudeChart.options.plugins && window.altitudeChart.options.plugins.annotation) {
             const annotations = window.altitudeChart.options.plugins.annotation.annotations;
             if (annotations) {
+                // Only the sun-event lines are themed: they are the ones built from
+                // labelConfig. The Now and transit labels carry their own red/crimson
+                // colours on purpose, and repainting them makes the day chart's
+                // appearance depend on whether this pass runs before or after the
+                // chart is created.
+                const themedLabels = ['sunsetLine', 'duskLine', 'dawnLine', 'sunriseLine'];
                 Object.keys(annotations).forEach(key => {
-                    if (annotations[key].label) {
+                    if (themedLabels.includes(key) && annotations[key].label) {
                         annotations[key].label.color = annotationLabelColor;
                         annotations[key].label.backgroundColor = annotationBgColor;
                         annotations[key].label.borderColor = annotationBorderColor;

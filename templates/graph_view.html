@@ -445,6 +445,9 @@
         horizonMask: {{ horizon_mask | tojson }}
     };
 </script>
+<script src="{{ url_for('static', filename='js/nova_astro.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/nova_transit.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/nova_plot_data.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/framing-utils.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/graph_view_chart.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/graph_view.js') }}?v={{ version }}" defer></script>
