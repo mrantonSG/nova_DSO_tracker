@@ -1320,7 +1320,7 @@
 
 
     // ==========================================================================
-    // CLIENT-SIDE PLOT DATA (day view only)
+    // CLIENT-SIDE PLOT DATA (day, month and year views)
     // ==========================================================================
 
     // /api/desktop_inputs for one location, kept until the location changes, so a
@@ -1339,16 +1339,14 @@
     }
 
     /**
-     * The /api/get_plot_data payload from the three local scripts, or null when the
-     * caller should just fetch it. Returns null only for a reason it can see
-     * (engine missing, unknown location, object without coordinates); anything that
-     * throws is the caller's to catch, so it fails closed onto the endpoint.
+     * The page's location and object as /api/desktop_inputs describes them, or null
+     * when the chart should come from the endpoint instead (engine missing, unknown
+     * location, object without coordinates). Fetch errors propagate to the caller.
      */
-    async function computeLocalPlotData(day, month, year) {
+    async function localPlotTarget() {
         if (!(window.NovaAstro && window.NovaTransit && window.NovaPlotData)) return null;
         const locName = NOVA_GRAPH_DATA.plotLocName;
         if (!locName) return null;
-        const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
         const inputs = await fetchPlotInputs(locName);
         const loc = inputs.location;
@@ -1358,12 +1356,53 @@
         const obj = (inputs.objects || []).find(o => String(o.Object).toLowerCase() === wanted);
         if (!obj || obj.ra === null || obj.dec === null) return null;
 
+        return { inputs, loc, obj };
+    }
+
+    /**
+     * The /api/get_plot_data payload from the three local scripts, or null when the
+     * caller should just fetch it. Returns null only for a reason it can see
+     * (engine missing, unknown location, object without coordinates); anything that
+     * throws is the caller's to catch, so it fails closed onto the endpoint.
+     */
+    async function computeLocalPlotData(day, month, year) {
+        const target = await localPlotTarget();
+        if (!target) return null;
+        const { inputs, loc, obj } = target;
+        const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
         return window.NovaPlotData.build({
             raHours: obj.ra, decDeg: obj.dec,
             lat: loc.lat, lon: loc.lon, tz: loc.timezone, date: date,
             threshold: loc.altitude_threshold, interval: loc.sampling_interval,
             mask: loc.horizon_mask, skyglow: inputs.skyglow
         });
+    }
+
+    /**
+     * One /api/get_monthly_plot_data payload per entry of `months`, in order, from
+     * the local scripts, or null to fetch them all. Same contract as
+     * computeLocalPlotData(): null for a visible reason, anything else throws.
+     */
+    async function computeLocalMonthlyPlotData(year, months) {
+        const target = await localPlotTarget();
+        if (!target) return null;
+        const { loc, obj } = target;
+        return months.map(m => window.NovaPlotData.range({
+            raHours: obj.ra, decDeg: obj.dec,
+            lat: loc.lat, lon: loc.lon, tz: loc.timezone,
+            year: year, month: m
+        }));
+    }
+
+    /** computeLocalMonthlyPlotData(), with any failure turned into null (fetch instead). */
+    async function tryLocalMonthlyPlotData(year, months) {
+        try {
+            return await computeLocalMonthlyPlotData(year, months);
+        } catch (localErr) {
+            console.warn('Client-side monthly plot data failed, using the server:', localErr);
+            return null;
+        }
     }
 
     async function renderClientSideChart() {
@@ -1514,18 +1553,27 @@
             if (view === 'year') {
                 titleText = `Yearly Altitude at Local Midnight for ${NOVA_GRAPH_DATA.altName} - ${year}`;
                 const months = [...Array(12)].map((_, i) => String(i + 1).padStart(2, '0'));
-                const urls = months.map(m => `/api/get_monthly_plot_data/${encodeURIComponent(objectName)}?year=${year}&month=${m}&plot_lat=${plotLat}&plot_lon=${plotLon}&plot_tz=${encodeURIComponent(plotTz)}`);
-                const responses = await Promise.all(urls.map(u => fetch(u)));
-                const bad = responses.find(r => !r.ok);
-                if (bad) throw new Error(`HTTP ${bad.status} for ${bad.url}`);
-                const monthly = await Promise.all(responses.map(r => r.json()));
+                // Computed locally when the engine is loaded, else (and on any failure)
+                // the endpoint's twelve answers, which are the same shape.
+                let monthly = await tryLocalMonthlyPlotData(year, months);
+                if (!monthly) {
+                    const urls = months.map(m => `/api/get_monthly_plot_data/${encodeURIComponent(objectName)}?year=${year}&month=${m}&plot_lat=${plotLat}&plot_lon=${plotLon}&plot_tz=${encodeURIComponent(plotTz)}`);
+                    const responses = await Promise.all(urls.map(u => fetch(u)));
+                    const bad = responses.find(r => !r.ok);
+                    if (bad) throw new Error(`HTTP ${bad.status} for ${bad.url}`);
+                    monthly = await Promise.all(responses.map(r => r.json()));
+                }
                 monthly.forEach(block => { block.dates.forEach((d, i) => { const t = `${d}T00:00:00`; objAlt.push({x: t, y: block.object_alt[i]}); moonAlt.push({x: t, y: block.moon_alt[i]}); horizon.push({x: t, y: 0}); }); });
             } else {
                 titleText = `Monthly Altitude at Local Midnight for ${NOVA_GRAPH_DATA.altName} - ${year}-${selMonth}`;
-                const apiUrl = `/api/get_monthly_plot_data/${encodeURIComponent(objectName)}?year=${year}&month=${selMonth}&plot_lat=${plotLat}&plot_lon=${plotLon}&plot_tz=${encodeURIComponent(plotTz)}`;
-                const resp = await fetch(apiUrl);
-                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                const data = await resp.json();
+                const local = await tryLocalMonthlyPlotData(year, [selMonth]);
+                let data = local ? local[0] : null;
+                if (!data) {
+                    const apiUrl = `/api/get_monthly_plot_data/${encodeURIComponent(objectName)}?year=${year}&month=${selMonth}&plot_lat=${plotLat}&plot_lon=${plotLon}&plot_tz=${encodeURIComponent(plotTz)}`;
+                    const resp = await fetch(apiUrl);
+                    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                    data = await resp.json();
+                }
                 data.dates.forEach((d, i) => { const t = `${d}T00:00:00`; objAlt.push({x: t, y: data.object_alt[i]}); moonAlt.push({x: t, y: data.moon_alt[i]}); horizon.push({x: t, y: 0}); });
             }
             const ctx = document.getElementById('altitudeChartCanvas').getContext('2d');

@@ -1,10 +1,12 @@
 /*
- * nova_plot_data.js — the /api/get_plot_data payload, built in the browser.
+ * nova_plot_data.js — the graph view's chart payloads, built in the browser.
  *
- * One function, NovaPlotData.build(inputs), returns what
- * nova/blueprints/api.py:get_plot_data() returns for one object, one location and
- * one observing night, so graph_view_chart.js can draw the day chart without the
- * endpoint and fall back to it unchanged when anything here throws.
+ * NovaPlotData.build(inputs) returns what nova/blueprints/api.py:get_plot_data()
+ * returns for one object, one location and one observing night, and
+ * NovaPlotData.range(inputs) what get_monthly_plot_data() returns for one object,
+ * one location and one calendar month, so graph_view_chart.js can draw the day,
+ * month and year charts without the endpoints and fall back to them unchanged
+ * when anything here throws.
  *
  * Built on the two shared engines, looked up as globals at call time (the way
  * nova_transit.js finds NovaAstro), so the page only has to load them first:
@@ -33,6 +35,21 @@
  *     *_utc keys NovaAstro adds are dropped); transit_time is NovaTransit's
  *     display string; weather_forecast is always [] because the client fetches
  *     the weather itself.
+ *
+ * range() takes raHours, decDeg, lat, lon, tz as above plus year and month
+ * (1-12, numbers or numeric strings, as the page's selects give them), and
+ * reproduces get_monthly_plot_data():
+ *   - one sample per calendar day at local midnight, the instant pytz's
+ *     localize(datetime(y, m, d, 0, 0)) names: a midnight the clocks skip is read
+ *     with the offset before the change, a midnight they repeat is the later,
+ *     standard-time one. NovaAstro.localToUtc() gets the first right and not
+ *     always the second, so localMidnight() settles it here.
+ *   - `dates` are the requested calendar days as 'YYYY-MM-DD', whatever the
+ *     offset; object_alt and moon_alt are unrounded and never null — the endpoint
+ *     has no Moon fallback, so a Moon failure here throws, and the caller takes
+ *     the endpoint's answer.
+ *   - no sun events, transit, horizon mask or skyglow: the month and year charts
+ *     draw only the two altitudes and a flat horizon line.
  */
 (function (root, factory) {
     if (typeof module === 'object' && module.exports) {
@@ -44,6 +61,7 @@
     'use strict';
 
     const DAY_MS = 86400000;
+    const HOUR_MS = 3600000;
     const SUN_KEYS = ['astronomical_dawn', 'sunrise', 'transit', 'sunset', 'astronomical_dusk'];
 
     const pad2 = n => (n < 10 ? '0' : '') + n;
@@ -204,5 +222,58 @@
         };
     }
 
-    return { build: build };
+    /**
+     * The UTC instant of local midnight on a calendar day, as pytz's
+     * localize(datetime(y, m, d, 0, 0)) (is_dst=False) resolves it. localToUtc()
+     * already reads a skipped midnight with the earlier offset; when the wall time
+     * exists twice, the offsets in force a day and a half either side give both
+     * readings, and the later one is the standard-time reading pytz picks.
+     */
+    function localMidnight(year, month, day, tz, A) {
+        let utc = A.localToUtc(year, month, day, 0, 0, tz);
+        const wall = Date.UTC(year, month - 1, day, 0, 0, 0);
+        for (const probe of [wall - 36 * HOUR_MS, wall + 36 * HOUR_MS]) {
+            const off = offsetAt(probe, tz, A);
+            const candidate = wall - off;
+            if (candidate > utc && offsetAt(candidate, tz, A) === off) utc = candidate;
+        }
+        return utc;
+    }
+
+    function wholeNumber(value, lo, hi, what) {
+        const s = String(value).trim();
+        if (!/^[+-]?\d+$/.test(s)) throw new Error('nova_plot_data: ' + what + ' must be a whole number, got ' + JSON.stringify(value));
+        const n = parseInt(s, 10);
+        if (n < lo || n > hi) throw new Error('nova_plot_data: ' + what + ' out of range: ' + n);
+        return n;
+    }
+
+    function range(inputs) {
+        const i = inputs || {};
+        const A = engine().A;
+
+        // datetime() takes years 1..9999; the endpoint fails on anything else, so
+        // this throws and the caller lets the endpoint say so.
+        const year = wholeNumber(i.year, 1, 9999, 'year');
+        const month = wholeNumber(i.month, 1, 12, 'month');
+        const lat = +i.lat, lon = +i.lon, tz = String(i.tz);
+        const raHours = +i.raHours, decDeg = +i.decDeg;
+        if (![lat, lon, raHours, decDeg].every(isFinite)) {
+            throw new Error('nova_plot_data: non-finite coordinates');
+        }
+
+        const numDays = new Date(Date.UTC(year, month, 0)).getUTCDate();
+        const dates = [], objectAlt = [], moonAlt = [];
+        for (let day = 1; day <= numDays; day++) {
+            const t = localMidnight(year, month, day, tz, A);
+            // Each day its own frame: a month is long enough for aberration and
+            // nutation to move, and the endpoint builds a fresh AltAz per day.
+            objectAlt.push(A.altAz(raHours, decDeg, lat, lon, t).alt);
+            moonAlt.push(A.moonAltAz(t, lat, lon).alt);
+            dates.push(String(year).padStart(4, '0') + '-' + pad2(month) + '-' + pad2(day));
+        }
+        return { dates: dates, object_alt: objectAlt, moon_alt: moonAlt };
+    }
+
+    return { build: build, range: range };
 });

@@ -343,3 +343,156 @@ def test_nova_plot_data_agrees_with_get_plot_data(client, db_session, tmp_path, 
     # engine has been identical to the minute everywhere.
     print(f"\nSun events identical to the minute: {sun_exact}/{sun_total}"
           f"; transits identical: {transit_exact}/{len(cases)}")
+
+
+# --------------------------------------------------------------------------- month / year
+
+# The month and year charts: NovaPlotData.range() against /api/get_monthly_plot_data,
+# one object at local midnight each day. March 2026 has London's change to BST
+# (29 March), and the year view takes in October's change back as well. London
+# changes at 01:00, never at midnight, so two extra sites put a DST change on
+# midnight itself: Havana repeats 00:00-00:59 on 1 November 2026 and skips it on
+# 8 March 2026, Santiago skips it on 6 September 2026. A sample read with the
+# wrong offset is an hour out, up to 15 degrees of altitude.
+MONTH_VIEW = (2026, 3)
+YEAR_VIEW = 2026
+# A year view is twelve endpoint calls, so it takes every fourth of the ten
+# objects (three, still spread in right ascension); the month views take all ten.
+YEAR_OBJECT_STRIDE = 4
+MIDNIGHT_DST_SITES = (
+    ("Havana", 23.1136, -82.3666, "America/Havana", ((2026, 11), (2026, 3))),
+    ("Santiago", -33.4489, -70.6693, "America/Santiago", ((2026, 9),)),
+)
+MONTHLY_KEYS = {"dates", "object_alt", "moon_alt"}
+
+# Loads the three files as the page does and, per case, calls NovaPlotData.range()
+# once per month, the way graph_view_chart.js's computeLocalMonthlyPlotData() does.
+_RANGE_DRIVER = """
+'use strict';
+const fs = require('fs');
+const vm = require('vm');
+
+const [astroFile, transitFile, plotFile, inFile, outFile] = process.argv.slice(2);
+const context = {};
+context.self = context;
+context.globalThis = context;
+vm.createContext(context);
+for (const file of [astroFile, transitFile, plotFile]) {
+    vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
+}
+const cases = JSON.parse(fs.readFileSync(inFile, 'utf8'));
+fs.writeFileSync(outFile, JSON.stringify(cases.map(c => ({
+    id: c.id,
+    blocks: c.months.map(m => context.NovaPlotData.range(Object.assign({}, c.input, { year: c.year, month: m }))),
+}))));
+"""
+
+
+def _range_inputs(client, loc, obj_name):
+    """What computeLocalMonthlyPlotData() passes to range(), less year and month."""
+    response = client.get('/api/desktop_inputs', query_string={"location": loc.name})
+    assert response.status_code == 200, f"desktop_inputs for {loc.name}: HTTP {response.status_code}"
+    inputs = response.get_json()
+    location = inputs["location"]
+    assert location["name"] == loc.name
+    wanted = obj_name.lower()
+    obj = next(o for o in inputs["objects"] if o["Object"].lower() == wanted)
+    return {
+        "raHours": obj["ra"], "decDeg": obj["dec"],
+        "lat": location["lat"], "lon": location["lon"], "tz": location["timezone"],
+    }
+
+
+@pytest.mark.skipif(NODE is None, reason="node is not installed")
+def test_nova_plot_data_range_agrees_with_get_monthly_plot_data(client, db_session, tmp_path, monkeypatch):
+    seeded = _seed(db_session, tmp_path, monkeypatch)
+    user = db_session.query(DbUser).filter_by(username="default").one()
+    edge = []
+    for name, lat, lon, tz, views in MIDNIGHT_DST_SITES:
+        loc = Location(user_id=user.id, name=name, lat=lat, lon=lon, timezone=tz)
+        db_session.add(loc)
+        edge.append((loc, views))
+    db_session.commit()
+    astro_context_cache.clear()
+
+    objects = [o["Object"] for o in _objects(_template())]
+    year_objects = objects[::YEAR_OBJECT_STRIDE]
+
+    # Month values as the page sends them: the month select's unpadded value for
+    # the month view, the year view's zero-padded '01'..'12'.
+    views = []
+    for loc in seeded:
+        views.append((loc, "month", MONTH_VIEW[0], [str(MONTH_VIEW[1])], objects))
+        views.append((loc, "year", YEAR_VIEW, [f"{m:02d}" for m in range(1, 13)], year_objects))
+    for loc, months in edge:
+        for year, month in months:
+            views.append((loc, "month", year, [str(month)], objects))
+
+    cases = []
+    for loc, view, year, months, view_objects in views:
+        for obj_name in view_objects:
+            cases.append({
+                "id": f"{obj_name} @ {loc.name} {view} {year}/{','.join(months)}",
+                "object": obj_name, "loc": loc, "year": year, "months": months,
+                "input": _range_inputs(client, loc, obj_name),
+            })
+    assert len(year_objects) == 3
+    assert len(cases) == (OBJECTS_WANTED * (len(seeded) + sum(len(v) for _, v in edge))
+                          + len(year_objects) * len(seeded))
+
+    driver = tmp_path / "range_driver.js"
+    driver.write_text(_RANGE_DRIVER)
+    cases_file = tmp_path / "range_cases.json"
+    results_file = tmp_path / "range_results.json"
+    cases_file.write_text(json.dumps([{"id": c["id"], "input": c["input"], "year": c["year"],
+                                       "months": c["months"]} for c in cases]))
+
+    run = subprocess.run(
+        [NODE, str(driver), str(STATIC_JS / "nova_astro.js"),
+         str(STATIC_JS / "nova_transit.js"), str(STATIC_JS / "nova_plot_data.js"),
+         str(cases_file), str(results_file)],
+        capture_output=True, text=True, check=False,
+    )
+    assert run.returncode == 0, f"node failed ({run.returncode}):\n{run.stderr}"
+
+    browser = {r["id"]: r["blocks"] for r in json.loads(results_file.read_text())}
+    assert len(browser) == len(cases), "the browser returned a different number of cases"
+
+    problems = []
+    days = 0
+    worst = {"object_alt": 0.0, "moon_alt": 0.0}
+    for case in cases:
+        loc = case["loc"]
+        blocks = browser[case["id"]]
+        if len(blocks) != len(case["months"]):
+            problems.append(f"{case['id']}: {len(blocks)} blocks for {len(case['months'])} months")
+            continue
+        for month, got in zip(case["months"], blocks):
+            response = client.get(
+                f"/api/get_monthly_plot_data/{quote(case['object'])}",
+                query_string={"year": case["year"], "month": month, "plot_lat": loc.lat,
+                              "plot_lon": loc.lon, "plot_tz": loc.timezone})
+            assert response.status_code == 200, f"{case['id']} month {month}: HTTP {response.status_code}"
+            server = response.get_json()
+            where = f"{case['id']} [{month}]"
+
+            if set(server) != MONTHLY_KEYS or set(got) != MONTHLY_KEYS:
+                problems.append(f"{where}: keys {sorted(server)} vs {sorted(got)}")
+                continue
+            if server["dates"] != got["dates"]:
+                problems.append(f"{where} dates: server {server['dates']!r}, browser {got['dates']!r}")
+            days += len(server["dates"])
+            for field, tolerance in (("object_alt", TOLERANCE_DEG), ("moon_alt", MOON_TOLERANCE_DEG)):
+                problems += [f"{where} {p}" for p in _series_problems(
+                    field, server[field], got[field], tolerance)]
+                if len(server[field]) == len(got[field]):
+                    worst[field] = max([worst[field]] + [
+                        abs(a - b) for a, b in zip(server[field], got[field])
+                        if a is not None and b is not None])
+
+    assert not problems, (
+        f"{len(problems)} month blocks differ between NovaPlotData.range() and "
+        f"/api/get_monthly_plot_data:\n  " + "\n  ".join(problems[:20])
+    )
+    print(f"\nMonthly parity: {len(cases)} views, {days} days; worst object "
+          f"{worst['object_alt']:.6f} deg, worst Moon {worst['moon_alt']:.6f} deg")
