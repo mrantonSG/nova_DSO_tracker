@@ -268,11 +268,11 @@
     <div id="table-loading" style="display:none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--overlay-light); padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px var(--shadow-light); z-index: 2000; width: 300px; text-align: center; border: 1px solid var(--text-lighter);">
         <div style="font-weight: bold; color: var(--primary-dark); margin-bottom: 10px;" id="loading-message">{{ _('Updating data...') }}</div>
 
-        <div style="width: 100%; height: 10px; background: var(--bg-medium-alt); border-radius: 5px; overflow: hidden;">
+        <div id="loading-progress-track" style="width: 100%; height: 10px; background: var(--bg-medium-alt); border-radius: 5px; overflow: hidden;">
             <div id="loading-progress-bar" style="width: 0%; height: 100%; background: var(--primary-dark); transition: width 0.1s ease;"></div>
         </div>
 
-        <div style="margin-top: 5px; font-size: 12px; color: var(--text-tertiary);">
+        <div id="loading-counter" style="margin-top: 5px; font-size: 12px; color: var(--text-tertiary);">
             <span id="loading-count">0</span> / <span id="loading-total">0</span>
         </div>
     </div>

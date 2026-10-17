@@ -840,6 +840,12 @@
                 // Back on a table still loading, once its loader delay has passed
                 if (dsoTableBody && dsoTableBody.innerHTML.trim() === ''
                         && dsoTableBody.dataset.loading === 'true' && !fetchLoaderTimer) {
+                    // Same strips as _showFetchLoader: only the server batch loop
+                    // measures, and it reveals them when it does.
+                    const dsoProgressTrack = document.getElementById('loading-progress-track');
+                    const dsoCounter = document.getElementById('loading-counter');
+                    if (dsoProgressTrack) dsoProgressTrack.style.display = 'none';
+                    if (dsoCounter) dsoCounter.style.display = 'none';
                     if (dsoLoadingDiv) dsoLoadingDiv.style.display = 'block';
                 }
             } else if (activeTab === 'journal') {
@@ -1147,6 +1153,12 @@
     function _showFetchLoader(loadingDiv, progressBar, loadingMessage) {
         if (loadingMessage) loadingMessage.textContent = window.t('calculating');
         if (progressBar) progressBar.style.width = "5%";
+        // No bar, no counter here: only the server batch loop measures progress, and
+        // it shows both again below.
+        const loadingProgressTrack = document.getElementById("loading-progress-track");
+        if (loadingProgressTrack) loadingProgressTrack.style.display = 'none';
+        const loadingCounter = document.getElementById("loading-counter");
+        if (loadingCounter) loadingCounter.style.display = 'none';
         // Shown only when loading takes long enough to read it; _hideFetchLoader cancels.
         clearTimeout(fetchLoaderTimer);
         fetchLoaderTimer = setTimeout(() => {
@@ -1348,6 +1360,8 @@
         const loadingCount = document.getElementById("loading-count");
         const loadingTotal = document.getElementById("loading-total");
         const loadingMessage = document.getElementById("loading-message");
+        const loadingCounter = document.getElementById("loading-counter");
+        const loadingProgressTrack = document.getElementById("loading-progress-track");
     
         // Cancel previous pending requests
         if (activeFetchController) {
@@ -1462,6 +1476,9 @@
                 // Update Progress UI
                 offset += BATCH_SIZE;
                 if (shouldShowLoader) {
+                    // Server batch path: it measures, so bar and counter are back if hidden.
+                    if (loadingProgressTrack) loadingProgressTrack.style.display = '';
+                    if (loadingCounter) loadingCounter.style.display = '';
                     // Use total if available, otherwise show current count without percent
                     if (total !== null) {
                         _updateFetchProgress(progressBar, loadingCount, loadingTotal, allData.length, total);
