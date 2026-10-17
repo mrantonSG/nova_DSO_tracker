@@ -31,6 +31,7 @@ Allowed differences are counted and printed per field; any other difference fail
 
 import json
 import math
+import re
 import shutil
 import subprocess
 from datetime import date, datetime, time, timedelta, timezone as dt_timezone
@@ -593,3 +594,13 @@ def test_skyglow_flags_read_the_positions_the_batch_reads(client, db_session, tm
         assert b[name][flag] is s[name][flag], f"{name} {flag}: server {s[name][flag]}, browser {b[name][flag]}"
         checked += 1
     assert checked == 2
+
+
+def test_index_loads_the_engine_before_dashboard_js(client):
+    """The dashboard finds the three engine scripts as globals when fetchData runs,
+    so the page must load them, in dependency order, before dashboard.js (all deferred,
+    so they also run in that order)."""
+    html = client.get('/').get_data(as_text=True)
+    scripts = re.findall(r'<script[^>]*\ssrc="[^"]*/js/([^"/?]+\.js)\?v=[^"]*"[^>]*>', html)
+    order = [name for name in scripts if name in ENGINE_FILES + ("dashboard.js",)]
+    assert order == list(ENGINE_FILES) + ["dashboard.js"]

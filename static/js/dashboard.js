@@ -1188,6 +1188,39 @@
     }
 
     /**
+     * The whole table from the browser: NovaDashboardRows (static/js/nova_dashboard_rows.js)
+     * on /api/desktop_inputs and /api/desktop_library, the same rows in the same order as
+     * every /api/get_desktop_data_batch page together. Null tells fetchData to page through
+     * the batch instead: engine not loaded, no location, a location the inputs do not
+     * describe, or any fetch or engine failure.
+     */
+    async function _computeLocalDashboardRows(location, effectiveDate, signal) {
+        if (!(window.NovaAstro && window.NovaTransit && window.NovaDashboardRows)) return null;
+        if (!location) return null;
+        try {
+            const [inputsRes, libraryRes] = await Promise.all([
+                fetch(`/api/desktop_inputs?location=${encodeURIComponent(location)}`, { signal }),
+                fetch('/api/desktop_library', { signal })
+            ]);
+            if (!inputsRes.ok) throw new Error(`desktop_inputs HTTP ${inputsRes.status}`);
+            if (!libraryRes.ok) throw new Error(`desktop_library HTTP ${libraryRes.status}`);
+            const inputs = await inputsRes.json();
+            const library = await libraryRes.json();
+            if (!inputs.location || inputs.location.name !== location) return null;
+            return window.NovaDashboardRows.rows({
+                inputs: inputs,
+                library: library.objects,
+                nowMs: Date.now(),
+                simDate: effectiveDate,
+                instant: 'snapped'
+            });
+        } catch (e) {
+            if (e.name !== 'AbortError') console.warn('Client-side dashboard rows failed, using the server:', e);
+            return null;
+        }
+    }
+
+    /**
      * Apply highlighting logic to a table cell
      * @param {HTMLElement} td - The table cell element
      * @param {string} columnKey - The column identifier
@@ -1309,7 +1342,20 @@
         let firstChunk = true;
 
         try {
-            while (true) {
+            // The whole table from the browser; on null, today's batch loop below.
+            const localRows = await _computeLocalDashboardRows(currentSelectedLocation, effectiveDate, signal);
+            if (signal.aborted) return;
+            if (localRows) {
+                allData = localRows;
+                // Rendered as one chunk, the way the loop renders each page.
+                if (shouldShowLoader) {
+                    tbody.innerHTML = '';
+                    appendRows(allData);
+                    filterTable();
+                }
+            }
+
+            while (!localRows) {
                 if (signal.aborted) return;
 
                 // Call the new Batch Endpoint
