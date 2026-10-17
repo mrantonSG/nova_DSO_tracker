@@ -458,6 +458,19 @@
         return Math.round((1 + cos(i)) / 2 * 1000) / 10;
     }
 
+    /**
+     * Illuminated fraction of the Moon in percent, one decimal, at any instant.
+     * Same maths as moonPhase, which fixes the instant at 12:00 UTC of the date.
+     */
+    function moonPhaseAt(utcMs) {
+        const m = moonGeocentric(utcMs), s = sunPosition(utcMs);
+        const cosPsi = clamp1(sin(s.dec) * sin(m.dec) + cos(s.dec) * cos(m.dec) * cos(s.ra - m.ra));
+        const psi = Math.acos(cosPsi);
+        const R = s.dist * 149597870.7;
+        const i = Math.atan2(R * sin(psi), m.dist - R * cosPsi);
+        return Math.round((1 + cos(i)) / 2 * 1000) / 10;
+    }
+
     // ------------------------------------------------------------------ horizon mask
 
     function buildHorizonProfile(mask, floorAlt) {
@@ -565,7 +578,7 @@
         // positions
         frameFor, apparent, altAz, altAzCurve, sunPosition, gast,
         // sun and moon
-        sunEvents, moonPhase, moonAltAz, moonSeparation, moonSeparations, moonGeocentric,
+        sunEvents, moonPhase, moonPhaseAt, moonAltAz, moonSeparation, moonSeparations, moonGeocentric,
         // night planning
         interpolateHorizon, nightWindow, observableDuration,
         SUN_RISE_SET_ALT, ASTRO_TWILIGHT_ALT,

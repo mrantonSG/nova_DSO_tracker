@@ -30,7 +30,7 @@ CONFIG_DEFAULT = REPO / "config_templates" / "config_default.yaml"
 
 # The bytes of the shared copies, as they sit in nova-ios today.
 SHARED_WITH_NOVA_IOS = {
-    "nova_astro.js": "ffa4a28a0f52d8274b863008f92552b39c594f659435207267092cdc37597a06",
+    "nova_astro.js": "c6c70e9d667255160d006779f4e9a5f80656a67357ad9afcd34fd93367722b2c",
     "nova_transit.js": "b32ed7b19bd642727d590d2f468a3648da337890dd96919ad8a3004edece2049",
 }
 
