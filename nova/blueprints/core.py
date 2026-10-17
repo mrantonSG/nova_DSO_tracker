@@ -468,8 +468,9 @@ def set_location_api():
     username = g.db_user.username
     db = get_db()
 
-    # Validation: Query DB directly (don't rely on g.locations which may not be loaded)
-    location = db.query(Location).filter_by(user_id=user_id, name=location_name).first()
+    # Validation: Query DB directly (don't rely on g.locations which may not be loaded).
+    # Own active locations only; an inactive one is rejected like an unknown name.
+    location = db.query(Location).filter_by(user_id=user_id, name=location_name, active=True).first()
     if not location:
         return jsonify({"status": "error", "message": "Location not found"}), 404
 
