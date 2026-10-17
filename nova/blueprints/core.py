@@ -1880,8 +1880,8 @@ def sun_events():
             observing_date = now_local.date()
     local_date = observing_date.strftime('%Y-%m-%d')
 
-    # Calculate sun events using determined variables
-    events = calculate_sun_events_cached(local_date, tz_name, lat, lon)
+    # Calculate sun events using determined variables (a copy: the cached dict is shared)
+    events = dict(calculate_sun_events_cached(local_date, tz_name, lat, lon))
 
     # Calculate moon phase using determined variables
     try:
