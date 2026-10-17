@@ -110,6 +110,8 @@
         let outlookDataLoaded = false;
         let outlookPollTimer = null; // Single pending Outlook poll
         let activeFetchController = null; // Controls network cancellation
+        let localDashboardState = null; // {location, simDate, inputs, library} of the table last computed in the browser
+        let fetchLoaderTimer = null; // Pending show of the table loader (see _showFetchLoader)
         let dataUpdateIntervalId = null; // 60-second interval for data updates
         let timerUpdateIntervalId = null; // 1-second interval for countdown display
         let askNovaController = null; // AbortController for Ask Nova requests
@@ -835,7 +837,9 @@
                 if (dsoTableWrapper) dsoTableWrapper.style.display = 'block';
                 applyDsoColumnVisibility();
                 const dsoTableBody = document.getElementById('data-body');
-                if (dsoTableBody && dsoTableBody.innerHTML.trim() === '') {
+                // Back on a table still loading, once its loader delay has passed
+                if (dsoTableBody && dsoTableBody.innerHTML.trim() === ''
+                        && dsoTableBody.dataset.loading === 'true' && !fetchLoaderTimer) {
                     if (dsoLoadingDiv) dsoLoadingDiv.style.display = 'block';
                 }
             } else if (activeTab === 'journal') {
@@ -1141,9 +1145,14 @@
      * @param {HTMLElement} loadingMessage - The loading message element
      */
     function _showFetchLoader(loadingDiv, progressBar, loadingMessage) {
-        if (loadingDiv) loadingDiv.style.display = 'block';
         if (loadingMessage) loadingMessage.textContent = window.t('calculating');
         if (progressBar) progressBar.style.width = "5%";
+        // Shown only when loading takes long enough to read it; _hideFetchLoader cancels.
+        clearTimeout(fetchLoaderTimer);
+        fetchLoaderTimer = setTimeout(() => {
+            fetchLoaderTimer = null;
+            if (loadingDiv) loadingDiv.style.display = 'block';
+        }, 400);
     }
 
     /**
@@ -1151,6 +1160,8 @@
      * @param {HTMLElement} loadingDiv - The loading container
      */
     function _hideFetchLoader(loadingDiv) {
+        clearTimeout(fetchLoaderTimer);
+        fetchLoaderTimer = null;
         if (loadingDiv) loadingDiv.style.display = 'none';
     }
 
@@ -1187,15 +1198,35 @@
         return url;
     }
 
+    function _localEngineLoaded() {
+        return !!(window.NovaAstro && window.NovaTransit && window.NovaDashboardRows);
+    }
+
+    /**
+     * The table rows for a localDashboardState-shaped object, at this moment: live with
+     * instant 'exact', simulated with 'snapped' (the batch's grid sample, as before).
+     * Throws whatever NovaDashboardRows.rows() throws.
+     */
+    function _localDashboardRows(state) {
+        return window.NovaDashboardRows.rows({
+            inputs: state.inputs,
+            library: state.library,
+            nowMs: Date.now(),
+            simDate: state.simDate,
+            instant: state.simDate ? 'snapped' : 'exact'
+        });
+    }
+
     /**
      * The whole table from the browser: NovaDashboardRows (static/js/nova_dashboard_rows.js)
      * on /api/desktop_inputs and /api/desktop_library, the same rows in the same order as
-     * every /api/get_desktop_data_batch page together. Null tells fetchData to page through
-     * the batch instead: engine not loaded, no location, a location the inputs do not
+     * every /api/get_desktop_data_batch page together. Keeps the inputs and library in
+     * localDashboardState for the live tick. Null tells fetchData to page through the
+     * batch instead: engine not loaded, no location, a location the inputs do not
      * describe, or any fetch or engine failure.
      */
     async function _computeLocalDashboardRows(location, effectiveDate, signal) {
-        if (!(window.NovaAstro && window.NovaTransit && window.NovaDashboardRows)) return null;
+        if (!_localEngineLoaded()) return null;
         if (!location) return null;
         try {
             const [inputsRes, libraryRes] = await Promise.all([
@@ -1207,17 +1238,39 @@
             const inputs = await inputsRes.json();
             const library = await libraryRes.json();
             if (!inputs.location || inputs.location.name !== location) return null;
-            return window.NovaDashboardRows.rows({
-                inputs: inputs,
-                library: library.objects,
-                nowMs: Date.now(),
-                simDate: effectiveDate,
-                instant: 'snapped'
-            });
+            const state = { location: location, simDate: effectiveDate, inputs: inputs, library: library.objects };
+            const rows = _localDashboardRows(state);
+            if (!signal.aborted) localDashboardState = state;
+            return rows;
         } catch (e) {
             if (e.name !== 'AbortError') console.warn('Client-side dashboard rows failed, using the server:', e);
             return null;
         }
+    }
+
+    /**
+     * The 60 s live refresh, recomputed from the inputs and library in memory and
+     * rendered the way a background fetchData(true) renders. True when handled (also
+     * when skipped: tab hidden, it is recomputed on visibilitychange; a fetch in flight
+     * for this location, it renders shortly). False when there is nothing to recompute
+     * from (server fallback, simulated, another location) or the engine throws: the
+     * caller then runs fetchData(true) as before.
+     */
+    function _tickLocalDashboardRows() {
+        const state = localDashboardState;
+        if (!state || state.simDate || state.location !== sessionStorage.getItem('selectedLocation')) return false;
+        if (document.hidden || activeFetchController) return true;
+        let rows;
+        try {
+            rows = _localDashboardRows(state);
+        } catch (e) {
+            console.warn('Client-side dashboard tick failed, using the server:', e);
+            localDashboardState = null;
+            return false;
+        }
+        renderRows(applyNovaRankSorting(rows));
+        finalizeFetch(true);
+        return true;
     }
 
     /**
@@ -1308,14 +1361,18 @@
     
         console.log(`Fetch requested for location: ${currentSelectedLocation}`);
     
-        // 1. Try Cache First
-        const cachedData = _checkFetchCache(CACHE_KEY, CACHE_EXPIRY);
+        // 1. Try Cache First (not live with the engine loaded: those rows are computed fresh)
+        const liveLocal = !effectiveDate && _localEngineLoaded();
+        const cachedData = liveLocal ? null : _checkFetchCache(CACHE_KEY, CACHE_EXPIRY);
         if (cachedData) {
             if (signal.aborted) return;
             const sortedData = applyNovaRankSorting(cachedData);
             renderRows(sortedData);
             if (signal.aborted) return;
             finalizeFetch(isBackground);
+            if (activeFetchController && activeFetchController.signal === signal) {
+                activeFetchController = null;
+            }
             return;
         }
     
@@ -1353,6 +1410,8 @@
                     appendRows(allData);
                     filterTable();
                 }
+            } else {
+                localDashboardState = null;
             }
 
             while (!localRows) {
@@ -1410,8 +1469,8 @@
                 }
             }
     
-            // Fetch complete - Save to Cache
-            _saveFetchCache(CACHE_KEY, allData);
+            // Fetch complete - Save to Cache (not live rows from the browser, see step 1)
+            if (!(liveLocal && localRows)) _saveFetchCache(CACHE_KEY, allData);
     
             // CRITICAL FIX: Ensure global data is always updated for other tabs
             window.latestDSOData = allData;
@@ -2660,11 +2719,6 @@
               }
           }).catch(error => console.error('Error persisting location:', error));
 
-        // Helper elements
-        const loadingDiv = document.getElementById('table-loading');
-        const loadingMessage = document.getElementById("loading-message");
-        const progressBar = document.getElementById("loading-progress-bar");
-
         // --- (Removed blocking check) Always process the latest user request ---
         // fetchData handles aborting previous requests automatically via AbortController.
         console.log(`Triggering fetch for new location: ${selectedLocation}`);
@@ -2677,14 +2731,7 @@
         document.getElementById('journal-data-body').innerHTML = '';
         document.getElementById('outlook-body').innerHTML = '';
 
-        // Show loading indicator WITHOUT destroying the progress bar structure
-        if (loadingDiv) {
-            loadingDiv.style.display = "block";
-            if (loadingMessage) loadingMessage.textContent = window.t('updating_location');
-            if (progressBar) progressBar.style.width = "0%";
-        }
-
-        // Trigger the data fetches for the new location
+        // Trigger the data fetches for the new location (fetchData shows the loader if it is slow)
         fetchData();
 
         if (activeTab === 'journal') {
@@ -3190,7 +3237,8 @@
           // This is the 60-second interval to fetch data
           dataUpdateIntervalId = setInterval(() => {
             if (document.getElementById('sim-mode-toggle')?.checked) return;
-            fetchData(true); // <--- TRUE enables background mode (no progress bar)
+            // Recompute in the browser; else TRUE enables background mode (no progress bar)
+            if (!_tickLocalDashboardRows()) fetchData(true);
             fetchSunEvents();
             timeToNextUpdate = updateIntervalInSeconds; // Reset the timer
             if (timerSpan) timerSpan.textContent = timeToNextUpdate + 's'; // Update text immediately
@@ -3212,6 +3260,13 @@
           window.addEventListener('beforeunload', () => {
               if (dataUpdateIntervalId) clearInterval(dataUpdateIntervalId);
               if (timerUpdateIntervalId) clearInterval(timerUpdateIntervalId);
+          });
+
+          // Back on the tab: notes and sessions may have changed elsewhere, so reload the
+          // inputs and library and recompute. Only for a live table computed in the browser.
+          document.addEventListener('visibilitychange', () => {
+              if (document.hidden || document.getElementById('sim-mode-toggle')?.checked) return;
+              if (localDashboardState && !localDashboardState.simDate) fetchData(true);
           });
           // --- END: New Timer Logic ---
 
