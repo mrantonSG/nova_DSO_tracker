@@ -160,8 +160,8 @@ def test_journal_edit_empty_object_leaves_project_target(w):
 
 # --- add_project_from_journal ----------------------------------------------------------
 
-def _add_project(w, name, obj):
-    data = {'name': name, 'status': "Planned", 'target_object_id': obj}
+def _add_project(w, name, obj, status="Planned"):
+    data = {'name': name, 'status': status, 'target_object_id': obj}
     resp = w.client.post('/journal/add_project', data=data)
     assert resp.status_code == 302
     return _project(w, name)
@@ -174,6 +174,30 @@ def test_add_project_from_journal(w, obj, expected):
     p = _add_project(w, "AddP", obj)
     assert p.target_object_name == expected
     assert p.target_object_record_uid == (w.m42.record_uid if expected == "M 42" else None)
+    _assert_links_clean(w.db)
+
+
+def test_journal_add_project_does_not_pin_the_object(w):
+    """Creating a project from the journal leaves an unpinned object unpinned."""
+    w.m42.active_project = False
+    w.db.commit()
+
+    _add_project(w, "CreateNoPin", "M 42", "In Progress")
+
+    w.db.expire_all()
+    assert w.db.query(AstroObject).filter_by(id=w.m42.id).one().active_project is False
+    _assert_links_clean(w.db)
+
+
+def test_journal_add_project_does_not_unpin_the_object(w):
+    """Creating a project from the journal leaves a pinned object pinned."""
+    w.m42.active_project = True
+    w.db.commit()
+
+    _add_project(w, "CreateStaysPin", "M 42", "In Planning")
+
+    w.db.expire_all()
+    assert w.db.query(AstroObject).filter_by(id=w.m42.id).one().active_project is True
     _assert_links_clean(w.db)
 
 

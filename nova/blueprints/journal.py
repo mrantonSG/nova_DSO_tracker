@@ -853,7 +853,6 @@ def journal_edit(session_id):
 @journal_bp.route('/journal/add_project', methods=['POST'])
 @login_required
 def add_project_from_journal():
-    from nova import trigger_outlook_update_for_user  # Lazy import
     username = "default" if nova.SINGLE_USER_MODE else current_user.username
     db = get_db()
     # Capture location to persist view state on redirect
@@ -889,21 +888,9 @@ def add_project_from_journal():
         sync_project_link(db, new_project)
         db.add(new_project)
 
-        # Auto-activate object if project is In Progress (the object is the
-        # one the project's target UID names, after sync_project_link above)
-        should_trigger_outlook = False
-        if target_object_id and status == 'In Progress':
-            obj = object_for_uid(db, user.id, new_project.target_object_record_uid)
-            if obj and not obj.active_project:
-                obj.active_project = True
-                should_trigger_outlook = True
-
         db.commit()
 
         invalidate_object_caches(user.id, username, [], curves=False, outlook=False)
-
-        if should_trigger_outlook:
-            trigger_outlook_update_for_user(username)
 
         flash(_("Project '%(project_name)s' created successfully.", project_name=name), "success")
 
