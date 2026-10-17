@@ -472,5 +472,12 @@
         return build(opts, true);
     }
 
-    return { rows: rows, explain: explain, statusStrip: statusStrip, _py: { fixed: pyFixed, round: pyRound, roundInt: pyRoundInt } };
+    // _wall is the same pytz localize() and night window the rows use, exported so
+    // nova_outlook.js (the browser-built Outlook table) reuses them instead of
+    // copying them. Nothing about the exported rows changes.
+    return {
+        rows: rows, explain: explain, statusStrip: statusStrip,
+        _py: { fixed: pyFixed, round: pyRound, roundInt: pyRoundInt },
+        _wall: { localize: localize, nightWindow: nightWindow },
+    };
 });
