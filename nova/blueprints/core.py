@@ -2738,6 +2738,14 @@ def get_imaging_opportunities(object_name):
         lon = float(lon_str) if lon_str else g.lon
         tz_name = tz_name_req if tz_name_req else g.tz_name
 
+        # plot_loc_name: the graph page's location. One of the user's own locations
+        # (g.locations: user_id + name, no active filter); it wins over plot_lat/lon/tz.
+        # Missing or not found: the values above, as before.
+        plot_loc_name = request.args.get('plot_loc_name', '').strip()
+        named_location = (getattr(g, 'locations', None) or {}).get(plot_loc_name) if plot_loc_name else None
+        if named_location:
+            lat, lon, tz_name = named_location['lat'], named_location['lon'], named_location['timezone']
+
         # Validate that we ended up with valid numeric lat/lon
         if lat is None or lon is None:
              raise ValueError("Latitude or Longitude could not be determined.")
@@ -2775,13 +2783,15 @@ def get_imaging_opportunities(object_name):
     sampling_interval = resolve_sampling_interval(g.user_config)
 
     # --- Get Horizon Mask for the specific location ---
-    # We need the location *name* to look up the mask.
-    # It's tricky because the graph view only sends lat/lon/tz.
-    # We'll approximate by finding a location in g.locations that matches lat/lon/tz.
+    # By name when plot_loc_name named one of the user's locations. Otherwise
+    # approximate by finding a location in g.locations that matches lat/lon/tz.
     # This isn't perfect if multiple locations share coords but is the best we can do without passing the name.
     horizon_mask = None
     try:
-        if hasattr(g, 'locations') and isinstance(g.locations, dict):
+        if named_location:
+            horizon_mask = named_location.get('horizon_mask')
+            altitude_threshold = resolve_altitude_threshold(g.user_config, named_location)
+        elif hasattr(g, 'locations') and isinstance(g.locations, dict):
             for loc_name, loc_details in g.locations.items():
                 # Compare floats with a small tolerance
                 if (abs(loc_details.get('lat', 999) - lat) < 0.001 and

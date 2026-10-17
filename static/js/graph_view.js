@@ -571,7 +571,8 @@
             var params = new URLSearchParams({
                 plot_lat: plotLat,
                 plot_lon: plotLon,
-                plot_tz: plotTz
+                plot_tz: plotTz,
+                plot_loc_name: DATA.plotLocName || ''
             });
 
             var fetchUrl = '/get_imaging_opportunities/' + encodeURIComponent(objectName) + '?' + params.toString();
