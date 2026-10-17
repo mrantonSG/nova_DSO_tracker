@@ -49,8 +49,8 @@ def _skyglow_floor_series(instance_path, location_id):
     Reads the file whenever it is present, with no token gate. The two existing
     readers disagree: get_desktop_data_batch only reads it under
     NASA_EARTHDATA_TOKEN, while /api/get_plot_data reads it unconditionally. Not
-    gated here so the browser gets the same floor the plot already draws; to be
-    aligned when the dashboard moves to the client.
+    gated here so the browser gets the same floor the plot already draws; the
+    dashboard's gate travels separately, as settings.skyglow_flags.
     """
     if location_id is None:
         return None
@@ -2104,6 +2104,44 @@ def api_mobile_up_now_inputs():
     })
 
 
+def _desktop_library_fields(db, user_id, objects):
+    """{AstroObject.id: {framing_rig, has_notes, session_count}} for `objects`:
+    the three fields a desktop dashboard row adds to obj.to_dict(). Shared by
+    /api/get_desktop_data_batch and /api/desktop_library so they cannot drift.
+
+    Framings, rigs and sessions are user_id's own rows only, found by the
+    object's record UID.
+    """
+    object_uids = [obj.record_uid for obj in objects if obj.record_uid]
+    # framing_rig label: the user's rig found by the framing's rig UID; the
+    # stored rig_name text only when the framing has no rig UID.
+    user_rigs = rigs_by_uid(db, user_id)
+    framing_map = {}
+    for f in db.query(SavedFraming.object_record_uid, SavedFraming.rig_record_uid,
+                      SavedFraming.rig_name)\
+            .filter(SavedFraming.user_id == user_id,
+                    SavedFraming.object_record_uid.in_(object_uids)).all():
+        if f.rig_record_uid:
+            rig = user_rigs.get(f.rig_record_uid)
+            framing_map[f.object_record_uid] = rig.rig_name if rig else None
+        else:
+            framing_map[f.object_record_uid] = f.rig_name
+    session_map = {
+        row[0]: row[1] for row in db.query(JournalSession.object_record_uid, func.count(JournalSession.id))
+        .filter(JournalSession.user_id == user_id,
+                JournalSession.object_record_uid.in_(object_uids))
+        .group_by(JournalSession.object_record_uid).all()
+    }
+    return {
+        obj.id: {
+            'framing_rig': framing_map.get(obj.record_uid) or '',
+            'has_notes': bool(re.sub(r'<[^>]+>', '', obj.project_name or '').strip().lower() not in ('none', '')),
+            'session_count': session_map.get(obj.record_uid, 0)
+        }
+        for obj in objects
+    }
+
+
 @api_bp.route('/api/desktop_inputs')
 def api_desktop_inputs():
     """Read-only inputs for the desktop dashboard and graph view, so the browser
@@ -2131,6 +2169,9 @@ def api_desktop_inputs():
         "min_observable_minutes": criteria["min_observable_minutes"],
         "max_moon_illumination": criteria["max_moon_illumination"],
         "min_angular_separation": criteria["min_angular_separation"],
+        # The dashboard's skyglow gate: get_desktop_data_batch only sets its
+        # below_skyglow_floor flags when this token is set.
+        "skyglow_flags": bool(os.environ.get("NASA_EARTHDATA_TOKEN")),
     }
 
     # Same behavior as api_mobile_up_now_inputs when there is no user.
@@ -2170,6 +2211,36 @@ def api_desktop_inputs():
         "settings": settings,
         "skyglow": skyglow,
     })
+
+
+@api_bp.route('/api/desktop_library')
+def api_desktop_library():
+    """The desktop dashboard's library columns, with no astronomy: one row per
+    enabled object, in /api/get_desktop_data_batch's order (object_name), each
+    the batch row's non-astronomy fields: obj.to_dict() plus framing_rig,
+    has_notes and session_count. No location involved. Read-only.
+
+    Guest access matches /api/get_desktop_data_batch.
+    """
+    # --- Manual Auth Check for Guest Support (same as get_desktop_data_batch) ---
+    if not (current_user.is_authenticated or nova.SINGLE_USER_MODE or getattr(g, 'is_guest', False)):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    user = g.db_user
+    if not user: return jsonify({"error": "User not found", "objects": []}), 404
+
+    db = get_db()
+    objects = db.query(AstroObject).filter_by(user_id=user.id, enabled=True)\
+        .order_by(AstroObject.object_name)\
+        .all()
+    library_fields = _desktop_library_fields(db, user.id, objects)
+
+    rows = []
+    for obj in objects:
+        row = obj.to_dict()
+        row.update(library_fields[obj.id])
+        rows.append(row)
+    return jsonify({"objects": rows})
 
 
 @api_bp.route('/api/mobile_status')
@@ -3597,27 +3668,8 @@ def get_desktop_data_batch():
 
         # Determine has_more flag based on whether we got a full page
 
-        # --- Bulk framing & session-count lookups, keyed by the object UID ---
-        object_uids = [obj.record_uid for obj in batch_objects if obj.record_uid]
-        # framing_rig label: the user's rig found by the framing's rig UID; the
-        # stored rig_name text only when the framing has no rig UID.
-        user_rigs = rigs_by_uid(db, user.id)
-        framing_map = {}
-        for f in db.query(SavedFraming.object_record_uid, SavedFraming.rig_record_uid,
-                          SavedFraming.rig_name)\
-                .filter(SavedFraming.user_id == user.id,
-                        SavedFraming.object_record_uid.in_(object_uids)).all():
-            if f.rig_record_uid:
-                rig = user_rigs.get(f.rig_record_uid)
-                framing_map[f.object_record_uid] = rig.rig_name if rig else None
-            else:
-                framing_map[f.object_record_uid] = f.rig_name
-        session_map = {
-            row[0]: row[1] for row in db.query(JournalSession.object_record_uid, func.count(JournalSession.id))
-            .filter(JournalSession.user_id == user.id,
-                    JournalSession.object_record_uid.in_(object_uids))
-            .group_by(JournalSession.object_record_uid).all()
-        }
+        # --- framing_rig / has_notes / session_count (shared with /api/desktop_library) ---
+        library_fields = _desktop_library_fields(db, user.id, batch_objects)
 
         has_more = len(batch_objects) == limit
 
@@ -3692,11 +3744,7 @@ def get_desktop_data_batch():
 
                 if ra is None or dec is None:
                     item.update({'error': True, 'Common Name': 'Error: Missing RA/DEC'})
-                    item.update({
-                        'framing_rig': framing_map.get(obj.record_uid) or '',
-                        'has_notes': bool(re.sub(r'<[^>]+>', '', obj.project_name or '').strip().lower() not in ('none', '')),
-                        'session_count': session_map.get(obj.record_uid, 0)
-                    })
+                    item.update(library_fields[obj.id])
                     results.append(item)
                     continue
 
@@ -3721,11 +3769,7 @@ def get_desktop_data_batch():
                             'max_culmination_alt': round(max_culm_geo, 1),
                             'error': False
                         })
-                        item.update({
-                            'framing_rig': framing_map.get(obj.record_uid) or '',
-                            'has_notes': bool(re.sub(r'<[^>]+>', '', obj.project_name or '').strip().lower() not in ('none', '')),
-                            'session_count': session_map.get(obj.record_uid, 0)
-                        })
+                        item.update(library_fields[obj.id])
                         results.append(item)
                         continue
 
@@ -3829,11 +3873,7 @@ def get_desktop_data_batch():
                     'max_culmination_alt': max_culm,
                     'error': False
                 })
-                item.update({
-                    'framing_rig': framing_map.get(obj.record_uid) or '',
-                    'has_notes': bool(re.sub(r'<[^>]+>', '', obj.project_name or '').strip().lower() not in ('none', '')),
-                    'session_count': session_map.get(obj.record_uid, 0)
-                })
+                item.update(library_fields[obj.id])
                 results.append(item)
 
             except Exception as e:

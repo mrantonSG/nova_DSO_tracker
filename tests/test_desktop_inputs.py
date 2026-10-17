@@ -78,10 +78,12 @@ def test_desktop_inputs_returns_the_documented_shape(client):
     assert set(data["settings"].keys()) == {
         "hide_invisible", "calc_invisible",
         "min_observable_minutes", "max_moon_illumination", "min_angular_separation",
+        "skyglow_flags",
     }
 
 
-def test_desktop_inputs_settings_reflect_ui_prefs(client):
+def test_desktop_inputs_settings_reflect_ui_prefs(client, monkeypatch):
+    monkeypatch.delenv("NASA_EARTHDATA_TOKEN", raising=False)
     _set_prefs({
         "hide_invisible": False,
         "calc_invisible": True,
@@ -100,6 +102,7 @@ def test_desktop_inputs_settings_reflect_ui_prefs(client):
         "min_observable_minutes": 90,
         "max_moon_illumination": 45,
         "min_angular_separation": 12,
+        "skyglow_flags": False,
     }
 
 
@@ -121,6 +124,7 @@ def test_desktop_inputs_without_a_location_returns_the_null_shape(client, db_ses
     assert set(data["settings"].keys()) == {
         "hide_invisible", "calc_invisible",
         "min_observable_minutes", "max_moon_illumination", "min_angular_separation",
+        "skyglow_flags",
     }
 
 
