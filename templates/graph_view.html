@@ -49,7 +49,18 @@
 
 {% block header_content %}
 <div class="status-strip">
-    {{ status_item(_('Location'), header_location_name, value_id='location-display') }}
+    <div class="status-item" style="min-width: 150px;">
+        <span class="status-label">{{ _('Location') }}</span>
+        <select id="location-select" aria-label="{{ _('Location') }}">
+            {% for loc in available_locations %}
+                {% if loc.active %}
+            <option value="{{ loc.name }}"{% if loc.name == header_location_name %} selected{% endif %}>{{ loc.name }}</option>
+                {% elif loc.name == header_location_name %}
+            <option value="{{ loc.name }}" selected disabled>{{ loc.name }}{{ _(' (Inactive)') }}</option>
+                {% endif %}
+            {% endfor %}
+        </select>
+    </div>
     {{ status_item(_('Graph Date'), header_date_display, value_id='date-display') }}
     {{ status_item(_('Moon'), header_moon_phase ~ '%', value_id='phase-display') }}
     {{ status_item(_('Moon Sep.'), header_moon_separation ~ '°', value_id='separation-display') }}
