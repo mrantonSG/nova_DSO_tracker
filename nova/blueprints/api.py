@@ -41,13 +41,41 @@ def _nearest_sg_alt(az, sg_data):
     return nearest.get("min_alt_deg")
 
 
+def _skyglow_floor_series(instance_path, location_id):
+    """The skyglow floor in the smallest form the floor rule needs: one
+    {az_deg, min_alt_deg} pair per sector, the only two fields _nearest_sg_alt()
+    reads. None when the location has no file, or the file carries no sectors.
+
+    Reads the file whenever it is present, with no token gate. The two existing
+    readers disagree: get_desktop_data_batch only reads it under
+    NASA_EARTHDATA_TOKEN, while /api/get_plot_data reads it unconditionally. Not
+    gated here so the browser gets the same floor the plot already draws; to be
+    aligned when the dashboard moves to the client.
+    """
+    if location_id is None:
+        return None
+    path = os.path.join(instance_path, "skyglow", f"{location_id}.json")
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path) as f:
+            sg = json.load(f)
+    except (OSError, ValueError) as sg_err:
+        print(f"[API Desktop Inputs] WARN: Could not load skyglow data: {sg_err}")
+        return None
+    sectors = sg.get("skyglow_horizon") or []
+    if not sectors:
+        return None
+    return [{"az_deg": s["az_deg"], "min_alt_deg": s.get("min_alt_deg")} for s in sectors]
+
+
 from nova.helpers import (
     get_db, load_full_astro_context, get_locale,
     get_all_mobile_up_now_data, get_ra_dec, safe_float,
     read_log_content, enable_user, disable_user, delete_user,
     bust_astro_context_cache, invalidate_object_caches,
     heatmap_fingerprint, heatmap_cache_path,
-    resolve_sampling_interval, resolve_altitude_threshold,
+    resolve_sampling_interval, resolve_altitude_threshold, get_imaging_criteria,
     is_valid_username, guiding_rms_limits,
 )
 from nova.models import (
@@ -1992,6 +2020,56 @@ def api_mobile_data_chunk():
     })
 
 
+def _up_now_inputs_payload(db, user, location, user_prefs_dict, include_enabled=False):
+    """Location block and every raw object row, no astronomical calculation.
+
+    Shared by /api/mobile_up_now_inputs (which returns exactly these two keys)
+    and /api/desktop_inputs (which adds the settings and skyglow blocks).
+
+    `include_enabled` adds the row's `enabled` flag, which the desktop dashboard
+    needs (it only shows enabled objects) and the mobile payload must not carry.
+    """
+    # Every object of the user, in id order (no enabled filter, no pagination).
+    objects = db.query(AstroObject).filter_by(user_id=user.id).order_by(AstroObject.id).all()
+
+    # Saved-framings lookup (same as get_all_mobile_up_now_data), by object UID
+    framed_uids = set()
+    try:
+        framed_uids = framed_object_uids(db, user.id)
+    except Exception:
+        pass
+
+    objects_data = []
+    for obj_record in objects:
+        row = {
+            "Object": obj_record.object_name,
+            "Common Name": obj_record.common_name or obj_record.object_name,
+            "ActiveProject": obj_record.active_project,
+            "has_framing": obj_record.record_uid in framed_uids,
+            "Type": obj_record.type or "N/A",
+            "Constellation": obj_record.constellation or "",
+            "ra": obj_record.ra_hours,
+            "dec": obj_record.dec_deg,
+        }
+        if include_enabled:
+            row["enabled"] = bool(obj_record.enabled)
+        objects_data.append(row)
+
+    horizon_mask = [[hp.az_deg, hp.alt_min_deg]
+                    for hp in sorted(location.horizon_points, key=lambda p: p.az_deg)]
+
+    location_dict = {
+        "name": location.name,
+        "lat": location.lat,
+        "lon": location.lon,
+        "timezone": location.timezone,
+        "altitude_threshold": resolve_altitude_threshold(user_prefs_dict, location),
+        "sampling_interval": resolve_sampling_interval(user_prefs_dict),
+        "horizon_mask": horizon_mask,
+    }
+    return location_dict, objects_data
+
+
 @api_bp.route('/api/mobile_up_now_inputs')
 @login_required
 def api_mobile_up_now_inputs():
@@ -2017,44 +2095,80 @@ def api_mobile_up_now_inputs():
     if not location:
         return jsonify({"location": None, "objects": []})
 
-    # 2. Get All Objects (same filters/order, but no offset/limit)
-    objects = db.query(AstroObject).filter_by(user_id=user.id).order_by(AstroObject.id).all()
-
-    # 3. Saved-framings lookup (same as get_all_mobile_up_now_data), by object UID
-    framed_uids = set()
-    try:
-        framed_uids = framed_object_uids(db, user.id)
-    except Exception:
-        pass
-
-    # 4. Assemble raw inputs (first six keys match get_all_mobile_up_now_data)
-    objects_data = []
-    for obj_record in objects:
-        objects_data.append({
-            "Object": obj_record.object_name,
-            "Common Name": obj_record.common_name or obj_record.object_name,
-            "ActiveProject": obj_record.active_project,
-            "has_framing": obj_record.record_uid in framed_uids,
-            "Type": obj_record.type or "N/A",
-            "Constellation": obj_record.constellation or "",
-            "ra": obj_record.ra_hours,
-            "dec": obj_record.dec_deg,
-        })
-
-    horizon_mask = [[hp.az_deg, hp.alt_min_deg]
-                    for hp in sorted(location.horizon_points, key=lambda p: p.az_deg)]
+    # 2. Location block and object rows (shared with /api/desktop_inputs)
+    location_dict, objects_data = _up_now_inputs_payload(db, user, location, user_prefs_dict)
 
     return jsonify({
-        "location": {
-            "name": location.name,
-            "lat": location.lat,
-            "lon": location.lon,
-            "timezone": location.timezone,
-            "altitude_threshold": resolve_altitude_threshold(user_prefs_dict, location),
-            "sampling_interval": resolve_sampling_interval(user_prefs_dict),
-            "horizon_mask": horizon_mask
-        },
+        "location": location_dict,
         "objects": objects_data
+    })
+
+
+@api_bp.route('/api/desktop_inputs')
+def api_desktop_inputs():
+    """Read-only inputs for the desktop dashboard and graph view, so the browser
+    can compute them with static/js/nova_astro.js. No DB writes, no calculation.
+
+    ?location=<name> picks one of the caller's own locations; an unknown name, or
+    another user's, is 404 with no data. Without the parameter the active location
+    (g.selected_location) is used, matching /api/get_desktop_data_batch.
+
+    Guest access matches /api/get_desktop_data_batch, the endpoint this feeds.
+    """
+    # --- Manual Auth Check for Guest Support (same as get_desktop_data_batch) ---
+    if not (current_user.is_authenticated or nova.SINGLE_USER_MODE or getattr(g, 'is_guest', False)):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    load_full_astro_context()
+
+    user = g.db_user
+    user_prefs_dict = g.user_config or {}
+
+    criteria = get_imaging_criteria()
+    settings = {
+        "hide_invisible": user_prefs_dict.get("hide_invisible", True),
+        "calc_invisible": user_prefs_dict.get("calc_invisible", False),
+        "min_observable_minutes": criteria["min_observable_minutes"],
+        "max_moon_illumination": criteria["max_moon_illumination"],
+        "min_angular_separation": criteria["min_angular_separation"],
+    }
+
+    # Same behavior as api_mobile_up_now_inputs when there is no user.
+    if not user:
+        return jsonify({"location": None, "objects": [], "settings": settings, "skyglow": None})
+
+    db = get_db()
+
+    # 1. Get Location: request parameter (own locations only), else the active one
+    requested_location_name = (request.args.get("location") or "").strip()
+    if requested_location_name:
+        location = db.query(Location).options(
+            selectinload(Location.horizon_points)
+        ).filter_by(user_id=user.id, name=requested_location_name).one_or_none()
+        if not location:
+            return jsonify({"error": "Location not found"}), 404
+    else:
+        location_name = g.selected_location
+        location = None
+        if location_name:
+            location = db.query(Location).options(
+                selectinload(Location.horizon_points)
+            ).filter_by(user_id=user.id, name=location_name).one_or_none()
+        if not location:
+            return jsonify({"location": None, "objects": [], "settings": settings, "skyglow": None})
+
+    # 2. Location block and object rows (shared with /api/mobile_up_now_inputs)
+    location_dict, objects_data = _up_now_inputs_payload(
+        db, user, location, user_prefs_dict, include_enabled=True)
+
+    # 3. Skyglow floor for this location, in the smallest exact form
+    skyglow = _skyglow_floor_series(current_app.instance_path, location.id)
+
+    return jsonify({
+        "location": location_dict,
+        "objects": objects_data,
+        "settings": settings,
+        "skyglow": skyglow,
     })
 
 
