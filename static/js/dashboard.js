@@ -111,6 +111,8 @@
         let outlookPollTimer = null; // Single pending Outlook poll
         let activeFetchController = null; // Controls network cancellation
         let localDashboardState = null; // {location, simDate, inputs, library} of the table last computed in the browser
+        let localOutlookState = null; // {key, simDate, startDate, timezone} of the Outlook rows last computed in the browser
+        let outlookLoadGeneration = 0; // Newest loadOutlook(); an older one drops its result
         let fetchLoaderTimer = null; // Pending show of the table loader (see _showFetchLoader)
         let dataUpdateIntervalId = null; // 60-second interval for data updates
         let timerUpdateIntervalId = null; // 1-second interval for countdown display
@@ -315,6 +317,7 @@
                 outlookDataLoaded = false;
                 fetchData();
                 if (!_localEngineLoaded()) fetchSunEvents(); // else finalizeFetch renders the strip
+                if (activeTab === 'outlook') loadOutlook(true);
             }
     
             simModeToggle.addEventListener('change', function() {
@@ -853,7 +856,7 @@
                 populateJournalTable();
             } else if (activeTab === 'outlook') {
                 if (outlookWrapper) outlookWrapper.style.display = 'block';
-                if (!outlookDataLoaded) fetchOutlookData();
+                loadOutlook();
             } else if (activeTab === 'heatmap') {
                 if (heatmapWrapper) heatmapWrapper.style.display = 'block';
                 if (typeof fetchAndRenderHeatmap === 'function') {
@@ -2762,7 +2765,7 @@
         if (activeTab === 'journal') {
            populateJournalTable();
         } else if (activeTab === 'outlook') {
-           fetchOutlookData();
+           loadOutlook(true);
         } else if (activeTab === 'heatmap') {
            fetchAndRenderHeatmap();
         }
@@ -3315,6 +3318,7 @@
                 fetchData(true);
                 fetchSunEvents();
             }
+            if (activeTab === 'outlook') _checkOutlookDateRollover();
             timeToNextUpdate = updateIntervalInSeconds; // Reset the timer
             if (timerSpan) timerSpan.textContent = timeToNextUpdate + 's'; // Update text immediately
           }, updateIntervalInSeconds * 1000); // 60000ms
@@ -3611,6 +3615,102 @@
         }
     
     
+        function _localOutlookLoaded() {
+            return !!(window.NovaAstro && window.NovaDashboardRows && window.NovaOutlook);
+        }
+
+        /** The first Outlook night NovaOutlook uses: the sim date, else today at the location. */
+        function _outlookStartDate(simDate, tz, nowMs) {
+            if (simDate) return simDate;
+            const p = window.NovaAstro.localParts(nowMs, tz);
+            return `${p.year}-${String(p.month).padStart(2, '0')}-${String(p.day).padStart(2, '0')}`;
+        }
+
+        /** The Outlook rows in allOutlookOpportunities, sorted, or the empty message. */
+        function _renderOutlookRows(tableBody) {
+            if (allOutlookOpportunities.length > 0) {
+                sortOutlookTable(currentOutlookSort.columnKey, false);
+            } else {
+                tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:grey;">${window.t('no_imaging_opportunities')}</td></tr>`;
+            }
+        }
+
+        /**
+         * The Outlook table from the browser: NovaOutlook (static/js/nova_outlook.js) on a
+         * fresh /api/desktop_inputs, reused while the location, sim date, start date and
+         * inputs are unchanged. fetchOutlookData() (the worker's cache) for guests, without
+         * the engine or a location, and on any fetch or engine failure. `force` keeps the
+         * old callers' behavior without the engine: the location change always fetched,
+         * tab activation only while outlookDataLoaded was false.
+         */
+        async function loadOutlook(force = false) {
+            const generation = ++outlookLoadGeneration;
+            const location = sessionStorage.getItem('selectedLocation');
+            if (IS_GUEST_USER || !_localOutlookLoaded() || !location) {
+                localOutlookState = null;
+                if (force || !outlookDataLoaded) fetchOutlookData();
+                return;
+            }
+            // A pending server poll must not overwrite these rows
+            clearTimeout(outlookPollTimer);
+            outlookPollTimer = null;
+            const tableBody = document.getElementById('outlook-body');
+            if (!tableBody) return;
+            const showFetching = () => {
+                tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:${getColor('--primary-dark', '#6795a4')};">${window.t('fetching')}</td></tr>`;
+            };
+            if (!outlookDataLoaded) showFetching();
+
+            const simModeOn = document.getElementById('sim-mode-toggle')?.checked;
+            const simDateVal = document.getElementById('sim-date-input')?.value;
+            const effectiveDate = simModeOn && simDateVal ? simDateVal : null;
+            try {
+                const res = await fetch(`/api/desktop_inputs?location=${encodeURIComponent(location)}`);
+                if (!res.ok) throw new Error(`desktop_inputs HTTP ${res.status}`);
+                const inputs = await res.json();
+                if (generation !== outlookLoadGeneration) return;
+                if (!inputs.location || inputs.location.name !== location) throw new Error('desktop_inputs: not this location');
+
+                const nowMs = Date.now();
+                const tz = inputs.location.timezone;
+                const startDate = _outlookStartDate(effectiveDate, tz, nowMs);
+                const key = JSON.stringify([location, effectiveDate, startDate, inputs]);
+                if (localOutlookState && localOutlookState.key === key) {
+                    // allOutlookOpportunities still holds these rows; redraw only if cleared
+                    if (!outlookDataLoaded) {
+                        outlookDataLoaded = true;
+                        _renderOutlookRows(tableBody);
+                    }
+                    return;
+                }
+
+                showFetching();
+                await new Promise(resolve => setTimeout(resolve, 0)); // let the message paint
+                if (generation !== outlookLoadGeneration) return;
+                const rows = window.NovaOutlook.opportunities({ inputs: inputs, nowMs: nowMs, simDate: effectiveDate });
+                allOutlookOpportunities = rows;
+                localOutlookState = { key: key, simDate: effectiveDate, startDate: startDate, timezone: tz };
+                outlookDataLoaded = true;
+                _renderOutlookRows(tableBody);
+            } catch (e) {
+                if (generation !== outlookLoadGeneration) return;
+                console.warn('Client-side Outlook failed, using the server:', e);
+                localOutlookState = null;
+                fetchOutlookData();
+            }
+        }
+
+        /** Live, on the Outlook tab: recompute once the location's date has passed the rows' start date. */
+        function _checkOutlookDateRollover() {
+            const state = localOutlookState;
+            if (!state || state.simDate || document.hidden) return;
+            try {
+                if (_outlookStartDate(null, state.timezone, Date.now()) !== state.startDate) loadOutlook(true);
+            } catch (e) {
+                // Left as it is; the next tab activation compares the date again.
+            }
+        }
+
         function fetchOutlookData() {
             // Any new call replaces a pending poll
             clearTimeout(outlookPollTimer);

@@ -600,13 +600,15 @@ def test_skyglow_flags_read_the_positions_the_batch_reads(client, db_session, tm
 
 
 def test_index_loads_the_engine_before_dashboard_js(client):
-    """The dashboard finds the three engine scripts as globals when fetchData runs,
-    so the page must load them, in dependency order, before dashboard.js (all deferred,
-    so they also run in that order)."""
+    """The dashboard finds the three engine scripts and nova_outlook.js (which needs
+    nova_astro.js and nova_dashboard_rows.js) as globals when fetchData and the Outlook
+    tab run, so the page must load them, in dependency order, before dashboard.js (all
+    deferred, so they also run in that order)."""
     html = client.get('/').get_data(as_text=True)
     scripts = re.findall(r'<script[^>]*\ssrc="[^"]*/js/([^"/?]+\.js)\?v=[^"]*"[^>]*>', html)
-    order = [name for name in scripts if name in ENGINE_FILES + ("dashboard.js",)]
-    assert order == list(ENGINE_FILES) + ["dashboard.js"]
+    expected = list(ENGINE_FILES) + ["nova_outlook.js", "dashboard.js"]
+    order = [name for name in scripts if name in expected]
+    assert order == expected
 
 
 # The status strip: the template sites plus one with no astronomical night at midsummer,
