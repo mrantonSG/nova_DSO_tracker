@@ -2813,7 +2813,84 @@
     function formatDec(decDeg) { const sign = decDeg >= 0 ? '+' : '-', abs = Math.abs(decDeg), d = Math.floor(abs), m = Math.floor((abs - d) * 60), s = ((abs - d) * 60 - m) * 60; return `${sign}${pad(d)}:${pad(m)}:${s.toFixed(1).padStart(4, '0')}`; }
     function getFrameCenterRaDec() { if (lockToObject) { const rc = aladin.getRaDec(); return { ra: rc[0], dec: rc[1] }; } if (fovCenter && isFinite(fovCenter.ra) && isFinite(fovCenter.dec)) return fovCenter; const rc = aladin.getRaDec(); return { ra: rc[0], dec: rc[1] }; }
     function parseRaDec(raHMS, decDMS) { try { const [h, m, s] = raHMS.split(':').map(parseFloat), ra = (h + m / 60 + s / 3600) * 15.0, sign = decDMS.trim()[0] === '-' ? -1 : 1, [d, dm, ds] = decDMS.replace('+', '').replace('-', '').split(':').map(parseFloat), dec = sign * (d + dm / 60 + ds / 3600); return {ra, dec}; } catch (e) { return null; } }
-    function setLocation() { const selectedLocation = document.getElementById('location-select').value; fetch('/set_location', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({location: selectedLocation}) }).then(response => response.json()).then(data => { if (data.status === 'success') refreshChart(); else console.error("Location update failed:", data); }).catch(error => console.error('Error setting location:', error)); }
+
+    // Project notes as last loaded or saved, so unsaved edits (typed, or put there by
+    // Ask Nova, which does not save) can be told apart before leaving the page.
+    let projectNotesBaseline = null;
+    function captureProjectNotesBaseline() {
+        const input = document.getElementById('project-field-hidden');
+        if (input) projectNotesBaseline = input.value;
+    }
+    (function watchProjectNotesBaseline() {
+        const editorEl = document.getElementById('project-field-editor');
+        if (!editorEl) return;
+        if (editorEl.editor) captureProjectNotesBaseline();
+        else editorEl.addEventListener('trix-initialize', captureProjectNotesBaseline, { once: true });
+    })();
+
+    function hasUnsavedChanges() {
+        if (document.querySelector('#journal-detail-form .form-unsaved-marker:not([hidden])')) return true;
+        const input = document.getElementById('project-field-hidden');
+        return !!input && projectNotesBaseline !== null && input.value !== projectNotesBaseline;
+    }
+
+    /** The option the page was rendered with: the page's location. */
+    function pageLocationOption(select) {
+        return Array.from(select.options).find(o => o.defaultSelected);
+    }
+
+    /**
+     * #location-select changed: the dashboard's location switch, then this page for the
+     * new location. Saved as the user's selected location (a guest's save is refused;
+     * the page still follows ?location=) and in sessionStorage for the dashboard in this
+     * tab. A reload, not an in-place update: the chart's time zone is fixed at load.
+     */
+    async function setLocation(select) {
+        const name = select.value;
+        select.disabled = true;   // no second change while this one runs
+        if (hasUnsavedChanges()) {
+            const i18n = typeof graphI18n !== 'undefined' ? graphI18n : {};
+            const leave = await novaConfirm(i18n.unsavedChanges, {
+                confirmLabel: i18n.discard, cancelLabel: i18n.cancel, danger: true
+            });
+            if (!leave) {
+                const previous = pageLocationOption(select);
+                if (previous) select.value = previous.value;
+                select.disabled = false;
+                return;
+            }
+        }
+        try {
+            sessionStorage.setItem('selectedLocation', name);
+        } catch (e) {
+            console.warn('Could not store the location for the dashboard:', e);
+        }
+        try {
+            const response = await fetch('/set_location', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({location: name})
+            });
+            const data = await response.json();   // a guest is redirected to the login page: not JSON
+            if (data.status !== 'success') console.warn('Failed to persist location:', data.message);
+        } catch (error) {
+            console.warn('Failed to persist location:', error);
+        }
+        // Not location.reload(): a ?location= already in the URL would win over the saved one.
+        const url = new URL(window.location.href);
+        url.searchParams.set('location', name);
+        window.location.href = url.toString();
+    }
+
+    // Back to this page from the next one (bfcache): the select shows the page's location again.
+    window.addEventListener('pageshow', (e) => {
+        if (!e.persisted) return;
+        const select = document.getElementById('location-select');
+        if (!select) return;
+        const current = pageLocationOption(select);
+        if (current) select.value = current.value;
+        select.disabled = false;
+    });
     function saveProject() {
         // --- MODIFIED ---
         // We get the HTML content from the hidden input field, which Trix keeps in sync.
@@ -2828,6 +2905,7 @@
         })
         .then(res => res.json())
         .then(async data => {
+            if (data.status === "success") projectNotesBaseline = newProject;
             await novaAlert(data.status === "success" ? "Project updated successfully!" : data.error);
         });
     }

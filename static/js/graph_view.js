@@ -423,6 +423,12 @@
                     window.setSurvey(actionBtn.value);
                 }
                 break;
+            case 'set-location':
+                console.log('[GRAPH_VIEW] set-location:', actionBtn.value);
+                if (typeof window.setLocation === 'function') {
+                    window.setLocation(actionBtn);
+                }
+                break;
         }
     });
 

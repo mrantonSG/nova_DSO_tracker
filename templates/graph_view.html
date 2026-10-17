@@ -51,7 +51,7 @@
 <div class="status-strip">
     <div class="status-item" style="min-width: 150px;">
         <span class="status-label">{{ _('Location') }}</span>
-        <select id="location-select" aria-label="{{ _('Location') }}">
+        <select id="location-select" aria-label="{{ _('Location') }}" data-action="set-location">
             {% for loc in available_locations %}
                 {% if loc.active %}
             <option value="{{ loc.name }}"{% if loc.name == header_location_name %} selected{% endif %}>{{ loc.name }}</option>
@@ -480,6 +480,8 @@ const graphI18n = {
     append:              {{ _("Append") | tojson }},
     cancel:              {{ _("Cancel") | tojson }},
     novaError:           {{ _("Nova couldn't load notes") | tojson }},
+    unsavedChanges:      {{ _("Unsaved changes") | tojson }},
+    discard:             {{ _("Discard") | tojson }},
 };
 
 document.addEventListener('DOMContentLoaded', function() {
