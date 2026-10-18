@@ -258,6 +258,22 @@ def test_moon_is_read_at_local_midnight_after_each_monday(tmp_path):
     assert r["calls"]["moon"] == expected
 
 
+def test_moon_midnight_that_does_not_exist_is_read_as_pytz_reads_it(tmp_path):
+    """Tehran moved to +04:30 at 00:00 on Tuesday 2022-03-22, so the Moon instant of
+    the week starting Monday 2022-03-21 is a wall time that does not exist. pytz's
+    localize() (is_dst=False) reads it at the old offset, +03:30. The only DST change
+    at a Tuesday's midnight in any common zone 2015-2027: the Moon is read on
+    Tuesdays, and the changes at midnight elsewhere (America/Santiago, Africa/Cairo)
+    fall on other days."""
+    tz = pytz.timezone("Asia/Tehran")
+    now = int(tz.localize(datetime(2022, 3, 21, 12, 0)).timestamp() * 1000)
+    loc = {"lat": 35.6892, "lon": 51.3890, "timezone": "Asia/Tehran"}
+    r = _run(tmp_path, [_case("x", [_obj("A")], loc=_loc(loc), now=now, stub={})])["x"]
+    gap = tz.localize(datetime(2022, 3, 22, 0, 0))
+    assert gap.utcoffset() == timedelta(hours=3, minutes=30)
+    assert r["calls"]["moon"][0] == int(gap.astimezone(pytz.utc).timestamp() * 1000)
+
+
 @pytest.mark.parametrize("phase", [12.25, 0.35, 60.05, 99.95, 70.0])
 def test_moon_phase_is_rounded_like_python(tmp_path, phase):
     """12.25 is a binary tie (Python rounds to even: 12.2); 0.35 and 60.05 lie just
@@ -344,6 +360,7 @@ def test_mags_sizes_sbs_use_float_with_the_routes_fallbacks(tmp_path):
     (70.0, 45, 0.0),       # 45 minutes: kept
     (95.0, 900, 100.0),    # both terms capped, full Moon
     (33.3, 123, 61.7),     # an uneven case for the rounding
+    (20.0, 98, 0.0),       # 12.25, a binary tie: Python rounds to even (12.2), Math.round up
 ])
 def test_score_matches_the_route(tmp_path, max_alt, minutes, phase):
     stub = {"phase": phase, "duration": {"minutes": minutes, "maxAltitude": max_alt}}
@@ -380,6 +397,15 @@ def test_horizon_mask_cuts_duration_but_not_max_altitude(tmp_path):
     assert [c["maxAltitude"] for c in open_calls] == [c["maxAltitude"] for c in masked_calls]
     assert any(o["minutes"] > m["minutes"] for o, m in zip(open_calls, masked_calls))
     assert all(o["minutes"] >= m["minutes"] for o, m in zip(open_calls, masked_calls))
+
+
+def test_single_point_horizon_mask_is_no_mask(tmp_path):
+    """The route only applies a mask with more than one point."""
+    obj = [_obj("A", ra=5.58, dec=-5.4)]
+    r = _run(tmp_path, [_case("open", obj, stub={}),
+                        _case("one", obj, loc=_loc(horizon_mask=[[180.0, 60.0]]), stub={})])
+    assert all(c["mask"] is None for c in r["one"]["calls"]["duration"])
+    assert r["one"]["chunks"] == r["open"]["chunks"]
 
 
 # --- what makes it throw ------------------------------------------------------------

@@ -556,6 +556,8 @@
     window.updateHeatmapFilter = updateHeatmapFilter;
     window.fetchAndRenderHeatmap = fetchAndRenderHeatmap;
     window.resetHeatmapState = resetHeatmapState;
+    // The two label helpers, for tests/test_heatmap_labels.py
+    window._heatmapLabels = { uniqueRowLabels: uniqueRowLabels, localizedWeekLabels: localizedWeekLabels };
 
     // ============================================
     // THEME INTEGRATION
