@@ -453,6 +453,59 @@
         return null;
     }
     function setBlendOpacity(a) { const v = Math.max(0, Math.min(1, Number(a) || 0)); if (!aladin) return; const layer = ensureBlendLayer(); if (layer && (typeof layer.setOpacity === 'function' || typeof layer.setAlpha === 'function')) { (layer.setOpacity || layer.setAlpha).call(layer, v); return; } try { const survey = aladin.getOverlayImageLayer && aladin.getOverlayImageLayer('blend'); survey?.setOpacity?.(v); } catch(e) {} }
+
+    // --- Survey image credit (bottom right of the sky, left of the Aladin logo) ---
+    const NSNS_URL_PREFIX = 'https://www.simg.de/nebulae3/';
+    const NSNS_CREDIT = 'nsns'; // sentinel: rendered with links, see appendSurveyCredit()
+    const DSS2_CREDIT = 'DSS2 (STScI) · HiPS: CDS';
+    const SURVEY_CREDITS = {
+        'P/DSS2/color': DSS2_CREDIT,
+        'P/DSS2/red': DSS2_CREDIT,
+        'P/DSS2/blue': DSS2_CREDIT,
+        'P/allWISE/color': 'AllWISE (NASA/JPL-Caltech) · HiPS: CDS',
+        'P/2MASS/color': '2MASS (UMass/IPAC-Caltech) · HiPS: CDS',
+        'P/GALEXGR6/AIS/color': 'GALEX (NASA) · HiPS: CDS',
+        'P/PanSTARRS/DR1/color-z-zg-g': 'Pan-STARRS1 DR1 · HiPS: CDS',
+        'P/SDSS9/color': 'SDSS DR9 · HiPS: CDS'
+    };
+    function surveyCreditFor(value) {
+        if (!value) return null;
+        if (value.startsWith(NSNS_URL_PREFIX)) return NSNS_CREDIT;
+        return Object.prototype.hasOwnProperty.call(SURVEY_CREDITS, value) ? SURVEY_CREDITS[value] : null;
+    }
+    function appendCreditLink(parent, text, href) {
+        const a = document.createElement('a');
+        a.href = href;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.textContent = text;
+        parent.appendChild(a);
+    }
+    function appendSurveyCredit(parent, credit) {
+        if (credit !== NSNS_CREDIT) { parent.appendChild(document.createTextNode(credit)); return; }
+        appendCreditLink(parent, 'Northern Sky Narrowband Survey', NSNS_URL_PREFIX);
+        parent.appendChild(document.createTextNode(' © Stefan Ziegenbalg, '));
+        appendCreditLink(parent, 'CC BY-NC-SA 4.0', 'https://creativecommons.org/licenses/by-nc-sa/4.0/');
+    }
+    function updateSurveyCredit() {
+        const host = document.getElementById('aladin-lite-div');
+        if (!host) return;
+        let el = document.getElementById('survey-credit');
+        if (!el) { el = document.createElement('div'); el.id = 'survey-credit'; host.appendChild(el); }
+        const mainValue = document.getElementById('survey-select')?.value || '';
+        const blendValue = document.getElementById('blend-survey-select')?.value || '';
+        const blendOp = Number(document.getElementById('blend-opacity')?.value || 0);
+        const credits = [];
+        const mainCredit = surveyCreditFor(mainValue);
+        if (mainCredit) credits.push(mainCredit);
+        if (blendOp > 0 && blendValue !== mainValue) {
+            const blendCredit = surveyCreditFor(blendValue);
+            if (blendCredit && !credits.includes(blendCredit)) credits.push(blendCredit);
+        }
+        el.replaceChildren();
+        credits.forEach((c, i) => { if (i) el.appendChild(document.createTextNode(' + ')); appendSurveyCredit(el, c); });
+        el.hidden = credits.length === 0;
+    }
     
     // Catalog layer for all Nova DB objects shown in Aladin
     let novaObjectsCatalog = null;
@@ -2131,6 +2184,7 @@
                     cooFrame: 'ICRS',
                     showFullscreenControl: false,
                     showGotoControl: false,
+                    showLayersControl: false,
                     // Error callback for survey loading failures
                     errorCallback: function(err) {
                         console.error('[FRAMING] Aladin initialization error:', err);
@@ -2139,7 +2193,7 @@
                 });
             (function installSlowWheelZoom(){ if (window.__novaSlowZoomInstalled) return; const host = document.getElementById('aladin-lite-div'); if (!host) return; try { host.style.overscrollBehavior = 'contain'; } catch(e) {} function onWheel(ev) { if (ev.ctrlKey) return; ev.preventDefault(); ev.stopPropagation(); if (!aladin) return; const unit = (ev.deltaMode === 1) ? 16 : (ev.deltaMode === 2) ? 400 : 1; let dy = (ev.deltaY || 0) * unit; dy = Math.max(-80, Math.min(80, dy)); const g = aladin.getFov(), current = Array.isArray(g) ? (g[0] ?? 1) : (g ?? 1); const scale = Math.exp(dy * 0.00075), minFov = 0.01, maxFov = 180; const next = Math.min(maxFov, Math.max(minFov, current * scale)); if (Number.isFinite(next)) aladin.setFov(next); } host.addEventListener('wheel', onWheel, { passive: false, capture: true }); const tryBindCanvas = () => { const cv = host.querySelector('canvas'); if (cv) cv.addEventListener('wheel', onWheel, { passive: false, capture: true }); }; tryBindCanvas(); setTimeout(tryBindCanvas, 50); window.__novaSlowZoomInstalled = true; })();
             baseSurvey = aladin.getBaseImageLayer();
-            (function wireBlendAndConstellationUI(){ const blendSel = document.getElementById('blend-survey-select'), blendOp = document.getElementById('blend-opacity'); if (blendSel) blendSel.addEventListener('change', () => { if (blendSel.value && blendOp.value === '0') { blendOp.value = '0.5'; } ensureBlendLayer(); const v = Number(blendOp?.value || 0); setBlendOpacity(v); updateFramingChart(false); }); if (blendOp) { const sync = (e) => { setBlendOpacity(e.target.value); updateFramingChart(false); }; blendOp.addEventListener('input', sync); blendOp.addEventListener('change', sync); } try { if (blendOp) setBlendOpacity(blendOp.value); } catch(e) {} })();
+            (function wireBlendAndConstellationUI(){ const blendSel = document.getElementById('blend-survey-select'), blendOp = document.getElementById('blend-opacity'); if (blendSel) blendSel.addEventListener('change', () => { if (blendSel.value && blendOp.value === '0') { blendOp.value = '0.5'; } ensureBlendLayer(); const v = Number(blendOp?.value || 0); setBlendOpacity(v); updateSurveyCredit(); updateFramingChart(false); }); if (blendOp) { const sync = (e) => { setBlendOpacity(e.target.value); updateSurveyCredit(); updateFramingChart(false); }; blendOp.addEventListener('input', sync); blendOp.addEventListener('change', sync); } try { if (blendOp) setBlendOpacity(blendOp.value); } catch(e) {} })();
             if (aladin.on) aladin.on('zoomChanged', () => { if (!lockToObject) return; const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } });
             if (aladin.on) aladin.on('baseLayerChanged', () => { try { const bop = document.getElementById('blend-opacity'); ensureBlendLayer(); if (bop) setBlendOpacity(bop.value); } catch (e) { console.warn('[nova] Could not reapply blend after base change:', e); } });
             fovLayer = A.graphicOverlay({color: (window.stylingUtils && window.stylingUtils.getPrimaryColor) ? window.stylingUtils.getPrimaryColor() : '#83b4c5', lineWidth: 3});
@@ -2211,6 +2265,7 @@
         } catch (e) {
             console.warn('[nova] Blend layer setup error:', e);
         }
+        updateSurveyCredit();
 
         // Set default rotation if not restored
         if (!haveRot) {
@@ -2627,6 +2682,7 @@
         aladin.setBaseImageLayer(newLayer);
         baseSurvey = aladin.getBaseImageLayer();
         updateImageAdjustments();
+        updateSurveyCredit();
     }
     function updateImageAdjustments() {
         // Read all slider values first

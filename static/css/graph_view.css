@@ -632,6 +632,44 @@ div.form-data-value.preserve-newlines {
     overflow: hidden;
 }
 
+/* Survey image credit, overlaid bottom right of the sky, directly left of the Aladin logo.
+   Aladin's .aladin-logo-container sits at right:5px bottom:2px and is 90px wide
+   (.aladin-logo-large, view > 800px) or 32px (.aladin-logo-small). The left 300px stay
+   clear for Aladin's FOV/zoom control and #scan-result-popup (left 16px + max 280px). */
+#survey-credit {
+    position: absolute;
+    right: 103px;
+    bottom: 4px;
+    z-index: 6;
+    max-width: calc(100% - 103px - 300px);
+    padding: 2px var(--space-2);
+    background: var(--overlay-dark);
+    color: var(--text-white);
+    font-size: var(--font-size-xs);
+    line-height: 1.35;
+    text-align: right;
+    border-radius: var(--radius-sm);
+    pointer-events: none;
+}
+#aladin-lite-div:has(.aladin-logo-small) #survey-credit {
+    right: 45px;
+    max-width: calc(100% - 45px - 300px);
+}
+#survey-credit a {
+    color: inherit;
+    text-decoration: underline;
+    pointer-events: auto;
+}
+@media (max-width: 600px) {
+    /* Too narrow to sit between the bottom controls: move one row up, above logo and FOV control */
+    #survey-credit,
+    #aladin-lite-div:has(.aladin-logo-small) #survey-credit {
+        right: 5px;
+        bottom: 40px;
+        max-width: calc(100% - 10px);
+    }
+}
+
 .framing-readout {
     display: flex;
     flex-wrap: wrap;
