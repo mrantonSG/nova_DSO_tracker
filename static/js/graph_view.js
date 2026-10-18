@@ -556,6 +556,32 @@
         simbadLoaded = true;
     }
 
+    /**
+     * The /get_imaging_opportunities response built in the browser: NovaOpportunities
+     * (static/js/nova_opportunities.js) on /api/desktop_inputs for the page's location,
+     * through graph_view_chart.js's fetchPlotInputs() and its per-location cache. null
+     * when the engine scripts or the location are missing, the inputs fail or are not
+     * this location, or forObject() throws; the caller then asks the route.
+     */
+    async function localImagingOpportunities() {
+        try {
+            if (!(window.NovaAstro && window.NovaDashboardRows && window.NovaOutlook && window.NovaOpportunities
+                    && typeof window._fetchPlotInputs === 'function')) {
+                throw new Error('engine scripts not loaded');
+            }
+            var locName = DATA.plotLocName;
+            if (!locName) throw new Error('no location');
+            var inputs = await window._fetchPlotInputs(locName);
+            if (!inputs.location || inputs.location.name !== locName) throw new Error('desktop_inputs: not this location');
+            var results = window.NovaOpportunities.forObject({ inputs: inputs, objectName: objectName, nowMs: Date.now() });
+            console.log('[opportunities] built in the browser: ' + results.length + ' nights');
+            return { status: 'success', results: results };
+        } catch (e) {
+            console.warn('Client-side opportunities failed, using the server:', e);
+            return null;
+        }
+    }
+
     async function loadImagingOpportunities() {
         if (opportunitiesLoaded) return;
 
@@ -568,20 +594,23 @@
             var plotLon = DATA.plotLon;
             var plotTz = DATA.plotTz;
 
-            var params = new URLSearchParams({
-                plot_lat: plotLat,
-                plot_lon: plotLon,
-                plot_tz: plotTz,
-                plot_loc_name: DATA.plotLocName || ''
-            });
+            var data = await localImagingOpportunities();
+            if (!data) {
+                var params = new URLSearchParams({
+                    plot_lat: plotLat,
+                    plot_lon: plotLon,
+                    plot_tz: plotTz,
+                    plot_loc_name: DATA.plotLocName || ''
+                });
 
-            var fetchUrl = '/get_imaging_opportunities/' + encodeURIComponent(objectName) + '?' + params.toString();
+                var fetchUrl = '/get_imaging_opportunities/' + encodeURIComponent(objectName) + '?' + params.toString();
 
-            var response = await fetch(fetchUrl);
-            if (!response.ok) {
-                throw new Error('HTTP error! status: ' + response.status);
+                var response = await fetch(fetchUrl);
+                if (!response.ok) {
+                    throw new Error('HTTP error! status: ' + response.status);
+                }
+                data = await response.json();
             }
-            var data = await response.json();
 
             tableBody.innerHTML = '';
 

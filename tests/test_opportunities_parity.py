@@ -61,6 +61,7 @@ in nights; the rest in rows.
 import functools
 import json
 import math
+import re
 import shutil
 import subprocess
 import time
@@ -605,3 +606,18 @@ def test_nova_opportunities_agrees_with_the_route(su_client_logged_in, db_sessio
     edge_rows = [r for c in cases if c["id"].split(" | ")[-1].startswith("Edge") for r in c["server"]]
     assert edge_rows, "no synthetic edge object produced a row"
     assert not problems, f"{len(problems)} difference(s):\n" + "\n".join(problems[:40])
+
+
+def test_graph_view_loads_the_engine_before_graph_view_js(client):
+    """graph_view.js finds NovaAstro, NovaDashboardRows, NovaOutlook and NovaOpportunities
+    as globals when the Opportunities tab opens (nova_dashboard_rows.js needs
+    nova_transit.js), and graph_view_chart.js's fetchPlotInputs as
+    window._fetchPlotInputs, so the page must load them in dependency order before
+    graph_view_chart.js and graph_view.js (all deferred, so they also run in that order)."""
+    resp = client.get('/graph_dashboard/M42')
+    assert resp.status_code == 200
+    scripts = re.findall(r'<script[^>]*\ssrc="[^"]*/js/([^"/?]+\.js)\?v=[^"]*"[^>]*>', resp.get_data(as_text=True))
+    expected = ["nova_astro.js", "nova_transit.js", "nova_dashboard_rows.js", "nova_outlook.js",
+                "nova_opportunities.js", "graph_view_chart.js", "graph_view.js"]
+    order = [name for name in scripts if name in expected]
+    assert order == expected

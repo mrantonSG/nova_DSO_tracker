@@ -3654,6 +3654,7 @@
     window.applyMinSizeFilter = applyMinSizeFilter;
     window.setLocation = setLocation;
     window.selectSuggestedDate = selectSuggestedDate;
+    window._fetchPlotInputs = fetchPlotInputs;   // graph_view.js: Imaging Opportunities
     window.openInStellarium = openInStellarium;
 
     // Clean up event listeners when navigating away (prevents memory leaks)
