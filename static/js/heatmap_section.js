@@ -7,6 +7,7 @@
     let currentFilteredIds = [];
     let currentFilteredY = [];
     let currentFilteredZ = [];
+    let heatmapGeneration = 0; // Newest fetchAndRenderHeatmap() run; an older one draws nothing
 
     // One-time cleanup: the heatmap is no longer cached in localStorage
     // (the server's disk cache is keyed by fingerprint), so drop old entries.
@@ -32,6 +33,10 @@
         renderHeatmapFromCache();
     }
 
+    function _localHeatmapLoaded() {
+        return !!(window.NovaAstro && window.NovaDashboardRows && window.NovaHeatmap);
+    }
+
     function fetchAndRenderHeatmap() {
         const plotDiv = document.getElementById('yearly-heatmap-plot');
         const loadingDiv = document.getElementById("heatmap-loading");
@@ -54,20 +59,24 @@
 
         // 3. Start Chunked Fetch
         isFetching = true;
+        const generation = ++heatmapGeneration;
         plotDiv.innerHTML = "";
         plotDiv.style.height = '';
         if (loadingDiv) loadingDiv.style.display = "block";
         if (progressBar) progressBar.style.width = "0%";
 
-        // Initialize Stitching Structure
-        let stitchedData = {
-            x: [], y: [], z: [], moon_phases: [], dates: [],
-            ids: [], active: [], types: [], cons: [], mags: [], sizes: [], sbs: [],
-            _location: currentLoc
-        };
-
         let totalChunks = 12;
         let completedChunks = 0;
+
+        // One chunk done (fetched or built here): the progress bar and "n of 12"
+        const chunkDone = () => {
+            completedChunks++;
+            const percent = Math.round((completedChunks / totalChunks) * 100);
+            if (progressBar) progressBar.style.width = `${percent}%`;
+            if (loadingText) loadingText.textContent = window.t('calculating_month')
+                .replace('{current}', completedChunks)
+                .replace('{total}', totalChunks);
+        };
 
         // Small dismissible notice for partially loaded data. Reuses the
         // existing .translation-banner* classes (theme-aware, no new tokens).
@@ -95,114 +104,178 @@
             plotDiv.insertAdjacentElement('beforebegin', banner);
         };
 
-        // One fetch attempt (behavior unchanged from the old inline chain)
-        const fetchChunkAttempt = (index) => fetch(`/api/get_yearly_heatmap_chunk?chunk_index=${index}&location_name=${encodeURIComponent(currentLoc)}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.error) throw new Error(data.error);
-                completedChunks++;
-                const percent = Math.round((completedChunks / totalChunks) * 100);
-                if (progressBar) progressBar.style.width = `${percent}%`;
-                if (loadingText) loadingText.textContent = window.t('calculating_month')
-                    .replace('{current}', completedChunks)
-                    .replace('{total}', totalChunks);
-                return data;
-            });
+        // The 12 chunks, in order, into one heatmap. A run that a location change or
+        // resetHeatmapState() has replaced draws nothing.
+        const stitchAndRender = (chunks) => {
+            if (generation !== heatmapGeneration) return;
 
-        // Fetch all chunks in parallel. A failed chunk retries once, then
-        // resolves to a sentinel instead of rejecting, so Promise.all keeps
-        // ordering and array length intact and partial data can still render.
-        const chunkPromises = Array.from({ length: totalChunks }, (_, index) => {
-            return fetchChunkAttempt(index).catch(err => {
-                console.warn(`[heatmap] chunk ${index} failed, retrying once`, err);
-                return fetchChunkAttempt(index).catch(err2 => {
-                    console.error(`[heatmap] chunk ${index} failed after retry`, err2);
-                    return { failed: true, chunk_index: index, error: err2 && err2.message ? err2.message : String(err2) };
-                });
-            });
-        });
+            // Initialize Stitching Structure
+            let stitchedData = {
+                x: [], y: [], z: [], moon_phases: [], dates: [],
+                ids: [], active: [], types: [], cons: [], mags: [], sizes: [], sbs: [],
+                _location: currentLoc
+            };
 
-        Promise.all(chunkPromises)
-            .then(chunks => {
-                // Filter to successful chunks (original index order preserved)
-                const successfulChunks = chunks.filter(data => !data.failed);
-                const failedCount = totalChunks - successfulChunks.length;
+            // Filter to successful chunks (original index order preserved)
+            const successfulChunks = chunks.filter(data => !data.failed);
+            const failedCount = totalChunks - successfulChunks.length;
 
-                if (successfulChunks.length === 0) {
-                    console.error('[heatmap] all chunks failed to load', chunks);
-                    isFetching = false;
-                    if (loadingDiv) loadingDiv.style.display = "none";
-                    const errorDiv = document.createElement('div');
-                    errorDiv.style.color = 'red';
-                    errorDiv.style.textAlign = 'center';
-                    errorDiv.style.padding = '20px';
-                    const firstError = chunks.map(c => c.error).find(Boolean);
-                    errorDiv.textContent = `Error: ${firstError || 'unknown error'} (all ${totalChunks} chunks failed to load)`;
-                    plotDiv.innerHTML = '';
-                    plotDiv.style.height = '';
-                    plotDiv.appendChild(errorDiv);
-                    return;
-                }
-
-                // Stitch x-axis columns (concat in chunk order)
-                successfulChunks.forEach(data => {
-                    stitchedData.x = stitchedData.x.concat(data.x);
-                    stitchedData.dates = stitchedData.dates.concat(data.dates);
-                    stitchedData.moon_phases = stitchedData.moon_phases.concat(data.moon_phases);
-                });
-
-                // Metadata (take from last successful chunk — consistent across all)
-                const last = successfulChunks[successfulChunks.length - 1];
-                stitchedData.y = last.y;
-                stitchedData.ids = last.ids;
-                stitchedData.active = last.active;
-                stitchedData.types = last.types;
-                stitchedData.cons = last.cons;
-                stitchedData.mags = last.mags;
-                stitchedData.sizes = last.sizes;
-                stitchedData.sbs = last.sbs;
-
-                // Stitch z rows from z_chunk arrays (row-by-row concat)
-                successfulChunks.forEach((data, chunkIdx) => {
-                    if (chunkIdx === 0) {
-                        // Shallow copy: later in-place row concats must not mutate the fetched chunk
-                        stitchedData.z = [...data.z_chunk];
-                    } else {
-                        for (let i = 0; i < data.z_chunk.length; i++) {
-                            if (stitchedData.z[i]) {
-                                stitchedData.z[i] = stitchedData.z[i].concat(data.z_chunk[i]);
-                            }
-                        }
-                    }
-                });
-
-                globalHeatmapData = stitchedData;
-                isFetching = false;
-
-                if (loadingDiv) loadingDiv.style.display = "none";
-
-                if (failedCount > 0) {
-                    showPartialChunkBanner(failedCount, totalChunks);
-                } else {
-                    const staleBanner = document.getElementById('heatmap-partial-banner');
-                    if (staleBanner) staleBanner.remove();
-                }
-
-                renderHeatmapFromCache();
-            })
-            .catch(err => {
-                console.error(err);
+            if (successfulChunks.length === 0) {
+                console.error('[heatmap] all chunks failed to load', chunks);
                 isFetching = false;
                 if (loadingDiv) loadingDiv.style.display = "none";
                 const errorDiv = document.createElement('div');
                 errorDiv.style.color = 'red';
                 errorDiv.style.textAlign = 'center';
                 errorDiv.style.padding = '20px';
-                errorDiv.textContent = `Error: ${err.message}`;
+                const firstError = chunks.map(c => c.error).find(Boolean);
+                errorDiv.textContent = `Error: ${firstError || 'unknown error'} (all ${totalChunks} chunks failed to load)`;
                 plotDiv.innerHTML = '';
                 plotDiv.style.height = '';
                 plotDiv.appendChild(errorDiv);
+                return;
+            }
+
+            // Stitch x-axis columns (concat in chunk order)
+            successfulChunks.forEach(data => {
+                stitchedData.x = stitchedData.x.concat(data.x);
+                stitchedData.dates = stitchedData.dates.concat(data.dates);
+                stitchedData.moon_phases = stitchedData.moon_phases.concat(data.moon_phases);
             });
+
+            // Metadata (take from last successful chunk — consistent across all)
+            const last = successfulChunks[successfulChunks.length - 1];
+            stitchedData.y = last.y;
+            stitchedData.ids = last.ids;
+            stitchedData.active = last.active;
+            stitchedData.types = last.types;
+            stitchedData.cons = last.cons;
+            stitchedData.mags = last.mags;
+            stitchedData.sizes = last.sizes;
+            stitchedData.sbs = last.sbs;
+
+            // Stitch z rows from z_chunk arrays (row-by-row concat)
+            successfulChunks.forEach((data, chunkIdx) => {
+                if (chunkIdx === 0) {
+                    // Shallow copy: later in-place row concats must not mutate the fetched chunk
+                    stitchedData.z = [...data.z_chunk];
+                } else {
+                    for (let i = 0; i < data.z_chunk.length; i++) {
+                        if (stitchedData.z[i]) {
+                            stitchedData.z[i] = stitchedData.z[i].concat(data.z_chunk[i]);
+                        }
+                    }
+                }
+            });
+
+            globalHeatmapData = stitchedData;
+            isFetching = false;
+
+            if (loadingDiv) loadingDiv.style.display = "none";
+
+            if (failedCount > 0) {
+                showPartialChunkBanner(failedCount, totalChunks);
+            } else {
+                const staleBanner = document.getElementById('heatmap-partial-banner');
+                if (staleBanner) staleBanner.remove();
+            }
+
+            renderHeatmapFromCache();
+        };
+
+        // Stitching or drawing failed (either path)
+        const showLoadError = (err) => {
+            if (generation !== heatmapGeneration) return;
+            console.error(err);
+            isFetching = false;
+            if (loadingDiv) loadingDiv.style.display = "none";
+            const errorDiv = document.createElement('div');
+            errorDiv.style.color = 'red';
+            errorDiv.style.textAlign = 'center';
+            errorDiv.style.padding = '20px';
+            errorDiv.textContent = `Error: ${err.message}`;
+            plotDiv.innerHTML = '';
+            plotDiv.style.height = '';
+            plotDiv.appendChild(errorDiv);
+        };
+
+        // The server: 12 chunks from /api/get_yearly_heatmap_chunk
+        const fetchChunks = () => {
+            // One fetch attempt (behavior unchanged from the old inline chain)
+            const fetchChunkAttempt = (index) => fetch(`/api/get_yearly_heatmap_chunk?chunk_index=${index}&location_name=${encodeURIComponent(currentLoc)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) throw new Error(data.error);
+                    chunkDone();
+                    return data;
+                });
+
+            // Fetch all chunks in parallel. A failed chunk retries once, then
+            // resolves to a sentinel instead of rejecting, so Promise.all keeps
+            // ordering and array length intact and partial data can still render.
+            const chunkPromises = Array.from({ length: totalChunks }, (_, index) => {
+                return fetchChunkAttempt(index).catch(err => {
+                    console.warn(`[heatmap] chunk ${index} failed, retrying once`, err);
+                    return fetchChunkAttempt(index).catch(err2 => {
+                        console.error(`[heatmap] chunk ${index} failed after retry`, err2);
+                        return { failed: true, chunk_index: index, error: err2 && err2.message ? err2.message : String(err2) };
+                    });
+                });
+            });
+
+            Promise.all(chunkPromises)
+                .then(stitchAndRender)
+                .catch(showLoadError);
+        };
+
+        // The browser: NovaHeatmap (static/js/nova_heatmap.js) on /api/desktop_inputs and
+        // /api/desktop_library, one chunk at a time with a yield between them. Any fetch
+        // or engine failure drops what it built and asks the server for all 12 chunks.
+        const buildChunks = async () => {
+            try {
+                const [inputsRes, libraryRes] = await Promise.all([
+                    fetch(`/api/desktop_inputs?location=${encodeURIComponent(currentLoc)}`),
+                    fetch('/api/desktop_library')
+                ]);
+                if (!inputsRes.ok) throw new Error(`desktop_inputs HTTP ${inputsRes.status}`);
+                if (!libraryRes.ok) throw new Error(`desktop_library HTTP ${libraryRes.status}`);
+                const inputs = await inputsRes.json();
+                const library = await libraryRes.json();
+                if (generation !== heatmapGeneration) return;
+                if (!inputs.location || inputs.location.name !== currentLoc) throw new Error('desktop_inputs: not this location');
+
+                const context = window.NovaHeatmap.prepare({ inputs: inputs, library: library, nowMs: Date.now() });
+                const chunks = [];
+                for (let i = 0; i < totalChunks; i++) {
+                    await new Promise(resolve => setTimeout(resolve, 0)); // let the progress bar paint
+                    if (generation !== heatmapGeneration) return;
+                    chunks.push(window.NovaHeatmap.chunk(context, i));
+                    chunkDone();
+                }
+                console.log(`[heatmap] built in the browser: ${context.objects.length} objects`);
+                return chunks;
+            } catch (e) {
+                if (generation !== heatmapGeneration) return;
+                console.warn('Client-side heatmap failed, using the server:', e);
+                return null;
+            }
+        };
+
+        if (!_localHeatmapLoaded() || !currentLoc) {
+            fetchChunks();
+            return;
+        }
+        buildChunks().then(chunks => {
+            if (generation !== heatmapGeneration) return;
+            if (chunks) {
+                stitchAndRender(chunks);
+                return;
+            }
+            // Start over on the server: nothing built here is kept
+            completedChunks = 0;
+            if (progressBar) progressBar.style.width = "0%";
+            fetchChunks();
+        }).catch(showLoadError);
     }
 
     function renderHeatmapFromCache() {
@@ -431,6 +504,7 @@
     }
 
     function resetHeatmapState() {
+        heatmapGeneration++; // a run still going draws nothing
         heatmapLoaded = false;
         globalHeatmapData = null;
         isFetching = false;
