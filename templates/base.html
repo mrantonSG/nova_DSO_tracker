@@ -226,6 +226,13 @@
       calculating_month:              {{ _('Calculating month %(current)d of %(total)d...', current=44444, total=33333) | tojson }}.replace('44444', '{current}').replace('33333', '{total}'),
       no_projects_found:              {{ _('No projects found. Adjust filters or add projects.') | tojson }},
       plotly_not_loaded:              {{ _('Plotly library not loaded. Please refresh.') | tojson }},
+      heatmap_week:                   {{ _('Week:') | tojson }},
+      heatmap_score:                  {{ _('Score:') | tojson }},
+      heatmap_chunks_unavailable_one: {{ _('1 of %(total)d chunks is unavailable - some time ranges are missing from this heatmap.', total=33333) | tojson }}.replace('33333', '{total}'),
+      heatmap_chunks_unavailable_other: {{ _('%(failed)d of %(total)d chunks are unavailable - some time ranges are missing from this heatmap.', failed=22222, total=33333) | tojson }}.replace('22222', '{failed}').replace('33333', '{total}'),
+      heatmap_all_chunks_failed:      {{ _('Error: %(error)s (all %(total)d chunks failed to load)', error='{error}', total=33333) | tojson }}.replace('33333', '{total}'),
+      unknown_error:                  {{ _('Unknown error') | tojson }},
+      close:                          {{ _('Close') | tojson }},
 
       // base.js
       loading_help:                   {{ _('Loading help content...') | tojson }},

@@ -53,6 +53,26 @@
         });
     }
 
+    // Week labels in the page's language, from the chunk dates ('%Y-%m-%d'). A week
+    // without a date, or a language Intl rejects, keeps the chunk's own label.
+    function localizedWeekLabels(labels, dates) {
+        let format;
+        try {
+            format = new Intl.DateTimeFormat(document.documentElement.lang || 'en',
+                { month: 'short', day: 'numeric', timeZone: 'UTC' });
+        } catch (e) {
+            return labels;
+        }
+        return labels.map((label, k) => {
+            const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec((dates && dates[k]) || '');
+            return m ? format.format(Date.UTC(+m[1], +m[2] - 1, +m[3])) : label;
+        });
+    }
+
+    function heatmapHoverTemplate() {
+        return `<b>%{y}</b><br>${window.t('heatmap_week')} %{x}<br><span style="color:#7aafc0;font-weight:600">${window.t('heatmap_score')} %{z:.0f}/100</span><extra></extra>`;
+    }
+
     function fetchAndRenderHeatmap() {
         const plotDiv = document.getElementById('yearly-heatmap-plot');
         const loadingDiv = document.getElementById("heatmap-loading");
@@ -107,11 +127,11 @@
             const text = document.createElement('span');
             text.className = 'translation-banner-text';
             text.textContent = failedCount === 1
-                ? `1 of ${total} chunks is unavailable - some time ranges are missing from this heatmap.`
-                : `${failedCount} of ${total} chunks are unavailable - some time ranges are missing from this heatmap.`;
+                ? window.t('heatmap_chunks_unavailable_one', { total: total })
+                : window.t('heatmap_chunks_unavailable_other', { failed: failedCount, total: total });
             const closeBtn = document.createElement('button');
             closeBtn.className = 'translation-banner-close';
-            closeBtn.setAttribute('aria-label', 'Close');
+            closeBtn.setAttribute('aria-label', window.t('close'));
             closeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
             closeBtn.addEventListener('click', () => banner.remove());
             content.appendChild(text);
@@ -145,7 +165,8 @@
                 errorDiv.style.textAlign = 'center';
                 errorDiv.style.padding = '20px';
                 const firstError = chunks.map(c => c.error).find(Boolean);
-                errorDiv.textContent = `Error: ${firstError || 'unknown error'} (all ${totalChunks} chunks failed to load)`;
+                // total first: the error text is inserted last, so a '{…}' in it stays as it is
+                errorDiv.textContent = window.t('heatmap_all_chunks_failed', { total: totalChunks, error: firstError || window.t('unknown_error') });
                 plotDiv.innerHTML = '';
                 plotDiv.style.height = '';
                 plotDiv.appendChild(errorDiv);
@@ -158,6 +179,8 @@
                 stitchedData.dates = stitchedData.dates.concat(data.dates);
                 stitchedData.moon_phases = stitchedData.moon_phases.concat(data.moon_phases);
             });
+            // Shown labels only; the click goes label -> index -> dates[index]
+            stitchedData.x = localizedWeekLabels(stitchedData.x, stitchedData.dates);
 
             // Metadata (take from last successful chunk — consistent across all)
             const last = successfulChunks[successfulChunks.length - 1];
@@ -452,7 +475,7 @@
             showscale: false,
             xgap: 2,
             ygap: 2,
-            hovertemplate: '<b>%{y}</b><br>Week: %{x}<br><span style="color:#7aafc0;font-weight:600">Score: %{z:.0f}/100</span><extra></extra>'
+            hovertemplate: heatmapHoverTemplate()
         };
 
         const calculatedHeight = Math.max(600, filteredY.length * 15);
@@ -509,12 +532,12 @@
                     }
                 });
             }).catch(function(err) {
-                plotDiv.innerHTML = '<div style="color:orange; text-align:center; padding:20px;">Plotly library not loaded. Please check your internet connection or ad-blocker.</div>';
+                plotDiv.innerHTML = `<div style="color:orange; text-align:center; padding:20px;">${window.t('plotly_not_loaded')}</div>`;
                 plotDiv.style.height = '';
                 console.error(err);
             });
         }).catch(function(err) {
-            plotDiv.innerHTML = '<div style="color:orange; text-align:center; padding:20px;">Plotly library not loaded. Please check your internet connection or ad-blocker.</div>';
+            plotDiv.innerHTML = `<div style="color:orange; text-align:center; padding:20px;">${window.t('plotly_not_loaded')}</div>`;
             plotDiv.style.height = '';
             console.error(err);
         });
@@ -596,7 +619,7 @@
             showscale: false,
             xgap: 2,
             ygap: 2,
-            hovertemplate: '<b>%{y}</b><br>Week: %{x}<br><span style="color:#7aafc0;font-weight:600">Score: %{z:.0f}/100</span><extra></extra>'
+            hovertemplate: heatmapHoverTemplate()
         };
 
         const calculatedHeight = Math.max(600, currentFilteredY.length * 15);
@@ -656,12 +679,12 @@
                     }
                 });
             }).catch(function(err) {
-                plotDiv.innerHTML = '<div style="color:orange; text-align:center; padding:20px;">Plotly library not loaded. Please check your internet connection or ad-blocker.</div>';
+                plotDiv.innerHTML = `<div style="color:orange; text-align:center; padding:20px;">${window.t('plotly_not_loaded')}</div>`;
                 plotDiv.style.height = '';
                 console.error(err);
             });
         }).catch(function(err) {
-            plotDiv.innerHTML = '<div style="color:orange; text-align:center; padding:20px;">Plotly library not loaded. Please check your internet connection or ad-blocker.</div>';
+            plotDiv.innerHTML = `<div style="color:orange; text-align:center; padding:20px;">${window.t('plotly_not_loaded')}</div>`;
             plotDiv.style.height = '';
             console.error(err);
         });
