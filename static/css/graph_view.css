@@ -325,11 +325,6 @@ hr.detail-separator {
     background-color: var(--hover-bg);
 }
 
-#opportunities-body tr.highlight,
-#opportunities-body tr.highlight td {
-    background-color: var(--primary-bg) !important;
-}
-
 .highlight {
     background-color: var(--highlight-blue-alt) !important;
 }

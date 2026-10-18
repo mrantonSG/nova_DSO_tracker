@@ -85,7 +85,6 @@ window.novaState.fn = Object.assign(existingFn, {
     nudgeFov: null,
     copyAsiairMosaic: null,
     setLocation: null,
-    selectSuggestedDate: null,
     openInStellarium: null,
 
     // Dashboard functions

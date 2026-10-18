@@ -636,7 +636,7 @@
                         icsUrl.searchParams.append('tz', plotTz);
 
                         row.innerHTML =
-                            '<td>' + new Date(opp.date + 'T00:00:00Z').toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }) + '</td>' +
+                            '<td>' + formatDateISOtoEuropean(opp.date) + '</td>' +
                             '<td>' + opp.from_time + '</td>' +
                             '<td>' + opp.to_time + '</td>' +
                             '<td>' + opp.obs_minutes + '</td>' +
