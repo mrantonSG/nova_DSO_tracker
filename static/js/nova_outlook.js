@@ -254,5 +254,15 @@
         return build(opts);
     }
 
-    return { opportunities: opportunities };
+    // _night is the per-night rule the rows above are built from, exported so
+    // nova_opportunities.js (the graph view's Imaging Opportunities) reuses it
+    // instead of copying it. build() calls these directly, not through the export,
+    // so nothing about the Outlook rows changes.
+    return {
+        opportunities: opportunities,
+        _night: {
+            startDate: startDate, dateStringOffset: dateStringOffset, nightContext: nightContext,
+            score: score, stars: stars, rating: rating,
+        },
+    };
 });
