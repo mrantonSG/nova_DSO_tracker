@@ -37,6 +37,22 @@
         return !!(window.NovaAstro && window.NovaDashboardRows && window.NovaHeatmap);
     }
 
+    // Plotly merges rows with equal y labels, so a label that repeats gets its
+    // object's name appended. Labels that occur once stay as they are.
+    function uniqueRowLabels(labels, ids) {
+        const counts = new Map();
+        labels.forEach(label => counts.set(label, (counts.get(label) || 0) + 1));
+        // Labels that occur once are taken first; a new label never replaces one
+        const used = new Set(labels.filter(label => counts.get(label) === 1));
+        return labels.map((label, k) => {
+            if (counts.get(label) === 1) return label;
+            let candidate = `${label} (${ids[k]})`;
+            for (let n = 2; used.has(candidate); n++) candidate = `${label} (${ids[k]}) #${n}`;
+            used.add(candidate);
+            return candidate;
+        });
+    }
+
     function fetchAndRenderHeatmap() {
         const plotDiv = document.getElementById('yearly-heatmap-plot');
         const loadingDiv = document.getElementById("heatmap-loading");
@@ -145,7 +161,8 @@
 
             // Metadata (take from last successful chunk — consistent across all)
             const last = successfulChunks[successfulChunks.length - 1];
-            stitchedData.y = last.y;
+            // A new array: the chunk's own y stays as the server or nova_heatmap.js made it
+            stitchedData.y = uniqueRowLabels(last.y, last.ids);
             stitchedData.ids = last.ids;
             stitchedData.active = last.active;
             stitchedData.types = last.types;
