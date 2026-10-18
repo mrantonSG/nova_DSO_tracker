@@ -96,7 +96,8 @@ def heatmap_background_worker(app):
                     with app.app_context():
                         db = get_db()
                         # Only calculate heatmap for enabled objects
-                        all_objects = db.query(AstroObject).filter_by(user_id=user_id, enabled=True).all()
+                        all_objects = db.query(AstroObject).filter_by(user_id=user_id, enabled=True)\
+                            .order_by(AstroObject.id).all()
                         valid_objects = [o for o in all_objects if o.ra_hours is not None and o.dec_deg is not None]
 
                         # Filter Invisible (Geometric)
