@@ -509,20 +509,40 @@
     
     // Catalog layer for all Nova DB objects shown in Aladin
     let novaObjectsCatalog = null;
-    
+    let novaObjectsPromise = null;
+
     /**
-     * Ensures that a catalog with all Nova DB objects is created and added to Aladin.
-     * Uses RA/Dec in degrees provided via NOVA_GRAPH_DATA.allObjects.
-     * Each source is drawn as a small circle with the object identifier as label.
+     * Loads the Nova DB object list and adds it to Aladin as a catalog layer.
+     * The rows come from /api/framing_objects - fetched once per page load, the
+     * first time the Framing Assistant opens, instead of riding along in
+     * NOVA_GRAPH_DATA.allObjects. A failed fetch means no markers and one
+     * console.warn; the assistant itself keeps working, and the next open tries
+     * again.
      */
     function ensureNovaObjectsCatalog() {
         if (!aladin) return;            // Need Aladin initialised first
         if (novaObjectsCatalog) return; // Already built in this session
-    
-        const graphData = window.NOVA_GRAPH_DATA || {};
-        const objects = Array.isArray(graphData.allObjects) ? graphData.allObjects : [];
+        if (novaObjectsPromise) return novaObjectsPromise; // Already fetching
+
+        novaObjectsPromise = fetch('/api/framing_objects')
+            .then(resp => resp.ok ? resp.json() : Promise.reject(new Error('HTTP ' + resp.status)))
+            .then(data => addNovaObjectsCatalog(Array.isArray(data.objects) ? data.objects : []))
+            .catch(err => {
+                console.warn('[FRAMING] Could not load the Nova objects catalog:', err);
+                novaObjectsPromise = null;  // Let the next open try again
+            });
+
+        return novaObjectsPromise;
+    }
+
+    /**
+     * Builds the "Nova objects" catalog layer from ensureNovaObjectsCatalog()'s
+     * rows and adds it to Aladin. Unchanged from when the rows came inline: each
+     * source is a small circle labelled with the object identifier.
+     */
+    function addNovaObjectsCatalog(objects) {
         if (!objects.length) return;
-    
+
         // Create a catalog layer that Aladin will render as markers with labels
         const cat = A.catalog({
             name: 'Nova objects',

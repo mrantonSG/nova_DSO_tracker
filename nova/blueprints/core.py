@@ -2384,35 +2384,6 @@ def graph_dashboard(object_name):
             default_loc_obj = db.query(Location).filter_by(user_id=user.id, is_default=True).first()
             if default_loc_obj: default_location_name = default_loc_obj.name
 
-        all_objects_for_framing = []
-        try:
-            all_objs = db.query(AstroObject).filter_by(user_id=user.id).filter(AstroObject.ra_hours != None,
-                                                                               AstroObject.dec_deg != None).all()
-            for o in all_objs:
-                try:
-                    all_objects_for_framing.append({
-                        "id": o.id, "object_name": o.object_name, "common_name": o.common_name,
-                        "ra_deg": float(o.ra_hours) * 15.0, "dec_deg": float(o.dec_deg),
-                        # Curation / Metadata fields required for Inspiration Modal
-                        "image_url": o.image_url,
-                        "image_credit": o.image_credit,
-                        "image_source_link": o.image_source_link,
-                        "description_text": o.description_text,
-                        "description_credit": o.description_credit,
-                        "description_source_link": o.description_source_link,
-                        "Size": o.size,
-                        # Note: Capitalized to match some frontend expectations if needed, or consistent with DB
-                        "Type": o.type,
-                        "Constellation": o.constellation,
-                        # Essential keys for the frontend modal title/subtitle
-                        "Object": o.object_name,
-                        "Common Name": o.common_name
-                    })
-                except Exception:
-                    continue
-        except Exception:
-            all_objects_for_framing = []
-
             # --- [NATIVE APP SUPPORT] Return JSON if requested ---
         if request.headers.get('Accept') == 'application/json' or request.args.get('format') == 'json':
 
@@ -2522,7 +2493,6 @@ def graph_dashboard(object_name):
                                all_projects=all_projects,
                                available_locations=available_locations,
                                default_location=default_location_name,
-                               framing_objects=all_objects_for_framing,
                                stellarium_api_url_base=STELLARIUM_API_URL_BASE,
                                today_date=datetime.now().strftime('%Y-%m-%d'),
                                is_guest=g.is_guest,

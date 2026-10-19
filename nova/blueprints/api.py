@@ -86,6 +86,7 @@ from nova.record_links import (
     adopt_unlinked_rows, framed_object_uids, object_for_uid, object_references,
     repoint_object_links, rigs_by_uid, sync_framing_links,
 )
+from nova.framing_objects import build_framing_objects
 from nova.journal_rows import build_journal_rows
 from nova.auth import db as auth_db, User
 from nova.analytics import record_event
@@ -438,6 +439,28 @@ def api_journal_sessions():
         .order_by(JournalSession.date_utc.desc()).all()
     all_projects = db.query(Project).filter_by(user_id=user.id).all()
     return jsonify({"sessions": build_journal_rows(db, user, username, sessions, all_projects)})
+
+
+@api_bp.route('/api/framing_objects')
+def api_framing_objects():
+    """The graph page's Framing Assistant object list - what NOVA_GRAPH_DATA
+    .allObjects inlined until now. Fetched once when the assistant opens, so the
+    page stops carrying every object's curation text. Same access rule as
+    /api/journal_sessions and core.graph_dashboard() (core.py:1961): guests
+    included, scoped to the caller. Read-only; no record_event.
+    """
+    # --- Manual Auth Check for Guest Support (same as core.index()) ---
+    if not (current_user.is_authenticated or nova.SINGLE_USER_MODE or getattr(g, 'is_guest', False)):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    username = "default" if nova.SINGLE_USER_MODE else (
+        current_user.username if current_user.is_authenticated else "guest_user")
+    db = get_db()
+    user = db.query(DbUser).filter_by(username=username).one_or_none()
+    if not user:
+        return jsonify({"objects": []})
+
+    return jsonify({"objects": build_framing_objects(db, user)})
 
 
 @api_bp.route('/api/bulk_update_objects', methods=['POST'])
