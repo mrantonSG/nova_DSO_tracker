@@ -2118,7 +2118,6 @@ def graph_dashboard(object_name):
         selected_project_data_journal = None
         project_journal_html_fields = {}
         total_integration_str_journal = "0h 0m"
-        project_sessions_list_journal = []  # <--- NEW LIST
         project_exposure_summary = {'filters': [], 'grand_total_sec': 0}
 
         # A: Handle Session Selection
@@ -2199,11 +2198,6 @@ def graph_dashboard(object_name):
                     JournalSession.user_id == user.id
                 ).order_by(JournalSession.date_utc.desc()).all()
 
-                project_sessions_list_journal = []
-                for s in project_sessions_db:
-                    s_dict = {c.name: getattr(s, c.name) for c in s.__table__.columns}
-                    if s.date_utc: s_dict['date_utc'] = s.date_utc.isoformat()
-                    project_sessions_list_journal.append(s_dict)
                 project_exposure_summary = _build_project_exposure_summary(project_sessions_db)
 
         # (The rest of grouping logic is unchanged)
@@ -2388,10 +2382,16 @@ def graph_dashboard(object_name):
         if request.headers.get('Accept') == 'application/json' or request.args.get('format') == 'json':
 
             # Helper to serialize dates (Jinja2 does this automatically, JSON does not)
+            # The log columns are not session metadata: log_analysis_cache alone is
+            # ~50 KB of stored JSON per session, and the native app reads the session
+            # rows, not their logs. Every other key is unchanged.
+            _log_columns = ('log_analysis_cache', 'asiair_log_content',
+                            'phd2_log_content', 'nina_log_content')
+
             def serialize_session_list(sessions_in):
                 serialized = []
                 for s in sessions_in:
-                    s_copy = s.copy()
+                    s_copy = {k: v for k, v in s.items() if k not in _log_columns}
                     # Convert date objects to ISO strings
                     if isinstance(s_copy.get('date_utc'), (date, datetime)):
                         s_copy['date_utc'] = s_copy['date_utc'].isoformat()
@@ -2474,15 +2474,11 @@ def graph_dashboard(object_name):
                                project_journal_html_fields=project_journal_html_fields,
                                total_integration_str_journal=total_integration_str_journal,
                                current_project_id=requested_project_id_journal,
-                               project_sessions_list_journal=project_sessions_list_journal,  # <--- NEW Variable
                                project_exposure_summary=project_exposure_summary,
 
-                               all_objects=db.query(AstroObject).filter_by(user_id=user.id).order_by(
-                                   AstroObject.object_name).all(),
                                project_statuses=["In Planning", "In Progress", "Completed", "On Hold", "Abandoned"],
                                is_project_active=object_main_details.get('ActiveProject', False),
                                grouped_sessions=grouped_sessions_for_template,
-                               object_specific_sessions=object_specific_sessions_list,
                                selected_session_data=selected_session_data,
                                selected_session_data_dict=selected_session_data_dict,
                                selected_session_data_js=selected_session_data_js,
