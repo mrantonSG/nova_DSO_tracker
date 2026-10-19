@@ -11,10 +11,19 @@ import re
 from datetime import date
 
 from nova.models import AstroObject, DbUser, JournalSession, Project
-from nova.journal_rows import JOURNAL_SESSION_FIELDS
 
 
-_REAL_FIELDS = set(JOURNAL_SESSION_FIELDS) - {'is_stub'}   # is_stub only on stubs
+# The contract, pinned independently of nova/journal_rows.py: a key deleted from
+# the tuple must fail here, so the tuple and its expectation cannot move together.
+# is_stub appears only on stub rows.
+_REAL_FIELDS = {
+    'id', 'object_name', 'target_common_name', 'project_id', 'project_name',
+    'project_status', 'date_utc', 'location_name', 'telescope_setup_notes',
+    'telescope_name_snapshot', 'reducer_name_snapshot', 'camera_name_snapshot',
+    'filter_used_session', 'calculated_integration_time_minutes',
+    'session_rating_subjective', 'image_url', 'other_projects',
+    'other_projects_count',
+}
 _STUB_FIELDS = {
     'id', 'is_stub', 'project_id', 'project_name', 'project_status', 'object_name',
     'date_utc', 'location_name', 'telescope_setup_notes',
