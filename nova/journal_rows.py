@@ -50,6 +50,60 @@ JOURNAL_SESSION_FIELDS = (
 _FIELD_SET = frozenset(JOURNAL_SESSION_FIELDS)
 
 
+# The graph page contract: exactly the keys static/js/journal_section.js reads off
+# window.selectedSessionData - populateEditForm(), setupEditMode() /
+# initializeFormState() and updateGuidingRmsHint(). The four log columns
+# (log_analysis_cache, asiair_log_content, phd2_log_content, nina_log_content) are
+# deliberately absent: the Logs tab fetches /api/session/<id>/log-analysis when it
+# opens and never reads an inlined copy, and log_analysis_cache is ~50 KB of stored
+# JSON per session that every page load would otherwise carry.
+# core.graph_dashboard() builds the payload from this tuple; the server-rendered
+# view and edit form keep using the full row. tests/test_graph_session_js_fields.py
+# pins the key set, so a new JS read means a new entry here.
+GRAPH_SESSION_JS_FIELDS = (
+    'id',
+    'date_utc',
+    'location_name',
+    'project_ids',
+    'notes',
+    'rig_record_uid',
+    'rig_scale_snapshot',
+    'seeing_observed_fwhm',
+    'sky_sqm_observed',
+    'moon_illumination_session',
+    'moon_angular_separation_session',
+    'telescope_setup_notes',
+    'guiding_rms_avg_arcsec',
+    'guiding_equipment',
+    'exposure_time_per_sub_sec',
+    'number_of_subs_light',
+    'filter_used_session',
+    'gain_setting',
+    'offset_setting',
+    'session_rating_subjective',
+    'transparency_observed_scale',
+    'weather_notes',
+    'dither_pixels',
+    'dither_every_n',
+    'dither_notes',
+    'dither_details',
+    'acquisition_software',
+    'camera_temp_setpoint_c',
+    'camera_temp_actual_avg_c',
+    'binning_session',
+    'darks_strategy',
+    'flats_strategy',
+    'bias_darkflats_strategy',
+    'filter_L_subs', 'filter_L_exposure_sec',
+    'filter_R_subs', 'filter_R_exposure_sec',
+    'filter_G_subs', 'filter_G_exposure_sec',
+    'filter_B_subs', 'filter_B_exposure_sec',
+    'filter_Ha_subs', 'filter_Ha_exposure_sec',
+    'filter_OIII_subs', 'filter_OIII_exposure_sec',
+    'filter_SII_subs', 'filter_SII_exposure_sec',
+)
+
+
 def session_image_url(username, session_image_file):
     """The URL of a session image: its thumbnail when one exists, otherwise the
     original - generating the missing thumbnail on the spot so self-hosted

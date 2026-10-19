@@ -87,7 +87,7 @@ from nova.models import (
     UiPref,
     UserCustomFilter,
 )
-from nova.journal_rows import build_journal_rows
+from nova.journal_rows import build_journal_rows, GRAPH_SESSION_JS_FIELDS
 from datetime import date, datetime, timedelta
 import calendar
 
@@ -2472,6 +2472,14 @@ def graph_dashboard(object_name):
 
         record_event('graph_view_open')
 
+        # window.selectedSessionData: the JS contract only (see
+        # GRAPH_SESSION_JS_FIELDS). The view/edit tabs above are rendered from the
+        # full selected_session_data_dict, log_analysis_cache and all.
+        selected_session_data_js = None
+        if selected_session_data_dict:
+            selected_session_data_js = {key: selected_session_data_dict.get(key)
+                                        for key in GRAPH_SESSION_JS_FIELDS}
+
         return render_template('graph_view.html',
                                object_name=object_name,
                                alt_name=object_main_details.get("Common Name", object_name),
@@ -2506,6 +2514,7 @@ def graph_dashboard(object_name):
                                object_specific_sessions=object_specific_sessions_list,
                                selected_session_data=selected_session_data,
                                selected_session_data_dict=selected_session_data_dict,
+                               selected_session_data_js=selected_session_data_js,
                                current_session_id=requested_session_id if selected_session_data else None,
                                graph_lat_param=effective_lat,
                                graph_lon_param=effective_lon,

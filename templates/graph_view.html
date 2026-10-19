@@ -9,15 +9,10 @@
 </script>
 <script src="{{ url_for('static', filename='js/aladin.js') }}?v={{ version }}" charset="utf-8" defer></script>
 <script>
-    // Safely convert the Python object to a JavaScript object
-    window.selectedSessionData = {{ selected_session_data_dict | tojson }};
+    // Only the keys static/js/journal_section.js reads (nova/journal_rows.py,
+    // GRAPH_SESSION_JS_FIELDS) - the log data stays server-side.
+    window.selectedSessionData = {{ selected_session_data_js | tojson }};
     window.availableRigs = {{ available_rigs | tojson }};
-    // Debug: Log data
-    console.log('[graph_view] selectedSessionData:', window.selectedSessionData);
-    console.log('[graph_view] availableRigs:', window.availableRigs);
-    console.log('[graph_view] availableRigs rig IDs:', window.availableRigs?.map(r => r.rig_id));
-    console.log('[graph_view] rig_id_snapshot:', window.selectedSessionData?.rig_id_snapshot);
-    console.log('[graph_view] rig_name_snapshot:', window.selectedSessionData?.rig_name_snapshot);
 
     // Helper function required by the Inspiration Modal to navigate to charts
     window.showGraph = function(objectName) {
