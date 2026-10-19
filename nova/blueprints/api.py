@@ -86,6 +86,7 @@ from nova.record_links import (
     adopt_unlinked_rows, framed_object_uids, object_for_uid, object_references,
     repoint_object_links, rigs_by_uid, sync_framing_links,
 )
+from nova.journal_rows import build_journal_rows
 from nova.auth import db as auth_db, User
 from nova.analytics import record_event
 from modules.astro_calculations import (
@@ -413,6 +414,30 @@ def get_journal_objects():
     result.sort(key=lambda x: x['last_session'] or '0000-00-00', reverse=True)
 
     return jsonify(result)
+
+
+@api_bp.route('/api/journal_sessions')
+def api_journal_sessions():
+    """The dashboard's Journal/Gallery rows - the same payload core.index()
+    inlines today, served on demand so the page stops carrying every session's
+    log_analysis_cache. Same access rule as index(): guests included, scoped to
+    the caller. Read-only; no record_event (index() already counts the load).
+    """
+    # --- Manual Auth Check for Guest Support (same as core.index()) ---
+    if not (current_user.is_authenticated or nova.SINGLE_USER_MODE or getattr(g, 'is_guest', False)):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    username = "default" if nova.SINGLE_USER_MODE else (
+        current_user.username if current_user.is_authenticated else "guest_user")
+    db = get_db()
+    user = db.query(DbUser).filter_by(username=username).one_or_none()
+    if not user:
+        return jsonify({"sessions": []})
+
+    sessions = db.query(JournalSession).filter_by(user_id=user.id) \
+        .order_by(JournalSession.date_utc.desc()).all()
+    all_projects = db.query(Project).filter_by(user_id=user.id).all()
+    return jsonify({"sessions": build_journal_rows(db, user, username, sessions, all_projects)})
 
 
 @api_bp.route('/api/bulk_update_objects', methods=['POST'])
