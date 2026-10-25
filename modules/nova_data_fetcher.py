@@ -16,6 +16,9 @@ __all__ = [
     # ... (other functions remain in __all__)
 ]
 
+QUERY_TIMEOUT = 10   # seconds per remote query
+TOTAL_BUDGET = 15    # seconds for the whole fallback chain
+
 
 #############################
 #   Astroquery Functions    #
@@ -26,7 +29,7 @@ def get_object_type_from_simbad(object_name):
     """Fetch object type from SIMBAD, trying otype and morph_type."""
     print(f"[DEBUG] Attempting SIMBAD query for type of '{object_name}'...")
     custom_simbad = Simbad()
-    custom_simbad.TIMEOUT = 60
+    custom_simbad.TIMEOUT = QUERY_TIMEOUT
     custom_simbad.ROW_LIMIT = 1
     custom_simbad.add_votable_fields('otype', 'morph_type')
 
@@ -105,7 +108,7 @@ def get_object_type_from_simbad(object_name):
 def get_magnitude_from_simbad(object_name):
     """Fetch apparent magnitude (V-band) from SIMBAD."""
     custom_simbad = Simbad();
-    custom_simbad.TIMEOUT = 60;
+    custom_simbad.TIMEOUT = QUERY_TIMEOUT;
     custom_simbad.ROW_LIMIT = 1
     custom_simbad.add_votable_fields('V')  # Corrected from 'flux(V)'
     try:
@@ -143,7 +146,7 @@ def get_magnitude_from_vizier(object_name):
         "J/ApJS/227/24/opennNGC"
     ]
     try:
-        vizier = Vizier(columns=['*'], catalog=vizier_catalogs, timeout=60)
+        vizier = Vizier(columns=['*'], catalog=vizier_catalogs, timeout=QUERY_TIMEOUT)
         result_tables = vizier.query_object(object_name)
         if not result_tables or len(result_tables) == 0: return None
         for table in result_tables:
@@ -169,7 +172,7 @@ def get_magnitude_from_vizier(object_name):
 def get_magnitude_from_hyperleda(object_name):
     """Fetch magnitude from HyperLEDA (Bmag values) via VizieR."""
     try:
-        vizier = Vizier(columns=['*'], catalog="VII/237", timeout=60)
+        vizier = Vizier(columns=['*'], catalog="VII/237", timeout=QUERY_TIMEOUT)
         result_tables = vizier.query_object(object_name)
         if not result_tables or len(result_tables) == 0: return None
         table = result_tables[0]
@@ -187,13 +190,19 @@ def get_magnitude_from_hyperleda(object_name):
         return None
 
 
-def get_magnitude(object_name):
+def get_magnitude(object_name, deadline=None):
     """Try multiple sources to fetch the apparent magnitude, tracking the source."""
     magnitude_val = get_magnitude_from_simbad(object_name)
     if magnitude_val is not None: return {"value": magnitude_val, "source": "SIMBAD"}
+    if deadline is not None and time.monotonic() >= deadline:
+        print(f"[INFO] Time budget exceeded for {object_name}, skipping VizieR/HyperLEDA magnitude lookup")
+        return {"value": None, "source": None}
     print(f"[INFO] Magnitude not found in SIMBAD for {object_name}, trying VizieR...")
     magnitude_val = get_magnitude_from_vizier(object_name)
     if magnitude_val is not None: return {"value": magnitude_val, "source": "VizieR"}
+    if deadline is not None and time.monotonic() >= deadline:
+        print(f"[INFO] Time budget exceeded for {object_name}, skipping HyperLEDA magnitude lookup")
+        return {"value": None, "source": None}
     print(f"[INFO] Magnitude not found in VizieR for {object_name}, trying HyperLEDA...")
     magnitude_val = get_magnitude_from_hyperleda(object_name)
     if magnitude_val is not None: return {"value": magnitude_val, "source": "HyperLEDA"}
@@ -205,7 +214,7 @@ def get_magnitude(object_name):
 def get_angular_size_from_simbad(object_name):
     """Fetch angular size (major axis in arcmin) from SIMBAD."""
     custom_simbad = Simbad();
-    custom_simbad.TIMEOUT = 60;
+    custom_simbad.TIMEOUT = QUERY_TIMEOUT;
     custom_simbad.ROW_LIMIT = 1
     custom_simbad.add_votable_fields('galdim_majaxis')
     try:
@@ -243,7 +252,7 @@ def get_angular_size_from_vizier(object_name):
         "J/ApJS/227/24/opennNGC"
     ]
     try:
-        vizier = Vizier(columns=['*'], catalog=vizier_catalogs, timeout=60)
+        vizier = Vizier(columns=['*'], catalog=vizier_catalogs, timeout=QUERY_TIMEOUT)
         result_tables = vizier.query_object(object_name)
         if not result_tables or len(result_tables) == 0: return None
         for table in result_tables:
@@ -283,7 +292,7 @@ def get_angular_size_from_vizier(object_name):
 def get_angular_size_from_hyperleda(object_name):
     """Fetch angular size from HyperLEDA (using logd25 value) via VizieR."""
     try:
-        vizier = Vizier(columns=['logd25'], catalog="VII/237", timeout=60)
+        vizier = Vizier(columns=['logd25'], catalog="VII/237", timeout=QUERY_TIMEOUT)
         result_tables = vizier.query_object(object_name)
         if not result_tables or len(result_tables) == 0: return None
         table = result_tables[0]
@@ -306,13 +315,19 @@ def get_angular_size_from_hyperleda(object_name):
         return None
 
 
-def get_angular_size(object_name):
+def get_angular_size(object_name, deadline=None):
     """Try multiple sources to fetch the angular size (major axis in arcmin) with source info."""
     size = get_angular_size_from_simbad(object_name)
     if size and size.get("value") is not None: return size
+    if deadline is not None and time.monotonic() >= deadline:
+        print(f"[INFO] Time budget exceeded for {object_name}, skipping VizieR/HyperLEDA angular size lookup")
+        return {"value": None, "source": None}
     print(f"[INFO] Angular size not found in SIMBAD for {object_name}, trying VizieR...")
     size = get_angular_size_from_vizier(object_name)
     if size and size.get("value") is not None: return size
+    if deadline is not None and time.monotonic() >= deadline:
+        print(f"[INFO] Time budget exceeded for {object_name}, skipping HyperLEDA angular size lookup")
+        return {"value": None, "source": None}
     print(f"[INFO] Angular size not found in VizieR for {object_name}, trying HyperLEDA...")
     size = get_angular_size_from_hyperleda(object_name)
     if size and size.get("value") is not None: return size
@@ -414,13 +429,16 @@ def get_astronomical_data(object_name, stellarium_ip="localhost", port=8090):
     Returns a dictionary with the findings (Type, Mag, Size, SB).
     """
     print(f"\n{'=' * 10} Searching for: {object_name} {'=' * 10}")
+    deadline = time.monotonic() + TOTAL_BUDGET
     obj_type = get_object_type_from_simbad(object_name)
     type_source = "SIMBAD" if obj_type else None
-    mag_data = get_magnitude(object_name)
-    size_data = get_angular_size(object_name)
+    mag_data = get_magnitude(object_name, deadline=deadline)
+    size_data = get_angular_size(object_name, deadline=deadline)
     stell_data = None
     needs_fallback = (obj_type is None) or (mag_data["value"] is None) or (size_data["value"] is None)
-    if needs_fallback:
+    if needs_fallback and time.monotonic() >= deadline:
+        print(f"[INFO] Time budget exceeded for {object_name}, skipping Stellarium fallback")
+    elif needs_fallback:
         print(f"--- Checking Stellarium for missing data for {object_name} ---")
         stell_data = get_stellarium_data(object_name, stellarium_ip, port)
         if stell_data:
