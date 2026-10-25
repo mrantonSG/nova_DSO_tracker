@@ -956,6 +956,17 @@
         transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
 
+    /* Checkboxes must not inherit the full-width text-input rule above.
+       width: 100% stretches the native control and Chrome paints the box
+       centered inside it. justify-self: start because the .form-group
+       grid would otherwise stretch the item. 14px matches nova-theme.css. */
+    .column .form-group input[type="checkbox"] {
+        width: 14px;
+        height: 14px;
+        margin: 0;
+        justify-self: start;
+    }
+
     .column .form-group input:focus,
     .column .form-group select:focus {
         border-color: var(--nova-accent-mid, var(--primary-light));
