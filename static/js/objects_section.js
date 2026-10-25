@@ -1042,22 +1042,40 @@
                           // --- END NEW ---
 
                           resultDiv.innerHTML = `<p class="message">Found: ${window.escapeHtml(data.data["Common Name"])}. <span class="progress-message">Fetching details...</span></p>`;
-                          return fetch("/fetch_object_details", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ object: objectName }) });
-                        })
-                        .then(r => r.json()).then(extra => {
-                          const commonName = document.getElementById('new_name').value;
-                          resultDiv.innerHTML = `<p class="message">Found: ${window.escapeHtml(commonName)}. Details loaded from SIMBAD.</p>`;
-                          if (extra.status === 'success') {
-                              document.getElementById('new_type').value = extra.data.Type || '';
-                              document.getElementById('new_magnitude').value = extra.data.Magnitude || '';
-                              document.getElementById('new_size').value = extra.data.Size || '';
-                              document.getElementById('new_sb').value = extra.data.SB || '';
-                          }
-                          // Set form state to "Confirm Add"
+
+                          // Set form state to "Confirm Add" right away; details load in the background
                           ['confirm_add_object', 'edit_object', 'cancel_add_object'].forEach(id => {
                               if (document.getElementById(id)) document.getElementById(id).style.display = 'inline-block';
                           });
                           submitNewObjectBtn.style.display = 'none';
+
+                          // Non-blocking details fetch with a 20s timeout. Its own chain, so
+                          // failures here never reach PATH C below.
+                          const isStale = () => document.getElementById('new_object').value.trim() !== objectName;
+                          const detailsController = new AbortController();
+                          const detailsTimeout = setTimeout(() => detailsController.abort(), 20000);
+                          fetch("/fetch_object_details", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ object: objectName }), signal: detailsController.signal })
+                          .then(r => r.json()).then(extra => {
+                            if (isStale()) return;
+                            if (extra.status !== 'success') throw new Error(extra.message || 'Details unavailable');
+                            document.getElementById('new_type').value = extra.data.Type || '';
+                            document.getElementById('new_magnitude').value = extra.data.Magnitude || '';
+                            document.getElementById('new_size').value = extra.data.Size || '';
+                            document.getElementById('new_sb').value = extra.data.SB || '';
+                            const commonName = document.getElementById('new_name').value;
+                            resultDiv.innerHTML = `<p class="message">Found: ${window.escapeHtml(commonName)}. Details loaded from SIMBAD.</p>`;
+                          })
+                          .catch(() => {
+                            if (isStale()) return;
+                            // Timeout or details error: keep coordinates and buttons, allow manual entry
+                            ['new_type', 'new_magnitude', 'new_size', 'new_sb'].forEach(id => {
+                                const el = document.getElementById(id);
+                                if (el) el.readOnly = false;
+                            });
+                            const commonName = document.getElementById('new_name').value;
+                            resultDiv.innerHTML = `<p class="message">Found: ${window.escapeHtml(commonName)}. Extra details unavailable — you can fill them in manually.</p>`;
+                          })
+                          .finally(() => clearTimeout(detailsTimeout));
                         })
                         .catch(simbadErr => {
                           if (simbadErr && simbadErr.alreadyInLibrary) {
