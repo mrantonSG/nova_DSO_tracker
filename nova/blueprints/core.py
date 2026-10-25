@@ -1275,6 +1275,13 @@ def fetch_object_details():
             "SB": convert_to_native_python(fetched.get("surface_brightness"))
         }
 
+        # Round numeric display values to 2 decimals (raw fetches carry float noise,
+        # e.g. magnitude 20.329999923706 for "LBN 777")
+        for key in ("Magnitude", "Size", "SB"):
+            value = clean_data[key]
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                clean_data[key] = round(value, 2)
+
         return jsonify({
             "status": "success",
             "data": {
