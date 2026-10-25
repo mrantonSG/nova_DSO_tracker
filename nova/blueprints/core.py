@@ -154,11 +154,22 @@ def _skyglow_needs_recompute(cache_path, lat, lon, elev, sqm):
         return True
 
 
+# The key the hosted Nova skyglow service is reached with when instance/.env
+# carries no SKYGLOW_API_KEY of its own. The placeholder is inert: the check below
+# treats it as no key, so a build shipping without a real key here keeps skyglow
+# switched off instead of sending the placeholder as a credential.
+DEFAULT_SKYGLOW_API_KEY = "f78213266124959a129e44d52c7a3d606382f402f338403b2926eac45466382c"
+
+
 def _run_skyglow_task(app, location_id, lat, lon, elevation, sqm_zenith, bortle_scale, cache_dir):
     """Fire-and-forget background task: compute skyglow profile for a location."""
     try:
-        api_key = os.environ.get('SKYGLOW_API_KEY')
-        if not api_key:
+        api_key = os.environ.get('SKYGLOW_API_KEY') or DEFAULT_SKYGLOW_API_KEY
+        # Compared against the literal, never against DEFAULT_SKYGLOW_API_KEY: the
+        # constant is meant to be replaced with a real key, and a real key must not
+        # match this test. An empty SKYGLOW_API_KEY= in .env falls through the `or`
+        # above and lands here too.
+        if not api_key or api_key == "PASTE_KEY_HERE":
             print(f"[SKYGLOW] No SKYGLOW_API_KEY found, skipping skyglow for location {location_id}")
             return
         BORTLE_TO_SQM = {1: 22.0, 2: 21.5, 3: 21.3, 4: 20.8, 5: 20.0,
