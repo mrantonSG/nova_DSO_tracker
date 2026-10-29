@@ -2920,6 +2920,7 @@ def get_hybrid_weather_forecast(lat, lon):
             # --- END FIX ---
 
             om_readable = bool(base_dataseries)
+            placed = []  # (tp, 7Timer! block) for every block aligned to init_time
             for ablk in astro_data_7t.get('dataseries', []):
                 tp_7timer = ablk.get('timepoint')
                 if tp_7timer is None: continue
@@ -2933,6 +2934,7 @@ def get_hybrid_weather_forecast(lat, lon):
                     # This 'tp' is the correct key for our base_dataseries
                     tp = int((abs_time - init_time).total_seconds() / 3600)
                     # --- END FIX ---
+                    placed.append((tp, ablk))
 
                     if tp in base_dataseries:
                         # --- FIX: Only merge the keys we want from 7Timer! ---
@@ -2952,6 +2954,27 @@ def get_hybrid_weather_forecast(lat, lon):
 
                 except Exception as e:
                     print(f"[Weather Func] WARN: Skipping 7Timer! block, could not align timepoints. Error: {e}")
+
+            # Each 7Timer! block covers three hours: its own (set above) and the two after
+            # it. Those two take its values unless they are another block's own hour; where
+            # two blocks cover the same hour, the later block wins. With Open-Meteo the hour
+            # keeps its cloud cover and only takes seeing and transparency, and no hour is
+            # added past Open-Meteo's last; without it the block is copied to the new hour.
+            own_hours = {tp for tp, _ in placed}
+            for tp, ablk in sorted(placed, key=lambda p: p[0]):
+                for h in (tp + 1, tp + 2):
+                    if h in own_hours:
+                        continue
+                    if om_readable:
+                        if h in base_dataseries:
+                            if 'seeing' in ablk:
+                                base_dataseries[h]['seeing'] = ablk['seeing']
+                            if 'transparency' in ablk:
+                                base_dataseries[h]['transparency'] = ablk['transparency']
+                    else:
+                        hour_blk = dict(ablk)
+                        hour_blk['timepoint'] = h
+                        base_dataseries[h] = hour_blk
 
         # print(f"[Weather Func] Merge complete.")
     else:
