@@ -3459,7 +3459,7 @@ msgstr "Muy malo"
 #: templates/base.html:232
 #, python-format
 msgid "Seeing: %(level)s"
-msgstr "Calidad de imagen: %(level)s"
+msgstr "Seeing: %(level)s"
 
 #: templates/base.html:235
 msgid "No timeline data to display."

@@ -1982,7 +1982,7 @@ msgstr "Conditions atmosphériques (observées)"
 #: templates/_journal_section.html:3036 templates/_project_subtab.html:199
 #: templates/project_report.html:1142
 msgid "Seeing"
-msgstr "Voir"
+msgstr "Seeing"
 
 #: templates/_journal_section.html:3036 templates/journal_report.html:750
 msgid "Transparency"
