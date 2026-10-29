@@ -1,12 +1,13 @@
 """Drift guards for the JavaScript Nova shares with nova-ios.
 
-static/js/nova_astro.js and static/js/nova_transit.js are developed in the nova-ios
-repo (src/*.js) and copied in here byte-identical. Nothing in this repo may edit them:
-a change lands in nova-ios first, is copied across unchanged, and the pinned digest
-below moves in the same breath. The first two tests are that contract.
+static/js/nova_astro.js, static/js/nova_transit.js and static/js/nova_weather_icons.js
+are developed in the nova-ios repo (src/*.js) and copied in here byte-identical. Nothing
+in this repo may edit them: a change lands in nova-ios first, is copied across unchanged,
+and the pinned digest below moves in the same breath. The parametrized test below is
+that contract.
 
 nova_transit.js is a port of calculate_transit_time() in modules/astro_calculations.py,
-so the third test pins the two together: the transit it reports for a spread of the
+so the last test pins the two together: the transit it reports for a spread of the
 shipped catalogue must be the string the server computes for the same night, or the
 desktop chart and the rest of Nova would disagree about the same object.
 
@@ -32,6 +33,7 @@ CONFIG_DEFAULT = REPO / "config_templates" / "config_default.yaml"
 SHARED_WITH_NOVA_IOS = {
     "nova_astro.js": "c6c70e9d667255160d006779f4e9a5f80656a67357ad9afcd34fd93367722b2c",
     "nova_transit.js": "b32ed7b19bd642727d590d2f468a3648da337890dd96919ad8a3004edece2049",
+    "nova_weather_icons.js": "a871aac1e0573d493834ba316a02c206a2d0b96c6689a2dbc6797fbe3d274f7e",
 }
 
 DRIFT_HELP = (
