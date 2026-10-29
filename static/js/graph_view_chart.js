@@ -234,8 +234,9 @@
         );
     
         // --- 3-hour grouping on local boundaries ---
-        // Groups start at 00:00, 03:00, 06:00… in the plot timezone, as the iOS app's
-        // (2 or 4 hours long across a DST change). The boundaries come from a scan in
+        // Groups start at 00:00, 03:00, 06:00… in the plot timezone, as the iOS app's.
+        // They are usually 3 hours long; across a DST change or a skipped local midnight
+        // they can be 2, 2.5, 3.5, 4 or 5 hours. The boundaries come from a scan in
         // quarter hours, since every zone's offset is a multiple of 15 minutes; where the
         // clocks repeat an hour, the first of the two counts. Only groups that reach the
         // axis are built: the scan runs from one group before it to one after.
