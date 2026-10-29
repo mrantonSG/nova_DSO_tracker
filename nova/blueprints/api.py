@@ -2919,6 +2919,7 @@ def get_hybrid_weather_forecast(lat, lon):
                 print(f"[Weather Func] WARN: Open-Meteo failed. Using 7Timer! init_time as base: {init_str}")
             # --- END FIX ---
 
+            om_readable = bool(base_dataseries)
             for ablk in astro_data_7t.get('dataseries', []):
                 tp_7timer = ablk.get('timepoint')
                 if tp_7timer is None: continue
@@ -2942,10 +2943,11 @@ def get_hybrid_weather_forecast(lat, lon):
                         if 'transparency' in ablk:
                             base_dataseries[tp]['transparency'] = ablk['transparency']
                         # --- END FIX ---
-                    else:
+                    elif not om_readable:
                         # Open-Meteo failed, use 7Timer! block as a fallback
                         # Add cloudcover placeholder if it doesn't exist
                         ablk.setdefault('cloudcover', 9)
+                        ablk['timepoint'] = tp
                         base_dataseries[tp] = ablk
 
                 except Exception as e:
