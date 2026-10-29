@@ -203,53 +203,47 @@
             b.seeing != null && b.seeing !== -9999
         );
     
-        // --- UPDATED: Force 3-hour grouping ---
+        // --- 3-hour grouping on local boundaries ---
+        // Groups start at 00:00, 03:00, 06:00… in the plot timezone, as the iOS app's
+        // (2 or 4 hours long across a DST change). The boundaries come from a scan in
+        // quarter hours, since every zone's offset is a multiple of 15 minutes; where the
+        // clocks repeat an hour, the first of the two counts. Only groups that reach the
+        // axis are built: the scan runs from one group before it to one after.
         const groupedForecast = [];
-        if (originalForecast.length > 0) {
+        const xScale = chart.scales && chart.scales.x;
+        if (originalForecast.length > 0 && xScale) {
             originalForecast.sort((a, b) => a.start - b.start);
-    
-            // --- THIS IS THE FIX: We now ALWAYS group into 3-hour blocks ---
-            const groupDurationMs = FRAMING_CONFIG.WEATHER_GROUPING_MS;
-            const groupIntervalHours = 3;
-            // --- END FIX ---
-    
-            // Find the start hour of the very first block (0, 3, 6...)
-            const firstBlockStartHour = new Date(originalForecast[0].start).getUTCHours();
-            const firstGroupStartHour = Math.floor(firstBlockStartHour / groupIntervalHours) * groupIntervalHours;
-            const baseTimeMs = new Date(originalForecast[0].start).setUTCHours(0,0,0,0);
-    
-            let currentGroupStart = baseTimeMs + firstGroupStartHour * 3600 * 1000;
-            let groupEnd = currentGroupStart + groupDurationMs;
-            let blocksInGroup = [];
-    
-            for (const block of originalForecast) {
-                // If block starts at or after the current group ends, finalize the previous group
-                if (block.start >= groupEnd) {
-                    if (blocksInGroup.length > 0) {
-                        this.finalizeGroup(groupedForecast, blocksInGroup, currentGroupStart, groupEnd);
-                    }
-                    // Start a new group *at* the end of the last one
-                    currentGroupStart = groupEnd;
-                    groupEnd = currentGroupStart + groupDurationMs;
-                    blocksInGroup = [];
-    
-                    // Handle gaps: keep advancing groups until we find the one this block belongs in
-                    while(block.start >= groupEnd) {
-                        currentGroupStart = groupEnd;
-                        groupEnd = currentGroupStart + groupDurationMs;
-                    }
+
+            // The edges depend only on the axis and the zone: scanned once per axis
+            const edgesKey = xScale.min + '|' + xScale.max + '|' + plotTz;
+            if (!chart.__weatherEdges || chart.__weatherEdges.key !== edgesKey) {
+                const hourMs = 3600 * 1000;
+                const quarterMs = 15 * 60 * 1000;
+                const scanned = [];
+                let lastStamp = null;
+                for (let t = Math.floor((xScale.min - 5 * hourMs) / quarterMs) * quarterMs; t <= xScale.max + 5 * hourMs; t += quarterMs) {
+                    const local = luxon.DateTime.fromMillis(t, { zone: plotTz });
+                    if (local.minute !== 0 || local.hour % 3 !== 0) continue;
+                    const stamp = local.toFormat('yyyy-MM-dd HH');
+                    if (stamp === lastStamp) continue;
+                    lastStamp = stamp;
+                    scanned.push(t);
                 }
-                 // Add block to the current group if it starts within the time window
-                 if (block.start >= currentGroupStart && block.start < groupEnd) {
-                    blocksInGroup.push(block);
-                 }
+                chart.__weatherEdges = { key: edgesKey, edges: scanned };
             }
-            // Add the last group
-            if (blocksInGroup.length > 0) {
-                this.finalizeGroup(groupedForecast, blocksInGroup, currentGroupStart, groupEnd);
+            const edges = chart.__weatherEdges.edges;
+
+            for (let i = 0; i + 1 < edges.length; i++) {
+                const groupStart = edges[i];
+                const groupEnd = edges[i + 1];
+                if (groupEnd <= xScale.min || groupStart >= xScale.max) continue;
+                const blocksInGroup = originalForecast.filter(b => b.start >= groupStart && b.start < groupEnd);
+                if (blocksInGroup.length > 0) {
+                    this.finalizeGroup(groupedForecast, blocksInGroup, groupStart, groupEnd);
+                }
             }
         }
-        // --- END UPDATED GROUPING LOGIC ---
+        // --- END GROUPING ---
     
         const { ctx, chartArea, scales } = chart;
         const x = scales.x;
