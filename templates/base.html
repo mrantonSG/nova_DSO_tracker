@@ -214,6 +214,23 @@
       delete_saved_framing:           {{ _('Delete Saved Framing') | tojson }},
       image_upload_failed:            {{ _('Image upload failed. See console for details.') | tojson }},
 
+      // Day chart weather band
+      weather_loading:                {{ _('Loading weather...') | tojson }},
+      weather_unavailable:            {{ _('Weather data unavailable') | tojson }},
+      weather_unavailable_offline:    {{ _('Weather data unavailable (offline)') | tojson }},
+      weather_no_forecast:            {{ _('No forecast for this night') | tojson }},
+      weather_clear:                  {{ _('Clear') | tojson }},
+      weather_partly_clear:           {{ _('Partly clear') | tojson }},
+      weather_partly_cloudy:          {{ _('Partly cloudy') | tojson }},
+      weather_cloudy:                 {{ _('Cloudy') | tojson }},
+      weather_overcast:               {{ _('Overcast') | tojson }},
+      seeing_excellent:               {{ _('Excellent') | tojson }},
+      seeing_good:                    {{ _('Good') | tojson }},
+      seeing_average:                 {{ _('Average') | tojson }},
+      seeing_poor:                    {{ _('Poor') | tojson }},
+      seeing_bad:                     {{ _('Bad') | tojson }},
+      seeing_label:                   {{ _('Seeing: %(level)s', level='{level}') | tojson }},
+
       // session_log_charts.js
       no_timeline_data:               {{ _('No timeline data to display.') | tojson }},
       no_phd2_data:                   {{ _('No PHD2 guide log data available.') | tojson }},
