@@ -1633,6 +1633,25 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     border-radius: var(--nova-radius-sm, 5px);
 }
 
+/* Day chart: hover tooltip of the weather band (graph_view_chart.js) */
+.chart-weather-tip {
+    position: absolute;
+    z-index: var(--z-layer-2);
+    pointer-events: none;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color, #e5e2dc);
+    border-radius: 6px;
+    box-shadow: var(--shadow-sm);
+    color: var(--text-primary);
+    font-size: var(--font-size-xs);
+    padding: 4px 8px;
+    white-space: nowrap;
+}
+
+:root[data-theme="dark"] .chart-weather-tip {
+    background: var(--bg-tertiary);
+}
+
 /* =================================================================
    CHART CONTROLS ROW - FACELIFT STYLES
    Day/Month/Year buttons + date inputs + Add Object dropdown

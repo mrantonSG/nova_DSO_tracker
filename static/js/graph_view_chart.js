@@ -162,9 +162,20 @@
     // Weather icons rendered off-screen, keyed by icon id + colour + devicePixelRatio
     const weatherIconCache = new Map();
 
+    // window.novaI18n key of each weather icon's word, for the hover tooltip
+    const WEATHER_TIP_KEYS = {
+        clear: 'weather_clear', partlyClear: 'weather_partly_clear',
+        partlyCloudy: 'weather_partly_cloudy', cloudy: 'weather_cloudy',
+        overcast: 'weather_overcast', seeingExc: 'seeing_excellent',
+        seeingGood: 'seeing_good', seeingAvg: 'seeing_average',
+        seeingPoor: 'seeing_poor', seeingBad: 'seeing_bad'
+    };
+    let weatherTip = null; // the hover tooltip <div>, created on first use
+
     const weatherOverlayPlugin = {
       id: 'weatherOverlay',
       beforeDatasetsDraw(chart) {
+        chart.__weatherRects = []; // blocks the hover tooltip can hit, rebuilt each draw
         const info = chart.__weather;
         // --- NEW: Handle loading and error states ---
         if (!info) return; // Info object not even created yet
@@ -256,11 +267,11 @@
           return value || fallback;
         };
         // Light theme: --text-primary, white on Overcast only. Dark theme: --text-primary.
-        const iconFor = (kind, level) => {
+        const iconFor = (kind, level, block) => {
           const id = kind === 'cloud' ? icons.cloudIcon(level) : icons.seeingIcon(level);
           if (!id) return null;
           const colour = (!isDark && kind === 'cloud' && Number(level) === 9) ? cssVar('--text-white', '#fff') : cssVar('--text-primary', '#333');
-          return { id, colour };
+          return { id, colour, kind, level, start: block.start, end: block.end };
         };
     
         ctx.save();
@@ -305,6 +316,11 @@
           ctx.lineWidth = 1;
           ctx.strokeRect(left + pad + 0.5, y + pad + 0.5, width - 2 * pad - 1, rowH - 2 * pad - 1);
 
+          if (icon) {
+            chart.__weatherRects.push({ x: left + pad, y: y + pad, w: width - 2 * pad, h: rowH - 2 * pad,
+              kind: icon.kind, id: icon.id, level: icon.level, start: icon.start, end: icon.end });
+          }
+
           if (icons) {
             // No icon (unknown level) or too narrow: colour only, no text
             if (!icon || width < minIconBlockPx) return;
@@ -335,12 +351,12 @@
           if (Math.abs(x1 - x0) < 1) return;
     
           const ci = cloudInfo[b.cloudcover] || { label: 'Clouds', color: 'rgba(0,0,0,0.08)' };
-          drawBlock(topY, x0, x1, ci.label, ci.color, icons && iconFor('cloud', b.cloudcover));
+          drawBlock(topY, x0, x1, ci.label, ci.color, icons && iconFor('cloud', b.cloudcover, b));
     
             if (hasValidSeeingData) {
                   if (b.seeing != null && b.seeing !== -9999) {
                       const si = seeingInfo[b.seeing] || { label: 'Seeing?', color: 'rgba(0,0,0,0.08)' };
-                      drawBlock(topY + rowH + gap, x0, x1, si.label, si.color, icons && iconFor('seeing', b.seeing));
+                      drawBlock(topY + rowH + gap, x0, x1, si.label, si.color, icons && iconFor('seeing', b.seeing, b));
                   } else {
                        drawBlock(topY + rowH + gap, x0, x1, '', 'rgba(0,0,0,0.08)');
                   }
@@ -348,8 +364,59 @@
         });
         ctx.restore();
       },
+
+      afterEvent(chart, args) {
+        const e = args.event;
+        if (e.type === 'mouseout') { this.hideTip(); return; }
+        if (e.type !== 'mousemove') return;
+        const hit = (chart.__weatherRects || []).find(r =>
+          e.x >= r.x && e.x < r.x + r.w && e.y >= r.y && e.y < r.y + r.h);
+        if (hit) this.showTip(chart, hit, e.x, e.y);
+        else this.hideTip();
+      },
+
+      afterDestroy() { this.hideTip(); },
     
       // --- HELPER FUNCTIONS ---
+      // Tooltip text: the block's hours in the plot timezone and its word, or the
+      // seeing word in the seeing_label sentence.
+      tipText(hit) {
+          const word = window.t(WEATHER_TIP_KEYS[hit.id]);
+          if (hit.kind === 'seeing') return window.t('seeing_label', { level: word });
+          const hhmm = (ms) => luxon.DateTime.fromMillis(ms, { zone: plotTz }).toFormat('HH:mm');
+          return hhmm(hit.start) + '–' + hhmm(hit.end) + ' · ' + word;
+      },
+
+      // One tooltip <div> beside the canvas, above the cursor (below it when there is
+      // no room above), kept inside the chart container.
+      showTip(chart, hit, x, y) {
+          const canvas = chart.canvas;
+          const box = canvas.parentNode;
+          if (!box) return;
+          if (!weatherTip) {
+              weatherTip = document.createElement('div');
+              weatherTip.className = 'chart-weather-tip';
+              weatherTip.setAttribute('role', 'tooltip');
+          }
+          if (weatherTip.parentNode !== box) box.appendChild(weatherTip);
+          weatherTip.textContent = this.tipText(hit);
+          weatherTip.hidden = false;
+
+          const offset = 12; // px between the cursor and the tooltip
+          const px = canvas.offsetLeft + x;
+          const py = canvas.offsetTop + y;
+          const w = weatherTip.offsetWidth, h = weatherTip.offsetHeight;
+          const left = Math.max(0, Math.min(px - w / 2, box.clientWidth - w));
+          let top = py - h - offset;
+          if (top < 0) top = Math.min(py + offset, box.clientHeight - h);
+          weatherTip.style.left = Math.round(left) + 'px';
+          weatherTip.style.top = Math.round(top) + 'px';
+      },
+
+      hideTip() {
+          if (weatherTip) weatherTip.hidden = true;
+      },
+
       // One icon of NovaWeatherIcons on its own canvas, px CSS px square at the screen's
       // devicePixelRatio. A cut shape erases with destination-out, which is why the icon
       // never draws straight onto the chart.
