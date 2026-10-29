@@ -162,6 +162,36 @@
     // Weather icons rendered off-screen, keyed by icon id + colour + devicePixelRatio
     const weatherIconCache = new Map();
 
+    // Weather block colours when styling-utils.js is missing (its light-theme values)
+    const WEATHER_FALLBACK_COLOURS = {
+        cloud: {
+            1: 'rgba(135, 206, 250, 0.15)',
+            2: 'rgba(135, 206, 250, 0.25)',
+            3: 'rgba(170, 170, 170, 0.2)',
+            4: 'rgba(170, 170, 170, 0.3)',
+            5: 'rgba(120, 120, 120, 0.35)',
+            6: 'rgba(120, 120, 120, 0.45)',
+            7: 'rgba(80, 80, 80, 0.5)',
+            8: 'rgba(80, 80, 80, 0.6)',
+            9: 'rgba(50, 50, 50, 0.7)'
+        },
+        seeing: {
+            1: 'rgba(0, 255, 127, 0.2)',
+            2: 'rgba(0, 255, 127, 0.3)',
+            3: 'rgba(173, 255, 47, 0.3)',
+            4: 'rgba(255, 255, 0, 0.3)',
+            5: 'rgba(255, 215, 0, 0.3)',
+            6: 'rgba(255, 165, 0, 0.3)',
+            7: 'rgba(255, 69, 0, 0.3)',
+            8: 'rgba(255, 0, 0, 0.3)'
+        }
+    };
+
+    // A weather block's colour, read at draw time so it follows the theme
+    const weatherColour = (kind, level) => window.stylingUtils && window.stylingUtils.getWeatherColor
+        ? window.stylingUtils.getWeatherColor(level, kind)
+        : WEATHER_FALLBACK_COLOURS[kind][level];
+
     // A CSS variable's value, trimmed, or the fallback when it is empty
     const cssVar = (name, fallback) => {
       const value = window.stylingUtils && window.stylingUtils.getCssVar ? String(window.stylingUtils.getCssVar(name, fallback) || '').trim() : '';
@@ -348,13 +378,13 @@
           if (Math.abs(x1 - x0) < 1) return;
           drawnBlocks++;
     
-          const ci = cloudInfo[b.cloudcover] || { label: 'Clouds', color: 'rgba(0,0,0,0.08)' };
-          drawBlock(topY, x0, x1, ci.label, ci.color, icons && iconFor('cloud', b.cloudcover, b));
+          const ci = cloudInfo[b.cloudcover];
+          drawBlock(topY, x0, x1, ci ? ci.label : 'Clouds', ci ? weatherColour('cloud', b.cloudcover) : 'rgba(0,0,0,0.08)', icons && iconFor('cloud', b.cloudcover, b));
     
             if (hasValidSeeingData) {
                   if (b.seeing != null && b.seeing !== -9999) {
-                      const si = seeingInfo[b.seeing] || { label: 'Seeing?', color: 'rgba(0,0,0,0.08)' };
-                      drawBlock(topY + rowH + gap, x0, x1, si.label, si.color, icons && iconFor('seeing', b.seeing, b));
+                      const si = seeingInfo[b.seeing];
+                      drawBlock(topY + rowH + gap, x0, x1, si ? si.label : 'Seeing?', si ? weatherColour('seeing', b.seeing) : 'rgba(0,0,0,0.08)', icons && iconFor('seeing', b.seeing, b));
                   } else {
                        drawBlock(topY + rowH + gap, x0, x1, '', 'rgba(0,0,0,0.08)');
                   }
@@ -1665,27 +1695,27 @@
             const baseDt = luxon.DateTime.fromISO(data.date, {zone: plotTz});
             const nextDt = baseDt.plus({days: 1});
 
-            // Weather info configs (used by weather overlay plugin)
+            // Weather labels (used by weather overlay plugin; colours are read at draw time)
             const cloudInfo = {
-                1: {label: 'Clear', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(1, 'cloud') : 'rgba(135, 206, 250, 0.15)'},
-                2: {label: 'P. Clear', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(2, 'cloud') : 'rgba(135, 206, 250, 0.25)'},
-                3: {label: 'P. Clear', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(3, 'cloud') : 'rgba(170, 170, 170, 0.2)'},
-                4: {label: 'P. Clear', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(4, 'cloud') : 'rgba(170, 170, 170, 0.3)'},
-                5: {label: 'P. Cloudy', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(5, 'cloud') : 'rgba(120, 120, 120, 0.35)'},
-                6: {label: 'P. Cloudy', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(6, 'cloud') : 'rgba(120, 120, 120, 0.45)'},
-                7: {label: 'Cloudy', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(7, 'cloud') : 'rgba(80, 80, 80, 0.5)'},
-                8: {label: 'Cloudy', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(8, 'cloud') : 'rgba(80, 80, 80, 0.6)'},
-                9: {label: 'Overcast', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(9, 'cloud') : 'rgba(50, 50, 50, 0.7)'}
+                1: {label: 'Clear'},
+                2: {label: 'P. Clear'},
+                3: {label: 'P. Clear'},
+                4: {label: 'P. Clear'},
+                5: {label: 'P. Cloudy'},
+                6: {label: 'P. Cloudy'},
+                7: {label: 'Cloudy'},
+                8: {label: 'Cloudy'},
+                9: {label: 'Overcast'}
             };
             const seeingInfo = {
-                1: {label: 'See: Exc', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(1, 'seeing') : 'rgba(0, 255, 127, 0.2)'},
-                2: {label: 'See: Good', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(2, 'seeing') : 'rgba(0, 255, 127, 0.3)'},
-                3: {label: 'See: Good', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(3, 'seeing') : 'rgba(173, 255, 47, 0.3)'},
-                4: {label: 'See: Avg', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(4, 'seeing') : 'rgba(255, 255, 0, 0.3)'},
-                5: {label: 'See: Avg', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(5, 'seeing') : 'rgba(255, 215, 0, 0.3)'},
-                6: {label: 'See: Poor', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(6, 'seeing') : 'rgba(255, 165, 0, 0.3)'},
-                7: {label: 'See: Poor', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(7, 'seeing') : 'rgba(255, 69, 0, 0.3)'},
-                8: {label: 'See: Bad', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(8, 'seeing') : 'rgba(255, 0, 0, 0.3)'}
+                1: {label: 'See: Exc'},
+                2: {label: 'See: Good'},
+                3: {label: 'See: Good'},
+                4: {label: 'See: Avg'},
+                5: {label: 'See: Avg'},
+                6: {label: 'See: Poor'},
+                7: {label: 'See: Poor'},
+                8: {label: 'See: Bad'}
             };
 
             // Build sun event annotations using helper
