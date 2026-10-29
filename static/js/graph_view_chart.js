@@ -159,6 +159,9 @@
     }
     // --- End Precession Helpers ---
     
+    // Weather icons rendered off-screen, keyed by icon id + colour + devicePixelRatio
+    const weatherIconCache = new Map();
+
     const weatherOverlayPlugin = {
       id: 'weatherOverlay',
       beforeDatasetsDraw(chart) {
@@ -241,6 +244,24 @@
         const numRows = hasValidSeeingData ? 2 : 1;
         const totalH = rowH * numRows + (hasValidSeeingData ? gap : 0);
         const topY = chartArea.top - (totalH + 6);
+        const iconPx = 14;         // icon size in CSS px
+        const minIconBlockPx = 18; // narrower blocks show colour only
+
+        // Icons replace the words when nova_weather_icons.js is loaded; without it the
+        // band keeps its text labels.
+        const icons = window.NovaWeatherIcons || null;
+        const isDark = window.stylingUtils && window.stylingUtils.isDarkTheme && window.stylingUtils.isDarkTheme();
+        const cssVar = (name, fallback) => {
+          const value = window.stylingUtils && window.stylingUtils.getCssVar ? String(window.stylingUtils.getCssVar(name, fallback) || '').trim() : '';
+          return value || fallback;
+        };
+        // Light theme: --text-primary, white on Overcast only. Dark theme: --text-primary.
+        const iconFor = (kind, level) => {
+          const id = kind === 'cloud' ? icons.cloudIcon(level) : icons.seeingIcon(level);
+          if (!id) return null;
+          const colour = (!isDark && kind === 'cloud' && Number(level) === 9) ? cssVar('--text-white', '#fff') : cssVar('--text-primary', '#333');
+          return { id, colour };
+        };
     
         ctx.save();
         ctx.globalAlpha = 1;
@@ -273,7 +294,7 @@
           return text.slice(0, Math.max(0, lo - 1)) + ell;
         };
     
-        const drawBlock = (y, x0, x1, label, fill) => {
+        const drawBlock = (y, x0, x1, label, fill, icon) => {
           const left = Math.round(Math.min(x0, x1));
           const width = Math.max(1, Math.round(Math.abs(x1 - x0)));
           if (width < 1) return; // Don't draw tiny blocks
@@ -283,6 +304,16 @@
           ctx.strokeStyle = 'rgba(0,0,0,0.1)';
           ctx.lineWidth = 1;
           ctx.strokeRect(left + pad + 0.5, y + pad + 0.5, width - 2 * pad - 1, rowH - 2 * pad - 1);
+
+          if (icons) {
+            // No icon (unknown level) or too narrow: colour only, no text
+            if (!icon || width < minIconBlockPx) return;
+            const img = this.iconImage(icons, icon.id, icon.colour, iconPx);
+            if (img) {
+              ctx.drawImage(img, Math.round(left + (width - iconPx) / 2), Math.round(y + (rowH - iconPx) / 2), iconPx, iconPx);
+            }
+            return;
+          }
     
           const maxTextW = Math.max(0, width - 8);
           if (maxTextW < 5) return; // Don't draw text if too small
@@ -304,12 +335,12 @@
           if (Math.abs(x1 - x0) < 1) return;
     
           const ci = cloudInfo[b.cloudcover] || { label: 'Clouds', color: 'rgba(0,0,0,0.08)' };
-          drawBlock(topY, x0, x1, ci.label, ci.color);
+          drawBlock(topY, x0, x1, ci.label, ci.color, icons && iconFor('cloud', b.cloudcover));
     
             if (hasValidSeeingData) {
                   if (b.seeing != null && b.seeing !== -9999) {
                       const si = seeingInfo[b.seeing] || { label: 'Seeing?', color: 'rgba(0,0,0,0.08)' };
-                      drawBlock(topY + rowH + gap, x0, x1, si.label, si.color);
+                      drawBlock(topY + rowH + gap, x0, x1, si.label, si.color, icons && iconFor('seeing', b.seeing));
                   } else {
                        drawBlock(topY + rowH + gap, x0, x1, '', 'rgba(0,0,0,0.08)');
                   }
@@ -319,6 +350,45 @@
       },
     
       // --- HELPER FUNCTIONS ---
+      // One icon of NovaWeatherIcons on its own canvas, px CSS px square at the screen's
+      // devicePixelRatio. A cut shape erases with destination-out, which is why the icon
+      // never draws straight onto the chart.
+      iconImage(icons, id, colour, px) {
+          const dpr = window.devicePixelRatio || 1;
+          const key = id + '|' + colour + '|' + dpr;
+          const cached = weatherIconCache.get(key);
+          if (cached) return cached;
+
+          const icon = icons.ICONS[id];
+          if (!icon) return null;
+          const vb = icon.viewBox.split(' ').map(Number);
+          const size = Math.round(px * dpr);
+          const canvas = document.createElement('canvas');
+          canvas.width = canvas.height = size;
+          const c = canvas.getContext('2d');
+          c.scale(size / vb[2], size / vb[3]);
+          c.translate(-vb[0], -vb[1]);
+          c.fillStyle = c.strokeStyle = colour;
+          for (const shape of icon.shapes) {
+              const path = new Path2D(shape.d);
+              c.save();
+              c.lineWidth = shape.strokeWidth;
+              if (shape.cut) {
+                  c.globalCompositeOperation = 'destination-out';
+                  c.fill(path);
+                  c.stroke(path);
+              } else {
+                  c.lineJoin = shape.lineJoin;
+                  c.globalAlpha = shape.opacity;
+                  if (shape.fill !== 'none') c.fill(path);
+                  if (shape.stroke !== 'none') c.stroke(path);
+              }
+              c.restore();
+          }
+          weatherIconCache.set(key, canvas);
+          return canvas;
+      },
+
       drawMessage(chart, text) {
           const { ctx, chartArea } = chart;
           if (!chartArea) return;
