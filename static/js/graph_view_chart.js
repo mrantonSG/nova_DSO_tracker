@@ -162,6 +162,12 @@
     // Weather icons rendered off-screen, keyed by icon id + colour + devicePixelRatio
     const weatherIconCache = new Map();
 
+    // A CSS variable's value, trimmed, or the fallback when it is empty
+    const cssVar = (name, fallback) => {
+      const value = window.stylingUtils && window.stylingUtils.getCssVar ? String(window.stylingUtils.getCssVar(name, fallback) || '').trim() : '';
+      return value || fallback;
+    };
+
     // window.novaI18n key of each weather icon's word, for the hover tooltip
     const WEATHER_TIP_KEYS = {
         clear: 'weather_clear', partlyClear: 'weather_partly_clear',
@@ -181,7 +187,7 @@
         if (!info) return; // Info object not even created yet
     
         if (info.isLoading) {
-            this.drawMessage(chart, 'Loading weather...');
+            this.drawMessage(chart, window.t('weather_loading'));
             return;
         }
         if (info.error) {
@@ -262,10 +268,6 @@
         // band keeps its text labels.
         const icons = window.NovaWeatherIcons || null;
         const isDark = window.stylingUtils && window.stylingUtils.isDarkTheme && window.stylingUtils.isDarkTheme();
-        const cssVar = (name, fallback) => {
-          const value = window.stylingUtils && window.stylingUtils.getCssVar ? String(window.stylingUtils.getCssVar(name, fallback) || '').trim() : '';
-          return value || fallback;
-        };
         // Light theme: --text-primary, white on Overcast only. Dark theme: --text-primary.
         const iconFor = (kind, level, block) => {
           const id = kind === 'cloud' ? icons.cloudIcon(level) : icons.seeingIcon(level);
@@ -342,6 +344,7 @@
         const xMinPx = x.getPixelForValue(x.min);
         const xMaxPx = x.getPixelForValue(x.max);
     
+        let drawnBlocks = 0;
         groupedForecast.forEach(b => {
           let x0 = x.getPixelForValue(b.start);
           let x1 = x.getPixelForValue(b.end);
@@ -349,6 +352,7 @@
           x0 = Math.max(xMinPx, Math.min(x0, xMaxPx));
           x1 = Math.max(xMinPx, Math.min(x1, xMaxPx));
           if (Math.abs(x1 - x0) < 1) return;
+          drawnBlocks++;
     
           const ci = cloudInfo[b.cloudcover] || { label: 'Clouds', color: 'rgba(0,0,0,0.08)' };
           drawBlock(topY, x0, x1, ci.label, ci.color, icons && iconFor('cloud', b.cloudcover, b));
@@ -363,6 +367,9 @@
               }
         });
         ctx.restore();
+
+        // Forecast data, but none of it on this night's axis
+        if (drawnBlocks === 0) this.drawMessage(chart, window.t('weather_no_forecast'));
       },
 
       afterEvent(chart, args) {
@@ -461,7 +468,9 @@
           if (!chartArea) return;
           const topY = chartArea.top - (18 * 2 + 2 + 6); // Same position as weather bars
           ctx.save();
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+          // --text-muted is too faint at this size on the dark theme
+          const isDark = window.stylingUtils && window.stylingUtils.isDarkTheme && window.stylingUtils.isDarkTheme();
+          ctx.fillStyle = cssVar(isDark ? '--text-secondary' : '--text-muted', 'rgba(0, 0, 0, 0.5)');
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.font = 'italic 12px system-ui, Arial';
@@ -777,7 +786,7 @@
             console.log("Weather fetch skipped (offline).");
             if (chartInstance) {
                 chartInstance.__weather.isLoading = false;
-                chartInstance.__weather.error = 'Weather data unavailable (offline)';
+                chartInstance.__weather.error = window.t('weather_unavailable_offline');
                 chartInstance.update('none');
             }
             return;
@@ -827,7 +836,7 @@
                 cloudInfo: cloudInfo, // Persist original maps
                 seeingInfo: seeingInfo, // Persist original maps
                 isLoading: false,
-                error: hasDrawableWeather ? null : 'Weather data unavailable'
+                error: hasDrawableWeather ? null : window.t('weather_unavailable')
             };
     
             // Redraw the chart to show the weather overlay
@@ -835,7 +844,7 @@
         } catch (err) {
             console.error('Could not fetch or apply weather data:', err);
             chartInstance.__weather.isLoading = false;
-            chartInstance.__weather.error = 'Weather data unavailable';
+            chartInstance.__weather.error = window.t('weather_unavailable');
             chartInstance.update('none');
         }
     }
