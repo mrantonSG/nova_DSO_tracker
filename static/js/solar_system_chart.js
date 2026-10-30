@@ -186,6 +186,24 @@
         };
     }
 
+    /**
+     * An azimuth series as {x, y} points, with a null point between two samples that
+     * wrap across 360/0, so the dashed line breaks there instead of drawing a vertical
+     * connector the height of the chart. (graph_view_chart.js passes its azimuth series
+     * through unchanged and draws that connector.)
+     */
+    function azimuthPoints(labels, values) {
+        const out = [];
+        for (let k = 0; k < values.length; k++) {
+            const y = values[k], prev = k > 0 ? values[k - 1] : null;
+            if (y !== null && prev !== null && Math.abs(y - prev) > 180) {
+                out.push({x: (labels[k - 1] + labels[k]) / 2, y: null});
+            }
+            out.push({x: labels[k], y: y});
+        }
+        return out;
+    }
+
     /** Dataset colours by role, so a theme change can repaint them. */
     function colorFor(role) {
         switch (role) {
@@ -276,8 +294,8 @@
                 dataset('mask', i18n.horizonMask, data.horizon_mask_alt,
                         {yAxisID: 'yAltitude', borderWidth: 2, tension: 0.1, fill: 'start', backgroundColor: maskFill()}),
                 dataset('horizon', i18n.horizon, Array(labels.length).fill(0), {yAxisID: 'yAltitude', borderWidth: 2}),
-                dataset('bodyAz', v.label + ' – ' + i18n.azimuth, data.object_az, az),
-                isMoon ? null : dataset('moonAz', i18n.moon + ' – ' + i18n.azimuth, data.moon_az, az),
+                dataset('bodyAz', v.label + ' – ' + i18n.azimuth, azimuthPoints(labels, data.object_az), az),
+                isMoon ? null : dataset('moonAz', i18n.moon + ' – ' + i18n.azimuth, azimuthPoints(labels, data.moon_az), az),
             ].filter(Boolean);
 
             const c = themeColors();
@@ -287,14 +305,14 @@
                 data: { labels: labels, datasets: datasets },
                 plugins: [nightShadePlugin(sun.duskTime, sun.dawnTime)],
                 options: {
+                    // The size is the card's (#chart-area in solar_system.css): 2:1, capped.
                     responsive: true,
-                    maintainAspectRatio: true,
-                    aspectRatio: 2,
+                    maintainAspectRatio: false,
                     adapters: {date: {zone: tz}},
                     layout: { padding: { top: 46 } },
                     plugins: {
                         annotation: {annotations: annotations},
-                        legend: {position: 'right', labels: {color: c.tick}}
+                        legend: {position: 'bottom', labels: {color: c.tick}}
                     },
                     scales: {
                         x: {
@@ -365,8 +383,7 @@
                 options: {
                     adapters: {date: {zone: tz}},
                     responsive: true,
-                    maintainAspectRatio: true,
-                    aspectRatio: 2,
+                    maintainAspectRatio: false,
                     scales: {
                         x: {
                             type: 'time',
@@ -383,7 +400,7 @@
                             title: {display: true, text: i18n.nightlyMaxAxis, color: c.text}
                         }
                     },
-                    plugins: { legend: {position: 'right', labels: {color: c.tick}} }
+                    plugins: { legend: {position: 'bottom', labels: {color: c.tick}} }
                 }
             });
         }

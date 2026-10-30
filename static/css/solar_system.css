@@ -78,3 +78,16 @@
   font-size: var(--font-size-xs);
   letter-spacing: 0;
 }
+
+/* =================================================================
+   THE CHART CARD
+   ================================================================= */
+
+/* As wide as the table card above it, 2:1 like the graph view's chart until it is
+   560px tall, then no taller: on a wide window a 2:1 chart would fill the screen.
+   The chart follows this box (maintainAspectRatio: false in solar_system_chart.js). */
+#bodies-tab #chart-area {
+  box-sizing: border-box;
+  aspect-ratio: 2 / 1;
+  max-height: 560px;
+}
