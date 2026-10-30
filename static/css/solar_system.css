@@ -91,3 +91,10 @@
   aspect-ratio: 2 / 1;
   max-height: 560px;
 }
+
+/* Altitude now above the threshold: only the pill, as on the dashboard. graph_view.css,
+   which the dashboard does not load, paints every .highlight light blue with !important;
+   the cell stays transparent so the selected and hovered row backgrounds show through. */
+#solar-table tbody td.highlight {
+  background-color: transparent !important;
+}

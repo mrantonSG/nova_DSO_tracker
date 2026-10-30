@@ -19,16 +19,15 @@
  * The night is NovaPlotData.build() with the body's altAzAt from NovaPlanets, so the
  * curve is the body's place at every sample. Month and year plot, per day, the highest
  * altitude from that day's sunset to the next sunrise (NovaSolarRows.nightlyMax(), the
- * table's own night window), for the body and for the Moon: a planet is imaged in the
- * evening or the morning, so its altitude at midnight says little. show() throws on any
- * engine failure; the page shows its translated error.
+ * table's own night window): a planet is imaged in the evening or the morning, so its
+ * altitude at midnight says little. show() throws on any engine failure; the page shows
+ * its translated error.
  *
  * Ported from graph_view_chart.js (which cannot be loaded here): the Now line and its
  * 60 s updater, the sun-event lines, the night shading, the threshold / horizon-mask
  * dataset, the midnight-centred x axis, the month and year rendering and the theme
  * update through stylingUtils.onThemeChange. Every label is translated. Not ported:
- * weather, transit lines, skyglow, the secondary object. The separate Moon lines are
- * left out when the Moon is the body.
+ * weather, transit lines, skyglow, the secondary object, the Moon's comparison lines.
  *
  * Needs Chart.js with the Luxon adapter and the annotation plugin, NovaAstro, NovaTransit,
  * NovaPlanets, NovaPlotData, NovaDashboardRows and NovaSolarRows, all loaded first.
@@ -208,7 +207,6 @@
     function colorFor(role) {
         switch (role) {
             case 'body': case 'bodyAz': return lineColor(0, '#36A2EB');
-            case 'moon': case 'moonAz': return lineColor(1, '#FFC107');
             case 'mask': return lineColor(2, '#636e72');
             case 'horizon': return textColor('#333');
         }
@@ -285,18 +283,15 @@
             const xMin = firstMs + (midnightMs - (firstMs + lastMs) / 2);
             const xMax = xMin + span;
 
-            const isMoon = v.body === 'moon';
             const line = {yAxisID: 'yAltitude', borderWidth: 4, tension: 0.1};
             const az = {yAxisID: 'yAzimuth', borderDash: [5, 5], borderWidth: 3.5, tension: 0.1};
             const datasets = [
                 dataset('body', v.label + ' – ' + i18n.altitude, data.object_alt, line),
-                isMoon ? null : dataset('moon', i18n.moon + ' – ' + i18n.altitude, data.moon_alt, line),
                 dataset('mask', i18n.horizonMask, data.horizon_mask_alt,
                         {yAxisID: 'yAltitude', borderWidth: 2, tension: 0.1, fill: 'start', backgroundColor: maskFill()}),
                 dataset('horizon', i18n.horizon, Array(labels.length).fill(0), {yAxisID: 'yAltitude', borderWidth: 2}),
                 dataset('bodyAz', v.label + ' – ' + i18n.azimuth, azimuthPoints(labels, data.object_az), az),
-                isMoon ? null : dataset('moonAz', i18n.moon + ' – ' + i18n.azimuth, azimuthPoints(labels, data.moon_az), az),
-            ].filter(Boolean);
+            ];
 
             const c = themeColors();
             clear();
@@ -348,21 +343,17 @@
         function showRange(v) {
             const year = +v.year;
             const months = v.view === 'year' ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] : [+v.month];
-            const isMoon = v.body === 'moon';
             const inputs = {location: {
                 lat: cfg.lat, lon: cfg.lon, timezone: tz,
                 altitude_threshold: cfg.threshold, sampling_interval: cfg.interval
             }};
-            const series = body => months.map(m => NovaSolarRows.nightlyMax({
-                inputs: inputs, body: body, year: year, month: m
+            const blocks = months.map(m => NovaSolarRows.nightlyMax({
+                inputs: inputs, body: v.body, year: year, month: m
             }));
-            const bodyBlocks = series(v.body);
-            const moonBlocks = isMoon ? null : series('moon');
-            const bodyAlt = [], moonAlt = [], horizon = [];
-            bodyBlocks.forEach((block, b) => block.dates.forEach((d, k) => {
+            const bodyAlt = [], horizon = [];
+            blocks.forEach(block => block.dates.forEach((d, k) => {
                 const t = d + 'T00:00:00';
                 bodyAlt.push({x: t, y: block.max_alt[k]});
-                if (moonBlocks) moonAlt.push({x: t, y: moonBlocks[b].max_alt[k]});
                 horizon.push({x: t, y: 0});
             }));
 
@@ -372,9 +363,8 @@
             const c = themeColors();
             const datasets = [
                 dataset('body', v.label, bodyAlt, {borderWidth: 3, tension: 0.2}),
-                isMoon ? null : dataset('moon', i18n.moon, moonAlt, {borderWidth: 2.5, tension: 0.0}),
                 dataset('horizon', i18n.horizon, horizon, {borderWidth: 2}),
-            ].filter(Boolean);
+            ];
 
             clear();
             chart = new Chart(canvas.getContext('2d'), {
