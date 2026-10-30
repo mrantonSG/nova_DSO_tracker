@@ -1704,6 +1704,20 @@ def index():
                            project_statuses=["In Planning", "In Progress", "Completed", "On Hold", "Abandoned"])
 
 
+@core_bp.route('/solar_system')
+def solar_system():
+    """The Solar System page: the planets and the Moon for the selected location.
+
+    Same access rules as index(). Everything astronomical is computed in the browser
+    (static/js/nova_solar_rows.js on nova_planets.js) from /api/desktop_inputs.
+    """
+    load_full_astro_context()
+    if not (current_user.is_authenticated or nova.SINGLE_USER_MODE or getattr(g, 'is_guest', False)):
+        return redirect(url_for('core.login'))
+
+    return render_template('solar_system.html')
+
+
 @core_bp.route('/sun_events')
 def sun_events():
     """

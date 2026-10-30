@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% from "macros.html" import status_item, action_button, flash_messages %}
+
+{% block title %}{{ _('Solar System') }} – {{ _('Nova DSO Tracker') }}{% endblock %}
+
+{% block head_extra %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}?v={{ version }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/graph_view.css') }}?v={{ version }}">
+{% endblock %}
+
+{% block page_title %}
+    <h2>{{ _('Solar System') }} <span id="simulated-title-text" style="display: none; color: var(--color-simulation-active); font-weight: normal;">- {{ _('Simulated') }}</span></h2>
+{% endblock %}
+
+{% block header_actions %}
+    {{ action_button(_('← Back to Dashboard'), data_attrs='style="background-color: var(--primary-color);" data-nav-url="' ~ url_for('core.index') ~ '"') }}
+{% endblock %}
+
+{% block header_content %}
+<div class="status-strip">
+    <div class="status-item" style="min-width: 150px;">
+        <span class="status-label">{{ _('Location') }}</span>
+        <select id="location-select" aria-label="{{ _('Location') }}"></select>
+    </div>
+    {{ status_item(_('Local Time'), '--:--', value_id='solar-time') }}
+    {{ status_item(_('Date'), '--', value_id='solar-date') }}
+    {{ status_item(_('Moon'), '--%', value_id='solar-phase') }}
+    <div class="status-item">
+        <span class="status-label">{{ _('Astr. Dusk / Dawn') }}</span>
+        <span class="status-value"><span id="solar-dusk">--:--</span> <span style="color:var(--text-light); margin:0 5px;">|</span> <span id="solar-dawn">--:--</span></span>
+    </div>
+    <div class="status-item" id="simulation-controls">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="date" id="sim-date-input" aria-label="{{ _('Simulation') }}" disabled style="height: 30px; font-size: 14px; padding: 2px 5px;">
+            <label class="switch">
+                <input type="checkbox" id="sim-mode-toggle">
+                <span class="slider round"></span>
+            </label>
+        </div>
+        <div style="display: flex; align-items: center;">
+            <label for="sim-mode-toggle" class="status-label" style="cursor:pointer; margin-left: 8px;">{{ _('Simulation') }}</label>
+            <span class="help-badge" data-help-topic="simulation_mode" title="{{ _('About Simulation Mode') }}" style="margin-left: 5px; cursor: pointer;">?</span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block body %}
+{{ flash_messages() }}
+
+<div class="tab-container">
+    <button class="tab-button active" data-tab="bodies">{{ _('Bodies') }}</button>
+</div>
+
+<div id="bodies-tab" class="tab-content active">
+    <p id="solar-error" class="status-secondary" role="alert" hidden></p>
+
+    <div class="table-wrapper" id="solar-table-wrapper">
+        <table id="solar-table">
+          <thead>
+            <tr>
+              <th data-column-key="Object"><span>{{ _('Body') }}</span><span class="subtext">&nbsp;</span></th>
+              <th data-column-key="Altitude Current"><span>{{ _('Altitude now') }}</span><span class="subtext">(°)</span></th>
+              <th data-column-key="Azimuth Current"><span>{{ _('Azimuth now') }}</span><span class="subtext">(°)</span></th>
+              <th data-column-key="Rise"><span>{{ _('Rise') }}</span><span class="subtext">&nbsp;</span></th>
+              <th data-column-key="Transit Time"><span>{{ _('Transit') }}</span><span class="subtext">(°)</span></th>
+              <th data-column-key="Set"><span>{{ _('Set') }}</span><span class="subtext">&nbsp;</span></th>
+              <th data-column-key="Max Altitude"><span>{{ _('Max altitude tonight') }}</span><span class="subtext">(°)</span></th>
+              <th data-column-key="Magnitude"><span>{{ _('Magnitude') }}</span><span class="subtext">&nbsp;</span></th>
+              <th data-column-key="Size"><span>{{ _('Diameter') }}</span><span class="subtext">(″)</span></th>
+              <th data-column-key="Illuminated"><span>{{ _('Illuminated') }}</span><span class="subtext">(%)</span></th>
+              <th data-column-key="Elongation"><span>{{ _('Elongation') }}</span><span class="subtext">(°)</span></th>
+            </tr>
+          </thead>
+          <tbody id="solar-body"></tbody>
+        </table>
+    </div>
+
+    <div id="chart-section">
+        <h3 id="solar-chart-title"></h3>
+        <div style="width: 100%; max-width: 1300px; margin-left: 0;">
+            <div id="chart-area">
+                <canvas id="solarChartCanvas"></canvas>
+            </div>
+            <div class="date-controls" style="margin-top: 20px; padding-left: 20px; box-sizing: border-box;">
+                <div class="view-buttons">
+                    <button class="view-button active" data-view="day" aria-pressed="true">{{ _('Tonight') }}</button>
+                    <button class="view-button" data-view="month" aria-pressed="false">{{ _('Month') }}</button>
+                    <button class="view-button" data-view="year" aria-pressed="false">{{ _('Year') }}</button>
+                </div>
+                <label for="solar-month-select">{{ _('Month') }}:</label>
+                <select id="solar-month-select">
+                    {% for m in range(1, 13) %}
+                    <option value="{{ m }}">{{ '%02d' % m }}</option>
+                    {% endfor %}
+                </select>
+                <label for="solar-year-select">{{ _('Year') }}:</label>
+                <input type="number" id="solar-year-select" min="1" max="9999" style="width:70px;"/>
+            </div>
+            <p id="solar-chart-error" class="status-secondary" role="alert" hidden></p>
+        </div>
+    </div>
+</div>
+
+<script>
+const solarI18n = {
+    bodies: {
+        mercury: {{ _('Mercury') | tojson }},
+        venus:   {{ _('Venus') | tojson }},
+        mars:    {{ _('Mars') | tojson }},
+        jupiter: {{ _('Jupiter') | tojson }},
+        saturn:  {{ _('Saturn') | tojson }},
+        uranus:  {{ _('Uranus') | tojson }},
+        neptune: {{ _('Neptune') | tojson }},
+        moon:    {{ _('Moon') | tojson }}
+    },
+    east:          {{ _('E') | tojson }},
+    west:          {{ _('W') | tojson }},
+    alwaysUp:      {{ _('Always up') | tojson }},
+    neverUp:       {{ _('Never up') | tojson }},
+    notUpTonight:  {{ _('Not up tonight') | tojson }},
+    belowThreshold:{{ _('Does not reach the altitude threshold tonight') | tojson }},
+    error:         {{ _('Solar System data could not be calculated.') | tojson }},
+    inputsError:   {{ _('Could not load location data.') | tojson }},
+    chartError:    {{ _('The altitude chart could not be drawn.') | tojson }},
+    chartTitle:    {{ _('Altitude') | tojson }},
+    now:           {{ _('Now') | tojson }},
+    sunset:        {{ _('Sunset') | tojson }},
+    sunrise:       {{ _('Sunrise') | tojson }},
+    astroDusk:     {{ _('Astronomical dusk') | tojson }},
+    astroDawn:     {{ _('Astronomical dawn') | tojson }},
+    moon:          {{ _('Moon') | tojson }},
+    altitude:      {{ _('Altitude') | tojson }},
+    azimuth:       {{ _('Azimuth') | tojson }},
+    horizon:       {{ _('Horizon') | tojson }},
+    horizonMask:   {{ _('Altitude threshold / horizon mask') | tojson }},
+    localTime:     {{ _('Local time') | tojson }},
+    altitudeAxis:  {{ _('Altitude (°)') | tojson }},
+    azimuthAxis:   {{ _('Azimuth (°)') | tojson }},
+    nightlyMaxAxis:{{ _('Max altitude (sunset to sunrise)') | tojson }},
+    dayAxis:       {{ _('Day of month') | tojson }},
+    monthAxis:     {{ _('Month') | tojson }}
+};
+</script>
+
+<script src="{{ url_for('static', filename='js/chart/chart.umd.min.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/chart/luxon.min.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/chart/chartjs-adapter-luxon.umd.min.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/chart/chartjs-plugin-annotation.min.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/nova_astro.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/nova_transit.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/nova_dashboard_rows.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/nova_planets.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/nova_plot_data.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/nova_solar_rows.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/solar_system_chart.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/solar_system.js') }}?v={{ version }}" defer></script>
+{% endblock %}

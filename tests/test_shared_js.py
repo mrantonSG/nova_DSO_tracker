@@ -1,17 +1,19 @@
 """Drift guards for the JavaScript Nova shares with nova-ios.
 
-static/js/nova_astro.js, static/js/nova_transit.js and static/js/nova_weather_icons.js
-are developed in the nova-ios repo (src/*.js) and copied in here byte-identical. Nothing
-in this repo may edit them: a change lands in nova-ios first, is copied across unchanged,
-and the pinned digest below moves in the same breath. The parametrized test below is
-that contract.
+static/js/nova_astro.js, static/js/nova_transit.js, static/js/nova_weather_icons.js and
+static/js/nova_planets.js are developed in the nova-ios repo (src/*.js) and copied in here
+byte-identical. Nothing in this repo may edit them: a change lands in nova-ios first, is
+copied across unchanged, and the pinned digest below moves in the same breath. The
+parametrized test below is that contract.
 
 nova_transit.js is a port of calculate_transit_time() in modules/astro_calculations.py,
 so the last test pins the two together: the transit it reports for a spread of the
 shipped catalogue must be the string the server computes for the same night, or the
 desktop chart and the rest of Nova would disagree about the same object.
 
-No page loads nova_transit.js yet; these tests are the only thing reading it.
+The dashboard (templates/index.html) and the graph view (templates/graph_view.html) load
+nova_transit.js; the Solar System page (templates/solar_system.html) loads
+nova_planets.js, whose own accuracy check lives in nova-ios (tools/test_planets.cjs).
 """
 
 import hashlib
@@ -34,6 +36,7 @@ SHARED_WITH_NOVA_IOS = {
     "nova_astro.js": "c6c70e9d667255160d006779f4e9a5f80656a67357ad9afcd34fd93367722b2c",
     "nova_transit.js": "b32ed7b19bd642727d590d2f468a3648da337890dd96919ad8a3004edece2049",
     "nova_weather_icons.js": "a871aac1e0573d493834ba316a02c206a2d0b96c6689a2dbc6797fbe3d274f7e",
+    "nova_planets.js": "057095316479eb0eb4fca9b502cc8dc905108030352af02319359df733f18b9f",
 }
 
 DRIFT_HELP = (

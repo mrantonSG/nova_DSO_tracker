@@ -50,6 +50,13 @@
  *     the endpoint's answer.
  *   - no sun events, transit, horizon mask or skyglow: the month and year charts
  *     draw only the two altitudes and a flat horizon line.
+ *
+ * A moving body (the Solar System page): both take an optional altAzAt(utcMs) ->
+ * {alt, az}, the body's topocentric place at each sample, used instead of the fixed
+ * raHours/decDeg (which are then not needed). A callback rather than a position per
+ * sample, because NovaPlanets already adds the diurnal parallax a geocentric RA/Dec
+ * would lose, up to a degree for the Moon. build() then has no transit_time (null):
+ * NovaTransit's is a fixed star's. Without altAzAt nothing here changes.
  */
 (function (root, factory) {
     if (typeof module === 'object' && module.exports) {
@@ -163,6 +170,24 @@
         return { alt: alt, az: az };
     }
 
+    /** The moving body's altAzAt(utcMs) -> {alt, az}, or null for a fixed position. */
+    function trackOf(i) {
+        if (i.altAzAt === undefined || i.altAzAt === null) return null;
+        if (typeof i.altAzAt !== 'function') throw new Error('nova_plot_data: altAzAt must be a function');
+        return i.altAzAt;
+    }
+
+    /** altAzCurve()'s shape for a moving body: its place at every sample. */
+    function trackCurve(track, times) {
+        const alt = new Float64Array(times.length), az = new Float64Array(times.length);
+        for (let k = 0; k < times.length; k++) {
+            const p = track(times[k]);
+            alt[k] = +p.alt;
+            az[k] = +p.az;
+        }
+        return { alt: alt, az: az };
+    }
+
     function build(inputs) {
         const i = inputs || {};
         const E = engine();
@@ -173,7 +198,8 @@
 
         const lat = +i.lat, lon = +i.lon, tz = String(i.tz);
         const raHours = +i.raHours, decDeg = +i.decDeg;
-        if (![lat, lon, raHours, decDeg].every(isFinite)) {
+        const track = trackOf(i);
+        if (![lat, lon].concat(track ? [] : [raHours, decDeg]).every(isFinite)) {
             throw new Error('nova_plot_data: non-finite coordinates');
         }
         const threshold = i.threshold === undefined || i.threshold === null ? 20 : +i.threshold;
@@ -189,7 +215,7 @@
         for (const t of grid) times.push(isoWithOffset(t, offMs));
         times.push(isoWithOffset(endMs, offMs));
 
-        const curve = A.altAzCurve(raHours, decDeg, lat, lon, grid);
+        const curve = track ? trackCurve(track, grid) : A.altAzCurve(raHours, decDeg, lat, lon, grid);
         const azimuths = Array.from(curve.az);
 
         let moonAlt, moonAz;
@@ -215,7 +241,7 @@
                 current: sunBlock(date, tz, lat, lon, A),
                 next: sunBlock(dayAfter(date), tz, lat, lon, A),
             },
-            transit_time: E.T.transit(raHours, decDeg, lat, lon, tz, date).display,
+            transit_time: track ? null : E.T.transit(raHours, decDeg, lat, lon, tz, date).display,
             date: date,
             timezone: tz,
             weather_forecast: [],
@@ -258,7 +284,8 @@
         const month = wholeNumber(i.month, 1, 12, 'month');
         const lat = +i.lat, lon = +i.lon, tz = String(i.tz);
         const raHours = +i.raHours, decDeg = +i.decDeg;
-        if (![lat, lon, raHours, decDeg].every(isFinite)) {
+        const track = trackOf(i);
+        if (![lat, lon].concat(track ? [] : [raHours, decDeg]).every(isFinite)) {
             throw new Error('nova_plot_data: non-finite coordinates');
         }
 
@@ -268,7 +295,7 @@
             const t = localMidnight(year, month, day, tz, A);
             // Each day its own frame: a month is long enough for aberration and
             // nutation to move, and the endpoint builds a fresh AltAz per day.
-            objectAlt.push(A.altAz(raHours, decDeg, lat, lon, t).alt);
+            objectAlt.push(track ? +track(t).alt : A.altAz(raHours, decDeg, lat, lon, t).alt);
             moonAlt.push(A.moonAltAz(t, lat, lon).alt);
             dates.push(String(year).padStart(4, '0') + '-' + pad2(month) + '-' + pad2(day));
         }
