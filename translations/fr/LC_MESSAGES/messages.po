@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 13:55+0800\n"
+"POT-Creation-Date: 2026-10-30 15:00+0800\n"
 "PO-Revision-Date: 2026-03-06 10:45+0800\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -2517,9 +2517,9 @@ msgid "e.g., <15, >8, >8 <12"
 msgstr "par exemple, <15, >8, >8 <12"
 
 #: templates/_objects_section.html:77 templates/_objects_section.html:152
-#: templates/_objects_section.html:315
+#: templates/_objects_section.html:315 templates/index.html:160
 msgid "Size"
-msgstr "À vous"
+msgstr "Taille"
 
 #: templates/_objects_section.html:78
 msgid "e.g., >5, <30, >5 <30"
@@ -5178,10 +5178,6 @@ msgstr "vers la lune (°)"
 msgid "Magnitude"
 msgstr "Magnitude"
 
-#: templates/index.html:160
-msgid "Size ("
-msgstr "À vous ("
-
 #: templates/index.html:161
 msgid "SB"
 msgstr "Brill. surf."
@@ -6362,4 +6358,7 @@ msgstr "Jour du mois"
 
 #~ msgid "Uploaded"
 #~ msgstr "Téléversé"
+
+#~ msgid "Size ("
+#~ msgstr "À vous ("
 

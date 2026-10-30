@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 13:55+0800\n"
+"POT-Creation-Date: 2026-10-30 15:00+0800\n"
 "PO-Revision-Date: 2026-03-27 13:26+0800\n"
 "Last-Translator: \n"
 "Language: de\n"
@@ -2503,7 +2503,7 @@ msgid "e.g., <15, >8, >8 <12"
 msgstr "z.B., <15, >8, >8 <12"
 
 #: templates/_objects_section.html:77 templates/_objects_section.html:152
-#: templates/_objects_section.html:315
+#: templates/_objects_section.html:315 templates/index.html:160
 msgid "Size"
 msgstr "Größe"
 
@@ -5157,10 +5157,6 @@ msgstr "zum Mond (°)"
 msgid "Magnitude"
 msgstr "Magnitude"
 
-#: templates/index.html:160
-msgid "Size ("
-msgstr "Größe ("
-
 #: templates/index.html:161
 msgid "SB"
 msgstr "FH"
@@ -6342,4 +6338,7 @@ msgstr "Tag des Monats"
 
 #~ msgid "Uploaded"
 #~ msgstr "Hochgeladen"
+
+#~ msgid "Size ("
+#~ msgstr "Größe ("
 

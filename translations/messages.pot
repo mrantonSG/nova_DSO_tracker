@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 13:55+0800\n"
+"POT-Creation-Date: 2026-10-30 15:00+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2429,7 +2429,7 @@ msgid "e.g., <15, >8, >8 <12"
 msgstr ""
 
 #: templates/_objects_section.html:77 templates/_objects_section.html:152
-#: templates/_objects_section.html:315
+#: templates/_objects_section.html:315 templates/index.html:160
 msgid "Size"
 msgstr ""
 
@@ -4968,10 +4968,6 @@ msgstr ""
 
 #: templates/index.html:159 templates/solar_system.html:69
 msgid "Magnitude"
-msgstr ""
-
-#: templates/index.html:160
-msgid "Size ("
 msgstr ""
 
 #: templates/index.html:161

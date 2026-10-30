@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 13:55+0800\n"
+"POT-Creation-Date: 2026-10-30 15:00+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh\n"
@@ -2430,7 +2430,7 @@ msgid "e.g., <15, >8, >8 <12"
 msgstr "例如：<15, >8, >8 <12"
 
 #: templates/_objects_section.html:77 templates/_objects_section.html:152
-#: templates/_objects_section.html:315
+#: templates/_objects_section.html:315 templates/index.html:160
 msgid "Size"
 msgstr "尺寸"
 
@@ -4980,10 +4980,6 @@ msgstr "到月球（°）"
 msgid "Magnitude"
 msgstr "星等"
 
-#: templates/index.html:160
-msgid "Size ("
-msgstr "尺寸（"
-
 #: templates/index.html:161
 msgid "SB"
 msgstr "SB"
@@ -6156,4 +6152,7 @@ msgstr "日期"
 
 #~ msgid "Uploaded"
 #~ msgstr "已上传"
+
+#~ msgid "Size ("
+#~ msgstr "尺寸（"
 
