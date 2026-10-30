@@ -5,16 +5,21 @@ single-user, a logged-in user and a guest get the page; a logged-out visitor wit
 guest mode is sent to the login page by the auth gate. The page computes everything in
 the browser, so it must load the engines in dependency order before its own scripts.
 """
+import json
 import re
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
+import pytest
+
 # Dependency order: nova_dashboard_rows.js needs astro and transit; nova_planets.js
 # needs astro; nova_plot_data.js astro and transit; nova_solar_rows.js astro, planets
-# and dashboard_rows; the chart plot_data and planets; the page all of them.
+# and dashboard_rows; nova_solar_calendar.js those and solar_rows; the chart plot_data
+# and planets; the page all of them.
 PAGE_SCRIPTS = [
     "nova_astro.js", "nova_transit.js", "nova_dashboard_rows.js", "nova_planets.js",
-    "nova_plot_data.js", "nova_solar_rows.js", "solar_system_chart.js", "solar_system.js",
+    "nova_plot_data.js", "nova_solar_rows.js", "nova_solar_calendar.js",
+    "solar_system_chart.js", "solar_system.js",
 ]
 
 
@@ -99,5 +104,74 @@ def test_year_input_is_bounded_like_the_month_series(client):
 def test_transit_header_has_no_degree_subtext(client):
     """The transit cell's main line is a time, so its header carries no unit."""
     html = client.get("/solar_system").get_data(as_text=True)
-    th = re.search(r'<th data-solar-col="transit">.*?</th>', html).group(0)
+    th = re.search(r'<th data-solar-col="transit"[^>]*>.*?</th>', html).group(0)
     assert "(°)" not in th
+
+
+def test_calendar_tab_has_its_own_table(client):
+    """A second tab, Calendar, with its own table: eight data-solar-col columns, no
+    dashboard column keys, and its own body and error."""
+    html = client.get("/solar_system").get_data(as_text=True)
+    tabs = re.findall(r'<button class="tab-button[^"]*" data-tab="([a-z]+)">', html)
+    assert tabs == ["bodies", "calendar"]
+    assert 'id="calendar-tab" class="tab-content"' in html
+    start = html.index('<table id="solar-cal-table"')
+    table = html[start:html.index("</table>", start)]
+    assert "data-column-key" not in table
+    assert re.findall(r'<th data-solar-col="([a-z]+)"[^>]*>', table) == [
+        "date", "body", "event", "mag", "diam", "elong", "maxalt", "days"]
+    assert 'id="solar-cal-body"' in table and 'id="solar-cal-error"' in html
+
+
+def test_solar_tables_are_styled_by_id(client):
+    """solar_system.css names each table by id, never by a shared class, so the Bodies
+    table's rules keep the weight that beats dashboard.css and nova-theme.css; every
+    rule for the Bodies table that the calendar shares lists both ids."""
+    css = (Path(__file__).resolve().parent.parent / "static" / "css" / "solar_system.css").read_text()
+    selectors = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+    assert ".solar-table" not in selectors
+    for sel in re.findall(r"([^{}]+)\{", selectors):
+        if "#solar-cal-table" in sel and "#solar-table" in sel:
+            parts = [p.strip() for p in sel.split(",")]
+            bodies = [p for p in parts if p.startswith("#solar-table")]
+            calendar = [p for p in parts if p.startswith("#solar-cal-table")]
+            assert [p.replace("#solar-table", "#solar-cal-table", 1) for p in bodies] == calendar
+
+
+def _header_titles(html, table_id):
+    start = html.index(f'<table id="{table_id}"')
+    table = html[start:html.index("</table>", start)]
+    return dict(re.findall(r'<th data-solar-col="([a-z]+)" title="([^"]*)">', table))
+
+
+def test_headers_explain_themselves(client):
+    """The browser's own tooltip (a title attribute, as Nova does elsewhere) on the
+    headers that need words; Diameter, Elongation and the nightly maximum read the same
+    in both tables. The calendar's cell tooltips come from solarI18n."""
+    html = client.get("/solar_system").get_data(as_text=True)
+    bodies = _header_titles(html, "solar-table")
+    calendar = _header_titles(html, "solar-cal-table")
+    assert set(bodies) == {"rise", "transit", "set", "maxalt", "diam", "illum", "elong"}
+    assert set(calendar) == {"date", "diam", "elong", "maxalt", "days"}
+    assert bodies["rise"] == bodies["set"]
+    for col in ("diam", "elong", "maxalt"):
+        assert bodies[col] == calendar[col]
+    assert calendar["date"] == "The evening on which the observing night starts."
+    assert re.search(r'exactTime:\s+"Exact time: \{time\}"', html)
+    for kind in ("opposition", "elongationEast", "elongationWest"):
+        assert re.search(kind + r':\s+"[^"]+"', html)
+
+
+@pytest.mark.parametrize("lang, date_help, exact", [
+    ("de", "Der Abend, an dem die Beobachtungsnacht beginnt.", "Genaue Zeit: {time}"),
+    ("ja", "観測夜が始まる日の夕方。", "正確な時刻：{time}"),
+])
+def test_tooltips_are_translated(mu_client_logged_out, lang, date_help, exact):
+    """Through _() and the compiled catalogs, like every other string on the page; the
+    placeholder survives for the page to fill in."""
+    mu_client_logged_out.get("/guest")
+    mu_client_logged_out.get(f"/set_language/{lang}")
+    html = mu_client_logged_out.get("/solar_system").get_data(as_text=True)
+    assert f'<html lang="{lang}"' in html
+    assert _header_titles(html, "solar-cal-table")["date"] == date_help
+    assert json.dumps(exact) in html or exact in html

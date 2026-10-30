@@ -51,6 +51,7 @@
 
 <div class="tab-container">
     <button class="tab-button active" data-tab="bodies">{{ _('Bodies') }}</button>
+    <button class="tab-button" data-tab="calendar">{{ _('Calendar') }}</button>
 </div>
 
 <div id="bodies-tab" class="tab-content active">
@@ -63,14 +64,14 @@
               <th data-solar-col="body"><span>{{ _('Body') }}</span><span class="subtext">&nbsp;</span></th>
               <th data-solar-col="alt"><span>{{ _('Altitude now') }}</span><span class="subtext">(°)</span></th>
               <th data-solar-col="az"><span>{{ _('Azimuth now') }}</span><span class="subtext">(°)</span></th>
-              <th data-solar-col="rise"><span>{{ _('Rise') }}</span><span class="subtext">&nbsp;</span></th>
-              <th data-solar-col="transit"><span>{{ _('Transit') }}</span><span class="subtext">&nbsp;</span></th>
-              <th data-solar-col="set"><span>{{ _('Set') }}</span><span class="subtext">&nbsp;</span></th>
-              <th data-solar-col="maxalt"><span>{{ _('Max altitude tonight') }}</span><span class="subtext">(°)</span></th>
+              <th data-solar-col="rise" title="{{ _('For the period the body is up that night. +1 means the next calendar day, −1 the day before.') }}"><span>{{ _('Rise') }}</span><span class="subtext">&nbsp;</span></th>
+              <th data-solar-col="transit" title="{{ _('Highest point in the sky; altitude in brackets.') }}"><span>{{ _('Transit') }}</span><span class="subtext">&nbsp;</span></th>
+              <th data-solar-col="set" title="{{ _('For the period the body is up that night. +1 means the next calendar day, −1 the day before.') }}"><span>{{ _('Set') }}</span><span class="subtext">&nbsp;</span></th>
+              <th data-solar-col="maxalt" title="{{ _('Highest altitude between sunset and sunrise.') }}"><span>{{ _('Max altitude tonight') }}</span><span class="subtext">(°)</span></th>
               <th data-solar-col="mag"><span>{{ _('Magnitude') }}</span><span class="subtext">&nbsp;</span></th>
-              <th data-solar-col="diam"><span>{{ _('Diameter') }}</span><span class="subtext">(″)</span></th>
-              <th data-solar-col="illum"><span>{{ _('Illuminated') }}</span><span class="subtext">(%)</span></th>
-              <th data-solar-col="elong"><span>{{ _('Elongation') }}</span><span class="subtext">(°)</span></th>
+              <th data-solar-col="diam" title="{{ _('Apparent size in arcseconds. The most important number for planetary imaging.') }}"><span>{{ _('Diameter') }}</span><span class="subtext">(″)</span></th>
+              <th data-solar-col="illum" title="{{ _('Lit fraction of the disc as seen from Earth.') }}"><span>{{ _('Illuminated') }}</span><span class="subtext">(%)</span></th>
+              <th data-solar-col="elong" title="{{ _('Angle from the Sun. Larger means easier to see against a dark sky.') }}"><span>{{ _('Elongation') }}</span><span class="subtext">(°)</span></th>
             </tr>
           </thead>
           <tbody id="solar-body"></tbody>
@@ -100,6 +101,28 @@
             </div>
             <p id="solar-chart-error" class="status-secondary" role="alert" hidden></p>
         </div>
+    </div>
+</div>
+
+<div id="calendar-tab" class="tab-content">
+    <p id="solar-cal-error" class="status-secondary" role="alert" hidden></p>
+
+    <div class="table-wrapper" id="solar-cal-wrapper">
+        <table id="solar-cal-table" class="solar-table">
+          <thead>
+            <tr>
+              <th data-solar-col="date" title="{{ _('The evening on which the observing night starts.') }}"><span>{{ _('Date') }}</span><span class="subtext">&nbsp;</span></th>
+              <th data-solar-col="body"><span>{{ _('Body') }}</span><span class="subtext">&nbsp;</span></th>
+              <th data-solar-col="event"><span>{{ _('Event') }}</span><span class="subtext">&nbsp;</span></th>
+              <th data-solar-col="mag"><span>{{ _('Magnitude') }}</span><span class="subtext">&nbsp;</span></th>
+              <th data-solar-col="diam" title="{{ _('Apparent size in arcseconds. The most important number for planetary imaging.') }}"><span>{{ _('Diameter') }}</span><span class="subtext">(″)</span></th>
+              <th data-solar-col="elong" title="{{ _('Angle from the Sun. Larger means easier to see against a dark sky.') }}"><span>{{ _('Elongation') }}</span><span class="subtext">(°)</span></th>
+              <th data-solar-col="maxalt" title="{{ _('Highest altitude between sunset and sunrise.') }}"><span>{{ _('Max altitude that night') }}</span><span class="subtext">(°)</span></th>
+              <th data-solar-col="days" title="{{ _('Negative values are events that have already passed.') }}"><span>{{ _('Days from now') }}</span><span class="subtext">&nbsp;</span></th>
+            </tr>
+          </thead>
+          <tbody id="solar-cal-body"></tbody>
+        </table>
     </div>
 </div>
 
@@ -139,7 +162,17 @@ const solarI18n = {
     azimuthAxis:   {{ _('Azimuth (°)') | tojson }},
     nightlyMaxAxis:{{ _('Max altitude (sunset to sunrise)') | tojson }},
     dayAxis:       {{ _('Day of month') | tojson }},
-    monthAxis:     {{ _('Month') | tojson }}
+    monthAxis:     {{ _('Month') | tojson }},
+    opposition:    {{ _('Opposition') | tojson }},
+    elongationEast:{{ _('Greatest elongation E (evening)') | tojson }},
+    elongationWest:{{ _('Greatest elongation W (morning)') | tojson }},
+    belowThresholdNight: {{ _('Does not reach the altitude threshold that night') | tojson }},
+    exactTime:     {{ _('Exact time: %(time)s', time='{time}') | tojson }},
+    eventHelp: {
+        opposition:     {{ _('Opposite the Sun: up all night, closest and brightest. Good for several weeks around this date.') | tojson }},
+        elongationEast: {{ _('Farthest east of the Sun: best evening visibility, low in the west after sunset.') | tojson }},
+        elongationWest: {{ _('Farthest west of the Sun: best morning visibility, low in the east before sunrise.') | tojson }}
+    }
 };
 </script>
 
@@ -153,6 +186,7 @@ const solarI18n = {
 <script src="{{ url_for('static', filename='js/nova_planets.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_plot_data.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_solar_rows.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/nova_solar_calendar.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/solar_system_chart.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/solar_system.js') }}?v={{ version }}" defer></script>
 {% endblock %}

@@ -7,6 +7,11 @@
  * simulation (the simulated instant is the sim date at the current wall clock, so it
  * moves too); the same tick moves the chart's Now line.
  *
+ * The Calendar tab (NovaSolarCalendar) is built only while it is shown, and again only
+ * when its location, threshold, sampling interval or observing night changes; the 60 s
+ * tick otherwise costs one key comparison. Clicking an event opens the Bodies tab on
+ * that body's Month view for the event's night.
+ *
  * Shared with the dashboard on purpose: sessionStorage.selectedLocation and
  * POST /set_location for the location, localStorage.simModeActive and simDate for
  * simulation. Its own tab key is localStorage.nova_solar_tab; it never writes the
@@ -20,6 +25,7 @@
 
     const REFRESH_MS = 60000;
     const TAB_KEY = 'nova_solar_tab';
+    const TABS = ['bodies', 'calendar'];
     const i18n = typeof solarI18n !== 'undefined' ? solarI18n : {};
 
     const state = {
@@ -33,6 +39,8 @@
         chart: null,
         chartKey: null,         // what the chart shows, so a refresh redraws only on change
         rangeDate: null,        // the night the month/year controls were last set from
+        tab: 'bodies',
+        calKey: null,           // what the calendar table shows, so it is rebuilt only on change
     };
 
     const $ = id => document.getElementById(id);
@@ -47,6 +55,10 @@
 
     function bodyName(body) {
         return (i18n.bodies && i18n.bodies[body]) || body;
+    }
+
+    function europeanDate(iso) {
+        return typeof formatDateISOtoEuropean === 'function' ? formatDateISOtoEuropean(iso) : iso;
     }
 
     function simDate() {
@@ -221,8 +233,7 @@
     function renderStrip() {
         const strip = NovaDashboardRows.statusStrip({inputs: state.inputs, nowMs: Date.now(), simDate: simDate()});
         $('solar-time').textContent = strip.time;
-        $('solar-date').textContent = typeof formatDateISOtoEuropean === 'function'
-            ? formatDateISOtoEuropean(strip.date) : strip.date;
+        $('solar-date').textContent = europeanDate(strip.date);
         $('solar-phase').textContent = strip.phase.toFixed(1) + '%';
         $('solar-dusk').textContent = strip.astronomical_dusk;
         $('solar-dawn').textContent = strip.astronomical_dawn;
@@ -313,6 +324,7 @@
             url.searchParams.set('body', body);
             window.history.replaceState(null, '', url.toString());
         } catch (e) { /* the URL stays as it was */ }
+        if (!state.result) return;
         renderTable();
         showChart();
     }
@@ -411,13 +423,104 @@
             state.result = null;
             showError(i18n.error);
         }
+        if (state.tab === 'calendar') renderCalendar();
+    }
+
+    // ------------------------------------------------------------------ calendar
+
+    function showCalError(message) {
+        const el = $('solar-cal-error');
+        el.textContent = message || '';
+        el.hidden = !message;
+        $('solar-cal-wrapper').hidden = !!message;
+    }
+
+    /** '25', '0' or '−27' (U+2212, as timeLabel() prints a negative day). */
+    function signedDays(n) {
+        return n < 0 ? '−' + (-n) : String(n);
+    }
+
+    function renderCalendarRows(result) {
+        const tbody = $('solar-cal-body');
+        tbody.innerHTML = '';
+        result.rows.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.className = 'clickable-row';
+            tr.dataset.body = row.body;
+            if (row.muted) {
+                tr.classList.add('geometrically-impossible');
+                tr.title = i18n.belowThresholdNight;
+            }
+            // The night's date only; the event's own local time is the cell's tooltip
+            const date = cell(tr, 'date', europeanDate(row.night));
+            date.title = String(i18n.exactTime).replace('{time}', NovaSolarRows.timeLabel(row.hm, row.hmDay));
+            cell(tr, 'body', bodyName(row.body));
+            const event = cell(tr, 'event', i18n[row.kind] || row.kind);
+            if (i18n.eventHelp && i18n.eventHelp[row.kind]) event.title = i18n.eventHelp[row.kind];
+            cell(tr, 'mag', row.mag.toFixed(1));
+            cell(tr, 'diam', row.diameterArcsec.toFixed(1));
+            cell(tr, 'elong', row.elongationDeg === null ? '–' : row.elongationDeg.toFixed(1));
+            cell(tr, 'maxalt', row.maxAlt.toFixed(1));
+            cell(tr, 'days', signedDays(row.daysFromNow));
+            tr.addEventListener('click', () => openBodyMonth(row.body, row.night));
+            tbody.appendChild(tr);
+        });
+    }
+
+    /** Rebuild the calendar when what it depends on changed. Any failure shows the
+     *  translated error, never throws; the next tick tries again. */
+    function renderCalendar() {
+        if (!state.inputs) return;
+        try {
+            const loc = state.inputs.location;
+            const wall = NovaDashboardRows._wall;
+            const now = wall.effectiveInstant(Date.now(), simDate(), String(loc.timezone), NovaAstro);
+            const key = JSON.stringify([state.locName, loc.altitude_threshold, loc.sampling_interval,
+                                        wall.observingNight(now.wall)]);
+            if (key === state.calKey) return;
+            const result = NovaSolarCalendar.events({inputs: state.inputs, nowMs: Date.now(), simDate: simDate()});
+            renderCalendarRows(result);
+            showCalError(null);
+            state.calKey = key;
+        } catch (e) {
+            console.error('Solar System: could not calculate the calendar', e);
+            state.calKey = null;
+            showCalError(i18n.error);
+        }
+    }
+
+    /** A calendar row: the Bodies tab, that body, the Month view of the event's night. */
+    function openBodyMonth(body, night) {
+        switchTab('bodies');
+        state.view = 'month';
+        setViewButtons();
+        syncRangeControls(night);
+        if (body !== state.selected) select(body);
+        else showChart(true);
+        $('chart-section').scrollIntoView({behavior: 'smooth', block: 'start'});
+    }
+
+    // ------------------------------------------------------------------ tabs
+
+    function switchTab(name) {
+        if (TABS.indexOf(name) < 0) name = 'bodies';
+        state.tab = name;
+        storageSet('localStorage', TAB_KEY, name);
+        document.querySelectorAll('.tab-container .tab-button').forEach(btn => {
+            const on = btn.dataset.tab === name;
+            btn.classList.toggle('active', on);
+            btn.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        TABS.forEach(tab => $(tab + '-tab').classList.toggle('active', tab === name));
+        if (name === 'calendar') renderCalendar();
     }
 
     function initTabs() {
-        // One tab for now; the key is the page's own, never the dashboard's.
+        // The key is the page's own, never the dashboard's.
         document.querySelectorAll('.tab-container .tab-button').forEach(btn => {
-            btn.addEventListener('click', () => storageSet('localStorage', TAB_KEY, btn.dataset.tab));
+            btn.addEventListener('click', () => switchTab(btn.dataset.tab));
         });
+        switchTab(storageGet('localStorage', TAB_KEY));
     }
 
     async function init() {

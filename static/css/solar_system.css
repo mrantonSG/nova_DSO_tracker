@@ -1,46 +1,56 @@
 /* =================================================================
-   SOLAR SYSTEM PAGE — the bodies table (templates/solar_system.html)
+   SOLAR SYSTEM PAGE — the bodies table and the calendar table
+   (templates/solar_system.html)
 
-   Scoped to #solar-table. The page loads dashboard.css, whose bare
-   `table` rule (fixed layout, max-content width) applies to every
-   table, and the dashboard's column rules in dashboard.css and
-   nova-theme.css key on data-column-key; this table uses its own
-   data-solar-col, so only the rules below size, align and set its
-   fonts. Existing tokens only.
+   Scoped to #solar-table and #solar-cal-table. The page loads
+   dashboard.css, whose bare `table` rule (fixed layout, max-content
+   width) applies to every table, and the dashboard's column rules in
+   dashboard.css and nova-theme.css key on data-column-key; these
+   tables use their own data-solar-col, so only the rules below size,
+   align and set their fonts. The shared rules are selector lists that
+   name each table by id, so both keep an id's weight. Existing tokens
+   only.
    ================================================================= */
 
 /* Too wide for the window: the table scrolls inside its card, the page does not. */
-#solar-table-wrapper {
+#solar-table-wrapper,
+#solar-cal-wrapper {
   overflow-x: auto;
 }
 
 /* Columns sized by their content, so no value is cut off or runs into the next one. */
-#solar-table {
+#solar-table,
+#solar-cal-table {
   table-layout: auto;
   width: 100%;
   min-width: 0;
 }
 
 /* Header cells sit over their columns and may wrap (long German and Japanese labels). */
-#solar-table thead tr:first-child th {
+#solar-table thead tr:first-child th,
+#solar-cal-table thead tr:first-child th {
   text-align: center;
   white-space: normal;
   vertical-align: bottom;
 }
 
-#solar-table tbody td {
+#solar-table tbody td,
+#solar-cal-table tbody td {
   text-align: center;
   vertical-align: middle;
   white-space: nowrap;
 }
 
 #solar-table thead tr:first-child th[data-solar-col="body"],
-#solar-table tbody td[data-solar-col="body"] {
+#solar-table tbody td[data-solar-col="body"],
+#solar-cal-table thead tr:first-child th[data-solar-col="body"],
+#solar-cal-table tbody td[data-solar-col="body"] {
   text-align: left;
 }
 
 /* Every numeric column: one family, tabular figures. */
-#solar-table tbody td:not([data-solar-col="body"]) {
+#solar-table tbody td:not([data-solar-col="body"]),
+#solar-cal-table tbody td:not([data-solar-col="body"]) {
   font-family: var(--nova-font-mono);
   font-size: 12px;
   font-weight: 500;
@@ -48,19 +58,23 @@
   font-variant-numeric: tabular-nums;
 }
 
-#solar-table tbody td[data-solar-col="body"] {
+#solar-table tbody td[data-solar-col="body"],
+#solar-cal-table tbody td[data-solar-col="body"] {
   font-family: var(--nova-font-sans);
   font-size: 13px;
   font-weight: 600;
 }
 
-/* A time and the line under it (the transit's altitude). */
-#solar-table .solar-time {
+/* A time and the line under it (the transit's altitude; on the calendar, a date and
+   the event's time). */
+#solar-table .solar-time,
+#solar-cal-table .solar-time {
   display: block;
   white-space: nowrap;
 }
 
-#solar-table .solar-sub {
+#solar-table .solar-sub,
+#solar-cal-table .solar-sub {
   display: block;
   white-space: nowrap;
   font-size: 10px;
@@ -77,6 +91,22 @@
   font-family: var(--nova-font-sans);
   font-size: var(--font-size-xs);
   letter-spacing: 0;
+}
+
+/* The calendar's event name: words, in the body column's family, after the numeric
+   rule above (same weight, so the later rule wins). */
+#solar-cal-table tbody td[data-solar-col="event"] {
+  font-family: var(--nova-font-sans);
+  font-size: var(--font-size-xs);
+  letter-spacing: 0;
+}
+
+/* A header with an explanation in its title attribute (the browser's tooltip, as
+   elsewhere in Nova): the help cursor says there is one. Body cells keep the row's
+   pointer, since the row is what is clicked. */
+#solar-table thead th[title],
+#solar-cal-table thead th[title] {
+  cursor: help;
 }
 
 /* =================================================================
@@ -105,5 +135,9 @@
 #bodies-tab #solar-table-wrapper[hidden],
 #bodies-tab #chart-section[hidden],
 #bodies-tab #chart-area[hidden] {
+  display: none;
+}
+
+#calendar-tab #solar-cal-wrapper[hidden] {
   display: none;
 }

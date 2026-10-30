@@ -59,6 +59,9 @@
  * defaultBody(rows) is the body with the highest max altitude tonight, the first in
  * BODIES order on a tie; pickBody(rows, requested) is `requested` when it names a
  * body, else defaultBody(rows).
+ *
+ * _night { site, nightWindow, samples, maxAltitude, dateString } are the helpers above,
+ * for nova_solar_calendar.js; not a stable API.
  */
 (function (root, factory) {
     if (typeof module === 'object' && module.exports) {
@@ -331,8 +334,15 @@
         return r ? r.body : defaultBody(list);
     }
 
+    // _night is the location check, night window and nightly maximum the rows use,
+    // exported so nova_solar_calendar.js (the Calendar tab) reuses them instead of
+    // copying them. Nothing about the rows changes.
     return {
         rows: rows, nightlyMax: nightlyMax, timeLabel: timeLabel,
         defaultBody: defaultBody, pickBody: pickBody,
+        _night: {
+            site: site, nightWindow: nightWindow, samples: samples,
+            maxAltitude: maxAltitude, dateString: dateString,
+        },
     };
 });
