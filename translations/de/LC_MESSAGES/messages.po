@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 15:00+0800\n"
+"POT-Creation-Date: 2026-10-31 00:45+0800\n"
 "PO-Revision-Date: 2026-03-27 13:26+0800\n"
 "Last-Translator: \n"
 "Language: de\n"
@@ -664,8 +664,8 @@ msgstr "Import fehlgeschlagen: %(error)s"
 #: templates/index.html:212 templates/index.html:230
 #: templates/journal_report.html:688 templates/mobile_base.html:30
 #: templates/mobile_base.html:68 templates/mobile_journal_new.html:225
-#: templates/project_report.html:907 templates/solar_system.html:22
-#: templates/solar_system.html:23
+#: templates/project_report.html:907 templates/solar_system.html:23
+#: templates/solar_system.html:24
 msgid "Location"
 msgstr "Standort"
 
@@ -2800,7 +2800,8 @@ msgstr "Aufnahmegelegenheiten"
 #: templates/_opportunities_section.html:35 templates/index.html:211
 #: templates/index.html:229 templates/index.html:247
 #: templates/journal_report.html:686 templates/mobile_journal_new.html:210
-#: templates/project_report.html:906 templates/solar_system.html:26
+#: templates/project_report.html:906 templates/solar_system.html:27
+#: templates/solar_system.html:114
 msgid "Date"
 msgstr "Datum"
 
@@ -3084,7 +3085,7 @@ msgid "Mode"
 msgstr "Modus"
 
 #: templates/base.html:119 templates/index.html:32
-#: templates/solar_system.html:12
+#: templates/solar_system.html:13
 msgid "Simulated"
 msgstr "Simuliert"
 
@@ -4593,7 +4594,7 @@ msgstr ""
 msgid "Nova DSO Tracker"
 msgstr "Nova DSO Tracker"
 
-#: templates/graph_view.html:42 templates/solar_system.html:16
+#: templates/graph_view.html:42 templates/solar_system.html:17
 msgid "← Back to Dashboard"
 msgstr "Zurück zum Dashboard"
 
@@ -4603,8 +4604,7 @@ msgstr "Diagrammdatum"
 
 #: templates/graph_view.html:60 templates/index.html:58
 #: templates/mobile_base.html:35 templates/project_report.html:1152
-#: templates/solar_system.html:27 templates/solar_system.html:115
-#: templates/solar_system.html:132
+#: templates/solar_system.html:28 templates/solar_system.html:139
 msgid "Moon"
 msgstr "Mond"
 
@@ -4649,13 +4649,13 @@ msgid "Day"
 msgstr "Tag"
 
 #: templates/graph_view.html:102 templates/mobile_object_detail.html:520
-#: templates/solar_system.html:88 templates/solar_system.html:91
-#: templates/solar_system.html:142
+#: templates/solar_system.html:90 templates/solar_system.html:93
+#: templates/solar_system.html:165
 msgid "Month"
 msgstr "Monat"
 
 #: templates/graph_view.html:108 templates/mobile_object_detail.html:521
-#: templates/solar_system.html:89 templates/solar_system.html:97
+#: templates/solar_system.html:91 templates/solar_system.html:99
 msgid "Year"
 msgstr "Jahr"
 
@@ -5000,7 +5000,7 @@ msgid "Window"
 msgstr "Fenster"
 
 #: templates/graph_view.html:684 templates/mobile_object_detail.html:493
-#: templates/solar_system.html:127
+#: templates/solar_system.html:151
 msgid "Now"
 msgstr "Jetzt"
 
@@ -5029,25 +5029,25 @@ msgid "Dashboard"
 msgstr "Dashboard"
 
 #: templates/index.html:39 templates/solar_system.html:4
-#: templates/solar_system.html:12
+#: templates/solar_system.html:13
 msgid "Solar System"
 msgstr "Sonnensystem"
 
 #: templates/index.html:54 templates/index.html:153
-#: templates/solar_system.html:25
+#: templates/solar_system.html:26
 msgid "Local Time"
 msgstr "Ortszeit"
 
-#: templates/index.html:62 templates/solar_system.html:29
+#: templates/index.html:62 templates/solar_system.html:30
 msgid "Astr. Dusk / Dawn"
 msgstr "Astr. Abend- / Morgendämmerung"
 
-#: templates/index.html:74 templates/solar_system.html:34
-#: templates/solar_system.html:41
+#: templates/index.html:74 templates/solar_system.html:35
+#: templates/solar_system.html:42
 msgid "Simulation"
 msgstr "Simulation"
 
-#: templates/index.html:75 templates/solar_system.html:42
+#: templates/index.html:75 templates/solar_system.html:43
 msgid "About Simulation Mode"
 msgstr "Über den Simulationsmodus"
 
@@ -5106,7 +5106,7 @@ msgstr "Filter entfernen"
 
 #: templates/index.html:148 templates/index.html:151
 #: templates/mobile_up_now.html:899 templates/mobile_up_now.html:912
-#: templates/solar_system.html:126 templates/solar_system.html:133
+#: templates/solar_system.html:150 templates/solar_system.html:156
 msgid "Altitude"
 msgstr "Höhe"
 
@@ -5115,7 +5115,7 @@ msgid "Current"
 msgstr "Aktuell"
 
 #: templates/index.html:149 templates/index.html:152
-#: templates/solar_system.html:134
+#: templates/solar_system.html:157
 msgid "Azimuth"
 msgstr "Azimut"
 
@@ -5129,7 +5129,7 @@ msgid "11 PM"
 msgstr "23:00 Uhr"
 
 #: templates/index.html:153 templates/index.html:177
-#: templates/solar_system.html:66
+#: templates/solar_system.html:68
 msgid "Transit"
 msgstr "Kulmination"
 
@@ -5153,7 +5153,8 @@ msgstr "Winkelabst."
 msgid "to moon (°)"
 msgstr "zum Mond (°)"
 
-#: templates/index.html:159 templates/solar_system.html:69
+#: templates/index.html:159 templates/solar_system.html:71
+#: templates/solar_system.html:117
 msgid "Magnitude"
 msgstr "Magnitude"
 
@@ -6117,157 +6118,248 @@ msgstr "Gain/Offset"
 msgid "Exp"
 msgstr "Exp"
 
-#: templates/solar_system.html:52
+#: templates/solar_system.html:53
 msgid "Bodies"
 msgstr "Himmelskörper"
 
-#: templates/solar_system.html:62
+#: templates/solar_system.html:54
+msgid "Calendar"
+msgstr "Kalender"
+
+#: templates/solar_system.html:64 templates/solar_system.html:115
 msgid "Body"
 msgstr "Himmelskörper"
 
-#: templates/solar_system.html:63
+#: templates/solar_system.html:65
 msgid "Altitude now"
 msgstr "Höhe jetzt"
 
-#: templates/solar_system.html:64
+#: templates/solar_system.html:66
 msgid "Azimuth now"
 msgstr "Azimut jetzt"
 
-#: templates/solar_system.html:65
+#: templates/solar_system.html:67 templates/solar_system.html:69
+msgid ""
+"For the period the body is up that night. +1 means the next calendar day,"
+" −1 the day before."
+msgstr "Für die Zeit, in der der Himmelskörper in dieser Nacht über dem Horizont steht. +1 heißt der nächste Kalendertag, −1 der Tag davor."
+
+#: templates/solar_system.html:67
 msgid "Rise"
 msgstr "Aufgang"
 
-#: templates/solar_system.html:67
+#: templates/solar_system.html:68
+msgid "Highest point in the sky; altitude in brackets."
+msgstr "Höchster Punkt am Himmel; Höhe in Klammern."
+
+#: templates/solar_system.html:69
 msgid "Set"
 msgstr "Untergang"
 
-#: templates/solar_system.html:68
+#: templates/solar_system.html:70 templates/solar_system.html:120
+msgid "Highest altitude between sunset and sunrise."
+msgstr "Größte Höhe zwischen Sonnenuntergang und Sonnenaufgang."
+
+#: templates/solar_system.html:70
 msgid "Max altitude tonight"
 msgstr "Max. Höhe heute Nacht"
 
-#: templates/solar_system.html:70
+#: templates/solar_system.html:72 templates/solar_system.html:118
+msgid ""
+"Apparent size in arcseconds. The most important number for planetary "
+"imaging."
+msgstr "Scheinbare Größe in Bogensekunden. Die wichtigste Zahl für die Planetenfotografie."
+
+#: templates/solar_system.html:72 templates/solar_system.html:118
 msgid "Diameter"
 msgstr "Durchmesser"
 
-#: templates/solar_system.html:71
+#: templates/solar_system.html:73
+msgid "Lit fraction of the disc as seen from Earth."
+msgstr "Beleuchteter Anteil der Scheibe, von der Erde aus gesehen."
+
+#: templates/solar_system.html:73
 msgid "Illuminated"
 msgstr "Beleuchtet"
 
-#: templates/solar_system.html:72
+#: templates/solar_system.html:74 templates/solar_system.html:119
+msgid "Angle from the Sun. Larger means easier to see against a dark sky."
+msgstr "Winkelabstand zur Sonne. Je größer, desto leichter vor dunklem Himmel zu sehen."
+
+#: templates/solar_system.html:74 templates/solar_system.html:119
 msgid "Elongation"
 msgstr "Elongation"
 
-#: templates/solar_system.html:87
+#: templates/solar_system.html:89
 msgid "Tonight"
 msgstr "Heute Nacht"
 
-#: templates/solar_system.html:108
+#: templates/solar_system.html:114
+msgid "The evening on which the observing night starts."
+msgstr "Der Abend, an dem die Beobachtungsnacht beginnt."
+
+#: templates/solar_system.html:116
+msgid "Event"
+msgstr "Ereignis"
+
+#: templates/solar_system.html:120
+msgid "Max altitude that night"
+msgstr "Max. Höhe in dieser Nacht"
+
+#: templates/solar_system.html:121
+msgid "Negative values are events that have already passed."
+msgstr "Negative Werte sind Ereignisse, die schon vorbei sind."
+
+#: templates/solar_system.html:121
+msgid "Days from now"
+msgstr "Tage ab heute"
+
+#: templates/solar_system.html:132
 msgid "Mercury"
 msgstr "Merkur"
 
-#: templates/solar_system.html:109
+#: templates/solar_system.html:133
 msgid "Venus"
 msgstr "Venus"
 
-#: templates/solar_system.html:110
+#: templates/solar_system.html:134
 msgid "Mars"
 msgstr "Mars"
 
-#: templates/solar_system.html:111
+#: templates/solar_system.html:135
 msgid "Jupiter"
 msgstr "Jupiter"
 
-#: templates/solar_system.html:112
+#: templates/solar_system.html:136
 msgid "Saturn"
 msgstr "Saturn"
 
-#: templates/solar_system.html:113
+#: templates/solar_system.html:137
 msgid "Uranus"
 msgstr "Uranus"
 
-#: templates/solar_system.html:114
+#: templates/solar_system.html:138
 msgid "Neptune"
 msgstr "Neptun"
 
-#: templates/solar_system.html:117
+#: templates/solar_system.html:141
 msgid "E"
 msgstr "O"
 
-#: templates/solar_system.html:118
+#: templates/solar_system.html:142
 msgid "W"
 msgstr "W"
 
-#: templates/solar_system.html:119
+#: templates/solar_system.html:143
 msgid "Always up"
 msgstr "Immer über dem Horizont"
 
-#: templates/solar_system.html:120
+#: templates/solar_system.html:144
 msgid "Never up"
 msgstr "Nie über dem Horizont"
 
-#: templates/solar_system.html:121
+#: templates/solar_system.html:145
 msgid "Not up tonight"
 msgstr "Heute Nacht nicht über dem Horizont"
 
-#: templates/solar_system.html:122
+#: templates/solar_system.html:146
 msgid "Does not reach the altitude threshold tonight"
 msgstr "Erreicht heute Nacht Ihr Horizontlimit nicht"
 
-#: templates/solar_system.html:123
+#: templates/solar_system.html:147
 msgid "Solar System data could not be calculated."
 msgstr "Die Daten des Sonnensystems konnten nicht berechnet werden."
 
-#: templates/solar_system.html:124
+#: templates/solar_system.html:148
 msgid "Could not load location data."
 msgstr "Die Standortdaten konnten nicht geladen werden."
 
-#: templates/solar_system.html:125
+#: templates/solar_system.html:149
 msgid "The altitude chart could not be drawn."
 msgstr "Das Höhendiagramm konnte nicht gezeichnet werden."
 
-#: templates/solar_system.html:128
+#: templates/solar_system.html:152
 msgid "Sunset"
 msgstr "Sonnenuntergang"
 
-#: templates/solar_system.html:129
+#: templates/solar_system.html:153
 msgid "Sunrise"
 msgstr "Sonnenaufgang"
 
-#: templates/solar_system.html:130
+#: templates/solar_system.html:154
 msgid "Astronomical dusk"
 msgstr "Astronomische Abenddämmerung"
 
-#: templates/solar_system.html:131
+#: templates/solar_system.html:155
 msgid "Astronomical dawn"
 msgstr "Astronomische Morgendämmerung"
 
-#: templates/solar_system.html:135
+#: templates/solar_system.html:158
 msgid "Horizon"
 msgstr "Horizont"
 
-#: templates/solar_system.html:136
+#: templates/solar_system.html:159
 msgid "Altitude threshold / horizon mask"
 msgstr "Horizontlimit / Horizontmaske"
 
-#: templates/solar_system.html:137
+#: templates/solar_system.html:160
 msgid "Local time"
 msgstr "Ortszeit"
 
-#: templates/solar_system.html:138
+#: templates/solar_system.html:161
 msgid "Altitude (°)"
 msgstr "Höhe (°)"
 
-#: templates/solar_system.html:139
+#: templates/solar_system.html:162
 msgid "Azimuth (°)"
 msgstr "Azimut (°)"
 
-#: templates/solar_system.html:140
+#: templates/solar_system.html:163
 msgid "Max altitude (sunset to sunrise)"
 msgstr "Max. Höhe (Sonnenuntergang bis -aufgang)"
 
-#: templates/solar_system.html:141
+#: templates/solar_system.html:164
 msgid "Day of month"
 msgstr "Tag des Monats"
+
+#: templates/solar_system.html:166
+msgid "Opposition"
+msgstr "Opposition"
+
+#: templates/solar_system.html:167
+msgid "Greatest elongation E (evening)"
+msgstr "Größte Elongation O (abends)"
+
+#: templates/solar_system.html:168
+msgid "Greatest elongation W (morning)"
+msgstr "Größte Elongation W (morgens)"
+
+#: templates/solar_system.html:169
+msgid "Does not reach the altitude threshold that night"
+msgstr "Erreicht in dieser Nacht Ihr Horizontlimit nicht"
+
+#: templates/solar_system.html:170
+#, python-format
+msgid "Exact time: %(time)s"
+msgstr "Genaue Zeit: %(time)s"
+
+#: templates/solar_system.html:172
+msgid ""
+"Opposite the Sun: up all night, closest and brightest. Good for several "
+"weeks around this date."
+msgstr "Gegenüber der Sonne: die ganze Nacht sichtbar, am nächsten und am hellsten. Mehrere Wochen um dieses Datum gut."
+
+#: templates/solar_system.html:173
+msgid ""
+"Farthest east of the Sun: best evening visibility, low in the west after "
+"sunset."
+msgstr "Am weitesten östlich der Sonne: beste Abendsichtbarkeit, tief im Westen nach Sonnenuntergang."
+
+#: templates/solar_system.html:174
+msgid ""
+"Farthest west of the Sun: best morning visibility, low in the east before"
+" sunrise."
+msgstr "Am weitesten westlich der Sonne: beste Morgensichtbarkeit, tief im Osten vor Sonnenaufgang."
 
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Vorschläge aktualisieren"

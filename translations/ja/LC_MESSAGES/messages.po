@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 15:00+0800\n"
+"POT-Creation-Date: 2026-10-31 00:45+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -628,8 +628,8 @@ msgstr "インポートに失敗しました: %(error)s"
 #: templates/index.html:212 templates/index.html:230
 #: templates/journal_report.html:688 templates/mobile_base.html:30
 #: templates/mobile_base.html:68 templates/mobile_journal_new.html:225
-#: templates/project_report.html:907 templates/solar_system.html:22
-#: templates/solar_system.html:23
+#: templates/project_report.html:907 templates/solar_system.html:23
+#: templates/solar_system.html:24
 msgid "Location"
 msgstr "場所"
 
@@ -2722,7 +2722,8 @@ msgstr "イメージングの機会"
 #: templates/_opportunities_section.html:35 templates/index.html:211
 #: templates/index.html:229 templates/index.html:247
 #: templates/journal_report.html:686 templates/mobile_journal_new.html:210
-#: templates/project_report.html:906 templates/solar_system.html:26
+#: templates/project_report.html:906 templates/solar_system.html:27
+#: templates/solar_system.html:114
 msgid "Date"
 msgstr "日付"
 
@@ -2998,7 +2999,7 @@ msgid "Mode"
 msgstr "モード"
 
 #: templates/base.html:119 templates/index.html:32
-#: templates/solar_system.html:12
+#: templates/solar_system.html:13
 msgid "Simulated"
 msgstr "シミュレートされた"
 
@@ -4445,7 +4446,7 @@ msgstr "リグ '{name}' を削除してもよろしいですか？このリグ�
 msgid "Nova DSO Tracker"
 msgstr "Nova DSO Tracker"
 
-#: templates/graph_view.html:42 templates/solar_system.html:16
+#: templates/graph_view.html:42 templates/solar_system.html:17
 msgid "← Back to Dashboard"
 msgstr "ダッシュボードに戻る"
 
@@ -4455,8 +4456,7 @@ msgstr "グラフ日付"
 
 #: templates/graph_view.html:60 templates/index.html:58
 #: templates/mobile_base.html:35 templates/project_report.html:1152
-#: templates/solar_system.html:27 templates/solar_system.html:115
-#: templates/solar_system.html:132
+#: templates/solar_system.html:28 templates/solar_system.html:139
 msgid "Moon"
 msgstr "月"
 
@@ -4501,13 +4501,13 @@ msgid "Day"
 msgstr "日"
 
 #: templates/graph_view.html:102 templates/mobile_object_detail.html:520
-#: templates/solar_system.html:88 templates/solar_system.html:91
-#: templates/solar_system.html:142
+#: templates/solar_system.html:90 templates/solar_system.html:93
+#: templates/solar_system.html:165
 msgid "Month"
 msgstr "月"
 
 #: templates/graph_view.html:108 templates/mobile_object_detail.html:521
-#: templates/solar_system.html:89 templates/solar_system.html:97
+#: templates/solar_system.html:91 templates/solar_system.html:99
 msgid "Year"
 msgstr "年"
 
@@ -4833,7 +4833,7 @@ msgid "Window"
 msgstr "観測可能時間"
 
 #: templates/graph_view.html:684 templates/mobile_object_detail.html:493
-#: templates/solar_system.html:127
+#: templates/solar_system.html:151
 msgid "Now"
 msgstr "現在"
 
@@ -4862,25 +4862,25 @@ msgid "Dashboard"
 msgstr "ダッシュボード"
 
 #: templates/index.html:39 templates/solar_system.html:4
-#: templates/solar_system.html:12
+#: templates/solar_system.html:13
 msgid "Solar System"
 msgstr "太陽系"
 
 #: templates/index.html:54 templates/index.html:153
-#: templates/solar_system.html:25
+#: templates/solar_system.html:26
 msgid "Local Time"
 msgstr "現地時間"
 
-#: templates/index.html:62 templates/solar_system.html:29
+#: templates/index.html:62 templates/solar_system.html:30
 msgid "Astr. Dusk / Dawn"
 msgstr "天文薄暮 / 天文薄明"
 
-#: templates/index.html:74 templates/solar_system.html:34
-#: templates/solar_system.html:41
+#: templates/index.html:74 templates/solar_system.html:35
+#: templates/solar_system.html:42
 msgid "Simulation"
 msgstr "シミュレーション"
 
-#: templates/index.html:75 templates/solar_system.html:42
+#: templates/index.html:75 templates/solar_system.html:43
 msgid "About Simulation Mode"
 msgstr "シミュレーションモードについて"
 
@@ -4939,7 +4939,7 @@ msgstr "フィルターを解除"
 
 #: templates/index.html:148 templates/index.html:151
 #: templates/mobile_up_now.html:899 templates/mobile_up_now.html:912
-#: templates/solar_system.html:126 templates/solar_system.html:133
+#: templates/solar_system.html:150 templates/solar_system.html:156
 msgid "Altitude"
 msgstr "高度"
 
@@ -4948,7 +4948,7 @@ msgid "Current"
 msgstr "現在"
 
 #: templates/index.html:149 templates/index.html:152
-#: templates/solar_system.html:134
+#: templates/solar_system.html:157
 msgid "Azimuth"
 msgstr "方位角"
 
@@ -4962,7 +4962,7 @@ msgid "11 PM"
 msgstr "夜11時"
 
 #: templates/index.html:153 templates/index.html:177
-#: templates/solar_system.html:66
+#: templates/solar_system.html:68
 msgid "Transit"
 msgstr "トランジット"
 
@@ -4986,7 +4986,8 @@ msgstr "角距離"
 msgid "to moon (°)"
 msgstr "月へ (°)"
 
-#: templates/index.html:159 templates/solar_system.html:69
+#: templates/index.html:159 templates/solar_system.html:71
+#: templates/solar_system.html:117
 msgid "Magnitude"
 msgstr "等級"
 
@@ -5945,157 +5946,248 @@ msgstr "ゲイン/オフセット"
 msgid "Exp"
 msgstr "実験"
 
-#: templates/solar_system.html:52
+#: templates/solar_system.html:53
 msgid "Bodies"
 msgstr "天体"
 
-#: templates/solar_system.html:62
+#: templates/solar_system.html:54
+msgid "Calendar"
+msgstr "カレンダー"
+
+#: templates/solar_system.html:64 templates/solar_system.html:115
 msgid "Body"
 msgstr "天体"
 
-#: templates/solar_system.html:63
+#: templates/solar_system.html:65
 msgid "Altitude now"
 msgstr "現在の高度"
 
-#: templates/solar_system.html:64
+#: templates/solar_system.html:66
 msgid "Azimuth now"
 msgstr "現在の方位角"
 
-#: templates/solar_system.html:65
+#: templates/solar_system.html:67 templates/solar_system.html:69
+msgid ""
+"For the period the body is up that night. +1 means the next calendar day,"
+" −1 the day before."
+msgstr "その夜に地平線上にある期間の時刻。+1は翌日、−1は前日を示します。"
+
+#: templates/solar_system.html:67
 msgid "Rise"
 msgstr "出"
 
-#: templates/solar_system.html:67
+#: templates/solar_system.html:68
+msgid "Highest point in the sky; altitude in brackets."
+msgstr "空で最も高くなる時刻。括弧内はその高度。"
+
+#: templates/solar_system.html:69
 msgid "Set"
 msgstr "入り"
 
-#: templates/solar_system.html:68
+#: templates/solar_system.html:70 templates/solar_system.html:120
+msgid "Highest altitude between sunset and sunrise."
+msgstr "日没から日の出までの最高高度。"
+
+#: templates/solar_system.html:70
 msgid "Max altitude tonight"
 msgstr "今夜の最高高度"
 
-#: templates/solar_system.html:70
+#: templates/solar_system.html:72 templates/solar_system.html:118
+msgid ""
+"Apparent size in arcseconds. The most important number for planetary "
+"imaging."
+msgstr "視直径（秒角）。惑星撮影で最も重要な数値です。"
+
+#: templates/solar_system.html:72 templates/solar_system.html:118
 msgid "Diameter"
 msgstr "視直径"
 
-#: templates/solar_system.html:71
+#: templates/solar_system.html:73
+msgid "Lit fraction of the disc as seen from Earth."
+msgstr "地球から見た円盤の照らされている割合。"
+
+#: templates/solar_system.html:73
 msgid "Illuminated"
 msgstr "輝面比"
 
-#: templates/solar_system.html:72
+#: templates/solar_system.html:74 templates/solar_system.html:119
+msgid "Angle from the Sun. Larger means easier to see against a dark sky."
+msgstr "太陽からの角距離。大きいほど暗い空で見やすくなります。"
+
+#: templates/solar_system.html:74 templates/solar_system.html:119
 msgid "Elongation"
 msgstr "離角"
 
-#: templates/solar_system.html:87
+#: templates/solar_system.html:89
 msgid "Tonight"
 msgstr "今夜"
 
-#: templates/solar_system.html:108
+#: templates/solar_system.html:114
+msgid "The evening on which the observing night starts."
+msgstr "観測夜が始まる日の夕方。"
+
+#: templates/solar_system.html:116
+msgid "Event"
+msgstr "現象"
+
+#: templates/solar_system.html:120
+msgid "Max altitude that night"
+msgstr "その夜の最高高度"
+
+#: templates/solar_system.html:121
+msgid "Negative values are events that have already passed."
+msgstr "負の値はすでに過ぎた現象です。"
+
+#: templates/solar_system.html:121
+msgid "Days from now"
+msgstr "今日からの日数"
+
+#: templates/solar_system.html:132
 msgid "Mercury"
 msgstr "水星"
 
-#: templates/solar_system.html:109
+#: templates/solar_system.html:133
 msgid "Venus"
 msgstr "金星"
 
-#: templates/solar_system.html:110
+#: templates/solar_system.html:134
 msgid "Mars"
 msgstr "火星"
 
-#: templates/solar_system.html:111
+#: templates/solar_system.html:135
 msgid "Jupiter"
 msgstr "木星"
 
-#: templates/solar_system.html:112
+#: templates/solar_system.html:136
 msgid "Saturn"
 msgstr "土星"
 
-#: templates/solar_system.html:113
+#: templates/solar_system.html:137
 msgid "Uranus"
 msgstr "天王星"
 
-#: templates/solar_system.html:114
+#: templates/solar_system.html:138
 msgid "Neptune"
 msgstr "海王星"
 
-#: templates/solar_system.html:117
+#: templates/solar_system.html:141
 msgid "E"
 msgstr "東"
 
-#: templates/solar_system.html:118
+#: templates/solar_system.html:142
 msgid "W"
 msgstr "西"
 
-#: templates/solar_system.html:119
+#: templates/solar_system.html:143
 msgid "Always up"
 msgstr "常に地平線上"
 
-#: templates/solar_system.html:120
+#: templates/solar_system.html:144
 msgid "Never up"
 msgstr "常に地平線下"
 
-#: templates/solar_system.html:121
+#: templates/solar_system.html:145
 msgid "Not up tonight"
 msgstr "今夜は昇らない"
 
-#: templates/solar_system.html:122
+#: templates/solar_system.html:146
 msgid "Does not reach the altitude threshold tonight"
 msgstr "今夜は高度閾値に達しません"
 
-#: templates/solar_system.html:123
+#: templates/solar_system.html:147
 msgid "Solar System data could not be calculated."
 msgstr "太陽系のデータを計算できませんでした。"
 
-#: templates/solar_system.html:124
+#: templates/solar_system.html:148
 msgid "Could not load location data."
 msgstr "観測地のデータを読み込めませんでした。"
 
-#: templates/solar_system.html:125
+#: templates/solar_system.html:149
 msgid "The altitude chart could not be drawn."
 msgstr "高度グラフを描画できませんでした。"
 
-#: templates/solar_system.html:128
+#: templates/solar_system.html:152
 msgid "Sunset"
 msgstr "日没"
 
-#: templates/solar_system.html:129
+#: templates/solar_system.html:153
 msgid "Sunrise"
 msgstr "日の出"
 
-#: templates/solar_system.html:130
+#: templates/solar_system.html:154
 msgid "Astronomical dusk"
 msgstr "天文薄暮"
 
-#: templates/solar_system.html:131
+#: templates/solar_system.html:155
 msgid "Astronomical dawn"
 msgstr "天文薄明"
 
-#: templates/solar_system.html:135
+#: templates/solar_system.html:158
 msgid "Horizon"
 msgstr "地平線"
 
-#: templates/solar_system.html:136
+#: templates/solar_system.html:159
 msgid "Altitude threshold / horizon mask"
 msgstr "高度閾値 / ホライゾンマスク"
 
-#: templates/solar_system.html:137
+#: templates/solar_system.html:160
 msgid "Local time"
 msgstr "現地時間"
 
-#: templates/solar_system.html:138
+#: templates/solar_system.html:161
 msgid "Altitude (°)"
 msgstr "高度 (°)"
 
-#: templates/solar_system.html:139
+#: templates/solar_system.html:162
 msgid "Azimuth (°)"
 msgstr "方位角 (°)"
 
-#: templates/solar_system.html:140
+#: templates/solar_system.html:163
 msgid "Max altitude (sunset to sunrise)"
 msgstr "最高高度（日没から日の出まで）"
 
-#: templates/solar_system.html:141
+#: templates/solar_system.html:164
 msgid "Day of month"
 msgstr "日付"
+
+#: templates/solar_system.html:166
+msgid "Opposition"
+msgstr "衝"
+
+#: templates/solar_system.html:167
+msgid "Greatest elongation E (evening)"
+msgstr "東方最大離角（夕方）"
+
+#: templates/solar_system.html:168
+msgid "Greatest elongation W (morning)"
+msgstr "西方最大離角（明け方）"
+
+#: templates/solar_system.html:169
+msgid "Does not reach the altitude threshold that night"
+msgstr "その夜は高度閾値に達しません"
+
+#: templates/solar_system.html:170
+#, python-format
+msgid "Exact time: %(time)s"
+msgstr "正確な時刻：%(time)s"
+
+#: templates/solar_system.html:172
+msgid ""
+"Opposite the Sun: up all night, closest and brightest. Good for several "
+"weeks around this date."
+msgstr "太陽の反対側：一晩中見え、最も近く最も明るい。この日の前後数週間が好機です。"
+
+#: templates/solar_system.html:173
+msgid ""
+"Farthest east of the Sun: best evening visibility, low in the west after "
+"sunset."
+msgstr "太陽から最も東に離れる：夕方の見頃。日没後の西の低空。"
+
+#: templates/solar_system.html:174
+msgid ""
+"Farthest west of the Sun: best morning visibility, low in the east before"
+" sunrise."
+msgstr "太陽から最も西に離れる：明け方の見頃。日の出前の東の低空。"
 
 #~ msgid "Refresh Suggestions"
 #~ msgstr "更新提案"
