@@ -64,7 +64,7 @@
               <th data-solar-col="alt"><span>{{ _('Altitude now') }}</span><span class="subtext">(°)</span></th>
               <th data-solar-col="az"><span>{{ _('Azimuth now') }}</span><span class="subtext">(°)</span></th>
               <th data-solar-col="rise"><span>{{ _('Rise') }}</span><span class="subtext">&nbsp;</span></th>
-              <th data-solar-col="transit"><span>{{ _('Transit') }}</span><span class="subtext">(°)</span></th>
+              <th data-solar-col="transit"><span>{{ _('Transit') }}</span><span class="subtext">&nbsp;</span></th>
               <th data-solar-col="set"><span>{{ _('Set') }}</span><span class="subtext">&nbsp;</span></th>
               <th data-solar-col="maxalt"><span>{{ _('Max altitude tonight') }}</span><span class="subtext">(°)</span></th>
               <th data-solar-col="mag"><span>{{ _('Magnitude') }}</span><span class="subtext">&nbsp;</span></th>
@@ -96,7 +96,7 @@
                     {% endfor %}
                 </select>
                 <label for="solar-year-select">{{ _('Year') }}:</label>
-                <input type="number" id="solar-year-select" min="1" max="9999" style="width:70px;"/>
+                <input type="number" id="solar-year-select" min="1900" max="2100" style="width:70px;"/>
             </div>
             <p id="solar-chart-error" class="status-secondary" role="alert" hidden></p>
         </div>

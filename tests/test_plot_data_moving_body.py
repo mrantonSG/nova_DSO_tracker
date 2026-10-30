@@ -89,3 +89,59 @@ def test_range_with_the_moon_as_the_body_is_the_moon_series(moon_payloads):
     month = moon_payloads["month"]
     assert len(month["dates"]) == 31
     _same_series("object_alt", month["object_alt"], month["moon_alt"])
+
+
+_BAD_TRACK_DRIVER = """
+'use strict';
+const fs = require('fs');
+const vm = require('vm');
+
+const [outFile, ...files] = process.argv.slice(2);
+const context = {};
+context.self = context;
+context.globalThis = context;
+vm.createContext(context);
+for (const file of files) {
+    vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
+}
+vm.runInContext(`
+    const site = %SITE%;
+    const tracks = {
+        nanAlt: t => ({ alt: NaN, az: 120 }),
+        nanAz: t => ({ alt: 10, az: NaN }),
+        missing: t => ({}),
+        infinite: t => ({ alt: Infinity, az: 0 }),
+    };
+    const tryIt = f => { try { f(); return null; } catch (e) { return String(e.message); } };
+    var result = {};
+    for (const name of Object.keys(tracks)) {
+        result[name] = {
+            build: tryIt(() => NovaPlotData.build(Object.assign({
+                date: '2026-07-15', threshold: 20, interval: 15, mask: [], skyglow: null,
+                altAzAt: tracks[name] }, site))),
+            range: tryIt(() => NovaPlotData.range(Object.assign({
+                year: 2026, month: 3, altAzAt: tracks[name] }, site))),
+        };
+    }
+`, context);
+fs.writeFileSync(outFile, JSON.stringify(context.result));
+"""
+
+
+def test_non_finite_track_throws_a_clear_error(tmp_path):
+    """A moving body's altAzAt answering a non-finite alt or az is an error in build()
+    and range(), naming altAzAt, rather than NaN reaching the chart."""
+    driver = tmp_path / "driver.js"
+    driver.write_text(_BAD_TRACK_DRIVER.replace("%SITE%", json.dumps(SITE)))
+    out = tmp_path / "out.json"
+    run = subprocess.run(
+        [NODE, str(driver), str(out)] + [str(STATIC_JS / name) for name in FILES],
+        capture_output=True, text=True, check=False,
+    )
+    assert run.returncode == 0, f"node failed ({run.returncode}):\n{run.stderr}"
+    got = json.loads(out.read_text())
+    assert set(got) == {"nanAlt", "nanAz", "missing", "infinite"}
+    for name, errors in got.items():
+        for fn in ("build", "range"):
+            assert errors[fn] is not None, f"{name}: {fn}() did not throw"
+            assert "altAzAt returned a non-finite alt/az" in errors[fn], f"{name}: {fn}(): {errors[fn]}"

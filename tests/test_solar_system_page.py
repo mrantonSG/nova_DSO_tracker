@@ -87,3 +87,17 @@ def test_solar_table_does_not_use_the_dashboard_column_keys(client):
     assert sheets.index("solar_system.css") > sheets.index("nova-theme.css")
     page_js = (Path(__file__).resolve().parent.parent / "static" / "js" / "solar_system.js").read_text()
     assert "columnKey" not in page_js and "solarCol" in page_js
+
+
+def test_year_input_is_bounded_like_the_month_series(client):
+    """The month/year chart's year input stays inside nightlyMax()'s 1900-2100."""
+    html = client.get("/solar_system").get_data(as_text=True)
+    year = re.search(r'<input[^>]*id="solar-year-select"[^>]*>', html).group(0)
+    assert 'min="1900"' in year and 'max="2100"' in year
+
+
+def test_transit_header_has_no_degree_subtext(client):
+    """The transit cell's main line is a time, so its header carries no unit."""
+    html = client.get("/solar_system").get_data(as_text=True)
+    th = re.search(r'<th data-solar-col="transit">.*?</th>', html).group(0)
+    assert "(°)" not in th

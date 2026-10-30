@@ -51,6 +51,7 @@
  * calendar day of the month, the body's highest altitude over that day's night window
  * (sunset to the next sunrise, or noon to noon as above), sampled every
  * sampling_interval minutes: { dates: ['YYYY-MM-DD', ...], max_alt: [deg, ...] }.
+ * year is 1900-2100 (MIN_YEAR..MAX_YEAR); outside that it throws.
  *
  * Everything throws on a missing location, a non-finite coordinate or any engine
  * failure; the page shows its error instead.
@@ -72,6 +73,9 @@
     const HOUR_MS = 3600000;
     const DAY_MS = 86400000;
     const SEARCH_HOURS = 36;
+    // The month chart's years (the page's year input has the same bounds): Date.UTC
+    // reads a year below 100 as 1900 + year.
+    const MIN_YEAR = 1900, MAX_YEAR = 2100;
     const pad2 = n => (n < 10 ? '0' : '') + n;
 
     function engine() {
@@ -162,8 +166,13 @@
 
     // ------------------------------------------------------------------ up-intervals
 
-    /** events() as up-intervals: { rise, set (event or null), transits: [upper transits inside] }. */
+    /**
+     * events() as up-intervals: { rise, set (event or null), transits: [upper transits inside] }.
+     * None when the body neither rises nor sets in the search window: the row is then
+     * alwaysUp or neverUp, not an interval without ends.
+     */
     function upIntervals(found) {
+        if (found.alwaysUp || found.neverUp) return [];
         const out = [];
         let cur = found.upAtStart ? { rise: null, set: null, transits: [] } : null;
         for (const e of found.events) {
@@ -294,7 +303,7 @@
         const body = String(o.body);
         if (P.BODIES.indexOf(body) < 0) throw new Error('nova_solar_rows: unknown body ' + JSON.stringify(o.body));
         const year = Math.trunc(+o.year), month = Math.trunc(+o.month);
-        if (!(year >= 1 && year <= 9999)) throw new Error('nova_solar_rows: year out of range: ' + o.year);
+        if (!(year >= MIN_YEAR && year <= MAX_YEAR)) throw new Error('nova_solar_rows: year out of range: ' + o.year);
         if (!(month >= 1 && month <= 12)) throw new Error('nova_solar_rows: month out of range: ' + o.month);
 
         const numDays = new Date(Date.UTC(year, month, 0)).getUTCDate();

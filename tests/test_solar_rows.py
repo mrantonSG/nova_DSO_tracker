@@ -358,3 +358,80 @@ def test_not_up_tonight(tmp_path):
     assert row["transitUtc"] == closest
     assert row["transitAlt"] is not None and row["transitDay"] is not None
     assert got["label"].startswith(row["transit"])
+
+
+# Longyearbyen, Svalbard: polar night in December, midnight sun in June.
+SVALBARD = {"location": {"lat": 78.2, "lon": 15.6, "timezone": "Arctic/Longyearbyen",
+                         "altitude_threshold": 20, "sampling_interval": 15}}
+SVALBARD_DECEMBER_MS = 1797804000000  # 2026-12-20 22:00 UTC, 23:00 CET
+SVALBARD_JUNE_MS = 1782079200000      # 2026-06-21 22:00 UTC, 00:00 CEST on 06-22
+
+
+def test_always_up_circumpolar_body(tmp_path):
+    """Svalbard, 2026-12-20: Uranus (dec about +20) never sets at 78.2 N. A body with no
+    rise or set in the whole search window is alwaysUp, with no rise or set, not an
+    interval without ends; its transit is still the one closest to the night's middle."""
+    got = _run(tmp_path, """
+        const loc = input.inputs.location;
+        const r = NovaSolarRows.rows({inputs: input.inputs, nowMs: input.nowMs, simDate: null});
+        const found = NovaPlanets.events('uranus', r.searchWindow.start, r.searchWindow.end, loc.lat, loc.lon);
+        result = { date: r.date, row: r.rows.find(y => y.body === 'uranus'),
+                   kinds: found.events.map(e => e.kind), alwaysUp: found.alwaysUp };
+    """, {"inputs": SVALBARD, "nowMs": SVALBARD_DECEMBER_MS})
+    row = got["row"]
+    assert got["date"] == "2026-12-20"
+    assert got["alwaysUp"] is True and set(got["kinds"]) <= {"transit"}, "circumpolar in the engine"
+    assert row["alwaysUp"] is True
+    assert row["neverUp"] is False and row["notUpTonight"] is False
+    assert row["rise"] is None and row["set"] is None
+    assert row["riseDay"] is None and row["setDay"] is None
+    assert row["transit"] is not None and row["transitAlt"] > 0
+    assert row["maxAlt"] > 0
+
+
+def test_polar_night_window_is_noon_to_noon(tmp_path):
+    """Svalbard in December: the Sun does not rise, so the night window is local noon on
+    the night's date (12:00 CET, 11:00 UTC) to local noon the day after."""
+    got = _run(tmp_path, """
+        const r = NovaSolarRows.rows({inputs: input.inputs, nowMs: input.nowMs, simDate: null});
+        result = { date: r.date, night: r.night };
+    """, {"inputs": SVALBARD, "nowMs": SVALBARD_DECEMBER_MS})
+    assert got["date"] == "2026-12-20"
+    assert got["night"]["kind"] == "noon"
+    assert got["night"]["start"] == 1797764400000  # 2026-12-20 11:00 UTC
+    assert got["night"]["end"] == 1797850800000    # 2026-12-21 11:00 UTC
+
+
+def test_polar_day_window_is_noon_to_noon(tmp_path):
+    """Svalbard in June: the Sun does not set. At 00:00 CEST on 06-22 the observing night
+    is 06-21 (before noon: the evening before), noon CEST (10:00 UTC) to noon."""
+    got = _run(tmp_path, """
+        const r = NovaSolarRows.rows({inputs: input.inputs, nowMs: input.nowMs, simDate: null});
+        result = { date: r.date, night: r.night, bodies: r.rows.length };
+    """, {"inputs": SVALBARD, "nowMs": SVALBARD_JUNE_MS})
+    assert got["date"] == "2026-06-21"
+    assert got["night"]["kind"] == "noon"
+    assert got["night"]["start"] == 1782036000000  # 2026-06-21 10:00 UTC
+    assert got["night"]["end"] == 1782122400000    # 2026-06-22 10:00 UTC
+    assert got["bodies"] == len(BODIES)
+
+
+def test_month_series_year_bounds(tmp_path):
+    """nightlyMax() takes 1900-2100, the page's year input bounds: Date.UTC would read a
+    year below 100 as 1900 + year, so year 50 must throw rather than plot 1950."""
+    got = _run(tmp_path, """
+        result = [1899, 1900, 2100, 2101, 50].map(year => {
+            try {
+                const s = NovaSolarRows.nightlyMax({inputs: input.inputs, body: 'mars', year: year, month: 2});
+                return { year: year, ok: true, first: s.dates[0], days: s.dates.length };
+            } catch (e) {
+                return { year: year, ok: false, error: String(e.message) };
+            }
+        });
+    """, {"inputs": _loc(sampling_interval=60)})
+    by_year = {r["year"]: r for r in got}
+    assert by_year[1900] == {"year": 1900, "ok": True, "first": "1900-02-01", "days": 28}
+    assert by_year[2100] == {"year": 2100, "ok": True, "first": "2100-02-01", "days": 28}
+    for year in (1899, 2101, 50):
+        assert by_year[year]["ok"] is False
+        assert "year out of range" in by_year[year]["error"]

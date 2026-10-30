@@ -3,7 +3,9 @@
  *
  * Fetches /api/desktop_inputs for the selected location, builds the table with
  * NovaSolarRows and the status strip with NovaDashboardRows.statusStrip(), and draws
- * the selected body with SolarSystemChart. Live, it recomputes every 60 s.
+ * the selected body with SolarSystemChart. It recomputes every 60 s, live and in
+ * simulation (the simulated instant is the sim date at the current wall clock, so it
+ * moves too); the same tick moves the chart's Now line.
  *
  * Shared with the dashboard on purpose: sessionStorage.selectedLocation and
  * POST /set_location for the location, localStorage.simModeActive and simDate for
@@ -30,6 +32,7 @@
         view: 'day',
         chart: null,
         chartKey: null,         // what the chart shows, so a refresh redraws only on change
+        rangeDate: null,        // the night the month/year controls were last set from
     };
 
     const $ = id => document.getElementById(id);
@@ -59,12 +62,16 @@
 
     // ------------------------------------------------------------------ errors
 
+    /** The page error, or null to clear it. While it shows, the table and chart are
+     *  hidden (solar_system.css makes [hidden] win) and the chart is dropped; the next
+     *  successful refresh draws it again. */
     function showError(message) {
         const el = $('solar-error');
-        el.textContent = message;
+        el.textContent = message || '';
         el.hidden = !message;
         $('solar-table-wrapper').hidden = !!message;
         $('chart-section').hidden = !!message;
+        if (message) resetChart();
     }
 
     function showChartError(message) {
@@ -130,32 +137,43 @@
         state.locName = state.inputs.location.name;
     }
 
+    /** Remember the location, in this tab and (not as a guest) on the server. */
+    function commitLocation(name) {
+        storageSet('sessionStorage', 'selectedLocation', name);
+        if (state.fallback) return;
+        fetch('/set_location', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({location: name})
+        }).then(r => r.json())
+          .then(data => { if (data.status !== 'success') console.warn('Failed to persist location:', data.message); })
+          .catch(err => console.warn('Failed to persist location:', err));
+    }
+
+    /** Switch only once the new location's inputs have loaded; on failure the page,
+     *  the select and what is remembered all stay on the previous location. */
     async function onLocationChange() {
         const select = $('location-select');
         const name = select.value;
-        if (!name || name === state.locName) return;
+        const previous = state.locName;
+        if (!name || name === previous) return;
         select.disabled = true;
-        storageSet('sessionStorage', 'selectedLocation', name);
-        if (!state.fallback) {
-            fetch('/set_location', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({location: name})
-            }).then(r => r.json())
-              .then(data => { if (data.status !== 'success') console.warn('Failed to persist location:', data.message); })
-              .catch(err => console.warn('Failed to persist location:', err));
-        }
+        let inputs;
         try {
-            state.inputs = await fetchInputs(name);
-            state.locName = state.inputs.location.name;
-            resetChart();
-            refresh();
+            inputs = await fetchInputs(name);
         } catch (e) {
             console.error('Solar System: could not load the location', e);
-            showError(i18n.inputsError);
-        } finally {
+            select.value = previous;
             select.disabled = false;
+            showError(i18n.inputsError);
+            return;
         }
+        state.inputs = inputs;
+        state.locName = inputs.location.name;
+        commitLocation(name);
+        resetChart();
+        select.disabled = false;
+        refresh();
     }
 
     // ------------------------------------------------------------------ simulation
@@ -344,7 +362,7 @@
             showChartError(null);
         } catch (e) {
             console.error('Solar System: could not draw the chart', e);
-            state.chartKey = null;
+            resetChart();
             showChartError(i18n.chartError);
         }
     }
@@ -371,25 +389,28 @@
     // ------------------------------------------------------------------ refresh
 
     /** Recompute everything; force redraws the chart even when it shows the same night
-     *  (a simulation change moves the Now line). */
+     *  (a simulation change). Any failure shows the translated error, never throws. */
     function refresh(force) {
         if (!state.inputs) return;
-        const firstRun = state.result === null;
-        const previousDate = state.result && state.result.date;
         try {
             state.result = NovaSolarRows.rows({inputs: state.inputs, nowMs: Date.now(), simDate: simDate()});
             renderStrip();
+            showError(null);
+            if (!state.selected) state.selected = NovaSolarRows.pickBody(state.result.rows, state.requested);
+            // Only a new night moves the month/year controls: a failed refresh in between
+            // leaves rangeDate alone, so the user's choice survives it.
+            if (state.result.date !== state.rangeDate) {
+                syncRangeControls(state.result.date);
+                state.rangeDate = state.result.date;
+            }
+            renderTable();
+            showChart(force);
+            if (state.chart) state.chart.updateNow();
         } catch (e) {
             console.error('Solar System: could not calculate', e);
             state.result = null;
             showError(i18n.error);
-            return;
         }
-        showError(null);
-        if (!state.selected) state.selected = NovaSolarRows.pickBody(state.result.rows, state.requested);
-        if (firstRun || state.result.date !== previousDate) syncRangeControls(state.result.date);
-        renderTable();
-        showChart(force);
     }
 
     function initTabs() {
@@ -414,7 +435,7 @@
             return;
         }
         refresh();
-        setInterval(() => { if (!simDate()) refresh(); }, REFRESH_MS);
+        setInterval(() => refresh(), REFRESH_MS);
     }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

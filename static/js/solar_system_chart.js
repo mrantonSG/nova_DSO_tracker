@@ -1,7 +1,7 @@
 /*
  * solar_system_chart.js — the Solar System page's altitude chart for one body.
  *
- * SolarSystemChart.create(config) returns { show(view), destroy() }. Everything it needs
+ * SolarSystemChart.create(config) returns { show(view), updateNow(), destroy() }. Everything it needs
  * comes in config; it reads no page globals:
  *   canvas     the <canvas> to draw on
  *   tz         the location's IANA zone; locName its name (axis title)
@@ -23,11 +23,16 @@
  * altitude at midnight says little. show() throws on any engine failure; the page shows
  * its translated error.
  *
- * Ported from graph_view_chart.js (which cannot be loaded here): the Now line and its
- * 60 s updater, the sun-event lines, the night shading, the threshold / horizon-mask
- * dataset, the midnight-centred x axis, the month and year rendering and the theme
- * update through stylingUtils.onThemeChange. Every label is translated. Not ported:
- * weather, transit lines, skyglow, the secondary object, the Moon's comparison lines.
+ * updateNow() moves the Now line to nowMs(). The chart has no timer of its own: the
+ * page calls it on its 60 s refresh, the same tick that recomputes the table, so the
+ * table's "Altitude now" and the Now line always show the same instant.
+ *
+ * Ported from graph_view_chart.js (which cannot be loaded here): the Now line, the
+ * sun-event lines (coloured from the theme's tokens here, so they show in dark mode),
+ * the night shading, the threshold / horizon-mask dataset, the midnight-centred x axis,
+ * the month and year rendering and the theme update through stylingUtils.onThemeChange.
+ * Every label is translated. Not ported: weather, transit lines, skyglow, the secondary
+ * object, the Moon's comparison lines.
  *
  * Needs Chart.js with the Luxon adapter and the annotation plugin, NovaAstro, NovaTransit,
  * NovaPlanets, NovaPlotData, NovaDashboardRows and NovaSolarRows, all loaded first.
@@ -59,11 +64,30 @@
         return s.getChartLineColor ? s.getChartLineColor(i) : fallback;
     }
 
-    function textColor(fallback) {
+    /** A colour token's current value, or the fallback when it cannot be read. */
+    function cssColor(varName, fallback) {
         const s = su();
-        if (s.getColor) return s.getColor('--text-primary', fallback);
-        if (s.getCssVar) return s.getCssVar('--text-primary', fallback);
+        if (s.getColor) return s.getColor(varName, fallback) || fallback;
+        if (s.getCssVar) return s.getCssVar(varName, fallback) || fallback;
         return fallback;
+    }
+
+    function textColor(fallback) {
+        return cssColor('--text-primary', fallback);
+    }
+
+    /**
+     * The sun-event lines and their labels, from the theme's tokens, so they stay
+     * visible on the dark chart card (graph_view_chart.js draws them black).
+     */
+    function sunColors() {
+        const dark = isDark();
+        return {
+            line: cssColor('--text-secondary', dark ? 'rgba(255,255,255,0.55)' : '#4a4a4a'),
+            label: cssColor('--text-primary', dark ? 'rgba(255,255,255,0.92)' : '#141414'),
+            labelBg: cssColor('--nova-surface', dark ? '#161b24' : '#ffffff'),
+            labelBorder: cssColor('--nova-border', dark ? 'rgba(255,255,255,0.07)' : '#e5e2dc'),
+        };
     }
 
     function maskFill() {
@@ -78,9 +102,6 @@
             grid: dark ? 'rgba(150, 150, 150, 0.3)' : 'rgba(128, 128, 128, 0.5)',
             text: dark ? '#e0e0e0' : '#333',
             tick: dark ? '#b0b0b0' : '#666',
-            label: dark ? '#e0e0e0' : '#222',
-            labelBg: dark ? 'rgba(40,40,40,0.92)' : 'rgba(255,255,255,0.92)',
-            labelBorder: dark ? 'rgba(100,100,100,0.5)' : 'rgba(0,0,0,0.15)',
             shade: dark ? 'rgba(50, 50, 50, 0.6)' : 'rgba(211, 211, 211, 0.7)',
         };
     }
@@ -120,7 +141,7 @@
     /** Sunset, astronomical dusk, dawn and sunrise lines, as the graph view draws them. */
     function sunAnnotations(sunEvents, baseDt, nextDt, i18n) {
         const annotations = {};
-        const c = themeColors();
+        const c = sunColors();
 
         function wallTimeMs(dt, timeStr) {
             if (!timeStr || !timeStr.includes(':')) return null;
@@ -150,7 +171,7 @@
             borderWidth: 1
         };
         const line = (t, text) => ({
-            type: 'line', xMin: t, xMax: t, borderColor: 'black', borderWidth: 1,
+            type: 'line', xMin: t, xMax: t, borderColor: c.line, borderWidth: 1,
             label: Object.assign({}, labelConfig, {content: text})
         });
 
@@ -222,33 +243,22 @@
         const nowFn = typeof cfg.nowMs === 'function' ? cfg.nowMs : () => Date.now();
 
         let chart = null;
-        let nowTimer = null;
         let unsubscribe = null;
 
-        function stopNow() {
-            if (nowTimer) clearInterval(nowTimer);
-            nowTimer = null;
-        }
-
         function clear() {
-            stopNow();
             if (chart) chart.destroy();
             chart = null;
         }
 
-        function startNow() {
-            stopNow();
-            const update = () => {
-                const ann = chart && chart.options && chart.options.plugins
-                    && chart.options.plugins.annotation && chart.options.plugins.annotation.annotations;
-                if (!ann || !ann.currentTimeLine) { stopNow(); return; }
-                const t = nowFn();
-                ann.currentTimeLine.xMin = t;
-                ann.currentTimeLine.xMax = t;
-                chart.update('none');
-            };
-            update();
-            nowTimer = setInterval(update, 60000);
+        /** Move the Now line to nowFn(); nothing to do in the month and year views. */
+        function updateNow() {
+            const ann = chart && chart.options && chart.options.plugins
+                && chart.options.plugins.annotation && chart.options.plugins.annotation.annotations;
+            if (!ann || !ann.currentTimeLine) return;
+            const t = nowFn();
+            ann.currentTimeLine.xMin = t;
+            ann.currentTimeLine.xMax = t;
+            chart.update('none');
         }
 
         function altAzAt(body) {
@@ -337,7 +347,6 @@
                     }
                 }
             });
-            startNow();
         }
 
         function showRange(v) {
@@ -412,11 +421,14 @@
                 && chart.options.plugins.annotation.annotations;
             if (ann) {
                 // Only the sun-event lines are themed; the Now line keeps its own colour.
+                const sc = sunColors();
                 SUN_LINES.forEach(key => {
-                    if (ann[key] && ann[key].label) {
-                        ann[key].label.color = c.label;
-                        ann[key].label.backgroundColor = c.labelBg;
-                        ann[key].label.borderColor = c.labelBorder;
+                    if (!ann[key]) return;
+                    ann[key].borderColor = sc.line;
+                    if (ann[key].label) {
+                        ann[key].label.color = sc.label;
+                        ann[key].label.backgroundColor = sc.labelBg;
+                        ann[key].label.borderColor = sc.labelBorder;
                     }
                 });
             }
@@ -437,6 +449,7 @@
                 if (v.view === 'month' || v.view === 'year') showRange(v);
                 else showDay(v);
             },
+            updateNow: updateNow,
             destroy() {
                 clear();
                 if (typeof unsubscribe === 'function') unsubscribe();

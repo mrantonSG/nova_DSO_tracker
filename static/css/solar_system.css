@@ -98,3 +98,12 @@
 #solar-table tbody td.highlight {
   background-color: transparent !important;
 }
+
+/* The page's error hides the table and the chart card, and a chart error the chart,
+   with the hidden attribute. graph_view.css gives #chart-section display: flex, which
+   would beat the attribute's display: none; these rules are more specific. */
+#bodies-tab #solar-table-wrapper[hidden],
+#bodies-tab #chart-section[hidden],
+#bodies-tab #chart-area[hidden] {
+  display: none;
+}

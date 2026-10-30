@@ -56,7 +56,8 @@
  * raHours/decDeg (which are then not needed). A callback rather than a position per
  * sample, because NovaPlanets already adds the diurnal parallax a geocentric RA/Dec
  * would lose, up to a degree for the Moon. build() then has no transit_time (null):
- * NovaTransit's is a fixed star's. Without altAzAt nothing here changes.
+ * NovaTransit's is a fixed star's. A non-finite alt or az from altAzAt throws.
+ * Without altAzAt nothing here changes.
  */
 (function (root, factory) {
     if (typeof module === 'object' && module.exports) {
@@ -177,13 +178,23 @@
         return i.altAzAt;
     }
 
+    /** The moving body's place at utcMs, checked: a non-finite alt or az throws. */
+    function trackAt(track, utcMs) {
+        const p = track(utcMs) || {};
+        const alt = +p.alt, az = +p.az;
+        if (!isFinite(alt) || !isFinite(az)) {
+            throw new Error('nova_plot_data: altAzAt returned a non-finite alt/az at ' + new Date(utcMs).toISOString());
+        }
+        return { alt: alt, az: az };
+    }
+
     /** altAzCurve()'s shape for a moving body: its place at every sample. */
     function trackCurve(track, times) {
         const alt = new Float64Array(times.length), az = new Float64Array(times.length);
         for (let k = 0; k < times.length; k++) {
-            const p = track(times[k]);
-            alt[k] = +p.alt;
-            az[k] = +p.az;
+            const p = trackAt(track, times[k]);
+            alt[k] = p.alt;
+            az[k] = p.az;
         }
         return { alt: alt, az: az };
     }
@@ -295,7 +306,7 @@
             const t = localMidnight(year, month, day, tz, A);
             // Each day its own frame: a month is long enough for aberration and
             // nutation to move, and the endpoint builds a fresh AltAz per day.
-            objectAlt.push(track ? +track(t).alt : A.altAz(raHours, decDeg, lat, lon, t).alt);
+            objectAlt.push(track ? trackAt(track, t).alt : A.altAz(raHours, decDeg, lat, lon, t).alt);
             moonAlt.push(A.moonAltAz(t, lat, lon).alt);
             dates.push(String(year).padStart(4, '0') + '-' + pad2(month) + '-' + pad2(day));
         }
