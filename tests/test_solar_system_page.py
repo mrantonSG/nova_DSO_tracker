@@ -6,6 +6,7 @@ guest mode is sent to the login page by the auth gate. The page computes everyth
 the browser, so it must load the engines in dependency order before its own scripts.
 """
 import re
+from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 # Dependency order: nova_dashboard_rows.js needs astro and transit; nova_planets.js
@@ -70,3 +71,19 @@ def test_dashboard_header_links_to_the_page_before_about(client):
     assert config_at < link_at < about_at
     between = html[link_at:about_at]
     assert between.count("<button") == 0 and between.count("<a ") == 1
+
+
+def test_solar_table_does_not_use_the_dashboard_column_keys(client):
+    """dashboard.css and nova-theme.css size, align and set fonts on table cells by
+    data-column-key, so a solar column named like a dashboard one picked up the wrong
+    width and font. The solar table keys its columns with data-solar-col, styled by
+    solar_system.css, which loads after the two stylesheets it overrides."""
+    html = client.get("/solar_system").get_data(as_text=True)
+    table = html[html.index('<table id="solar-table"'):html.index("</table>", html.index('<table id="solar-table"'))]
+    assert "data-column-key" not in table
+    assert table.count("data-solar-col=") == 11
+    sheets = re.findall(r'<link rel="stylesheet" href="[^"]*/css/([^"/?]+\.css)', html)
+    assert sheets.index("solar_system.css") > sheets.index("dashboard.css")
+    assert sheets.index("solar_system.css") > sheets.index("nova-theme.css")
+    page_js = (Path(__file__).resolve().parent.parent / "static" / "js" / "solar_system.js").read_text()
+    assert "columnKey" not in page_js and "solarCol" in page_js

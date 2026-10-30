@@ -6,6 +6,7 @@
 {% block head_extra %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}?v={{ version }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/graph_view.css') }}?v={{ version }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/solar_system.css') }}?v={{ version }}">
 {% endblock %}
 
 {% block page_title %}
@@ -56,20 +57,20 @@
     <p id="solar-error" class="status-secondary" role="alert" hidden></p>
 
     <div class="table-wrapper" id="solar-table-wrapper">
-        <table id="solar-table">
+        <table id="solar-table" class="solar-table">
           <thead>
             <tr>
-              <th data-column-key="Object"><span>{{ _('Body') }}</span><span class="subtext">&nbsp;</span></th>
-              <th data-column-key="Altitude Current"><span>{{ _('Altitude now') }}</span><span class="subtext">(°)</span></th>
-              <th data-column-key="Azimuth Current"><span>{{ _('Azimuth now') }}</span><span class="subtext">(°)</span></th>
-              <th data-column-key="Rise"><span>{{ _('Rise') }}</span><span class="subtext">&nbsp;</span></th>
-              <th data-column-key="Transit Time"><span>{{ _('Transit') }}</span><span class="subtext">(°)</span></th>
-              <th data-column-key="Set"><span>{{ _('Set') }}</span><span class="subtext">&nbsp;</span></th>
-              <th data-column-key="Max Altitude"><span>{{ _('Max altitude tonight') }}</span><span class="subtext">(°)</span></th>
-              <th data-column-key="Magnitude"><span>{{ _('Magnitude') }}</span><span class="subtext">&nbsp;</span></th>
-              <th data-column-key="Size"><span>{{ _('Diameter') }}</span><span class="subtext">(″)</span></th>
-              <th data-column-key="Illuminated"><span>{{ _('Illuminated') }}</span><span class="subtext">(%)</span></th>
-              <th data-column-key="Elongation"><span>{{ _('Elongation') }}</span><span class="subtext">(°)</span></th>
+              <th data-solar-col="body"><span>{{ _('Body') }}</span><span class="subtext">&nbsp;</span></th>
+              <th data-solar-col="alt"><span>{{ _('Altitude now') }}</span><span class="subtext">(°)</span></th>
+              <th data-solar-col="az"><span>{{ _('Azimuth now') }}</span><span class="subtext">(°)</span></th>
+              <th data-solar-col="rise"><span>{{ _('Rise') }}</span><span class="subtext">&nbsp;</span></th>
+              <th data-solar-col="transit"><span>{{ _('Transit') }}</span><span class="subtext">(°)</span></th>
+              <th data-solar-col="set"><span>{{ _('Set') }}</span><span class="subtext">&nbsp;</span></th>
+              <th data-solar-col="maxalt"><span>{{ _('Max altitude tonight') }}</span><span class="subtext">(°)</span></th>
+              <th data-solar-col="mag"><span>{{ _('Magnitude') }}</span><span class="subtext">&nbsp;</span></th>
+              <th data-solar-col="diam"><span>{{ _('Diameter') }}</span><span class="subtext">(″)</span></th>
+              <th data-solar-col="illum"><span>{{ _('Illuminated') }}</span><span class="subtext">(%)</span></th>
+              <th data-solar-col="elong"><span>{{ _('Elongation') }}</span><span class="subtext">(°)</span></th>
             </tr>
           </thead>
           <tbody id="solar-body"></tbody>

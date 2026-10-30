@@ -210,19 +210,32 @@
         $('solar-dawn').textContent = strip.astronomical_dawn;
     }
 
-    function cell(tr, key, text) {
+    /** A cell of the solar table; its column is data-solar-col (static/css/solar_system.css). */
+    function cell(tr, col, text) {
         const td = document.createElement('td');
-        td.dataset.columnKey = key;
-        td.textContent = text;
+        td.dataset.solarCol = col;
+        if (text !== undefined) td.textContent = text;
         tr.appendChild(td);
         return td;
     }
 
-    function riseSetText(time, day, row) {
-        if (time) return NovaSolarRows.timeLabel(time, day);
-        if (row.alwaysUp) return i18n.alwaysUp;
-        if (row.neverUp) return i18n.neverUp;
-        return '–';
+    function line(td, className, text) {
+        const span = document.createElement('span');
+        span.className = className;
+        span.textContent = text;
+        td.appendChild(span);
+        return span;
+    }
+
+    /** Rise or set: the time with its day suffix, or a word ("Always up", ...). */
+    function riseSetCell(tr, col, time, day, row, notUpText) {
+        const td = cell(tr, col);
+        if (time) line(td, 'solar-time', NovaSolarRows.timeLabel(time, day));
+        else if (notUpText) line(td, 'solar-note', notUpText);
+        else if (row.alwaysUp) line(td, 'solar-note', i18n.alwaysUp);
+        else if (row.neverUp) line(td, 'solar-note', i18n.neverUp);
+        else td.textContent = '–';
+        return td;
     }
 
     function renderTable() {
@@ -242,8 +255,8 @@
                 tr.setAttribute('aria-selected', 'true');
             }
 
-            cell(tr, 'Object', bodyName(row.body));
-            const alt = cell(tr, 'Altitude Current', row.altNow.toFixed(1));
+            cell(tr, 'body', bodyName(row.body));
+            const alt = cell(tr, 'alt', row.altNow.toFixed(1));
             if (row.altNow >= threshold && !row.muted) {
                 alt.classList.add('highlight');
                 const badge = document.createElement('span');
@@ -252,16 +265,21 @@
                 alt.textContent = '';
                 alt.appendChild(badge);
             }
-            cell(tr, 'Azimuth Current', row.azNow.toFixed(1));
-            cell(tr, 'Rise', row.notUpTonight ? i18n.notUpTonight : riseSetText(row.rise, row.riseDay, row));
-            cell(tr, 'Transit Time', row.transit
-                ? NovaSolarRows.timeLabel(row.transit, row.transitDay) + ' (' + row.transitAlt.toFixed(1) + '°)' : '–');
-            cell(tr, 'Set', riseSetText(row.set, row.setDay, row));
-            cell(tr, 'Max Altitude', row.maxAlt.toFixed(1));
-            cell(tr, 'Magnitude', row.mag.toFixed(1));
-            cell(tr, 'Size', row.diameterArcsec.toFixed(1));
-            cell(tr, 'Illuminated', row.illuminatedPct.toFixed(0));
-            cell(tr, 'Elongation', row.elongationDeg.toFixed(1) + '° '
+            cell(tr, 'az', row.azNow.toFixed(1));
+            riseSetCell(tr, 'rise', row.rise, row.riseDay, row, row.notUpTonight ? i18n.notUpTonight : null);
+            const transit = cell(tr, 'transit');
+            if (row.transit) {
+                line(transit, 'solar-time', NovaSolarRows.timeLabel(row.transit, row.transitDay));
+                line(transit, 'solar-sub', '(' + row.transitAlt.toFixed(1) + '°)');
+            } else {
+                transit.textContent = '–';
+            }
+            riseSetCell(tr, 'set', row.set, row.setDay, row, null);
+            cell(tr, 'maxalt', row.maxAlt.toFixed(1));
+            cell(tr, 'mag', row.mag.toFixed(1));
+            cell(tr, 'diam', row.diameterArcsec.toFixed(1));
+            cell(tr, 'illum', row.illuminatedPct.toFixed(0));
+            cell(tr, 'elong', row.elongationDeg.toFixed(1) + '° '
                 + (row.elongationSide === 'E' ? i18n.east : i18n.west));
 
             tr.addEventListener('click', () => select(row.body));

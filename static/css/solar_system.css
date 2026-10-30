@@ -1,0 +1,80 @@
+/* =================================================================
+   SOLAR SYSTEM PAGE — the bodies table (templates/solar_system.html)
+
+   Scoped to #solar-table. The page loads dashboard.css, whose bare
+   `table` rule (fixed layout, max-content width) applies to every
+   table, and the dashboard's column rules in dashboard.css and
+   nova-theme.css key on data-column-key; this table uses its own
+   data-solar-col, so only the rules below size, align and set its
+   fonts. Existing tokens only.
+   ================================================================= */
+
+/* Too wide for the window: the table scrolls inside its card, the page does not. */
+#solar-table-wrapper {
+  overflow-x: auto;
+}
+
+/* Columns sized by their content, so no value is cut off or runs into the next one. */
+#solar-table {
+  table-layout: auto;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Header cells sit over their columns and may wrap (long German and Japanese labels). */
+#solar-table thead tr:first-child th {
+  text-align: center;
+  white-space: normal;
+  vertical-align: bottom;
+}
+
+#solar-table tbody td {
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+#solar-table thead tr:first-child th[data-solar-col="body"],
+#solar-table tbody td[data-solar-col="body"] {
+  text-align: left;
+}
+
+/* Every numeric column: one family, tabular figures. */
+#solar-table tbody td:not([data-solar-col="body"]) {
+  font-family: var(--nova-font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+#solar-table tbody td[data-solar-col="body"] {
+  font-family: var(--nova-font-sans);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* A time and the line under it (the transit's altitude). */
+#solar-table .solar-time {
+  display: block;
+  white-space: nowrap;
+}
+
+#solar-table .solar-sub {
+  display: block;
+  white-space: nowrap;
+  font-size: 10px;
+  color: var(--nova-text-3);
+}
+
+/* "Always up", "Not up tonight" ...: words, wrapped inside the cell. */
+#solar-table .solar-note {
+  display: block;
+  white-space: normal;
+  min-width: 6em;
+  max-width: 11em;
+  margin: 0 auto;
+  font-family: var(--nova-font-sans);
+  font-size: var(--font-size-xs);
+  letter-spacing: 0;
+}
