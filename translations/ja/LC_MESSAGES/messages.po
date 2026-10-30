@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-29 17:49+0800\n"
+"POT-Creation-Date: 2026-10-30 13:55+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -145,7 +145,7 @@ msgstr "ファイル名が空です"
 msgid "File is too large. Maximum size is 10 MB."
 msgstr "ファイルが大きすぎる。最大サイズは10MBです。"
 
-#: nova/blueprints/api.py:1710 nova/blueprints/api.py:3300
+#: nova/blueprints/api.py:1710 nova/blueprints/api.py:3323
 msgid "User not found"
 msgstr "ユーザーが見つかりません"
 
@@ -153,35 +153,35 @@ msgstr "ユーザーが見つかりません"
 msgid "Session not found"
 msgstr "セッションが見つかりません"
 
-#: nova/blueprints/api.py:2994
+#: nova/blueprints/api.py:3017
 msgid "Object data not found or invalid."
 msgstr "オブジェクトデータが見つからないか無効です。"
 
-#: nova/blueprints/api.py:2998
+#: nova/blueprints/api.py:3021
 msgid "RA/DEC missing for object."
 msgstr "オブジェクトのRA/DECがありません。"
 
-#: nova/blueprints/api.py:3003
+#: nova/blueprints/api.py:3026
 msgid "Invalid RA/DEC format for object."
 msgstr "オブジェクトのRA/DEC形式が無効です。"
 
-#: nova/blueprints/api.py:3166
+#: nova/blueprints/api.py:3189
 msgid "Could not generate time series for plot."
 msgstr "プロットの時系列を生成できませんでした。"
 
-#: nova/blueprints/api.py:3264
+#: nova/blueprints/api.py:3287
 msgid "Location not configured"
 msgstr "場所が設定されていません"
 
-#: nova/blueprints/api.py:4219
+#: nova/blueprints/api.py:4242
 msgid "Missing or invalid lat/lon parameters"
 msgstr "lat/lon パラメータが欠落しているか無効です"
 
-#: nova/blueprints/api.py:4228
+#: nova/blueprints/api.py:4251
 msgid "Invalid datetime format"
 msgstr "日時の形式が無効です"
 
-#: nova/blueprints/api.py:4248
+#: nova/blueprints/api.py:4271
 msgid "Calibration star catalog not found"
 msgstr "キャリブレーション星カタログが見つかりません"
 
@@ -302,8 +302,8 @@ msgstr "オブジェクトが指定されていません。"
 msgid "This object is already in your library."
 msgstr "このオブジェクトはすでにライブラリにあります。"
 
-#: nova/blueprints/core.py:1262 nova/blueprints/core.py:1847
-#: nova/blueprints/core.py:1874 templates/mobile_add_object.html:57
+#: nova/blueprints/core.py:1262 nova/blueprints/core.py:1861
+#: nova/blueprints/core.py:1888 templates/mobile_add_object.html:57
 msgid "Object not found."
 msgstr "オブジェクトが見つかりません。"
 
@@ -320,34 +320,34 @@ msgstr "欠落データは見つかりませんでした、または更新の必
 msgid "An error occurred during data fetching: %(error)s"
 msgstr "データ取得中にエラーが発生しました: %(error)s"
 
-#: nova/blueprints/core.py:1980
+#: nova/blueprints/core.py:1994
 msgid "Please log in to view object details."
 msgstr "オブジェクトの詳細を表示するにはログインしてください。"
 
-#: nova/blueprints/core.py:1995
+#: nova/blueprints/core.py:2009
 #, python-format
 msgid "User '%(username)s' not found."
 msgstr "ユーザー '%(username)s' は見つかりませんでした。"
 
-#: nova/blueprints/core.py:2011
+#: nova/blueprints/core.py:2025
 #, python-format
 msgid "Requested location '%(location_name)s' not found, using default."
 msgstr "指定された場所 '%(location_name)s' が見つかりません。デフォルトを使用します。"
 
-#: nova/blueprints/core.py:2029
+#: nova/blueprints/core.py:2043
 msgid "Error: No valid location configured or selected for this user."
 msgstr "エラー: このユーザーに対して有効な場所が設定または選択されていません。"
 
-#: nova/blueprints/core.py:2047
+#: nova/blueprints/core.py:2061
 #, python-format
 msgid "Object '%(object_name)s' not found in your configuration."
 msgstr "オブジェクト '%(object_name)s' が設定に見つかりません。"
 
-#: nova/blueprints/core.py:2322
+#: nova/blueprints/core.py:2336
 msgid "Invalid date components provided, defaulting to current date."
 msgstr "無効な日付コンポーネントが指定されました。デフォルトで現在の日付を使用します。"
 
-#: nova/blueprints/core.py:2524
+#: nova/blueprints/core.py:2538
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
 msgstr "%(object_name)s の詳細を読み込む際にエラーが発生しました。"
@@ -624,16 +624,17 @@ msgstr "インポートに失敗しました: %(error)s"
 
 #: nova/blueprints/tools.py:567 templates/_journal_section.html:2999
 #: templates/_project_subtab.html:195 templates/graph_view.html:48
-#: templates/graph_view.html:49 templates/index.html:44
-#: templates/index.html:206 templates/index.html:224
+#: templates/graph_view.html:49 templates/index.html:50
+#: templates/index.html:212 templates/index.html:230
 #: templates/journal_report.html:688 templates/mobile_base.html:30
 #: templates/mobile_base.html:68 templates/mobile_journal_new.html:225
-#: templates/project_report.html:907
+#: templates/project_report.html:907 templates/solar_system.html:22
+#: templates/solar_system.html:23
 msgid "Location"
 msgstr "場所"
 
 #: nova/blueprints/tools.py:567 templates/base.html:265
-#: templates/index.html:140 templates/index.html:201 templates/index.html:239
+#: templates/index.html:146 templates/index.html:207 templates/index.html:245
 msgid "Object"
 msgstr "オブジェクト"
 
@@ -642,7 +643,7 @@ msgid "Component"
 msgstr "コンポーネント"
 
 #: nova/blueprints/tools.py:568 templates/_journal_section.html:3046
-#: templates/graph_view.html:309 templates/index.html:158
+#: templates/graph_view.html:309 templates/index.html:164
 #: templates/mobile_journal_new.html:237 templates/project_report.html:1167
 msgid "Rig"
 msgstr "リグ"
@@ -658,7 +659,7 @@ msgid "Saved view"
 msgstr "保存したビュー"
 
 #: nova/blueprints/tools.py:569 templates/_journal_section.html:3002
-#: templates/index.html:203 templates/journal_report.html:690
+#: templates/index.html:209 templates/journal_report.html:690
 msgid "Project"
 msgstr "プロジェクト"
 
@@ -901,7 +902,7 @@ msgstr "次へ"
 msgid "Processing targets..."
 msgstr "ターゲットを処理中..."
 
-#: templates/_inspiration_section.html:501 templates/index.html:149
+#: templates/_inspiration_section.html:501 templates/index.html:155
 msgid "Max Altitude"
 msgstr "最高高度"
 
@@ -915,7 +916,7 @@ msgid "Duration"
 msgstr "期間"
 
 #: templates/_inspiration_section.html:504 templates/config_form.html:580
-#: templates/index.html:151 templates/mobile_up_now.html:982
+#: templates/index.html:157 templates/mobile_up_now.html:982
 msgid "Constellation"
 msgstr "星座"
 
@@ -1149,7 +1150,7 @@ msgstr "積分"
 
 #: templates/_journal_section.html:2288
 #: templates/_opportunities_section.html:42 templates/_project_subtab.html:196
-#: templates/index.html:209 templates/index.html:244
+#: templates/index.html:215 templates/index.html:250
 #: templates/journal_report.html:692 templates/project_report.html:909
 #: templates/project_report.html:1136
 msgid "Rating"
@@ -1530,7 +1531,7 @@ msgstr "星"
 
 #: templates/_journal_section.html:2603 templates/_journal_section.html:2764
 #: templates/_objects_section.html:49 templates/_project_subtab.html:154
-#: templates/admin_users.html:63 templates/index.html:204
+#: templates/admin_users.html:63 templates/index.html:210
 #: templates/journal_report.html:1201
 msgid "Status"
 msgstr "ステータス"
@@ -1683,7 +1684,7 @@ msgstr "サブフレーム"
 msgid "Per Sub"
 msgstr "サブあたり"
 
-#: templates/_journal_section.html:2778 templates/index.html:208
+#: templates/_journal_section.html:2778 templates/index.html:214
 #: templates/journal_report.html:722 templates/project_report.html:830
 #: templates/project_report.html:1132
 msgid "Integration"
@@ -1742,7 +1743,7 @@ msgstr "編集プロジェクト："
 #: templates/_journal_section.html:2981 templates/_journal_section.html:3328
 #: templates/_objects_section.html:364 templates/_project_subtab.html:232
 #: templates/admin_users.html:111 templates/base.html:545
-#: templates/graph_view.html:479 templates/index.html:303
+#: templates/graph_view.html:479 templates/index.html:309
 #: templates/journal_form.html:205
 msgid "Cancel"
 msgstr "キャンセル"
@@ -2196,7 +2197,7 @@ msgstr "ステータスでフィルター"
 
 #: templates/_journal_section.html:3256 templates/config_form.html:595
 #: templates/config_form.html:624 templates/config_form.html:660
-#: templates/index.html:185 templates/index.html:217
+#: templates/index.html:191 templates/index.html:223
 msgid "All"
 msgstr "すべて"
 
@@ -2248,7 +2249,7 @@ msgid "{label} removed."
 msgstr "{label} を削除しました。"
 
 #: templates/_journal_section.html:3317 templates/base.html:301
-#: templates/graph_view.html:468 templates/index.html:120
+#: templates/graph_view.html:468 templates/index.html:126
 msgid "Ask Nova"
 msgstr "Ask Nova"
 
@@ -2366,7 +2367,7 @@ msgstr "例：Cyg"
 
 #: templates/_objects_section.html:45 templates/_objects_section.html:143
 #: templates/_objects_section.html:307 templates/config_form.html:579
-#: templates/config_form.html:643 templates/index.html:152
+#: templates/config_form.html:643 templates/index.html:158
 #: templates/mobile_up_now.html:965
 msgid "Type"
 msgstr "タイプ"
@@ -2403,7 +2404,7 @@ msgstr "インポート済み"
 
 #: templates/_objects_section.html:59 templates/_objects_section.html:177
 #: templates/_objects_section.html:326 templates/graph_view.html:169
-#: templates/index.html:111
+#: templates/index.html:117
 msgid "Pinned"
 msgstr "ピン留め"
 
@@ -2417,7 +2418,7 @@ msgid "e.g., messier (use = for exact)"
 msgstr "例：メシエ（正確には「＝」を使用）"
 
 #: templates/_objects_section.html:68 templates/config_form.html:582
-#: templates/graph_view.html:154 templates/index.html:159
+#: templates/graph_view.html:154 templates/index.html:165
 #: templates/mobile_journal_new.html:376
 #: templates/mobile_object_detail.html:534 templates/project_report.html:1121
 msgid "Notes"
@@ -2571,7 +2572,7 @@ msgid "Update Objects"
 msgstr "オブジェクトの更新"
 
 #: templates/_objects_section.html:282 templates/config_form.html:577
-#: templates/index.html:212 templates/mobile_add_object.html:17
+#: templates/index.html:218 templates/mobile_add_object.html:17
 msgid "Object ID"
 msgstr "オブジェクトID"
 
@@ -2718,10 +2719,10 @@ msgstr "画像プレビュー"
 msgid "Imaging Opportunities"
 msgstr "イメージングの機会"
 
-#: templates/_opportunities_section.html:35 templates/index.html:205
-#: templates/index.html:223 templates/index.html:241
+#: templates/_opportunities_section.html:35 templates/index.html:211
+#: templates/index.html:229 templates/index.html:247
 #: templates/journal_report.html:686 templates/mobile_journal_new.html:210
-#: templates/project_report.html:906
+#: templates/project_report.html:906 templates/solar_system.html:26
 msgid "Date"
 msgstr "日付"
 
@@ -2906,7 +2907,7 @@ msgstr "ユーザー '%(username)s' とそのすべてのデータ（日誌、�
 msgid "New password"
 msgstr "新しいパスワード"
 
-#: templates/admin_users.html:110 templates/index.html:302
+#: templates/admin_users.html:110 templates/index.html:308
 msgid "Save"
 msgstr "保存"
 
@@ -2997,6 +2998,7 @@ msgid "Mode"
 msgstr "モード"
 
 #: templates/base.html:119 templates/index.html:32
+#: templates/solar_system.html:12
 msgid "Simulated"
 msgstr "シミュレートされた"
 
@@ -3074,7 +3076,7 @@ msgstr "保存済みビューを選択..."
 msgid "Error loading views"
 msgstr "ビューの読み込みエラー"
 
-#: templates/base.html:147 templates/index.html:73
+#: templates/base.html:147 templates/index.html:79
 msgid "Update in"
 msgstr "更新まで"
 
@@ -3818,7 +3820,7 @@ msgid "Download"
 msgstr "ダウンロード"
 
 #: templates/config_form.html:49 templates/config_form.html:63
-#: templates/graph_view.html:78 templates/index.html:88
+#: templates/graph_view.html:78 templates/index.html:94
 msgid "Journal"
 msgstr "日誌"
 
@@ -3966,7 +3968,7 @@ msgstr "新しい場所を追加"
 
 #: templates/config_form.html:226 templates/config_form.html:424
 #: templates/config_form.html:443 templates/config_form.html:463
-#: templates/index.html:294
+#: templates/index.html:300
 msgid "Name:"
 msgstr "名前:"
 
@@ -4350,8 +4352,8 @@ msgstr "共有オブジェクト"
 msgid "Img"
 msgstr "画像"
 
-#: templates/config_form.html:578 templates/index.html:141
-#: templates/index.html:202 templates/index.html:240
+#: templates/config_form.html:578 templates/index.html:147
+#: templates/index.html:208 templates/index.html:246
 #: templates/mobile_add_object.html:21
 msgid "Common Name"
 msgstr "一般名"
@@ -4439,10 +4441,11 @@ msgstr "リグ '{name}' を削除してもよろしいですか？このリグ�
 #: templates/graph_view.html:4 templates/journal_form.html:4
 #: templates/journal_report.html:6 templates/journal_report.html:1232
 #: templates/project_report.html:6 templates/project_report.html:1234
+#: templates/solar_system.html:4
 msgid "Nova DSO Tracker"
 msgstr "Nova DSO Tracker"
 
-#: templates/graph_view.html:42
+#: templates/graph_view.html:42 templates/solar_system.html:16
 msgid "← Back to Dashboard"
 msgstr "ダッシュボードに戻る"
 
@@ -4450,8 +4453,10 @@ msgstr "ダッシュボードに戻る"
 msgid "Graph Date"
 msgstr "グラフ日付"
 
-#: templates/graph_view.html:60 templates/index.html:52
+#: templates/graph_view.html:60 templates/index.html:58
 #: templates/mobile_base.html:35 templates/project_report.html:1152
+#: templates/solar_system.html:27 templates/solar_system.html:115
+#: templates/solar_system.html:132
 msgid "Moon"
 msgstr "月"
 
@@ -4496,10 +4501,13 @@ msgid "Day"
 msgstr "日"
 
 #: templates/graph_view.html:102 templates/mobile_object_detail.html:520
+#: templates/solar_system.html:88 templates/solar_system.html:91
+#: templates/solar_system.html:142
 msgid "Month"
 msgstr "表示月"
 
 #: templates/graph_view.html:108 templates/mobile_object_detail.html:521
+#: templates/solar_system.html:89 templates/solar_system.html:97
 msgid "Year"
 msgstr "年"
 
@@ -4825,6 +4833,7 @@ msgid "Window"
 msgstr "観測可能時間"
 
 #: templates/graph_view.html:684 templates/mobile_object_detail.html:493
+#: templates/solar_system.html:127
 msgid "Now"
 msgstr "現在"
 
@@ -4852,286 +4861,296 @@ msgstr "DSO高度トラッカー"
 msgid "Dashboard"
 msgstr "ダッシュボード"
 
-#: templates/index.html:48 templates/index.html:147
+#: templates/index.html:39 templates/solar_system.html:4
+#: templates/solar_system.html:12
+msgid "Solar System"
+msgstr "太陽系"
+
+#: templates/index.html:54 templates/index.html:153
+#: templates/solar_system.html:25
 msgid "Local Time"
 msgstr "現地時間"
 
-#: templates/index.html:56
+#: templates/index.html:62 templates/solar_system.html:29
 msgid "Astr. Dusk / Dawn"
 msgstr "天文薄暮 / 天文薄明"
 
-#: templates/index.html:68
+#: templates/index.html:74 templates/solar_system.html:34
+#: templates/solar_system.html:41
 msgid "Simulation"
 msgstr "シミュレーション"
 
-#: templates/index.html:69
+#: templates/index.html:75 templates/solar_system.html:42
 msgid "About Simulation Mode"
 msgstr "シミュレーションモードについて"
 
-#: templates/index.html:84
+#: templates/index.html:90
 msgid "Position"
 msgstr "位置"
 
-#: templates/index.html:85
+#: templates/index.html:91
 msgid "Properties"
 msgstr "プロパティ"
 
-#: templates/index.html:86 templates/mobile_base.html:60
+#: templates/index.html:92 templates/mobile_base.html:60
 #: templates/mobile_outlook.html:3
 msgid "Outlook"
 msgstr "予報"
 
-#: templates/index.html:87
+#: templates/index.html:93
 msgid "Heatmap"
 msgstr "ヒートマップ"
 
-#: templates/index.html:88
+#: templates/index.html:94
 msgid "Inspiration"
 msgstr "インスピレーション"
 
-#: templates/index.html:89
+#: templates/index.html:95
 msgid "Gallery"
 msgstr "ギャラリー"
 
-#: templates/index.html:91
+#: templates/index.html:97
 msgid "Search Syntax Guide"
 msgstr "検索構文ガイド"
 
-#: templates/index.html:95
+#: templates/index.html:101
 msgid "Saved Views"
 msgstr "保存済みビュー"
 
-#: templates/index.html:97
+#: templates/index.html:103
 msgid "Save current filters and sorting"
 msgstr "現在のフィルターと並べ替えを保存"
 
-#: templates/index.html:103
+#: templates/index.html:109
 msgid "Delete selected view"
 msgstr "選択したビューを削除"
 
-#: templates/index.html:116
+#: templates/index.html:122
 msgid "Ask Nova to rank and recommend best objects"
 msgstr "Novaにオブジェクトのランク付けとおすすめを依頼"
 
-#: templates/index.html:122
+#: templates/index.html:128
 msgid "About Nova AI"
 msgstr "Nova AIについて"
 
-#: templates/index.html:130
+#: templates/index.html:136
 msgid "Remove Filter"
 msgstr "フィルターを解除"
 
-#: templates/index.html:142 templates/index.html:145
+#: templates/index.html:148 templates/index.html:151
 #: templates/mobile_up_now.html:899 templates/mobile_up_now.html:912
+#: templates/solar_system.html:126 templates/solar_system.html:133
 msgid "Altitude"
 msgstr "高度"
 
-#: templates/index.html:142 templates/index.html:143
+#: templates/index.html:148 templates/index.html:149
 msgid "Current"
 msgstr "現在"
 
-#: templates/index.html:143 templates/index.html:146
+#: templates/index.html:149 templates/index.html:152
+#: templates/solar_system.html:134
 msgid "Azimuth"
 msgstr "方位角"
 
-#: templates/index.html:144 templates/index.html:168
+#: templates/index.html:150 templates/index.html:174
 #: templates/mobile_object_detail.html:498
 msgid "Trend"
 msgstr "トレンド"
 
-#: templates/index.html:145 templates/index.html:146
+#: templates/index.html:151 templates/index.html:152
 msgid "11 PM"
 msgstr "夜11時"
 
-#: templates/index.html:147 templates/index.html:171
+#: templates/index.html:153 templates/index.html:177
+#: templates/solar_system.html:66
 msgid "Transit"
 msgstr "トランジット"
 
-#: templates/index.html:148
+#: templates/index.html:154
 msgid "Observable"
 msgstr "観測可能"
 
-#: templates/index.html:148 templates/index.html:172
+#: templates/index.html:154 templates/index.html:178
 msgid "minutes"
 msgstr "分"
 
-#: templates/index.html:149
+#: templates/index.html:155
 msgid "observable (°)"
 msgstr "観測値 (°)"
 
-#: templates/index.html:150
+#: templates/index.html:156
 msgid "Ang. Sep."
 msgstr "角距離"
 
-#: templates/index.html:150
+#: templates/index.html:156
 msgid "to moon (°)"
 msgstr "月へ (°)"
 
-#: templates/index.html:153
+#: templates/index.html:159 templates/solar_system.html:69
 msgid "Magnitude"
 msgstr "規模"
 
-#: templates/index.html:154
+#: templates/index.html:160
 msgid "Size ("
 msgstr "サイズ ("
 
-#: templates/index.html:155
+#: templates/index.html:161
 msgid "SB"
 msgstr "表面輝度"
 
-#: templates/index.html:156
+#: templates/index.html:162
 msgid "Best Month"
 msgstr "最高の月"
 
-#: templates/index.html:156
+#: templates/index.html:162
 msgid "Opp."
 msgstr "衝"
 
-#: templates/index.html:157 templates/index.html:242
+#: templates/index.html:163 templates/index.html:248
 msgid "Max Alt"
 msgstr "最大値"
 
-#: templates/index.html:157
+#: templates/index.html:163
 msgid "Culm."
 msgstr "南中"
 
-#: templates/index.html:160
+#: templates/index.html:166
 msgid "Sessions"
 msgstr "セッション数"
 
-#: templates/index.html:164 templates/index.html:247
+#: templates/index.html:170 templates/index.html:253
 msgid "Search Object"
 msgstr "オブジェクトを検索"
 
-#: templates/index.html:165 templates/index.html:213 templates/index.html:248
+#: templates/index.html:171 templates/index.html:219 templates/index.html:254
 msgid "Search Common Name"
 msgstr "一般名で検索"
 
-#: templates/index.html:166 templates/index.html:169
+#: templates/index.html:172 templates/index.html:175
 msgid "Altitude °"
 msgstr "高度 °"
 
-#: templates/index.html:167 templates/index.html:170
+#: templates/index.html:173 templates/index.html:176
 msgid "Azimuth °"
 msgstr "方位角 °"
 
-#: templates/index.html:173
+#: templates/index.html:179
 msgid "Max Alt. °"
 msgstr "最大高度 °"
 
-#: templates/index.html:174
+#: templates/index.html:180
 msgid "Ang. Sep. °"
 msgstr "角距離 °"
 
-#: templates/index.html:175
+#: templates/index.html:181
 msgid "e.g. Cyg"
 msgstr "例：Cyg"
 
-#: templates/index.html:176
+#: templates/index.html:182
 msgid "Type (e.g. PN,SNR)"
 msgstr "タイプ（例：PN、SNR）"
 
-#: templates/index.html:177
+#: templates/index.html:183
 msgid "Mag e.g. <8"
 msgstr "例えば、8未満"
 
-#: templates/index.html:178
+#: templates/index.html:184
 msgid "Size e.g. >10"
 msgstr "例えば、>10"
 
-#: templates/index.html:179
+#: templates/index.html:185
 msgid "SB e.g. <22"
 msgstr "SB 例：<22"
 
-#: templates/index.html:180
+#: templates/index.html:186
 msgid "e.g. Dec"
 msgstr "例：12月"
 
-#: templates/index.html:181
+#: templates/index.html:187
 msgid "e.g. >80"
 msgstr "例：80以上"
 
-#: templates/index.html:182
+#: templates/index.html:188
 msgid "e.g. SW80"
 msgstr "例：SW80"
 
-#: templates/index.html:186
+#: templates/index.html:192
 msgid "Has notes"
 msgstr "注記あり"
 
-#: templates/index.html:187
+#: templates/index.html:193
 msgid "No notes"
 msgstr "注記なし"
 
-#: templates/index.html:190
+#: templates/index.html:196
 msgid "e.g. >0"
 msgstr "例：0以上"
 
-#: templates/index.html:207
+#: templates/index.html:213
 msgid "Telescope Setup"
 msgstr "望遠鏡の設置"
 
-#: templates/index.html:214
+#: templates/index.html:220
 msgid "Project Name"
 msgstr "プロジェクト名"
 
-#: templates/index.html:225
+#: templates/index.html:231
 msgid "Setup notes"
 msgstr "セットアップに関する注意事項"
 
-#: templates/index.html:226
+#: templates/index.html:232
 msgid "e.g. >120"
 msgstr "例：120以上"
 
-#: templates/index.html:227
+#: templates/index.html:233
 msgid "e.g. ★★★★"
 msgstr "例：★★★★"
 
-#: templates/index.html:243
+#: templates/index.html:249
 msgid "Obs. Time"
 msgstr "注記 時間"
 
-#: templates/index.html:249
+#: templates/index.html:255
 msgid "Search Date"
 msgstr "検索日"
 
-#: templates/index.html:250
+#: templates/index.html:256
 msgid "e.g. >60"
 msgstr "例：60以上"
 
-#: templates/index.html:251
+#: templates/index.html:257
 msgid "e.g. >300"
 msgstr "例: >300"
 
-#: templates/index.html:252
+#: templates/index.html:258
 msgid "e.g. ★★★★★"
 msgstr "例：★★★★★"
 
-#: templates/index.html:266
+#: templates/index.html:272
 msgid "Here your session and project images will be shown."
 msgstr "ここにセッションとプロジェクトの画像が表示されます。"
 
-#: templates/index.html:271
+#: templates/index.html:277
 msgid "Updating data..."
 msgstr "データを更新中..."
 
-#: templates/index.html:286
+#: templates/index.html:292
 msgid "Graph"
 msgstr "グラフ"
 
-#: templates/index.html:292
+#: templates/index.html:298
 msgid "Save Current View"
 msgstr "現在のビューを保存"
 
-#: templates/index.html:295
+#: templates/index.html:301
 msgid "Description:"
 msgstr "説明:"
 
-#: templates/index.html:295
+#: templates/index.html:301
 msgid "Describe what this filter does..."
 msgstr "このフィルターの機能を説明してください..."
 
-#: templates/index.html:298
+#: templates/index.html:304
 msgid "Share this view with others"
 msgstr "このビューを他の人と共有する"
 
@@ -5929,6 +5948,158 @@ msgstr "ゲイン/オフセット"
 #: templates/project_report.html:1200
 msgid "Exp"
 msgstr "実験"
+
+#: templates/solar_system.html:52
+msgid "Bodies"
+msgstr "天体"
+
+#: templates/solar_system.html:62
+msgid "Body"
+msgstr "天体"
+
+#: templates/solar_system.html:63
+msgid "Altitude now"
+msgstr "現在の高度"
+
+#: templates/solar_system.html:64
+msgid "Azimuth now"
+msgstr "現在の方位角"
+
+#: templates/solar_system.html:65
+msgid "Rise"
+msgstr "出"
+
+#: templates/solar_system.html:67
+msgid "Set"
+msgstr "入り"
+
+#: templates/solar_system.html:68
+msgid "Max altitude tonight"
+msgstr "今夜の最高高度"
+
+#: templates/solar_system.html:70
+msgid "Diameter"
+msgstr "視直径"
+
+#: templates/solar_system.html:71
+msgid "Illuminated"
+msgstr "輝面比"
+
+#: templates/solar_system.html:72
+msgid "Elongation"
+msgstr "離角"
+
+#: templates/solar_system.html:87
+msgid "Tonight"
+msgstr "今夜"
+
+#: templates/solar_system.html:108
+msgid "Mercury"
+msgstr "水星"
+
+#: templates/solar_system.html:109
+msgid "Venus"
+msgstr "金星"
+
+#: templates/solar_system.html:110
+msgid "Mars"
+msgstr "火星"
+
+#: templates/solar_system.html:111
+msgid "Jupiter"
+msgstr "木星"
+
+#: templates/solar_system.html:112
+msgid "Saturn"
+msgstr "土星"
+
+#: templates/solar_system.html:113
+msgid "Uranus"
+msgstr "天王星"
+
+#: templates/solar_system.html:114
+msgid "Neptune"
+msgstr "海王星"
+
+#: templates/solar_system.html:117
+msgid "E"
+msgstr "東"
+
+#: templates/solar_system.html:118
+msgid "W"
+msgstr "西"
+
+#: templates/solar_system.html:119
+msgid "Always up"
+msgstr "常に地平線上"
+
+#: templates/solar_system.html:120
+msgid "Never up"
+msgstr "常に地平線下"
+
+#: templates/solar_system.html:121
+msgid "Not up tonight"
+msgstr "今夜は昇らない"
+
+#: templates/solar_system.html:122
+msgid "Does not reach the altitude threshold tonight"
+msgstr "今夜は高度閾値に達しません"
+
+#: templates/solar_system.html:123
+msgid "Solar System data could not be calculated."
+msgstr "太陽系のデータを計算できませんでした。"
+
+#: templates/solar_system.html:124
+msgid "Could not load location data."
+msgstr "観測地のデータを読み込めませんでした。"
+
+#: templates/solar_system.html:125
+msgid "The altitude chart could not be drawn."
+msgstr "高度グラフを描画できませんでした。"
+
+#: templates/solar_system.html:128
+msgid "Sunset"
+msgstr "日没"
+
+#: templates/solar_system.html:129
+msgid "Sunrise"
+msgstr "日の出"
+
+#: templates/solar_system.html:130
+msgid "Astronomical dusk"
+msgstr "天文薄暮"
+
+#: templates/solar_system.html:131
+msgid "Astronomical dawn"
+msgstr "天文薄明"
+
+#: templates/solar_system.html:135
+msgid "Horizon"
+msgstr "地平線"
+
+#: templates/solar_system.html:136
+msgid "Altitude threshold / horizon mask"
+msgstr "高度閾値 / ホライゾンマスク"
+
+#: templates/solar_system.html:137
+msgid "Local time"
+msgstr "現地時間"
+
+#: templates/solar_system.html:138
+msgid "Altitude (°)"
+msgstr "高度 (°)"
+
+#: templates/solar_system.html:139
+msgid "Azimuth (°)"
+msgstr "方位角 (°)"
+
+#: templates/solar_system.html:140
+msgid "Max altitude (sunset to sunrise)"
+msgstr "最高高度（日没から日の出まで）"
+
+#: templates/solar_system.html:141
+msgid "Day of month"
+msgstr "日付"
 
 #~ msgid "Refresh Suggestions"
 #~ msgstr "更新提案"
