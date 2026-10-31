@@ -435,3 +435,31 @@ def test_month_series_year_bounds(tmp_path):
     for year in (1899, 2101, 50):
         assert by_year[year]["ok"] is False
         assert "year out of range" in by_year[year]["error"]
+
+
+def test_ring_tilt_is_saturns_only_and_matches_ephem(tmp_path):
+    """ringTiltDeg is Saturn's (the Earth's latitude over the ring plane, + north face),
+    null for every other body; it agrees with ephem's earth_tilt, sign included, within
+    0.05 deg at the instant, across the 2025 edge-on crossing (south face after it)."""
+    import math
+    from datetime import datetime, timezone
+
+    import ephem
+
+    cases = [SUMMER_EVENING_MS, 1735689600000, 1742860800000, 1792958400000]   # 2026-07, 2025-01, 2025-03-25, 2026-10
+    got = _run(tmp_path, """
+        result = input.times.map(t => {
+            const r = NovaSolarRows.rows({inputs: input.inputs, nowMs: t, simDate: null});
+            return {instant: r.instantUtc, tilts: r.rows.map(x => [x.body, x.ringTiltDeg])};
+        });
+    """, {"inputs": _loc(), "times": cases})
+    signs = set()
+    for case in got:
+        for body, tilt in case["tilts"]:
+            if body != "saturn":
+                assert tilt is None, body
+                continue
+            ref = math.degrees(ephem.Saturn(ephem.Date(datetime.fromtimestamp(case["instant"] / 1000, timezone.utc))).earth_tilt)
+            assert abs(tilt - ref) <= 0.05
+            signs.add(tilt > 0)
+    assert signs == {True, False}, "the cases straddle the crossing"

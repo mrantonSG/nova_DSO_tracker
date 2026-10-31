@@ -96,14 +96,18 @@ AUTUMN_EVENING_MS = _ms(2026, 10, 31, 20, 0)
 
 
 def test_only_planet_events_in_time_order(tmp_path):
-    """Oppositions of the outer planets, greatest elongations of Mercury and Venus, no
-    Moon; in time order, all inside the window."""
+    """Oppositions of the outer planets, greatest elongations of Mercury and Venus, and
+    conjunctions (the only rows with the Moon, checked below); in time order, all inside
+    the window."""
     got = _events(tmp_path, _loc(), AUTUMN_EVENING_MS)
     rows = got["rows"]
     assert got["date"] == "2026-10-31"
     assert [r["utcMs"] for r in rows] == sorted(r["utcMs"] for r in rows)
     for r in rows:
         assert got["window"]["start"] <= r["utcMs"] <= got["window"]["end"]
+        if r["kind"] == "conjunction":
+            continue
+        assert r["bodies"] == [r["body"]]
         if r["body"] in OPPOSITION_BODIES:
             assert r["kind"] == "opposition"
         else:
@@ -123,7 +127,7 @@ def test_window_starts_thirty_days_before_the_night(tmp_path):
     night's. daysFromNow counts nights, so it is -30."""
     def mars(sim):
         got = _events(tmp_path, _loc(), _ms(2026, 11, 1, 20, 0), sim)
-        return [r for r in got["rows"] if r["body"] == "mars"]
+        return [r for r in got["rows"] if r["body"] == "mars" and r["kind"] == "opposition"]
 
     inside = mars("2027-03-21")
     assert len(inside) == 1
@@ -153,27 +157,36 @@ def test_night_time_and_days_follow_the_location_zone(tmp_path):
 
 
 def test_muted_is_max_altitude_below_threshold(tmp_path):
-    """muted exactly when that night's max altitude is below the threshold; never dropped."""
+    """muted exactly when that night's max altitude is below the threshold, or for a
+    conjunction closer than 15 deg to the Sun (mutedReason 'sun', which wins); never
+    dropped."""
     counts = []
     for threshold in (-90, 20, 89.9):
         got = _events(tmp_path, _loc(altitude_threshold=threshold), AUTUMN_EVENING_MS)
         assert got["threshold"] == threshold
         for r in got["rows"]:
-            assert r["muted"] is (r["maxAlt"] < threshold)
-        counts.append((len(got["rows"]), sum(r["muted"] for r in got["rows"])))
-    assert counts[0][1] == 0 and counts[2][1] == counts[2][0]
+            sun = r["kind"] == "conjunction" and r["elongationDeg"] < 15
+            assert r["muted"] is (r["maxAlt"] < threshold or sun)
+            assert r["mutedReason"] == ("sun" if sun else "altitude" if r["maxAlt"] < threshold else None)
+        counts.append((len(got["rows"]), sum(r["muted"] for r in got["rows"]),
+                       sum(r["mutedReason"] == "sun" for r in got["rows"])))
+    assert counts[0][1] == counts[0][2] > 0 and counts[2][1] == counts[2][0]
     assert counts[0][0] == counts[1][0] == counts[2][0]
 
 
 def test_max_altitude_is_the_bodies_tab_nightly_max(tmp_path):
     """The same night window and sampling as the Bodies tab's month chart: each row's
-    maxAlt is NovaSolarRows.nightlyMax() for its night, exactly."""
+    maxAlt is NovaSolarRows.nightlyMax() for its night, exactly (for a conjunction the
+    higher of its two bodies')."""
     got = _run(tmp_path, """
         const r = NovaSolarCalendar.events({inputs: input.inputs, nowMs: input.nowMs, simDate: null});
         result = r.rows.map(x => {
-            const m = NovaSolarRows.nightlyMax({inputs: input.inputs, body: x.body,
-                year: +x.night.slice(0, 4), month: +x.night.slice(5, 7)});
-            return [x.maxAlt, m.max_alt[m.dates.indexOf(x.night)]];
+            const best = x.bodies.map(body => {
+                const m = NovaSolarRows.nightlyMax({inputs: input.inputs, body: body,
+                    year: +x.night.slice(0, 4), month: +x.night.slice(5, 7)});
+                return m.max_alt[m.dates.indexOf(x.night)];
+            });
+            return [x.maxAlt, Math.max.apply(null, best)];
         });
     """, {"inputs": _loc(SINGAPORE), "nowMs": AUTUMN_EVENING_MS})
     assert len(got) >= 15
@@ -199,7 +212,8 @@ def test_elongation_column_and_event_sides(tmp_path):
     within a few degrees of 180 at opposition."""
     got = _run(tmp_path, """
         const r = NovaSolarCalendar.events({inputs: input.inputs, nowMs: input.nowMs, simDate: null});
-        result = r.rows.map(x => [x.body, x.kind, x.elongationDeg, NovaPlanets.details(x.body, x.utcMs).elongationDeg]);
+        result = r.rows.filter(x => x.kind !== 'conjunction')
+            .map(x => [x.body, x.kind, x.elongationDeg, NovaPlanets.details(x.body, x.utcMs).elongationDeg]);
     """, {"inputs": _loc(), "nowMs": AUTUMN_EVENING_MS})
     for body, kind, shown, signed in got:
         if kind == "opposition":
@@ -363,3 +377,203 @@ def test_events_match_ephem(tmp_path, ephem_events, loc):
         checked += 1
     assert checked == len(ephem_events)
     assert checked - near_noon >= 100, "most nights were compared"
+
+
+# ------------------------------------------------------------------ conjunctions, closest approach, rings
+
+MOON_PARTNERS = ["venus", "mars", "jupiter", "saturn"]
+CONJUNCTION_PLANETS = ["mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune"]
+
+
+def test_conjunction_rows(tmp_path):
+    """A conjunction row: one of the 25 pairs, the brighter body first and the click
+    target, the separation below the pair's limit (2 deg planets, 1 deg the Moon), the
+    smaller of the two elongations; other rows carry no pair."""
+    got = _run(tmp_path, """
+        const r = NovaSolarCalendar.events({inputs: input.inputs, nowMs: input.nowMs, simDate: null});
+        result = {rows: r.rows, el: r.rows.map(x => x.bodies.map(b => NovaPlanets.details(b, x.utcMs).elongationDeg)),
+                  pairs: NovaSolarCalendar.PAIRS.length};
+    """, {"inputs": _loc(), "nowMs": AUTUMN_EVENING_MS})
+    assert got["pairs"] == 21 + 4
+    conj = 0
+    for r, el in zip(got["rows"], got["el"]):
+        if r["kind"] != "conjunction":
+            assert r["other"] is None and r["sepDeg"] is None
+            continue
+        conj += 1
+        a, b = r["bodies"]
+        assert r["body"] == a and r["other"]["body"] == b
+        assert r["mag"] <= r["other"]["mag"]
+        if "moon" in r["bodies"]:
+            assert a == "moon" and b in MOON_PARTNERS and r["sepDeg"] < 1
+        else:
+            assert a in CONJUNCTION_PLANETS and b in CONJUNCTION_PLANETS and r["sepDeg"] < 2
+        assert r["elongationDeg"] == pytest.approx(min(abs(e) for e in el))
+    # Measured for this window: 20 planet pairs under 2 deg, 6 Moon pairs under 1 deg from London
+    assert conj >= 20
+
+
+def test_mars_closest_approach_is_on_the_opposition_row(tmp_path):
+    """Not a row of its own: the 2027 opposition row (night of 2027-02-19) carries the
+    closest approach, 2027-02-20 00:09 UTC (still the night of the 19th in London),
+    0.67787 AU = 101.4 million km. No other row has one."""
+    got = _events(tmp_path, _loc(), AUTUMN_EVENING_MS)
+    assert all(r["kind"] != "closestApproach" for r in got["rows"])
+    carrying = [r for r in got["rows"] if r["closestApproach"]]
+    assert [(r["body"], r["kind"], r["night"]) for r in carrying] == [("mars", "opposition", "2027-02-19")]
+    ca = carrying[0]["closestApproach"]
+    assert ca["night"] == "2027-02-19"
+    assert abs(ca["utcMs"] - _ms(2027, 2, 20, 0, 9)) < 3600000
+    assert ca["distAU"] * 149.5978707 == pytest.approx(101.4, abs=0.05)
+
+
+def test_ring_tilt_on_saturn_rows(tmp_path):
+    """Every row with Saturn in it carries Saturn's ring tilt at the instant; no other row."""
+    got = _run(tmp_path, """
+        const r = NovaSolarCalendar.events({inputs: input.inputs, nowMs: input.nowMs, simDate: null});
+        result = r.rows.map(x => [x.bodies, x.ringTiltDeg, NovaPlanets.details('saturn', x.utcMs).ringTiltDeg]);
+    """, {"inputs": _loc(), "nowMs": AUTUMN_EVENING_MS})
+    with_saturn = 0
+    for bodies, tilt, engine in got:
+        if "saturn" in bodies:
+            with_saturn += 1
+            assert tilt == engine
+        else:
+            assert tilt is None
+    assert with_saturn >= 3
+
+
+def _ephem_minima(f, start, end, step):
+    """Local minima of f over ephem dates, a scan every `step` days, then golden section
+    to a minute: [(utc ms, value)]."""
+    out = []
+    a, b, t = f(start), f(start + step), start + 2 * step
+    while t <= end:
+        c = f(t)
+        if b < a and b <= c:
+            lo, hi = t - 2 * step, t
+            while hi - lo > 1 / 1440:
+                m1, m2 = hi - (hi - lo) * 0.618034, lo + (hi - lo) * 0.618034
+                if f(m1) < f(m2):
+                    hi = m2
+                else:
+                    lo = m1
+            tm = (lo + hi) / 2
+            out.append((_ephem_ms(tm), f(tm)))
+        a, b, t = b, c, t + step
+    return out
+
+
+def _parity_span():
+    return float(ephem.Date(PARITY_START)), float(ephem.Date(PARITY_END))
+
+
+def _span_ms():
+    return {"start": int(PARITY_START.timestamp() * 1000), "end": int(PARITY_END.timestamp() * 1000)}
+
+
+def test_mars_closest_approach_matches_ephem(tmp_path):
+    """2024-2034: the minima of Mars's distance as ephem's earth_distance has them, each
+    within 2 h (measured worst 1.0 h; the minimum is flat) and 2e-4 AU (measured 1.0e-4)."""
+    mars = ephem.Mars()
+
+    def dist(t):
+        mars.compute(ephem.Date(t))
+        return mars.earth_distance
+
+    ref = _ephem_minima(dist, *_parity_span(), 1)
+    got = _run(tmp_path, "result = NovaSolarCalendar.closestApproaches(input.start, input.end).map(e => [e.utcMs, e.distAU]);",
+               _span_ms())
+    assert len(got) == len(ref) == 5
+    for (ref_ms, ref_au), (utc_ms, au) in zip(ref, got):
+        assert abs(utc_ms - ref_ms) <= 2 * 3600000
+        assert abs(au - ref_au) <= 2e-4
+
+
+INNER = {"mercury", "venus", "mars"}
+
+
+def _match(ref, got, tol_h, tol_deg):
+    """Each event (a, b, utc ms, separation) of ref has exactly one in got for the same
+    pair within five days, within tol_h(a, b) hours and tol_deg."""
+    for a, b, ref_ms, ref_sep in ref:
+        found = [g for g in got if g[0] == a and g[1] == b and abs(g[2] - ref_ms) < 5 * 86400000]
+        assert len(found) == 1, (a, b, ref_ms, ref_sep)
+        assert abs(found[0][2] - ref_ms) / 3600000 <= tol_h(a, b), (a, b, ref_ms)
+        assert abs(found[0][3] - ref_sep) <= tol_deg, (a, b, ref_ms)
+
+
+def test_planet_conjunctions_match_ephem(tmp_path):
+    """2024-2034, geocentric: the minima of the separation of ephem's astrometric places
+    (a_ra, a_dec), the same both ways (the engine's under 2.4 deg among ephem's under
+    2.5 and the other way round, so the limit's edge cannot decide). Within 0.03 deg
+    (measured 0.018) and 1.5 h for a pair with Mercury, Venus or Mars (measured 0.84 h);
+    18 h for two outer planets, whose minimum is nearly flat (measured 10.9 h,
+    Saturn-Neptune 2025)."""
+    start, end = _parity_span()
+    bodies = {p: getattr(ephem, p.capitalize())() for p in CONJUNCTION_PLANETS}
+    ref = []
+    for i, a in enumerate(CONJUNCTION_PLANETS):
+        for b in CONJUNCTION_PLANETS[i + 1:]:
+            A, B = bodies[a], bodies[b]
+
+            def sep(t, A=A, B=B):
+                d = ephem.Date(t)
+                A.compute(d)
+                B.compute(d)
+                return math.degrees(float(ephem.separation((A.a_ra, A.a_dec), (B.a_ra, B.a_dec))))
+
+            ref += [(a, b, ms, v) for ms, v in _ephem_minima(sep, start, end, 1) if v < 2.5]
+    got = _run(tmp_path, """
+        const out = [];
+        for (const p of NovaSolarCalendar.PAIRS) {
+            if (p[0] === 'moon') continue;
+            for (const e of NovaSolarCalendar.searchPair(p[0], p[1], input.start, input.end, {limitDeg: 2.5})) {
+                out.push([p[0], p[1], e.utcMs, e.sepDeg]);
+            }
+        }
+        result = out;
+    """, _span_ms())
+    assert len(ref) >= 100
+    tol = lambda a, b: 1.5 if (a in INNER or b in INNER) else 18.0
+    _match([e for e in ref if e[3] < 2.4], got, tol, 0.03)
+    _match([e for e in got if e[3] < 2.4], ref, tol, 0.03)
+
+
+@pytest.mark.parametrize("loc", [LONDON, SINGAPORE], ids=["london", "singapore"])
+def test_moon_conjunctions_match_ephem(tmp_path, loc):
+    """2024-2034, topocentric: the minima of the separation of the Moon and each partner
+    as ephem places them for the observer (elevation 0, pressure 0: no refraction), the
+    same both ways (under 1.2 deg among under 1.3). Within 0.25 h (measured 0.06 h) and
+    0.01 deg (measured 0.004)."""
+    start, end = _parity_span()
+    obs = ephem.Observer()
+    obs.lat, obs.lon = str(loc["lat"]), str(loc["lon"])
+    obs.elevation, obs.pressure = 0, 0
+    moon = ephem.Moon()
+    ref = []
+    for p in MOON_PARTNERS:
+        B = getattr(ephem, p.capitalize())()
+
+        def sep(t, B=B):
+            obs.date = ephem.Date(t)
+            moon.compute(obs)
+            B.compute(obs)
+            return math.degrees(float(ephem.separation((moon.ra, moon.dec), (B.ra, B.dec))))
+
+        ref += [("moon", p, ms, v) for ms, v in _ephem_minima(sep, start, end, 0.125) if v < 1.3]
+    got = _run(tmp_path, """
+        const out = [];
+        for (const p of NovaSolarCalendar.PAIRS) {
+            if (p[0] !== 'moon') continue;
+            for (const e of NovaSolarCalendar.searchPair(p[0], p[1], input.start, input.end,
+                                                         {lat: input.lat, lon: input.lon, limitDeg: 1.3})) {
+                out.push([p[0], p[1], e.utcMs, e.sepDeg]);
+            }
+        }
+        result = out;
+    """, dict(_span_ms(), lat=loc["lat"], lon=loc["lon"]))
+    assert len(ref) >= 50
+    tol = lambda a, b: 0.25
+    _match([e for e in ref if e[3] < 1.2], got, tol, 0.01)
+    _match([e for e in got if e[3] < 1.2], ref, tol, 0.01)

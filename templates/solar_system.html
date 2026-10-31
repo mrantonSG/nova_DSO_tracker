@@ -102,10 +102,51 @@
             <p id="solar-chart-error" class="status-secondary" role="alert" hidden></p>
         </div>
     </div>
+
+    <div id="solar-rigfit" class="content-section">
+        <h3 id="solar-rigfit-title">{{ _('Rig fit') }}</h3>
+        <div class="table-wrapper" id="solar-rigfit-wrapper">
+            <table id="solar-rigfit-table" class="solar-table">
+              <thead>
+                <tr>
+                  <th data-solar-col="rig"><span>{{ _('Rig') }}</span></th>
+                  <th data-solar-col="disc" title="{{ _('Apparent diameter of the body in pixels with this rig.') }}"><span>{{ _('Disc') }}</span></th>
+                  <th data-solar-col="fratio" title="{{ _('Rule of thumb for good seeing: 5 x pixel size in µm. Many imagers use 3-5 x, lower for average seeing or colour cameras.') }}"><span>{{ _('Focal ratio') }}</span></th>
+                  <th data-solar-col="barlow" title="{{ _('Barlow or extender that would bring the rig to the ideal focal ratio. The real amplification depends on the Barlow-to-sensor spacing.') }}"><span>{{ _('Barlow') }}</span></th>
+                  <th data-solar-col="extra" id="solar-rigfit-extra" hidden><span id="solar-rigfit-extra-label"></span></th>
+                </tr>
+              </thead>
+              <tbody id="solar-rigfit-body"></tbody>
+            </table>
+        </div>
+        <p id="solar-rigfit-empty" class="status-secondary" hidden>
+            {{ _('No active rig. Add or activate one on the Configuration page.') }}
+            <a href="{{ url_for('core.config_form', prefill_config_tab='rigs') }}" class="inline-button">{{ _('Manage Rigs') }}</a>
+        </p>
+    </div>
 </div>
 
 <div id="calendar-tab" class="tab-content" role="tabpanel" aria-labelledby="calendar-tab-button">
     <p id="solar-cal-error" class="status-secondary" role="alert" hidden></p>
+    <p id="solar-cal-loading" class="status-secondary" role="status" hidden>{{ _('Calculating...') }}</p>
+
+    <div class="solar-cal-filter" id="solar-cal-filter">
+        <select id="solar-cal-body-filter" class="styled-select" aria-label="{{ _('Body') }}">
+            <option value="">{{ _('All bodies') }}</option>
+            <option value="mercury">{{ _('Mercury') }}</option>
+            <option value="venus">{{ _('Venus') }}</option>
+            <option value="mars">{{ _('Mars') }}</option>
+            <option value="jupiter">{{ _('Jupiter') }}</option>
+            <option value="saturn">{{ _('Saturn') }}</option>
+            <option value="uranus">{{ _('Uranus') }}</option>
+            <option value="neptune">{{ _('Neptune') }}</option>
+            <option value="moon">{{ _('Moon') }}</option>
+        </select>
+        <label for="solar-cal-hide-muted">
+            <input type="checkbox" id="solar-cal-hide-muted">
+            {{ _('Hide events that are not visible') }}
+        </label>
+    </div>
 
     <div class="table-wrapper" id="solar-cal-wrapper">
         <table id="solar-cal-table" class="solar-table">
@@ -168,12 +209,42 @@ const solarI18n = {
     elongationWest:{{ _('Greatest elongation W (morning)') | tojson }},
     belowThresholdNight: {{ _('Does not reach the altitude threshold that night') | tojson }},
     exactTime:     {{ _('Exact time: %(time)s', time='{time}') | tojson }},
+    conjunction:   {{ _('Conjunction %(sep)s°', sep='{sep}') | tojson }},
+    tooCloseToSun: {{ _('Too close to the Sun (%(elong)s° away)', elong='{elong}') | tojson }},
+    closestApproach: {{ _('Closest approach: %(date)s, %(dist)s million km', date='{date}', dist='{dist}') | tojson }},
+    rings:         {{ _('rings %(value)s', value='{value}') | tojson }},
+    ringTiltHelp:  {{ _('Tilt of the rings toward the Earth: + north face, − south face visible. Near 0° the rings are edge-on.') | tojson }},
     eventHelp: {
         opposition:     {{ _('Opposite the Sun: up all night, closest and brightest. Good for several weeks around this date.') | tojson }},
         elongationEast: {{ _('Farthest east of the Sun: best evening visibility, low in the west after sunset.') | tojson }},
-        elongationWest: {{ _('Farthest west of the Sun: best morning visibility, low in the east before sunrise.') | tojson }}
+        elongationWest: {{ _('Farthest west of the Sun: best morning visibility, low in the east before sunrise.') | tojson }},
+        conjunction:    {{ _('Closest apparent approach of the two bodies.') | tojson }},
+        conjunctionMoon:{{ _('Closest apparent approach of the two bodies, as seen from this location.') | tojson }}
+    },
+    rigFit: {
+        title:         {{ _('Rig fit') | tojson }},
+        ideal:         {{ _('ideal f/%(ratio)s', ratio='{ratio}') | tojson }},
+        noneNeeded:    {{ _('none needed') | tojson }},
+        aboveIdeal:    {{ _('above ideal') | tojson }},
+        exactFactor:   {{ _('Exact factor: %(factor)s', factor='{factor}') | tojson }},
+        rotationLimit: {{ _('Rotation limit') | tojson }},
+        rotationHelp:  {{ _('Longest single capture before rotation blurs detail at the disc centre, without derotation. With derotation (e.g. WinJUPOS) much longer captures are possible.') | tojson }},
+        minSec:        {{ _('%(min)s min %(sec)s s', min='{min}', sec='{sec}') | tojson }},
+        mosaic:        {{ _('Mosaic') | tojson }},
+        mosaicHelp:    {{ _('Frames needed for the full disc, each overlapping its neighbours by 20 percent.') | tojson }},
+        fitsOneFrame:  {{ _('Fits in one frame') | tojson }},
+        panels:        {{ _('%(n)s panels (%(cols)s × %(rows)s)', n='{n}', cols='{cols}', rows='{rows}') | tojson }},
+        missing: {
+            noTelescope: {{ _('This rig has no telescope.') | tojson }},
+            noCamera:    {{ _('This rig has no camera.') | tojson }},
+            focalLength: {{ _('The telescope has no focal length.') | tojson }},
+            aperture:    {{ _('The telescope has no aperture.') | tojson }},
+            pixelSize:   {{ _('The camera has no pixel size.') | tojson }},
+            sensorSize:  {{ _('The camera has no sensor size.') | tojson }}
+        }
     }
 };
+const solarRigs = {{ solar_rigs | tojson }};
 </script>
 
 <script src="{{ url_for('static', filename='js/chart/chart.umd.min.js') }}?v={{ version }}" defer></script>
@@ -187,6 +258,7 @@ const solarI18n = {
 <script src="{{ url_for('static', filename='js/nova_plot_data.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_solar_rows.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_solar_calendar.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/nova_solar_rigfit.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/solar_system_chart.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/solar_system.js') }}?v={{ version }}" defer></script>
 {% endblock %}

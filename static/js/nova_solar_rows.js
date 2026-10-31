@@ -23,7 +23,9 @@
  *     at the current wall clock of the location's zone. The night is that wall date,
  *     or the day before when the wall hour is before 12, also in simulation.
  *   - Altitude, azimuth, magnitude, diameter, illumination and elongation are those of
- *     the instant.
+ *     the instant, and so is ringTiltDeg: Saturn's ring tilt (NovaPlanets.details(), the
+ *     Earth's latitude over the ring plane, + north face, - south face), null for the
+ *     other bodies.
  *   - The night window is sunset on the night's date to sunrise the next morning
  *     (NovaAstro.sunEvents, the Sun's centre at SUN_RISE_SET_ALT): planets and the Moon
  *     are imaged in twilight, so the astronomical night would mute Mercury and Venus
@@ -284,6 +286,7 @@
                 illuminatedPct: det.illuminated * 100,
                 elongationDeg: Math.abs(det.elongationDeg),
                 elongationSide: det.elongationDeg >= 0 ? 'E' : 'W',
+                ringTiltDeg: body === 'saturn' ? finite(det.ringTiltDeg, 'saturn ring tilt') : null,
             };
         });
 

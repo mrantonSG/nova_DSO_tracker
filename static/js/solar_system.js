@@ -7,10 +7,15 @@
  * simulation (the simulated instant is the sim date at the current wall clock, so it
  * moves too); the same tick moves the chart's Now line.
  *
+ * Below the chart, the Rig fit card (NovaSolarRigFit) lists the user's active rigs
+ * (solarRigs, embedded by core.py) for the selected body; it follows the table.
+ *
  * The Calendar tab (NovaSolarCalendar) is built only while it is shown, and again only
  * when its location, threshold, sampling interval or observing night changes; the 60 s
  * tick otherwise costs one key comparison. Clicking an event opens the Bodies tab on
- * that body's Month view for the event's night.
+ * that body's Month view for the event's night (a conjunction's brighter body). The
+ * filter above it (a body, "hide events that are not visible") only hides rendered
+ * rows; it never recalculates.
  *
  * When the location's inputs do not load, both tabs show the translated error; the 60 s
  * tick keeps trying, and each tab clears its error on its next successful build.
@@ -18,7 +23,8 @@
  * Shared with the dashboard on purpose: sessionStorage.selectedLocation and
  * POST /set_location for the location, localStorage.simModeActive and simDate for
  * simulation. Its own tab key is localStorage.nova_solar_tab; it never writes the
- * dashboard's activeTab, nova_last_tab or nova_desktop_cache_*.
+ * dashboard's activeTab, nova_last_tab or nova_desktop_cache_*. The calendar filter's
+ * keys are localStorage.nova_solar_cal_body and nova_solar_cal_hide_muted.
  *
  * When /get_locations does not answer with JSON (a guest), the page uses the location
  * /api/desktop_inputs picks without a parameter and never POSTs /set_location.
@@ -28,6 +34,9 @@
 
     const REFRESH_MS = 60000;
     const TAB_KEY = 'nova_solar_tab';
+    const CAL_BODY_KEY = 'nova_solar_cal_body';
+    const CAL_HIDE_KEY = 'nova_solar_cal_hide_muted';
+    const AU_MILLION_KM = 149.5978707;
     const TABS = ['bodies', 'calendar'];
     const i18n = typeof solarI18n !== 'undefined' ? solarI18n : {};
 
@@ -44,6 +53,9 @@
         rangeDate: null,        // the night the month/year controls were last set from
         tab: 'bodies',
         calKey: null,           // what the calendar table shows, so it is rebuilt only on change
+        calResult: null,        // the last calendar, re-rendered when the filter changes
+        calPending: false,      // a calendar build is waiting for the next paint
+        calFilter: { body: '', hideMuted: false },
     };
 
     const $ = id => document.getElementById(id);
@@ -58,6 +70,18 @@
 
     function bodyName(body) {
         return (i18n.bodies && i18n.bodies[body]) || body;
+    }
+
+    /** A translated template with {key} placeholders filled in. */
+    function fill(template, values) {
+        let out = String(template === undefined ? '' : template);
+        Object.keys(values).forEach(k => { out = out.split('{' + k + '}').join(String(values[k])); });
+        return out;
+    }
+
+    /** '+4.6' or '−6.6' (U+2212). */
+    function signed(x, digits) {
+        return (x < 0 ? '−' : '+') + Math.abs(x).toFixed(digits);
     }
 
     function europeanDate(iso) {
@@ -86,6 +110,7 @@
         el.hidden = !message;
         $('solar-table-wrapper').hidden = !!message;
         $('chart-section').hidden = !!message;
+        $('solar-rigfit').hidden = !!message;
         if (message) resetChart();
     }
 
@@ -267,6 +292,16 @@
         return span;
     }
 
+    /** Diameter: one value, or "a / b" for a conjunction; Saturn's ring tilt as a second line. */
+    function diameterCell(tr, diameters, ringTiltDeg) {
+        const text = diameters.map(d => d.toFixed(1)).join(' / ');
+        if (ringTiltDeg === null || ringTiltDeg === undefined) return cell(tr, 'diam', text);
+        const td = cell(tr, 'diam');
+        line(td, 'solar-time', text);
+        line(td, 'solar-sub', fill(i18n.rings, {value: signed(ringTiltDeg, 1) + '°'})).title = i18n.ringTiltHelp || '';
+        return td;
+    }
+
     /** Rise or set: the time with its day suffix, or a word ("Always up", ...). */
     function riseSetCell(tr, col, time, day, row, notUpText) {
         const td = cell(tr, col);
@@ -317,7 +352,7 @@
             riseSetCell(tr, 'set', row.set, row.setDay, row, null);
             cell(tr, 'maxalt', row.maxAlt.toFixed(1));
             cell(tr, 'mag', row.mag.toFixed(1));
-            cell(tr, 'diam', row.diameterArcsec.toFixed(1));
+            diameterCell(tr, [row.diameterArcsec], row.ringTiltDeg);
             cell(tr, 'illum', row.illuminatedPct.toFixed(0));
             cell(tr, 'elong', row.elongationDeg.toFixed(1) + '° '
                 + (row.elongationSide === 'E' ? i18n.east : i18n.west));
@@ -337,7 +372,87 @@
         } catch (e) { /* the URL stays as it was */ }
         if (!state.result) return;
         renderTable();
+        renderRigFit();
         showChart();
+    }
+
+    // ------------------------------------------------------------------ rig fit
+
+    function span(parent, text, className) {
+        const el = document.createElement('span');
+        if (className) el.className = className;
+        el.textContent = text;
+        parent.appendChild(el);
+        return el;
+    }
+
+    /** A value the rig lacks the data for: a dash, the missing field in its tooltip. */
+    function missingSpan(parent, code, text) {
+        const el = span(parent, text === undefined ? '–' : text, 'solar-missing');
+        el.title = ((i18n.rigFit || {}).missing || {})[code] || '';
+        return el;
+    }
+
+    function minSec(seconds) {
+        const total = Math.round(seconds);
+        return fill((i18n.rigFit || {}).minSec, {min: Math.floor(total / 60), sec: total % 60});
+    }
+
+    /** The Rig fit card for the selected body: one line per active rig, rig names as text only. */
+    function renderRigFit() {
+        const R = i18n.rigFit || {};
+        const row = state.result && state.result.rows.find(r => r.body === state.selected);
+        $('solar-rigfit').hidden = !row;
+        if (!row) return;
+        $('solar-rigfit-title').textContent = (R.title || '') + ' · ' + bodyName(row.body)
+            + ' (' + row.diameterArcsec.toFixed(1) + '″)';
+        const rigs = typeof solarRigs !== 'undefined' && Array.isArray(solarRigs) ? solarRigs : [];
+        $('solar-rigfit-wrapper').hidden = !rigs.length;
+        $('solar-rigfit-empty').hidden = rigs.length > 0;
+
+        const extraKind = NovaSolarRigFit.ROTATION_HOURS[row.body] ? 'rotation' : (row.body === 'moon' ? 'mosaic' : null);
+        const extra = $('solar-rigfit-extra');
+        extra.hidden = !extraKind;
+        $('solar-rigfit-extra-label').textContent = extraKind === 'rotation' ? R.rotationLimit
+            : extraKind === 'mosaic' ? R.mosaic : '';
+        extra.title = extraKind === 'rotation' ? R.rotationHelp : extraKind === 'mosaic' ? R.mosaicHelp : '';
+
+        const tbody = $('solar-rigfit-body');
+        tbody.innerHTML = '';
+        rigs.forEach(rig => {
+            const f = NovaSolarRigFit.fit(rig, row.body, row.diameterArcsec);
+            const tr = document.createElement('tr');
+            cell(tr, 'rig', f.name);
+
+            const disc = cell(tr, 'disc');
+            if (f.disc.ok) {
+                span(disc, Math.round(f.disc.px) + ' px' + (f.disc.ringsPx === null ? ''
+                    : ' · ' + fill(i18n.rings, {value: Math.round(f.disc.ringsPx) + ' px'})));
+            } else missingSpan(disc, f.disc.missing);
+
+            const fr = cell(tr, 'fratio');
+            if (f.fRatio.ok) span(fr, 'f/' + f.fRatio.value.toFixed(1));
+            else missingSpan(fr, f.fRatio.missing);
+            span(fr, ' · ');
+            if (f.ideal.ok) span(fr, fill(R.ideal, {ratio: f.ideal.value.toFixed(1)}));
+            else missingSpan(fr, f.ideal.missing, fill(R.ideal, {ratio: '–'}));
+
+            const barlow = cell(tr, 'barlow');
+            if (f.barlow.ok) {
+                span(barlow, f.barlow.kind === 'factor' ? f.barlow.factor + '×'
+                    : f.barlow.kind === 'none' ? R.noneNeeded : R.aboveIdeal);
+                barlow.title = fill(R.exactFactor, {factor: f.barlow.exact.toFixed(2) + '×'});
+            } else missingSpan(barlow, f.barlow.missing);
+
+            if (extraKind) {
+                const td = cell(tr, 'extra');
+                const v = extraKind === 'rotation' ? f.rotation : f.mosaic;
+                if (!v.ok) missingSpan(td, v.missing);
+                else if (extraKind === 'rotation') span(td, minSec(v.seconds));
+                else span(td, v.panels === 1 ? R.fitsOneFrame : fill(R.panels, {n: v.panels, cols: v.cols, rows: v.rows}));
+            }
+            tbody.appendChild(tr);
+        });
     }
 
     // ------------------------------------------------------------------ chart
@@ -427,6 +542,7 @@
                 state.rangeDate = state.result.date;
             }
             renderTable();
+            renderRigFit();
             showChart(force);
             if (state.chart) state.chart.updateNow();
         } catch (e) {
@@ -451,25 +567,46 @@
         return n < 0 ? '−' + (-n) : String(n);
     }
 
+    /** The filter: a body (a conjunction matches either of its two) and "hide muted". */
+    function calRowShown(row) {
+        if (state.calFilter.hideMuted && row.muted) return false;
+        return !state.calFilter.body || row.bodies.indexOf(state.calFilter.body) >= 0;
+    }
+
     function renderCalendarRows(result) {
+        state.calResult = result;
         const tbody = $('solar-cal-body');
         tbody.innerHTML = '';
-        result.rows.forEach(row => {
+        const help = i18n.eventHelp || {};
+        result.rows.filter(calRowShown).forEach(row => {
+            const conj = row.kind === 'conjunction';
             const tr = document.createElement('tr');
             tr.className = 'clickable-row';
             tr.dataset.body = row.body;
             if (row.muted) {
                 tr.classList.add('geometrically-impossible');
-                tr.title = i18n.belowThresholdNight;
+                tr.title = row.mutedReason === 'sun'
+                    ? fill(i18n.tooCloseToSun, {elong: row.elongationDeg.toFixed(0)})
+                    : i18n.belowThresholdNight;
             }
             // The night's date only; the event's own local time is the cell's tooltip
             const date = cell(tr, 'date', europeanDate(row.night));
             date.title = String(i18n.exactTime).replace('{time}', NovaSolarRows.timeLabel(row.hm, row.hmDay));
-            cell(tr, 'body', bodyName(row.body));
-            const event = cell(tr, 'event', i18n[row.kind] || row.kind);
-            if (i18n.eventHelp && i18n.eventHelp[row.kind]) event.title = i18n.eventHelp[row.kind];
-            cell(tr, 'mag', row.mag.toFixed(1));
-            cell(tr, 'diam', row.diameterArcsec.toFixed(1));
+            cell(tr, 'body', row.bodies.map(bodyName).join(' – '));
+            const event = cell(tr, 'event', conj ? fill(i18n.conjunction, {sep: row.sepDeg.toFixed(1)})
+                                                 : (i18n[row.kind] || row.kind));
+            const helpText = conj ? help[row.bodies.indexOf('moon') >= 0 ? 'conjunctionMoon' : 'conjunction'] : help[row.kind];
+            const notes = [];
+            if (helpText) notes.push(helpText);
+            if (row.closestApproach) {
+                notes.push(fill(i18n.closestApproach, {
+                    date: europeanDate(row.closestApproach.night),
+                    dist: (row.closestApproach.distAU * AU_MILLION_KM).toFixed(1),
+                }));
+            }
+            if (notes.length) event.title = notes.join('\n');
+            cell(tr, 'mag', conj ? row.mag.toFixed(1) + ' / ' + row.other.mag.toFixed(1) : row.mag.toFixed(1));
+            diameterCell(tr, conj ? [row.diameterArcsec, row.other.diameterArcsec] : [row.diameterArcsec], row.ringTiltDeg);
             cell(tr, 'elong', row.elongationDeg === null ? '–' : row.elongationDeg.toFixed(1));
             cell(tr, 'maxalt', row.maxAlt.toFixed(1));
             cell(tr, 'days', signedDays(row.daysFromNow));
@@ -478,16 +615,52 @@
         });
     }
 
-    /** Rebuild the calendar when what it depends on changed. Any failure shows the
-     *  translated error, never throws; the next tick tries again. */
+    /** What the calendar depends on: location, its threshold and sampling, the night. */
+    function calendarKey() {
+        const loc = state.inputs.location;
+        const wall = NovaDashboardRows._wall;
+        const now = wall.effectiveInstant(Date.now(), simDate(), String(loc.timezone), NovaAstro);
+        return JSON.stringify([state.locName, loc.altitude_threshold, loc.sampling_interval,
+                               wall.observingNight(now.wall)]);
+    }
+
+    /** "Calculating..." in place of the table while a build is pending. */
+    function showCalLoading(on) {
+        $('solar-cal-loading').hidden = !on;
+        $('solar-cal-wrapper').hidden = on;
+    }
+
+    /** Run fn once the browser has painted: a frame, then a task. */
+    function afterPaint(fn) {
+        if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => setTimeout(fn, 0));
+        else setTimeout(fn, 0);
+    }
+
+    /** Rebuild the calendar when what it depends on changed. The build takes a few hundred
+     *  ms, so "Calculating..." is painted first; one build is pending at a time and works
+     *  from the inputs as they are when it runs. Any failure shows the translated error,
+     *  never throws; the next tick tries again. */
     function renderCalendar() {
-        if (!state.inputs) return;
+        if (!state.inputs || state.calPending) return;
         try {
-            const loc = state.inputs.location;
-            const wall = NovaDashboardRows._wall;
-            const now = wall.effectiveInstant(Date.now(), simDate(), String(loc.timezone), NovaAstro);
-            const key = JSON.stringify([state.locName, loc.altitude_threshold, loc.sampling_interval,
-                                        wall.observingNight(now.wall)]);
+            if (calendarKey() === state.calKey) return;
+        } catch (e) {
+            console.error('Solar System: could not calculate the calendar', e);
+            state.calKey = null;
+            showCalError(i18n.error);
+            return;
+        }
+        state.calPending = true;
+        showCalError(null);
+        showCalLoading(true);
+        afterPaint(buildCalendar);
+    }
+
+    function buildCalendar() {
+        state.calPending = false;
+        showCalLoading(false);
+        try {
+            const key = calendarKey();
             if (key === state.calKey) return;
             const result = NovaSolarCalendar.events({inputs: state.inputs, nowMs: Date.now(), simDate: simDate()});
             renderCalendarRows(result);
@@ -498,6 +671,27 @@
             state.calKey = null;
             showCalError(i18n.error);
         }
+    }
+
+    /** The filter's controls, from and to localStorage; a change re-renders the last calendar. */
+    function initCalFilter() {
+        const select = $('solar-cal-body-filter'), hide = $('solar-cal-hide-muted');
+        const saved = storageGet('localStorage', CAL_BODY_KEY);
+        state.calFilter.body = NovaPlanets.BODIES.indexOf(saved) >= 0 ? saved : '';
+        state.calFilter.hideMuted = storageGet('localStorage', CAL_HIDE_KEY) === 'true';
+        select.value = state.calFilter.body;
+        hide.checked = state.calFilter.hideMuted;
+        const apply = () => { if (state.calResult) renderCalendarRows(state.calResult); };
+        select.addEventListener('change', () => {
+            state.calFilter.body = NovaPlanets.BODIES.indexOf(select.value) >= 0 ? select.value : '';
+            storageSet('localStorage', CAL_BODY_KEY, state.calFilter.body);
+            apply();
+        });
+        hide.addEventListener('change', () => {
+            state.calFilter.hideMuted = !!hide.checked;
+            storageSet('localStorage', CAL_HIDE_KEY, String(state.calFilter.hideMuted));
+            apply();
+        });
     }
 
     /** A calendar row: the Bodies tab, that body, the Month view of the event's night. */
@@ -557,6 +751,7 @@
     async function init() {
         const params = new URLSearchParams(window.location.search);
         state.requested = params.get('body');
+        initCalFilter();
         initTabs();
         initSim();
         initChartControls();
