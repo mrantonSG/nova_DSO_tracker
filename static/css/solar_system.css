@@ -65,16 +65,13 @@
   font-weight: 600;
 }
 
-/* A time and the line under it (the transit's altitude; on the calendar, a date and
-   the event's time). */
-#solar-table .solar-time,
-#solar-cal-table .solar-time {
+/* A time and the line under it (the transit's altitude). */
+#solar-table .solar-time {
   display: block;
   white-space: nowrap;
 }
 
-#solar-table .solar-sub,
-#solar-cal-table .solar-sub {
+#solar-table .solar-sub {
   display: block;
   white-space: nowrap;
   font-size: 10px;

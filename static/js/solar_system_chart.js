@@ -1,7 +1,7 @@
 /*
  * solar_system_chart.js — the Solar System page's altitude chart for one body.
  *
- * SolarSystemChart.create(config) returns { show(view), updateNow(), destroy() }. Everything it needs
+ * SolarSystemChart.create(config) returns { show(view), updateNow(), resize(), destroy() }. Everything it needs
  * comes in config; it reads no page globals:
  *   canvas     the <canvas> to draw on
  *   tz         the location's IANA zone; locName its name (axis title)
@@ -26,6 +26,8 @@
  * updateNow() moves the Now line to nowMs(). The chart has no timer of its own: the
  * page calls it on its 60 s refresh, the same tick that recomputes the table, so the
  * table's "Altitude now" and the Now line always show the same instant.
+ *
+ * resize() fits the chart to its card again, for a chart drawn while its tab was hidden.
  *
  * Ported from graph_view_chart.js (which cannot be loaded here): the Now line, the
  * sun-event lines (coloured from the theme's tokens here, so they show in dark mode),
@@ -450,6 +452,9 @@
                 else showDay(v);
             },
             updateNow: updateNow,
+            resize() {
+                if (chart) chart.resize();
+            },
             destroy() {
                 clear();
                 if (typeof unsubscribe === 'function') unsubscribe();

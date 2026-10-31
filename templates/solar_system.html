@@ -49,12 +49,12 @@
 {% block body %}
 {{ flash_messages() }}
 
-<div class="tab-container">
-    <button class="tab-button active" data-tab="bodies">{{ _('Bodies') }}</button>
-    <button class="tab-button" data-tab="calendar">{{ _('Calendar') }}</button>
+<div class="tab-container" role="tablist">
+    <button class="tab-button active" data-tab="bodies" id="bodies-tab-button" role="tab" aria-controls="bodies-tab" aria-selected="true">{{ _('Bodies') }}</button>
+    <button class="tab-button" data-tab="calendar" id="calendar-tab-button" role="tab" aria-controls="calendar-tab" aria-selected="false">{{ _('Calendar') }}</button>
 </div>
 
-<div id="bodies-tab" class="tab-content active">
+<div id="bodies-tab" class="tab-content active" role="tabpanel" aria-labelledby="bodies-tab-button">
     <p id="solar-error" class="status-secondary" role="alert" hidden></p>
 
     <div class="table-wrapper" id="solar-table-wrapper">
@@ -104,7 +104,7 @@
     </div>
 </div>
 
-<div id="calendar-tab" class="tab-content">
+<div id="calendar-tab" class="tab-content" role="tabpanel" aria-labelledby="calendar-tab-button">
     <p id="solar-cal-error" class="status-secondary" role="alert" hidden></p>
 
     <div class="table-wrapper" id="solar-cal-wrapper">

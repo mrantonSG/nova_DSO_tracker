@@ -7,6 +7,7 @@ the browser, so it must load the engines in dependency order before its own scri
 """
 import json
 import re
+from html import unescape
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
@@ -112,7 +113,7 @@ def test_calendar_tab_has_its_own_table(client):
     """A second tab, Calendar, with its own table: eight data-solar-col columns, no
     dashboard column keys, and its own body and error."""
     html = client.get("/solar_system").get_data(as_text=True)
-    tabs = re.findall(r'<button class="tab-button[^"]*" data-tab="([a-z]+)">', html)
+    tabs = re.findall(r'<button class="tab-button[^"]*" data-tab="([a-z]+)"', html)
     assert tabs == ["bodies", "calendar"]
     assert 'id="calendar-tab" class="tab-content"' in html
     start = html.index('<table id="solar-cal-table"')
@@ -121,6 +122,31 @@ def test_calendar_tab_has_its_own_table(client):
     assert re.findall(r'<th data-solar-col="([a-z]+)"[^>]*>', table) == [
         "date", "body", "event", "mag", "diam", "elong", "maxalt", "days"]
     assert 'id="solar-cal-body"' in table and 'id="solar-cal-error"' in html
+
+
+def test_tabs_are_an_aria_tablist(client):
+    """role=tablist / tab / tabpanel, each tab naming its panel and each panel its tab,
+    so the aria-selected solar_system.js sets is valid."""
+    html = client.get("/solar_system").get_data(as_text=True)
+    assert '<div class="tab-container" role="tablist">' in html
+    for tab, selected in (("bodies", "true"), ("calendar", "false")):
+        button = re.search(rf'<button [^>]*data-tab="{tab}"[^>]*>', html).group(0)
+        assert 'role="tab"' in button and f'id="{tab}-tab-button"' in button
+        assert f'aria-controls="{tab}-tab"' in button and f'aria-selected="{selected}"' in button
+        panel = re.search(rf'<div id="{tab}-tab" [^>]*>', html).group(0)
+        assert 'role="tabpanel"' in panel and f'aria-labelledby="{tab}-tab-button"' in panel
+
+
+def test_each_tab_has_its_own_error(client):
+    """The page error sits in the Bodies tab and the calendar's in the Calendar tab, so
+    whichever tab is shown can say the inputs did not load (solar_system.js shows both);
+    the text is the translated inputsError."""
+    html = client.get("/solar_system").get_data(as_text=True)
+    for tab, error, other in (("bodies", "solar-error", "calendar"), ("calendar", "solar-cal-error", "bodies")):
+        start = html.index(f'<div id="{tab}-tab"')
+        end = html.index(f'<div id="{other}-tab"') if tab == "bodies" else html.index("<script>", start)
+        assert f'<p id="{error}" class="status-secondary" role="alert" hidden></p>' in html[start:end]
+    assert re.search(r'inputsError:\s*"[^"]+"', html)
 
 
 def test_solar_tables_are_styled_by_id(client):
@@ -141,7 +167,15 @@ def test_solar_tables_are_styled_by_id(client):
 def _header_titles(html, table_id):
     start = html.index(f'<table id="{table_id}"')
     table = html[start:html.index("</table>", start)]
-    return dict(re.findall(r'<th data-solar-col="([a-z]+)" title="([^"]*)">', table))
+    return {col: unescape(title)
+            for col, title in re.findall(r'<th data-solar-col="([a-z]+)" title="([^"]*)">', table)}
+
+
+def _header_labels(html, table_id):
+    start = html.index(f'<table id="{table_id}"')
+    table = html[start:html.index("</table>", start)]
+    return {col: unescape(label)
+            for col, label in re.findall(r'<th data-solar-col="([a-z]+)"[^>]*><span>([^<]*)</span>', table)}
 
 
 def test_headers_explain_themselves(client):
@@ -162,16 +196,19 @@ def test_headers_explain_themselves(client):
         assert re.search(kind + r':\s+"[^"]+"', html)
 
 
-@pytest.mark.parametrize("lang, date_help, exact", [
-    ("de", "Der Abend, an dem die Beobachtungsnacht beginnt.", "Genaue Zeit: {time}"),
-    ("ja", "観測夜が始まる日の夕方。", "正確な時刻：{time}"),
+@pytest.mark.parametrize("lang, date_label, date_help, exact", [
+    ("de", "Datum", "Der Abend, an dem die Beobachtungsnacht beginnt.", "Genaue Zeit: {time}"),
+    ("ja", "日付", "観測夜が始まる日の夕方。", "正確な時刻：{time}"),
+    ("fr", "Date", "Le soir où commence la nuit d'observation.", "Heure exacte : {time}"),
 ])
-def test_tooltips_are_translated(mu_client_logged_out, lang, date_help, exact):
+def test_tooltips_are_translated(mu_client_logged_out, lang, date_label, date_help, exact):
     """Through _() and the compiled catalogs, like every other string on the page; the
-    placeholder survives for the page to fill in."""
+    placeholder survives for the page to fill in. The Date header too (fr once read
+    "Données")."""
     mu_client_logged_out.get("/guest")
     mu_client_logged_out.get(f"/set_language/{lang}")
     html = mu_client_logged_out.get("/solar_system").get_data(as_text=True)
     assert f'<html lang="{lang}"' in html
+    assert _header_labels(html, "solar-cal-table")["date"] == date_label
     assert _header_titles(html, "solar-cal-table")["date"] == date_help
     assert json.dumps(exact) in html or exact in html

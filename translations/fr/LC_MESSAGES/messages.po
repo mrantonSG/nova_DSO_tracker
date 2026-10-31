@@ -6232,7 +6232,7 @@ msgstr "Les valeurs négatives sont des événements déjà passés."
 
 #: templates/solar_system.html:121
 msgid "Days from now"
-msgstr "Jours depuis aujourd'hui"
+msgstr "Écart (jours)"
 
 #: templates/solar_system.html:132
 msgid "Mercury"

@@ -12,6 +12,9 @@
  * tick otherwise costs one key comparison. Clicking an event opens the Bodies tab on
  * that body's Month view for the event's night.
  *
+ * When the location's inputs do not load, both tabs show the translated error; the 60 s
+ * tick keeps trying, and each tab clears its error on its next successful build.
+ *
  * Shared with the dashboard on purpose: sessionStorage.selectedLocation and
  * POST /set_location for the location, localStorage.simModeActive and simDate for
  * simulation. Its own tab key is localStorage.nova_solar_tab; it never writes the
@@ -84,6 +87,14 @@
         $('solar-table-wrapper').hidden = !!message;
         $('chart-section').hidden = !!message;
         if (message) resetChart();
+    }
+
+    /** The location's inputs did not load: both tabs say so. Each clears its own error
+     *  on its next successful build (calKey null makes the calendar rebuild). */
+    function showInputsError() {
+        showError(i18n.inputsError);
+        showCalError(i18n.inputsError);
+        state.calKey = null;
     }
 
     function showChartError(message) {
@@ -177,7 +188,7 @@
             console.error('Solar System: could not load the location', e);
             select.value = previous;
             select.disabled = false;
-            showError(i18n.inputsError);
+            showInputsError();
             return;
         }
         state.inputs = inputs;
@@ -513,6 +524,8 @@
         });
         TABS.forEach(tab => $(tab + '-tab').classList.toggle('active', tab === name));
         if (name === 'calendar') renderCalendar();
+        // A chart drawn while its tab was hidden has no size yet: fit it to its card now
+        else if (state.chart) state.chart.resize();
     }
 
     function initTabs() {
@@ -523,6 +536,24 @@
         switchTab(storageGet('localStorage', TAB_KEY));
     }
 
+    /** Load the location; on failure both tabs show the error and the next tick tries again. */
+    async function loadInputs() {
+        try {
+            await loadLocation();
+            return true;
+        } catch (e) {
+            console.error('Solar System: could not load location data', e);
+            showInputsError();
+            return false;
+        }
+    }
+
+    /** The 60 s tick: while no inputs have loaded, load them first. */
+    async function tick() {
+        if (!state.inputs && !(await loadInputs())) return;
+        refresh();
+    }
+
     async function init() {
         const params = new URLSearchParams(window.location.search);
         state.requested = params.get('body');
@@ -530,15 +561,8 @@
         initSim();
         initChartControls();
         $('location-select').addEventListener('change', onLocationChange);
-        try {
-            await loadLocation();
-        } catch (e) {
-            console.error('Solar System: could not load location data', e);
-            showError(i18n.inputsError);
-            return;
-        }
-        refresh();
-        setInterval(() => refresh(), REFRESH_MS);
+        if (await loadInputs()) refresh();
+        setInterval(tick, REFRESH_MS);
     }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
