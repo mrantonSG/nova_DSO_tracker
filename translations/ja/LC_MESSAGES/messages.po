@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-01 22:14+0800\n"
+"POT-Creation-Date: 2026-11-02 01:32+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -145,7 +145,7 @@ msgstr "ファイル名が空です"
 msgid "File is too large. Maximum size is 10 MB."
 msgstr "ファイルが大きすぎる。最大サイズは10MBです。"
 
-#: nova/blueprints/api.py:1710 nova/blueprints/api.py:3388
+#: nova/blueprints/api.py:1710 nova/blueprints/api.py:3391
 msgid "User not found"
 msgstr "ユーザーが見つかりません"
 
@@ -153,35 +153,35 @@ msgstr "ユーザーが見つかりません"
 msgid "Session not found"
 msgstr "セッションが見つかりません"
 
-#: nova/blueprints/api.py:3082
+#: nova/blueprints/api.py:3085
 msgid "Object data not found or invalid."
 msgstr "オブジェクトデータが見つからないか無効です。"
 
-#: nova/blueprints/api.py:3086
+#: nova/blueprints/api.py:3089
 msgid "RA/DEC missing for object."
 msgstr "オブジェクトのRA/DECがありません。"
 
-#: nova/blueprints/api.py:3091
+#: nova/blueprints/api.py:3094
 msgid "Invalid RA/DEC format for object."
 msgstr "オブジェクトのRA/DEC形式が無効です。"
 
-#: nova/blueprints/api.py:3254
+#: nova/blueprints/api.py:3257
 msgid "Could not generate time series for plot."
 msgstr "プロットの時系列を生成できませんでした。"
 
-#: nova/blueprints/api.py:3352
+#: nova/blueprints/api.py:3355
 msgid "Location not configured"
 msgstr "場所が設定されていません"
 
-#: nova/blueprints/api.py:4329
+#: nova/blueprints/api.py:4332
 msgid "Missing or invalid lat/lon parameters"
 msgstr "lat/lon パラメータが欠落しているか無効です"
 
-#: nova/blueprints/api.py:4338
+#: nova/blueprints/api.py:4341
 msgid "Invalid datetime format"
 msgstr "日時の形式が無効です"
 
-#: nova/blueprints/api.py:4358
+#: nova/blueprints/api.py:4361
 msgid "Calibration star catalog not found"
 msgstr "キャリブレーション星カタログが見つかりません"
 
@@ -6532,10 +6532,18 @@ msgstr "不安定の見込み"
 msgid ""
 "A forecast, not a measurement. Seeing is estimated from the jet stream: "
 "the wind speed 9–12 km up (200–300 hPa), as the median over %(body)s's "
-"best hours tonight (peak %(max)s m/s). Calm upper air usually means "
+"best hours that night (peak %(max)s m/s). Calm upper air usually means "
 "steadier images; turbulence near the ground isn't included. Data: Open-"
 "Meteo."
-msgstr "測定値ではなく予報です。シーイングはジェット気流から推定しています：高度9～12 km（200～300 hPa）の風速を、今夜の%(body)sの好条件の時間帯について中央値で評価します（最大 %(max)s m/s）。上空の風が穏やかなほど、通常は像が安定します。地表付近の乱流は含まれません。データ：Open-Meteo。"
+msgstr "測定値ではなく予報です。シーイングはジェット気流から推定しています：高度9～12 km（200～300 hPa）の風速を、その夜の%(body)sの好条件の時間帯について中央値で評価します（最大 %(max)s m/s）。上空の風が穏やかなほど、通常は像が安定します。地表付近の乱流は含まれません。データ：Open-Meteo。"
+
+#: templates/solar_system.html:313
+msgid "Above the altitude threshold for less than an hour"
+msgstr "高度閾値を超えるのは1時間未満です"
+
+#: templates/solar_system.html:314
+msgid "Data: Open-Meteo"
+msgstr "データ：Open-Meteo"
 
 #: templates/solar_system.html:117
 msgid "Seeing outlook"

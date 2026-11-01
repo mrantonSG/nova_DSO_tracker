@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-01 22:14+0800\n"
+"POT-Creation-Date: 2026-11-02 01:32+0800\n"
 "PO-Revision-Date: 2026-03-06 10:45+0800\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -151,7 +151,7 @@ msgstr "Nom de fichier vide"
 msgid "File is too large. Maximum size is 10 MB."
 msgstr "Le fichier est trop volumineux. La taille maximale est de 10 Mo."
 
-#: nova/blueprints/api.py:1710 nova/blueprints/api.py:3388
+#: nova/blueprints/api.py:1710 nova/blueprints/api.py:3391
 msgid "User not found"
 msgstr "Utilisateur non trouvé"
 
@@ -159,35 +159,35 @@ msgstr "Utilisateur non trouvé"
 msgid "Session not found"
 msgstr "Session non trouvée"
 
-#: nova/blueprints/api.py:3082
+#: nova/blueprints/api.py:3085
 msgid "Object data not found or invalid."
 msgstr "Données de l'objet introuvables ou invalides."
 
-#: nova/blueprints/api.py:3086
+#: nova/blueprints/api.py:3089
 msgid "RA/DEC missing for object."
 msgstr "RA/DEC manquant pour l'objet."
 
-#: nova/blueprints/api.py:3091
+#: nova/blueprints/api.py:3094
 msgid "Invalid RA/DEC format for object."
 msgstr "Format RA/DEC invalide pour l'objet."
 
-#: nova/blueprints/api.py:3254
+#: nova/blueprints/api.py:3257
 msgid "Could not generate time series for plot."
 msgstr "Impossible de générer la série temporelle pour le graphique."
 
-#: nova/blueprints/api.py:3352
+#: nova/blueprints/api.py:3355
 msgid "Location not configured"
 msgstr "Emplacement non configuré"
 
-#: nova/blueprints/api.py:4329
+#: nova/blueprints/api.py:4332
 msgid "Missing or invalid lat/lon parameters"
 msgstr "Paramètres lat/lon manquants ou invalides"
 
-#: nova/blueprints/api.py:4338
+#: nova/blueprints/api.py:4341
 msgid "Invalid datetime format"
 msgstr "Format de date et heure invalide."
 
-#: nova/blueprints/api.py:4358
+#: nova/blueprints/api.py:4361
 msgid "Calibration star catalog not found"
 msgstr "Catalogue d'étoiles de calibration introuvable"
 
@@ -6769,10 +6769,18 @@ msgstr "probablement mauvais"
 msgid ""
 "A forecast, not a measurement. Seeing is estimated from the jet stream: "
 "the wind speed 9–12 km up (200–300 hPa), as the median over %(body)s's "
-"best hours tonight (peak %(max)s m/s). Calm upper air usually means "
+"best hours that night (peak %(max)s m/s). Calm upper air usually means "
 "steadier images; turbulence near the ground isn't included. Data: Open-"
 "Meteo."
-msgstr "Une prévision, pas une mesure. Le seeing est estimé à partir du courant-jet : la vitesse du vent entre 9 et 12 km d'altitude (200–300 hPa), en médiane sur les meilleures heures de %(body)s cette nuit (pointe %(max)s m/s). Un air calme en altitude donne généralement des images plus stables ; la turbulence près du sol n'est pas prise en compte. Données : Open-Meteo."
+msgstr "Une prévision, pas une mesure. Le seeing est estimé à partir du courant-jet : la vitesse du vent entre 9 et 12 km d'altitude (200–300 hPa), en médiane sur les meilleures heures de %(body)s cette nuit-là (pointe %(max)s m/s). Un air calme en altitude donne généralement des images plus stables ; la turbulence près du sol n'est pas prise en compte. Données : Open-Meteo."
+
+#: templates/solar_system.html:313
+msgid "Above the altitude threshold for less than an hour"
+msgstr "Au-dessus de votre seuil d'altitude pendant moins d'une heure"
+
+#: templates/solar_system.html:314
+msgid "Data: Open-Meteo"
+msgstr "Données : Open-Meteo"
 
 #: templates/solar_system.html:117
 msgid "Seeing outlook"

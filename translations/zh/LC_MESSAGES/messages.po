@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-01 22:14+0800\n"
+"POT-Creation-Date: 2026-11-02 01:32+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh\n"
@@ -145,7 +145,7 @@ msgstr "文件名为空"
 msgid "File is too large. Maximum size is 10 MB."
 msgstr "文件过大。最大为 10 MB。"
 
-#: nova/blueprints/api.py:1710 nova/blueprints/api.py:3388
+#: nova/blueprints/api.py:1710 nova/blueprints/api.py:3391
 msgid "User not found"
 msgstr "未找到用户"
 
@@ -153,35 +153,35 @@ msgstr "未找到用户"
 msgid "Session not found"
 msgstr "未找到会话"
 
-#: nova/blueprints/api.py:3082
+#: nova/blueprints/api.py:3085
 msgid "Object data not found or invalid."
 msgstr "天体数据未找到或无效。"
 
-#: nova/blueprints/api.py:3086
+#: nova/blueprints/api.py:3089
 msgid "RA/DEC missing for object."
 msgstr "缺少对象的RA/DEC。"
 
-#: nova/blueprints/api.py:3091
+#: nova/blueprints/api.py:3094
 msgid "Invalid RA/DEC format for object."
 msgstr "对象的RA/DEC格式无效。"
 
-#: nova/blueprints/api.py:3254
+#: nova/blueprints/api.py:3257
 msgid "Could not generate time series for plot."
 msgstr "无法生成图表的时间序列。"
 
-#: nova/blueprints/api.py:3352
+#: nova/blueprints/api.py:3355
 msgid "Location not configured"
 msgstr "未配置位置"
 
-#: nova/blueprints/api.py:4329
+#: nova/blueprints/api.py:4332
 msgid "Missing or invalid lat/lon parameters"
 msgstr "缺少 lat/lon 参数或参数无效"
 
-#: nova/blueprints/api.py:4338
+#: nova/blueprints/api.py:4341
 msgid "Invalid datetime format"
 msgstr "日期时间格式无效"
 
-#: nova/blueprints/api.py:4358
+#: nova/blueprints/api.py:4361
 msgid "Calibration star catalog not found"
 msgstr "未找到校准星表"
 
@@ -6522,10 +6522,18 @@ msgstr "可能较差"
 msgid ""
 "A forecast, not a measurement. Seeing is estimated from the jet stream: "
 "the wind speed 9–12 km up (200–300 hPa), as the median over %(body)s's "
-"best hours tonight (peak %(max)s m/s). Calm upper air usually means "
+"best hours that night (peak %(max)s m/s). Calm upper air usually means "
 "steadier images; turbulence near the ground isn't included. Data: Open-"
 "Meteo."
-msgstr "这是预报，不是测量值。视宁度根据高空急流估算：9–12 公里高度（200–300 hPa）的风速，取今晚%(body)s最佳时段的中位数（峰值 %(max)s m/s）。高空气流平稳时，图像通常更稳定；近地面湍流未计入。数据：Open-Meteo。"
+msgstr "这是预报，不是测量值。视宁度根据高空急流估算：9–12 公里高度（200–300 hPa）的风速，取当晚%(body)s最佳时段的中位数（峰值 %(max)s m/s）。高空气流平稳时，图像通常更稳定；近地面湍流未计入。数据：Open-Meteo。"
+
+#: templates/solar_system.html:313
+msgid "Above the altitude threshold for less than an hour"
+msgstr "高于您的高度阈值的时间不到一小时"
+
+#: templates/solar_system.html:314
+msgid "Data: Open-Meteo"
+msgstr "数据：Open-Meteo"
 
 #: templates/solar_system.html:117
 msgid "Seeing outlook"
