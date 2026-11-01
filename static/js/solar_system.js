@@ -7,8 +7,9 @@
  * simulation (the simulated instant is the sim date at the current wall clock, so it
  * moves too); the same tick moves the chart's Now line.
  *
- * Below the chart, the Rig fit card (NovaSolarRigFit) lists the user's active rigs
- * (solarRigs, embedded by core.py) for the selected body; it follows the table.
+ * Below the chart, the planetary calculator (NovaSolarRigFit) works out the selected
+ * body for one of the user's telescopes and cameras (solarEquipment, embedded by
+ * core.py) and an amplification; it follows the table.
  *
  * The Calendar tab (NovaSolarCalendar) is built only while it is shown, and again only
  * when its location, threshold, sampling interval or observing night changes; the 60 s
@@ -24,7 +25,9 @@
  * POST /set_location for the location, localStorage.simModeActive and simDate for
  * simulation. Its own tab key is localStorage.nova_solar_tab; it never writes the
  * dashboard's activeTab, nova_last_tab or nova_desktop_cache_*. The calendar filter's
- * keys are localStorage.nova_solar_cal_body and nova_solar_cal_hide_muted.
+ * keys are localStorage.nova_solar_cal_body and nova_solar_cal_hide_muted; the
+ * calculator's nova_solar_calc_telescope and nova_solar_calc_camera (component
+ * record_uids) and nova_solar_calc_amp (stored only once the user picks one).
  *
  * When /get_locations does not answer with JSON (a guest), the page uses the location
  * /api/desktop_inputs picks without a parameter and never POSTs /set_location.
@@ -36,6 +39,9 @@
     const TAB_KEY = 'nova_solar_tab';
     const CAL_BODY_KEY = 'nova_solar_cal_body';
     const CAL_HIDE_KEY = 'nova_solar_cal_hide_muted';
+    const CALC_TELESCOPE_KEY = 'nova_solar_calc_telescope';
+    const CALC_CAMERA_KEY = 'nova_solar_calc_camera';
+    const CALC_AMP_KEY = 'nova_solar_calc_amp';
     const AU_MILLION_KM = 149.5978707;
     const TABS = ['bodies', 'calendar'];
     const i18n = typeof solarI18n !== 'undefined' ? solarI18n : {};
@@ -56,6 +62,9 @@
         calResult: null,        // the last calendar, re-rendered when the filter changes
         calPending: false,      // a calendar build is waiting for the next paint
         calFilter: { body: '', hideMuted: false },
+        // The calculator's choice: component records, and the amplification the user
+        // picked (null: the one closest to the ideal focal ratio)
+        calc: { telescope: null, camera: null, amp: null },
     };
 
     const $ = id => document.getElementById(id);
@@ -116,7 +125,7 @@
         el.hidden = !message;
         $('solar-table-wrapper').hidden = !!message;
         $('chart-section').hidden = !!message;
-        $('solar-rigfit').hidden = !!message;
+        $('solar-calc').hidden = !!message;
         if (message) resetChart();
     }
 
@@ -378,11 +387,11 @@
         } catch (e) { /* the URL stays as it was */ }
         if (!state.result) return;
         renderTable();
-        renderRigFit();
+        renderCalc();
         showChart();
     }
 
-    // ------------------------------------------------------------------ rig fit
+    // ------------------------------------------------------------------ planetary calculator
 
     function span(parent, text, className) {
         const el = document.createElement('span');
@@ -392,73 +401,330 @@
         return el;
     }
 
-    /** A value the rig lacks the data for: a dash, the missing field in its tooltip. */
+    /** A value the telescope or camera lacks the data for: a dash, the missing field in its tooltip. */
     function missingSpan(parent, code, text) {
         const el = span(parent, text === undefined ? '–' : text, 'solar-missing');
-        el.title = ((i18n.rigFit || {}).missing || {})[code] || '';
+        el.title = ((i18n.calc || {}).missing || {})[code] || '';
         return el;
     }
 
     function minSec(seconds) {
         const total = Math.round(seconds);
-        return fill((i18n.rigFit || {}).minSec, {min: Math.floor(total / 60), sec: total % 60});
+        return fill((i18n.calc || {}).minSec, {min: Math.floor(total / 60), sec: total % 60});
     }
 
-    /** The Rig fit card for the selected body: one line per active rig, rig names as text only. */
-    function renderRigFit() {
-        const R = i18n.rigFit || {};
-        const row = state.result && state.result.rows.find(r => r.body === state.selected);
-        $('solar-rigfit').hidden = !row;
-        if (!row) return;
-        $('solar-rigfit-title').textContent = (R.title || '') + ' · ' + bodyName(row.body)
-            + ' (' + row.diameterArcsec.toFixed(1) + '″)';
-        const rigs = typeof solarRigs !== 'undefined' && Array.isArray(solarRigs) ? solarRigs : [];
-        $('solar-rigfit-wrapper').hidden = !rigs.length;
-        $('solar-rigfit-empty').hidden = rigs.length > 0;
+    function equipment() {
+        const eq = typeof solarEquipment !== 'undefined' && solarEquipment ? solarEquipment : {};
+        return {
+            telescopes: Array.isArray(eq.telescopes) ? eq.telescopes : [],
+            cameras: Array.isArray(eq.cameras) ? eq.cameras : [],
+        };
+    }
 
-        const extraKind = NovaSolarRigFit.ROTATION_HOURS[row.body] ? 'rotation' : (row.body === 'moon' ? 'mosaic' : null);
-        const extra = $('solar-rigfit-extra');
-        extra.hidden = !extraKind;
-        $('solar-rigfit-extra-label').textContent = extraKind === 'rotation' ? R.rotationLimit
-            : extraKind === 'mosaic' ? R.mosaic : '';
-        extra.title = extraKind === 'rotation' ? R.rotationHelp : extraKind === 'mosaic' ? R.mosaicHelp : '';
+    /** The amplification in use: the user's pick, else the one closest to the ideal. */
+    function calcAmp() {
+        return state.calc.amp !== null ? state.calc.amp
+            : NovaSolarRigFit.bestAmplification(state.calc.telescope, state.calc.camera);
+    }
 
-        const tbody = $('solar-rigfit-body');
-        tbody.innerHTML = '';
-        rigs.forEach(rig => {
-            const f = NovaSolarRigFit.fit(rig, row.body, row.diameterArcsec);
-            const tr = document.createElement('tr');
-            cell(tr, 'rig', f.name);
-
-            const disc = cell(tr, 'disc');
-            if (f.disc.ok) {
-                span(disc, Math.round(f.disc.px) + ' px' + (f.disc.ringsPx === null ? ''
-                    : ' · ' + fill(i18n.rings, {value: Math.round(f.disc.ringsPx) + ' px'})));
-            } else missingSpan(disc, f.disc.missing);
-
-            const fr = cell(tr, 'fratio');
-            if (f.fRatio.ok) span(fr, 'f/' + f.fRatio.value.toFixed(1));
-            else missingSpan(fr, f.fRatio.missing);
-            span(fr, ' · ');
-            if (f.ideal.ok) span(fr, fill(R.ideal, {ratio: f.ideal.value.toFixed(1)}));
-            else missingSpan(fr, f.ideal.missing, fill(R.ideal, {ratio: '–'}));
-
-            const barlow = cell(tr, 'barlow');
-            if (f.barlow.ok) {
-                span(barlow, f.barlow.kind === 'factor' ? f.barlow.factor + '×'
-                    : f.barlow.kind === 'none' ? R.noneNeeded : R.aboveIdeal);
-                barlow.title = fill(R.exactFactor, {factor: f.barlow.exact.toFixed(2) + '×'});
-            } else missingSpan(barlow, f.barlow.missing);
-
-            if (extraKind) {
-                const td = cell(tr, 'extra');
-                const v = extraKind === 'rotation' ? f.rotation : f.mosaic;
-                if (!v.ok) missingSpan(td, v.missing);
-                else if (extraKind === 'rotation') span(td, minSec(v.seconds));
-                else span(td, v.panels === 1 ? R.fitsOneFrame : fill(R.panels, {n: v.panels, cols: v.cols, rows: v.rows}));
-            }
-            tbody.appendChild(tr);
+    function fillCalcSelect(select, records) {
+        select.innerHTML = '';
+        records.forEach(r => {
+            const option = document.createElement('option');
+            option.value = r.uid;
+            option.textContent = String(r.name === undefined || r.name === null ? '' : r.name);
+            select.appendChild(option);
         });
+    }
+
+    /** The calculator's selects, from solarEquipment and localStorage: a stored uid that is
+     *  no longer there, or a stored amplification not in the list, gives the default. */
+    function initCalc() {
+        const eq = equipment();
+        if (!eq.telescopes.length || !eq.cameras.length) return;
+        const C = i18n.calc || {};
+        const byUid = (list, uid) => list.find(r => r && uid && r.uid === uid) || null;
+        state.calc.telescope = byUid(eq.telescopes, storageGet('localStorage', CALC_TELESCOPE_KEY))
+            || NovaSolarRigFit.defaultTelescope(eq.telescopes);
+        state.calc.camera = byUid(eq.cameras, storageGet('localStorage', CALC_CAMERA_KEY))
+            || NovaSolarRigFit.defaultCamera(eq.cameras);
+        const storedAmp = Number(storageGet('localStorage', CALC_AMP_KEY));
+        state.calc.amp = NovaSolarRigFit.AMPLIFICATIONS.indexOf(storedAmp) >= 0 ? storedAmp : null;
+
+        const tel = $('solar-calc-telescope'), cam = $('solar-calc-camera'), amp = $('solar-calc-amp');
+        fillCalcSelect(tel, eq.telescopes);
+        fillCalcSelect(cam, eq.cameras);
+        amp.innerHTML = '';
+        NovaSolarRigFit.AMPLIFICATIONS.forEach(a => {
+            const option = document.createElement('option');
+            option.value = String(a);
+            option.textContent = a === 1 ? (C.none || '') + ' (1×)' : a + '×';
+            amp.appendChild(option);
+        });
+        const sync = () => {
+            tel.value = state.calc.telescope.uid;
+            cam.value = state.calc.camera.uid;
+            amp.value = String(calcAmp());
+        };
+        sync();
+
+        tel.addEventListener('change', () => {
+            state.calc.telescope = byUid(eq.telescopes, tel.value) || state.calc.telescope;
+            storageSet('localStorage', CALC_TELESCOPE_KEY, state.calc.telescope.uid);
+            sync();
+            renderCalc();
+        });
+        cam.addEventListener('change', () => {
+            state.calc.camera = byUid(eq.cameras, cam.value) || state.calc.camera;
+            storageSet('localStorage', CALC_CAMERA_KEY, state.calc.camera.uid);
+            sync();
+            renderCalc();
+        });
+        amp.addEventListener('change', () => {
+            const value = Number(amp.value);
+            if (NovaSolarRigFit.AMPLIFICATIONS.indexOf(value) >= 0) {
+                state.calc.amp = value;
+                storageSet('localStorage', CALC_AMP_KEY, String(value));
+            }
+            sync();
+            renderCalc();
+        });
+    }
+
+    /** A short muted line under a value that says what it means (none without text, unless
+     *  `keep`: then an empty one that holds its place). */
+    function hint(dd, text, keep) {
+        if (!text && !keep) return null;
+        const el = document.createElement('div');
+        el.className = 'solar-calc-hint';
+        el.textContent = text || '';
+        dd.appendChild(el);
+        return el;
+    }
+
+    /** One line of the result: the label (its tooltip, if any) and the value's element. */
+    function calcLine(dl, key, label, help) {
+        const row = document.createElement('div');
+        row.className = 'solar-calc-row';
+        row.dataset.calc = key;
+        const dt = document.createElement('dt');
+        dt.textContent = label || '';
+        if (help) dt.title = help;
+        const dd = document.createElement('dd');
+        row.appendChild(dt);
+        row.appendChild(dd);
+        dl.appendChild(row);
+        return dd;
+    }
+
+    /** The calculator's first line: "<Level> setup for <Body>." (the level in bold, its
+     *  criteria in its tooltip) and the most useful next step. */
+    function renderSummary(f, row) {
+        const S = (i18n.calc || {}).summary || {};
+        const el = $('solar-calc-summary');
+        el.innerHTML = '';
+        const best = NovaSolarRigFit.bestAmplification(state.calc.telescope, state.calc.camera);
+        const sum = NovaSolarRigFit.summary(f, row.maxAlt, best, calcAmp());
+        const body = bodyName(row.body);
+        // The translation places {level}; the level word goes in between as its own element
+        const parts = fill(S.sentence, {body: body}).split('{level}');
+        span(el, parts[0]);
+        const level = document.createElement('strong');
+        level.className = 'solar-calc-level';
+        level.dataset.level = sum.level;
+        level.textContent = (S.level || {})[sum.level] || '';
+        level.title = fill(S.levelHelp, {alt: NovaSolarRigFit.SUMMARY_MIN_ALTITUDE});
+        el.appendChild(level);
+        span(el, parts.slice(1).join(''));
+
+        const step = sum.step;
+        let next = '';
+        if (!step) next = '';
+        else if (step.kind === 'low') next = fill(S.low, {body: body, alt: Math.round(step.altitude)});
+        else if (step.kind === 'amp') next = fill(S.amp, {amp: step.amp + '×'});
+        else if (step.kind === 'bestAlready') next = fill(S.bestAlready, {body: body});
+        else if (step.kind === 'smallDisc') next = fill(S.smallDisc, {body: body});
+        else next = step.detail === 'fine' ? S.fine : step.detail === 'main' ? S.main : S.moon;
+        if (next) span(el, ' ' + next, 'solar-calc-next');
+    }
+
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+    // The preview's box, width over height (solar_system.css .solar-preview-figure,
+    // aspect-ratio 3 / 2): the same for every camera, so the card's height never follows
+    // the sensor's shape and the page does not move when the camera changes
+    const PREVIEW_BOX_ASPECT = 3 / 2;
+
+    function svgEl(parent, tag, attrs) {
+        const el = document.createElementNS(SVG_NS, tag);
+        Object.keys(attrs || {}).forEach(k => el.setAttribute(k, String(attrs[k])));
+        parent.appendChild(el);
+        return el;
+    }
+
+    /** The scale preview (NovaSolarRigFit.preview): the sensor with the body at exact scale
+     *  as an inline SVG in a fixed 3:2 box, drawn from its top-left corner at its own aspect
+     *  ratio, its labels in HTML over it (a fixed text size at any drawing size), and the ROI
+     *  hint directly under the frame: in the box's empty space when the drawing is wider than
+     *  3:2, else in the slot under the box. Box and slot are always there, also around the
+     *  muted line that replaces the drawing without the data, so the card's height never
+     *  changes with the camera. */
+    function renderPreview(row) {
+        const C = i18n.calc || {};
+        const P = C.preview || {};
+        const box = $('solar-calc-preview');
+        box.innerHTML = '';
+        const figure = document.createElement('div');
+        figure.className = 'solar-preview-figure';
+        box.appendChild(figure);
+        // The ROI hint's slot keeps its two lines whether there is a hint or not
+        const slot = document.createElement('div');
+        slot.className = 'solar-preview-roi-slot';
+        box.appendChild(slot);
+
+        const g = NovaSolarRigFit.preview(state.calc.telescope, state.calc.camera, calcAmp(), row.body,
+            row.diameterArcsec, row.illuminatedPct / 100, row.ringTiltDeg);
+        if (!g.ok) {
+            const p = document.createElement('p');
+            p.className = 'solar-calc-preview-missing';
+            const reason = (C.missing || {})[g.missing] || '';
+            // An implausible sensor size says only what to check; anything else names the gap
+            p.textContent = g.missing === 'sensorImplausible' ? reason : (P.none || '') + ' ' + reason;
+            figure.appendChild(p);
+            return;
+        }
+        const d = g.disc;
+        // preview's viewBox keeps 5 % of the drawing's width on each side; without it the
+        // frame starts at the top-left of the figure, level with the summary and the ROI
+        // hint (the strokes on the edge overflow the SVG, solar_system.css)
+        const pad = g.viewBox.w * 0.05 / 1.1;
+        const vb = {x: g.viewBox.x + pad, y: g.viewBox.y + pad, w: g.viewBox.w - 2 * pad, h: g.viewBox.h - 2 * pad};
+        // The drawing fills the box's width or its height (preserveAspectRatio xMinYMin meet):
+        // the share of the box it takes on each axis places the labels
+        const aspect = vb.w / vb.h;
+        const fillW = aspect >= PREVIEW_BOX_ASPECT ? 1 : aspect / PREVIEW_BOX_ASPECT;
+        const fillH = aspect >= PREVIEW_BOX_ASPECT ? PREVIEW_BOX_ASPECT / aspect : 1;
+        const pct = (v, from, size, share) => (Math.round((v - from) / size * share * 1e6) / 1e4) + '%';
+        const label = (className, text, x, y) => {
+            const el = document.createElement('span');
+            el.className = className;
+            el.textContent = text;
+            el.style.left = pct(x, vb.x, vb.w, fillW);
+            el.style.top = pct(y, vb.y, vb.h, fillH);
+            figure.appendChild(el);
+            return el;
+        };
+
+        const svg = svgEl(figure, 'svg', {
+            viewBox: [vb.x, vb.y, vb.w, vb.h].join(' '), preserveAspectRatio: 'xMinYMin meet',
+            role: 'img', class: 'solar-calc-svg',
+            'aria-label': fill(P.aria, {w: g.sensor.w, h: g.sensor.h, body: bodyName(row.body), disc: Math.round(d.px)}),
+        });
+        svgEl(svg, 'rect', {x: 0, y: 0, width: g.sensor.w, height: g.sensor.h, class: 'solar-preview-sensor'});
+        if (g.mosaic) {
+            g.mosaic.frames.forEach(fr => svgEl(svg, 'rect',
+                {x: fr.x, y: fr.y, width: fr.w, height: fr.h, class: 'solar-preview-frame'}));
+        }
+        if (g.roi) svgEl(svg, 'rect', {x: g.roi.x, y: g.roi.y, width: g.roi.w, height: g.roi.h, class: 'solar-preview-roi'});
+
+        const body = svgEl(svg, 'g', {class: 'solar-preview-body', 'data-body': row.body});
+        if (g.rings) svgEl(body, 'path', {d: g.rings.back, class: 'solar-preview-ring'});
+        if (g.phase) {
+            svgEl(body, 'circle', {cx: d.cx, cy: d.cy, r: d.r, class: 'solar-preview-unlit'});
+            svgEl(body, 'path', {d: g.phase.path, class: 'solar-preview-lit'});
+            svgEl(body, 'title', {}).textContent = P.phaseHelp || '';
+        } else {
+            svgEl(body, 'circle', {cx: d.cx, cy: d.cy, r: d.r, class: 'solar-preview-lit'});
+        }
+        if (g.rings) svgEl(body, 'path', {d: g.rings.front, class: 'solar-preview-ring'});
+
+        // The sensor's pixels at its top-left corner; "not to scale" under the enlarged disc
+        label('solar-preview-label', g.sensor.w + ' × ' + g.sensor.h + ' px', 0, 0);
+        if (d.notToScale) {
+            label('solar-preview-label solar-preview-note', P.notToScale || '',
+                d.cx, d.cy + (g.rings ? Math.max(d.r, g.rings.ry) : d.r));
+        }
+        if (g.roi) {
+            const hintEl = document.createElement('div');
+            hintEl.className = 'solar-calc-hint solar-calc-roi';
+            hintEl.textContent = fill(P.roi, {w: g.roi.w, h: g.roi.h});
+            hintEl.title = P.roiHelp || '';
+            // As wide as the frame, under it: in the box when the frame leaves space below it
+            // (any overflow runs into the slot's reserved lines), else in the slot
+            hintEl.style.width = (Math.round(fillW * 1e6) / 1e4) + '%';
+            if (fillH < 1) {
+                hintEl.className += ' solar-calc-roi-inside';
+                hintEl.style.top = (Math.round(fillH * 1e6) / 1e4) + '%';
+                figure.appendChild(hintEl);
+            } else {
+                slot.appendChild(hintEl);
+            }
+        }
+    }
+
+    /** The planetary calculator for the selected body and the chosen telescope, camera and
+     *  amplification: a one-line summary, the scale preview, then each value with a hint
+     *  under it; without a telescope or a camera, the line to the Configuration page. */
+    function renderCalc() {
+        const C = i18n.calc || {};
+        const H = C.hint || {};
+        const row = state.result && state.result.rows.find(r => r.body === state.selected);
+        $('solar-calc').hidden = !row;
+        if (!row) return;
+        $('solar-calc-title').textContent = (C.title || '') + ' · ' + bodyName(row.body)
+            + ' (' + row.diameterArcsec.toFixed(1) + '″)';
+        const ready = !!(state.calc.telescope && state.calc.camera);
+        $('solar-calc-controls').hidden = !ready;
+        $('solar-calc-summary').hidden = !ready;
+        $('solar-calc-preview').hidden = !ready;
+        $('solar-calc-result').hidden = !ready;
+        $('solar-calc-empty').hidden = ready;
+        const dl = $('solar-calc-result');
+        dl.innerHTML = '';
+        if (!ready) return;
+
+        const f = NovaSolarRigFit.fit(state.calc.telescope, state.calc.camera, calcAmp(), row.body, row.diameterArcsec);
+        renderSummary(f, row);
+        renderPreview(row);
+
+        const disc = calcLine(dl, 'disc', C.disc, C.discHelp);
+        if (f.disc.ok) {
+            span(disc, Math.round(f.disc.px) + ' px' + (f.disc.ringsPx === null ? ''
+                : ' · ' + fill(i18n.rings, {value: Math.round(f.disc.ringsPx) + ' px'})));
+        } else missingSpan(disc, f.disc.missing);
+        hint(disc, H.disc);
+
+        const fr = calcLine(dl, 'fratio', C.focalRatio, C.focalRatioHelp);
+        if (f.fRatio.ok) span(fr, 'f/' + f.fRatio.value.toFixed(1));
+        else missingSpan(fr, f.fRatio.missing);
+        span(fr, ' · ');
+        if (f.ideal.ok) span(fr, fill(C.ideal, {ratio: f.ideal.value.toFixed(1)}));
+        else missingSpan(fr, f.ideal.missing, fill(C.ideal, {ratio: '–'}));
+        if (f.status.ok) span(fr, ' · ' + ((C.status || {})[f.status.value] || ''), 'solar-calc-status');
+        // Always there and two lines high (solar_system.css), so a status change, or none,
+        // never changes the card's height
+        hint(fr, f.status.ok ? H[f.status.value] : '', true).className += ' solar-calc-hint-fratio';
+
+        if (f.detail) {
+            const dd = calcLine(dl, 'detail', C.detail, C.detailHelp);
+            if (f.detail.ok) {
+                span(dd, ((C.detailValue || {})[f.detail.value] || '') + ' · '
+                    + fill(C.detailPoints, {n: Math.round(f.detail.elements)}));
+            } else missingSpan(dd, f.detail.missing);
+            hint(dd, H.detail);
+        }
+        if (f.rotation) {
+            const dd = calcLine(dl, 'rotation', C.rotationLimit, C.rotationHelp);
+            if (f.rotation.ok) span(dd, minSec(f.rotation.seconds));
+            else missingSpan(dd, f.rotation.missing);
+            hint(dd, H.rotation);
+        }
+        if (f.mosaic) {
+            const dd = calcLine(dl, 'mosaic', C.mosaic, C.mosaicHelp);
+            if (!f.mosaic.ok) missingSpan(dd, f.mosaic.missing);
+            else span(dd, f.mosaic.panels === 1 ? C.fitsOneFrame
+                : fill(C.panels, {n: f.mosaic.panels, cols: f.mosaic.cols, rows: f.mosaic.rows}));
+            hint(dd, H.mosaic);
+        }
     }
 
     // ------------------------------------------------------------------ chart
@@ -548,7 +814,7 @@
                 state.rangeDate = state.result.date;
             }
             renderTable();
-            renderRigFit();
+            renderCalc();
             showChart(force);
             if (state.chart) state.chart.updateNow();
         } catch (e) {
@@ -769,6 +1035,7 @@
         const params = new URLSearchParams(window.location.search);
         state.requested = params.get('body');
         initCalFilter();
+        initCalc();
         initTabs();
         initSim();
         initChartControls();

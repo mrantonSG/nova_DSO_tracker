@@ -76,6 +76,7 @@ from nova.models import (
     AnalyticsEvent,
     AnalyticsLogin,
     AstroObject,
+    Component,
     DbUser,
     HorizonPoint,
     JournalSession,
@@ -1704,52 +1705,32 @@ def index():
                            project_statuses=["In Planning", "In Progress", "Completed", "On Hold", "Abandoned"])
 
 
-def _solar_rigs(db, user):
-    """The user's active rigs for the Solar System page's Rig fit card, in the user's rig
-    sort order (as the graph view sorts them).
+def _solar_equipment(db, user):
+    """The user's telescopes and cameras for the Solar System page's planetary calculator,
+    each list by name.
 
-    Raw component fields, not the computed metrics: the browser
-    (static/js/nova_solar_rigfit.js) works each value out with the formulas of
-    _compute_rig_metrics_from_components and names the field a value lacks.
+    Raw component fields, not computed metrics: the browser
+    (static/js/nova_solar_rigfit.js) works each value out and names the field a value
+    lacks. Only components with a record_uid, the key the page remembers a choice by.
     """
+    empty = {"telescopes": [], "cameras": []}
     if user is None:
-        return []
-    by_uid = components_by_uid(db, user.id)
-    entries = []
-    for rig in db.query(Rig).filter_by(user_id=user.id, active=True).all():
-        rc = rig_components(rig, by_uid)
-        tel, cam, red = rc.telescope, rc.camera, rc.reducer_extender
-        efl, f_ratio, scale, fov_w = _compute_rig_metrics_from_components(tel, cam, red)
-        entries.append({
-            # sort_rigs' keys
-            "rig_name": rig.rig_name, "effective_focal_length": efl, "f_ratio": f_ratio,
-            "image_scale": scale, "fov_w_arcmin": fov_w,
-            "payload": {
-                "name": rig.rig_name,
-                "has_telescope": tel is not None,
-                "has_camera": cam is not None,
-                "focal_length_mm": tel.focal_length_mm if tel else None,
-                "aperture_mm": tel.aperture_mm if tel else None,
-                "factor": red.factor if red else None,
-                "pixel_size_um": cam.pixel_size_um if cam else None,
-                "sensor_width_mm": cam.sensor_width_mm if cam else None,
-                "sensor_height_mm": cam.sensor_height_mm if cam else None,
-            },
-        })
-
-    sort_preference = 'name-asc'
-    prefs = db.query(UiPref).filter_by(user_id=user.id).first()
-    if prefs and prefs.json_blob:
-        try:
-            sort_preference = json.loads(prefs.json_blob).get('rig_sort', 'name-asc')
-        except (ValueError, AttributeError):
-            pass
-    try:
-        ordered = sort_rigs(entries, sort_preference)
-    except (AttributeError, TypeError, ValueError):
-        # A stored rig_sort sort_rigs cannot read (not a string): the default order
-        ordered = sort_rigs(entries, 'name-asc')
-    return [entry["payload"] for entry in ordered]
+        return empty
+    rows = db.query(Component).filter(
+        Component.user_id == user.id,
+        Component.kind.in_(("telescope", "camera")),
+        Component.record_uid.isnot(None),
+        Component.record_uid != "",
+    ).all()
+    rows.sort(key=lambda c: ((c.name or "").casefold(), c.id))
+    return {
+        "telescopes": [{"uid": c.record_uid, "name": c.name, "aperture_mm": c.aperture_mm,
+                        "focal_length_mm": c.focal_length_mm}
+                       for c in rows if c.kind == "telescope"],
+        "cameras": [{"uid": c.record_uid, "name": c.name, "pixel_size_um": c.pixel_size_um,
+                     "sensor_width_mm": c.sensor_width_mm, "sensor_height_mm": c.sensor_height_mm}
+                    for c in rows if c.kind == "camera"],
+    }
 
 
 @core_bp.route('/solar_system')
@@ -1758,13 +1739,15 @@ def solar_system():
 
     Same access rules as index(). Everything astronomical is computed in the browser
     (static/js/nova_solar_rows.js on nova_planets.js) from /api/desktop_inputs; the
-    page carries only the active rigs for its Rig fit card (_solar_rigs).
+    page carries only the telescopes and cameras for its planetary calculator
+    (_solar_equipment).
     """
     load_full_astro_context()
     if not (current_user.is_authenticated or nova.SINGLE_USER_MODE or getattr(g, 'is_guest', False)):
         return redirect(url_for('core.login'))
 
-    return render_template('solar_system.html', solar_rigs=_solar_rigs(get_db(), getattr(g, 'db_user', None)))
+    return render_template('solar_system.html',
+                           solar_equipment=_solar_equipment(get_db(), getattr(g, 'db_user', None)))
 
 
 @core_bp.route('/sun_events')

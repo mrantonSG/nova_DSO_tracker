@@ -142,69 +142,305 @@
 }
 
 /* =================================================================
-   THE RIG FIT CARD (below the chart) AND THE CALENDAR FILTER
+   THE PLANETARY CALCULATOR (below the chart) AND THE CALENDAR FILTER
    ================================================================= */
 
-#solar-rigfit-wrapper {
-  overflow-x: auto;
+/* Three selects (telescope, camera, amplification), sized like the calendar's body
+   filter below; they wrap on a narrow window. */
+#bodies-tab .solar-calc-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
 }
 
-#solar-rigfit-table {
-  table-layout: auto;
-  width: 100%;
-  min-width: 0;
+#bodies-tab .solar-calc-controls select {
+  max-width: 100%;
 }
 
-#solar-rigfit-table thead tr:first-child th {
-  text-align: center;
-  white-space: normal;
-  vertical-align: bottom;
+/* The summary above the result: one sentence, the level word in bold. No colour: the
+   status colours exist only inside the toasts (base.css .nova-toast--*), not as tokens. */
+#bodies-tab .solar-calc-summary {
+  margin: 0 0 12px;
+  font-size: var(--font-size-2xs);
+  line-height: 1.45;
+  color: var(--text-primary);
 }
 
-#solar-rigfit-table thead th[title]:not([title=""]),
-#solar-table .solar-sub[title],
-#solar-cal-table .solar-sub[title],
-#solar-rigfit-table .solar-missing[title] {
+/* Stacked (under 900 px of card width, as the stacked grid): two lines, whether the next
+   step wraps or not; a wide card keeps the summary's natural height */
+@container solar-calc (max-width: 899px) {
+  #bodies-tab .solar-calc-summary {
+    min-height: 2.9em;
+  }
+}
+
+#bodies-tab .solar-calc-level {
+  font-weight: 700;
+}
+
+#bodies-tab .solar-calc-level[title]:not([title=""]) {
   cursor: help;
 }
 
-#solar-rigfit-table tbody td {
-  text-align: center;
-  vertical-align: middle;
+/* The scale preview: an inline SVG in sensor pixels (viewBox), laid out 320 px wide at
+   most (NovaSolarRigFit.PREVIEW_WIDTH); strokes stay one screen pixel at any scale. The
+   body colours are typical, muted tones; no token fits them, so they are new values,
+   scoped to this card. */
+#solar-calc {
+  --solar-body-mercury: #9b958e;
+  --solar-body-venus:   #d8cba2;
+  --solar-body-mars:    #c0805e;
+  --solar-body-jupiter: #c8ae88;
+  --solar-body-saturn:  #d3bd8c;
+  --solar-body-uranus:  #9cc4c8;
+  --solar-body-neptune: #7f9cc2;
+  --solar-body-moon:    #b5b1a9;
+}
+
+#bodies-tab .solar-calc-preview {
+  margin: 0 0 14px;
+}
+
+/* Summary, preview and result: stacked in a narrow card; from 900 px of card width the
+   preview takes a right-hand column (about 40 %) beside the summary and the result,
+   top-aligned. A container query, so the sidebar-free card width decides, not the window. */
+#solar-calc {
+  container: solar-calc / inline-size;
+}
+
+#bodies-tab .solar-calc-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "summary" "preview" "result";
+}
+
+#bodies-tab .solar-calc-body > .solar-calc-summary { grid-area: summary; }
+#bodies-tab .solar-calc-body > .solar-calc-preview { grid-area: preview; }
+#bodies-tab .solar-calc-body > .solar-calc-result  { grid-area: result; }
+
+@container solar-calc (min-width: 900px) {
+  /* The text column at its natural width, the preview right beside it at 400 px (fixed,
+     so the text never changes its height), both from the top; what is left of the card
+     stays empty on the right. */
+  #bodies-tab .solar-calc-body {
+    grid-template-columns: minmax(0, max-content) 400px;
+    grid-template-rows: auto 1fr;
+    grid-template-areas: "summary preview" "result preview";
+    justify-content: start;
+    column-gap: calc(var(--space-6) * 3);   /* 72 px: room between the text and the drawing */
+    align-items: start;
+  }
+
+  /* The preview, its figure and the ROI hint share one width */
+  #bodies-tab .solar-calc-body > .solar-calc-preview {
+    margin: 0;
+    width: 100%;
+    max-width: 400px;
+  }
+
+  #bodies-tab .solar-calc-body .solar-preview-figure {
+    max-width: 100%;
+  }
+}
+
+/* The drawing and its HTML labels in a fixed 3:2 box (PREVIEW_BOX_ASPECT in
+   solar_system.js): the card's height never depends on the camera's sensor shape, so the
+   page does not move when the camera changes. The drawing keeps its own aspect ratio from
+   the box's top-left corner; it runs edge to edge (solar_system.js), so the strokes on its
+   edge overflow. */
+#bodies-tab .solar-preview-figure {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 3 / 2;
+}
+
+#bodies-tab .solar-calc-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* The ROI hint's slot: two lines of hint text, with or without a hint */
+#bodies-tab .solar-preview-roi-slot {
+  display: flow-root;     /* holds the hint's top margin, so the slot is the same height either way */
+  min-height: calc(2 * 1.4 * var(--font-size-xs) + 2px);
+}
+
+#bodies-tab .solar-preview-roi-slot .solar-calc-hint {
+  line-height: 1.4;
+}
+
+#bodies-tab .solar-calc-svg rect,
+#bodies-tab .solar-calc-svg circle,
+#bodies-tab .solar-calc-svg path {
+  vector-effect: non-scaling-stroke;
+}
+
+#bodies-tab .solar-preview-sensor {
+  fill: var(--bg-tertiary);
+  stroke: var(--text-muted);
+  stroke-width: 1;
+}
+
+#bodies-tab .solar-preview-frame {
+  fill: none;
+  stroke: var(--primary-color);
+  stroke-width: 1;
+}
+
+#bodies-tab .solar-preview-roi {
+  fill: none;
+  stroke: var(--primary-color);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+
+#bodies-tab .solar-preview-body[data-body="mercury"] { --solar-preview-body: var(--solar-body-mercury); }
+#bodies-tab .solar-preview-body[data-body="venus"]   { --solar-preview-body: var(--solar-body-venus); }
+#bodies-tab .solar-preview-body[data-body="mars"]    { --solar-preview-body: var(--solar-body-mars); }
+#bodies-tab .solar-preview-body[data-body="jupiter"] { --solar-preview-body: var(--solar-body-jupiter); }
+#bodies-tab .solar-preview-body[data-body="saturn"]  { --solar-preview-body: var(--solar-body-saturn); }
+#bodies-tab .solar-preview-body[data-body="uranus"]  { --solar-preview-body: var(--solar-body-uranus); }
+#bodies-tab .solar-preview-body[data-body="neptune"] { --solar-preview-body: var(--solar-body-neptune); }
+#bodies-tab .solar-preview-body[data-body="moon"]    { --solar-preview-body: var(--solar-body-moon); }
+
+#bodies-tab .solar-preview-lit {
+  fill: var(--solar-preview-body);
+}
+
+/* The unlit side: only its outline, so the phase reads against the sensor */
+#bodies-tab .solar-preview-unlit {
+  fill: none;
+  stroke: var(--text-faint);
+  stroke-width: 1;
+}
+
+#bodies-tab .solar-preview-ring {
+  fill: var(--solar-preview-body);
+  fill-opacity: 0.75;
+  stroke: var(--solar-preview-body);
+  stroke-width: 1;
+}
+
+/* Labels over the drawing, at a fixed size like the card's secondary text: the pixel
+   dimensions inside the sensor's top-left corner, "not to scale" centred under the disc. */
+#bodies-tab .solar-preview-label {
+  position: absolute;
+  margin: var(--space-1) 0 0 var(--space-1-5);
+  font-family: var(--nova-font-mono);
+  font-size: var(--font-size-xs);
+  line-height: 1.2;
+  color: var(--text-secondary);
   white-space: nowrap;
+  pointer-events: none;
+}
+
+#bodies-tab .solar-preview-note {
+  margin: var(--space-1) 0 0;
+  transform: translateX(-50%);
+  font-family: var(--nova-font-sans);
+}
+
+#bodies-tab .solar-calc-roi[title]:not([title=""]) {
+  cursor: help;
+}
+
+/* Without the data: the muted line at the top of the empty box, which keeps its size */
+#bodies-tab .solar-calc-preview-missing {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+/* The ROI hint in the box's empty space, directly under a frame wider than 3:2; the slot
+   under the box takes what does not fit, so the card's height stays. */
+#bodies-tab .solar-calc-roi-inside {
+  position: absolute;
+  left: 0;
+  line-height: 1.4;
+}
+
+/* The result: a label column and a value column, one line each. */
+#bodies-tab .solar-calc-result {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 10px 16px;
+  margin: 0;
+  font-size: var(--font-size-2xs);
+}
+
+#bodies-tab .solar-calc-row {
+  display: contents;
+}
+
+#bodies-tab .solar-calc-result dt {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+#bodies-tab .solar-calc-result dd {
+  margin: 0;
   font-family: var(--nova-font-mono);
   font-size: 12px;
   font-weight: 500;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
 }
 
-/* The rig's name: words, left, in the body column's family; may wrap. */
-#solar-rigfit-table thead tr:first-child th[data-solar-col="rig"],
-#solar-rigfit-table tbody td[data-solar-col="rig"] {
-  text-align: left;
+/* The status word reads in its value line's font; only its colour is quieter. */
+#bodies-tab .solar-calc-status {
+  color: var(--text-secondary);
 }
 
-#solar-rigfit-table tbody td[data-solar-col="rig"] {
-  white-space: normal;
+/* What a value means, under it: words, smaller and quieter than the value. */
+#bodies-tab .solar-calc-hint {
+  margin-top: 2px;
   font-family: var(--nova-font-sans);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--font-size-xs);
+  font-weight: 400;
   letter-spacing: 0;
+  color: var(--text-secondary);
 }
 
-#solar-rigfit-table .solar-missing {
+/* The focal-ratio hint: two lines whatever the status says (or with none), so changing
+   the amplification never changes the card's height */
+#bodies-tab .solar-calc-hint-fratio {
+  line-height: 1.4;
+  min-height: 2.8em;
+}
+
+/* In a narrow card the longest hint (above ideal) takes three lines */
+@container solar-calc (max-width: 449px) {
+  #bodies-tab .solar-calc-hint-fratio {
+    min-height: 4.2em;
+  }
+}
+
+#solar-table .solar-sub[title],
+#solar-cal-table .solar-sub[title],
+#bodies-tab .solar-calc-result dt[title]:not([title=""]),
+#bodies-tab .solar-calc-result .solar-missing[title] {
+  cursor: help;
+}
+
+#bodies-tab .solar-calc-result .solar-missing {
   color: var(--text-muted);
 }
 
-#bodies-tab #solar-rigfit[hidden],
-#bodies-tab #solar-rigfit-wrapper[hidden],
-#bodies-tab #solar-rigfit-extra[hidden],
-#bodies-tab #solar-rigfit-empty[hidden] {
+#bodies-tab #solar-calc[hidden],
+#bodies-tab #solar-calc-controls[hidden],
+#bodies-tab #solar-calc-summary[hidden],
+#bodies-tab #solar-calc-preview[hidden],
+#bodies-tab #solar-calc-result[hidden],
+#bodies-tab #solar-calc-empty[hidden] {
   display: none;
 }
 
-#solar-rigfit-empty .inline-button {
+#solar-calc-empty .inline-button {
   margin-left: 8px;
   border-radius: 6px;
 }
@@ -231,7 +467,8 @@
    nova-theme.css), sized like the dashboard's Saved Views control (nova-theme.css
    #saved-views-dropdown, dashboard.css .styled-select): 28px high, 12px/500, 6px radius.
    The right padding keeps .styled-select's room for the arrow. */
-#calendar-tab #solar-cal-body-filter {
+#calendar-tab #solar-cal-body-filter,
+#bodies-tab .solar-calc-controls select {
   height: 28px;
   padding: 4px 28px 4px 10px;
   border-radius: 6px;
@@ -241,7 +478,8 @@
 
 /* Dark mode: nova-theme.css's dark select.styled-select sets the background shorthand,
    which drops the arrow; put back its dark arrow (nova-theme.css, "Dark mode dropdown arrow"). */
-:root[data-theme="dark"] #calendar-tab #solar-cal-body-filter {
+:root[data-theme="dark"] #calendar-tab #solar-cal-body-filter,
+:root[data-theme="dark"] #bodies-tab .solar-calc-controls select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;

@@ -13,8 +13,7 @@ from urllib.parse import parse_qs, urlsplit
 
 import pytest
 
-from nova.models import Component, DbUser, Rig, UiPref
-from nova.record_links import sync_rig_links
+from nova.models import Component, DbUser
 
 # Dependency order: nova_dashboard_rows.js needs astro and transit; nova_planets.js
 # needs astro; nova_plot_data.js astro and transit; nova_solar_rows.js astro, planets
@@ -217,126 +216,144 @@ def test_tooltips_are_translated(mu_client_logged_out, lang, date_label, date_he
     assert json.dumps(exact) in html or exact in html
 
 
-# ------------------------------------------------------------------ Rig fit card
+# ------------------------------------------------------------------ Planetary calculator
 
-def _add_rig(db_session, username, name, active=True, telescope=None, camera=None, reducer=None):
-    """A rig of `username` with its own components (dicts of Component fields, or None
-    for no such component), record_uid links synced."""
+def _add_component(db_session, username, kind, name, **fields):
+    """A component of `username`, with the record_uid the model gives it."""
     user = db_session.query(DbUser).filter_by(username=username).one()
-    ids = {}
-    for kind, fields in (("telescope", telescope), ("camera", camera), ("reducer_extender", reducer)):
-        if fields is None:
-            continue
-        comp = Component(user_id=user.id, kind=kind, name=f"{name} {kind}", **fields)
-        db_session.add(comp)
-        db_session.flush()
-        ids[kind] = comp.id
-    rig = Rig(user_id=user.id, rig_name=name, active=active, telescope_id=ids.get("telescope"),
-              camera_id=ids.get("camera"), reducer_extender_id=ids.get("reducer_extender"))
-    sync_rig_links(db_session, rig)
-    db_session.add(rig)
+    comp = Component(user_id=user.id, kind=kind, name=name, **fields)
+    db_session.add(comp)
     db_session.commit()
-    return rig
+    return comp
 
 
-def _solar_rigs(html):
-    """The page's embedded rigs (tojson escapes <, > and & as \\u escapes, which JSON reads)."""
-    return json.loads(re.search(r"const solarRigs = (.*);\n", html).group(1))
+def _solar_equipment(html):
+    """The page's embedded equipment (tojson escapes <, > and & as \\u escapes, which JSON reads)."""
+    return json.loads(re.search(r"const solarEquipment = (.*);\n", html).group(1))
 
 
-C11 = {"aperture_mm": 280.0, "focal_length_mm": 2800.0}
-ASI462 = {"pixel_size_um": 2.9, "sensor_width_mm": 5.6, "sensor_height_mm": 3.2}
-
-
-def test_page_embeds_the_active_rigs_with_raw_component_fields(client, db_session):
-    """Only active rigs, in the user's rig order (by name), each with its components'
-    raw fields: what nova_solar_rigfit.js needs to work out each value and name the
-    field a value lacks. A rig name reaches the page as JSON text, never as markup."""
-    _add_rig(db_session, "default", "C11 <b>x</b>", telescope=C11, camera=ASI462,
-             reducer={"factor": 2.0})
-    _add_rig(db_session, "default", "Apo", telescope={"aperture_mm": None, "focal_length_mm": 550.0},
-             camera=None)
-    _add_rig(db_session, "default", "Parked", active=False, telescope=C11, camera=ASI462)
+def test_page_embeds_telescopes_and_cameras_with_raw_fields(client, db_session):
+    """The user's telescopes and cameras, each list by name (case-insensitive), each with
+    its record_uid and raw fields; no reducers/extenders; no component without a
+    record_uid (the page could not remember it). A name reaches the page as JSON text,
+    never as markup."""
+    c11 = _add_component(db_session, "default", "telescope", "c11 <b>x</b>", aperture_mm=280.0,
+                         focal_length_mm=2800.0)
+    apo = _add_component(db_session, "default", "telescope", "Apo", aperture_mm=None,
+                         focal_length_mm=550.0)
+    asi = _add_component(db_session, "default", "camera", "ASI462", pixel_size_um=2.9,
+                         sensor_width_mm=5.6, sensor_height_mm=3.2)
+    _add_component(db_session, "default", "reducer_extender", "Barlow 2x", factor=2.0)
+    no_uid = _add_component(db_session, "default", "telescope", "No uid", aperture_mm=100.0,
+                            focal_length_mm=900.0)
+    empty_uid = _add_component(db_session, "default", "camera", "Empty uid", pixel_size_um=3.0)
+    # Cleared after the insert, which gives every row a record_uid
+    db_session.query(Component).filter_by(id=no_uid.id).update({"record_uid": None})
+    db_session.query(Component).filter_by(id=empty_uid.id).update({"record_uid": ""})
+    db_session.commit()
     html = client.get("/solar_system").get_data(as_text=True)
     assert "<b>x</b>" not in html
-    assert _solar_rigs(html) == [
-        {"name": "Apo", "has_telescope": True, "has_camera": False,
-         "focal_length_mm": 550.0, "aperture_mm": None, "factor": None,
-         "pixel_size_um": None, "sensor_width_mm": None, "sensor_height_mm": None},
-        {"name": "C11 <b>x</b>", "has_telescope": True, "has_camera": True,
-         "focal_length_mm": 2800.0, "aperture_mm": 280.0, "factor": 2.0,
-         "pixel_size_um": 2.9, "sensor_width_mm": 5.6, "sensor_height_mm": 3.2},
-    ]
+    assert _solar_equipment(html) == {
+        "telescopes": [
+            {"uid": apo.record_uid, "name": "Apo", "aperture_mm": None, "focal_length_mm": 550.0},
+            {"uid": c11.record_uid, "name": "c11 <b>x</b>", "aperture_mm": 280.0, "focal_length_mm": 2800.0},
+        ],
+        "cameras": [
+            {"uid": asi.record_uid, "name": "ASI462", "pixel_size_um": 2.9,
+             "sensor_width_mm": 5.6, "sensor_height_mm": 3.2},
+        ],
+    }
 
 
-def test_page_embeds_only_the_page_users_rigs(multi_user_client, db_session):
+def test_page_embeds_only_the_page_users_components(multi_user_client, db_session):
     client, _ = multi_user_client
-    _add_rig(db_session, "UserA", "A rig", telescope=C11, camera=ASI462)
-    _add_rig(db_session, "UserB", "B rig", telescope=C11, camera=ASI462)
-    names = [r["name"] for r in _solar_rigs(client.get("/solar_system").get_data(as_text=True))]
-    assert names == ["A rig"]
+    _add_component(db_session, "UserA", "telescope", "A scope", aperture_mm=200.0, focal_length_mm=2000.0)
+    _add_component(db_session, "UserB", "telescope", "B scope", aperture_mm=200.0, focal_length_mm=2000.0)
+    _add_component(db_session, "UserB", "camera", "B camera", pixel_size_um=2.9)
+    eq = _solar_equipment(client.get("/solar_system").get_data(as_text=True))
+    assert [t["name"] for t in eq["telescopes"]] == ["A scope"]
+    assert eq["cameras"] == []
 
 
-def test_guest_gets_the_guest_rigs(mu_client_logged_out, db_session):
-    """/get_rig_data is login_required, so the page carries the rigs itself: the active
-    rigs of guest_user (which the first visit also seeds with the demo rigs)."""
-    _add_rig(db_session, "guest_user", "Guest rig", telescope=C11, camera=ASI462)
-    _add_rig(db_session, "guest_user", "Guest parked", active=False, telescope=C11, camera=ASI462)
+def test_guest_gets_the_guest_components(mu_client_logged_out, db_session):
+    """The guest's page carries guest_user's telescopes and cameras (the first visit also
+    seeds the demo ones), never a component that has been deleted."""
+    _add_component(db_session, "guest_user", "telescope", "Guest scope", aperture_mm=150.0,
+                   focal_length_mm=1500.0)
+    gone = _add_component(db_session, "guest_user", "camera", "Gone camera", pixel_size_um=2.0)
+    db_session.delete(gone)
+    db_session.commit()
     mu_client_logged_out.get("/guest")
-    html = mu_client_logged_out.get("/solar_system").get_data(as_text=True)
+    eq = _solar_equipment(mu_client_logged_out.get("/solar_system").get_data(as_text=True))
     guest = db_session.query(DbUser).filter_by(username="guest_user").one()
-    active = db_session.query(Rig).filter_by(user_id=guest.id, active=True).all()
-    names = [r["name"] for r in _solar_rigs(html)]
-    assert "Guest rig" in names and "Guest parked" not in names
-    assert sorted(names) == sorted(r.rig_name for r in active)
+    rows = db_session.query(Component).filter_by(user_id=guest.id).all()
+    assert "Guest scope" in [t["name"] for t in eq["telescopes"]]
+    assert "Gone camera" not in [c["name"] for c in eq["cameras"]]
+    assert sorted(t["uid"] for t in eq["telescopes"]) == sorted(
+        c.record_uid for c in rows if c.kind == "telescope" and c.record_uid)
+    assert sorted(c["uid"] for c in eq["cameras"]) == sorted(
+        c.record_uid for c in rows if c.kind == "camera" and c.record_uid)
 
 
-@pytest.mark.parametrize("rig_sort", [5, ["name-desc"], {"x": 1}, True])
-def test_unreadable_rig_sort_falls_back_to_the_default_order(client, db_session, rig_sort):
-    """A stored rig_sort sort_rigs cannot read (not a string) gives the default order,
-    by name, instead of a 500."""
-    _add_rig(db_session, "default", "Zeta", telescope=C11, camera=ASI462)
-    _add_rig(db_session, "default", "Alpha", telescope=C11, camera=ASI462)
-    user = db_session.query(DbUser).filter_by(username="default").one()
-    db_session.query(UiPref).filter_by(user_id=user.id).delete()
-    db_session.add(UiPref(user_id=user.id, json_blob=json.dumps({"rig_sort": rig_sort})))
-    db_session.commit()
-    resp = client.get("/solar_system")
-    assert resp.status_code == 200
-    assert [r["name"] for r in _solar_rigs(resp.get_data(as_text=True))] == ["Alpha", "Zeta"]
-
-
-def test_readable_rig_sort_is_kept(client, db_session):
-    _add_rig(db_session, "default", "Alpha", telescope=C11, camera=ASI462)
-    _add_rig(db_session, "default", "Zeta", telescope=C11, camera=ASI462)
-    user = db_session.query(DbUser).filter_by(username="default").one()
-    db_session.query(UiPref).filter_by(user_id=user.id).delete()
-    db_session.add(UiPref(user_id=user.id, json_blob=json.dumps({"rig_sort": "name-desc"})))
-    db_session.commit()
-    names = [r["name"] for r in _solar_rigs(client.get("/solar_system").get_data(as_text=True))]
-    assert names == ["Zeta", "Alpha"]
-
-
-def test_no_active_rig_points_to_the_configuration_page(client, db_session):
-    _add_rig(db_session, "default", "Parked", active=False, telescope=C11, camera=ASI462)
+def test_calculator_has_three_styled_selects(client):
+    """Telescope, camera and amplification, each a .styled-select named for screen
+    readers; the browser fills the options."""
     html = client.get("/solar_system").get_data(as_text=True)
-    assert _solar_rigs(html) == []
-    empty = re.search(r'<p id="solar-rigfit-empty"[^>]*>(.*?)</p>', html, re.S).group(1)
-    assert "No active rig. Add or activate one on the Configuration page." in empty
+    controls = re.search(r'<div class="solar-calc-controls" id="solar-calc-controls">(.*?)</div>', html, re.S).group(1)
+    selects = re.findall(r'<select id="([a-z-]+)" class="styled-select" aria-label="([^"]+)"></select>', controls)
+    assert selects == [("solar-calc-telescope", "Telescope"), ("solar-calc-camera", "Camera"),
+                       ("solar-calc-amp", "Amplification")]
+    assert re.search(r'<h3 id="solar-calc-title">Planetary calculator</h3>', html)
+
+
+def test_calculator_layout_puts_the_preview_beside_the_result_on_wide_cards(client):
+    """Summary, preview and result in one wrapper, in that order (stacked); from 900 px of
+    card width (a container query) the preview sits right beside the text column at its
+    natural width, up to 400 px wide, a 72 px gap (3 x --space-6) between them."""
+    html = client.get("/solar_system").get_data(as_text=True)
+    body = re.search(r'<div class="solar-calc-body">(.*?)</dl>', html, re.S).group(1)
+    assert re.findall(r'id="(solar-calc-[a-z]+)"', body) == ["solar-calc-summary", "solar-calc-preview", "solar-calc-result"]
+    css = (Path(__file__).resolve().parent.parent / "static" / "css" / "solar_system.css").read_text()
+    assert "container: solar-calc / inline-size;" in css
+    wide = css[css.index("@container solar-calc (min-width: 900px)"):]
+    assert 'grid-template-areas: "summary preview" "result preview";' in wide
+    assert "grid-template-columns: minmax(0, max-content) 400px;" in wide
+    figure = css[css.index("#bodies-tab .solar-preview-figure {"):]
+    assert "aspect-ratio: 3 / 2;" in figure[:figure.index("}")]
+    # Text that changes with a select keeps its height: the summary two lines when stacked
+    # (under 900 px, natural on a wide card), the focal-ratio hint two (three under 450 px)
+    rule = lambda sel: css[css.index(sel + " {"):][:css[css.index(sel + " {"):].index("}")]
+    assert "min-height" not in rule("#bodies-tab .solar-calc-summary")
+    stacked = css[css.index("@container solar-calc (max-width: 899px)"):]
+    stacked = stacked[:stacked.index("}\n}")]
+    assert "#bodies-tab .solar-calc-summary {" in stacked and "min-height: 2.9em;" in stacked
+    assert "min-height: 2.9em;" not in wide[:wide.index("}\n}")]
+    assert "min-height: 2.8em;" in rule("#bodies-tab .solar-calc-hint-fratio")
+    narrow = css[css.index("@container solar-calc (max-width: 449px)"):]
+    assert "min-height: 4.2em;" in narrow[:narrow.index("}")]
+    assert "justify-content: start;" in wide and "column-gap: calc(var(--space-6) * 3);" in wide
+
+
+def test_empty_calculator_points_to_the_configuration_page(client):
+    html = client.get("/solar_system").get_data(as_text=True)
+    assert _solar_equipment(html) == {"telescopes": [], "cameras": []}
+    empty = re.search(r'<p id="solar-calc-empty"[^>]*>(.*?)</p>', html, re.S).group(1)
+    assert "Add a telescope and a camera on the Configuration page." in empty
     assert 'href="/config_form?prefill_config_tab=rigs"' in empty
 
 
-@pytest.mark.parametrize("lang, rig_fit, hide_muted, conjunction, calculating", [
-    ("de", "Rig-Eignung", "Nicht sichtbare Ereignisse ausblenden", "Konjunktion {sep}°", "Wird berechnet..."),
-    ("ja", "機材との相性", "見えないイベントを隠す", "合 {sep}°", "計算中..."),
+@pytest.mark.parametrize("lang, calc_title, hide_muted, conjunction, calculating", [
+    ("de", "Planetenrechner", "Nicht sichtbare Ereignisse ausblenden", "Konjunktion {sep}°", "Wird berechnet..."),
+    ("ja", "惑星計算ツール", "見えないイベントを隠す", "合 {sep}°", "計算中..."),
 ])
-def test_new_strings_are_translated(mu_client_logged_out, lang, rig_fit, hide_muted, conjunction, calculating):
-    """The Rig fit card, the calendar filter, the conjunction label and the calendar's
-    "Calculating...", through _(); the placeholder survives for the page to fill in."""
+def test_new_strings_are_translated(mu_client_logged_out, lang, calc_title, hide_muted, conjunction, calculating):
+    """The planetary calculator's title, the calendar filter, the conjunction label and the
+    calendar's "Calculating...", through _(); the placeholder survives for the page to
+    fill in."""
     mu_client_logged_out.get("/guest")
     mu_client_logged_out.get(f"/set_language/{lang}")
     html = mu_client_logged_out.get("/solar_system").get_data(as_text=True)
-    assert re.search(r'<h3 id="solar-rigfit-title">' + re.escape(rig_fit) + "</h3>", html)
+    assert re.search(r'<h3 id="solar-calc-title">' + re.escape(calc_title) + "</h3>", html)
     assert hide_muted in html
     assert json.dumps(conjunction) in html or conjunction in html
     assert re.search(r'<p id="solar-cal-loading"[^>]*>' + re.escape(calculating) + "</p>", html)

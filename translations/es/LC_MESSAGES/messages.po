@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-01 10:37+0800\n"
+"POT-Creation-Date: 2026-11-01 13:47+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -191,69 +191,69 @@ msgstr "Formato de fecha y hora no válido."
 msgid "Calibration star catalog not found"
 msgstr "No se encontró el catálogo de estrellas de calibración."
 
-#: nova/blueprints/core.py:235
+#: nova/blueprints/core.py:236
 msgid "Logged out successfully!"
 msgstr "¡Sesión cerrada con éxito!"
 
-#: nova/blueprints/core.py:274
+#: nova/blueprints/core.py:275
 #, python-format
 msgid "Language '%(lang)s' is not supported."
 msgstr "El idioma '%(lang)s' no está soportado."
 
-#: nova/blueprints/core.py:334
+#: nova/blueprints/core.py:335
 msgid "Logged in successfully!"
 msgstr "¡Sesión iniciada con éxito!"
 
-#: nova/blueprints/core.py:359
+#: nova/blueprints/core.py:360
 msgid "Invalid username or password."
 msgstr "Nombre de usuario o contraseña no válidos."
 
-#: nova/blueprints/core.py:367
+#: nova/blueprints/core.py:368
 msgid "Single Sign-On is not applicable in single-user mode."
 msgstr ""
 "El inicio de sesión único (SSO) no es aplicable en modo de un solo "
 "usuario."
 
-#: nova/blueprints/core.py:375
+#: nova/blueprints/core.py:376
 msgid "SSO Error: No token provided."
 msgstr "Error de SSO: No se proporcionó ningún token."
 
-#: nova/blueprints/core.py:381
+#: nova/blueprints/core.py:382
 msgid "SSO Error: SSO is not configured on the server."
 msgstr "Error de SSO: SSO no está configurado en el servidor."
 
-#: nova/blueprints/core.py:400
+#: nova/blueprints/core.py:401
 #, python-format
 msgid "Welcome back, %(username)s!"
 msgstr "¡Bienvenido de nuevo, %(username)s!"
 
-#: nova/blueprints/core.py:403
+#: nova/blueprints/core.py:404
 #, python-format
 msgid "SSO Error: User '%(username)s' not found or is disabled in Nova."
 msgstr ""
 "Error de SSO: Usuario '%(username)s' no encontrado o está deshabilitado "
 "en Nova."
 
-#: nova/blueprints/core.py:407
+#: nova/blueprints/core.py:408
 msgid "SSO Error: The login link has expired. Please try again from WordPress."
 msgstr ""
 "Error de SSO: El enlace de inicio de sesión ha expirado. Por favor, "
 "inténtelo de nuevo desde WordPress."
 
-#: nova/blueprints/core.py:410
+#: nova/blueprints/core.py:411
 msgid "SSO Error: Invalid login token."
 msgstr "Error de SSO: Token de inicio de sesión no válido."
 
-#: nova/blueprints/core.py:627
+#: nova/blueprints/core.py:628
 #, python-format
 msgid "Could not find user '%(username)s' in the database."
 msgstr "No se pudo encontrar el usuario '%(username)s' en la base de datos."
 
-#: nova/blueprints/core.py:716
+#: nova/blueprints/core.py:717
 msgid "Warning: Horizon Mask was invalid and was ignored."
 msgstr "Advertencia: La máscara de horizonte no era válida y se ignoró."
 
-#: nova/blueprints/core.py:746
+#: nova/blueprints/core.py:747
 msgid ""
 "Cannot delete your last location. You must have at least one location "
 "configured."
@@ -261,7 +261,7 @@ msgstr ""
 "No se puede eliminar su última ubicación. Debe tener al menos una "
 "ubicación configurada."
 
-#: nova/blueprints/core.py:751
+#: nova/blueprints/core.py:752
 msgid ""
 "Cannot deactivate your only active location. You must keep at least one "
 "active location."
@@ -269,19 +269,19 @@ msgstr ""
 "No se puede desactivar su única ubicación activa. Debe mantener al menos "
 "una ubicación activa."
 
-#: nova/blueprints/core.py:797
+#: nova/blueprints/core.py:798
 #, python-format
 msgid "Warning: Horizon Mask for '%(location_name)s' was invalid and ignored."
 msgstr ""
 "Advertencia: La máscara de horizonte para '%(location_name)s' no era "
 "válida y se ignoró."
 
-#: nova/blueprints/core.py:880
+#: nova/blueprints/core.py:881
 #, python-format
 msgid "%(message)s updated successfully."
 msgstr "%(message)s actualizado con éxito."
 
-#: nova/blueprints/core.py:882
+#: nova/blueprints/core.py:883
 #, python-format
 msgid ""
 "Cannot delete object '%(name)s': it is still used by %(sessions)d "
@@ -290,88 +290,88 @@ msgstr ""
 "No se puede eliminar el objeto '%(name)s': todavía lo usan %(sessions)d "
 "sesión(es) y %(projects)d proyecto(s)."
 
-#: nova/blueprints/core.py:886
+#: nova/blueprints/core.py:887
 #, python-format
 msgid "Cannot delete location '%(name)s': it is used by %(sessions)d session(s)."
 msgstr ""
 "No se puede eliminar la ubicación '%(name)s': la usan %(sessions)d "
 "sesión(es)."
 
-#: nova/blueprints/core.py:965
+#: nova/blueprints/core.py:966
 #, python-format
 msgid "A database error occurred: %(error)s"
 msgstr "Ocurrió un error de base de datos: %(error)s"
 
-#: nova/blueprints/core.py:1179
+#: nova/blueprints/core.py:1180
 msgid "Label required"
 msgstr "Etiqueta requerida"
 
-#: nova/blueprints/core.py:1189
+#: nova/blueprints/core.py:1190
 msgid "Filter already exists"
 msgstr "El filtro ya existe"
 
-#: nova/blueprints/core.py:1206
+#: nova/blueprints/core.py:1207
 msgid "Filter not found"
 msgstr "Filtro no encontrado"
 
-#: nova/blueprints/core.py:1235 nova/blueprints/core.py:1275
+#: nova/blueprints/core.py:1236 nova/blueprints/core.py:1276
 msgid "No object specified."
 msgstr "No se especificó ningún objeto."
 
-#: nova/blueprints/core.py:1250
+#: nova/blueprints/core.py:1251
 msgid "This object is already in your library."
 msgstr "Este objeto ya está en su biblioteca."
 
-#: nova/blueprints/core.py:1262 nova/blueprints/core.py:1910
-#: nova/blueprints/core.py:1937 templates/mobile_add_object.html:57
+#: nova/blueprints/core.py:1263 nova/blueprints/core.py:1893
+#: nova/blueprints/core.py:1920 templates/mobile_add_object.html:57
 msgid "Object not found."
 msgstr "Objeto no encontrado."
 
-#: nova/blueprints/core.py:1573
+#: nova/blueprints/core.py:1574
 msgid "Fetched and saved missing object details."
 msgstr "Detalles del objeto faltantes recuperados y guardados."
 
-#: nova/blueprints/core.py:1575
+#: nova/blueprints/core.py:1576
 msgid "No missing data found or no updates needed."
 msgstr "No se encontraron datos faltantes o no se necesitan actualizaciones."
 
-#: nova/blueprints/core.py:1579
+#: nova/blueprints/core.py:1580
 #, python-format
 msgid "An error occurred during data fetching: %(error)s"
 msgstr "Ocurrió un error durante la recuperación de datos: %(error)s"
 
-#: nova/blueprints/core.py:2043
+#: nova/blueprints/core.py:2026
 msgid "Please log in to view object details."
 msgstr "Por favor, inicie sesión para ver los detalles del objeto."
 
-#: nova/blueprints/core.py:2058
+#: nova/blueprints/core.py:2041
 #, python-format
 msgid "User '%(username)s' not found."
 msgstr "Usuario '%(username)s' no encontrado."
 
-#: nova/blueprints/core.py:2074
+#: nova/blueprints/core.py:2057
 #, python-format
 msgid "Requested location '%(location_name)s' not found, using default."
 msgstr ""
 "Ubicación solicitada '%(location_name)s' no encontrada, usando la "
 "predeterminada."
 
-#: nova/blueprints/core.py:2092
+#: nova/blueprints/core.py:2075
 msgid "Error: No valid location configured or selected for this user."
 msgstr ""
 "Error: No hay una ubicación válida configurada o seleccionada para este "
 "usuario."
 
-#: nova/blueprints/core.py:2110
+#: nova/blueprints/core.py:2093
 #, python-format
 msgid "Object '%(object_name)s' not found in your configuration."
 msgstr "Objeto '%(object_name)s' no encontrado en su configuración."
 
-#: nova/blueprints/core.py:2385
+#: nova/blueprints/core.py:2368
 msgid "Invalid date components provided, defaulting to current date."
 msgstr "Componentes de fecha no válidos proporcionados, usando la fecha actual."
 
-#: nova/blueprints/core.py:2587
+#: nova/blueprints/core.py:2570
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
 msgstr "Ocurrió un error al cargar los detalles de %(object_name)s."
@@ -682,7 +682,6 @@ msgstr "Componente"
 #: nova/blueprints/tools.py:568 templates/_journal_section.html:3046
 #: templates/graph_view.html:309 templates/index.html:164
 #: templates/mobile_journal_new.html:237 templates/project_report.html:1167
-#: templates/solar_system.html:112
 msgid "Rig"
 msgstr "Rig"
 
@@ -1278,13 +1277,13 @@ msgstr "GUIADO (RMS)"
 
 #: templates/_journal_section.html:2374 templates/_journal_section.html:3338
 #: templates/base.html:227 templates/journal_report.html:736
-#: templates/journal_report.html:993
+#: templates/journal_report.html:993 templates/solar_system.html:264
 msgid "Excellent"
 msgstr "Excelente"
 
 #: templates/_journal_section.html:2374 templates/_journal_section.html:3339
 #: templates/base.html:228 templates/journal_report.html:736
-#: templates/journal_report.html:993
+#: templates/journal_report.html:993 templates/solar_system.html:265
 msgid "Good"
 msgstr "Bueno"
 
@@ -2795,7 +2794,7 @@ msgstr "Oportunidades de imagen"
 #: templates/index.html:229 templates/index.html:247
 #: templates/journal_report.html:686 templates/mobile_journal_new.html:210
 #: templates/project_report.html:906 templates/solar_system.html:27
-#: templates/solar_system.html:155
+#: templates/solar_system.html:151
 msgid "Date"
 msgstr "Fecha"
 
@@ -3049,7 +3048,7 @@ msgstr ""
 "Nova DSO Tracker Analytics — Conforme al RGPD, no se almacena información"
 " personal"
 
-#: templates/base.html:109 templates/solar_system.html:131
+#: templates/base.html:109 templates/solar_system.html:127
 msgid "Calculating..."
 msgstr "Calculando..."
 
@@ -3070,7 +3069,7 @@ msgstr "Guardado"
 msgid "Error"
 msgstr "Error:"
 
-#: templates/base.html:117
+#: templates/base.html:117 templates/solar_system.html:226
 msgid "None"
 msgstr "Ninguno"
 
@@ -3180,12 +3179,12 @@ msgid "Select Camera"
 msgstr "Seleccionar cámara"
 
 #: templates/base.html:153 templates/config_form.html:652
-#: templates/project_report.html:1174
+#: templates/project_report.html:1174 templates/solar_system.html:109
 msgid "Telescope"
 msgstr "Telescopio"
 
 #: templates/base.html:154 templates/config_form.html:653
-#: templates/project_report.html:1178
+#: templates/project_report.html:1178 templates/solar_system.html:110
 msgid "Camera"
 msgstr "Cámara"
 
@@ -4595,8 +4594,8 @@ msgstr "Fecha del gráfico"
 
 #: templates/graph_view.html:60 templates/index.html:58
 #: templates/mobile_base.html:35 templates/project_report.html:1152
-#: templates/solar_system.html:28 templates/solar_system.html:143
-#: templates/solar_system.html:180
+#: templates/solar_system.html:28 templates/solar_system.html:139
+#: templates/solar_system.html:176
 msgid "Moon"
 msgstr "Luna"
 
@@ -4642,7 +4641,7 @@ msgstr "Día"
 
 #: templates/graph_view.html:102 templates/mobile_object_detail.html:520
 #: templates/solar_system.html:90 templates/solar_system.html:93
-#: templates/solar_system.html:206
+#: templates/solar_system.html:202
 msgid "Month"
 msgstr "Mes"
 
@@ -4757,7 +4756,7 @@ msgstr ""
 "Aún no hay ningún rig configurado. Añada un rig para ver cómo encaja este"
 " objeto en su campo de visión."
 
-#: templates/graph_view.html:217 templates/solar_system.html:124
+#: templates/graph_view.html:217 templates/solar_system.html:120
 msgid "Manage Rigs"
 msgstr "Gestionar rigs"
 
@@ -4988,7 +4987,7 @@ msgid "Window"
 msgstr "Ventana"
 
 #: templates/graph_view.html:684 templates/mobile_object_detail.html:493
-#: templates/solar_system.html:192
+#: templates/solar_system.html:188
 msgid "Now"
 msgstr "Ahora"
 
@@ -5094,7 +5093,7 @@ msgstr "Eliminar filtro"
 
 #: templates/index.html:148 templates/index.html:151
 #: templates/mobile_up_now.html:899 templates/mobile_up_now.html:912
-#: templates/solar_system.html:191 templates/solar_system.html:197
+#: templates/solar_system.html:187 templates/solar_system.html:193
 msgid "Altitude"
 msgstr "Altitud"
 
@@ -5103,7 +5102,7 @@ msgid "Current"
 msgstr "Actual"
 
 #: templates/index.html:149 templates/index.html:152
-#: templates/solar_system.html:198
+#: templates/solar_system.html:194
 msgid "Azimuth"
 msgstr "Acimut"
 
@@ -5142,7 +5141,7 @@ msgid "to moon (°)"
 msgstr "a la luna (°)"
 
 #: templates/index.html:159 templates/solar_system.html:71
-#: templates/solar_system.html:158
+#: templates/solar_system.html:154
 msgid "Magnitude"
 msgstr "Magnitud"
 
@@ -5859,7 +5858,7 @@ msgstr "Predeterminado"
 msgid "Mosaic:"
 msgstr "Mosaico:"
 
-#: templates/mobile_mosaic_copy.html:8 templates/solar_system.html:237
+#: templates/mobile_mosaic_copy.html:8 templates/solar_system.html:248
 msgid "Mosaic"
 msgstr "Mosaico"
 
@@ -6114,8 +6113,8 @@ msgstr "Astros"
 msgid "Calendar"
 msgstr "Calendario"
 
-#: templates/solar_system.html:64 templates/solar_system.html:134
-#: templates/solar_system.html:156
+#: templates/solar_system.html:64 templates/solar_system.html:130
+#: templates/solar_system.html:152
 msgid "Body"
 msgstr "Astro"
 
@@ -6145,7 +6144,7 @@ msgstr "Punto más alto en el cielo; altitud entre paréntesis."
 msgid "Set"
 msgstr "Puesta"
 
-#: templates/solar_system.html:70 templates/solar_system.html:161
+#: templates/solar_system.html:70 templates/solar_system.html:157
 msgid "Highest altitude between sunset and sunrise."
 msgstr "Altitud máxima entre la puesta y la salida del Sol."
 
@@ -6153,13 +6152,13 @@ msgstr "Altitud máxima entre la puesta y la salida del Sol."
 msgid "Max altitude tonight"
 msgstr "Altitud máxima esta noche"
 
-#: templates/solar_system.html:72 templates/solar_system.html:159
+#: templates/solar_system.html:72 templates/solar_system.html:155
 msgid ""
 "Apparent size in arcseconds. The most important number for planetary "
 "imaging."
 msgstr "Tamaño aparente en segundos de arco. La cifra más importante para la astrofotografía planetaria."
 
-#: templates/solar_system.html:72 templates/solar_system.html:159
+#: templates/solar_system.html:72 templates/solar_system.html:155
 msgid "Diameter"
 msgstr "Diámetro"
 
@@ -6171,11 +6170,11 @@ msgstr "Fracción iluminada del disco vista desde la Tierra."
 msgid "Illuminated"
 msgstr "Iluminado"
 
-#: templates/solar_system.html:74 templates/solar_system.html:160
+#: templates/solar_system.html:74 templates/solar_system.html:156
 msgid "Angle from the Sun. Larger means easier to see against a dark sky."
 msgstr "Ángulo respecto al Sol. Cuanto mayor, más fácil de ver con el cielo oscuro."
 
-#: templates/solar_system.html:74 templates/solar_system.html:160
+#: templates/solar_system.html:74 templates/solar_system.html:156
 msgid "Elongation"
 msgstr "Elongación"
 
@@ -6183,19 +6182,31 @@ msgstr "Elongación"
 msgid "Tonight"
 msgstr "Esta noche"
 
-#: templates/solar_system.html:107 templates/solar_system.html:229
-msgid "Rig fit"
-msgstr "Ajuste del rig"
+#: templates/solar_system.html:107 templates/solar_system.html:225
+msgid "Planetary calculator"
+msgstr "Calculadora planetaria"
 
-#: templates/solar_system.html:113
-msgid "Apparent diameter of the body in pixels with this rig."
-msgstr "Diámetro aparente del cuerpo en píxeles con este rig."
+#: templates/solar_system.html:111
+msgid "Amplification"
+msgstr "Amplificación"
 
-#: templates/solar_system.html:113
+#: templates/solar_system.html:119
+msgid "Add a telescope and a camera on the Configuration page."
+msgstr "Añade un telescopio y una cámara en la página de Configuración."
+
+#: templates/solar_system.html:227
 msgid "Disc"
 msgstr "Disco"
 
-#: templates/solar_system.html:114
+#: templates/solar_system.html:228
+msgid ""
+"Apparent diameter of the body in pixels with this telescope, camera and "
+"amplification."
+msgstr ""
+"Diámetro aparente del cuerpo en píxeles con este telescopio, esta cámara "
+"y esta amplificación."
+
+#: templates/solar_system.html:230
 msgid ""
 "Rule of thumb for good seeing: 5 x pixel size in µm. Many imagers use 3-5"
 " x, lower for average seeing or colour cameras."
@@ -6203,202 +6214,186 @@ msgstr ""
 "Regla práctica para buen seeing: 5 x tamaño de píxel en µm. Muchos "
 "astrofotógrafos usan 3-5 x, menos con seeing medio o cámaras a color."
 
-#: templates/solar_system.html:114
+#: templates/solar_system.html:229
 msgid "Focal ratio"
 msgstr "Relación focal"
 
-#: templates/solar_system.html:115
-msgid ""
-"Barlow or extender that would bring the rig to the ideal focal ratio. The"
-" real amplification depends on the Barlow-to-sensor spacing."
-msgstr ""
-"Barlow o extensor que llevaría el rig a la relación focal ideal. La "
-"amplificación real depende de la distancia entre la Barlow y el sensor."
-
-#: templates/solar_system.html:115
-msgid "Barlow"
-msgstr "Barlow"
-
-#: templates/solar_system.html:123
-msgid "No active rig. Add or activate one on the Configuration page."
-msgstr "Ningún rig activo. Añade o activa uno en la página de Configuración."
-
-#: templates/solar_system.html:135
+#: templates/solar_system.html:131
 msgid "All bodies"
 msgstr "Todos los cuerpos"
 
-#: templates/solar_system.html:155
+#: templates/solar_system.html:151
 msgid "The evening on which the observing night starts."
 msgstr "La tarde en la que empieza la noche de observación."
 
-#: templates/solar_system.html:157
+#: templates/solar_system.html:153
 msgid "Event"
 msgstr "Evento"
 
-#: templates/solar_system.html:161
+#: templates/solar_system.html:157
 msgid "Max altitude that night"
 msgstr "Altitud máxima esa noche"
 
-#: templates/solar_system.html:162
+#: templates/solar_system.html:158
 msgid "Negative values are events that have already passed."
 msgstr "Los valores negativos son eventos que ya han pasado."
 
-#: templates/solar_system.html:162
+#: templates/solar_system.html:158
 msgid "Days from now"
 msgstr "Días desde hoy"
 
-#: templates/solar_system.html:136 templates/solar_system.html:173
+#: templates/solar_system.html:132 templates/solar_system.html:169
 msgid "Mercury"
 msgstr "Mercurio"
 
-#: templates/solar_system.html:137 templates/solar_system.html:174
+#: templates/solar_system.html:133 templates/solar_system.html:170
 msgid "Venus"
 msgstr "Venus"
 
-#: templates/solar_system.html:138 templates/solar_system.html:175
+#: templates/solar_system.html:134 templates/solar_system.html:171
 msgid "Mars"
 msgstr "Marte"
 
-#: templates/solar_system.html:139 templates/solar_system.html:176
+#: templates/solar_system.html:135 templates/solar_system.html:172
 msgid "Jupiter"
 msgstr "Júpiter"
 
-#: templates/solar_system.html:140 templates/solar_system.html:177
+#: templates/solar_system.html:136 templates/solar_system.html:173
 msgid "Saturn"
 msgstr "Saturno"
 
-#: templates/solar_system.html:141 templates/solar_system.html:178
+#: templates/solar_system.html:137 templates/solar_system.html:174
 msgid "Uranus"
 msgstr "Urano"
 
-#: templates/solar_system.html:142 templates/solar_system.html:179
+#: templates/solar_system.html:138 templates/solar_system.html:175
 msgid "Neptune"
 msgstr "Neptuno"
 
-#: templates/solar_system.html:147
+#: templates/solar_system.html:143
 msgid "Hide events that are not visible"
 msgstr "Ocultar eventos no visibles"
 
-#: templates/solar_system.html:182
+#: templates/solar_system.html:178
 msgid "E"
 msgstr "E"
 
-#: templates/solar_system.html:183
+#: templates/solar_system.html:179
 msgid "W"
 msgstr "O"
 
-#: templates/solar_system.html:184
+#: templates/solar_system.html:180
 msgid "Always up"
 msgstr "Siempre sobre el horizonte"
 
-#: templates/solar_system.html:185
+#: templates/solar_system.html:181
 msgid "Never up"
 msgstr "Nunca sobre el horizonte"
 
-#: templates/solar_system.html:186
+#: templates/solar_system.html:182
 msgid "Not up tonight"
 msgstr "No sale esta noche"
 
-#: templates/solar_system.html:187
+#: templates/solar_system.html:183
 msgid "Does not reach the altitude threshold tonight"
 msgstr "No alcanza su umbral de altitud esta noche"
 
-#: templates/solar_system.html:188
+#: templates/solar_system.html:184
 msgid "Solar System data could not be calculated."
 msgstr "No se pudieron calcular los datos del sistema solar."
 
-#: templates/solar_system.html:189
+#: templates/solar_system.html:185
 msgid "Could not load location data."
 msgstr "No se pudieron cargar los datos de la ubicación."
 
-#: templates/solar_system.html:190
+#: templates/solar_system.html:186
 msgid "The altitude chart could not be drawn."
 msgstr "No se pudo dibujar el gráfico de altitud."
 
-#: templates/solar_system.html:193
+#: templates/solar_system.html:189
 msgid "Sunset"
 msgstr "Puesta de sol"
 
-#: templates/solar_system.html:194
+#: templates/solar_system.html:190
 msgid "Sunrise"
 msgstr "Salida del sol"
 
-#: templates/solar_system.html:195
+#: templates/solar_system.html:191
 msgid "Astronomical dusk"
 msgstr "Anochecer astronómico"
 
-#: templates/solar_system.html:196
+#: templates/solar_system.html:192
 msgid "Astronomical dawn"
 msgstr "Amanecer astronómico"
 
-#: templates/solar_system.html:199
+#: templates/solar_system.html:195
 msgid "Horizon"
 msgstr "Horizonte"
 
-#: templates/solar_system.html:200
+#: templates/solar_system.html:196
 msgid "Altitude threshold / horizon mask"
 msgstr "Umbral de altitud / máscara de horizonte"
 
-#: templates/solar_system.html:201
+#: templates/solar_system.html:197
 msgid "Local time"
 msgstr "Hora local"
 
-#: templates/solar_system.html:202
+#: templates/solar_system.html:198
 msgid "Altitude (°)"
 msgstr "Altitud (°)"
 
-#: templates/solar_system.html:203
+#: templates/solar_system.html:199
 msgid "Azimuth (°)"
 msgstr "Acimut (°)"
 
-#: templates/solar_system.html:204
+#: templates/solar_system.html:200
 msgid "Max altitude (sunset to sunrise)"
 msgstr "Altitud máxima (de la puesta a la salida del sol)"
 
-#: templates/solar_system.html:205
+#: templates/solar_system.html:201
 msgid "Day of month"
 msgstr "Día del mes"
 
-#: templates/solar_system.html:207
+#: templates/solar_system.html:203
 msgid "Opposition"
 msgstr "Oposición"
 
-#: templates/solar_system.html:208
+#: templates/solar_system.html:204
 msgid "Greatest elongation E (evening)"
 msgstr "Máxima elongación E (vespertina)"
 
-#: templates/solar_system.html:209
+#: templates/solar_system.html:205
 msgid "Greatest elongation W (morning)"
 msgstr "Máxima elongación O (matutina)"
 
-#: templates/solar_system.html:210
+#: templates/solar_system.html:206
 msgid "Does not reach the altitude threshold that night"
 msgstr "No alcanza su umbral de altitud esa noche"
 
-#: templates/solar_system.html:211
+#: templates/solar_system.html:207
 #, python-format
 msgid "Exact time: %(time)s"
 msgstr "Hora exacta: %(time)s"
 
-#: templates/solar_system.html:212
+#: templates/solar_system.html:208
 #, python-format
 msgid "Conjunction %(sep)s°"
 msgstr "Conjunción %(sep)s°"
 
-#: templates/solar_system.html:213
+#: templates/solar_system.html:209
 #, python-format
 msgid "Too close to the Sun (%(elong)s° away)"
 msgstr "Demasiado cerca del Sol (a %(elong)s°)"
 
-#: templates/solar_system.html:214
+#: templates/solar_system.html:210
 msgid "Occultation"
 msgstr "Ocultación"
 
-#: templates/solar_system.html:215
+#: templates/solar_system.html:211
 msgid "In daylight at the closest approach"
 msgstr "De día en el momento de máximo acercamiento"
 
-#: templates/solar_system.html:216
+#: templates/solar_system.html:212
 #, python-format
 msgid ""
 "Below the altitude threshold at the closest approach (%(first)s "
@@ -6407,17 +6402,17 @@ msgstr ""
 "Por debajo de su umbral de altitud en el momento de máximo acercamiento "
 "(%(first)s %(first_alt)s°, %(second)s %(second_alt)s°)"
 
-#: templates/solar_system.html:217
+#: templates/solar_system.html:213
 #, python-format
 msgid "Closest approach: %(date)s, %(dist)s million km"
 msgstr "Máximo acercamiento: %(date)s, %(dist)s millones de km"
 
-#: templates/solar_system.html:218
+#: templates/solar_system.html:214
 #, python-format
 msgid "rings %(value)s"
 msgstr "anillos %(value)s"
 
-#: templates/solar_system.html:219
+#: templates/solar_system.html:215
 msgid ""
 "Tilt of the rings toward the Earth: + north face, − south face visible. "
 "Near 0° the rings are edge-on."
@@ -6425,61 +6420,91 @@ msgstr ""
 "Inclinación de los anillos hacia la Tierra: + cara norte, − cara sur "
 "visible. Cerca de 0° los anillos se ven de canto."
 
-#: templates/solar_system.html:221
+#: templates/solar_system.html:217
 msgid ""
 "Opposite the Sun: up all night, closest and brightest. Good for several "
 "weeks around this date."
 msgstr "Opuesto al Sol: visible toda la noche, más cercano y brillante. Bueno durante varias semanas alrededor de esta fecha."
 
-#: templates/solar_system.html:222
+#: templates/solar_system.html:218
 msgid ""
 "Farthest east of the Sun: best evening visibility, low in the west after "
 "sunset."
 msgstr "Máxima distancia al este del Sol: mejor visibilidad vespertina, bajo en el oeste tras la puesta del Sol."
 
-#: templates/solar_system.html:223
+#: templates/solar_system.html:219
 msgid ""
 "Farthest west of the Sun: best morning visibility, low in the east before"
 " sunrise."
 msgstr "Máxima distancia al oeste del Sol: mejor visibilidad matutina, bajo en el este antes de la salida del Sol."
 
-#: templates/solar_system.html:224
+#: templates/solar_system.html:220
 msgid "Closest apparent approach of the two bodies."
 msgstr "Máximo acercamiento aparente de los dos cuerpos."
 
-#: templates/solar_system.html:225
+#: templates/solar_system.html:221
 msgid "Closest apparent approach of the two bodies, as seen from this location."
 msgstr ""
 "Máximo acercamiento aparente de los dos cuerpos, visto desde esta "
 "ubicación."
 
-#: templates/solar_system.html:226
+#: templates/solar_system.html:222
 msgid "The Moon passes in front of the planet as seen from this location."
 msgstr "La Luna pasa por delante del planeta, visto desde esta ubicación."
 
-#: templates/solar_system.html:230
+#: templates/solar_system.html:231
 #, python-format
 msgid "ideal f/%(ratio)s"
 msgstr "ideal f/%(ratio)s"
 
-#: templates/solar_system.html:231
-msgid "none needed"
-msgstr "no necesaria"
+#: templates/solar_system.html:233
+msgid "on target"
+msgstr "en el objetivo"
 
-#: templates/solar_system.html:232
+#: templates/solar_system.html:234
+msgid "below ideal"
+msgstr "por debajo del ideal"
+
+#: templates/solar_system.html:235
 msgid "above ideal"
 msgstr "por encima del ideal"
 
-#: templates/solar_system.html:233
-#, python-format
-msgid "Exact factor: %(factor)s"
-msgstr "Factor exacto: %(factor)s"
+#: templates/solar_system.html:237
+msgid "Detail"
+msgstr "Detalle"
 
-#: templates/solar_system.html:234
+#: templates/solar_system.html:238
+msgid ""
+"How much detail the aperture can resolve on this planet: diameter divided"
+" by the telescope's resolution (Dawes limit). Seeing often limits this "
+"further."
+msgstr ""
+"Cuánto detalle puede resolver la apertura en este planeta: diámetro "
+"dividido por la resolución del telescopio (límite de Dawes). El seeing "
+"suele limitarlo aún más."
+
+#: templates/solar_system.html:240
+msgid "Fine detail"
+msgstr "Detalle fino"
+
+#: templates/solar_system.html:241
+msgid "Main features"
+msgstr "Rasgos principales"
+
+#: templates/solar_system.html:242
+msgid "Disc only"
+msgstr "Solo el disco"
+
+#: templates/solar_system.html:244
+#, python-format
+msgid "about %(n)s resolvable points across"
+msgstr "unos %(n)s puntos resolubles a lo ancho"
+
+#: templates/solar_system.html:245
 msgid "Rotation limit"
 msgstr "Límite de rotación"
 
-#: templates/solar_system.html:235
+#: templates/solar_system.html:246
 msgid ""
 "Longest single capture before rotation blurs detail at the disc centre, "
 "without derotation. With derotation (e.g. WinJUPOS) much longer captures "
@@ -6489,12 +6514,12 @@ msgstr ""
 " en el centro del disco, sin derrotación. Con derrotación (p. ej. "
 "WinJUPOS) son posibles capturas mucho más largas."
 
-#: templates/solar_system.html:236
+#: templates/solar_system.html:247
 #, python-format
 msgid "%(min)s min %(sec)s s"
 msgstr "%(min)s min %(sec)s s"
 
-#: templates/solar_system.html:238
+#: templates/solar_system.html:249
 msgid ""
 "Frames needed for the full disc, each overlapping its neighbours by 20 "
 "percent."
@@ -6502,44 +6527,182 @@ msgstr ""
 "Tomas necesarias para el disco completo, cada una solapada un 20 por "
 "ciento con sus vecinas."
 
-#: templates/solar_system.html:239
+#: templates/solar_system.html:250
 msgid "Fits in one frame"
 msgstr "Cabe en una toma"
 
-#: templates/solar_system.html:240
+#: templates/solar_system.html:251
 #, python-format
 msgid "%(n)s panels (%(cols)s × %(rows)s)"
 msgstr "%(n)s paneles (%(cols)s × %(rows)s)"
 
-#: templates/solar_system.html:242
-msgid "This rig has no telescope."
-msgstr "Este rig no tiene telescopio."
+#: templates/solar_system.html:253
+msgid "Size of the planet on your sensor"
+msgstr "Tamaño del planeta en tu sensor"
 
-#: templates/solar_system.html:243
-msgid "This rig has no camera."
-msgstr "Este rig no tiene cámara."
+#: templates/solar_system.html:254
+msgid "Matches your camera's pixel size"
+msgstr "Se ajusta al tamaño de píxel de tu cámara"
 
-#: templates/solar_system.html:244
+#: templates/solar_system.html:255
+msgid ""
+"Your pixels are too coarse to record all the detail. Use more "
+"amplification."
+msgstr ""
+"Tus píxeles son demasiado gruesos para registrar todo el detalle. Usa más"
+" amplificación."
+
+#: templates/solar_system.html:256
+msgid ""
+"Bigger image but no extra detail, and dimmer frames. Use less "
+"amplification and enlarge the result in processing instead."
+msgstr ""
+"Imagen más grande pero sin detalle adicional y fotogramas más oscuros. "
+"Usa menos amplificación y amplía el resultado en el procesado."
+
+#: templates/solar_system.html:257
+msgid "Limited by the telescope's aperture, not the camera"
+msgstr "Limitado por la apertura del telescopio, no por la cámara"
+
+#: templates/solar_system.html:258
+msgid "Longest single video before the planet's rotation blurs detail"
+msgstr "Vídeo más largo antes de que la rotación del planeta difumine los detalles"
+
+#: templates/solar_system.html:259
+msgid "Frames needed to cover the whole disc"
+msgstr "Tomas necesarias para cubrir todo el disco"
+
+#: templates/solar_system.html:262
+#, python-format
+msgid "%(level)s setup for %(body)s."
+msgstr "Configuración para %(body)s: %(level)s."
+
+#: templates/solar_system.html:266
+msgid "Limited"
+msgstr "Limitado"
+
+#: templates/solar_system.html:268
+#, python-format
+msgid ""
+"The level combines three checks: how much detail the aperture can resolve"
+" on this planet, the focal ratio against the ideal for your camera, and "
+"how high the planet climbs tonight (at least %(alt)s° keeps atmospheric "
+"blur down)."
+msgstr ""
+"El nivel combina tres comprobaciones: cuánto detalle puede resolver la "
+"apertura en este planeta, la relación focal frente a la ideal para tu "
+"cámara y la altura que alcanza el planeta esta noche (al menos %(alt)s° "
+"reduce el desenfoque atmosférico)."
+
+#: templates/solar_system.html:269
+#, python-format
+msgid "%(body)s is low tonight (max %(alt)s°); expect atmospheric blur."
+msgstr ""
+"%(body)s está bajo esta noche (máx. %(alt)s°); espera desenfoque "
+"atmosférico."
+
+#: templates/solar_system.html:270
+#, python-format
+msgid "Use %(amp)s amplification for the best sampling."
+msgstr "Usa una amplificación de %(amp)s para el mejor muestreo."
+
+#: templates/solar_system.html:271
+#, python-format
+msgid ""
+"%(body)s: no amplification brings this telescope and camera closer to the"
+" ideal."
+msgstr ""
+"%(body)s: ninguna amplificación acerca este telescopio y esta cámara al "
+"ideal."
+
+#: templates/solar_system.html:272
+#, python-format
+msgid "%(body)s stays a small disc with any telescope of this size."
+msgstr ""
+"%(body)s sigue siendo un disco pequeño con cualquier telescopio de este "
+"tamaño."
+
+#: templates/solar_system.html:273
+msgid "Fine detail possible, focal ratio on target."
+msgstr "Detalle fino posible, relación focal en el objetivo."
+
+#: templates/solar_system.html:274
+msgid "Main features possible, focal ratio on target."
+msgstr "Rasgos principales posibles, relación focal en el objetivo."
+
+#: templates/solar_system.html:275
+msgid "Focal ratio on target."
+msgstr "Relación focal en el objetivo."
+
+#: templates/solar_system.html:278
+#, python-format
+msgid ""
+"Scale preview: sensor %(w)s × %(h)s pixels, %(body)s %(disc)s pixels "
+"across."
+msgstr ""
+"Vista previa a escala: sensor de %(w)s × %(h)s píxeles, %(body)s mide "
+"%(disc)s píxeles de diámetro."
+
+#: templates/solar_system.html:279
+msgid ""
+"Lit side shown to the right; on your sensor it depends on the camera's "
+"rotation."
+msgstr ""
+"Lado iluminado mostrado a la derecha; en tu sensor depende de la rotación"
+" de la cámara."
+
+#: templates/solar_system.html:280
+msgid "not to scale (too small)"
+msgstr "no a escala (demasiado pequeño)"
+
+#: templates/solar_system.html:281
+#, python-format
+msgid ""
+"A %(w)s × %(h)s region of interest (ROI) is enough: more frames per "
+"second."
+msgstr ""
+"Basta con una región de interés (ROI) de %(w)s × %(h)s: más fotogramas "
+"por segundo."
+
+#: templates/solar_system.html:282
+msgid ""
+"A region of interest (ROI) reads out only part of the sensor. Smaller "
+"frames transfer faster, so the camera records more frames per second for "
+"stacking."
+msgstr ""
+"Una región de interés (ROI) lee solo una parte del sensor. Los fotogramas"
+" más pequeños se transfieren más rápido, así que la cámara graba más "
+"fotogramas por segundo para apilar."
+
+#: templates/solar_system.html:283
+msgid "No scale preview."
+msgstr "Sin vista previa a escala."
+
+#: templates/solar_system.html:286
 msgid "The telescope has no focal length."
 msgstr "El telescopio no tiene distancia focal."
 
-#: templates/solar_system.html:245
-msgid "The reducer or extender has no valid factor."
-msgstr "El reductor/extensor no tiene un factor válido."
-
-#: templates/solar_system.html:246
+#: templates/solar_system.html:287
 msgid "The telescope has no aperture."
 msgstr "El telescopio no tiene apertura."
 
-#: templates/solar_system.html:247
+#: templates/solar_system.html:288
 msgid "The camera has no pixel size."
 msgstr "La cámara no tiene tamaño de píxel."
 
-#: templates/solar_system.html:248
+#: templates/solar_system.html:289
 msgid "The camera has no sensor size."
 msgstr "La cámara no tiene tamaño de sensor."
 
-#: templates/solar_system.html:249
+#: templates/solar_system.html:290
+msgid ""
+"Check the camera's sensor size: it should be in millimetres (e.g. 7.68 × "
+"4.32 mm)."
+msgstr ""
+"Revisa el tamaño del sensor de la cámara: debe estar en milímetros (p. "
+"ej., 7,68 × 4,32 mm)."
+
+#: templates/solar_system.html:291
 msgid "Cannot be calculated from these values."
 msgstr "No se puede calcular con estos valores."
 

@@ -103,24 +103,20 @@
         </div>
     </div>
 
-    <div id="solar-rigfit" class="content-section">
-        <h3 id="solar-rigfit-title">{{ _('Rig fit') }}</h3>
-        <div class="table-wrapper" id="solar-rigfit-wrapper">
-            <table id="solar-rigfit-table" class="solar-table">
-              <thead>
-                <tr>
-                  <th data-solar-col="rig"><span>{{ _('Rig') }}</span></th>
-                  <th data-solar-col="disc" title="{{ _('Apparent diameter of the body in pixels with this rig.') }}"><span>{{ _('Disc') }}</span></th>
-                  <th data-solar-col="fratio" title="{{ _('Rule of thumb for good seeing: 5 x pixel size in µm. Many imagers use 3-5 x, lower for average seeing or colour cameras.') }}"><span>{{ _('Focal ratio') }}</span></th>
-                  <th data-solar-col="barlow" title="{{ _('Barlow or extender that would bring the rig to the ideal focal ratio. The real amplification depends on the Barlow-to-sensor spacing.') }}"><span>{{ _('Barlow') }}</span></th>
-                  <th data-solar-col="extra" id="solar-rigfit-extra" hidden><span id="solar-rigfit-extra-label"></span></th>
-                </tr>
-              </thead>
-              <tbody id="solar-rigfit-body"></tbody>
-            </table>
+    <div id="solar-calc" class="content-section">
+        <h3 id="solar-calc-title">{{ _('Planetary calculator') }}</h3>
+        <div class="solar-calc-controls" id="solar-calc-controls">
+            <select id="solar-calc-telescope" class="styled-select" aria-label="{{ _('Telescope') }}"></select>
+            <select id="solar-calc-camera" class="styled-select" aria-label="{{ _('Camera') }}"></select>
+            <select id="solar-calc-amp" class="styled-select" aria-label="{{ _('Amplification') }}"></select>
         </div>
-        <p id="solar-rigfit-empty" class="status-secondary" hidden>
-            {{ _('No active rig. Add or activate one on the Configuration page.') }}
+        <div class="solar-calc-body">
+            <p id="solar-calc-summary" class="solar-calc-summary"></p>
+            <div id="solar-calc-preview" class="solar-calc-preview"></div>
+            <dl id="solar-calc-result" class="solar-calc-result"></dl>
+        </div>
+        <p id="solar-calc-empty" class="status-secondary" hidden>
+            {{ _('Add a telescope and a camera on the Configuration page.') }}
             <a href="{{ url_for('core.config_form', prefill_config_tab='rigs') }}" class="inline-button">{{ _('Manage Rigs') }}</a>
         </p>
     </div>
@@ -225,12 +221,27 @@ const solarI18n = {
         conjunctionMoon:{{ _('Closest apparent approach of the two bodies, as seen from this location.') | tojson }},
         occultation:    {{ _('The Moon passes in front of the planet as seen from this location.') | tojson }}
     },
-    rigFit: {
-        title:         {{ _('Rig fit') | tojson }},
+    calc: {
+        title:         {{ _('Planetary calculator') | tojson }},
+        none:          {{ _('None') | tojson }},
+        disc:          {{ _('Disc') | tojson }},
+        discHelp:      {{ _('Apparent diameter of the body in pixels with this telescope, camera and amplification.') | tojson }},
+        focalRatio:    {{ _('Focal ratio') | tojson }},
+        focalRatioHelp:{{ _('Rule of thumb for good seeing: 5 x pixel size in µm. Many imagers use 3-5 x, lower for average seeing or colour cameras.') | tojson }},
         ideal:         {{ _('ideal f/%(ratio)s', ratio='{ratio}') | tojson }},
-        noneNeeded:    {{ _('none needed') | tojson }},
-        aboveIdeal:    {{ _('above ideal') | tojson }},
-        exactFactor:   {{ _('Exact factor: %(factor)s', factor='{factor}') | tojson }},
+        status: {
+            onTarget:  {{ _('on target') | tojson }},
+            below:     {{ _('below ideal') | tojson }},
+            above:     {{ _('above ideal') | tojson }}
+        },
+        detail:        {{ _('Detail') | tojson }},
+        detailHelp:    {{ _("How much detail the aperture can resolve on this planet: diameter divided by the telescope's resolution (Dawes limit). Seeing often limits this further.") | tojson }},
+        detailValue: {
+            fine:      {{ _('Fine detail') | tojson }},
+            main:      {{ _('Main features') | tojson }},
+            discOnly:  {{ _('Disc only') | tojson }}
+        },
+        detailPoints:  {{ _('about %(n)s resolvable points across', n='{n}') | tojson }},
         rotationLimit: {{ _('Rotation limit') | tojson }},
         rotationHelp:  {{ _('Longest single capture before rotation blurs detail at the disc centre, without derotation. With derotation (e.g. WinJUPOS) much longer captures are possible.') | tojson }},
         minSec:        {{ _('%(min)s min %(sec)s s', min='{min}', sec='{sec}') | tojson }},
@@ -238,19 +249,50 @@ const solarI18n = {
         mosaicHelp:    {{ _('Frames needed for the full disc, each overlapping its neighbours by 20 percent.') | tojson }},
         fitsOneFrame:  {{ _('Fits in one frame') | tojson }},
         panels:        {{ _('%(n)s panels (%(cols)s × %(rows)s)', n='{n}', cols='{cols}', rows='{rows}') | tojson }},
+        hint: {
+            disc:      {{ _('Size of the planet on your sensor') | tojson }},
+            onTarget:  {{ _("Matches your camera's pixel size") | tojson }},
+            below:     {{ _('Your pixels are too coarse to record all the detail. Use more amplification.') | tojson }},
+            above:     {{ _('Bigger image but no extra detail, and dimmer frames. Use less amplification and enlarge the result in processing instead.') | tojson }},
+            detail:    {{ _("Limited by the telescope's aperture, not the camera") | tojson }},
+            rotation:  {{ _("Longest single video before the planet's rotation blurs detail") | tojson }},
+            mosaic:    {{ _('Frames needed to cover the whole disc') | tojson }}
+        },
+        summary: {
+            sentence:    {{ _('%(level)s setup for %(body)s.', level='{level}', body='{body}') | tojson }},
+            level: {
+                excellent: {{ _('Excellent') | tojson }},
+                good:      {{ _('Good') | tojson }},
+                limited:   {{ _('Limited') | tojson }}
+            },
+            levelHelp:   {{ _('The level combines three checks: how much detail the aperture can resolve on this planet, the focal ratio against the ideal for your camera, and how high the planet climbs tonight (at least %(alt)s° keeps atmospheric blur down).', alt='{alt}') | tojson }},
+            low:         {{ _('%(body)s is low tonight (max %(alt)s°); expect atmospheric blur.', body='{body}', alt='{alt}') | tojson }},
+            amp:         {{ _('Use %(amp)s amplification for the best sampling.', amp='{amp}') | tojson }},
+            bestAlready: {{ _('%(body)s: no amplification brings this telescope and camera closer to the ideal.', body='{body}') | tojson }},
+            smallDisc:   {{ _('%(body)s stays a small disc with any telescope of this size.', body='{body}') | tojson }},
+            fine:        {{ _('Fine detail possible, focal ratio on target.') | tojson }},
+            main:        {{ _('Main features possible, focal ratio on target.') | tojson }},
+            moon:        {{ _('Focal ratio on target.') | tojson }}
+        },
+        preview: {
+            aria:        {{ _('Scale preview: sensor %(w)s × %(h)s pixels, %(body)s %(disc)s pixels across.', w='{w}', h='{h}', body='{body}', disc='{disc}') | tojson }},
+            phaseHelp:   {{ _("Lit side shown to the right; on your sensor it depends on the camera's rotation.") | tojson }},
+            notToScale:  {{ _('not to scale (too small)') | tojson }},
+            roi:         {{ _('A %(w)s × %(h)s region of interest (ROI) is enough: more frames per second.', w='{w}', h='{h}') | tojson }},
+            roiHelp:     {{ _('A region of interest (ROI) reads out only part of the sensor. Smaller frames transfer faster, so the camera records more frames per second for stacking.') | tojson }},
+            none:        {{ _('No scale preview.') | tojson }}
+        },
         missing: {
-            noTelescope: {{ _('This rig has no telescope.') | tojson }},
-            noCamera:    {{ _('This rig has no camera.') | tojson }},
             focalLength: {{ _('The telescope has no focal length.') | tojson }},
-            factor:      {{ _('The reducer or extender has no valid factor.') | tojson }},
             aperture:    {{ _('The telescope has no aperture.') | tojson }},
             pixelSize:   {{ _('The camera has no pixel size.') | tojson }},
             sensorSize:  {{ _('The camera has no sensor size.') | tojson }},
+            sensorImplausible: {{ _("Check the camera's sensor size: it should be in millimetres (e.g. 7.68 × 4.32 mm).") | tojson }},
             notComputable: {{ _('Cannot be calculated from these values.') | tojson }}
         }
     }
 };
-const solarRigs = {{ solar_rigs | tojson }};
+const solarEquipment = {{ solar_equipment | tojson }};
 </script>
 
 <script src="{{ url_for('static', filename='js/chart/chart.umd.min.js') }}?v={{ version }}" defer></script>
