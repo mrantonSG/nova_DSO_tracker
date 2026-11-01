@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 02:26+0800\n"
+"POT-Creation-Date: 2026-11-02 07:14+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -6044,9 +6044,17 @@ msgstr "通常"
 msgid "Star diagonal (mirrored)"
 msgstr "天頂ミラー（鏡像）"
 
+#: templates/solar_system.html:114
+msgid "Diagonal"
+msgstr "天頂ミラー"
+
 #: templates/solar_system.html:115
 msgid "Newtonian (inverted)"
 msgstr "ニュートン式（倒立像）"
+
+#: templates/solar_system.html:115
+msgid "Newtonian"
+msgstr "ニュートン"
 
 #: templates/solar_system.html:120
 msgid "On the terminator tonight"
@@ -6420,9 +6428,12 @@ msgstr "秤動：中程度 — %(side)s 側、%(deg)s°"
 msgid "No strong libration tonight (%(deg)s°)"
 msgstr "今夜は目立った秤動なし（%(deg)s°）"
 
-#: templates/solar_system.html:289
-msgid "Not lit tonight"
-msgstr "今夜は照らされていません"
+#: templates/solar_system.html:288
+#, python-format
+msgid ""
+"Libration tilts the %(side)s side towards us (%(deg)s°), but it is in "
+"darkness tonight."
+msgstr "秤動で %(side)s 側がこちらに傾いています（%(deg)s°）が、今夜は暗い側にあります。"
 
 #: templates/solar_system.html:291
 msgid "Too close to New Moon"
@@ -6852,4 +6863,7 @@ msgstr "データ：Open-Meteo"
 
 #~ msgid "Size ("
 #~ msgstr "サイズ ("
+
+#~ msgid "Not lit tonight"
+#~ msgstr "今夜は照らされていません"
 

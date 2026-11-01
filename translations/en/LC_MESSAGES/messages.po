@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 02:26+0800\n"
+"POT-Creation-Date: 2026-11-02 07:14+0800\n"
 "PO-Revision-Date: 2026-03-03 13:38+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -6030,8 +6030,16 @@ msgstr ""
 msgid "Star diagonal (mirrored)"
 msgstr ""
 
+#: templates/solar_system.html:114
+msgid "Diagonal"
+msgstr ""
+
 #: templates/solar_system.html:115
 msgid "Newtonian (inverted)"
+msgstr ""
+
+#: templates/solar_system.html:115
+msgid "Newtonian"
 msgstr ""
 
 #: templates/solar_system.html:120
@@ -6406,8 +6414,11 @@ msgstr ""
 msgid "No strong libration tonight (%(deg)s°)"
 msgstr ""
 
-#: templates/solar_system.html:289
-msgid "Not lit tonight"
+#: templates/solar_system.html:288
+#, python-format
+msgid ""
+"Libration tilts the %(side)s side towards us (%(deg)s°), but it is in "
+"darkness tonight."
 msgstr ""
 
 #: templates/solar_system.html:291
@@ -6843,5 +6854,8 @@ msgstr ""
 #~ msgstr ""
 
 #~ msgid "Size ("
+#~ msgstr ""
+
+#~ msgid "Not lit tonight"
 #~ msgstr ""
 
