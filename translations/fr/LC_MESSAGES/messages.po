@@ -7114,6 +7114,3 @@ msgstr "Données : Open-Meteo"
 #~ msgid "Size ("
 #~ msgstr "À vous ("
 
-#~ msgid "Not lit tonight"
-#~ msgstr "Non éclairé cette nuit"
-

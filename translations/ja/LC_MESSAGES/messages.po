@@ -6864,6 +6864,3 @@ msgstr "データ：Open-Meteo"
 #~ msgid "Size ("
 #~ msgstr "サイズ ("
 
-#~ msgid "Not lit tonight"
-#~ msgstr "今夜は照らされていません"
-

@@ -7097,6 +7097,3 @@ msgstr "Daten: Open-Meteo"
 #~ msgid "Size ("
 #~ msgstr "Größe ("
 
-#~ msgid "Not lit tonight"
-#~ msgstr "Heute Nacht unbeleuchtet"
-

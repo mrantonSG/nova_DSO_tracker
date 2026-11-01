@@ -7080,6 +7080,3 @@ msgstr "Datos: Open-Meteo"
 #~ msgid "Size ("
 #~ msgstr "Tamaño ("
 
-#~ msgid "Not lit tonight"
-#~ msgstr "Sin iluminar esta noche"
-

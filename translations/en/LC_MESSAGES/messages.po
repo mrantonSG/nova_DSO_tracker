@@ -6856,6 +6856,3 @@ msgstr ""
 #~ msgid "Size ("
 #~ msgstr ""
 
-#~ msgid "Not lit tonight"
-#~ msgstr ""
-
