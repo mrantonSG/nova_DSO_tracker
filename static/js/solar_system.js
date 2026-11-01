@@ -623,10 +623,22 @@
         parent.appendChild(box);
     }
 
+    /** One night's tile: the day label, then the rating's icon (a dash without one). */
+    function seeingTile(tiles, day, level) {
+        const tile = document.createElement('div');
+        tile.className = 'solar-seeing-tile';
+        span(tile, day, 'solar-seeing-day');
+        seeingIcon(tile, level);
+        tiles.appendChild(tile);
+        return tile;
+    }
+
     /** The seeing outlook under the summary, for the selected body: one tile per night,
      *  coloured by its rating, tonight emphasised, the nights beyond 3 days faded. Shown
-     *  with or without a telescope and camera; hidden while there is no wind for this
-     *  location. A simulated night outside the forecast says so instead of tiles. */
+     *  with or without a telescope and camera. Until the location's wind has been
+     *  answered, the row holds its place with invisible tiles, so nothing below it moves
+     *  when the data arrives; without wind it is hidden. A simulated night outside the
+     *  forecast says so instead of tiles, whether or not the body is up that night. */
     function renderSeeing() {
         const box = $('solar-seeing');
         const S = i18n.seeing || {};
@@ -634,7 +646,24 @@
         const loc = state.inputs && state.inputs.location;
         const row = state.result && state.result.rows.find(r => r.body === state.selected);
         const w = state.wind;
-        if (!row || !loc || !w.data || w.key !== windKey(loc) || typeof NovaSolarSeeing === 'undefined') {
+        const tiles = $('solar-seeing-tiles'), none = $('solar-seeing-none');
+        if (!row || !loc || typeof NovaSolarSeeing === 'undefined') {
+            box.hidden = true;
+            return;
+        }
+        if (w.key !== windKey(loc)) {
+            // Not answered yet: the final row's height, invisible (solar-seeing-pending)
+            box.hidden = false;
+            box.classList.add('solar-seeing-pending');
+            none.hidden = true;
+            none.textContent = '';
+            tiles.hidden = false;
+            tiles.innerHTML = '';
+            for (let i = 0; i < NovaSolarSeeing.OUTLOOK_NIGHTS; i++) seeingTile(tiles, '\u00a0', null);
+            return;
+        }
+        box.classList.remove('solar-seeing-pending');
+        if (!w.data) {
             box.hidden = true;
             return;
         }
@@ -653,7 +682,6 @@
             state.seeingMemo = { key: memoKey, value: f };
         }
 
-        const tiles = $('solar-seeing-tiles'), none = $('solar-seeing-none');
         tiles.innerHTML = '';
         const outside = !!simDate() && f.tonight.reason === 'nodata';
         box.hidden = !outside && !f.outlook.length;
@@ -666,26 +694,32 @@
             const r = n.rating;
             const tonight = n.date === state.result.date;
             const day = tonight ? (S.tonight || '') : shortDate(n.date);
-            const tile = document.createElement('div');
+            const tile = seeingTile(tiles, day, r.level);
             tile.className = 'solar-seeing-tile' + (tonight ? ' solar-seeing-tile-tonight' : '')
                 + (n.reliable ? '' : ' solar-seeing-tile-later');
             tile.dataset.date = n.date;
             tile.dataset.level = r.level || '';
             tile.setAttribute('role', 'listitem');
             tile.setAttribute('tabindex', '0');
-            tile.setAttribute('aria-label', (r.level ? L[r.level] || '' : '–') + ', ' + day);
             // The night's line (tonight's own wording, a later night named by its day
-            // label), the explanation, and why a late night is faded
+            // label) and the explanation; without a rating, why (under the threshold all
+            // night: the Bodies table's and the calendar's words; above it only between
+            // two whole hours: briefly) and the source. Then why a late night is faded.
             const tip = [];
+            let label;
             if (r.level) {
-                tip.push(fill(tonight ? S.line : S.lineDay, {day: day, speed: Math.round(r.median), level: L[r.level] || ''}));
+                label = L[r.level] || '';
+                tip.push(fill(tonight ? S.line : S.lineDay, {day: day, speed: Math.round(r.median), level: label}));
                 tip.push(fill(S.help, {body: bodyName(row.body), max: Math.round(r.max)}));
+            } else {
+                label = (r.reason === 'muted' ? (tonight ? i18n.belowThreshold : i18n.belowThresholdNight)
+                    : S.briefly) || '';
+                tip.push(label);
+                tip.push(S.source || '');
             }
+            tile.setAttribute('aria-label', label + ', ' + day);
             if (!n.reliable) tip.push(S.lessReliable || '');
-            tile.title = tip.join('\n');
-            span(tile, day, 'solar-seeing-day');
-            seeingIcon(tile, r.level);
-            tiles.appendChild(tile);
+            tile.title = tip.filter(Boolean).join('\n');
         });
     }
 

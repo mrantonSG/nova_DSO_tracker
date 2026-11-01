@@ -129,11 +129,14 @@ def test_cache_expires_after_three_hours(client, monkeypatch):
     _Resp(503, None),
     _Resp(200, ValueError("not JSON")),
     _Resp(200, {"hourly": {"time": ["2026-11-01T00:00"], "wind_speed_200hPa": [1]}}),
+    _Resp(200, []),
+    _Resp(200, [1]),
+    _Resp(200, {"hourly": "x"}),
     api.requests.exceptions.Timeout("slow"),
 ])
 def test_stale_copy_on_failure(client, monkeypatch, failure):
     """An expired entry is still returned when the fetch fails (HTTP error, bad JSON,
-    missing level, timeout), and kept for the next try."""
+    JSON that is not the expected object, missing level, timeout), and kept for the next try."""
     stale = dict(EMPTY, times=["2026-10-31T00:00:00Z"], w200=[5.0], w250=[6.0], w300=[7.0])
     upper_wind_cache[CACHE_KEY] = {"data": stale, "expires": datetime.now(UTC) - timedelta(hours=1),
                                    "last_err_ts": None}
@@ -143,8 +146,15 @@ def test_stale_copy_on_failure(client, monkeypatch, failure):
     assert upper_wind_cache[CACHE_KEY]["data"] == stale
 
 
-def test_failure_without_cache_is_200_with_empty_arrays(client, monkeypatch):
-    _fake(monkeypatch, api.requests.exceptions.ConnectionError("down"))
+@pytest.mark.parametrize("failure", [
+    api.requests.exceptions.ConnectionError("down"),
+    _Resp(200, []),
+    _Resp(200, [1]),
+    _Resp(200, {"hourly": "x"}),
+])
+def test_failure_without_cache_is_200_with_empty_arrays(client, monkeypatch, failure):
+    """A network error, or a body that is JSON but not the expected object: 200, empty."""
+    _fake(monkeypatch, failure)
     resp = _get(client)
     assert resp.status_code == 200
     assert resp.get_json() == EMPTY

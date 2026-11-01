@@ -12,6 +12,8 @@
  * The rules, per observing night:
  *   - The hours are the whole UTC hours inside the night window (the Bodies table's:
  *     sunset to sunrise, or local noon to noon without either; NovaSolarRows._night).
+ *   - A night with a value for fewer than SEEING_MIN_COVERAGE of those hours has no data,
+ *     muted body or not: outside the forecast there is nothing to say about it.
  *   - The body's best hours: those within ±SEEING_BEST_HOURS_HALF hours of its transit
  *     where it is at or above the altitude threshold; when that selects none, every
  *     hour it is at or above the threshold. A muted body (max altitude below the
@@ -153,10 +155,13 @@
 
         function night(date, row) {
             const win = N.nightWindow(date, s, E.A, E.W, sun);
+            const hours = wholeHours(win.start, win.end);
+            if (hours.filter(t => isNum(byHour[t])).length < SEEING_MIN_COVERAGE * hours.length) {
+                return { level: null, reason: 'nodata' };
+            }
             const muted = row ? !!row.muted
                 : N.maxAltitude(body, N.samples(win.start, win.end, s.interval), s, P) < s.threshold;
             if (muted) return { level: null, reason: 'muted' };
-            const hours = wholeHours(win.start, win.end);
             const alts = hours.length ? P.altAzCurve(body, hours, s.lat, s.lon).alt : [];
             const transit = row && row.transitUtc !== undefined ? row.transitUtc : transitNear(body, win, s, P);
             return rate(bestHours(hours, alts, transit, s.threshold), byHour);

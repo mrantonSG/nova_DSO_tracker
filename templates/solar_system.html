@@ -306,10 +306,12 @@ const solarI18n = {
             average:   {{ _('average') | tojson }},
             poor:      {{ _('likely poor') | tojson }}
         },
-        help:          {{ _("A forecast, not a measurement. Seeing is estimated from the jet stream: the wind speed 9–12 km up (200–300 hPa), as the median over %(body)s's best hours tonight (peak %(max)s m/s). Calm upper air usually means steadier images; turbulence near the ground isn't included. Data: Open-Meteo.", body='{body}', max='{max}') | tojson }},
+        help:          {{ _("A forecast, not a measurement. Seeing is estimated from the jet stream: the wind speed 9–12 km up (200–300 hPa), as the median over %(body)s's best hours that night (peak %(max)s m/s). Calm upper air usually means steadier images; turbulence near the ground isn't included. Data: Open-Meteo.", body='{body}', max='{max}') | tojson }},
         tonight:       {{ _('Tonight') | tojson }},
         lessReliable:  {{ _('less reliable beyond 3 days') | tojson }},
-        noForecast:    {{ _('No seeing forecast for this night') | tojson }}
+        noForecast:    {{ _('No seeing forecast for this night') | tojson }},
+        briefly:       {{ _('Above the altitude threshold for less than an hour') | tojson }},
+        source:        {{ _('Data: Open-Meteo') | tojson }}
     }
 };
 const solarEquipment = {{ solar_equipment | tojson }};

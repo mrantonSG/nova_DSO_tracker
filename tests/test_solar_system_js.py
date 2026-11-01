@@ -86,6 +86,7 @@ if (input.storage && input.storage !== 'throws') {
 
 let routes = {};
 const fetched = [];
+const held = [];
 let interval = null;
 let frames = 0;
 const chartCalls = { create: 0, show: 0, resize: 0, updateNow: 0, destroy: 0 };
@@ -107,6 +108,11 @@ const context = {
         if (!answer) throw new Error('offline: ' + url);
         // {__status: n}: an HTTP error answer
         if (answer.__status) return { ok: false, status: answer.__status, json: async () => ({}) };
+        // {__hold: answer}: no answer until release()
+        if (answer.__hold) {
+            return new Promise(resolve => held.push(() => resolve(
+                { ok: true, status: 200, json: async () => JSON.parse(JSON.stringify(answer.__hold)) })));
+        }
         return { ok: true, status: 200, json: async () => JSON.parse(JSON.stringify(answer)) };
     },
     SolarSystemChart: {
@@ -161,6 +167,8 @@ const online = () => { routes = { '/get_locations': { locations: ['Home', 'Away'
 const offline = () => { routes = {}; };
 // One more answer on top of online(): route('/api/upper_wind', {...})
 const route = (path, answer) => { routes[path] = answer; };
+// Answer every held fetch ({__hold: ...}), then let the page settle
+async function release() { held.splice(0).forEach(fn => fn()); for (let i = 0; i < 20; i++) await settle(); }
 const snap = () => ({
     bodiesShown: panel('bodies'), calendarShown: panel('calendar'),
     solarError: $('solar-error').hidden ? null : $('solar-error').textContent,
@@ -197,7 +205,7 @@ const preset = (key, value) => context.localStorage.setItem(key, value);
 const steps = new Function('h', 'return (async () => {' + fs.readFileSync(stepsFile, 'utf8') + '})();');
 const views = () => viewCalls.slice();
 const chartState = () => Object.assign({instances: charts.length, current: charts.indexOf(charts[charts.length - 1])}, chartCalls);
-steps({ load, tick, click, clickNow, flush, changeLocation, online, offline, route, fetched: () => fetched.slice(), snap, table, clickRow, setFilter, el, stored, preset, choose, select, views, chartState, $ }).then(result => {
+steps({ load, tick, click, clickNow, flush, changeLocation, online, offline, route, release, context, fetched: () => fetched.slice(), snap, table, clickRow, setFilter, el, stored, preset, choose, select, views, chartState, $ }).then(result => {
     fs.writeFileSync(outFile, JSON.stringify(result));
 }, err => { console.error(err); process.exit(1); });
 """
@@ -1014,7 +1022,8 @@ SEEING_I18N = dict(FULL_I18N, seeing={
     "level": {"steady": "likely steady", "average": "average", "poor": "likely poor"},
     "help": "HELP {body} peak {max}", "tonight": "Tonight",
     "lessReliable": "less reliable beyond 3 days", "noForecast": "No seeing forecast for this night",
-})
+    "briefly": "BRIEFLY", "source": "Data: Open-Meteo",
+}, belowThreshold="LOW TONIGHT")
 
 
 def _upper_wind(w250=12.0, days=8, by_night=None):
@@ -1035,7 +1044,8 @@ SEEING_READ = """
                         icon: {cls: t.children[1].className, text: t.children[1].textContent,
                                svg: t.children[1].children.map(v => ({tag: v.tagName, ns: v.namespaceURI, attrs: v.attrs,
                                                                       paths: v.children.map(p => p.attrs)}))}});
-    return {hidden: h.$('solar-seeing').hidden, summaryHidden: h.$('solar-calc-summary').hidden,
+    return {hidden: h.$('solar-seeing').hidden, pending: h.$('solar-seeing').classList.contains('solar-seeing-pending'),
+            summaryHidden: h.$('solar-calc-summary').hidden,
             tilesHidden: tilesEl.hidden, none: {hidden: none.hidden, text: none.textContent},
             tiles: tilesEl.children.map(tile),
             fetched: h.fetched().filter(u => u.indexOf('/api/upper_wind') === 0)};
@@ -1108,13 +1118,80 @@ def test_seeing_simulation_outside_the_forecast(tmp_path):
 
 
 def test_seeing_for_a_muted_body(tmp_path):
-    """Venus stays under the threshold: '–' tiles, no level, no icon, no rating tooltip."""
+    """Venus stays under the threshold: '–' tiles, no level, no icon. Each says why in
+    its tooltip and aria-label, with the Bodies table's words tonight and the calendar's
+    for a later night, and names the data's source."""
     got = _seeing(tmp_path, "venus", _upper_wind())
     assert not got["hidden"] and len(got["tiles"]) == 5
     tile = got["tiles"][0]
     assert tile["level"] == "" and tile["icon"] == {"cls": "solar-seeing-icon", "text": "–", "svg": []}
-    assert tile["title"] == "" and tile["attrs"]["aria-label"] == "–, Tonight"
+    assert tile["title"] == "LOW TONIGHT\nData: Open-Meteo"
+    assert tile["attrs"]["aria-label"] == "LOW TONIGHT, Tonight"
     assert "solar-seeing-tile-tonight" in tile["cls"]
+    later = got["tiles"][1]
+    assert later["title"] == "LOW\nData: Open-Meteo" and later["attrs"]["aria-label"] == "LOW, " + later["day"]
+    assert got["tiles"][4]["title"] == "LOW\nData: Open-Meteo\nless reliable beyond 3 days"
+
+
+def test_seeing_tile_above_the_threshold_only_between_whole_hours(tmp_path):
+    """A night whose best hours hold no whole hour ('nohours'): a '–' tile that says the
+    body is up for less than an hour, then the source."""
+    got = _run(tmp_path, """
+        h.online();
+        h.route('/api/upper_wind', input.wind);
+        h.context.NovaSolarSeeing.forecast = () => ({tonight: {level: null, reason: 'nohours'},
+            outlook: [{date: '2026-10-30', rating: {level: null, reason: 'nohours'}, reliable: true}]});
+        await h.load('bodies');
+    """.replace("input.wind", json.dumps(_upper_wind())) + SEEING_READ,
+               equipment=EQUIPMENT, search="?body=saturn", i18n=SEEING_I18N, sim=SIM_DATE, now_ms=SUMMARY_NOW_MS)
+    tile = got["tiles"][0]
+    assert tile["level"] == "" and tile["icon"]["text"] == "–"
+    assert tile["title"] == "BRIEFLY\nData: Open-Meteo" and tile["attrs"]["aria-label"] == "BRIEFLY, Tonight"
+
+
+def test_seeing_simulation_outside_the_forecast_for_a_muted_body(tmp_path):
+    """A simulated night after the data with the body under the threshold: the message,
+    never '–' tiles."""
+    got = _run(tmp_path, "h.online();\nh.route('/api/upper_wind', " + json.dumps(_upper_wind()) + ");\n"
+               "await h.load('bodies');\nconst rows = h.table('solar-body');\n"
+               + SEEING_READ.replace("return {", "return {muted: rows.find(r => r.body === 'mercury').classes"
+                                     ".indexOf('geometrically-impossible') >= 0, ", 1),
+               equipment=EQUIPMENT, search="?body=mercury", i18n=SEEING_I18N, sim="2026-12-15",
+               now_ms=SUMMARY_NOW_MS)
+    assert got["muted"], "the case needs Mercury under the threshold that night"
+    assert not got["hidden"]
+    assert got["none"] == {"hidden": False, "text": "No seeing forecast for this night"}
+    assert got["tilesHidden"] and got["tiles"] == []
+
+
+def test_seeing_row_holds_its_place_until_the_wind_arrives(tmp_path):
+    """Before /api/upper_wind answers, the row is laid out (not hidden) but invisible,
+    with five placeholder tiles, so the preview and the result below keep their place;
+    the answer fills the same row. A failed answer collapses it."""
+    read = SEEING_READ.replace("return {", "const snapSeeing = () => ({", 1).rstrip().rstrip(";")
+    read = read[:read.rindex("}")] + "});\n"
+    got = _run(tmp_path, "h.online();\nh.route('/api/upper_wind', {__hold: " + json.dumps(_upper_wind()) + "});\n"
+               "await h.load('bodies');\n" + read + """
+        const before = snapSeeing();
+        await h.release();
+        return {before: before, after: snapSeeing()};
+    """, equipment=EQUIPMENT, search="?body=saturn", i18n=SEEING_I18N, sim=SIM_DATE, now_ms=SUMMARY_NOW_MS)
+    before, after = got["before"], got["after"]
+    assert not before["hidden"] and before["pending"] and not before["tilesHidden"]
+    assert len(before["tiles"]) == 5 and all(t["icon"]["text"] == "–" for t in before["tiles"])
+    assert all(t["day"] == "\u00a0" and t["attrs"] == {} for t in before["tiles"])
+    assert len(before["fetched"]) == 1
+    assert not after["hidden"] and not after["pending"] and len(after["tiles"]) == 5
+    assert [t["level"] for t in after["tiles"]] == ["steady"] * 5
+    css = (REPO / "static" / "css" / "solar_system.css").read_text()
+    rule = css[css.index("#bodies-tab .solar-seeing.solar-seeing-pending {"):]
+    rule = rule[:rule.index("}")]
+    assert "visibility: hidden;" in rule and "display" not in rule
+
+    failed = _run(tmp_path, "h.online();\nh.route('/api/upper_wind', {__status: 500});\n"
+                  "await h.load('bodies');\n" + SEEING_READ,
+                  equipment=EQUIPMENT, search="?body=saturn", i18n=SEEING_I18N, sim=SIM_DATE, now_ms=SUMMARY_NOW_MS)
+    assert failed["hidden"] and not failed["pending"]
 
 
 def test_seeing_level_sets_the_tile_level_and_icon(tmp_path):

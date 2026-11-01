@@ -3017,9 +3017,12 @@ def _fetch_upper_wind(lat, lon):
         r = requests.get("https://api.open-meteo.com/v1/forecast", params=params, timeout=DEFAULT_HTTP_TIMEOUT)
         if r.status_code != 200:
             return None, f"HTTP {r.status_code}"
-        hourly = (r.json() or {}).get("hourly") or {}
+        body = r.json()
     except (requests.exceptions.RequestException, ValueError) as e:
         return None, str(e)
+    hourly = body.get("hourly") if isinstance(body, dict) else None
+    if not isinstance(hourly, dict):
+        return None, "invalid data structure"
     times = hourly.get("time")
     columns = [hourly.get(f"wind_speed_{level}hPa") for level in UPPER_WIND_LEVELS_HPA]
     if not isinstance(times, list) or not times or any(

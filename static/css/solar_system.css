@@ -159,7 +159,8 @@
 }
 
 /* The summary above the result: one sentence, the level word in bold. No colour: the
-   status colours exist only inside the toasts (base.css .nova-toast--*), not as tokens. */
+   status colours are not tokens; they are written out only for the toasts (base.css
+   .nova-toast--*) and the seeing tiles below. */
 #bodies-tab .solar-calc-summary {
   margin: 0 0 12px;
   font-size: var(--font-size-2xs);
@@ -209,6 +210,12 @@
    trend arrows, written out (no status tokens exist). No rating: a plain dash, muted. */
 #bodies-tab .solar-seeing {
   margin: 0 0 14px;
+}
+
+/* Until the wind is answered the row holds its final height, invisible (not display:
+   none), so the preview and the result below do not move when the tiles arrive */
+#bodies-tab .solar-seeing.solar-seeing-pending {
+  visibility: hidden;
 }
 
 #bodies-tab .solar-seeing-label {
