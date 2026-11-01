@@ -202,59 +202,130 @@
   margin: 0 0 14px;
 }
 
-/* The seeing forecast under the summary: one line (its place kept when there is no
-   rating, so the card does not jump between bodies) and the outlook chips. The rating
-   word in bold like the summary's level, no colour (no status tokens). */
+/* The seeing outlook under the summary: a micro-label, then one tile per night (tonight
+   and the next four): the day, the Day chart's seeing icon (nova_weather_icons.js, as
+   inline SVG). The level picks the status colour: tint as the background, the text
+   colour for border, day and icon. The colours are the status colours of the toasts and
+   trend arrows, written out (no status tokens exist). No rating: a plain dash, muted. */
 #bodies-tab .solar-seeing {
-  margin: -4px 0 12px;
-  font-size: var(--font-size-2xs);
-  line-height: 1.45;
-  color: var(--text-primary);
+  margin: 0 0 14px;
 }
 
-#bodies-tab .solar-seeing-line {
+#bodies-tab .solar-seeing-label {
+  display: block;
   margin: 0 0 6px;
-  min-height: 1.45em;
-}
-
-#bodies-tab .solar-seeing-line[title]:not([title=""]),
-#bodies-tab .solar-seeing-chip[title]:not([title=""]) {
-  cursor: help;
-}
-
-#bodies-tab .solar-seeing-level,
-#bodies-tab .solar-seeing-chip-level {
+  font-size: 10px;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-muted);
 }
 
-#bodies-tab .solar-seeing-outlook {
+:root[data-theme="dark"] #bodies-tab .solar-seeing-label {
+  color: var(--text-secondary);
+}
+
+#bodies-tab .solar-seeing-tiles {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
   gap: 6px;
 }
 
-#bodies-tab .solar-seeing-outlook-label {
-  color: var(--text-secondary);
-  margin-right: 2px;
+#bodies-tab .solar-seeing-tile {
+  box-sizing: border-box;
+  width: 64px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border-color, #d0cdc8);
+  border-radius: 6px;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  cursor: help;
 }
 
-#bodies-tab .solar-seeing-chip {
-  display: inline-flex;
-  gap: 4px;
-  padding: 2px 8px;
-  border: 1px solid var(--border-color, #d0cdc8);
-  border-radius: 5px;
-  background: var(--bg-tertiary);
-  color: var(--text-secondary);
+#bodies-tab .solar-seeing-tile:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+#bodies-tab .solar-seeing-tile[data-level="steady"] {
+  border-color: #2a9060;
+  background: rgba(42, 144, 96, 0.10);
+  color: #2a9060;
+}
+
+#bodies-tab .solar-seeing-tile[data-level="average"] {
+  border-color: #94600f;
+  background: rgba(176, 120, 30, 0.12);
+  color: #94600f;
+}
+
+#bodies-tab .solar-seeing-tile[data-level="poor"] {
+  border-color: #a04040;
+  background: rgba(180, 60, 60, 0.08);
+  color: #a04040;
+}
+
+:root[data-theme="dark"] #bodies-tab .solar-seeing-tile[data-level="steady"] {
+  border-color: #6dcab0;
+  background: rgba(109, 202, 176, 0.14);
+  color: #6dcab0;
+}
+
+:root[data-theme="dark"] #bodies-tab .solar-seeing-tile[data-level="average"] {
+  border-color: #e0aa50;
+  background: rgba(224, 170, 80, 0.14);
+  color: #e0aa50;
+}
+
+:root[data-theme="dark"] #bodies-tab .solar-seeing-tile[data-level="poor"] {
+  border-color: #d06060;
+  background: rgba(200, 80, 80, 0.14);
+  color: #d06060;
+}
+
+/* Tonight stands out: a 2 px border (the padding gives the extra pixel back, so every
+   tile keeps its size) */
+#bodies-tab .solar-seeing-tile-tonight {
+  border-width: 2px;
+  padding: 5px;
+}
+
+/* Beyond 3 days: faded, dashed; the tooltip says why */
+#bodies-tab .solar-seeing-tile-later {
+  opacity: 0.55;
+  border-style: dashed;
+}
+
+#bodies-tab .solar-seeing-day {
   font-size: var(--font-size-xs);
+  line-height: 1.2;
   white-space: nowrap;
 }
 
-/* Beyond 3 days: muted, the tooltip says why */
-#bodies-tab .solar-seeing-chip-later {
+#bodies-tab .solar-seeing-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-sm);
+  line-height: 1;
+}
+
+#bodies-tab .solar-seeing-icon svg {
+  display: block;
+  width: 28px;
+  height: 28px;
+}
+
+#bodies-tab .solar-seeing-none {
+  margin: 0;
+  font-size: 12px;
   color: var(--text-muted);
-  background: transparent;
 }
 
 /* Summary, preview and result: stacked in a narrow card; from 900 px of card width the
@@ -491,7 +562,8 @@
 #bodies-tab #solar-calc-controls[hidden],
 #bodies-tab #solar-calc-summary[hidden],
 #bodies-tab #solar-seeing[hidden],
-#bodies-tab #solar-seeing-outlook[hidden],
+#bodies-tab #solar-seeing-tiles[hidden],
+#bodies-tab #solar-seeing-none[hidden],
 #bodies-tab #solar-calc-preview[hidden],
 #bodies-tab #solar-calc-result[hidden],
 #bodies-tab #solar-calc-empty[hidden] {

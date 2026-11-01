@@ -114,8 +114,9 @@
             <div class="solar-calc-lead">
                 <p id="solar-calc-summary" class="solar-calc-summary"></p>
                 <div id="solar-seeing" class="solar-seeing" hidden>
-                    <p id="solar-seeing-line" class="solar-seeing-line"></p>
-                    <div id="solar-seeing-outlook" class="solar-seeing-outlook"></div>
+                    <span class="solar-seeing-label">{{ _('Seeing outlook') }}</span>
+                    <div id="solar-seeing-tiles" class="solar-seeing-tiles" role="list"></div>
+                    <p id="solar-seeing-none" class="solar-seeing-none" hidden></p>
                 </div>
             </div>
             <div id="solar-calc-preview" class="solar-calc-preview"></div>
@@ -305,7 +306,7 @@ const solarI18n = {
             poor:      {{ _('likely poor') | tojson }}
         },
         help:          {{ _("A forecast, not a measurement. Seeing is estimated from the jet stream: the wind speed 9–12 km up (200–300 hPa), as the median over %(body)s's best hours tonight (peak %(max)s m/s). Calm upper air usually means steadier images; turbulence near the ground isn't included. Data: Open-Meteo.", body='{body}', max='{max}') | tojson }},
-        outlook:       {{ _('Seeing outlook') | tojson }},
+        tonight:       {{ _('Tonight') | tojson }},
         lessReliable:  {{ _('less reliable beyond 3 days') | tojson }},
         noForecast:    {{ _('No seeing forecast for this night') | tojson }}
     }
@@ -325,6 +326,7 @@ const solarEquipment = {{ solar_equipment | tojson }};
 <script src="{{ url_for('static', filename='js/nova_solar_rows.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_solar_calendar.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_solar_rigfit.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/nova_weather_icons.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_solar_seeing.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/solar_system_chart.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/solar_system.js') }}?v={{ version }}" defer></script>

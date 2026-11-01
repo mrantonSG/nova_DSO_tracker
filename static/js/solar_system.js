@@ -10,8 +10,9 @@
  * Below the chart, the planetary calculator (NovaSolarRigFit) works out the selected
  * body for one of the user's telescopes and cameras (solarEquipment, embedded by
  * core.py) and an amplification; it follows the table. Under its summary, the seeing
- * forecast (NovaSolarSeeing) from /api/upper_wind, fetched after the page has rendered
- * and never waited for; without it (any error, no data) the seeing line stays hidden.
+ * outlook (NovaSolarSeeing, tiles with NovaWeatherIcons' seeing icons) from
+ * /api/upper_wind, fetched after the page has rendered and never waited for; shown with
+ * or without equipment, hidden on any error or without data.
  *
  * The Calendar tab (NovaSolarCalendar) is built only while it is shown, and again only
  * when its location, threshold, sampling interval or observing night changes; the 60 s
@@ -70,7 +71,7 @@
         // picked (null: the one closest to the ideal focal ratio)
         calc: { telescope: null, camera: null, amp: null },
         // The jet stream wind (/api/upper_wind) of the location `key` ('lat,lon'), fetched
-        // at `at`; null data: none, or the fetch failed (no seeing line). `pending`: the
+        // at `at`; null data: none, or the fetch failed (no seeing row). `pending`: the
         // key being fetched. `memo`: the last forecast and what it was computed from.
         wind: { key: null, data: null, at: 0, pending: null },
         seeingMemo: { key: null, value: null },
@@ -601,16 +602,39 @@
         }
     }
 
-    /** The seeing line under the summary and the outlook chips, for the selected body;
-     *  hidden while there is no wind for this location or the calculator is not shown. */
+    // The Day chart's seeing icon for each rating, by 7Timer's scale (1 best):
+    // steady 1 (seeingExc), average 4 (seeingAvg), poor 7 (seeingPoor)
+    const SEEING_ICON_LEVEL = { steady: 1, average: 4, poor: 7 };
+
+    /** The rating's icon from NovaWeatherIcons as inline SVG in currentColor, or a plain
+     *  dash without a rating (or without the icons). */
+    function seeingIcon(parent, level) {
+        const W = typeof NovaWeatherIcons !== 'undefined' ? NovaWeatherIcons : null;
+        const icon = W && level ? W.ICONS[W.seeingIcon(SEEING_ICON_LEVEL[level])] : null;
+        const box = document.createElement('span');
+        box.className = 'solar-seeing-icon';
+        if (!icon) {
+            box.textContent = '–';
+        } else {
+            const svg = svgEl(box, 'svg', {viewBox: icon.viewBox, 'aria-hidden': 'true', focusable: 'false'});
+            // The seeing icons are filled bars only, no cutouts
+            icon.shapes.forEach(sh => svgEl(svg, 'path', {d: sh.d, fill: sh.fill, opacity: sh.opacity}));
+        }
+        parent.appendChild(box);
+    }
+
+    /** The seeing outlook under the summary, for the selected body: one tile per night,
+     *  coloured by its rating, tonight emphasised, the nights beyond 3 days faded. Shown
+     *  with or without a telescope and camera; hidden while there is no wind for this
+     *  location. A simulated night outside the forecast says so instead of tiles. */
     function renderSeeing() {
         const box = $('solar-seeing');
         const S = i18n.seeing || {};
+        const L = S.level || {};
         const loc = state.inputs && state.inputs.location;
         const row = state.result && state.result.rows.find(r => r.body === state.selected);
         const w = state.wind;
-        const ready = !!(state.calc.telescope && state.calc.camera);
-        if (!ready || !row || !loc || !w.data || w.key !== windKey(loc) || typeof NovaSolarSeeing === 'undefined') {
+        if (!row || !loc || !w.data || w.key !== windKey(loc) || typeof NovaSolarSeeing === 'undefined') {
             box.hidden = true;
             return;
         }
@@ -628,42 +652,40 @@
             }
             state.seeingMemo = { key: memoKey, value: f };
         }
-        box.hidden = false;
 
-        const line = $('solar-seeing-line');
-        line.innerHTML = '';
-        line.title = '';
-        const t = f.tonight;
-        if (t.level) {
-            // The translation places {level}; the rating word goes in between in bold
-            const parts = fill(S.line, {speed: Math.round(t.median)}).split('{level}');
-            span(line, parts[0]);
-            const word = document.createElement('strong');
-            word.className = 'solar-seeing-level';
-            word.dataset.level = t.level;
-            word.textContent = (S.level || {})[t.level] || '';
-            line.appendChild(word);
-            span(line, parts.slice(1).join(''));
-            line.title = fill(S.help, {body: bodyName(row.body), max: Math.round(t.max)});
-        } else if (simDate() && t.reason === 'nodata') {
-            span(line, S.noForecast);
-        }
+        const tiles = $('solar-seeing-tiles'), none = $('solar-seeing-none');
+        tiles.innerHTML = '';
+        const outside = !!simDate() && f.tonight.reason === 'nodata';
+        box.hidden = !outside && !f.outlook.length;
+        none.hidden = !outside;
+        none.textContent = outside ? (S.noForecast || '') : '';
+        tiles.hidden = outside;
+        if (outside) return;
 
-        const out = $('solar-seeing-outlook');
-        out.innerHTML = '';
-        out.hidden = !f.outlook.length;
-        if (!f.outlook.length) return;
-        span(out, S.outlook, 'solar-seeing-outlook-label');
         f.outlook.forEach(n => {
-            const chip = document.createElement('span');
-            chip.className = 'solar-seeing-chip' + (n.reliable ? '' : ' solar-seeing-chip-later');
-            chip.dataset.date = n.date;
-            chip.dataset.level = n.rating.level || '';
-            span(chip, shortDate(n.date));
-            span(chip, n.rating.level ? (S.level || {})[n.rating.level] || '' : '–', 'solar-seeing-chip-level');
-            chip.title = !n.reliable ? (S.lessReliable || '')
-                : n.rating.level ? Math.round(n.rating.median) + ' m/s' : '';
-            out.appendChild(chip);
+            const r = n.rating;
+            const tonight = n.date === state.result.date;
+            const day = tonight ? (S.tonight || '') : shortDate(n.date);
+            const tile = document.createElement('div');
+            tile.className = 'solar-seeing-tile' + (tonight ? ' solar-seeing-tile-tonight' : '')
+                + (n.reliable ? '' : ' solar-seeing-tile-later');
+            tile.dataset.date = n.date;
+            tile.dataset.level = r.level || '';
+            tile.setAttribute('role', 'listitem');
+            tile.setAttribute('tabindex', '0');
+            tile.setAttribute('aria-label', (r.level ? L[r.level] || '' : '–') + ', ' + day);
+            // The night's line in the existing wording, the explanation, and why a late
+            // night is faded
+            const tip = [];
+            if (r.level) {
+                tip.push(fill(S.line, {speed: Math.round(r.median), level: L[r.level] || ''}));
+                tip.push(fill(S.help, {body: bodyName(row.body), max: Math.round(r.max)}));
+            }
+            if (!n.reliable) tip.push(S.lessReliable || '');
+            tile.title = tip.join('\n');
+            span(tile, day, 'solar-seeing-day');
+            seeingIcon(tile, r.level);
+            tiles.appendChild(tile);
         });
     }
 
@@ -794,17 +816,16 @@
         const ready = !!(state.calc.telescope && state.calc.camera);
         $('solar-calc-controls').hidden = !ready;
         $('solar-calc-summary').hidden = !ready;
-        if (!ready) $('solar-seeing').hidden = true;
         $('solar-calc-preview').hidden = !ready;
         $('solar-calc-result').hidden = !ready;
         $('solar-calc-empty').hidden = ready;
         const dl = $('solar-calc-result');
         dl.innerHTML = '';
+        renderSeeing();   // with or without a telescope and camera
         if (!ready) return;
 
         const f = NovaSolarRigFit.fit(state.calc.telescope, state.calc.camera, calcAmp(), row.body, row.diameterArcsec);
         renderSummary(f, row);
-        renderSeeing();
         renderPreview(row);
 
         const disc = calcLine(dl, 'disc', C.disc, C.discHelp);

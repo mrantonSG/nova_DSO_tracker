@@ -11,6 +11,7 @@ import json
 import re
 import shutil
 import subprocess
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -21,7 +22,8 @@ NODE = shutil.which("node")
 
 PAGE_ORDER = ("nova_astro.js", "nova_transit.js", "nova_dashboard_rows.js",
               "nova_planets.js", "nova_plot_data.js", "nova_solar_rows.js",
-              "nova_solar_calendar.js", "nova_solar_rigfit.js", "nova_solar_seeing.js")
+              "nova_solar_calendar.js", "nova_solar_rigfit.js", "nova_weather_icons.js",
+              "nova_solar_seeing.js")
 
 LONDON = {"name": "Home", "lat": 51.4769, "lon": -0.0005, "timezone": "Europe/London",
           "altitude_threshold": 20, "sampling_interval": 15, "horizon_mask": []}
@@ -1009,58 +1011,58 @@ def test_calendar_filter_is_restored_on_load_without_rebuilds(tmp_path, stored_b
 SEEING_I18N = dict(FULL_I18N, seeing={
     "line": "Seeing tonight: {level} (jet stream {speed} m/s)",
     "level": {"steady": "likely steady", "average": "average", "poor": "likely poor"},
-    "help": "HELP {body} peak {max}", "outlook": "Seeing outlook",
+    "help": "HELP {body} peak {max}", "tonight": "Tonight",
     "lessReliable": "less reliable beyond 3 days", "noForecast": "No seeing forecast for this night",
 })
 
 
-def _upper_wind(w250=12.0, days=8):
-    """/api/upper_wind, hourly from 2026-10-29 00:00 UTC: 200 and 300 hPa calmer than 250."""
-    times = [f"2026-{10 + (d + 28) // 31:02d}-{(d + 28) % 31 + 1:02d}T{h:02d}:00:00Z"
-             for d in range(days) for h in range(24)]
+def _upper_wind(w250=12.0, days=8, by_night=None):
+    """/api/upper_wind, hourly from 2026-10-29 00:00 UTC: 200 and 300 hPa calmer than 250.
+    by_night: {'YYYY-MM-DD': m/s} for the hours of that observing night (noon to noon UTC)."""
+    start = datetime(2026, 10, 29, tzinfo=timezone.utc)
+    times = [start + timedelta(hours=h) for h in range(days * 24)]
+    w = [(by_night or {}).get((t - timedelta(hours=12)).strftime("%Y-%m-%d"), w250) for t in times]
     n = len(times)
-    return {"times": times, "w200": [5.0] * n, "w250": [w250] * n, "w300": [None] * n, "unit": "m/s"}
+    return {"times": [t.strftime("%Y-%m-%dT%H:%M:00Z") for t in times],
+            "w200": [5.0] * n, "w250": w, "w300": [None] * n, "unit": "m/s"}
 
 
 SEEING_READ = """
-    const flatT = e => e.textContent + e.children.map(flatT).join('');
-    const line = h.$('solar-seeing-line'), out = h.$('solar-seeing-outlook');
+    const tilesEl = h.$('solar-seeing-tiles'), none = h.$('solar-seeing-none');
+    const tile = t => ({cls: t.className, date: t.dataset.date, level: t.dataset.level, attrs: t.attrs,
+                        title: t.title, day: t.children[0].textContent, dayCls: t.children[0].className,
+                        icon: {cls: t.children[1].className, text: t.children[1].textContent,
+                               svg: t.children[1].children.map(v => ({tag: v.tagName, ns: v.namespaceURI, attrs: v.attrs,
+                                                                      paths: v.children.map(p => p.attrs)}))}});
     return {hidden: h.$('solar-seeing').hidden, summaryHidden: h.$('solar-calc-summary').hidden,
-            line: {text: flatT(line), title: line.title,
-                   parts: line.children.map(c => ({tag: c.tagName, text: c.textContent, cls: c.className, level: c.dataset.level}))},
-            outlookHidden: out.hidden, label: out.children.length ? out.children[0].textContent : null,
-            chips: out.children.filter(c => c.className.indexOf('solar-seeing-chip') === 0).map(c => ({
-                cls: c.className, date: c.dataset.date, level: c.dataset.level,
-                text: c.children.map(x => x.textContent), title: c.title})),
+            tilesHidden: tilesEl.hidden, none: {hidden: none.hidden, text: none.textContent},
+            tiles: tilesEl.children.map(tile),
             fetched: h.fetched().filter(u => u.indexOf('/api/upper_wind') === 0)};
 """
 
 
-def _seeing(tmp_path, body, answer, sim=SIM_DATE, i18n=SEEING_I18N):
+def _seeing(tmp_path, body, answer, sim=SIM_DATE, i18n=SEEING_I18N, equipment=EQUIPMENT):
     route = "" if answer is None else f"h.route('/api/upper_wind', {json.dumps(answer)});\n"
     return _run(tmp_path, "h.online();\n" + route + "await h.load('bodies');\n" + SEEING_READ,
-                equipment=EQUIPMENT, search="?body=" + body, i18n=i18n, sim=sim, now_ms=SUMMARY_NOW_MS)
+                equipment=equipment, search="?body=" + body, i18n=i18n, sim=sim, now_ms=SUMMARY_NOW_MS)
 
 
 def test_seeing_line_and_outlook(tmp_path):
-    """Saturn on the night of 2026-10-30: the hourly maximum (12 m/s at 250 hPa) rates it
-    likely steady; the word is bold (no colour class), the tooltip names the body and the
-    peak. Five chips, the last two muted and marked less reliable. The page asked for the
-    location's coordinates after it had rendered."""
+    """Saturn on the night of 2026-10-30: the hourly maximum (12 m/s at 250 hPa) rates every
+    night likely steady. Five tiles, tonight first and labelled so; each tooltip is the
+    night's line, then the explanation (body, peak). The page asked for the location's
+    coordinates after it had rendered."""
     got = _seeing(tmp_path, "saturn", _upper_wind())
-    assert not got["hidden"] and not got["summaryHidden"]
-    assert got["line"]["text"] == "Seeing tonight: likely steady (jet stream 12 m/s)"
-    assert [p for p in got["line"]["parts"] if p["tag"] == "strong"] == [
-        {"tag": "strong", "text": "likely steady", "cls": "solar-seeing-level", "level": "steady"}]
-    assert got["line"]["title"] == "HELP Saturn peak 12"
-    assert not got["outlookHidden"] and got["label"] == "Seeing outlook"
-    chips = got["chips"]
-    assert [c["date"] for c in chips] == ["2026-10-30", "2026-10-31", "2026-11-01", "2026-11-02", "2026-11-03"]
-    # The short date as Intl writes it for the page's language ('30 Fri' in English)
-    assert sorted(chips[0]["text"][0].split()) == ["30", "Fri"] and chips[0]["text"][1] == "likely steady"
-    assert chips[0]["title"] == "12 m/s"
-    assert [c["cls"] for c in chips] == ["solar-seeing-chip"] * 3 + ["solar-seeing-chip solar-seeing-chip-later"] * 2
-    assert [c["title"] for c in chips[3:]] == ["less reliable beyond 3 days"] * 2
+    assert not got["hidden"] and not got["summaryHidden"] and not got["tilesHidden"]
+    assert got["none"]["hidden"]
+    tiles = got["tiles"]
+    assert [t["date"] for t in tiles] == ["2026-10-30", "2026-10-31", "2026-11-01", "2026-11-02", "2026-11-03"]
+    assert [t["level"] for t in tiles] == ["steady"] * 5
+    assert tiles[0]["day"] == "Tonight" and tiles[0]["dayCls"] == "solar-seeing-day"
+    # The short date as Intl writes it for the page's language ('31 Sat' in English)
+    assert sorted(tiles[1]["day"].split()) == ["31", "Sat"]
+    assert tiles[0]["title"] == "Seeing tonight: likely steady (jet stream 12 m/s)\nHELP Saturn peak 12"
+    assert tiles[0]["attrs"] == {"role": "listitem", "tabindex": "0", "aria-label": "likely steady, Tonight"}
     assert got["fetched"] == ["/api/upper_wind?lat=51.4769&lon=-0.0005"]
 
 
@@ -1070,35 +1072,109 @@ def test_seeing_line_and_outlook(tmp_path):
     {"times": [], "w200": [], "w250": [], "w300": [], "unit": "m/s"},  # nothing cached
 ])
 def test_seeing_hidden_on_any_error(tmp_path, answer):
-    """No wind, for whatever reason: the seeing line and chips are hidden, the rest of
-    the calculator is untouched."""
+    """No wind, for whatever reason: the seeing row is hidden, the rest of the calculator
+    is untouched."""
     got = _seeing(tmp_path, "saturn", answer)
     assert got["hidden"] and not got["summaryHidden"]
     assert len(got["fetched"]) == 1, "asked once, no retry"
 
 
 def test_seeing_line_translated(tmp_path):
-    """The translation places the rating word; the bold word follows it."""
+    """The translation places the rating word in each tile's tooltip line; the day label
+    and the aria-label are translated too."""
     i18n = json.loads(json.dumps(SEEING_I18N))
     i18n["seeing"]["line"] = "Seeing heute Nacht ({speed} m/s Jetstream): {level}"
     i18n["seeing"]["level"]["poor"] = "wahrscheinlich unruhig"
+    i18n["seeing"]["tonight"] = "Heute Nacht"
     got = _seeing(tmp_path, "saturn", _upper_wind(w250=41.6), i18n=i18n)
-    assert [p["text"] for p in got["line"]["parts"]] == [
-        "Seeing heute Nacht (42 m/s Jetstream): ", "wahrscheinlich unruhig", ""]
-    assert got["chips"][0]["text"][1] == "wahrscheinlich unruhig"
+    tile = got["tiles"][0]
+    assert tile["title"].split("\n")[0] == "Seeing heute Nacht (42 m/s Jetstream): wahrscheinlich unruhig"
+    assert tile["day"] == "Heute Nacht"
+    assert tile["attrs"]["aria-label"] == "wahrscheinlich unruhig, Heute Nacht"
 
 
 def test_seeing_simulation_outside_the_forecast(tmp_path):
-    """A simulated night weeks after the data: the line says so, no chips."""
+    """A simulated night weeks after the data: the message replaces the tiles."""
     got = _seeing(tmp_path, "saturn", _upper_wind(), sim="2026-12-15")
     assert not got["hidden"]
-    assert got["line"]["text"] == "No seeing forecast for this night" and got["line"]["title"] == ""
-    assert got["outlookHidden"] and got["chips"] == []
+    assert got["none"] == {"hidden": False, "text": "No seeing forecast for this night"}
+    assert got["tilesHidden"] and got["tiles"] == []
 
 
 def test_seeing_for_a_muted_body(tmp_path):
-    """Venus stays under the threshold: no rating line (its place kept), chips without a
-    rating word."""
+    """Venus stays under the threshold: '–' tiles, no level, no icon, no rating tooltip."""
     got = _seeing(tmp_path, "venus", _upper_wind())
-    assert not got["hidden"] and got["line"]["text"] == "" and got["line"]["title"] == ""
-    assert got["chips"][0]["text"][1] == "–" and got["chips"][0]["level"] == ""
+    assert not got["hidden"] and len(got["tiles"]) == 5
+    tile = got["tiles"][0]
+    assert tile["level"] == "" and tile["icon"] == {"cls": "solar-seeing-icon", "text": "–", "svg": []}
+    assert tile["title"] == "" and tile["attrs"]["aria-label"] == "–, Tonight"
+    assert "solar-seeing-tile-tonight" in tile["cls"]
+
+
+def test_seeing_level_sets_the_tile_level_and_icon(tmp_path):
+    """12, 22 and 41 m/s on three nights: steady, average and poor tiles, each with the Day
+    chart's seeing icon for 7Timer level 1, 4 and 7 (4, 2 and 1 bars) as inline SVG in
+    currentColor."""
+    got = _seeing(tmp_path, "saturn", _upper_wind(by_night={"2026-10-31": 22.0, "2026-11-01": 41.0}))
+    tiles = got["tiles"][:3]
+    assert [t["level"] for t in tiles] == ["steady", "average", "poor"]
+    svgs = [t["icon"]["svg"] for t in tiles]
+    assert all(len(s) == 1 and s[0]["tag"] == "svg" and s[0]["ns"] == "http://www.w3.org/2000/svg"
+               and s[0]["attrs"]["viewBox"] == "0 0 16 16" and s[0]["attrs"]["aria-hidden"] == "true" for s in svgs)
+    assert [len(s[0]["paths"]) for s in svgs] == [4, 2, 1]
+    assert all(p["fill"] == "currentColor" for s in svgs for p in s[0]["paths"])
+    assert all(t["icon"]["text"] == "" for t in tiles)
+
+
+def test_seeing_tile_colours_light_and_dark():
+    """Each level's status colour, light and dark: text colour for border and content, the
+    tint as background; no rating stays on the neutral tokens."""
+    css = (REPO / "static" / "css" / "solar_system.css").read_text()
+
+    def rule(selector):
+        start = css.index(selector + " {")
+        return css[start:css.index("}", start)]
+
+    expect = {
+        "steady": ("#2a9060", "rgba(42, 144, 96, 0.10)", "#6dcab0", "rgba(109, 202, 176, 0.14)"),
+        "average": ("#94600f", "rgba(176, 120, 30, 0.12)", "#e0aa50", "rgba(224, 170, 80, 0.14)"),
+        "poor": ("#a04040", "rgba(180, 60, 60, 0.08)", "#d06060", "rgba(200, 80, 80, 0.14)"),
+    }
+    for level, (fg, bg, dark_fg, dark_bg) in expect.items():
+        sel = f'#bodies-tab .solar-seeing-tile[data-level="{level}"]'
+        light, dark = rule(sel), rule(':root[data-theme="dark"] ' + sel)
+        assert f"border-color: {fg};" in light and f"color: {fg};" in light and f"background: {bg};" in light
+        assert f"border-color: {dark_fg};" in dark and f"color: {dark_fg};" in dark and f"background: {dark_bg};" in dark
+    base = rule("#bodies-tab .solar-seeing-tile")
+    assert "background: var(--bg-tertiary);" in base and "color: var(--text-muted);" in base
+    assert "border: 1px solid var(--border-color, #d0cdc8);" in base and "border-radius: 6px;" in base
+
+
+def test_seeing_tonight_is_emphasised(tmp_path):
+    """Only tonight's tile has the 2 px border class."""
+    got = _seeing(tmp_path, "saturn", _upper_wind())
+    assert ["solar-seeing-tile-tonight" in t["cls"].split() for t in got["tiles"]] == [True, False, False, False, False]
+    css = (REPO / "static" / "css" / "solar_system.css").read_text()
+    tonight = css[css.index("#bodies-tab .solar-seeing-tile-tonight {"):]
+    assert "border-width: 2px;" in tonight[:tonight.index("}")]
+
+
+def test_seeing_nights_four_and_five_are_faded(tmp_path):
+    """Beyond 3 days: the faded, dashed class, and the tooltip ends with why."""
+    got = _seeing(tmp_path, "saturn", _upper_wind())
+    later = ["solar-seeing-tile-later" in t["cls"].split() for t in got["tiles"]]
+    assert later == [False, False, False, True, True]
+    assert all(t["title"].endswith("\nless reliable beyond 3 days") for t in got["tiles"][3:])
+    assert not any("less reliable" in t["title"] for t in got["tiles"][:3])
+    css = (REPO / "static" / "css" / "solar_system.css").read_text()
+    rule = css[css.index("#bodies-tab .solar-seeing-tile-later {"):]
+    rule = rule[:rule.index("}")]
+    assert "opacity: 0.55;" in rule and "border-style: dashed;" in rule
+
+
+def test_seeing_shown_without_equipment(tmp_path):
+    """No telescope or camera: the calculator shows its Configuration hint, the seeing
+    tiles still show under the (hidden) summary."""
+    got = _seeing(tmp_path, "saturn", _upper_wind(), equipment={"telescopes": [], "cameras": []})
+    assert got["summaryHidden"]
+    assert not got["hidden"] and len(got["tiles"]) == 5 and got["tiles"][0]["level"] == "steady"
