@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-01 20:57+0800\n"
+"POT-Creation-Date: 2026-11-01 22:14+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -1224,13 +1224,13 @@ msgstr "ガイディング（RMS）"
 
 #: templates/_journal_section.html:2374 templates/_journal_section.html:3338
 #: templates/base.html:227 templates/journal_report.html:736
-#: templates/journal_report.html:993 templates/solar_system.html:270
+#: templates/journal_report.html:993 templates/solar_system.html:271
 msgid "Excellent"
 msgstr "優秀"
 
 #: templates/_journal_section.html:2374 templates/_journal_section.html:3339
 #: templates/base.html:228 templates/journal_report.html:736
-#: templates/journal_report.html:993 templates/solar_system.html:271
+#: templates/journal_report.html:993 templates/solar_system.html:272
 msgid "Good"
 msgstr "良好"
 
@@ -2723,7 +2723,7 @@ msgstr "イメージングの機会"
 #: templates/index.html:229 templates/index.html:247
 #: templates/journal_report.html:686 templates/mobile_journal_new.html:210
 #: templates/project_report.html:906 templates/solar_system.html:27
-#: templates/solar_system.html:157
+#: templates/solar_system.html:158
 msgid "Date"
 msgstr "日付"
 
@@ -2969,7 +2969,7 @@ msgstr "機能の使用状況データはまだ利用できません"
 msgid "Nova DSO Tracker Analytics — GDPR compliant, no PII stored"
 msgstr "Nova DSO Tracker Analytics — GDPR準拠、個人識別情報（PII）は保存されません"
 
-#: templates/base.html:109 templates/solar_system.html:133
+#: templates/base.html:109 templates/solar_system.html:134
 msgid "Calculating..."
 msgstr "計算中..."
 
@@ -2990,7 +2990,7 @@ msgstr "保存しました"
 msgid "Error"
 msgstr "エラー:"
 
-#: templates/base.html:117 templates/solar_system.html:232
+#: templates/base.html:117 templates/solar_system.html:233
 msgid "None"
 msgstr "なし"
 
@@ -4456,8 +4456,8 @@ msgstr "グラフ日付"
 
 #: templates/graph_view.html:60 templates/index.html:58
 #: templates/mobile_base.html:35 templates/project_report.html:1152
-#: templates/solar_system.html:28 templates/solar_system.html:145
-#: templates/solar_system.html:182
+#: templates/solar_system.html:28 templates/solar_system.html:146
+#: templates/solar_system.html:183
 msgid "Moon"
 msgstr "月"
 
@@ -4503,7 +4503,7 @@ msgstr "日"
 
 #: templates/graph_view.html:102 templates/mobile_object_detail.html:520
 #: templates/solar_system.html:90 templates/solar_system.html:93
-#: templates/solar_system.html:208
+#: templates/solar_system.html:209
 msgid "Month"
 msgstr "月"
 
@@ -4614,7 +4614,7 @@ msgid ""
 "field of view."
 msgstr "リグがまだ設定されていません。リグを追加すると、このオブジェクトが視野にどのように収まるかを確認できます。"
 
-#: templates/graph_view.html:217 templates/solar_system.html:126
+#: templates/graph_view.html:217 templates/solar_system.html:127
 msgid "Manage Rigs"
 msgstr "リグを管理"
 
@@ -4834,7 +4834,7 @@ msgid "Window"
 msgstr "観測可能時間"
 
 #: templates/graph_view.html:684 templates/mobile_object_detail.html:493
-#: templates/solar_system.html:194
+#: templates/solar_system.html:195
 msgid "Now"
 msgstr "現在"
 
@@ -4940,7 +4940,7 @@ msgstr "フィルターを解除"
 
 #: templates/index.html:148 templates/index.html:151
 #: templates/mobile_up_now.html:899 templates/mobile_up_now.html:912
-#: templates/solar_system.html:193 templates/solar_system.html:199
+#: templates/solar_system.html:194 templates/solar_system.html:200
 msgid "Altitude"
 msgstr "高度"
 
@@ -4949,7 +4949,7 @@ msgid "Current"
 msgstr "現在"
 
 #: templates/index.html:149 templates/index.html:152
-#: templates/solar_system.html:200
+#: templates/solar_system.html:201
 msgid "Azimuth"
 msgstr "方位角"
 
@@ -4988,7 +4988,7 @@ msgid "to moon (°)"
 msgstr "月へ (°)"
 
 #: templates/index.html:159 templates/solar_system.html:71
-#: templates/solar_system.html:160
+#: templates/solar_system.html:161
 msgid "Magnitude"
 msgstr "等級"
 
@@ -5702,7 +5702,7 @@ msgstr "デフォルト"
 msgid "Mosaic:"
 msgstr "モザイク："
 
-#: templates/mobile_mosaic_copy.html:8 templates/solar_system.html:254
+#: templates/mobile_mosaic_copy.html:8 templates/solar_system.html:255
 msgid "Mosaic"
 msgstr "モザイク"
 
@@ -5955,8 +5955,8 @@ msgstr "天体"
 msgid "Calendar"
 msgstr "カレンダー"
 
-#: templates/solar_system.html:64 templates/solar_system.html:136
-#: templates/solar_system.html:158
+#: templates/solar_system.html:64 templates/solar_system.html:137
+#: templates/solar_system.html:159
 msgid "Body"
 msgstr "天体"
 
@@ -5986,7 +5986,7 @@ msgstr "空で最も高くなる時刻。括弧内はその高度。"
 msgid "Set"
 msgstr "入り"
 
-#: templates/solar_system.html:70 templates/solar_system.html:163
+#: templates/solar_system.html:70 templates/solar_system.html:164
 msgid "Highest altitude between sunset and sunrise."
 msgstr "日没から日の出までの最高高度。"
 
@@ -5994,13 +5994,13 @@ msgstr "日没から日の出までの最高高度。"
 msgid "Max altitude tonight"
 msgstr "今夜の最高高度"
 
-#: templates/solar_system.html:72 templates/solar_system.html:161
+#: templates/solar_system.html:72 templates/solar_system.html:162
 msgid ""
 "Apparent size in arcseconds. The most important number for planetary "
 "imaging."
 msgstr "視直径（秒角）。惑星撮影で最も重要な数値です。"
 
-#: templates/solar_system.html:72 templates/solar_system.html:161
+#: templates/solar_system.html:72 templates/solar_system.html:162
 msgid "Diameter"
 msgstr "視直径"
 
@@ -6012,19 +6012,19 @@ msgstr "地球から見た円盤の照らされている割合。"
 msgid "Illuminated"
 msgstr "輝面比"
 
-#: templates/solar_system.html:74 templates/solar_system.html:162
+#: templates/solar_system.html:74 templates/solar_system.html:163
 msgid "Angle from the Sun. Larger means easier to see against a dark sky."
 msgstr "太陽からの角距離。大きいほど暗い空で見やすくなります。"
 
-#: templates/solar_system.html:74 templates/solar_system.html:162
+#: templates/solar_system.html:74 templates/solar_system.html:163
 msgid "Elongation"
 msgstr "離角"
 
-#: templates/solar_system.html:89
+#: templates/solar_system.html:89 templates/solar_system.html:310
 msgid "Tonight"
 msgstr "今夜"
 
-#: templates/solar_system.html:107 templates/solar_system.html:231
+#: templates/solar_system.html:107 templates/solar_system.html:232
 msgid "Planetary calculator"
 msgstr "惑星計算ツール"
 
@@ -6032,376 +6032,376 @@ msgstr "惑星計算ツール"
 msgid "Amplification"
 msgstr "拡大率"
 
-#: templates/solar_system.html:125
+#: templates/solar_system.html:126
 msgid "Add a telescope and a camera on the Configuration page."
 msgstr "設定ページで望遠鏡とカメラを追加してください。"
 
-#: templates/solar_system.html:233
+#: templates/solar_system.html:234
 msgid "Disc"
 msgstr "像の大きさ"
 
-#: templates/solar_system.html:234
+#: templates/solar_system.html:235
 msgid ""
 "Apparent diameter of the body in pixels with this telescope, camera and "
 "amplification."
 msgstr "この望遠鏡・カメラ・拡大率で撮影したときの天体の視直径（ピクセル）。"
 
-#: templates/solar_system.html:236
+#: templates/solar_system.html:237
 msgid ""
 "Rule of thumb for good seeing: 5 x pixel size in µm. Many imagers use 3-5"
 " x, lower for average seeing or colour cameras."
 msgstr "良好なシーイングでの目安：ピクセルサイズ（µm）の5倍。多くの撮影者は3～5倍を使い、平均的なシーイングやカラーカメラではより低い値にします。"
 
-#: templates/solar_system.html:235
+#: templates/solar_system.html:236
 msgid "Focal ratio"
 msgstr "F値"
 
-#: templates/solar_system.html:137
+#: templates/solar_system.html:138
 msgid "All bodies"
 msgstr "すべての天体"
 
-#: templates/solar_system.html:157
+#: templates/solar_system.html:158
 msgid "The evening on which the observing night starts."
 msgstr "観測夜が始まる日の夕方。"
 
-#: templates/solar_system.html:159
+#: templates/solar_system.html:160
 msgid "Event"
 msgstr "現象"
 
-#: templates/solar_system.html:163
+#: templates/solar_system.html:164
 msgid "Max altitude that night"
 msgstr "その夜の最高高度"
 
-#: templates/solar_system.html:164
+#: templates/solar_system.html:165
 msgid "Negative values are events that have already passed."
 msgstr "負の値はすでに過ぎた現象です。"
 
-#: templates/solar_system.html:164
+#: templates/solar_system.html:165
 msgid "Days from now"
 msgstr "今日からの日数"
 
-#: templates/solar_system.html:138 templates/solar_system.html:175
+#: templates/solar_system.html:139 templates/solar_system.html:176
 msgid "Mercury"
 msgstr "水星"
 
-#: templates/solar_system.html:139 templates/solar_system.html:176
+#: templates/solar_system.html:140 templates/solar_system.html:177
 msgid "Venus"
 msgstr "金星"
 
-#: templates/solar_system.html:140 templates/solar_system.html:177
+#: templates/solar_system.html:141 templates/solar_system.html:178
 msgid "Mars"
 msgstr "火星"
 
-#: templates/solar_system.html:141 templates/solar_system.html:178
+#: templates/solar_system.html:142 templates/solar_system.html:179
 msgid "Jupiter"
 msgstr "木星"
 
-#: templates/solar_system.html:142 templates/solar_system.html:179
+#: templates/solar_system.html:143 templates/solar_system.html:180
 msgid "Saturn"
 msgstr "土星"
 
-#: templates/solar_system.html:143 templates/solar_system.html:180
+#: templates/solar_system.html:144 templates/solar_system.html:181
 msgid "Uranus"
 msgstr "天王星"
 
-#: templates/solar_system.html:144 templates/solar_system.html:181
+#: templates/solar_system.html:145 templates/solar_system.html:182
 msgid "Neptune"
 msgstr "海王星"
 
-#: templates/solar_system.html:149
+#: templates/solar_system.html:150
 msgid "Hide events that are not visible"
 msgstr "見えないイベントを隠す"
 
-#: templates/solar_system.html:184
+#: templates/solar_system.html:185
 msgid "E"
 msgstr "東"
 
-#: templates/solar_system.html:185
+#: templates/solar_system.html:186
 msgid "W"
 msgstr "西"
 
-#: templates/solar_system.html:186
+#: templates/solar_system.html:187
 msgid "Always up"
 msgstr "常に地平線上"
 
-#: templates/solar_system.html:187
+#: templates/solar_system.html:188
 msgid "Never up"
 msgstr "常に地平線下"
 
-#: templates/solar_system.html:188
+#: templates/solar_system.html:189
 msgid "Not up tonight"
 msgstr "今夜は昇らない"
 
-#: templates/solar_system.html:189
+#: templates/solar_system.html:190
 msgid "Does not reach the altitude threshold tonight"
 msgstr "今夜は高度閾値に達しません"
 
-#: templates/solar_system.html:190
+#: templates/solar_system.html:191
 msgid "Solar System data could not be calculated."
 msgstr "太陽系のデータを計算できませんでした。"
 
-#: templates/solar_system.html:191
+#: templates/solar_system.html:192
 msgid "Could not load location data."
 msgstr "観測地のデータを読み込めませんでした。"
 
-#: templates/solar_system.html:192
+#: templates/solar_system.html:193
 msgid "The altitude chart could not be drawn."
 msgstr "高度グラフを描画できませんでした。"
 
-#: templates/solar_system.html:195
+#: templates/solar_system.html:196
 msgid "Sunset"
 msgstr "日没"
 
-#: templates/solar_system.html:196
+#: templates/solar_system.html:197
 msgid "Sunrise"
 msgstr "日の出"
 
-#: templates/solar_system.html:197
+#: templates/solar_system.html:198
 msgid "Astronomical dusk"
 msgstr "天文薄暮"
 
-#: templates/solar_system.html:198
+#: templates/solar_system.html:199
 msgid "Astronomical dawn"
 msgstr "天文薄明"
 
-#: templates/solar_system.html:201
+#: templates/solar_system.html:202
 msgid "Horizon"
 msgstr "地平線"
 
-#: templates/solar_system.html:202
+#: templates/solar_system.html:203
 msgid "Altitude threshold / horizon mask"
 msgstr "高度閾値 / ホライゾンマスク"
 
-#: templates/solar_system.html:203
+#: templates/solar_system.html:204
 msgid "Local time"
 msgstr "現地時間"
 
-#: templates/solar_system.html:204
+#: templates/solar_system.html:205
 msgid "Altitude (°)"
 msgstr "高度 (°)"
 
-#: templates/solar_system.html:205
+#: templates/solar_system.html:206
 msgid "Azimuth (°)"
 msgstr "方位角 (°)"
 
-#: templates/solar_system.html:206
+#: templates/solar_system.html:207
 msgid "Max altitude (sunset to sunrise)"
 msgstr "最高高度（日没から日の出まで）"
 
-#: templates/solar_system.html:207
+#: templates/solar_system.html:208
 msgid "Day of month"
 msgstr "日付"
 
-#: templates/solar_system.html:209
+#: templates/solar_system.html:210
 msgid "Opposition"
 msgstr "衝"
 
-#: templates/solar_system.html:210
+#: templates/solar_system.html:211
 msgid "Greatest elongation E (evening)"
 msgstr "東方最大離角（夕方）"
 
-#: templates/solar_system.html:211
+#: templates/solar_system.html:212
 msgid "Greatest elongation W (morning)"
 msgstr "西方最大離角（明け方）"
 
-#: templates/solar_system.html:212
+#: templates/solar_system.html:213
 msgid "Does not reach the altitude threshold that night"
 msgstr "その夜は高度閾値に達しません"
 
-#: templates/solar_system.html:213
+#: templates/solar_system.html:214
 #, python-format
 msgid "Exact time: %(time)s"
 msgstr "正確な時刻：%(time)s"
 
-#: templates/solar_system.html:214
+#: templates/solar_system.html:215
 #, python-format
 msgid "Conjunction %(sep)s°"
 msgstr "合 %(sep)s°"
 
-#: templates/solar_system.html:215
+#: templates/solar_system.html:216
 #, python-format
 msgid "Too close to the Sun (%(elong)s° away)"
 msgstr "太陽に近すぎます（%(elong)s°）"
 
-#: templates/solar_system.html:216
+#: templates/solar_system.html:217
 msgid "Occultation"
 msgstr "掩蔽"
 
-#: templates/solar_system.html:217
+#: templates/solar_system.html:218
 msgid "In daylight at the closest approach"
 msgstr "最接近時は日中です"
 
-#: templates/solar_system.html:218
+#: templates/solar_system.html:219
 #, python-format
 msgid ""
 "Below the altitude threshold at the closest approach (%(first)s "
 "%(first_alt)s°, %(second)s %(second_alt)s°)"
 msgstr "最接近時に高度閾値を下回っています（%(first)s %(first_alt)s°、%(second)s %(second_alt)s°）"
 
-#: templates/solar_system.html:219
+#: templates/solar_system.html:220
 #, python-format
 msgid "Closest approach: %(date)s, %(dist)s million km"
 msgstr "最接近：%(date)s、%(dist)s百万km"
 
-#: templates/solar_system.html:220
+#: templates/solar_system.html:221
 #, python-format
 msgid "rings %(value)s"
 msgstr "環 %(value)s"
 
-#: templates/solar_system.html:221
+#: templates/solar_system.html:222
 msgid ""
 "Tilt of the rings toward the Earth: + north face, − south face visible. "
 "Near 0° the rings are edge-on."
 msgstr "地球に対する環の傾き：＋は北面、−は南面が見えます。0°付近では環を真横から見ることになります。"
 
-#: templates/solar_system.html:223
+#: templates/solar_system.html:224
 msgid ""
 "Opposite the Sun: up all night, closest and brightest. Good for several "
 "weeks around this date."
 msgstr "太陽の反対側：一晩中見え、最も近く最も明るい。この日の前後数週間が好機です。"
 
-#: templates/solar_system.html:224
+#: templates/solar_system.html:225
 msgid ""
 "Farthest east of the Sun: best evening visibility, low in the west after "
 "sunset."
 msgstr "太陽から最も東に離れる：夕方の見頃。日没後の西の低空。"
 
-#: templates/solar_system.html:225
+#: templates/solar_system.html:226
 msgid ""
 "Farthest west of the Sun: best morning visibility, low in the east before"
 " sunrise."
 msgstr "太陽から最も西に離れる：明け方の見頃。日の出前の東の低空。"
 
-#: templates/solar_system.html:226
+#: templates/solar_system.html:227
 msgid "Closest apparent approach of the two bodies."
 msgstr "2天体の見かけ上の最接近。"
 
-#: templates/solar_system.html:227
+#: templates/solar_system.html:228
 msgid "Closest apparent approach of the two bodies, as seen from this location."
 msgstr "2天体の見かけ上の最接近（この地点から見た場合）。"
 
-#: templates/solar_system.html:228
+#: templates/solar_system.html:229
 msgid "The Moon passes in front of the planet as seen from this location."
 msgstr "この地点から見ると、月が惑星の前を通過します。"
 
-#: templates/solar_system.html:237
+#: templates/solar_system.html:238
 #, python-format
 msgid "ideal f/%(ratio)s"
 msgstr "理想 f/%(ratio)s"
 
-#: templates/solar_system.html:239
+#: templates/solar_system.html:240
 msgid "on target"
 msgstr "適正"
 
-#: templates/solar_system.html:240
+#: templates/solar_system.html:241
 msgid "below ideal"
 msgstr "理想より小さい"
 
-#: templates/solar_system.html:241
+#: templates/solar_system.html:242
 msgid "above ideal"
 msgstr "理想より大きい"
 
-#: templates/solar_system.html:243
+#: templates/solar_system.html:244
 msgid "Detail"
 msgstr "細部"
 
-#: templates/solar_system.html:244
+#: templates/solar_system.html:245
 msgid ""
 "How much detail the aperture can resolve on this planet: diameter divided"
 " by the telescope's resolution (Dawes limit). Seeing often limits this "
 "further."
 msgstr "この惑星で口径が分解できる細部の量：視直径を望遠鏡の分解能（ドーズ限界）で割った値。シーイングによってさらに制限されることが多いです。"
 
-#: templates/solar_system.html:246
+#: templates/solar_system.html:247
 msgid "Fine detail"
 msgstr "細部まで見える"
 
-#: templates/solar_system.html:247
+#: templates/solar_system.html:248
 msgid "Main features"
 msgstr "主な模様"
 
-#: templates/solar_system.html:248
+#: templates/solar_system.html:249
 msgid "Disc only"
 msgstr "円盤のみ"
 
-#: templates/solar_system.html:250
+#: templates/solar_system.html:251
 #, python-format
 msgid "about %(n)s resolvable points across"
 msgstr "直径方向に約 %(n)s 点を分解可能"
 
-#: templates/solar_system.html:251
+#: templates/solar_system.html:252
 msgid "Rotation limit"
 msgstr "自転による限界"
 
-#: templates/solar_system.html:252
+#: templates/solar_system.html:253
 msgid ""
 "Longest single capture before rotation blurs detail at the disc centre, "
 "without derotation. With derotation (e.g. WinJUPOS) much longer captures "
 "are possible."
 msgstr "デローテーションなしで、自転によって像の中央の細部がぼやけるまでの最長の1回の撮影時間。デローテーション（WinJUPOSなど）を使えば、はるかに長い撮影が可能です。"
 
-#: templates/solar_system.html:253
+#: templates/solar_system.html:254
 #, python-format
 msgid "%(min)s min %(sec)s s"
 msgstr "%(min)s分%(sec)s秒"
 
-#: templates/solar_system.html:255
+#: templates/solar_system.html:256
 msgid ""
 "Frames needed for the full disc, each overlapping its neighbours by 20 "
 "percent."
 msgstr "全面を写すのに必要なコマ数（隣のコマと20パーセント重ねる場合）。"
 
-#: templates/solar_system.html:256
+#: templates/solar_system.html:257
 msgid "Fits in one frame"
 msgstr "1コマに収まります"
 
-#: templates/solar_system.html:257
+#: templates/solar_system.html:258
 #, python-format
 msgid "%(n)s panels (%(cols)s × %(rows)s)"
 msgstr "%(n)sコマ（%(cols)s × %(rows)s）"
 
-#: templates/solar_system.html:259
+#: templates/solar_system.html:260
 msgid "Size of the planet on your sensor"
 msgstr "センサー上での惑星の大きさ"
 
-#: templates/solar_system.html:260
+#: templates/solar_system.html:261
 msgid "Matches your camera's pixel size"
 msgstr "カメラのピクセルサイズに合っています"
 
-#: templates/solar_system.html:261
+#: templates/solar_system.html:262
 msgid ""
 "Your pixels are too coarse to record all the detail. Use more "
 "amplification."
 msgstr "ピクセルが粗すぎて細部をすべて記録できません。拡大率を上げてください。"
 
-#: templates/solar_system.html:262
+#: templates/solar_system.html:263
 msgid ""
 "Bigger image but no extra detail, and dimmer frames. Use less "
 "amplification and enlarge the result in processing instead."
 msgstr "像は大きくなりますが細部は増えず、フレームも暗くなります。拡大率を下げ、代わりに画像処理で拡大してください。"
 
-#: templates/solar_system.html:263
+#: templates/solar_system.html:264
 msgid "Limited by the telescope's aperture, not the camera"
 msgstr "カメラではなく望遠鏡の口径で決まります"
 
-#: templates/solar_system.html:264
+#: templates/solar_system.html:265
 msgid "Longest single video before the planet's rotation blurs detail"
 msgstr "惑星の自転で細部がぼやけるまでの1本の動画の最長時間"
 
-#: templates/solar_system.html:265
+#: templates/solar_system.html:266
 msgid "Frames needed to cover the whole disc"
 msgstr "円盤全体を写すのに必要なフレーム数"
 
-#: templates/solar_system.html:268
+#: templates/solar_system.html:269
 #, python-format
 msgid "%(level)s setup for %(body)s."
 msgstr "%(body)s向けの構成：%(level)s。"
 
-#: templates/solar_system.html:272
+#: templates/solar_system.html:273
 msgid "Limited"
 msgstr "限定的"
 
-#: templates/solar_system.html:274
+#: templates/solar_system.html:275
 #, python-format
 msgid ""
 "The level combines three checks: how much detail the aperture can resolve"
@@ -6410,119 +6410,124 @@ msgid ""
 "blur down)."
 msgstr "評価は3つの点を組み合わせたものです：この惑星で口径が分解できる細部の量、カメラに対する理想のF値との差、そして今夜の惑星の高度（%(alt)s°以上あれば大気によるぼやけを抑えられます）。"
 
-#: templates/solar_system.html:275
+#: templates/solar_system.html:276
 #, python-format
 msgid "%(body)s is low tonight (max %(alt)s°); expect atmospheric blur."
 msgstr "%(body)sは今夜低い位置にあります（最大 %(alt)s°）。大気によるぼやけが予想されます。"
 
-#: templates/solar_system.html:276
+#: templates/solar_system.html:277
 #, python-format
 msgid "Use %(amp)s amplification for the best sampling."
 msgstr "最適なサンプリングには %(amp)s の拡大率を使ってください。"
 
-#: templates/solar_system.html:277
+#: templates/solar_system.html:278
 #, python-format
 msgid ""
 "%(body)s: no amplification brings this telescope and camera closer to the"
 " ideal."
 msgstr "%(body)s：どの拡大率でも、この望遠鏡とカメラを理想に近づけることはできません。"
 
-#: templates/solar_system.html:278
+#: templates/solar_system.html:279
 #, python-format
 msgid "%(body)s stays a small disc with any telescope of this size."
 msgstr "%(body)sはこのサイズの望遠鏡では小さな円盤にしか見えません。"
 
-#: templates/solar_system.html:279
+#: templates/solar_system.html:280
 msgid "Fine detail possible, focal ratio on target."
 msgstr "細部まで写せます。F値は適正です。"
 
-#: templates/solar_system.html:280
+#: templates/solar_system.html:281
 msgid "Main features possible, focal ratio on target."
 msgstr "主な模様を写せます。F値は適正です。"
 
-#: templates/solar_system.html:281
+#: templates/solar_system.html:282
 msgid "Focal ratio on target."
 msgstr "F値は適正です。"
 
-#: templates/solar_system.html:284
+#: templates/solar_system.html:285
 #, python-format
 msgid ""
 "Scale preview: sensor %(w)s × %(h)s pixels, %(body)s %(disc)s pixels "
 "across."
 msgstr "縮尺プレビュー：センサー %(w)s × %(h)s ピクセル、%(body)sの直径 %(disc)s ピクセル。"
 
-#: templates/solar_system.html:285
+#: templates/solar_system.html:286
 msgid ""
 "Lit side shown to the right; on your sensor it depends on the camera's "
 "rotation."
 msgstr "照らされた側を右に表示しています。センサー上ではカメラの回転によって変わります。"
 
-#: templates/solar_system.html:286
+#: templates/solar_system.html:287
 msgid "not to scale (too small)"
 msgstr "縮尺どおりではありません（小さすぎ）"
 
-#: templates/solar_system.html:287
+#: templates/solar_system.html:288
 #, python-format
 msgid ""
 "A %(w)s × %(h)s region of interest (ROI) is enough: more frames per "
 "second."
 msgstr "%(w)s × %(h)s の関心領域（ROI）で十分です：毎秒のフレーム数が増えます。"
 
-#: templates/solar_system.html:288
+#: templates/solar_system.html:289
 msgid ""
 "A region of interest (ROI) reads out only part of the sensor. Smaller "
 "frames transfer faster, so the camera records more frames per second for "
 "stacking."
 msgstr "関心領域（ROI）はセンサーの一部だけを読み出します。小さなフレームは転送が速いため、スタック用に毎秒より多くのフレームを記録できます。"
 
-#: templates/solar_system.html:289
+#: templates/solar_system.html:290
 msgid "No scale preview."
 msgstr "縮尺プレビューはありません。"
 
-#: templates/solar_system.html:292
+#: templates/solar_system.html:293
 msgid "The telescope has no focal length."
 msgstr "望遠鏡の焦点距離が未設定です。"
 
-#: templates/solar_system.html:293
+#: templates/solar_system.html:294
 msgid "The telescope has no aperture."
 msgstr "望遠鏡の口径が未設定です。"
 
-#: templates/solar_system.html:294
+#: templates/solar_system.html:295
 msgid "The camera has no pixel size."
 msgstr "カメラのピクセルサイズが未設定です。"
 
-#: templates/solar_system.html:295
+#: templates/solar_system.html:296
 msgid "The camera has no sensor size."
 msgstr "カメラのセンサーサイズが未設定です。"
 
-#: templates/solar_system.html:296
+#: templates/solar_system.html:297
 msgid ""
 "Check the camera's sensor size: it should be in millimetres (e.g. 7.68 × "
 "4.32 mm)."
 msgstr "カメラのセンサーサイズを確認してください：ミリメートルで入力する必要があります（例：7.68 × 4.32 mm）。"
 
-#: templates/solar_system.html:297
+#: templates/solar_system.html:298
 msgid "Cannot be calculated from these values."
 msgstr "これらの値からは計算できません。"
 
-#: templates/solar_system.html:301
+#: templates/solar_system.html:302
 #, python-format
 msgid "Seeing tonight: %(level)s (jet stream %(speed)s m/s)"
 msgstr "今夜のシーイング：%(level)s（ジェット気流 %(speed)s m/s）"
 
 #: templates/solar_system.html:303
+#, python-format
+msgid "Seeing %(day)s: %(level)s (jet stream %(speed)s m/s)"
+msgstr "%(day)sのシーイング：%(level)s（ジェット気流 %(speed)s m/s）"
+
+#: templates/solar_system.html:305
 msgid "likely steady"
 msgstr "安定の見込み"
 
-#: templates/solar_system.html:304
+#: templates/solar_system.html:306
 msgid "average"
 msgstr "普通"
 
-#: templates/solar_system.html:305
+#: templates/solar_system.html:307
 msgid "likely poor"
 msgstr "不安定の見込み"
 
-#: templates/solar_system.html:307
+#: templates/solar_system.html:309
 #, python-format
 msgid ""
 "A forecast, not a measurement. Seeing is estimated from the jet stream: "
@@ -6532,15 +6537,15 @@ msgid ""
 "Meteo."
 msgstr "測定値ではなく予報です。シーイングはジェット気流から推定しています：高度9～12 km（200～300 hPa）の風速を、今夜の%(body)sの好条件の時間帯について中央値で評価します（最大 %(max)s m/s）。上空の風が穏やかなほど、通常は像が安定します。地表付近の乱流は含まれません。データ：Open-Meteo。"
 
-#: templates/solar_system.html:308
+#: templates/solar_system.html:117
 msgid "Seeing outlook"
 msgstr "シーイング予報"
 
-#: templates/solar_system.html:309
+#: templates/solar_system.html:311
 msgid "less reliable beyond 3 days"
 msgstr "3日より先は信頼性が低下"
 
-#: templates/solar_system.html:310
+#: templates/solar_system.html:312
 msgid "No seeing forecast for this night"
 msgstr "この夜のシーイング予報はありません"
 

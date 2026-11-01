@@ -674,11 +674,11 @@
             tile.setAttribute('role', 'listitem');
             tile.setAttribute('tabindex', '0');
             tile.setAttribute('aria-label', (r.level ? L[r.level] || '' : '–') + ', ' + day);
-            // The night's line in the existing wording, the explanation, and why a late
-            // night is faded
+            // The night's line (tonight's own wording, a later night named by its day
+            // label), the explanation, and why a late night is faded
             const tip = [];
             if (r.level) {
-                tip.push(fill(S.line, {speed: Math.round(r.median), level: L[r.level] || ''}));
+                tip.push(fill(tonight ? S.line : S.lineDay, {day: day, speed: Math.round(r.median), level: L[r.level] || ''}));
                 tip.push(fill(S.help, {body: bodyName(row.body), max: Math.round(r.max)}));
             }
             if (!n.reliable) tip.push(S.lessReliable || '');

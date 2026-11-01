@@ -1010,6 +1010,7 @@ def test_calendar_filter_is_restored_on_load_without_rebuilds(tmp_path, stored_b
 
 SEEING_I18N = dict(FULL_I18N, seeing={
     "line": "Seeing tonight: {level} (jet stream {speed} m/s)",
+    "lineDay": "Seeing {day}: {level} (jet stream {speed} m/s)",
     "level": {"steady": "likely steady", "average": "average", "poor": "likely poor"},
     "help": "HELP {body} peak {max}", "tonight": "Tonight",
     "lessReliable": "less reliable beyond 3 days", "noForecast": "No seeing forecast for this night",
@@ -1063,6 +1064,8 @@ def test_seeing_line_and_outlook(tmp_path):
     assert sorted(tiles[1]["day"].split()) == ["31", "Sat"]
     assert tiles[0]["title"] == "Seeing tonight: likely steady (jet stream 12 m/s)\nHELP Saturn peak 12"
     assert tiles[0]["attrs"] == {"role": "listitem", "tabindex": "0", "aria-label": "likely steady, Tonight"}
+    # A later night names itself by its day label
+    assert tiles[1]["title"].startswith("Seeing " + tiles[1]["day"] + ": likely steady (jet stream 12 m/s)\nHELP Saturn")
     assert got["fetched"] == ["/api/upper_wind?lat=51.4769&lon=-0.0005"]
 
 
@@ -1086,11 +1089,14 @@ def test_seeing_line_translated(tmp_path):
     i18n["seeing"]["line"] = "Seeing heute Nacht ({speed} m/s Jetstream): {level}"
     i18n["seeing"]["level"]["poor"] = "wahrscheinlich unruhig"
     i18n["seeing"]["tonight"] = "Heute Nacht"
+    i18n["seeing"]["lineDay"] = "Seeing {day} ({speed} m/s Jetstream): {level}"
     got = _seeing(tmp_path, "saturn", _upper_wind(w250=41.6), i18n=i18n)
     tile = got["tiles"][0]
     assert tile["title"].split("\n")[0] == "Seeing heute Nacht (42 m/s Jetstream): wahrscheinlich unruhig"
     assert tile["day"] == "Heute Nacht"
     assert tile["attrs"]["aria-label"] == "wahrscheinlich unruhig, Heute Nacht"
+    later = got["tiles"][2]
+    assert later["title"].split("\n")[0] == "Seeing " + later["day"] + " (42 m/s Jetstream): wahrscheinlich unruhig"
 
 
 def test_seeing_simulation_outside_the_forecast(tmp_path):
