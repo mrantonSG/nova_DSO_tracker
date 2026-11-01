@@ -79,6 +79,12 @@
         return out;
     }
 
+    /** '12' or '−3' (U+2212): whole degrees. */
+    function wholeDeg(x) {
+        const n = Math.round(x);
+        return n < 0 ? '−' + (-n) : String(n);
+    }
+
     /** '+4.6' or '−6.6' (U+2212). */
     function signed(x, digits) {
         return (x < 0 ? '−' : '+') + Math.abs(x).toFixed(digits);
@@ -573,6 +579,15 @@
         return !state.calFilter.body || row.bodies.indexOf(state.calFilter.body) >= 0;
     }
 
+    /** Why a Moon conjunction is muted: daylight, or the two altitudes at its instant. */
+    function momentText(row) {
+        if (row.moment.daylight) return i18n.daylightAtClosest;
+        return fill(i18n.belowThresholdAtClosest, {
+            first: bodyName(row.bodies[0]), first_alt: wholeDeg(row.moment.alts[0]),
+            second: bodyName(row.bodies[1]), second_alt: wholeDeg(row.moment.alts[1]),
+        });
+    }
+
     function renderCalendarRows(result) {
         state.calResult = result;
         const tbody = $('solar-cal-body');
@@ -585,17 +600,19 @@
             tr.dataset.body = row.body;
             if (row.muted) {
                 tr.classList.add('geometrically-impossible');
-                tr.title = row.mutedReason === 'sun'
-                    ? fill(i18n.tooCloseToSun, {elong: row.elongationDeg.toFixed(0)})
+                tr.title = row.mutedReason === 'moment' ? momentText(row)
+                    : row.mutedReason === 'sun' ? fill(i18n.tooCloseToSun, {elong: row.elongationDeg.toFixed(0)})
                     : i18n.belowThresholdNight;
             }
             // The night's date only; the event's own local time is the cell's tooltip
             const date = cell(tr, 'date', europeanDate(row.night));
             date.title = String(i18n.exactTime).replace('{time}', NovaSolarRows.timeLabel(row.hm, row.hmDay));
             cell(tr, 'body', row.bodies.map(bodyName).join(' – '));
-            const event = cell(tr, 'event', conj ? fill(i18n.conjunction, {sep: row.sepDeg.toFixed(1)})
-                                                 : (i18n[row.kind] || row.kind));
-            const helpText = conj ? help[row.bodies.indexOf('moon') >= 0 ? 'conjunctionMoon' : 'conjunction'] : help[row.kind];
+            const event = cell(tr, 'event', row.occultation ? i18n.occultation
+                : conj ? fill(i18n.conjunction, {sep: row.sepDeg.toFixed(1)})
+                : (i18n[row.kind] || row.kind));
+            const helpText = row.occultation ? help.occultation
+                : conj ? help[row.bodies.indexOf('moon') >= 0 ? 'conjunctionMoon' : 'conjunction'] : help[row.kind];
             const notes = [];
             if (helpText) notes.push(helpText);
             if (row.closestApproach) {

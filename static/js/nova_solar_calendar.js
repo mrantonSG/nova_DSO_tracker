@@ -64,6 +64,15 @@
  *     muted: maxAlt below altitude_threshold, mutedReason 'altitude'. A conjunction is
  *     also muted when it is closer to the Sun than SUN_MIN_DEG, mutedReason 'sun' (which
  *     wins when both apply). Never dropped; mutedReason is null when not muted.
+ *   - A Moon conjunction is a matter of minutes (the Moon moves its own width an hour),
+ *     so the night's maximum does not decide it: it is muted, mutedReason 'moment', unless
+ *     at its instant the Sun is down (sunAltDeg below NovaAstro.SUN_RISE_SET_ALT, the
+ *     sunset and sunrise rule of NovaAstro.sunEvents, which also holds in polar day and
+ *     night) and both bodies are at or above altitude_threshold (NovaPlanets.altAz,
+ *     topocentric, as the search). `moment` { daylight, alts: [per bodies] } says which;
+ *     null on other rows. The SUN_MIN_DEG rule still applies, 'moment' wins over 'sun'.
+ *   - occultation: a Moon conjunction whose separation is smaller than the Moon's
+ *     apparent radius (its diameterArcsec at the instant), else false.
  *   - daysFromNow is the event's night minus the current night, in days: negative for
  *     past events, 0 tonight.
  *   - mag, diameterArcsec and elongationDeg (Mercury and Venus only, else null; always
@@ -79,7 +88,8 @@
  *
  * Returns { date, window: { start, end }, threshold, rows: [{ body, bodies, kind, utcMs,
  * night, hm, hmDay, daysFromNow, mag, diameterArcsec, elongationDeg, maxAlt, muted,
- * mutedReason, sepDeg, other, ringTiltDeg, closestApproach }] }, the rows in time order.
+ * mutedReason, sepDeg, other, moment, occultation, ringTiltDeg, closestApproach }] }, the
+ * rows in time order.
  * Throws on a missing location, a non-finite coordinate or any engine failure; the page
  * shows its error instead.
  */
@@ -142,6 +152,15 @@
     }
 
     const dayNumber = d => Date.UTC(d.year, d.month - 1, d.day) / DAY_MS;
+
+    /** The Sun's altitude in degrees, from the Sun and sidereal time NovaAstro.sunEvents uses. */
+    function sunAltDeg(utcMs, lat, lon, A) {
+        const r = Math.PI / 180;
+        const p = A.sunPosition(utcMs);
+        const ha = A.gast(utcMs, p.nut) + lon * r - p.ra;
+        const sinAlt = Math.sin(lat * r) * Math.sin(p.dec) + Math.cos(lat * r) * Math.cos(p.dec) * Math.cos(ha);
+        return Math.asin(Math.max(-1, Math.min(1, sinAlt))) / r;
+    }
 
     // ------------------------------------------------------------------ search
 
@@ -327,7 +346,18 @@
             if (conj) elongationDeg = Math.min(Math.abs(dets[0].elongationDeg), Math.abs(dets[1].elongationDeg));
             else if (ELONGATION_BODIES.indexOf(body) >= 0) elongationDeg = Math.abs(det.elongationDeg);
             const tooClose = conj && elongationDeg < SUN_MIN_DEG;
-            const low = maxAlt < s.threshold;
+            const moonAt = conj ? bodies.indexOf('moon') : -1;
+            let moment = null, occultation = false;
+            if (moonAt >= 0) {
+                moment = {
+                    daylight: sunAltDeg(ev.utcMs, s.lat, s.lon, A) >= A.SUN_RISE_SET_ALT,
+                    alts: bodies.map(b => finite(P.altAz(b, ev.utcMs, s.lat, s.lon).alt, b + ' altitude')),
+                };
+                const moonDiameter = finite(dets[order[moonAt]].diameterArcsec, 'moon diameter');
+                occultation = ev.sepDeg * 3600 < moonDiameter / 2;
+            }
+            const unseen = moment !== null && (moment.daylight || moment.alts.some(a => a < s.threshold));
+            const low = moment === null && maxAlt < s.threshold;
             const saturn = bodies.indexOf('saturn');
 
             let closest = null;
@@ -352,14 +382,16 @@
                 diameterArcsec: finite(det.diameterArcsec, body + ' diameter'),
                 elongationDeg: elongationDeg,
                 maxAlt: maxAlt,
-                muted: low || tooClose,
-                mutedReason: tooClose ? 'sun' : (low ? 'altitude' : null),
+                muted: unseen || low || tooClose,
+                mutedReason: unseen ? 'moment' : tooClose ? 'sun' : (low ? 'altitude' : null),
                 sepDeg: conj ? ev.sepDeg : null,
                 other: conj ? {
                     body: bodies[1],
                     mag: finite(other.mag, bodies[1] + ' magnitude'),
                     diameterArcsec: finite(other.diameterArcsec, bodies[1] + ' diameter'),
                 } : null,
+                moment: moment,
+                occultation: occultation,
                 ringTiltDeg: saturn >= 0 ? finite(dets[conj ? order[saturn] : 0].ringTiltDeg, 'saturn ring tilt') : null,
                 closestApproach: closest,
             };

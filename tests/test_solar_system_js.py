@@ -114,6 +114,10 @@ context.self = context;
 context.globalThis = context;
 vm.createContext(context);
 for (const file of files) vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
+// Calendar builds, counted: NovaSolarCalendar.events() is the build
+let builds = 0;
+const calendarEvents = context.NovaSolarCalendar.events;
+context.NovaSolarCalendar.events = function () { builds++; return calendarEvents.apply(this, arguments); };
 
 const settle = () => new Promise(resolve => setTimeout(resolve, 0));
 async function load(tab) {
@@ -138,7 +142,7 @@ const snap = () => ({
     calHidden: $('solar-cal-wrapper').hidden,
     calLoading: !$('solar-cal-loading').hidden, frames: frames,
     bodyRows: $('solar-body').children.length, calRows: $('solar-cal-body').children.length,
-    resize: chartCalls.resize, intervalSet: interval !== null,
+    resize: chartCalls.resize, intervalSet: interval !== null, builds: builds,
 });
 
 // A table body as data: per row its classes, title and dataset.body, per cell its column,
@@ -158,9 +162,10 @@ async function setFilter(body, hide) {
 }
 const el = id => ({hidden: $(id).hidden, text: $(id).textContent, title: $(id).title});
 const stored = key => context.localStorage.getItem(key);
+const preset = (key, value) => context.localStorage.setItem(key, value);
 
 const steps = new Function('h', 'return (async () => {' + fs.readFileSync(stepsFile, 'utf8') + '})();');
-steps({ load, tick, click, clickNow, flush, changeLocation, online, offline, snap, table, clickRow, setFilter, el, stored, $ }).then(result => {
+steps({ load, tick, click, clickNow, flush, changeLocation, online, offline, snap, table, clickRow, setFilter, el, stored, preset, $ }).then(result => {
     fs.writeFileSync(outFile, JSON.stringify(result));
 }, err => { console.error(err); process.exit(1); });
 """
@@ -302,9 +307,12 @@ FULL_I18N = dict(I18N, **{
                "saturn": "Saturn", "uranus": "Uranus", "neptune": "Neptune", "moon": "Moon"},
     "rings": "rings {value}", "ringTiltHelp": "TILT HELP",
     "conjunction": "Conjunction {sep}°", "tooCloseToSun": "SUN {elong}",
+    "occultation": "OCCULTATION", "daylightAtClosest": "DAYLIGHT",
+    "belowThresholdAtClosest": "LOW AT ({first} {first_alt}°, {second} {second_alt}°)",
     "belowThresholdNight": "LOW", "exactTime": "AT {time}",
     "closestApproach": "CLOSEST {date}, {dist} million km",
-    "eventHelp": {"opposition": "OPP HELP", "conjunction": "CONJ HELP", "conjunctionMoon": "CONJ MOON HELP"},
+    "eventHelp": {"opposition": "OPP HELP", "conjunction": "CONJ HELP", "conjunctionMoon": "CONJ MOON HELP",
+                  "occultation": "OCC HELP"},
     "rigFit": {
         "title": "Rig fit", "ideal": "ideal f/{ratio}", "noneNeeded": "none needed",
         "aboveIdeal": "above ideal", "exactFactor": "EXACT {factor}",
@@ -312,7 +320,8 @@ FULL_I18N = dict(I18N, **{
         "mosaic": "Mosaic", "mosaicHelp": "MOSAIC HELP", "fitsOneFrame": "Fits in one frame",
         "panels": "{n} panels ({cols} × {rows})",
         "missing": {"noTelescope": "NO TEL", "noCamera": "NO CAM", "focalLength": "NO FL",
-                    "aperture": "NO APERTURE", "pixelSize": "NO PX", "sensorSize": "NO SENSOR"},
+                    "aperture": "NO APERTURE", "pixelSize": "NO PX", "sensorSize": "NO SENSOR",
+                    "factor": "NO FACTOR", "notComputable": "NOT COMPUTABLE"},
     },
 })
 
@@ -446,3 +455,92 @@ def test_calendar_filter_hides_rows_and_is_remembered(tmp_path):
     assert all("geometrically-impossible" not in r["classes"] for r in got["visible"])
     assert len(got["reset"]) == len(got["all"])
     assert got["stored"] == ["saturn", "true"]
+
+
+def test_rig_fit_card_bad_factor_and_absurd_values(tmp_path):
+    """A factor of 0 or less: a dash with the factor tooltip for the values that use the
+    focal length; an overflowing rig: dashes with the "not computable" tooltip, never
+    Infinity or NaN."""
+    rigs = [
+        dict(RIGS[0], name="Zero factor", factor=0),
+        dict(RIGS[0], name="Huge", focal_length_mm=1e308, factor=10.0),
+    ]
+    got = _run(tmp_path, CARD, rigs=rigs, search="?body=jupiter", i18n=FULL_I18N, sim=SIM_DATE)
+    zero, huge = (_cells(r) for r in got["rows"])
+    for col in ("disc", "barlow"):
+        assert zero[col]["spans"] == [{"text": "–", "title": "NO FACTOR", "cls": "solar-missing"}], col
+    assert zero["fratio"]["text"] == "– · ideal f/14.5"
+    assert re.fullmatch(r"\d+ min \d+ s", zero["extra"]["text"])
+    for col in ("disc", "barlow"):
+        assert huge[col]["spans"] == [{"text": "–", "title": "NOT COMPUTABLE", "cls": "solar-missing"}], col
+    assert huge["fratio"]["spans"][0]["title"] == "NOT COMPUTABLE"
+    for row in got["rows"]:
+        for c in row["cells"]:
+            assert "Infinity" not in c["text"] and "NaN" not in c["text"]
+
+
+def test_moon_conjunction_tooltips_and_occultation(tmp_path):
+    """London: Moon-Jupiter on the night of 2026-10-05 is muted with the daylight
+    tooltip; Moon-Venus on the night of 2028-03-29 is labelled an occultation, with its
+    help, and muted with both altitudes at the closest approach, Moon first."""
+    got = _run(tmp_path, """
+        h.online();
+        await h.load('calendar');
+        return h.table('solar-cal-body');
+    """, i18n=FULL_I18N, sim=SIM_DATE)
+
+    def row(names, night):
+        found = [r for r in got if _cells(r)["body"]["text"] == names and _cells(r)["date"]["text"] == night]
+        assert len(found) == 1, names
+        return found[0]
+
+    jupiter = row("Moon – Jupiter", "2026-10-05")
+    assert "geometrically-impossible" in jupiter["classes"] and jupiter["title"] == "DAYLIGHT"
+    assert re.fullmatch(r"Conjunction 0\.\d°", _cells(jupiter)["event"]["text"])
+    assert _cells(jupiter)["event"]["title"] == "CONJ MOON HELP"
+
+    venus = row("Moon – Venus", "2028-03-29")
+    assert "geometrically-impossible" in venus["classes"]
+    assert venus["title"] == "LOW AT (Moon −13°, Venus −13°)"
+    assert _cells(venus)["event"]["text"] == "OCCULTATION"
+    assert _cells(venus)["event"]["title"] == "OCC HELP"
+
+
+@pytest.mark.parametrize("stored_body, stored_hide, body, hide", [
+    ("saturn", "true", "saturn", True),
+    ("moon", "false", "moon", False),
+    ("pluto", "yes", "", False),          # unknown values: all bodies, nothing hidden
+])
+def test_calendar_filter_is_restored_on_load_without_rebuilds(tmp_path, stored_body, stored_hide, body, hide):
+    """A fresh page load with stored filter values restores the select and the checkbox
+    and shows only the matching rows (the same rows as filtering the full table by hand);
+    changing the filter afterwards re-renders without building the calendar again."""
+    got = _run(tmp_path, """
+        h.preset('nova_solar_cal_body', input_body);
+        h.preset('nova_solar_cal_hide_muted', input_hide);
+        h.online();
+        await h.load('calendar');
+        const restored = {select: h.$('solar-cal-body-filter').value, hide: h.$('solar-cal-hide-muted').checked,
+                          rows: h.table('solar-cal-body'), builds: h.snap().builds};
+        await h.setFilter('', false);
+        const all = h.table('solar-cal-body');
+        await h.setFilter('jupiter', true);
+        await h.setFilter('venus', false);
+        await h.setFilter(restored.select, restored.hide);
+        const again = h.table('solar-cal-body');
+        await h.click('bodies');
+        await h.click('calendar');
+        await h.tick();
+        return {restored: restored, all: all, again: again, builds: h.snap().builds};
+    """.replace("input_body", json.dumps(stored_body)).replace("input_hide", json.dumps(stored_hide)),
+        i18n=FULL_I18N, sim=SIM_DATE)
+    restored = got["restored"]
+    assert restored["select"] == body and restored["hide"] is hide
+    assert restored["builds"] == 1
+    name = FULL_I18N["bodies"].get(body)
+    expected = [r for r in got["all"]
+                if (not name or name in _cells(r)["body"]["text"].split(" – "))
+                and not (hide and "geometrically-impossible" in r["classes"])]
+    assert restored["rows"] == expected and got["again"] == expected
+    assert 0 < len(expected) <= len(got["all"])
+    assert got["builds"] == 1, "filter changes, tab switches and the tick do not rebuild"

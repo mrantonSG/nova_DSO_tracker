@@ -13,7 +13,7 @@ from urllib.parse import parse_qs, urlsplit
 
 import pytest
 
-from nova.models import Component, DbUser, Rig
+from nova.models import Component, DbUser, Rig, UiPref
 from nova.record_links import sync_rig_links
 
 # Dependency order: nova_dashboard_rows.js needs astro and transit; nova_planets.js
@@ -289,6 +289,32 @@ def test_guest_gets_the_guest_rigs(mu_client_logged_out, db_session):
     names = [r["name"] for r in _solar_rigs(html)]
     assert "Guest rig" in names and "Guest parked" not in names
     assert sorted(names) == sorted(r.rig_name for r in active)
+
+
+@pytest.mark.parametrize("rig_sort", [5, ["name-desc"], {"x": 1}, True])
+def test_unreadable_rig_sort_falls_back_to_the_default_order(client, db_session, rig_sort):
+    """A stored rig_sort sort_rigs cannot read (not a string) gives the default order,
+    by name, instead of a 500."""
+    _add_rig(db_session, "default", "Zeta", telescope=C11, camera=ASI462)
+    _add_rig(db_session, "default", "Alpha", telescope=C11, camera=ASI462)
+    user = db_session.query(DbUser).filter_by(username="default").one()
+    db_session.query(UiPref).filter_by(user_id=user.id).delete()
+    db_session.add(UiPref(user_id=user.id, json_blob=json.dumps({"rig_sort": rig_sort})))
+    db_session.commit()
+    resp = client.get("/solar_system")
+    assert resp.status_code == 200
+    assert [r["name"] for r in _solar_rigs(resp.get_data(as_text=True))] == ["Alpha", "Zeta"]
+
+
+def test_readable_rig_sort_is_kept(client, db_session):
+    _add_rig(db_session, "default", "Alpha", telescope=C11, camera=ASI462)
+    _add_rig(db_session, "default", "Zeta", telescope=C11, camera=ASI462)
+    user = db_session.query(DbUser).filter_by(username="default").one()
+    db_session.query(UiPref).filter_by(user_id=user.id).delete()
+    db_session.add(UiPref(user_id=user.id, json_blob=json.dumps({"rig_sort": "name-desc"})))
+    db_session.commit()
+    names = [r["name"] for r in _solar_rigs(client.get("/solar_system").get_data(as_text=True))]
+    assert names == ["Zeta", "Alpha"]
 
 
 def test_no_active_rig_points_to_the_configuration_page(client, db_session):

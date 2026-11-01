@@ -1744,7 +1744,12 @@ def _solar_rigs(db, user):
             sort_preference = json.loads(prefs.json_blob).get('rig_sort', 'name-asc')
         except (ValueError, AttributeError):
             pass
-    return [entry["payload"] for entry in sort_rigs(entries, sort_preference)]
+    try:
+        ordered = sort_rigs(entries, sort_preference)
+    except (AttributeError, TypeError, ValueError):
+        # A stored rig_sort sort_rigs cannot read (not a string): the default order
+        ordered = sort_rigs(entries, 'name-asc')
+    return [entry["payload"] for entry in ordered]
 
 
 @core_bp.route('/solar_system')

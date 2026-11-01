@@ -158,18 +158,26 @@ def test_night_time_and_days_follow_the_location_zone(tmp_path):
 
 def test_muted_is_max_altitude_below_threshold(tmp_path):
     """muted exactly when that night's max altitude is below the threshold, or for a
-    conjunction closer than 15 deg to the Sun (mutedReason 'sun', which wins); never
-    dropped."""
+    conjunction closer than 15 deg to the Sun (mutedReason 'sun', which wins); a Moon
+    conjunction by its instant instead of the night's maximum (mutedReason 'moment',
+    which wins over 'sun'); never dropped."""
     counts = []
     for threshold in (-90, 20, 89.9):
         got = _events(tmp_path, _loc(altitude_threshold=threshold), AUTUMN_EVENING_MS)
         assert got["threshold"] == threshold
         for r in got["rows"]:
             sun = r["kind"] == "conjunction" and r["elongationDeg"] < 15
+            if "moon" in r["bodies"]:
+                m = r["moment"]
+                unseen = m["daylight"] or min(m["alts"]) < threshold
+                assert r["muted"] is (unseen or sun)
+                assert r["mutedReason"] == ("moment" if unseen else "sun" if sun else None)
+                continue
+            assert r["moment"] is None and r["occultation"] is False
             assert r["muted"] is (r["maxAlt"] < threshold or sun)
             assert r["mutedReason"] == ("sun" if sun else "altitude" if r["maxAlt"] < threshold else None)
         counts.append((len(got["rows"]), sum(r["muted"] for r in got["rows"]),
-                       sum(r["mutedReason"] == "sun" for r in got["rows"])))
+                       sum(r["mutedReason"] in ("sun", "moment") for r in got["rows"])))
     assert counts[0][1] == counts[0][2] > 0 and counts[2][1] == counts[2][0]
     assert counts[0][0] == counts[1][0] == counts[2][0]
 
@@ -441,6 +449,77 @@ def test_ring_tilt_on_saturn_rows(tmp_path):
         else:
             assert tilt is None
     assert with_saturn >= 3
+
+
+def _london_observer(utc_ms):
+    obs = ephem.Observer()
+    obs.lat, obs.lon = str(LONDON["lat"]), str(LONDON["lon"])
+    obs.pressure = 0          # geometric altitudes, as NovaPlanets.altAz
+    obs.date = datetime.fromtimestamp(utc_ms / 1000, tz=timezone.utc).replace(tzinfo=None)
+    return obs
+
+
+def _moon_row(rows, partner, night):
+    found = [r for r in rows if r["bodies"] == ["moon", partner] and r["night"] == night]
+    assert len(found) == 1, [(r["bodies"], r["night"]) for r in rows if "moon" in r["bodies"]]
+    return found[0]
+
+
+def test_moon_conjunction_in_daylight_is_muted(tmp_path):
+    """London, Moon-Jupiter on the night of 2026-10-05: closest at 11:17 BST the next
+    morning, 0.5 deg apart and both near 48 deg up, but in daylight (the night's maximum
+    would have said visible). Muted, mutedReason 'moment', moment.daylight."""
+    row = _moon_row(_events(tmp_path, _loc(), AUTUMN_EVENING_MS)["rows"], "jupiter", "2026-10-05")
+    assert (row["hm"], row["hmDay"]) == ("11:17", 1)
+    assert row["maxAlt"] >= 20
+    assert row["muted"] is True and row["mutedReason"] == "moment"
+    assert row["moment"]["daylight"] is True and min(row["moment"]["alts"]) >= 20
+    assert row["occultation"] is False
+    sun = ephem.Sun(_london_observer(row["utcMs"]))
+    assert math.degrees(sun.alt) > 20
+
+
+def test_moon_occultation_below_the_threshold_is_muted(tmp_path):
+    """London, Moon-Venus on the night of 2028-03-29: closest at 05:31 BST before
+    sunrise, but both bodies 13 deg below the horizon. Muted, mutedReason 'moment', not
+    daylight, with both altitudes (Moon first). The separation, 0.02 deg, is inside the
+    Moon's apparent radius: an occultation, as ephem's topocentric places agree."""
+    row = _moon_row(_events(tmp_path, _loc(), AUTUMN_EVENING_MS)["rows"], "venus", "2028-03-29")
+    assert (row["hm"], row["hmDay"]) == ("05:31", 1)
+    assert row["maxAlt"] >= 20
+    assert row["muted"] is True and row["mutedReason"] == "moment"
+    assert row["moment"]["daylight"] is False
+    moon_alt, venus_alt = row["moment"]["alts"]
+    assert moon_alt == pytest.approx(-13.0, abs=0.5) and venus_alt == pytest.approx(-13.0, abs=0.5)
+    assert row["occultation"] is True
+    assert row["sepDeg"] * 3600 < row["diameterArcsec"] / 2
+
+    obs = _london_observer(row["utcMs"])
+    sun, moon, venus = ephem.Sun(obs), ephem.Moon(obs), ephem.Venus(obs)
+    assert math.degrees(sun.alt) < -1
+    assert math.degrees(moon.alt) == pytest.approx(moon_alt, abs=0.5)
+    assert math.degrees(venus.alt) == pytest.approx(venus_alt, abs=0.5)
+    assert math.degrees(ephem.separation(moon, venus)) < math.degrees(moon.radius)
+
+
+def test_occultation_only_for_the_moon_inside_its_radius(tmp_path):
+    """occultation is true exactly for Moon conjunctions closer than the Moon's apparent
+    radius; planet pairs never; moment only on Moon rows."""
+    rows = _events(tmp_path, _loc(), AUTUMN_EVENING_MS)["rows"]
+    for r in rows:
+        moon = r["kind"] == "conjunction" and "moon" in r["bodies"]
+        assert (r["moment"] is not None) is moon
+        assert r["occultation"] is (moon and r["sepDeg"] * 3600 < r["diameterArcsec"] / 2)
+    assert any(r["occultation"] for r in rows)
+    assert any(r["kind"] == "conjunction" and "moon" in r["bodies"] and not r["occultation"] for r in rows)
+
+
+def test_moon_conjunction_in_the_dark_and_high_is_visible(tmp_path):
+    """London, Moon-Mars on the night of 2026-10-04: 06:23 BST, before sunrise, both
+    about 50 deg up. Not muted."""
+    row = _moon_row(_events(tmp_path, _loc(), AUTUMN_EVENING_MS)["rows"], "mars", "2026-10-04")
+    assert row["muted"] is False and row["mutedReason"] is None
+    assert row["moment"]["daylight"] is False and min(row["moment"]["alts"]) >= 20
 
 
 def _ephem_minima(f, start, end, step):

@@ -23,7 +23,10 @@
  * fit(rig, body, diameterArcsec) -> { name, disc, fRatio, ideal, barlow, rotation, mosaic }.
  * Each value is { ok: true, ... } or { ok: false, missing: <code> }; rotation and mosaic
  * are null for the bodies they do not apply to. Missing codes, the first that applies:
- * 'noTelescope', 'noCamera', 'focalLength', 'aperture', 'pixelSize', 'sensorSize'.
+ * 'noTelescope', 'noCamera', 'focalLength', 'factor' (a reducer/extender factor of 0 or
+ * less: missing data, not 1), 'aperture', 'pixelSize', 'sensorSize'; then 'notComputable'
+ * when the fields are there but a result is not a finite number (absurd values) or the
+ * body's diameter is not positive.
  *   disc      { px, ringsPx (Saturn only, else null) }: diameter / scale
  *   fRatio    { value }: the rig's focal ratio
  *   ideal     { value }: IDEAL_PER_UM x pixel size (the common rule f ≈ 5 x pixel in µm)
@@ -61,6 +64,17 @@
 
     const missing = code => ({ ok: false, missing: code });
 
+    /** The reducer/extender factor: 1 without one (or without a factor), null for 0 or less. */
+    function factorOf(r) {
+        return r.factor === null || r.factor === undefined ? 1.0 : num(r.factor);
+    }
+
+    /** `value` when each of its `keys` is a finite number (or null), else 'notComputable'. */
+    function finiteOr(value, keys) {
+        const bad = keys.some(k => value[k] !== null && !(typeof value[k] === 'number' && isFinite(value[k])));
+        return bad ? missing('notComputable') : value;
+    }
+
     function metrics(rig) {
         const r = rig || {};
         const fl = r.has_telescope ? num(r.focal_length_mm) : null;
@@ -68,8 +82,8 @@
         const px = r.has_camera ? num(r.pixel_size_um) : null;
         const sw = r.has_camera ? num(r.sensor_width_mm) : null;
         const sh = r.has_camera ? num(r.sensor_height_mm) : null;
-        const fac = num(r.factor) || 1.0;
-        const efl = fl !== null ? fl * fac : null;
+        const fac = factorOf(r);
+        const efl = fl !== null && fac !== null ? fl * fac : null;
         const fov = s => (s !== null && efl !== null) ? 2 * Math.atan((s / 2.0) / efl) / DEG * 60.0 : null;
         return {
             efl: efl,
@@ -90,6 +104,7 @@
             if (!r.has_camera) return 'noCamera';
         }
         if (needs.indexOf('focalLength') >= 0 && num(r.focal_length_mm) === null) return 'focalLength';
+        if (needs.indexOf('factor') >= 0 && factorOf(r) === null) return 'factor';
         if (needs.indexOf('aperture') >= 0 && num(r.aperture_mm) === null) return 'aperture';
         if (needs.indexOf('pixelSize') >= 0 && num(r.pixel_size_um) === null) return 'pixelSize';
         if (needs.indexOf('sensorSize') >= 0
@@ -139,30 +154,37 @@
     function fit(rig, body, diameterArcsec) {
         const r = rig || {};
         const m = metrics(r);
-        const D = diameterArcsec;
+        const D = num(diameterArcsec);
+        // Missing rig data first; then an input that is not a positive finite number (the
+        // body's diameter, an overflowed focal ratio), or a result that is not finite, is
+        // not computable.
+        const value = (needs, inputs, make, keys) => {
+            const code = why(r, needs);
+            if (code) return missing(code);
+            if (inputs.some(x => num(x) === null)) return missing('notComputable');
+            return finiteOr(make(), keys);
+        };
 
-        const discWhy = why(r, ['telescope', 'camera', 'focalLength', 'pixelSize']);
-        const disc = discWhy ? missing(discWhy) : {
+        const disc = value(['telescope', 'camera', 'focalLength', 'factor', 'pixelSize'], [D], () => ({
             ok: true, px: D / m.scale,
             ringsPx: body === 'saturn' ? D * SATURN_RING_FACTOR / m.scale : null,
-        };
-        const frWhy = why(r, ['telescope', 'focalLength', 'aperture']);
-        const fRatio = frWhy ? missing(frWhy) : { ok: true, value: m.fRatio };
-        const idealWhy = why(r, ['camera', 'pixelSize']);
-        const ideal = idealWhy ? missing(idealWhy) : { ok: true, value: IDEAL_PER_UM * m.pixel };
-        const barlowWhy = why(r, ['telescope', 'camera', 'focalLength', 'aperture', 'pixelSize']);
-        const barlow = barlowWhy ? missing(barlowWhy)
-            : Object.assign({ ok: true }, barlowFor(m.fRatio, IDEAL_PER_UM * m.pixel));
+        }), ['px', 'ringsPx']);
+        const fRatio = value(['telescope', 'focalLength', 'factor', 'aperture'], [],
+            () => ({ ok: true, value: m.fRatio }), ['value']);
+        const ideal = value(['camera', 'pixelSize'], [],
+            () => ({ ok: true, value: IDEAL_PER_UM * m.pixel }), ['value']);
+        const barlow = value(['telescope', 'camera', 'focalLength', 'factor', 'aperture', 'pixelSize'], [m.fRatio],
+            () => Object.assign({ ok: true }, barlowFor(m.fRatio, IDEAL_PER_UM * m.pixel)), ['exact']);
 
         let rotation = null;
         if (ROTATION_HOURS[body]) {
-            const rotWhy = why(r, ['telescope', 'aperture']);
-            rotation = rotWhy ? missing(rotWhy) : { ok: true, seconds: rotationSeconds(body, m.aperture, D) };
+            rotation = value(['telescope', 'aperture'], [D],
+                () => ({ ok: true, seconds: rotationSeconds(body, m.aperture, D) }), ['seconds']);
         }
         let mosaic = null;
         if (body === 'moon') {
-            const mosWhy = why(r, ['telescope', 'camera', 'focalLength', 'sensorSize']);
-            mosaic = mosWhy ? missing(mosWhy) : Object.assign({ ok: true }, mosaicPanels(D, m.fovW, m.fovH, OVERLAP));
+            mosaic = value(['telescope', 'camera', 'focalLength', 'factor', 'sensorSize'], [D],
+                () => Object.assign({ ok: true }, mosaicPanels(D, m.fovW, m.fovH, OVERLAP)), ['panels']);
         }
 
         return {

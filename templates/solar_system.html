@@ -211,6 +211,9 @@ const solarI18n = {
     exactTime:     {{ _('Exact time: %(time)s', time='{time}') | tojson }},
     conjunction:   {{ _('Conjunction %(sep)s°', sep='{sep}') | tojson }},
     tooCloseToSun: {{ _('Too close to the Sun (%(elong)s° away)', elong='{elong}') | tojson }},
+    occultation:   {{ _('Occultation') | tojson }},
+    daylightAtClosest: {{ _('In daylight at the closest approach') | tojson }},
+    belowThresholdAtClosest: {{ _('Below the altitude threshold at the closest approach (%(first)s %(first_alt)s°, %(second)s %(second_alt)s°)', first='{first}', first_alt='{first_alt}', second='{second}', second_alt='{second_alt}') | tojson }},
     closestApproach: {{ _('Closest approach: %(date)s, %(dist)s million km', date='{date}', dist='{dist}') | tojson }},
     rings:         {{ _('rings %(value)s', value='{value}') | tojson }},
     ringTiltHelp:  {{ _('Tilt of the rings toward the Earth: + north face, − south face visible. Near 0° the rings are edge-on.') | tojson }},
@@ -219,7 +222,8 @@ const solarI18n = {
         elongationEast: {{ _('Farthest east of the Sun: best evening visibility, low in the west after sunset.') | tojson }},
         elongationWest: {{ _('Farthest west of the Sun: best morning visibility, low in the east before sunrise.') | tojson }},
         conjunction:    {{ _('Closest apparent approach of the two bodies.') | tojson }},
-        conjunctionMoon:{{ _('Closest apparent approach of the two bodies, as seen from this location.') | tojson }}
+        conjunctionMoon:{{ _('Closest apparent approach of the two bodies, as seen from this location.') | tojson }},
+        occultation:    {{ _('The Moon passes in front of the planet as seen from this location.') | tojson }}
     },
     rigFit: {
         title:         {{ _('Rig fit') | tojson }},
@@ -238,9 +242,11 @@ const solarI18n = {
             noTelescope: {{ _('This rig has no telescope.') | tojson }},
             noCamera:    {{ _('This rig has no camera.') | tojson }},
             focalLength: {{ _('The telescope has no focal length.') | tojson }},
+            factor:      {{ _('The reducer or extender has no valid factor.') | tojson }},
             aperture:    {{ _('The telescope has no aperture.') | tojson }},
             pixelSize:   {{ _('The camera has no pixel size.') | tojson }},
-            sensorSize:  {{ _('The camera has no sensor size.') | tojson }}
+            sensorSize:  {{ _('The camera has no sensor size.') | tojson }},
+            notComputable: {{ _('Cannot be calculated from these values.') | tojson }}
         }
     }
 };

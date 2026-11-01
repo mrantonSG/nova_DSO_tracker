@@ -212,3 +212,79 @@ def test_metrics_match_the_server(tmp_path, tel, cam, factor):
     assert got["scale"] == pytest.approx(scale, rel=1e-12)
     assert got["fovW"] == pytest.approx(fov_w, rel=1e-12)
     assert got["fovH"] == pytest.approx(fov_h, rel=1e-12)
+
+
+@pytest.mark.parametrize("factor", [0, 0.0, -0.5, -2])
+def test_factor_of_zero_or_less_is_missing_data(tmp_path, factor):
+    """A reducer/extender factor of 0 or less is missing data ('factor'), not 1: the
+    values that use the focal length lack it; the ideal ratio and the rotation limit,
+    which do not, are still there."""
+    got = _fit(tmp_path, _rig(factor=factor), "jupiter", 40.0)
+    for key in ("disc", "fRatio", "barlow"):
+        assert got[key] == {"ok": False, "missing": "factor"}, key
+    assert got["ideal"]["ok"] is True and got["rotation"]["ok"] is True
+    moon = _fit(tmp_path, _rig(factor=factor), "moon", 1860.0)
+    assert moon["mosaic"] == {"ok": False, "missing": "factor"}
+    m = _run(tmp_path, "result = NovaSolarRigFit.metrics(input.rig);", {"rig": _rig(factor=factor)})
+    assert m["efl"] is None and m["fRatio"] is None and m["scale"] is None and m["fovW"] is None
+
+
+def test_missing_factor_field_order(tmp_path):
+    """'factor' comes after the telescope, camera and focal length."""
+    assert _fit(tmp_path, _rig(factor=0, focal_length_mm=None), "jupiter", 40.0)["disc"]["missing"] == "focalLength"
+    assert _fit(tmp_path, _rig(factor=0, has_camera=False), "jupiter", 40.0)["disc"]["missing"] == "noCamera"
+    assert _fit(tmp_path, _rig(factor=0, aperture_mm=None), "jupiter", 40.0)["fRatio"]["missing"] == "factor"
+
+
+@pytest.mark.parametrize("diameter", [0, 0.0, -5.0])
+def test_diameter_not_positive_is_not_computable(tmp_path, diameter):
+    """No disc, rotation limit or mosaic from a diameter of 0 (or less); the rig's own
+    values do not depend on it."""
+    jup = _fit(tmp_path, _rig(), "jupiter", diameter)
+    assert jup["disc"] == {"ok": False, "missing": "notComputable"}
+    assert jup["rotation"] == {"ok": False, "missing": "notComputable"}
+    assert jup["fRatio"]["ok"] and jup["ideal"]["ok"] and jup["barlow"]["ok"]
+    moon = _fit(tmp_path, _rig(), "moon", diameter)
+    assert moon["mosaic"] == {"ok": False, "missing": "notComputable"}
+
+
+def test_overflowing_values_are_not_computable(tmp_path):
+    """Values whose results overflow (a focal length near the largest double times a
+    factor) give 'notComputable', never Infinity or NaN: JSON would carry those as null,
+    so every ok value here must be a finite number."""
+    huge = _rig(focal_length_mm=1e308, factor=10, aperture_mm=1.0)
+    for body, d in (("jupiter", 40.0), ("saturn", 18.0), ("moon", 1860.0)):
+        got = _fit(tmp_path, huge, body, d)
+        for key in ("disc", "fRatio", "barlow") + (("mosaic",) if body == "moon" else ()):
+            assert got[key] == {"ok": False, "missing": "notComputable"}, (body, key)
+        assert got["ideal"] == {"ok": True, "value": pytest.approx(14.5)}
+    big_px = _fit(tmp_path, _rig(pixel_size_um=1e308), "jupiter", 40.0)
+    assert big_px["ideal"] == {"ok": False, "missing": "notComputable"}
+    tiny_ap = _fit(tmp_path, _rig(aperture_mm=1e-320), "jupiter", 40.0)
+    for key in ("fRatio", "barlow", "rotation"):
+        assert tiny_ap[key] == {"ok": False, "missing": "notComputable"}, key
+    assert tiny_ap["disc"]["ok"] is True
+
+
+def test_ok_values_are_always_finite(tmp_path):
+    """Across ordinary and extreme rigs and bodies, every number in an ok value is finite."""
+    got = _run(tmp_path, """
+        const rigs = [input.base,
+            Object.assign({}, input.base, {focal_length_mm: 1e308, factor: 10}),
+            Object.assign({}, input.base, {pixel_size_um: 1e-320}),
+            Object.assign({}, input.base, {sensor_width_mm: 1e-320, sensor_height_mm: 1e-320}),
+            Object.assign({}, input.base, {aperture_mm: 1e308})];
+        const bad = [];
+        for (const rig of rigs) for (const b of ['mars', 'jupiter', 'saturn', 'venus', 'moon'])
+            for (const d of [1e-300, 0.5, 40, 1860, 1e300]) {
+                const f = NovaSolarRigFit.fit(rig, b, d);
+                for (const k of ['disc', 'fRatio', 'ideal', 'barlow', 'rotation', 'mosaic']) {
+                    const v = f[k];
+                    if (!v || !v.ok) continue;
+                    for (const [name, x] of Object.entries(v))
+                        if (typeof x === 'number' && !isFinite(x)) bad.push([rig.focal_length_mm, b, d, k, name, String(x)]);
+                }
+            }
+        result = bad;
+    """, {"base": _rig()})
+    assert got == []
