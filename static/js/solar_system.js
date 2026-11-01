@@ -19,11 +19,14 @@
  * highest (lit part, terminator, numbered markers for tonight's terminator features,
  * the libration arrow), tiles for colongitude, libration and illumination, the
  * terminator features with their next good nights in the tooltip, and the libration
- * line. Computed once per location, threshold, sampling interval and night, like the
- * calendar; a view change (normal, star diagonal, Newtonian) only redraws.
+ * line, and the feature names' source. Computed once per location, threshold, sampling
+ * interval and night, like the calendar; a view change (normal, star diagonal, Newtonian)
+ * only redraws, and the 60 s tick leaves the card's nodes (and the focus) alone unless
+ * the night, location, simulated date, view or language changed.
  *
  * The Calendar tab (NovaSolarCalendar, plus NovaSolarMoon's Lunar X and libration rows
- * when it is loaded) is built only while it is shown, and again only
+ * when it is loaded; if those fail, the planets' rows still show) is built only while it
+ * is shown, and again only
  * when its location, threshold, sampling interval or observing night changes; the 60 s
  * tick otherwise costs one key comparison. Clicking an event opens the Bodies tab on
  * that body's Month view for the event's night (a conjunction's brighter body). The
@@ -93,6 +96,8 @@
         moonView: 'normal',
         // The drawing's top layer and its markers by chip number, for showHotMarker()
         moonHot: { layer: null, markers: {} },
+        // What the card was last drawn for (renderMoon's key), so a tick redraws nothing
+        moonDrawn: null,
         // The calculator's choice: component records, and the amplification the user
         // picked (null: the one closest to the ideal focal ratio)
         calc: { telescope: null, camera: null, amp: null },
@@ -998,7 +1003,8 @@
             f.nearLimb ? M.nearLimb : '',
             dates.length ? fill(M.nextNights, {dates: dates.map(moonDate).join(', ')}) : M.noNextNights,
         ].filter(Boolean).join('\n');
-        li.setAttribute('aria-label', li.title.split('\n').slice(0, 3).join(', ') + ', ' + f.name);
+        li.setAttribute('aria-label', [f.name, (M.types || {})[f.type] || f.type,
+            f.morning ? M.morning : M.evening, fill(M.sunAlt, {alt: f.sunAlt.toFixed(1)})].join(', '));
         if (n) {
             li.addEventListener('mouseenter', () => showHotMarker(n));
             li.addEventListener('mouseleave', () => showHotMarker(null));
@@ -1138,9 +1144,11 @@
         }
         box.hidden = false;
         const M = i18n.moon || {};
-        let t, next;
+        let t, next, drawn;
         try {
             const key = calendarKey();
+            drawn = JSON.stringify([key, simDate(), state.moonView, document.documentElement.lang || '']);
+            if (state.moonDrawn === drawn) return;
             if (state.moon.key !== key) {
                 const opts = {inputs: state.inputs, nowMs: Date.now(), simDate: simDate()};
                 state.moon = { key: null, tonight: NovaSolarMoon.tonight(opts), next: NovaSolarMoon.nextNights(opts) };
@@ -1153,6 +1161,8 @@
         } catch (e) {
             console.error('Solar System: could not calculate the Moon card', e);
             state.moon = { key: null, tonight: null, next: null };
+            state.moonDrawn = null;
+            $('solar-moon-title').textContent = M.title || bodyName('moon');
             showMoonError(M.error);
             return;
         }
@@ -1177,6 +1187,12 @@
         const lib = $('solar-moon-libration');
         lib.textContent = librationText(t.libration);
         lib.dataset.level = t.libration.display;
+
+        const source = typeof NovaMoonFeatures !== 'undefined' ? NovaMoonFeatures.SOURCE : null;
+        const credit = $('solar-moon-credit');
+        credit.textContent = source ? fill(M.credit, {source: source.credit}) : '';
+        credit.hidden = !source;
+        state.moonDrawn = drawn;
     }
 
     // ------------------------------------------------------------------ chart
@@ -1405,9 +1421,14 @@
             if (key === state.calKey) return;
             const opts = {inputs: state.inputs, nowMs: Date.now(), simDate: simDate()};
             const result = NovaSolarCalendar.events(opts);
+            // The lunar rows on their own: if they fail, the planets' rows still show
             if (typeof NovaSolarMoon !== 'undefined') {
-                result.rows = result.rows.concat(NovaSolarMoon.calendarRows(opts).rows)
-                    .sort((a, b) => a.utcMs - b.utcMs);
+                try {
+                    result.rows = result.rows.concat(NovaSolarMoon.calendarRows(opts).rows)
+                        .sort((a, b) => a.utcMs - b.utcMs);
+                } catch (e) {
+                    console.error('Solar System: could not calculate the lunar Calendar events', e);
+                }
             }
             renderCalendarRows(result);
             showCalError(null);

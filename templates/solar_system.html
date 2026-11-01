@@ -126,6 +126,7 @@
                 </details>
                 <p id="solar-moon-libration" class="solar-moon-libration"></p>
             </div>
+            <p id="solar-moon-credit" class="solar-moon-credit" hidden></p>
         </div>
     </div>
 
@@ -267,6 +268,7 @@ const solarI18n = {
     moon: {
         title:         {{ _('Moon detail') | tojson }},
         error:         {{ _('Moon detail could not be calculated.') | tojson }},
+        credit:        {{ _('Feature names: %(source)s', source='{source}') | tojson }},
         highestAt:     {{ _('highest tonight at %(time)s', time='{time}') | tojson }},
         colongitude:   {{ _('Colongitude') | tojson }},
         colongitudeHelp: {{ _('Where the morning terminator lies on the Moon. It grows about 12° a day: about 0° at first quarter, 90° at Full Moon, 180° at last quarter.') | tojson }},

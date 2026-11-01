@@ -32,7 +32,7 @@ I18N = {
         "level": {"excellent": "EXC {side} {deg}", "favourable": "FAV {side} {deg}",
                   "moderate": "MOD {side} {deg}", "none": "NONE {deg}", "dark": "DARK {side} {deg}"},
         "empty": {"new": "NEW", "full": "FULL", "none": "NOTHING", "notUp": "NOTUP"},
-        "north": "N", "types": {"crater": "Crater"},
+        "north": "N", "types": {"crater": "Crater"}, "credit": "SRC {source}",
     },
 }
 
@@ -301,6 +301,116 @@ def test_without_the_moon_scripts_the_page_works_as_before(tmp_path):
     """, order=PAGE_ORDER)
     assert got["hidden"] is True
     assert got["kinds"] and "LUNAR X" not in got["kinds"]
+
+
+def test_moon_card_credits_the_feature_names_source(tmp_path):
+    got = _run(tmp_path, """
+        h.online();
+        await h.load('bodies');
+        return { text: h.$('solar-moon-credit').textContent, hidden: h.$('solar-moon-credit').hidden };
+    """, sim="2026-11-17")
+    assert got == {"text": "SRC Gazetteer of Planetary Nomenclature, IAU WGPSN / USGS Astrogeology",
+                   "hidden": False}
+
+
+def test_chip_aria_label_starts_with_the_name(tmp_path):
+    got = _run(tmp_path, """
+        h.online();
+        await h.load('bodies');
+        return h.$('solar-moon-features').children.map(li => ({ label: li.attrs['aria-label'],
+            name: li.children.filter(c => c.className === 'solar-moon-name')[0].textContent, side: li.dataset.side }));
+    """, sim="2026-11-17")
+    assert got
+    for chip in got:
+        parts = chip["label"].split(", ")
+        assert len(parts) == 4 and parts[0] == chip["name"], chip
+        assert parts[2] == ("AM" if chip["side"] == "morning" else "PM") and parts[3].startswith("sun "), chip
+
+
+def test_tick_with_unchanged_inputs_keeps_the_card_nodes_and_focus(tmp_path):
+    """The card is drawn once per night, location, simulated date, view and language: a
+    tick in between replaces nothing, so a focused chip keeps its focus and its marker."""
+    got = _run(tmp_path, """
+        h.online();
+        await h.load('bodies');
+        const svg = h.$('solar-moon-diagram').children[0];
+        const chip = h.$('solar-moon-features').children[1];
+        chip.marked = true;
+        await chip.fire('focus');
+        const hot = () => svg.children[svg.children.length - 1].children.map(c => c.textContent);
+        const out = { before: hot() };
+        await h.tick();
+        await h.tick();
+        out.sameSvg = h.$('solar-moon-diagram').children[0] === svg;
+        out.sameChip = h.$('solar-moon-features').children[1] === chip && chip.marked === true;
+        out.after = hot();
+        // A view change still redraws
+        await h.$('moon-view-diagonal').fire('click');
+        out.redrawn = h.$('solar-moon-diagram').children[0] !== svg;
+        return out;
+    """, sim="2026-11-17")
+    assert got["before"] == ["", "2"]
+    assert got["sameSvg"] and got["sameChip"]
+    assert got["after"] == ["", "2"]
+    assert got["redrawn"]
+
+
+def test_moon_card_error_resets_the_title(tmp_path):
+    got = _run(tmp_path, """
+        h.online();
+        await h.load('bodies');
+        const out = { ok: card().title };
+        h.context.NovaSolarMoon.tonight = () => { throw new Error('boom'); };
+        h.$('sim-date-input').value = '2026-11-02';
+        await h.$('sim-date-input').fire('change');
+        await h.flush();
+        out.failed = card();
+        return out;
+    """, sim="2026-11-17")
+    assert got["ok"].startswith("MOON · at ")
+    assert got["failed"]["title"] == "MOON" and got["failed"]["error"] == "MOON ERROR"
+
+
+def test_calendar_shows_the_planets_when_the_lunar_rows_fail(tmp_path):
+    got = _run(tmp_path, """
+        h.online();
+        const logged = [];
+        h.context.console.error = (msg) => logged.push(String(msg));
+        h.context.NovaSolarMoon.calendarRows = () => { throw new Error('boom'); };
+        await h.load('calendar');
+        await h.flush();
+        return { rows: h.table('solar-cal-body').map(r => ({ body: r.body,
+                     text: r.cells.find(c => c.col === 'event').text })),
+                 error: h.$('solar-cal-error').hidden ? null : h.$('solar-cal-error').textContent,
+                 logged: logged };
+    """, search="")
+    assert got["error"] is None
+    assert got["rows"] and not any(r["text"] == "LUNAR X" or r["text"].startswith("EXC ") for r in got["rows"])
+    assert any("lunar Calendar events" in m for m in got["logged"])
+
+
+def test_moon_libration_colours_are_the_documented_success_values():
+    """Favourable and excellent take the seeing tiles' success colour, light and dark;
+    moderate and none stay neutral (no amber, no legacy status variables)."""
+    css = (STATIC_JS.parent / "css" / "solar_system.css").read_text()
+    moon = css[css.index("THE MOON CARD"):]
+
+    def rule(selector):
+        start = moon.index(selector + " {")
+        return moon[start:moon.index("}", start)]
+
+    light, dark = rule("#solar-moon"), rule(':root[data-theme="dark"] #solar-moon')
+    assert "--solar-moon-good: #2a9060;" in light and "--solar-moon-good-tint: rgba(42, 144, 96, 0.10);" in light
+    assert "--solar-moon-good: #6dcab0;" in dark and "--solar-moon-good-tint: rgba(109, 202, 176, 0.14);" in dark
+    for sel in ('.solar-moon-arrow[data-level="excellent"]', '.solar-moon-tile[data-level="excellent"]',
+                '.solar-moon-tile[data-level="excellent"] .solar-moon-dial-hand',
+                '.solar-moon-libration[data-level="excellent"]'):
+        assert "var(--solar-moon-good)" in rule("#bodies-tab " + sel), sel
+    assert "background: var(--solar-moon-good-tint);" in rule('#bodies-tab .solar-moon-tile[data-level="excellent"]')
+    assert 'data-level="moderate"' not in moon and 'data-level="none"' not in moon
+    assert "--success-color" not in moon and "--warning-color" not in moon
+    credit = rule("#bodies-tab .solar-moon-credit")
+    assert "font-size: 12px;" in credit and "color: var(--text-muted);" in credit
 
 
 # --- the template --------------------------------------------------------------------------

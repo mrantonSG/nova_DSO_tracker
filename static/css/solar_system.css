@@ -635,11 +635,19 @@
 
    The drawing on the left, the tiles, the terminator features and the libration line
    on the right; stacked in a narrow card. Tokens only: the lit side is the Moon's body
-   colour of the calculator, the terminator and the markers the brand teal, the
-   libration level the status colours of base.css (success, warning, muted for none).
+   colour of the calculator, the terminator and the markers the brand teal. A favourable
+   or excellent libration takes the documented success colour (the seeing tiles'
+   "steady"); moderate, none and a dark limb stay neutral.
    ================================================================= */
 #solar-moon {
   container: solar-moon / inline-size;
+  --solar-moon-good: #2a9060;
+  --solar-moon-good-tint: rgba(42, 144, 96, 0.10);
+}
+
+:root[data-theme="dark"] #solar-moon {
+  --solar-moon-good: #6dcab0;
+  --solar-moon-good-tint: rgba(109, 202, 176, 0.14);
 }
 
 #bodies-tab #solar-moon[hidden],
@@ -754,13 +762,9 @@
   fill: var(--text-faint);
 }
 
-#bodies-tab .solar-moon-arrow[data-level="moderate"] {
-  fill: var(--warning-color-alt);
-}
-
 #bodies-tab .solar-moon-arrow[data-level="favourable"],
 #bodies-tab .solar-moon-arrow[data-level="excellent"] {
-  fill: var(--success-color);
+  fill: var(--solar-moon-good);
 }
 
 /* The view switch: the chart's segmented control (graph_view.css .view-buttons), with
@@ -872,13 +876,10 @@
   font-variant-numeric: tabular-nums;
 }
 
-#bodies-tab .solar-moon-tile[data-level="moderate"] {
-  border-color: var(--warning-color-alt);
-}
-
 #bodies-tab .solar-moon-tile[data-level="favourable"],
 #bodies-tab .solar-moon-tile[data-level="excellent"] {
-  border-color: var(--success-color);
+  border-color: var(--solar-moon-good);
+  background: var(--solar-moon-good-tint);
 }
 
 #bodies-tab .solar-moon-dial {
@@ -899,13 +900,9 @@
   stroke-linecap: round;
 }
 
-#bodies-tab .solar-moon-tile[data-level="moderate"] .solar-moon-dial-hand {
-  stroke: var(--warning-color-alt);
-}
-
 #bodies-tab .solar-moon-tile[data-level="favourable"] .solar-moon-dial-hand,
 #bodies-tab .solar-moon-tile[data-level="excellent"] .solar-moon-dial-hand {
-  stroke: var(--success-color);
+  stroke: var(--solar-moon-good);
 }
 
 /* The terminator features: chips with the number on the drawing, the name, sunrise or
@@ -1030,11 +1027,19 @@
   color: var(--text-primary);
 }
 
-#bodies-tab .solar-moon-libration[data-level="moderate"] {
-  border-left-color: var(--warning-color-alt);
-}
-
 #bodies-tab .solar-moon-libration[data-level="favourable"],
 #bodies-tab .solar-moon-libration[data-level="excellent"] {
-  border-left-color: var(--success-color);
+  border-left-color: var(--solar-moon-good);
+}
+
+/* The feature names' source, under everything */
+#bodies-tab .solar-moon-credit {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+#bodies-tab .solar-moon-credit[hidden] {
+  display: none;
 }
