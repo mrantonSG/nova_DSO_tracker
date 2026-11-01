@@ -111,8 +111,8 @@
                 <div id="solar-moon-diagram" class="solar-moon-diagram"></div>
                 <div class="solar-moon-views" role="group" aria-label="{{ _('View') }}" title="{{ _("The real field also rotates with the Moon's position in the sky.") }}">
                     <button type="button" class="solar-moon-view" data-moon-view="normal" aria-pressed="true">{{ _('Normal') }}</button>
-                    <button type="button" class="solar-moon-view" data-moon-view="diagonal" aria-pressed="false">{{ _('Star diagonal (mirrored)') }}</button>
-                    <button type="button" class="solar-moon-view" data-moon-view="inverted" aria-pressed="false">{{ _('Newtonian (inverted)') }}</button>
+                    <button type="button" class="solar-moon-view" data-moon-view="diagonal" aria-pressed="false" title="{{ _('Star diagonal (mirrored)') }}">{{ _('Diagonal') }}</button>
+                    <button type="button" class="solar-moon-view" data-moon-view="inverted" aria-pressed="false" title="{{ _('Newtonian (inverted)') }}">{{ _('Newtonian') }}</button>
                 </div>
             </div>
             <div class="solar-moon-info">
@@ -284,9 +284,9 @@ const solarI18n = {
             excellent:  {{ _('Excellent libration: %(side)s side, %(deg)s°', side='{side}', deg='{deg}') | tojson }},
             favourable: {{ _('Favourable libration: %(side)s side, %(deg)s°', side='{side}', deg='{deg}') | tojson }},
             moderate:   {{ _('Moderate libration: %(side)s side, %(deg)s°', side='{side}', deg='{deg}') | tojson }},
-            none:       {{ _('No strong libration tonight (%(deg)s°)', deg='{deg}') | tojson }}
+            none:       {{ _('No strong libration tonight (%(deg)s°)', deg='{deg}') | tojson }},
+            dark:       {{ _('Libration tilts the %(side)s side towards us (%(deg)s°), but it is in darkness tonight.', side='{side}', deg='{deg}') | tojson }}
         },
-        notLit:        {{ _('Not lit tonight') | tojson }},
         empty: {
             new:       {{ _('Too close to New Moon') | tojson }},
             full:      {{ _('No features near the terminator (Full Moon)') | tojson }},

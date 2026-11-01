@@ -45,12 +45,14 @@
  * hint(g) -> the libration line for geometry g:
  *   { amount, direction (NovaMoon.tilt()), level: 'none' below 3 deg, 'moderate' below
  *     5, 'favourable' below 7, else 'excellent' (LEVELS), side (the name of the feature
- *     the side is called by), also (up to two more names), litLimb }.
+ *     the side is called by), also (up to two more names), litLimb, display }.
  *   The names are limb features (limb: true) on the side facing us (fromCentre below
  *     90), within SECTOR_DEG of the tilt's direction (their own direction from the mean
  *     centre), by tier then diameter; with none in the sector, the visible limb feature
- *     nearest in direction. litLimb: the Sun is up over the limb point LIMB_POINT_DEG
- *     from the mean centre in the tilt's direction.
+ *     nearest in direction. litLimb: the Sun is up over the centre of the feature the
+ *     side is called by. also lists only lit features, and none while the side is dark.
+ *   display: what the page says: level, except 'dark' when the side is turned towards us
+ *     (level not 'none') but unlit; a tilt towards a dark limb is never favourable.
  *
  * nextNights(opts) -> { nights: [{ date, utcMs }], byName: { name: ['YYYY-MM-DD', ...] } }
  *   for the NEXT_NIGHTS nights after tonight: each night's Moon at its highest sample
@@ -67,7 +69,8 @@
  *     NovaAstro.SUN_RISE_SET_ALT) and the Moon at or above altitude_threshold.
  *   - 'libration': the maxima of NovaMoon.tilt().amount at or above
  *     LIBRATION_EVENT_DEG, sampled every 6 h, golden section to a minute, kept only
- *     when the favoured limb is lit (hint().litLimb). `libration` carries the hint.
+ *     when the favoured limb is lit (hint().litLimb, so display is 'excellent'), the
+ *     same rule as the Moon card's line. `libration` carries the hint.
  *     Muted, mutedReason 'altitude', when the Moon's highest altitude that night is
  *     below altitude_threshold.
  *   Everything else as the Calendar's rows: night, hm, hmDay, daysFromNow, mag,
@@ -111,7 +114,6 @@
     const FULL_MOON_FRACTION = 0.9;
     const LEVELS = Object.freeze([[7, 'excellent'], [5, 'favourable'], [3, 'moderate']]);
     const SECTOR_DEG = 45;
-    const LIMB_POINT_DEG = 80;
     const NEXT_NIGHTS = 30;
     const NEXT_LIMIT = 3;
     const LUNAR_X_COLONGITUDE = 358;
@@ -236,17 +238,18 @@
         let named = visible.filter(v => v.off <= SECTOR_DEG)
             .sort((a, b) => (a.f.tier - b.f.tier) || (b.f.diameterKm - a.f.diameterKm));
         if (!named.length) named = visible.sort((a, b) => a.off - b.off).slice(0, 1);
-        // The limb point in the tilt's direction
-        const r = LIMB_POINT_DEG * DEG, d = t.direction * DEG;
-        const lat = Math.asin(Math.sin(r) * Math.cos(d)) / DEG;
-        const lon = Math.atan2(Math.sin(r) * Math.sin(d), Math.cos(r)) / DEG;
+        const isLit = f => E.M.sunAltitude(g, f.lat, f.lon) > 0;
+        const side = named.length ? named[0].f : null;
+        const lit = !!side && isLit(side);
+        const level = levelOf(t.amount);
         return {
             amount: t.amount,
             direction: t.direction,
-            level: levelOf(t.amount),
-            side: named.length ? named[0].f.name : null,
-            also: named.slice(1, 3).map(v => v.f.name),
-            litLimb: E.M.sunAltitude(g, lat, lon) > 0,
+            level: level,
+            side: side ? side.name : null,
+            also: lit ? named.slice(1).filter(v => isLit(v.f)).slice(0, 2).map(v => v.f.name) : [],
+            litLimb: lit,
+            display: level === 'none' || lit ? level : 'dark',
         };
     }
 
@@ -491,7 +494,7 @@
         VISIBLE_DEG: VISIBLE_DEG, NEAR_LIMB_DEG: NEAR_LIMB_DEG, BAND_DEG: BAND_DEG, RADIUS_CAP_DEG: RADIUS_CAP_DEG,
         BAND_WIDE_DEG: BAND_WIDE_DEG, WIDE_TYPES: WIDE_TYPES, IDEAL_SUN_DEG: IDEAL_SUN_DEG,
         TOP_COUNT: TOP_COUNT, NEW_MOON_FRACTION: NEW_MOON_FRACTION, FULL_MOON_FRACTION: FULL_MOON_FRACTION,
-        LEVELS: LEVELS, SECTOR_DEG: SECTOR_DEG, LIMB_POINT_DEG: LIMB_POINT_DEG, NEXT_NIGHTS: NEXT_NIGHTS,
+        LEVELS: LEVELS, SECTOR_DEG: SECTOR_DEG, NEXT_NIGHTS: NEXT_NIGHTS,
         NEXT_LIMIT: NEXT_LIMIT, LUNAR_X_COLONGITUDE: LUNAR_X_COLONGITUDE, LUNAR_X_WINDOW_MS: LUNAR_X_WINDOW_MS,
         LIBRATION_EVENT_DEG: LIBRATION_EVENT_DEG, VIEWS: VIEWS,
         tonight: tonight, hint: hint, nextNights: nextNights, calendarRows: calendarRows, diagram: diagram,

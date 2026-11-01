@@ -30,8 +30,8 @@ I18N = {
         "morning": "AM", "evening": "PM", "sunAlt": "sun {alt}", "position": "{lat}/{lon}",
         "nearLimb": "LIMB", "nextNights": "next {dates}", "noNextNights": "NO NEXT",
         "level": {"excellent": "EXC {side} {deg}", "favourable": "FAV {side} {deg}",
-                  "moderate": "MOD {side} {deg}", "none": "NONE {deg}"},
-        "notLit": "UNLIT", "empty": {"new": "NEW", "full": "FULL", "none": "NOTHING", "notUp": "NOTUP"},
+                  "moderate": "MOD {side} {deg}", "none": "NONE {deg}", "dark": "DARK {side} {deg}"},
+        "empty": {"new": "NEW", "full": "FULL", "none": "NOTHING", "notUp": "NOTUP"},
         "north": "N", "types": {"crater": "Crater"},
     },
 }
@@ -113,7 +113,71 @@ def test_moon_card_content_at_first_quarter(tmp_path):
     assert all(f["title"].split("\n")[1] == "AM" for f in feats), "morning terminator"
     assert "Archimedes" in [f["name"] for f in feats]
     assert got["moreHidden"] == (got["more"] == 0)
-    assert re.match(r"(EXC|FAV|MOD) \S|NONE ", got["libration"])
+    assert re.match(r"(EXC|FAV|MOD|DARK) \S|NONE ", got["libration"])
+
+
+# The libration line, its tile and the arrow on the drawing: text and level
+_LIBRATION = """
+    h.online();
+    await h.load('bodies');
+    const svg = h.$('solar-moon-diagram').children[0];
+    const arrow = svg.children.find(c => c.attrs.class === 'solar-moon-arrow');
+    const tile = h.$('solar-moon-tiles').children[1];
+    return { text: h.$('solar-moon-libration').textContent, line: h.$('solar-moon-libration').dataset.level,
+             tile: tile.dataset.level, arrow: arrow.attrs['data-level'] };
+"""
+
+
+def test_libration_towards_a_dark_limb_is_never_favourable(tmp_path):
+    """17 Nov 2026: tilted 6.0 deg to the Mare Orientale side, which is in darkness: the
+    dark wording, and the line, tile and arrow in the neutral style, not favourable."""
+    got = _run(tmp_path, _LIBRATION, sim="2026-11-17")
+    assert got["text"] == "DARK Mare Orientale 6.0"
+    assert got["line"] == got["tile"] == got["arrow"] == "dark"
+
+
+def test_libration_towards_a_lit_limb_is_favourable(tmp_path):
+    """12 Nov 2026: 5.6 deg to the Mare Humboldtianum side, lit: favourable, with the lit
+    features named."""
+    got = _run(tmp_path, _LIBRATION, sim="2026-11-12")
+    assert re.fullmatch(r"FAV Mare Humboldtianum 5\.6 — [A-Z].*", got["text"])
+    assert got["line"] == got["tile"] == got["arrow"] == "favourable"
+
+
+def test_marker_number_only_for_the_hovered_or_focused_chip(tmp_path):
+    """The dots on the disc carry no number; the chip under the pointer or focus puts
+    its number, on a larger dot, on the drawing's top layer, one at a time."""
+    got = _run(tmp_path, """
+        h.online();
+        await h.load('bodies');
+        const svg = h.$('solar-moon-diagram').children[0];
+        const hot = svg.children[svg.children.length - 1];
+        const chips = h.$('solar-moon-features').children;
+        const shown = () => hot.children.map(c => ({ tag: c.tagName, text: c.textContent,
+            x: +(c.attrs.cx || c.attrs.x), y: +(c.attrs.cy || c.attrs.y) }));
+        const dots = svg.children.filter(c => c.attrs.class === 'solar-moon-marker');
+        const out = { hotClass: hot.attrs.class, dotTags: dots.map(g => g.children.map(c => c.tagName)),
+                      dotAt: Object.fromEntries(dots.map(g => [g.attrs['data-n'], [+g.children[0].attrs.cx, +g.children[0].attrs.cy]])),
+                      before: shown() };
+        await chips[1].fire('mouseenter');
+        out.hover2 = shown();
+        await chips[0].fire('mouseenter');
+        out.hover1 = shown();
+        await chips[0].fire('mouseleave');
+        out.left = shown();
+        await chips[2].fire('focus');
+        out.focus3 = shown();
+        await chips[2].fire('blur');
+        out.blurred = shown();
+        return out;
+    """, sim="2026-11-17")
+    assert got["hotClass"] == "solar-moon-hot", "the top layer is drawn last"
+    assert got["dotTags"] and all(tags == ["circle", "title"] for tags in got["dotTags"]), "no number on a dot"
+    assert got["before"] == [] and got["left"] == [] and got["blurred"] == []
+    for key, n in (("hover2", "2"), ("hover1", "1"), ("focus3", "3")):
+        shown = got[key]
+        assert [c["tag"] for c in shown] == ["circle", "text"] and shown[1]["text"] == n
+        assert [shown[0]["x"], shown[0]["y"]] == pytest.approx(got["dotAt"][n])
 
 
 def test_moon_card_says_why_when_the_moon_is_not_up(tmp_path):
@@ -251,6 +315,17 @@ def test_page_loads_the_moon_scripts_after_their_engines(client):
     assert at("nova_astro.js") < at("nova_moon.js") < at("nova_solar_moon.js") < at("solar_system.js")
     assert at("nova_moon_features.js") < at("nova_solar_moon.js")
     assert at("nova_planets.js") < at("nova_solar_rows.js") < at("nova_solar_moon.js")
+
+
+def test_view_control_has_short_labels_with_the_long_ones_as_tooltips(client):
+    html = client.get("/solar_system").get_data(as_text=True)
+    buttons = re.findall(r'<button type="button" class="solar-moon-view" data-moon-view="(\w+)"'
+                         r' aria-pressed="\w+"(?: title="([^"]*)")?>([^<]*)</button>', html)
+    assert [(v, t, label) for v, t, label in buttons] == [
+        ("normal", "", "Normal"),
+        ("diagonal", "Star diagonal (mirrored)", "Diagonal"),
+        ("inverted", "Newtonian (inverted)", "Newtonian"),
+    ]
 
 
 def test_page_has_the_moon_card_and_the_event_type_filter(client):

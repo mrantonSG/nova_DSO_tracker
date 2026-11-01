@@ -91,6 +91,8 @@
         // calendar's: location, threshold, sampling, night); the view it is drawn in
         moon: { key: null, tonight: null, next: null },
         moonView: 'normal',
+        // The drawing's top layer and its markers by chip number, for showHotMarker()
+        moonHot: { layer: null, markers: {} },
         // The calculator's choice: component records, and the amplification the user
         // picked (null: the one closest to the ideal focal ratio)
         calc: { telescope: null, camera: null, amp: null },
@@ -949,12 +951,14 @@
         }
     }
 
-    /** The libration line's words for a hint (NovaSolarMoon.hint()). */
+    /** The libration line's words for a hint (NovaSolarMoon.hint()), by its display:
+     *  a level, 'none', or 'dark' (turned towards us but unlit: never favourable). */
     function librationText(h) {
         const L = (i18n.moon || {}).level || {};
         const deg = h.amount.toFixed(1);
-        if (h.level === 'none') return fill(L.none, {deg: deg});
-        return fill(L[h.level], {side: h.side || '', deg: deg})
+        if (h.display === 'none') return fill(L.none, {deg: deg});
+        if (h.display === 'dark') return fill(L.dark, {side: h.side || '', deg: deg});
+        return fill(L[h.display], {side: h.side || '', deg: deg})
             + (h.also.length ? ' — ' + h.also.join(', ') : '');
     }
 
@@ -996,14 +1000,10 @@
         ].filter(Boolean).join('\n');
         li.setAttribute('aria-label', li.title.split('\n').slice(0, 3).join(', ') + ', ' + f.name);
         if (n) {
-            const hot = on => {
-                const m = document.querySelector('#solar-moon-diagram [data-n="' + n + '"]');
-                if (m) m.classList.toggle('solar-moon-marker-hot', on);
-            };
-            li.addEventListener('mouseenter', () => hot(true));
-            li.addEventListener('mouseleave', () => hot(false));
-            li.addEventListener('focus', () => hot(true));
-            li.addEventListener('blur', () => hot(false));
+            li.addEventListener('mouseenter', () => showHotMarker(n));
+            li.addEventListener('mouseleave', () => showHotMarker(null));
+            li.addEventListener('focus', () => showHotMarker(n));
+            li.addEventListener('blur', () => showHotMarker(null));
         }
         list.appendChild(li);
         return li;
@@ -1037,8 +1037,21 @@
             const len = 2 + 6.5 * Math.min(1, h.amount / 8);
             svgEl(dial, 'path', {d: 'M 0 0 L ' + (d.x * len).toFixed(2) + ' ' + (d.y * len).toFixed(2), class: 'solar-moon-dial-hand'});
         });
-        lib.dataset.level = h.level;
+        lib.dataset.level = h.display;
         moonTile(tiles, M.illuminated, Math.round(t.illuminated * 100) + '%');
+    }
+
+    /** The marker of chip n drawn large with its number, over everything else on the
+     *  drawing (its own top layer); null clears it. Only one number shows at a time. */
+    function showHotMarker(n) {
+        const layer = state.moonHot.layer;
+        if (!layer) return;
+        layer.innerHTML = '';
+        const m = n ? state.moonHot.markers[n] : null;
+        if (!m) return;
+        svgEl(layer, 'circle', {cx: m.x, cy: m.y, r: 0.085});
+        const label = svgEl(layer, 'text', {x: m.x, y: m.y, 'text-anchor': 'middle', 'dominant-baseline': 'central'});
+        label.textContent = String(n);
     }
 
     /** The Moon drawn as tonight, in the chosen view: SVG on a unit disc. */
@@ -1050,7 +1063,12 @@
         const svg = svgEl(box, 'svg', {viewBox: '-1.3 -1.3 2.6 2.6', role: 'img', class: 'solar-moon-svg',
                                        'aria-label': M.diagramAria || ''});
         svgEl(svg, 'circle', {cx: 0, cy: 0, r: 1, class: 'solar-moon-dark'});
-        if (d.lit) svgEl(svg, 'path', {d: d.lit, class: 'solar-moon-lit'});
+        // The lit side over a surface-coloured copy of itself, so a lighter tint of the
+        // Moon's colour needs no new colour (solar_system.css)
+        if (d.lit) {
+            svgEl(svg, 'path', {d: d.lit, class: 'solar-moon-lit-base'});
+            svgEl(svg, 'path', {d: d.lit, class: 'solar-moon-lit'});
+        }
         if (d.terminator) svgEl(svg, 'path', {d: d.terminator, class: 'solar-moon-terminator'});
         svgEl(svg, 'circle', {cx: 0, cy: 0, r: 1, class: 'solar-moon-rim'});
 
@@ -1061,7 +1079,7 @@
             d: 'M ' + tip.map(v => v.toFixed(3)).join(' ')
                 + ' L ' + (base[0] + px * 0.1).toFixed(3) + ' ' + (base[1] + py * 0.1).toFixed(3)
                 + ' L ' + (base[0] - px * 0.1).toFixed(3) + ' ' + (base[1] - py * 0.1).toFixed(3) + ' Z',
-            class: 'solar-moon-arrow', 'data-level': t.libration.level,
+            class: 'solar-moon-arrow', 'data-level': t.libration.display,
         });
         svgEl(arrow, 'title', {}).textContent = librationText(t.libration);
 
@@ -1069,13 +1087,16 @@
                                           class: 'solar-moon-north', 'text-anchor': 'middle', 'dominant-baseline': 'central'});
         north.textContent = M.north || 'N';
 
+        // A small dot per feature, no number: the number shows only for the chip under the
+        // pointer or focus (showHotMarker), so labels never overlap
+        const markers = {};
         d.markers.forEach(m => {
             const g = svgEl(svg, 'g', {class: 'solar-moon-marker', 'data-n': m.n});
-            svgEl(g, 'circle', {cx: m.x, cy: m.y, r: 0.075});
-            const label = svgEl(g, 'text', {x: m.x, y: m.y, 'text-anchor': 'middle', 'dominant-baseline': 'central'});
-            label.textContent = String(m.n);
+            svgEl(g, 'circle', {cx: m.x, cy: m.y, r: 0.034});
             svgEl(g, 'title', {}).textContent = m.name;
+            markers[m.n] = m;
         });
+        state.moonHot = { layer: svgEl(svg, 'g', {class: 'solar-moon-hot', 'aria-hidden': 'true'}), markers: markers };
     }
 
     function setMoonViewButtons() {
@@ -1154,9 +1175,8 @@
         more.hidden = !t.more.length;
 
         const lib = $('solar-moon-libration');
-        lib.textContent = librationText(t.libration) + (t.libration.litLimb ? '' : ' · ' + (M.notLit || ''));
-        lib.dataset.level = t.libration.level;
-        lib.classList.toggle('solar-moon-unlit', !t.libration.litLimb);
+        lib.textContent = librationText(t.libration);
+        lib.dataset.level = t.libration.display;
     }
 
     // ------------------------------------------------------------------ chart

@@ -299,6 +299,42 @@ def test_hint_always_names_a_side_over_a_year(tmp_path):
     assert all(r["also"] == 0 for r in got if r["off"] > 45), "the fallback names one feature"
 
 
+def test_hint_display_says_dark_when_the_side_is_unlit(tmp_path):
+    """Turned towards the Mare Crisium side: favourable while it is lit, 'dark' with no
+    other names while it is not; no libration to speak of stays 'none' either way."""
+    got = _run(tmp_path, _FAKE + r"""
+        return { lit: NovaSolarMoon.hint(fake(6, 0, 30)), dark: NovaSolarMoon.hint(fake(6, 0, -120)),
+                 weakDark: NovaSolarMoon.hint(fake(2, 0, -120)) };
+    """)
+    assert got["lit"]["display"] == "favourable" and got["lit"]["litLimb"]
+    assert got["dark"]["display"] == "dark" and got["dark"]["also"] == []
+    assert got["weakDark"]["level"] == "none" and got["weakDark"]["display"] == "none"
+
+
+def test_hint_rule_over_a_year(tmp_path):
+    """Every 13 hours through 2027: litLimb is the Sun over the side's own feature, every
+    other named feature is lit, and display is the level unless the side is dark."""
+    got = _run(tmp_path, r"""
+        const out = [];
+        const by = Object.fromEntries(NovaMoonFeatures.FEATURES.map(f => [f.name, f]));
+        for (let t = Date.UTC(2027, 0, 1); t < Date.UTC(2028, 0, 1); t += 13 * 3600000) {
+            const g = NovaMoon.geometry(t);
+            const h = NovaSolarMoon.hint(g);
+            const alt = n => NovaMoon.sunAltitude(g, by[n].lat, by[n].lon);
+            out.push({ h: h, sideAlt: alt(h.side), alsoAlts: h.also.map(alt) });
+        }
+        return out;
+    """)
+    assert {r["h"]["display"] for r in got} >= {"dark", "favourable", "excellent"}
+    for r in got:
+        h = r["h"]
+        assert h["litLimb"] == (r["sideAlt"] > 0)
+        assert all(a > 0 for a in r["alsoAlts"])
+        if not h["litLimb"]:
+            assert h["also"] == []
+        assert h["display"] == (h["level"] if h["level"] == "none" or h["litLimb"] else "dark")
+
+
 # --- next good nights --------------------------------------------------------------------
 
 def test_next_nights(tmp_path):
@@ -374,6 +410,12 @@ def test_calendar_rows_share_the_calendar_window_and_shape(london_calendar):
         extra = {"colong", "seen", "amount", "before", "after", "libration"}
         assert sorted(set(r) - extra) == got["planetKeys"]
     assert [r["utcMs"] for r in got["rows"]] == sorted(r["utcMs"] for r in got["rows"])
+
+
+def test_calendar_libration_rows_follow_the_cards_rule(london_calendar):
+    """A libration night is one the Moon card would call excellent: never a dark side."""
+    libs = [r for r in london_calendar["rows"] if r["kind"] == "libration"]
+    assert libs and all(r["libration"]["display"] == "excellent" for r in libs)
 
 
 def test_lunar_x_once_a_lunation_at_its_colongitude(london_calendar):

@@ -681,20 +681,29 @@
   overflow: visible;
 }
 
-/* The night side darker than the lit side in either theme: a dark grey on the light
-   page, the surface tint on the dark one */
+/* Lit and night side told apart at a glance in either theme. The night side is a dark
+   grey: the secondary text grey on the light page, the faint white on the dark one.
+   The lit side is the Moon's body colour; on the light page a lighter tint of it, laid
+   at partial opacity over a surface-coloured copy of the same shape (no new colour). */
 #bodies-tab .solar-moon-dark {
   fill: var(--text-secondary);
-  fill-opacity: 0.7;
 }
 
 :root[data-theme="dark"] #bodies-tab .solar-moon-dark {
-  fill: var(--bg-tertiary);
-  fill-opacity: 1;
+  fill: var(--text-faint);
+}
+
+#bodies-tab .solar-moon-lit-base {
+  fill: var(--bg-secondary);
 }
 
 #bodies-tab .solar-moon-lit {
   fill: var(--solar-body-moon);
+  fill-opacity: 0.6;
+}
+
+:root[data-theme="dark"] #bodies-tab .solar-moon-lit {
+  fill-opacity: 1;
 }
 
 #bodies-tab .solar-moon-terminator {
@@ -706,8 +715,8 @@
 
 #bodies-tab .solar-moon-rim {
   fill: none;
-  stroke: var(--text-faint);
-  stroke-width: 0.012;
+  stroke: var(--text-muted);
+  stroke-width: 0.014;
 }
 
 #bodies-tab .solar-moon-north {
@@ -717,24 +726,27 @@
   fill: var(--text-muted);
 }
 
+/* A feature: a dot about 6 px across in the accent colour, outlined in the surface
+   colour (white on the light page, dark on the dark one). No number on the disc. */
 #bodies-tab .solar-moon-marker circle {
   fill: var(--primary-color);
   stroke: var(--bg-secondary);
-  stroke-width: 0.014;
-  transition: r 0.15s ease;
+  stroke-width: 0.012;
 }
 
-#bodies-tab .solar-moon-marker text {
+/* The chip under the pointer or focus: its dot large, numbered, on the top layer */
+#bodies-tab .solar-moon-hot circle {
+  fill: var(--primary-color);
+  stroke: var(--text-primary);
+  stroke-width: 0.016;
+}
+
+#bodies-tab .solar-moon-hot text {
   font-family: var(--nova-font-mono);
-  font-size: 0.09px;
+  font-size: 0.1px;
   font-weight: 600;
   fill: var(--bg-secondary);
   pointer-events: none;
-}
-
-#bodies-tab .solar-moon-marker-hot circle {
-  r: 0.1;
-  stroke: var(--text-primary);
 }
 
 /* The libration arrow and dial: the level's status colour */
@@ -753,11 +765,14 @@
 
 /* The view switch: the chart's segmented control (graph_view.css .view-buttons), with
    its own classes so the chart's buttons are not mixed up with these */
+/* One row of three equal segments, as wide as the drawing; short labels, the long
+   ones in each segment's tooltip */
 #bodies-tab .solar-moon-views {
-  display: inline-flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  max-width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 240px;
   background: var(--bg-tertiary);
   border-radius: 7px;
   padding: 2px;
@@ -765,7 +780,11 @@
 }
 
 #bodies-tab .solar-moon-view {
-  padding: 4px 10px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 4px 6px;
   border: none;
   border-radius: 5px;
   background: transparent;
@@ -1018,8 +1037,4 @@
 #bodies-tab .solar-moon-libration[data-level="favourable"],
 #bodies-tab .solar-moon-libration[data-level="excellent"] {
   border-left-color: var(--success-color);
-}
-
-#bodies-tab .solar-moon-libration.solar-moon-unlit {
-  color: var(--text-muted);
 }
