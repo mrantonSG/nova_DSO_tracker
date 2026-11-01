@@ -28,7 +28,7 @@ import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay l
 from nova.config import (
     ADMIN_USERS, TELEMETRY_DEBUG_STATE, LATEST_VERSION_INFO,
     nightly_curves_cache, observable_objects_cache,
-    weather_cache, CACHE_DIR, DEFAULT_HTTP_TIMEOUT,
+    weather_cache, upper_wind_cache, CACHE_DIR, DEFAULT_HTTP_TIMEOUT,
 )
 
 
@@ -2994,6 +2994,71 @@ def get_hybrid_weather_forecast(lat, lon):
         return last_good or None
 
 
+UPPER_WIND_LEVELS_HPA = (200, 250, 300)
+UPPER_WIND_TTL_HOURS = 3
+
+
+def _fetch_upper_wind(lat, lon):
+    """One Open-Meteo request for the wind speed at 200, 250 and 300 hPa (the jet stream),
+    in m/s, hourly, 7 days, UTC. Its own request, not part of get_open_meteo_data, so the
+    hybrid forecast's request stays as it is. Returns (data, None) with data
+    {"times": ['YYYY-MM-DDTHH:MM:00Z', ...], "w200": [...], "w250": [...], "w300": [...],
+    "unit": "m/s"} (a missing or non-numeric value is None), or (None, reason) on failure.
+    One attempt, no retries."""
+    params = {
+        "latitude": lat,
+        "longitude": lon,
+        "hourly": ",".join(f"wind_speed_{level}hPa" for level in UPPER_WIND_LEVELS_HPA),
+        "wind_speed_unit": "ms",
+        "forecast_days": 7,
+        "timezone": "UTC",
+    }
+    try:
+        r = requests.get("https://api.open-meteo.com/v1/forecast", params=params, timeout=DEFAULT_HTTP_TIMEOUT)
+        if r.status_code != 200:
+            return None, f"HTTP {r.status_code}"
+        hourly = (r.json() or {}).get("hourly") or {}
+    except (requests.exceptions.RequestException, ValueError) as e:
+        return None, str(e)
+    times = hourly.get("time")
+    columns = [hourly.get(f"wind_speed_{level}hPa") for level in UPPER_WIND_LEVELS_HPA]
+    if not isinstance(times, list) or not times or any(
+            not isinstance(c, list) or len(c) != len(times) for c in columns):
+        return None, "invalid data structure"
+
+    def _speed(v):
+        return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) and np.isfinite(v) else None
+
+    data = {"times": [f"{t}:00Z" for t in times], "unit": "m/s"}
+    for level, column in zip(UPPER_WIND_LEVELS_HPA, columns):
+        data[f"w{level}"] = [_speed(v) for v in column]
+    return data, None
+
+
+def get_upper_wind_forecast(lat, lon):
+    """The upper-level wind for the Solar System page's seeing line, cached per location
+    for 3 hours like the hybrid forecast. On a failed fetch the last good copy is returned
+    (None without one), and the error is logged at most once per 15 minutes per key."""
+    cache_key = f"upperwind_{round(lat, 5)}_{round(lon, 5)}"
+    now = datetime.now(UTC)
+    entry = upper_wind_cache.get(cache_key) or {}
+    if entry.get('data') is not None and entry.get('expires') and now < entry['expires']:
+        return entry['data']
+
+    data, reason = _fetch_upper_wind(lat, lon)
+    if data is not None:
+        upper_wind_cache[cache_key] = {'data': data, 'expires': now + timedelta(hours=UPPER_WIND_TTL_HOURS),
+                                       'last_err_ts': None}
+        return data
+
+    last_err_ts = entry.get('last_err_ts')
+    if not last_err_ts or (now - last_err_ts) > timedelta(minutes=15):
+        print(f"[Upper Wind] WARN: Open-Meteo fetch failed for key '{cache_key}' ({reason}). "
+              f"{'Returning stale data.' if entry.get('data') is not None else 'No cached data.'}")
+        upper_wind_cache[cache_key] = dict(entry, last_err_ts=now)
+    return entry.get('data')
+
+
 # =============================================================================
 # Tier 3 Routes (migrated from nova/__init__.py)
 # =============================================================================
@@ -3501,6 +3566,28 @@ def get_weather_forecast_api():
 
     # 4. Return the processed forecast (with ISO strings)
     return jsonify({"weather_forecast": weather_forecast_series})
+
+
+@api_bp.route('/api/upper_wind')
+def upper_wind_api():
+    """The jet stream wind for the Solar System page's seeing forecast:
+    {"times": [ISO UTC], "w200": [m/s], "w250": [...], "w300": [...], "unit": "m/s"}.
+    400 on missing or invalid coordinates; 200 with empty arrays when nothing could be
+    fetched and nothing is cached (the page then shows no seeing line)."""
+    try:
+        lat = float(request.args.get('lat', ''))
+        lon = float(request.args.get('lon', ''))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid lat/lon"}), 400
+    if not (np.isfinite(lat) and np.isfinite(lon) and -90 <= lat <= 90 and -180 <= lon <= 180):
+        return jsonify({"error": "Invalid lat/lon"}), 400
+
+    data = get_upper_wind_forecast(lat, lon)
+    if not data:
+        data = {"times": [], "unit": "m/s"}
+        for level in UPPER_WIND_LEVELS_HPA:
+            data[f"w{level}"] = []
+    return jsonify(data)
 
 
 @api_bp.route('/api/get_object_data/<path:object_name>')
