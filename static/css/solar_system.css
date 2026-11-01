@@ -187,8 +187,8 @@
 /* The scale preview: an inline SVG in sensor pixels (viewBox), laid out 320 px wide at
    most (NovaSolarRigFit.PREVIEW_WIDTH); strokes stay one screen pixel at any scale. The
    body colours are typical, muted tones; no token fits them, so they are new values,
-   scoped to this card. */
-#solar-calc {
+   scoped to the Bodies tab (this card and the Moon card). */
+#bodies-tab {
   --solar-body-mercury: #9b958e;
   --solar-body-venus:   #d8cba2;
   --solar-body-mars:    #c0805e;
@@ -605,6 +605,7 @@
    #saved-views-dropdown, dashboard.css .styled-select): 28px high, 12px/500, 6px radius.
    The right padding keeps .styled-select's room for the arrow. */
 #calendar-tab #solar-cal-body-filter,
+#calendar-tab #solar-cal-type-filter,
 #bodies-tab .solar-calc-controls select {
   height: 28px;
   padding: 4px 28px 4px 10px;
@@ -616,6 +617,7 @@
 /* Dark mode: nova-theme.css's dark select.styled-select sets the background shorthand,
    which drops the arrow; put back its dark arrow (nova-theme.css, "Dark mode dropdown arrow"). */
 :root[data-theme="dark"] #calendar-tab #solar-cal-body-filter,
+:root[data-theme="dark"] #calendar-tab #solar-cal-type-filter,
 :root[data-theme="dark"] #bodies-tab .solar-calc-controls select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
@@ -626,4 +628,398 @@
 /* Without the browser's default margin the box centres on the label's text. */
 #calendar-tab .solar-cal-filter input[type="checkbox"] {
   margin: 0;
+}
+
+/* =================================================================
+   THE MOON CARD (#solar-moon, shown while the Moon is selected)
+
+   The drawing on the left, the tiles, the terminator features and the libration line
+   on the right; stacked in a narrow card. Tokens only: the lit side is the Moon's body
+   colour of the calculator, the terminator and the markers the brand teal, the
+   libration level the status colours of base.css (success, warning, muted for none).
+   ================================================================= */
+#solar-moon {
+  container: solar-moon / inline-size;
+}
+
+#bodies-tab #solar-moon[hidden],
+#bodies-tab #solar-moon-body[hidden] {
+  display: none;
+}
+
+#bodies-tab .solar-moon-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+@container solar-moon (min-width: 620px) {
+  #bodies-tab .solar-moon-body {
+    grid-template-columns: 240px minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+#bodies-tab .solar-moon-figure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+#bodies-tab .solar-moon-diagram {
+  width: 100%;
+  max-width: 240px;
+  aspect-ratio: 1;
+}
+
+#bodies-tab .solar-moon-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* The night side darker than the lit side in either theme: a dark grey on the light
+   page, the surface tint on the dark one */
+#bodies-tab .solar-moon-dark {
+  fill: var(--text-secondary);
+  fill-opacity: 0.7;
+}
+
+:root[data-theme="dark"] #bodies-tab .solar-moon-dark {
+  fill: var(--bg-tertiary);
+  fill-opacity: 1;
+}
+
+#bodies-tab .solar-moon-lit {
+  fill: var(--solar-body-moon);
+}
+
+#bodies-tab .solar-moon-terminator {
+  fill: none;
+  stroke: var(--primary-color);
+  stroke-width: 0.018;
+  stroke-dasharray: 0.05 0.035;
+}
+
+#bodies-tab .solar-moon-rim {
+  fill: none;
+  stroke: var(--text-faint);
+  stroke-width: 0.012;
+}
+
+#bodies-tab .solar-moon-north {
+  font-family: var(--nova-font-mono);
+  font-size: 0.13px;
+  font-weight: 600;
+  fill: var(--text-muted);
+}
+
+#bodies-tab .solar-moon-marker circle {
+  fill: var(--primary-color);
+  stroke: var(--bg-secondary);
+  stroke-width: 0.014;
+  transition: r 0.15s ease;
+}
+
+#bodies-tab .solar-moon-marker text {
+  font-family: var(--nova-font-mono);
+  font-size: 0.09px;
+  font-weight: 600;
+  fill: var(--bg-secondary);
+  pointer-events: none;
+}
+
+#bodies-tab .solar-moon-marker-hot circle {
+  r: 0.1;
+  stroke: var(--text-primary);
+}
+
+/* The libration arrow and dial: the level's status colour */
+#bodies-tab .solar-moon-arrow {
+  fill: var(--text-faint);
+}
+
+#bodies-tab .solar-moon-arrow[data-level="moderate"] {
+  fill: var(--warning-color-alt);
+}
+
+#bodies-tab .solar-moon-arrow[data-level="favourable"],
+#bodies-tab .solar-moon-arrow[data-level="excellent"] {
+  fill: var(--success-color);
+}
+
+/* The view switch: the chart's segmented control (graph_view.css .view-buttons), with
+   its own classes so the chart's buttons are not mixed up with these */
+#bodies-tab .solar-moon-views {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 100%;
+  background: var(--bg-tertiary);
+  border-radius: 7px;
+  padding: 2px;
+  gap: 2px;
+}
+
+#bodies-tab .solar-moon-view {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+#bodies-tab .solar-moon-view:hover {
+  color: var(--text-secondary);
+}
+
+#bodies-tab .solar-moon-view[aria-pressed="true"] {
+  background: var(--bg-secondary);
+  color: var(--primary-color);
+  box-shadow: var(--shadow-sm);
+}
+
+#bodies-tab .solar-moon-view:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 1px;
+}
+
+#bodies-tab .solar-moon-info {
+  min-width: 0;
+}
+
+/* Tiles: the seeing tiles' shape, wider */
+#bodies-tab .solar-moon-tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 14px;
+}
+
+#bodies-tab .solar-moon-tile {
+  box-sizing: border-box;
+  min-width: 96px;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid var(--border-color, #d0cdc8);
+  border-radius: 6px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+#bodies-tab .solar-moon-tile[title]:not([title=""]) {
+  cursor: help;
+}
+
+#bodies-tab .solar-moon-tile-label,
+#bodies-tab .solar-moon-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-muted);
+}
+
+:root[data-theme="dark"] #bodies-tab .solar-moon-tile-label,
+:root[data-theme="dark"] #bodies-tab .solar-moon-label {
+  color: var(--text-secondary);
+}
+
+#bodies-tab .solar-moon-label {
+  margin: 0 0 6px;
+}
+
+#bodies-tab .solar-moon-tile-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#bodies-tab .solar-moon-tile-value {
+  font-family: var(--nova-font-mono);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+#bodies-tab .solar-moon-tile[data-level="moderate"] {
+  border-color: var(--warning-color-alt);
+}
+
+#bodies-tab .solar-moon-tile[data-level="favourable"],
+#bodies-tab .solar-moon-tile[data-level="excellent"] {
+  border-color: var(--success-color);
+}
+
+#bodies-tab .solar-moon-dial {
+  width: 22px;
+  height: 22px;
+  flex: none;
+}
+
+#bodies-tab .solar-moon-dial-rim {
+  fill: none;
+  stroke: var(--text-faint);
+  stroke-width: 1.2;
+}
+
+#bodies-tab .solar-moon-dial-hand {
+  stroke: var(--text-faint);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+
+#bodies-tab .solar-moon-tile[data-level="moderate"] .solar-moon-dial-hand {
+  stroke: var(--warning-color-alt);
+}
+
+#bodies-tab .solar-moon-tile[data-level="favourable"] .solar-moon-dial-hand,
+#bodies-tab .solar-moon-tile[data-level="excellent"] .solar-moon-dial-hand {
+  stroke: var(--success-color);
+}
+
+/* The terminator features: chips with the number on the drawing, the name, sunrise or
+   sunset, and the Sun's altitude as a bar */
+#bodies-tab .solar-moon-features {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+#bodies-tab .solar-moon-feature {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 4px 8px;
+  border: 1px solid var(--border-color, #d0cdc8);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  font-size: var(--font-size-2xs);
+  color: var(--text-primary);
+  cursor: help;
+}
+
+#bodies-tab .solar-moon-feature:hover,
+#bodies-tab .solar-moon-feature:focus-visible {
+  border-color: var(--primary-color);
+  outline: none;
+}
+
+#bodies-tab .solar-moon-feature-limb {
+  border-style: dashed;
+}
+
+#bodies-tab .solar-moon-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--primary-color);
+  color: var(--bg-secondary);
+  font-family: var(--nova-font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+#bodies-tab .solar-moon-name {
+  overflow-wrap: anywhere;
+}
+
+#bodies-tab .solar-moon-glyph {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  fill: var(--text-muted);
+}
+
+#bodies-tab .solar-moon-feature[data-side="morning"] .solar-moon-glyph {
+  fill: var(--primary-color);
+}
+
+#bodies-tab .solar-moon-glyph-line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.2;
+  color: var(--text-faint);
+}
+
+#bodies-tab .solar-moon-bar {
+  width: 30px;
+  height: 4px;
+  flex: none;
+  border-radius: 2px;
+  background: var(--border-color, #d0cdc8);
+  overflow: hidden;
+}
+
+#bodies-tab .solar-moon-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--primary-color);
+}
+
+#bodies-tab .solar-moon-more {
+  margin: 0 0 10px;
+  font-size: var(--font-size-2xs);
+  color: var(--text-secondary);
+}
+
+#bodies-tab .solar-moon-more summary {
+  margin: 0 0 6px;
+  cursor: pointer;
+}
+
+#bodies-tab .solar-moon-more[hidden],
+#bodies-tab .solar-moon-empty[hidden] {
+  display: none;
+}
+
+#bodies-tab .solar-moon-empty {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Moon below the threshold all night: the features stay, quieter */
+#bodies-tab .solar-moon-muted .solar-moon-features {
+  opacity: 0.55;
+}
+
+#bodies-tab .solar-moon-libration {
+  margin: 0;
+  padding-left: 10px;
+  border-left: 3px solid var(--text-faint);
+  font-size: var(--font-size-2xs);
+  line-height: 1.45;
+  color: var(--text-primary);
+}
+
+#bodies-tab .solar-moon-libration[data-level="moderate"] {
+  border-left-color: var(--warning-color-alt);
+}
+
+#bodies-tab .solar-moon-libration[data-level="favourable"],
+#bodies-tab .solar-moon-libration[data-level="excellent"] {
+  border-left-color: var(--success-color);
+}
+
+#bodies-tab .solar-moon-libration.solar-moon-unlit {
+  color: var(--text-muted);
 }

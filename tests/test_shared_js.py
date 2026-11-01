@@ -1,7 +1,8 @@
 """Drift guards for the JavaScript Nova shares with nova-ios.
 
-static/js/nova_astro.js, static/js/nova_transit.js, static/js/nova_weather_icons.js and
-static/js/nova_planets.js are developed in the nova-ios repo (src/*.js) and copied in here
+static/js/nova_astro.js, static/js/nova_transit.js, static/js/nova_weather_icons.js,
+static/js/nova_planets.js and static/js/nova_moon.js are developed in the nova-ios repo
+(src/*.js) and copied in here
 byte-identical. Nothing in this repo may edit them: a change lands in nova-ios first, is
 copied across unchanged, and the pinned digest below moves in the same breath. The
 parametrized test below is that contract.
@@ -13,7 +14,8 @@ desktop chart and the rest of Nova would disagree about the same object.
 
 The dashboard (templates/index.html) and the graph view (templates/graph_view.html) load
 nova_transit.js; the Solar System page (templates/solar_system.html) loads
-nova_planets.js, whose own accuracy check lives in nova-ios (tools/test_planets.cjs).
+nova_planets.js and nova_moon.js, whose own accuracy checks live in nova-ios
+(tools/test_planets.cjs, tools/test_moon_libration.cjs).
 """
 
 import hashlib
@@ -37,6 +39,7 @@ SHARED_WITH_NOVA_IOS = {
     "nova_transit.js": "b32ed7b19bd642727d590d2f468a3648da337890dd96919ad8a3004edece2049",
     "nova_weather_icons.js": "a871aac1e0573d493834ba316a02c206a2d0b96c6689a2dbc6797fbe3d274f7e",
     "nova_planets.js": "057095316479eb0eb4fca9b502cc8dc905108030352af02319359df733f18b9f",
+    "nova_moon.js": "0923926b15164174c1695eaa6e93d2996b8f51546aeca5b263b1dda07a70fe4e",
 }
 
 DRIFT_HELP = (

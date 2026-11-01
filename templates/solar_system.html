@@ -103,6 +103,32 @@
         </div>
     </div>
 
+    <div id="solar-moon" class="content-section" hidden>
+        <h3 id="solar-moon-title">{{ _('Moon detail') }}</h3>
+        <p id="solar-moon-error" class="status-secondary" role="alert" hidden></p>
+        <div id="solar-moon-body" class="solar-moon-body">
+            <div class="solar-moon-figure">
+                <div id="solar-moon-diagram" class="solar-moon-diagram"></div>
+                <div class="solar-moon-views" role="group" aria-label="{{ _('View') }}" title="{{ _("The real field also rotates with the Moon's position in the sky.") }}">
+                    <button type="button" class="solar-moon-view" data-moon-view="normal" aria-pressed="true">{{ _('Normal') }}</button>
+                    <button type="button" class="solar-moon-view" data-moon-view="diagonal" aria-pressed="false">{{ _('Star diagonal (mirrored)') }}</button>
+                    <button type="button" class="solar-moon-view" data-moon-view="inverted" aria-pressed="false">{{ _('Newtonian (inverted)') }}</button>
+                </div>
+            </div>
+            <div class="solar-moon-info">
+                <div id="solar-moon-tiles" class="solar-moon-tiles"></div>
+                <span class="solar-moon-label">{{ _('On the terminator tonight') }}</span>
+                <p id="solar-moon-empty" class="solar-moon-empty" hidden></p>
+                <ol id="solar-moon-features" class="solar-moon-features"></ol>
+                <details id="solar-moon-more" class="solar-moon-more" hidden>
+                    <summary>{{ _('More features') }}</summary>
+                    <ol id="solar-moon-more-list" class="solar-moon-features"></ol>
+                </details>
+                <p id="solar-moon-libration" class="solar-moon-libration"></p>
+            </div>
+        </div>
+    </div>
+
     <div id="solar-calc" class="content-section">
         <h3 id="solar-calc-title">{{ _('Planetary calculator') }}</h3>
         <div class="solar-calc-controls" id="solar-calc-controls">
@@ -144,6 +170,12 @@
             <option value="uranus">{{ _('Uranus') }}</option>
             <option value="neptune">{{ _('Neptune') }}</option>
             <option value="moon">{{ _('Moon') }}</option>
+        </select>
+        <select id="solar-cal-type-filter" class="styled-select" aria-label="{{ _('Event type') }}">
+            <option value="">{{ _('All events') }}</option>
+            <option value="planets">{{ _('Planets') }}</option>
+            <option value="conjunctions">{{ _('Conjunctions') }}</option>
+            <option value="lunar">{{ _('Lunar features') }}</option>
         </select>
         <label for="solar-cal-hide-muted">
             <input type="checkbox" id="solar-cal-hide-muted">
@@ -226,7 +258,56 @@ const solarI18n = {
         elongationWest: {{ _('Farthest west of the Sun: best morning visibility, low in the east before sunrise.') | tojson }},
         conjunction:    {{ _('Closest apparent approach of the two bodies.') | tojson }},
         conjunctionMoon:{{ _('Closest apparent approach of the two bodies, as seen from this location.') | tojson }},
-        occultation:    {{ _('The Moon passes in front of the planet as seen from this location.') | tojson }}
+        occultation:    {{ _('The Moon passes in front of the planet as seen from this location.') | tojson }},
+        lunarX:         {{ _('Sunrise on the crater walls near Werner draws a bright X, and near Ukert a V, on the terminator for about an hour. Times are approximate.') | tojson }},
+        libration:      {{ _('The Moon is tilted towards us by more than 7°: features near that limb are easier to see.') | tojson }}
+    },
+    lunarX:        {{ _('Lunar X and V') | tojson }},
+    lunarNotVisible: {{ _('Not visible from here: the Sun is up or the Moon is below the altitude threshold around this time') | tojson }},
+    moon: {
+        title:         {{ _('Moon detail') | tojson }},
+        error:         {{ _('Moon detail could not be calculated.') | tojson }},
+        highestAt:     {{ _('highest tonight at %(time)s', time='{time}') | tojson }},
+        colongitude:   {{ _('Colongitude') | tojson }},
+        colongitudeHelp: {{ _('Where the morning terminator lies on the Moon. It grows about 12° a day: about 0° at first quarter, 90° at Full Moon, 180° at last quarter.') | tojson }},
+        libration:     {{ _('Libration') | tojson }},
+        librationHelp: {{ _('How far the Moon is tilted towards us, and towards which limb (arrow).') | tojson }},
+        illuminated:   {{ _('Illuminated') | tojson }},
+        morning:       {{ _('Morning terminator') | tojson }},
+        evening:       {{ _('Evening terminator') | tojson }},
+        sunAlt:        {{ _('Sun %(alt)s° above the horizon', alt='{alt}') | tojson }},
+        position:      {{ _('Latitude %(lat)s°, longitude %(lon)s°', lat='{lat}', lon='{lon}') | tojson }},
+        nearLimb:      {{ _('Near the limb') | tojson }},
+        nextNights:    {{ _('Next good nights: %(dates)s', dates='{dates}') | tojson }},
+        noNextNights:  {{ _('No good night in the next 30 days') | tojson }},
+        level: {
+            excellent:  {{ _('Excellent libration: %(side)s side, %(deg)s°', side='{side}', deg='{deg}') | tojson }},
+            favourable: {{ _('Favourable libration: %(side)s side, %(deg)s°', side='{side}', deg='{deg}') | tojson }},
+            moderate:   {{ _('Moderate libration: %(side)s side, %(deg)s°', side='{side}', deg='{deg}') | tojson }},
+            none:       {{ _('No strong libration tonight (%(deg)s°)', deg='{deg}') | tojson }}
+        },
+        notLit:        {{ _('Not lit tonight') | tojson }},
+        empty: {
+            new:       {{ _('Too close to New Moon') | tojson }},
+            full:      {{ _('No features near the terminator (Full Moon)') | tojson }},
+            none:      {{ _('No features near the terminator') | tojson }},
+            notUp:     {{ _('The Moon is not up during the night') | tojson }}
+        },
+        diagramAria:   {{ _("The Moon tonight: lit part, terminator and tonight's features") | tojson }},
+        north:         {{ _('N') | tojson }},
+        types: {
+            crater:       {{ _('Crater') | tojson }},
+            mare:         {{ _('Mare (sea)') | tojson }},
+            oceanus:      {{ _('Ocean') | tojson }},
+            sinus:        {{ _('Bay') | tojson }},
+            lacus:        {{ _('Lake') | tojson }},
+            mons:         {{ _('Mountain') | tojson }},
+            montes:       {{ _('Mountain range') | tojson }},
+            vallis:       {{ _('Valley') | tojson }},
+            rupes:        {{ _('Scarp') | tojson }},
+            rima:         {{ _('Rille') | tojson }},
+            promontorium: {{ _('Cape') | tojson }}
+        }
     },
     calc: {
         title:         {{ _('Planetary calculator') | tojson }},
@@ -328,6 +409,9 @@ const solarEquipment = {{ solar_equipment | tojson }};
 <script src="{{ url_for('static', filename='js/nova_plot_data.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_solar_rows.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_solar_calendar.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/nova_moon.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/nova_moon_features.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/nova_solar_moon.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_solar_rigfit.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_weather_icons.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_solar_seeing.js') }}?v={{ version }}" defer></script>

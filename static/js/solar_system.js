@@ -14,12 +14,21 @@
  * /api/upper_wind, fetched after the page has rendered and never waited for; shown with
  * or without equipment, hidden on any error or without data.
  *
- * The Calendar tab (NovaSolarCalendar) is built only while it is shown, and again only
+ * While the Moon is selected, the Moon card between the chart and the calculator
+ * (NovaSolarMoon, when nova_solar_moon.js is loaded): the Moon drawn as tonight at its
+ * highest (lit part, terminator, numbered markers for tonight's terminator features,
+ * the libration arrow), tiles for colongitude, libration and illumination, the
+ * terminator features with their next good nights in the tooltip, and the libration
+ * line. Computed once per location, threshold, sampling interval and night, like the
+ * calendar; a view change (normal, star diagonal, Newtonian) only redraws.
+ *
+ * The Calendar tab (NovaSolarCalendar, plus NovaSolarMoon's Lunar X and libration rows
+ * when it is loaded) is built only while it is shown, and again only
  * when its location, threshold, sampling interval or observing night changes; the 60 s
  * tick otherwise costs one key comparison. Clicking an event opens the Bodies tab on
  * that body's Month view for the event's night (a conjunction's brighter body). The
- * filter above it (a body, "hide events that are not visible") only hides rendered
- * rows; it never recalculates.
+ * filter above it (a body, an event type, "hide events that are not visible") only
+ * hides rendered rows; it never recalculates.
  *
  * When the location's inputs do not load, both tabs show the translated error; the 60 s
  * tick keeps trying, and each tab clears its error on its next successful build.
@@ -28,9 +37,10 @@
  * POST /set_location for the location, localStorage.simModeActive and simDate for
  * simulation. Its own tab key is localStorage.nova_solar_tab; it never writes the
  * dashboard's activeTab, nova_last_tab or nova_desktop_cache_*. The calendar filter's
- * keys are localStorage.nova_solar_cal_body and nova_solar_cal_hide_muted; the
- * calculator's nova_solar_calc_telescope and nova_solar_calc_camera (component
- * record_uids) and nova_solar_calc_amp (stored only once the user picks one).
+ * keys are localStorage.nova_solar_cal_body, nova_solar_cal_type and
+ * nova_solar_cal_hide_muted; the calculator's nova_solar_calc_telescope and
+ * nova_solar_calc_camera (component record_uids) and nova_solar_calc_amp (stored only
+ * once the user picks one); the Moon card's view nova_solar_moon_view.
  *
  * When /get_locations does not answer with JSON (a guest), the page uses the location
  * /api/desktop_inputs picks without a parameter and never POSTs /set_location.
@@ -42,6 +52,16 @@
     const TAB_KEY = 'nova_solar_tab';
     const CAL_BODY_KEY = 'nova_solar_cal_body';
     const CAL_HIDE_KEY = 'nova_solar_cal_hide_muted';
+    const CAL_TYPE_KEY = 'nova_solar_cal_type';
+    const MOON_VIEW_KEY = 'nova_solar_moon_view';
+    // The Calendar's event types and the kinds of row each one shows
+    const CAL_TYPES = {
+        planets: ['opposition', 'elongationEast', 'elongationWest'],
+        conjunctions: ['conjunction'],
+        lunar: ['lunarX', 'libration'],
+    };
+    // A feature's Sun-altitude bar is full at this many degrees
+    const MOON_BAR_DEG = 15;
     const CALC_TELESCOPE_KEY = 'nova_solar_calc_telescope';
     const CALC_CAMERA_KEY = 'nova_solar_calc_camera';
     const CALC_AMP_KEY = 'nova_solar_calc_amp';
@@ -66,7 +86,11 @@
         calKey: null,           // what the calendar table shows, so it is rebuilt only on change
         calResult: null,        // the last calendar, re-rendered when the filter changes
         calPending: false,      // a calendar build is waiting for the next paint
-        calFilter: { body: '', hideMuted: false },
+        calFilter: { body: '', type: '', hideMuted: false },
+        // The Moon card: tonight's result and the next good nights, for the key (the
+        // calendar's: location, threshold, sampling, night); the view it is drawn in
+        moon: { key: null, tonight: null, next: null },
+        moonView: 'normal',
         // The calculator's choice: component records, and the amplification the user
         // picked (null: the one closest to the ideal focal ratio)
         calc: { telescope: null, camera: null, amp: null },
@@ -136,7 +160,10 @@
         $('solar-table-wrapper').hidden = !!message;
         $('chart-section').hidden = !!message;
         $('solar-calc').hidden = !!message;
-        if (message) resetChart();
+        if (message) {
+            $('solar-moon').hidden = true;
+            resetChart();
+        }
     }
 
     /** The location's inputs did not load: both tabs say so. Each clears its own error
@@ -397,6 +424,7 @@
         } catch (e) { /* the URL stays as it was */ }
         if (!state.result) return;
         renderTable();
+        renderMoon();
         renderCalc();
         showChart();
     }
@@ -903,6 +931,234 @@
         }
     }
 
+    // ------------------------------------------------------------------ Moon card
+
+    /** '+9.6' or '−20.1' (U+2212), one decimal. */
+    function signedDeg(x) {
+        return (x < 0 ? '−' : '+') + Math.abs(x).toFixed(1);
+    }
+
+    /** 'Sat 14 Nov' in the page's language. */
+    function moonDate(date) {
+        const [y, m, d] = date.split('-').map(Number);
+        try {
+            return new Intl.DateTimeFormat(document.documentElement.lang || 'en',
+                {weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC'}).format(new Date(Date.UTC(y, m - 1, d)));
+        } catch (e) {
+            return europeanDate(date);
+        }
+    }
+
+    /** The libration line's words for a hint (NovaSolarMoon.hint()). */
+    function librationText(h) {
+        const L = (i18n.moon || {}).level || {};
+        const deg = h.amount.toFixed(1);
+        if (h.level === 'none') return fill(L.none, {deg: deg});
+        return fill(L[h.level], {side: h.side || '', deg: deg})
+            + (h.also.length ? ' — ' + h.also.join(', ') : '');
+    }
+
+    /** Sunrise or sunset over a feature: a half Sun on the horizon, the arrow up or down. */
+    function sideGlyph(parent, morning) {
+        const svg = svgEl(parent, 'svg', {viewBox: '0 0 16 16', class: 'solar-moon-glyph', 'aria-hidden': 'true', focusable: 'false'});
+        svgEl(svg, 'path', {d: 'M 3 11 A 5 5 0 0 1 13 11 Z'});
+        svgEl(svg, 'path', {d: 'M 1 12.5 H 15', class: 'solar-moon-glyph-line'});
+        svgEl(svg, 'path', {d: morning ? 'M 8 1 L 5.5 4 H 10.5 Z' : 'M 8 4 L 5.5 1 H 10.5 Z'});
+        return svg;
+    }
+
+    /** One feature of the list: its number on the drawing, name, sunrise or sunset, and a
+     *  bar for the Sun's altitude; the rest in the tooltip. */
+    function moonFeatureItem(list, f, n, next) {
+        const M = i18n.moon || {};
+        const li = document.createElement('li');
+        li.className = 'solar-moon-feature';
+        li.dataset.side = f.morning ? 'morning' : 'evening';
+        li.setAttribute('tabindex', '0');
+        if (n) {
+            li.dataset.n = String(n);
+            span(li, String(n), 'solar-moon-num');
+        }
+        span(li, f.name, 'solar-moon-name');
+        sideGlyph(li, f.morning);
+        const bar = span(li, '', 'solar-moon-bar');
+        const fillEl = span(bar, '', 'solar-moon-bar-fill');
+        fillEl.style.width = Math.round(Math.max(0, Math.min(1, f.sunAlt / MOON_BAR_DEG)) * 100) + '%';
+        if (f.nearLimb) li.classList.add('solar-moon-feature-limb');
+        const dates = next && next.byName[f.name] ? next.byName[f.name] : [];
+        li.title = [
+            ((M.types || {})[f.type] || f.type) + ' · ' + Math.round(f.diameterKm) + ' km',
+            f.morning ? M.morning : M.evening,
+            fill(M.sunAlt, {alt: f.sunAlt.toFixed(1)}),
+            fill(M.position, {lat: signedDeg(f.lat), lon: signedDeg(f.lon)}),
+            f.nearLimb ? M.nearLimb : '',
+            dates.length ? fill(M.nextNights, {dates: dates.map(moonDate).join(', ')}) : M.noNextNights,
+        ].filter(Boolean).join('\n');
+        li.setAttribute('aria-label', li.title.split('\n').slice(0, 3).join(', ') + ', ' + f.name);
+        if (n) {
+            const hot = on => {
+                const m = document.querySelector('#solar-moon-diagram [data-n="' + n + '"]');
+                if (m) m.classList.toggle('solar-moon-marker-hot', on);
+            };
+            li.addEventListener('mouseenter', () => hot(true));
+            li.addEventListener('mouseleave', () => hot(false));
+            li.addEventListener('focus', () => hot(true));
+            li.addEventListener('blur', () => hot(false));
+        }
+        list.appendChild(li);
+        return li;
+    }
+
+    /** A tile: a micro-label, then its value, after what draw(row) puts before it. */
+    function moonTile(tiles, label, value, help, draw) {
+        const tile = document.createElement('div');
+        tile.className = 'solar-moon-tile';
+        span(tile, label || '', 'solar-moon-tile-label');
+        const row = span(tile, '', 'solar-moon-tile-row');
+        if (draw) draw(row);
+        span(row, value, 'solar-moon-tile-value');
+        if (help) tile.title = help;
+        tiles.appendChild(tile);
+        return tile;
+    }
+
+    function renderMoonTiles(t) {
+        const M = i18n.moon || {};
+        const tiles = $('solar-moon-tiles');
+        tiles.innerHTML = '';
+        const g = t.geometry, h = t.libration;
+        moonTile(tiles, M.colongitude, g.colongitude.toFixed(1) + '°', M.colongitudeHelp);
+        // A dial: the hand points to the limb turned towards us (as on the drawing, in its
+        // view), longer the more it is turned
+        const lib = moonTile(tiles, M.libration, h.amount.toFixed(1) + '°', M.librationHelp + '\n' + librationText(h), row => {
+            const dial = svgEl(row, 'svg', {viewBox: '-10 -10 20 20', class: 'solar-moon-dial', 'aria-hidden': 'true', focusable: 'false'});
+            svgEl(dial, 'circle', {cx: 0, cy: 0, r: 8.5, class: 'solar-moon-dial-rim'});
+            const d = NovaSolarMoon.diagram(g, state.moonView, []).arrow;
+            const len = 2 + 6.5 * Math.min(1, h.amount / 8);
+            svgEl(dial, 'path', {d: 'M 0 0 L ' + (d.x * len).toFixed(2) + ' ' + (d.y * len).toFixed(2), class: 'solar-moon-dial-hand'});
+        });
+        lib.dataset.level = h.level;
+        moonTile(tiles, M.illuminated, Math.round(t.illuminated * 100) + '%');
+    }
+
+    /** The Moon drawn as tonight, in the chosen view: SVG on a unit disc. */
+    function renderMoonDiagram(t) {
+        const M = i18n.moon || {};
+        const box = $('solar-moon-diagram');
+        box.innerHTML = '';
+        const d = NovaSolarMoon.diagram(t.geometry, state.moonView, t.top);
+        const svg = svgEl(box, 'svg', {viewBox: '-1.3 -1.3 2.6 2.6', role: 'img', class: 'solar-moon-svg',
+                                       'aria-label': M.diagramAria || ''});
+        svgEl(svg, 'circle', {cx: 0, cy: 0, r: 1, class: 'solar-moon-dark'});
+        if (d.lit) svgEl(svg, 'path', {d: d.lit, class: 'solar-moon-lit'});
+        if (d.terminator) svgEl(svg, 'path', {d: d.terminator, class: 'solar-moon-terminator'});
+        svgEl(svg, 'circle', {cx: 0, cy: 0, r: 1, class: 'solar-moon-rim'});
+
+        // The libration arrow just outside the limb, pointing in
+        const a = d.arrow, px = -a.y, py = a.x;
+        const tip = [a.x * 1.04, a.y * 1.04], base = [a.x * 1.24, a.y * 1.24];
+        const arrow = svgEl(svg, 'path', {
+            d: 'M ' + tip.map(v => v.toFixed(3)).join(' ')
+                + ' L ' + (base[0] + px * 0.1).toFixed(3) + ' ' + (base[1] + py * 0.1).toFixed(3)
+                + ' L ' + (base[0] - px * 0.1).toFixed(3) + ' ' + (base[1] - py * 0.1).toFixed(3) + ' Z',
+            class: 'solar-moon-arrow', 'data-level': t.libration.level,
+        });
+        svgEl(arrow, 'title', {}).textContent = librationText(t.libration);
+
+        const north = svgEl(svg, 'text', {x: (d.north.x * 1.16).toFixed(3), y: (d.north.y * 1.16).toFixed(3),
+                                          class: 'solar-moon-north', 'text-anchor': 'middle', 'dominant-baseline': 'central'});
+        north.textContent = M.north || 'N';
+
+        d.markers.forEach(m => {
+            const g = svgEl(svg, 'g', {class: 'solar-moon-marker', 'data-n': m.n});
+            svgEl(g, 'circle', {cx: m.x, cy: m.y, r: 0.075});
+            const label = svgEl(g, 'text', {x: m.x, y: m.y, 'text-anchor': 'middle', 'dominant-baseline': 'central'});
+            label.textContent = String(m.n);
+            svgEl(g, 'title', {}).textContent = m.name;
+        });
+    }
+
+    function setMoonViewButtons() {
+        document.querySelectorAll('.solar-moon-views .solar-moon-view').forEach(btn => {
+            btn.setAttribute('aria-pressed', btn.dataset.moonView === state.moonView ? 'true' : 'false');
+        });
+    }
+
+    /** The view switch, from and to localStorage; a change only redraws. */
+    function initMoonViews() {
+        if (typeof NovaSolarMoon === 'undefined') return;
+        const saved = storageGet('localStorage', MOON_VIEW_KEY);
+        state.moonView = NovaSolarMoon.VIEWS.indexOf(saved) >= 0 ? saved : 'normal';
+        setMoonViewButtons();
+        document.querySelectorAll('.solar-moon-views .solar-moon-view').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (NovaSolarMoon.VIEWS.indexOf(btn.dataset.moonView) < 0) return;
+                state.moonView = btn.dataset.moonView;
+                storageSet('localStorage', MOON_VIEW_KEY, state.moonView);
+                setMoonViewButtons();
+                renderMoon();
+            });
+        });
+    }
+
+    function showMoonError(message) {
+        const el = $('solar-moon-error');
+        el.textContent = message || '';
+        el.hidden = !message;
+        $('solar-moon-body').hidden = !!message;
+    }
+
+    /** The Moon card, while the Moon is selected; computed once per night (see the header). */
+    function renderMoon() {
+        const box = $('solar-moon');
+        if (typeof NovaSolarMoon === 'undefined' || !state.result || state.selected !== 'moon') {
+            box.hidden = true;
+            return;
+        }
+        box.hidden = false;
+        const M = i18n.moon || {};
+        let t, next;
+        try {
+            const key = calendarKey();
+            if (state.moon.key !== key) {
+                const opts = {inputs: state.inputs, nowMs: Date.now(), simDate: simDate()};
+                state.moon = { key: null, tonight: NovaSolarMoon.tonight(opts), next: NovaSolarMoon.nextNights(opts) };
+                state.moon.key = key;
+            }
+            t = state.moon.tonight;
+            next = state.moon.next;
+            renderMoonDiagram(t);
+            renderMoonTiles(t);
+        } catch (e) {
+            console.error('Solar System: could not calculate the Moon card', e);
+            state.moon = { key: null, tonight: null, next: null };
+            showMoonError(M.error);
+            return;
+        }
+        showMoonError(null);
+        $('solar-moon-title').textContent = (M.title || bodyName('moon')) + ' · ' + fill(M.highestAt, {time: t.hm});
+
+        const body = $('solar-moon-body');
+        body.classList.toggle('solar-moon-muted', t.muted);
+        const empty = $('solar-moon-empty');
+        const reason = t.muted ? (t.mutedReason === 'notUp' ? (M.empty || {}).notUp : i18n.belowThreshold)
+            : t.empty ? (M.empty || {})[t.empty] : '';
+        empty.textContent = reason || '';
+        empty.hidden = !reason;
+
+        const list = $('solar-moon-features'), more = $('solar-moon-more'), moreList = $('solar-moon-more-list');
+        list.innerHTML = '';
+        moreList.innerHTML = '';
+        t.top.forEach((f, i) => moonFeatureItem(list, f, i + 1, next));
+        t.more.forEach(f => moonFeatureItem(moreList, f, 0, next));
+        more.hidden = !t.more.length;
+
+        const lib = $('solar-moon-libration');
+        lib.textContent = librationText(t.libration) + (t.libration.litLimb ? '' : ' · ' + (M.notLit || ''));
+        lib.dataset.level = t.libration.level;
+        lib.classList.toggle('solar-moon-unlit', !t.libration.litLimb);
+    }
+
     // ------------------------------------------------------------------ chart
 
     function resetChart() {
@@ -990,6 +1246,7 @@
                 state.rangeDate = state.result.date;
             }
             renderTable();
+            renderMoon();
             renderCalc();
             showChart(force);
             if (state.chart) state.chart.updateNow();
@@ -1016,9 +1273,11 @@
         return n < 0 ? '−' + (-n) : String(n);
     }
 
-    /** The filter: a body (a conjunction matches either of its two) and "hide muted". */
+    /** The filter: a body (a conjunction matches either of its two), an event type and
+     *  "hide muted". */
     function calRowShown(row) {
         if (state.calFilter.hideMuted && row.muted) return false;
+        if (state.calFilter.type && CAL_TYPES[state.calFilter.type].indexOf(row.kind) < 0) return false;
         return !state.calFilter.body || row.bodies.indexOf(state.calFilter.body) >= 0;
     }
 
@@ -1045,6 +1304,7 @@
                 tr.classList.add('geometrically-impossible');
                 tr.title = row.mutedReason === 'moment' ? momentText(row)
                     : row.mutedReason === 'sun' ? fill(i18n.tooCloseToSun, {elong: row.elongationDeg.toFixed(0)})
+                    : row.mutedReason === 'lunarWindow' ? i18n.lunarNotVisible
                     : i18n.belowThresholdNight;
             }
             // The night's date only; the event's own local time is the cell's tooltip
@@ -1053,6 +1313,7 @@
             cell(tr, 'body', row.bodies.map(bodyName).join(' – '));
             const event = cell(tr, 'event', row.occultation ? i18n.occultation
                 : conj ? fill(i18n.conjunction, {sep: row.sepDeg.toFixed(1)})
+                : row.kind === 'libration' ? librationText(row.libration)
                 : (i18n[row.kind] || row.kind));
             const helpText = row.occultation ? help.occultation
                 : conj ? help[row.bodies.indexOf('moon') >= 0 ? 'conjunctionMoon' : 'conjunction'] : help[row.kind];
@@ -1122,7 +1383,12 @@
         try {
             const key = calendarKey();
             if (key === state.calKey) return;
-            const result = NovaSolarCalendar.events({inputs: state.inputs, nowMs: Date.now(), simDate: simDate()});
+            const opts = {inputs: state.inputs, nowMs: Date.now(), simDate: simDate()};
+            const result = NovaSolarCalendar.events(opts);
+            if (typeof NovaSolarMoon !== 'undefined') {
+                result.rows = result.rows.concat(NovaSolarMoon.calendarRows(opts).rows)
+                    .sort((a, b) => a.utcMs - b.utcMs);
+            }
             renderCalendarRows(result);
             showCalError(null);
             state.calKey = key;
@@ -1136,15 +1402,24 @@
     /** The filter's controls, from and to localStorage; a change re-renders the last calendar. */
     function initCalFilter() {
         const select = $('solar-cal-body-filter'), hide = $('solar-cal-hide-muted');
+        const type = $('solar-cal-type-filter');
+        const knownType = v => (Object.prototype.hasOwnProperty.call(CAL_TYPES, v) ? v : '');
         const saved = storageGet('localStorage', CAL_BODY_KEY);
         state.calFilter.body = NovaPlanets.BODIES.indexOf(saved) >= 0 ? saved : '';
+        state.calFilter.type = knownType(storageGet('localStorage', CAL_TYPE_KEY));
         state.calFilter.hideMuted = storageGet('localStorage', CAL_HIDE_KEY) === 'true';
         select.value = state.calFilter.body;
+        type.value = state.calFilter.type;
         hide.checked = state.calFilter.hideMuted;
         const apply = () => { if (state.calResult) renderCalendarRows(state.calResult); };
         select.addEventListener('change', () => {
             state.calFilter.body = NovaPlanets.BODIES.indexOf(select.value) >= 0 ? select.value : '';
             storageSet('localStorage', CAL_BODY_KEY, state.calFilter.body);
+            apply();
+        });
+        type.addEventListener('change', () => {
+            state.calFilter.type = knownType(type.value);
+            storageSet('localStorage', CAL_TYPE_KEY, state.calFilter.type);
             apply();
         });
         hide.addEventListener('change', () => {
@@ -1212,6 +1487,7 @@
         const params = new URLSearchParams(window.location.search);
         state.requested = params.get('body');
         initCalFilter();
+        initMoonViews();
         initCalc();
         initTabs();
         initSim();
