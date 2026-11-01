@@ -9,7 +9,9 @@
  *
  * Below the chart, the planetary calculator (NovaSolarRigFit) works out the selected
  * body for one of the user's telescopes and cameras (solarEquipment, embedded by
- * core.py) and an amplification; it follows the table.
+ * core.py) and an amplification; it follows the table. Under its summary, the seeing
+ * forecast (NovaSolarSeeing) from /api/upper_wind, fetched after the page has rendered
+ * and never waited for; without it (any error, no data) the seeing line stays hidden.
  *
  * The Calendar tab (NovaSolarCalendar) is built only while it is shown, and again only
  * when its location, threshold, sampling interval or observing night changes; the 60 s
@@ -43,6 +45,8 @@
     const CALC_CAMERA_KEY = 'nova_solar_calc_camera';
     const CALC_AMP_KEY = 'nova_solar_calc_amp';
     const AU_MILLION_KM = 149.5978707;
+    // The server caches the upper wind 3 h; asking hourly picks up a new copy in time
+    const WIND_REFETCH_MS = 3600000;
     const TABS = ['bodies', 'calendar'];
     const i18n = typeof solarI18n !== 'undefined' ? solarI18n : {};
 
@@ -65,6 +69,11 @@
         // The calculator's choice: component records, and the amplification the user
         // picked (null: the one closest to the ideal focal ratio)
         calc: { telescope: null, camera: null, amp: null },
+        // The jet stream wind (/api/upper_wind) of the location `key` ('lat,lon'), fetched
+        // at `at`; null data: none, or the fetch failed (no seeing line). `pending`: the
+        // key being fetched. `memo`: the last forecast and what it was computed from.
+        wind: { key: null, data: null, at: 0, pending: null },
+        seeingMemo: { key: null, value: null },
     };
 
     const $ = id => document.getElementById(id);
@@ -548,6 +557,116 @@
         if (next) span(el, ' ' + next, 'solar-calc-next');
     }
 
+    // ------------------------------------------------------------------ seeing
+
+    function windKey(loc) {
+        return loc.lat + ',' + loc.lon;
+    }
+
+    /** Ask for the location's upper wind after the page has rendered: never waited for,
+     *  asked again hourly, and any failure only hides the seeing line. */
+    function loadWind() {
+        const loc = state.inputs && state.inputs.location;
+        if (!loc || typeof NovaSolarSeeing === 'undefined') return;
+        const key = windKey(loc);
+        if (state.wind.pending === key) return;
+        if (state.wind.key === key && Date.now() - state.wind.at < WIND_REFETCH_MS) return;
+        state.wind.pending = key;
+        fetch('/api/upper_wind?lat=' + encodeURIComponent(loc.lat) + '&lon=' + encodeURIComponent(loc.lon))
+            .then(resp => {
+                if (!resp.ok) throw new Error('upper_wind HTTP ' + resp.status);
+                return resp.json();
+            })
+            .then(data => (data && Array.isArray(data.times) && data.times.length ? data : null), err => {
+                console.warn('Solar System: no upper wind for the seeing forecast', err);
+                return null;
+            })
+            .then(data => {
+                if (state.wind.pending === key) state.wind.pending = null;
+                const now = state.inputs && state.inputs.location;
+                if (!now || windKey(now) !== key) return;   // the location changed meanwhile
+                state.wind = { key: key, data: data, at: Date.now(), pending: state.wind.pending };
+                renderSeeing();
+            });
+    }
+
+    /** 'Sat 31' in the page's language, the night's date. */
+    function shortDate(date) {
+        const [y, m, d] = date.split('-').map(Number);
+        try {
+            return new Intl.DateTimeFormat(document.documentElement.lang || 'en',
+                {weekday: 'short', day: 'numeric', timeZone: 'UTC'}).format(new Date(Date.UTC(y, m - 1, d)));
+        } catch (e) {
+            return europeanDate(date);
+        }
+    }
+
+    /** The seeing line under the summary and the outlook chips, for the selected body;
+     *  hidden while there is no wind for this location or the calculator is not shown. */
+    function renderSeeing() {
+        const box = $('solar-seeing');
+        const S = i18n.seeing || {};
+        const loc = state.inputs && state.inputs.location;
+        const row = state.result && state.result.rows.find(r => r.body === state.selected);
+        const w = state.wind;
+        const ready = !!(state.calc.telescope && state.calc.camera);
+        if (!ready || !row || !loc || !w.data || w.key !== windKey(loc) || typeof NovaSolarSeeing === 'undefined') {
+            box.hidden = true;
+            return;
+        }
+        const memoKey = JSON.stringify([w.key, w.at, row.body, state.result.date, row.transitUtc, row.muted,
+                                        loc.altitude_threshold, loc.sampling_interval]);
+        let f = state.seeingMemo.key === memoKey ? state.seeingMemo.value : null;
+        if (!f) {
+            try {
+                f = NovaSolarSeeing.forecast({inputs: state.inputs, body: row.body, date: state.result.date,
+                                              wind: w.data, tonight: row});
+            } catch (e) {
+                console.error('Solar System: could not rate the seeing', e);
+                box.hidden = true;
+                return;
+            }
+            state.seeingMemo = { key: memoKey, value: f };
+        }
+        box.hidden = false;
+
+        const line = $('solar-seeing-line');
+        line.innerHTML = '';
+        line.title = '';
+        const t = f.tonight;
+        if (t.level) {
+            // The translation places {level}; the rating word goes in between in bold
+            const parts = fill(S.line, {speed: Math.round(t.median)}).split('{level}');
+            span(line, parts[0]);
+            const word = document.createElement('strong');
+            word.className = 'solar-seeing-level';
+            word.dataset.level = t.level;
+            word.textContent = (S.level || {})[t.level] || '';
+            line.appendChild(word);
+            span(line, parts.slice(1).join(''));
+            line.title = fill(S.help, {body: bodyName(row.body), max: Math.round(t.max)});
+        } else if (simDate() && t.reason === 'nodata') {
+            span(line, S.noForecast);
+        }
+
+        const out = $('solar-seeing-outlook');
+        out.innerHTML = '';
+        out.hidden = !f.outlook.length;
+        if (!f.outlook.length) return;
+        span(out, S.outlook, 'solar-seeing-outlook-label');
+        f.outlook.forEach(n => {
+            const chip = document.createElement('span');
+            chip.className = 'solar-seeing-chip' + (n.reliable ? '' : ' solar-seeing-chip-later');
+            chip.dataset.date = n.date;
+            chip.dataset.level = n.rating.level || '';
+            span(chip, shortDate(n.date));
+            span(chip, n.rating.level ? (S.level || {})[n.rating.level] || '' : '–', 'solar-seeing-chip-level');
+            chip.title = !n.reliable ? (S.lessReliable || '')
+                : n.rating.level ? Math.round(n.rating.median) + ' m/s' : '';
+            out.appendChild(chip);
+        });
+    }
+
     const SVG_NS = 'http://www.w3.org/2000/svg';
     // The preview's box, width over height (solar_system.css .solar-preview-figure,
     // aspect-ratio 3 / 2): the same for every camera, so the card's height never follows
@@ -675,6 +794,7 @@
         const ready = !!(state.calc.telescope && state.calc.camera);
         $('solar-calc-controls').hidden = !ready;
         $('solar-calc-summary').hidden = !ready;
+        if (!ready) $('solar-seeing').hidden = true;
         $('solar-calc-preview').hidden = !ready;
         $('solar-calc-result').hidden = !ready;
         $('solar-calc-empty').hidden = ready;
@@ -684,6 +804,7 @@
 
         const f = NovaSolarRigFit.fit(state.calc.telescope, state.calc.camera, calcAmp(), row.body, row.diameterArcsec);
         renderSummary(f, row);
+        renderSeeing();
         renderPreview(row);
 
         const disc = calcLine(dl, 'disc', C.disc, C.discHelp);
@@ -817,6 +938,7 @@
             renderCalc();
             showChart(force);
             if (state.chart) state.chart.updateNow();
+            loadWind();
         } catch (e) {
             console.error('Solar System: could not calculate', e);
             state.result = null;

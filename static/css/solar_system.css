@@ -202,6 +202,61 @@
   margin: 0 0 14px;
 }
 
+/* The seeing forecast under the summary: one line (its place kept when there is no
+   rating, so the card does not jump between bodies) and the outlook chips. The rating
+   word in bold like the summary's level, no colour (no status tokens). */
+#bodies-tab .solar-seeing {
+  margin: -4px 0 12px;
+  font-size: var(--font-size-2xs);
+  line-height: 1.45;
+  color: var(--text-primary);
+}
+
+#bodies-tab .solar-seeing-line {
+  margin: 0 0 6px;
+  min-height: 1.45em;
+}
+
+#bodies-tab .solar-seeing-line[title]:not([title=""]),
+#bodies-tab .solar-seeing-chip[title]:not([title=""]) {
+  cursor: help;
+}
+
+#bodies-tab .solar-seeing-level,
+#bodies-tab .solar-seeing-chip-level {
+  font-weight: 700;
+}
+
+#bodies-tab .solar-seeing-outlook {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+#bodies-tab .solar-seeing-outlook-label {
+  color: var(--text-secondary);
+  margin-right: 2px;
+}
+
+#bodies-tab .solar-seeing-chip {
+  display: inline-flex;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--border-color, #d0cdc8);
+  border-radius: 5px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+}
+
+/* Beyond 3 days: muted, the tooltip says why */
+#bodies-tab .solar-seeing-chip-later {
+  color: var(--text-muted);
+  background: transparent;
+}
+
 /* Summary, preview and result: stacked in a narrow card; from 900 px of card width the
    preview takes a right-hand column (about 40 %) beside the summary and the result,
    top-aligned. A container query, so the sidebar-free card width decides, not the window. */
@@ -215,7 +270,8 @@
   grid-template-areas: "summary" "preview" "result";
 }
 
-#bodies-tab .solar-calc-body > .solar-calc-summary { grid-area: summary; }
+/* The summary and the seeing forecast under it share the summary area */
+#bodies-tab .solar-calc-body > .solar-calc-lead    { grid-area: summary; }
 #bodies-tab .solar-calc-body > .solar-calc-preview { grid-area: preview; }
 #bodies-tab .solar-calc-body > .solar-calc-result  { grid-area: result; }
 
@@ -434,6 +490,8 @@
 #bodies-tab #solar-calc[hidden],
 #bodies-tab #solar-calc-controls[hidden],
 #bodies-tab #solar-calc-summary[hidden],
+#bodies-tab #solar-seeing[hidden],
+#bodies-tab #solar-seeing-outlook[hidden],
 #bodies-tab #solar-calc-preview[hidden],
 #bodies-tab #solar-calc-result[hidden],
 #bodies-tab #solar-calc-empty[hidden] {

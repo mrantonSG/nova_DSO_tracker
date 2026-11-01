@@ -111,7 +111,13 @@
             <select id="solar-calc-amp" class="styled-select" aria-label="{{ _('Amplification') }}"></select>
         </div>
         <div class="solar-calc-body">
-            <p id="solar-calc-summary" class="solar-calc-summary"></p>
+            <div class="solar-calc-lead">
+                <p id="solar-calc-summary" class="solar-calc-summary"></p>
+                <div id="solar-seeing" class="solar-seeing" hidden>
+                    <p id="solar-seeing-line" class="solar-seeing-line"></p>
+                    <div id="solar-seeing-outlook" class="solar-seeing-outlook"></div>
+                </div>
+            </div>
             <div id="solar-calc-preview" class="solar-calc-preview"></div>
             <dl id="solar-calc-result" class="solar-calc-result"></dl>
         </div>
@@ -290,6 +296,18 @@ const solarI18n = {
             sensorImplausible: {{ _("Check the camera's sensor size: it should be in millimetres (e.g. 7.68 × 4.32 mm).") | tojson }},
             notComputable: {{ _('Cannot be calculated from these values.') | tojson }}
         }
+    },
+    seeing: {
+        line:          {{ _('Seeing tonight: %(level)s (jet stream %(speed)s m/s)', level='{level}', speed='{speed}') | tojson }},
+        level: {
+            steady:    {{ _('likely steady') | tojson }},
+            average:   {{ _('average') | tojson }},
+            poor:      {{ _('likely poor') | tojson }}
+        },
+        help:          {{ _("A forecast, not a measurement. Seeing is estimated from the jet stream: the wind speed 9–12 km up (200–300 hPa), as the median over %(body)s's best hours tonight (peak %(max)s m/s). Calm upper air usually means steadier images; turbulence near the ground isn't included. Data: Open-Meteo.", body='{body}', max='{max}') | tojson }},
+        outlook:       {{ _('Seeing outlook') | tojson }},
+        lessReliable:  {{ _('less reliable beyond 3 days') | tojson }},
+        noForecast:    {{ _('No seeing forecast for this night') | tojson }}
     }
 };
 const solarEquipment = {{ solar_equipment | tojson }};
@@ -307,6 +325,7 @@ const solarEquipment = {{ solar_equipment | tojson }};
 <script src="{{ url_for('static', filename='js/nova_solar_rows.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_solar_calendar.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_solar_rigfit.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/nova_solar_seeing.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/solar_system_chart.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/solar_system.js') }}?v={{ version }}" defer></script>
 {% endblock %}

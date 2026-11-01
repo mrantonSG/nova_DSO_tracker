@@ -21,7 +21,7 @@ NODE = shutil.which("node")
 
 PAGE_ORDER = ("nova_astro.js", "nova_transit.js", "nova_dashboard_rows.js",
               "nova_planets.js", "nova_plot_data.js", "nova_solar_rows.js",
-              "nova_solar_calendar.js", "nova_solar_rigfit.js")
+              "nova_solar_calendar.js", "nova_solar_rigfit.js", "nova_solar_seeing.js")
 
 LONDON = {"name": "Home", "lat": 51.4769, "lon": -0.0005, "timezone": "Europe/London",
           "altitude_threshold": 20, "sampling_interval": 15, "horizon_mask": []}
@@ -83,6 +83,7 @@ if (input.storage && input.storage !== 'throws') {
 }
 
 let routes = {};
+const fetched = [];
 let interval = null;
 let frames = 0;
 const chartCalls = { create: 0, show: 0, resize: 0, updateNow: 0, destroy: 0 };
@@ -98,9 +99,12 @@ const context = {
     setTimeout: (fn, ms) => setTimeout(fn, ms),
     requestAnimationFrame: fn => setTimeout(() => { frames++; fn(Date.now()); }, 0),
     fetch: async url => {
+        fetched.push(String(url));
         const path = String(url).split('?')[0];
         const answer = routes[path];
         if (!answer) throw new Error('offline: ' + url);
+        // {__status: n}: an HTTP error answer
+        if (answer.__status) return { ok: false, status: answer.__status, json: async () => ({}) };
         return { ok: true, status: 200, json: async () => JSON.parse(JSON.stringify(answer)) };
     },
     SolarSystemChart: {
@@ -153,6 +157,8 @@ async function flush() { for (let i = 0; i < 20; i++) await settle(); }
 async function changeLocation(name) { $('location-select').value = name; await $('location-select').fire('change'); for (let i = 0; i < 20; i++) await settle(); }
 const online = () => { routes = { '/get_locations': { locations: ['Home', 'Away'], selected: 'Home' }, '/api/desktop_inputs': input.inputs }; };
 const offline = () => { routes = {}; };
+// One more answer on top of online(): route('/api/upper_wind', {...})
+const route = (path, answer) => { routes[path] = answer; };
 const snap = () => ({
     bodiesShown: panel('bodies'), calendarShown: panel('calendar'),
     solarError: $('solar-error').hidden ? null : $('solar-error').textContent,
@@ -189,7 +195,7 @@ const preset = (key, value) => context.localStorage.setItem(key, value);
 const steps = new Function('h', 'return (async () => {' + fs.readFileSync(stepsFile, 'utf8') + '})();');
 const views = () => viewCalls.slice();
 const chartState = () => Object.assign({instances: charts.length, current: charts.indexOf(charts[charts.length - 1])}, chartCalls);
-steps({ load, tick, click, clickNow, flush, changeLocation, online, offline, snap, table, clickRow, setFilter, el, stored, preset, choose, select, views, chartState, $ }).then(result => {
+steps({ load, tick, click, clickNow, flush, changeLocation, online, offline, route, fetched: () => fetched.slice(), snap, table, clickRow, setFilter, el, stored, preset, choose, select, views, chartState, $ }).then(result => {
     fs.writeFileSync(outFile, JSON.stringify(result));
 }, err => { console.error(err); process.exit(1); });
 """
@@ -996,3 +1002,103 @@ def test_calendar_filter_is_restored_on_load_without_rebuilds(tmp_path, stored_b
     assert restored["rows"] == expected and got["again"] == expected
     assert 0 < len(expected) <= len(got["all"])
     assert got["builds"] == 1, "filter changes, tab switches and the tick do not rebuild"
+
+
+# ------------------------------------------------------------------ Seeing forecast
+
+SEEING_I18N = dict(FULL_I18N, seeing={
+    "line": "Seeing tonight: {level} (jet stream {speed} m/s)",
+    "level": {"steady": "likely steady", "average": "average", "poor": "likely poor"},
+    "help": "HELP {body} peak {max}", "outlook": "Seeing outlook",
+    "lessReliable": "less reliable beyond 3 days", "noForecast": "No seeing forecast for this night",
+})
+
+
+def _upper_wind(w250=12.0, days=8):
+    """/api/upper_wind, hourly from 2026-10-29 00:00 UTC: 200 and 300 hPa calmer than 250."""
+    times = [f"2026-{10 + (d + 28) // 31:02d}-{(d + 28) % 31 + 1:02d}T{h:02d}:00:00Z"
+             for d in range(days) for h in range(24)]
+    n = len(times)
+    return {"times": times, "w200": [5.0] * n, "w250": [w250] * n, "w300": [None] * n, "unit": "m/s"}
+
+
+SEEING_READ = """
+    const flatT = e => e.textContent + e.children.map(flatT).join('');
+    const line = h.$('solar-seeing-line'), out = h.$('solar-seeing-outlook');
+    return {hidden: h.$('solar-seeing').hidden, summaryHidden: h.$('solar-calc-summary').hidden,
+            line: {text: flatT(line), title: line.title,
+                   parts: line.children.map(c => ({tag: c.tagName, text: c.textContent, cls: c.className, level: c.dataset.level}))},
+            outlookHidden: out.hidden, label: out.children.length ? out.children[0].textContent : null,
+            chips: out.children.filter(c => c.className.indexOf('solar-seeing-chip') === 0).map(c => ({
+                cls: c.className, date: c.dataset.date, level: c.dataset.level,
+                text: c.children.map(x => x.textContent), title: c.title})),
+            fetched: h.fetched().filter(u => u.indexOf('/api/upper_wind') === 0)};
+"""
+
+
+def _seeing(tmp_path, body, answer, sim=SIM_DATE, i18n=SEEING_I18N):
+    route = "" if answer is None else f"h.route('/api/upper_wind', {json.dumps(answer)});\n"
+    return _run(tmp_path, "h.online();\n" + route + "await h.load('bodies');\n" + SEEING_READ,
+                equipment=EQUIPMENT, search="?body=" + body, i18n=i18n, sim=sim, now_ms=SUMMARY_NOW_MS)
+
+
+def test_seeing_line_and_outlook(tmp_path):
+    """Saturn on the night of 2026-10-30: the hourly maximum (12 m/s at 250 hPa) rates it
+    likely steady; the word is bold (no colour class), the tooltip names the body and the
+    peak. Five chips, the last two muted and marked less reliable. The page asked for the
+    location's coordinates after it had rendered."""
+    got = _seeing(tmp_path, "saturn", _upper_wind())
+    assert not got["hidden"] and not got["summaryHidden"]
+    assert got["line"]["text"] == "Seeing tonight: likely steady (jet stream 12 m/s)"
+    assert [p for p in got["line"]["parts"] if p["tag"] == "strong"] == [
+        {"tag": "strong", "text": "likely steady", "cls": "solar-seeing-level", "level": "steady"}]
+    assert got["line"]["title"] == "HELP Saturn peak 12"
+    assert not got["outlookHidden"] and got["label"] == "Seeing outlook"
+    chips = got["chips"]
+    assert [c["date"] for c in chips] == ["2026-10-30", "2026-10-31", "2026-11-01", "2026-11-02", "2026-11-03"]
+    # The short date as Intl writes it for the page's language ('30 Fri' in English)
+    assert sorted(chips[0]["text"][0].split()) == ["30", "Fri"] and chips[0]["text"][1] == "likely steady"
+    assert chips[0]["title"] == "12 m/s"
+    assert [c["cls"] for c in chips] == ["solar-seeing-chip"] * 3 + ["solar-seeing-chip solar-seeing-chip-later"] * 2
+    assert [c["title"] for c in chips[3:]] == ["less reliable beyond 3 days"] * 2
+    assert got["fetched"] == ["/api/upper_wind?lat=51.4769&lon=-0.0005"]
+
+
+@pytest.mark.parametrize("answer", [
+    None,                                                          # network error
+    {"__status": 500},                                             # HTTP error
+    {"times": [], "w200": [], "w250": [], "w300": [], "unit": "m/s"},  # nothing cached
+])
+def test_seeing_hidden_on_any_error(tmp_path, answer):
+    """No wind, for whatever reason: the seeing line and chips are hidden, the rest of
+    the calculator is untouched."""
+    got = _seeing(tmp_path, "saturn", answer)
+    assert got["hidden"] and not got["summaryHidden"]
+    assert len(got["fetched"]) == 1, "asked once, no retry"
+
+
+def test_seeing_line_translated(tmp_path):
+    """The translation places the rating word; the bold word follows it."""
+    i18n = json.loads(json.dumps(SEEING_I18N))
+    i18n["seeing"]["line"] = "Seeing heute Nacht ({speed} m/s Jetstream): {level}"
+    i18n["seeing"]["level"]["poor"] = "wahrscheinlich unruhig"
+    got = _seeing(tmp_path, "saturn", _upper_wind(w250=41.6), i18n=i18n)
+    assert [p["text"] for p in got["line"]["parts"]] == [
+        "Seeing heute Nacht (42 m/s Jetstream): ", "wahrscheinlich unruhig", ""]
+    assert got["chips"][0]["text"][1] == "wahrscheinlich unruhig"
+
+
+def test_seeing_simulation_outside_the_forecast(tmp_path):
+    """A simulated night weeks after the data: the line says so, no chips."""
+    got = _seeing(tmp_path, "saturn", _upper_wind(), sim="2026-12-15")
+    assert not got["hidden"]
+    assert got["line"]["text"] == "No seeing forecast for this night" and got["line"]["title"] == ""
+    assert got["outlookHidden"] and got["chips"] == []
+
+
+def test_seeing_for_a_muted_body(tmp_path):
+    """Venus stays under the threshold: no rating line (its place kept), chips without a
+    rating word."""
+    got = _seeing(tmp_path, "venus", _upper_wind())
+    assert not got["hidden"] and got["line"]["text"] == "" and got["line"]["title"] == ""
+    assert got["chips"][0]["text"][1] == "–" and got["chips"][0]["level"] == ""
