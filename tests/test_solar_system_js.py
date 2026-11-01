@@ -129,6 +129,8 @@ context.window.history = { replaceState() {} };
 context.self = context;
 context.globalThis = context;
 vm.createContext(context);
+// A pinned wall clock, when the case gives one: the context's own Date.now
+if (input.nowMs !== null && input.nowMs !== undefined) vm.runInContext('Date.now = () => ' + Number(input.nowMs) + ';', context);
 for (const file of files) vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
 // Calendar builds, counted: NovaSolarCalendar.events() is the build
 let builds = 0;
@@ -195,7 +197,7 @@ steps({ load, tick, click, clickNow, flush, changeLocation, online, offline, sna
 pytestmark = pytest.mark.skipif(NODE is None, reason="node is not installed")
 
 
-def _run(tmp_path, steps, equipment=None, search="", i18n=None, sim=None, storage=None):
+def _run(tmp_path, steps, equipment=None, search="", i18n=None, sim=None, storage=None, now_ms=None):
     driver = tmp_path / "driver.js"
     driver.write_text(_DRIVER)
     case = tmp_path / "steps.js"
@@ -203,7 +205,8 @@ def _run(tmp_path, steps, equipment=None, search="", i18n=None, sim=None, storag
     inp = tmp_path / "in.json"
     inp.write_text(json.dumps({"inputs": {"location": LONDON}, "i18n": i18n or I18N,
                                "equipment": equipment if equipment is not None else {"telescopes": [], "cameras": []},
-                               "search": search, "sim": sim, "storage": storage}))
+                               "search": search, "sim": sim, "storage": storage,
+                               "nowMs": now_ms}))
     out = tmp_path / "out.json"
     run = subprocess.run(
         [NODE, str(driver), str(case), str(inp), str(out), str(STATIC_JS / "solar_system.js")]
@@ -547,8 +550,11 @@ def test_focal_ratio_hint_follows_the_status(tmp_path, amp, text, hints):
     assert fr["spans"][-1]["cls"] == "solar-calc-status"
 
 
-# On SIM_DATE in London (max altitude tonight): Jupiter 52°, Saturn 40°, Mars 55°,
-# Neptune 38°, Venus 4°, the Moon 64°. The defaults: the C11 and the ASI462 at 1.5x, on target.
+# SIM_DATE in London at 10:00 wall time: before noon, so the page judges the night of
+# 2026-10-30 (max altitude): Jupiter 52°, Saturn 40°, Mars 55°, Neptune 38°, Venus 4°,
+# the Moon 64°. Pinned, because the night follows the wall clock (from 12:00 it is the
+# night of 10-31, Venus 5°). The defaults: the C11 and the ASI462 at 1.5x, on target.
+SUMMARY_NOW_MS = 1793527200000   # 2026-11-01T10:00:00Z; only the wall clock is used
 @pytest.mark.parametrize("body, text", [
     ("jupiter", "Excellent setup for Jupiter. Fine detail possible, focal ratio on target."),
     ("saturn", "Excellent setup for Saturn. Fine detail possible, focal ratio on target."),
@@ -560,7 +566,8 @@ def test_focal_ratio_hint_follows_the_status(tmp_path, amp, text, hints):
 def test_summary_line_per_body(tmp_path, body, text):
     """The summary comes first, above the values, from the fit and the Bodies table's
     max altitude tonight."""
-    got = _run(tmp_path, CARD, equipment=EQUIPMENT, search="?body=" + body, i18n=FULL_I18N, sim=SIM_DATE)
+    got = _run(tmp_path, CARD, equipment=EQUIPMENT, search="?body=" + body, i18n=FULL_I18N, sim=SIM_DATE,
+               now_ms=SUMMARY_NOW_MS)
     assert not got["summary"]["hidden"] and got["summary"]["text"] == text
 
 
