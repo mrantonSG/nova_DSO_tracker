@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 07:14+0800\n"
+"POT-Creation-Date: 2026-11-02 07:50+0800\n"
 "PO-Revision-Date: 2026-03-27 13:26+0800\n"
 "Last-Translator: \n"
 "Language: de\n"
@@ -6540,6 +6540,11 @@ msgstr ""
 #: templates/solar_system.html:269
 msgid "Moon detail could not be calculated."
 msgstr "Monddetails konnten nicht berechnet werden."
+
+#: templates/solar_system.html:271
+#, python-format
+msgid "Feature names: %(source)s"
+msgstr "Namen der Formationen: %(source)s"
 
 #: templates/solar_system.html:270
 #, python-format

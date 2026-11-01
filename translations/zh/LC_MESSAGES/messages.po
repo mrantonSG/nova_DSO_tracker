@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 07:14+0800\n"
+"POT-Creation-Date: 2026-11-02 07:50+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh\n"
@@ -6343,6 +6343,11 @@ msgstr "此地不可见：此时太阳在地平线以上，或月球低于您的
 #: templates/solar_system.html:269
 msgid "Moon detail could not be calculated."
 msgstr "无法计算月球详情。"
+
+#: templates/solar_system.html:271
+#, python-format
+msgid "Feature names: %(source)s"
+msgstr "地貌名称：%(source)s"
 
 #: templates/solar_system.html:270
 #, python-format
