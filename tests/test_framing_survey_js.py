@@ -22,6 +22,8 @@ NODE = shutil.which("node")
 DSS = "P/DSS2/color"
 NSNS = "https://www.simg.de/nebulae3/dr0_2/rgb8"
 NSNS_OHS = "https://www.simg.de/nebulae3/dr0_2/ohs8"
+ESA = "https://skies.esac.esa.int/DSSColor"
+CASDA = "https://casda.csiro.au/hips/DSS2/color"
 
 _DRIVER = r"""
 'use strict';
@@ -38,6 +40,7 @@ const fu = ctx.window.framingUtils;
 
 const out = {
     fallback: fu.SURVEY_FALLBACK,
+    mirrors: fu.DSS_MIRRORS,
     choose: input.choose.map(c => fu.chooseBaseSurvey(c)),
     isCds: input.isCds.map(u => fu.isCdsUrl(u)),
 };
@@ -64,9 +67,9 @@ def run_utils(tmp_path_factory):
     return run
 
 
-def _case(requested=DSS, *, on_cds=True, up=True, dec=40.0, fov=1.0, known=True):
+def _case(requested=DSS, *, on_cds=True, up=True, dec=40.0, fov=1.0, known=True, mirror=None):
     return {"requested": requested, "requestedOnCds": on_cds, "cdsReachable": up,
-            "decDeg": dec, "fovDeg": fov, "known": known}
+            "decDeg": dec, "fovDeg": fov, "known": known, "dssMirror": mirror}
 
 
 def _choose(run_utils, *cases):
@@ -144,6 +147,64 @@ def test_unknown_id_uses_the_default_with_notice(run_utils):
     assert res == [{"survey": DSS, "notice": True},
                    {"survey": NSNS, "notice": True},
                    {"survey": DSS, "notice": True}]
+
+
+def test_dss_mirror_list(run_utils):
+    """ESA first, CASDA second; neither is a CDS host (so neither is itself skipped)."""
+    res = run_utils(is_cds=[ESA, CASDA])
+    assert res["mirrors"] == [ESA, CASDA]
+    assert res["isCds"] == [False, False]
+
+
+def test_mirror_answered_replaces_dss_north_and_south(run_utils):
+    res = _choose(run_utils,
+                  _case(DSS, up=False, dec=40, mirror=ESA),
+                  _case(DSS, up=False, dec=-40, mirror=ESA),
+                  _case(DSS, up=False, dec=None, mirror=CASDA))
+    assert res == [{"survey": ESA, "notice": True},
+                   {"survey": ESA, "notice": True},
+                   {"survey": CASDA, "notice": True}]
+
+
+def test_no_mirror_answered_falls_back_as_before(run_utils):
+    """No mirror (null or empty): NSNS in the north, the requested survey in the south."""
+    res = _choose(run_utils,
+                  _case(DSS, up=False, dec=40, mirror=None),
+                  _case(DSS, up=False, dec=-40, mirror=None),
+                  _case(DSS, up=False, dec=40, mirror=""))
+    assert res == [{"survey": NSNS, "notice": True},
+                   {"survey": DSS, "notice": True},
+                   {"survey": NSNS, "notice": True}]
+
+
+def test_other_cds_surveys_take_the_dss_mirror(run_utils):
+    """DSS is the closer substitute for 2MASS, WISE, ... than NSNS, north or south."""
+    res = _choose(run_utils,
+                  _case("P/2MASS/color", up=False, dec=40, mirror=ESA),
+                  _case("P/allWISE/color", up=False, dec=-40, mirror=CASDA))
+    assert res == [{"survey": ESA, "notice": True},
+                   {"survey": CASDA, "notice": True}]
+
+
+def test_unknown_id_with_mirror_uses_the_mirror(run_utils):
+    res = _choose(run_utils,
+                  _case("P/Some/legacy", on_cds=False, known=False, up=False, dec=-40, mirror=ESA),
+                  _case("P/Some/legacy", on_cds=False, known=False, up=True, dec=-40, mirror=ESA))
+    assert res == [{"survey": ESA, "notice": True},
+                   {"survey": DSS, "notice": True}]
+
+
+def test_mirror_ignored_when_not_needed(run_utils):
+    """CDS up: the requested survey, mirror or not. NSNS requested while CDS is down: NSNS."""
+    res = _choose(run_utils,
+                  _case(DSS, up=True, dec=-40, mirror=ESA),
+                  _case("P/2MASS/color", up=True, dec=40, mirror=CASDA),
+                  _case(NSNS_OHS, on_cds=False, up=False, dec=50, mirror=ESA),
+                  _case(NSNS, on_cds=False, up=False, dec=-50, mirror=CASDA))
+    assert res == [{"survey": DSS, "notice": False},
+                   {"survey": "P/2MASS/color", "notice": False},
+                   {"survey": NSNS_OHS, "notice": False},
+                   {"survey": NSNS, "notice": False}]
 
 
 def test_is_cds_url(run_utils):

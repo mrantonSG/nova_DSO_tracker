@@ -104,18 +104,45 @@
     const CDS_PROBE_TIMEOUT_MS = 4000;
     let cdsProbePromise = null;   // memoised for the page session; dropped after a failure
     let cdsReachable = true;      // result of the probe awaited by the current framing open
+    let dssMirrorPromise = null;  // memoised like cdsProbePromise
+    let dssMirror = null;         // DSS2 color mirror URL that answered, used while CDS is unreachable
 
-    function probeCds() {
-        if (cdsProbePromise) return cdsProbePromise;
+    // true when <baseUrl>/properties answers 2xx within CDS_PROBE_TIMEOUT_MS
+    function probeHips(baseUrl) {
         const ctrl = new AbortController();
         const timer = setTimeout(() => ctrl.abort(), CDS_PROBE_TIMEOUT_MS);
-        const p = fetch(HIPS_ID_TO_URL['P/DSS2/color'] + '/properties', { signal: ctrl.signal, cache: 'no-store' })
+        return fetch(baseUrl + '/properties', { signal: ctrl.signal, cache: 'no-store' })
             .then(r => r.ok)
             .catch(() => false)
             .finally(() => clearTimeout(timer));
+    }
+
+    function probeCds() {
+        if (cdsProbePromise) return cdsProbePromise;
+        const p = probeHips(HIPS_ID_TO_URL['P/DSS2/color']);
         cdsProbePromise = p;
         p.then(ok => { if (!ok && cdsProbePromise === p) cdsProbePromise = null; });   // next open probes again
         return p;
+    }
+
+    // First DSS2 color mirror (framingUtils.DSS_MIRRORS order) that answers, or null
+    function probeDssMirror() {
+        if (dssMirrorPromise) return dssMirrorPromise;
+        const p = (async () => {
+            for (const url of window.framingUtils.DSS_MIRRORS) {
+                if (await probeHips(url)) return url;
+            }
+            return null;
+        })();
+        dssMirrorPromise = p;
+        p.then(url => { if (!url && dssMirrorPromise === p) dssMirrorPromise = null; });   // next open probes again
+        return p;
+    }
+
+    // Label of the #survey-select option for a displayed survey (a DSS mirror shows as DSS2 color)
+    function surveyOptionLabel(value) {
+        const v = window.framingUtils.DSS_MIRRORS.includes(value) ? 'P/DSS2/color' : value;
+        return document.querySelector(`#survey-select option[value='${v}']`)?.textContent;
     }
 
     // Frame size for the NSNS coverage check: the selected rig's diagonal, in degrees
@@ -134,6 +161,7 @@
             known,
             requestedOnCds: known && window.framingUtils.isCdsUrl(resolveHipsId(value)),
             cdsReachable,
+            dssMirror,
             decDeg: window.NOVA_GRAPH_DATA?.objectDECDeg,
             fovDeg: framingFovDeg()
         });
@@ -624,6 +652,7 @@
     let fovLayer = null;
     let altitudeChart = null;
     let __blendSurveyId = null;
+    let __blendLayerUrl = null;       // URL the blend layer was built from (CDS or a DSS mirror)
     let displayedBaseSurvey = null;   // survey value of the base layer actually shown (may be the NSNS fallback)
     let displayedBlendSurvey = null;  // survey value of the blend layer actually shown, null when none
     let framingModalController = null; // ModalController instance for framing modal
@@ -643,18 +672,26 @@
         const existing = aladin.getOverlayImageLayer && aladin.getOverlayImageLayer('blend');
         const blendOp = Number(document.getElementById('blend-opacity')?.value || 0);
 
-        // CDS unreachable: no CDS blend layer (saved blend values stay as they are)
-        const resolvedId = resolveHipsId(surveyId);
+        // CDS unreachable: DSS2 color comes from a mirror that answered; any other CDS blend
+        // layer is skipped (saved blend values stay as they are)
+        let resolvedId = resolveHipsId(surveyId);
+        let shownValue = surveyId;   // what the credit sees: the select value, or the mirror URL
         if (!cdsReachable && window.framingUtils.isCdsUrl(resolvedId)) {
-            if (existing) aladin.removeImageLayer('blend');
-            __blendSurveyId = null;
-            displayedBlendSurvey = null;
-            if (blendOp > 0) showSurveyNotice();
-            return null;
+            if (surveyId === 'P/DSS2/color' && dssMirror) {
+                resolvedId = dssMirror;
+                shownValue = dssMirror;
+            } else {
+                if (existing) aladin.removeImageLayer('blend');
+                __blendSurveyId = null;
+                __blendLayerUrl = null;
+                displayedBlendSurvey = null;
+                if (blendOp > 0) showSurveyNotice();
+                return null;
+            }
         }
 
-        if (existing && __blendSurveyId === surveyId) {
-            displayedBlendSurvey = surveyId;
+        if (existing && __blendSurveyId === surveyId && __blendLayerUrl === resolvedId) {
+            displayedBlendSurvey = shownValue;
             return existing;
         }
 
@@ -672,7 +709,8 @@
             if (hpx) {
                 aladin.setOverlayImageLayer(hpx, 'blend');
                 __blendSurveyId = surveyId;
-                displayedBlendSurvey = surveyId;
+                __blendLayerUrl = resolvedId;
+                displayedBlendSurvey = shownValue;
                 return aladin.getOverlayImageLayer('blend');
             }
         } catch (e) {
@@ -696,9 +734,11 @@
         'P/PanSTARRS/DR1/color-z-zg-g': 'Pan-STARRS1 DR1 · HiPS: CDS',
         'P/SDSS9/color': 'SDSS DR9 · HiPS: CDS'
     };
+    const DSS_MIRROR_CREDIT = 'dssmirror:'; // sentinel prefix + mirror URL: DSS2 credit plus the mirror host
     function surveyCreditFor(value) {
         if (!value) return null;
         if (value.startsWith(NSNS_URL_PREFIX)) return NSNS_CREDIT;
+        if (window.framingUtils.DSS_MIRRORS.includes(value)) return DSS_MIRROR_CREDIT + value;
         return Object.prototype.hasOwnProperty.call(SURVEY_CREDITS, value) ? SURVEY_CREDITS[value] : null;
     }
     function appendCreditLink(parent, text, href) {
@@ -710,6 +750,12 @@
         parent.appendChild(a);
     }
     function appendSurveyCredit(parent, credit) {
+        if (credit.startsWith(DSS_MIRROR_CREDIT)) {
+            const mirrorUrl = credit.slice(DSS_MIRROR_CREDIT.length);
+            parent.appendChild(document.createTextNode(DSS2_CREDIT + ' · '));
+            appendCreditLink(parent, new URL(mirrorUrl).hostname, mirrorUrl);
+            return;
+        }
         if (credit !== NSNS_CREDIT) { parent.appendChild(document.createTextNode(credit)); return; }
         appendCreditLink(parent, 'Northern Sky Narrowband Survey', NSNS_URL_PREFIX);
         parent.appendChild(document.createTextNode(' © Stefan Ziegenbalg, '));
@@ -2356,9 +2402,11 @@
 
         (function ensureRotationReadout(){ const slider = document.getElementById('framing-rotation'); if (!slider) return; slider.setAttribute('min', '0'); slider.setAttribute('max', '360'); slider.setAttribute('step', '0.5'); if (!slider.hasAttribute('value')) slider.setAttribute('value', '0'); let n = slider.nextSibling; while (n && n.nodeType === Node.TEXT_NODE) { const t = n.textContent.trim(), next = n.nextSibling; if (t === '' || t === '0°') n.parentNode.removeChild(n); else break; n = next; } const existingSpans = Array.from(document.querySelectorAll('#rotation-value')); let span = existingSpans[0]; if (existingSpans.length > 1) existingSpans.slice(1).forEach(el => el.remove()); if (!span) { span = document.createElement('span'); span.id = 'rotation-value'; span.style.marginLeft = '8px'; span.style.fontWeight = 'normal'; span.style.fontSize = '15px'; slider.insertAdjacentElement('afterend', span); try { span.style.fontWeight = 'normal'; } catch(_) {} } try { span.style.cursor = 'pointer'; span.title = 'Tap to reset rotation to 0°'; span.addEventListener('click', () => { const slider = document.getElementById('framing-rotation'); if (!slider) return; slider.value = '0'; slider.dispatchEvent(new Event('input', { bubbles: true })); }, { once: false }); } catch (e) {} })();
 
-        // Is CDS reachable? Decides the base layer below (NSNS fallback when it is not)
+        // Is CDS reachable? If not, which DSS2 mirror answers? Decides the base layer below
+        // (mirror, else NSNS, when CDS is down)
         resetSurveyNotice();
         cdsReachable = await probeCds();
+        dssMirror = cdsReachable ? null : await probeDssMirror();
 
         // Check if Aladin instance is cached (already initialized from previous modal open)
         if (!aladin && framingModalController) {
@@ -2374,7 +2422,7 @@
                 // DSS2 by default; NSNS instead while CDS is unreachable (northern objects)
                 const initialBase = chooseDisplayedBase("P/DSS2/color");
                 const initialUrl = resolveHipsId(initialBase.survey);
-                const initialName = document.querySelector(`#survey-select option[value='${initialBase.survey}']`)?.textContent || initialUrl;
+                const initialName = surveyOptionLabel(initialBase.survey) || initialUrl;
                 aladin = A.aladin('#aladin-lite-div', {
                     survey: A.HiPS(initialUrl, { name: initialName, cooFrame: 'equatorial', maxOrder: 9, errorCallback: onSurveyLayerError }),
                     fov: FRAMING_CONFIG.DEFAULT_FOV,
@@ -2865,7 +2913,7 @@
         const choice = chooseDisplayedBase(hipsId);
         const shownId = choice.survey;
         const resolvedId = resolveHipsId(shownId);
-        const friendlyName = document.querySelector(`#survey-select option[value='${shownId}']`)?.textContent || resolvedId;
+        const friendlyName = surveyOptionLabel(shownId) || resolvedId;
 
         try {
             newLayer = aladin.createImageSurvey(

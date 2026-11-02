@@ -836,6 +836,13 @@ window.framingUtils_SURVEY_FALLBACK = Object.freeze({
     NSNS_MIN_DEC_DEG: -16                                     // NSNS covers Dec >= -16 deg only
 });
 
+// Registered mirrors of ivo://CDS/P/DSS2/color (same tiles, order 9, jpeg) that send CORS
+// headers, in the order they are tried while CDS is unreachable. IRSA is left out: no CORS.
+window.framingUtils_DSS_MIRRORS = Object.freeze([
+    'https://skies.esac.esa.int/DSSColor',          // ESA ESASky
+    'https://casda.csiro.au/hips/DSS2/color'        // CSIRO CASDA
+]);
+
 /**
  * True when a HiPS URL is served by CDS (alasky / alaskybis, *.unistra.fr, *.u-strasbg.fr)
  *
@@ -854,17 +861,19 @@ window.framingUtils_isCdsUrl = function(url) {
  * Which survey the Framing Assistant shows as its base layer.
  *
  * The requested survey is what the user chose (select, saved framing or URL); it is
- * shown unless CDS is unreachable and the survey lives there. Then NSNS stands in
- * when the whole frame is inside NSNS coverage (Dec - FOV/2 >= -16), otherwise the
- * requested survey is kept (there is no non-CDS survey for the south). A survey ID
- * Nova has no URL for is replaced by the default. Only the displayed layer changes;
- * the caller keeps the requested value for everything that is saved.
+ * shown unless CDS is unreachable and the survey lives there. Then a DSS2 color mirror
+ * that answered stands in (for any CDS survey: DSS is the closest substitute); without
+ * one, NSNS stands in when the whole frame is inside NSNS coverage (Dec - FOV/2 >= -16),
+ * otherwise the requested survey is kept. A survey ID Nova has no URL for is replaced
+ * by the default. Only the displayed layer changes; the caller keeps the requested
+ * value for everything that is saved.
  *
  * @param {Object} opts
  * @param {string} opts.requested - Requested survey ID or URL
  * @param {boolean} opts.known - false when `requested` is an ID with no known URL
  * @param {boolean} opts.requestedOnCds - The requested survey is served by CDS
  * @param {boolean} opts.cdsReachable - The CDS probe succeeded
+ * @param {string|null} opts.dssMirror - DSS2 color mirror URL that answered its probe, or null
  * @param {number|null} opts.decDeg - Object declination in degrees (missing = south)
  * @param {number} opts.fovDeg - Field of view in degrees
  * @returns {{survey: string, notice: boolean}} Survey to display, and whether to show the
@@ -883,6 +892,10 @@ window.framingUtils_chooseBaseSurvey = function(opts) {
         notice = true;
     }
     if (o.cdsReachable || !onCds) return { survey, notice };
+
+    if (typeof o.dssMirror === 'string' && o.dssMirror) {
+        return { survey: o.dssMirror, notice: true };
+    }
 
     const dec = (o.decDeg === null || o.decDeg === undefined || o.decDeg === '') ? NaN : Number(o.decDeg);
     const fov = (Number.isFinite(Number(o.fovDeg)) && Number(o.fovDeg) > 0) ? Number(o.fovDeg) : 0;
@@ -930,6 +943,7 @@ window.framingUtils = {
     isValidFov: window.framingUtils_isValidFov,
     isValidRotation: window.framingUtils_isValidRotation,
     SURVEY_FALLBACK: window.framingUtils_SURVEY_FALLBACK,
+    DSS_MIRRORS: window.framingUtils_DSS_MIRRORS,
     isCdsUrl: window.framingUtils_isCdsUrl,
     chooseBaseSurvey: window.framingUtils_chooseBaseSurvey,
 };
