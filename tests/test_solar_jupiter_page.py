@@ -15,6 +15,8 @@ import json
 import math
 import re
 import subprocess
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -39,11 +41,16 @@ I18N = {
     "galilean": "DOUBLE ({moons}, {minutes} min)",
     "jupiter": {
         "title": "JUPITER", "error": "JUP ERROR", "highestAt": "at {time}", "north": "N",
-        "northHelp": "NORTH TIP", "diameter": "DIA", "diameterHelp": "DIA TIP",
-        "magnitude": "MAG", "illuminated": "ILLUM", "cm": "CM", "cmHelp": "CM TIP",
-        "de": "DE", "deHelp": "DE TIP", "east": "east", "west": "west",
+        "northHelp": "NORTH TIP", "cmII": "CM II", "cmIIHelp": "CM TIP",
+        "systemI": "I {deg}", "systemIII": "III {deg}", "east": "east", "west": "west",
         "onDisc": "on the disc", "inFront": "in front", "behind": "behind",
-        "eclipse": "in eclipse", "rj": "{rj} Rj", "rjFromCentre": "{rj} radii",
+        "eclipse": "in eclipse", "rjFromCentre": "{rj} radii",
+        "grs": {"none": "GRS NONE", "meta": "II {lon} @ {date}", "help": "GRS HELP",
+                "tonight": "TONIGHT {times}", "next": "NEXT:", "noNext": "NO NEXT",
+                "source": "DEFAULT {lon} {date}", "user": "YOURS {lon} {date}",
+                "drift": "DRIFT {rate}", "stale": "STALE"},
+        "grsMarker": "GRS MARK", "legendVisible": "L-VISIBLE", "legendBehind": "L-BEHIND",
+        "legendEclipsed": "L-ECLIPSED", "legendShadow": "L-SHADOW", "legendGrs": "L-GRS",
         "shadowOnDisc": "SHADOW", "minutes": "{n} min", "altitude": "alt {alt}",
         "double": "double", "doubleHelp": "DOUBLE TIP", "shadowAt": "shadow at {time}",
         "until": "until {time}", "noEvents": "NO EVENTS", "noShadows": "NO SHADOWS",
@@ -55,11 +62,12 @@ I18N = {
     },
     "mars": {
         "title": "MARS", "error": "MARS ERROR", "highestAt": "at {time}", "north": "N",
-        "diameter": "DIA", "magnitude": "MAG", "illuminated": "ILLUM", "distance": "DIST",
-        "cm": "CM", "de": "DE", "credit": "SRC {source}", "diagramAria": "MARS DIAGRAM",
-        "poleTilt": "tilt {deg}", "position": "{lat}/{lon}", "cmDist": "cm {deg}",
-        "nearLimb": "LIMB", "nextPassage": "next {time} {when}", "today": "TONIGHT",
-        "tomorrow": "TOMORROW", "inDays": "IN {n}",
+        "cm": "CM", "cmHelp": "CM TIP", "deNorth": "N-US {deg}", "deSouth": "S-US {deg}",
+        "dsNorth": "N-SUN {deg}", "dsSouth": "S-SUN {deg}", "best": "BEST",
+        "bestHelp": "BEST {name}", "bar": "BAR {deg}", "nextOnCm": "NEXT {time}",
+        "capNorth": "CAP N", "capSouth": "CAP S",
+        "credit": "SRC {source}", "diagramAria": "MARS DIAGRAM",
+        "position": "{lat}/{lon}", "cmDist": "cm {deg}", "nearLimb": "LIMB",
         "empty": {"none": "NOTHING", "notUp": "NOTUP"},
         "types": {"mons": "Mountain", "crater": "Crater", "albedo": "Albedo"},
     },
@@ -96,8 +104,13 @@ const jupCard = () => {
         tiles: h.$('solar-jupiter-tiles').children.map(t => ({
             label: t.children[0].textContent, value: t.children[1].children[0].textContent,
             cls: t.children[1].children[0].className, title: t.title })),
-        moons: h.$('solar-jupiter-moons').children.map(li => ({
-            moon: li.dataset.moon, cls: li.className, parts: parts(li), title: li.title })),
+        grs: { times: h.$('solar-jupiter-grs-times').textContent,
+               none: h.$('solar-jupiter-grs-times').classList.contains('solar-card-grs-none'),
+               meta: h.$('solar-jupiter-grs-meta').textContent,
+               stale: h.$('solar-jupiter-grs').dataset.stale, title: h.$('solar-jupiter-grs').title,
+               reset: !h.$('solar-jupiter-grs-reset').hidden, edit: !h.$('solar-jupiter-grs-edit').hidden,
+               form: !h.$('solar-jupiter-grs-form').hidden,
+               invalid: !h.$('solar-jupiter-grs-invalid').hidden },
         events: h.$('solar-jupiter-events').children.map(li => ({
             type: li.dataset.type, below: li.classList.contains('solar-card-below'),
             parts: parts(li), title: li.title })),
@@ -108,12 +121,17 @@ const jupCard = () => {
         pressed: pressed(jupButtons),
         svg: !svg ? null : {
             viewBox: svg.attrs.viewBox, label: svg.attrs['aria-label'],
+            width: +svg.attrs.width, height: +svg.attrs.height, scale: +svg.attrs['data-scale'],
+            legend: svg.children[0].tagName === 'title' ? svg.children[0].textContent : null,
             discs: withClass(svg, 'solar-card-disc').length,
+            disc: withClass(svg, 'solar-card-disc').map(c => ({ cx: +c.attrs.cx, cy: +c.attrs.cy, r: +c.attrs.r }))[0],
             moons: withClass(svg, 'solar-card-moon').map(g => ({ moon: g.attrs['data-moon'],
                 cls: g.attrs.class, cx: +g.children[0].attrs.cx, cy: +g.children[0].attrs.cy,
                 r: +g.children[0].attrs.r, title: g.children[1].textContent })),
             labels: withClass(svg, 'solar-card-moon-label').map(t => ({
-                text: t.textContent, x: +t.attrs.x, y: +t.attrs.y })),
+                text: t.textContent, moon: t.attrs['data-moon'], x: +t.attrs.x, y: +t.attrs.y })),
+            grs: withClass(svg, 'solar-card-grs').map(g => ({ cx: +g.children[0].attrs.cx,
+                cy: +g.children[0].attrs.cy, rx: +g.children[0].attrs.rx, title: g.children[1].textContent })),
             shadows: withClass(svg, 'solar-card-shadow').map(g => ({ moon: g.attrs['data-moon'],
                 cx: +g.children[0].attrs.cx, cy: +g.children[0].attrs.cy, title: g.children[1].textContent })),
             north: withClass(svg, 'solar-card-north').map(t => ({
@@ -125,12 +143,13 @@ const marsCard = () => {
     const box = h.$('solar-mars'), body = h.$('solar-mars-body'), svg = svgOf('solar-mars-diagram');
     const marker = g => ({ n: g.attrs['data-n'], cx: +g.children[0].attrs.cx,
         cy: +g.children[0].attrs.cy, r: +g.children[0].attrs.r, title: g.children[1].textContent });
-    // A feature chip: the number when it has one, the name, the type, and the bar's width
+    // A feature chip: its parts' classes, the name and the bar's width
     const chip = li => {
-        const c = li.children, off = c[0].className === 'solar-card-num' ? 1 : 0;
-        return { n: li.dataset.n || null, side: li.dataset.side, cls: li.className,
-            num: off ? c[0].textContent : null, name: c[off].textContent,
-            type: c[off + 1].textContent, bar: c[off + 2].children[0].style.width,
+        const c = li.children;
+        // The stand-in keeps classList apart from className: both, as a browser has them
+        return { n: li.dataset.n || null, side: li.dataset.side,
+            cls: [li.className].concat([...li.classList.set]).join(' '),
+            parts: c.map(x => x.className), name: c[0].textContent, bar: c[1].children[0].style.width,
             title: li.title, label: li.attrs['aria-label'] || null, focusable: li.attrs.tabindex || null };
     };
     const pole = g => { const d = g.children[0].attrs.d.split(' ');
@@ -141,7 +160,7 @@ const marsCard = () => {
         bodyHidden: body.hidden, muted: body.classList.contains('solar-card-muted'),
         tiles: h.$('solar-mars-tiles').children.map(t => ({
             label: t.children[0].textContent, value: t.children[1].children[0].textContent,
-            title: t.title })),
+            note: t.children[2] ? t.children[2].textContent : null, title: t.title })),
         features: h.$('solar-mars-features').children.map(chip),
         moreList: h.$('solar-mars-more-list').children.map(chip),
         more: h.$('solar-mars-more-list').children.length, moreHidden: h.$('solar-mars-more').hidden,
@@ -159,17 +178,28 @@ const marsCard = () => {
             terminator: withClass(svg, 'solar-card-terminator').length,
             markers: withClass(svg, 'solar-card-marker').map(marker),
             pole: withClass(svg, 'solar-card-pole').map(pole),
-            north: withClass(svg, 'solar-card-north').map(t => ({
-                text: t.textContent, x: +t.attrs.x, y: +t.attrs.y })),
+            caps: withClass(svg, 'solar-card-cap').map(g => ({ pole: g.attrs['data-pole'],
+                d: g.children[0].attrs.d, title: g.children[1].textContent })),
+            svgNorth: withClass(svg, 'solar-card-north').length,
+            // N is HTML over the drawing: its place in percent of the box
+            north: h.$('solar-mars-diagram').children.filter(c => c.className === 'solar-card-north-label')
+                .map(c => ({ text: c.textContent, left: parseFloat(c.style.left), top: parseFloat(c.style.top),
+                             title: c.title })),
         },
     };
 };
 """
 
 
+# The driver's storage, with removeItem (the GRS tile's Reset), which a browser has
+_STORE = "setItem: (k, v) => m.set(k, String(v)) };"
+assert _DRIVER.count(_STORE) == 1
+_CARDS_DRIVER = _DRIVER.replace(_STORE, "setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) };")
+
+
 def _run(tmp_path, steps, search="?body=jupiter", sim=None, storage=None, order=CARDS_ORDER):
     driver = tmp_path / "driver.js"
-    driver.write_text(_DRIVER)
+    driver.write_text(_CARDS_DRIVER)
     case = tmp_path / "steps.js"
     # The steps run in node, whose clock is the real one; the page's is the vm's, pinned by
     # the driver to NOW_MS. The cases are handed the same number so they can ask the modules
@@ -220,6 +250,13 @@ def _time(hm, hm_day):
     return hm + (f" {'−' if hm_day < 0 else '+'}{abs(hm_day)}" if hm_day else "")
 
 
+def _when(utc_ms, hm):
+    """The page's local date and time of an instant in London: 'Wed 9 Dec 21:14', the
+    date the event's own, the time the module's."""
+    local = datetime.fromtimestamp(utc_ms / 1000, tz=ZoneInfo(LONDON["timezone"]))
+    return f"{local:%a} {local.day} {local:%b} {hm}"
+
+
 def test_jupiter_card_only_while_jupiter_is_selected(tmp_path):
     got = _run(tmp_path, """
         h.online();
@@ -236,70 +273,41 @@ def test_jupiter_card_only_while_jupiter_is_selected(tmp_path):
 
 
 def test_jupiter_card_shows_the_moons_the_phenomena_and_the_shadows(tmp_path):
-    """9 Dec 2026, London: five tiles, the four moons with where each one is, tonight's six
-    phenomena with their times and lengths, the next nights' shadow transits, and the
+    """9 Dec 2026, London: the GRS tile and the System II tile, tonight's six phenomena and
+    the next nights' shadow transits, each at its own local date and time, and the
     drawing. Every value is the module's own for the same inputs."""
     got = _run(tmp_path, _oracle("2026-12-09") + """
         h.online();
         await h.load('bodies');
-        return { card: jupCard(), strip: {R: J.STRIP_RJ, H: J.STRIP_HALF_HEIGHT},
-                 t: { hm: t.hm, mag: t.mag, illuminated: t.illuminated, ge: t.geometry,
-                      events: t.events, moons: t.moons.map(m => ({name: m.name, x: m.x, y: m.y,
-                          rj: m.rj, front: m.front, onDisc: m.onDisc, eclipsed: m.eclipsed,
-                          shadow: m.shadow, dist: Math.hypot(m.x, m.y).toFixed(1)})) },
-                 d: d, next: next.shadows,
-                 dates: next.shadows.map(s => { const [y, m, dd] = s.date.split('-').map(Number);
-                     return new Intl.DateTimeFormat('en', {weekday: 'short', day: 'numeric',
-                         month: 'short', timeZone: 'UTC'}).format(new Date(Date.UTC(y, m - 1, dd))); }) };
+        return { card: jupCard(), strip: {R: J.STRIP_RJ},
+                 t: { hm: t.hm, ge: t.geometry, events: t.events,
+                      moons: t.moons.map(m => ({name: m.name, x: m.x, y: m.y, front: m.front,
+                          onDisc: m.onDisc, eclipsed: m.eclipsed, shadow: m.shadow})) },
+                 d: d, next: next.shadows };
     """, sim="2026-12-09")
     card, t, d = got["card"], got["t"], got["d"]
     assert re.fullmatch(r"JUPITER · at \d\d:\d\d", card["title"])
     assert card["title"] == "JUPITER · at " + t["hm"]
     assert not card["hidden"] and card["error"] is None and not card["muted"]
 
-    # The tiles: diameter, magnitude, illumination, the two central meridians, De
+    # The tiles after the GRS tile: System II alone, System I and III in its tooltip
     tiles = card["tiles"]
-    assert [tile["label"] for tile in tiles] == ["DIA", "MAG", "ILLUM", "CM", "DE"]
-    assert [tile["cls"] for tile in tiles] == ["solar-card-tile-value"] * 5
-    assert tiles[0]["value"].endswith("″") and _num(tiles[0]["value"]) == pytest.approx(
-        t["ge"]["diameterArcsec"], abs=0.05)
-    assert _num(tiles[1]["value"]) == pytest.approx(t["mag"], abs=0.05)
-    assert tiles[2]["value"].endswith("%") and _num(tiles[2]["value"]) == pytest.approx(
-        t["illuminated"] * 100, abs=0.5)
-    assert tiles[3]["value"].endswith("°") and " · " in tiles[3]["value"]
-    assert [_num(part) for part in tiles[3]["value"].split(" · ")] == [
-        pytest.approx(t["ge"]["cm"]["I"], abs=0.5), pytest.approx(t["ge"]["cm"]["II"], abs=0.5)]
-    assert tiles[4]["value"][0] == ("−" if t["ge"]["de"] < 0 else "+")
-    assert _num(tiles[4]["value"]) == pytest.approx(t["ge"]["de"], abs=0.05)
-    assert tiles[4]["value"].endswith("°")
-    assert tiles[0]["title"] == "DIA TIP" and tiles[3]["title"] == "CM TIP"
-    assert tiles[1]["title"] == "" and tiles[2]["title"] == ""
+    assert [tile["label"] for tile in tiles] == ["CM II"]
+    assert tiles[0]["cls"] == "solar-card-tile-value" and tiles[0]["value"].endswith("°")
+    assert _num(tiles[0]["value"]) == pytest.approx(t["ge"]["cm"]["II"], abs=0.5)
+    assert tiles[0]["title"] == "\n".join(["CM TIP", f"I {t['ge']['cm']['I']:.0f}",
+                                           f"III {t['ge']['cm']['III']:.0f}"])
 
-    # The moons: all four, in the engine's order, each with which side of Jupiter it is on,
-    # in front of the disc or behind the planet, in eclipse or not, and how far out
-    assert [chip["moon"] for chip in card["moons"]] == [m["name"] for m in t["moons"]]
-    for chip, m in zip(card["moons"], t["moons"]):
-        place = ["east" if m["x"] >= 0 else "west",
-                 "on the disc" if m["onDisc"] else "in front" if m["front"] else "behind"]
-        if m["eclipsed"]:
-            place.append("in eclipse")
-        assert chip["cls"] == "solar-card-item solar-card-moon"
-        assert chip["parts"] == [{"cls": "solar-card-name", "text": m["name"].capitalize()},
-                                 {"cls": "solar-card-note", "text": " · ".join(place)},
-                                 {"cls": "solar-card-distance", "text": m["dist"] + " Rj"}]
-        assert chip["title"].split("\n") == [" · ".join(place), f"{m['rj']:.2f} radii"] \
-            + (["SHADOW"] if m["shadow"] else [])
-    assert any(m["onDisc"] for m in t["moons"]), "no moon on the disc to check"
-
-    # Tonight's phenomena: the engine's own events in order, each with its time, what it is,
-    # the moon, how long it lasts, the altitude in the tooltip and the double badge
+    # Tonight's phenomena: the engine's own events in order, each with its own local date
+    # and time (no day suffix), what it is, the moon, how long it lasts, the altitude in
+    # the tooltip and the double badge
     assert [chip["type"] for chip in card["events"]] == [e["type"] for e in t["events"]]
     assert card["events"], "no phenomena to check"
     types = {"transit": "Satellite transit", "occultation": "Occultation", "eclipse": "Eclipse",
              "shadow": "Shadow transit"}
     for chip, e in zip(card["events"], t["events"]):
         assert chip["parts"][:4] == [
-            {"cls": "solar-card-time", "text": _time(e["hm"], e["hmDay"])},
+            {"cls": "solar-card-time", "text": _when(e["startUtcMs"], e["hm"])},
             {"cls": "solar-card-name", "text": types[e["type"]]},
             {"cls": "solar-card-note", "text": e["moon"].capitalize()},
             {"cls": "solar-card-note", "text": f"{e['minutes']} min"}]
@@ -310,54 +318,59 @@ def test_jupiter_card_shows_the_moons_the_phenomena_and_the_shadows(tmp_path):
         assert lines[2].startswith("alt ")
         assert ("BELOW" in lines) == (not e["visible"])
         assert ("DOUBLE TIP" in lines) == bool(e["double"])
+    assert any(e["hmDay"] for e in t["events"]), "an event after midnight, to check its date"
+    for chip in card["events"] + card["shadows"]:
+        assert re.fullmatch(r"\w{3} \d{1,2} \w{3} \d\d:\d\d", chip["parts"][0]["text"]), chip["parts"][0]
+        assert "+" not in chip["parts"][0]["text"], "no day suffix"
 
-    # The next nights' shadow transits, doubles merged: one chip per row, the moons that
-    # pair up, the length, and the tooltip's own time
+    # The next nights' shadow transits, doubles merged: one chip per row, its own date and
+    # time, the moons that pair up, the length, and the tooltip's own time
     assert got["next"] and len(card["shadows"]) == len(got["next"])
-    for chip, s, date in zip(card["shadows"], got["next"], got["dates"]):
-        time = _time(s["hm"], s["hmDay"])
+    for chip, s in zip(card["shadows"], got["next"]):
+        when = _when(s["utcMs"], s["hm"])
         assert chip["type"] == "shadow"
-        assert chip["parts"][0] == {"cls": "solar-card-date", "text": date}
-        assert re.fullmatch(r"\w{3}, \w{3} \d{1,2}", chip["parts"][0]["text"]), chip["parts"][0]
-        assert chip["parts"][1:] == (
-            [{"cls": "solar-card-time", "text": time},
+        assert chip["parts"] == (
+            [{"cls": "solar-card-time", "text": when},
              {"cls": "solar-card-name", "text": " + ".join(m.capitalize() for m in s["moons"])},
              {"cls": "solar-card-note", "text": f"{s['minutes']} min"}]
             + ([{"cls": "solar-card-badge", "text": "double"}] if s["double"] else []))
-        assert chip["title"].startswith("shadow at " + time)
+        assert chip["title"].startswith("shadow at " + when)
     assert card["noShadows"] is None and card["empty"] is None
 
-    # The drawing: the strip's own frame, the disc on the moons' line, a dot and a label
-    # per moon (hollow behind the planet), a dark spot per shadow, and celestial north
-    svg, R, H = card["svg"], got["strip"]["R"], got["strip"]["H"]
-    assert svg["viewBox"] == f"{-(R + 1)} {-H} {2 * (R + 1)} {2 * H}"
+    # The drawing: the moons' symbols by what each is doing, a black dot per shadow, the
+    # legend in the drawing's own tooltip, each moon's place in its own
+    svg = card["svg"]
     assert svg["label"] == "JUP DIAGRAM" and svg["discs"] == 1
+    assert svg["legend"].split("\n") == ["JUP DIAGRAM", "L-VISIBLE", "L-BEHIND", "L-ECLIPSED",
+                                         "L-SHADOW", "L-GRS"]
+    k, cx, cy = svg["scale"], svg["width"] / 2, svg["height"] / 2
     assert [dot["moon"] for dot in svg["moons"]] == [m["name"] for m in t["moons"]]
-    for dot, m in zip(svg["moons"], d["moons"]):
-        assert dot["cx"] == pytest.approx(m["x"], abs=1e-6)
-        assert dot["cy"] == pytest.approx(m["y"], abs=1e-6)
-        assert dot["r"] == 0.26 and abs(dot["cy"]) <= H
-        assert dot["cls"] == ("solar-card-moon" if m["front"]
-                              else "solar-card-moon solar-card-moon-behind")
-        assert dot["title"].startswith(m["name"].capitalize() + " — ") and " Rj" not in dot["title"]
-    assert [label["text"] for label in svg["labels"]] == ["Io", "Europa", "Ganymede", "Callisto"]
-    assert [label["x"] for label in svg["labels"]] == [dot["cx"] for dot in svg["moons"]]
-    assert all(abs(label["y"]) <= H for label in svg["labels"])
+    for dot, m, dm in zip(svg["moons"], t["moons"], d["moons"]):
+        assert dot["cx"] == pytest.approx(cx + dm["x"] * k, abs=0.02)
+        assert dot["cy"] == pytest.approx(cy + dm["y"] * k, abs=0.02)
+        assert dot["cls"] == "solar-card-moon solar-card-moon-" + dm["state"]
+        place = ["east" if m["x"] >= 0 else "west",
+                 "on the disc" if m["onDisc"] else "in front" if m["front"] else "behind"]
+        if m["eclipsed"]:
+            place.append("in eclipse")
+        assert dot["title"].split("\n") == [m["name"].capitalize(), " · ".join(place),
+                                            f"{math.hypot(m['x'], m['y']):.1f} radii"]
+    assert sorted(label["text"] for label in svg["labels"]) == ["Callisto", "Europa", "Ganymede", "Io"]
 
     spots = [(m, s) for m, s in zip(t["moons"], d["moons"]) if s["shadow"]]
     assert spots, "no shadow on the disc to check"
     assert [spot["moon"] for spot in svg["shadows"]] == [m["name"] for m, _ in spots]
     for spot, (m, s) in zip(svg["shadows"], spots):
-        assert spot["cx"] == pytest.approx(s["shadow"]["x"], abs=1e-6)
-        assert spot["cy"] == pytest.approx(s["shadow"]["y"], abs=1e-6)
+        assert spot["cx"] == pytest.approx(cx + s["shadow"]["x"] * k, abs=0.02)
+        assert spot["cy"] == pytest.approx(cy + s["shadow"]["y"] * k, abs=0.02)
+        assert math.hypot(spot["cx"] - cx, spot["cy"] - cy) <= k + 0.02, "on the disc"
         assert spot["title"] == m["name"].capitalize() + " — SHADOW"
 
     north = svg["north"]
     assert len(north) == 1 and north[0]["text"] == "N" and north[0]["title"] == "NORTH TIP"
-    # The label sits 1.85 Rj out along celestial north, written to two decimals
-    assert north[0]["x"] == pytest.approx(float(f"{d['north']['x'] * 1.85:.2f}"), abs=1e-9)
-    assert north[0]["y"] == pytest.approx(float(f"{d['north']['y'] * 1.85:.2f}"), abs=1e-9)
-    assert math.hypot(north[0]["x"], north[0]["y"]) == pytest.approx(1.85, abs=0.01)
+    # 14 px outside the disc, along celestial north
+    assert north[0]["x"] == pytest.approx(cx + d["north"]["x"] * (k + 14), abs=0.02)
+    assert north[0]["y"] == pytest.approx(cy + d["north"]["y"] * (k + 14), abs=0.02)
 
 
 def test_jupiter_card_is_quiet_when_it_is_below_the_threshold(tmp_path):
@@ -371,7 +384,7 @@ def test_jupiter_card_is_quiet_when_it_is_below_the_threshold(tmp_path):
     """, sim="2027-08-01")
     assert low["reason"] == "altitude" and low["maxAlt"] < low["threshold"] == 20
     assert low["card"]["muted"] and low["card"]["empty"] == "BELOW"
-    assert len(low["card"]["moons"]) == 4 and low["card"]["events"] == []
+    assert len(low["card"]["svg"]["moons"]) == 4 and low["card"]["events"] == []
     assert low["card"]["noShadows"] == "NO SHADOWS", "not one shadow transit in the fortnight"
 
     up = _run(tmp_path, _oracle("2027-09-01") + """
@@ -381,7 +394,7 @@ def test_jupiter_card_is_quiet_when_it_is_below_the_threshold(tmp_path):
     """, sim="2027-09-01")
     assert up["reason"] == "notUp" and up["maxAlt"] < 0
     assert up["card"]["muted"] and up["card"]["empty"] == "NOTUP"
-    assert len(up["card"]["moons"]) == 4 and up["card"]["events"] == []
+    assert len(up["card"]["svg"]["moons"]) == 4 and up["card"]["events"] == []
 
     quiet = _run(tmp_path, _oracle("2027-02-14") + """
         h.online();
@@ -473,17 +486,18 @@ def test_the_cards_view_switch_is_shared_and_mirrors_the_drawing(tmp_path):
     assert got["inverted"]["stored"] == "inverted"
     assert got["inverted"]["pressed"] == ["inverted"] and got["inverted"]["marsPressed"] == ["inverted"]
     assert got["inverted"]["moonPressed"] == ["inverted"], "the Moon's own buttons follow"
-    normal = {dot["moon"]: dot for dot in got["normal"]["svg"]["moons"]}
-    diagonal = {dot["moon"]: dot for dot in got["diagonal"]["svg"]["moons"]}
-    inverted = {dot["moon"]: dot for dot in got["inverted"]["card"]["svg"]["moons"]}
-    for moon, dot in diagonal.items():
-        assert dot["cx"] == pytest.approx(-normal[moon]["cx"], abs=1e-6)
-        assert dot["cy"] == pytest.approx(normal[moon]["cy"], abs=1e-6)
-    for moon, dot in inverted.items():
-        assert dot["cx"] == pytest.approx(-normal[moon]["cx"], abs=1e-6)
-        assert dot["cy"] == pytest.approx(-normal[moon]["cy"], abs=1e-6)
-    assert got["diagonal"]["svg"]["north"][0]["x"] == pytest.approx(
-        -got["normal"]["svg"]["north"][0]["x"], abs=1e-6)
+    # In pixels about the disc's centre, which stays in the middle of the strip
+    cx, cy = got["normal"]["svg"]["width"] / 2, got["normal"]["svg"]["height"] / 2
+    rel = lambda card: {dot["moon"]: (dot["cx"] - cx, dot["cy"] - cy) for dot in card["svg"]["moons"]}
+    normal, diagonal, inverted = rel(got["normal"]), rel(got["diagonal"]), rel(got["inverted"]["card"])
+    for moon, (x, y) in diagonal.items():
+        assert x == pytest.approx(-normal[moon][0], abs=0.02)
+        assert y == pytest.approx(normal[moon][1], abs=0.02)
+    for moon, (x, y) in inverted.items():
+        assert x == pytest.approx(-normal[moon][0], abs=0.02)
+        assert y == pytest.approx(-normal[moon][1], abs=0.02)
+    assert got["diagonal"]["svg"]["north"][0]["x"] - cx == pytest.approx(
+        -(got["normal"]["svg"]["north"][0]["x"] - cx), abs=0.02)
 
 
 def test_the_calendar_carries_the_galilean_rows_and_the_filter_narrows_them(tmp_path):
@@ -559,6 +573,237 @@ def test_a_galilean_row_opens_jupiter_on_the_bodies_tab(tmp_path):
     assert "chart-section" in got["views"], "scrolled to the chart"
 
 
+# --- the Great Red Spot -------------------------------------------------------------------
+
+_GRS = """
+const SJ = h.context.NovaSolarJupiter;
+const gopts = {inputs: {location: %(site)s}, nowMs: NOW_MS, simDate: '%(sim)s'};
+const grsOf = o => { const g = SJ.grs(gopts, o);
+    return { tonight: g.tonight.map(x => ({hm: x.hm, utcMs: x.utcMs})),
+             next: g.next.map(x => ({hm: x.hm, utcMs: x.utcMs})), stale: g.stale,
+             refLon: g.refLon, refDate: g.refDate }; };
+"""
+
+
+def _grs(sim):
+    return _GRS % {"site": SITE, "sim": sim}
+
+
+def test_grs_tile_shows_tonights_transit_and_the_next_nights(tmp_path):
+    """7 Nov 2026, London: the spot crosses the central meridian at 03:14 with Jupiter up.
+    The tile shows that time large, the longitude and its date under it, the next nights'
+    transits at their own date and time in its tooltip; the spot is on the drawing while it
+    faces us. The built-in value is five months old: no warning."""
+    got = _run(tmp_path, _oracle("2026-11-07") + _grs("2026-11-07") + """
+        h.online();
+        await h.load('bodies');
+        const ref = SJ.grsReference(null);
+        return { card: jupCard(), g: grsOf(null),
+                 marker: SJ.diagram(t.geometry, 'normal', t.moons, SJ.grsLongitude(ref, t.instantUtc)).grs };
+    """, sim="2026-11-07")
+    card, g = got["card"], got["g"]
+    assert [x["hm"] for x in g["tonight"]] == ["03:14"]
+    tile = card["grs"]
+    assert tile["times"] == "03:14" and not tile["none"]
+    assert tile["meta"] == "II 91.0 @ 2026-06-01"
+    assert tile["stale"] == "false" and not tile["reset"] and tile["edit"] and not tile["form"]
+    lines = tile["title"].split("\n")
+    assert lines[0] == "GRS HELP"
+    assert lines[1] == "TONIGHT " + _when(g["tonight"][0]["utcMs"], "03:14")
+    assert lines[2] == "NEXT:"
+    assert lines[3:3 + len(g["next"])] == [_when(x["utcMs"], x["hm"]) for x in g["next"]]
+    assert lines[3 + len(g["next"]):] == ["DEFAULT 91.0 2026-06-01", "DRIFT +1.75"]
+    assert "STALE" not in lines
+    # The spot on the drawing when it faces us at the card's instant, nowhere else
+    marks = card["svg"]["grs"]
+    if got["marker"]["visible"]:
+        k, cx, cy = card["svg"]["scale"], card["svg"]["width"] / 2, card["svg"]["height"] / 2
+        assert len(marks) == 1 and marks[0]["title"] == "GRS MARK"
+        assert marks[0]["cx"] == pytest.approx(cx + got["marker"]["x"] * k, abs=0.02)
+        assert marks[0]["cy"] == pytest.approx(cy + got["marker"]["y"] * k, abs=0.02)
+    else:
+        assert marks == []
+
+
+def test_grs_tile_warns_when_the_longitude_is_old(tmp_path):
+    """16 Dec 2026: the built-in longitude is more than six months old. The tile keeps the
+    prediction and takes the warning state (the warning colour, in the stylesheet), and the
+    tooltip says why; a night without a transit says so in place of the times."""
+    old = _run(tmp_path, _grs("2026-12-16") + """
+        h.online();
+        await h.load('bodies');
+        return { card: jupCard(), g: grsOf(null) };
+    """, sim="2026-12-16")
+    tile = old["card"]["grs"]
+    assert old["g"]["stale"] and tile["stale"] == "true"
+    assert tile["times"] == " · ".join(x["hm"] for x in old["g"]["tonight"]) == "00:30"
+    assert tile["title"].split("\n")[-1] == "STALE"
+
+    none = _run(tmp_path, _grs("2026-12-09") + """
+        h.online();
+        await h.load('bodies');
+        return { card: jupCard(), g: grsOf(null) };
+    """, sim="2026-12-09")
+    assert none["g"]["tonight"] == [] and none["card"]["grs"]["times"] == "GRS NONE"
+    assert none["card"]["grs"]["none"] and none["card"]["grs"]["stale"] == "true"
+
+    css = (STATIC_JS.parent / "css" / "solar_system.css").read_text()
+    rule = css.index('#bodies-tab .solar-card-grs[data-stale="true"] .solar-card-grs-meta {')
+    assert "color: #94600f;" in css[rule:css.index("}", rule)], "the seeing tiles' warning colour"
+
+
+def test_grs_edit_and_reset_are_kept(tmp_path):
+    """Edit opens the form with the current value; a bad value is refused and nothing is
+    kept; Save keeps the user's longitude under nova_solar_grs and the transits move with
+    it; the next visit starts from it; Reset goes back to the built-in value."""
+    got = _run(tmp_path, _grs("2026-11-07") + """
+        h.online();
+        await h.load('bodies');
+        const out = { before: jupCard().grs };
+        await h.$('solar-jupiter-grs-edit').fire('click');
+        out.open = { card: jupCard().grs, lon: h.$('solar-jupiter-grs-lon').value,
+                     date: h.$('solar-jupiter-grs-date').value };
+        h.$('solar-jupiter-grs-lon').value = '400';
+        await h.$('solar-jupiter-grs-save').fire('click');
+        out.refused = { card: jupCard().grs, stored: h.stored('nova_solar_grs') };
+        h.$('solar-jupiter-grs-lon').value = '120,5';
+        h.$('solar-jupiter-grs-date').value = '2026-11-01';
+        await h.$('solar-jupiter-grs-save').fire('click');
+        out.saved = { card: jupCard().grs, stored: h.stored('nova_solar_grs'),
+                      g: grsOf({lon: 120.5, date: '2026-11-01'}) };
+        await h.$('solar-jupiter-grs-reset').fire('click');
+        out.reset = { card: jupCard().grs, stored: h.stored('nova_solar_grs') };
+        return out;
+    """, sim="2026-11-07")
+    assert got["before"]["times"] == "03:14"
+    assert got["open"]["card"]["form"] and not got["open"]["card"]["edit"]
+    assert (got["open"]["lon"], got["open"]["date"]) == ("91.0", "2026-06-01")
+    assert got["refused"]["card"]["invalid"] and got["refused"]["card"]["form"]
+    assert got["refused"]["stored"] is None
+    saved = got["saved"]
+    assert json.loads(saved["stored"]) == {"lon": 120.5, "date": "2026-11-01"}
+    assert not saved["card"]["form"] and saved["card"]["edit"] and saved["card"]["reset"]
+    assert saved["card"]["meta"] == "II 120.5 @ 2026-11-01"
+    assert saved["card"]["times"] == " · ".join(x["hm"] for x in saved["g"]["tonight"])
+    assert saved["card"]["times"] != "03:14", "the transits move with the longitude"
+    assert "YOURS 120.5 2026-11-01" in saved["card"]["title"].split("\n")
+    assert got["reset"]["stored"] is None and not got["reset"]["card"]["reset"]
+    assert got["reset"]["card"]["times"] == "03:14"
+    assert got["reset"]["card"]["meta"] == "II 91.0 @ 2026-06-01"
+
+    # The next visit: the kept value is the one the card starts from
+    again = _run(tmp_path, """
+        h.online();
+        await h.load('bodies');
+        return jupCard().grs;
+    """, sim="2026-11-07", storage={"nova_solar_grs": json.dumps({"lon": 120.5, "date": "2026-11-01"})})
+    assert again["meta"] == "II 120.5 @ 2026-11-01" and again["reset"]
+    assert again["times"] == saved["card"]["times"]
+
+    # A kept value that is not usable is ignored
+    broken = _run(tmp_path, """
+        h.online();
+        await h.load('bodies');
+        return jupCard().grs;
+    """, sim="2026-11-07", storage={"nova_solar_grs": "{not json"})
+    assert broken["meta"] == "II 91.0 @ 2026-06-01" and not broken["reset"]
+
+
+def test_grs_tile_works_with_blocked_storage(tmp_path):
+    """Site data blocked: every read and write throws. The card draws with the built-in
+    value, and an edit still holds for the visit."""
+    got = _run(tmp_path, """
+        h.online();
+        await h.load('bodies');
+        const out = { before: jupCard() };
+        await h.$('solar-jupiter-grs-edit').fire('click');
+        h.$('solar-jupiter-grs-lon').value = '200';
+        h.$('solar-jupiter-grs-date').value = '2026-10-20';
+        await h.$('solar-jupiter-grs-save').fire('click');
+        out.saved = jupCard();
+        await h.$('solar-jupiter-grs-reset').fire('click');
+        out.reset = jupCard();
+        return out;
+    """, search="?body=jupiter", storage="throws")
+    before = got["before"]
+    assert not before["hidden"] and before["error"] is None
+    assert before["grs"]["meta"] == "II 91.0 @ 2026-06-01" and not before["grs"]["reset"]
+    assert got["saved"]["error"] is None and got["saved"]["grs"]["meta"] == "II 200.0 @ 2026-10-20"
+    assert got["saved"]["grs"]["reset"] and not got["saved"]["grs"]["form"]
+    assert got["reset"]["grs"]["meta"] == "II 91.0 @ 2026-06-01"
+
+
+# --- the drawing ---------------------------------------------------------------------------
+
+def _boxes(labels):
+    """The page's own estimate of each label's box (JUP_CHAR_PX, JUP_LABEL_PX)."""
+    return [(lb["x"] - (len(lb["text"]) * 7 + 4) / 2, lb["x"] + (len(lb["text"]) * 7 + 4) / 2,
+             lb["y"] - 7, lb["y"] + 7) for lb in labels]
+
+
+def test_jupiter_is_centred_at_one_fixed_scale(tmp_path):
+    """Every night the same: the disc in the middle of a 160 px strip, STRIP_RJ Jupiter
+    radii each side, so Callisto at its greatest elongation still fits; the names never
+    overlap one another or the disc, and stay inside the strip."""
+    cards = {}
+    for sim in ("2026-11-07", "2026-11-14", "2026-12-09", "2026-12-16"):
+        cards[sim] = _run(tmp_path, """
+            h.online();
+            await h.load('bodies');
+            return { card: jupCard(), R: h.context.NovaSolarJupiter.STRIP_RJ };
+        """, sim=sim)
+    for sim, got in cards.items():
+        svg, R = got["card"]["svg"], got["R"]
+        W, H = svg["width"], svg["height"]
+        assert R >= 26.5, "wide enough for Callisto's greatest elongation"
+        assert (W, H) == (720, 160), "the stand-in has no layout: the default width"
+        assert svg["viewBox"] == f"0 0 {W} {H}"
+        assert svg["scale"] == pytest.approx((W / 2 - 8) / R, abs=1e-6)
+        assert svg["disc"] == {"cx": W / 2, "cy": H / 2, "r": round(svg["scale"], 2)}
+        assert all(0 <= dot["cx"] <= W and 0 <= dot["cy"] <= H for dot in svg["moons"])
+        labels = svg["labels"]
+        assert sorted(lb["moon"] for lb in labels) == ["callisto", "europa", "ganymede", "io"]
+        boxes = _boxes(labels)
+        disc = (W / 2 - svg["scale"], W / 2 + svg["scale"], H / 2 - svg["scale"], H / 2 + svg["scale"])
+        for i, a in enumerate(boxes):
+            assert a[0] >= 0 and a[1] <= W and a[2] >= 0 and a[3] <= H, f"{sim}: outside the strip"
+            assert not (a[0] < disc[1] and disc[0] < a[1] and a[2] < disc[3] and disc[2] < a[3]), \
+                f"{sim}: a name over the disc"
+            for b in boxes[i + 1:]:
+                assert not (a[0] < b[1] and b[0] < a[1] and a[2] < b[3] and b[2] < a[3]), \
+                    f"{sim}: two names overlap: {labels}"
+    scales = {got["card"]["svg"]["scale"] for got in cards.values()}
+    assert len(scales) == 1, "one scale, whatever the night"
+
+
+def test_moon_symbols_follow_each_moons_state(tmp_path):
+    """A filled light dot beside or in front of the disc, a dashed ring behind it, a faded
+    ring in eclipse: the class is the module's state for that moon, and the stylesheet
+    draws each one so. Shadows are the only black."""
+    seen = set()
+    for sim in ("2026-11-07", "2026-11-14"):
+        got = _run(tmp_path, _oracle(sim) + """
+            h.online();
+            await h.load('bodies');
+            return { card: jupCard(), states: d.moons.map(m => [m.name, m.state]) };
+        """, sim=sim)
+        classes = {dot["moon"]: dot["cls"] for dot in got["card"]["svg"]["moons"]}
+        for name, state in got["states"]:
+            assert classes[name] == "solar-card-moon solar-card-moon-" + state
+            seen.add(state)
+    assert seen == {"visible", "behind", "eclipsed"}
+    css = (STATIC_JS.parent / "css" / "solar_system.css").read_text()
+    rule = lambda sel: css[css.index(sel + " {"):css.index("}", css.index(sel + " {"))]
+    visible = rule("#bodies-tab .solar-jupiter-svg .solar-card-moon-visible circle")
+    behind = rule("#bodies-tab .solar-jupiter-svg .solar-card-moon-behind circle")
+    eclipsed = rule("#bodies-tab .solar-jupiter-svg .solar-card-moon-eclipsed circle")
+    assert "fill: var(--solar-body-moon);" in visible
+    assert "fill: none;" in behind and "stroke-dasharray" in behind
+    assert "fill: none;" in eclipsed and "var(--text-faint)" in eclipsed
+    assert "fill: #000;" in rule("#bodies-tab .solar-card-shadow circle")
+    assert css.count("#000;") == 1, "black is only ever a shadow"
+
+
 # --- the template --------------------------------------------------------------------------
 
 def _scripts(html):
@@ -598,17 +843,15 @@ def test_page_loads_the_card_scripts_after_their_engines(client):
 
 # --- the stylesheet ------------------------------------------------------------------------
 
-def test_the_strips_names_are_drawn_only_where_they_can_be_read():
-    """The moon names are set in the strip's own units, so their size is a fixed share of
-    the card: 16 px on a laptop, 4 px on a phone. Below 750 px they are dropped rather
-    than drawn unreadably -- the strip keeps the whole figure in view instead of
-    scrolling a 900 px one, and the chips below name every moon in the order they lie
-    along the line. N stays: one glyph, and where it sits is the message."""
+def test_the_strips_names_are_a_fixed_size_at_every_width():
+    """The strip is drawn in pixels at the width it is shown, so its names and N are set
+    at a fixed 12 px and never hidden: no rule scales them with the drawing or drops them
+    on a narrow card."""
     css = (STATIC_JS.parent / "css" / "solar_system.css").read_text()
-    base = css.index("#bodies-tab .solar-jupiter-svg .solar-card-moon-label {")
-    assert "display: none" not in css[base:css.index("}", base)]
-    start = css.index("@container solar-card (max-width: 749px)")
-    block = css[start:css.index("\n}\n", start)]
-    assert ".solar-card-moon-label {" in block and "display: none;" in block
-    assert "solar-card-north" not in block
-
+    base = css.index("#bodies-tab .solar-jupiter-svg .solar-card-moon-label,\n"
+                     "#bodies-tab .solar-jupiter-svg .solar-card-north {")
+    assert "font-size: 12px;" in css[base:css.index("}", base)]
+    assert "@container solar-card (max-width: 749px)" not in css
+    assert not re.search(r"solar-card-moon-label[^{]*\{[^}]*display:\s*none", css)
+    height = css.index("#bodies-tab #solar-jupiter-diagram {")
+    assert "height: 160px;" in css[height:css.index("}", height)]

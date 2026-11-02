@@ -99,13 +99,38 @@
  *   same set — pays for them once. Measured on this machine: 154 ms for London and 114 ms
  *   for Singapore over the 6-month window, against the Calendar's own 322 ms build.
  *
- * diagram(g, mode, moons) -> the system drawn in Jupiter's own frame, for a strip
- *   STRIP_RJ radii to each side and STRIP_HALF_HEIGHT up and down, in SVG coordinates
- *   (y down):
- *     moons    [{ name, x, y, front, onDisc, eclipsed, shadow }], x along Jupiter's
- *              equator towards its western limb and y towards its north pole, both in
- *              Jupiter radii from the disc's centre, `shadow` where that moon's shadow
- *              falls on the disc (null when it falls off it)
+ * grs(opts, override) -> the Great Red Spot's predicted transits of the central meridian:
+ *   {
+ *     refLon, refDate, user,      the System II longitude the prediction starts from, the
+ *                                 day it was measured, and whether it is the user's own
+ *                                 (override, { lon, date }) or the shipped GRS default
+ *     driftPerMonth, lat,         the drift applied from refDate, and the latitude the
+ *                                 spot is drawn at
+ *     ageDays, stale,             refDate's age on the observing night, and whether that
+ *                                 is more than GRS_STALE_DAYS (the drift is then a guess)
+ *     tonight,                    [{ night, utcMs, hm, alt }]: the transits in tonight's
+ *                                 night window while Jupiter is at or above the threshold
+ *     next,                       the same for the next GRS_NEXT_NIGHTS nights
+ *   }
+ *   A transit is the instant System II's central meridian reaches the spot's longitude,
+ *   the longitude drifting at driftPerMonth from refDate. These are predictions: the spot
+ *   wanders by a few degrees from any straight-line drift.
+ *
+ * grsReference(override) -> { lon, date, user }: the override when it is a usable one
+ *   (lon 0..360, date a real YYYY-MM-DD), else the default. grsLongitude(ref, utcMs) ->
+ *   the drifted System II longitude at utcMs.
+ *
+ * diagram(g, mode, moons, grsLon) -> the system drawn in Jupiter's own frame, Jupiter
+ *   radii from the disc's centre, x right and y down as SVG has them (the page scales it
+ *   to a fixed STRIP_RJ radii each side of the centre):
+ *     moons    [{ name, x, y, front, onDisc, eclipsed, state, shadow }], x along
+ *              Jupiter's equator towards its western limb and y towards its north pole,
+ *              `shadow` where that moon's shadow falls on the disc (null when it falls
+ *              off it). `state` is what the drawing shows: 'eclipsed' in Jupiter's
+ *              shadow, 'behind' hidden behind the disc, else 'visible' (in front of the
+ *              disc, or beside it)
+ *     grs      { x, y, visible } for the Great Red Spot at System II longitude grsLon
+ *              (null without one); visible while it is on the hemisphere facing us
  *     north    unit vector towards celestial north in the figure's own frame: the pole
  *              is up in the drawing, so north is wherever polePA puts it
  *     tilt     De in degrees: how far the pole leans towards the Earth
@@ -131,15 +156,25 @@
     const DEG = Math.PI / 180;
 
     const VIEWS = Object.freeze(['normal', 'diagonal', 'inverted']);
-    // The strip the moons are drawn on: Callisto's apojove is 26.3 Jupiter radii, and the
-    // moons stay within about 1.7 of the equator line, whose own tilt is De (3.4 deg at
-    // most), so half the height is a little more than the labels need.
+    // The strip the moons are drawn on, each side of Jupiter: Callisto's greatest
+    // elongation is about 26.3 Jupiter radii, so this one fixed scale keeps every moon in
+    // the figure every night, and a moon's distance from the disc reads the same any night.
     const STRIP_RJ = 28;
-    const STRIP_HALF_HEIGHT = 2.6;
     const SCAN_STEP_MS = 10 * MINUTE_MS;
     const MONTHS_AHEAD = 6;
     const NEXT_NIGHTS = 14;
     const NEXT_LIMIT = 8;
+
+    // The Great Red Spot. Its System II longitude is not predictable from theory: it drifts
+    // slowly and unevenly, and amateurs follow it from measurements. The default is the
+    // published value (JUPOS via Sky & Telescope; BAA Jupiter Section): System II 91.0 deg
+    // on 2026-06-01, drifting +1.75 deg a month. The user can enter a newer measurement.
+    // Latitude: the spot's centre sits at about 22 deg south (planetographic).
+    const GRS = Object.freeze({ lon: 91.0, date: '2026-06-01', driftPerMonth: 1.75, lat: -22,
+        source: 'JUPOS via Sky & Telescope; BAA Jupiter Section' });
+    const GRS_STALE_DAYS = 183;                    // older than about six months
+    const GRS_NEXT_NIGHTS = 7;
+    const MONTH_MS = 365.25 / 12 * DAY_MS;
 
     function engine() {
         const A = typeof NovaAstro !== 'undefined' ? NovaAstro : null;
@@ -167,6 +202,7 @@
     }
 
     const dayNumber = d => Date.UTC(d.year, d.month - 1, d.day) / DAY_MS;
+    const mod = (a, n) => ((a % n) + n) % n;
 
     /** The current instant, the observing night and the site, as the Bodies tab has them. */
     function context(opts) {
@@ -353,6 +389,79 @@
         };
     }
 
+    // ------------------------------------------------------------------ the Great Red Spot
+
+    /** A real calendar date 'YYYY-MM-DD' (not 2026-02-30), or false. */
+    function isDate(str) {
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(str));
+        if (!m) return false;
+        const t = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+        return t.getUTCFullYear() === +m[1] && t.getUTCMonth() === +m[2] - 1 && t.getUTCDate() === +m[3];
+    }
+
+    function grsReference(override) {
+        const o = override || null;
+        if (o && typeof o.lon === 'number' && isFinite(o.lon) && o.lon >= 0 && o.lon <= 360 && isDate(o.date)) {
+            return { lon: mod(o.lon, 360), date: o.date, user: true };
+        }
+        return { lon: GRS.lon, date: GRS.date, user: false };
+    }
+
+    function grsLongitude(ref, utcMs) {
+        const d = parseDate(ref.date);
+        const months = (finite(utcMs, 'utcMs') - Date.UTC(d.year, d.month - 1, d.day)) / MONTH_MS;
+        return mod(finite(ref.lon, 'GRS longitude') + GRS.driftPerMonth * months, 360);
+    }
+
+    /** The spot's transits in one night window while Jupiter is at or above the threshold:
+     *  System II's central meridian runs ahead of the spot's longitude by about 36 deg an
+     *  hour, so the difference is scanned at SCAN_STEP_MS and each crossing bisected. */
+    function grsTransits(win, ref, c, night) {
+        const E = c.E, s = c.s;
+        const f = t => mod(finite(E.J.geometry(t).cm.II, 'System II') - grsLongitude(ref, t) + 180, 360) - 180;
+        const out = [];
+        let t0 = win.start, f0 = f(t0);
+        while (t0 < win.end) {
+            const t1 = Math.min(win.end, t0 + SCAN_STEP_MS), f1 = f(t1);
+            if (f0 < 0 && f1 >= 0 && f1 - f0 < 180) {
+                let lo = t0, hi = t1;
+                while (hi - lo > 10000) {
+                    const mid = Math.round((lo + hi) / 2);
+                    if (f(mid) < 0) lo = mid; else hi = mid;
+                }
+                const utcMs = Math.round((lo + hi) / 2);
+                const alt = finite(E.P.altAz('jupiter', utcMs, s.lat, s.lon).alt, 'jupiter altitude');
+                if (alt >= s.threshold) {
+                    out.push({ night: night, utcMs: utcMs, hm: E.A.formatHM(utcMs, s.tz), alt: alt });
+                }
+            }
+            t0 = t1;
+            f0 = f1;
+        }
+        return out;
+    }
+
+    function grs(opts, override) {
+        const c = context(opts);
+        const E = c.E, s = c.s;
+        const ref = grsReference(override);
+        const d = parseDate(c.date);
+        const sun = {};
+        const transits = date => grsTransits(E.N.nightWindow(date, s, E.A, E.W, sun), ref, c, date);
+        const next = [];
+        for (let k = 1; k <= GRS_NEXT_NIGHTS; k++) {
+            transits(E.N.dateString(d.year, d.month, d.day + k)).forEach(t => next.push(t));
+        }
+        const ageDays = Math.round(dayNumber(d) - dayNumber(parseDate(ref.date)));
+        return {
+            refLon: ref.lon, refDate: ref.date, user: ref.user,
+            driftPerMonth: GRS.driftPerMonth, lat: GRS.lat,
+            ageDays: ageDays, stale: ageDays > GRS_STALE_DAYS,
+            tonight: transits(c.date),
+            next: next,
+        };
+    }
+
     // ------------------------------------------------------------------ calendar
 
     /**
@@ -497,7 +606,7 @@
      * the eastern limb to the western one) has to come out on the same side of the drawing
      * as it is in the eyepiece.
      */
-    function diagram(g, mode, moons) {
+    function diagram(g, mode, moons, grsLon) {
         const view = viewOf(mode);
         const pa = finite(g.polePA, 'polePA') * DEG;
         const east = { x: -Math.cos(pa), y: -Math.sin(pa) };    // along the equator, sky frame
@@ -510,18 +619,38 @@
                 return {
                     name: m.name, x: r6(p.x), y: r6(p.y), front: m.front, onDisc: m.onDisc,
                     eclipsed: m.eclipsed,
+                    state: m.eclipsed ? 'eclipsed' : !m.front && m.onDisc ? 'behind' : 'visible',
                     shadow: sh ? { x: r6(sh.x), y: r6(sh.y) } : null,
                 };
             }),
+            grs: grsOnDisc(g, view, grsLon),
             // Celestial north (0, -1 in the sky frame) in the figure's own frame
             north: (p => ({ x: r6(p.x), y: r6(p.y) }))(place(0, -1)),
             tilt: finite(g.de, 'De'),
         };
     }
 
+    /** Where the Great Red Spot is on the disc, in the figure's frame: a point at the
+     *  spot's latitude and System II longitude grsLon, seen from De. Jupiter's longitudes
+     *  are west longitudes, so a spot at a longitude above the central meridian's has not
+     *  reached it yet and is on the eastern half: x (towards the western limb) is
+     *  -sin(grsLon - CM II). */
+    function grsOnDisc(g, view, grsLon) {
+        if (typeof grsLon !== 'number' || !isFinite(grsLon)) return null;
+        const d = (grsLon - finite(g.cm.II, 'System II')) * DEG;
+        const la = GRS.lat * DEG, de = finite(g.de, 'De') * DEG;
+        const x = -Math.cos(la) * Math.sin(d);
+        const y = Math.sin(la) * Math.cos(de) - Math.cos(la) * Math.sin(de) * Math.cos(d);
+        const facing = Math.sin(la) * Math.sin(de) + Math.cos(la) * Math.cos(de) * Math.cos(d);
+        const p = view(x, y);
+        return { x: r6(p.x), y: r6(p.y), visible: facing > 0 };
+    }
+
     return {
-        VIEWS: VIEWS, STRIP_RJ: STRIP_RJ, STRIP_HALF_HEIGHT: STRIP_HALF_HEIGHT,
+        VIEWS: VIEWS, STRIP_RJ: STRIP_RJ,
         SCAN_STEP_MS: SCAN_STEP_MS, MONTHS_AHEAD: MONTHS_AHEAD,
+        GRS: GRS, GRS_STALE_DAYS: GRS_STALE_DAYS, GRS_NEXT_NIGHTS: GRS_NEXT_NIGHTS,
         tonight: tonight, nextNights: nextNights, calendarRows: calendarRows, diagram: diagram,
+        grs: grs, grsReference: grsReference, grsLongitude: grsLongitude,
     };
 });

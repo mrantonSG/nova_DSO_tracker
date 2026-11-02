@@ -46,6 +46,10 @@
  *                                  shown (0 today, 1 tomorrow)
  *   top, more,                     the first TOP_COUNT of those, and the rest
  *   empty,                         'none' when nothing named is on the disc, else null
+ *   best,                          { name, utcMs, hm, cmDist }: when the top-ranked
+ *                                  feature stands nearest the central meridian while Mars
+ *                                  is at or above the threshold (sampled every
+ *                                  BEST_STEP_MIN minutes), or null when Mars never is
  * }
  *
  * diagram(g, mode, features) -> Mars on a unit disc in SVG coordinates (y down), drawn
@@ -57,6 +61,11 @@
  *     markers     [{ x, y, n, name }] for `features`, 1-based
  *     pole        unit vector from the centre towards Mars's north pole, so the page can
  *                 mark which way the pole leans; `tilt` is De, its own angle from the top
+ *     caps        [{ pole: 'north' | 'south', d }]: the polar cap tilted towards us (De > 0
+ *                 the north one, De < 0 the south one, both within CAP_BOTH_DE of 0), as
+ *                 an SVG path. A fixed typical size, CAP_DEG around the pole: there is no
+ *                 seasonal model, the real cap grows and shrinks with the Martian year.
+ *                 The part of the cap's edge on the far side is laid on the limb.
  *   The lit-part construction is the Moon card's (nova_solar_moon.js), the same three
  *   views: 'normal' is the sky as it stands, 'diagonal' mirrors the disc left and right
  *   (a star diagonal) and 'inverted' turns it 180 degrees (a Newtonian, or a refractor
@@ -83,6 +92,9 @@
     const NEAR_LIMB_DEG = 75;
     const TOP_COUNT = 8;
     const CM_STEP_MS = 10 * MINUTE_MS;
+    const BEST_STEP_MIN = 5;
+    const CAP_DEG = 12;                 // a cap's typical angular radius around its pole
+    const CAP_BOTH_DE = 5;              // De this close to 0: both caps are on the limb
 
     function engine() {
         const A = typeof NovaAstro !== 'undefined' ? NovaAstro : null;
@@ -222,6 +234,7 @@
 
         const muted = night.maxAlt < s.threshold;
         return {
+            best: bestPassage(onDisc[0], night.window, c),
             date: c.date,
             instantUtc: night.utcMs,
             hm: E.A.formatHM(night.utcMs, s.tz),
@@ -237,6 +250,24 @@
             more: onDisc.slice(TOP_COUNT),
             empty: onDisc.length ? null : 'none',
         };
+    }
+
+    /** When `f` stands nearest the central meridian in the night window while Mars is at
+     *  or above the threshold, or null. */
+    function bestPassage(f, win, c) {
+        if (!f) return null;
+        const E = c.E, s = c.s;
+        const times = E.N.samples(win.start, win.end, BEST_STEP_MIN);
+        const curve = E.P.altAzCurve('mars', times, s.lat, s.lon);
+        let k = -1, best = Infinity;
+        times.forEach((t, i) => {
+            if (!(curve.alt[i] >= s.threshold)) return;
+            const d = Math.abs(mod(f.lon + finite(E.M.geometry(t).cm, 'mars central meridian') + 180, 360) - 180);
+            if (d < best) { best = d; k = i; }
+        });
+        if (k < 0) return null;
+        const utcMs = Math.round(times[k]);
+        return { name: f.name, utcMs: utcMs, hm: E.A.formatHM(utcMs, s.tz), cmDist: best };
     }
 
     // ------------------------------------------------------------------ diagram
@@ -292,7 +323,12 @@
         const k = Math.cos(finite(g.phaseAngleDeg, 'phase angle') * DEG);
         const path = litPath(-u.x, -u.y, -k);
         const pole = view(sky(0, 1).x, sky(0, 1).y);
+        const de = finite(g.de, 'De');
+        const caps = [];
+        if (de > -CAP_BOTH_DE) caps.push({ pole: 'north', d: capPath(1, de, sky, view) });
+        if (de < CAP_BOTH_DE) caps.push({ pole: 'south', d: capPath(-1, de, sky, view) });
         return {
+            caps: caps,
             shaded: path.lit,
             terminator: path.terminator,
             markers: (features || []).map((f, i) => {
@@ -305,8 +341,30 @@
         };
     }
 
+    /** A polar cap's outline: the circle CAP_DEG from the pole (sign 1 north, -1 south),
+     *  projected the way project() puts features on the disc. The cap is round about the
+     *  pole, so the central meridian does not matter; where its edge runs over the far
+     *  side, the point is moved out to the limb, which closes the cap along the limb. */
+    function capPath(sign, de, sky, view) {
+        const pts = [];
+        for (let lon = 0; lon < 360; lon += 10) {
+            const p = project(sign * (90 - CAP_DEG), lon, de, 0);
+            let x = p.x, y = p.y;
+            if (p.gamma > 90) {
+                const r = Math.hypot(x, y) || 1;
+                x /= r;
+                y /= r;
+            }
+            const q = sky(x, y);
+            const v = view(q.x, q.y);
+            pts.push(r6(v.x) + ' ' + r6(v.y));
+        }
+        return 'M ' + pts.join(' L ') + ' Z';
+    }
+
     return {
         VIEWS: VIEWS, VISIBLE_DEG: VISIBLE_DEG, NEAR_LIMB_DEG: NEAR_LIMB_DEG, TOP_COUNT: TOP_COUNT,
+        BEST_STEP_MIN: BEST_STEP_MIN, CAP_DEG: CAP_DEG, CAP_BOTH_DE: CAP_BOTH_DE,
         tonight: tonight, diagram: diagram,
     };
 });

@@ -1093,11 +1093,15 @@
    rules above carry the shape; below is only what the two drawings and their chips need
    on their own.
 
-   Jupiter is drawn as the printed moon diagrams are: the disc on the line the moons
-   ride, the moons as dots (hollow behind the planet, faint in eclipse), each shadow a
-   dark spot on the disc, and celestial north marked where the planet's own frame puts
-   it. Mars is drawn as the eyepiece has it: the lit and unlit parts of the disc, the
-   terminator between them, a dot per named feature, and a tick towards the pole.
+   Jupiter is drawn as the printed moon diagrams are, at one fixed scale with the disc in
+   the centre: the moons as dots (filled beside or in front of the disc, a dashed ring
+   when hidden behind it, a faded ring in eclipse), each shadow a small black dot on the
+   disc -- black is only ever a shadow -- the Great Red Spot while it faces us, and
+   celestial north where the planet's own frame puts it. The strip is drawn in pixels at
+   the width it is shown, so its names stay 12 px. Mars is drawn as the eyepiece has it:
+   the polar cap tilted towards us, the lit and unlit parts of the disc, the terminator
+   between them, a dot per named feature, and a tick towards the pole, its N in HTML over
+   the drawing at a fixed size.
    ================================================================= */
 #solar-jupiter,
 #solar-mars {
@@ -1120,13 +1124,12 @@
 
 #bodies-tab #solar-jupiter-diagram {
   width: 100%;
-  /* The strip's own proportions (2 * STRIP_RJ + 2 by 2 * STRIP_HALF_HEIGHT), so the
-     moons sit on the line rather than in a letterboxed square. */
-  aspect-ratio: 58 / 5.2;
+  height: 160px;
   min-width: 0;
 }
 
 #bodies-tab #solar-mars-diagram {
+  position: relative;
   width: 100%;
   max-width: 240px;
   aspect-ratio: 1;
@@ -1145,45 +1148,58 @@
   stroke-width: 0.02;
 }
 
-#bodies-tab .solar-jupiter-svg .solar-card-moon circle {
-  fill: var(--text-primary);
+#bodies-tab .solar-jupiter-svg .solar-card-equator {
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
 }
 
+#bodies-tab .solar-jupiter-svg .solar-card-disc {
+  stroke-width: 1;
+}
+
+/* A moon beside or in front of the disc: a filled light dot */
+#bodies-tab .solar-jupiter-svg .solar-card-moon-visible circle {
+  fill: var(--solar-body-moon);
+  stroke: var(--text-secondary);
+  stroke-width: 1;
+}
+
+/* Hidden behind the disc: a hollow dashed ring */
 #bodies-tab .solar-jupiter-svg .solar-card-moon-behind circle {
-  fill: var(--bg-secondary);
-  stroke: var(--text-primary);
-  stroke-width: 0.03;
+  fill: none;
+  stroke: var(--text-secondary);
+  stroke-width: 1;
+  stroke-dasharray: 2 1.6;
 }
 
+/* In Jupiter's shadow: a hollow faded ring */
 #bodies-tab .solar-jupiter-svg .solar-card-moon-eclipsed circle {
-  fill: var(--text-faint);
+  fill: none;
+  stroke: var(--text-faint);
+  stroke-width: 1;
 }
 
-/* A shadow: a dark spot on the disc, in either theme (the disc is the same colour) */
+/* A shadow: a small black dot on the disc, in either theme (the disc is the same colour) */
 #bodies-tab .solar-card-shadow circle {
-  fill: #14100c;
-  fill-opacity: 0.62;
+  fill: #000;
 }
 
-/* The strip is much wider than the Moon's disc, so its labels are set in its own units */
+/* The Great Red Spot, while it faces us */
+#bodies-tab .solar-card-grs ellipse {
+  fill: var(--solar-body-mars);
+  stroke: var(--text-secondary);
+  stroke-width: 0.75;
+}
+
+/* The strip is drawn in pixels, so its text is a fixed size at any width */
 #bodies-tab .solar-jupiter-svg .solar-card-moon-label,
 #bodies-tab .solar-jupiter-svg .solar-card-north {
-  font-size: 0.7px;
+  font-size: 12px;
 }
 
 #bodies-tab .solar-jupiter-svg .solar-card-moon-label {
+  font-family: inherit;
   fill: var(--text-secondary);
-}
-
-/* The label is 0.7 of the strip's 5.2 units tall, so it is a fixed share of the card's
-   width: 16 px on a laptop, 4 px on a phone. Below 750 px (under 9 px) the names are
-   dropped rather than drawn unreadably -- the strip keeps the whole figure in view
-   instead of scrolling a 900 px one, and the chips below name every moon in the order
-   they lie along the line. N stays: one glyph, and where it sits is the message. */
-@container solar-card (max-width: 749px) {
-  #bodies-tab .solar-jupiter-svg .solar-card-moon-label {
-    display: none;
-  }
 }
 
 /* Mars: the lit and unlit parts, the terminator, the pole */
@@ -1213,6 +1229,154 @@
   fill: none;
   stroke: var(--text-muted);
   stroke-width: 0.02;
+}
+
+/* The polar cap: light on the disc in either theme */
+#bodies-tab .solar-card-cap path {
+  fill: var(--bg-secondary);
+  fill-opacity: 0.9;
+  stroke: var(--text-muted);
+  stroke-width: 0.008;
+}
+
+:root[data-theme="dark"] #bodies-tab .solar-card-cap path {
+  fill: var(--text-primary);
+}
+
+/* Mars's N, over the drawing at a fixed size */
+#bodies-tab .solar-card-north-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-family: var(--nova-font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: help;
+}
+
+/* Mars's chips carry only the name: the chip under the pointer is ringed on the disc */
+#bodies-tab .solar-mars-svg .solar-card-hot circle {
+  fill: none;
+  stroke: var(--primary-color);
+  stroke-width: 0.025;
+}
+
+/* The tiles' own row: the GRS tile first, then the card's other tiles in the same row */
+#bodies-tab #solar-jupiter-tiles {
+  display: contents;
+}
+
+/* A secondary line under a tile's value */
+#bodies-tab .solar-card-tile-note {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+/* The GRS tile: tonight's transit times large, the longitude and its date under them */
+#bodies-tab .solar-card-grs {
+  cursor: help;
+}
+
+#bodies-tab .solar-card-grs-times {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+#bodies-tab .solar-card-grs-times.solar-card-grs-none {
+  font-family: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+/* An old longitude: the warning colour (the seeing tiles' "average") */
+#bodies-tab .solar-card-grs[data-stale="true"] {
+  border-color: #94600f;
+}
+
+#bodies-tab .solar-card-grs[data-stale="true"] .solar-card-grs-meta {
+  color: #94600f;
+}
+
+:root[data-theme="dark"] #bodies-tab .solar-card-grs[data-stale="true"] {
+  border-color: #e0aa50;
+}
+
+:root[data-theme="dark"] #bodies-tab .solar-card-grs[data-stale="true"] .solar-card-grs-meta {
+  color: #e0aa50;
+}
+
+#bodies-tab .solar-card-grs-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* Ghost buttons, small */
+#bodies-tab .solar-card-grs-button {
+  padding: 2px 8px;
+  border: 1px solid var(--border-color, #d0cdc8);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+#bodies-tab .solar-card-grs-button:hover {
+  background: var(--bg-secondary);
+}
+
+#bodies-tab .solar-card-grs-button.solar-card-grs-save {
+  border-color: var(--primary-color);
+  background: var(--primary-color);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+#bodies-tab .solar-card-grs-button[hidden],
+#bodies-tab .solar-card-grs-form[hidden],
+#bodies-tab .solar-card-grs-invalid[hidden] {
+  display: none;
+}
+
+#bodies-tab .solar-card-grs-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: auto;
+}
+
+#bodies-tab .solar-card-grs-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+#bodies-tab .solar-card-grs-field input {
+  width: 9.5em;
+  padding: 2px 6px;
+  border: 1px solid var(--border-color, #d0cdc8);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: var(--nova-font-mono);
+  font-size: var(--font-size-xs);
+}
+
+#bodies-tab .solar-card-grs-invalid {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: #a04040;
+}
+
+:root[data-theme="dark"] #bodies-tab .solar-card-grs-invalid {
+  color: #d06060;
 }
 
 /* The chips' own parts: the note beside the name, the number, the time, a badge */

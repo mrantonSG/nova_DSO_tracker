@@ -25,6 +25,7 @@ database or Flask.
 """
 
 import json
+import math
 import shutil
 import subprocess
 from pathlib import Path
@@ -354,3 +355,115 @@ def test_central_meridian_passages_are_the_next_crossing(tmp_path):
         assert c["moduleDay"] == c["dayWant"], (
             f"{where}: nextHmDay {c['moduleDay']} is not the local-date difference "
             f"{c['dayWant']}")
+
+
+# --- the feature list --------------------------------------------------------------------
+
+TIER_ONE = {"Syrtis Major", "Mare Acidalium", "Mare Sirenum", "Mare Erythraeum", "Solis Lacus",
+            "Sinus Meridiani", "Mare Cimmerium", "Utopia", "Hellas", "Elysium"}
+
+
+def test_the_feature_list_is_albedo_only_and_tiered(tmp_path):
+    """15 to 25 albedo features -- what an amateur telescope or camera shows -- the ten an
+    imager identifies first in tier 1, other classical markings in tier 2, and exactly the
+    generator's own list (tools/gen_mars_features.py, read without running it)."""
+    got = _run(tmp_path, "return NovaMarsFeatures.FEATURES;")
+    assert 15 <= len(got) <= 25
+    assert {f["type"] for f in got} == {"albedo"}
+    assert {f["tier"] for f in got} == {1, 2}
+    assert {f["name"] for f in got if f["tier"] == 1} == TIER_ONE
+    assert "Nix Olympica" in {f["name"] for f in got if f["tier"] == 2}
+    assert len({f["name"] for f in got}) == len(got)
+    assert all(-90 <= f["lat"] <= 90 and -180 <= f["lon"] <= 180 for f in got)
+    import ast
+    tree = ast.parse((REPO / "tools" / "gen_mars_features.py").read_text())
+    selection = next(node.value for node in tree.body if isinstance(node, ast.Assign)
+                     and getattr(node.targets[0], "id", None) == "SELECTION")
+    assert ast.literal_eval(selection) == {f["name"]: f["tier"] for f in got}
+
+
+# --- the polar caps ----------------------------------------------------------------------
+
+_CAPS = r"""
+const g = de => ({ polePA: 20, sunPA: 250, phaseAngleDeg: 30, de: de, cm: 0 });
+const pts = d => d.replace(/[MLZ]/g, ' ').trim().split(/\s+/).map(Number)
+    .reduce((a, v, i) => (i % 2 ? a[a.length - 1].push(v) : a.push([v]), a), []);
+const out = {};
+for (const de of [20, -20, 3, -3, 0, 6, -6]) {
+    out[de] = {};
+    for (const mode of NovaSolarMars.VIEWS) {
+        const d = NovaSolarMars.diagram(g(de), mode, []);
+        out[de][mode] = { pole: d.pole, caps: d.caps.map(c => ({ pole: c.pole, pts: pts(c.d) })) };
+    }
+}
+return { out: out, both: NovaSolarMars.CAP_BOTH_DE, size: NovaSolarMars.CAP_DEG };
+"""
+
+
+def test_the_polar_cap_tilted_towards_us_is_drawn(tmp_path):
+    """North cap when De > 0, south when De < 0, both near 0; a fixed size, on the disc,
+    around its own pole, turning with the view."""
+    got = _run(tmp_path, _CAPS)
+    assert got["size"] == 12 and got["both"] == 5
+    want = {"20": ["north"], "-20": ["south"], "6": ["north"], "-6": ["south"],
+            "3": ["north", "south"], "-3": ["north", "south"], "0": ["north", "south"]}
+    for de, views in got["out"].items():
+        for mode, d in views.items():
+            assert [c["pole"] for c in d["caps"]] == want[de], (de, mode)
+            for c in d["caps"]:
+                assert len(c["pts"]) == 36 and all(len(p) == 2 for p in c["pts"])
+                assert all(math.hypot(*p) <= 1 + 1e-6 for p in c["pts"]), "on the disc"
+                cx = sum(p[0] for p in c["pts"]) / 36
+                cy = sum(p[1] for p in c["pts"]) / 36
+                sign = 1 if c["pole"] == "north" else -1
+                # Its centre lies towards its own pole
+                assert cx * d["pole"]["x"] * sign + cy * d["pole"]["y"] * sign > 0.5, (de, mode, c["pole"])
+    # At De 20 the whole north cap faces us, its far edge 90 - 20 + 12 = 82 deg from the
+    # centre of the disc: none of it is laid on the limb
+    north = got["out"]["20"]["normal"]["caps"][0]["pts"]
+    assert max(math.hypot(*p) for p in north) == pytest.approx(math.sin(math.radians(82)), abs=1e-4)
+
+
+# --- the best time tonight ---------------------------------------------------------------
+
+_BEST = r"""
+const out = [];
+for (const night of input.nights) {
+    for (const loc of input.sites) {
+        const opts = { inputs: { location: loc }, nowMs: Date.parse(night + 'T20:00:00Z'), simDate: null };
+        const t = NovaSolarMars.tonight(opts);
+        const site = NovaSolarRows._night.site(opts.inputs);
+        const win = NovaSolarRows._night.nightWindow(t.date, site, NovaAstro, NovaDashboardRows._wall, null);
+        // Independently: every minute of the night with Mars at or above the threshold
+        let best = null;
+        const f = t.top[0];
+        for (let u = win.start; f && u <= win.end; u += 60000) {
+            if (NovaPlanets.altAz('mars', u, loc.lat, loc.lon).alt < site.threshold) continue;
+            const d = Math.abs(((f.lon + NovaMars.geometry(u).cm + 540) % 360) - 180);
+            if (!best || d < best.d) best = { u: u, d: d };
+        }
+        out.push({ night: night, site: loc.timezone, best: t.best, top: f ? f.name : null,
+                   want: best, muted: t.muted, step: NovaSolarMars.BEST_STEP_MIN,
+                   alt: t.best ? NovaPlanets.altAz('mars', t.best.utcMs, loc.lat, loc.lon).alt : null,
+                   threshold: site.threshold,
+                   hm: t.best ? NovaAstro.formatHM(t.best.utcMs, loc.timezone) : null });
+    }
+}
+return out;
+"""
+
+
+def test_best_tonight_is_the_top_feature_nearest_the_meridian(tmp_path):
+    cases = _run(tmp_path, _BEST, nights=list(NIGHTS), sites=list(SITES))
+    assert any(c["best"] for c in cases) and any(c["best"] is None for c in cases)
+    for c in cases:
+        where = f"{c['night']} @ {c['site']}"
+        if c["want"] is None:
+            assert c["best"] is None, f"{where}: Mars never reaches the threshold"
+            continue
+        b = c["best"]
+        assert b["name"] == c["top"] and b["hm"] == c["hm"], where
+        assert c["alt"] >= c["threshold"], f"{where}: Mars below the threshold then"
+        # Sampled every BEST_STEP_MIN minutes: within one step's turn of the planet
+        # (about 1.2 deg) of the minute-by-minute answer
+        assert b["cmDist"] <= c["want"]["d"] + 360 / 24.6 / 60 * c["step"], where

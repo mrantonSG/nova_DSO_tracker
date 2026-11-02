@@ -143,9 +143,31 @@
                 </div>
             </div>
             <div class="solar-card-info">
-                <div id="solar-jupiter-tiles" class="solar-card-tiles"></div>
-                <span class="solar-card-label">{{ _('The moons tonight') }}</span>
-                <ol id="solar-jupiter-moons" class="solar-card-list"></ol>
+                <div class="solar-card-tiles">
+                    <div id="solar-jupiter-grs" class="solar-card-tile solar-card-grs" data-stale="false">
+                        <span class="solar-card-tile-label">{{ _('GRS transit (predicted)') }}</span>
+                        <span id="solar-jupiter-grs-times" class="solar-card-tile-value solar-card-grs-times"></span>
+                        <span id="solar-jupiter-grs-meta" class="solar-card-tile-note solar-card-grs-meta"></span>
+                        <span class="solar-card-grs-actions">
+                            <button type="button" id="solar-jupiter-grs-edit" class="solar-card-grs-button">{{ _('Edit') }}</button>
+                            <button type="button" id="solar-jupiter-grs-reset" class="solar-card-grs-button" title="{{ _('Back to the built-in longitude') }}" hidden>{{ _('Reset') }}</button>
+                        </span>
+                        <div id="solar-jupiter-grs-form" class="solar-card-grs-form" hidden>
+                            <label class="solar-card-grs-field">{{ _('System II longitude (°)') }}
+                                <input type="number" id="solar-jupiter-grs-lon" min="0" max="360" step="0.1" inputmode="decimal">
+                            </label>
+                            <label class="solar-card-grs-field">{{ _('Measured on') }}
+                                <input type="date" id="solar-jupiter-grs-date">
+                            </label>
+                            <p id="solar-jupiter-grs-invalid" class="solar-card-grs-invalid" role="alert" hidden>{{ _('Enter a longitude from 0 to 360 and a date.') }}</p>
+                            <span class="solar-card-grs-actions">
+                                <button type="button" id="solar-jupiter-grs-save" class="solar-card-grs-button solar-card-grs-save">{{ _('Save') }}</button>
+                                <button type="button" id="solar-jupiter-grs-cancel" class="solar-card-grs-button">{{ _('Cancel') }}</button>
+                            </span>
+                        </div>
+                    </div>
+                    <div id="solar-jupiter-tiles" class="solar-card-tiles-more"></div>
+                </div>
                 <span class="solar-card-label">{{ _('Phenomena tonight') }}</span>
                 <p id="solar-jupiter-empty" class="solar-card-empty" hidden></p>
                 <ol id="solar-jupiter-events" class="solar-card-list"></ol>
@@ -372,21 +394,34 @@ const solarI18n = {
         highestAt:     {{ _('highest tonight at %(time)s', time='{time}') | tojson }},
         north:         {{ _('N') | tojson }},
         northHelp:     {{ _("Celestial north. The figure is drawn in Jupiter's own frame, so north is wherever the planet's pole angle puts it.") | tojson }},
-        diameter:      {{ _('Diameter') | tojson }},
-        diameterHelp:  {{ _('Apparent diameter of Jupiter in arcseconds, cloud tops to cloud tops.') | tojson }},
-        magnitude:     {{ _('Magnitude') | tojson }},
-        illuminated:   {{ _('Illuminated') | tojson }},
-        cm:            {{ _('Central meridian') | tojson }},
-        cmHelp:        {{ _('System I and II planetographic longitudes at the centre of the disc: they tell you which side of Jupiter faces you. System I is the equatorial belt, which rotates about five minutes faster than the rest.') | tojson }},
-        de:            {{ _('De') | tojson }},
-        deHelp:        {{ _('Planetographic latitude of the point facing the Earth. Positive means we look a little down on the northern hemisphere.') | tojson }},
+        cmII:          {{ _('CM (System II)') | tojson }},
+        cmIIHelp:      {{ _('The longitude at the centre of the disc: it tells you which side of Jupiter faces you. System II is the one for everything outside the equatorial belt, the Great Red Spot included.') | tojson }},
+        systemI:       {{ _('System I (equatorial belt): %(deg)s°', deg='{deg}') | tojson }},
+        systemIII:     {{ _("System III (the planet's interior): %(deg)s°", deg='{deg}') | tojson }},
+        grs: {
+            none:      {{ _('None while Jupiter is up tonight') | tojson }},
+            meta:      {{ _('System II %(lon)s° on %(date)s', lon='{lon}', date='{date}') | tojson }},
+            help:      {{ _('Predicted times when the Great Red Spot crosses the centre of the disc: the best moment to see or image it. A prediction: the spot drifts, so allow 10–20 minutes either way.') | tojson }},
+            tonight:   {{ _('Tonight: %(times)s', times='{times}') | tojson }},
+            next:      {{ _('The next nights:') | tojson }},
+            noNext:    {{ _('No transit while Jupiter is up in the next nights.') | tojson }},
+            source:    {{ _('Built-in longitude: System II %(lon)s° on %(date)s (JUPOS via Sky & Telescope; BAA Jupiter Section).', lon='{lon}', date='{date}') | tojson }},
+            user:      {{ _('Your longitude: System II %(lon)s° on %(date)s.', lon='{lon}', date='{date}') | tojson }},
+            drift:     {{ _('Drift applied since that date: %(rate)s° a month.', rate='{rate}') | tojson }},
+            stale:     {{ _('This longitude is more than six months old, so the times may be well off. Enter a recent value (JUPOS, BAA, ALPO) with Edit.') | tojson }}
+        },
+        grsMarker:     {{ _('Great Red Spot (predicted position)') | tojson }},
+        legendVisible: {{ _('Filled dot: a moon beside or in front of Jupiter') | tojson }},
+        legendBehind:  {{ _('Dashed ring: a moon hidden behind the disc') | tojson }},
+        legendEclipsed:{{ _("Faded ring: a moon in Jupiter's shadow (eclipsed)") | tojson }},
+        legendShadow:  {{ _("Black dot on the disc: a moon's shadow") | tojson }},
+        legendGrs:     {{ _('Red oval: the Great Red Spot, when it faces us') | tojson }},
         east:          {{ _('east') | tojson }},
         west:          {{ _('west') | tojson }},
         inFront:       {{ _('in front') | tojson }},
         onDisc:        {{ _('on the disc') | tojson }},
         behind:        {{ _('behind') | tojson }},
         eclipse:       {{ _('in eclipse') | tojson }},
-        rj:            {{ _('%(rj)s Rj', rj='{rj}') | tojson }},
         rjFromCentre:  {{ _('%(rj)s Jupiter radii from the centre of the disc', rj='{rj}') | tojson }},
         shadowOnDisc:  {{ _('Its shadow is on the disc') | tojson }},
         moonNames: {
@@ -419,16 +454,18 @@ const solarI18n = {
         error:         {{ _('Mars detail could not be calculated.') | tojson }},
         highestAt:     {{ _('highest tonight at %(time)s', time='{time}') | tojson }},
         north:         {{ _('N') | tojson }},
-        diameter:      {{ _('Diameter') | tojson }},
-        diameterHelp:  {{ _('Apparent diameter of Mars in arcseconds.') | tojson }},
-        magnitude:     {{ _('Magnitude') | tojson }},
-        illuminated:   {{ _('Illuminated') | tojson }},
-        distance:      {{ _('Distance') | tojson }},
-        distanceHelp:  {{ _('Distance from the Earth in astronomical units.') | tojson }},
-        cm:            {{ _('Central meridian') | tojson }},
+        cm:            {{ _('CM') | tojson }},
         cmHelp:        {{ _('Planetographic longitude at the centre of the disc: it tells you which side of Mars faces you.') | tojson }},
-        de:            {{ _('De') | tojson }},
-        deHelp:        {{ _('Planetographic latitude of the point facing the Earth. Positive means we look a little down on the northern hemisphere.') | tojson }},
+        deNorth:       {{ _('North pole tilted %(deg)s° towards us', deg='{deg}') | tojson }},
+        deSouth:       {{ _('South pole tilted %(deg)s° towards us', deg='{deg}') | tojson }},
+        dsNorth:       {{ _('North pole tilted %(deg)s° towards the Sun', deg='{deg}') | tojson }},
+        dsSouth:       {{ _('South pole tilted %(deg)s° towards the Sun', deg='{deg}') | tojson }},
+        best:          {{ _('Best tonight') | tojson }},
+        bestHelp:      {{ _('When %(name)s is nearest the central meridian while Mars is above the altitude threshold.', name='{name}') | tojson }},
+        bar:           {{ _('Bar: how close it is to the central meridian (%(deg)s° away)', deg='{deg}') | tojson }},
+        nextOnCm:      {{ _('Next on the central meridian: %(time)s', time='{time}') | tojson }},
+        capNorth:      {{ _('North polar cap (approximate size)') | tojson }},
+        capSouth:      {{ _('South polar cap (approximate size)') | tojson }},
         credit:        {{ _('Feature names: %(source)s', source='{source}') | tojson }},
         empty: {
             none:      {{ _('No named feature is on the disc tonight') | tojson }},
@@ -436,12 +473,7 @@ const solarI18n = {
         },
         nearLimb:      {{ _('Near the limb') | tojson }},
         cmDist:        {{ _('%(deg)s° from the central meridian', deg='{deg}') | tojson }},
-        nextPassage:   {{ _('On the central meridian at %(time)s, %(when)s', time='{time}', when='{when}') | tojson }},
-        today:         {{ _('today') | tojson }},
-        tomorrow:      {{ _('tomorrow') | tojson }},
-        inDays:        {{ _('in %(n)s days', n='{n}') | tojson }},
         position:      {{ _('Latitude %(lat)s°, longitude %(lon)s°', lat='{lat}', lon='{lon}') | tojson }},
-        poleTilt:      {{ _('The pole is tilted %(deg)s° towards the Earth', deg='{deg}') | tojson }},
         diagramAria:   {{ _('Mars tonight: the disc, its lit part and the named features on it') | tojson }},
         types: {
             albedo:       {{ _('Albedo feature') | tojson }},
