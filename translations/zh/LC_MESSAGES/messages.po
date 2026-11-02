@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 16:10+0800\n"
+"POT-Creation-Date: 2026-11-02 17:07+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh\n"
@@ -6081,6 +6081,26 @@ msgstr "木星详情"
 msgid "The real field also rotates with the planet's position in the sky."
 msgstr "实际视场还会随行星在天空中的位置而旋转。"
 
+#: templates/solar_system.html:148
+msgid "GRS transit (predicted)"
+msgstr "大红斑过中央经线（预测）"
+
+#: templates/solar_system.html:153
+msgid "Back to the built-in longitude"
+msgstr "恢复内置经度"
+
+#: templates/solar_system.html:156
+msgid "System II longitude (°)"
+msgstr "系统 II 经度（°）"
+
+#: templates/solar_system.html:159
+msgid "Measured on"
+msgstr "测量日期"
+
+#: templates/solar_system.html:162
+msgid "Enter a longitude from 0 to 360 and a date."
+msgstr "请输入 0 到 360 之间的经度和日期。"
+
 #: templates/solar_system.html:147
 msgid "The moons tonight"
 msgstr "今晚的卫星"
@@ -6573,6 +6593,105 @@ msgid ""
 "wherever the planet's pole angle puts it."
 msgstr "天球北。此图按木星自身的坐标绘制，因此北方就在行星极轴角度所指的位置。"
 
+#: templates/solar_system.html:397
+msgid "CM (System II)"
+msgstr "中央经线（系统 II）"
+
+#: templates/solar_system.html:398
+msgid ""
+"The longitude at the centre of the disc: it tells you which side of "
+"Jupiter faces you. System II is the one for everything outside the "
+"equatorial belt, the Great Red Spot included."
+msgstr "圆面中心的经度：它告诉你木星的哪一面朝向你。系统 II 适用于赤道带以外的一切，包括大红斑。"
+
+#: templates/solar_system.html:399
+#, python-format
+msgid "System I (equatorial belt): %(deg)s°"
+msgstr "系统 I（赤道带）：%(deg)s°"
+
+#: templates/solar_system.html:400
+#, python-format
+msgid "System III (the planet's interior): %(deg)s°"
+msgstr "系统 III（行星内部）：%(deg)s°"
+
+#: templates/solar_system.html:402
+msgid "None while Jupiter is up tonight"
+msgstr "今晚木星升起期间没有"
+
+#: templates/solar_system.html:403
+#, python-format
+msgid "System II %(lon)s° on %(date)s"
+msgstr "系统 II %(lon)s°（%(date)s）"
+
+#: templates/solar_system.html:404
+msgid ""
+"Predicted times when the Great Red Spot crosses the centre of the disc: "
+"the best moment to see or image it. A prediction: the spot drifts, so "
+"allow 10–20 minutes either way."
+msgstr "大红斑经过圆面中心的预测时间：观看或拍摄它的最佳时刻。这是预测：大红斑会漂移，请前后预留 10–20 分钟。"
+
+#: templates/solar_system.html:405
+#, python-format
+msgid "Tonight: %(times)s"
+msgstr "今晚：%(times)s"
+
+#: templates/solar_system.html:406
+msgid "The next nights:"
+msgstr "接下来几晚："
+
+#: templates/solar_system.html:407
+msgid "No transit while Jupiter is up in the next nights."
+msgstr "接下来几晚木星升起期间没有过中央经线。"
+
+#: templates/solar_system.html:408
+#, python-format
+msgid ""
+"Built-in longitude: System II %(lon)s° on %(date)s (JUPOS via Sky & "
+"Telescope; BAA Jupiter Section)."
+msgstr ""
+"内置经度：系统 II %(lon)s°（%(date)s）（JUPOS，经 Sky & Telescope；BAA Jupiter "
+"Section）。"
+
+#: templates/solar_system.html:409
+#, python-format
+msgid "Your longitude: System II %(lon)s° on %(date)s."
+msgstr "您的经度：系统 II %(lon)s°（%(date)s）。"
+
+#: templates/solar_system.html:410
+#, python-format
+msgid "Drift applied since that date: %(rate)s° a month."
+msgstr "自该日期起按每月 %(rate)s° 的漂移推算。"
+
+#: templates/solar_system.html:411
+msgid ""
+"This longitude is more than six months old, so the times may be well off."
+" Enter a recent value (JUPOS, BAA, ALPO) with Edit."
+msgstr "此经度已超过六个月，时间可能偏差较大。请通过“编辑”输入最新数值（JUPOS、BAA、ALPO）。"
+
+#: templates/solar_system.html:413
+msgid "Great Red Spot (predicted position)"
+msgstr "大红斑（预测位置）"
+
+#: templates/solar_system.html:414
+msgid "Filled dot: a moon beside or in front of Jupiter"
+msgstr "实心点：位于木星旁边或前方的卫星"
+
+#: templates/solar_system.html:415
+msgid "Dashed ring: a moon hidden behind the disc"
+msgstr "虚线圆环：被圆面遮挡的卫星"
+
+#: templates/solar_system.html:416
+msgid "Faded ring: a moon in Jupiter's shadow (eclipsed)"
+msgstr "浅色圆环：处于木星影子中的卫星（被食）"
+
+#: templates/solar_system.html:417
+msgid "Black dot on the disc: a moon's shadow"
+msgstr "圆面上的黑点：卫星的影子"
+
+#: templates/solar_system.html:418
+msgid "Red oval: the Great Red Spot, when it faces us"
+msgstr "红色椭圆：朝向我们时的大红斑"
+
 #: templates/solar_system.html:376
 msgid "Apparent diameter of Jupiter in arcseconds, cloud tops to cloud tops."
 msgstr "木星的视直径，以角秒计，从云顶到云顶。"
@@ -6714,6 +6833,10 @@ msgstr "今晚的木星：圆面、四颗伽利略卫星以及它们投下的影
 msgid "Mars detail could not be calculated."
 msgstr "无法计算火星详情。"
 
+#: templates/solar_system.html:457
+msgid "CM"
+msgstr "中央经线"
+
 #: templates/solar_system.html:423
 msgid "Apparent diameter of Mars in arcseconds."
 msgstr "火星的视直径，以角秒计。"
@@ -6727,6 +6850,55 @@ msgid ""
 "Planetographic longitude at the centre of the disc: it tells you which "
 "side of Mars faces you."
 msgstr "圆面中心的星球经度：它告诉你火星的哪一面朝向你。"
+
+#: templates/solar_system.html:459
+#, python-format
+msgid "North pole tilted %(deg)s° towards us"
+msgstr "北极向我们倾斜 %(deg)s°"
+
+#: templates/solar_system.html:460
+#, python-format
+msgid "South pole tilted %(deg)s° towards us"
+msgstr "南极向我们倾斜 %(deg)s°"
+
+#: templates/solar_system.html:461
+#, python-format
+msgid "North pole tilted %(deg)s° towards the Sun"
+msgstr "北极向太阳倾斜 %(deg)s°"
+
+#: templates/solar_system.html:462
+#, python-format
+msgid "South pole tilted %(deg)s° towards the Sun"
+msgstr "南极向太阳倾斜 %(deg)s°"
+
+#: templates/solar_system.html:463
+msgid "Best tonight"
+msgstr "今晚最佳"
+
+#: templates/solar_system.html:464
+#, python-format
+msgid ""
+"When %(name)s is nearest the central meridian while Mars is above the "
+"altitude threshold."
+msgstr "火星高于您的高度阈值期间，%(name)s 最接近中央经线的时刻。"
+
+#: templates/solar_system.html:465
+#, python-format
+msgid "Bar: how close it is to the central meridian (%(deg)s° away)"
+msgstr "条形：距中央经线有多近（相距 %(deg)s°）"
+
+#: templates/solar_system.html:466
+#, python-format
+msgid "Next on the central meridian: %(time)s"
+msgstr "下次经过中央经线：%(time)s"
+
+#: templates/solar_system.html:467
+msgid "North polar cap (approximate size)"
+msgstr "北极冠（大致大小）"
+
+#: templates/solar_system.html:468
+msgid "South polar cap (approximate size)"
+msgstr "南极冠（大致大小）"
 
 #: templates/solar_system.html:434
 msgid "No named feature is on the disc tonight"

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 16:10+0800\n"
+"POT-Creation-Date: 2026-11-02 17:07+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -6091,6 +6091,26 @@ msgstr "木星の詳細"
 msgid "The real field also rotates with the planet's position in the sky."
 msgstr "実際の視野は、空での惑星の位置によっても回転します。"
 
+#: templates/solar_system.html:148
+msgid "GRS transit (predicted)"
+msgstr "大赤斑の中央経線通過（予測）"
+
+#: templates/solar_system.html:153
+msgid "Back to the built-in longitude"
+msgstr "内蔵の経度に戻す"
+
+#: templates/solar_system.html:156
+msgid "System II longitude (°)"
+msgstr "System II 経度（°）"
+
+#: templates/solar_system.html:159
+msgid "Measured on"
+msgstr "測定日"
+
+#: templates/solar_system.html:162
+msgid "Enter a longitude from 0 to 360 and a date."
+msgstr "0〜360 の経度と日付を入力してください。"
+
 #: templates/solar_system.html:147
 msgid "The moons tonight"
 msgstr "今夜の衛星"
@@ -6583,6 +6603,107 @@ msgid ""
 "wherever the planet's pole angle puts it."
 msgstr "天の北。この図は木星自身の座標系で描かれているため、北は惑星の極軸角度が示す位置になります。"
 
+#: templates/solar_system.html:397
+msgid "CM (System II)"
+msgstr "中央経線（System II）"
+
+#: templates/solar_system.html:398
+msgid ""
+"The longitude at the centre of the disc: it tells you which side of "
+"Jupiter faces you. System II is the one for everything outside the "
+"equatorial belt, the Great Red Spot included."
+msgstr "円盤中心の経度。木星のどちら側がこちらを向いているかが分かります。System II は赤道帯の外側すべてに使われ、大赤斑もこれに含まれます。"
+
+#: templates/solar_system.html:399
+#, python-format
+msgid "System I (equatorial belt): %(deg)s°"
+msgstr "System I（赤道帯）：%(deg)s°"
+
+#: templates/solar_system.html:400
+#, python-format
+msgid "System III (the planet's interior): %(deg)s°"
+msgstr "System III（惑星の内部）：%(deg)s°"
+
+#: templates/solar_system.html:402
+msgid "None while Jupiter is up tonight"
+msgstr "今夜、木星が昇っている間はありません"
+
+#: templates/solar_system.html:403
+#, python-format
+msgid "System II %(lon)s° on %(date)s"
+msgstr "System II %(lon)s°（%(date)s）"
+
+#: templates/solar_system.html:404
+msgid ""
+"Predicted times when the Great Red Spot crosses the centre of the disc: "
+"the best moment to see or image it. A prediction: the spot drifts, so "
+"allow 10–20 minutes either way."
+msgstr ""
+"大赤斑が円盤の中心を通過する予測時刻。観望や撮影に最適なタイミングです。予測値のため、斑点のドリフトを考えて前後 10〜20 "
+"分の余裕を見てください。"
+
+#: templates/solar_system.html:405
+#, python-format
+msgid "Tonight: %(times)s"
+msgstr "今夜：%(times)s"
+
+#: templates/solar_system.html:406
+msgid "The next nights:"
+msgstr "次の数夜："
+
+#: templates/solar_system.html:407
+msgid "No transit while Jupiter is up in the next nights."
+msgstr "次の数夜、木星が昇っている間の通過はありません。"
+
+#: templates/solar_system.html:408
+#, python-format
+msgid ""
+"Built-in longitude: System II %(lon)s° on %(date)s (JUPOS via Sky & "
+"Telescope; BAA Jupiter Section)."
+msgstr ""
+"内蔵の経度：System II %(lon)s°（%(date)s）（JUPOS、Sky & Telescope 経由；BAA Jupiter "
+"Section）。"
+
+#: templates/solar_system.html:409
+#, python-format
+msgid "Your longitude: System II %(lon)s° on %(date)s."
+msgstr "あなたの経度：System II %(lon)s°（%(date)s）。"
+
+#: templates/solar_system.html:410
+#, python-format
+msgid "Drift applied since that date: %(rate)s° a month."
+msgstr "その日以降、月 %(rate)s° のドリフトを適用しています。"
+
+#: templates/solar_system.html:411
+msgid ""
+"This longitude is more than six months old, so the times may be well off."
+" Enter a recent value (JUPOS, BAA, ALPO) with Edit."
+msgstr "この経度は 6 か月以上前のもので、時刻が大きくずれている可能性があります。「編集」から最新の値（JUPOS、BAA、ALPO）を入力してください。"
+
+#: templates/solar_system.html:413
+msgid "Great Red Spot (predicted position)"
+msgstr "大赤斑（予測位置）"
+
+#: templates/solar_system.html:414
+msgid "Filled dot: a moon beside or in front of Jupiter"
+msgstr "塗りつぶしの点：木星の横または手前にある衛星"
+
+#: templates/solar_system.html:415
+msgid "Dashed ring: a moon hidden behind the disc"
+msgstr "破線の輪：円盤の後ろに隠れた衛星"
+
+#: templates/solar_system.html:416
+msgid "Faded ring: a moon in Jupiter's shadow (eclipsed)"
+msgstr "薄い輪：木星の影に入った衛星（食）"
+
+#: templates/solar_system.html:417
+msgid "Black dot on the disc: a moon's shadow"
+msgstr "円盤上の黒い点：衛星の影"
+
+#: templates/solar_system.html:418
+msgid "Red oval: the Great Red Spot, when it faces us"
+msgstr "赤い楕円：こちらを向いているときの大赤斑"
+
 #: templates/solar_system.html:376
 msgid "Apparent diameter of Jupiter in arcseconds, cloud tops to cloud tops."
 msgstr "木星の視直径（秒角）。雲頂から雲頂まで。"
@@ -6724,6 +6845,10 @@ msgstr "今夜の木星：円盤、4つのガリレオ衛星、そしてそれ�
 msgid "Mars detail could not be calculated."
 msgstr "火星の詳細を計算できませんでした。"
 
+#: templates/solar_system.html:457
+msgid "CM"
+msgstr "中央経線"
+
 #: templates/solar_system.html:423
 msgid "Apparent diameter of Mars in arcseconds."
 msgstr "火星の視直径（秒角）。"
@@ -6737,6 +6862,55 @@ msgid ""
 "Planetographic longitude at the centre of the disc: it tells you which "
 "side of Mars faces you."
 msgstr "円盤中心の惑星経度。火星のどちら側がこちらを向いているかが分かります。"
+
+#: templates/solar_system.html:459
+#, python-format
+msgid "North pole tilted %(deg)s° towards us"
+msgstr "北極がこちらへ %(deg)s° 傾いている"
+
+#: templates/solar_system.html:460
+#, python-format
+msgid "South pole tilted %(deg)s° towards us"
+msgstr "南極がこちらへ %(deg)s° 傾いている"
+
+#: templates/solar_system.html:461
+#, python-format
+msgid "North pole tilted %(deg)s° towards the Sun"
+msgstr "北極が太陽へ %(deg)s° 傾いている"
+
+#: templates/solar_system.html:462
+#, python-format
+msgid "South pole tilted %(deg)s° towards the Sun"
+msgstr "南極が太陽へ %(deg)s° 傾いている"
+
+#: templates/solar_system.html:463
+msgid "Best tonight"
+msgstr "今夜のベスト"
+
+#: templates/solar_system.html:464
+#, python-format
+msgid ""
+"When %(name)s is nearest the central meridian while Mars is above the "
+"altitude threshold."
+msgstr "火星が高度閾値より上にある間で、%(name)s が中央経線に最も近づく時刻。"
+
+#: templates/solar_system.html:465
+#, python-format
+msgid "Bar: how close it is to the central meridian (%(deg)s° away)"
+msgstr "バー：中央経線にどれだけ近いか（%(deg)s° 離れている）"
+
+#: templates/solar_system.html:466
+#, python-format
+msgid "Next on the central meridian: %(time)s"
+msgstr "次に中央経線を通過：%(time)s"
+
+#: templates/solar_system.html:467
+msgid "North polar cap (approximate size)"
+msgstr "北極冠（おおよその大きさ）"
+
+#: templates/solar_system.html:468
+msgid "South polar cap (approximate size)"
+msgstr "南極冠（おおよその大きさ）"
 
 #: templates/solar_system.html:434
 msgid "No named feature is on the disc tonight"

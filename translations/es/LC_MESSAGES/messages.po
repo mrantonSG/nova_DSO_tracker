@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 16:10+0800\n"
+"POT-Creation-Date: 2026-11-02 17:07+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -6257,6 +6257,26 @@ msgstr "Detalles de Júpiter"
 msgid "The real field also rotates with the planet's position in the sky."
 msgstr "El campo real también gira según la posición del planeta en el cielo."
 
+#: templates/solar_system.html:148
+msgid "GRS transit (predicted)"
+msgstr "Tránsito de la GMR (previsión)"
+
+#: templates/solar_system.html:153
+msgid "Back to the built-in longitude"
+msgstr "Volver a la longitud integrada"
+
+#: templates/solar_system.html:156
+msgid "System II longitude (°)"
+msgstr "Longitud en sistema II (°)"
+
+#: templates/solar_system.html:159
+msgid "Measured on"
+msgstr "Medida el"
+
+#: templates/solar_system.html:162
+msgid "Enter a longitude from 0 to 360 and a date."
+msgstr "Introduzca una longitud de 0 a 360 y una fecha."
+
 #: templates/solar_system.html:147
 msgid "The moons tonight"
 msgstr "Las lunas esta noche"
@@ -6778,6 +6798,113 @@ msgid ""
 msgstr "Norte celeste. La figura se dibuja en el sistema propio de Júpiter: el"
 " norte está donde lo sitúa el ángulo del polo del planeta."
 
+#: templates/solar_system.html:397
+msgid "CM (System II)"
+msgstr "MC (sistema II)"
+
+#: templates/solar_system.html:398
+msgid ""
+"The longitude at the centre of the disc: it tells you which side of "
+"Jupiter faces you. System II is the one for everything outside the "
+"equatorial belt, the Great Red Spot included."
+msgstr ""
+"La longitud en el centro del disco: indica qué cara de Júpiter mira hacia"
+" usted. El sistema II sirve para todo lo que está fuera del cinturón "
+"ecuatorial, incluida la Gran Mancha Roja."
+
+#: templates/solar_system.html:399
+#, python-format
+msgid "System I (equatorial belt): %(deg)s°"
+msgstr "Sistema I (cinturón ecuatorial): %(deg)s°"
+
+#: templates/solar_system.html:400
+#, python-format
+msgid "System III (the planet's interior): %(deg)s°"
+msgstr "Sistema III (el interior del planeta): %(deg)s°"
+
+#: templates/solar_system.html:402
+msgid "None while Jupiter is up tonight"
+msgstr "Ninguno mientras Júpiter está alto esta noche"
+
+#: templates/solar_system.html:403
+#, python-format
+msgid "System II %(lon)s° on %(date)s"
+msgstr "Sistema II %(lon)s° el %(date)s"
+
+#: templates/solar_system.html:404
+msgid ""
+"Predicted times when the Great Red Spot crosses the centre of the disc: "
+"the best moment to see or image it. A prediction: the spot drifts, so "
+"allow 10–20 minutes either way."
+msgstr ""
+"Horas previstas en que la Gran Mancha Roja cruza el centro del disco: el "
+"mejor momento para verla o fotografiarla. Es una previsión: la mancha "
+"deriva, así que cuente con 10–20 minutos de margen en ambos sentidos."
+
+#: templates/solar_system.html:405
+#, python-format
+msgid "Tonight: %(times)s"
+msgstr "Esta noche: %(times)s"
+
+#: templates/solar_system.html:406
+msgid "The next nights:"
+msgstr "Las próximas noches:"
+
+#: templates/solar_system.html:407
+msgid "No transit while Jupiter is up in the next nights."
+msgstr "Ningún tránsito mientras Júpiter está alto en las próximas noches."
+
+#: templates/solar_system.html:408
+#, python-format
+msgid ""
+"Built-in longitude: System II %(lon)s° on %(date)s (JUPOS via Sky & "
+"Telescope; BAA Jupiter Section)."
+msgstr ""
+"Longitud integrada: sistema II %(lon)s° el %(date)s (JUPOS vía Sky & "
+"Telescope; BAA Jupiter Section)."
+
+#: templates/solar_system.html:409
+#, python-format
+msgid "Your longitude: System II %(lon)s° on %(date)s."
+msgstr "Su longitud: sistema II %(lon)s° el %(date)s."
+
+#: templates/solar_system.html:410
+#, python-format
+msgid "Drift applied since that date: %(rate)s° a month."
+msgstr "Deriva aplicada desde esa fecha: %(rate)s° al mes."
+
+#: templates/solar_system.html:411
+msgid ""
+"This longitude is more than six months old, so the times may be well off."
+" Enter a recent value (JUPOS, BAA, ALPO) with Edit."
+msgstr ""
+"Esta longitud tiene más de seis meses, así que las horas pueden desviarse"
+" bastante. Introduzca un valor reciente (JUPOS, BAA, ALPO) con «Editar»."
+
+#: templates/solar_system.html:413
+msgid "Great Red Spot (predicted position)"
+msgstr "Gran Mancha Roja (posición prevista)"
+
+#: templates/solar_system.html:414
+msgid "Filled dot: a moon beside or in front of Jupiter"
+msgstr "Punto relleno: una luna junto a Júpiter o delante de él"
+
+#: templates/solar_system.html:415
+msgid "Dashed ring: a moon hidden behind the disc"
+msgstr "Anillo discontinuo: una luna oculta tras el disco"
+
+#: templates/solar_system.html:416
+msgid "Faded ring: a moon in Jupiter's shadow (eclipsed)"
+msgstr "Anillo tenue: una luna en la sombra de Júpiter (eclipsada)"
+
+#: templates/solar_system.html:417
+msgid "Black dot on the disc: a moon's shadow"
+msgstr "Punto negro en el disco: la sombra de una luna"
+
+#: templates/solar_system.html:418
+msgid "Red oval: the Great Red Spot, when it faces us"
+msgstr "Óvalo rojo: la Gran Mancha Roja, cuando mira hacia nosotros"
+
 #: templates/solar_system.html:376
 msgid "Apparent diameter of Jupiter in arcseconds, cloud tops to cloud tops."
 msgstr "Diámetro aparente de Júpiter en segundos de arco, de cima de nube a cima"
@@ -6924,6 +7051,10 @@ msgstr "Júpiter esta noche: el disco, las cuatro lunas galileanas y las sombras
 msgid "Mars detail could not be calculated."
 msgstr "No se pudieron calcular los detalles de Marte."
 
+#: templates/solar_system.html:457
+msgid "CM"
+msgstr "MC"
+
 #: templates/solar_system.html:423
 msgid "Apparent diameter of Mars in arcseconds."
 msgstr "Diámetro aparente de Marte en segundos de arco."
@@ -6938,6 +7069,57 @@ msgid ""
 "side of Mars faces you."
 msgstr "Longitud planetográfica en el centro del disco: indica qué cara de Marte"
 " mira hacia usted."
+
+#: templates/solar_system.html:459
+#, python-format
+msgid "North pole tilted %(deg)s° towards us"
+msgstr "Polo norte inclinado %(deg)s° hacia nosotros"
+
+#: templates/solar_system.html:460
+#, python-format
+msgid "South pole tilted %(deg)s° towards us"
+msgstr "Polo sur inclinado %(deg)s° hacia nosotros"
+
+#: templates/solar_system.html:461
+#, python-format
+msgid "North pole tilted %(deg)s° towards the Sun"
+msgstr "Polo norte inclinado %(deg)s° hacia el Sol"
+
+#: templates/solar_system.html:462
+#, python-format
+msgid "South pole tilted %(deg)s° towards the Sun"
+msgstr "Polo sur inclinado %(deg)s° hacia el Sol"
+
+#: templates/solar_system.html:463
+msgid "Best tonight"
+msgstr "Mejor momento esta noche"
+
+#: templates/solar_system.html:464
+#, python-format
+msgid ""
+"When %(name)s is nearest the central meridian while Mars is above the "
+"altitude threshold."
+msgstr ""
+"Cuándo %(name)s está más cerca del meridiano central mientras Marte está "
+"por encima de su umbral de altitud."
+
+#: templates/solar_system.html:465
+#, python-format
+msgid "Bar: how close it is to the central meridian (%(deg)s° away)"
+msgstr "Barra: lo cerca que está del meridiano central (a %(deg)s°)"
+
+#: templates/solar_system.html:466
+#, python-format
+msgid "Next on the central meridian: %(time)s"
+msgstr "Próximo paso por el meridiano central: %(time)s"
+
+#: templates/solar_system.html:467
+msgid "North polar cap (approximate size)"
+msgstr "Casquete polar norte (tamaño aproximado)"
+
+#: templates/solar_system.html:468
+msgid "South polar cap (approximate size)"
+msgstr "Casquete polar sur (tamaño aproximado)"
 
 #: templates/solar_system.html:434
 msgid "No named feature is on the disc tonight"
