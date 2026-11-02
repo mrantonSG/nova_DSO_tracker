@@ -553,8 +553,9 @@
 
         var iframe = document.getElementById('simbadIframe');
         if (!iframe) {
-            // No host is known to work: the server rendered the translated
-            // unavailable message in the tab instead of the iframe.
+            // The server rendered the translated unavailable message instead of
+            // the iframe: either no host is known to work, or the current host
+            // is a mirror, which refuses to be framed.
             simbadLoaded = true;
             return;
         }
