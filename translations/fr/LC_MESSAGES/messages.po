@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 17:07+0800\n"
+"POT-Creation-Date: 2026-11-02 18:51+0800\n"
 "PO-Revision-Date: 2026-03-06 10:45+0800\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -6851,6 +6851,11 @@ msgstr "Système III (l'intérieur de la planète) : %(deg)s°"
 #: templates/solar_system.html:402
 msgid "None while Jupiter is up tonight"
 msgstr "Aucun pendant que Jupiter est levé cette nuit"
+
+#: templates/solar_system.html:403
+#, python-format
+msgid "Next: %(time)s"
+msgstr "Prochain : %(time)s"
 
 #: templates/solar_system.html:403
 #, python-format
