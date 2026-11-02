@@ -132,6 +132,50 @@ def isolated_cache_dir(_session_cache_dir, tmp_path, monkeypatch):
     return path
 
 
+# trigger_outlook_update_for_user (nova/__init__.py) starts a thread running
+# _process_locations_sequentially -- astropy work for every active location -- and, unlike
+# the background workers, it is not gated by NOVA_DISABLE_BACKGROUND_TASKS. Started by a
+# route under test, that thread outlives the test and runs alongside the next ones. The
+# app is left as it is; in tests nova's `threading` is this stand-in, which is the real
+# module except that the trigger's own thread is never started. A test that wants the
+# thread (or a spy on it) patches nova.threading or threading.Thread itself, and that wins.
+_REAL_THREAD = threading.Thread
+OUTLOOK_THREAD_TARGET = "_process_locations_sequentially"
+
+
+class _NoOutlookThread:
+    def __init__(self, *args, **kwargs):
+        self.daemon = kwargs.get("daemon", False)
+
+    def start(self):
+        pass
+
+    def join(self, timeout=None):
+        pass
+
+    def is_alive(self):
+        return False
+
+
+class _TestThreading(types.ModuleType):
+    """The threading module, as nova/__init__.py sees it in tests."""
+
+    def __getattr__(self, name):
+        return getattr(threading, name)
+
+    @staticmethod
+    def Thread(*args, target=None, **kwargs):
+        if threading.Thread is _REAL_THREAD and getattr(target, "__name__", "") == OUTLOOK_THREAD_TARGET:
+            return _NoOutlookThread(*args, target=target, **kwargs)
+        return threading.Thread(*args, target=target, **kwargs)
+
+
+@pytest.fixture(autouse=True)
+def no_outlook_thread(monkeypatch):
+    import nova
+    monkeypatch.setattr(nova, "threading", _TestThreading("threading"))
+
+
 def pytest_terminal_summary(terminalreporter):
     after = _snapshot_instance_dir()
     before = _INSTANCE_SNAPSHOT_BEFORE
