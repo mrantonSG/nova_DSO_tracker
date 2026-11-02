@@ -3,8 +3,8 @@ import numpy as np
 import requests
 import time
 import re
-from astroquery.simbad import Simbad
 from astroquery.vizier import Vizier
+from modules import simbad_service
 
 # Script to retrieve Deep Space Object data (Type, Magnitude, Size, SB)
 # Uses astroquery (SIMBAD, VizieR) with fallback to Stellarium Remote Control API
@@ -28,13 +28,10 @@ TOTAL_BUDGET = 15    # seconds for the whole fallback chain
 def get_object_type_from_simbad(object_name):
     """Fetch object type from SIMBAD, trying otype and morph_type."""
     print(f"[DEBUG] Attempting SIMBAD query for type of '{object_name}'...")
-    custom_simbad = Simbad()
-    custom_simbad.TIMEOUT = QUERY_TIMEOUT
-    custom_simbad.ROW_LIMIT = 1
-    custom_simbad.add_votable_fields('otype', 'morph_type')
 
     try:
-        result_table = custom_simbad.query_object(object_name)
+        result_table = simbad_service.query_object(
+            object_name, fields=('otype', 'morph_type'))
         if result_table is None or len(result_table) == 0:
             print(f"[DEBUG] SIMBAD query for '{object_name}' returned no result table.")
             return None
@@ -107,12 +104,8 @@ def get_object_type_from_simbad(object_name):
 # --- Magnitude ---
 def get_magnitude_from_simbad(object_name):
     """Fetch apparent magnitude (V-band) from SIMBAD."""
-    custom_simbad = Simbad();
-    custom_simbad.TIMEOUT = QUERY_TIMEOUT;
-    custom_simbad.ROW_LIMIT = 1
-    custom_simbad.add_votable_fields('V')  # Corrected from 'flux(V)'
     try:
-        result = custom_simbad.query_object(object_name)
+        result = simbad_service.query_object(object_name, fields=('V',))
         if result is None or len(result) == 0: return None
         mag_col_name = None
         potential_mag_cols = ['V', 'FLUX_V']
@@ -213,12 +206,9 @@ def get_magnitude(object_name, deadline=None):
 # --- Angular Size ---
 def get_angular_size_from_simbad(object_name):
     """Fetch angular size (major axis in arcmin) from SIMBAD."""
-    custom_simbad = Simbad();
-    custom_simbad.TIMEOUT = QUERY_TIMEOUT;
-    custom_simbad.ROW_LIMIT = 1
-    custom_simbad.add_votable_fields('galdim_majaxis')
     try:
-        result = custom_simbad.query_object(object_name)
+        result = simbad_service.query_object(
+            object_name, fields=('galdim_majaxis',))
         if result is None or len(result) == 0: return None
         size_col_candidates = ['GALDIM_MAJAXIS', 'galdim_majaxis']
         for col_name in size_col_candidates:
@@ -460,6 +450,7 @@ def get_astronomical_data(object_name, stellarium_ip="localhost", port=8090):
         "magnitude": mag_data["value"], "mag_source": mag_data.get('source'),
         "size_arcmin": size_data["value"], "size_source": size_data.get('source'),
         "surface_brightness": sb,
+        "simbad_unavailable": not simbad_service.is_available_cached(),
     }
     if final_data["object_type"] is None: print(
         f"[DATA_MISSING] Object Type not found for {object_name} from any source.")

@@ -3223,6 +3223,9 @@ msgstr "見つかりました: %(name)s。詳細は SIMBAD から読み込まれ
 #: templates/base.html:187
 msgid "SIMBAD lookup failed."
 msgstr "SIMBAD検索に失敗しました。"
+msgid "SIMBAD is currently unavailable. Please try again later."
+msgstr "SIMBADは現在利用できません。後でもう一度お試しください。"
+
 
 #: templates/base.html:188
 msgid "selected"

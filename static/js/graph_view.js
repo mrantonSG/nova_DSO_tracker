@@ -552,7 +552,9 @@
         }
 
         var iframe = document.getElementById('simbadIframe');
-        iframe.src = 'https://simbad.u-strasbg.fr/simbad/sim-basic?Ident=' + encodeURIComponent(objectName) + '&submit=SIMBAD+search';
+        var simbadHost = (window.NOVA_GRAPH_DATA && window.NOVA_GRAPH_DATA.simbadHost)
+            || 'simbad.cds.unistra.fr';
+        iframe.src = 'https://' + simbadHost + '/simbad/sim-basic?Ident=' + encodeURIComponent(objectName) + '&submit=SIMBAD+search';
         simbadLoaded = true;
     }
 

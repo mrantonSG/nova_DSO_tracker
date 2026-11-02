@@ -55,6 +55,7 @@
     const i18n = {
         searchingFor: "{{ _('Searching for %%(name)s...') }}",
         objectNotFound: "{{ _('Object not found.') }}",
+        simbadUnavailable: "{{ _('SIMBAD is currently unavailable. Please try again later.') }}",
         errorConnecting: "{{ _('Error connecting to server.') }}",
         saving: "{{ _('Saving...') }}",
         objectSaved: "{{ _('Object saved successfully!') }}",
@@ -104,7 +105,10 @@
 
                 const data = await response.json();
 
-                if (response.ok && data.status === 'success') {
+                if (data.code === 'simbad_unavailable') {
+                    messageArea.textContent = i18n.simbadUnavailable;
+                    messageArea.style.display = 'block';
+                } else if (response.ok && data.status === 'success') {
                     // Populate the form with data from SIMBAD
                     objInput.value = data.data['Object'];
                     nameInput.value = data.data['Common Name'];

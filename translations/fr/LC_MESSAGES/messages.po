@@ -3333,6 +3333,9 @@ msgstr "Trouvé : %(name)s. Détails chargés à partir de SIMBAD."
 #: templates/base.html:187
 msgid "SIMBAD lookup failed."
 msgstr "Échec de la recherche SIMBAD."
+msgid "SIMBAD is currently unavailable. Please try again later."
+msgstr "SIMBAD est actuellement indisponible. Veuillez réessayer plus tard."
+
 
 #: templates/base.html:188
 msgid "selected"

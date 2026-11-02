@@ -20,7 +20,6 @@ from typing import Optional
 
 from flask import g, has_request_context, current_app, session, request
 from sqlalchemy.orm import selectinload
-from astroquery.simbad import Simbad
 from astropy.coordinates import SkyCoord, get_constellation, EarthLocation, AltAz, get_body
 from astropy.time import Time
 import astropy.units as u
@@ -32,8 +31,9 @@ from nova.models import (
 )
 from nova.record_links import framed_object_uids
 import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay live (see nova/config.py)
+from modules import simbad_service
 from nova.config import (
-    INSTANCE_PATH, BACKUP_DIR, ALLOWED_EXTENSIONS, SIMBAD_TIMEOUT,
+    INSTANCE_PATH, BACKUP_DIR, ALLOWED_EXTENSIONS,
     nightly_curves_cache, NOVA_CATALOG_URL, CATALOG_MANIFEST_CACHE, DEFAULT_HTTP_TIMEOUT,
     CACHE_DIR, astro_context_cache, observable_objects_cache,
     UPLOAD_FOLDER, CONFIG_DIR, ADMIN_USERS,
@@ -1171,14 +1171,10 @@ def get_ra_dec(object_name, objects_map=None):
     active_project_to_use = obj_entry.get("ActiveProject", default_active_project) if obj_entry else default_active_project
 
     try:
-        custom_simbad = Simbad()
-        custom_simbad.ROW_LIMIT = 1
-        custom_simbad.TIMEOUT = SIMBAD_TIMEOUT
-        # Request standard coordinates.
-        # Our parsing logic handles both Decimal (try block) and Sexagesimal (except block).
-        custom_simbad.add_votable_fields('main_id', 'ra', 'dec', 'otype', 'ids')
-
-        result = custom_simbad.query_object(object_name)
+        # Request standard coordinates. Our parsing logic handles both Decimal
+        # (try block) and Sexagesimal (except block).
+        result = simbad_service.query_object(
+            object_name, fields=('main_id', 'ra', 'dec', 'otype', 'ids'))
         if result is None or len(result) == 0:
             raise ValueError(f"No results for '{object_name}' in SIMBAD.")
 
@@ -1217,6 +1213,15 @@ def get_ra_dec(object_name, objects_map=None):
             "SIMBAD Names": simbad_names,
             "SIMBAD Name": pick_simbad_common_name(simbad_names),
             "Magnitude": "N/A", "Size": "N/A", "SB": "N/A", "ActiveProject": active_project_to_use
+        }
+    except simbad_service.SimbadUnavailableError:
+        return {
+            "Object": object_name, "Constellation": "N/A",
+            "Common Name": "SIMBAD unavailable",
+            "RA (hours)": None, "DEC (degrees)": None, "Project": project_to_use, "Type": "N/A",
+            "SIMBAD Names": [], "SIMBAD Name": None,
+            "Magnitude": "N/A", "Size": "N/A", "SB": "N/A", "ActiveProject": active_project_to_use,
+            "SIMBADUnavailable": True,
         }
     except Exception as ex:
         return {

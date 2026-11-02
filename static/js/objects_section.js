@@ -1026,7 +1026,11 @@
                             alreadyErr.alreadyInLibrary = true;
                             throw alreadyErr;
                           }
-                          if (data.status !== "success") throw new Error(data.message);
+                          if (data.status !== "success") {
+                            const _simbadErr = new Error(data.message);
+                            _simbadErr.code = data.code;
+                            throw _simbadErr;
+                          }
 
                           // Populate with SIMBAD data
                           document.getElementById('new_name').value = data.data["Common Name"];
@@ -1057,6 +1061,11 @@
                           fetch("/fetch_object_details", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ object: objectName }), signal: detailsController.signal })
                           .then(r => r.json()).then(extra => {
                             if (isStale()) return;
+                            if (extra.code === 'simbad_unavailable') {
+                              const _detailsErr = new Error(extra.message || 'SIMBAD unavailable');
+                              _detailsErr.code = 'simbad_unavailable';
+                              throw _detailsErr;
+                            }
                             if (extra.status !== 'success') throw new Error(extra.message || 'Details unavailable');
                             document.getElementById('new_type').value = extra.data.Type || '';
                             document.getElementById('new_magnitude').value = extra.data.Magnitude || '';
@@ -1065,15 +1074,19 @@
                             const commonName = document.getElementById('new_name').value;
                             resultDiv.innerHTML = `<p class="message">Found: ${window.escapeHtml(commonName)}. Details loaded from SIMBAD.</p>`;
                           })
-                          .catch(() => {
+                          .catch(detailsErr => {
                             if (isStale()) return;
                             // Timeout or details error: keep coordinates and buttons, allow manual entry
                             ['new_type', 'new_magnitude', 'new_size', 'new_sb'].forEach(id => {
                                 const el = document.getElementById(id);
                                 if (el) el.readOnly = false;
                             });
-                            const commonName = document.getElementById('new_name').value;
-                            resultDiv.innerHTML = `<p class="message">Found: ${window.escapeHtml(commonName)}. Extra details unavailable — you can fill them in manually.</p>`;
+                            if (detailsErr && detailsErr.code === 'simbad_unavailable') {
+                              resultDiv.innerHTML = `<p class="error">${window.escapeHtml(window.t('simbad_unavailable'))}</p>`;
+                            } else {
+                              const commonName = document.getElementById('new_name').value;
+                              resultDiv.innerHTML = `<p class="message">Found: ${window.escapeHtml(commonName)}. Extra details unavailable — you can fill them in manually.</p>`;
+                            }
                           })
                           .finally(() => clearTimeout(detailsTimeout));
                         })
@@ -1085,7 +1098,11 @@
                             return;
                           }
                           // --- 4. PATH C: BOTH LOCAL AND SIMBAD FAILED ---
-                          resultDiv.innerHTML = `<p class="error">Error: ${window.escapeHtml(simbadErr.message)}.<br>You can now add the object manually and click 'Confirm Add'.</p>`;
+                          if (simbadErr && simbadErr.code === 'simbad_unavailable') {
+                            resultDiv.innerHTML = `<p class="error">${window.escapeHtml(window.t('simbad_unavailable'))}<br>You can now add the object manually and click 'Confirm Add'.</p>`;
+                          } else {
+                            resultDiv.innerHTML = `<p class="error">Error: ${window.escapeHtml(simbadErr.message)}.<br>You can now add the object manually and click 'Confirm Add'.</p>`;
+                          }
                           ['confirm_add_object', 'edit_object', 'cancel_add_object'].forEach(id => {
                               if (document.getElementById(id)) document.getElementById(id).style.display = 'inline-block';
                           });

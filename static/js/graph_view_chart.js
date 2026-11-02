@@ -3851,6 +3851,9 @@
         .then(data => {
             if (btn) { btn.textContent = 'Scan Frame'; btn.disabled = false; }
             if (data.status !== 'success') {
+                if (data.code === 'simbad_unavailable') {
+                    novaAlert(window.t('simbad_unavailable'));
+                }
                 console.warn('[SCAN] SIMBAD error:', data.message);
                 return;
             }

@@ -3214,6 +3214,9 @@ msgstr ""
 #: templates/base.html:187
 msgid "SIMBAD lookup failed."
 msgstr ""
+msgid "SIMBAD is currently unavailable. Please try again later."
+msgstr ""
+
 
 #: templates/base.html:188
 msgid "selected"

@@ -18,9 +18,7 @@ def mock_app_context():
 
 
 def test_simbad_small_degree_value_is_converted_to_hours(mock_app_context):
-    with patch('nova.helpers.Simbad') as MockSimbad:
-        mock_instance = MockSimbad.return_value
-
+    with patch('modules.simbad_service.query_object') as mock_query:
         mock_table = MagicMock()
         # FIX: Define __len__ so len(result) == 1
         mock_table.__len__.return_value = 1
@@ -33,7 +31,7 @@ def test_simbad_small_degree_value_is_converted_to_hours(mock_app_context):
             return ['Unknown']
 
         mock_table.__getitem__.side_effect = get_column_data
-        mock_instance.query_object.return_value = mock_table
+        mock_query.return_value = mock_table
 
         result = get_ra_dec("IC 63")
 
@@ -47,8 +45,7 @@ def test_simbad_small_degree_value_is_converted_to_hours(mock_app_context):
 
 
 def test_simbad_large_degree_value(mock_app_context):
-    with patch('nova.helpers.Simbad') as MockSimbad:
-        mock_instance = MockSimbad.return_value
+    with patch('modules.simbad_service.query_object') as mock_query:
         mock_table = MagicMock()
         # FIX: Define __len__
         mock_table.__len__.return_value = 1
@@ -60,7 +57,7 @@ def test_simbad_large_degree_value(mock_app_context):
             return ['Unknown']
 
         mock_table.__getitem__.side_effect = get_column_data
-        mock_instance.query_object.return_value = mock_table
+        mock_query.return_value = mock_table
 
         result = get_ra_dec("TestObj")
 
@@ -160,8 +157,7 @@ def test_real_case_ngc7000():
 # --- get_ra_dec: the new "SIMBAD Names"/"SIMBAD Name" keys on the SIMBAD path ---
 
 def test_get_ra_dec_sets_simbad_names_from_ids(mock_app_context):
-    with patch('nova.helpers.Simbad') as MockSimbad:
-        mock_instance = MockSimbad.return_value
+    with patch('modules.simbad_service.query_object') as mock_query:
         mock_table = MagicMock()
         mock_table.__len__.return_value = 1
         mock_table.colnames = ['main_id', 'ra', 'dec', 'otype', 'ids']
@@ -177,7 +173,7 @@ def test_get_ra_dec_sets_simbad_names_from_ids(mock_app_context):
             return ['Unknown']
 
         mock_table.__getitem__.side_effect = get_column_data
-        mock_instance.query_object.return_value = mock_table
+        mock_query.return_value = mock_table
 
         result = get_ra_dec("NGC 7000")
 
@@ -188,8 +184,7 @@ def test_get_ra_dec_sets_simbad_names_from_ids(mock_app_context):
 
 
 def test_get_ra_dec_simbad_names_empty_without_ids_column(mock_app_context):
-    with patch('nova.helpers.Simbad') as MockSimbad:
-        mock_instance = MockSimbad.return_value
+    with patch('modules.simbad_service.query_object') as mock_query:
         mock_table = MagicMock()
         mock_table.__len__.return_value = 1
         mock_table.colnames = ['ra', 'dec']
@@ -200,7 +195,7 @@ def test_get_ra_dec_simbad_names_empty_without_ids_column(mock_app_context):
             return ['Unknown']
 
         mock_table.__getitem__.side_effect = get_column_data
-        mock_instance.query_object.return_value = mock_table
+        mock_query.return_value = mock_table
 
         result = get_ra_dec("TestObj")
 
@@ -231,8 +226,8 @@ def test_ndf_object_type_specific_otype_is_returned():
         ['main_id', 'otype', 'morph_type'],
         {'otype': ['PN'], 'morph_type': ['']},
     )
-    with patch('modules.nova_data_fetcher.Simbad') as MockSimbad:
-        MockSimbad.return_value.query_object.return_value = table
+    with patch('modules.simbad_service.query_object') as mock_query:
+        mock_query.return_value = table
         assert ndf.get_object_type_from_simbad("M 57") == "PN"
 
 
@@ -241,8 +236,8 @@ def test_ndf_object_type_generic_otype_uses_morph_type():
         ['main_id', 'otype', 'morph_type'],
         {'otype': ['Object'], 'morph_type': ['SA(s)b']},
     )
-    with patch('modules.nova_data_fetcher.Simbad') as MockSimbad:
-        MockSimbad.return_value.query_object.return_value = table
+    with patch('modules.simbad_service.query_object') as mock_query:
+        mock_query.return_value = table
         assert ndf.get_object_type_from_simbad("TestObj") == "SA(s)b"
 
 
@@ -251,8 +246,8 @@ def test_ndf_object_type_generic_otype_without_morph_type_returns_none():
         ['main_id', 'otype', 'morph_type'],
         {'otype': ['Object'], 'morph_type': ['']},
     )
-    with patch('modules.nova_data_fetcher.Simbad') as MockSimbad:
-        MockSimbad.return_value.query_object.return_value = table
+    with patch('modules.simbad_service.query_object') as mock_query:
+        mock_query.return_value = table
         assert ndf.get_object_type_from_simbad("TestObj") is None
 
 
@@ -261,8 +256,8 @@ def test_ndf_angular_size_galdim_majaxis_is_returned():
         ['main_id', 'galdim_majaxis'],
         {'galdim_majaxis': [199.53]},
     )
-    with patch('modules.nova_data_fetcher.Simbad') as MockSimbad:
-        MockSimbad.return_value.query_object.return_value = table
+    with patch('modules.simbad_service.query_object') as mock_query:
+        mock_query.return_value = table
         assert ndf.get_angular_size_from_simbad("M 31") == {
             "value": 199.53, "source": "SIMBAD (galdim_majaxis)"
         }
@@ -270,8 +265,8 @@ def test_ndf_angular_size_galdim_majaxis_is_returned():
 
 def test_ndf_angular_size_without_galdim_majaxis_returns_none():
     table = _ndf_simbad_table(['main_id'], {})
-    with patch('modules.nova_data_fetcher.Simbad') as MockSimbad:
-        MockSimbad.return_value.query_object.return_value = table
+    with patch('modules.simbad_service.query_object') as mock_query:
+        mock_query.return_value = table
         assert ndf.get_angular_size_from_simbad("NGC 7000") is None
 
 
@@ -280,8 +275,8 @@ def test_ndf_object_type_activity_otype_with_morph_type_uses_morph_type():
         ['main_id', 'otype', 'morph_type'],
         {'otype': ['AGN'], 'morph_type': ['SA(s)b']},
     )
-    with patch('modules.nova_data_fetcher.Simbad') as MockSimbad:
-        MockSimbad.return_value.query_object.return_value = table
+    with patch('modules.simbad_service.query_object') as mock_query:
+        mock_query.return_value = table
         assert ndf.get_object_type_from_simbad("M 31") == "SA(s)b"
 
 
@@ -290,6 +285,16 @@ def test_ndf_object_type_activity_otype_without_morph_type_returns_otype():
         ['main_id', 'otype', 'morph_type'],
         {'otype': ['AGN'], 'morph_type': ['']},
     )
-    with patch('modules.nova_data_fetcher.Simbad') as MockSimbad:
-        MockSimbad.return_value.query_object.return_value = table
+    with patch('modules.simbad_service.query_object') as mock_query:
+        mock_query.return_value = table
         assert ndf.get_object_type_from_simbad("M 31") == "AGN"
+
+
+def test_get_ra_dec_marks_simbad_unavailable(mock_app_context):
+    from modules.simbad_service import SimbadUnavailableError
+    with patch('modules.simbad_service.query_object',
+               side_effect=SimbadUnavailableError("down")):
+        result = get_ra_dec("M 31")
+    assert result.get("SIMBADUnavailable") is True
+    assert result["RA (hours)"] is None
+    assert result["SIMBAD Names"] == []

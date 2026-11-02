@@ -32,6 +32,7 @@ from nova import (
     SavedView,
     SavedFraming
 )
+from modules import simbad_service
 from nova.record_links import sync_rig_links
 from nova.helpers import normalize_object_name
 
@@ -1089,11 +1090,8 @@ def test_config_form_post_update_and_delete_locations(client, db_session):
 
 
 def test_api_scan_frame_basic(client, db_session, monkeypatch):
-    import types as _types
-    def mock_post(*args, **kwargs):
-        return _types.SimpleNamespace(text=FAKE_SIMBAD_CSV)
-    import requests as _requests
-    monkeypatch.setattr(_requests, 'post', mock_post)
+    monkeypatch.setattr(simbad_service, 'tap_csv',
+                        lambda adql, timeout=None: FAKE_SIMBAD_CSV)
 
     payload = {'ra': 83.5, 'dec': -57.0, 'fov_w': 1.0, 'fov_h': 1.0}
     response = client.post('/api/scan_frame', json=payload)
@@ -1110,11 +1108,8 @@ def test_api_scan_frame_basic(client, db_session, monkeypatch):
 
 
 def test_api_scan_frame_mag_filter(client, db_session, monkeypatch):
-    import types as _types
-    def mock_post(*args, **kwargs):
-        return _types.SimpleNamespace(text=FAKE_SIMBAD_CSV)
-    import requests as _requests
-    monkeypatch.setattr(_requests, 'post', mock_post)
+    monkeypatch.setattr(simbad_service, 'tap_csv',
+                        lambda adql, timeout=None: FAKE_SIMBAD_CSV)
 
     payload = {'ra': 83.5, 'dec': -57.0, 'fov_w': 1.0, 'fov_h': 1.0,
                'mag_limit': 7.5}
@@ -1130,15 +1125,16 @@ def test_api_scan_frame_mag_filter(client, db_session, monkeypatch):
     assert 'Taurus X-1' in names        # no mag -> always kept
 
 
-def test_api_scan_frame_timeout(client, db_session, monkeypatch):
-    import requests as _requests
-    from requests.exceptions import Timeout
-    monkeypatch.setattr(_requests, 'post',
-                        lambda *a, **kw: (_ for _ in ()).throw(Timeout()))
+def test_api_scan_frame_unavailable(client, db_session, monkeypatch):
+    def _raise_unavailable(adql, timeout=None):
+        raise simbad_service.SimbadUnavailableError('down')
+    monkeypatch.setattr(simbad_service, 'tap_csv', _raise_unavailable)
     payload = {'ra': 10.0, 'dec': 20.0, 'fov_w': 1.0, 'fov_h': 1.0}
     response = client.post('/api/scan_frame', json=payload)
     assert response.status_code == 200
-    assert response.get_json()['status'] == 'error'
+    body = response.get_json()
+    assert body['status'] == 'error'
+    assert body['code'] == 'simbad_unavailable'
 
 
 # --- /search_object: uses the SIMBAD descriptive name for Common Name ---

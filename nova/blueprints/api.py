@@ -25,6 +25,7 @@ import ephem
 import pytz
 
 import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay live (see nova/config.py)
+from modules import simbad_service
 from nova.config import (
     ADMIN_USERS, TELEMETRY_DEBUG_STATE, LATEST_VERSION_INFO,
     nightly_curves_cache, observable_objects_cache,
@@ -1038,19 +1039,18 @@ def scan_frame():
     ).format(ra=ra, dec=dec, fov_w=fov_w, fov_h=fov_h)
 
     try:
-        r = requests.post(
-            'http://simbad.u-strasbg.fr/simbad/sim-tap/sync',
-            data=[('REQUEST','doQuery'),('LANG','ADQL'),
-                  ('FORMAT','csv'),('QUERY', adql)],
-            timeout=DEFAULT_HTTP_TIMEOUT,
-        )
-    except requests.exceptions.Timeout:
-        return jsonify({'status': 'error', 'message': 'SIMBAD timeout'}), 200
-    except requests.exceptions.RequestException as e:
+        text = simbad_service.tap_csv(adql, timeout=DEFAULT_HTTP_TIMEOUT)
+    except simbad_service.SimbadUnavailableError:
+        return jsonify({
+            'status': 'error',
+            'code': 'simbad_unavailable',
+            'message': _('SIMBAD is currently unavailable. Please try again later.'),
+        }), 200
+    except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 200
 
-    current_app.logger.debug('[SCAN] SIMBAD response: %s', r.text[:300])
-    reader = csv.DictReader(io.StringIO(r.text))
+    current_app.logger.debug('[SCAN] SIMBAD response: %s', text[:300])
+    reader = csv.DictReader(io.StringIO(text))
     objects = []
     for row in reader:
         try:

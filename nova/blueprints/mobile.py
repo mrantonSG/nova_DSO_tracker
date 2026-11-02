@@ -28,6 +28,7 @@ from flask_babel import gettext as _
 # Nova Package Imports (no circular import)
 # =============================================================================
 import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay live (see nova/config.py)
+from modules import simbad_service
 from nova.models import (
     DbUser, AstroObject, SavedFraming, Rig, Project, JournalSession, UserCustomFilter
 )
@@ -470,6 +471,7 @@ def mobile_object_detail(object_name):
 
     return render_template('mobile_object_detail.html',
                            object_name=object_name,
+                           simbad_host=simbad_service.current_host(),
                            common_name=obj_record.get('Common Name') or object_name,
                            current_alt=f"{current_alt:.1f}",
                            current_az=f"{current_az:.1f}",

@@ -433,6 +433,7 @@
     window.NOVA_GRAPH_DATA = {
         objectId: {{ object_id | default(0) }},
         objectName: {{ object_name | tojson }},
+        simbadHost: {{ simbad_host|default('simbad.cds.unistra.fr', true)|tojson }},
         altName: {{ alt_name | default(object_name, True) | tojson }},
         plotLat: "{{ graph_lat_param | default('', True) }}",
         plotLon: "{{ graph_lon_param | default('', True) }}",

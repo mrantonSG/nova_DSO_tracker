@@ -51,6 +51,7 @@ import astropy.units as u
 import ephem
 
 import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay live (see nova/config.py)
+from modules import simbad_service
 from nova.analytics import record_event, record_login
 from nova.config import CACHE_DIR, UPLOAD_FOLDER, cache_worker_status
 from nova.helpers import (
@@ -1253,6 +1254,12 @@ def search_object():
                 }), 409
 
     data = get_ra_dec(object_name)
+    if data and data.get("SIMBADUnavailable"):
+        return jsonify({
+            "status": "error",
+            "code": "simbad_unavailable",
+            "message": _("SIMBAD is currently unavailable. Please try again later."),
+        }), 200
     if data and data.get("RA (hours)") is not None:
         simbad_name = data.get("SIMBAD Name")
         if simbad_name:
@@ -1293,6 +1300,14 @@ def fetch_object_details():
             value = clean_data[key]
             if isinstance(value, (int, float)) and not isinstance(value, bool):
                 clean_data[key] = round(value, 2)
+
+        if fetched.get("simbad_unavailable") and all(
+                v is None or v == "" for v in clean_data.values()):
+            return jsonify({
+                "status": "error",
+                "code": "simbad_unavailable",
+                "message": _("SIMBAD is currently unavailable. Please try again later."),
+            }), 200
 
         return jsonify({
             "status": "success",
@@ -2517,6 +2532,7 @@ def graph_dashboard(object_name):
 
         return render_template('graph_view.html',
                                object_name=object_name,
+                               simbad_host=simbad_service.current_host(),
                                alt_name=object_main_details.get("Common Name", object_name),
                                object_main_details=object_main_details,
                                available_rigs=sorted_rigs,

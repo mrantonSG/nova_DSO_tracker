@@ -3215,6 +3215,9 @@ msgstr "找到：%(name)s。从 SIMBAD 加载的详细信息。"
 #: templates/base.html:187
 msgid "SIMBAD lookup failed."
 msgstr "SIMBAD 查询失败。"
+msgid "SIMBAD is currently unavailable. Please try again later."
+msgstr "SIMBAD 目前不可用。请稍后再试。"
+
 
 #: templates/base.html:188
 msgid "selected"
