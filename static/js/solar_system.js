@@ -179,6 +179,32 @@
         return typeof formatDateISOtoEuropean === 'function' ? formatDateISOtoEuropean(iso) : iso;
     }
 
+    /** The locale every date on the cards is written in: the page's language from
+     *  <html lang> (Flask-Babel's own locale), English in Nova's European day-month order. */
+    function pageLocale() {
+        const lang = document.documentElement.lang || 'en';
+        return lang === 'en' ? 'en-GB' : lang;
+    }
+
+    /** A calendar date (y, m, d) as 'Wed 4 Nov' -- or '1 Jun 2026' for a date with its
+     *  year, such as a measurement's -- in the page's locale; one style for the Moon,
+     *  Jupiter and Mars cards. */
+    function cardDate(y, m, d, withYear) {
+        const o = withYear ? {day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC'}
+            : {weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC'};
+        try {
+            return new Intl.DateTimeFormat(pageLocale(), o).format(new Date(Date.UTC(y, m - 1, d)));
+        } catch (e) {
+            return europeanDate(y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0'));
+        }
+    }
+
+    /** 'YYYY-MM-DD' as cardDate() writes it. */
+    function cardDateISO(iso, withYear) {
+        const [y, m, d] = String(iso).split('-').map(Number);
+        return cardDate(y, m, d, withYear);
+    }
+
     function simDate() {
         const toggle = $('sim-mode-toggle'), input = $('sim-date-input');
         return toggle && toggle.checked && input && input.value ? input.value : null;
@@ -667,7 +693,7 @@
     function shortDate(date) {
         const [y, m, d] = date.split('-').map(Number);
         try {
-            return new Intl.DateTimeFormat(document.documentElement.lang || 'en',
+            return new Intl.DateTimeFormat(pageLocale(),
                 {weekday: 'short', day: 'numeric', timeZone: 'UTC'}).format(new Date(Date.UTC(y, m - 1, d)));
         } catch (e) {
             return europeanDate(date);
@@ -984,13 +1010,7 @@
 
     /** 'Sat 14 Nov' in the page's language. */
     function moonDate(date) {
-        const [y, m, d] = date.split('-').map(Number);
-        try {
-            return new Intl.DateTimeFormat(document.documentElement.lang || 'en',
-                {weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC'}).format(new Date(Date.UTC(y, m - 1, d)));
-        } catch (e) {
-            return europeanDate(date);
-        }
+        return cardDateISO(date, false);
     }
 
     /** The libration line's words for a hint (NovaSolarMoon.hint()), by its display:
@@ -1294,16 +1314,7 @@
     function localDateTime(utcMs) {
         const tz = String(state.inputs.location.timezone);
         const p = NovaAstro.localParts(utcMs, tz);
-        const lang = document.documentElement.lang || 'en';
-        let date;
-        try {
-            date = new Intl.DateTimeFormat(lang === 'en' ? 'en-GB' : lang,
-                {weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC'})
-                .format(new Date(Date.UTC(p.year, p.month - 1, p.day)));
-        } catch (e) {
-            date = europeanDate(p.year + '-' + String(p.month).padStart(2, '0') + '-' + String(p.day).padStart(2, '0'));
-        }
-        return date + ' ' + NovaAstro.formatHM(utcMs, tz);
+        return cardDate(p.year, p.month, p.day, false) + ' ' + NovaAstro.formatHM(utcMs, tz);
     }
 
     /** Where one Galilean moon is tonight: which side of Jupiter, in front of the disc or
@@ -1379,16 +1390,21 @@
         const G = J.grs || {};
         const tile = $('solar-jupiter-grs');
         const times = $('solar-jupiter-grs-times');
-        times.textContent = grs.tonight.length ? grs.tonight.map(x => x.hm).join(' · ') : G.none || '';
-        times.classList.toggle('solar-card-grs-none', !grs.tonight.length);
-        $('solar-jupiter-grs-meta').textContent = fill(G.meta, {lon: grs.refLon.toFixed(1), date: europeanDate(grs.refDate)});
+        // Tonight's times; else the next transit while Jupiter is up, marked as next
+        const upcoming = !grs.tonight.length && grs.next.length ? grs.next[0] : null;
+        times.textContent = grs.tonight.length ? grs.tonight.map(x => x.hm).join(' · ')
+            : upcoming ? fill(G.nextOne, {time: localDateTime(upcoming.utcMs)}) : G.none || '';
+        times.classList.toggle('solar-card-grs-none', !grs.tonight.length && !upcoming);
+        times.classList.toggle('solar-card-grs-upcoming', !!upcoming);
+        const refDate = cardDateISO(grs.refDate, true);
+        $('solar-jupiter-grs-meta').textContent = fill(G.meta, {lon: grs.refLon.toFixed(1), date: refDate});
         tile.dataset.stale = grs.stale ? 'true' : 'false';
         $('solar-jupiter-grs-reset').hidden = !grs.user;
         tile.title = [
             G.help,
             grs.tonight.length ? fill(G.tonight, {times: grs.tonight.map(x => localDateTime(x.utcMs)).join(', ')}) : '',
             grs.next.length ? G.next + '\n' + grs.next.map(x => localDateTime(x.utcMs)).join('\n') : G.noNext,
-            fill(grs.user ? G.user : G.source, {lon: grs.refLon.toFixed(1), date: europeanDate(grs.refDate)}),
+            fill(grs.user ? G.user : G.source, {lon: grs.refLon.toFixed(1), date: refDate}),
             fill(G.drift, {rate: '+' + grs.driftPerMonth.toFixed(2)}),
             grs.stale ? G.stale : '',
         ].filter(Boolean).join('\n');

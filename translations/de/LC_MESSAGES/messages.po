@@ -6294,10 +6294,6 @@ msgstr "Gemessen am"
 msgid "Enter a longitude from 0 to 360 and a date."
 msgstr "Geben Sie eine Länge von 0 bis 360 und ein Datum ein."
 
-#: templates/solar_system.html:147
-msgid "The moons tonight"
-msgstr "Die Monde heute Nacht"
-
 #: templates/solar_system.html:149
 msgid "Phenomena tonight"
 msgstr "Ereignisse heute Nacht"
@@ -6924,35 +6920,6 @@ msgstr "Schwarzer Punkt auf der Scheibe: der Schatten eines Mondes"
 msgid "Red oval: the Great Red Spot, when it faces us"
 msgstr "Rotes Oval: der Große Rote Fleck, wenn er uns zugewandt ist"
 
-#: templates/solar_system.html:376
-msgid "Apparent diameter of Jupiter in arcseconds, cloud tops to cloud tops."
-msgstr "Scheinbarer Durchmesser des Jupiter in Bogensekunden, von Wolkenspitze zu"
-" Wolkenspitze."
-
-#: templates/solar_system.html:379 templates/solar_system.html:428
-msgid "Central meridian"
-msgstr "Zentralmeridian"
-
-#: templates/solar_system.html:380
-msgid ""
-"System I and II planetographic longitudes at the centre of the disc: they"
-" tell you which side of Jupiter faces you. System I is the equatorial "
-"belt, which rotates about five minutes faster than the rest."
-msgstr "Planetografische Längen System I und II im Zentrum der Scheibe: sie sagen,"
-" welche Seite des Jupiter zu Ihnen zeigt. System I ist der Äquatorgürtel,"
-" der rund fünf Minuten schneller rotiert als der Rest."
-
-#: templates/solar_system.html:381 templates/solar_system.html:430
-msgid "De"
-msgstr "De"
-
-#: templates/solar_system.html:382 templates/solar_system.html:431
-msgid ""
-"Planetographic latitude of the point facing the Earth. Positive means we "
-"look a little down on the northern hemisphere."
-msgstr "Planetografische Breite des Punktes, der zur Erde zeigt. Positiv bedeutet,"
-" wir blicken etwas auf die Nordhalbkugel hinunter."
-
 #: templates/solar_system.html:383
 msgid "east"
 msgstr "östlich"
@@ -6976,11 +6943,6 @@ msgstr "dahinter"
 #: templates/solar_system.html:388
 msgid "in eclipse"
 msgstr "in Verfinsterung"
-
-#: templates/solar_system.html:389
-#, python-format
-msgid "%(rj)s Rj"
-msgstr "%(rj)s Rj"
 
 #: templates/solar_system.html:390
 #, python-format
@@ -7075,14 +7037,6 @@ msgstr "Marsdetails konnten nicht berechnet werden."
 msgid "CM"
 msgstr "ZM"
 
-#: templates/solar_system.html:423
-msgid "Apparent diameter of Mars in arcseconds."
-msgstr "Scheinbarer Durchmesser des Mars in Bogensekunden."
-
-#: templates/solar_system.html:427
-msgid "Distance from the Earth in astronomical units."
-msgstr "Entfernung von der Erde in astronomischen Einheiten."
-
 #: templates/solar_system.html:429
 msgid ""
 "Planetographic longitude at the centre of the disc: it tells you which "
@@ -7153,29 +7107,6 @@ msgstr "Mars steht nachts nicht am Himmel"
 #, python-format
 msgid "%(deg)s° from the central meridian"
 msgstr "%(deg)s° vom Zentralmeridian"
-
-#: templates/solar_system.html:439
-#, python-format
-msgid "On the central meridian at %(time)s, %(when)s"
-msgstr "Auf dem Zentralmeridian um %(time)s, %(when)s"
-
-#: templates/solar_system.html:440
-msgid "today"
-msgstr "heute"
-
-#: templates/solar_system.html:441
-msgid "tomorrow"
-msgstr "morgen"
-
-#: templates/solar_system.html:442
-#, python-format
-msgid "in %(n)s days"
-msgstr "in %(n)s Tagen"
-
-#: templates/solar_system.html:444
-#, python-format
-msgid "The pole is tilted %(deg)s° towards the Earth"
-msgstr "Der Pol ist um %(deg)s° zur Erde geneigt"
 
 #: templates/solar_system.html:445
 msgid "Mars tonight: the disc, its lit part and the named features on it"

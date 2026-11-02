@@ -3000,14 +3000,9 @@ def inject_user_mode():
     from flask_login import current_user
     user_config = getattr(g, "user_config", {})
     theme_preference = user_config.get("theme_preference", "follow_system") if user_config else "follow_system"
-    if getattr(g, "is_guest", False):
-        # Same rules as get_locale, so the picker and <html lang> match the rendered page
-        current_language = get_locale()
-    else:
-        # Get current language from user config or session
-        current_language = user_config.get("language") if user_config else None
-        if not current_language:
-            current_language = session.get("language", "en")
+    # The locale Flask-Babel renders the page in, so the picker and <html lang> always
+    # match it (a user with no saved language gets the browser's, not 'en')
+    current_language = get_locale()
     return {
         "SINGLE_USER_MODE": SINGLE_USER_MODE,
         "admin_users": ADMIN_USERS,

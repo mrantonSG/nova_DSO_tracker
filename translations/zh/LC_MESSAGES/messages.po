@@ -6101,10 +6101,6 @@ msgstr "测量日期"
 msgid "Enter a longitude from 0 to 360 and a date."
 msgstr "请输入 0 到 360 之间的经度和日期。"
 
-#: templates/solar_system.html:147
-msgid "The moons tonight"
-msgstr "今晚的卫星"
-
 #: templates/solar_system.html:149
 msgid "Phenomena tonight"
 msgstr "今晚的现象"
@@ -6692,31 +6688,6 @@ msgstr "圆面上的黑点：卫星的影子"
 msgid "Red oval: the Great Red Spot, when it faces us"
 msgstr "红色椭圆：朝向我们时的大红斑"
 
-#: templates/solar_system.html:376
-msgid "Apparent diameter of Jupiter in arcseconds, cloud tops to cloud tops."
-msgstr "木星的视直径，以角秒计，从云顶到云顶。"
-
-#: templates/solar_system.html:379 templates/solar_system.html:428
-msgid "Central meridian"
-msgstr "中央经线"
-
-#: templates/solar_system.html:380
-msgid ""
-"System I and II planetographic longitudes at the centre of the disc: they"
-" tell you which side of Jupiter faces you. System I is the equatorial "
-"belt, which rotates about five minutes faster than the rest."
-msgstr "圆面中心的系统 I 与系统 II 星球经度：它们告诉你木星的哪一面朝向你。系统 I 是赤道带，比其余部分快约五分钟。"
-
-#: templates/solar_system.html:381 templates/solar_system.html:430
-msgid "De"
-msgstr "De"
-
-#: templates/solar_system.html:382 templates/solar_system.html:431
-msgid ""
-"Planetographic latitude of the point facing the Earth. Positive means we "
-"look a little down on the northern hemisphere."
-msgstr "朝向地球那一点的星球纬度。正值表示我们能略微俯视北半球。"
-
 #: templates/solar_system.html:383
 msgid "east"
 msgstr "东侧"
@@ -6740,11 +6711,6 @@ msgstr "后方"
 #: templates/solar_system.html:388
 msgid "in eclipse"
 msgstr "食中"
-
-#: templates/solar_system.html:389
-#, python-format
-msgid "%(rj)s Rj"
-msgstr "%(rj)s Rj"
 
 #: templates/solar_system.html:390
 #, python-format
@@ -6837,14 +6803,6 @@ msgstr "无法计算火星详情。"
 msgid "CM"
 msgstr "中央经线"
 
-#: templates/solar_system.html:423
-msgid "Apparent diameter of Mars in arcseconds."
-msgstr "火星的视直径，以角秒计。"
-
-#: templates/solar_system.html:427
-msgid "Distance from the Earth in astronomical units."
-msgstr "与地球的距离，以天文单位计。"
-
 #: templates/solar_system.html:429
 msgid ""
 "Planetographic longitude at the centre of the disc: it tells you which "
@@ -6912,29 +6870,6 @@ msgstr "夜间火星不在天空中"
 #, python-format
 msgid "%(deg)s° from the central meridian"
 msgstr "距中央经线 %(deg)s°"
-
-#: templates/solar_system.html:439
-#, python-format
-msgid "On the central meridian at %(time)s, %(when)s"
-msgstr "将于 %(time)s 通过中央经线，%(when)s"
-
-#: templates/solar_system.html:440
-msgid "today"
-msgstr "今天"
-
-#: templates/solar_system.html:441
-msgid "tomorrow"
-msgstr "明天"
-
-#: templates/solar_system.html:442
-#, python-format
-msgid "in %(n)s days"
-msgstr "%(n)s 天后"
-
-#: templates/solar_system.html:444
-#, python-format
-msgid "The pole is tilted %(deg)s° towards the Earth"
-msgstr "极轴朝地球倾斜 %(deg)s°"
 
 #: templates/solar_system.html:445
 msgid "Mars tonight: the disc, its lit part and the named features on it"

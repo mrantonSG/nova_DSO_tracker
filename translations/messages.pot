@@ -6091,10 +6091,6 @@ msgstr ""
 msgid "Enter a longitude from 0 to 360 and a date."
 msgstr ""
 
-#: templates/solar_system.html:147
-msgid "The moons tonight"
-msgstr ""
-
 #: templates/solar_system.html:149
 msgid "Phenomena tonight"
 msgstr ""
@@ -6680,31 +6676,6 @@ msgstr ""
 msgid "Red oval: the Great Red Spot, when it faces us"
 msgstr ""
 
-#: templates/solar_system.html:376
-msgid "Apparent diameter of Jupiter in arcseconds, cloud tops to cloud tops."
-msgstr ""
-
-#: templates/solar_system.html:379 templates/solar_system.html:428
-msgid "Central meridian"
-msgstr ""
-
-#: templates/solar_system.html:380
-msgid ""
-"System I and II planetographic longitudes at the centre of the disc: they"
-" tell you which side of Jupiter faces you. System I is the equatorial "
-"belt, which rotates about five minutes faster than the rest."
-msgstr ""
-
-#: templates/solar_system.html:381 templates/solar_system.html:430
-msgid "De"
-msgstr ""
-
-#: templates/solar_system.html:382 templates/solar_system.html:431
-msgid ""
-"Planetographic latitude of the point facing the Earth. Positive means we "
-"look a little down on the northern hemisphere."
-msgstr ""
-
 #: templates/solar_system.html:383
 msgid "east"
 msgstr ""
@@ -6727,11 +6698,6 @@ msgstr ""
 
 #: templates/solar_system.html:388
 msgid "in eclipse"
-msgstr ""
-
-#: templates/solar_system.html:389
-#, python-format
-msgid "%(rj)s Rj"
 msgstr ""
 
 #: templates/solar_system.html:390
@@ -6825,14 +6791,6 @@ msgstr ""
 msgid "CM"
 msgstr ""
 
-#: templates/solar_system.html:423
-msgid "Apparent diameter of Mars in arcseconds."
-msgstr ""
-
-#: templates/solar_system.html:427
-msgid "Distance from the Earth in astronomical units."
-msgstr ""
-
 #: templates/solar_system.html:429
 msgid ""
 "Planetographic longitude at the centre of the disc: it tells you which "
@@ -6899,29 +6857,6 @@ msgstr ""
 #: templates/solar_system.html:438
 #, python-format
 msgid "%(deg)s° from the central meridian"
-msgstr ""
-
-#: templates/solar_system.html:439
-#, python-format
-msgid "On the central meridian at %(time)s, %(when)s"
-msgstr ""
-
-#: templates/solar_system.html:440
-msgid "today"
-msgstr ""
-
-#: templates/solar_system.html:441
-msgid "tomorrow"
-msgstr ""
-
-#: templates/solar_system.html:442
-#, python-format
-msgid "in %(n)s days"
-msgstr ""
-
-#: templates/solar_system.html:444
-#, python-format
-msgid "The pole is tilted %(deg)s° towards the Earth"
 msgstr ""
 
 #: templates/solar_system.html:445

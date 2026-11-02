@@ -460,3 +460,23 @@ def test_page_has_the_moon_card_and_the_event_type_filter(client):
     assert re.findall(r'<option value="(\w*)"', select) == ["", "planets", "conjunctions", "lunar",
                                                             "galilean"]
     assert '"Lunar X and V"' in html
+
+
+@pytest.mark.parametrize("lang, date", [
+    ("en", r"(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{1,2} [A-Z][a-z]{2}"),
+    ("de", r"(Mo|Di|Mi|Do|Fr|Sa|So)\., \d{1,2}\. \S+"),
+])
+def test_moon_card_dates_follow_the_pages_language(tmp_path, lang, date):
+    """The features' next nights are written in the page's locale (<html lang>, Flask-
+    Babel's), in the style of the Jupiter and Mars cards: English in day-month order."""
+    got = _run(tmp_path, """
+        h.context.document.documentElement.lang = '%s';
+        h.online();
+        await h.load('bodies');
+        return card();
+    """ % lang, sim="2026-11-17")
+    nexts = [f["title"].split("\n")[-1] for f in got["features"]]
+    dated = [x for x in nexts if x.startswith("next ")]
+    assert dated, nexts
+    for x in dated:
+        assert re.fullmatch(f"next {date}(, {date})*", x), x

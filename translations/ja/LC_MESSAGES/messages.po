@@ -6111,10 +6111,6 @@ msgstr "測定日"
 msgid "Enter a longitude from 0 to 360 and a date."
 msgstr "0〜360 の経度と日付を入力してください。"
 
-#: templates/solar_system.html:147
-msgid "The moons tonight"
-msgstr "今夜の衛星"
-
 #: templates/solar_system.html:149
 msgid "Phenomena tonight"
 msgstr "今夜の現象"
@@ -6704,31 +6700,6 @@ msgstr "円盤上の黒い点：衛星の影"
 msgid "Red oval: the Great Red Spot, when it faces us"
 msgstr "赤い楕円：こちらを向いているときの大赤斑"
 
-#: templates/solar_system.html:376
-msgid "Apparent diameter of Jupiter in arcseconds, cloud tops to cloud tops."
-msgstr "木星の視直径（秒角）。雲頂から雲頂まで。"
-
-#: templates/solar_system.html:379 templates/solar_system.html:428
-msgid "Central meridian"
-msgstr "中央経線"
-
-#: templates/solar_system.html:380
-msgid ""
-"System I and II planetographic longitudes at the centre of the disc: they"
-" tell you which side of Jupiter faces you. System I is the equatorial "
-"belt, which rotates about five minutes faster than the rest."
-msgstr "円盤中心の惑星経度（システム I・II）。木星のどちら側がこちらを向いているかが分かります。システム I は赤道帯で、他より約5分速く回転します。"
-
-#: templates/solar_system.html:381 templates/solar_system.html:430
-msgid "De"
-msgstr "De"
-
-#: templates/solar_system.html:382 templates/solar_system.html:431
-msgid ""
-"Planetographic latitude of the point facing the Earth. Positive means we "
-"look a little down on the northern hemisphere."
-msgstr "地球に面する点の惑星緯度。正の値なら、北半球を少し見下ろす向きです。"
-
 #: templates/solar_system.html:383
 msgid "east"
 msgstr "東"
@@ -6752,11 +6723,6 @@ msgstr "背後"
 #: templates/solar_system.html:388
 msgid "in eclipse"
 msgstr "食中"
-
-#: templates/solar_system.html:389
-#, python-format
-msgid "%(rj)s Rj"
-msgstr "%(rj)s Rj"
 
 #: templates/solar_system.html:390
 #, python-format
@@ -6849,14 +6815,6 @@ msgstr "火星の詳細を計算できませんでした。"
 msgid "CM"
 msgstr "中央経線"
 
-#: templates/solar_system.html:423
-msgid "Apparent diameter of Mars in arcseconds."
-msgstr "火星の視直径（秒角）。"
-
-#: templates/solar_system.html:427
-msgid "Distance from the Earth in astronomical units."
-msgstr "地球からの距離（天文単位）。"
-
 #: templates/solar_system.html:429
 msgid ""
 "Planetographic longitude at the centre of the disc: it tells you which "
@@ -6924,29 +6882,6 @@ msgstr "夜間に火星が出ていません"
 #, python-format
 msgid "%(deg)s° from the central meridian"
 msgstr "中央経線から %(deg)s°"
-
-#: templates/solar_system.html:439
-#, python-format
-msgid "On the central meridian at %(time)s, %(when)s"
-msgstr "中央経線を通過 %(time)s、%(when)s"
-
-#: templates/solar_system.html:440
-msgid "today"
-msgstr "今日"
-
-#: templates/solar_system.html:441
-msgid "tomorrow"
-msgstr "明日"
-
-#: templates/solar_system.html:442
-#, python-format
-msgid "in %(n)s days"
-msgstr "%(n)s 日後"
-
-#: templates/solar_system.html:444
-#, python-format
-msgid "The pole is tilted %(deg)s° towards the Earth"
-msgstr "極は地球側に %(deg)s° 傾いています"
 
 #: templates/solar_system.html:445
 msgid "Mars tonight: the disc, its lit part and the named features on it"

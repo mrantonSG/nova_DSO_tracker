@@ -219,6 +219,19 @@ def test_tooltips_are_translated(mu_client_logged_out, lang, date_label, date_he
     assert json.dumps(exact) in html or exact in html
 
 
+
+def test_html_lang_is_the_locale_the_page_is_rendered_in(multi_user_client):
+    """A signed-in user with no saved language and a German browser: Flask-Babel renders the
+    page in German, and <html lang> -- which every date on the cards is written in -- says
+    so too (it once fell back to 'en' and the dates came out in English)."""
+    client, _ = multi_user_client
+    html = client.get("/solar_system", headers={"Accept-Language": "de-DE,de;q=0.9,en;q=0.5"}).get_data(as_text=True)
+    assert '<html lang="de"' in html
+    assert _header_labels(html, "solar-cal-table")["date"] == "Datum"
+    english = client.get("/solar_system", headers={"Accept-Language": "en-GB"}).get_data(as_text=True)
+    assert '<html lang="en"' in english
+
+
 # ------------------------------------------------------------------ Planetary calculator
 
 def _add_component(db_session, username, kind, name, **fields):

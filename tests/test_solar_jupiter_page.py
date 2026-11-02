@@ -45,7 +45,7 @@ I18N = {
         "systemI": "I {deg}", "systemIII": "III {deg}", "east": "east", "west": "west",
         "onDisc": "on the disc", "inFront": "in front", "behind": "behind",
         "eclipse": "in eclipse", "rjFromCentre": "{rj} radii",
-        "grs": {"none": "GRS NONE", "meta": "II {lon} @ {date}", "help": "GRS HELP",
+        "grs": {"none": "GRS NONE", "nextOne": "NEXT {time}", "meta": "II {lon} @ {date}", "help": "GRS HELP",
                 "tonight": "TONIGHT {times}", "next": "NEXT:", "noNext": "NO NEXT",
                 "source": "DEFAULT {lon} {date}", "user": "YOURS {lon} {date}",
                 "drift": "DRIFT {rate}", "stale": "STALE"},
@@ -106,6 +106,7 @@ const jupCard = () => {
             cls: t.children[1].children[0].className, title: t.title })),
         grs: { times: h.$('solar-jupiter-grs-times').textContent,
                none: h.$('solar-jupiter-grs-times').classList.contains('solar-card-grs-none'),
+               upcoming: h.$('solar-jupiter-grs-times').classList.contains('solar-card-grs-upcoming'),
                meta: h.$('solar-jupiter-grs-meta').textContent,
                stale: h.$('solar-jupiter-grs').dataset.stale, title: h.$('solar-jupiter-grs').title,
                reset: !h.$('solar-jupiter-grs-reset').hidden, edit: !h.$('solar-jupiter-grs-edit').hidden,
@@ -605,14 +606,14 @@ def test_grs_tile_shows_tonights_transit_and_the_next_nights(tmp_path):
     assert [x["hm"] for x in g["tonight"]] == ["03:14"]
     tile = card["grs"]
     assert tile["times"] == "03:14" and not tile["none"]
-    assert tile["meta"] == "II 91.0 @ 2026-06-01"
+    assert tile["meta"] == "II 91.0 @ 1 Jun 2026"
     assert tile["stale"] == "false" and not tile["reset"] and tile["edit"] and not tile["form"]
     lines = tile["title"].split("\n")
     assert lines[0] == "GRS HELP"
     assert lines[1] == "TONIGHT " + _when(g["tonight"][0]["utcMs"], "03:14")
     assert lines[2] == "NEXT:"
     assert lines[3:3 + len(g["next"])] == [_when(x["utcMs"], x["hm"]) for x in g["next"]]
-    assert lines[3 + len(g["next"]):] == ["DEFAULT 91.0 2026-06-01", "DRIFT +1.75"]
+    assert lines[3 + len(g["next"]):] == ["DEFAULT 91.0 1 Jun 2026", "DRIFT +1.75"]
     assert "STALE" not in lines
     # The spot on the drawing when it faces us at the card's instant, nowhere else
     marks = card["svg"]["grs"]
@@ -628,7 +629,7 @@ def test_grs_tile_shows_tonights_transit_and_the_next_nights(tmp_path):
 def test_grs_tile_warns_when_the_longitude_is_old(tmp_path):
     """16 Dec 2026: the built-in longitude is more than six months old. The tile keeps the
     prediction and takes the warning state (the warning colour, in the stylesheet), and the
-    tooltip says why; a night without a transit says so in place of the times."""
+    tooltip says why."""
     old = _run(tmp_path, _grs("2026-12-16") + """
         h.online();
         await h.load('bodies');
@@ -639,17 +640,37 @@ def test_grs_tile_warns_when_the_longitude_is_old(tmp_path):
     assert tile["times"] == " · ".join(x["hm"] for x in old["g"]["tonight"]) == "00:30"
     assert tile["title"].split("\n")[-1] == "STALE"
 
-    none = _run(tmp_path, _grs("2026-12-09") + """
-        h.online();
-        await h.load('bodies');
-        return { card: jupCard(), g: grsOf(null) };
-    """, sim="2026-12-09")
-    assert none["g"]["tonight"] == [] and none["card"]["grs"]["times"] == "GRS NONE"
-    assert none["card"]["grs"]["none"] and none["card"]["grs"]["stale"] == "true"
 
     css = (STATIC_JS.parent / "css" / "solar_system.css").read_text()
     rule = css.index('#bodies-tab .solar-card-grs[data-stale="true"] .solar-card-grs-meta {')
     assert "color: #94600f;" in css[rule:css.index("}", rule)], "the seeing tiles' warning colour"
+
+
+def test_grs_tile_shows_the_next_transit_when_none_is_tonight(tmp_path):
+    """9 Dec 2026, London: no transit while Jupiter is up tonight. The tile shows the next
+    one in tonight's place, as large, at its own local date and time and marked as next;
+    only when the next nights have none either does it say so (late July 2026, Jupiter at
+    conjunction with the Sun)."""
+    got = _run(tmp_path, _grs("2026-12-09") + """
+        h.online();
+        await h.load('bodies');
+        return { card: jupCard(), g: grsOf(null) };
+    """, sim="2026-12-09")
+    g, tile = got["g"], got["card"]["grs"]
+    assert g["tonight"] == [] and g["next"], "a night without a transit, with transits after it"
+    first = g["next"][0]
+    assert tile["times"] == "NEXT " + _when(first["utcMs"], first["hm"])
+    assert tile["upcoming"] and not tile["none"], "styled as tonight's times, marked as next"
+    assert tile["stale"] == "true"
+
+    quiet = _run(tmp_path, _grs("2026-07-29") + """
+        h.online();
+        await h.load('bodies');
+        return { card: jupCard(), g: grsOf(null) };
+    """, sim="2026-07-29")
+    assert quiet["g"]["tonight"] == [] and quiet["g"]["next"] == []
+    assert quiet["card"]["grs"]["times"] == "GRS NONE"
+    assert quiet["card"]["grs"]["none"] and not quiet["card"]["grs"]["upcoming"]
 
 
 def test_grs_edit_and_reset_are_kept(tmp_path):
@@ -683,13 +704,13 @@ def test_grs_edit_and_reset_are_kept(tmp_path):
     saved = got["saved"]
     assert json.loads(saved["stored"]) == {"lon": 120.5, "date": "2026-11-01"}
     assert not saved["card"]["form"] and saved["card"]["edit"] and saved["card"]["reset"]
-    assert saved["card"]["meta"] == "II 120.5 @ 2026-11-01"
+    assert saved["card"]["meta"] == "II 120.5 @ 1 Nov 2026"
     assert saved["card"]["times"] == " · ".join(x["hm"] for x in saved["g"]["tonight"])
     assert saved["card"]["times"] != "03:14", "the transits move with the longitude"
-    assert "YOURS 120.5 2026-11-01" in saved["card"]["title"].split("\n")
+    assert "YOURS 120.5 1 Nov 2026" in saved["card"]["title"].split("\n")
     assert got["reset"]["stored"] is None and not got["reset"]["card"]["reset"]
     assert got["reset"]["card"]["times"] == "03:14"
-    assert got["reset"]["card"]["meta"] == "II 91.0 @ 2026-06-01"
+    assert got["reset"]["card"]["meta"] == "II 91.0 @ 1 Jun 2026"
 
     # The next visit: the kept value is the one the card starts from
     again = _run(tmp_path, """
@@ -697,7 +718,7 @@ def test_grs_edit_and_reset_are_kept(tmp_path):
         await h.load('bodies');
         return jupCard().grs;
     """, sim="2026-11-07", storage={"nova_solar_grs": json.dumps({"lon": 120.5, "date": "2026-11-01"})})
-    assert again["meta"] == "II 120.5 @ 2026-11-01" and again["reset"]
+    assert again["meta"] == "II 120.5 @ 1 Nov 2026" and again["reset"]
     assert again["times"] == saved["card"]["times"]
 
     # A kept value that is not usable is ignored
@@ -706,7 +727,7 @@ def test_grs_edit_and_reset_are_kept(tmp_path):
         await h.load('bodies');
         return jupCard().grs;
     """, sim="2026-11-07", storage={"nova_solar_grs": "{not json"})
-    assert broken["meta"] == "II 91.0 @ 2026-06-01" and not broken["reset"]
+    assert broken["meta"] == "II 91.0 @ 1 Jun 2026" and not broken["reset"]
 
 
 def test_grs_tile_works_with_blocked_storage(tmp_path):
@@ -727,10 +748,10 @@ def test_grs_tile_works_with_blocked_storage(tmp_path):
     """, search="?body=jupiter", storage="throws")
     before = got["before"]
     assert not before["hidden"] and before["error"] is None
-    assert before["grs"]["meta"] == "II 91.0 @ 2026-06-01" and not before["grs"]["reset"]
-    assert got["saved"]["error"] is None and got["saved"]["grs"]["meta"] == "II 200.0 @ 2026-10-20"
+    assert before["grs"]["meta"] == "II 91.0 @ 1 Jun 2026" and not before["grs"]["reset"]
+    assert got["saved"]["error"] is None and got["saved"]["grs"]["meta"] == "II 200.0 @ 20 Oct 2026"
     assert got["saved"]["grs"]["reset"] and not got["saved"]["grs"]["form"]
-    assert got["reset"]["grs"]["meta"] == "II 91.0 @ 2026-06-01"
+    assert got["reset"]["grs"]["meta"] == "II 91.0 @ 1 Jun 2026"
 
 
 # --- the drawing ---------------------------------------------------------------------------
@@ -855,3 +876,44 @@ def test_the_strips_names_are_a_fixed_size_at_every_width():
     assert not re.search(r"solar-card-moon-label[^{]*\{[^}]*display:\s*none", css)
     height = css.index("#bodies-tab #solar-jupiter-diagram {")
     assert "height: 160px;" in css[height:css.index("}", height)]
+
+
+# --- dates in the page's language ----------------------------------------------------------
+
+_DE_WHEN = re.compile(r"(Mo|Di|Mi|Do|Fr|Sa|So)\., \d{1,2}\. \S+ \d\d:\d\d")
+_JA_WHEN = re.compile(r"\d{1,2}月\d{1,2}日\([月火水木金土日]\) \d\d:\d\d")
+
+
+@pytest.mark.parametrize("lang, when, ref, tonight", [
+    ("de", _DE_WHEN, "1. Juni 2026", "So., 8. Nov. 03:14"),
+    ("ja", _JA_WHEN, "2026年6月1日", "11月8日(日) 03:14"),
+])
+def test_card_dates_follow_the_pages_language(tmp_path, lang, when, ref, tonight):
+    """<html lang> is Flask-Babel's locale; every date on the Jupiter and Mars cards and
+    the GRS tile is written in it: the phenomena and shadow chips, the GRS transits and the
+    longitude's date, the Mars features' next passage."""
+    set_lang = "h.context.document.documentElement.lang = '%s';\n" % lang
+    jup = _run(tmp_path, _grs("2026-11-07") + set_lang + """
+        h.online();
+        await h.load('bodies');
+        return { card: jupCard(), g: grsOf(null) };
+    """, sim="2026-11-07")
+    card = jup["card"]
+    assert card["grs"]["meta"] == "II 91.0 @ " + ref
+    lines = card["grs"]["title"].split("\n")
+    assert lines[1] == "TONIGHT " + tonight
+    nexts = lines[3:3 + len(jup["g"]["next"])]
+    assert nexts and all(when.fullmatch(x) for x in nexts), nexts
+    assert lines[3 + len(nexts)] == "DEFAULT 91.0 " + ref
+    chips = [p["text"] for li in card["events"] + card["shadows"]
+             for p in li["parts"] if p["cls"] == "solar-card-time"]
+    assert chips and all(when.fullmatch(x) for x in chips), chips
+
+    mars = _run(tmp_path, set_lang + """
+        h.online();
+        await h.load('bodies');
+        return marsCard();
+    """, search="?body=mars", sim="2026-11-07")
+    passages = [line[len("NEXT "):] for f in mars["features"] for line in f["title"].split("\n")
+                if line.startswith("NEXT ")]
+    assert passages and all(when.fullmatch(x) for x in passages), passages
