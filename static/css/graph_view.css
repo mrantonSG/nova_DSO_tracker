@@ -670,6 +670,43 @@ div.form-data-value.preserve-newlines {
     }
 }
 
+/* "Sky survey server unreachable" notice, overlaid top centre of the sky. Same overlay
+   look as #survey-credit; dismissed with its close button. */
+#survey-notice {
+    position: absolute;
+    top: var(--space-2);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    max-width: min(480px, calc(100% - 32px));
+    padding: var(--space-1) var(--space-2);
+    background: var(--overlay-dark);
+    color: var(--text-white);
+    font-size: var(--font-size-xs);
+    line-height: 1.35;
+    border-radius: var(--radius-sm);
+}
+#survey-notice[hidden] {
+    display: none;
+}
+#survey-notice .survey-notice-close {
+    flex-shrink: 0;
+    padding: 0 2px;
+    background: transparent;
+    border: none;
+    color: inherit;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.8;
+}
+#survey-notice .survey-notice-close:hover {
+    opacity: 1;
+}
+
 .framing-readout {
     display: flex;
     flex-wrap: wrap;

@@ -420,7 +420,7 @@
             case 'change-survey':
                 console.log('[GRAPH_VIEW] change-survey:', actionBtn.value);
                 if (typeof window.setSurvey === 'function') {
-                    window.setSurvey(actionBtn.value);
+                    window.setSurvey(actionBtn.value).catch(() => window.showSurveyNotice?.());
                 }
                 break;
             case 'set-location':

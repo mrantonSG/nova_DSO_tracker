@@ -100,6 +100,45 @@
         return HIPS_ID_TO_URL[idOrUrl] || idOrUrl;
     }
 
+    // --- CDS reachability (alasky/alaskybis host every survey except NSNS) ---
+    const CDS_PROBE_TIMEOUT_MS = 4000;
+    let cdsProbePromise = null;   // memoised for the page session; dropped after a failure
+    let cdsReachable = true;      // result of the probe awaited by the current framing open
+
+    function probeCds() {
+        if (cdsProbePromise) return cdsProbePromise;
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), CDS_PROBE_TIMEOUT_MS);
+        const p = fetch(HIPS_ID_TO_URL['P/DSS2/color'] + '/properties', { signal: ctrl.signal, cache: 'no-store' })
+            .then(r => r.ok)
+            .catch(() => false)
+            .finally(() => clearTimeout(timer));
+        cdsProbePromise = p;
+        p.then(ok => { if (!ok && cdsProbePromise === p) cdsProbePromise = null; });   // next open probes again
+        return p;
+    }
+
+    // Frame size for the NSNS coverage check: the selected rig's diagonal, in degrees
+    function framingFovDeg() {
+        const sel = document.getElementById('framing-rig-select');
+        const opt = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex] : null;
+        const w = parseFloat(opt?.dataset.fovw), h = parseFloat(opt?.dataset.fovh);
+        return (w > 0 && h > 0) ? Math.hypot(w, h) / 60 : FRAMING_CONFIG.DEFAULT_FOV_DEG;
+    }
+
+    // The survey to display for a requested select/saved value; see framingUtils.chooseBaseSurvey
+    function chooseDisplayedBase(value) {
+        const known = typeof value === 'string' && (value.startsWith('http') || Object.prototype.hasOwnProperty.call(HIPS_ID_TO_URL, value));
+        return window.framingUtils.chooseBaseSurvey({
+            requested: value,
+            known,
+            requestedOnCds: known && window.framingUtils.isCdsUrl(resolveHipsId(value)),
+            cdsReachable,
+            decDeg: window.NOVA_GRAPH_DATA?.objectDECDeg,
+            fovDeg: framingFovDeg()
+        });
+    }
+
     // --- Nova Precession Helpers (J2000 <-> JNow) ---
     function getPrecessionMatrix(jd) {
         const T = (jd - 2451545.0) / 36525.0;
@@ -585,6 +624,8 @@
     let fovLayer = null;
     let altitudeChart = null;
     let __blendSurveyId = null;
+    let displayedBaseSurvey = null;   // survey value of the base layer actually shown (may be the NSNS fallback)
+    let displayedBlendSurvey = null;  // survey value of the blend layer actually shown, null when none
     let framingModalController = null; // ModalController instance for framing modal
 
     // --- Secondary Object Comparison State ---
@@ -600,22 +641,38 @@
 
         const surveyId = sel.value;
         const existing = aladin.getOverlayImageLayer && aladin.getOverlayImageLayer('blend');
+        const blendOp = Number(document.getElementById('blend-opacity')?.value || 0);
+
+        // CDS unreachable: no CDS blend layer (saved blend values stay as they are)
+        const resolvedId = resolveHipsId(surveyId);
+        if (!cdsReachable && window.framingUtils.isCdsUrl(resolvedId)) {
+            if (existing) aladin.removeImageLayer('blend');
+            __blendSurveyId = null;
+            displayedBlendSurvey = null;
+            if (blendOp > 0) showSurveyNotice();
+            return null;
+        }
+
         if (existing && __blendSurveyId === surveyId) {
+            displayedBlendSurvey = surveyId;
             return existing;
         }
 
+        // Only build a blend layer that is visible
+        if (!(blendOp > 0)) return existing || null;
+
         try {
             let hpx;
-            const resolvedId = resolveHipsId(surveyId);
             if (resolvedId.startsWith('http')) {
                 const friendlyName = sel.options[sel.selectedIndex]?.textContent || resolvedId;
-                hpx = aladin.createImageSurvey(resolvedId, friendlyName, resolvedId, "equatorial", 9);
+                hpx = aladin.createImageSurvey(resolvedId, friendlyName, resolvedId, "equatorial", 9, { errorCallback: onSurveyLayerError });
             } else {
-                hpx = (aladin.newImageSurvey) ? aladin.newImageSurvey(resolvedId) : aladin.createImageSurvey(resolvedId, resolvedId, resolvedId, 'equatorial', 9, { imgFormat: 'jpeg' });
+                hpx = (aladin.newImageSurvey) ? aladin.newImageSurvey(resolvedId, { errorCallback: onSurveyLayerError }) : aladin.createImageSurvey(resolvedId, resolvedId, resolvedId, 'equatorial', 9, { imgFormat: 'jpeg', errorCallback: onSurveyLayerError });
             }
             if (hpx) {
                 aladin.setOverlayImageLayer(hpx, 'blend');
                 __blendSurveyId = surveyId;
+                displayedBlendSurvey = surveyId;
                 return aladin.getOverlayImageLayer('blend');
             }
         } catch (e) {
@@ -663,8 +720,9 @@
         if (!host) return;
         let el = document.getElementById('survey-credit');
         if (!el) { el = document.createElement('div'); el.id = 'survey-credit'; host.appendChild(el); }
-        const mainValue = document.getElementById('survey-select')?.value || '';
-        const blendValue = document.getElementById('blend-survey-select')?.value || '';
+        // Credit the layers actually shown, not the selects (they differ in the CDS fallback)
+        const mainValue = displayedBaseSurvey || '';
+        const blendValue = displayedBlendSurvey || '';
         const blendOp = Number(document.getElementById('blend-opacity')?.value || 0);
         const credits = [];
         const mainCredit = surveyCreditFor(mainValue);
@@ -676,6 +734,42 @@
         el.replaceChildren();
         credits.forEach((c, i) => { if (i) el.appendChild(document.createTextNode(' + ')); appendSurveyCredit(el, c); });
         el.hidden = credits.length === 0;
+    }
+
+    // --- "Sky survey server unreachable" notice (top of the sky, dismissible) ---
+    let surveyNoticeDismissed = false;   // reset on every framing open
+    function showSurveyNotice() {
+        if (surveyNoticeDismissed) return;
+        const host = document.getElementById('aladin-lite-div');
+        if (!host) return;
+        let el = document.getElementById('survey-notice');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'survey-notice';
+            el.setAttribute('role', 'status');
+            const text = document.createElement('span');
+            text.className = 'survey-notice-text';
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'survey-notice-close';
+            btn.setAttribute('aria-label', window.t('close'));
+            btn.textContent = '×';
+            btn.addEventListener('click', () => { surveyNoticeDismissed = true; el.hidden = true; });
+            el.append(text, btn);
+            host.appendChild(el);
+        }
+        el.querySelector('.survey-notice-text').textContent = window.t('survey_server_unreachable');
+        el.hidden = false;
+    }
+    function resetSurveyNotice() {
+        surveyNoticeDismissed = false;
+        const el = document.getElementById('survey-notice');
+        if (el) el.hidden = true;
+    }
+    // errorCallback for every survey layer: a server that fails mid-session shows the notice
+    function onSurveyLayerError(err) {
+        console.warn('[FRAMING] Survey layer failed to load:', err);
+        showSurveyNotice();
     }
     
     // Catalog layer for all Nova DB objects shown in Aladin
@@ -2000,7 +2094,7 @@
         if (params.survey) {
             const sSel = document.getElementById('survey-select');
             if (sSel) sSel.value = params.survey;
-            if (typeof setSurvey === 'function') setSurvey(params.survey);
+            if (typeof setSurvey === 'function') setSurvey(params.survey).catch(() => showSurveyNotice());
         }
 
         // Restore blend settings
@@ -2262,6 +2356,10 @@
 
         (function ensureRotationReadout(){ const slider = document.getElementById('framing-rotation'); if (!slider) return; slider.setAttribute('min', '0'); slider.setAttribute('max', '360'); slider.setAttribute('step', '0.5'); if (!slider.hasAttribute('value')) slider.setAttribute('value', '0'); let n = slider.nextSibling; while (n && n.nodeType === Node.TEXT_NODE) { const t = n.textContent.trim(), next = n.nextSibling; if (t === '' || t === '0°') n.parentNode.removeChild(n); else break; n = next; } const existingSpans = Array.from(document.querySelectorAll('#rotation-value')); let span = existingSpans[0]; if (existingSpans.length > 1) existingSpans.slice(1).forEach(el => el.remove()); if (!span) { span = document.createElement('span'); span.id = 'rotation-value'; span.style.marginLeft = '8px'; span.style.fontWeight = 'normal'; span.style.fontSize = '15px'; slider.insertAdjacentElement('afterend', span); try { span.style.fontWeight = 'normal'; } catch(_) {} } try { span.style.cursor = 'pointer'; span.title = 'Tap to reset rotation to 0°'; span.addEventListener('click', () => { const slider = document.getElementById('framing-rotation'); if (!slider) return; slider.value = '0'; slider.dispatchEvent(new Event('input', { bubbles: true })); }, { once: false }); } catch (e) {} })();
 
+        // Is CDS reachable? Decides the base layer below (NSNS fallback when it is not)
+        resetSurveyNotice();
+        cdsReachable = await probeCds();
+
         // Check if Aladin instance is cached (already initialized from previous modal open)
         if (!aladin && framingModalController) {
             const cached = framingModalController.getCachedInstance();
@@ -2273,19 +2371,21 @@
 
         if (!aladin) {
             try {
+                // DSS2 by default; NSNS instead while CDS is unreachable (northern objects)
+                const initialBase = chooseDisplayedBase("P/DSS2/color");
+                const initialUrl = resolveHipsId(initialBase.survey);
+                const initialName = document.querySelector(`#survey-select option[value='${initialBase.survey}']`)?.textContent || initialUrl;
                 aladin = A.aladin('#aladin-lite-div', {
-                    survey: resolveHipsId("P/DSS2/color"),
+                    survey: A.HiPS(initialUrl, { name: initialName, cooFrame: 'equatorial', maxOrder: 9, errorCallback: onSurveyLayerError }),
                     fov: FRAMING_CONFIG.DEFAULT_FOV,
                     cooFrame: 'ICRS',
                     showFullscreenControl: false,
                     showGotoControl: false,
                     showLayersControl: false,
-                    // Error callback for survey loading failures
-                    errorCallback: function(err) {
-                        console.error('[FRAMING] Aladin initialization error:', err);
-                        displayOfflineMessage('aladin-lite-div', 'Failed to load sky survey. Please check your internet connection and try again.');
-                    }
+                    log: false
                 });
+                displayedBaseSurvey = initialBase.survey;
+                if (initialBase.notice) showSurveyNotice();
             (function installSlowWheelZoom(){ if (window.__novaSlowZoomInstalled) return; const host = document.getElementById('aladin-lite-div'); if (!host) return; try { host.style.overscrollBehavior = 'contain'; } catch(e) {} function onWheel(ev) { if (ev.ctrlKey) return; ev.preventDefault(); ev.stopPropagation(); if (!aladin) return; const unit = (ev.deltaMode === 1) ? 16 : (ev.deltaMode === 2) ? 400 : 1; let dy = (ev.deltaY || 0) * unit; dy = Math.max(-80, Math.min(80, dy)); const g = aladin.getFov(), current = Array.isArray(g) ? (g[0] ?? 1) : (g ?? 1); const scale = Math.exp(dy * 0.00075), minFov = 0.01, maxFov = 180; const next = Math.min(maxFov, Math.max(minFov, current * scale)); if (Number.isFinite(next)) aladin.setFov(next); } host.addEventListener('wheel', onWheel, { passive: false, capture: true }); const tryBindCanvas = () => { const cv = host.querySelector('canvas'); if (cv) cv.addEventListener('wheel', onWheel, { passive: false, capture: true }); }; tryBindCanvas(); setTimeout(tryBindCanvas, 50); window.__novaSlowZoomInstalled = true; })();
             baseSurvey = aladin.getBaseImageLayer();
             (function wireBlendAndConstellationUI(){ const blendSel = document.getElementById('blend-survey-select'), blendOp = document.getElementById('blend-opacity'); if (blendSel) blendSel.addEventListener('change', () => { if (blendSel.value && blendOp.value === '0') { blendOp.value = '0.5'; } ensureBlendLayer(); const v = Number(blendOp?.value || 0); setBlendOpacity(v); updateSurveyCredit(); updateFramingChart(false); }); if (blendOp) { const sync = (e) => { setBlendOpacity(e.target.value); updateSurveyCredit(); updateFramingChart(false); }; blendOp.addEventListener('input', sync); blendOp.addEventListener('change', sync); } try { if (blendOp) setBlendOpacity(blendOp.value); } catch(e) {} })();
@@ -2344,6 +2444,15 @@
         const haveCenter = flags.haveCenter;
         const haveRot = flags.haveRot;
         const haveRigRestored = flags.haveRigRestored;
+
+        // No saved survey set the base layer: re-check the one shown, since CDS may have
+        // gone down or come back since a cached Aladin instance was built
+        if (!params.survey) {
+            const selVal = document.getElementById('survey-select')?.value;
+            const choice = selVal ? chooseDisplayedBase(selVal) : null;
+            if (choice && choice.survey !== displayedBaseSurvey) setSurvey(selVal).catch(() => showSurveyNotice());
+            else if (choice && choice.notice) showSurveyNotice();
+        }
 
         // Set fovCenter if we have coordinates
         if (!Number.isNaN(params.ra) && !Number.isNaN(params.dec)) {
@@ -2750,34 +2859,35 @@
         if (!aladin) return;
     
         let newLayer;
-    
-        const resolvedId = resolveHipsId(hipsId);
-        // Check if the resolved ID is a full URL (external/mapped) or an unmapped simple ID
-        if (resolvedId.startsWith('http')) {
-            const friendlyName = document.querySelector(`#survey-select option[value='${hipsId}']`)?.textContent || resolvedId;
 
-            try {
-                newLayer = aladin.createImageSurvey(
-                    resolvedId,     // A unique ID for this layer (the URL is fine)
-                    friendlyName,   // A human-readable name
-                    resolvedId,     // The base URL for the HiPS tiles
-                    "equatorial",   // The coordinate frame
-                    9,              // A standard max order (depth)
-                );
-            } catch (e) {
-                console.error("Error creating external survey layer:", e);
-                await novaAlert(window.t('survey_load_error'));
-                return;
-            }
-        } else {
-            // Unmapped legacy ID — falls through to slow MocServer path
-            newLayer = aladin.newImageSurvey(resolvedId);
+        // The layer to show: the requested survey, the default for an unknown ID, or NSNS
+        // while CDS is unreachable. #survey-select and saved values keep the request.
+        const choice = chooseDisplayedBase(hipsId);
+        const shownId = choice.survey;
+        const resolvedId = resolveHipsId(shownId);
+        const friendlyName = document.querySelector(`#survey-select option[value='${shownId}']`)?.textContent || resolvedId;
+
+        try {
+            newLayer = aladin.createImageSurvey(
+                resolvedId,     // A unique ID for this layer (the URL is fine)
+                friendlyName,   // A human-readable name
+                resolvedId,     // The base URL for the HiPS tiles
+                "equatorial",   // The coordinate frame
+                9,              // A standard max order (depth)
+                { errorCallback: onSurveyLayerError }
+            );
+        } catch (e) {
+            console.error("Error creating external survey layer:", e);
+            await novaAlert(window.t('survey_load_error'));
+            return;
         }
-    
+
         aladin.setBaseImageLayer(newLayer);
+        displayedBaseSurvey = shownId;
         baseSurvey = aladin.getBaseImageLayer();
         updateImageAdjustments();
         updateSurveyCredit();
+        if (choice.notice) showSurveyNotice();
     }
     function updateImageAdjustments() {
         // Read all slider values first
@@ -3793,6 +3903,7 @@
     window.updateFovVsObjectLabel = updateFovVsObjectLabel;
     window.onRotationInput = onRotationInput;
     window.setSurvey = setSurvey;
+    window.showSurveyNotice = showSurveyNotice;
     window.updateImageAdjustments = updateImageAdjustments;
     window.copyRaDec = copyRaDec;
     window.resetFovCenterToObject = resetFovCenterToObject;
