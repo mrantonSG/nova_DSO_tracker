@@ -50,7 +50,7 @@ I18N = {
         "empty": {"notUp": "NOTUP"}, "diagramAria": "JUP DIAGRAM",
         "moonNames": {"io": "Io", "europa": "Europa", "ganymede": "Ganymede",
                       "callisto": "Callisto"},
-        "eventTypes": {"transit": "Transit", "occultation": "Occultation",
+        "eventTypes": {"transit": "Satellite transit", "occultation": "Occultation",
                        "eclipse": "Eclipse", "shadow": "Shadow transit"},
     },
     "mars": {
@@ -295,7 +295,7 @@ def test_jupiter_card_shows_the_moons_the_phenomena_and_the_shadows(tmp_path):
     # the moon, how long it lasts, the altitude in the tooltip and the double badge
     assert [chip["type"] for chip in card["events"]] == [e["type"] for e in t["events"]]
     assert card["events"], "no phenomena to check"
-    types = {"transit": "Transit", "occultation": "Occultation", "eclipse": "Eclipse",
+    types = {"transit": "Satellite transit", "occultation": "Occultation", "eclipse": "Eclipse",
              "shadow": "Shadow transit"}
     for chip, e in zip(card["events"], t["events"]):
         assert chip["parts"][:4] == [
