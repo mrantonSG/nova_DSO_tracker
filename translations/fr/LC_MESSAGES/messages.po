@@ -6311,6 +6311,10 @@ msgstr "Mesurée le"
 msgid "Enter a longitude from 0 to 360 and a date."
 msgstr "Saisissez une longitude de 0 à 360 et une date."
 
+#: templates/solar_system.html:163
+msgid "The date cannot be in the future."
+msgstr "La date ne peut pas être dans le futur."
+
 #: templates/solar_system.html:149
 msgid "Phenomena tonight"
 msgstr "Phénomènes cette nuit"
@@ -6430,6 +6434,19 @@ msgstr "E"
 #: templates/solar_system.html:272
 msgid "W"
 msgstr "O"
+
+#: templates/solar_system.html:296
+msgid "Celestial north"
+msgstr "Nord céleste"
+
+#: templates/solar_system.html:297
+msgid ""
+"Drawn with the planet's north up; the arrow shows celestial north. The "
+"real view also turns with the planet's position in the sky."
+msgstr ""
+"Dessiné avec le nord de la planète en haut ; la flèche indique le nord "
+"céleste. Le champ réel tourne aussi selon la position de la planète dans "
+"le ciel."
 
 #: templates/solar_system.html:273
 msgid "Always up"
@@ -6817,13 +6834,6 @@ msgstr "Cap"
 msgid "Jupiter detail could not be calculated."
 msgstr "Les détails de Jupiter n'ont pas pu être calculés."
 
-#: templates/solar_system.html:374
-msgid ""
-"Celestial north. The figure is drawn in Jupiter's own frame, so north is "
-"wherever the planet's pole angle puts it."
-msgstr "Nord céleste. Le schéma est tracé dans le repère propre de Jupiter : le"
-" nord se trouve là où l'angle du pôle de la planète le place."
-
 #: templates/solar_system.html:397
 msgid "CM (System II)"
 msgstr "MC (système II)"
@@ -6957,6 +6967,10 @@ msgstr "sur le disque"
 msgid "behind"
 msgstr "derrière"
 
+#: templates/solar_system.html:427
+msgid "hidden behind the disc"
+msgstr "caché derrière le disque"
+
 #: templates/solar_system.html:388
 msgid "in eclipse"
 msgstr "en éclipse"
@@ -7011,6 +7025,15 @@ msgstr "Altitude %(alt)s°"
 #: templates/solar_system.html:406
 msgid "double"
 msgstr "double"
+
+#: templates/solar_system.html:446
+msgid "in progress"
+msgstr "en cours"
+
+#: templates/solar_system.html:447
+#, python-format
+msgid "Already under way when the night begins: it started %(time)s"
+msgstr "Déjà en cours au début de la nuit : début %(time)s"
 
 #: templates/solar_system.html:407
 msgid "Two moons are crossing Jupiter at the same time."

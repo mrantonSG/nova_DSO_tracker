@@ -6101,6 +6101,10 @@ msgstr "测量日期"
 msgid "Enter a longitude from 0 to 360 and a date."
 msgstr "请输入 0 到 360 之间的经度和日期。"
 
+#: templates/solar_system.html:163
+msgid "The date cannot be in the future."
+msgstr "日期不能是将来的日期。"
+
 #: templates/solar_system.html:149
 msgid "Phenomena tonight"
 msgstr "今晚的现象"
@@ -6220,6 +6224,16 @@ msgstr "东"
 #: templates/solar_system.html:272
 msgid "W"
 msgstr "西"
+
+#: templates/solar_system.html:296
+msgid "Celestial north"
+msgstr "天球北"
+
+#: templates/solar_system.html:297
+msgid ""
+"Drawn with the planet's north up; the arrow shows celestial north. The "
+"real view also turns with the planet's position in the sky."
+msgstr "按行星自身的北方朝上绘制；箭头指示天球北。实际视场还会随行星在天空中的位置而旋转。"
 
 #: templates/solar_system.html:273
 msgid "Always up"
@@ -6583,12 +6597,6 @@ msgstr "岬"
 msgid "Jupiter detail could not be calculated."
 msgstr "无法计算木星详情。"
 
-#: templates/solar_system.html:374
-msgid ""
-"Celestial north. The figure is drawn in Jupiter's own frame, so north is "
-"wherever the planet's pole angle puts it."
-msgstr "天球北。此图按木星自身的坐标绘制，因此北方就在行星极轴角度所指的位置。"
-
 #: templates/solar_system.html:397
 msgid "CM (System II)"
 msgstr "中央经线（系统 II）"
@@ -6713,6 +6721,10 @@ msgstr "在圆面上"
 msgid "behind"
 msgstr "后方"
 
+#: templates/solar_system.html:427
+msgid "hidden behind the disc"
+msgstr "隐藏在圆面后方"
+
 #: templates/solar_system.html:388
 msgid "in eclipse"
 msgstr "食中"
@@ -6767,6 +6779,15 @@ msgstr "高度 %(alt)s°"
 #: templates/solar_system.html:406
 msgid "double"
 msgstr "双"
+
+#: templates/solar_system.html:446
+msgid "in progress"
+msgstr "进行中"
+
+#: templates/solar_system.html:447
+#, python-format
+msgid "Already under way when the night begins: it started %(time)s"
+msgstr "夜晚开始时已在进行：开始于 %(time)s"
 
 #: templates/solar_system.html:407
 msgid "Two moons are crossing Jupiter at the same time."

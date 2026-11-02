@@ -6097,6 +6097,10 @@ msgstr ""
 msgid "Enter a longitude from 0 to 360 and a date."
 msgstr ""
 
+#: templates/solar_system.html:163
+msgid "The date cannot be in the future."
+msgstr ""
+
 #: templates/solar_system.html:149
 msgid "Phenomena tonight"
 msgstr ""
@@ -6215,6 +6219,16 @@ msgstr ""
 
 #: templates/solar_system.html:272
 msgid "W"
+msgstr ""
+
+#: templates/solar_system.html:296
+msgid "Celestial north"
+msgstr ""
+
+#: templates/solar_system.html:297
+msgid ""
+"Drawn with the planet's north up; the arrow shows celestial north. The "
+"real view also turns with the planet's position in the sky."
 msgstr ""
 
 #: templates/solar_system.html:273
@@ -6579,12 +6593,6 @@ msgstr ""
 msgid "Jupiter detail could not be calculated."
 msgstr ""
 
-#: templates/solar_system.html:374
-msgid ""
-"Celestial north. The figure is drawn in Jupiter's own frame, so north is "
-"wherever the planet's pole angle puts it."
-msgstr ""
-
 #: templates/solar_system.html:397
 msgid "CM (System II)"
 msgstr ""
@@ -6707,6 +6715,10 @@ msgstr ""
 msgid "behind"
 msgstr ""
 
+#: templates/solar_system.html:427
+msgid "hidden behind the disc"
+msgstr ""
+
 #: templates/solar_system.html:388
 msgid "in eclipse"
 msgstr ""
@@ -6760,6 +6772,15 @@ msgstr ""
 
 #: templates/solar_system.html:406
 msgid "double"
+msgstr ""
+
+#: templates/solar_system.html:446
+msgid "in progress"
+msgstr ""
+
+#: templates/solar_system.html:447
+#, python-format
+msgid "Already under way when the night begins: it started %(time)s"
 msgstr ""
 
 #: templates/solar_system.html:407

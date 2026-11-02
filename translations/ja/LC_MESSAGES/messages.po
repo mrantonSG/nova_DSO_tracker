@@ -6111,6 +6111,10 @@ msgstr "測定日"
 msgid "Enter a longitude from 0 to 360 and a date."
 msgstr "0〜360 の経度と日付を入力してください。"
 
+#: templates/solar_system.html:163
+msgid "The date cannot be in the future."
+msgstr "未来の日付は入力できません。"
+
 #: templates/solar_system.html:149
 msgid "Phenomena tonight"
 msgstr "今夜の現象"
@@ -6230,6 +6234,16 @@ msgstr "東"
 #: templates/solar_system.html:272
 msgid "W"
 msgstr "西"
+
+#: templates/solar_system.html:296
+msgid "Celestial north"
+msgstr "天の北"
+
+#: templates/solar_system.html:297
+msgid ""
+"Drawn with the planet's north up; the arrow shows celestial north. The "
+"real view also turns with the planet's position in the sky."
+msgstr "惑星の北を上にして描いています。矢印は天の北を示します。実際の視野は、空での惑星の位置によっても回転します。"
 
 #: templates/solar_system.html:273
 msgid "Always up"
@@ -6593,12 +6607,6 @@ msgstr "岬"
 msgid "Jupiter detail could not be calculated."
 msgstr "木星の詳細を計算できませんでした。"
 
-#: templates/solar_system.html:374
-msgid ""
-"Celestial north. The figure is drawn in Jupiter's own frame, so north is "
-"wherever the planet's pole angle puts it."
-msgstr "天の北。この図は木星自身の座標系で描かれているため、北は惑星の極軸角度が示す位置になります。"
-
 #: templates/solar_system.html:397
 msgid "CM (System II)"
 msgstr "中央経線（System II）"
@@ -6725,6 +6733,10 @@ msgstr "円盤上"
 msgid "behind"
 msgstr "背後"
 
+#: templates/solar_system.html:427
+msgid "hidden behind the disc"
+msgstr "円盤の背後に隠れている"
+
 #: templates/solar_system.html:388
 msgid "in eclipse"
 msgstr "食中"
@@ -6779,6 +6791,15 @@ msgstr "高度 %(alt)s°"
 #: templates/solar_system.html:406
 msgid "double"
 msgstr "二重"
+
+#: templates/solar_system.html:446
+msgid "in progress"
+msgstr "進行中"
+
+#: templates/solar_system.html:447
+#, python-format
+msgid "Already under way when the night begins: it started %(time)s"
+msgstr "夜の始まりの時点で既に進行中：開始 %(time)s"
 
 #: templates/solar_system.html:407
 msgid "Two moons are crossing Jupiter at the same time."
