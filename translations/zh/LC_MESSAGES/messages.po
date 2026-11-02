@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-03 03:31+0800\n"
+"POT-Creation-Date: 2026-11-03 07:34+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh\n"
@@ -7181,8 +7181,8 @@ msgid "Shaded band across the globe: the shadow of the rings"
 msgstr "横贯本体的阴影带：光环的阴影"
 
 #: templates/solar_system.html:590
-msgid "Small unlabelled dots: Mimas, Enceladus and Hyperion"
-msgstr "无标签的小点：Mimas、Enceladus 和 Hyperion"
+msgid "Small unlabelled dots: Mimas and Enceladus"
+msgstr "无标签的小点：Mimas 和 Enceladus"
 
 #: templates/solar_system.html:595
 msgid "Disc"
@@ -7561,4 +7561,7 @@ msgstr "数据：Open-Meteo"
 
 #~ msgid "Titan next crosses the disc in %(date)s"
 #~ msgstr "Titan 下一次经过圆面是在 %(date)s"
+
+#~ msgid "Small unlabelled dots: Mimas, Enceladus and Hyperion"
+#~ msgstr "无标签的小点：Mimas、Enceladus 和 Hyperion"
 
