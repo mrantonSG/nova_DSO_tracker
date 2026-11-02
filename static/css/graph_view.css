@@ -670,6 +670,18 @@ div.form-data-value.preserve-newlines {
     }
 }
 
+/* "Loading..." placeholder centred in the sky area until Aladin has created its view.
+   Spinner and text use the shared .loading-spinner / .loading-message styles. */
+#survey-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    pointer-events: none;
+}
+
 /* "Sky survey server unreachable" notice, overlaid top centre of the sky. Same overlay
    look as #survey-credit; dismissed with its close button. */
 #survey-notice {

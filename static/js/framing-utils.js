@@ -843,6 +843,42 @@ window.framingUtils_DSS_MIRRORS = Object.freeze([
     'https://casda.csiro.au/hips/DSS2/color'        // CSIRO CASDA
 ]);
 
+// How long CDS gets to answer before a DSS mirror is probed and may win
+window.framingUtils_PROBE_GRACE_MS = 1500;
+
+/**
+ * One step of the survey-source race between the CDS probe and the DSS mirror probe.
+ * Called again whenever a probe settles and once when the grace period ends; the first
+ * call that returns a decision ends the race.
+ *
+ * - CDS ok decides for CDS at once (also when a mirror answered at the same moment).
+ * - The mirror probe starts only once the grace period is over, CDS has failed, or the
+ *   CDS probe was skipped (outage remembered), so a CDS that answers within the grace
+ *   period means no mirror is ever contacted.
+ * - A mirror that answered ok decides for the mirror (CDS treated as unreachable).
+ * - CDS failed or skipped and no mirror answered: neither.
+ *
+ * @param {Object} s
+ * @param {string} s.cds - 'pending' | 'ok' | 'fail' | 'skipped'
+ * @param {string} s.mirror - 'idle' (not started) | 'pending' | 'ok' | 'fail'
+ * @param {string|null} s.mirrorUrl - The mirror that answered, when s.mirror is 'ok'
+ * @param {boolean} s.graceElapsed - PROBE_GRACE_MS has passed since the race started
+ * @returns {{startMirror: boolean, decision: ({cdsReachable: boolean, dssMirror: (string|null)}|null)}}
+ */
+window.framingUtils_decideSurveyProbe = function(s) {
+    const cdsOut = s.cds === 'fail' || s.cds === 'skipped';
+    const startMirror = s.mirror === 'idle' && s.cds !== 'ok' && (cdsOut || !!s.graceElapsed);
+    let decision = null;
+    if (s.cds === 'ok') {
+        decision = { cdsReachable: true, dssMirror: null };
+    } else if (s.mirror === 'ok' && s.mirrorUrl) {
+        decision = { cdsReachable: false, dssMirror: s.mirrorUrl };
+    } else if (cdsOut && s.mirror === 'fail') {
+        decision = { cdsReachable: false, dssMirror: null };
+    }
+    return { startMirror: decision ? false : startMirror, decision };
+};
+
 /**
  * True when a HiPS URL is served by CDS (alasky / alaskybis, *.unistra.fr, *.u-strasbg.fr)
  *
@@ -944,6 +980,8 @@ window.framingUtils = {
     isValidRotation: window.framingUtils_isValidRotation,
     SURVEY_FALLBACK: window.framingUtils_SURVEY_FALLBACK,
     DSS_MIRRORS: window.framingUtils_DSS_MIRRORS,
+    PROBE_GRACE_MS: window.framingUtils_PROBE_GRACE_MS,
+    decideSurveyProbe: window.framingUtils_decideSurveyProbe,
     isCdsUrl: window.framingUtils_isCdsUrl,
     chooseBaseSurvey: window.framingUtils_chooseBaseSurvey,
 };

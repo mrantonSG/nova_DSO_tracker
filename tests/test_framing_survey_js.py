@@ -38,11 +38,43 @@ vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(utilsFile, 'utf8'), ctx, { filename: utilsFile });
 const fu = ctx.window.framingUtils;
 
+// Replays one probe race through decideSurveyProbe, the way probeSurveySources drives it:
+// the CDS probe settles at race.cdsAt (ok or not) unless skipped, the grace timer fires at
+// PROBE_GRACE_MS, and a started mirror probe settles race.mirrorLatency ms after it starts.
+function simulate(race) {
+    const st = { cds: race.cdsSkipped ? 'skipped' : 'pending', mirror: 'idle', mirrorUrl: null, graceElapsed: false };
+    const events = [{ t: fu.PROBE_GRACE_MS, kind: 'grace' }];
+    if (!race.cdsSkipped) events.push({ t: race.cdsAt, kind: 'cds' });
+    let mirrorStartedAt = null;
+    const evaluate = (t) => {
+        const r = fu.decideSurveyProbe(st);
+        if (r.startMirror) {
+            st.mirror = 'pending';
+            mirrorStartedAt = t;
+            events.push({ t: t + race.mirrorLatency, kind: 'mirror' });
+        }
+        return r.decision ? { ...r.decision, at: t, mirrorStartedAt } : null;
+    };
+    let res = evaluate(0);
+    while (!res) {
+        events.sort((a, b) => a.t - b.t || (a.kind === 'cds' ? -1 : 1));   // same instant: CDS first
+        const e = events.shift();
+        if (!e) return { stuck: true, mirrorStartedAt };
+        if (e.kind === 'grace') st.graceElapsed = true;
+        if (e.kind === 'cds') st.cds = race.cdsOk ? 'ok' : 'fail';
+        if (e.kind === 'mirror') { st.mirror = race.mirrorUrl ? 'ok' : 'fail'; st.mirrorUrl = race.mirrorUrl || null; }
+        res = evaluate(e.t);
+    }
+    return res;
+}
+
 const out = {
     fallback: fu.SURVEY_FALLBACK,
     mirrors: fu.DSS_MIRRORS,
+    grace: fu.PROBE_GRACE_MS,
     choose: input.choose.map(c => fu.chooseBaseSurvey(c)),
     isCds: input.isCds.map(u => fu.isCdsUrl(u)),
+    races: (input.races || []).map(simulate),
 };
 fs.writeFileSync(outFile, JSON.stringify(out));
 """
@@ -56,9 +88,10 @@ def run_utils(tmp_path_factory):
     driver = tmp / "driver.cjs"
     driver.write_text(_DRIVER, encoding="utf-8")
 
-    def run(choose=(), is_cds=()):
+    def run(choose=(), is_cds=(), races=()):
         inp, out = tmp / "in.json", tmp / "out.json"
-        inp.write_text(json.dumps({"choose": list(choose), "isCds": list(is_cds)}), encoding="utf-8")
+        inp.write_text(json.dumps({"choose": list(choose), "isCds": list(is_cds), "races": list(races)}),
+                       encoding="utf-8")
         proc = subprocess.run([NODE, str(driver), str(UTILS), str(inp), str(out)],
                               capture_output=True, text=True, timeout=60)
         assert proc.returncode == 0, proc.stderr
@@ -205,6 +238,77 @@ def test_mirror_ignored_when_not_needed(run_utils):
                    {"survey": "P/2MASS/color", "notice": False},
                    {"survey": NSNS_OHS, "notice": False},
                    {"survey": NSNS, "notice": False}]
+
+
+def _race(cds_at=4000, cds_ok=False, mirror_latency=300, mirror=ESA, skipped=False):
+    return {"cdsAt": cds_at, "cdsOk": cds_ok, "mirrorLatency": mirror_latency,
+            "mirrorUrl": mirror, "cdsSkipped": skipped}
+
+
+def _races(run_utils, *races):
+    return run_utils(races=races)["races"]
+
+
+def test_probe_grace_is_1500_ms(run_utils):
+    assert run_utils()["grace"] == 1500
+
+
+def test_cds_within_grace_never_contacts_a_mirror(run_utils):
+    """CDS up: decided the moment CDS answers, no extra wait, no mirror request."""
+    res = _races(run_utils,
+                 _race(cds_at=120, cds_ok=True),
+                 _race(cds_at=1499, cds_ok=True))
+    assert res == [{"cdsReachable": True, "dssMirror": None, "at": 120, "mirrorStartedAt": None},
+                   {"cdsReachable": True, "dssMirror": None, "at": 1499, "mirrorStartedAt": None}]
+
+
+def test_cds_hanging_mirror_wins_after_grace(run_utils):
+    """CDS down by TCP timeout: the mirror starts at 1500 ms and wins when it answers."""
+    res = _races(run_utils, _race(cds_at=4000, cds_ok=False, mirror_latency=300, mirror=ESA))
+    assert res == [{"cdsReachable": False, "dssMirror": ESA, "at": 1800, "mirrorStartedAt": 1500}]
+
+
+def test_cds_failing_fast_starts_the_mirror_at_once(run_utils):
+    res = _races(run_utils, _race(cds_at=80, cds_ok=False, mirror_latency=250, mirror=CASDA))
+    assert res == [{"cdsReachable": False, "dssMirror": CASDA, "at": 330, "mirrorStartedAt": 80}]
+
+
+def test_after_grace_first_ok_wins_cds_preferred(run_utils):
+    """Past 1500 ms: slow CDS beats a slower mirror, a faster mirror beats slow CDS, a tie goes to CDS."""
+    res = _races(run_utils,
+                 _race(cds_at=2000, cds_ok=True, mirror_latency=800),    # mirror would answer at 2300
+                 _race(cds_at=2000, cds_ok=True, mirror_latency=300),    # mirror answers at 1800
+                 _race(cds_at=1800, cds_ok=True, mirror_latency=300))    # both at 1800
+    assert res == [{"cdsReachable": True, "dssMirror": None, "at": 2000, "mirrorStartedAt": 1500},
+                   {"cdsReachable": False, "dssMirror": ESA, "at": 1800, "mirrorStartedAt": 1500},
+                   {"cdsReachable": True, "dssMirror": None, "at": 1800, "mirrorStartedAt": 1500}]
+
+
+def test_mirror_failing_waits_for_cds(run_utils):
+    """No mirror answered: keep waiting for CDS up to its own timeout."""
+    res = _races(run_utils,
+                 _race(cds_at=3000, cds_ok=True, mirror_latency=100, mirror=None),
+                 _race(cds_at=4000, cds_ok=False, mirror_latency=100, mirror=None))
+    assert res == [{"cdsReachable": True, "dssMirror": None, "at": 3000, "mirrorStartedAt": 1500},
+                   {"cdsReachable": False, "dssMirror": None, "at": 4000, "mirrorStartedAt": 1500}]
+
+
+def test_cds_failed_waits_for_the_mirror(run_utils):
+    """CDS timed out while the mirror probe (ESA, then CASDA) is still running: wait for it."""
+    res = _races(run_utils,
+                 _race(cds_at=4000, cds_ok=False, mirror_latency=5000, mirror=CASDA),
+                 _race(cds_at=4000, cds_ok=False, mirror_latency=8000, mirror=None))
+    assert res == [{"cdsReachable": False, "dssMirror": CASDA, "at": 6500, "mirrorStartedAt": 1500},
+                   {"cdsReachable": False, "dssMirror": None, "at": 9500, "mirrorStartedAt": 1500}]
+
+
+def test_remembered_outage_skips_cds(run_utils):
+    """CDS outage remembered: no CDS probe, the mirror probe starts at once."""
+    res = _races(run_utils,
+                 _race(skipped=True, mirror_latency=250, mirror=ESA),
+                 _race(skipped=True, mirror_latency=400, mirror=None))
+    assert res == [{"cdsReachable": False, "dssMirror": ESA, "at": 250, "mirrorStartedAt": 0},
+                   {"cdsReachable": False, "dssMirror": None, "at": 400, "mirrorStartedAt": 0}]
 
 
 def test_is_cds_url(run_utils):

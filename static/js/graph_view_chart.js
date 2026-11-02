@@ -117,12 +117,57 @@
             .finally(() => clearTimeout(timer));
     }
 
+    // A failed CDS probe is remembered for 10 minutes across reloads (sessionStorage);
+    // meanwhile the CDS probe is skipped. Works without storage (private mode, blocked).
+    const CDS_OUTAGE_KEY = 'nova.framing.cdsOutageUntil';
+    const CDS_OUTAGE_MS = 10 * 60 * 1000;
+    function cdsOutageRemembered() {
+        try { return Number(sessionStorage.getItem(CDS_OUTAGE_KEY)) > Date.now(); } catch (e) { return false; }
+    }
+    function rememberCdsOutage(down) {
+        try {
+            if (down) sessionStorage.setItem(CDS_OUTAGE_KEY, String(Date.now() + CDS_OUTAGE_MS));
+            else sessionStorage.removeItem(CDS_OUTAGE_KEY);
+        } catch (e) { /* no storage: nothing remembered */ }
+    }
+
     function probeCds() {
         if (cdsProbePromise) return cdsProbePromise;
         const p = probeHips(HIPS_ID_TO_URL['P/DSS2/color']);
         cdsProbePromise = p;
-        p.then(ok => { if (!ok && cdsProbePromise === p) cdsProbePromise = null; });   // next open probes again
+        p.then(ok => {
+            rememberCdsOutage(!ok);
+            if (!ok && cdsProbePromise === p) cdsProbePromise = null;   // next open probes again
+        });
         return p;
+    }
+
+    // Race CDS against the DSS mirrors (rules in framingUtils.decideSurveyProbe).
+    // Resolves to {cdsReachable, dssMirror}. A probe still running when the race is
+    // decided keeps going in the background, so its result is memoised/remembered.
+    function probeSurveySources() {
+        const fu = window.framingUtils;
+        const st = { cds: cdsOutageRemembered() ? 'skipped' : 'pending', mirror: 'idle', mirrorUrl: null, graceElapsed: false };
+        return new Promise(resolve => {
+            let done = false;
+            let graceTimer = null;
+            const step = () => {
+                if (done) return;
+                const r = fu.decideSurveyProbe(st);
+                if (r.startMirror) {
+                    st.mirror = 'pending';
+                    probeDssMirror().then(url => { st.mirror = url ? 'ok' : 'fail'; st.mirrorUrl = url; step(); });
+                }
+                if (r.decision) {
+                    done = true;
+                    clearTimeout(graceTimer);
+                    resolve(r.decision);
+                }
+            };
+            if (st.cds === 'pending') probeCds().then(ok => { st.cds = ok ? 'ok' : 'fail'; step(); });
+            graceTimer = setTimeout(() => { st.graceElapsed = true; step(); }, fu.PROBE_GRACE_MS);
+            step();
+        });
     }
 
     // First DSS2 color mirror (framingUtils.DSS_MIRRORS order) that answers, or null
@@ -806,6 +851,24 @@
         }
         el.querySelector('.survey-notice-text').textContent = window.t('survey_server_unreachable');
         el.hidden = false;
+    }
+    // --- Loading placeholder while the survey probes run and until Aladin has created its view ---
+    function showSurveyLoading() {
+        const host = document.getElementById('aladin-lite-div');
+        if (!host || document.getElementById('survey-loading')) return;
+        if (!host.style.position) host.style.position = 'relative';
+        const el = document.createElement('div');
+        el.id = 'survey-loading';
+        const spinner = document.createElement('span');
+        spinner.className = 'loading-spinner';
+        const text = document.createElement('span');
+        text.className = 'loading-message';
+        text.textContent = window.t('loading');
+        el.append(spinner, text);
+        host.appendChild(el);
+    }
+    function hideSurveyLoading() {
+        document.getElementById('survey-loading')?.remove();
     }
     function resetSurveyNotice() {
         surveyNoticeDismissed = false;
@@ -2405,8 +2468,9 @@
         // Is CDS reachable? If not, which DSS2 mirror answers? Decides the base layer below
         // (mirror, else NSNS, when CDS is down)
         resetSurveyNotice();
-        cdsReachable = await probeCds();
-        dssMirror = cdsReachable ? null : await probeDssMirror();
+        // Placeholder only when Aladin still has to be created (not over a cached view)
+        if (!aladin && !framingModalController?.getCachedInstance()) showSurveyLoading();
+        ({ cdsReachable, dssMirror } = await probeSurveySources());
 
         // Check if Aladin instance is cached (already initialized from previous modal open)
         if (!aladin && framingModalController) {
@@ -2432,6 +2496,7 @@
                     showLayersControl: false,
                     log: false
                 });
+                hideSurveyLoading();
                 displayedBaseSurvey = initialBase.survey;
                 if (initialBase.notice) showSurveyNotice();
             (function installSlowWheelZoom(){ if (window.__novaSlowZoomInstalled) return; const host = document.getElementById('aladin-lite-div'); if (!host) return; try { host.style.overscrollBehavior = 'contain'; } catch(e) {} function onWheel(ev) { if (ev.ctrlKey) return; ev.preventDefault(); ev.stopPropagation(); if (!aladin) return; const unit = (ev.deltaMode === 1) ? 16 : (ev.deltaMode === 2) ? 400 : 1; let dy = (ev.deltaY || 0) * unit; dy = Math.max(-80, Math.min(80, dy)); const g = aladin.getFov(), current = Array.isArray(g) ? (g[0] ?? 1) : (g ?? 1); const scale = Math.exp(dy * 0.00075), minFov = 0.01, maxFov = 180; const next = Math.min(maxFov, Math.max(minFov, current * scale)); if (Number.isFinite(next)) aladin.setFov(next); } host.addEventListener('wheel', onWheel, { passive: false, capture: true }); const tryBindCanvas = () => { const cv = host.querySelector('canvas'); if (cv) cv.addEventListener('wheel', onWheel, { passive: false, capture: true }); }; tryBindCanvas(); setTimeout(tryBindCanvas, 50); window.__novaSlowZoomInstalled = true; })();
