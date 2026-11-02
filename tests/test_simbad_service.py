@@ -138,3 +138,65 @@ def test_timeout_session_keeps_explicit_timeout(monkeypatch):
     session = simbad_service._TimeoutSession((3, 8))
     session.get("https://example.test", timeout=1)
     assert captured["timeout"] == 1
+
+
+# --- current_host()/is_available_cached() must keep stale "up" knowledge ---
+
+class _FakeClock:
+    def __init__(self, now=1000.0):
+        self.now = now
+
+    def monotonic(self):
+        return self.now
+
+
+def test_current_host_keeps_mirror_after_up_ttl(monkeypatch):
+    """A mirror that worked keeps winning after its 60 s up-TTL expires."""
+    clock = _FakeClock()
+    monkeypatch.setattr(simbad_service, "time", clock)
+
+    # One search with Strasbourg down: the probe marks Strasbourg down and a
+    # mirror up. This is what a real query leaves in the cache.
+    simbad_service.mark_down("simbad.cds.unistra.fr")
+    simbad_service.mark_up("simbad.harvard.edu")
+    assert simbad_service.current_host() == "simbad.harvard.edu"
+    assert simbad_service.is_available_cached() is True
+
+    # 61 s later the up entry is stale but the down entry is still fresh.
+    clock.now += 61.0
+    assert simbad_service.current_host() == "simbad.harvard.edu"
+    assert simbad_service.is_available_cached() is True
+
+
+def test_current_host_defaults_when_no_knowledge(monkeypatch):
+    clock = _FakeClock()
+    monkeypatch.setattr(simbad_service, "time", clock)
+
+    assert simbad_service.current_host() == "simbad.cds.unistra.fr"
+    assert simbad_service.is_available_cached() is True
+
+
+def test_current_host_prefers_host_marked_up_again(monkeypatch):
+    """Once Strasbourg is marked up again it wins over the stale mirror."""
+    clock = _FakeClock()
+    monkeypatch.setattr(simbad_service, "time", clock)
+
+    simbad_service.mark_down("simbad.cds.unistra.fr")
+    simbad_service.mark_up("simbad.harvard.edu")
+    clock.now += 61.0
+    assert simbad_service.current_host() == "simbad.harvard.edu"
+
+    clock.now += 1.0
+    simbad_service.mark_up("simbad.cds.unistra.fr")
+    assert simbad_service.current_host() == "simbad.cds.unistra.fr"
+    assert simbad_service.is_available_cached() is True
+
+
+def test_is_available_cached_false_when_every_known_host_is_down(monkeypatch):
+    clock = _FakeClock()
+    monkeypatch.setattr(simbad_service, "time", clock)
+
+    simbad_service.mark_down("simbad.cds.unistra.fr")
+    simbad_service.mark_down("simbad.harvard.edu")
+    clock.now += 61.0
+    assert simbad_service.is_available_cached() is False

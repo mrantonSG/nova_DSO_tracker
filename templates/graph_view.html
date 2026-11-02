@@ -272,7 +272,11 @@
 
 <div id="simbad-tab" class="tab-content">
     <div id="simbadContainer">
+        {% if simbad_available|default(true) %}
         <iframe id="simbadIframe" style="width:100%; height:1200px; border:1px solid var(--text-lighter);"></iframe>
+        {% else %}
+        <div id="simbadUnavailable" class="offline-message" style="min-height: 400px;">{{ _('SIMBAD is currently unavailable. Please try again later.') }}</div>
+        {% endif %}
     </div>
 </div>
 

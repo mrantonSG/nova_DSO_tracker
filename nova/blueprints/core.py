@@ -2533,6 +2533,7 @@ def graph_dashboard(object_name):
         return render_template('graph_view.html',
                                object_name=object_name,
                                simbad_host=simbad_service.current_host(),
+                               simbad_available=simbad_service.is_available_cached(),
                                alt_name=object_main_details.get("Common Name", object_name),
                                object_main_details=object_main_details,
                                available_rigs=sorted_rigs,

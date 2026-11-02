@@ -151,17 +151,27 @@ def current_host():
     """Last known-good host, read from cache only. Defaults to Strasbourg."""
     now = time.monotonic()
     health = _health_snapshot()
+    # 1. A fresh "up" verdict wins.
     for host in HOSTS:
         if _is_fresh(host, now, health) and health[host][0]:
             return host
+    # 2. Otherwise keep using the most recently known "up" host, even if its
+    #    verdict is stale. A marked-down Strasbourg must not win over it.
+    up_hosts = [h for h in HOSTS if health.get(h, (False, 0.0))[0]]
+    if up_hosts:
+        return max(up_hosts, key=lambda h: health[h][1])
+    # 3. No knowledge at all: default to Strasbourg.
     return HOSTS[0]
 
 
 def is_available_cached():
-    """True unless every host with fresh health evidence is down."""
-    now = time.monotonic()
+    """True unless every known host is currently marked down.
+
+    Reads the cache only. Stale verdicts still count as knowledge, so a mirror
+    that worked keeps this True after its up-TTL expires.
+    """
     health = _health_snapshot()
-    known = [host for host in HOSTS if _is_fresh(host, now, health)]
+    known = [host for host in HOSTS if host in health]
     if not known:
         return True
     return any(health[host][0] for host in known)

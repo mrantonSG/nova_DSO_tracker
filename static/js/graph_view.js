@@ -552,6 +552,12 @@
         }
 
         var iframe = document.getElementById('simbadIframe');
+        if (!iframe) {
+            // No host is known to work: the server rendered the translated
+            // unavailable message in the tab instead of the iframe.
+            simbadLoaded = true;
+            return;
+        }
         var simbadHost = (window.NOVA_GRAPH_DATA && window.NOVA_GRAPH_DATA.simbadHost)
             || 'simbad.cds.unistra.fr';
         iframe.src = 'https://' + simbadHost + '/simbad/sim-basic?Ident=' + encodeURIComponent(objectName) + '&submit=SIMBAD+search';

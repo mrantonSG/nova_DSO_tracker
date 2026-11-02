@@ -102,3 +102,41 @@ def test_graph_dashboard_full_context(client, db_session):
     # --- FIX 3: Check for the correct calculated FOV in the data attribute ---
     assert b'data-fovw="171.85154209975758"' in response_data
     assert b'data-fovh="128.90039980471445"' in response_data
+
+
+# --- SIMBAD tab: iframe when a host is known up, message when none is ---
+
+def test_graph_dashboard_shows_simbad_iframe_when_a_host_is_known_up(client):
+    from modules import simbad_service
+    saved = dict(simbad_service._health)
+    simbad_service._health.clear()
+    try:
+        simbad_service.mark_up("simbad.harvard.edu")
+        response = client.get('/graph_dashboard/M42')
+        body = response.data
+        assert response.status_code == 200
+        assert b'id="simbadIframe"' in body
+        assert b'id="simbadUnavailable"' not in body
+        # The iframe must be bound to the known-up host, not the default.
+        assert b'simbad.harvard.edu' in body
+    finally:
+        simbad_service._health.clear()
+        simbad_service._health.update(saved)
+
+
+def test_graph_dashboard_shows_simbad_unavailable_message_when_all_hosts_down(client):
+    from modules import simbad_service
+    saved = dict(simbad_service._health)
+    simbad_service._health.clear()
+    try:
+        for host in simbad_service.HOSTS:
+            simbad_service.mark_down(host)
+        response = client.get('/graph_dashboard/M42')
+        body = response.data
+        assert response.status_code == 200
+        assert b'id="simbadIframe"' not in body
+        assert b'id="simbadUnavailable"' in body
+        assert b'SIMBAD is currently unavailable. Please try again later.' in body
+    finally:
+        simbad_service._health.clear()
+        simbad_service._health.update(saved)
