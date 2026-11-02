@@ -51,7 +51,7 @@ I18N = {
         "grs": {"none": "GRS NONE", "nextOne": "NEXT {time}", "meta": "II {lon} @ {date}", "help": "GRS HELP",
                 "tonight": "TONIGHT {times}", "next": "NEXT:", "noNext": "NO NEXT",
                 "source": "DEFAULT {lon} {date}", "user": "YOURS {lon} {date}",
-                "drift": "DRIFT {rate}", "stale": "STALE"},
+                "drift": "DRIFT {rate}", "stale": "STALE", "where": "WHERE"},
         "grsMarker": "GRS MARK", "legendVisible": "L-VISIBLE", "legendBehind": "L-BEHIND",
         "legendEclipsed": "L-ECLIPSED", "legendShadow": "L-SHADOW", "legendGrs": "L-GRS",
         "shadowOnDisc": "SHADOW", "minutes": "{n} min", "altitude": "alt {alt}",
@@ -648,7 +648,7 @@ def test_grs_tile_shows_tonights_transit_and_the_next_nights(tmp_path):
     assert lines[1] == "TONIGHT " + _when(g["tonight"][0]["utcMs"], "03:14")
     assert lines[2] == "NEXT:"
     assert lines[3:3 + len(g["next"])] == [_when(x["utcMs"], x["hm"]) for x in g["next"]]
-    assert lines[3 + len(g["next"]):] == ["DEFAULT 91.0 1 Jun 2026", "DRIFT +1.75"]
+    assert lines[3 + len(g["next"]):] == ["DEFAULT 91.0 1 Jun 2026", "DRIFT +1.75", "WHERE"]
     assert "STALE" not in lines
     # The spot on the drawing when it faces us at the card's instant, nowhere else
     marks = card["svg"]["grs"]
@@ -673,7 +673,8 @@ def test_grs_tile_warns_when_the_longitude_is_old(tmp_path):
     tile = old["card"]["grs"]
     assert old["g"]["stale"] and tile["stale"] == "true"
     assert tile["times"] == " · ".join(x["hm"] for x in old["g"]["tonight"]) == "00:30"
-    assert tile["title"].split("\n")[-1] == "STALE"
+    # The warning, then where to find a current value, as the tooltip's last two lines
+    assert tile["title"].split("\n")[-2:] == ["STALE", "WHERE"]
 
 
     css = (STATIC_JS.parent / "css" / "solar_system.css").read_text()
@@ -1075,3 +1076,16 @@ def test_mars_and_jupiter_say_how_they_are_drawn(tmp_path):
         return svg.children[0].tagName === 'title' ? svg.children[0].textContent : null;
     """, search="?body=mars")
     assert mars == "MARS DIAGRAM\nPLANET NORTH UP"
+
+
+def test_grs_tooltip_says_where_to_find_a_current_value(tmp_path):
+    """The tooltip ends with where to look up a current longitude: after the warning when
+    the value is old (16 Dec 2026), and on its own when it is not (7 Nov 2026)."""
+    old = _run(tmp_path, "h.online(); await h.load('bodies'); return jupCard().grs;", sim="2026-12-16")
+    assert old["stale"] == "true"
+    lines = old["title"].split("\n")
+    assert lines[-2:] == ["STALE", "WHERE"] and lines.count("WHERE") == 1
+    fresh = _run(tmp_path, "h.online(); await h.load('bodies'); return jupCard().grs;", sim="2026-11-07")
+    assert fresh["stale"] == "false"
+    lines = fresh["title"].split("\n")
+    assert lines[-1] == "WHERE" and "STALE" not in lines

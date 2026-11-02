@@ -1413,6 +1413,8 @@
             fill(grs.user ? G.user : G.source, {lon: grs.refLon.toFixed(1), date: refDate}),
             fill(G.drift, {rate: '+' + grs.driftPerMonth.toFixed(2)}),
             grs.stale ? G.stale : '',
+            // Where a current value is found: always, and so right after the warning
+            G.where,
         ].filter(Boolean).join('\n');
     }
 

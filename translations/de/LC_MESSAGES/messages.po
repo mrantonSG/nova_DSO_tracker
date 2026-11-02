@@ -6911,6 +6911,14 @@ msgstr ""
 "abweichen. Geben Sie mit „Bearbeiten“ einen aktuellen Wert ein (JUPOS, "
 "BAA, ALPO)."
 
+#: templates/solar_system.html:415
+msgid ""
+"Check the current GRS longitude in Sky & Telescope's GRS transit "
+"calculator or at JUPOS."
+msgstr ""
+"Die aktuelle Länge des GRF finden Sie im GRS-Transitrechner von Sky & "
+"Telescope oder bei JUPOS."
+
 #: templates/solar_system.html:413
 msgid "Great Red Spot (predicted position)"
 msgstr "Großer Roter Fleck (vorhergesagte Position)"

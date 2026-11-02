@@ -6892,6 +6892,14 @@ msgstr ""
 "Esta longitud tiene más de seis meses, así que las horas pueden desviarse"
 " bastante. Introduzca un valor reciente (JUPOS, BAA, ALPO) con «Editar»."
 
+#: templates/solar_system.html:415
+msgid ""
+"Check the current GRS longitude in Sky & Telescope's GRS transit "
+"calculator or at JUPOS."
+msgstr ""
+"Consulte la longitud actual de la GMR en la calculadora de tránsitos de "
+"la GRS de Sky & Telescope o en JUPOS."
+
 #: templates/solar_system.html:413
 msgid "Great Red Spot (predicted position)"
 msgstr "Gran Mancha Roja (posición prevista)"

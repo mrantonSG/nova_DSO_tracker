@@ -6665,6 +6665,12 @@ msgid ""
 " Enter a recent value (JUPOS, BAA, ALPO) with Edit."
 msgstr ""
 
+#: templates/solar_system.html:415
+msgid ""
+"Check the current GRS longitude in Sky & Telescope's GRS transit "
+"calculator or at JUPOS."
+msgstr ""
+
 #: templates/solar_system.html:413
 msgid "Great Red Spot (predicted position)"
 msgstr ""

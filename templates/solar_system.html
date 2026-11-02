@@ -411,7 +411,8 @@ const solarI18n = {
             source:    {{ _('Built-in longitude: System II %(lon)s° on %(date)s (JUPOS via Sky & Telescope; BAA Jupiter Section).', lon='{lon}', date='{date}') | tojson }},
             user:      {{ _('Your longitude: System II %(lon)s° on %(date)s.', lon='{lon}', date='{date}') | tojson }},
             drift:     {{ _('Drift applied since that date: %(rate)s° a month.', rate='{rate}') | tojson }},
-            stale:     {{ _('This longitude is more than six months old, so the times may be well off. Enter a recent value (JUPOS, BAA, ALPO) with Edit.') | tojson }}
+            stale:     {{ _('This longitude is more than six months old, so the times may be well off. Enter a recent value (JUPOS, BAA, ALPO) with Edit.') | tojson }},
+            where:     {{ _("Check the current GRS longitude in Sky & Telescope's GRS transit calculator or at JUPOS.") | tojson }}
         },
         grsMarker:     {{ _('Great Red Spot (predicted position)') | tojson }},
         legendVisible: {{ _('Filled dot: a moon beside or in front of Jupiter') | tojson }},

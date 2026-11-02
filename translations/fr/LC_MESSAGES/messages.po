@@ -6923,6 +6923,14 @@ msgstr ""
 "nettement décalées. Saisissez une valeur récente (JUPOS, BAA, ALPO) avec "
 "« Modifier »."
 
+#: templates/solar_system.html:415
+msgid ""
+"Check the current GRS longitude in Sky & Telescope's GRS transit "
+"calculator or at JUPOS."
+msgstr ""
+"Consultez la longitude actuelle de la GTR dans le calculateur de passages"
+" de la GRS de Sky & Telescope ou sur JUPOS."
+
 #: templates/solar_system.html:413
 msgid "Great Red Spot (predicted position)"
 msgstr "Grande Tache rouge (position prévue)"

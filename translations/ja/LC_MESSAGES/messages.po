@@ -6689,6 +6689,12 @@ msgid ""
 " Enter a recent value (JUPOS, BAA, ALPO) with Edit."
 msgstr "この経度は 6 か月以上前のもので、時刻が大きくずれている可能性があります。「編集」から最新の値（JUPOS、BAA、ALPO）を入力してください。"
 
+#: templates/solar_system.html:415
+msgid ""
+"Check the current GRS longitude in Sky & Telescope's GRS transit "
+"calculator or at JUPOS."
+msgstr "大赤斑の最新の経度は、Sky & Telescope の GRS 通過計算ツールまたは JUPOS で確認できます。"
+
 #: templates/solar_system.html:413
 msgid "Great Red Spot (predicted position)"
 msgstr "大赤斑（予測位置）"

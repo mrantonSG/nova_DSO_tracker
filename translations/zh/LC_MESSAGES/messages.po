@@ -6677,6 +6677,12 @@ msgid ""
 " Enter a recent value (JUPOS, BAA, ALPO) with Edit."
 msgstr "此经度已超过六个月，时间可能偏差较大。请通过“编辑”输入最新数值（JUPOS、BAA、ALPO）。"
 
+#: templates/solar_system.html:415
+msgid ""
+"Check the current GRS longitude in Sky & Telescope's GRS transit "
+"calculator or at JUPOS."
+msgstr "可在 Sky & Telescope 的 GRS 过中央经线计算器或 JUPOS 查询大红斑的最新经度。"
+
 #: templates/solar_system.html:413
 msgid "Great Red Spot (predicted position)"
 msgstr "大红斑（预测位置）"
