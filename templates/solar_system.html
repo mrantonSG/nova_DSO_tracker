@@ -160,6 +160,7 @@
                                 <input type="date" id="solar-jupiter-grs-date">
                             </label>
                             <p id="solar-jupiter-grs-invalid" class="solar-card-grs-invalid" role="alert" hidden>{{ _('Enter a longitude from 0 to 360 and a date.') }}</p>
+                            <p id="solar-jupiter-grs-future" class="solar-card-grs-invalid" role="alert" hidden>{{ _('The date cannot be in the future.') }}</p>
                             <span class="solar-card-grs-actions">
                                 <button type="button" id="solar-jupiter-grs-save" class="solar-card-grs-button solar-card-grs-save">{{ _('Save') }}</button>
                                 <button type="button" id="solar-jupiter-grs-cancel" class="solar-card-grs-button">{{ _('Cancel') }}</button>
@@ -292,6 +293,8 @@ const solarI18n = {
     },
     east:          {{ _('E') | tojson }},
     west:          {{ _('W') | tojson }},
+    celestialNorth:{{ _('Celestial north') | tojson }},
+    planetNorthUp: {{ _("Drawn with the planet's north up; the arrow shows celestial north. The real view also turns with the planet's position in the sky.") | tojson }},
     alwaysUp:      {{ _('Always up') | tojson }},
     neverUp:       {{ _('Never up') | tojson }},
     notUpTonight:  {{ _('Not up tonight') | tojson }},
@@ -393,7 +396,6 @@ const solarI18n = {
         error:         {{ _('Jupiter detail could not be calculated.') | tojson }},
         highestAt:     {{ _('highest tonight at %(time)s', time='{time}') | tojson }},
         north:         {{ _('N') | tojson }},
-        northHelp:     {{ _("Celestial north. The figure is drawn in Jupiter's own frame, so north is wherever the planet's pole angle puts it.") | tojson }},
         cmII:          {{ _('CM (System II)') | tojson }},
         cmIIHelp:      {{ _('The longitude at the centre of the disc: it tells you which side of Jupiter faces you. System II is the one for everything outside the equatorial belt, the Great Red Spot included.') | tojson }},
         systemI:       {{ _('System I (equatorial belt): %(deg)s°', deg='{deg}') | tojson }},
@@ -422,6 +424,7 @@ const solarI18n = {
         inFront:       {{ _('in front') | tojson }},
         onDisc:        {{ _('on the disc') | tojson }},
         behind:        {{ _('behind') | tojson }},
+        hiddenBehind:  {{ _('hidden behind the disc') | tojson }},
         eclipse:       {{ _('in eclipse') | tojson }},
         rjFromCentre:  {{ _('%(rj)s Jupiter radii from the centre of the disc', rj='{rj}') | tojson }},
         shadowOnDisc:  {{ _('Its shadow is on the disc') | tojson }},
@@ -440,6 +443,8 @@ const solarI18n = {
         minutes:       {{ _('%(n)s min', n='{n}') | tojson }},
         altitude:      {{ _('Altitude %(alt)s°', alt='{alt}') | tojson }},
         double:        {{ _('double') | tojson }},
+        inProgress:    {{ _('in progress') | tojson }},
+        inProgressHelp:{{ _('Already under way when the night begins: it started %(time)s', time='{time}') | tojson }},
         doubleHelp:    {{ _('Two moons are crossing Jupiter at the same time.') | tojson }},
         shadowAt:      {{ _('Shadow transit at %(time)s', time='{time}') | tojson }},
         until:         {{ _('ends %(time)s', time='{time}') | tojson }},

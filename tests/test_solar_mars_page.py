@@ -47,7 +47,8 @@ def test_mars_card_shows_the_disc_the_features_and_the_source(tmp_path):
     """17 Nov 2026, London: the CM tile (De and Ds in words in its tooltip) and Best
     tonight, the eight features an imager identifies first -- each chip the name and a bar
     for how close it stands to the central meridian, the rest in its tooltip -- the rest
-    behind "More features", and the disc drawn as the sky has it, its polar cap included.
+    behind "More features", and the disc drawn with Mars's north up, its polar cap
+    included, and an arrow to celestial north.
     Every value is the module's own for the same inputs."""
     got = _run(tmp_path, _mars("2026-11-17") + """
         h.online();
@@ -111,7 +112,8 @@ def test_mars_card_shows_the_disc_the_features_and_the_source(tmp_path):
     assert card["credit"] == "SRC " + got["source"]
 
     # The drawing: the disc, the polar cap tilted towards us, the dark part and its
-    # terminator, a dot per top feature, and the pole it leans by; N in HTML over it
+    # terminator, a dot per top feature, the pole straight up, and the arrow to celestial
+    # north with its N in HTML over the drawing
     svg = card["svg"]
     assert svg["label"] == "MARS DIAGRAM"
     assert [c["pole"] for c in svg["caps"]] == [c["pole"] for c in d["caps"]] == ["north"]
@@ -129,10 +131,21 @@ def test_mars_card_shows_the_disc_the_features_and_the_source(tmp_path):
     assert svg["pole"][0]["x"] == pytest.approx(float(f"{d['pole']['x']:.3f}"), abs=1e-9)
     assert svg["pole"][0]["y"] == pytest.approx(float(f"{d['pole']['y']:.3f}"), abs=1e-9)
     assert svg["pole"][0]["title"] == words(d["tilt"], "N-US", "S-US")
+    assert (d["pole"]["x"], d["pole"]["y"]) == (0, -1), "Mars's north up"
     assert svg["svgNorth"] == 0, "N is not drawn in the SVG, where it would scale"
     assert len(svg["north"]) == 1 and svg["north"][0]["text"] == "N"
-    assert svg["north"][0]["left"] == pytest.approx((d["pole"]["x"] * 1.16 + 1.3) / 2.6 * 100, abs=0.01)
-    assert svg["north"][0]["top"] == pytest.approx((d["pole"]["y"] * 1.16 + 1.3) / 2.6 * 100, abs=0.01)
+    assert svg["north"][0]["title"] == "CELESTIAL N"
+    assert svg["north"][0]["left"] == pytest.approx((d["north"]["x"] * 1.24 + 1.3) / 2.6 * 100, abs=0.01)
+    assert svg["north"][0]["top"] == pytest.approx((d["north"]["y"] * 1.24 + 1.3) / 2.6 * 100, abs=0.01)
+    # The arrow: from just outside the limb to its tip along celestial north, two barbs
+    assert len(svg["arrow"]) == 1 and svg["arrow"][0]["title"] == "CELESTIAL N"
+    nums = [float(v) for v in re.findall(r"-?\d+(?:\.\d+)?", svg["arrow"][0]["d"])]
+    pts = [tuple(nums[i:i + 2]) for i in range(0, len(nums), 2)]
+    assert len(pts) == 5
+    assert pts[0] == pytest.approx((d["north"]["x"] * 1.03, d["north"]["y"] * 1.03), abs=1e-3)
+    tip = (d["north"]["x"] * 1.15, d["north"]["y"] * 1.15)
+    assert pts[1] == pytest.approx(tip, abs=1e-3) and pts[3] == pytest.approx(tip, abs=1e-3)
+    assert abs(d["north"]["x"]) > 0.05, "the night's pole angle turns north off the vertical"
 
 
 def test_mars_card_rings_the_feature_under_the_pointer(tmp_path):
@@ -265,7 +278,7 @@ def test_the_mars_disc_mirrors_in_the_shared_view(tmp_path):
     pole = got["normal"]["svg"]["pole"][0]
     assert got["diagonal"]["svg"]["pole"][0]["x"] == pytest.approx(-pole["x"], abs=1e-6)
     assert got["inverted"]["svg"]["pole"][0]["y"] == pytest.approx(-pole["y"], abs=1e-6)
-    # N, in percent of the box: mirrored about its middle
+    # N and its arrow, in percent of the box: mirrored about its middle
     north = got["normal"]["svg"]["north"][0]
     assert got["diagonal"]["svg"]["north"][0]["left"] == pytest.approx(100 - north["left"], abs=0.02)
     assert got["inverted"]["svg"]["north"][0]["top"] == pytest.approx(100 - north["top"], abs=0.02)

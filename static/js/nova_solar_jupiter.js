@@ -35,29 +35,36 @@
  *                                  never rises)
  *   geometry,                      NovaJupiter.geometry() at the instant
  *   illuminated, mag,              from NovaPlanets.details('jupiter') at the instant
- *   moons,                         [{ name, x, y, z, rj, front, onDisc, eclipsed,
- *                                    shadow }] at the instant, in the engine's sky frame
- *                                  (x east, y south, z towards the Earth, Jupiter radii):
- *                                  front z > 0, onDisc in front of the disc's face,
+ *   moons,                         [{ name, x, y, z, rj, front, onDisc, behindDisc,
+ *                                    eclipsed, shadow }] at the instant, in the engine's
+ *                                  sky frame (x east, y south, z towards the Earth,
+ *                                  Jupiter radii): front z > 0, onDisc in front of the
+ *                                  disc's face (front and inside the limb), behindDisc
+ *                                  hidden behind it (not front, inside the limb),
  *                                  eclipsed inside the planet's shadow, shadow the point
- *                                  on the disc its own shadow falls on (null when it
- *                                  falls off it)
+ *                                  on the disc its own shadow falls on, as seen from the
+ *                                  Earth (null when it falls off the disc)
  *   events,                        the night's phenomena from NovaJupiter.events(), in
  *                                  time order: [{ type, moon, startUtcMs, endUtcMs, hm,
- *                                  hmDay, minutes, alt, visible, double }]. `type` is
- *                                  'transit', 'occultation', 'eclipse' or 'shadow'; `alt`
- *                                  is Jupiter's altitude at the event's midpoint and
- *                                  `visible` whether it is at or above the threshold;
- *                                  `double` true when another moon's shadow transit
- *                                  overlaps it
+ *                                  hmDay, minutes, alt, visible, double, inProgress,
+ *                                  beganUtcMs }]. `type` is 'transit', 'occultation',
+ *                                  'eclipse' or 'shadow'; `alt` is Jupiter's altitude at
+ *                                  the event's midpoint and `visible` whether it is at or
+ *                                  above the threshold; `double` true when another moon's
+ *                                  shadow transit overlaps it. A phenomenon already under
+ *                                  way when the night window opens is kept, clipped to
+ *                                  it: `inProgress` is then true, startUtcMs (and hm,
+ *                                  minutes) are the window's start and beganUtcMs is when
+ *                                  it really began (beganUtcMs === startUtcMs otherwise)
  *   doubles,                       how many of those events are doubles
  * }
  *
  * nextNights(opts) -> { nights: [{ date, utcMs, maxAlt }], shadows: [...] } over the next
  *   NEXT_NIGHTS nights that Jupiter reaches the threshold: the shadow transits in time
  *   order, NEXT_LIMIT of them at most, [{ date, utcMs, hm, hmDay, minutes, moons, double }]
- *   where `moons` is the one moon's name, or both when two shadows overlap (the entry is
- *   then the overlap, from the later shadow's start to the earlier one's end).
+ *   where `moons` is the one moon's name, or both when two shadows overlap (the entry then
+ *   runs from the earlier shadow's start to the later one's end), and `inProgress` as
+ *   tonight's events have it.
  *
  * calendarRows(opts) -> { window, rows } in the Calendar's row shape
  *   (nova_solar_calendar.js), body 'jupiter', kind 'galilean': the double shadow transits
@@ -123,7 +130,7 @@
  * diagram(g, mode, moons, grsLon) -> the system drawn in Jupiter's own frame, Jupiter
  *   radii from the disc's centre, x right and y down as SVG has them (the page scales it
  *   to a fixed STRIP_RJ radii each side of the centre):
- *     moons    [{ name, x, y, front, onDisc, eclipsed, state, shadow }], x along
+ *     moons    [{ name, x, y, front, onDisc, behindDisc, eclipsed, state, shadow }], x along
  *              Jupiter's equator towards its western limb and y towards its north pole,
  *              `shadow` where that moon's shadow falls on the disc (null when it falls
  *              off it). `state` is what the drawing shows: 'eclipsed' in Jupiter's
@@ -164,6 +171,10 @@
     const MONTHS_AHEAD = 6;
     const NEXT_NIGHTS = 14;
     const NEXT_LIMIT = 8;
+    // How far before the night window the phenomena are looked for, so one already under
+    // way at dusk is found by its real start: longer than any Galilean phenomenon (a
+    // Callisto transit, the longest, is under five hours).
+    const IN_PROGRESS_LOOKBACK_MS = 6 * 3600000;
 
     // The Great Red Spot. Its System II longitude is not predictable from theory: it drifts
     // slowly and unevenly, and amateurs follow it from measurements. The default is the
@@ -245,9 +256,13 @@
     }
 
     /**
-     * Where one moon's shadow falls, from its place in the sky frame: the point where the
-     * Sun-Jupiter line through the moon meets the plane through Jupiter's centre, in
-     * Jupiter radii, and whether that point is on the disc.
+     * Where one moon's shadow falls, from its place in the sky frame, and whether it is on
+     * the disc. The Sun's ray through the moon is at `perp` from the Sun-Jupiter line, so
+     * it meets the sunlit hemisphere at p + sqrt(1 - perp^2) S, p being the moon's place
+     * projected on the plane through Jupiter's centre square to that line (S the unit
+     * vector towards the Sun). x and y are that surface point's sky coordinates, in
+     * Jupiter radii: what the Earth sees. The plane point alone is up to sin(11.5 deg),
+     * about 0.2 radius, off it at the largest phase angles.
      *
      * This is the engine's own definition, read from the other side of the planet:
      * boundary() in nova_jupiter.js measures the moon's distance from the Sun-Jupiter line
@@ -261,16 +276,20 @@
         const along = m.x * S[0] + m.y * S[1] + m.z * S[2];
         const px = m.x - along * S[0], py = m.y - along * S[1], pz = m.z - along * S[2];
         const perp = Math.sqrt(px * px + py * py + pz * pz);
-        return { onDisc: along > 0 && perp < 1, eclipsed: along < 0 && perp < 1, x: px, y: py };
+        const up = Math.sqrt(Math.max(0, 1 - perp * perp));
+        return { onDisc: along > 0 && perp < 1, eclipsed: along < 0 && perp < 1,
+                 x: px + up * S[0], y: py + up * S[1] };
     }
 
     /** One moon of the sky frame as the card and the drawing want it. */
     function moonState(m, S) {
         const sh = shadowOf(m, S);
+        const inside = Math.sqrt(m.x * m.x + m.y * m.y) < 1;
         return {
             name: m.name, x: m.x, y: m.y, z: m.z, rj: m.rj,
             front: m.z > 0,
-            onDisc: Math.sqrt(m.x * m.x + m.y * m.y) < 1,
+            onDisc: m.z > 0 && inside,                 // crossing the face (a transit)
+            behindDisc: !(m.z > 0) && inside,          // hidden by it (an occultation)
             eclipsed: sh.eclipsed,
             shadow: sh.onDisc ? { x: sh.x, y: sh.y } : null,
         };
@@ -286,27 +305,34 @@
 
     // ------------------------------------------------------------------ tonight
 
-    /** The night's phenomena, with Jupiter's altitude at each and whether it is a double. */
+    /** The night's phenomena, with Jupiter's altitude at each and whether it is a double.
+     *  One already under way when the window opens is clipped to it and marked. */
     function nightEvents(win, date, c) {
         const E = c.E, s = c.s, A = E.A;
         const d = parseDate(date);
         const shadows = [];
-        const events = E.J.events(win.start, win.end).map(e => {
-            const mid = Math.round((e.startUtcMs + e.endUtcMs) / 2);
-            const wall = A.localParts(e.startUtcMs, s.tz);
+        const found = E.J.events(win.start - IN_PROGRESS_LOOKBACK_MS, win.end)
+            .filter(e => e.endUtcMs > win.start);
+        const events = found.map(e => {
+            const inProgress = e.startUtcMs < win.start;
+            const start = inProgress ? win.start : e.startUtcMs;
+            const mid = Math.round((start + e.endUtcMs) / 2);
+            const wall = A.localParts(start, s.tz);
             const ev = {
                 type: e.type, moon: e.moon,
-                startUtcMs: e.startUtcMs, endUtcMs: e.endUtcMs,
-                hm: A.formatHM(e.startUtcMs, s.tz),
+                startUtcMs: start, endUtcMs: e.endUtcMs,
+                hm: A.formatHM(start, s.tz),
                 hmDay: Math.round(dayNumber(wall) - dayNumber(d)),
-                minutes: Math.round((e.endUtcMs - e.startUtcMs) / MINUTE_MS),
+                minutes: Math.round((e.endUtcMs - start) / MINUTE_MS),
                 alt: finite(E.P.altAz('jupiter', mid, s.lat, s.lon).alt, 'jupiter altitude'),
                 double: false,
+                inProgress: inProgress,
+                beganUtcMs: e.startUtcMs,
             };
             ev.visible = ev.alt >= s.threshold;
             if (e.type === 'shadow') shadows.push(ev);
             return ev;
-        });
+        }).sort((a, b) => a.startUtcMs - b.startUtcMs);
         // Two shadows on the disc at once: a shadow transit overlapping another moon's.
         shadows.forEach((a, i) => shadows.forEach((b, j) => {
             if (i !== j && b.moon !== a.moon && a.startUtcMs < b.endUtcMs && b.startUtcMs < a.endUtcMs) {
@@ -345,12 +371,12 @@
     /** The look-ahead for the card: the next nights' shadow transits, doubles together. */
     function nextNights(opts) {
         const c = context(opts);
-        const E = c.E, s = c.s, A = E.A;
+        const E = c.E, s = c.s;
         const start = parseDate(c.date);
         const sun = {};
         const nights = [];
         // A night whose shadows are all below the threshold is skipped, not reported
-        for (let k = 1; k <= NEXT_NIGHTS && nights.length < NEXT_NIGHTS; k++) {
+        for (let k = 1; k <= NEXT_NIGHTS; k++) {
             const date = E.N.dateString(start.year, start.month, start.day + k);
             const night = nightJupiter(date, c, sun);
             if (night.maxAlt < s.threshold) continue;
@@ -371,7 +397,6 @@
             const b = shadows.slice(i + 1).find(o => o.e.moon !== a.moon
                 && o.e.startUtcMs < a.endUtcMs && a.startUtcMs < o.e.endUtcMs);
             const endUtcMs = b ? Math.max(a.endUtcMs, b.e.endUtcMs) : a.endUtcMs;
-            const wall = A.localParts(a.startUtcMs, s.tz);
             out.push({
                 date: shadows[i].night,
                 utcMs: a.startUtcMs,
@@ -380,6 +405,7 @@
                 minutes: Math.round((endUtcMs - a.startUtcMs) / MINUTE_MS),
                 moons: b ? [a.moon, b.e.moon] : [a.moon],
                 double: !!b,
+                inProgress: a.inProgress,
             });
             if (b) i = shadows.indexOf(b);
         }
@@ -618,8 +644,8 @@
                 const sh = m.shadow ? place(m.shadow.x, m.shadow.y) : null;
                 return {
                     name: m.name, x: r6(p.x), y: r6(p.y), front: m.front, onDisc: m.onDisc,
-                    eclipsed: m.eclipsed,
-                    state: m.eclipsed ? 'eclipsed' : !m.front && m.onDisc ? 'behind' : 'visible',
+                    behindDisc: m.behindDisc, eclipsed: m.eclipsed,
+                    state: m.eclipsed ? 'eclipsed' : m.behindDisc ? 'behind' : 'visible',
                     shadow: sh ? { x: r6(sh.x), y: r6(sh.y) } : null,
                 };
             }),
@@ -652,5 +678,7 @@
         GRS: GRS, GRS_STALE_DAYS: GRS_STALE_DAYS, GRS_NEXT_NIGHTS: GRS_NEXT_NIGHTS,
         tonight: tonight, nextNights: nextNights, calendarRows: calendarRows, diagram: diagram,
         grs: grs, grsReference: grsReference, grsLongitude: grsLongitude,
+        // for the tests: one moon's shadow and state from its place and the Sun's direction
+        _shadowOf: shadowOf, _moonState: moonState,
     };
 });

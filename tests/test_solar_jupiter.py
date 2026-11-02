@@ -279,9 +279,11 @@ def test_the_rows_are_the_engines_doubles(calendar):
 def test_the_engine_doubles_are_all_on_the_calendar(calendar):
     """Soundness is not enough: every double the engine finds in the slice, visible by
     night above the threshold, must be covered by a row. The module scans at a ten-minute
-    step, so a double shorter than that can fall between two samples and be missed; its
-    header documents one of 24 seconds over the six-month window. Anything of two minutes
-    or more must be there."""
+    step, which guarantees only this: a double lasting at least ten minutes always spans a
+    sample and is found. A shorter one is found only when a sample happens to fall inside
+    it; its header documents one of 24 seconds missed over the six-month window. The two-
+    minute bound below is what this slice measures, not a guarantee: a double of two to
+    ten minutes elsewhere can still be missed."""
     covered = 0
     for name, site in calendar.items():
         covered += site["visibleDoubles"] - len(site["missed"])

@@ -51,12 +51,10 @@ SITES = (LONDON, SYDNEY)
 # another opposition.
 NIGHTS = ("2026-11-02", "2027-02-14", "2027-09-01", "2029-01-03")
 
-# The reconstruction agrees with the card to ~7e-7 for the pole, the markers and the
-# bright limb (the residual is the pole's unexported linear rate term: the harness
-# rebuilds the pole from de and polePA, and polePA carries the IAU pole's rate only
-# through the engine's own position, while the drawing turns the disc by polePA
-# directly). A mirrored disc is off by ~2.0, so 2e-5 is loose enough for the engine's
-# noise and tight enough to catch a flip.
+# The reconstruction agrees with the card to ~7e-7 for the pole, the markers, the
+# bright limb and celestial north (the residual is the six-decimal rounding of the
+# card's coordinates). A mirrored disc is off by ~2.0, so 2e-5 is loose enough for the
+# engine's noise and tight enough to catch a flip.
 TOL = 2e-5
 
 # Loads the page's scripts into one context, then runs the case's body with `input`.
@@ -104,7 +102,7 @@ const unit3 = a => { const n = Math.hypot(a[0], a[1], a[2]); return [a[0]/n, a[1
 // T       line of sight, Mars -> Earth
 // n_sky   celestial north's projection on the sky plane, e_sky = T x n_sky
 // P       the pole, rebuilt from de and polePA
-// x_draw  drawing x (right), y_draw drawing y (up, towards celestial north)
+// x_draw  drawing x (right), y_draw drawing y (up, towards Mars's north pole)
 function frame(utcMs, g) {
     const p = NovaPlanets.position('mars', utcMs);
     const ra = p.raHours * 15 * DEG, dec = p.decDeg * DEG;
@@ -121,11 +119,11 @@ function frame(utcMs, g) {
     const draw = v => [dot(v, x_draw), dot(v, y_draw)];
     const s_sun = [0,1,2].map(i => Math.cos(g.phaseAngleDeg*DEG)*T[i]
         + Math.sin(g.phaseAngleDeg*DEG)*at(g.sunPA)[i]);
-    return { T: T, P: P, draw: draw, s_sun: s_sun };
+    return { T: T, P: P, draw: draw, s_sun: s_sun, n_sky: n_sky };
 }
 
-// The card returns SVG; this is back to the card's own frame (y up towards celestial
-// north), undoing viewOf: SVG is (sx * x, sy * y).
+// The card returns SVG; this is back to the card's own frame (y up towards Mars's north
+// pole), undoing viewOf: SVG is (sx * x, sy * y).
 const fromSvg = (mode, x, y) => {
     const sx = mode === 'normal' ? 1 : -1, sy = mode === 'inverted' ? 1 : -1;
     return [sx * x, sy * y];
@@ -142,10 +140,11 @@ for (const night of input.nights) {
         const t = NovaSolarMars.tonight({ inputs: { location: loc }, nowMs: Date.parse(night + 'T20:00:00Z'), simDate: null });
         const g = t.geometry;
         const r = frame(t.instantUtc, g);
-        const pa = g.polePA * DEG;
-        const sky = v => { const d = r.draw(v);
-            return [Math.cos(pa)*d[0] - Math.sin(pa)*d[1], Math.sin(pa)*d[0] + Math.cos(pa)*d[1]]; };
+        // Mars's own north up: the drawing is the reconstructed frame as it stands
+        const sky = v => r.draw(v);
         const err = (a, b) => Math.hypot(a[0]-b[0], a[1]-b[1]);
+        // Celestial north projected on the sky plane, in that frame
+        const nw = sky(r.n_sky), nu = Math.hypot(nw[0], nw[1]);
 
         const poleWant = sky(r.P);
         const pu = Math.hypot(poleWant[0], poleWant[1]);
@@ -185,6 +184,9 @@ for (const night of input.nights) {
             out.push({
                 night: night, site: loc.timezone, mode: mode,
                 pole: err(fromSvg(mode, d.pole.x, d.pole.y), [poleWant[0]/pu, poleWant[1]/pu]),
+                poleUp: err(fromSvg(mode, d.pole.x, d.pole.y), [0, 1]),
+                north: err(fromSvg(mode, d.north.x, d.north.y), [nw[0]/nu, nw[1]/nu]),
+                northAngle: Math.atan2(nw[0]/nu, nw[1]/nu) / DEG, polePA: g.polePA,
                 tilt: Math.abs(Math.hypot(poleWant[0], poleWant[1]) - Math.cos(g.de*DEG)),
                 sun: sun,
                 markers: d.markers.map(m => ({ name: m.name,
@@ -198,10 +200,10 @@ return out;
 
 
 def test_diagram_orientation_against_the_3d_reconstruction(tmp_path):
-    """The pole, every marker and the bright limb, in all three views, reconstructed
-    independently from the engine's public outputs. TOL is 2e-5; the measured worst
-    disagreement is ~7e-7 for all three (the bright limb is read off the shaded path,
-    whose coordinates are rounded to six decimals)."""
+    """The pole, every marker, the bright limb and celestial north, in all three views,
+    reconstructed independently from the engine's public outputs, with Mars's own north
+    up. TOL is 2e-5; the measured worst disagreement is ~7e-7 (the bright limb is read off
+    the shaded path, whose coordinates are rounded to six decimals)."""
     cases = _run(tmp_path, _DIAGRAM, nights=list(NIGHTS), sites=list(SITES))
     assert len(cases) == len(NIGHTS) * len(SITES) * 3
 
@@ -213,6 +215,12 @@ def test_diagram_orientation_against_the_3d_reconstruction(tmp_path):
             f"|delta| = {c['pole']:.3e}")
         assert c["tilt"] <= TOL, (
             f"the pole's offset from the top is not cos(De) at {where}: |delta| = {c['tilt']:.3e}")
+        assert c["poleUp"] <= TOL, f"the pole is not straight up at {where}: {c['poleUp']:.3e}"
+        assert c["north"] <= TOL, (
+            f"the north arrow is off celestial north at {where}: |delta| = {c['north']:.3e}")
+        # In the planet's frame celestial north sits polePA the other way round from the
+        # pole: clockwise (to the right) for a pole east of north
+        assert ((c["northAngle"] - c["polePA"] + 180) % 360) - 180 == pytest.approx(0, abs=1e-3), where
         assert c["sun"] is not None, (
             f"the disc is full at {where}: the shaded path carries no bright limb to check")
         assert c["sun"] <= TOL, (

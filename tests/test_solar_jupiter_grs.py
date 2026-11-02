@@ -18,6 +18,7 @@ Pinned here, offline:
 """
 
 import json
+import math
 import shutil
 import subprocess
 from pathlib import Path
@@ -170,7 +171,9 @@ for (const night of input.nights) {
     for (const mode of SJ.VIEWS) {
         const d = SJ.diagram(t.geometry, mode, t.moons);
         d.moons.forEach((m, i) => out.push({ night: night, mode: mode, name: m.name, state: m.state,
-            front: t.moons[i].front, onDisc: t.moons[i].onDisc, eclipsed: t.moons[i].eclipsed }));
+            front: t.moons[i].front, onDisc: t.moons[i].onDisc, behindDisc: t.moons[i].behindDisc,
+            eclipsed: t.moons[i].eclipsed, z: t.moons[i].z,
+            inside: Math.hypot(t.moons[i].x, t.moons[i].y) < 1 }));
     }
 }
 return out;
@@ -180,7 +183,85 @@ return out;
 def test_each_moons_drawn_state_follows_where_it_is(tmp_path):
     rows = _run(tmp_path, _STATES, nights=["2026-11-07", "2026-11-14", "2026-12-09", "2026-12-16"])
     for r in rows:
-        want = "eclipsed" if r["eclipsed"] else "behind" if (not r["front"] and r["onDisc"]) else "visible"
+        # On the disc only in front of it; hidden behind it is the other side of the planet
+        assert r["front"] == (r["z"] > 0), r
+        assert r["onDisc"] == (r["z"] > 0 and r["inside"]), r
+        assert r["behindDisc"] == (r["z"] <= 0 and r["inside"]), r
+        assert not (r["onDisc"] and r["behindDisc"]), r
+        want = "eclipsed" if r["eclipsed"] else "behind" if r["behindDisc"] else "visible"
         assert r["state"] == want, r
+    assert any(r["behindDisc"] for r in rows), "an occulted moon among the nights"
     states = {r["state"] for r in rows}
     assert states == {"visible", "behind", "eclipsed"}, "every state is exercised"
+
+
+_SHADOW = r"""
+const SJ = NovaSolarJupiter;
+// The Sun 10 deg from the line of sight, due east (position angle 90): S = (sin 10, 0, cos 10)
+// in the sky frame (x east, y south, z towards the Earth).
+const S = [Math.sin(10 * Math.PI / 180), 0, Math.cos(10 * Math.PI / 180)];
+const moon = { name: 'io', x: 0.3, y: 0.2, z: 5, rj: Math.hypot(0.3, 0.2, 5) };
+const behind = { name: 'io', x: 0.3, y: 0.2, z: -5, rj: Math.hypot(0.3, 0.2, 5) };
+return { sh: SJ._shadowOf(moon, S), front: SJ._moonState(moon, S), back: SJ._moonState(behind, S), S: S };
+"""
+
+
+def test_a_shadow_is_drawn_where_it_lands_on_the_sphere(tmp_path):
+    """Worked by hand: a moon at (0.3, 0.2, 5) Jupiter radii, the Sun at phase 10 deg due
+    east, S = (0.173648, 0, 0.984808). Along the Sun line the moon is at
+    a = 0.3 * 0.173648 + 5 * 0.984808 = 4.976133; off it, p = m - a S =
+    (-0.564096, 0.2, 0.099465), |p| = 0.606711. The ray meets the sunlit hemisphere at
+    q = p + sqrt(1 - 0.606711^2) S = p + 0.794923 S = (-0.426060, 0.2, 0.882311), |q| = 1.
+    The Earth sees (x, y) = (-0.426060, 0.2): 0.138 radius from the plane point p."""
+    got = _run(tmp_path, _SHADOW)
+    sh = got["sh"]
+    assert sh["onDisc"] is True and sh["eclipsed"] is False
+    assert sh["x"] == pytest.approx(-0.426060, abs=1e-6)
+    assert sh["y"] == pytest.approx(0.2, abs=1e-12)
+    # Independently: the point is on the sphere, on the moon's Sun ray, on the lit side
+    S = got["S"]
+    z = math.sqrt(1 - sh["x"] ** 2 - sh["y"] ** 2)
+    q = (sh["x"], sh["y"], z)
+    d = [m - c for m, c in zip((0.3, 0.2, 5), q)]
+    n = math.sqrt(sum(c * c for c in d))
+    assert all(abs(c / n - s) < 1e-9 for c, s in zip(d, S)), "q - m runs along the Sun line"
+    assert sum(c * s for c, s in zip(q, S)) > 0, "on the sunlit side"
+    assert got["front"]["shadow"] == {"x": sh["x"], "y": sh["y"]}
+    # The same place behind the planet is hidden by it, not on it
+    assert (got["front"]["onDisc"], got["front"]["behindDisc"]) == (True, False)
+    assert (got["back"]["onDisc"], got["back"]["behindDisc"], got["back"]["front"]) == (False, True, False)
+
+
+_MERGE = r"""
+const SJ = NovaSolarJupiter, MIN = 60000;
+// Night of 10 Dec 2026 at its highest, Jupiter well above the threshold: the shadows are
+// placed round that instant, and the engine's phenomena are replaced by them alone.
+const T = SJ.tonight({ inputs: { location: input.site }, nowMs: input.nowMs, simDate: '2026-12-10' }).instantUtc;
+const at = (moon, a, b) => ({ moon: moon, type: 'shadow', startUtcMs: T + a * MIN, endUtcMs: T + b * MIN });
+const made = [
+    at('io', -60, 30),          // A
+    at('europa', -20, 60),      // B: overlaps A -> one double
+    at('ganymede', 40, 80),     // C: overlaps B only, starts after B
+    at('callisto', 100, 130),   // D: alone
+];
+const real = NovaJupiter.events;
+NovaJupiter.events = (s, e) => made.filter(x => x.startUtcMs >= s && x.startUtcMs < e);
+let next;
+try { next = SJ.nextNights({ inputs: { location: input.site }, nowMs: input.nowMs, simDate: '2026-12-09' }); }
+finally { NovaJupiter.events = real; }
+return { T: T, made: made, shadows: next.shadows };
+"""
+
+
+def test_the_next_nights_merge_drops_no_shadow(tmp_path):
+    """Four shadows on one night: Io's and Europa's overlap and are merged into one double,
+    Ganymede's overlaps only Europa's and starts after it, Callisto's is alone. Each shadow
+    is either its own entry or one half of a double; none is lost to the merge."""
+    got = _run(tmp_path, _MERGE)
+    T, rows = got["T"], got["shadows"]
+    minute = 60000
+    assert [(r["moons"], r["double"]) for r in rows] == [
+        (["io", "europa"], True), (["ganymede"], False), (["callisto"], False)]
+    assert rows[0]["utcMs"] == T - 60 * minute and rows[0]["minutes"] == 120
+    covered = [m for r in rows for m in r["moons"]]
+    assert sorted(covered) == sorted(x["moon"] for x in got["made"]), "every shadow is listed"

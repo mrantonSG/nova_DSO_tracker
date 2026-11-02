@@ -1097,15 +1097,26 @@
    the centre: the moons as dots (filled beside or in front of the disc, a dashed ring
    when hidden behind it, a faded ring in eclipse), each shadow a small black dot on the
    disc -- black is only ever a shadow -- the Great Red Spot while it faces us, and
-   celestial north where the planet's own frame puts it. The strip is drawn in pixels at
-   the width it is shown, so its names stay 12 px. Mars is drawn as the eyepiece has it:
-   the polar cap tilted towards us, the lit and unlit parts of the disc, the terminator
-   between them, a dot per named feature, and a tick towards the pole, its N in HTML over
-   the drawing at a fixed size.
+   an arrow to celestial north. The strip is drawn in pixels at the width it is shown, so
+   its names stay 12 px. Mars is drawn the same way, with its own north up: the polar cap
+   tilted towards us, the lit and unlit parts of the disc, the terminator between them, a
+   dot per named feature, a tick towards the pole, and the arrow to celestial north, its
+   N in HTML over the drawing at a fixed size.
    ================================================================= */
 #solar-jupiter,
 #solar-mars {
   container: solar-card / inline-size;
+  /* A moon's shadow on Jupiter, and Mars's unlit side. The planets' body colours are the
+     same in both themes, so these are too; they are set in both, like the Moon card's,
+     so a theme can change them in one place. */
+  --solar-card-shadow: #000;
+  --solar-card-night: #14100c;
+}
+
+:root[data-theme="dark"] #solar-jupiter,
+:root[data-theme="dark"] #solar-mars {
+  --solar-card-shadow: #000;
+  --solar-card-night: #14100c;
 }
 
 #bodies-tab #solar-jupiter[hidden],
@@ -1181,7 +1192,7 @@
 
 /* A shadow: a small black dot on the disc, in either theme (the disc is the same colour) */
 #bodies-tab .solar-card-shadow circle {
-  fill: #000;
+  fill: var(--solar-card-shadow);
 }
 
 /* The Great Red Spot, while it faces us */
@@ -1208,7 +1219,7 @@
 }
 
 #bodies-tab .solar-card-shaded {
-  fill: #14100c;
+  fill: var(--solar-card-night);
   fill-opacity: 0.62;
 }
 
@@ -1241,6 +1252,22 @@
 
 :root[data-theme="dark"] #bodies-tab .solar-card-cap path {
   fill: var(--text-primary);
+}
+
+/* Celestial north: an arrow out from the limb at its position angle, the N past its tip */
+#bodies-tab .solar-card-north-arrow path {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#bodies-tab .solar-jupiter-svg .solar-card-north-arrow path {
+  stroke-width: 1.25;
+}
+
+#bodies-tab .solar-mars-svg .solar-card-north-arrow path {
+  stroke-width: 0.02;
 }
 
 /* Mars's N, over the drawing at a fixed size */
@@ -1402,6 +1429,13 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+}
+
+/* Already under way when the night begins: an outline, not the accent */
+#bodies-tab .solar-card-badge.solar-card-badge-progress {
+  border: 1px solid var(--text-muted);
+  background: transparent;
+  color: var(--text-secondary);
 }
 
 /* A phenomenon whose instant is below the altitude threshold stays, quieter */

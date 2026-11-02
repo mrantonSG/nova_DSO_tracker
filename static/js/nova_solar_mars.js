@@ -53,21 +53,25 @@
  * }
  *
  * diagram(g, mode, features) -> Mars on a unit disc in SVG coordinates (y down), drawn
- *   as the eyepiece has it: celestial north up, so the pole leans by polePA and its disc
- *   is round the way the sky turns it. In that frame:
+ *   with Mars's own north up, as the Moon and Jupiter cards are: x along its equator, y
+ *   at its pole, the frame project() puts the features in. The sky turns that frame by
+ *   polePA, so everything that is a sky direction (the Sun, celestial north) is brought
+ *   into it at its position angle less polePA. In that frame:
  *     shaded      SVG path of the unlit part — Mars's phase runs to 47 degrees, worth
  *                 drawing — or null when the disc is full
  *     terminator  its edge
  *     markers     [{ x, y, n, name }] for `features`, 1-based
- *     pole        unit vector from the centre towards Mars's north pole, so the page can
- *                 mark which way the pole leans; `tilt` is De, its own angle from the top
+ *     pole        unit vector from the centre towards Mars's north pole (straight up in
+ *                 'normal'); `tilt` is De, how far it leans towards the Earth
+ *     north       unit vector towards celestial north, at position angle 0 - polePA in
+ *                 the figure, for the page's north arrow
  *     caps        [{ pole: 'north' | 'south', d }]: the polar cap tilted towards us (De > 0
  *                 the north one, De < 0 the south one, both within CAP_BOTH_DE of 0), as
  *                 an SVG path. A fixed typical size, CAP_DEG around the pole: there is no
  *                 seasonal model, the real cap grows and shrinks with the Martian year.
  *                 The part of the cap's edge on the far side is laid on the limb.
  *   The lit-part construction is the Moon card's (nova_solar_moon.js), the same three
- *   views: 'normal' is the sky as it stands, 'diagonal' mirrors the disc left and right
+ *   views: 'normal' is the figure as it stands, 'diagonal' mirrors the disc left and right
  *   (a star diagonal) and 'inverted' turns it 180 degrees (a Newtonian, or a refractor
  *   without a diagonal).
  *
@@ -274,11 +278,11 @@
 
     function viewOf(mode) {
         if (VIEWS.indexOf(mode) < 0) throw new Error('nova_solar_mars: unknown view ' + JSON.stringify(mode));
-        // From the sky as it stands (x right, y up, celestial north up) to SVG (y down):
-        // 'normal' is that view, 'diagonal' mirrors it left and right (a star diagonal),
-        // 'inverted' turns it the other 180 degrees (a Newtonian). The y is what carries
-        // the sky's handedness: negating it is the whole of "north is up", and the same
-        // one line as in nova_solar_moon.js, whose frame is Mars's own.
+        // From Mars's own frame (x right along the equator, y up at the pole) to SVG (y
+        // down): 'normal' is that view, 'diagonal' mirrors it left and right (a star
+        // diagonal), 'inverted' turns it the other 180 degrees (a Newtonian). The y is what
+        // carries the handedness: negating it is the whole of "north is up", the same one
+        // line as in nova_solar_moon.js and nova_solar_jupiter.js.
         const sx = mode === 'normal' ? 1 : -1, sy = mode === 'inverted' ? 1 : -1;
         return (x, y) => ({ x: sx * x, y: sy * y });
     }
@@ -308,36 +312,34 @@
         const view = viewOf(mode);
         const pa = finite(g.polePA, 'polePA') * DEG;
         // project() gives the disc in Mars's own frame, x along its equator (the side
-        // features drift towards) and y at the pole. The sky turns that frame by polePA:
-        // rotating by it moves the pole to where it actually stands on the sky, which is
-        // what the eyepiece shows. (An orthographic projection is faithful either way —
-        // this only decides which way up the round disc is drawn.)
-        const of = (x, y) => Math.cos(pa) * x - Math.sin(pa) * y;
-        const at = (x, y) => Math.sin(pa) * x + Math.cos(pa) * y;
-        const sky = (x, y) => ({ x: of(x, y), y: at(x, y) });
-        // The Sun's position angle is already a sky angle, so the bright limb needs no
-        // pole term: it is the sky direction at sunPA, and the terminator follows. The
+        // features drift towards) and y at the pole, and the figure is drawn in it, so the
+        // pole is up whatever polePA. A sky direction at position angle th (north through
+        // east) is at th - polePA from that pole: (-sin, cos) of it, east being on the left.
+        const fromSky = th => ({ x: -Math.sin(th - pa), y: Math.cos(th - pa) });
+        // The bright limb is the sky direction at sunPA, and the terminator follows. The
         // disc shows the dark part, so litPath gets u and k negated.
-        const su = finite(g.sunPA, 'sunPA') * DEG;
-        const u = view(-Math.sin(su), Math.cos(su));
+        const sun = fromSky(finite(g.sunPA, 'sunPA') * DEG);
+        const u = view(sun.x, sun.y);
         const k = Math.cos(finite(g.phaseAngleDeg, 'phase angle') * DEG);
         const path = litPath(-u.x, -u.y, -k);
-        const pole = view(sky(0, 1).x, sky(0, 1).y);
+        const pole = view(0, 1);
+        const n = fromSky(0);
+        const north = view(n.x, n.y);
         const de = finite(g.de, 'De');
         const caps = [];
-        if (de > -CAP_BOTH_DE) caps.push({ pole: 'north', d: capPath(1, de, sky, view) });
-        if (de < CAP_BOTH_DE) caps.push({ pole: 'south', d: capPath(-1, de, sky, view) });
+        if (de > -CAP_BOTH_DE) caps.push({ pole: 'north', d: capPath(1, de, view) });
+        if (de < CAP_BOTH_DE) caps.push({ pole: 'south', d: capPath(-1, de, view) });
         return {
             caps: caps,
             shaded: path.lit,
             terminator: path.terminator,
             markers: (features || []).map((f, i) => {
-                const p = sky(f.x, f.y);
-                const q = view(p.x, p.y);
+                const q = view(f.x, f.y);
                 return { x: r6(q.x), y: r6(q.y), n: i + 1, name: f.name };
             }),
             pole: { x: r6(pole.x), y: r6(pole.y) },
-            tilt: finite(g.de, 'De'),
+            north: { x: r6(north.x), y: r6(north.y) },
+            tilt: de,
         };
     }
 
@@ -345,7 +347,7 @@
      *  projected the way project() puts features on the disc. The cap is round about the
      *  pole, so the central meridian does not matter; where its edge runs over the far
      *  side, the point is moved out to the limb, which closes the cap along the limb. */
-    function capPath(sign, de, sky, view) {
+    function capPath(sign, de, view) {
         const pts = [];
         for (let lon = 0; lon < 360; lon += 10) {
             const p = project(sign * (90 - CAP_DEG), lon, de, 0);
@@ -355,8 +357,7 @@
                 x /= r;
                 y /= r;
             }
-            const q = sky(x, y);
-            const v = view(q.x, q.y);
+            const v = view(x, y);
             pts.push(r6(v.x) + ' ' + r6(v.y));
         }
         return 'M ' + pts.join(' L ') + ' Z';

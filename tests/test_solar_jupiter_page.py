@@ -39,11 +39,14 @@ I18N = {
     "bodies": {"moon": "Moon", "jupiter": "Jupiter", "mars": "Mars"},
     "eventHelp": {"galilean": "GAL HELP"},
     "galilean": "DOUBLE ({moons}, {minutes} min)",
+    "celestialNorth": "CELESTIAL N", "planetNorthUp": "PLANET NORTH UP",
     "jupiter": {
         "title": "JUPITER", "error": "JUP ERROR", "highestAt": "at {time}", "north": "N",
-        "northHelp": "NORTH TIP", "cmII": "CM II", "cmIIHelp": "CM TIP",
+        "cmII": "CM II", "cmIIHelp": "CM TIP",
         "systemI": "I {deg}", "systemIII": "III {deg}", "east": "east", "west": "west",
         "onDisc": "on the disc", "inFront": "in front", "behind": "behind",
+        "hiddenBehind": "hidden behind the disc",
+        "inProgress": "in progress", "inProgressHelp": "BEGAN {time}",
         "eclipse": "in eclipse", "rjFromCentre": "{rj} radii",
         "grs": {"none": "GRS NONE", "nextOne": "NEXT {time}", "meta": "II {lon} @ {date}", "help": "GRS HELP",
                 "tonight": "TONIGHT {times}", "next": "NEXT:", "noNext": "NO NEXT",
@@ -137,6 +140,8 @@ const jupCard = () => {
                 cx: +g.children[0].attrs.cx, cy: +g.children[0].attrs.cy, title: g.children[1].textContent })),
             north: withClass(svg, 'solar-card-north').map(t => ({
                 text: t.textContent, x: +t.attrs.x, y: +t.attrs.y, title: t.children[0].textContent })),
+            arrow: withClass(svg, 'solar-card-north-arrow').map(g => ({
+                d: g.children[0].attrs.d, title: g.children[1].textContent })),
         },
     };
 };
@@ -182,6 +187,8 @@ const marsCard = () => {
             caps: withClass(svg, 'solar-card-cap').map(g => ({ pole: g.attrs['data-pole'],
                 d: g.children[0].attrs.d, title: g.children[1].textContent })),
             svgNorth: withClass(svg, 'solar-card-north').length,
+            arrow: withClass(svg, 'solar-card-north-arrow').map(g => ({
+                d: g.children[0].attrs.d, title: g.children[1].textContent })),
             // N is HTML over the drawing: its place in percent of the box
             north: h.$('solar-mars-diagram').children.filter(c => c.className === 'solar-card-north-label')
                 .map(c => ({ text: c.textContent, left: parseFloat(c.style.left), top: parseFloat(c.style.top),
@@ -198,7 +205,7 @@ assert _DRIVER.count(_STORE) == 1
 _CARDS_DRIVER = _DRIVER.replace(_STORE, "setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) };")
 
 
-def _run(tmp_path, steps, search="?body=jupiter", sim=None, storage=None, order=CARDS_ORDER):
+def _run(tmp_path, steps, search="?body=jupiter", sim=None, storage=None, order=CARDS_ORDER, i18n=None):
     driver = tmp_path / "driver.js"
     driver.write_text(_CARDS_DRIVER)
     case = tmp_path / "steps.js"
@@ -207,7 +214,7 @@ def _run(tmp_path, steps, search="?body=jupiter", sim=None, storage=None, order=
     # for what the page sees.
     case.write_text(f"const NOW_MS = {NOW_MS};\n" + _VIEWS + steps)
     inp = tmp_path / "in.json"
-    inp.write_text(json.dumps({"inputs": {"location": LONDON}, "i18n": I18N,
+    inp.write_text(json.dumps({"inputs": {"location": LONDON}, "i18n": i18n or I18N,
                                "equipment": {"telescopes": [], "cameras": []},
                                "search": search, "sim": sim, "storage": storage, "nowMs": NOW_MS}))
     out = tmp_path / "out.json"
@@ -251,6 +258,17 @@ def _time(hm, hm_day):
     return hm + (f" {'−' if hm_day < 0 else '+'}{abs(hm_day)}" if hm_day else "")
 
 
+def _hm(utc_ms):
+    """An instant's local 'HH:MM' in London."""
+    return f"{datetime.fromtimestamp(utc_ms / 1000, tz=ZoneInfo(LONDON['timezone'])):%H:%M}"
+
+
+def _path_points(d):
+    """An SVG path of M/L commands as its points, in order."""
+    nums = [float(v) for v in re.findall(r"-?\d+(?:\.\d+)?", d)]
+    return [tuple(nums[i:i + 2]) for i in range(0, len(nums), 2)]
+
+
 def _when(utc_ms, hm):
     """The page's local date and time of an instant in London: 'Wed 9 Dec 21:14', the
     date the event's own, the time the module's."""
@@ -283,7 +301,8 @@ def test_jupiter_card_shows_the_moons_the_phenomena_and_the_shadows(tmp_path):
         return { card: jupCard(), strip: {R: J.STRIP_RJ},
                  t: { hm: t.hm, ge: t.geometry, events: t.events,
                       moons: t.moons.map(m => ({name: m.name, x: m.x, y: m.y, front: m.front,
-                          onDisc: m.onDisc, eclipsed: m.eclipsed, shadow: m.shadow})) },
+                          onDisc: m.onDisc, behindDisc: m.behindDisc, eclipsed: m.eclipsed,
+                          shadow: m.shadow})) },
                  d: d, next: next.shadows };
     """, sim="2026-12-09")
     card, t, d = got["card"], got["t"], got["d"]
@@ -312,10 +331,14 @@ def test_jupiter_card_shows_the_moons_the_phenomena_and_the_shadows(tmp_path):
             {"cls": "solar-card-name", "text": types[e["type"]]},
             {"cls": "solar-card-note", "text": e["moon"].capitalize()},
             {"cls": "solar-card-note", "text": f"{e['minutes']} min"}]
-        assert chip["parts"][4:] == ([{"cls": "solar-card-badge", "text": "double"}] if e["double"] else [])
+        assert chip["parts"][4:] == (
+            ([{"cls": "solar-card-badge solar-card-badge-progress", "text": "in progress"}] if e["inProgress"] else [])
+            + ([{"cls": "solar-card-badge", "text": "double"}] if e["double"] else []))
         assert chip["below"] == (not e["visible"])
         lines = chip["title"].split("\n")
         assert lines[0] == types[e["type"]] and lines[1] == f"{e['minutes']} min"
+        if e["inProgress"]:
+            assert lines.pop(2) == "BEGAN " + _when(e["beganUtcMs"], _hm(e["beganUtcMs"]))
         assert lines[2].startswith("alt ")
         assert ("BELOW" in lines) == (not e["visible"])
         assert ("DOUBLE TIP" in lines) == bool(e["double"])
@@ -334,6 +357,7 @@ def test_jupiter_card_shows_the_moons_the_phenomena_and_the_shadows(tmp_path):
             [{"cls": "solar-card-time", "text": when},
              {"cls": "solar-card-name", "text": " + ".join(m.capitalize() for m in s["moons"])},
              {"cls": "solar-card-note", "text": f"{s['minutes']} min"}]
+            + ([{"cls": "solar-card-badge solar-card-badge-progress", "text": "in progress"}] if s["inProgress"] else [])
             + ([{"cls": "solar-card-badge", "text": "double"}] if s["double"] else []))
         assert chip["title"].startswith("shadow at " + when)
     assert card["noShadows"] is None and card["empty"] is None
@@ -342,18 +366,18 @@ def test_jupiter_card_shows_the_moons_the_phenomena_and_the_shadows(tmp_path):
     # legend in the drawing's own tooltip, each moon's place in its own
     svg = card["svg"]
     assert svg["label"] == "JUP DIAGRAM" and svg["discs"] == 1
-    assert svg["legend"].split("\n") == ["JUP DIAGRAM", "L-VISIBLE", "L-BEHIND", "L-ECLIPSED",
-                                         "L-SHADOW", "L-GRS"]
+    assert svg["legend"].split("\n") == ["JUP DIAGRAM", "PLANET NORTH UP", "L-VISIBLE", "L-BEHIND",
+                                         "L-ECLIPSED", "L-SHADOW", "L-GRS"]
     k, cx, cy = svg["scale"], svg["width"] / 2, svg["height"] / 2
     assert [dot["moon"] for dot in svg["moons"]] == [m["name"] for m in t["moons"]]
     for dot, m, dm in zip(svg["moons"], t["moons"], d["moons"]):
         assert dot["cx"] == pytest.approx(cx + dm["x"] * k, abs=0.02)
         assert dot["cy"] == pytest.approx(cy + dm["y"] * k, abs=0.02)
         assert dot["cls"] == "solar-card-moon solar-card-moon-" + dm["state"]
-        place = ["east" if m["x"] >= 0 else "west",
-                 "on the disc" if m["onDisc"] else "in front" if m["front"] else "behind"]
-        if m["eclipsed"]:
-            place.append("in eclipse")
+        # The side, then what the symbol shows: eclipsed, hidden behind, on the face, beside
+        place = ["east" if m["x"] >= 0 else "west"] + (["in eclipse"] if m["eclipsed"] else []) + [
+            "hidden behind the disc" if m["behindDisc"] else "on the disc" if m["onDisc"]
+            else "in front" if m["front"] else "behind"]
         assert dot["title"].split("\n") == [m["name"].capitalize(), " · ".join(place),
                                             f"{math.hypot(m['x'], m['y']):.1f} radii"]
     assert sorted(label["text"] for label in svg["labels"]) == ["Callisto", "Europa", "Ganymede", "Io"]
@@ -367,11 +391,22 @@ def test_jupiter_card_shows_the_moons_the_phenomena_and_the_shadows(tmp_path):
         assert math.hypot(spot["cx"] - cx, spot["cy"] - cy) <= k + 0.02, "on the disc"
         assert spot["title"] == m["name"].capitalize() + " — SHADOW"
 
+    # Celestial north: an arrow from 3 to 17 px outside the disc along it, its N 25 px out
     north = svg["north"]
-    assert len(north) == 1 and north[0]["text"] == "N" and north[0]["title"] == "NORTH TIP"
-    # 14 px outside the disc, along celestial north
-    assert north[0]["x"] == pytest.approx(cx + d["north"]["x"] * (k + 14), abs=0.02)
-    assert north[0]["y"] == pytest.approx(cy + d["north"]["y"] * (k + 14), abs=0.02)
+    assert len(north) == 1 and north[0]["text"] == "N" and north[0]["title"] == "CELESTIAL N"
+    assert north[0]["x"] == pytest.approx(cx + d["north"]["x"] * (k + 25), abs=0.02)
+    assert north[0]["y"] == pytest.approx(cy + d["north"]["y"] * (k + 25), abs=0.02)
+    arrow = svg["arrow"]
+    assert len(arrow) == 1 and arrow[0]["title"] == "CELESTIAL N"
+    pts = _path_points(arrow[0]["d"])
+    assert pts[0] == pytest.approx((cx + d["north"]["x"] * (k + 3), cy + d["north"]["y"] * (k + 3)), abs=0.02)
+    tip = (cx + d["north"]["x"] * (k + 17), cy + d["north"]["y"] * (k + 17))
+    assert pts[1] == pytest.approx(tip, abs=0.02) and pts[3] == pytest.approx(tip, abs=0.02)
+    # The two barbs, 5 px back from the tip, either side of the shaft
+    for barb in (pts[2], pts[4]):
+        assert math.dist(barb, tip) == pytest.approx(5, abs=0.02)
+        back = ((barb[0] - tip[0]) * -d["north"]["x"] + (barb[1] - tip[1]) * -d["north"]["y"]) / 5
+        assert back == pytest.approx(math.cos(0.5), abs=0.01)
 
 
 def test_jupiter_card_is_quiet_when_it_is_below_the_threshold(tmp_path):
@@ -821,8 +856,10 @@ def test_moon_symbols_follow_each_moons_state(tmp_path):
     assert "fill: var(--solar-body-moon);" in visible
     assert "fill: none;" in behind and "stroke-dasharray" in behind
     assert "fill: none;" in eclipsed and "var(--text-faint)" in eclipsed
-    assert "fill: #000;" in rule("#bodies-tab .solar-card-shadow circle")
-    assert css.count("#000;") == 1, "black is only ever a shadow"
+    assert "fill: var(--solar-card-shadow);" in rule("#bodies-tab .solar-card-shadow circle")
+    # Black is only ever a shadow: it appears only as that property's light and dark value
+    assert css.count("#000;") == 2 and css.count("--solar-card-shadow: #000;") == 2
+    assert css.count("var(--solar-card-shadow)") == 1
 
 
 # --- the template --------------------------------------------------------------------------
@@ -917,3 +954,124 @@ def test_card_dates_follow_the_pages_language(tmp_path, lang, when, ref, tonight
     passages = [line[len("NEXT "):] for f in mars["features"] for line in f["title"].split("\n")
                 if line.startswith("NEXT ")]
     assert passages and all(when.fullmatch(x) for x in passages), passages
+
+
+# --- the audit fixes -----------------------------------------------------------------------
+
+def test_a_double_already_under_way_at_dusk_is_shown(tmp_path):
+    """29 Dec 2026, London: Europa's and Io's shadows are both on the disc when the night
+    begins. Both are listed from the window's start, marked in progress, with the real
+    start in the tooltip, and as a double."""
+    got = _run(tmp_path, _oracle("2026-12-29") + """
+        const site = h.context.NovaSolarRows._night.site(opts.inputs);
+        const win = h.context.NovaSolarRows._night.nightWindow(t.date, site, h.context.NovaAstro,
+                                                                h.context.NovaDashboardRows._wall, null);
+        h.online();
+        await h.load('bodies');
+        return { card: jupCard(), events: t.events, win: win };
+    """, sim="2026-12-29")
+    events, win = got["events"], got["win"]
+    under_way = [e for e in events if e["inProgress"]]
+    shadows = [e for e in under_way if e["type"] == "shadow"]
+    assert sorted(e["moon"] for e in shadows) == ["europa", "io"]
+    for e in under_way:
+        assert e["startUtcMs"] == win["start"] and e["beganUtcMs"] < win["start"] < e["endUtcMs"]
+        assert e["minutes"] == round((e["endUtcMs"] - win["start"]) / 60000)
+    assert all(e["double"] for e in shadows), "the two shadows overlap: a double"
+    assert all(not e["inProgress"] for e in events if e["beganUtcMs"] >= win["start"])
+    assert all(e["beganUtcMs"] == e["startUtcMs"] for e in events if not e["inProgress"])
+    chips = got["card"]["events"]
+    assert [c["type"] for c in chips] == [e["type"] for e in events]
+    for chip, e in zip(chips, events):
+        badges = [p["text"] for p in chip["parts"] if "solar-card-badge" in p["cls"]]
+        assert badges == (["in progress"] if e["inProgress"] else []) + (["double"] if e["double"] else [])
+        if e["inProgress"]:
+            assert "BEGAN " + _when(e["beganUtcMs"], _hm(e["beganUtcMs"])) in chip["title"].split("\n")
+
+
+def test_grs_refuses_a_date_in_the_future(tmp_path):
+    """The page's clock is 2 Nov 2026 20:00 in London: a measurement dated the 3rd is
+    refused with its own message and nothing kept; today's is kept. The date field's max
+    is today."""
+    got = _run(tmp_path, """
+        h.online();
+        await h.load('bodies');
+        await h.$('solar-jupiter-grs-edit').fire('click');
+        const out = { max: h.$('solar-jupiter-grs-date').max };
+        h.$('solar-jupiter-grs-lon').value = '95';
+        h.$('solar-jupiter-grs-date').value = '2026-11-03';
+        await h.$('solar-jupiter-grs-save').fire('click');
+        out.future = { card: jupCard().grs, msg: !h.$('solar-jupiter-grs-future').hidden,
+                       stored: h.stored('nova_solar_grs') };
+        h.$('solar-jupiter-grs-lon').value = 'abc';
+        await h.$('solar-jupiter-grs-save').fire('click');
+        out.bad = { card: jupCard().grs, msg: !h.$('solar-jupiter-grs-future').hidden };
+        h.$('solar-jupiter-grs-lon').value = '95';
+        h.$('solar-jupiter-grs-date').value = '2026-11-02';
+        await h.$('solar-jupiter-grs-save').fire('click');
+        out.today = { card: jupCard().grs, msg: !h.$('solar-jupiter-grs-future').hidden,
+                      stored: h.stored('nova_solar_grs') };
+        return out;
+    """)
+    assert got["max"] == "2026-11-02"
+    future = got["future"]
+    assert future["msg"] and not future["card"]["invalid"] and future["card"]["form"]
+    assert future["stored"] is None
+    # The other message for a bad longitude, and only one of the two at a time
+    assert got["bad"]["card"]["invalid"] and not got["bad"]["msg"]
+    today = got["today"]
+    assert json.loads(today["stored"]) == {"lon": 95, "date": "2026-11-02"}
+    assert not today["msg"] and not today["card"]["form"]
+
+
+_JA_I18N = json.loads(json.dumps(I18N))
+_JA_I18N["jupiter"]["north"] = "北"
+_JA_I18N["jupiter"]["moonNames"] = {"io": "イオ", "europa": "エウロパ", "ganymede": "ガニメデ",
+                                    "callisto": "カリスト"}
+
+
+def _wide_boxes(labels):
+    """Each label's box with full-width characters at 12 px and others at 7 px, the page's
+    own estimate where the browser cannot measure."""
+    width = lambda text: sum(12 if ord(ch) >= 0x2e80 else 7 for ch in text) + 4
+    return [(lb["x"] - width(lb["text"]) / 2, lb["x"] + width(lb["text"]) / 2,
+             lb["y"] - 7, lb["y"] + 7) for lb in labels]
+
+
+def test_japanese_names_never_overlap(tmp_path):
+    """With the moons' Japanese names (full-width, about twice a Latin letter) the names
+    still keep clear of one another, of the disc and of north, and stay in the strip."""
+    for sim in ("2026-11-07", "2026-11-14", "2026-12-09", "2026-12-16"):
+        got = _run(tmp_path, """
+            h.online();
+            await h.load('bodies');
+            return jupCard();
+        """, sim=sim, i18n=_JA_I18N)
+        svg = got["svg"]
+        W, H, k = svg["width"], svg["height"], svg["scale"]
+        labels = svg["labels"]
+        assert sorted(lb["text"] for lb in labels) == sorted(_JA_I18N["jupiter"]["moonNames"].values())
+        assert svg["north"][0]["text"] == "北"
+        boxes = _wide_boxes(labels)
+        disc = (W / 2 - k, W / 2 + k, H / 2 - k, H / 2 + k)
+        north = _wide_boxes([svg["north"][0]])[0]
+        hit = lambda a, b: a[0] < b[1] and b[0] < a[1] and a[2] < b[3] and b[2] < a[3]
+        for i, a in enumerate(boxes):
+            assert a[0] >= 0 and a[1] <= W and a[2] >= 0 and a[3] <= H, f"{sim}: outside the strip"
+            assert not hit(a, disc), f"{sim}: a name over the disc"
+            assert not hit(a, north), f"{sim}: a name over north"
+            for b in boxes[i + 1:]:
+                assert not hit(a, b), f"{sim}: two names overlap: {labels}"
+
+
+def test_mars_and_jupiter_say_how_they_are_drawn(tmp_path):
+    """Both drawings carry the same sentence in their tooltip: the planet's north up, the
+    arrow to celestial north, the real view turning with the planet's place in the sky."""
+    jup = _run(tmp_path, "h.online(); await h.load('bodies'); return jupCard().svg.legend;")
+    assert jup.split("\n")[1] == "PLANET NORTH UP"
+    mars = _run(tmp_path, """
+        h.online(); await h.load('bodies');
+        const svg = h.$('solar-mars-diagram').children[0];
+        return svg.children[0].tagName === 'title' ? svg.children[0].textContent : null;
+    """, search="?body=mars")
+    assert mars == "MARS DIAGRAM\nPLANET NORTH UP"
