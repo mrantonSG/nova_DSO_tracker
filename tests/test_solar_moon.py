@@ -132,9 +132,10 @@ def test_every_feature_type_has_a_translation_key():
 
 def test_moon_strings_never_say_east_or_west():
     """The Moon's sides are named by their features, never east or west (whose meaning
-    on the Moon flipped in 1961)."""
+    on the Moon flipped in 1961). The slice is the Moon's own namespace: the Jupiter
+    card's moons are placed east or west of the planet, a frame that never flipped."""
     text = TEMPLATE.read_text()
-    moon = text[text.index("    moon: {"):text.index("    seeing: {")]
+    moon = text[text.index("    moon: {"):text.index("    jupiter: {")]
     lunar = re.findall(r"_\((['\"])(.*?)\1", moon) + re.findall(r"lunar\w*:\s*\{\{ _\('(.*?)'\)", text)
     for match in lunar:
         s = match[1] if isinstance(match, tuple) else match

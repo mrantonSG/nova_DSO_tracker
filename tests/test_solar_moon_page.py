@@ -190,13 +190,15 @@ def test_moon_card_says_why_when_the_moon_is_not_up(tmp_path):
 
 
 def test_view_switch_mirrors_the_drawing_and_is_remembered(tmp_path):
+    """The three cards' one shared view, nova_solar_view (the Moon's own key while the
+    Moon was the only card: test_view_switch_restores_and_survives_blocked_storage)."""
     got = _run(tmp_path, """
         h.online();
         await h.load('bodies');
         const out = { first: card() };
         await h.$('moon-view-diagonal').fire('click');
         out.diagonal = card();
-        out.stored = h.stored('nova_solar_moon_view');
+        out.stored = h.stored('nova_solar_view');
         await h.$('moon-view-inverted').fire('click');
         out.inverted = card();
         return out;
@@ -211,12 +213,14 @@ def test_view_switch_mirrors_the_drawing_and_is_remembered(tmp_path):
 
 
 def test_view_switch_restores_and_survives_blocked_storage(tmp_path):
+    """A stored view is restored (and, from the old Moon-only key, adopted under the new
+    one); a storage that refuses every read and write leaves the switch working."""
     got = _run(tmp_path, """
         h.online();
         await h.load('bodies');
-        return card();
+        return { card: card(), stored: h.stored('nova_solar_view') };
     """, sim="2026-11-17", storage={"nova_solar_moon_view": "inverted"})
-    assert got["pressed"] == ["inverted"]
+    assert got["card"]["pressed"] == ["inverted"] and got["stored"] == "inverted"
     blocked = _run(tmp_path, """
         h.online();
         await h.load('bodies');
@@ -396,8 +400,15 @@ def test_moon_libration_colours_are_the_documented_success_values():
     moon = css[css.index("THE MOON CARD"):]
 
     def rule(selector):
-        start = moon.index(selector + " {")
-        return moon[start:moon.index("}", start)]
+        # A rule's selector may be one name in a list: the credit is styled with the
+        # Mars card's, in the same rule
+        for block in moon.split("}"):
+            head, _, decls = block.partition("{")
+            # The slice starts inside the section's comment, whose opening /* is cut
+            head = re.sub(r"/\*.*?\*/", "", head, flags=re.S).split("*/")[-1]
+            if selector in [name.strip() for name in head.split(",")]:
+                return head + "{" + decls
+        raise ValueError(selector)
 
     light, dark = rule("#solar-moon"), rule(':root[data-theme="dark"] #solar-moon')
     assert "--solar-moon-good: #2a9060;" in light and "--solar-moon-good-tint: rgba(42, 144, 96, 0.10);" in light
@@ -446,5 +457,6 @@ def test_page_has_the_moon_card_and_the_event_type_filter(client):
     for view in ("normal", "diagonal", "inverted"):
         assert f'data-moon-view="{view}"' in html
     select = re.search(r'<select id="solar-cal-type-filter".*?</select>', html, re.S).group(0)
-    assert re.findall(r'<option value="(\w*)"', select) == ["", "planets", "conjunctions", "lunar"]
+    assert re.findall(r'<option value="(\w*)"', select) == ["", "planets", "conjunctions", "lunar",
+                                                            "galilean"]
     assert '"Lunar X and V"' in html

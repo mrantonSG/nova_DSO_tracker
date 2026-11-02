@@ -130,6 +130,58 @@
         </div>
     </div>
 
+    <div id="solar-jupiter" class="content-section" hidden>
+        <h3 id="solar-jupiter-title">{{ _('Jupiter detail') }}</h3>
+        <p id="solar-jupiter-error" class="status-secondary" role="alert" hidden></p>
+        <div id="solar-jupiter-body" class="solar-card-body">
+            <div class="solar-card-figure">
+                <div id="solar-jupiter-diagram" class="solar-card-diagram solar-jupiter-diagram"></div>
+                <div class="solar-card-views" role="group" aria-label="{{ _('View') }}" title="{{ _("The real field also rotates with the planet's position in the sky.") }}">
+                    <button type="button" class="solar-card-view" data-card-view="normal" aria-pressed="true">{{ _('Normal') }}</button>
+                    <button type="button" class="solar-card-view" data-card-view="diagonal" aria-pressed="false" title="{{ _('Star diagonal (mirrored)') }}">{{ _('Diagonal') }}</button>
+                    <button type="button" class="solar-card-view" data-card-view="inverted" aria-pressed="false" title="{{ _('Newtonian (inverted)') }}">{{ _('Newtonian') }}</button>
+                </div>
+            </div>
+            <div class="solar-card-info">
+                <div id="solar-jupiter-tiles" class="solar-card-tiles"></div>
+                <span class="solar-card-label">{{ _('The moons tonight') }}</span>
+                <ol id="solar-jupiter-moons" class="solar-card-list"></ol>
+                <span class="solar-card-label">{{ _('Phenomena tonight') }}</span>
+                <p id="solar-jupiter-empty" class="solar-card-empty" hidden></p>
+                <ol id="solar-jupiter-events" class="solar-card-list"></ol>
+                <span class="solar-card-label">{{ _('Shadow transits, the next nights') }}</span>
+                <p id="solar-jupiter-no-shadows" class="solar-card-empty" hidden></p>
+                <ol id="solar-jupiter-shadows" class="solar-card-list"></ol>
+            </div>
+        </div>
+    </div>
+
+    <div id="solar-mars" class="content-section" hidden>
+        <h3 id="solar-mars-title">{{ _('Mars detail') }}</h3>
+        <p id="solar-mars-error" class="status-secondary" role="alert" hidden></p>
+        <div id="solar-mars-body" class="solar-card-body">
+            <div class="solar-card-figure">
+                <div id="solar-mars-diagram" class="solar-card-diagram solar-mars-diagram"></div>
+                <div class="solar-card-views" role="group" aria-label="{{ _('View') }}" title="{{ _("The real field also rotates with the planet's position in the sky.") }}">
+                    <button type="button" class="solar-card-view" data-card-view="normal" aria-pressed="true">{{ _('Normal') }}</button>
+                    <button type="button" class="solar-card-view" data-card-view="diagonal" aria-pressed="false" title="{{ _('Star diagonal (mirrored)') }}">{{ _('Diagonal') }}</button>
+                    <button type="button" class="solar-card-view" data-card-view="inverted" aria-pressed="false" title="{{ _('Newtonian (inverted)') }}">{{ _('Newtonian') }}</button>
+                </div>
+            </div>
+            <div class="solar-card-info">
+                <div id="solar-mars-tiles" class="solar-card-tiles"></div>
+                <span class="solar-card-label">{{ _('Features on the disc tonight') }}</span>
+                <p id="solar-mars-empty" class="solar-card-empty" hidden></p>
+                <ol id="solar-mars-features" class="solar-card-list"></ol>
+                <details id="solar-mars-more" class="solar-card-more" hidden>
+                    <summary>{{ _('More features') }}</summary>
+                    <ol id="solar-mars-more-list" class="solar-card-list"></ol>
+                </details>
+            </div>
+            <p id="solar-mars-credit" class="solar-card-credit" hidden></p>
+        </div>
+    </div>
+
     <div id="solar-calc" class="content-section">
         <h3 id="solar-calc-title">{{ _('Planetary calculator') }}</h3>
         <div class="solar-calc-controls" id="solar-calc-controls">
@@ -177,6 +229,7 @@
             <option value="planets">{{ _('Planets') }}</option>
             <option value="conjunctions">{{ _('Conjunctions') }}</option>
             <option value="lunar">{{ _('Lunar features') }}</option>
+            <option value="galilean">{{ _('Galilean moons') }}</option>
         </select>
         <label for="solar-cal-hide-muted">
             <input type="checkbox" id="solar-cal-hide-muted">
@@ -261,8 +314,10 @@ const solarI18n = {
         conjunctionMoon:{{ _('Closest apparent approach of the two bodies, as seen from this location.') | tojson }},
         occultation:    {{ _('The Moon passes in front of the planet as seen from this location.') | tojson }},
         lunarX:         {{ _('Sunrise on the crater walls near Werner draws a bright X, and near Ukert a V, on the terminator for about an hour. Times are approximate.') | tojson }},
-        libration:      {{ _('The Moon is tilted towards us by more than 7°: features near that limb are easier to see.') | tojson }}
+        libration:      {{ _('The Moon is tilted towards us by more than 7°: features near that limb are easier to see.') | tojson }},
+        galilean:       {{ _('Two of the Galilean moons cast their shadows on Jupiter at the same time. The window is the time both shadows are on the disc while Jupiter is above your altitude threshold.') | tojson }}
     },
+    galilean:      {{ _('Double shadow transit (%(moons)s, %(minutes)s min)', moons='{moons}', minutes='{minutes}') | tojson }},
     lunarX:        {{ _('Lunar X and V') | tojson }},
     lunarNotVisible: {{ _('Not visible from here: the Sun is up or the Moon is below the altitude threshold around this time') | tojson }},
     moon: {
@@ -309,6 +364,102 @@ const solarI18n = {
             rupes:        {{ _('Scarp') | tojson }},
             rima:         {{ _('Rille') | tojson }},
             promontorium: {{ _('Cape') | tojson }}
+        }
+    },
+    jupiter: {
+        title:         {{ _('Jupiter detail') | tojson }},
+        error:         {{ _('Jupiter detail could not be calculated.') | tojson }},
+        highestAt:     {{ _('highest tonight at %(time)s', time='{time}') | tojson }},
+        north:         {{ _('N') | tojson }},
+        northHelp:     {{ _("Celestial north. The figure is drawn in Jupiter's own frame, so north is wherever the planet's pole angle puts it.") | tojson }},
+        diameter:      {{ _('Diameter') | tojson }},
+        diameterHelp:  {{ _('Apparent diameter of Jupiter in arcseconds, cloud tops to cloud tops.') | tojson }},
+        magnitude:     {{ _('Magnitude') | tojson }},
+        illuminated:   {{ _('Illuminated') | tojson }},
+        cm:            {{ _('Central meridian') | tojson }},
+        cmHelp:        {{ _('System I and II planetographic longitudes at the centre of the disc: they tell you which side of Jupiter faces you. System I is the equatorial belt, which rotates about five minutes faster than the rest.') | tojson }},
+        de:            {{ _('De') | tojson }},
+        deHelp:        {{ _('Planetographic latitude of the point facing the Earth. Positive means we look a little down on the northern hemisphere.') | tojson }},
+        east:          {{ _('east') | tojson }},
+        west:          {{ _('west') | tojson }},
+        inFront:       {{ _('in front') | tojson }},
+        onDisc:        {{ _('on the disc') | tojson }},
+        behind:        {{ _('behind') | tojson }},
+        eclipse:       {{ _('in eclipse') | tojson }},
+        rj:            {{ _('%(rj)s Rj', rj='{rj}') | tojson }},
+        rjFromCentre:  {{ _('%(rj)s Jupiter radii from the centre of the disc', rj='{rj}') | tojson }},
+        shadowOnDisc:  {{ _('Its shadow is on the disc') | tojson }},
+        moonNames: {
+            io:            {{ _('Io') | tojson }},
+            europa:        {{ _('Europa') | tojson }},
+            ganymede:      {{ _('Ganymede') | tojson }},
+            callisto:      {{ _('Callisto') | tojson }}
+        },
+        eventTypes: {
+            transit:       {{ _('Transit') | tojson }},
+            occultation:   {{ _('Occultation') | tojson }},
+            eclipse:       {{ _('Eclipse') | tojson }},
+            shadow:        {{ _('Shadow transit') | tojson }}
+        },
+        minutes:       {{ _('%(n)s min', n='{n}') | tojson }},
+        altitude:      {{ _('Altitude %(alt)s°', alt='{alt}') | tojson }},
+        double:        {{ _('double') | tojson }},
+        doubleHelp:    {{ _('Two moons are crossing Jupiter at the same time.') | tojson }},
+        shadowAt:      {{ _('Shadow transit at %(time)s', time='{time}') | tojson }},
+        until:         {{ _('ends %(time)s', time='{time}') | tojson }},
+        noEvents:      {{ _('No transit, occultation, eclipse or shadow transit tonight.') | tojson }},
+        noShadows:     {{ _('No shadow transit in the next two weeks.') | tojson }},
+        empty: {
+            notUp:     {{ _('Jupiter is not up during the night') | tojson }}
+        },
+        diagramAria:   {{ _("Jupiter tonight: the disc, the four Galilean moons and the shadows they cast") | tojson }}
+    },
+    mars: {
+        title:         {{ _('Mars detail') | tojson }},
+        error:         {{ _('Mars detail could not be calculated.') | tojson }},
+        highestAt:     {{ _('highest tonight at %(time)s', time='{time}') | tojson }},
+        north:         {{ _('N') | tojson }},
+        diameter:      {{ _('Diameter') | tojson }},
+        diameterHelp:  {{ _('Apparent diameter of Mars in arcseconds.') | tojson }},
+        magnitude:     {{ _('Magnitude') | tojson }},
+        illuminated:   {{ _('Illuminated') | tojson }},
+        distance:      {{ _('Distance') | tojson }},
+        distanceHelp:  {{ _('Distance from the Earth in astronomical units.') | tojson }},
+        cm:            {{ _('Central meridian') | tojson }},
+        cmHelp:        {{ _('Planetographic longitude at the centre of the disc: it tells you which side of Mars faces you.') | tojson }},
+        de:            {{ _('De') | tojson }},
+        deHelp:        {{ _('Planetographic latitude of the point facing the Earth. Positive means we look a little down on the northern hemisphere.') | tojson }},
+        credit:        {{ _('Feature names: %(source)s', source='{source}') | tojson }},
+        empty: {
+            none:      {{ _('No named feature is on the disc tonight') | tojson }},
+            notUp:     {{ _('Mars is not up during the night') | tojson }}
+        },
+        nearLimb:      {{ _('Near the limb') | tojson }},
+        cmDist:        {{ _('%(deg)s° from the central meridian', deg='{deg}') | tojson }},
+        nextPassage:   {{ _('On the central meridian at %(time)s, %(when)s', time='{time}', when='{when}') | tojson }},
+        today:         {{ _('today') | tojson }},
+        tomorrow:      {{ _('tomorrow') | tojson }},
+        inDays:        {{ _('in %(n)s days', n='{n}') | tojson }},
+        position:      {{ _('Latitude %(lat)s°, longitude %(lon)s°', lat='{lat}', lon='{lon}') | tojson }},
+        poleTilt:      {{ _('The pole is tilted %(deg)s° towards the Earth', deg='{deg}') | tojson }},
+        diagramAria:   {{ _('Mars tonight: the disc, its lit part and the named features on it') | tojson }},
+        types: {
+            albedo:       {{ _('Albedo feature') | tojson }},
+            vallis:       {{ _('Valley') | tojson }},
+            mons:         {{ _('Mountain') | tojson }},
+            planitia:     {{ _('Plain') | tojson }},
+            chasma:       {{ _('Chasma (canyon)') | tojson }},
+            fossa:        {{ _('Fossa (trough)') | tojson }},
+            planum:       {{ _('Plateau') | tojson }},
+            crater:       {{ _('Crater') | tojson }},
+            terra:        {{ _('Highland') | tojson }},
+            tholus:       {{ _('Tholus (dome)') | tojson }},
+            rupes:        {{ _('Scarp') | tojson }},
+            patera:       {{ _('Patera (volcanic crater)') | tojson }},
+            chaos:        {{ _('Chaos terrain') | tojson }},
+            mensa:        {{ _('Mensa (table)') | tojson }},
+            vastitas:     {{ _('Vastitas (plain)') | tojson }},
+            labyrinthus:  {{ _('Labyrinthus (labyrinth)') | tojson }}
         }
     },
     calc: {
@@ -413,7 +564,12 @@ const solarEquipment = {{ solar_equipment | tojson }};
 <script src="{{ url_for('static', filename='js/nova_solar_calendar.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_moon.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_moon_features.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/nova_jupiter.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/nova_mars.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/nova_mars_features.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_solar_moon.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/nova_solar_jupiter.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/nova_solar_mars.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_solar_rigfit.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_weather_icons.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_solar_seeing.js') }}?v={{ version }}" defer></script>

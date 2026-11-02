@@ -24,8 +24,23 @@
  * only redraws, and the 60 s tick leaves the card's nodes (and the focus) alone unless
  * the night, location, simulated date, view or language changed.
  *
+ * Two cards of the same kind stand beside it, one body each, shown while that body is
+ * selected: Jupiter (NovaSolarJupiter) draws the system on the moons' line -- the disc,
+ * the four Galilean moons with where each one is, the shadows they throw, and the way
+ * celestial north lies -- with tiles for diameter, magnitude, illumination and the two
+ * System I/II central meridians, tonight's transits, occultations, eclipses and shadow
+ * transits (their times, lengths and altitudes, and a badge on a double one) and the
+ * next nights' shadow transits; Mars (NovaSolarMars) draws the disc as the eyepiece has
+ * it -- the shaded part and terminator, a dot per named feature and the pole it leans by
+ * -- with tiles for diameter, magnitude, illumination, distance and the central meridian,
+ * and the features on the disc ranked, each with its type, how far it is from the central
+ * meridian and when it next crosses it. Both follow the Moon's rule exactly: computed
+ * once per night, memoised on the same key plus the view and the language, the tick
+ * otherwise costs one string comparison, and their own failures show in their own card.
+ *
  * The Calendar tab (NovaSolarCalendar, plus NovaSolarMoon's Lunar X and libration rows
- * when it is loaded; if those fail, the planets' rows still show) is built only while it
+ * and NovaSolarJupiter's Galilean rows when they are loaded; if those fail, the planets'
+ * rows still show) is built only while it
  * is shown, and again only
  * when its location, threshold, sampling interval or observing night changes; the 60 s
  * tick otherwise costs one key comparison. Clicking an event opens the Bodies tab on
@@ -43,7 +58,7 @@
  * keys are localStorage.nova_solar_cal_body, nova_solar_cal_type and
  * nova_solar_cal_hide_muted; the calculator's nova_solar_calc_telescope and
  * nova_solar_calc_camera (component record_uids) and nova_solar_calc_amp (stored only
- * once the user picks one); the Moon card's view nova_solar_moon_view.
+ * once the user picks one); the three detail cards' one shared view nova_solar_view.
  *
  * When /get_locations does not answer with JSON (a guest), the page uses the location
  * /api/desktop_inputs picks without a parameter and never POSTs /set_location.
@@ -57,11 +72,15 @@
     const CAL_HIDE_KEY = 'nova_solar_cal_hide_muted';
     const CAL_TYPE_KEY = 'nova_solar_cal_type';
     const MOON_VIEW_KEY = 'nova_solar_moon_view';
+    // The three detail cards share one view. It was the Moon's own key while the Moon was
+    // the only card; the old value is adopted on the first load after the change.
+    const VIEW_KEY = 'nova_solar_view';
     // The Calendar's event types and the kinds of row each one shows
     const CAL_TYPES = {
         planets: ['opposition', 'elongationEast', 'elongationWest'],
         conjunctions: ['conjunction'],
         lunar: ['lunarX', 'libration'],
+        galilean: ['galilean'],
     };
     // A feature's Sun-altitude bar is full at this many degrees
     const MOON_BAR_DEG = 15;
@@ -90,14 +109,20 @@
         calResult: null,        // the last calendar, re-rendered when the filter changes
         calPending: false,      // a calendar build is waiting for the next paint
         calFilter: { body: '', type: '', hideMuted: false },
-        // The Moon card: tonight's result and the next good nights, for the key (the
-        // calendar's: location, threshold, sampling, night); the view it is drawn in
+        // The detail cards: tonight's result and the card's own look-ahead lists, for the
+        // key (the calendar's: location, threshold, sampling, night); the view they are
+        // all drawn in
         moon: { key: null, tonight: null, next: null },
-        moonView: 'normal',
-        // The drawing's top layer and its markers by chip number, for showHotMarker()
+        jupiter: { key: null, tonight: null, next: null },
+        mars: { key: null, tonight: null },
+        cardView: 'normal',
+        // The drawings' top layers and their markers by chip number, for showHotMarker()
         moonHot: { layer: null, markers: {} },
-        // What the card was last drawn for (renderMoon's key), so a tick redraws nothing
+        marsHot: { layer: null, markers: {} },
+        // What each card was last drawn for (its render's key), so a tick redraws nothing
         moonDrawn: null,
+        jupiterDrawn: null,
+        marsDrawn: null,
         // The calculator's choice: component records, and the amplification the user
         // picked (null: the one closest to the ideal focal ratio)
         calc: { telescope: null, camera: null, amp: null },
@@ -432,6 +457,8 @@
         if (!state.result) return;
         renderTable();
         renderMoon();
+        renderJupiter();
+        renderMars();
         renderCalc();
         showChart();
     }
@@ -1006,26 +1033,30 @@
         li.setAttribute('aria-label', [f.name, (M.types || {})[f.type] || f.type,
             f.morning ? M.morning : M.evening, fill(M.sunAlt, {alt: f.sunAlt.toFixed(1)})].join(', '));
         if (n) {
-            li.addEventListener('mouseenter', () => showHotMarker(n));
-            li.addEventListener('mouseleave', () => showHotMarker(null));
-            li.addEventListener('focus', () => showHotMarker(n));
-            li.addEventListener('blur', () => showHotMarker(null));
+            li.addEventListener('mouseenter', () => showHotMarker('moon', n));
+            li.addEventListener('mouseleave', () => showHotMarker('moon', null));
+            li.addEventListener('focus', () => showHotMarker('moon', n));
+            li.addEventListener('blur', () => showHotMarker('moon', null));
         }
         list.appendChild(li);
         return li;
     }
 
     /** A tile: a micro-label, then its value, after what draw(row) puts before it. */
-    function moonTile(tiles, label, value, help, draw) {
+    function cardTile(tiles, prefix, label, value, help, draw) {
         const tile = document.createElement('div');
-        tile.className = 'solar-moon-tile';
-        span(tile, label || '', 'solar-moon-tile-label');
-        const row = span(tile, '', 'solar-moon-tile-row');
+        tile.className = prefix + '-tile';
+        span(tile, label || '', prefix + '-tile-label');
+        const row = span(tile, '', prefix + '-tile-row');
         if (draw) draw(row);
-        span(row, value, 'solar-moon-tile-value');
+        span(row, value, prefix + '-tile-value');
         if (help) tile.title = help;
         tiles.appendChild(tile);
         return tile;
+    }
+
+    function moonTile(tiles, label, value, help, draw) {
+        return cardTile(tiles, 'solar-moon', label, value, help, draw);
     }
 
     function renderMoonTiles(t) {
@@ -1039,7 +1070,7 @@
         const lib = moonTile(tiles, M.libration, h.amount.toFixed(1) + '°', M.librationHelp + '\n' + librationText(h), row => {
             const dial = svgEl(row, 'svg', {viewBox: '-10 -10 20 20', class: 'solar-moon-dial', 'aria-hidden': 'true', focusable: 'false'});
             svgEl(dial, 'circle', {cx: 0, cy: 0, r: 8.5, class: 'solar-moon-dial-rim'});
-            const d = NovaSolarMoon.diagram(g, state.moonView, []).arrow;
+            const d = NovaSolarMoon.diagram(g, state.cardView, []).arrow;
             const len = 2 + 6.5 * Math.min(1, h.amount / 8);
             svgEl(dial, 'path', {d: 'M 0 0 L ' + (d.x * len).toFixed(2) + ' ' + (d.y * len).toFixed(2), class: 'solar-moon-dial-hand'});
         });
@@ -1047,13 +1078,15 @@
         moonTile(tiles, M.illuminated, Math.round(t.illuminated * 100) + '%');
     }
 
-    /** The marker of chip n drawn large with its number, over everything else on the
-     *  drawing (its own top layer); null clears it. Only one number shows at a time. */
-    function showHotMarker(n) {
-        const layer = state.moonHot.layer;
+    /** The marker of chip n drawn large with its number, over everything else on that
+     *  card's drawing (its own top layer); null clears it. Only one number shows at a time
+     *  across the cards: each chip clears its own card. */
+    function showHotMarker(card, n) {
+        const hot = card === 'mars' ? state.marsHot : state.moonHot;
+        const layer = hot && hot.layer;
         if (!layer) return;
         layer.innerHTML = '';
-        const m = n ? state.moonHot.markers[n] : null;
+        const m = n ? hot.markers[n] : null;
         if (!m) return;
         svgEl(layer, 'circle', {cx: m.x, cy: m.y, r: 0.085});
         const label = svgEl(layer, 'text', {x: m.x, y: m.y, 'text-anchor': 'middle', 'dominant-baseline': 'central'});
@@ -1065,7 +1098,7 @@
         const M = i18n.moon || {};
         const box = $('solar-moon-diagram');
         box.innerHTML = '';
-        const d = NovaSolarMoon.diagram(t.geometry, state.moonView, t.top);
+        const d = NovaSolarMoon.diagram(t.geometry, state.cardView, t.top);
         const svg = svgEl(box, 'svg', {viewBox: '-1.3 -1.3 2.6 2.6', role: 'img', class: 'solar-moon-svg',
                                        'aria-label': M.diagramAria || ''});
         svgEl(svg, 'circle', {cx: 0, cy: 0, r: 1, class: 'solar-moon-dark'});
@@ -1105,25 +1138,51 @@
         state.moonHot = { layer: svgEl(svg, 'g', {class: 'solar-moon-hot', 'aria-hidden': 'true'}), markers: markers };
     }
 
-    function setMoonViewButtons() {
-        document.querySelectorAll('.solar-moon-views .solar-moon-view').forEach(btn => {
-            btn.setAttribute('aria-pressed', btn.dataset.moonView === state.moonView ? 'true' : 'false');
+    /** Every card's view buttons: the Moon's own, and the two cards' shared group. */
+    function viewButtons() {
+        return Array.prototype.slice.call(document.querySelectorAll(
+            '.solar-moon-views .solar-moon-view, .solar-card-views .solar-card-view'));
+    }
+
+    const buttonView = btn => btn.dataset.moonView || btn.dataset.cardView || '';
+
+    function syncViewButtons() {
+        viewButtons().forEach(btn => {
+            btn.setAttribute('aria-pressed', buttonView(btn) === state.cardView ? 'true' : 'false');
         });
     }
 
-    /** The view switch, from and to localStorage; a change only redraws. */
-    function initMoonViews() {
-        if (typeof NovaSolarMoon === 'undefined') return;
-        const saved = storageGet('localStorage', MOON_VIEW_KEY);
-        state.moonView = NovaSolarMoon.VIEWS.indexOf(saved) >= 0 ? saved : 'normal';
-        setMoonViewButtons();
-        document.querySelectorAll('.solar-moon-views .solar-moon-view').forEach(btn => {
+    /** The views the loaded cards offer: the same three names in every card. */
+    function cardViews() {
+        if (typeof NovaSolarMoon !== 'undefined') return NovaSolarMoon.VIEWS;
+        if (typeof NovaSolarJupiter !== 'undefined') return NovaSolarJupiter.VIEWS;
+        if (typeof NovaSolarMars !== 'undefined') return NovaSolarMars.VIEWS;
+        return null;
+    }
+
+    /** The view switch, from and to localStorage; a change only redraws. All three cards
+     *  share one choice, and the Moon's old key is adopted the first time after the
+     *  change (its value was the whole of it then). */
+    function initCardViews() {
+        const views = cardViews();
+        if (!views) return;
+        let saved = storageGet('localStorage', VIEW_KEY);
+        if (views.indexOf(saved) < 0 && views.indexOf(storageGet('localStorage', MOON_VIEW_KEY)) >= 0) {
+            saved = storageGet('localStorage', MOON_VIEW_KEY);
+            storageSet('localStorage', VIEW_KEY, saved);
+        }
+        state.cardView = views.indexOf(saved) >= 0 ? saved : 'normal';
+        syncViewButtons();
+        viewButtons().forEach(btn => {
             btn.addEventListener('click', () => {
-                if (NovaSolarMoon.VIEWS.indexOf(btn.dataset.moonView) < 0) return;
-                state.moonView = btn.dataset.moonView;
-                storageSet('localStorage', MOON_VIEW_KEY, state.moonView);
-                setMoonViewButtons();
+                const view = buttonView(btn);
+                if (views.indexOf(view) < 0) return;
+                state.cardView = view;
+                storageSet('localStorage', VIEW_KEY, view);
+                syncViewButtons();
                 renderMoon();
+                renderJupiter();
+                renderMars();
             });
         });
     }
@@ -1133,6 +1192,15 @@
         el.textContent = message || '';
         el.hidden = !message;
         $('solar-moon-body').hidden = !!message;
+    }
+
+    /** A card's own error line, or null to clear it: while it shows, that card's body is
+     *  hidden. The Moon's card has its own (it came first); the two new cards share this. */
+    function showCardError(card, message) {
+        const el = $('solar-' + card + '-error');
+        el.textContent = message || '';
+        el.hidden = !message;
+        $('solar-' + card + '-body').hidden = !!message;
     }
 
     /** The Moon card, while the Moon is selected; computed once per night (see the header). */
@@ -1147,7 +1215,7 @@
         let t, next, drawn;
         try {
             const key = calendarKey();
-            drawn = JSON.stringify([key, simDate(), state.moonView, document.documentElement.lang || '']);
+            drawn = JSON.stringify([key, simDate(), state.cardView, document.documentElement.lang || '']);
             if (state.moonDrawn === drawn) return;
             if (state.moon.key !== key) {
                 const opts = {inputs: state.inputs, nowMs: Date.now(), simDate: simDate()};
@@ -1193,6 +1261,336 @@
         credit.textContent = source ? fill(M.credit, {source: source.credit}) : '';
         credit.hidden = !source;
         state.moonDrawn = drawn;
+    }
+
+    // ------------------------------------------------- Jupiter and Mars cards
+
+    /** One row of one of the cards' lists, in the Moon card's chip shape. */
+    function cardItem(list, className) {
+        const li = document.createElement('li');
+        li.className = 'solar-card-item' + (className ? ' ' + className : '');
+        list.appendChild(li);
+        return li;
+    }
+
+    /** Where one Galilean moon is tonight: which side of Jupiter, in front of the disc or
+     *  behind the planet, and whether Jupiter's shadow has it. */
+    function moonPlace(m, J) {
+        return [m.x >= 0 ? J.east : J.west, m.onDisc ? J.onDisc : m.front ? J.inFront : J.behind,
+                m.eclipsed ? J.eclipse : ''].filter(Boolean).join(' · ');
+    }
+
+    /** One Galilean moon: the name, where it is, and how far out it is in Jupiter radii. */
+    function jupiterMoonItem(list, m) {
+        const J = i18n.jupiter || {};
+        const li = cardItem(list, 'solar-card-moon');
+        li.dataset.moon = m.name;
+        span(li, (J.moonNames || {})[m.name] || m.name, 'solar-card-name');
+        span(li, moonPlace(m, J), 'solar-card-note');
+        span(li, fill(J.rj, {rj: Math.hypot(m.x, m.y).toFixed(1)}), 'solar-card-distance');
+        li.title = [moonPlace(m, J), fill(J.rjFromCentre, {rj: m.rj.toFixed(2)}),
+                    m.shadow ? J.shadowOnDisc : ''].filter(Boolean).join('\n');
+        return li;
+    }
+
+    /** One of the night's phenomena: its time, the moon and what it is doing, how long it
+     *  lasts, and whether it is a double shadow transit. Below the threshold: muted. */
+    function jupiterEventItem(list, e) {
+        const J = i18n.jupiter || {};
+        const li = cardItem(list, 'solar-card-event');
+        li.dataset.type = e.type;
+        if (!e.visible) li.classList.add('solar-card-below');
+        span(li, NovaSolarRows.timeLabel(e.hm, e.hmDay), 'solar-card-time');
+        span(li, (J.eventTypes || {})[e.type] || e.type, 'solar-card-name');
+        span(li, (J.moonNames || {})[e.moon] || e.moon, 'solar-card-note');
+        span(li, fill(J.minutes, {n: e.minutes}), 'solar-card-note');
+        if (e.double) span(li, J.double, 'solar-card-badge');
+        li.title = [(J.eventTypes || {})[e.type], fill(J.minutes, {n: e.minutes}),
+                    fill(J.altitude, {alt: wholeDeg(e.alt)}),
+                    e.double ? J.doubleHelp : '',
+                    e.visible ? '' : i18n.belowThreshold].filter(Boolean).join('\n');
+        return li;
+    }
+
+    /** One of the next nights' shadow transits: the date, the time, the moons, the length. */
+    function jupiterShadowItem(list, s) {
+        const J = i18n.jupiter || {};
+        const li = cardItem(list, 'solar-card-event');
+        li.dataset.type = 'shadow';
+        span(li, moonDate(s.date), 'solar-card-date');
+        span(li, NovaSolarRows.timeLabel(s.hm, s.hmDay), 'solar-card-time');
+        span(li, s.moons.map(m => (J.moonNames || {})[m] || m).join(' + '), 'solar-card-name');
+        span(li, fill(J.minutes, {n: s.minutes}), 'solar-card-note');
+        if (s.double) span(li, J.double, 'solar-card-badge');
+        li.title = [fill(J.shadowAt, {time: NovaSolarRows.timeLabel(s.hm, s.hmDay)}),
+                    s.double ? J.doubleHelp : ''].filter(Boolean).join('\n');
+        return li;
+    }
+
+    function jupiterTiles(t) {
+        const J = i18n.jupiter || {};
+        const tiles = $('solar-jupiter-tiles');
+        tiles.innerHTML = '';
+        const g = t.geometry;
+        cardTile(tiles, 'solar-card', J.diameter, g.diameterArcsec.toFixed(1) + '″', J.diameterHelp);
+        cardTile(tiles, 'solar-card', J.magnitude, t.mag.toFixed(1));
+        cardTile(tiles, 'solar-card', J.illuminated, Math.round(t.illuminated * 100) + '%');
+        cardTile(tiles, 'solar-card', J.cm, g.cm.I.toFixed(0) + '° · ' + g.cm.II.toFixed(0) + '°', J.cmHelp);
+        cardTile(tiles, 'solar-card', J.de, signed(g.de, 1) + '°', J.deHelp);
+    }
+
+    /** Jupiter as a system: the disc on the line the moons ride, one moon each with its
+     *  name, the shadow each one throws on the disc, and where celestial north lies. */
+    function jupiterDiagram(t) {
+        const J = i18n.jupiter || {};
+        const box = $('solar-jupiter-diagram');
+        box.innerHTML = '';
+        const R = NovaSolarJupiter.STRIP_RJ, H = NovaSolarJupiter.STRIP_HALF_HEIGHT;
+        const d = NovaSolarJupiter.diagram(t.geometry, state.cardView, t.moons);
+        const svg = svgEl(box, 'svg', {
+            viewBox: -(R + 1) + ' ' + -H + ' ' + 2 * (R + 1) + ' ' + 2 * H,
+            role: 'img', class: 'solar-card-svg solar-jupiter-svg',
+            'aria-label': J.diagramAria || '',
+        });
+        svgEl(svg, 'path', {d: 'M ' + -(R + 0.5) + ' 0 H ' + (R + 0.5), class: 'solar-card-equator'});
+        svgEl(svg, 'circle', {cx: 0, cy: 0, r: 1, class: 'solar-card-disc'});
+        d.moons.forEach(m => {
+            const name = (J.moonNames || {})[m.name] || m.name;
+            const g = svgEl(svg, 'g', {
+                class: 'solar-card-moon' + (m.front ? '' : ' solar-card-moon-behind')
+                    + (m.eclipsed ? ' solar-card-moon-eclipsed' : ''),
+                'data-moon': m.name,
+            });
+            svgEl(g, 'circle', {cx: m.x, cy: m.y, r: 0.26});
+            svgEl(g, 'title', {}).textContent = name + ' — ' + moonPlace(m, J);
+            // The label on the far side of the line, so it never sits over Jupiter
+            const label = svgEl(svg, 'text', {
+                x: m.x, y: (m.y + (m.y >= 0 ? 0.85 : -0.85)).toFixed(2),
+                class: 'solar-card-moon-label', 'text-anchor': 'middle', 'dominant-baseline': 'central',
+            });
+            label.textContent = name;
+        });
+        d.moons.forEach(m => {
+            if (!m.shadow) return;
+            const g = svgEl(svg, 'g', {class: 'solar-card-shadow', 'data-moon': m.name});
+            svgEl(g, 'circle', {cx: m.shadow.x, cy: m.shadow.y, r: 0.13});
+            svgEl(g, 'title', {}).textContent = ((J.moonNames || {})[m.name] || m.name) + ' — '
+                + J.shadowOnDisc;
+        });
+        const north = svgEl(svg, 'text', {
+            x: (d.north.x * 1.85).toFixed(2), y: (d.north.y * 1.85).toFixed(2),
+            class: 'solar-card-north', 'text-anchor': 'middle', 'dominant-baseline': 'central',
+        });
+        north.textContent = J.north || 'N';
+        svgEl(north, 'title', {}).textContent = J.northHelp || '';
+    }
+
+    /** The Jupiter card, while Jupiter is selected; computed once per night, as the Moon's. */
+    function renderJupiter() {
+        const box = $('solar-jupiter');
+        if (typeof NovaSolarJupiter === 'undefined' || !state.result || state.selected !== 'jupiter') {
+            box.hidden = true;
+            return;
+        }
+        box.hidden = false;
+        const J = i18n.jupiter || {};
+        let t, next, drawn;
+        try {
+            const key = calendarKey();
+            drawn = JSON.stringify([key, simDate(), state.cardView, document.documentElement.lang || '']);
+            if (state.jupiterDrawn === drawn) return;
+            if (state.jupiter.key !== key) {
+                const opts = {inputs: state.inputs, nowMs: Date.now(), simDate: simDate()};
+                state.jupiter = {key: null, tonight: NovaSolarJupiter.tonight(opts),
+                                 next: NovaSolarJupiter.nextNights(opts)};
+                state.jupiter.key = key;
+            }
+            t = state.jupiter.tonight;
+            next = state.jupiter.next;
+            jupiterDiagram(t);
+            jupiterTiles(t);
+        } catch (e) {
+            console.error('Solar System: could not calculate the Jupiter card', e);
+            state.jupiter = {key: null, tonight: null, next: null};
+            state.jupiterDrawn = null;
+            $('solar-jupiter-title').textContent = J.title || bodyName('jupiter');
+            showCardError('jupiter', J.error);
+            return;
+        }
+        showCardError('jupiter', null);
+        $('solar-jupiter-title').textContent = (J.title || bodyName('jupiter')) + ' · '
+            + fill(J.highestAt, {time: t.hm});
+
+        $('solar-jupiter-body').classList.toggle('solar-card-muted', t.muted);
+
+        const moons = $('solar-jupiter-moons');
+        moons.innerHTML = '';
+        t.moons.forEach(m => jupiterMoonItem(moons, m));
+
+        const empty = $('solar-jupiter-empty');
+        const reason = t.muted ? (t.mutedReason === 'notUp' ? (J.empty || {}).notUp : i18n.belowThreshold)
+            : t.events.length ? '' : J.noEvents;
+        empty.textContent = reason || '';
+        empty.hidden = !reason;
+
+        const events = $('solar-jupiter-events');
+        events.innerHTML = '';
+        t.events.forEach(e => jupiterEventItem(events, e));
+
+        const shadows = $('solar-jupiter-shadows');
+        shadows.innerHTML = '';
+        next.shadows.forEach(s => jupiterShadowItem(shadows, s));
+        const none = $('solar-jupiter-no-shadows');
+        none.textContent = next.shadows.length ? '' : J.noShadows;
+        none.hidden = !!next.shadows.length;
+        state.jupiterDrawn = drawn;
+    }
+
+    // ------------------------------------------------------ Mars card
+
+    /** One named feature: its number on the drawing, the name, its type, and a bar for how
+     *  close it stands to the central meridian; the rest in the tooltip. */
+    function marsFeatureItem(list, f, n) {
+        const M = i18n.mars || {};
+        const li = cardItem(list, 'solar-card-feature');
+        li.dataset.side = f.cmDist >= 0 ? 'east' : 'west';
+        li.setAttribute('tabindex', '0');
+        if (n) {
+            li.dataset.n = String(n);
+            span(li, String(n), 'solar-card-num');
+        }
+        span(li, f.name, 'solar-card-name');
+        span(li, (M.types || {})[f.type] || f.type, 'solar-card-note');
+        const bar = span(li, '', 'solar-card-bar');
+        span(bar, '', 'solar-card-bar-fill').style.width =
+            Math.round(Math.max(0, 1 - Math.abs(f.cmDist) / NovaSolarMars.NEAR_LIMB_DEG) * 100) + '%';
+        if (f.nearLimb) li.classList.add('solar-card-feature-limb');
+        const when = f.nextHm === null ? null
+            : f.nextHmDay === 0 ? M.today : f.nextHmDay === 1 ? M.tomorrow : fill(M.inDays, {n: f.nextHmDay});
+        li.title = [
+            ((M.types || {})[f.type] || f.type) + (f.diameterKm ? ' · ' + Math.round(f.diameterKm) + ' km' : ''),
+            fill(M.position, {lat: signedDeg(f.lat), lon: signedDeg(f.lon)}),
+            fill(M.cmDist, {deg: Math.abs(Math.round(f.cmDist))}),
+            f.nearLimb ? M.nearLimb : '',
+            when === null ? '' : fill(M.nextPassage, {time: f.nextHm, when: when}),
+        ].filter(Boolean).join('\n');
+        li.setAttribute('aria-label', [f.name, (M.types || {})[f.type] || f.type,
+            fill(M.cmDist, {deg: Math.abs(Math.round(f.cmDist))})].join(', '));
+        if (n) {
+            li.addEventListener('mouseenter', () => showHotMarker('mars', n));
+            li.addEventListener('mouseleave', () => showHotMarker('mars', null));
+            li.addEventListener('focus', () => showHotMarker('mars', n));
+            li.addEventListener('blur', () => showHotMarker('mars', null));
+        }
+        return li;                                  // cardItem has already appended it
+    }
+
+    function marsTiles(t) {
+        const M = i18n.mars || {};
+        const tiles = $('solar-mars-tiles');
+        tiles.innerHTML = '';
+        const g = t.geometry;
+        cardTile(tiles, 'solar-card', M.diameter, g.diameterArcsec.toFixed(1) + '″', M.diameterHelp);
+        cardTile(tiles, 'solar-card', M.magnitude, t.mag.toFixed(1));
+        cardTile(tiles, 'solar-card', M.illuminated, Math.round(t.illuminated * 100) + '%');
+        cardTile(tiles, 'solar-card', M.distance, g.distanceAU.toFixed(2) + ' AU', M.distanceHelp);
+        cardTile(tiles, 'solar-card', M.cm, g.cm.toFixed(1) + '°', M.cmHelp);
+        cardTile(tiles, 'solar-card', M.de, signed(g.de, 1) + '°', M.deHelp);
+    }
+
+    /** Mars's disc as the sky has it tonight (celestial north up): the unlit part, the
+     *  terminator, a dot per named feature, and the pole it leans by. */
+    function marsDiagram(t) {
+        const M = i18n.mars || {};
+        const box = $('solar-mars-diagram');
+        box.innerHTML = '';
+        const d = NovaSolarMars.diagram(t.geometry, state.cardView, t.top);
+        const svg = svgEl(box, 'svg', {
+            viewBox: '-1.3 -1.3 2.6 2.6', role: 'img', class: 'solar-card-svg solar-mars-svg',
+            'aria-label': M.diagramAria || '',
+        });
+        svgEl(svg, 'circle', {cx: 0, cy: 0, r: 1, class: 'solar-card-surface'});
+        if (d.shaded) svgEl(svg, 'path', {d: d.shaded, class: 'solar-card-shaded'});
+        if (d.terminator) svgEl(svg, 'path', {d: d.terminator, class: 'solar-card-terminator'});
+        svgEl(svg, 'circle', {cx: 0, cy: 0, r: 1, class: 'solar-card-rim'});
+
+        // The pole: a tick inside the limb, and N beside it
+        const pole = svgEl(svg, 'g', {class: 'solar-card-pole'});
+        svgEl(pole, 'path', {d: 'M ' + (d.pole.x * 0.74).toFixed(3) + ' ' + (d.pole.y * 0.74).toFixed(3)
+            + ' L ' + d.pole.x.toFixed(3) + ' ' + d.pole.y.toFixed(3)});
+        const tick = svgEl(svg, 'text', {
+            x: (d.pole.x * 1.16).toFixed(3), y: (d.pole.y * 1.16).toFixed(3),
+            class: 'solar-card-north', 'text-anchor': 'middle', 'dominant-baseline': 'central',
+        });
+        tick.textContent = M.north || 'N';
+        svgEl(pole, 'title', {}).textContent = fill(M.poleTilt, {deg: signed(d.tilt, 1) + '°'});
+
+        // A small dot per feature, no number: that shows only for the chip under the
+        // pointer or focus (showHotMarker), so labels never overlap
+        const markers = {};
+        d.markers.forEach(m => {
+            const g = svgEl(svg, 'g', {class: 'solar-card-marker', 'data-n': m.n});
+            svgEl(g, 'circle', {cx: m.x, cy: m.y, r: 0.034});
+            svgEl(g, 'title', {}).textContent = m.name;
+            markers[m.n] = m;
+        });
+        state.marsHot = {layer: svgEl(svg, 'g', {class: 'solar-card-hot', 'aria-hidden': 'true'}), markers: markers};
+    }
+
+    /** The Mars card, while Mars is selected; computed once per night, as the Moon's. */
+    function renderMars() {
+        const box = $('solar-mars');
+        if (typeof NovaSolarMars === 'undefined' || !state.result || state.selected !== 'mars') {
+            box.hidden = true;
+            return;
+        }
+        box.hidden = false;
+        const M = i18n.mars || {};
+        let t, drawn;
+        try {
+            const key = calendarKey();
+            drawn = JSON.stringify([key, simDate(), state.cardView, document.documentElement.lang || '']);
+            if (state.marsDrawn === drawn) return;
+            if (state.mars.key !== key) {
+                const opts = {inputs: state.inputs, nowMs: Date.now(), simDate: simDate()};
+                state.mars = {key: null, tonight: NovaSolarMars.tonight(opts)};
+                state.mars.key = key;
+            }
+            t = state.mars.tonight;
+            marsDiagram(t);
+            marsTiles(t);
+        } catch (e) {
+            console.error('Solar System: could not calculate the Mars card', e);
+            state.mars = {key: null, tonight: null};
+            state.marsDrawn = null;
+            $('solar-mars-title').textContent = M.title || bodyName('mars');
+            showCardError('mars', M.error);
+            return;
+        }
+        showCardError('mars', null);
+        $('solar-mars-title').textContent = (M.title || bodyName('mars')) + ' · '
+            + fill(M.highestAt, {time: t.hm});
+
+        $('solar-mars-body').classList.toggle('solar-card-muted', t.muted);
+
+        const empty = $('solar-mars-empty');
+        const reason = t.muted ? (t.mutedReason === 'notUp' ? (M.empty || {}).notUp : i18n.belowThreshold)
+            : t.empty ? (M.empty || {})[t.empty] : '';
+        empty.textContent = reason || '';
+        empty.hidden = !reason;
+
+        const list = $('solar-mars-features'), more = $('solar-mars-more'), moreList = $('solar-mars-more-list');
+        list.innerHTML = '';
+        moreList.innerHTML = '';
+        t.top.forEach((f, i) => marsFeatureItem(list, f, i + 1));
+        t.more.forEach(f => marsFeatureItem(moreList, f, 0));
+        more.hidden = !t.more.length;
+
+        const source = typeof NovaMarsFeatures !== 'undefined' ? NovaMarsFeatures.SOURCE : null;
+        const credit = $('solar-mars-credit');
+        credit.textContent = source ? fill(M.credit, {source: source.credit}) : '';
+        credit.hidden = !source;
+        state.marsDrawn = drawn;
     }
 
     // ------------------------------------------------------------------ chart
@@ -1283,6 +1681,8 @@
             }
             renderTable();
             renderMoon();
+            renderJupiter();
+            renderMars();
             renderCalc();
             showChart(force);
             if (state.chart) state.chart.updateNow();
@@ -1317,6 +1717,13 @@
         return !state.calFilter.body || row.bodies.indexOf(state.calFilter.body) >= 0;
     }
 
+    /** The local calendar day number of an instant at the location, for the day suffixes
+     *  the calendar's time cells carry ("HH:MM +1"). */
+    function localDay(tz, utcMs) {
+        const p = NovaAstro.localParts(utcMs, tz);
+        return Date.UTC(p.year, p.month - 1, p.day) / 86400000;
+    }
+
     /** Why a Moon conjunction is muted: daylight, or the two altitudes at its instant. */
     function momentText(row) {
         if (row.moment.daylight) return i18n.daylightAtClosest;
@@ -1346,10 +1753,22 @@
             // The night's date only; the event's own local time is the cell's tooltip
             const date = cell(tr, 'date', europeanDate(row.night));
             date.title = String(i18n.exactTime).replace('{time}', NovaSolarRows.timeLabel(row.hm, row.hmDay));
+            if (row.kind === 'galilean') {
+                // A double shadow transit runs for a while, so the end goes in the tooltip
+                // too, with the same day suffix the start's cell tooltip carries.
+                const tz = NovaSolarRows._night.site(state.inputs).tz;
+                const night = localDay(tz, row.utcMs) - row.hmDay;
+                const end = NovaSolarRows.timeLabel(NovaAstro.formatHM(row.endUtcMs, tz),
+                                                    localDay(tz, row.endUtcMs) - night);
+                date.title += '\n' + fill((i18n.jupiter || {}).until, {time: end});
+            }
             cell(tr, 'body', row.bodies.map(bodyName).join(' – '));
+            const moons = row.kind === 'galilean'
+                ? row.moons.map(m => ((i18n.jupiter || {}).moonNames || {})[m] || m).join(' + ') : '';
             const event = cell(tr, 'event', row.occultation ? i18n.occultation
                 : conj ? fill(i18n.conjunction, {sep: row.sepDeg.toFixed(1)})
                 : row.kind === 'libration' ? librationText(row.libration)
+                : row.kind === 'galilean' ? fill(i18n.galilean, {moons: moons, minutes: row.minutes})
                 : (i18n[row.kind] || row.kind));
             const helpText = row.occultation ? help.occultation
                 : conj ? help[row.bodies.indexOf('moon') >= 0 ? 'conjunctionMoon' : 'conjunction'] : help[row.kind];
@@ -1428,6 +1847,17 @@
                         .sort((a, b) => a.utcMs - b.utcMs);
                 } catch (e) {
                     console.error('Solar System: could not calculate the lunar Calendar events', e);
+                }
+            }
+            // And the Galilean ones the same way: two moons' shadows on Jupiter at once,
+            // while it is above the threshold at night. The module scans those nights
+            // itself (see its header) and memoises on this same key, so this is once a night.
+            if (typeof NovaSolarJupiter !== 'undefined') {
+                try {
+                    result.rows = result.rows.concat(NovaSolarJupiter.calendarRows(opts).rows)
+                        .sort((a, b) => a.utcMs - b.utcMs);
+                } catch (e) {
+                    console.error('Solar System: could not calculate the Galilean Calendar events', e);
                 }
             }
             renderCalendarRows(result);
@@ -1528,7 +1958,7 @@
         const params = new URLSearchParams(window.location.search);
         state.requested = params.get('body');
         initCalFilter();
-        initMoonViews();
+        initCardViews();
         initCalc();
         initTabs();
         initSim();

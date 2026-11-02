@@ -655,7 +655,8 @@
   display: none;
 }
 
-#bodies-tab .solar-moon-body {
+#bodies-tab .solar-moon-body,
+#bodies-tab .solar-card-body {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 16px;
@@ -668,7 +669,8 @@
   }
 }
 
-#bodies-tab .solar-moon-figure {
+#bodies-tab .solar-moon-figure,
+#bodies-tab .solar-card-figure {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -682,7 +684,8 @@
   aspect-ratio: 1;
 }
 
-#bodies-tab .solar-moon-svg {
+#bodies-tab .solar-moon-svg,
+#bodies-tab .solar-card-svg {
   display: block;
   width: 100%;
   height: 100%;
@@ -727,7 +730,8 @@
   stroke-width: 0.014;
 }
 
-#bodies-tab .solar-moon-north {
+#bodies-tab .solar-moon-north,
+#bodies-tab .solar-card-north {
   font-family: var(--nova-font-mono);
   font-size: 0.13px;
   font-weight: 600;
@@ -736,20 +740,23 @@
 
 /* A feature: a dot about 6 px across in the accent colour, outlined in the surface
    colour (white on the light page, dark on the dark one). No number on the disc. */
-#bodies-tab .solar-moon-marker circle {
+#bodies-tab .solar-moon-marker circle,
+#bodies-tab .solar-card-marker circle {
   fill: var(--primary-color);
   stroke: var(--bg-secondary);
   stroke-width: 0.012;
 }
 
 /* The chip under the pointer or focus: its dot large, numbered, on the top layer */
-#bodies-tab .solar-moon-hot circle {
+#bodies-tab .solar-moon-hot circle,
+#bodies-tab .solar-card-hot circle {
   fill: var(--primary-color);
   stroke: var(--text-primary);
   stroke-width: 0.016;
 }
 
-#bodies-tab .solar-moon-hot text {
+#bodies-tab .solar-moon-hot text,
+#bodies-tab .solar-card-hot text {
   font-family: var(--nova-font-mono);
   font-size: 0.1px;
   font-weight: 600;
@@ -771,7 +778,8 @@
    its own classes so the chart's buttons are not mixed up with these */
 /* One row of three equal segments, as wide as the drawing; short labels, the long
    ones in each segment's tooltip */
-#bodies-tab .solar-moon-views {
+#bodies-tab .solar-moon-views,
+#bodies-tab .solar-card-views {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   box-sizing: border-box;
@@ -783,7 +791,8 @@
   gap: 2px;
 }
 
-#bodies-tab .solar-moon-view {
+#bodies-tab .solar-moon-view,
+#bodies-tab .solar-card-view {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -800,34 +809,40 @@
   box-shadow: none;
 }
 
-#bodies-tab .solar-moon-view:hover {
+#bodies-tab .solar-moon-view:hover,
+#bodies-tab .solar-card-view:hover {
   color: var(--text-secondary);
 }
 
-#bodies-tab .solar-moon-view[aria-pressed="true"] {
+#bodies-tab .solar-moon-view[aria-pressed="true"],
+#bodies-tab .solar-card-view[aria-pressed="true"] {
   background: var(--bg-secondary);
   color: var(--primary-color);
   box-shadow: var(--shadow-sm);
 }
 
-#bodies-tab .solar-moon-view:focus-visible {
+#bodies-tab .solar-moon-view:focus-visible,
+#bodies-tab .solar-card-view:focus-visible {
   outline: 2px solid var(--primary-color);
   outline-offset: 1px;
 }
 
-#bodies-tab .solar-moon-info {
+#bodies-tab .solar-moon-info,
+#bodies-tab .solar-card-info {
   min-width: 0;
 }
 
 /* Tiles: the seeing tiles' shape, wider */
-#bodies-tab .solar-moon-tiles {
+#bodies-tab .solar-moon-tiles,
+#bodies-tab .solar-card-tiles {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin: 0 0 14px;
 }
 
-#bodies-tab .solar-moon-tile {
+#bodies-tab .solar-moon-tile,
+#bodies-tab .solar-card-tile {
   box-sizing: border-box;
   min-width: 96px;
   padding: 6px 10px;
@@ -840,12 +855,15 @@
   color: var(--text-primary);
 }
 
-#bodies-tab .solar-moon-tile[title]:not([title=""]) {
+#bodies-tab .solar-moon-tile[title]:not([title=""]),
+#bodies-tab .solar-card-tile[title]:not([title=""]) {
   cursor: help;
 }
 
 #bodies-tab .solar-moon-tile-label,
-#bodies-tab .solar-moon-label {
+#bodies-tab .solar-moon-label,
+#bodies-tab .solar-card-tile-label,
+#bodies-tab .solar-card-label {
   display: block;
   font-size: 10px;
   font-weight: 700;
@@ -855,21 +873,26 @@
 }
 
 :root[data-theme="dark"] #bodies-tab .solar-moon-tile-label,
-:root[data-theme="dark"] #bodies-tab .solar-moon-label {
+:root[data-theme="dark"] #bodies-tab .solar-moon-label,
+:root[data-theme="dark"] #bodies-tab .solar-card-tile-label,
+:root[data-theme="dark"] #bodies-tab .solar-card-label {
   color: var(--text-secondary);
 }
 
-#bodies-tab .solar-moon-label {
+#bodies-tab .solar-moon-label,
+#bodies-tab .solar-card-label {
   margin: 0 0 6px;
 }
 
-#bodies-tab .solar-moon-tile-row {
+#bodies-tab .solar-moon-tile-row,
+#bodies-tab .solar-card-tile-row {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-#bodies-tab .solar-moon-tile-value {
+#bodies-tab .solar-moon-tile-value,
+#bodies-tab .solar-card-tile-value {
   font-family: var(--nova-font-mono);
   font-size: var(--font-size-sm);
   font-weight: 500;
@@ -907,7 +930,8 @@
 
 /* The terminator features: chips with the number on the drawing, the name, sunrise or
    sunset, and the Sun's altitude as a bar */
-#bodies-tab .solar-moon-features {
+#bodies-tab .solar-moon-features,
+#bodies-tab .solar-card-list {
   list-style: none;
   margin: 0 0 10px;
   padding: 0;
@@ -916,7 +940,8 @@
   gap: 6px;
 }
 
-#bodies-tab .solar-moon-feature {
+#bodies-tab .solar-moon-feature,
+#bodies-tab .solar-card-item {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -931,16 +956,20 @@
 }
 
 #bodies-tab .solar-moon-feature:hover,
-#bodies-tab .solar-moon-feature:focus-visible {
+#bodies-tab .solar-moon-feature:focus-visible,
+#bodies-tab .solar-card-item:hover,
+#bodies-tab .solar-card-item:focus-visible {
   border-color: var(--primary-color);
   outline: none;
 }
 
-#bodies-tab .solar-moon-feature-limb {
+#bodies-tab .solar-moon-feature-limb,
+#bodies-tab .solar-card-feature-limb {
   border-style: dashed;
 }
 
-#bodies-tab .solar-moon-num {
+#bodies-tab .solar-moon-num,
+#bodies-tab .solar-card-num {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -954,7 +983,8 @@
   font-weight: 600;
 }
 
-#bodies-tab .solar-moon-name {
+#bodies-tab .solar-moon-name,
+#bodies-tab .solar-card-name {
   overflow-wrap: anywhere;
 }
 
@@ -976,7 +1006,8 @@
   color: var(--text-faint);
 }
 
-#bodies-tab .solar-moon-bar {
+#bodies-tab .solar-moon-bar,
+#bodies-tab .solar-card-bar {
   width: 30px;
   height: 4px;
   flex: none;
@@ -985,36 +1016,43 @@
   overflow: hidden;
 }
 
-#bodies-tab .solar-moon-bar-fill {
+#bodies-tab .solar-moon-bar-fill,
+#bodies-tab .solar-card-bar-fill {
   display: block;
   height: 100%;
   background: var(--primary-color);
 }
 
-#bodies-tab .solar-moon-more {
+#bodies-tab .solar-moon-more,
+#bodies-tab .solar-card-more {
   margin: 0 0 10px;
   font-size: var(--font-size-2xs);
   color: var(--text-secondary);
 }
 
-#bodies-tab .solar-moon-more summary {
+#bodies-tab .solar-moon-more summary,
+#bodies-tab .solar-card-more summary {
   margin: 0 0 6px;
   cursor: pointer;
 }
 
 #bodies-tab .solar-moon-more[hidden],
-#bodies-tab .solar-moon-empty[hidden] {
+#bodies-tab .solar-moon-empty[hidden],
+#bodies-tab .solar-card-more[hidden],
+#bodies-tab .solar-card-empty[hidden] {
   display: none;
 }
 
-#bodies-tab .solar-moon-empty {
+#bodies-tab .solar-moon-empty,
+#bodies-tab .solar-card-empty {
   margin: 0 0 10px;
   font-size: 12px;
   color: var(--text-muted);
 }
 
 /* Moon below the threshold all night: the features stay, quieter */
-#bodies-tab .solar-moon-muted .solar-moon-features {
+#bodies-tab .solar-moon-muted .solar-moon-features,
+#bodies-tab .solar-card-muted .solar-card-list {
   opacity: 0.55;
 }
 
@@ -1033,13 +1071,176 @@
 }
 
 /* The feature names' source, under everything */
-#bodies-tab .solar-moon-credit {
+#bodies-tab .solar-moon-credit,
+#bodies-tab .solar-card-credit {
   grid-column: 1 / -1;
   margin: 0;
   font-size: 12px;
   color: var(--text-muted);
 }
 
-#bodies-tab .solar-moon-credit[hidden] {
+#bodies-tab .solar-moon-credit[hidden],
+#bodies-tab .solar-card-credit[hidden] {
   display: none;
+}
+
+/* =================================================================
+   THE JUPITER AND MARS CARDS (#solar-jupiter, #solar-mars)
+
+   The Moon card's shape, one body each, shown while that body is selected: the drawing
+   above (Jupiter's strip is wide, so its figure takes the full width and Mars's sits
+   beside its list as the Moon's does), the tiles, then the lists of chips. The shared
+   rules above carry the shape; below is only what the two drawings and their chips need
+   on their own.
+
+   Jupiter is drawn as the printed moon diagrams are: the disc on the line the moons
+   ride, the moons as dots (hollow behind the planet, faint in eclipse), each shadow a
+   dark spot on the disc, and celestial north marked where the planet's own frame puts
+   it. Mars is drawn as the eyepiece has it: the lit and unlit parts of the disc, the
+   terminator between them, a dot per named feature, and a tick towards the pole.
+   ================================================================= */
+#solar-jupiter,
+#solar-mars {
+  container: solar-card / inline-size;
+}
+
+#bodies-tab #solar-jupiter[hidden],
+#bodies-tab #solar-jupiter-body[hidden],
+#bodies-tab #solar-mars[hidden],
+#bodies-tab #solar-mars-body[hidden] {
+  display: none;
+}
+
+@container solar-card (min-width: 620px) {
+  #bodies-tab #solar-mars-body {
+    grid-template-columns: 240px minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+#bodies-tab #solar-jupiter-diagram {
+  width: 100%;
+  /* The strip's own proportions (2 * STRIP_RJ + 2 by 2 * STRIP_HALF_HEIGHT), so the
+     moons sit on the line rather than in a letterboxed square. */
+  aspect-ratio: 58 / 5.2;
+  min-width: 0;
+}
+
+#bodies-tab #solar-mars-diagram {
+  width: 100%;
+  max-width: 240px;
+  aspect-ratio: 1;
+}
+
+/* Jupiter: the moons' line, the disc on it, the moons and their shadows */
+#bodies-tab .solar-card-equator {
+  stroke: var(--text-faint);
+  stroke-width: 0.02;
+  stroke-dasharray: 0.35 0.3;
+}
+
+#bodies-tab .solar-card-disc {
+  fill: var(--solar-body-jupiter);
+  stroke: var(--text-muted);
+  stroke-width: 0.02;
+}
+
+#bodies-tab .solar-jupiter-svg .solar-card-moon circle {
+  fill: var(--text-primary);
+}
+
+#bodies-tab .solar-jupiter-svg .solar-card-moon-behind circle {
+  fill: var(--bg-secondary);
+  stroke: var(--text-primary);
+  stroke-width: 0.03;
+}
+
+#bodies-tab .solar-jupiter-svg .solar-card-moon-eclipsed circle {
+  fill: var(--text-faint);
+}
+
+/* A shadow: a dark spot on the disc, in either theme (the disc is the same colour) */
+#bodies-tab .solar-card-shadow circle {
+  fill: #14100c;
+  fill-opacity: 0.62;
+}
+
+/* The strip is much wider than the Moon's disc, so its labels are set in its own units */
+#bodies-tab .solar-jupiter-svg .solar-card-moon-label,
+#bodies-tab .solar-jupiter-svg .solar-card-north {
+  font-size: 0.7px;
+}
+
+#bodies-tab .solar-jupiter-svg .solar-card-moon-label {
+  fill: var(--text-secondary);
+}
+
+/* The label is 0.7 of the strip's 5.2 units tall, so it is a fixed share of the card's
+   width: 16 px on a laptop, 4 px on a phone. Below 750 px (under 9 px) the names are
+   dropped rather than drawn unreadably -- the strip keeps the whole figure in view
+   instead of scrolling a 900 px one, and the chips below name every moon in the order
+   they lie along the line. N stays: one glyph, and where it sits is the message. */
+@container solar-card (max-width: 749px) {
+  #bodies-tab .solar-jupiter-svg .solar-card-moon-label {
+    display: none;
+  }
+}
+
+/* Mars: the lit and unlit parts, the terminator, the pole */
+#bodies-tab .solar-card-surface {
+  fill: var(--solar-body-mars);
+}
+
+#bodies-tab .solar-card-shaded {
+  fill: #14100c;
+  fill-opacity: 0.62;
+}
+
+#bodies-tab .solar-card-terminator {
+  fill: none;
+  stroke: var(--primary-color);
+  stroke-width: 0.018;
+  stroke-dasharray: 0.05 0.035;
+}
+
+#bodies-tab .solar-card-rim {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 0.014;
+}
+
+#bodies-tab .solar-card-pole path {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 0.02;
+}
+
+/* The chips' own parts: the note beside the name, the number, the time, a badge */
+#bodies-tab .solar-card-note {
+  color: var(--text-secondary);
+}
+
+#bodies-tab .solar-card-time,
+#bodies-tab .solar-card-date,
+#bodies-tab .solar-card-distance {
+  font-family: var(--nova-font-mono);
+  font-size: var(--font-size-2xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+#bodies-tab .solar-card-badge {
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--primary-color);
+  color: var(--bg-secondary);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* A phenomenon whose instant is below the altitude threshold stays, quieter */
+#bodies-tab .solar-card-below {
+  opacity: 0.55;
 }
