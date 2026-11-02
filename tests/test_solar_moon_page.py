@@ -458,7 +458,7 @@ def test_page_has_the_moon_card_and_the_event_type_filter(client):
         assert f'data-moon-view="{view}"' in html
     select = re.search(r'<select id="solar-cal-type-filter".*?</select>', html, re.S).group(0)
     assert re.findall(r'<option value="(\w*)"', select) == ["", "planets", "conjunctions", "lunar",
-                                                            "galilean"]
+                                                            "galilean", "saturn"]
     assert '"Lunar X and V"' in html
 
 

@@ -1,8 +1,9 @@
 """Drift guards for the JavaScript Nova shares with nova-ios.
 
 static/js/nova_astro.js, static/js/nova_transit.js, static/js/nova_weather_icons.js,
-static/js/nova_planets.js, static/js/nova_moon.js, static/js/nova_jupiter.js and
-static/js/nova_mars.js are developed in the nova-ios repo (src/*.js) and copied in here
+static/js/nova_planets.js, static/js/nova_moon.js, static/js/nova_jupiter.js,
+static/js/nova_mars.js and static/js/nova_saturn.js are developed in the nova-ios repo
+(src/*.js) and copied in here
 byte-identical. Nothing in this repo may edit them: a change lands in nova-ios first, is
 copied across unchanged, and the pinned digest below moves in the same breath. The
 parametrized test below is that contract.
@@ -14,12 +15,13 @@ desktop chart and the rest of Nova would disagree about the same object.
 
 The dashboard (templates/index.html) and the graph view (templates/graph_view.html) load
 nova_transit.js; the Solar System page (templates/solar_system.html) loads
-nova_planets.js, nova_moon.js, nova_jupiter.js and nova_mars.js, whose own accuracy checks
-live in nova-ios (tools/test_planets.cjs, tools/test_moon_libration.cjs,
-tools/test_jupiter.cjs, tools/test_mars.cjs). The last two are the only shared engines
-whose reference fixtures are tallied against NASA/JPL Horizons, with the fixture generator
-as the dependency that needs the network: tools/gen_jupiter_fixture.py and
-tools/gen_mars_fixture.py in nova-ios, never run by these tests.
+nova_planets.js, nova_moon.js, nova_jupiter.js, nova_mars.js and nova_saturn.js, whose own
+accuracy checks live in nova-ios (tools/test_planets.cjs, tools/test_moon_libration.cjs,
+tools/test_jupiter.cjs, tools/test_mars.cjs, tools/test_saturn.cjs). The last three are the
+only shared engines whose reference fixtures are tallied against NASA/JPL Horizons, with the
+fixture generator as the dependency that needs the network: tools/gen_jupiter_fixture.py,
+tools/gen_mars_fixture.py and tools/gen_saturn_fixture.py in nova-ios, never run by these
+tests.
 """
 
 import hashlib
@@ -46,6 +48,7 @@ SHARED_WITH_NOVA_IOS = {
     "nova_moon.js": "0923926b15164174c1695eaa6e93d2996b8f51546aeca5b263b1dda07a70fe4e",
     "nova_jupiter.js": "7eb7956ecacbe999cfca242615f3fa03b6172cc5dbd5d40adf9f279ee59188d0",
     "nova_mars.js": "2f8357b7391beb2a6afde272065e21dd06d8853c4b43c139e42afbebe3893fdf",
+    "nova_saturn.js": "154fe1aefbc4cb10765a53f637f51882c0c6e9b5f8a8acb0167d6e18f5a436a2",
 }
 
 DRIFT_HELP = (

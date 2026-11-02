@@ -1,14 +1,15 @@
 """The Solar System page's Jupiter card and its Galilean Calendar rows, in node.
 
 Runs static/js/solar_system.js with the real engines and the stand-in DOM of
-tests/test_solar_system_js.py (its driver, unchanged), with the Moon's and both new
+tests/test_solar_system_js.py (its driver, unchanged), with the Moon's and the three new
 cards' modules loaded too, as the template loads them. What the page puts in the DOM is
 checked against the modules' own output for the same inputs (the modules themselves are
 pinned to the engines in tests/test_solar_jupiter.py); the template checks at the end
 render the page with the Flask client.
 
-The harness -- the three cards' view buttons and the two new cards' snapshots -- is here,
-and test_solar_mars_page.py imports _run and the i18n from this module.
+The harness -- the four cards' view buttons and the three new cards' snapshots -- is here,
+and test_solar_mars_page.py and test_solar_saturn_page.py import _run and the i18n from
+this module.
 """
 
 import json
@@ -24,8 +25,9 @@ from test_solar_system_js import _DRIVER, LONDON, NODE, PAGE_ORDER, STATIC_JS
 
 # The page's own order, the Moon's and both new cards' scripts as the template loads them
 CARDS_ORDER = PAGE_ORDER + ("nova_moon.js", "nova_moon_features.js", "nova_jupiter.js",
-                            "nova_mars.js", "nova_mars_features.js", "nova_solar_moon.js",
-                            "nova_solar_jupiter.js", "nova_solar_mars.js")
+                            "nova_mars.js", "nova_mars_features.js", "nova_saturn.js",
+                            "nova_solar_moon.js", "nova_solar_jupiter.js", "nova_solar_mars.js",
+                            "nova_solar_saturn.js")
 
 # 2 Nov 2026 20:00 UTC
 NOW_MS = 1793649600000
@@ -36,7 +38,7 @@ SITE = json.dumps(LONDON)
 I18N = {
     "error": "CALC ERROR", "inputsError": "INPUTS ERROR", "chartError": "CHART ERROR",
     "belowThreshold": "BELOW", "exactTime": "exact {time}",
-    "bodies": {"moon": "Moon", "jupiter": "Jupiter", "mars": "Mars"},
+    "bodies": {"moon": "Moon", "jupiter": "Jupiter", "mars": "Mars", "saturn": "Saturn"},
     "eventHelp": {"galilean": "GAL HELP"},
     "galilean": "DOUBLE ({moons}, {minutes} min)",
     "celestialNorth": "CELESTIAL N", "planetNorthUp": "PLANET NORTH UP",
@@ -74,6 +76,26 @@ I18N = {
         "empty": {"none": "NOTHING", "notUp": "NOTUP"},
         "types": {"mons": "Mountain", "crater": "Crater", "albedo": "Albedo"},
     },
+    "saturn": {
+        "title": "SATURN", "error": "SAT ERROR", "highestAt": "at {time}", "north": "N",
+        "rings": "RINGS", "ringsHelp": "RINGS TIP", "ringLit": "LIT {face}",
+        "ringFacesDiffer": "FACES DIFFER", "ringTrend": {"opening": "opening", "closing": "closing"},
+        "sparkAria": "SPARK", "ringSpan": "SPAN {arcsec}", "aRingEdge": "EDGE {rs}",
+        "disc": "DISC", "discHelp": "DISC TIP", "mag": "MAG", "magHelp": "MAG TIP",
+        "faceEarth": {"north": "N-FACE US", "south": "S-FACE US"},
+        "faceSun": {"north": "N-FACE SUN", "south": "S-FACE SUN"},
+        "moonSide": {"east": "east of Saturn", "west": "west of Saturn"},
+        "moonPlace": {"front": "in front", "onDisc": "on the disc", "behind": "behind",
+                      "hidden": "hidden behind the disc"},
+        "moonRadii": "{rs} radii", "moonMag": "mag {mag}",
+        "iapetusBright": "IAP BRIGHT", "iapetusFaint": "IAP FAINT", "iapetusHelp": "IAP TIP",
+        "noTitan": "NO TITAN", "titanNext": "NEXT {date}", "smallCross": "SMALL {names}",
+        "titanCross": "TITAN CROSSES", "transitItem": "CLOSEST {rs} on {date}",
+        "transitHelp": "TRANSIT TIP", "credit": "SRC {source}", "diagramAria": "SAT DIAGRAM",
+        "legendFilled": "L-FILLED", "legendHollow": "L-HOLLOW", "legendEdge": "L-EDGE",
+        "legendShadow": "L-SHADOW", "legendSmall": "L-SMALL",
+        "empty": {"notUp": "NOTUP"},
+    },
 }
 
 pytestmark = pytest.mark.skipif(NODE is None, reason="node is not installed")
@@ -86,10 +108,11 @@ const view = ['normal', 'diagonal', 'inverted'];
 const moonButtons = view.map(v => { const b = h.$('moon-view-' + v); b.dataset.moonView = v; return b; });
 const jupButtons = view.map(v => { const b = h.$('jupiter-view-' + v); b.dataset.cardView = v; return b; });
 const marsButtons = view.map(v => { const b = h.$('mars-view-' + v); b.dataset.cardView = v; return b; });
+const satButtons = view.map(v => { const b = h.$('saturn-view-' + v); b.dataset.cardView = v; return b; });
 const qsa = h.context.document.querySelectorAll;
 h.context.document.querySelectorAll = sel =>
     (sel.indexOf('solar-moon-view') >= 0 || sel.indexOf('solar-card-view') >= 0)
-        ? moonButtons.concat(jupButtons, marsButtons) : qsa(sel);
+        ? moonButtons.concat(jupButtons, marsButtons, satButtons) : qsa(sel);
 const pressed = btns => btns.filter(b => b.attrs['aria-pressed'] === 'true')
     .map(b => b.dataset.cardView || b.dataset.moonView);
 // An element's children as their class and text
@@ -193,6 +216,86 @@ const marsCard = () => {
             north: h.$('solar-mars-diagram').children.filter(c => c.className === 'solar-card-north-label')
                 .map(c => ({ text: c.textContent, left: parseFloat(c.style.left), top: parseFloat(c.style.top),
                              title: c.title })),
+        },
+    };
+};
+const satCard = () => {
+    const box = h.$('solar-saturn'), body = h.$('solar-saturn-body'), svg = svgOf('solar-saturn-diagram');
+    // A list chip, as marsCard's: the stand-in keeps classList apart from className
+    const chip = li => ({ moon: li.dataset.moon || null, brightness: li.dataset.brightness || null,
+        cls: [li.className].concat([...li.classList.set]).join(' '), parts: parts(li), title: li.title });
+    // Every element carrying a class below one, the transformed and clipped layers included
+    const deep = (el, cls, out) => {
+        out = out || [];
+        (el.children || []).forEach(c => {
+            if (String(c.attrs.class || '').trim().split(/\s+/).indexOf(cls) >= 0) out.push(c);
+            deep(c, cls, out);
+        });
+        return out;
+    };
+    // The Rings tile's sparkline: the edge-on line, the curve and the trend's arrowhead
+    const spark = row => {
+        const s = row.children.filter(c => c.tagName === 'svg')[0];
+        if (!s) return null;
+        const part = c => s.children.filter(p => p.attrs.class === 'solar-saturn-spark-' + c)
+            .map(p => p.attrs.d);
+        return { label: s.attrs['aria-label'], viewBox: s.attrs.viewBox,
+                 zero: part('zero'), line: part('line'), head: part('head') };
+    };
+    // The three clipped layers, in the order they cover each other, each with what it holds
+    const layers = !svg ? [] : svg.children.filter(c => c.tagName === 'g' &&
+        (c.attrs['clip-path'] || c.attrs.transform));
+    return {
+        hidden: box.hidden, title: h.$('solar-saturn-title').textContent,
+        error: h.$('solar-saturn-error').hidden ? null : h.$('solar-saturn-error').textContent,
+        bodyHidden: body.hidden, muted: body.classList.contains('solar-card-muted'),
+        tiles: h.$('solar-saturn-tiles').children.map(t => ({
+            label: t.children[0].textContent,
+            // The tile's row holds the sparkline first, where it has one, then the value
+            value: t.children[1].children.filter(c => c.tagName === 'span')[0].textContent,
+            spark: spark(t.children[1]),
+            notes: t.children.slice(2).map(c => c.textContent), title: t.title })),
+        moons: h.$('solar-saturn-moons').children.map(chip),
+        transits: h.$('solar-saturn-transits').children.map(chip),
+        transitsTitle: h.$('solar-saturn-transits').title,
+        transitsNone: h.$('solar-saturn-transits-none').hidden ? null
+            : h.$('solar-saturn-transits-none').textContent,
+        transitsNoneTitle: h.$('solar-saturn-transits-none').title,
+        empty: h.$('solar-saturn-empty').hidden ? null : h.$('solar-saturn-empty').textContent,
+        credit: h.$('solar-saturn-credit').hidden ? null : h.$('solar-saturn-credit').textContent,
+        pressed: pressed(satButtons),
+        svg: !svg ? null : {
+            label: svg.attrs['aria-label'], width: +svg.attrs.width, height: +svg.attrs.height,
+            scale: +svg.attrs['data-scale'],
+            legend: svg.children[0].tagName === 'title' ? svg.children[0].textContent : null,
+            clips: svg.children.filter(c => c.tagName === 'clipPath').map(c => ({
+                id: c.attrs.id, x: +c.children[0].attrs.x, y: +c.children[0].attrs.y,
+                width: +c.children[0].attrs.width, height: +c.children[0].attrs.height,
+                r: c.children[0].attrs.r === undefined ? null : +c.children[0].attrs.r })),
+            layers: layers.map(g => ({ clip: g.attrs['clip-path'] || null,
+                transform: g.attrs.transform || null,
+                rings: deep(g, 'solar-saturn-ring', []).map(p => ({ cls: p.attrs.class,
+                    d: p.attrs.d, ve: p.attrs['vector-effect'] })),
+                globe: deep(g, 'solar-saturn-globe', []).map(c => +c.attrs.r),
+                // The shadow's own wrapper, with the clip that keeps it on the globe
+                shadow: g.children.filter(c => c.tagName === 'g')
+                    .map(n => ({ clip: n.attrs['clip-path'] || null,
+                                 d: deep(n, 'solar-saturn-shadow', []).map(p => p.attrs.d) }))
+                    .filter(n => n.d.length) })),
+            moons: withClass(svg, 'solar-saturn-moon').map(g => ({ moon: g.attrs['data-moon'],
+                cls: g.attrs.class, side: g.attrs['data-side'],
+                brightness: g.attrs['data-brightness'] || null,
+                tag: g.children[0].tagName, d: g.children[0].attrs.d || null,
+                cx: g.children[0].attrs.cx === undefined ? null : +g.children[0].attrs.cx,
+                cy: g.children[0].attrs.cy === undefined ? null : +g.children[0].attrs.cy,
+                r: g.children[0].attrs.r === undefined ? null : +g.children[0].attrs.r,
+                title: g.children[1].textContent })),
+            labels: withClass(svg, 'solar-card-moon-label').map(t => ({ text: t.textContent,
+                moon: t.attrs['data-moon'], x: +t.attrs.x, y: +t.attrs.y })),
+            north: withClass(svg, 'solar-card-north').map(t => ({ text: t.textContent,
+                x: +t.attrs.x, y: +t.attrs.y, title: t.children[0].textContent })),
+            arrow: withClass(svg, 'solar-card-north-arrow').map(g => ({
+                d: g.children[0].attrs.d, title: g.children[1].textContent })),
         },
     };
 };
@@ -869,25 +972,29 @@ def _scripts(html):
     return re.findall(r'<script[^>]*\ssrc="[^"]*/js/([^"/?]+\.js)\?v=[^"]*"[^>]*>', html)
 
 
-def test_page_has_the_two_cards_between_the_moon_and_the_calculator(client):
+def test_page_has_the_three_cards_between_the_moon_and_the_calculator(client):
     html = client.get("/solar_system").get_data(as_text=True)
     moon = html.index('id="solar-moon"')
     jupiter = html.index('id="solar-jupiter"')
     mars = html.index('id="solar-mars"')
-    assert html.index('id="chart-section"') < moon < jupiter < mars < html.index('id="solar-calc"')
-    for card in ("jupiter", "mars"):
+    saturn = html.index('id="solar-saturn"')
+    assert html.index('id="chart-section"') < moon < jupiter < mars < saturn \
+        < html.index('id="solar-calc"')
+    for card in ("jupiter", "mars", "saturn"):
         assert f'<div id="solar-{card}" class="content-section" hidden>' in html
         for part in ("title", "error", "body", "tiles", "diagram"):
             assert f'id="solar-{card}-{part}"' in html
         assert f'<p id="solar-{card}-error" class="status-secondary" role="alert" hidden></p>' in html
         assert f'<div id="solar-{card}-diagram" class="solar-card-diagram solar-{card}-diagram">' in html
         assert f'<div class="solar-card-views" role="group" aria-label="View"' in html
-    assert html.count('class="solar-card-views"') == 2
-    assert html.count('class="solar-card-view"') == 6
-    assert html.count('data-card-view="normal" aria-pressed="true"') == 2
+    assert html.count('class="solar-card-views"') == 3
+    assert html.count('class="solar-card-view"') == 9
+    assert html.count('data-card-view="normal" aria-pressed="true"') == 3
     assert ">Jupiter detail</h3>" in html and ">Mars detail</h3>" in html
+    assert ">Saturn detail</h3>" in html
     assert 'id="solar-jupiter-shadows"' in html and 'id="solar-jupiter-no-shadows"' in html
     assert 'id="solar-mars-more-list"' in html and 'id="solar-mars-credit"' in html
+    assert 'id="solar-saturn-moons"' in html and 'id="solar-saturn-credit"' in html
 
 
 def test_page_loads_the_card_scripts_after_their_engines(client):

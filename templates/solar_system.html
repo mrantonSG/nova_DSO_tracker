@@ -205,6 +205,31 @@
         </div>
     </div>
 
+    <div id="solar-saturn" class="content-section" hidden>
+        <h3 id="solar-saturn-title">{{ _('Saturn detail') }}</h3>
+        <p id="solar-saturn-error" class="status-secondary" role="alert" hidden></p>
+        <div id="solar-saturn-body" class="solar-card-body">
+            <div class="solar-card-figure">
+                <div id="solar-saturn-diagram" class="solar-card-diagram solar-saturn-diagram"></div>
+                <div class="solar-card-views" role="group" aria-label="{{ _('View') }}" title="{{ _("The real field also rotates with the planet's position in the sky.") }}">
+                    <button type="button" class="solar-card-view" data-card-view="normal" aria-pressed="true">{{ _('Normal') }}</button>
+                    <button type="button" class="solar-card-view" data-card-view="diagonal" aria-pressed="false" title="{{ _('Star diagonal (mirrored)') }}">{{ _('Diagonal') }}</button>
+                    <button type="button" class="solar-card-view" data-card-view="inverted" aria-pressed="false" title="{{ _('Newtonian (inverted)') }}">{{ _('Newtonian') }}</button>
+                </div>
+            </div>
+            <div class="solar-card-info">
+                <div id="solar-saturn-tiles" class="solar-card-tiles"></div>
+                <span class="solar-card-label">{{ _('Moons tonight') }}</span>
+                <p id="solar-saturn-empty" class="solar-card-empty" hidden></p>
+                <ol id="solar-saturn-moons" class="solar-card-list"></ol>
+                <span class="solar-card-label">{{ _('Satellite transits') }}</span>
+                <p id="solar-saturn-transits-none" class="solar-card-empty" hidden></p>
+                <ol id="solar-saturn-transits" class="solar-card-list"></ol>
+            </div>
+            <p id="solar-saturn-credit" class="solar-card-credit" hidden></p>
+        </div>
+    </div>
+
     <div id="solar-calc" class="content-section">
         <h3 id="solar-calc-title">{{ _('Planetary calculator') }}</h3>
         <div class="solar-calc-controls" id="solar-calc-controls">
@@ -253,6 +278,7 @@
             <option value="conjunctions">{{ _('Conjunctions') }}</option>
             <option value="lunar">{{ _('Lunar features') }}</option>
             <option value="galilean">{{ _('Galilean moons') }}</option>
+            <option value="saturn">{{ _("Saturn's moons") }}</option>
         </select>
         <label for="solar-cal-hide-muted">
             <input type="checkbox" id="solar-cal-hide-muted">
@@ -340,9 +366,11 @@ const solarI18n = {
         occultation:    {{ _('The Moon passes in front of the planet as seen from this location.') | tojson }},
         lunarX:         {{ _('Sunrise on the crater walls near Werner draws a bright X, and near Ukert a V, on the terminator for about an hour. Times are approximate.') | tojson }},
         libration:      {{ _('The Moon is tilted towards us by more than 7°: features near that limb are easier to see.') | tojson }},
-        galilean:       {{ _('Two of the Galilean moons cast their shadows on Jupiter at the same time. The window is the time both shadows are on the disc while Jupiter is above your altitude threshold.') | tojson }}
+        galilean:       {{ _('Two of the Galilean moons cast their shadows on Jupiter at the same time. The window is the time both shadows are on the disc while Jupiter is above your altitude threshold.') | tojson }},
+        iapetusWest:    {{ _('Iapetus is at western elongation: the bright half of this two-toned moon is turned towards us, and it is at its brightest — about magnitude 10.1 against 11.9 at eastern elongation. Its brightness changes more than any other satellite of Saturn, which is why it is the one worth a date in this list.') | tojson }}
     },
     galilean:      {{ _('Double shadow transit (%(moons)s, %(minutes)s min)', moons='{moons}', minutes='{minutes}') | tojson }},
+    iapetusWest:   {{ _('Iapetus western elongation') | tojson }},
     lunarX:        {{ _('Lunar X and V') | tojson }},
     lunarNotVisible: {{ _('Not visible from here: the Sun is up or the Moon is below the altitude threshold around this time') | tojson }},
     moon: {
@@ -501,6 +529,66 @@ const solarI18n = {
             labyrinthus:  {{ _('Labyrinthus (labyrinth)') | tojson }}
         }
     },
+    saturn: {
+        title:         {{ _('Saturn detail') | tojson }},
+        error:         {{ _('Saturn detail could not be calculated.') | tojson }},
+        highestAt:     {{ _('highest tonight at %(time)s', time='{time}') | tojson }},
+        north:         {{ _('N') | tojson }},
+        rings:         {{ _('Rings') | tojson }},
+        ringsHelp:     {{ _('B is the Earth’s latitude above the ring plane: how far the rings are tilted towards us. Positive is the north face, negative the south, and near 0° they are edge-on.') | tojson }},
+        faceEarth: {
+            north:     {{ _('north face towards us') | tojson }},
+            south:     {{ _('south face towards us') | tojson }}
+        },
+        faceSun: {
+            north:     {{ _('north face') | tojson }},
+            south:     {{ _('south face') | tojson }}
+        },
+        ringLit:       {{ _('The Sun lights the %(face)s', face='{face}') | tojson }},
+        ringFacesDiffer: {{ _('The Earth and the Sun see opposite faces of the rings tonight') | tojson }},
+        ringTrend: {
+            opening:   {{ _('opening') | tojson }},
+            closing:   {{ _('closing') | tojson }}
+        },
+        sparkAria:     {{ _('The tilt of the rings, B, over the next two years, and whether they are opening or closing') | tojson }},
+        ringSpan:      {{ _('The ring system spans %(arcsec)s″ across', arcsec='{arcsec}') | tojson }},
+        aRingEdge:     {{ _('The outer edge of the A ring is %(rs)s Saturn radii from the centre', rs='{rs}') | tojson }},
+        disc:          {{ _('Disc') | tojson }},
+        discHelp:      {{ _('Apparent diameter of the globe in arcseconds tonight.') | tojson }},
+        mag:           {{ _('Magnitude') | tojson }},
+        magHelp:       {{ _('Brightness of the planet tonight: smaller is brighter.') | tojson }},
+        moonSide: {
+            east:      {{ _('east of Saturn') | tojson }},
+            west:      {{ _('west of Saturn') | tojson }}
+        },
+        moonPlace: {
+            front:     {{ _('in front of the globe') | tojson }},
+            onDisc:    {{ _('crossing the disc') | tojson }},
+            behind:    {{ _('behind the globe') | tojson }},
+            hidden:    {{ _('hidden behind the disc') | tojson }}
+        },
+        moonRadii:     {{ _('%(rs)s Saturn radii from the centre', rs='{rs}') | tojson }},
+        moonMag:       {{ _('Mean opposition magnitude %(mag)s', mag='{mag}') | tojson }},
+        iapetusBright: {{ _('Western elongation: the bright trailing side faces us') | tojson }},
+        iapetusFaint:  {{ _('Eastern elongation: the dark leading side faces us') | tojson }},
+        iapetusHelp:   {{ _('Iapetus is two-toned: one hemisphere is bright, the other covered in dark material. It is brightest at western elongation, about magnitude 10.1, and faintest at eastern, about 11.9.') | tojson }},
+        noTitan:       {{ _('No Titan transits this season') | tojson }},
+        titanNext:     {{ _('Titan next crosses the disc in %(date)s', date='{date}') | tojson }},
+        smallCross:    {{ _('%(names)s also cross the disc this season, but they are far too small and faint to be seen against it', names='{names}') | tojson }},
+        titanCross:    {{ _('Titan crosses the disc this season') | tojson }},
+        transitItem:   {{ _('closest approach %(rs)s Saturn radii from the centre, %(date)s', rs='{rs}', date='{date}') | tojson }},
+        transitHelp:   {{ _('How close the centre of the satellite’s orbit comes to the centre of the disc in the next twelve months. Inside one Saturn radius the satellite crosses the disc — a transit, an occultation and the partial ones between all count here. The times of the crossings themselves are not calculated.') | tojson }},
+        empty: {
+            notUp:     {{ _('Saturn is not up during the night') | tojson }}
+        },
+        credit:        {{ _('Satellite magnitudes: %(source)s', source='{source}') | tojson }},
+        diagramAria:   {{ _('Saturn tonight: the globe, the rings and the shadow they cast on it, and the satellites') | tojson }},
+        legendFilled:  {{ _('Filled dot: a satellite beside or in front of the globe') | tojson }},
+        legendHollow:  {{ _('Hollow dot: a satellite behind the globe') | tojson }},
+        legendEdge:    {{ _('Chevron at the edge of the figure: a satellite beyond it, its distance in the tooltip') | tojson }},
+        legendShadow:  {{ _('Shaded band across the globe: the shadow of the rings') | tojson }},
+        legendSmall:   {{ _('Small unlabelled dots: Mimas, Enceladus and Hyperion') | tojson }}
+    },
     calc: {
         title:         {{ _('Planetary calculator') | tojson }},
         none:          {{ _('None') | tojson }},
@@ -606,9 +694,11 @@ const solarEquipment = {{ solar_equipment | tojson }};
 <script src="{{ url_for('static', filename='js/nova_jupiter.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_mars.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_mars_features.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/nova_saturn.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_solar_moon.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_solar_jupiter.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_solar_mars.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/nova_solar_saturn.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_solar_rigfit.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_weather_icons.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_solar_seeing.js') }}?v={{ version }}" defer></script>

@@ -87,6 +87,7 @@
         conjunctions: ['conjunction'],
         lunar: ['lunarX', 'libration'],
         galilean: ['galilean'],
+        saturn: ['iapetusWest'],
     };
     // A feature's Sun-altitude bar is full at this many degrees
     const MOON_BAR_DEG = 15;
@@ -125,6 +126,8 @@
         grsOverride: null,
         jupiterWidth: 0,
         mars: { key: null, tonight: null },
+        saturn: { key: null, tonight: null },
+        saturnWidth: 0,
         cardView: 'normal',
         // The drawings' top layers and their markers by chip number, for showHotMarker()
         moonHot: { layer: null, markers: {} },
@@ -133,6 +136,7 @@
         moonDrawn: null,
         jupiterDrawn: null,
         marsDrawn: null,
+        saturnDrawn: null,
         // The calculator's choice: component records, and the amplification the user
         // picked (null: the one closest to the ideal focal ratio)
         calc: { telescope: null, camera: null, amp: null },
@@ -495,6 +499,7 @@
         renderMoon();
         renderJupiter();
         renderMars();
+        renderSaturn();
         renderCalc();
         showChart();
     }
@@ -1192,6 +1197,7 @@
         if (typeof NovaSolarMoon !== 'undefined') return NovaSolarMoon.VIEWS;
         if (typeof NovaSolarJupiter !== 'undefined') return NovaSolarJupiter.VIEWS;
         if (typeof NovaSolarMars !== 'undefined') return NovaSolarMars.VIEWS;
+        if (typeof NovaSolarSaturn !== 'undefined') return NovaSolarSaturn.VIEWS;
         return null;
     }
 
@@ -1218,6 +1224,7 @@
                 renderMoon();
                 renderJupiter();
                 renderMars();
+                renderSaturn();
             });
         });
     }
@@ -1848,6 +1855,321 @@
         state.marsDrawn = drawn;
     }
 
+    // ------------------------------------------------------ Saturn card
+
+    // Saturn's figure is the Jupiter strip's shape -- a wide drawing at the width it is
+    // shown, its names at a fixed 12 px and placed in the same lanes -- drawn in Saturn's own
+    // radii, where the globe is 1 and the A ring's outer edge 2.2666, so the strip reaches
+    // NovaSolarSaturn.STRIP_RS of them each side of the centre.
+    const SAT_DOT_PX = 4;                    // a moon the drawing names
+    const SAT_SMALL_PX = 2.5;                // Mimas, Enceladus and Hyperion, left unnamed
+    const SAT_CHEVRON_PX = 5;                // a moon beyond the edge of the figure
+    const SAT_FAR_CLIP = 'solar-saturn-far';
+    const SAT_NEAR_CLIP = 'solar-saturn-near';
+    const SAT_GLOBE_CLIP = 'solar-saturn-globe';
+
+    /** What one of Saturn's moons is doing tonight, in the module's own order of states. */
+    function saturnMoonWhere(m) {
+        const P = (i18n.saturn || {}).moonPlace || {};
+        return P[m.onDisc ? 'onDisc' : m.behindDisc ? 'hidden' : m.inFront ? 'front' : 'behind'] || '';
+    }
+
+    /** A moon's own lines, the same in its chip and on the drawing: which side of Saturn it
+     *  is on -- the sky's side, since the drawing's left and right are Saturn's own frame --
+     *  what it is doing, how far out it is, its mean opposition magnitude and, for Iapetus,
+     *  which of its two different sides is towards us. */
+    function saturnMoonTip(m, S) {
+        const side = (S.moonSide || {})[m.side] || '';
+        return [[side, saturnMoonWhere(m)].filter(Boolean).join(' · '),
+                fill(S.moonRadii, {rs: m.dist.toFixed(1)}),
+                m.mag === undefined ? '' : fill(S.moonMag, {mag: m.mag.toFixed(1)}),
+                m.brightness === 'bright' ? S.iapetusBright
+                    : m.brightness === 'faint' ? S.iapetusFaint : '',
+                m.brightness ? S.iapetusHelp : ''].filter(Boolean).join('\n');
+    }
+
+    /** One of tonight's moons: its name and what it is doing, in the Moon card's chip. */
+    function saturnMoonItem(list, m) {
+        const S = i18n.saturn || {};
+        const li = cardItem(list, 'solar-card-item');
+        li.dataset.moon = m.name;
+        if (!m.labelled) li.classList.add('solar-card-moon-small');
+        if (m.brightness) li.dataset.brightness = m.brightness;
+        span(li, m.name, 'solar-card-name');
+        span(li, saturnMoonWhere(m), 'solar-card-note');
+        li.title = saturnMoonTip(m, S);
+        return li;
+    }
+
+    /** One of the moons whose orbit crosses Saturn's disc in the next twelve months: which
+     *  moon, how close its centre comes to the centre of the disc -- the whole of what the
+     *  card's look-ahead claims -- and, in the tooltip, when that closest approach is. */
+    function saturnTransitItem(list, x) {
+        const S = i18n.saturn || {};
+        const mag = (NovaSolarSaturn.MOON_MAG || {})[x.name];
+        const li = cardItem(list, 'solar-card-event');
+        li.dataset.moon = x.name;
+        span(li, x.name, 'solar-card-name');
+        span(li, fill(S.moonRadii, {rs: x.closestRs.toFixed(2)}), 'solar-card-note');
+        li.title = [fill(S.transitItem, {rs: x.closestRs.toFixed(2), date: localDateTime(x.utcMs)}),
+                    mag === undefined ? '' : fill(S.moonMag, {mag: mag.toFixed(1)})]
+                   .filter(Boolean).join('\n');
+        return li;
+    }
+
+    /** An instant as the location's own date with its year and no time: for the answers that
+     *  are about a day and not a moment (Titan's next season, whose crossings are not
+     *  calculated, so no time of day is claimed). */
+    function localDate(utcMs) {
+        const p = NovaAstro.localParts(utcMs, String(state.inputs.location.timezone));
+        return cardDate(p.year, p.month, p.day, true);
+    }
+
+    /** The Rings tile's sparkline: B over the next two years, the edge-on line at 0, and the
+     *  trend as an arrowhead along the curve's own last quarter. The scale is the window's
+     *  largest |B|, never under a degree, so a year with the rings nearly closed draws as the
+     *  flat line it is. */
+    function ringSpark(row, months, S) {
+        const W = 66, H = 22, pad = 4;
+        const svg = svgEl(row, 'svg', {viewBox: '0 0 ' + W + ' ' + H, class: 'solar-saturn-spark',
+                                       role: 'img', 'aria-label': S.sparkAria || '', focusable: 'false'});
+        const px = v => Math.round(v * 10) / 10;
+        const top = Math.max(1, months.reduce((v, m) => Math.max(v, Math.abs(m.B)), 0));
+        const n = months.length;
+        const x = i => pad + (W - 2 * pad) * i / Math.max(1, n - 1);
+        const y = b => H / 2 - (H / 2 - pad) * (b / top);
+        svgEl(svg, 'path', {d: 'M ' + pad + ' ' + px(H / 2) + ' H ' + (W - pad),
+                            class: 'solar-saturn-spark-zero'});
+        svgEl(svg, 'path', {class: 'solar-saturn-spark-line',
+            d: months.map((m, i) => (i ? 'L ' : 'M ') + px(x(i)) + ' ' + px(y(m.B))).join(' ')});
+        if (n > 6) {                                  // the trend: the chord of the last quarter
+            const j = n - 1 - Math.min(n - 1, 6);
+            const ux = x(n - 1) - x(j), uy = y(months[n - 1].B) - y(months[j].B);
+            const len = Math.hypot(ux, uy) || 1, ax = ux / len, ay = uy / len;
+            const tip = [x(n - 1), y(months[n - 1].B)];
+            svgEl(svg, 'path', {class: 'solar-saturn-spark-head', d: 'M ' + px(tip[0]) + ' ' + px(tip[1])
+                + ' L ' + px(tip[0] - 5 * ax + 3 * ay) + ' ' + px(tip[1] - 5 * ay - 3 * ax)
+                + ' L ' + px(tip[0] - 5 * ax - 3 * ay) + ' ' + px(tip[1] - 5 * ay + 3 * ax) + ' Z'});
+        }
+        return svg;
+    }
+
+    function saturnTiles(t) {
+        const S = i18n.saturn || {};
+        const tiles = $('solar-saturn-tiles');
+        tiles.innerHTML = '';
+        const r = t.rings;
+        const trend = (S.ringTrend || {})[r.trend] || '';
+        const face = (S.faceEarth || {})[r.face] || '';
+        const sun = (S.faceSun || {})[r.sunFace] || '';
+        const tile = cardTile(tiles, 'solar-card', S.rings, signed(r.B, 1) + '°',
+            [S.ringsHelp, face, fill(S.ringLit, {face: sun}),
+             fill(S.ringSpan, {arcsec: r.aArcsec.toFixed(1)}),
+             fill(S.aRingEdge, {rs: r.radiusRs.toFixed(2)}), trend].filter(Boolean).join('\n'),
+            row => ringSpark(row, r.months, S));
+        span(tile, trend, 'solar-card-tile-note');
+        if (!r.sameFace) span(tile, S.ringFacesDiffer, 'solar-card-tile-note');
+        cardTile(tiles, 'solar-card', S.disc, t.diameterArcsec.toFixed(1) + '″', S.discHelp);
+        cardTile(tiles, 'solar-card', S.mag, t.mag.toFixed(1), S.magHelp);
+    }
+
+    /** Saturn tonight as a system, drawn as the Jupiter strip is: the globe in the centre,
+     *  the ring system at tonight's opening angle, the band the rings' shadow cuts across the
+     *  globe, the moons, and an arrow to celestial north. The rings' far half is drawn behind
+     *  the globe and their near half in front of it, so the planet hides them where they run
+     *  behind it: a point of the ring is in front of Saturn when B and its own side of the
+     *  major axis have opposite signs, which is which half of the drawing the clip rects say. */
+    function saturnDiagram(t) {
+        const S = i18n.saturn || {};
+        const box = $('solar-saturn-diagram');
+        box.innerHTML = '';
+        const W = Math.max(240, Math.round(box.clientWidth || 0) || 720);
+        const H = JUP_HEIGHT, cx = W / 2, cy = H / 2;
+        const k = (cx - 8) / NovaSolarSaturn.STRIP_RS;        // pixels per Saturn radius
+        const px = v => Math.round(v * 100) / 100;
+        const r = t.rings;
+        const d = NovaSolarSaturn.diagram(t.geometry, state.cardView, t.moons, r.radiusRs);
+        const rw = r.radiusRs * k;
+        const rh = rw * Math.abs(Math.sin(r.B * Math.PI / 180));   // the rings' own half-height
+        const sy = state.cardView === 'inverted' ? 1 : -1;
+        const nearBelow = r.B * sy < 0;
+        const svg = svgEl(box, 'svg', {
+            width: W, height: H, viewBox: '0 0 ' + W + ' ' + H, role: 'img',
+            class: 'solar-card-svg solar-saturn-svg', 'aria-label': S.diagramAria || '',
+            'data-scale': Math.round(k * 1e6) / 1e6,
+        });
+        svgEl(svg, 'title', {}).textContent = [S.diagramAria, i18n.planetNorthUp, S.legendFilled,
+            S.legendHollow, S.legendEdge, S.legendShadow, S.legendSmall].filter(Boolean).join('\n');
+
+        // The half-plane each half of the rings is clipped to, and the globe's own clip for
+        // the shadow (that one in the figure's radii, where it is used)
+        const clip = id => svgEl(svg, 'clipPath', {id: id, 'clipPathUnits': 'userSpaceOnUse'});
+        svgEl(clip(SAT_FAR_CLIP), 'rect', {x: -2, y: nearBelow ? -2 : cy, width: W + 4, height: cy + 2});
+        svgEl(clip(SAT_NEAR_CLIP), 'rect', {x: -2, y: nearBelow ? cy : -2, width: W + 4, height: cy + 2});
+        svgEl(clip(SAT_GLOBE_CLIP), 'circle', {cx: 0, cy: 0, r: 1});
+
+        // The figure is drawn in Saturn radii: one group per layer, in the order they cover
+        // each other -- the far rings, the globe with the shadow on it, the near rings
+        const scaled = parent => svgEl(parent, 'g', {transform: 'translate(' + cx + ' ' + cy + ') scale(' + k + ')'});
+        const ringPaths = parent => d.rings.forEach(x => svgEl(parent, 'path', {d: x.d,
+            class: 'solar-saturn-ring solar-saturn-ring-' + x.key, 'vector-effect': 'non-scaling-stroke'}));
+        ringPaths(scaled(svgEl(svg, 'g', {'clip-path': 'url(#' + SAT_FAR_CLIP + ')'})));
+        const globe = scaled(svg);
+        svgEl(globe, 'circle', {cx: 0, cy: 0, r: 1, class: 'solar-saturn-globe',
+                                'vector-effect': 'non-scaling-stroke'});
+        if (d.shadow) {
+            svgEl(svgEl(globe, 'g', {'clip-path': 'url(#' + SAT_GLOBE_CLIP + ')'}),
+                  'path', {d: d.shadow, class: 'solar-saturn-shadow'});
+        }
+        ringPaths(scaled(svgEl(svg, 'g', {'clip-path': 'url(#' + SAT_NEAR_CLIP + ')'})));
+
+        // The moons: a dot for the ones the figure reaches, a chevron at its edge for the ones
+        // it does not, a smaller and unnamed dot for Mimas, Enceladus and Hyperion
+        const spots = d.moons.map((m, i) => {
+            const sky = t.moons[i];
+            const x = cx + m.x * k, y = cy + m.y * k;
+            const g = svgEl(svg, 'g', {class: 'solar-saturn-moon solar-saturn-moon-' +
+                (sky.behindDisc ? 'behind' : 'visible') + (m.labelled ? '' : ' solar-saturn-moon-small'),
+                'data-moon': m.name, 'data-side': sky.side, 'data-brightness': sky.brightness || ''});
+            if (m.off) {
+                const s = m.off === 'east' ? 1 : -1;
+                svgEl(g, 'path', {d: 'M ' + px(x - s * SAT_CHEVRON_PX) + ' ' + px(y - SAT_CHEVRON_PX)
+                    + ' L ' + px(x) + ' ' + px(y)
+                    + ' L ' + px(x - s * SAT_CHEVRON_PX) + ' ' + px(y + SAT_CHEVRON_PX)});
+            } else {
+                const rad = m.labelled ? SAT_DOT_PX : SAT_SMALL_PX;
+                svgEl(g, 'circle', {cx: px(x), cy: px(y), r: rad});
+            }
+            svgEl(g, 'title', {}).textContent = m.name + '\n' + saturnMoonTip(sky, S);
+            return {m: m, x: x, y: y};
+        });
+
+        // Celestial north, out past the ring system, so the names keep clear of both
+        const out = Math.max(k, rh);
+        const ax0 = cx + d.north.x * (out + 3), ay0 = cy + d.north.y * (out + 3);
+        const ax1 = cx + d.north.x * (out + 17), ay1 = cy + d.north.y * (out + 17);
+        const arrow = svgEl(svg, 'g', {class: 'solar-card-north-arrow'});
+        svgEl(arrow, 'path', {d: arrowPath(ax0, ay0, ax1, ay1, 5, px)});
+        svgEl(arrow, 'title', {}).textContent = i18n.celestialNorth || '';
+        const nx = cx + d.north.x * (out + 25), ny = cy + d.north.y * (out + 25);
+        const north = svgEl(svg, 'text', {x: px(nx), y: px(ny), class: 'solar-card-north',
+                                          'text-anchor': 'middle', 'dominant-baseline': 'central'});
+        north.textContent = S.north || 'N';
+        svgEl(north, 'title', {}).textContent = i18n.celestialNorth || '';
+        const placed = [labelBox(nx, ny, labelWidth(north.textContent, north)),
+            {x0: Math.min(ax0, ax1) - 3, x1: Math.max(ax0, ax1) + 3,
+             y0: Math.min(ay0, ay1) - 3, y1: Math.max(ay0, ay1) + 3},
+            {x0: cx - rw - 2, x1: cx + rw + 2, y0: cy - rh - 2, y1: cy + rh + 2}];
+
+        // The named moons' labels, the nearest the planet placed first, in the lanes the
+        // Jupiter strip uses: drawn first so the browser can measure them
+        spots.filter(o => o.m.labelled)
+            .sort((a, b) => Math.abs(a.m.x) - Math.abs(b.m.x)).forEach(o => {
+            const label = svgEl(svg, 'text', {x: px(o.x), y: px(o.y), class: 'solar-card-moon-label',
+                                              'data-moon': o.m.name, 'text-anchor': 'middle',
+                                              'dominant-baseline': 'central'});
+            label.textContent = o.m.name;
+            const width = labelWidth(o.m.name, label);
+            const half = (width + 4) / 2;
+            const lx = Math.min(W - half, Math.max(half, o.x));
+            let spot = null;
+            for (const dy of JUP_LANES) {
+                const y = Math.min(H - JUP_LABEL_PX / 2, Math.max(JUP_LABEL_PX / 2, o.y + dy));
+                const b = labelBox(lx, y, width);
+                const hits = placed.filter(p => overlaps(p, b)).length;
+                if (!spot || hits < spot.hits) spot = {y: y, b: b, hits: hits};
+                if (!hits) break;
+            }
+            placed.push(spot.b);
+            label.setAttribute('x', String(px(lx)));
+            label.setAttribute('y', String(px(spot.y)));
+        });
+        state.saturnWidth = W;
+    }
+
+    /** The Saturn card, while Saturn is selected; computed once per night, as the Moon's. */
+    function renderSaturn() {
+        const box = $('solar-saturn');
+        if (typeof NovaSolarSaturn === 'undefined' || !state.result || state.selected !== 'saturn') {
+            box.hidden = true;
+            return;
+        }
+        box.hidden = false;
+        const S = i18n.saturn || {};
+        let t, drawn;
+        try {
+            const key = calendarKey();
+            const width = Math.round($('solar-saturn-diagram').clientWidth || 0);
+            drawn = JSON.stringify([key, simDate(), state.cardView, document.documentElement.lang || '', width]);
+            if (state.saturnDrawn === drawn) return;
+            if (state.saturn.key !== key) {
+                const opts = {inputs: state.inputs, nowMs: Date.now(), simDate: simDate()};
+                state.saturn = {key: null, tonight: NovaSolarSaturn.tonight(opts)};
+                state.saturn.key = key;
+            }
+            t = state.saturn.tonight;
+            saturnDiagram(t);
+            saturnTiles(t);
+        } catch (e) {
+            console.error('Solar System: could not calculate the Saturn card', e);
+            state.saturn = {key: null, tonight: null};
+            state.saturnDrawn = null;
+            $('solar-saturn-title').textContent = S.title || bodyName('saturn');
+            showCardError('saturn', S.error);
+            return;
+        }
+        showCardError('saturn', null);
+        $('solar-saturn-title').textContent = (S.title || bodyName('saturn')) + ' · '
+            + fill(S.highestAt, {time: t.hm});
+
+        $('solar-saturn-body').classList.toggle('solar-card-muted', t.muted);
+
+        const empty = $('solar-saturn-empty');
+        const reason = t.muted ? (t.mutedReason === 'notUp' ? (S.empty || {}).notUp : i18n.belowThreshold) : '';
+        empty.textContent = reason || '';
+        empty.hidden = !reason;
+
+        const moons = $('solar-saturn-moons');
+        moons.innerHTML = '';
+        t.moons.forEach(m => saturnMoonItem(moons, m));
+
+        // The transit answer: Titan's, in the line above the list, because it is the one worth
+        // the sentence; the crossings themselves, all of them, in the list, each with the
+        // closest its centre comes to the centre of the disc. Titan's own season is named in
+        // the tooltip when this one has none, and the small moons that do cross are named
+        // there too -- from the data, not from the list the card was written against.
+        const titan = t.transits.titan;
+        const others = t.transits.crossing.filter(x => x.name !== 'Titan');
+        const none = $('solar-saturn-transits-none');
+        none.textContent = titan ? S.titanCross : S.noTitan;
+        none.title = titan
+            ? fill(S.transitItem, {rs: titan.closestRs.toFixed(2), date: localDateTime(titan.utcMs)})
+            : [t.transits.titanNext ? fill(S.titanNext, {date: localDate(t.transits.titanNext.utcMs)}) : '',
+               others.length ? fill(S.smallCross, {names: others.map(x => x.name).join(', ')}) : '']
+              .filter(Boolean).join('\n');
+        const list = $('solar-saturn-transits');
+        list.innerHTML = '';
+        list.title = S.transitHelp || '';
+        t.transits.crossing.forEach(x => saturnTransitItem(list, x));
+
+        const source = typeof NovaSolarSaturn !== 'undefined' ? NovaSolarSaturn.SOURCE : null;
+        const credit = $('solar-saturn-credit');
+        credit.textContent = source ? fill(S.credit, {source: source.credit}) : '';
+        credit.hidden = !source;
+        state.saturnDrawn = drawn;
+    }
+
+    /** The strip is drawn at the width it is shown: a new width draws it again. */
+    function initSaturnResize() {
+        if (typeof ResizeObserver === 'undefined') return;
+        const box = $('solar-saturn-diagram');
+        new ResizeObserver(() => {
+            const W = Math.round(box.clientWidth || 0);
+            if (!W || W === state.saturnWidth || $('solar-saturn').hidden) return;
+            renderSaturn();
+        }).observe(box);
+    }
+
     // ------------------------------------------------------------------ chart
 
     function resetChart() {
@@ -1938,6 +2260,7 @@
             renderMoon();
             renderJupiter();
             renderMars();
+            renderSaturn();
             renderCalc();
             showChart(force);
             if (state.chart) state.chart.updateNow();
@@ -2115,6 +2438,16 @@
                     console.error('Solar System: could not calculate the Galilean Calendar events', e);
                 }
             }
+            // And Iapetus's western elongations, nine of them in the next two years: the
+            // nights its bright side is turned towards us. Memoised on this key the same way.
+            if (typeof NovaSolarSaturn !== 'undefined') {
+                try {
+                    result.rows = result.rows.concat(NovaSolarSaturn.calendarRows(opts).rows)
+                        .sort((a, b) => a.utcMs - b.utcMs);
+                } catch (e) {
+                    console.error('Solar System: could not calculate the Saturn Calendar events', e);
+                }
+            }
             renderCalendarRows(result);
             showCalError(null);
             state.calKey = key;
@@ -2216,6 +2549,7 @@
         initCardViews();
         initGrs();
         initJupiterResize();
+        initSaturnResize();
         initCalc();
         initTabs();
         initSim();
