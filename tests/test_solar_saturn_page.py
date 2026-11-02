@@ -14,6 +14,7 @@ with the translations).
 
 import re
 from datetime import datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -61,13 +62,13 @@ def _hm(utc_ms):
 
 
 # The i18n stub's own words for the four states a moon can be in, in the module's order
-_PLACE = {"onDisc": "on the disc", "hidden": "hidden behind the disc",
-          "front": "in front", "behind": "behind"}
+_PLACE = {"onDisc": "on the disc", "hidden": "hidden behind the globe",
+          "front": "in front", "far": "far side"}
 
 
 def _where(m):
     return _PLACE["onDisc" if m["onDisc"] else "hidden" if m["behindDisc"]
-                  else "front" if m["inFront"] else "behind"]
+                  else "front" if m["inFront"] else "far"]
 
 
 def test_saturn_card_only_while_saturn_is_selected(tmp_path):
@@ -82,102 +83,103 @@ def test_saturn_card_only_while_saturn_is_selected(tmp_path):
     """, search="?body=jupiter", sim="2026-11-02")
     assert got["saturn"]["hidden"]
     assert not got["after"]["hidden"] and got["after"]["error"] is None
-    assert len(got["after"]["tiles"]) == 3 and got["after"]["svg"]["label"] == "SAT DIAGRAM"
+    assert len(got["after"]["tiles"]) == 1 and got["after"]["svg"]["label"] == "SAT DIAGRAM"
 
 
-def test_saturn_card_shows_the_rings_the_moons_and_the_transits(tmp_path):
-    """2 Nov 2026, London: Saturn 40 degrees up at 21:52. The three tiles -- the rings'
-    opening angle with the trend in the note and the two-year curve, the disc and the
-    magnitude -- the eight moons with what each is doing, the moons whose orbits cross the
-    disc in the coming season, and the credit line.
-    Every value is the module's own for the same inputs."""
+def test_saturn_card_shows_the_rings_the_moons_and_the_season(tmp_path):
+    """2 Nov 2026, London: Saturn 40 degrees up at 21:52. The Rings tile -- the opening
+    angle with the face it is tilted towards, the two years' direction in the note, the
+    two-year curve under it -- the eight moons, each with what it is doing in its own
+    tooltip on the drawing, the season's transit answer, and the credit line with the
+    magnitudes' sources. Every value is the module's own for the same inputs."""
     got = _run_saturn(tmp_path, """
         h.online();
         await h.load('bodies');
-        return { card: satCard(), t: { hm: t.hm, B: t.rings.B, trend: t.rings.trend,
-                 face: t.rings.face, sunFace: t.rings.sunFace, sameFace: t.rings.sameFace,
-                 aArcsec: t.rings.aArcsec, radiusRs: t.rings.radiusRs,
-                 diameter: t.diameterArcsec, mag: t.mag, muted: t.muted,
+        return { card: satCard(), t: { hm: t.hm, B: t.rings.B, Bprime: t.rings.Bprime,
+                 trend: t.rings.trend, face: t.rings.face, sunFace: t.rings.sunFace,
+                 sameFace: t.rings.sameFace, aArcsec: t.rings.aArcsec,
+                 radiusRs: t.rings.radiusRs, muted: t.muted,
+                 months: t.rings.months.map(m => m.B),
                  moons: t.moons.map(m => ({name: m.name, labelled: m.labelled, side: m.side,
                      dist: m.dist, mag: m.mag, brightness: m.brightness, onDisc: m.onDisc,
                      behindDisc: m.behindDisc, inFront: m.inFront})),
                  crossing: t.transits.crossing.map(x => ({name: x.name, closestRs: x.closestRs,
                      utcMs: x.utcMs})),
-                 titan: t.transits.titan, titanNext: t.transits.titanNext,
-                 months: t.rings.months.length },
-               source: source.credit, moonMag: moonMag };
+                 titan: t.transits.titan, titanNext: t.transits.titanNext },
+               source: source, moonMag: moonMag };
     """, "2026-11-02")
     card, t = got["card"], got["t"]
     assert card["title"] == "SATURN · at " + t["hm"]
     assert not card["hidden"] and card["error"] is None and not card["muted"]
 
-    # The tiles: the rings' opening angle, the disc, the magnitude. The rings' own tile
-    # carries the trend as its note, the whole of the geometry in its tooltip, and the
-    # two-year curve with the edge-on line across it
+    # The tile: one, the rings'. Its value is the tilt without a sign -- B's sign is the face,
+    # and the face is in the value -- and its note is the direction over the two years the
+    # curve draws, which is not the module's own month (that one is the tooltip's wobble)
     tiles = card["tiles"]
-    assert [tile["label"] for tile in tiles] == ["RINGS", "DISC", "MAG"]
-    assert tiles[0]["value"] == ("−" if t["B"] < 0 else "+") + f"{abs(t['B']):.1f}°"
-    assert tiles[0]["notes"] == [t["trend"]]
+    assert [tile["label"] for tile in tiles] == ["RINGS"]
+    assert t["B"] < 0 and t["face"] == "south", "the south face is towards us tonight"
+    assert tiles[0]["value"] == f"{abs(t['B']):.1f}° · S-FACE"
+    assert "−" not in tiles[0]["value"] and "+" not in tiles[0]["value"]
+    two = ("opening" if abs(t["months"][-1]) >= abs(t["months"][0]) else "closing")
+    assert tiles[0]["notes"] == [two] == ["opening"] and t["trend"] == "closing"
     assert tiles[0]["title"].split("\n") == [
-        "RINGS TIP", "S-FACE US", "LIT S-FACE SUN", f"SPAN {t['aArcsec']:.1f}",
-        f"EDGE {t['radiusRs']:.2f}", t["trend"]]
-    assert t["sameFace"] and t["face"] == t["sunFace"] == "south"
+        "RINGS TIP", f"BPRIME {'−' if t['Bprime'] < 0 else '+'}{abs(t['Bprime']):.1f}",
+        "S-FACE US", "LIT S-FACE SUN", f"SPAN {t['aArcsec']:.1f}",
+        f"EDGE {t['radiusRs']:.2f}", "TWO YEARS opening", "WOBBLE"]
+
+    # The curve: the tile's own content width -- the harness cannot measure it, so it is the
+    # 66 px the card was written against -- with the edge-on line across it, one point per
+    # sample of the two years, and the two years' direction as an arrow at its end
     spark = tiles[0]["spark"]
     assert spark["label"] == "SPARK" and spark["viewBox"] == "0 0 66 22"
     assert len(spark["zero"]) == 1 and len(spark["head"]) == 1
-    # One point per sample of the two years: 24 months at the module's own 15-day step
-    n = t["months"]
+    n = len(t["months"])
     assert n == 49
     assert len(spark["line"]) == 1 and spark["line"][0].count("L ") == n - 1
     assert spark["line"][0].startswith("M ")
-    assert tiles[1]["value"] == f"{t['diameter']:.1f}″" and tiles[1]["title"] == "DISC TIP"
-    assert tiles[2]["value"] == f"{t['mag']:.1f}" and tiles[2]["title"] == "MAG TIP"
 
-    # The moons: all eight, in the module's own order, each the name and what it is doing,
-    # the whole of it in the tooltip; the ones the figure does not name, and Iapetus's own
-    # side, are marked on the chip
-    moons = card["moons"]
+    # The moons: all eight on the drawing, in the module's own order, each with its own name
+    # and, in its tooltip, its magnitude, which side of Saturn it is on and what it is doing
+    assert t["sameFace"] and t["face"] == t["sunFace"] == "south"
+    moons = card["svg"]["moons"]
     assert [m["moon"] for m in moons] == [m["name"] for m in t["moons"]]
-    assert len(moons) == 8
-    for chip, m in zip(moons, t["moons"]):
-        assert chip["parts"] == [{"cls": "solar-card-name", "text": m["name"]},
-                                 {"cls": "solar-card-note", "text": _where(m)}]
-        assert ("solar-card-moon-small" in chip["cls"]) == (not m["labelled"])
-        assert chip["brightness"] == (m["brightness"] or None)
-        lines = chip["title"].split("\n")
-        assert lines[0] == f"{m['side']} of Saturn · {_where(m)}"
-        assert lines[1] == f"{m['dist']:.1f} radii"
-        assert lines[2] == f"mag {m['mag']:.1f}"
-        assert ("IAP" in chip["title"]) == (m["name"] == "Iapetus")
+    for drawn, m in zip(moons, t["moons"]):
+        assert ("solar-saturn-moon-small" in drawn["cls"]) == (not m["labelled"])
+        assert drawn["brightness"] == (m["brightness"] or None)
+        lines = drawn["title"].split("\n")
+        assert lines[0] == m["name"]
+        assert lines[1] == f"mag {m['mag']:.1f}"
+        assert lines[2] == f"{m['side']} of Saturn · {_where(m)}"
+        assert lines[3] == f"{m['dist']:.1f} radii"
+        assert ("IAP" in drawn["title"]) == (m["name"] == "Iapetus")
     iap = [m for m in moons if m["moon"] == "Iapetus"][0]
-    assert iap["brightness"] in ("bright", "faint") and len(iap["title"].split("\n")) == 5
+    assert iap["brightness"] in ("bright", "faint")
+    # Iapetus's own bright or dark side, and where the numbers come from
+    assert iap["brightness"] == "faint", "eastern elongation tonight"
+    assert iap["title"].split("\n")[4:] == ["IAP FAINT", "IAP TIP", "IAP SRC"]
 
-    # The transits: this season has no Titan, so the line above the list says so and names
-    # both the season it next crosses in and the small moons that do cross this one; the
-    # list itself is every crossing the module found, innermost first
+    # The season: this one has no Titan, so the sentence says so and names both the season
+    # Titan next crosses in and the moons that do cross this one -- from the data, not from
+    # any list the card was written against -- with what "crossing the disc" means last
     assert t["titan"] is None
     assert card["transitsNone"] == "NO TITAN"
     others = [x["name"] for x in t["crossing"] if x["name"] != "Titan"]
     assert card["transitsNoneTitle"] == (f"NEXT {_full_day(t['titanNext']['utcMs'])}\n"
-                                         f"SMALL {', '.join(others)}")
-    assert card["transitsTitle"] == "TRANSIT TIP"
-    assert [x["moon"] for x in card["transits"]] == [x["name"] for x in t["crossing"]]
-    for chip, x in zip(card["transits"], t["crossing"]):
-        assert chip["parts"][0] == {"cls": "solar-card-name", "text": x["name"]}
-        assert chip["parts"][1]["cls"] == "solar-card-note"
-        assert chip["parts"][1]["text"] == f"{x['closestRs']:.2f} radii"
-        assert chip["title"] == (f"CLOSEST {x['closestRs']:.2f} on {_day(x['utcMs'])} "
-                                 f"{_hm(x['utcMs'])}\nmag {got['moonMag'][x['name']]:.1f}")
+                                         f"SMALL {', '.join(others)}\nTRANSIT TIP")
+    assert others[:4] == ["Mimas", "Enceladus", "Tethys", "Dione"]
 
-    # The credit line: the magnitudes' two sources
-    assert card["credit"] == "SRC " + got["source"]
-    assert "JPL" in card["credit"] and "Cassini" in card["credit"]
+    # The credit line: the two sources' short names, the whole of them in its tooltip
+    assert card["credit"] == "SRC " + got["source"]["short"] == "SRC JPL; Iapetus: JPL/Cassini"
+    assert card["creditTitle"] == got["source"]["credit"]
+    assert len(card["credit"]) < len(card["creditTitle"]), "the line is the short form"
+    assert "East is Least" in card["creditTitle"] and "East is Least" not in card["credit"]
 
 
 def test_saturn_card_names_titan_s_crossing_when_the_season_has_one(tmp_path):
     """15 Jan 2026: seven of the eight cross the disc this season -- Iapetus never does --
-    Titan among them, and the rings are within a degree and a half of edge-on. The line
-    above the list is Titan's own crossing, and Titan is in the list with it."""
+    Titan among them, and the rings are within a degree and a half of edge-on. The sentence
+    is Titan's crossing, and tonight Titan is simply somewhere on its orbit: no list, and
+    the moons' own states are the drawing's."""
     got = _run_saturn(tmp_path, """
         h.online();
         await h.load('bodies');
@@ -191,11 +193,12 @@ def test_saturn_card_names_titan_s_crossing_when_the_season_has_one(tmp_path):
     assert titan is not None and got["next"] is None and got["crossing"] == 7
     assert card["transitsNone"] == "TITAN CROSSES"
     assert card["transitsNoneTitle"] == (f"CLOSEST {titan['closestRs']:.2f} on "
-                                         f"{_day(titan['utcMs'])} {_hm(titan['utcMs'])}")
+                                         f"{_day(titan['utcMs'])} {_hm(titan['utcMs'])}\n"
+                                         f"TRANSIT TIP")
     # The season's crossings are the season's: tonight Titan is simply somewhere on its orbit
-    assert got["tonight"][0]["onDisc"] + got["tonight"][0]["behindDisc"] <= 1
-    assert "Titan" in [x["moon"] for x in card["transits"]]
-    assert "Titan" in [m["moon"] for m in card["moons"]]
+    assert sum(got["tonight"][0].values()) == 0
+    titanDot = [m for m in card["svg"]["moons"] if m["moon"] == "Titan"][0]
+    assert "far side" in titanDot["title"]
 
 
 def test_the_saturn_figure_is_the_module_s_own_rings_moons_and_north(tmp_path):
@@ -254,19 +257,31 @@ def test_the_saturn_figure_is_the_module_s_own_rings_moons_and_north(tmp_path):
     # The moons: where the module draws them, in the module's own order, each with its own
     # side and brightness; a dot where the figure reaches, a chevron where it does not
     assert len(svg["moons"]) == len(got["drawn"]) == 8
+    assert sum(1 for m in svg["moons"] if m["tag"] == "circle") > 0, "dots, for the moons"
+    assert sum(1 for m in svg["moons"] if m["tag"] == "path") > 0, "chevrons, for the far ones"
     for group, drawn, sky in zip(svg["moons"], got["drawn"], got["sky"]):
         assert group["moon"] == drawn["name"] == sky["name"]
         assert group["side"] == sky["side"]
         assert group["brightness"] == (sky["brightness"] or None)
         assert ("solar-saturn-moon-behind" in group["cls"]) == sky["behindDisc"]
         assert ("solar-saturn-moon-small" in group["cls"]) == (not drawn["labelled"])
+        assert group["title"].startswith(sky["name"] + "\n")
+        # The moon's own line across the figure can run out of its box -- at this tilt the
+        # strip is under two radii tall -- so the marker is kept inside it, as its name is
+        rad = 4 if drawn["labelled"] else 2.5
+        edge = 7 if drawn["off"] else rad + 2
+        want = max(edge, min(160 - edge, 80 + drawn["y"] * svg["scale"]))
         if drawn["off"]:
             assert group["tag"] == "path" and group["d"] is not None and group["r"] is None
+            nums = [float(v) for v in re.findall(r"-?\d+(?:\.\d+)?", group["d"])]
+            assert [nums[i] for i in range(1, len(nums), 2)] == pytest.approx(
+                [want - 5, want, want + 5], abs=0.01), "a chevron of its own size"
         else:
             assert group["tag"] == "circle" and group["r"] == (4 if drawn["labelled"] else 2.5)
             assert group["cx"] == pytest.approx(360 + drawn["x"] * svg["scale"], abs=0.01)
-            assert group["cy"] == pytest.approx(80 + drawn["y"] * svg["scale"], abs=0.01)
-        assert group["title"].startswith(sky["name"] + "\n")
+            assert group["cy"] == pytest.approx(want, abs=0.01)
+            assert group["r"] <= group["cy"] <= 160 - group["r"], "the whole dot is in the box"
+        assert group["cx"] is None or 0 <= group["cx"] <= 720
     assert sum(1 for d in got["drawn"] if d["off"]) > 0, "the figure reaches past its edge"
     assert sum(1 for d in got["drawn"] if d["inside"]) > 0, "and holds the inner moons"
 
@@ -347,34 +362,41 @@ def test_saturn_card_is_muted_when_saturn_is_low(tmp_path):
     """, "2027-05-20")
     assert got["reason"] == "altitude" and got["maxAlt"] < got["threshold"] == 20
     assert got["card"]["muted"] and got["card"]["empty"] == "BELOW"
-    assert len(got["card"]["moons"]) == got["moons"] == 8
-    assert got["card"]["svg"]["moons"] and len(got["card"]["tiles"]) == 3
+    assert len(got["card"]["svg"]["moons"]) == got["moons"] == 8
+    assert got["card"]["svg"]["labels"] and len(got["card"]["tiles"]) == 1
 
 
 def test_the_faces_note_is_shown_only_when_the_two_faces_differ(tmp_path):
     """24 Mar 2025: the rings are within a tenth of a degree of edge-on and the Earth and
-    the Sun are on opposite faces of them, so the tile says so. 2 Nov 2026: both are on the
-    south face, and it says nothing."""
+    the Sun are on opposite faces of them, so the tile says so, and its own value keeps the
+    face towards us -- B's sign -- while the Sun's own latitude, B', is in the tooltip. 2
+    Nov 2026: both are on the south face, and it says nothing."""
     got = _run_saturn(tmp_path, """
         h.online();
         await h.load('bodies');
         return { card: satCard(), B: t.rings.B, Bprime: t.rings.Bprime,
                  sameFace: t.rings.sameFace, face: t.rings.face, sunFace: t.rings.sunFace };
     """, "2025-03-24")
+    tile = got["card"]["tiles"][0]
     assert not got["sameFace"] and got["face"] != got["sunFace"]
     assert (got["B"] < 0) != (got["Bprime"] < 0), "the two faces are on opposite sides"
-    assert got["card"]["tiles"][0]["notes"] == ["opening", "FACES DIFFER"]
-    assert "S-FACE US" in got["card"]["tiles"][0]["title"]
-    assert "LIT N-FACE SUN" in got["card"]["tiles"][0]["title"]
+    assert tile["value"] == f"{abs(got['B']):.1f}° · S-FACE", "the face towards us, not the Sun's"
+    assert tile["notes"] == ["opening", "FACES DIFFER"]
+    assert "S-FACE US" in tile["title"] and "LIT N-FACE SUN" in tile["title"]
+    assert f"BPRIME +{abs(got['Bprime']):.1f}" in tile["title"], "the Sun's own latitude"
 
     same = _run_saturn(tmp_path, """
         h.online();
         await h.load('bodies');
-        return { card: satCard(), sameFace: t.rings.sameFace };
+        return { card: satCard(), sameFace: t.rings.sameFace, trend: t.rings.trend };
     """, "2026-11-02")
+    tile = same["card"]["tiles"][0]
     assert same["sameFace"]
-    assert same["card"]["tiles"][0]["notes"] == ["closing"]
-    assert "FACES DIFFER" not in same["card"]["tiles"][0]["title"]
+    # The note is the two years' direction, which is opening; the module's own month is
+    # closing, so the tooltip carries it as the wobble it is
+    assert tile["notes"] == ["opening"] and same["trend"] == "closing"
+    assert "TWO YEARS opening" in tile["title"] and "WOBBLE" in tile["title"]
+    assert "FACES DIFFER" not in tile["title"]
 
 
 def test_saturn_card_error_leaves_the_rest_of_the_page(tmp_path):
@@ -425,3 +447,130 @@ def test_saturn_card_is_computed_once_a_night(tmp_path):
     """, "2026-11-02")
     assert got["after"] == {"tonight": 0, "sameSvg": True, "redrawn": True, "pressed": ["inverted"]}
     assert got["calls"] == {"tonight": 1}, "a new night recomputes the card"
+
+
+WIDE = 1278      # the card's own width in the browser window Anton looked at
+
+
+def test_every_moon_has_a_marker_inside_the_figure(tmp_path):
+    """Anton's first look: every moon has a dot or a chevron of its own, inside the box, and
+    it keeps the figure's own x. A moon's line across the drawing runs far outside a strip
+    under two radii tall -- at the card's own width most of them do, at any tilt from the
+    smallest -- so the marker is held at the edge with its name, and the distance that says
+    how far out it is is the tooltip's. Drawn at the position the line actually has, they
+    all fall outside the box, which is what the first look saw: labels with no dots."""
+    out = {}
+    for sim in ("2026-11-02", "2031-11-02"):
+        got = _run_saturn(tmp_path, f"""
+            Object.defineProperty(h.$('solar-saturn-diagram'), 'clientWidth',
+                {{ get: () => {WIDE} }});
+            h.online();
+            await h.load('bodies');
+            return {{ card: satCard(), B: t.rings.B,
+                     drawn: d.moons.map(m => ({{name: m.name, x: m.x, y: m.y, off: m.off,
+                         labelled: m.labelled}})),
+                     moons: t.moons.map(m => ({{name: m.name, dist: m.dist}})) }};
+        """, sim)
+        svg = got["card"]["svg"]
+        assert svg["width"] == WIDE
+        assert len(svg["moons"]) == len(got["drawn"]) == 8, "all eight, none dropped"
+        cx = WIDE / 2
+        held = 0
+        for group, drawn, sky in zip(svg["moons"], got["drawn"], got["moons"]):
+            assert group["moon"] == drawn["name"] == sky["name"]
+            assert drawn["labelled"] or group["r"] in (None, 2.5)
+            raw = cx + drawn["y"] * svg["scale"]
+            if drawn["off"]:
+                assert group["tag"] == "path", "beyond the strip: a chevron at its edge"
+                xs = [float(v) for v in re.findall(r"-?\d+(?:\.\d+)?", group["d"])[0::2]]
+                ys = [float(v) for v in re.findall(r"-?\d+(?:\.\d+)?", group["d"])[1::2]]
+                assert all(0 <= y <= 160 for y in ys), "and the whole chevron is in the box"
+                assert all(0 <= x <= WIDE for x in xs)
+            else:
+                assert group["tag"] == "circle" and group["r"] in (2.5, 4)
+                assert group["cx"] == pytest.approx(cx + drawn["x"] * svg["scale"], abs=0.01)
+                assert group["r"] <= group["cy"] <= 160 - group["r"], "the whole dot is in the box"
+            if not 2 <= raw <= 158:
+                held += 1
+                assert group["cy" if not drawn["off"] else "d"] is not None
+        assert held, "some moon's own line is outside the box and is held at its edge"
+        out[sim] = (got["B"], held)
+    assert out["2031-11-02"][0] < -20, "the widest tilt: the figure is at its extreme"
+    assert out["2026-11-02"][1] > 0, "and tonight too, at the width the card is drawn at"
+
+
+def test_the_rings_cross_the_globe_in_front_of_it(tmp_path):
+    """The rings' near half is drawn over the globe, in the module's own paths and the same
+    three ring regions the far half is, so the band across the globe is the ring system at
+    the width it has at the sides, with the Cassini gap in it. The globe is a shade under
+    the rings in both themes: drawn in the rings' own colour the crossing would be invisible,
+    the same pixels over themselves."""
+    got = _run_saturn(tmp_path, """
+        h.online();
+        await h.load('bodies');
+        return { card: satCard(), rings: d.rings, B: t.rings.B };
+    """, "2026-11-02")
+    svg = got["card"]["svg"]
+    layers = svg["layers"]
+    assert [l["clip"] for l in layers] == ["url(#solar-saturn-far)", None,
+                                          "url(#solar-saturn-near)"]
+    far, globe, near = layers
+    assert [r["d"] for r in near["rings"]] == [r["d"] for r in far["rings"]] == \
+        [r["d"] for r in got["rings"]], "one ring system, drawn twice, in the module's paths"
+    assert [r["cls"] for r in near["rings"]] == ["solar-saturn-ring solar-saturn-ring-c",
+        "solar-saturn-ring solar-saturn-ring-b", "solar-saturn-ring solar-saturn-ring-a"]
+    assert globe["globe"] == [1] and far["globe"] == [] and near["globe"] == []
+    assert globe["shadow"] and globe["shadow"][0]["clip"] == "url(#solar-saturn-globe)", \
+        "and the rings' shadow is on the globe, beside the band"
+    # B is negative and the view is normal, so the near half is the upper one -- and the far
+    # half is the other, hidden behind the globe where the globe is
+    assert got["B"] < 0
+    assert [c["y"] for c in svg["clips"][:2]] == [80, -2]
+
+    css = (Path(__file__).resolve().parent.parent
+           / "static" / "css" / "solar_system.css").read_text()
+    rule = lambda sel: css[css.index(sel + " {"):css.index("}", css.index(sel + " {"))]
+    rings = rule("#bodies-tab .solar-saturn-svg .solar-saturn-ring-b")
+    assert "fill: var(--solar-body-saturn);" in rings
+    globe_fill = rule("#bodies-tab .solar-saturn-svg .solar-saturn-globe")
+    assert "fill: var(--solar-saturn-globe);" in globe_fill
+    scoped = rule("#solar-saturn")
+    assert "--solar-saturn-globe: " in scoped and "--solar-body-saturn" not in scoped, \
+        "the globe's own value, in the card's own scope"
+    band, disc = scoped.split("--solar-saturn-globe: ")[1].split(";")[0], "#d3bd8c"
+    assert band.lower() != disc, "a different colour from the rings, or the band is invisible"
+
+
+def test_the_rings_tile_is_read_at_the_width_it_is_drawn(tmp_path):
+    """The Rings tile is a tile of the row, not a full-width block: it holds the value and
+    the two-year curve, and the curve takes the tile's own content width. The stand-in DOM
+    has no layout, so the card falls back to the 66 px it was written against; given a row
+    that can be measured, the curve is drawn at that width instead, one point per sample."""
+    got = _run_saturn(tmp_path, """
+        const create = h.context.document.createElement;
+        h.context.document.createElement = function (tag) {
+            const el = create.call(this, tag);
+            Object.defineProperty(el, 'clientWidth', { get: function () {
+                return (this.className || '').indexOf('solar-card-tile-row-spark') >= 0
+                    ? 137 : 0; } });
+            return el;
+        };
+        h.online();
+        await h.load('bodies');
+        return { card: satCard(), months: t.rings.months.length };
+    """, "2026-11-02")
+    tile = got["card"]["tiles"][0]
+    spark = tile["spark"]
+    assert spark["viewBox"] == f"0 0 137 22", "the row's own width, measured"
+    assert spark["line"][0].count("L ") == got["months"] - 1
+    line = [float(v) for v in re.findall(r"-?\d+(?:\.\d+)?", spark["line"][0])]
+    assert min(line[0::2]) == 4 and max(line[0::2]) == 137 - 4, "the curve spans the row"
+    assert line[-1] > 11, "tonight, on the south face, the tilt is below the edge-on line"
+    # The two-year direction, at the curve's own end: |B| is growing, so the arrow leaves the
+    # edge-on line, which on this face is downwards on the drawing. The arrow's tip is the
+    # word's own direction drawn, so the two can never disagree.
+    head = [float(v) for v in re.findall(r"-?\d+(?:\.\d+)?", spark["head"][0])]
+    assert len(head) == 6
+    assert head[3] == head[5] == line[-1] and head[0] == line[-2], "its base is the curve's end"
+    assert abs(head[1] - 11) > abs(head[5] - 11), "and its tip points away from the line"
+    assert tile["notes"] == ["opening"] and "−" not in tile["value"], "the word is the same way"

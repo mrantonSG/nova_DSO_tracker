@@ -1079,6 +1079,10 @@
   color: var(--text-muted);
 }
 
+#bodies-tab .solar-card-credit[title]:not([title=""]) {
+  cursor: help;
+}
+
 #bodies-tab .solar-moon-credit[hidden],
 #bodies-tab .solar-card-credit[hidden] {
   display: none;
@@ -1447,16 +1451,21 @@
    THE SATURN CARD (#solar-saturn)
 
    The Jupiter card's shape -- a wide strip drawn in pixels, so its names stay 12 px -- with
-   the ring system on it. The globe is the planet's body colour, and the rings the same
-   colour in three strengths: the C ring is the dusky one and the faintest, the B ring the
-   brightest, the A ring between them. The band the rings' shadow cuts across the globe is a
-   dark fill over the body colour, in either theme, as the card's shadow colour is. Nothing
-   here says anything about a telescope: the Cassini division is drawn as the gap it is,
-   because that is what the geometry gives at this scale, and no more is claimed of it.
+   the ring system on it. The globe is the planet's body colour a shade darker than the
+   rings, and the rings that same colour in three strengths: the C ring is the dusky one and
+   the faintest, the B ring the brightest, the A ring between them. The globe is darker
+   because the rings' near half crosses in front of it: drawn in one colour, the band over
+   the globe and the globe would be the same pixels and the crossing would be invisible,
+   while over the card's own background the rings read as they are drawn. The band the
+   rings' shadow cuts across the globe is a dark fill over the body colour, in either theme,
+   as the card's shadow colour is. Nothing here says anything about a telescope: the Cassini
+   division is drawn as the gap it is, because that is what the geometry gives at this
+   scale, and no more is claimed of it.
    ================================================================= */
 #solar-saturn {
   container: solar-card / inline-size;
   --solar-saturn-shadow: #14100c;
+  --solar-saturn-globe: #b39d6c;
 }
 
 #bodies-tab #solar-saturn[hidden],
@@ -1471,9 +1480,9 @@
   min-width: 0;
 }
 
-/* The globe */
+/* The globe, a shade under the rings that cross it */
 #bodies-tab .solar-saturn-svg .solar-saturn-globe {
-  fill: var(--solar-body-saturn);
+  fill: var(--solar-saturn-globe);
   stroke: var(--text-muted);
   stroke-width: 1;
 }
@@ -1507,9 +1516,10 @@
 }
 
 /* The moons: a filled dot beside or in front of the globe, a hollow dashed ring hidden
-   behind it, a chevron at the edge of the figure for the ones beyond it. Iapetus carries
-   data-brightness: the moon itself is drawn the same either way -- which side of it faces
-   us is what its own tooltip says. */
+   behind it, a chevron at the edge of the figure for the ones beyond it. Each is drawn
+   inside the figure's own box -- a moon's line across the drawing can run higher than the
+   drawing reaches -- and Iapetus carries data-brightness: the moon itself is drawn the same
+   either way, because which of its two sides faces us is what its own tooltip says. */
 #bodies-tab .solar-saturn-svg .solar-saturn-moon-visible circle {
   fill: var(--solar-body-moon);
   stroke: var(--text-secondary);
@@ -1554,12 +1564,13 @@
   stroke-width: 1.25;
 }
 
-/* The Rings tile: B over the next two years beside its value, with the edge-on line and
-   the trend as an arrowhead on the curve's end */
+/* The Rings tile: B over the next two years on a row of its own under the value, as wide as
+   the tile's own content, with the edge-on line across it and the two-year direction as an
+   arrow at the curve's end */
 #bodies-tab .solar-saturn-spark {
   display: block;
   flex: none;
-  width: 66px;
+  width: 100%;
   height: 22px;
 }
 
@@ -1581,11 +1592,7 @@
   fill: var(--primary-color);
 }
 
-/* The transit line above the crossings' list is a sentence with its reasons in its tooltip */
+/* The transit line where the list used to be is a sentence with its reasons in its tooltip */
 #bodies-tab #solar-saturn-transits-none[title]:not([title=""]) {
   cursor: help;
-}
-
-#bodies-tab #solar-saturn-tiles {
-  display: contents;
 }

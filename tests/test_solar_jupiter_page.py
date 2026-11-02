@@ -80,15 +80,17 @@ I18N = {
         "title": "SATURN", "error": "SAT ERROR", "highestAt": "at {time}", "north": "N",
         "rings": "RINGS", "ringsHelp": "RINGS TIP", "ringLit": "LIT {face}",
         "ringFacesDiffer": "FACES DIFFER", "ringTrend": {"opening": "opening", "closing": "closing"},
+        "ringTrendLong": "TWO YEARS {trend}", "ringWobble": "WOBBLE", "ringBprime": "BPRIME {bprime}",
         "sparkAria": "SPARK", "ringSpan": "SPAN {arcsec}", "aRingEdge": "EDGE {rs}",
-        "disc": "DISC", "discHelp": "DISC TIP", "mag": "MAG", "magHelp": "MAG TIP",
         "faceEarth": {"north": "N-FACE US", "south": "S-FACE US"},
         "faceSun": {"north": "N-FACE SUN", "south": "S-FACE SUN"},
+        "faceShort": {"north": "N-FACE", "south": "S-FACE"},
         "moonSide": {"east": "east of Saturn", "west": "west of Saturn"},
-        "moonPlace": {"front": "in front", "onDisc": "on the disc", "behind": "behind",
-                      "hidden": "hidden behind the disc"},
+        "moonPlace": {"front": "in front", "onDisc": "on the disc", "far": "far side",
+                      "hidden": "hidden behind the globe"},
         "moonRadii": "{rs} radii", "moonMag": "mag {mag}",
         "iapetusBright": "IAP BRIGHT", "iapetusFaint": "IAP FAINT", "iapetusHelp": "IAP TIP",
+        "iapetusSource": "IAP SRC",
         "noTitan": "NO TITAN", "titanNext": "NEXT {date}", "smallCross": "SMALL {names}",
         "titanCross": "TITAN CROSSES", "transitItem": "CLOSEST {rs} on {date}",
         "transitHelp": "TRANSIT TIP", "credit": "SRC {source}", "diagramAria": "SAT DIAGRAM",
@@ -221,9 +223,6 @@ const marsCard = () => {
 };
 const satCard = () => {
     const box = h.$('solar-saturn'), body = h.$('solar-saturn-body'), svg = svgOf('solar-saturn-diagram');
-    // A list chip, as marsCard's: the stand-in keeps classList apart from className
-    const chip = li => ({ moon: li.dataset.moon || null, brightness: li.dataset.brightness || null,
-        cls: [li.className].concat([...li.classList.set]).join(' '), parts: parts(li), title: li.title });
     // Every element carrying a class below one, the transformed and clipped layers included
     const deep = (el, cls, out) => {
         out = out || [];
@@ -235,7 +234,7 @@ const satCard = () => {
     };
     // The Rings tile's sparkline: the edge-on line, the curve and the trend's arrowhead
     const spark = row => {
-        const s = row.children.filter(c => c.tagName === 'svg')[0];
+        const s = row && row.children.filter(c => c.tagName === 'svg')[0];
         if (!s) return null;
         const part = c => s.children.filter(p => p.attrs.class === 'solar-saturn-spark-' + c)
             .map(p => p.attrs.d);
@@ -249,20 +248,23 @@ const satCard = () => {
         hidden: box.hidden, title: h.$('solar-saturn-title').textContent,
         error: h.$('solar-saturn-error').hidden ? null : h.$('solar-saturn-error').textContent,
         bodyHidden: body.hidden, muted: body.classList.contains('solar-card-muted'),
-        tiles: h.$('solar-saturn-tiles').children.map(t => ({
-            label: t.children[0].textContent,
-            // The tile's row holds the sparkline first, where it has one, then the value
-            value: t.children[1].children.filter(c => c.tagName === 'span')[0].textContent,
-            spark: spark(t.children[1]),
-            notes: t.children.slice(2).map(c => c.textContent), title: t.title })),
-        moons: h.$('solar-saturn-moons').children.map(chip),
-        transits: h.$('solar-saturn-transits').children.map(chip),
-        transitsTitle: h.$('solar-saturn-transits').title,
-        transitsNone: h.$('solar-saturn-transits-none').hidden ? null
-            : h.$('solar-saturn-transits-none').textContent,
+        // A tile: its label, its value's own row, the row its sparkline has to itself where it
+        // has one, and its notes -- the lines of text under the value
+        tiles: h.$('solar-saturn-tiles').children.map(t => {
+            const rows = t.children.slice(1).filter(c => (c.children || []).length);
+            return {
+                label: t.children[0].textContent,
+                value: rows.length ? rows[0].children.filter(c => c.tagName === 'span')[0].textContent : null,
+                spark: spark(rows.filter(r => r.children.some(c => c.tagName === 'svg'))[0]),
+                // The lines under the value's own row: the sparkline's row carries no text
+                notes: t.children.slice(2).filter(c => c.textContent).map(c => c.textContent),
+                title: t.title };
+        }),
+        transitsNone: h.$('solar-saturn-transits-none').textContent,
         transitsNoneTitle: h.$('solar-saturn-transits-none').title,
         empty: h.$('solar-saturn-empty').hidden ? null : h.$('solar-saturn-empty').textContent,
         credit: h.$('solar-saturn-credit').hidden ? null : h.$('solar-saturn-credit').textContent,
+        creditTitle: h.$('solar-saturn-credit').title,
         pressed: pressed(satButtons),
         svg: !svg ? null : {
             label: svg.attrs['aria-label'], width: +svg.attrs.width, height: +svg.attrs.height,
@@ -994,7 +996,10 @@ def test_page_has_the_three_cards_between_the_moon_and_the_calculator(client):
     assert ">Saturn detail</h3>" in html
     assert 'id="solar-jupiter-shadows"' in html and 'id="solar-jupiter-no-shadows"' in html
     assert 'id="solar-mars-more-list"' in html and 'id="solar-mars-credit"' in html
-    assert 'id="solar-saturn-moons"' in html and 'id="solar-saturn-credit"' in html
+    # Saturn's card has no moon or transit list: the drawing carries the moons and the
+    # transit answer is one sentence
+    assert 'id="solar-saturn-transits-none"' in html and 'id="solar-saturn-credit"' in html
+    assert 'id="solar-saturn-moons"' not in html and 'id="solar-saturn-transits"' not in html
 
 
 def test_page_loads_the_card_scripts_after_their_engines(client):

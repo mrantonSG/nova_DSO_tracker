@@ -254,11 +254,14 @@
         Rhea: 9.6, Titan: 8.4, Hyperion: 14.4, Iapetus: 11.0,
     });
     // What the card's credit line names: the two sources the header cites for the
-    // magnitudes, in the shape the page's other cards take theirs in.
+    // magnitudes, in the shape the page's other cards take theirs in. `short` is the same
+    // two sources for the line itself, which carries `credit` in its own tooltip: the
+    // satellites' magnitudes are JPL's, Iapetus's own two are JPL/Cassini's.
     const SOURCE = Object.freeze({
         credit: 'JPL Solar System Dynamics, Planetary Satellite Physical Parameters '
             + '(mean-opposition magnitudes, archived 2021-09-04); Iapetus’s 10.1 and 11.9 '
             + 'from JPL/Cassini Outreach, “East is Least and West is Best”',
+        short: 'JPL; Iapetus: JPL/Cassini',
         date: '2021-09-04',
     });
 

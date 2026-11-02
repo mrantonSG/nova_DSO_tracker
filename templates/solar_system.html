@@ -219,12 +219,8 @@
             </div>
             <div class="solar-card-info">
                 <div id="solar-saturn-tiles" class="solar-card-tiles"></div>
-                <span class="solar-card-label">{{ _('Moons tonight') }}</span>
                 <p id="solar-saturn-empty" class="solar-card-empty" hidden></p>
-                <ol id="solar-saturn-moons" class="solar-card-list"></ol>
-                <span class="solar-card-label">{{ _('Satellite transits') }}</span>
-                <p id="solar-saturn-transits-none" class="solar-card-empty" hidden></p>
-                <ol id="solar-saturn-transits" class="solar-card-list"></ol>
+                <p id="solar-saturn-transits-none" class="solar-card-empty"></p>
             </div>
             <p id="solar-saturn-credit" class="solar-card-credit" hidden></p>
         </div>
@@ -544,19 +540,22 @@ const solarI18n = {
             north:     {{ _('north face') | tojson }},
             south:     {{ _('south face') | tojson }}
         },
+        faceShort: {
+            north:     {{ _('north face') | tojson }},
+            south:     {{ _('south face') | tojson }}
+        },
         ringLit:       {{ _('The Sun lights the %(face)s', face='{face}') | tojson }},
         ringFacesDiffer: {{ _('The Earth and the Sun see opposite faces of the rings tonight') | tojson }},
         ringTrend: {
             opening:   {{ _('opening') | tojson }},
             closing:   {{ _('closing') | tojson }}
         },
+        ringTrendLong: {{ _('Over the next two years: %(trend)s', trend='{trend}') | tojson }},
+        ringWobble:    {{ _('Over the next month the tilt moves the other way: a short-term wobble inside this longer swing') | tojson }},
+        ringBprime:    {{ _('B′, the Sun’s latitude above the ring plane (negative is the south face): %(bprime)s°', bprime='{bprime}') | tojson }},
         sparkAria:     {{ _('The tilt of the rings, B, over the next two years, and whether they are opening or closing') | tojson }},
         ringSpan:      {{ _('The ring system spans %(arcsec)s″ across', arcsec='{arcsec}') | tojson }},
         aRingEdge:     {{ _('The outer edge of the A ring is %(rs)s Saturn radii from the centre', rs='{rs}') | tojson }},
-        disc:          {{ _('Disc') | tojson }},
-        discHelp:      {{ _('Apparent diameter of the globe in arcseconds tonight.') | tojson }},
-        mag:           {{ _('Magnitude') | tojson }},
-        magHelp:       {{ _('Brightness of the planet tonight: smaller is brighter.') | tojson }},
         moonSide: {
             east:      {{ _('east of Saturn') | tojson }},
             west:      {{ _('west of Saturn') | tojson }}
@@ -564,16 +563,17 @@ const solarI18n = {
         moonPlace: {
             front:     {{ _('in front of the globe') | tojson }},
             onDisc:    {{ _('crossing the disc') | tojson }},
-            behind:    {{ _('behind the globe') | tojson }},
-            hidden:    {{ _('hidden behind the disc') | tojson }}
+            far:       {{ _('on the far side of its orbit') | tojson }},
+            hidden:    {{ _('hidden behind the globe') | tojson }}
         },
         moonRadii:     {{ _('%(rs)s Saturn radii from the centre', rs='{rs}') | tojson }},
         moonMag:       {{ _('Mean opposition magnitude %(mag)s', mag='{mag}') | tojson }},
         iapetusBright: {{ _('Western elongation: the bright trailing side faces us') | tojson }},
         iapetusFaint:  {{ _('Eastern elongation: the dark leading side faces us') | tojson }},
         iapetusHelp:   {{ _('Iapetus is two-toned: one hemisphere is bright, the other covered in dark material. It is brightest at western elongation, about magnitude 10.1, and faintest at eastern, about 11.9.') | tojson }},
+        iapetusSource: {{ _('Iapetus: JPL/Cassini Outreach, “East is Least and West is Best”') | tojson }},
         noTitan:       {{ _('No Titan transits this season') | tojson }},
-        titanNext:     {{ _('Titan next crosses the disc in %(date)s', date='{date}') | tojson }},
+        titanNext:     {{ _('Titan crosses the disc again on %(date)s', date='{date}') | tojson }},
         smallCross:    {{ _('%(names)s also cross the disc this season, but they are far too small and faint to be seen against it', names='{names}') | tojson }},
         titanCross:    {{ _('Titan crosses the disc this season') | tojson }},
         transitItem:   {{ _('closest approach %(rs)s Saturn radii from the centre, %(date)s', rs='{rs}', date='{date}') | tojson }},

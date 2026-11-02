@@ -1868,53 +1868,29 @@
     const SAT_NEAR_CLIP = 'solar-saturn-near';
     const SAT_GLOBE_CLIP = 'solar-saturn-globe';
 
-    /** What one of Saturn's moons is doing tonight, in the module's own order of states. */
+    /** What one of Saturn's moons is doing tonight, in the module's own order of states: in
+     *  front of the globe (`onDisc` when it is inside the limb as well, which is a transit),
+     *  hidden behind it -- only when it really is within the disc and behind it -- or simply
+     *  on the far side of its orbit, which is where most of the eight spend most of a night
+     *  and is not the same thing as hidden. */
     function saturnMoonWhere(m) {
         const P = (i18n.saturn || {}).moonPlace || {};
-        return P[m.onDisc ? 'onDisc' : m.behindDisc ? 'hidden' : m.inFront ? 'front' : 'behind'] || '';
+        return P[m.onDisc ? 'onDisc' : m.behindDisc ? 'hidden' : m.inFront ? 'front' : 'far'] || '';
     }
 
-    /** A moon's own lines, the same in its chip and on the drawing: which side of Saturn it
-     *  is on -- the sky's side, since the drawing's left and right are Saturn's own frame --
-     *  what it is doing, how far out it is, its mean opposition magnitude and, for Iapetus,
-     *  which of its two different sides is towards us. */
+    /** A moon's own lines, the same on the drawing and in its chip: how bright it is, which
+     *  side of Saturn it is on -- the sky's side, since the drawing's left and right are
+     *  Saturn's own frame -- what it is doing, how far out it is and, for Iapetus, which of
+     *  its two different sides is towards us, and where that comes from. */
     function saturnMoonTip(m, S) {
         const side = (S.moonSide || {})[m.side] || '';
-        return [[side, saturnMoonWhere(m)].filter(Boolean).join(' · '),
+        return [m.mag === undefined ? '' : fill(S.moonMag, {mag: m.mag.toFixed(1)}),
+                [side, saturnMoonWhere(m)].filter(Boolean).join(' · '),
                 fill(S.moonRadii, {rs: m.dist.toFixed(1)}),
-                m.mag === undefined ? '' : fill(S.moonMag, {mag: m.mag.toFixed(1)}),
                 m.brightness === 'bright' ? S.iapetusBright
                     : m.brightness === 'faint' ? S.iapetusFaint : '',
-                m.brightness ? S.iapetusHelp : ''].filter(Boolean).join('\n');
-    }
-
-    /** One of tonight's moons: its name and what it is doing, in the Moon card's chip. */
-    function saturnMoonItem(list, m) {
-        const S = i18n.saturn || {};
-        const li = cardItem(list, 'solar-card-item');
-        li.dataset.moon = m.name;
-        if (!m.labelled) li.classList.add('solar-card-moon-small');
-        if (m.brightness) li.dataset.brightness = m.brightness;
-        span(li, m.name, 'solar-card-name');
-        span(li, saturnMoonWhere(m), 'solar-card-note');
-        li.title = saturnMoonTip(m, S);
-        return li;
-    }
-
-    /** One of the moons whose orbit crosses Saturn's disc in the next twelve months: which
-     *  moon, how close its centre comes to the centre of the disc -- the whole of what the
-     *  card's look-ahead claims -- and, in the tooltip, when that closest approach is. */
-    function saturnTransitItem(list, x) {
-        const S = i18n.saturn || {};
-        const mag = (NovaSolarSaturn.MOON_MAG || {})[x.name];
-        const li = cardItem(list, 'solar-card-event');
-        li.dataset.moon = x.name;
-        span(li, x.name, 'solar-card-name');
-        span(li, fill(S.moonRadii, {rs: x.closestRs.toFixed(2)}), 'solar-card-note');
-        li.title = [fill(S.transitItem, {rs: x.closestRs.toFixed(2), date: localDateTime(x.utcMs)}),
-                    mag === undefined ? '' : fill(S.moonMag, {mag: mag.toFixed(1)})]
-                   .filter(Boolean).join('\n');
-        return li;
+                m.brightness ? S.iapetusHelp : '',
+                m.brightness ? S.iapetusSource : ''].filter(Boolean).join('\n');
     }
 
     /** An instant as the location's own date with its year and no time: for the answers that
@@ -1925,12 +1901,16 @@
         return cardDate(p.year, p.month, p.day, true);
     }
 
-    /** The Rings tile's sparkline: B over the next two years, the edge-on line at 0, and the
-     *  trend as an arrowhead along the curve's own last quarter. The scale is the window's
-     *  largest |B|, never under a degree, so a year with the rings nearly closed draws as the
-     *  flat line it is. */
-    function ringSpark(row, months, S) {
-        const W = 66, H = 22, pad = 4;
+    /** The Rings tile's sparkline: B over the next two years, the edge-on line at 0 across
+     *  the middle, and the two-year direction as an arrow at the curve's own end -- away from
+     *  the edge-on line is opening, towards it closing, which is the way the curve runs while
+     *  the tilt keeps to itself. The scale is the window's largest |B|, never under a degree,
+     *  so a year with the rings nearly closed draws as the flat line it is. The width is the
+     *  tile's own content width, measured, because a sparkline 66 px wide cannot be read; the
+     *  66 px the card was written against is the fallback for a figure that cannot be
+     *  measured at all, the test harness's own. */
+    function ringSpark(row, months, S, dir) {
+        const W = Math.max(66, Math.round(row.clientWidth || 0) || 66), H = 22, pad = 4;
         const svg = svgEl(row, 'svg', {viewBox: '0 0 ' + W + ' ' + H, class: 'solar-saturn-spark',
                                        role: 'img', 'aria-label': S.sparkAria || '', focusable: 'false'});
         const px = v => Math.round(v * 10) / 10;
@@ -1942,14 +1922,16 @@
                             class: 'solar-saturn-spark-zero'});
         svgEl(svg, 'path', {class: 'solar-saturn-spark-line',
             d: months.map((m, i) => (i ? 'L ' : 'M ') + px(x(i)) + ' ' + px(y(m.B))).join(' ')});
-        if (n > 6) {                                  // the trend: the chord of the last quarter
-            const j = n - 1 - Math.min(n - 1, 6);
-            const ux = x(n - 1) - x(j), uy = y(months[n - 1].B) - y(months[j].B);
-            const len = Math.hypot(ux, uy) || 1, ax = ux / len, ay = uy / len;
+        if (n > 1) {
+            // The two years' direction, at the curve's own end: |B| growing runs away from the
+            // edge-on line whichever face is towards us, |B| shrinking runs back to it
+            const away = months[n - 1].B >= 0 ? -1 : 1;
+            const ty = (dir === 'closing' ? -away : away) * 5;
             const tip = [x(n - 1), y(months[n - 1].B)];
-            svgEl(svg, 'path', {class: 'solar-saturn-spark-head', d: 'M ' + px(tip[0]) + ' ' + px(tip[1])
-                + ' L ' + px(tip[0] - 5 * ax + 3 * ay) + ' ' + px(tip[1] - 5 * ay - 3 * ax)
-                + ' L ' + px(tip[0] - 5 * ax - 3 * ay) + ' ' + px(tip[1] - 5 * ay + 3 * ax) + ' Z'});
+            svgEl(svg, 'path', {class: 'solar-saturn-spark-head', d:
+                'M ' + px(tip[0]) + ' ' + px(tip[1] + ty)
+                + ' L ' + px(tip[0] - 3) + ' ' + px(tip[1])
+                + ' L ' + px(tip[0] + 3) + ' ' + px(tip[1]) + ' Z'});
         }
         return svg;
     }
@@ -1959,18 +1941,29 @@
         const tiles = $('solar-saturn-tiles');
         tiles.innerHTML = '';
         const r = t.rings;
-        const trend = (S.ringTrend || {})[r.trend] || '';
+        const months = r.months || [];
+        // Which way the rings are going over the two years the sparkline draws: |B| at the
+        // end of the window against |B| tonight. The module's own trend is a month's, and the
+        // two can differ -- the tilt wobbles inside the longer swing -- so the tile says the
+        // two-year one and the tooltip keeps both, the month's as the wobble it is.
+        const dir = months.length && Math.abs(months[months.length - 1].B) < Math.abs(months[0].B)
+            ? 'closing' : 'opening';
+        const word = (S.ringTrend || {})[dir] || '';
         const face = (S.faceEarth || {})[r.face] || '';
+        const name = (S.faceShort || {})[r.face] || '';
         const sun = (S.faceSun || {})[r.sunFace] || '';
-        const tile = cardTile(tiles, 'solar-card', S.rings, signed(r.B, 1) + '°',
-            [S.ringsHelp, face, fill(S.ringLit, {face: sun}),
+        const wobble = r.trend && r.trend !== dir ? S.ringWobble : '';
+        const tile = cardTile(tiles, 'solar-card', S.rings,
+            Math.abs(r.B).toFixed(1) + '°' + (name ? ' · ' + name : ''),
+            [S.ringsHelp, fill(S.ringBprime, {bprime: signed(r.Bprime, 1)}), face,
+             fill(S.ringLit, {face: sun}),
              fill(S.ringSpan, {arcsec: r.aArcsec.toFixed(1)}),
-             fill(S.aRingEdge, {rs: r.radiusRs.toFixed(2)}), trend].filter(Boolean).join('\n'),
-            row => ringSpark(row, r.months, S));
-        span(tile, trend, 'solar-card-tile-note');
+             fill(S.aRingEdge, {rs: r.radiusRs.toFixed(2)}),
+             fill(S.ringTrendLong, {trend: word}), wobble].filter(Boolean).join('\n'));
+        // The curve is the tile's content width, so it takes a row of its own under the value
+        ringSpark(span(tile, '', 'solar-card-tile-row solar-card-tile-row-spark'), months, S, dir);
+        span(tile, word, 'solar-card-tile-note');
         if (!r.sameFace) span(tile, S.ringFacesDiffer, 'solar-card-tile-note');
-        cardTile(tiles, 'solar-card', S.disc, t.diameterArcsec.toFixed(1) + '″', S.discHelp);
-        cardTile(tiles, 'solar-card', S.mag, t.mag.toFixed(1), S.magHelp);
     }
 
     /** Saturn tonight as a system, drawn as the Jupiter strip is: the globe in the centre,
@@ -2024,10 +2017,17 @@
         ringPaths(scaled(svgEl(svg, 'g', {'clip-path': 'url(#' + SAT_NEAR_CLIP + ')'})));
 
         // The moons: a dot for the ones the figure reaches, a chevron at its edge for the ones
-        // it does not, a smaller and unnamed dot for Mimas, Enceladus and Hyperion
+        // it does not, a smaller and unnamed dot for Mimas, Enceladus and Hyperion. A moon's
+        // own line across the figure can run higher than the figure's own half-height -- the
+        // strip is only about 1.8 radii tall, and the ring plane tilts the far moons out of
+        // it -- so the marker is kept inside the box, as the names already are, and the
+        // tooltip keeps the distance that says how far out the moon really is.
         const spots = d.moons.map((m, i) => {
             const sky = t.moons[i];
-            const x = cx + m.x * k, y = cy + m.y * k;
+            const rad = m.labelled ? SAT_DOT_PX : SAT_SMALL_PX;
+            const x = cx + m.x * k;
+            const edge = (m.off ? SAT_CHEVRON_PX : rad) + 2;
+            const y = Math.min(H - edge, Math.max(edge, cy + m.y * k));
             const g = svgEl(svg, 'g', {class: 'solar-saturn-moon solar-saturn-moon-' +
                 (sky.behindDisc ? 'behind' : 'visible') + (m.labelled ? '' : ' solar-saturn-moon-small'),
                 'data-moon': m.name, 'data-side': sky.side, 'data-brightness': sky.brightness || ''});
@@ -2037,7 +2037,6 @@
                     + ' L ' + px(x) + ' ' + px(y)
                     + ' L ' + px(x - s * SAT_CHEVRON_PX) + ' ' + px(y + SAT_CHEVRON_PX)});
             } else {
-                const rad = m.labelled ? SAT_DOT_PX : SAT_SMALL_PX;
                 svgEl(g, 'circle', {cx: px(x), cy: px(y), r: rad});
             }
             svgEl(g, 'title', {}).textContent = m.name + '\n' + saturnMoonTip(sky, S);
@@ -2129,32 +2128,26 @@
         empty.textContent = reason || '';
         empty.hidden = !reason;
 
-        const moons = $('solar-saturn-moons');
-        moons.innerHTML = '';
-        t.moons.forEach(m => saturnMoonItem(moons, m));
-
-        // The transit answer: Titan's, in the line above the list, because it is the one worth
-        // the sentence; the crossings themselves, all of them, in the list, each with the
-        // closest its centre comes to the centre of the disc. Titan's own season is named in
-        // the tooltip when this one has none, and the small moons that do cross are named
-        // there too -- from the data, not from the list the card was written against.
+        // The transit answer: one sentence, because Titan's crossing is the only one worth a
+        // sentence. The moons that do cross the disc this season are far too small to be seen
+        // against it, so there is no list; the season Titan next crosses in, and the small
+        // moons that cross this one -- from the data, not from the list the card was written
+        // against -- are in the sentence's own tooltip, with what "crossing the disc" means.
         const titan = t.transits.titan;
         const others = t.transits.crossing.filter(x => x.name !== 'Titan');
         const none = $('solar-saturn-transits-none');
         none.textContent = titan ? S.titanCross : S.noTitan;
-        none.title = titan
-            ? fill(S.transitItem, {rs: titan.closestRs.toFixed(2), date: localDateTime(titan.utcMs)})
+        none.title = (titan
+            ? [fill(S.transitItem, {rs: titan.closestRs.toFixed(2), date: localDateTime(titan.utcMs)})]
             : [t.transits.titanNext ? fill(S.titanNext, {date: localDate(t.transits.titanNext.utcMs)}) : '',
-               others.length ? fill(S.smallCross, {names: others.map(x => x.name).join(', ')}) : '']
-              .filter(Boolean).join('\n');
-        const list = $('solar-saturn-transits');
-        list.innerHTML = '';
-        list.title = S.transitHelp || '';
-        t.transits.crossing.forEach(x => saturnTransitItem(list, x));
+               others.length ? fill(S.smallCross, {names: others.map(x => x.name).join(', ')}) : ''])
+            .concat([S.transitHelp]).filter(Boolean).join('\n');
 
+        // The credit line is the two sources' short names; the whole of them is in its tooltip
         const source = typeof NovaSolarSaturn !== 'undefined' ? NovaSolarSaturn.SOURCE : null;
         const credit = $('solar-saturn-credit');
-        credit.textContent = source ? fill(S.credit, {source: source.credit}) : '';
+        credit.textContent = source ? fill(S.credit, {source: source.short}) : '';
+        credit.title = source ? source.credit : '';
         credit.hidden = !source;
         state.saturnDrawn = drawn;
     }
