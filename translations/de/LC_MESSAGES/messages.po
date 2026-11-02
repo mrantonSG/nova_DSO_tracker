@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-03 02:40+0800\n"
+"POT-Creation-Date: 2026-11-03 03:31+0800\n"
 "PO-Revision-Date: 2026-03-27 13:26+0800\n"
 "Last-Translator: \n"
 "Language: de\n"
@@ -2808,7 +2808,7 @@ msgstr "Aufnahmegelegenheiten"
 #: templates/index.html:229 templates/index.html:247
 #: templates/journal_report.html:686 templates/mobile_journal_new.html:210
 #: templates/project_report.html:906 templates/solar_system.html:27
-#: templates/solar_system.html:293
+#: templates/solar_system.html:289
 msgid "Date"
 msgstr "Datum"
 
@@ -3063,7 +3063,7 @@ msgstr ""
 "Nova DSO Tracker Analytics – DSGVO-konform, keine Speicherung "
 "personenbezogener Daten"
 
-#: templates/base.html:109 templates/solar_system.html:261
+#: templates/base.html:109 templates/solar_system.html:257
 msgid "Calculating..."
 msgstr "Wird berechnet..."
 
@@ -3194,12 +3194,12 @@ msgid "Select Camera"
 msgstr "Kamera auswählen"
 
 #: templates/base.html:153 templates/config_form.html:652
-#: templates/project_report.html:1174 templates/solar_system.html:236
+#: templates/project_report.html:1174 templates/solar_system.html:232
 msgid "Telescope"
 msgstr "Teleskop"
 
 #: templates/base.html:154 templates/config_form.html:653
-#: templates/project_report.html:1178 templates/solar_system.html:237
+#: templates/project_report.html:1178 templates/solar_system.html:233
 msgid "Camera"
 msgstr "Kamera"
 
@@ -4618,8 +4618,8 @@ msgstr "Diagrammdatum"
 
 #: templates/graph_view.html:60 templates/index.html:58
 #: templates/mobile_base.html:35 templates/project_report.html:1152
-#: templates/solar_system.html:28 templates/solar_system.html:273
-#: templates/solar_system.html:318
+#: templates/solar_system.html:28 templates/solar_system.html:269
+#: templates/solar_system.html:314
 msgid "Moon"
 msgstr "Mond"
 
@@ -4665,7 +4665,7 @@ msgstr "Tag"
 
 #: templates/graph_view.html:102 templates/mobile_object_detail.html:520
 #: templates/solar_system.html:90 templates/solar_system.html:93
-#: templates/solar_system.html:346
+#: templates/solar_system.html:342
 msgid "Month"
 msgstr "Monat"
 
@@ -4780,7 +4780,7 @@ msgstr ""
 "Es ist noch kein Rig konfiguriert. Fügen Sie ein Rig hinzu, um zu sehen, "
 "wie dieses Objekt in Ihr Sichtfeld passt."
 
-#: templates/graph_view.html:217 templates/solar_system.html:254
+#: templates/graph_view.html:217 templates/solar_system.html:250
 msgid "Manage Rigs"
 msgstr "Rigs verwalten"
 
@@ -5015,7 +5015,7 @@ msgid "Window"
 msgstr "Fenster"
 
 #: templates/graph_view.html:690 templates/mobile_object_detail.html:493
-#: templates/solar_system.html:332
+#: templates/solar_system.html:328
 msgid "Now"
 msgstr "Jetzt"
 
@@ -5121,7 +5121,7 @@ msgstr "Filter entfernen"
 
 #: templates/index.html:148 templates/index.html:151
 #: templates/mobile_up_now.html:899 templates/mobile_up_now.html:912
-#: templates/solar_system.html:331 templates/solar_system.html:337
+#: templates/solar_system.html:327 templates/solar_system.html:333
 msgid "Altitude"
 msgstr "Höhe"
 
@@ -5130,7 +5130,7 @@ msgid "Current"
 msgstr "Aktuell"
 
 #: templates/index.html:149 templates/index.html:152
-#: templates/solar_system.html:338
+#: templates/solar_system.html:334
 msgid "Azimuth"
 msgstr "Azimut"
 
@@ -5169,7 +5169,7 @@ msgid "to moon (°)"
 msgstr "zum Mond (°)"
 
 #: templates/index.html:159 templates/solar_system.html:71
-#: templates/solar_system.html:296 templates/solar_system.html:558
+#: templates/solar_system.html:292
 msgid "Magnitude"
 msgstr "Magnitude"
 
@@ -6141,8 +6141,8 @@ msgstr "Himmelskörper"
 msgid "Calendar"
 msgstr "Kalender"
 
-#: templates/solar_system.html:64 templates/solar_system.html:264
-#: templates/solar_system.html:294
+#: templates/solar_system.html:64 templates/solar_system.html:260
+#: templates/solar_system.html:290
 msgid "Body"
 msgstr "Himmelskörper"
 
@@ -6174,7 +6174,7 @@ msgstr "Höchster Punkt am Himmel; Höhe in Klammern."
 msgid "Set"
 msgstr "Untergang"
 
-#: templates/solar_system.html:70 templates/solar_system.html:299
+#: templates/solar_system.html:70 templates/solar_system.html:295
 msgid "Highest altitude between sunset and sunrise."
 msgstr "Größte Höhe zwischen Sonnenuntergang und Sonnenaufgang."
 
@@ -6182,7 +6182,7 @@ msgstr "Größte Höhe zwischen Sonnenuntergang und Sonnenaufgang."
 msgid "Max altitude tonight"
 msgstr "Max. Höhe heute Nacht"
 
-#: templates/solar_system.html:72 templates/solar_system.html:297
+#: templates/solar_system.html:72 templates/solar_system.html:293
 msgid ""
 "Apparent size in arcseconds. The most important number for planetary "
 "imaging."
@@ -6190,7 +6190,7 @@ msgstr ""
 "Scheinbare Größe in Bogensekunden. Die wichtigste Zahl für die "
 "Planetenfotografie."
 
-#: templates/solar_system.html:72 templates/solar_system.html:297
+#: templates/solar_system.html:72 templates/solar_system.html:293
 msgid "Diameter"
 msgstr "Durchmesser"
 
@@ -6198,17 +6198,17 @@ msgstr "Durchmesser"
 msgid "Lit fraction of the disc as seen from Earth."
 msgstr "Beleuchteter Anteil der Scheibe, von der Erde aus gesehen."
 
-#: templates/solar_system.html:73 templates/solar_system.html:385
+#: templates/solar_system.html:73 templates/solar_system.html:381
 msgid "Illuminated"
 msgstr "Beleuchtet"
 
-#: templates/solar_system.html:74 templates/solar_system.html:298
+#: templates/solar_system.html:74 templates/solar_system.html:294
 msgid "Angle from the Sun. Larger means easier to see against a dark sky."
 msgstr ""
 "Winkelabstand zur Sonne. Je größer, desto leichter vor dunklem Himmel zu "
 "sehen."
 
-#: templates/solar_system.html:74 templates/solar_system.html:298
+#: templates/solar_system.html:74 templates/solar_system.html:294
 msgid "Elongation"
 msgstr "Elongation"
 
@@ -6216,7 +6216,7 @@ msgstr "Elongation"
 msgid "Tonight"
 msgstr "Heute Nacht"
 
-#: templates/solar_system.html:107 templates/solar_system.html:377
+#: templates/solar_system.html:107 templates/solar_system.html:373
 msgid "Moon detail"
 msgstr "Monddetails"
 
@@ -6264,7 +6264,7 @@ msgstr "Heute Nacht am Terminator"
 msgid "More features"
 msgstr "Weitere Formationen"
 
-#: templates/solar_system.html:134 templates/solar_system.html:423
+#: templates/solar_system.html:134 templates/solar_system.html:419
 msgid "Jupiter detail"
 msgstr "Jupiterdetails"
 
@@ -6307,7 +6307,7 @@ msgstr "Ereignisse heute Nacht"
 msgid "Shadow transits, the next nights"
 msgstr "Schattendurchgänge, die nächsten Nächte"
 
-#: templates/solar_system.html:183 templates/solar_system.html:488
+#: templates/solar_system.html:183 templates/solar_system.html:484
 msgid "Mars detail"
 msgstr "Marsdetails"
 
@@ -6315,131 +6315,123 @@ msgstr "Marsdetails"
 msgid "Features on the disc tonight"
 msgstr "Formationen heute Nacht auf der Scheibe"
 
-#: templates/solar_system.html:209 templates/solar_system.html:533
+#: templates/solar_system.html:209 templates/solar_system.html:529
 msgid "Saturn detail"
 msgstr "Saturndetails"
 
-#: templates/solar_system.html:222
-msgid "Moons tonight"
-msgstr "Monde heute Nacht"
-
-#: templates/solar_system.html:225
-msgid "Satellite transits"
-msgstr "Monddurchgänge"
-
-#: templates/solar_system.html:234 templates/solar_system.html:593
+#: templates/solar_system.html:230 templates/solar_system.html:593
 msgid "Planetary calculator"
 msgstr "Planetenrechner"
 
-#: templates/solar_system.html:238
+#: templates/solar_system.html:234
 msgid "Amplification"
 msgstr "Verlängerungsfaktor"
 
-#: templates/solar_system.html:244
+#: templates/solar_system.html:240
 msgid "Seeing outlook"
 msgstr "Seeing-Ausblick"
 
-#: templates/solar_system.html:253
+#: templates/solar_system.html:249
 msgid "Add a telescope and a camera on the Configuration page."
 msgstr "Fügen Sie auf der Konfigurationsseite ein Teleskop und eine Kamera hinzu."
 
-#: templates/solar_system.html:265
+#: templates/solar_system.html:261
 msgid "All bodies"
 msgstr "Alle Himmelskörper"
 
-#: templates/solar_system.html:266 templates/solar_system.html:311
+#: templates/solar_system.html:262 templates/solar_system.html:307
 msgid "Mercury"
 msgstr "Merkur"
 
-#: templates/solar_system.html:267 templates/solar_system.html:312
+#: templates/solar_system.html:263 templates/solar_system.html:308
 msgid "Venus"
 msgstr "Venus"
 
-#: templates/solar_system.html:268 templates/solar_system.html:313
+#: templates/solar_system.html:264 templates/solar_system.html:309
 msgid "Mars"
 msgstr "Mars"
 
-#: templates/solar_system.html:269 templates/solar_system.html:314
+#: templates/solar_system.html:265 templates/solar_system.html:310
 msgid "Jupiter"
 msgstr "Jupiter"
 
-#: templates/solar_system.html:270 templates/solar_system.html:315
+#: templates/solar_system.html:266 templates/solar_system.html:311
 msgid "Saturn"
 msgstr "Saturn"
 
-#: templates/solar_system.html:271 templates/solar_system.html:316
+#: templates/solar_system.html:267 templates/solar_system.html:312
 msgid "Uranus"
 msgstr "Uranus"
 
-#: templates/solar_system.html:272 templates/solar_system.html:317
+#: templates/solar_system.html:268 templates/solar_system.html:313
 msgid "Neptune"
 msgstr "Neptun"
 
-#: templates/solar_system.html:275
+#: templates/solar_system.html:271
 msgid "Event type"
 msgstr "Ereignistyp"
 
-#: templates/solar_system.html:276
+#: templates/solar_system.html:272
 msgid "All events"
 msgstr "Alle Ereignisse"
 
-#: templates/solar_system.html:277
+#: templates/solar_system.html:273
 msgid "Planets"
 msgstr "Planeten"
 
-#: templates/solar_system.html:278
+#: templates/solar_system.html:274
 msgid "Conjunctions"
 msgstr "Konjunktionen"
 
-#: templates/solar_system.html:279
+#: templates/solar_system.html:275
 msgid "Lunar features"
 msgstr "Mondformationen"
 
-#: templates/solar_system.html:280
+#: templates/solar_system.html:276
 msgid "Galilean moons"
 msgstr "Galileische Monde"
 
-#: templates/solar_system.html:281
+#: templates/solar_system.html:277
 msgid "Saturn's moons"
 msgstr "Saturns Monde"
 
-#: templates/solar_system.html:285
+#: templates/solar_system.html:281
 msgid "Hide events that are not visible"
 msgstr "Nicht sichtbare Ereignisse ausblenden"
 
-#: templates/solar_system.html:293
+#: templates/solar_system.html:289
 msgid "The evening on which the observing night starts."
 msgstr "Der Abend, an dem die Beobachtungsnacht beginnt."
 
-#: templates/solar_system.html:295
+#: templates/solar_system.html:291
 msgid "Event"
 msgstr "Ereignis"
 
-#: templates/solar_system.html:299
+#: templates/solar_system.html:295
 msgid "Max altitude that night"
 msgstr "Max. Höhe in dieser Nacht"
 
-#: templates/solar_system.html:300
+#: templates/solar_system.html:296
 msgid "Negative values are events that have already passed."
 msgstr "Negative Werte sind Ereignisse, die schon vorbei sind."
 
-#: templates/solar_system.html:300
+#: templates/solar_system.html:296
 msgid "Days from now"
 msgstr "Tage ab heute"
 
-#: templates/solar_system.html:320
+#: templates/solar_system.html:316
 msgid "E"
 msgstr "O"
 
-#: templates/solar_system.html:321
+#: templates/solar_system.html:317
 msgid "W"
 msgstr "W"
 
-#: templates/solar_system.html:322
+#: templates/solar_system.html:318
 msgid "Celestial north"
 msgstr "Himmelsnord"
 
-#: templates/solar_system.html:323
+#: templates/solar_system.html:319
 msgid ""
 "Drawn with the planet's north up; the arrow shows celestial north. The "
 "real view also turns with the planet's position in the sky."
@@ -6448,118 +6440,118 @@ msgstr ""
 " Das reale Bildfeld dreht sich zusätzlich mit der Stellung des Planeten "
 "am Himmel."
 
-#: templates/solar_system.html:324
+#: templates/solar_system.html:320
 msgid "Always up"
 msgstr "Immer über dem Horizont"
 
-#: templates/solar_system.html:325
+#: templates/solar_system.html:321
 msgid "Never up"
 msgstr "Nie über dem Horizont"
 
-#: templates/solar_system.html:326
+#: templates/solar_system.html:322
 msgid "Not up tonight"
 msgstr "Heute Nacht nicht über dem Horizont"
 
-#: templates/solar_system.html:327
+#: templates/solar_system.html:323
 msgid "Does not reach the altitude threshold tonight"
 msgstr "Erreicht heute Nacht Ihr Horizontlimit nicht"
 
-#: templates/solar_system.html:328
+#: templates/solar_system.html:324
 msgid "Solar System data could not be calculated."
 msgstr "Die Daten des Sonnensystems konnten nicht berechnet werden."
 
-#: templates/solar_system.html:329
+#: templates/solar_system.html:325
 msgid "Could not load location data."
 msgstr "Die Standortdaten konnten nicht geladen werden."
 
-#: templates/solar_system.html:330
+#: templates/solar_system.html:326
 msgid "The altitude chart could not be drawn."
 msgstr "Das Höhendiagramm konnte nicht gezeichnet werden."
 
-#: templates/solar_system.html:333
+#: templates/solar_system.html:329
 msgid "Sunset"
 msgstr "Sonnenuntergang"
 
-#: templates/solar_system.html:334
+#: templates/solar_system.html:330
 msgid "Sunrise"
 msgstr "Sonnenaufgang"
 
-#: templates/solar_system.html:335
+#: templates/solar_system.html:331
 msgid "Astronomical dusk"
 msgstr "Astronomische Abenddämmerung"
 
-#: templates/solar_system.html:336
+#: templates/solar_system.html:332
 msgid "Astronomical dawn"
 msgstr "Astronomische Morgendämmerung"
 
-#: templates/solar_system.html:339
+#: templates/solar_system.html:335
 msgid "Horizon"
 msgstr "Horizont"
 
-#: templates/solar_system.html:340
+#: templates/solar_system.html:336
 msgid "Altitude threshold / horizon mask"
 msgstr "Horizontlimit / Horizontmaske"
 
-#: templates/solar_system.html:341
+#: templates/solar_system.html:337
 msgid "Local time"
 msgstr "Ortszeit"
 
-#: templates/solar_system.html:342
+#: templates/solar_system.html:338
 msgid "Altitude (°)"
 msgstr "Höhe (°)"
 
-#: templates/solar_system.html:343
+#: templates/solar_system.html:339
 msgid "Azimuth (°)"
 msgstr "Azimut (°)"
 
-#: templates/solar_system.html:344
+#: templates/solar_system.html:340
 msgid "Max altitude (sunset to sunrise)"
 msgstr "Max. Höhe (Sonnenuntergang bis -aufgang)"
 
-#: templates/solar_system.html:345
+#: templates/solar_system.html:341
 msgid "Day of month"
 msgstr "Tag des Monats"
 
-#: templates/solar_system.html:347
+#: templates/solar_system.html:343
 msgid "Opposition"
 msgstr "Opposition"
 
-#: templates/solar_system.html:348
+#: templates/solar_system.html:344
 msgid "Greatest elongation E (evening)"
 msgstr "Größte Elongation O (abends)"
 
-#: templates/solar_system.html:349
+#: templates/solar_system.html:345
 msgid "Greatest elongation W (morning)"
 msgstr "Größte Elongation W (morgens)"
 
-#: templates/solar_system.html:350
+#: templates/solar_system.html:346
 msgid "Does not reach the altitude threshold that night"
 msgstr "Erreicht in dieser Nacht Ihr Horizontlimit nicht"
 
-#: templates/solar_system.html:351
+#: templates/solar_system.html:347
 #, python-format
 msgid "Exact time: %(time)s"
 msgstr "Genaue Zeit: %(time)s"
 
-#: templates/solar_system.html:352
+#: templates/solar_system.html:348
 #, python-format
 msgid "Conjunction %(sep)s°"
 msgstr "Konjunktion %(sep)s°"
 
-#: templates/solar_system.html:353
+#: templates/solar_system.html:349
 #, python-format
 msgid "Too close to the Sun (%(elong)s° away)"
 msgstr "Zu nah an der Sonne (%(elong)s° entfernt)"
 
-#: templates/solar_system.html:354 templates/solar_system.html:468
+#: templates/solar_system.html:350 templates/solar_system.html:464
 msgid "Occultation"
 msgstr "Bedeckung"
 
-#: templates/solar_system.html:355
+#: templates/solar_system.html:351
 msgid "In daylight at the closest approach"
 msgstr "Zum Zeitpunkt des geringsten Abstands ist es Tag"
 
-#: templates/solar_system.html:356
+#: templates/solar_system.html:352
 #, python-format
 msgid ""
 "Below the altitude threshold at the closest approach (%(first)s "
@@ -6568,17 +6560,17 @@ msgstr ""
 "Zum Zeitpunkt des geringsten Abstands unter Ihrem Horizontlimit "
 "(%(first)s %(first_alt)s°, %(second)s %(second_alt)s°)"
 
-#: templates/solar_system.html:357
+#: templates/solar_system.html:353
 #, python-format
 msgid "Closest approach: %(date)s, %(dist)s million km"
 msgstr "Größte Annäherung: %(date)s, %(dist)s Millionen km"
 
-#: templates/solar_system.html:358
+#: templates/solar_system.html:354
 #, python-format
 msgid "rings %(value)s"
 msgstr "Ringe %(value)s"
 
-#: templates/solar_system.html:359
+#: templates/solar_system.html:355
 msgid ""
 "Tilt of the rings toward the Earth: + north face, − south face visible. "
 "Near 0° the rings are edge-on."
@@ -6586,7 +6578,7 @@ msgstr ""
 "Neigung der Ringe zur Erde: + Nordseite, − Südseite sichtbar. Nahe 0° "
 "sieht man die Ringe von der Kante."
 
-#: templates/solar_system.html:361
+#: templates/solar_system.html:357
 msgid ""
 "Opposite the Sun: up all night, closest and brightest. Good for several "
 "weeks around this date."
@@ -6594,7 +6586,7 @@ msgstr ""
 "Gegenüber der Sonne: die ganze Nacht sichtbar, am nächsten und am "
 "hellsten. Mehrere Wochen um dieses Datum gut."
 
-#: templates/solar_system.html:362
+#: templates/solar_system.html:358
 msgid ""
 "Farthest east of the Sun: best evening visibility, low in the west after "
 "sunset."
@@ -6602,7 +6594,7 @@ msgstr ""
 "Am weitesten östlich der Sonne: beste Abendsichtbarkeit, tief im Westen "
 "nach Sonnenuntergang."
 
-#: templates/solar_system.html:363
+#: templates/solar_system.html:359
 msgid ""
 "Farthest west of the Sun: best morning visibility, low in the east before"
 " sunrise."
@@ -6610,21 +6602,21 @@ msgstr ""
 "Am weitesten westlich der Sonne: beste Morgensichtbarkeit, tief im Osten "
 "vor Sonnenaufgang."
 
-#: templates/solar_system.html:364
+#: templates/solar_system.html:360
 msgid "Closest apparent approach of the two bodies."
 msgstr "Geringster scheinbarer Abstand der beiden Himmelskörper."
 
-#: templates/solar_system.html:365
+#: templates/solar_system.html:361
 msgid "Closest apparent approach of the two bodies, as seen from this location."
 msgstr ""
 "Geringster scheinbarer Abstand der beiden Himmelskörper, von diesem "
 "Standort aus gesehen."
 
-#: templates/solar_system.html:366
+#: templates/solar_system.html:362
 msgid "The Moon passes in front of the planet as seen from this location."
 msgstr "Der Mond zieht, von diesem Standort aus gesehen, vor dem Planeten vorbei."
 
-#: templates/solar_system.html:367
+#: templates/solar_system.html:363
 msgid ""
 "Sunrise on the crater walls near Werner draws a bright X, and near Ukert "
 "a V, on the terminator for about an hour. Times are approximate."
@@ -6633,7 +6625,7 @@ msgstr ""
 "Stunde ein helles X an den Terminator, bei Ukert ein V. Die Zeiten sind "
 "ungefähr."
 
-#: templates/solar_system.html:368
+#: templates/solar_system.html:364
 msgid ""
 "The Moon is tilted towards us by more than 7°: features near that limb "
 "are easier to see."
@@ -6641,7 +6633,7 @@ msgstr ""
 "Der Mond ist um mehr als 7° zu uns geneigt: Formationen nahe diesem Rand "
 "sind leichter zu sehen."
 
-#: templates/solar_system.html:369
+#: templates/solar_system.html:365
 msgid ""
 "Two of the Galilean moons cast their shadows on Jupiter at the same time."
 " The window is the time both shadows are on the disc while Jupiter is "
@@ -6651,7 +6643,7 @@ msgstr ""
 "Jupiter. Das Fenster ist die Zeitspanne, in der beide Schatten auf der "
 "Scheibe stehen und Jupiter über Ihrer Höhenschwelle liegt."
 
-#: templates/solar_system.html:370
+#: templates/solar_system.html:366
 msgid ""
 "Iapetus is at western elongation: the bright half of this two-toned moon "
 "is turned towards us, and it is at its brightest — about magnitude 10.1 "
@@ -6665,20 +6657,20 @@ msgstr ""
 " ändert sich stärker als die jedes anderen Saturnmondes, deshalb ist er "
 "der einzige, der in dieser Liste ein Datum verdient."
 
-#: templates/solar_system.html:372
+#: templates/solar_system.html:368
 #, python-format
 msgid "Double shadow transit (%(moons)s, %(minutes)s min)"
 msgstr "Doppelter Schattendurchgang (%(moons)s, %(minutes)s min)"
 
-#: templates/solar_system.html:373
+#: templates/solar_system.html:369
 msgid "Iapetus western elongation"
 msgstr "Iapetus in westlicher Elongation"
 
-#: templates/solar_system.html:374
+#: templates/solar_system.html:370
 msgid "Lunar X and V"
 msgstr "Lunar X und V"
 
-#: templates/solar_system.html:375
+#: templates/solar_system.html:371
 msgid ""
 "Not visible from here: the Sun is up or the Moon is below the altitude "
 "threshold around this time"
@@ -6686,26 +6678,26 @@ msgstr ""
 "Von hier nicht sichtbar: Um diese Zeit steht die Sonne über dem Horizont "
 "oder der Mond unter Ihrem Horizontlimit"
 
-#: templates/solar_system.html:378
+#: templates/solar_system.html:374
 msgid "Moon detail could not be calculated."
 msgstr "Monddetails konnten nicht berechnet werden."
 
-#: templates/solar_system.html:379 templates/solar_system.html:504
+#: templates/solar_system.html:375 templates/solar_system.html:500
 #, python-format
 msgid "Feature names: %(source)s"
 msgstr "Namen der Formationen: %(source)s"
 
-#: templates/solar_system.html:380 templates/solar_system.html:425
-#: templates/solar_system.html:490 templates/solar_system.html:535
+#: templates/solar_system.html:376 templates/solar_system.html:421
+#: templates/solar_system.html:486 templates/solar_system.html:531
 #, python-format
 msgid "highest tonight at %(time)s"
 msgstr "heute Nacht am höchsten um %(time)s"
 
-#: templates/solar_system.html:381
+#: templates/solar_system.html:377
 msgid "Colongitude"
 msgstr "Kolongitude"
 
-#: templates/solar_system.html:382
+#: templates/solar_system.html:378
 msgid ""
 "Where the morning terminator lies on the Moon. It grows about 12° a day: "
 "about 0° at first quarter, 90° at Full Moon, 180° at last quarter."
@@ -6714,66 +6706,66 @@ msgstr ""
 "Tag: etwa 0° bei erstem Viertel, 90° bei Vollmond, 180° bei letztem "
 "Viertel."
 
-#: templates/solar_system.html:383
+#: templates/solar_system.html:379
 msgid "Libration"
 msgstr "Libration"
 
-#: templates/solar_system.html:384
+#: templates/solar_system.html:380
 msgid "How far the Moon is tilted towards us, and towards which limb (arrow)."
 msgstr "Wie weit der Mond zu uns geneigt ist und zu welchem Rand (Pfeil)."
 
-#: templates/solar_system.html:386
+#: templates/solar_system.html:382
 msgid "Morning terminator"
 msgstr "Morgenterminator"
 
-#: templates/solar_system.html:387
+#: templates/solar_system.html:383
 msgid "Evening terminator"
 msgstr "Abendterminator"
 
-#: templates/solar_system.html:388
+#: templates/solar_system.html:384
 #, python-format
 msgid "Sun %(alt)s° above the horizon"
 msgstr "Sonne %(alt)s° über dem Horizont"
 
-#: templates/solar_system.html:389 templates/solar_system.html:511
+#: templates/solar_system.html:385 templates/solar_system.html:507
 #, python-format
 msgid "Latitude %(lat)s°, longitude %(lon)s°"
 msgstr "Breite %(lat)s°, Länge %(lon)s°"
 
-#: templates/solar_system.html:390 templates/solar_system.html:509
+#: templates/solar_system.html:386 templates/solar_system.html:505
 msgid "Near the limb"
 msgstr "Randnah"
 
-#: templates/solar_system.html:391
+#: templates/solar_system.html:387
 #, python-format
 msgid "Next good nights: %(dates)s"
 msgstr "Nächste gute Nächte: %(dates)s"
 
-#: templates/solar_system.html:392
+#: templates/solar_system.html:388
 msgid "No good night in the next 30 days"
 msgstr "Keine gute Nacht in den nächsten 30 Tagen"
 
-#: templates/solar_system.html:394
+#: templates/solar_system.html:390
 #, python-format
 msgid "Excellent libration: %(side)s side, %(deg)s°"
 msgstr "Ausgezeichnete Libration: Seite %(side)s, %(deg)s°"
 
-#: templates/solar_system.html:395
+#: templates/solar_system.html:391
 #, python-format
 msgid "Favourable libration: %(side)s side, %(deg)s°"
 msgstr "Günstige Libration: Seite %(side)s, %(deg)s°"
 
-#: templates/solar_system.html:396
+#: templates/solar_system.html:392
 #, python-format
 msgid "Moderate libration: %(side)s side, %(deg)s°"
 msgstr "Mäßige Libration: Seite %(side)s, %(deg)s°"
 
-#: templates/solar_system.html:397
+#: templates/solar_system.html:393
 #, python-format
 msgid "No strong libration tonight (%(deg)s°)"
 msgstr "Heute Nacht keine nennenswerte Libration (%(deg)s°)"
 
-#: templates/solar_system.html:398
+#: templates/solar_system.html:394
 #, python-format
 msgid ""
 "Libration tilts the %(side)s side towards us (%(deg)s°), but it is in "
@@ -6782,86 +6774,86 @@ msgstr ""
 "Die Libration neigt die Seite %(side)s zu uns (%(deg)s°), aber sie liegt "
 "heute Nacht im Dunkeln."
 
-#: templates/solar_system.html:401
+#: templates/solar_system.html:397
 msgid "Too close to New Moon"
 msgstr "Zu nahe am Neumond"
 
-#: templates/solar_system.html:402
+#: templates/solar_system.html:398
 msgid "No features near the terminator (Full Moon)"
 msgstr "Keine Formationen am Terminator (Vollmond)"
 
-#: templates/solar_system.html:403
+#: templates/solar_system.html:399
 msgid "No features near the terminator"
 msgstr "Keine Formationen am Terminator"
 
-#: templates/solar_system.html:404
+#: templates/solar_system.html:400
 msgid "The Moon is not up during the night"
 msgstr "Der Mond steht nachts nicht am Himmel"
 
-#: templates/solar_system.html:406
+#: templates/solar_system.html:402
 msgid "The Moon tonight: lit part, terminator and tonight's features"
 msgstr ""
 "Der Mond heute Nacht: beleuchteter Teil, Terminator und die Formationen "
 "von heute Nacht"
 
-#: templates/solar_system.html:407 templates/solar_system.html:426
-#: templates/solar_system.html:491 templates/solar_system.html:536
+#: templates/solar_system.html:403 templates/solar_system.html:422
+#: templates/solar_system.html:487 templates/solar_system.html:532
 msgid "N"
 msgstr "N"
 
-#: templates/solar_system.html:409 templates/solar_system.html:521
+#: templates/solar_system.html:405 templates/solar_system.html:517
 msgid "Crater"
 msgstr "Krater"
 
-#: templates/solar_system.html:410
+#: templates/solar_system.html:406
 msgid "Mare (sea)"
 msgstr "Mare (Meer)"
 
-#: templates/solar_system.html:411
+#: templates/solar_system.html:407
 msgid "Ocean"
 msgstr "Ozean"
 
-#: templates/solar_system.html:412
+#: templates/solar_system.html:408
 msgid "Bay"
 msgstr "Bucht"
 
-#: templates/solar_system.html:413
+#: templates/solar_system.html:409
 msgid "Lake"
 msgstr "See"
 
-#: templates/solar_system.html:414 templates/solar_system.html:516
+#: templates/solar_system.html:410 templates/solar_system.html:512
 msgid "Mountain"
 msgstr "Berg"
 
-#: templates/solar_system.html:415
+#: templates/solar_system.html:411
 msgid "Mountain range"
 msgstr "Gebirge"
 
-#: templates/solar_system.html:416 templates/solar_system.html:515
+#: templates/solar_system.html:412 templates/solar_system.html:511
 msgid "Valley"
 msgstr "Tal"
 
-#: templates/solar_system.html:417 templates/solar_system.html:524
+#: templates/solar_system.html:413 templates/solar_system.html:520
 msgid "Scarp"
 msgstr "Steilstufe"
 
-#: templates/solar_system.html:418
+#: templates/solar_system.html:414
 msgid "Rille"
 msgstr "Rille"
 
-#: templates/solar_system.html:419
+#: templates/solar_system.html:415
 msgid "Cape"
 msgstr "Kap"
 
-#: templates/solar_system.html:424
+#: templates/solar_system.html:420
 msgid "Jupiter detail could not be calculated."
 msgstr "Jupiterdetails konnten nicht berechnet werden."
 
-#: templates/solar_system.html:427
+#: templates/solar_system.html:423
 msgid "CM (System II)"
 msgstr "ZM (System II)"
 
-#: templates/solar_system.html:428
+#: templates/solar_system.html:424
 msgid ""
 "The longitude at the centre of the disc: it tells you which side of "
 "Jupiter faces you. System II is the one for everything outside the "
@@ -6871,31 +6863,31 @@ msgstr ""
 "Ihnen zeigt. System II gilt für alles außerhalb des Äquatorgürtels, auch "
 "für den Großen Roten Fleck."
 
-#: templates/solar_system.html:429
+#: templates/solar_system.html:425
 #, python-format
 msgid "System I (equatorial belt): %(deg)s°"
 msgstr "System I (Äquatorgürtel): %(deg)s°"
 
-#: templates/solar_system.html:430
+#: templates/solar_system.html:426
 #, python-format
 msgid "System III (the planet's interior): %(deg)s°"
 msgstr "System III (das Innere des Planeten): %(deg)s°"
 
-#: templates/solar_system.html:432
+#: templates/solar_system.html:428
 msgid "None while Jupiter is up tonight"
 msgstr "Keiner, solange Jupiter heute Nacht oben steht"
 
-#: templates/solar_system.html:433
+#: templates/solar_system.html:429
 #, python-format
 msgid "Next: %(time)s"
 msgstr "Nächster: %(time)s"
 
-#: templates/solar_system.html:434
+#: templates/solar_system.html:430
 #, python-format
 msgid "System II %(lon)s° on %(date)s"
 msgstr "System II %(lon)s° am %(date)s"
 
-#: templates/solar_system.html:435
+#: templates/solar_system.html:431
 msgid ""
 "Predicted times when the Great Red Spot crosses the centre of the disc: "
 "the best moment to see or image it. A prediction: the spot drifts, so "
@@ -6906,20 +6898,20 @@ msgstr ""
 "Vorhersage: der Fleck driftet, rechnen Sie mit 10–20 Minuten Abweichung "
 "in beide Richtungen."
 
-#: templates/solar_system.html:436
+#: templates/solar_system.html:432
 #, python-format
 msgid "Tonight: %(times)s"
 msgstr "Heute Nacht: %(times)s"
 
-#: templates/solar_system.html:437
+#: templates/solar_system.html:433
 msgid "The next nights:"
 msgstr "Die nächsten Nächte:"
 
-#: templates/solar_system.html:438
+#: templates/solar_system.html:434
 msgid "No transit while Jupiter is up in the next nights."
 msgstr "In den nächsten Nächten kein Durchgang, solange Jupiter oben steht."
 
-#: templates/solar_system.html:439
+#: templates/solar_system.html:435
 #, python-format
 msgid ""
 "Built-in longitude: System II %(lon)s° on %(date)s (JUPOS via Sky & "
@@ -6928,17 +6920,17 @@ msgstr ""
 "Eingebaute Länge: System II %(lon)s° am %(date)s (JUPOS über Sky & "
 "Telescope; BAA Jupiter Section)."
 
-#: templates/solar_system.html:440
+#: templates/solar_system.html:436
 #, python-format
 msgid "Your longitude: System II %(lon)s° on %(date)s."
 msgstr "Ihre Länge: System II %(lon)s° am %(date)s."
 
-#: templates/solar_system.html:441
+#: templates/solar_system.html:437
 #, python-format
 msgid "Drift applied since that date: %(rate)s° a month."
 msgstr "Seit diesem Datum angewandte Drift: %(rate)s° pro Monat."
 
-#: templates/solar_system.html:442
+#: templates/solar_system.html:438
 msgid ""
 "This longitude is more than six months old, so the times may be well off."
 " Enter a recent value (JUPOS, BAA, ALPO) with Edit."
@@ -6947,7 +6939,7 @@ msgstr ""
 "abweichen. Geben Sie mit „Bearbeiten“ einen aktuellen Wert ein (JUPOS, "
 "BAA, ALPO)."
 
-#: templates/solar_system.html:443
+#: templates/solar_system.html:439
 msgid ""
 "Check the current GRS longitude in Sky & Telescope's GRS transit "
 "calculator or at JUPOS."
@@ -6955,147 +6947,147 @@ msgstr ""
 "Die aktuelle Länge des GRF finden Sie im GRS-Transitrechner von Sky & "
 "Telescope oder bei JUPOS."
 
-#: templates/solar_system.html:445
+#: templates/solar_system.html:441
 msgid "Great Red Spot (predicted position)"
 msgstr "Großer Roter Fleck (vorhergesagte Position)"
 
-#: templates/solar_system.html:446
+#: templates/solar_system.html:442
 msgid "Filled dot: a moon beside or in front of Jupiter"
 msgstr "Gefüllter Punkt: ein Mond neben oder vor Jupiter"
 
-#: templates/solar_system.html:447
+#: templates/solar_system.html:443
 msgid "Dashed ring: a moon hidden behind the disc"
 msgstr "Gestrichelter Ring: ein Mond, verdeckt hinter der Scheibe"
 
-#: templates/solar_system.html:448
+#: templates/solar_system.html:444
 msgid "Faded ring: a moon in Jupiter's shadow (eclipsed)"
 msgstr "Blasser Ring: ein Mond im Schatten des Jupiter (verfinstert)"
 
-#: templates/solar_system.html:449
+#: templates/solar_system.html:445
 msgid "Black dot on the disc: a moon's shadow"
 msgstr "Schwarzer Punkt auf der Scheibe: der Schatten eines Mondes"
 
-#: templates/solar_system.html:450
+#: templates/solar_system.html:446
 msgid "Red oval: the Great Red Spot, when it faces us"
 msgstr "Rotes Oval: der Große Rote Fleck, wenn er uns zugewandt ist"
 
-#: templates/solar_system.html:451
+#: templates/solar_system.html:447
 msgid "east"
 msgstr "östlich"
 
-#: templates/solar_system.html:452
+#: templates/solar_system.html:448
 msgid "west"
 msgstr "westlich"
 
-#: templates/solar_system.html:453
+#: templates/solar_system.html:449
 msgid "in front"
 msgstr "davor"
 
-#: templates/solar_system.html:454
+#: templates/solar_system.html:450
 msgid "on the disc"
 msgstr "auf der Scheibe"
 
-#: templates/solar_system.html:455
+#: templates/solar_system.html:451
 msgid "behind"
 msgstr "dahinter"
 
-#: templates/solar_system.html:456 templates/solar_system.html:568
+#: templates/solar_system.html:452
 msgid "hidden behind the disc"
 msgstr "hinter der Scheibe verborgen"
 
-#: templates/solar_system.html:457
+#: templates/solar_system.html:453
 msgid "in eclipse"
 msgstr "in Verfinsterung"
 
-#: templates/solar_system.html:458
+#: templates/solar_system.html:454
 #, python-format
 msgid "%(rj)s Jupiter radii from the centre of the disc"
 msgstr "%(rj)s Jupiterradien vom Zentrum der Scheibe"
 
-#: templates/solar_system.html:459
+#: templates/solar_system.html:455
 msgid "Its shadow is on the disc"
 msgstr "Sein Schatten steht auf der Scheibe"
 
-#: templates/solar_system.html:461
+#: templates/solar_system.html:457
 msgid "Io"
 msgstr "Io"
 
-#: templates/solar_system.html:462
+#: templates/solar_system.html:458
 msgid "Europa"
 msgstr "Europa"
 
-#: templates/solar_system.html:463
+#: templates/solar_system.html:459
 msgid "Ganymede"
 msgstr "Ganymed"
 
-#: templates/solar_system.html:464
+#: templates/solar_system.html:460
 msgid "Callisto"
 msgstr "Kallisto"
 
-#: templates/solar_system.html:467
+#: templates/solar_system.html:463
 msgid "Satellite transit"
 msgstr "Durchgang"
 
-#: templates/solar_system.html:469
+#: templates/solar_system.html:465
 msgid "Eclipse"
 msgstr "Verfinsterung"
 
-#: templates/solar_system.html:470
+#: templates/solar_system.html:466
 msgid "Shadow transit"
 msgstr "Schattendurchgang"
 
-#: templates/solar_system.html:472
+#: templates/solar_system.html:468
 #, python-format
 msgid "%(n)s min"
 msgstr "%(n)s min"
 
-#: templates/solar_system.html:473
+#: templates/solar_system.html:469
 #, python-format
 msgid "Altitude %(alt)s°"
 msgstr "Höhe %(alt)s°"
 
-#: templates/solar_system.html:474
+#: templates/solar_system.html:470
 msgid "double"
 msgstr "doppelt"
 
-#: templates/solar_system.html:475
+#: templates/solar_system.html:471
 msgid "in progress"
 msgstr "läuft bereits"
 
-#: templates/solar_system.html:476
+#: templates/solar_system.html:472
 #, python-format
 msgid "Already under way when the night begins: it started %(time)s"
 msgstr "Bereits im Gange, wenn die Nacht beginnt: Beginn %(time)s"
 
-#: templates/solar_system.html:477
+#: templates/solar_system.html:473
 msgid "Two moons are crossing Jupiter at the same time."
 msgstr "Zwei Monde ziehen gleichzeitig vor Jupiter vorbei."
 
-#: templates/solar_system.html:478
+#: templates/solar_system.html:474
 #, python-format
 msgid "Shadow transit at %(time)s"
 msgstr "Schattendurchgang um %(time)s"
 
-#: templates/solar_system.html:479
+#: templates/solar_system.html:475
 #, python-format
 msgid "ends %(time)s"
 msgstr "endet %(time)s"
 
-#: templates/solar_system.html:480
+#: templates/solar_system.html:476
 msgid "No transit, occultation, eclipse or shadow transit tonight."
 msgstr ""
 "Heute Nacht kein Durchgang, keine Bedeckung, keine Verfinsterung und kein"
 " Schattendurchgang."
 
-#: templates/solar_system.html:481
+#: templates/solar_system.html:477
 msgid "No shadow transit in the next two weeks."
 msgstr "Kein Schattendurchgang in den nächsten zwei Wochen."
 
-#: templates/solar_system.html:483
+#: templates/solar_system.html:479
 msgid "Jupiter is not up during the night"
 msgstr "Jupiter steht nachts nicht am Himmel"
 
-#: templates/solar_system.html:485
+#: templates/solar_system.html:481
 msgid ""
 "Jupiter tonight: the disc, the four Galilean moons and the shadows they "
 "cast"
@@ -7103,15 +7095,15 @@ msgstr ""
 "Jupiter heute Nacht: die Scheibe, die vier galileischen Monde und die "
 "Schatten, die sie werfen"
 
-#: templates/solar_system.html:489
+#: templates/solar_system.html:485
 msgid "Mars detail could not be calculated."
 msgstr "Marsdetails konnten nicht berechnet werden."
 
-#: templates/solar_system.html:492
+#: templates/solar_system.html:488
 msgid "CM"
 msgstr "ZM"
 
-#: templates/solar_system.html:493
+#: templates/solar_system.html:489
 msgid ""
 "Planetographic longitude at the centre of the disc: it tells you which "
 "side of Mars faces you."
@@ -7119,31 +7111,31 @@ msgstr ""
 "Planetografische Länge im Zentrum der Scheibe: sie sagt, welche Seite des"
 " Mars zu Ihnen zeigt."
 
-#: templates/solar_system.html:494
+#: templates/solar_system.html:490
 #, python-format
 msgid "North pole tilted %(deg)s° towards us"
 msgstr "Nordpol %(deg)s° zu uns geneigt"
 
-#: templates/solar_system.html:495
+#: templates/solar_system.html:491
 #, python-format
 msgid "South pole tilted %(deg)s° towards us"
 msgstr "Südpol %(deg)s° zu uns geneigt"
 
-#: templates/solar_system.html:496
+#: templates/solar_system.html:492
 #, python-format
 msgid "North pole tilted %(deg)s° towards the Sun"
 msgstr "Nordpol %(deg)s° zur Sonne geneigt"
 
-#: templates/solar_system.html:497
+#: templates/solar_system.html:493
 #, python-format
 msgid "South pole tilted %(deg)s° towards the Sun"
 msgstr "Südpol %(deg)s° zur Sonne geneigt"
 
-#: templates/solar_system.html:498
+#: templates/solar_system.html:494
 msgid "Best tonight"
 msgstr "Am besten heute Nacht"
 
-#: templates/solar_system.html:499
+#: templates/solar_system.html:495
 #, python-format
 msgid ""
 "When %(name)s is nearest the central meridian while Mars is above the "
@@ -7152,100 +7144,100 @@ msgstr ""
 "Wann %(name)s dem Zentralmeridian am nächsten ist, während Mars über "
 "Ihrem Horizontlimit steht."
 
-#: templates/solar_system.html:500
+#: templates/solar_system.html:496
 #, python-format
 msgid "Bar: how close it is to the central meridian (%(deg)s° away)"
 msgstr "Balken: wie nahe es dem Zentralmeridian ist (%(deg)s° entfernt)"
 
-#: templates/solar_system.html:501
+#: templates/solar_system.html:497
 #, python-format
 msgid "Next on the central meridian: %(time)s"
 msgstr "Nächster Durchgang durch den Zentralmeridian: %(time)s"
 
-#: templates/solar_system.html:502
+#: templates/solar_system.html:498
 msgid "North polar cap (approximate size)"
 msgstr "Nördliche Polkappe (ungefähre Größe)"
 
-#: templates/solar_system.html:503
+#: templates/solar_system.html:499
 msgid "South polar cap (approximate size)"
 msgstr "Südliche Polkappe (ungefähre Größe)"
 
-#: templates/solar_system.html:506
+#: templates/solar_system.html:502
 msgid "No named feature is on the disc tonight"
 msgstr "Heute Nacht liegt keine benannte Formation auf der Scheibe"
 
-#: templates/solar_system.html:507
+#: templates/solar_system.html:503
 msgid "Mars is not up during the night"
 msgstr "Mars steht nachts nicht am Himmel"
 
-#: templates/solar_system.html:510
+#: templates/solar_system.html:506
 #, python-format
 msgid "%(deg)s° from the central meridian"
 msgstr "%(deg)s° vom Zentralmeridian"
 
-#: templates/solar_system.html:512
+#: templates/solar_system.html:508
 msgid "Mars tonight: the disc, its lit part and the named features on it"
 msgstr ""
 "Mars heute Nacht: die Scheibe, ihr beleuchteter Teil und die benannten "
 "Formationen darauf"
 
-#: templates/solar_system.html:514
+#: templates/solar_system.html:510
 msgid "Albedo feature"
 msgstr "Albedomerkmal"
 
-#: templates/solar_system.html:517
+#: templates/solar_system.html:513
 msgid "Plain"
 msgstr "Ebene"
 
-#: templates/solar_system.html:518
+#: templates/solar_system.html:514
 msgid "Chasma (canyon)"
 msgstr "Chasma (Canyon)"
 
-#: templates/solar_system.html:519
+#: templates/solar_system.html:515
 msgid "Fossa (trough)"
 msgstr "Fossa (Graben)"
 
-#: templates/solar_system.html:520
+#: templates/solar_system.html:516
 msgid "Plateau"
 msgstr "Hochebene"
 
-#: templates/solar_system.html:522
+#: templates/solar_system.html:518
 msgid "Highland"
 msgstr "Hochland"
 
-#: templates/solar_system.html:523
+#: templates/solar_system.html:519
 msgid "Tholus (dome)"
 msgstr "Tholus (Kuppel)"
 
-#: templates/solar_system.html:525
+#: templates/solar_system.html:521
 msgid "Patera (volcanic crater)"
 msgstr "Patera (Vulkankrater)"
 
-#: templates/solar_system.html:526
+#: templates/solar_system.html:522
 msgid "Chaos terrain"
 msgstr "Chaosgelände"
 
-#: templates/solar_system.html:527
+#: templates/solar_system.html:523
 msgid "Mensa (table)"
 msgstr "Mensa (Tafelberg)"
 
-#: templates/solar_system.html:528
+#: templates/solar_system.html:524
 msgid "Vastitas (plain)"
 msgstr "Vastitas (Ebene)"
 
-#: templates/solar_system.html:529
+#: templates/solar_system.html:525
 msgid "Labyrinthus (labyrinth)"
 msgstr "Labyrinthus (Labyrinth)"
 
-#: templates/solar_system.html:534
+#: templates/solar_system.html:530
 msgid "Saturn detail could not be calculated."
 msgstr "Saturndetails konnten nicht berechnet werden."
 
-#: templates/solar_system.html:537
+#: templates/solar_system.html:533
 msgid "Rings"
 msgstr "Ringe"
 
-#: templates/solar_system.html:538
+#: templates/solar_system.html:534
 msgid ""
 "B is the Earth’s latitude above the ring plane: how far the rings are "
 "tilted towards us. Positive is the north face, negative the south, and "
@@ -7255,19 +7247,19 @@ msgstr ""
 "geneigt sind. Positiv ist die Nordseite, negativ die Südseite, und nahe "
 "0° sieht man sie von der Kante."
 
-#: templates/solar_system.html:540
+#: templates/solar_system.html:536
 msgid "north face towards us"
 msgstr "Nordseite zu uns"
 
-#: templates/solar_system.html:541
+#: templates/solar_system.html:537
 msgid "south face towards us"
 msgstr "Südseite zu uns"
 
-#: templates/solar_system.html:544
+#: templates/solar_system.html:540 templates/solar_system.html:544
 msgid "north face"
 msgstr "Nordseite"
 
-#: templates/solar_system.html:545
+#: templates/solar_system.html:541 templates/solar_system.html:545
 msgid "south face"
 msgstr "Südseite"
 
@@ -7289,6 +7281,28 @@ msgid "closing"
 msgstr "schließend"
 
 #: templates/solar_system.html:553
+#, python-format
+msgid "Over the next two years: %(trend)s"
+msgstr "Tendenz über die nächsten zwei Jahre: %(trend)s"
+
+#: templates/solar_system.html:554
+msgid ""
+"Over the next month the tilt moves the other way: a short-term wobble "
+"inside this longer swing"
+msgstr ""
+"Im nächsten Monat kippt die Neigung in die andere Richtung: ein "
+"kurzfristiges Schwanken innerhalb dieser längeren Bewegung"
+
+#: templates/solar_system.html:555
+#, python-format
+msgid ""
+"B′, the Sun’s latitude above the ring plane (negative is the south face):"
+" %(bprime)s°"
+msgstr ""
+"B′, die Breite der Sonne über der Ringebene (negativ ist die Südseite): "
+"%(bprime)s°"
+
+#: templates/solar_system.html:556
 msgid ""
 "The tilt of the rings, B, over the next two years, and whether they are "
 "opening or closing"
@@ -7296,67 +7310,59 @@ msgstr ""
 "Die Neigung der Ringe, B, über die nächsten zwei Jahre, und ob sie sich "
 "öffnen oder schließen"
 
-#: templates/solar_system.html:554
+#: templates/solar_system.html:557
 #, python-format
 msgid "The ring system spans %(arcsec)s″ across"
 msgstr "Das Ringsystem erstreckt sich über %(arcsec)s″"
 
-#: templates/solar_system.html:555
+#: templates/solar_system.html:558
 #, python-format
 msgid "The outer edge of the A ring is %(rs)s Saturn radii from the centre"
 msgstr "Der Außenrand des A-Rings liegt %(rs)s Saturnradien vom Zentrum entfernt"
 
-#: templates/solar_system.html:556 templates/solar_system.html:595
-msgid "Disc"
-msgstr "Scheibe"
-
-#: templates/solar_system.html:557
-msgid "Apparent diameter of the globe in arcseconds tonight."
-msgstr "Scheinbarer Durchmesser des Planeten in Bogensekunden heute Nacht."
-
-#: templates/solar_system.html:559
-msgid "Brightness of the planet tonight: smaller is brighter."
-msgstr "Helligkeit des Planeten heute Nacht: kleiner ist heller."
-
-#: templates/solar_system.html:561
+#: templates/solar_system.html:560
 msgid "east of Saturn"
 msgstr "östlich von Saturn"
 
-#: templates/solar_system.html:562
+#: templates/solar_system.html:561
 msgid "west of Saturn"
 msgstr "westlich von Saturn"
 
-#: templates/solar_system.html:565
+#: templates/solar_system.html:564
 msgid "in front of the globe"
 msgstr "vor dem Planeten"
 
-#: templates/solar_system.html:566
+#: templates/solar_system.html:565
 msgid "crossing the disc"
 msgstr "zieht über die Scheibe"
 
-#: templates/solar_system.html:567
-msgid "behind the globe"
-msgstr "hinter dem Planeten"
+#: templates/solar_system.html:566
+msgid "on the far side of its orbit"
+msgstr "auf der fernen Seite seiner Bahn"
 
-#: templates/solar_system.html:570
+#: templates/solar_system.html:567
+msgid "hidden behind the globe"
+msgstr "hinter dem Planeten verborgen"
+
+#: templates/solar_system.html:569
 #, python-format
 msgid "%(rs)s Saturn radii from the centre"
 msgstr "%(rs)s Saturnradien vom Zentrum"
 
-#: templates/solar_system.html:571
+#: templates/solar_system.html:570
 #, python-format
 msgid "Mean opposition magnitude %(mag)s"
 msgstr "Mittlere Oppositionshelligkeit %(mag)s"
 
-#: templates/solar_system.html:572
+#: templates/solar_system.html:571
 msgid "Western elongation: the bright trailing side faces us"
 msgstr "Westliche Elongation: die helle nachlaufende Seite ist uns zugewandt"
 
-#: templates/solar_system.html:573
+#: templates/solar_system.html:572
 msgid "Eastern elongation: the dark leading side faces us"
 msgstr "Östliche Elongation: die dunkle vorauslaufende Seite ist uns zugewandt"
 
-#: templates/solar_system.html:574
+#: templates/solar_system.html:573
 msgid ""
 "Iapetus is two-toned: one hemisphere is bright, the other covered in dark"
 " material. It is brightest at western elongation, about magnitude 10.1, "
@@ -7366,14 +7372,18 @@ msgstr ""
 "Material bedeckt. Am hellsten ist er bei westlicher Elongation, etwa "
 "Magnitude 10,1, am schwächsten bei östlicher, etwa 11,9."
 
+#: templates/solar_system.html:574
+msgid "Iapetus: JPL/Cassini Outreach, “East is Least and West is Best”"
+msgstr "Iapetus: JPL/Cassini Outreach, „East is Least and West is Best“"
+
 #: templates/solar_system.html:575
 msgid "No Titan transits this season"
 msgstr "Keine Titan-Durchgänge in dieser Saison"
 
 #: templates/solar_system.html:576
 #, python-format
-msgid "Titan next crosses the disc in %(date)s"
-msgstr "Titan zieht das nächste Mal im %(date)s über die Scheibe"
+msgid "Titan crosses the disc again on %(date)s"
+msgstr "Titan zieht am %(date)s wieder über die Scheibe"
 
 #: templates/solar_system.html:577
 #, python-format
@@ -7445,6 +7455,10 @@ msgstr "Schattiertes Band über dem Planeten: der Schatten der Ringe"
 #: templates/solar_system.html:590
 msgid "Small unlabelled dots: Mimas, Enceladus and Hyperion"
 msgstr "Kleine unbeschriftete Punkte: Mimas, Enceladus und Hyperion"
+
+#: templates/solar_system.html:595
+msgid "Disc"
+msgstr "Scheibe"
 
 #: templates/solar_system.html:596
 msgid ""
@@ -7846,4 +7860,22 @@ msgstr "Daten: Open-Meteo"
 
 #~ msgid "Size ("
 #~ msgstr "Größe ("
+
+#~ msgid "Moons tonight"
+#~ msgstr "Monde heute Nacht"
+
+#~ msgid "Satellite transits"
+#~ msgstr "Monddurchgänge"
+
+#~ msgid "Apparent diameter of the globe in arcseconds tonight."
+#~ msgstr "Scheinbarer Durchmesser des Planeten in Bogensekunden heute Nacht."
+
+#~ msgid "Brightness of the planet tonight: smaller is brighter."
+#~ msgstr "Helligkeit des Planeten heute Nacht: kleiner ist heller."
+
+#~ msgid "behind the globe"
+#~ msgstr "hinter dem Planeten"
+
+#~ msgid "Titan next crosses the disc in %(date)s"
+#~ msgstr "Titan zieht das nächste Mal im %(date)s über die Scheibe"
 
