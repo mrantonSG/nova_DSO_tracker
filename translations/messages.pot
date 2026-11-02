@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 18:51+0800\n"
+"POT-Creation-Date: 2026-11-03 02:40+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1221,13 +1221,13 @@ msgstr ""
 
 #: templates/_journal_section.html:2374 templates/_journal_section.html:3338
 #: templates/base.html:229 templates/journal_report.html:736
-#: templates/journal_report.html:993 templates/solar_system.html:505
+#: templates/journal_report.html:993 templates/solar_system.html:632
 msgid "Excellent"
 msgstr ""
 
 #: templates/_journal_section.html:2374 templates/_journal_section.html:3339
 #: templates/base.html:230 templates/journal_report.html:736
-#: templates/journal_report.html:993 templates/solar_system.html:506
+#: templates/journal_report.html:993 templates/solar_system.html:633
 msgid "Good"
 msgstr ""
 
@@ -1741,7 +1741,7 @@ msgstr ""
 #: templates/_objects_section.html:364 templates/_project_subtab.html:232
 #: templates/admin_users.html:111 templates/base.html:547
 #: templates/graph_view.html:485 templates/index.html:309
-#: templates/journal_form.html:205
+#: templates/journal_form.html:205 templates/solar_system.html:166
 msgid "Cancel"
 msgstr ""
 
@@ -2622,6 +2622,7 @@ msgid "Confirm Add"
 msgstr ""
 
 #: templates/_objects_section.html:363 templates/base.html:114
+#: templates/solar_system.html:152
 msgid "Edit"
 msgstr ""
 
@@ -2720,7 +2721,7 @@ msgstr ""
 #: templates/index.html:229 templates/index.html:247
 #: templates/journal_report.html:686 templates/mobile_journal_new.html:210
 #: templates/project_report.html:906 templates/solar_system.html:27
-#: templates/solar_system.html:244
+#: templates/solar_system.html:293
 msgid "Date"
 msgstr ""
 
@@ -2906,6 +2907,7 @@ msgid "New password"
 msgstr ""
 
 #: templates/admin_users.html:110 templates/index.html:308
+#: templates/solar_system.html:165
 msgid "Save"
 msgstr ""
 
@@ -2966,7 +2968,7 @@ msgstr ""
 msgid "Nova DSO Tracker Analytics — GDPR compliant, no PII stored"
 msgstr ""
 
-#: templates/base.html:109 templates/solar_system.html:213
+#: templates/base.html:109 templates/solar_system.html:261
 msgid "Calculating..."
 msgstr ""
 
@@ -2987,7 +2989,7 @@ msgstr ""
 msgid "Error"
 msgstr ""
 
-#: templates/base.html:117 templates/solar_system.html:467
+#: templates/base.html:117 templates/solar_system.html:594
 msgid "None"
 msgstr ""
 
@@ -3091,12 +3093,12 @@ msgid "Select Camera"
 msgstr ""
 
 #: templates/base.html:153 templates/config_form.html:652
-#: templates/project_report.html:1174 templates/solar_system.html:188
+#: templates/project_report.html:1174 templates/solar_system.html:236
 msgid "Telescope"
 msgstr ""
 
 #: templates/base.html:154 templates/config_form.html:653
-#: templates/project_report.html:1178 templates/solar_system.html:189
+#: templates/project_report.html:1178 templates/solar_system.html:237
 msgid "Camera"
 msgstr ""
 
@@ -4446,8 +4448,8 @@ msgstr ""
 
 #: templates/graph_view.html:60 templates/index.html:58
 #: templates/mobile_base.html:35 templates/project_report.html:1152
-#: templates/solar_system.html:28 templates/solar_system.html:225
-#: templates/solar_system.html:269
+#: templates/solar_system.html:28 templates/solar_system.html:273
+#: templates/solar_system.html:318
 msgid "Moon"
 msgstr ""
 
@@ -4493,7 +4495,7 @@ msgstr ""
 
 #: templates/graph_view.html:102 templates/mobile_object_detail.html:520
 #: templates/solar_system.html:90 templates/solar_system.html:93
-#: templates/solar_system.html:295
+#: templates/solar_system.html:346
 msgid "Month"
 msgstr ""
 
@@ -4604,7 +4606,7 @@ msgid ""
 "field of view."
 msgstr ""
 
-#: templates/graph_view.html:217 templates/solar_system.html:206
+#: templates/graph_view.html:217 templates/solar_system.html:254
 msgid "Manage Rigs"
 msgstr ""
 
@@ -4824,7 +4826,7 @@ msgid "Window"
 msgstr ""
 
 #: templates/graph_view.html:690 templates/mobile_object_detail.html:493
-#: templates/solar_system.html:281
+#: templates/solar_system.html:332
 msgid "Now"
 msgstr ""
 
@@ -4930,7 +4932,7 @@ msgstr ""
 
 #: templates/index.html:148 templates/index.html:151
 #: templates/mobile_up_now.html:899 templates/mobile_up_now.html:912
-#: templates/solar_system.html:280 templates/solar_system.html:286
+#: templates/solar_system.html:331 templates/solar_system.html:337
 msgid "Altitude"
 msgstr ""
 
@@ -4939,7 +4941,7 @@ msgid "Current"
 msgstr ""
 
 #: templates/index.html:149 templates/index.html:152
-#: templates/solar_system.html:287
+#: templates/solar_system.html:338
 msgid "Azimuth"
 msgstr ""
 
@@ -4978,8 +4980,7 @@ msgid "to moon (°)"
 msgstr ""
 
 #: templates/index.html:159 templates/solar_system.html:71
-#: templates/solar_system.html:247 templates/solar_system.html:377
-#: templates/solar_system.html:424
+#: templates/solar_system.html:296 templates/solar_system.html:558
 msgid "Magnitude"
 msgstr ""
 
@@ -5510,7 +5511,7 @@ msgstr ""
 msgid "Attempt"
 msgstr ""
 
-#: templates/journal_report.html:1200 templates/solar_system.html:426
+#: templates/journal_report.html:1200
 msgid "Distance"
 msgstr ""
 
@@ -5693,7 +5694,7 @@ msgstr ""
 msgid "Mosaic:"
 msgstr ""
 
-#: templates/mobile_mosaic_copy.html:8 templates/solar_system.html:489
+#: templates/mobile_mosaic_copy.html:8 templates/solar_system.html:616
 msgid "Mosaic"
 msgstr ""
 
@@ -5785,7 +5786,7 @@ msgstr ""
 msgid "No objects match your filters"
 msgstr ""
 
-#: templates/mobile_up_now.html:923
+#: templates/mobile_up_now.html:923 templates/solar_system.html:153
 msgid "Reset"
 msgstr ""
 
@@ -5946,8 +5947,8 @@ msgstr ""
 msgid "Calendar"
 msgstr ""
 
-#: templates/solar_system.html:64 templates/solar_system.html:216
-#: templates/solar_system.html:245
+#: templates/solar_system.html:64 templates/solar_system.html:264
+#: templates/solar_system.html:294
 msgid "Body"
 msgstr ""
 
@@ -5977,7 +5978,7 @@ msgstr ""
 msgid "Set"
 msgstr ""
 
-#: templates/solar_system.html:70 templates/solar_system.html:250
+#: templates/solar_system.html:70 templates/solar_system.html:299
 msgid "Highest altitude between sunset and sunrise."
 msgstr ""
 
@@ -5985,14 +5986,13 @@ msgstr ""
 msgid "Max altitude tonight"
 msgstr ""
 
-#: templates/solar_system.html:72 templates/solar_system.html:248
+#: templates/solar_system.html:72 templates/solar_system.html:297
 msgid ""
 "Apparent size in arcseconds. The most important number for planetary "
 "imaging."
 msgstr ""
 
-#: templates/solar_system.html:72 templates/solar_system.html:248
-#: templates/solar_system.html:375 templates/solar_system.html:422
+#: templates/solar_system.html:72 templates/solar_system.html:297
 msgid "Diameter"
 msgstr ""
 
@@ -6000,29 +6000,28 @@ msgstr ""
 msgid "Lit fraction of the disc as seen from Earth."
 msgstr ""
 
-#: templates/solar_system.html:73 templates/solar_system.html:332
-#: templates/solar_system.html:378 templates/solar_system.html:425
+#: templates/solar_system.html:73 templates/solar_system.html:385
 msgid "Illuminated"
 msgstr ""
 
-#: templates/solar_system.html:74 templates/solar_system.html:249
+#: templates/solar_system.html:74 templates/solar_system.html:298
 msgid "Angle from the Sun. Larger means easier to see against a dark sky."
 msgstr ""
 
-#: templates/solar_system.html:74 templates/solar_system.html:249
+#: templates/solar_system.html:74 templates/solar_system.html:298
 msgid "Elongation"
 msgstr ""
 
-#: templates/solar_system.html:89 templates/solar_system.html:544
+#: templates/solar_system.html:89 templates/solar_system.html:671
 msgid "Tonight"
 msgstr ""
 
-#: templates/solar_system.html:107 templates/solar_system.html:324
+#: templates/solar_system.html:107 templates/solar_system.html:377
 msgid "Moon detail"
 msgstr ""
 
 #: templates/solar_system.html:112 templates/solar_system.html:139
-#: templates/solar_system.html:165
+#: templates/solar_system.html:188 templates/solar_system.html:214
 msgid "View"
 msgstr ""
 
@@ -6031,27 +6030,27 @@ msgid "The real field also rotates with the Moon's position in the sky."
 msgstr ""
 
 #: templates/solar_system.html:113 templates/solar_system.html:140
-#: templates/solar_system.html:166
+#: templates/solar_system.html:189 templates/solar_system.html:215
 msgid "Normal"
 msgstr ""
 
 #: templates/solar_system.html:114 templates/solar_system.html:141
-#: templates/solar_system.html:167
+#: templates/solar_system.html:190 templates/solar_system.html:216
 msgid "Star diagonal (mirrored)"
 msgstr ""
 
 #: templates/solar_system.html:114 templates/solar_system.html:141
-#: templates/solar_system.html:167
+#: templates/solar_system.html:190 templates/solar_system.html:216
 msgid "Diagonal"
 msgstr ""
 
 #: templates/solar_system.html:115 templates/solar_system.html:142
-#: templates/solar_system.html:168
+#: templates/solar_system.html:191 templates/solar_system.html:217
 msgid "Newtonian (inverted)"
 msgstr ""
 
 #: templates/solar_system.html:115 templates/solar_system.html:142
-#: templates/solar_system.html:168
+#: templates/solar_system.html:191 templates/solar_system.html:217
 msgid "Newtonian"
 msgstr ""
 
@@ -6059,15 +6058,16 @@ msgstr ""
 msgid "On the terminator tonight"
 msgstr ""
 
-#: templates/solar_system.html:124 templates/solar_system.html:177
+#: templates/solar_system.html:124 templates/solar_system.html:200
 msgid "More features"
 msgstr ""
 
-#: templates/solar_system.html:134 templates/solar_system.html:370
+#: templates/solar_system.html:134 templates/solar_system.html:423
 msgid "Jupiter detail"
 msgstr ""
 
-#: templates/solar_system.html:139 templates/solar_system.html:165
+#: templates/solar_system.html:139 templates/solar_system.html:188
+#: templates/solar_system.html:214
 msgid "The real field also rotates with the planet's position in the sky."
 msgstr ""
 
@@ -6095,992 +6095,1209 @@ msgstr ""
 msgid "The date cannot be in the future."
 msgstr ""
 
-#: templates/solar_system.html:149
+#: templates/solar_system.html:172
 msgid "Phenomena tonight"
 msgstr ""
 
-#: templates/solar_system.html:152
+#: templates/solar_system.html:175
 msgid "Shadow transits, the next nights"
 msgstr ""
 
-#: templates/solar_system.html:160 templates/solar_system.html:418
+#: templates/solar_system.html:183 templates/solar_system.html:488
 msgid "Mars detail"
 msgstr ""
 
-#: templates/solar_system.html:173
+#: templates/solar_system.html:196
 msgid "Features on the disc tonight"
 msgstr ""
 
-#: templates/solar_system.html:186 templates/solar_system.html:466
+#: templates/solar_system.html:209 templates/solar_system.html:533
+msgid "Saturn detail"
+msgstr ""
+
+#: templates/solar_system.html:222
+msgid "Moons tonight"
+msgstr ""
+
+#: templates/solar_system.html:225
+msgid "Satellite transits"
+msgstr ""
+
+#: templates/solar_system.html:234 templates/solar_system.html:593
 msgid "Planetary calculator"
 msgstr ""
 
-#: templates/solar_system.html:190
+#: templates/solar_system.html:238
 msgid "Amplification"
 msgstr ""
 
-#: templates/solar_system.html:196
+#: templates/solar_system.html:244
 msgid "Seeing outlook"
 msgstr ""
 
-#: templates/solar_system.html:205
+#: templates/solar_system.html:253
 msgid "Add a telescope and a camera on the Configuration page."
 msgstr ""
 
-#: templates/solar_system.html:217
+#: templates/solar_system.html:265
 msgid "All bodies"
 msgstr ""
 
-#: templates/solar_system.html:218 templates/solar_system.html:262
+#: templates/solar_system.html:266 templates/solar_system.html:311
 msgid "Mercury"
 msgstr ""
 
-#: templates/solar_system.html:219 templates/solar_system.html:263
+#: templates/solar_system.html:267 templates/solar_system.html:312
 msgid "Venus"
 msgstr ""
 
-#: templates/solar_system.html:220 templates/solar_system.html:264
+#: templates/solar_system.html:268 templates/solar_system.html:313
 msgid "Mars"
 msgstr ""
 
-#: templates/solar_system.html:221 templates/solar_system.html:265
+#: templates/solar_system.html:269 templates/solar_system.html:314
 msgid "Jupiter"
 msgstr ""
 
-#: templates/solar_system.html:222 templates/solar_system.html:266
+#: templates/solar_system.html:270 templates/solar_system.html:315
 msgid "Saturn"
 msgstr ""
 
-#: templates/solar_system.html:223 templates/solar_system.html:267
+#: templates/solar_system.html:271 templates/solar_system.html:316
 msgid "Uranus"
 msgstr ""
 
-#: templates/solar_system.html:224 templates/solar_system.html:268
+#: templates/solar_system.html:272 templates/solar_system.html:317
 msgid "Neptune"
 msgstr ""
 
-#: templates/solar_system.html:227
+#: templates/solar_system.html:275
 msgid "Event type"
 msgstr ""
 
-#: templates/solar_system.html:228
+#: templates/solar_system.html:276
 msgid "All events"
 msgstr ""
 
-#: templates/solar_system.html:229
+#: templates/solar_system.html:277
 msgid "Planets"
 msgstr ""
 
-#: templates/solar_system.html:230
+#: templates/solar_system.html:278
 msgid "Conjunctions"
 msgstr ""
 
-#: templates/solar_system.html:231
+#: templates/solar_system.html:279
 msgid "Lunar features"
 msgstr ""
 
-#: templates/solar_system.html:232
+#: templates/solar_system.html:280
 msgid "Galilean moons"
 msgstr ""
 
-#: templates/solar_system.html:236
+#: templates/solar_system.html:281
+msgid "Saturn's moons"
+msgstr ""
+
+#: templates/solar_system.html:285
 msgid "Hide events that are not visible"
 msgstr ""
 
-#: templates/solar_system.html:244
+#: templates/solar_system.html:293
 msgid "The evening on which the observing night starts."
 msgstr ""
 
-#: templates/solar_system.html:246
+#: templates/solar_system.html:295
 msgid "Event"
 msgstr ""
 
-#: templates/solar_system.html:250
+#: templates/solar_system.html:299
 msgid "Max altitude that night"
 msgstr ""
 
-#: templates/solar_system.html:251
+#: templates/solar_system.html:300
 msgid "Negative values are events that have already passed."
 msgstr ""
 
-#: templates/solar_system.html:251
+#: templates/solar_system.html:300
 msgid "Days from now"
 msgstr ""
 
-#: templates/solar_system.html:271
+#: templates/solar_system.html:320
 msgid "E"
 msgstr ""
 
-#: templates/solar_system.html:272
+#: templates/solar_system.html:321
 msgid "W"
 msgstr ""
 
-#: templates/solar_system.html:296
+#: templates/solar_system.html:322
 msgid "Celestial north"
 msgstr ""
 
-#: templates/solar_system.html:297
+#: templates/solar_system.html:323
 msgid ""
 "Drawn with the planet's north up; the arrow shows celestial north. The "
 "real view also turns with the planet's position in the sky."
 msgstr ""
 
-#: templates/solar_system.html:273
+#: templates/solar_system.html:324
 msgid "Always up"
 msgstr ""
 
-#: templates/solar_system.html:274
+#: templates/solar_system.html:325
 msgid "Never up"
 msgstr ""
 
-#: templates/solar_system.html:275
+#: templates/solar_system.html:326
 msgid "Not up tonight"
 msgstr ""
 
-#: templates/solar_system.html:276
+#: templates/solar_system.html:327
 msgid "Does not reach the altitude threshold tonight"
 msgstr ""
 
-#: templates/solar_system.html:277
+#: templates/solar_system.html:328
 msgid "Solar System data could not be calculated."
 msgstr ""
 
-#: templates/solar_system.html:278
+#: templates/solar_system.html:329
 msgid "Could not load location data."
 msgstr ""
 
-#: templates/solar_system.html:279
+#: templates/solar_system.html:330
 msgid "The altitude chart could not be drawn."
 msgstr ""
 
-#: templates/solar_system.html:282
+#: templates/solar_system.html:333
 msgid "Sunset"
 msgstr ""
 
-#: templates/solar_system.html:283
+#: templates/solar_system.html:334
 msgid "Sunrise"
 msgstr ""
 
-#: templates/solar_system.html:284
+#: templates/solar_system.html:335
 msgid "Astronomical dusk"
 msgstr ""
 
-#: templates/solar_system.html:285
+#: templates/solar_system.html:336
 msgid "Astronomical dawn"
 msgstr ""
 
-#: templates/solar_system.html:288
+#: templates/solar_system.html:339
 msgid "Horizon"
 msgstr ""
 
-#: templates/solar_system.html:289
+#: templates/solar_system.html:340
 msgid "Altitude threshold / horizon mask"
 msgstr ""
 
-#: templates/solar_system.html:290
+#: templates/solar_system.html:341
 msgid "Local time"
 msgstr ""
 
-#: templates/solar_system.html:291
+#: templates/solar_system.html:342
 msgid "Altitude (°)"
 msgstr ""
 
-#: templates/solar_system.html:292
+#: templates/solar_system.html:343
 msgid "Azimuth (°)"
 msgstr ""
 
-#: templates/solar_system.html:293
+#: templates/solar_system.html:344
 msgid "Max altitude (sunset to sunrise)"
 msgstr ""
 
-#: templates/solar_system.html:294
+#: templates/solar_system.html:345
 msgid "Day of month"
 msgstr ""
 
-#: templates/solar_system.html:296
+#: templates/solar_system.html:347
 msgid "Opposition"
 msgstr ""
 
-#: templates/solar_system.html:297
+#: templates/solar_system.html:348
 msgid "Greatest elongation E (evening)"
 msgstr ""
 
-#: templates/solar_system.html:298
+#: templates/solar_system.html:349
 msgid "Greatest elongation W (morning)"
 msgstr ""
 
-#: templates/solar_system.html:299
+#: templates/solar_system.html:350
 msgid "Does not reach the altitude threshold that night"
 msgstr ""
 
-#: templates/solar_system.html:300
+#: templates/solar_system.html:351
 #, python-format
 msgid "Exact time: %(time)s"
 msgstr ""
 
-#: templates/solar_system.html:301
+#: templates/solar_system.html:352
 #, python-format
 msgid "Conjunction %(sep)s°"
 msgstr ""
 
-#: templates/solar_system.html:302
+#: templates/solar_system.html:353
 #, python-format
 msgid "Too close to the Sun (%(elong)s° away)"
 msgstr ""
 
-#: templates/solar_system.html:303 templates/solar_system.html:400
+#: templates/solar_system.html:354 templates/solar_system.html:468
 msgid "Occultation"
 msgstr ""
 
-#: templates/solar_system.html:304
+#: templates/solar_system.html:355
 msgid "In daylight at the closest approach"
 msgstr ""
 
-#: templates/solar_system.html:305
+#: templates/solar_system.html:356
 #, python-format
 msgid ""
 "Below the altitude threshold at the closest approach (%(first)s "
 "%(first_alt)s°, %(second)s %(second_alt)s°)"
 msgstr ""
 
-#: templates/solar_system.html:306
+#: templates/solar_system.html:357
 #, python-format
 msgid "Closest approach: %(date)s, %(dist)s million km"
 msgstr ""
 
-#: templates/solar_system.html:307
+#: templates/solar_system.html:358
 #, python-format
 msgid "rings %(value)s"
 msgstr ""
 
-#: templates/solar_system.html:308
+#: templates/solar_system.html:359
 msgid ""
 "Tilt of the rings toward the Earth: + north face, − south face visible. "
 "Near 0° the rings are edge-on."
 msgstr ""
 
-#: templates/solar_system.html:310
+#: templates/solar_system.html:361
 msgid ""
 "Opposite the Sun: up all night, closest and brightest. Good for several "
 "weeks around this date."
 msgstr ""
 
-#: templates/solar_system.html:311
+#: templates/solar_system.html:362
 msgid ""
 "Farthest east of the Sun: best evening visibility, low in the west after "
 "sunset."
 msgstr ""
 
-#: templates/solar_system.html:312
+#: templates/solar_system.html:363
 msgid ""
 "Farthest west of the Sun: best morning visibility, low in the east before"
 " sunrise."
 msgstr ""
 
-#: templates/solar_system.html:313
+#: templates/solar_system.html:364
 msgid "Closest apparent approach of the two bodies."
 msgstr ""
 
-#: templates/solar_system.html:314
+#: templates/solar_system.html:365
 msgid "Closest apparent approach of the two bodies, as seen from this location."
 msgstr ""
 
-#: templates/solar_system.html:315
+#: templates/solar_system.html:366
 msgid "The Moon passes in front of the planet as seen from this location."
 msgstr ""
 
-#: templates/solar_system.html:316
+#: templates/solar_system.html:367
 msgid ""
 "Sunrise on the crater walls near Werner draws a bright X, and near Ukert "
 "a V, on the terminator for about an hour. Times are approximate."
 msgstr ""
 
-#: templates/solar_system.html:317
+#: templates/solar_system.html:368
 msgid ""
 "The Moon is tilted towards us by more than 7°: features near that limb "
 "are easier to see."
 msgstr ""
 
-#: templates/solar_system.html:318
+#: templates/solar_system.html:369
 msgid ""
 "Two of the Galilean moons cast their shadows on Jupiter at the same time."
 " The window is the time both shadows are on the disc while Jupiter is "
 "above your altitude threshold."
 msgstr ""
 
-#: templates/solar_system.html:320
+#: templates/solar_system.html:370
+msgid ""
+"Iapetus is at western elongation: the bright half of this two-toned moon "
+"is turned towards us, and it is at its brightest — about magnitude 10.1 "
+"against 11.9 at eastern elongation. Its brightness changes more than any "
+"other satellite of Saturn, which is why it is the one worth a date in "
+"this list."
+msgstr ""
+
+#: templates/solar_system.html:372
 #, python-format
 msgid "Double shadow transit (%(moons)s, %(minutes)s min)"
 msgstr ""
 
-#: templates/solar_system.html:321
+#: templates/solar_system.html:373
+msgid "Iapetus western elongation"
+msgstr ""
+
+#: templates/solar_system.html:374
 msgid "Lunar X and V"
 msgstr ""
 
-#: templates/solar_system.html:322
+#: templates/solar_system.html:375
 msgid ""
 "Not visible from here: the Sun is up or the Moon is below the altitude "
 "threshold around this time"
 msgstr ""
 
-#: templates/solar_system.html:325
+#: templates/solar_system.html:378
 msgid "Moon detail could not be calculated."
 msgstr ""
 
-#: templates/solar_system.html:326 templates/solar_system.html:432
+#: templates/solar_system.html:379 templates/solar_system.html:504
 #, python-format
 msgid "Feature names: %(source)s"
 msgstr ""
 
-#: templates/solar_system.html:327 templates/solar_system.html:372
-#: templates/solar_system.html:420
+#: templates/solar_system.html:380 templates/solar_system.html:425
+#: templates/solar_system.html:490 templates/solar_system.html:535
 #, python-format
 msgid "highest tonight at %(time)s"
 msgstr ""
 
-#: templates/solar_system.html:328
+#: templates/solar_system.html:381
 msgid "Colongitude"
 msgstr ""
 
-#: templates/solar_system.html:329
+#: templates/solar_system.html:382
 msgid ""
 "Where the morning terminator lies on the Moon. It grows about 12° a day: "
 "about 0° at first quarter, 90° at Full Moon, 180° at last quarter."
 msgstr ""
 
-#: templates/solar_system.html:330
+#: templates/solar_system.html:383
 msgid "Libration"
 msgstr ""
 
-#: templates/solar_system.html:331
+#: templates/solar_system.html:384
 msgid "How far the Moon is tilted towards us, and towards which limb (arrow)."
 msgstr ""
 
-#: templates/solar_system.html:333
+#: templates/solar_system.html:386
 msgid "Morning terminator"
 msgstr ""
 
-#: templates/solar_system.html:334
+#: templates/solar_system.html:387
 msgid "Evening terminator"
 msgstr ""
 
-#: templates/solar_system.html:335
+#: templates/solar_system.html:388
 #, python-format
 msgid "Sun %(alt)s° above the horizon"
 msgstr ""
 
-#: templates/solar_system.html:336 templates/solar_system.html:443
+#: templates/solar_system.html:389 templates/solar_system.html:511
 #, python-format
 msgid "Latitude %(lat)s°, longitude %(lon)s°"
 msgstr ""
 
-#: templates/solar_system.html:337 templates/solar_system.html:437
+#: templates/solar_system.html:390 templates/solar_system.html:509
 msgid "Near the limb"
 msgstr ""
 
-#: templates/solar_system.html:338
+#: templates/solar_system.html:391
 #, python-format
 msgid "Next good nights: %(dates)s"
 msgstr ""
 
-#: templates/solar_system.html:339
+#: templates/solar_system.html:392
 msgid "No good night in the next 30 days"
 msgstr ""
 
-#: templates/solar_system.html:341
+#: templates/solar_system.html:394
 #, python-format
 msgid "Excellent libration: %(side)s side, %(deg)s°"
 msgstr ""
 
-#: templates/solar_system.html:342
+#: templates/solar_system.html:395
 #, python-format
 msgid "Favourable libration: %(side)s side, %(deg)s°"
 msgstr ""
 
-#: templates/solar_system.html:343
+#: templates/solar_system.html:396
 #, python-format
 msgid "Moderate libration: %(side)s side, %(deg)s°"
 msgstr ""
 
-#: templates/solar_system.html:344
+#: templates/solar_system.html:397
 #, python-format
 msgid "No strong libration tonight (%(deg)s°)"
 msgstr ""
 
-#: templates/solar_system.html:345
+#: templates/solar_system.html:398
 #, python-format
 msgid ""
 "Libration tilts the %(side)s side towards us (%(deg)s°), but it is in "
 "darkness tonight."
 msgstr ""
 
-#: templates/solar_system.html:348
+#: templates/solar_system.html:401
 msgid "Too close to New Moon"
 msgstr ""
 
-#: templates/solar_system.html:349
+#: templates/solar_system.html:402
 msgid "No features near the terminator (Full Moon)"
 msgstr ""
 
-#: templates/solar_system.html:350
+#: templates/solar_system.html:403
 msgid "No features near the terminator"
 msgstr ""
 
-#: templates/solar_system.html:351
+#: templates/solar_system.html:404
 msgid "The Moon is not up during the night"
 msgstr ""
 
-#: templates/solar_system.html:353
+#: templates/solar_system.html:406
 msgid "The Moon tonight: lit part, terminator and tonight's features"
 msgstr ""
 
-#: templates/solar_system.html:354 templates/solar_system.html:373
-#: templates/solar_system.html:421
+#: templates/solar_system.html:407 templates/solar_system.html:426
+#: templates/solar_system.html:491 templates/solar_system.html:536
 msgid "N"
 msgstr ""
 
-#: templates/solar_system.html:356 templates/solar_system.html:454
+#: templates/solar_system.html:409 templates/solar_system.html:521
 msgid "Crater"
 msgstr ""
 
-#: templates/solar_system.html:357
+#: templates/solar_system.html:410
 msgid "Mare (sea)"
 msgstr ""
 
-#: templates/solar_system.html:358
+#: templates/solar_system.html:411
 msgid "Ocean"
 msgstr ""
 
-#: templates/solar_system.html:359
+#: templates/solar_system.html:412
 msgid "Bay"
 msgstr ""
 
-#: templates/solar_system.html:360
+#: templates/solar_system.html:413
 msgid "Lake"
 msgstr ""
 
-#: templates/solar_system.html:361 templates/solar_system.html:449
+#: templates/solar_system.html:414 templates/solar_system.html:516
 msgid "Mountain"
 msgstr ""
 
-#: templates/solar_system.html:362
+#: templates/solar_system.html:415
 msgid "Mountain range"
 msgstr ""
 
-#: templates/solar_system.html:363 templates/solar_system.html:448
+#: templates/solar_system.html:416 templates/solar_system.html:515
 msgid "Valley"
 msgstr ""
 
-#: templates/solar_system.html:364 templates/solar_system.html:457
+#: templates/solar_system.html:417 templates/solar_system.html:524
 msgid "Scarp"
 msgstr ""
 
-#: templates/solar_system.html:365
+#: templates/solar_system.html:418
 msgid "Rille"
 msgstr ""
 
-#: templates/solar_system.html:366
+#: templates/solar_system.html:419
 msgid "Cape"
 msgstr ""
 
-#: templates/solar_system.html:371
+#: templates/solar_system.html:424
 msgid "Jupiter detail could not be calculated."
 msgstr ""
 
-#: templates/solar_system.html:397
+#: templates/solar_system.html:427
 msgid "CM (System II)"
 msgstr ""
 
-#: templates/solar_system.html:398
+#: templates/solar_system.html:428
 msgid ""
 "The longitude at the centre of the disc: it tells you which side of "
 "Jupiter faces you. System II is the one for everything outside the "
 "equatorial belt, the Great Red Spot included."
 msgstr ""
 
-#: templates/solar_system.html:399
+#: templates/solar_system.html:429
 #, python-format
 msgid "System I (equatorial belt): %(deg)s°"
 msgstr ""
 
-#: templates/solar_system.html:400
+#: templates/solar_system.html:430
 #, python-format
 msgid "System III (the planet's interior): %(deg)s°"
 msgstr ""
 
-#: templates/solar_system.html:402
+#: templates/solar_system.html:432
 msgid "None while Jupiter is up tonight"
 msgstr ""
 
-#: templates/solar_system.html:403
+#: templates/solar_system.html:433
 #, python-format
 msgid "Next: %(time)s"
 msgstr ""
 
-#: templates/solar_system.html:403
+#: templates/solar_system.html:434
 #, python-format
 msgid "System II %(lon)s° on %(date)s"
 msgstr ""
 
-#: templates/solar_system.html:404
+#: templates/solar_system.html:435
 msgid ""
 "Predicted times when the Great Red Spot crosses the centre of the disc: "
 "the best moment to see or image it. A prediction: the spot drifts, so "
 "allow 10–20 minutes either way."
 msgstr ""
 
-#: templates/solar_system.html:405
+#: templates/solar_system.html:436
 #, python-format
 msgid "Tonight: %(times)s"
 msgstr ""
 
-#: templates/solar_system.html:406
+#: templates/solar_system.html:437
 msgid "The next nights:"
 msgstr ""
 
-#: templates/solar_system.html:407
+#: templates/solar_system.html:438
 msgid "No transit while Jupiter is up in the next nights."
 msgstr ""
 
-#: templates/solar_system.html:408
+#: templates/solar_system.html:439
 #, python-format
 msgid ""
 "Built-in longitude: System II %(lon)s° on %(date)s (JUPOS via Sky & "
 "Telescope; BAA Jupiter Section)."
 msgstr ""
 
-#: templates/solar_system.html:409
+#: templates/solar_system.html:440
 #, python-format
 msgid "Your longitude: System II %(lon)s° on %(date)s."
 msgstr ""
 
-#: templates/solar_system.html:410
+#: templates/solar_system.html:441
 #, python-format
 msgid "Drift applied since that date: %(rate)s° a month."
 msgstr ""
 
-#: templates/solar_system.html:411
+#: templates/solar_system.html:442
 msgid ""
 "This longitude is more than six months old, so the times may be well off."
 " Enter a recent value (JUPOS, BAA, ALPO) with Edit."
 msgstr ""
 
-#: templates/solar_system.html:415
+#: templates/solar_system.html:443
 msgid ""
 "Check the current GRS longitude in Sky & Telescope's GRS transit "
 "calculator or at JUPOS."
 msgstr ""
 
-#: templates/solar_system.html:413
+#: templates/solar_system.html:445
 msgid "Great Red Spot (predicted position)"
 msgstr ""
 
-#: templates/solar_system.html:414
+#: templates/solar_system.html:446
 msgid "Filled dot: a moon beside or in front of Jupiter"
 msgstr ""
 
-#: templates/solar_system.html:415
+#: templates/solar_system.html:447
 msgid "Dashed ring: a moon hidden behind the disc"
 msgstr ""
 
-#: templates/solar_system.html:416
+#: templates/solar_system.html:448
 msgid "Faded ring: a moon in Jupiter's shadow (eclipsed)"
 msgstr ""
 
-#: templates/solar_system.html:417
+#: templates/solar_system.html:449
 msgid "Black dot on the disc: a moon's shadow"
 msgstr ""
 
-#: templates/solar_system.html:418
+#: templates/solar_system.html:450
 msgid "Red oval: the Great Red Spot, when it faces us"
 msgstr ""
 
-#: templates/solar_system.html:383
+#: templates/solar_system.html:451
 msgid "east"
 msgstr ""
 
-#: templates/solar_system.html:384
+#: templates/solar_system.html:452
 msgid "west"
 msgstr ""
 
-#: templates/solar_system.html:385
+#: templates/solar_system.html:453
 msgid "in front"
 msgstr ""
 
-#: templates/solar_system.html:386
+#: templates/solar_system.html:454
 msgid "on the disc"
 msgstr ""
 
-#: templates/solar_system.html:387
+#: templates/solar_system.html:455
 msgid "behind"
 msgstr ""
 
-#: templates/solar_system.html:427
+#: templates/solar_system.html:456 templates/solar_system.html:568
 msgid "hidden behind the disc"
 msgstr ""
 
-#: templates/solar_system.html:388
+#: templates/solar_system.html:457
 msgid "in eclipse"
 msgstr ""
 
-#: templates/solar_system.html:390
+#: templates/solar_system.html:458
 #, python-format
 msgid "%(rj)s Jupiter radii from the centre of the disc"
 msgstr ""
 
-#: templates/solar_system.html:391
+#: templates/solar_system.html:459
 msgid "Its shadow is on the disc"
 msgstr ""
 
-#: templates/solar_system.html:393
+#: templates/solar_system.html:461
 msgid "Io"
 msgstr ""
 
-#: templates/solar_system.html:394
+#: templates/solar_system.html:462
 msgid "Europa"
 msgstr ""
 
-#: templates/solar_system.html:395
+#: templates/solar_system.html:463
 msgid "Ganymede"
 msgstr ""
 
-#: templates/solar_system.html:396
+#: templates/solar_system.html:464
 msgid "Callisto"
 msgstr ""
 
-#: templates/solar_system.html:399
+#: templates/solar_system.html:467
 msgid "Satellite transit"
 msgstr ""
 
-#: templates/solar_system.html:401
+#: templates/solar_system.html:469
 msgid "Eclipse"
 msgstr ""
 
-#: templates/solar_system.html:402
+#: templates/solar_system.html:470
 msgid "Shadow transit"
 msgstr ""
 
-#: templates/solar_system.html:404
+#: templates/solar_system.html:472
 #, python-format
 msgid "%(n)s min"
 msgstr ""
 
-#: templates/solar_system.html:405
+#: templates/solar_system.html:473
 #, python-format
 msgid "Altitude %(alt)s°"
 msgstr ""
 
-#: templates/solar_system.html:406
+#: templates/solar_system.html:474
 msgid "double"
 msgstr ""
 
-#: templates/solar_system.html:446
+#: templates/solar_system.html:475
 msgid "in progress"
 msgstr ""
 
-#: templates/solar_system.html:447
+#: templates/solar_system.html:476
 #, python-format
 msgid "Already under way when the night begins: it started %(time)s"
 msgstr ""
 
-#: templates/solar_system.html:407
+#: templates/solar_system.html:477
 msgid "Two moons are crossing Jupiter at the same time."
 msgstr ""
 
-#: templates/solar_system.html:408
+#: templates/solar_system.html:478
 #, python-format
 msgid "Shadow transit at %(time)s"
 msgstr ""
 
-#: templates/solar_system.html:409
+#: templates/solar_system.html:479
 #, python-format
 msgid "ends %(time)s"
 msgstr ""
 
-#: templates/solar_system.html:410
+#: templates/solar_system.html:480
 msgid "No transit, occultation, eclipse or shadow transit tonight."
 msgstr ""
 
-#: templates/solar_system.html:411
+#: templates/solar_system.html:481
 msgid "No shadow transit in the next two weeks."
 msgstr ""
 
-#: templates/solar_system.html:413
+#: templates/solar_system.html:483
 msgid "Jupiter is not up during the night"
 msgstr ""
 
-#: templates/solar_system.html:415
+#: templates/solar_system.html:485
 msgid ""
 "Jupiter tonight: the disc, the four Galilean moons and the shadows they "
 "cast"
 msgstr ""
 
-#: templates/solar_system.html:419
+#: templates/solar_system.html:489
 msgid "Mars detail could not be calculated."
 msgstr ""
 
-#: templates/solar_system.html:457
+#: templates/solar_system.html:492
 msgid "CM"
 msgstr ""
 
-#: templates/solar_system.html:429
+#: templates/solar_system.html:493
 msgid ""
 "Planetographic longitude at the centre of the disc: it tells you which "
 "side of Mars faces you."
 msgstr ""
 
-#: templates/solar_system.html:459
+#: templates/solar_system.html:494
 #, python-format
 msgid "North pole tilted %(deg)s° towards us"
 msgstr ""
 
-#: templates/solar_system.html:460
+#: templates/solar_system.html:495
 #, python-format
 msgid "South pole tilted %(deg)s° towards us"
 msgstr ""
 
-#: templates/solar_system.html:461
+#: templates/solar_system.html:496
 #, python-format
 msgid "North pole tilted %(deg)s° towards the Sun"
 msgstr ""
 
-#: templates/solar_system.html:462
+#: templates/solar_system.html:497
 #, python-format
 msgid "South pole tilted %(deg)s° towards the Sun"
 msgstr ""
 
-#: templates/solar_system.html:463
+#: templates/solar_system.html:498
 msgid "Best tonight"
 msgstr ""
 
-#: templates/solar_system.html:464
+#: templates/solar_system.html:499
 #, python-format
 msgid ""
 "When %(name)s is nearest the central meridian while Mars is above the "
 "altitude threshold."
 msgstr ""
 
-#: templates/solar_system.html:465
+#: templates/solar_system.html:500
 #, python-format
 msgid "Bar: how close it is to the central meridian (%(deg)s° away)"
 msgstr ""
 
-#: templates/solar_system.html:466
+#: templates/solar_system.html:501
 #, python-format
 msgid "Next on the central meridian: %(time)s"
 msgstr ""
 
-#: templates/solar_system.html:467
+#: templates/solar_system.html:502
 msgid "North polar cap (approximate size)"
 msgstr ""
 
-#: templates/solar_system.html:468
+#: templates/solar_system.html:503
 msgid "South polar cap (approximate size)"
 msgstr ""
 
-#: templates/solar_system.html:434
+#: templates/solar_system.html:506
 msgid "No named feature is on the disc tonight"
 msgstr ""
 
-#: templates/solar_system.html:435
+#: templates/solar_system.html:507
 msgid "Mars is not up during the night"
 msgstr ""
 
-#: templates/solar_system.html:438
+#: templates/solar_system.html:510
 #, python-format
 msgid "%(deg)s° from the central meridian"
 msgstr ""
 
-#: templates/solar_system.html:445
+#: templates/solar_system.html:512
 msgid "Mars tonight: the disc, its lit part and the named features on it"
 msgstr ""
 
-#: templates/solar_system.html:447
+#: templates/solar_system.html:514
 msgid "Albedo feature"
 msgstr ""
 
-#: templates/solar_system.html:450
+#: templates/solar_system.html:517
 msgid "Plain"
 msgstr ""
 
-#: templates/solar_system.html:451
+#: templates/solar_system.html:518
 msgid "Chasma (canyon)"
 msgstr ""
 
-#: templates/solar_system.html:452
+#: templates/solar_system.html:519
 msgid "Fossa (trough)"
 msgstr ""
 
-#: templates/solar_system.html:453
+#: templates/solar_system.html:520
 msgid "Plateau"
 msgstr ""
 
-#: templates/solar_system.html:455
+#: templates/solar_system.html:522
 msgid "Highland"
 msgstr ""
 
-#: templates/solar_system.html:456
+#: templates/solar_system.html:523
 msgid "Tholus (dome)"
 msgstr ""
 
-#: templates/solar_system.html:458
+#: templates/solar_system.html:525
 msgid "Patera (volcanic crater)"
 msgstr ""
 
-#: templates/solar_system.html:459
+#: templates/solar_system.html:526
 msgid "Chaos terrain"
 msgstr ""
 
-#: templates/solar_system.html:460
+#: templates/solar_system.html:527
 msgid "Mensa (table)"
 msgstr ""
 
-#: templates/solar_system.html:461
+#: templates/solar_system.html:528
 msgid "Vastitas (plain)"
 msgstr ""
 
-#: templates/solar_system.html:462
+#: templates/solar_system.html:529
 msgid "Labyrinthus (labyrinth)"
 msgstr ""
 
-#: templates/solar_system.html:468
+#: templates/solar_system.html:534
+msgid "Saturn detail could not be calculated."
+msgstr ""
+
+#: templates/solar_system.html:537
+msgid "Rings"
+msgstr ""
+
+#: templates/solar_system.html:538
+msgid ""
+"B is the Earth’s latitude above the ring plane: how far the rings are "
+"tilted towards us. Positive is the north face, negative the south, and "
+"near 0° they are edge-on."
+msgstr ""
+
+#: templates/solar_system.html:540
+msgid "north face towards us"
+msgstr ""
+
+#: templates/solar_system.html:541
+msgid "south face towards us"
+msgstr ""
+
+#: templates/solar_system.html:544
+msgid "north face"
+msgstr ""
+
+#: templates/solar_system.html:545
+msgid "south face"
+msgstr ""
+
+#: templates/solar_system.html:547
+#, python-format
+msgid "The Sun lights the %(face)s"
+msgstr ""
+
+#: templates/solar_system.html:548
+msgid "The Earth and the Sun see opposite faces of the rings tonight"
+msgstr ""
+
+#: templates/solar_system.html:550
+msgid "opening"
+msgstr ""
+
+#: templates/solar_system.html:551
+msgid "closing"
+msgstr ""
+
+#: templates/solar_system.html:553
+msgid ""
+"The tilt of the rings, B, over the next two years, and whether they are "
+"opening or closing"
+msgstr ""
+
+#: templates/solar_system.html:554
+#, python-format
+msgid "The ring system spans %(arcsec)s″ across"
+msgstr ""
+
+#: templates/solar_system.html:555
+#, python-format
+msgid "The outer edge of the A ring is %(rs)s Saturn radii from the centre"
+msgstr ""
+
+#: templates/solar_system.html:556 templates/solar_system.html:595
 msgid "Disc"
 msgstr ""
 
-#: templates/solar_system.html:469
+#: templates/solar_system.html:557
+msgid "Apparent diameter of the globe in arcseconds tonight."
+msgstr ""
+
+#: templates/solar_system.html:559
+msgid "Brightness of the planet tonight: smaller is brighter."
+msgstr ""
+
+#: templates/solar_system.html:561
+msgid "east of Saturn"
+msgstr ""
+
+#: templates/solar_system.html:562
+msgid "west of Saturn"
+msgstr ""
+
+#: templates/solar_system.html:565
+msgid "in front of the globe"
+msgstr ""
+
+#: templates/solar_system.html:566
+msgid "crossing the disc"
+msgstr ""
+
+#: templates/solar_system.html:567
+msgid "behind the globe"
+msgstr ""
+
+#: templates/solar_system.html:570
+#, python-format
+msgid "%(rs)s Saturn radii from the centre"
+msgstr ""
+
+#: templates/solar_system.html:571
+#, python-format
+msgid "Mean opposition magnitude %(mag)s"
+msgstr ""
+
+#: templates/solar_system.html:572
+msgid "Western elongation: the bright trailing side faces us"
+msgstr ""
+
+#: templates/solar_system.html:573
+msgid "Eastern elongation: the dark leading side faces us"
+msgstr ""
+
+#: templates/solar_system.html:574
+msgid ""
+"Iapetus is two-toned: one hemisphere is bright, the other covered in dark"
+" material. It is brightest at western elongation, about magnitude 10.1, "
+"and faintest at eastern, about 11.9."
+msgstr ""
+
+#: templates/solar_system.html:575
+msgid "No Titan transits this season"
+msgstr ""
+
+#: templates/solar_system.html:576
+#, python-format
+msgid "Titan next crosses the disc in %(date)s"
+msgstr ""
+
+#: templates/solar_system.html:577
+#, python-format
+msgid ""
+"%(names)s also cross the disc this season, but they are far too small and"
+" faint to be seen against it"
+msgstr ""
+
+#: templates/solar_system.html:578
+msgid "Titan crosses the disc this season"
+msgstr ""
+
+#: templates/solar_system.html:579
+#, python-format
+msgid "closest approach %(rs)s Saturn radii from the centre, %(date)s"
+msgstr ""
+
+#: templates/solar_system.html:580
+msgid ""
+"How close the centre of the satellite’s orbit comes to the centre of the "
+"disc in the next twelve months. Inside one Saturn radius the satellite "
+"crosses the disc — a transit, an occultation and the partial ones between"
+" all count here. The times of the crossings themselves are not "
+"calculated."
+msgstr ""
+
+#: templates/solar_system.html:582
+msgid "Saturn is not up during the night"
+msgstr ""
+
+#: templates/solar_system.html:584
+#, python-format
+msgid "Satellite magnitudes: %(source)s"
+msgstr ""
+
+#: templates/solar_system.html:585
+msgid ""
+"Saturn tonight: the globe, the rings and the shadow they cast on it, and "
+"the satellites"
+msgstr ""
+
+#: templates/solar_system.html:586
+msgid "Filled dot: a satellite beside or in front of the globe"
+msgstr ""
+
+#: templates/solar_system.html:587
+msgid "Hollow dot: a satellite behind the globe"
+msgstr ""
+
+#: templates/solar_system.html:588
+msgid ""
+"Chevron at the edge of the figure: a satellite beyond it, its distance in"
+" the tooltip"
+msgstr ""
+
+#: templates/solar_system.html:589
+msgid "Shaded band across the globe: the shadow of the rings"
+msgstr ""
+
+#: templates/solar_system.html:590
+msgid "Small unlabelled dots: Mimas, Enceladus and Hyperion"
+msgstr ""
+
+#: templates/solar_system.html:596
 msgid ""
 "Apparent diameter of the body in pixels with this telescope, camera and "
 "amplification."
 msgstr ""
 
-#: templates/solar_system.html:470
+#: templates/solar_system.html:597
 msgid "Focal ratio"
 msgstr ""
 
-#: templates/solar_system.html:471
+#: templates/solar_system.html:598
 msgid ""
 "Rule of thumb for good seeing: 5 x pixel size in µm. Many imagers use 3-5"
 " x, lower for average seeing or colour cameras."
 msgstr ""
 
-#: templates/solar_system.html:472
+#: templates/solar_system.html:599
 #, python-format
 msgid "ideal f/%(ratio)s"
 msgstr ""
 
-#: templates/solar_system.html:474
+#: templates/solar_system.html:601
 msgid "on target"
 msgstr ""
 
-#: templates/solar_system.html:475
+#: templates/solar_system.html:602
 msgid "below ideal"
 msgstr ""
 
-#: templates/solar_system.html:476
+#: templates/solar_system.html:603
 msgid "above ideal"
 msgstr ""
 
-#: templates/solar_system.html:478
+#: templates/solar_system.html:605
 msgid "Detail"
 msgstr ""
 
-#: templates/solar_system.html:479
+#: templates/solar_system.html:606
 msgid ""
 "How much detail the aperture can resolve on this planet: diameter divided"
 " by the telescope's resolution (Dawes limit). Seeing often limits this "
 "further."
 msgstr ""
 
-#: templates/solar_system.html:481
+#: templates/solar_system.html:608
 msgid "Fine detail"
 msgstr ""
 
-#: templates/solar_system.html:482
+#: templates/solar_system.html:609
 msgid "Main features"
 msgstr ""
 
-#: templates/solar_system.html:483
+#: templates/solar_system.html:610
 msgid "Disc only"
 msgstr ""
 
-#: templates/solar_system.html:485
+#: templates/solar_system.html:612
 #, python-format
 msgid "about %(n)s resolvable points across"
 msgstr ""
 
-#: templates/solar_system.html:486
+#: templates/solar_system.html:613
 msgid "Rotation limit"
 msgstr ""
 
-#: templates/solar_system.html:487
+#: templates/solar_system.html:614
 msgid ""
 "Longest single capture before rotation blurs detail at the disc centre, "
 "without derotation. With derotation (e.g. WinJUPOS) much longer captures "
 "are possible."
 msgstr ""
 
-#: templates/solar_system.html:488
+#: templates/solar_system.html:615
 #, python-format
 msgid "%(min)s min %(sec)s s"
 msgstr ""
 
-#: templates/solar_system.html:490
+#: templates/solar_system.html:617
 msgid ""
 "Frames needed for the full disc, each overlapping its neighbours by 20 "
 "percent."
 msgstr ""
 
-#: templates/solar_system.html:491
+#: templates/solar_system.html:618
 msgid "Fits in one frame"
 msgstr ""
 
-#: templates/solar_system.html:492
+#: templates/solar_system.html:619
 #, python-format
 msgid "%(n)s panels (%(cols)s × %(rows)s)"
 msgstr ""
 
-#: templates/solar_system.html:494
+#: templates/solar_system.html:621
 msgid "Size of the planet on your sensor"
 msgstr ""
 
-#: templates/solar_system.html:495
+#: templates/solar_system.html:622
 msgid "Matches your camera's pixel size"
 msgstr ""
 
-#: templates/solar_system.html:496
+#: templates/solar_system.html:623
 msgid ""
 "Your pixels are too coarse to record all the detail. Use more "
 "amplification."
 msgstr ""
 
-#: templates/solar_system.html:497
+#: templates/solar_system.html:624
 msgid ""
 "Bigger image but no extra detail, and dimmer frames. Use less "
 "amplification and enlarge the result in processing instead."
 msgstr ""
 
-#: templates/solar_system.html:498
+#: templates/solar_system.html:625
 msgid "Limited by the telescope's aperture, not the camera"
 msgstr ""
 
-#: templates/solar_system.html:499
+#: templates/solar_system.html:626
 msgid "Longest single video before the planet's rotation blurs detail"
 msgstr ""
 
-#: templates/solar_system.html:500
+#: templates/solar_system.html:627
 msgid "Frames needed to cover the whole disc"
 msgstr ""
 
-#: templates/solar_system.html:503
+#: templates/solar_system.html:630
 #, python-format
 msgid "%(level)s setup for %(body)s."
 msgstr ""
 
-#: templates/solar_system.html:507
+#: templates/solar_system.html:634
 msgid "Limited"
 msgstr ""
 
-#: templates/solar_system.html:509
+#: templates/solar_system.html:636
 #, python-format
 msgid ""
 "The level combines three checks: how much detail the aperture can resolve"
@@ -7089,124 +7306,124 @@ msgid ""
 "blur down)."
 msgstr ""
 
-#: templates/solar_system.html:510
+#: templates/solar_system.html:637
 #, python-format
 msgid "%(body)s is low tonight (max %(alt)s°); expect atmospheric blur."
 msgstr ""
 
-#: templates/solar_system.html:511
+#: templates/solar_system.html:638
 #, python-format
 msgid "Use %(amp)s amplification for the best sampling."
 msgstr ""
 
-#: templates/solar_system.html:512
+#: templates/solar_system.html:639
 #, python-format
 msgid ""
 "%(body)s: no amplification brings this telescope and camera closer to the"
 " ideal."
 msgstr ""
 
-#: templates/solar_system.html:513
+#: templates/solar_system.html:640
 #, python-format
 msgid "%(body)s stays a small disc with any telescope of this size."
 msgstr ""
 
-#: templates/solar_system.html:514
+#: templates/solar_system.html:641
 msgid "Fine detail possible, focal ratio on target."
 msgstr ""
 
-#: templates/solar_system.html:515
+#: templates/solar_system.html:642
 msgid "Main features possible, focal ratio on target."
 msgstr ""
 
-#: templates/solar_system.html:516
+#: templates/solar_system.html:643
 msgid "Focal ratio on target."
 msgstr ""
 
-#: templates/solar_system.html:519
+#: templates/solar_system.html:646
 #, python-format
 msgid ""
 "Scale preview: sensor %(w)s × %(h)s pixels, %(body)s %(disc)s pixels "
 "across."
 msgstr ""
 
-#: templates/solar_system.html:520
+#: templates/solar_system.html:647
 msgid ""
 "Lit side shown to the right; on your sensor it depends on the camera's "
 "rotation."
 msgstr ""
 
-#: templates/solar_system.html:521
+#: templates/solar_system.html:648
 msgid "not to scale (too small)"
 msgstr ""
 
-#: templates/solar_system.html:522
+#: templates/solar_system.html:649
 #, python-format
 msgid ""
 "A %(w)s × %(h)s region of interest (ROI) is enough: more frames per "
 "second."
 msgstr ""
 
-#: templates/solar_system.html:523
+#: templates/solar_system.html:650
 msgid ""
 "A region of interest (ROI) reads out only part of the sensor. Smaller "
 "frames transfer faster, so the camera records more frames per second for "
 "stacking."
 msgstr ""
 
-#: templates/solar_system.html:524
+#: templates/solar_system.html:651
 msgid "No scale preview."
 msgstr ""
 
-#: templates/solar_system.html:527
+#: templates/solar_system.html:654
 msgid "The telescope has no focal length."
 msgstr ""
 
-#: templates/solar_system.html:528
+#: templates/solar_system.html:655
 msgid "The telescope has no aperture."
 msgstr ""
 
-#: templates/solar_system.html:529
+#: templates/solar_system.html:656
 msgid "The camera has no pixel size."
 msgstr ""
 
-#: templates/solar_system.html:530
+#: templates/solar_system.html:657
 msgid "The camera has no sensor size."
 msgstr ""
 
-#: templates/solar_system.html:531
+#: templates/solar_system.html:658
 msgid ""
 "Check the camera's sensor size: it should be in millimetres (e.g. 7.68 × "
 "4.32 mm)."
 msgstr ""
 
-#: templates/solar_system.html:532
+#: templates/solar_system.html:659
 msgid "Cannot be calculated from these values."
 msgstr ""
 
-#: templates/solar_system.html:536
+#: templates/solar_system.html:663
 #, python-format
 msgid "Seeing tonight: %(level)s (jet stream %(speed)s m/s)"
 msgstr ""
 
-#: templates/solar_system.html:537
+#: templates/solar_system.html:664
 #, python-format
 msgid "Seeing %(day)s: %(level)s (jet stream %(speed)s m/s)"
 msgstr ""
 
-#: templates/solar_system.html:539
+#: templates/solar_system.html:666
 msgid "likely steady"
 msgstr ""
 
-#: templates/solar_system.html:540
+#: templates/solar_system.html:667
 msgid "average"
 msgstr ""
 
-#: templates/solar_system.html:541
+#: templates/solar_system.html:668
 msgid "likely poor"
 msgstr ""
 
-#: templates/solar_system.html:543
+#: templates/solar_system.html:670
 #, python-format
 msgid ""
 "A forecast, not a measurement. Seeing is estimated from the jet stream: "
@@ -7216,19 +7433,19 @@ msgid ""
 "Meteo."
 msgstr ""
 
-#: templates/solar_system.html:545
+#: templates/solar_system.html:672
 msgid "less reliable beyond 3 days"
 msgstr ""
 
-#: templates/solar_system.html:546
+#: templates/solar_system.html:673
 msgid "No seeing forecast for this night"
 msgstr ""
 
-#: templates/solar_system.html:547
+#: templates/solar_system.html:674
 msgid "Above the altitude threshold for less than an hour"
 msgstr ""
 
-#: templates/solar_system.html:548
+#: templates/solar_system.html:675
 msgid "Data: Open-Meteo"
 msgstr ""
 
