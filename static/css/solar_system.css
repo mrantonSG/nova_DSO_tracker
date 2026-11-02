@@ -1451,21 +1451,22 @@
    THE SATURN CARD (#solar-saturn)
 
    The Jupiter card's shape -- a wide strip drawn in pixels, so its names stay 12 px -- with
-   the ring system on it. The globe is the planet's body colour a shade darker than the
-   rings, and the rings that same colour in three strengths: the C ring is the dusky one and
-   the faintest, the B ring the brightest, the A ring between them. The globe is darker
-   because the rings' near half crosses in front of it: drawn in one colour, the band over
-   the globe and the globe would be the same pixels and the crossing would be invisible,
-   while over the card's own background the rings read as they are drawn. The band the
-   rings' shadow cuts across the globe is a dark fill over the body colour, in either theme,
-   as the card's shadow colour is. Nothing here says anything about a telescope: the Cassini
-   division is drawn as the gap it is, because that is what the geometry gives at this
-   scale, and no more is claimed of it.
+   the ring system on it. The globe is the planet's body colour, and the rings that same
+   colour in three strengths: the C ring is the dusky one and the faintest, the B ring the
+   brightest, the A ring between them. The globe is a good deal darker than the rings
+   because the rings' near half crosses in front of it: the band has to read as brighter
+   than the planet it passes over, and over the body colour the sides' own strengths leave
+   only a stripe -- so the near half is drawn once over the whole figure as the sides have
+   it, and once more on the globe's own near half-disc at full strength, in the same colours
+   (see .solar-saturn-front below). The band the rings' shadow cuts across the globe is a
+   dark fill over the body colour, in either theme, as the card's shadow colour is. Nothing
+   here says anything about a telescope: the Cassini division is drawn as the gap it is,
+   because that is what the geometry gives at this scale, and no more is claimed of it.
    ================================================================= */
 #solar-saturn {
   container: solar-card / inline-size;
   --solar-saturn-shadow: #14100c;
-  --solar-saturn-globe: #b39d6c;
+  --solar-saturn-globe: #9d8659;
 }
 
 #bodies-tab #solar-saturn[hidden],
@@ -1515,11 +1516,32 @@
   fill-opacity: 0.55;
 }
 
+/* The rings' near half where it crosses the globe: the same paths and the same three ring
+   colours as the sides, at full strength, because against the body colour the sides' own
+   strengths leave only a stripe. This is the pass that makes the crossing read as the rings
+   in front of the planet; the shadow's band stays what the globe's layer drew, darker and
+   narrower, beside it. */
+#bodies-tab .solar-saturn-svg .solar-saturn-front .solar-saturn-ring {
+  stroke: none;
+}
+
+#bodies-tab .solar-saturn-svg .solar-saturn-front .solar-saturn-ring-b {
+  fill-opacity: 1;
+}
+
+#bodies-tab .solar-saturn-svg .solar-saturn-front .solar-saturn-ring-a {
+  fill-opacity: 0.88;
+}
+
+#bodies-tab .solar-saturn-svg .solar-saturn-front .solar-saturn-ring-c {
+  fill-opacity: 0.5;
+}
+
 /* The moons: a filled dot beside or in front of the globe, a hollow dashed ring hidden
-   behind it, a chevron at the edge of the figure for the ones beyond it. Each is drawn
-   inside the figure's own box -- a moon's line across the drawing can run higher than the
-   drawing reaches -- and Iapetus carries data-brightness: the moon itself is drawn the same
-   either way, because which of its two sides faces us is what its own tooltip says. */
+   behind it, a chevron where the line to a moon leaves the figure for the ones the figure
+   does not reach -- the chevron points the way the moon is. Iapetus carries data-brightness:
+   the moon itself is drawn the same either way, because which of its two sides faces us is
+   what its own tooltip says. */
 #bodies-tab .solar-saturn-svg .solar-saturn-moon-visible circle {
   fill: var(--solar-body-moon);
   stroke: var(--text-secondary);

@@ -389,19 +389,24 @@ for (const night of input.nights) {
         const pa = g.polePA * DEG;
         const east = { x: -Math.cos(pa), y: -Math.sin(pa) }, pole = { x: Math.sin(pa), y: -Math.cos(pa) };
         const raw = NovaSaturn.moons(t.instantUtc);
+        // The engine's own list, by name: the figure draws a subset of it (DRAWN, which
+        // leaves Hyperion out), so the two cannot be zipped by index
+        const rawByName = {};
+        raw.forEach(m => { rawByName[m.name] = m; });
         const toSvg = (mode, x, y) => [mode === 'normal' ? x : -x, mode === 'inverted' ? y : -y];
-        const rows = t.moons.map((m, i) => ({ name: m.name, labelled: m.labelled, side: m.side,
+        const rows = t.moons.map(m => ({ name: m.name, labelled: m.labelled, side: m.side,
             inFront: m.inFront, onDisc: m.onDisc, behindDisc: m.behindDisc, r: m.r, dist: m.dist,
             z: m.z, mag: m.mag, brightness: m.brightness,
-            rawX: raw[i].x, rawY: raw[i].y, rawName: raw[i].name }));
+            rawX: rawByName[m.name].x, rawY: rawByName[m.name].y, rawName: rawByName[m.name].name }));
         const views = {};
         for (const mode of NovaSolarSaturn.VIEWS) {
             const d = NovaSolarSaturn.diagram(g, mode, t.moons, rb);
-            views[mode] = d.moons.map((m, i) => {
+            views[mode] = d.moons.map(m => {
+                const own = rawByName[m.name];
                 // The figure's own rotation: place() is the documented one, the sky frame's
                 // directions at polePA and polePA - 90 written out
-                const px = raw[i].x * east.x + raw[i].y * east.y;
-                const py = raw[i].x * pole.x + raw[i].y * pole.y;
+                const px = own.x * east.x + own.y * east.y;
+                const py = own.x * pole.x + own.y * pole.y;
                 const want = toSvg(mode, px, py);
                 const over = Math.abs(want[0]);
                 const off = over > NovaSolarSaturn.STRIP_RS;
@@ -420,7 +425,7 @@ for (const night of input.nights) {
             });
         }
         out.push({ night: night, site: loc.timezone, rows: rows, views: views,
-                   strip: NovaSolarSaturn.STRIP_RS,
+                   strip: NovaSolarSaturn.STRIP_RS, drawn: NovaSolarSaturn.DRAWN,
                    // Celestial north, (0, -1) in the sky frame, in the figure's own frame
                    north: views.normal && NovaSolarSaturn.diagram(g, 'normal', [], rb).north,
                    northErr: (() => {
@@ -438,16 +443,21 @@ return out;
 def test_the_moons_are_where_the_engine_puts_them(tmp_path):
     """Each moon's drawn place is the engine's own sky-frame position rotated into the figure
     the documented way, in all three views; a moon past the edge of the strip is pulled back
-    to it along its own line; and the entry's own states follow z and r."""
+    to it along its own line; the entry's own states follow z and r; and the figure draws
+    the seven of the engine's eight the card's figure is for, Hyperion left out."""
+    checked_off = 0
     for c in _run(tmp_path, _MOONS, nights=list(NIGHTS), sites=list(SITES)):
         where = f"{c['night']} @ {c['site']}"
         names = [m["name"] for m in c["rows"]]
         assert names == ["Mimas", "Enceladus", "Tethys", "Dione", "Rhea", "Titan",
                          "Hyperion", "Iapetus"], where
         assert [m["rawName"] for m in c["rows"]] == names, where
+        # The diagram's own list is the engine's order with Hyperion left out -- at 24 radii
+        # out it is past the strip's edge every night of the cycle -- and it is what the card
+        # filters by, so the two have to keep agreeing
+        assert c["drawn"] == [n for n in names if n != "Hyperion"], where
         assert all(m["labelled"] == (m["name"] in ["Titan", "Rhea", "Tethys", "Dione", "Iapetus"])
                    for m in c["rows"]), where
-        checked_off = 0
         for m in c["rows"]:
             tag = f"{where} {m['name']}"
             assert m["side"] == ("west" if m["rawX"] < 0 else "east"), tag
@@ -461,7 +471,7 @@ def test_the_moons_are_where_the_engine_puts_them(tmp_path):
             assert m["brightness"] == (None if m["name"] != "Iapetus"
                                        else "bright" if m["rawX"] < 0 else "faint"), tag
         for mode, drawn in c["views"].items():
-            assert [m["name"] for m in drawn] == names, where
+            assert [m["name"] for m in drawn] == c["drawn"], where
             for m in drawn:
                 tag = f"{where}·{mode} {m['name']}"
                 # Where it is drawn is where the engine puts it, or that place pulled back
@@ -477,10 +487,13 @@ def test_the_moons_are_where_the_engine_puts_them(tmp_path):
                     assert m["straight"] < 1e-5, tag   # still on its own line from the centre
                 else:
                     assert m["err"] < 1e-6, tag
-        assert checked_off > 0, f"{where}: no moon was past the edge of the strip"
         # Celestial north, the sky frame's (0, -1), turned the same way the moons are
         assert c["northErr"] < 1e-6, f"{where}: celestial north is off its own rotation"
         assert math.hypot(c["north"]["x"], c["north"]["y"]) == pytest.approx(1, abs=1e-6), where
+    # Over the nights and sites as a whole: the pull-back is what the far moons' entries
+    # show, and it has to have been exercised -- though no longer on every night, now that
+    # Hyperion, the moon that was always past the edge, is not drawn
+    assert checked_off > 0, "no moon, on any of these nights, was past the edge of the strip"
 
 
 # --- the season's transits ----------------------------------------------------------------

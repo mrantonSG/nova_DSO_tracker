@@ -273,8 +273,10 @@ const satCard = () => {
             clips: svg.children.filter(c => c.tagName === 'clipPath').map(c => ({
                 id: c.attrs.id, x: +c.children[0].attrs.x, y: +c.children[0].attrs.y,
                 width: +c.children[0].attrs.width, height: +c.children[0].attrs.height,
+                d: c.children[0].attrs.d === undefined ? null : c.children[0].attrs.d,
                 r: c.children[0].attrs.r === undefined ? null : +c.children[0].attrs.r })),
-            layers: layers.map(g => ({ clip: g.attrs['clip-path'] || null,
+            layers: layers.map(g => ({ cls: g.attrs.class || null,
+                clip: g.attrs['clip-path'] || null,
                 transform: g.attrs.transform || null,
                 rings: deep(g, 'solar-saturn-ring', []).map(p => ({ cls: p.attrs.class,
                     d: p.attrs.d, ve: p.attrs['vector-effect'] })),

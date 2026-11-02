@@ -186,11 +186,14 @@
  *               opacity is a fraction of the B ring's, so a band drawn to its inner edge
  *               would overstate the shadow. What falls inside the disc is the page's
  *               business: it clips the path to the globe.
- *     moons     [{ name, x, y, r, labelled, inside, off}]. `inside` is true while the moon
- *               is within STRIP_RS of the centre; `off` is 'east', 'west' or null and is
- *               set only for a moon outside it, whose x and y are then pulled back to the
- *               edge of the strip, so the page can draw a chevron there instead of a dot
- *               at a distance the figure does not reach
+ *     moons     [{ name, x, y, r, labelled, inside, off}], one entry per moon in DRAWN and
+ *               in that order. `inside` is true while the moon's own x is within STRIP_RS
+ *               of the centre, and x and y are then the place the engine puts it, which the
+ *               page draws a dot at. `off` is 'east', 'west' or null and is set only for a
+ *               moon outside that -- whose place the strip cannot reach -- and x and y are
+ *               then pulled back to the edge of the strip *along the moon's own line from
+ *               the centre*, so the direction they give is still its own and the page can
+ *               follow that line to wherever it leaves the figure and mark it there
  *     north     { x, y } the sky direction of celestial north in the figure's own frame
  *     tilt      B, in degrees
  *   The frame is the same rotation nova_solar_jupiter.js uses for its moons: `east` is the
@@ -199,10 +202,11 @@
  *   it with no further work — its major axis is along `east`, its minor along `pole` — which
  *   is what P means: the position angle of the semiminor axis. So the rings are always
  *   drawn with the same radii and the same |sin B| flattening, and the moons ride the same
- *   line the rings do. All eight moons are in the engine's list; the ones beyond the
- *   figure's edge are the three the card cannot show at a legible scale (Titan at its
- *   greatest elongation is 20.8 radii out, Iapetus 60.7, and a figure wide enough for
- *   Iapetus leaves the globe two pixels across), and they are marked at the edge instead.
+ *   line the rings do. The engine's own list has eight moons; the diagram draws DRAWN, the
+ *   seven the card's figure is for, and the ones beyond its edge are the ones the card
+ *   cannot show at a legible scale (Titan at its greatest elongation is 20.8 radii out,
+ *   Iapetus 60.7, and a figure wide enough for Iapetus leaves the globe two pixels across),
+ *   which are marked at the edge instead.
  *
  * Everything throws on a missing location, a non-finite coordinate or any engine failure;
  * the page shows its error instead.
@@ -227,10 +231,16 @@
     // that fit (Mimas to Rhea every night, Titan on the nights it is not near its greatest
     // elongation) are drawn where they are. See the header for why it is not wider.
     const STRIP_RS = 14;
-    // The moons whose names the drawing sets. Mimas, Enceladus and Hyperion are drawn as
-    // small unnamed dots with their names and magnitudes in their tooltips: at this scale
-    // their names would sit on the ring system.
+    // The moons whose names the drawing sets. Mimas and Enceladus are drawn as small
+    // unnamed dots with their names and magnitudes in their tooltips: at this scale their
+    // names would sit on the ring system.
     const LABELLED = Object.freeze(['Titan', 'Rhea', 'Tethys', 'Dione', 'Iapetus']);
+    // The moons the diagram shows, in the engine's own order. Hyperion, the eighth, is left
+    // out: at 24 radii out it is past the strip's edge every night of the cycle, so the
+    // figure could only ever mark it with a chevron at its own edge, which says nothing
+    // that the others do not and crowds the edge with a name.
+    const DRAWN = Object.freeze(['Mimas', 'Enceladus', 'Tethys', 'Dione', 'Rhea', 'Titan',
+                                 'Iapetus']);
     const MONTHS_AHEAD = 24;
     const SEASON_DAYS = 365;
     const NEXT_SEASON_YEARS = 14;
@@ -839,11 +849,12 @@
             { key: 'a', d: annulus(rb * edges.outerInner, rb * edges.outerOuter, sinB, r6) },
         ];
 
-        const drawn = (moons || []).map(m => {
+        const drawn = (moons || []).filter(m => DRAWN.indexOf(m.name) >= 0).map(m => {
             const p = place(m.x, m.y);
             const over = Math.max(Math.abs(p.x), 0);
             const off = over > STRIP_RS ? (p.x < 0 ? 'west' : 'east') : null;
-            // Pulled back to the edge of the strip, keeping its own line across the figure
+            // Pulled back to the edge of the strip along the moon's own line from the centre:
+            // the figure cannot reach the place itself, but the direction is the moon's own
             const x = off ? (p.x < 0 ? -STRIP_RS : STRIP_RS) : p.x;
             const y = off ? p.y * (STRIP_RS / over) : p.y;
             return { name: m.name, labelled: m.labelled, r: m.r, inside: !off,
@@ -861,7 +872,7 @@
     }
 
     return {
-        VIEWS: VIEWS, STRIP_RS: STRIP_RS, LABELLED: LABELLED,
+        VIEWS: VIEWS, STRIP_RS: STRIP_RS, LABELLED: LABELLED, DRAWN: DRAWN,
         MONTHS_AHEAD: MONTHS_AHEAD, MOON_MAG: MOON_MAG, SOURCE: SOURCE,
         tonight: tonight, calendarRows: calendarRows, diagram: diagram,
         // for the tests: the pieces, without a location or a night in the way

@@ -12,6 +12,7 @@ that passes here has gone through i18n.saturn (the catalogues themselves are che
 with the translations).
 """
 
+import math
 import re
 from datetime import datetime
 from pathlib import Path
@@ -71,6 +72,71 @@ def _where(m):
                   else "front" if m["inFront"] else "far"]
 
 
+def _points(d):
+    """The points of a path's `d`, in order: 'M a b L c d L e f' is three of them."""
+    nums = [float(v) for v in re.findall(r"-?\d+(?:\.\d+)?", d)]
+    assert len(nums) % 2 == 0 and len(nums) >= 4, d
+    return [(nums[i], nums[i + 1]) for i in range(0, len(nums), 2)]
+
+
+def _tip(d):
+    """A chevron's tip: the point it is drawn to, between its two arms."""
+    pts = _points(d)
+    assert len(pts) == 3, d
+    return pts[1]
+
+
+def _on_ray(point, origin, target):
+    """True while `point` lies on the line from `origin` towards `target`, on the target's
+    own side of it -- the direction a moon is in, which is what a chevron marks. The point
+    may be nearer the centre than the moon or further out: it is where the moon's own line
+    leaves the figure, which is not where the moon is."""
+    ox, oy = origin
+    tx, ty = target[0] - ox, target[1] - oy
+    px_, py_ = point[0] - ox, point[1] - oy
+    length = (tx * tx + ty * ty) ** 0.5
+    return (abs(px_ * ty - py_ * tx) / length <= 0.05
+            and (px_ * tx + py_ * ty) / length > 0)
+
+
+def _off_line(point, origin, target):
+    """How far off the line from `origin` to `target` a point is, signed: two points with
+    opposite signs are on either side of it."""
+    ox, oy = origin
+    tx, ty = target[0] - ox, target[1] - oy
+    length = (tx * tx + ty * ty) ** 0.5
+    return ((point[0] - ox) * ty - (point[1] - oy) * tx) / length
+
+
+def _bbox(d):
+    """A path's own bounding box: (x0, y0, x1, y1)."""
+    pts = _points(d)
+    xs = [p[0] for p in pts]
+    ys = [p[1] for p in pts]
+    return min(xs), min(ys), max(xs), max(ys)
+
+
+def _marker_box(group):
+    """The box the card keeps a marker's name off: a dot's own circle, a chevron's three
+    points, each with the 1 px the card adds."""
+    if group["tag"] == "circle":
+        return (group["cx"] - group["r"] - 1, group["cx"] + group["r"] + 1,
+                group["cy"] - group["r"] - 1, group["cy"] + group["r"] + 1)
+    xs = [p[0] for p in _points(group["d"])]
+    ys = [p[1] for p in _points(group["d"])]
+    return min(xs) - 1, max(xs) + 1, min(ys) - 1, max(ys) + 1
+
+
+def _label_box(label):
+    """The box the card places a label in: the width it measures with, and 12 px of text."""
+    half = (7 * len(label["text"]) + 4) / 2
+    return (label["x"] - half, label["x"] + half, label["y"] - 7, label["y"] + 7)
+
+
+def _overlaps(a, b):
+    return a[0] < b[1] and b[0] < a[1] and a[2] < b[3] and b[2] < a[3]
+
+
 def test_saturn_card_only_while_saturn_is_selected(tmp_path):
     got = _run(tmp_path, """
         h.online();
@@ -106,7 +172,7 @@ def test_saturn_card_shows_the_rings_the_moons_and_the_season(tmp_path):
                  crossing: t.transits.crossing.map(x => ({name: x.name, closestRs: x.closestRs,
                      utcMs: x.utcMs})),
                  titan: t.transits.titan, titanNext: t.transits.titanNext },
-               source: source, moonMag: moonMag };
+               source: source, moonMag: moonMag, drawn: NS.DRAWN };
     """, "2026-11-02")
     card, t = got["card"], got["t"]
     assert card["title"] == "SATURN · at " + t["hm"]
@@ -138,12 +204,15 @@ def test_saturn_card_shows_the_rings_the_moons_and_the_season(tmp_path):
     assert len(spark["line"]) == 1 and spark["line"][0].count("L ") == n - 1
     assert spark["line"][0].startswith("M ")
 
-    # The moons: all eight on the drawing, in the module's own order, each with its own name
-    # and, in its tooltip, its magnitude, which side of Saturn it is on and what it is doing
+    # The moons: the card's own seven on the drawing, in the module's own order, each with
+    # its own name and, in its tooltip, its magnitude, which side of Saturn it is on and
+    # what it is doing
     assert t["sameFace"] and t["face"] == t["sunFace"] == "south"
+    drawn_names = [m["name"] for m in t["moons"] if m["name"] in got["drawn"]]
+    assert drawn_names == got["drawn"] and "Hyperion" not in drawn_names
     moons = card["svg"]["moons"]
-    assert [m["moon"] for m in moons] == [m["name"] for m in t["moons"]]
-    for drawn, m in zip(moons, t["moons"]):
+    assert [m["moon"] for m in moons] == drawn_names
+    for drawn, m in zip(moons, [m for m in t["moons"] if m["name"] in got["drawn"]]):
         assert ("solar-saturn-moon-small" in drawn["cls"]) == (not m["labelled"])
         assert drawn["brightness"] == (m["brightness"] or None)
         lines = drawn["title"].split("\n")
@@ -202,10 +271,11 @@ def test_saturn_card_names_titan_s_crossing_when_the_season_has_one(tmp_path):
 
 
 def test_the_saturn_figure_is_the_module_s_own_rings_moons_and_north(tmp_path):
-    """The drawing: the three clipped layers in the order they cover each other -- the far
-    half of the rings, the globe with the rings' shadow on it, the near half -- the ring
-    paths the module's own, the moons a dot or a chevron at the edge of the strip, the
-    labels only on the five the figure names, and the arrow to celestial north."""
+    """The drawing: the four clipped layers in the order they cover each other -- the far
+    half of the rings, the globe with the rings' shadow on it, the near half, and the near
+    half again over the globe -- the ring paths the module's own, the moons a dot where the
+    figure reaches and a chevron where its own line leaves the figure, the labels only on
+    the five the figure names, and the arrow to celestial north."""
     got = _run_saturn(tmp_path, """
         h.online();
         await h.load('bodies');
@@ -213,11 +283,12 @@ def test_the_saturn_figure_is_the_module_s_own_rings_moons_and_north(tmp_path):
         const rw = t.rings.radiusRs * k;
         const rh = rw * Math.abs(Math.sin(t.rings.B * Math.PI / 180));
         return { card: satCard(), B: t.rings.B, north: d.north, shadow: d.shadow,
-                 rings: d.rings, out: Math.max(k, rh), k: k,
+                 rings: d.rings, out: Math.max(k, rh), k: k, diffs: NS.DRAWN,
                  drawn: d.moons.map(m => ({name: m.name, x: m.x, y: m.y, off: m.off,
                      inside: m.inside, labelled: m.labelled})),
-                 sky: t.moons.map(m => ({name: m.name, side: m.side, brightness: m.brightness,
-                     behindDisc: m.behindDisc})),
+                 sky: t.moons.filter(m => NS.DRAWN.indexOf(m.name) >= 0).map(
+                     m => ({name: m.name, side: m.side, brightness: m.brightness,
+                            behindDisc: m.behindDisc})),
                  labelled: NS.LABELLED };
     """, "2026-11-02")
     svg = got["card"]["svg"]
@@ -227,36 +298,48 @@ def test_the_saturn_figure_is_the_module_s_own_rings_moons_and_north(tmp_path):
                                         "L-HOLLOW", "L-EDGE", "L-SHADOW", "L-SMALL"]
 
     # The clips: the two halves of the rings split at the centre, the near half the one the
-    # rings' own sign puts in front, and the globe's own circle for the shadow
+    # rings' own sign puts in front, the globe's own circle for the shadow, and the globe's
+    # own near half-disc for the pass that puts the rings' band across it
     assert [c["id"] for c in svg["clips"]] == ["solar-saturn-far", "solar-saturn-near",
-                                              "solar-saturn-globe"]
-    far, near, globe = svg["clips"]
+                                              "solar-saturn-globe", "solar-saturn-front"]
+    far, near, globe, front = svg["clips"]
     assert (far["x"], far["width"], far["height"]) == (-2, 724, 82)
     assert (near["x"], near["width"], near["height"]) == (-2, 724, 82)
     # B is negative and the view is not inverted, so the near half is the upper one
     assert got["B"] < 0 and (far["y"], near["y"]) == (80, -2)
     assert globe["r"] == 1 and globe["width"] is None, "the globe's clip is a circle"
     assert far["r"] is None and near["r"] is None
+    # The front clip is an arc of the globe's own radius, from the left limb to the right,
+    # over the top: the same half the rings' own sign puts in front
+    k = svg["scale"]
+    assert front["d"] == (f"M {round(360 - k, 2)} 80 A {round(k, 2)} {round(k, 2)} 0 1 1 "
+                          f"{round(360 + k, 2)} 80 Z")
+    assert front["r"] is None and front["width"] is None
 
     # The layers, in the order they cover each other, each with the module's own paths
     layers = svg["layers"]
     assert [l["clip"] for l in layers] == ["url(#solar-saturn-far)", None,
-                                          "url(#solar-saturn-near)"]
+                                          "url(#solar-saturn-near)", "url(#solar-saturn-front)"]
+    assert [l["cls"] for l in layers] == [None, None, None, "solar-saturn-front"]
     assert layers[1]["transform"].startswith("translate(360 80) scale(25.142857")
-    for i in (0, 2):
+    for i in (0, 2, 3):
         assert [r["d"] for r in layers[i]["rings"]] == [r["d"] for r in got["rings"]]
         assert [r["cls"] for r in layers[i]["rings"]] == ["solar-saturn-ring solar-saturn-ring-c",
             "solar-saturn-ring solar-saturn-ring-b", "solar-saturn-ring solar-saturn-ring-a"]
         assert all(r["ve"] == "non-scaling-stroke" for r in layers[i]["rings"])
     assert layers[1]["globe"] == [1] and layers[0]["globe"] == [] and layers[2]["globe"] == []
+    assert layers[3]["globe"] == [] and layers[3]["shadow"] == []
     # The shadow, on the globe and clipped to it: the module's own outline, or none at all
     shadow = layers[1]["shadow"]
     assert len(shadow) == 1 and shadow[0]["clip"] == "url(#solar-saturn-globe)"
     assert shadow[0]["d"] == ([got["shadow"]] if got["shadow"] else [])
 
-    # The moons: where the module draws them, in the module's own order, each with its own
-    # side and brightness; a dot where the figure reaches, a chevron where it does not
-    assert len(svg["moons"]) == len(got["drawn"]) == 8
+    # The moons: the seven the figure is for, in the module's own order, each with its own
+    # side and brightness; a dot at its own place where the figure reaches it, a chevron
+    # where its own line leaves the figure
+    assert len(svg["moons"]) == len(got["drawn"]) == len(got["sky"]) == 7
+    assert got["diffs"] == ["Mimas", "Enceladus", "Tethys", "Dione", "Rhea", "Titan", "Iapetus"]
+    assert [d["name"] for d in got["drawn"]] == got["diffs"], "the engine's order, less Hyperion"
     assert sum(1 for m in svg["moons"] if m["tag"] == "circle") > 0, "dots, for the moons"
     assert sum(1 for m in svg["moons"] if m["tag"] == "path") > 0, "chevrons, for the far ones"
     for group, drawn, sky in zip(svg["moons"], got["drawn"], got["sky"]):
@@ -266,21 +349,25 @@ def test_the_saturn_figure_is_the_module_s_own_rings_moons_and_north(tmp_path):
         assert ("solar-saturn-moon-behind" in group["cls"]) == sky["behindDisc"]
         assert ("solar-saturn-moon-small" in group["cls"]) == (not drawn["labelled"])
         assert group["title"].startswith(sky["name"] + "\n")
-        # The moon's own line across the figure can run out of its box -- at this tilt the
-        # strip is under two radii tall -- so the marker is kept inside it, as its name is
+        # The moon's own place in the figure, and where its own line leaves it
+        tx = 360 + drawn["x"] * k
+        ty = 80 + drawn["y"] * k
         rad = 4 if drawn["labelled"] else 2.5
-        edge = 7 if drawn["off"] else rad + 2
-        want = max(edge, min(160 - edge, 80 + drawn["y"] * svg["scale"]))
-        if drawn["off"]:
-            assert group["tag"] == "path" and group["d"] is not None and group["r"] is None
-            nums = [float(v) for v in re.findall(r"-?\d+(?:\.\d+)?", group["d"])]
-            assert [nums[i] for i in range(1, len(nums), 2)] == pytest.approx(
-                [want - 5, want, want + 5], abs=0.01), "a chevron of its own size"
+        size = 5 if drawn["off"] else rad
+        fits = (not drawn["off"] and abs(drawn["x"] * k) <= 360 - size - 2
+                and abs(drawn["y"] * k) <= 80 - size - 2)
+        if fits:
+            assert group["tag"] == "circle" and group["r"] == rad
+            assert (group["cx"], group["cy"]) == pytest.approx((tx, ty), abs=0.01), \
+                "a dot at its own place, never at one it does not have"
+            assert rad <= group["cy"] <= 160 - rad, "the whole dot is in the box"
         else:
-            assert group["tag"] == "circle" and group["r"] == (4 if drawn["labelled"] else 2.5)
-            assert group["cx"] == pytest.approx(360 + drawn["x"] * svg["scale"], abs=0.01)
-            assert group["cy"] == pytest.approx(want, abs=0.01)
-            assert group["r"] <= group["cy"] <= 160 - group["r"], "the whole dot is in the box"
+            assert group["tag"] == "path" and group["r"] is None
+            tip = _tip(group["d"])
+            assert _on_ray(tip, (360, 80), (tx, ty)), "the tip is on the line to the moon"
+            assert min(tip[0], 720 - tip[0], tip[1], 160 - tip[1]) == \
+                pytest.approx(size + 2, abs=0.01), \
+                "and on the figure's edge, where the line leaves it"
         assert group["cx"] is None or 0 <= group["cx"] <= 720
     assert sum(1 for d in got["drawn"] if d["off"]) > 0, "the figure reaches past its edge"
     assert sum(1 for d in got["drawn"] if d["inside"]) > 0, "and holds the inner moons"
@@ -362,7 +449,7 @@ def test_saturn_card_is_muted_when_saturn_is_low(tmp_path):
     """, "2027-05-20")
     assert got["reason"] == "altitude" and got["maxAlt"] < got["threshold"] == 20
     assert got["card"]["muted"] and got["card"]["empty"] == "BELOW"
-    assert len(got["card"]["svg"]["moons"]) == got["moons"] == 8
+    assert len(got["card"]["svg"]["moons"]) == 7 and got["moons"] == 8
     assert got["card"]["svg"]["labels"] and len(got["card"]["tiles"]) == 1
 
 
@@ -452,13 +539,14 @@ def test_saturn_card_is_computed_once_a_night(tmp_path):
 WIDE = 1278      # the card's own width in the browser window Anton looked at
 
 
-def test_every_moon_has_a_marker_inside_the_figure(tmp_path):
-    """Anton's first look: every moon has a dot or a chevron of its own, inside the box, and
-    it keeps the figure's own x. A moon's line across the drawing runs far outside a strip
-    under two radii tall -- at the card's own width most of them do, at any tilt from the
-    smallest -- so the marker is held at the edge with its name, and the distance that says
-    how far out it is is the tooltip's. Drawn at the position the line actually has, they
-    all fall outside the box, which is what the first look saw: labels with no dots."""
+def test_no_moon_is_moved_to_a_place_it_does_not_have(tmp_path):
+    """Anton's second look: a moon is drawn where it is, and where the figure cannot reach
+    it its own line is followed out to the edge and marked there, with its name -- never a
+    dot squeezed to a position the moon does not have. A moon's line across the drawing runs
+    far outside a strip under two radii tall, at any tilt from the smallest; the distance
+    that says how far out it is is the tooltip's. At the card's own width the inner moons
+    are dots at their own places, and the ones the figure cannot reach are chevrons on the
+    edge, each on the line from the centre to its own moon."""
     out = {}
     for sim in ("2026-11-02", "2031-11-02"):
         got = _run_saturn(tmp_path, f"""
@@ -469,54 +557,185 @@ def test_every_moon_has_a_marker_inside_the_figure(tmp_path):
             return {{ card: satCard(), B: t.rings.B,
                      drawn: d.moons.map(m => ({{name: m.name, x: m.x, y: m.y, off: m.off,
                          labelled: m.labelled}})),
-                     moons: t.moons.map(m => ({{name: m.name, dist: m.dist}})) }};
+                     moons: t.moons.filter(m => NS.DRAWN.indexOf(m.name) >= 0).map(
+                         m => ({{name: m.name, dist: m.dist}})) }};
         """, sim)
         svg = got["card"]["svg"]
         assert svg["width"] == WIDE
-        assert len(svg["moons"]) == len(got["drawn"]) == 8, "all eight, none dropped"
-        cx = WIDE / 2
-        held = 0
+        # The seven the figure is for: the engine's eight less Hyperion, which is never
+        # inside it at any tilt, and would only ever be a chevron at the figure's edge
+        assert len(svg["moons"]) == len(got["drawn"]) == len(got["moons"]) == 7
+        cx, k, scale = WIDE / 2, svg["scale"], svg["scale"]
+        dots = chevrons = 0
         for group, drawn, sky in zip(svg["moons"], got["drawn"], got["moons"]):
             assert group["moon"] == drawn["name"] == sky["name"]
             assert drawn["labelled"] or group["r"] in (None, 2.5)
-            raw = cx + drawn["y"] * svg["scale"]
-            if drawn["off"]:
-                assert group["tag"] == "path", "beyond the strip: a chevron at its edge"
-                xs = [float(v) for v in re.findall(r"-?\d+(?:\.\d+)?", group["d"])[0::2]]
-                ys = [float(v) for v in re.findall(r"-?\d+(?:\.\d+)?", group["d"])[1::2]]
-                assert all(0 <= y <= 160 for y in ys), "and the whole chevron is in the box"
-                assert all(0 <= x <= WIDE for x in xs)
+            # Its own place in the figure, and the marker the card chose for it
+            x = cx + drawn["x"] * scale
+            y = 80 + drawn["y"] * scale
+            rad = 4 if drawn["labelled"] else 2.5
+            size = 5 if drawn["off"] else rad
+            fits = (not drawn["off"] and abs(drawn["x"] * scale) <= cx - size - 2
+                    and abs(drawn["y"] * scale) <= 80 - size - 2)
+            if fits:
+                dots += 1
+                assert group["tag"] == "circle" and group["r"] == rad
+                assert (group["cx"], group["cy"]) == pytest.approx((x, y), abs=0.01), \
+                    "the dot at the moon's own place, to the pixel"
+                assert rad <= group["cy"] <= 160 - rad, "the whole dot is in the box"
             else:
-                assert group["tag"] == "circle" and group["r"] in (2.5, 4)
-                assert group["cx"] == pytest.approx(cx + drawn["x"] * svg["scale"], abs=0.01)
-                assert group["r"] <= group["cy"] <= 160 - group["r"], "the whole dot is in the box"
-            if not 2 <= raw <= 158:
-                held += 1
-                assert group["cy" if not drawn["off"] else "d"] is not None
-        assert held, "some moon's own line is outside the box and is held at its edge"
-        out[sim] = (got["B"], held)
+                chevrons += 1
+                assert group["tag"] == "path", "out of the figure: a chevron at its edge"
+                pts = _points(group["d"])
+                assert len(pts) == 3 and all(0 <= p[0] <= WIDE and 0 <= p[1] <= 160
+                                             for p in pts), "the whole chevron is in the box"
+                assert _on_ray(_tip(group["d"]), (cx, 80), (x, y)), \
+                    "its tip is on the line from the centre to its own moon"
+                assert min(_tip(group["d"])[0], WIDE - _tip(group["d"])[0],
+                           _tip(group["d"])[1], 160 - _tip(group["d"])[1]) == \
+                    pytest.approx(size + 2, abs=0.01), "and where that line leaves the figure"
+                # Its two arms are the same small distance either side of that line and
+                # behind the tip, so the mark points the way the moon is
+                sides = [_off_line(p, (cx, 80), (x, y)) for p in (pts[0], pts[2])]
+                assert all(abs(s) == pytest.approx(5, abs=0.02) for s in sides), \
+                    "a chevron of its own size"
+                assert sides[0] * sides[1] < 0, "one arm either side of the line"
+                assert all(math.dist(p, _tip(group["d"])) == pytest.approx(7.07, abs=0.03)
+                           for p in (pts[0], pts[2])), "both behind the tip"
+        assert dots > 0, "the moons the figure reaches are dots at their own places"
+        assert chevrons > 0, "and the ones it cannot reach are marked at its edge"
+        out[sim] = (got["B"], dots, chevrons)
     assert out["2031-11-02"][0] < -20, "the widest tilt: the figure is at its extreme"
-    assert out["2026-11-02"][1] > 0, "and tonight too, at the width the card is drawn at"
+    assert out["2026-11-02"][1] > 0 and out["2026-11-02"][2] > 0
+
+
+def test_titan_is_a_dot_tonight_and_a_chevron_at_the_widest_tilt(tmp_path):
+    """Anton's second look, at Titan: tonight its own place is inside the figure at the
+    width the card is drawn at, so it is a dot at that place -- and where the figure is
+    drawn wider the same place falls out of the bottom of it by a pixel's width, so the
+    same night gives a chevron there, because a dot is never moved to fit. On 15 May 2032
+    the rings are near their widest and Titan is far above the strip, so it is a chevron
+    at the top edge on the line to it, not a dot squeezed onto the edge."""
+    tonight = {}
+    for width in (720, 1200, 1378):
+        got = _run_saturn(tmp_path, f"""
+            Object.defineProperty(h.$('solar-saturn-diagram'), 'clientWidth',
+                {{ get: () => {width} }});
+            h.online();
+            await h.load('bodies');
+            const m = d.moons.filter(x => x.name === 'Titan')[0];
+            const g = svgOf('solar-saturn-diagram').children
+                .filter(c => c.tagName === 'g' && c.attrs['data-moon'] === 'Titan')[0];
+            return {{ card: satCard(), drawn: {{x: m.x, y: m.y, off: m.off}},
+                     tag: g.children[0].tagName, r: +g.children[0].attrs.r,
+                     cx: +g.children[0].attrs.cx, cy: +g.children[0].attrs.cy,
+                     d: g.children[0].attrs.d }};
+        """, "2026-11-02")
+        svg = got["card"]["svg"]
+        assert svg["width"] == width
+        k, cx = svg["scale"], width / 2
+        y = 80 + got["drawn"]["y"] * k
+        x = cx + got["drawn"]["x"] * k
+        assert not got["drawn"]["off"], "Titan is inside the strip's width tonight"
+        # Room for the whole dot, with the 2 px the figure keeps clear of its own edge
+        fits = abs(got["drawn"]["y"] * k) <= 74 and abs(got["drawn"]["x"] * k) <= cx - 6
+        tonight[width] = (round(y, 1), got["tag"])
+        if fits:
+            assert got["tag"] == "circle" and got["r"] == 4
+            assert (got["cx"], got["cy"]) == pytest.approx((x, y), abs=0.01), \
+                "the dot at Titan's own place, to the pixel"
+        else:
+            assert got["tag"] == "path", "no room for the dot: a chevron, not a moved dot"
+            assert _on_ray(_tip(got["d"]), (cx, 80), (x, y))
+            assert _tip(got["d"])[1] == pytest.approx(160 - 4 - 2, abs=0.01), \
+                "at the bottom edge, the 6 px the dot's own size leaves"
+    # The same night, drawn at three widths: Titan's own place does not move, and where the
+    # box is too short for it -- 161 px in a 160 px figure at the card's own widest -- the
+    # moon is marked at the edge instead. A dot there would be at a place it does not have.
+    assert tonight[720] == (121.9, "circle") and tonight[1200] == (150.5, "circle"), \
+        "inside the figure: a dot at its own place"
+    assert tonight[1378] == (161.1, "path"), \
+        "outside it by a pixel: a chevron at the edge, the same night"
+
+    wide = _run_saturn(tmp_path, f"""
+        Object.defineProperty(h.$('solar-saturn-diagram'), 'clientWidth',
+            {{ get: () => {WIDE} }});
+        h.online();
+        await h.load('bodies');
+        const m = d.moons.filter(x => x.name === 'Titan')[0];
+        const g = svgOf('solar-saturn-diagram').children
+            .filter(c => c.tagName === 'g' && c.attrs['data-moon'] === 'Titan')[0];
+        return {{ card: satCard(), B: t.rings.B, drawn: {{x: m.x, y: m.y}},
+                  tag: g.children[0].tagName, r: +g.children[0].attrs.r,
+                  d: g.children[0].attrs.d }};
+    """, "2032-05-15")
+    svg = wide["card"]["svg"]
+    assert wide["B"] < -20, "the rings near their widest"
+    assert wide["tag"] == "path" and wide["r"] is None, "Titan is not a dot since 2032"
+    tip = _tip(wide["d"])
+    assert _on_ray(tip, (WIDE / 2, 80),
+                   (WIDE / 2 + wide["drawn"]["x"] * svg["scale"],
+                    80 + wide["drawn"]["y"] * svg["scale"]))
+    assert tip[1] == pytest.approx(7, abs=0.01), "an edge chevron, at the top edge"
+    labels = [l for l in svg["labels"] if l["moon"] == "Titan"]
+    assert len(labels) == 1 and labels[0]["y"] > tip[1] + 7, "and its name below it"
+
+
+def test_a_moon_s_name_never_covers_its_own_marker(tmp_path):
+    """Anton's second look: a name belongs beside its moon, never on it. The lanes the card
+    lays names out in are the Jupiter strip's, and a moon in the figure's top or bottom rows
+    has its first lane pulled onto itself -- so its own marker is what the lane has to
+    clear first, before any other name it might cover. Checked on tonight's drawing, where
+    Iapetus sits on the top edge with its chevron, and on 15 May 2032, where Titan does."""
+    for sim in ("2026-11-02", "2032-05-15"):
+        got = _run_saturn(tmp_path, f"""
+            Object.defineProperty(h.$('solar-saturn-diagram'), 'clientWidth',
+                {{ get: () => {WIDE} }});
+            h.online();
+            await h.load('bodies');
+            return {{ card: satCard() }};
+        """, sim)
+        svg = got["card"]["svg"]
+        assert svg["labels"], sim
+        for label in svg["labels"]:
+            own = [m for m in svg["moons"] if m["moon"] == label["moon"]]
+            assert len(own) == 1, f"{sim}: {label['moon']} has no marker of its own"
+            assert not _overlaps(_label_box(label), _marker_box(own[0])), \
+                f"{sim}: {label['moon']}'s name is on its own marker"
+        # The two the second look was about: a chevron at an edge, with its name clear of it
+        # (Iapetus's sat on its chevron before the fix)
+        for moon in ("Iapetus", "Titan"):
+            marker = [m for m in svg["moons"] if m["moon"] == moon][0]
+            label = [l for l in svg["labels"] if l["moon"] == moon][0]
+            assert marker["tag"] == "path", f"{sim}: {moon} is a chevron on an edge"
+            box = _marker_box(marker)
+            assert (label["y"] + 7 <= box[2]) or (label["y"] - 7 >= box[3]), \
+                f"{sim}: {moon}'s name is clear of its chevron, above it or below it"
 
 
 def test_the_rings_cross_the_globe_in_front_of_it(tmp_path):
     """The rings' near half is drawn over the globe, in the module's own paths and the same
     three ring regions the far half is, so the band across the globe is the ring system at
-    the width it has at the sides, with the Cassini gap in it. The globe is a shade under
-    the rings in both themes: drawn in the rings' own colour the crossing would be invisible,
-    the same pixels over themselves."""
+    the width it has at the sides, with the Cassini gap in it. The band has to read as
+    brighter than the planet it crosses, so it is drawn a second time on the globe's own
+    near half-disc, in the rings' own colours at full strength -- the globe is a good deal
+    darker than the rings, in both themes, and the shadow the rings cast stays a band of its
+    own, darker and narrower, beside it."""
     got = _run_saturn(tmp_path, """
         h.online();
         await h.load('bodies');
-        return { card: satCard(), rings: d.rings, B: t.rings.B };
+        return { card: satCard(), rings: d.rings, B: t.rings.B, shadow: d.shadow,
+                 radiusRs: t.rings.radiusRs, edgeInner: t.rings.edges[0].inner };
     """, "2026-11-02")
     svg = got["card"]["svg"]
     layers = svg["layers"]
     assert [l["clip"] for l in layers] == ["url(#solar-saturn-far)", None,
-                                          "url(#solar-saturn-near)"]
-    far, globe, near = layers
+                                          "url(#solar-saturn-near)", "url(#solar-saturn-front)"]
+    far, globe, near, front = layers
     assert [r["d"] for r in near["rings"]] == [r["d"] for r in far["rings"]] == \
         [r["d"] for r in got["rings"]], "one ring system, drawn twice, in the module's paths"
+    assert [r["d"] for r in front["rings"]] == [r["d"] for r in got["rings"]], \
+        "and once more over the globe, the same paths"
     assert [r["cls"] for r in near["rings"]] == ["solar-saturn-ring solar-saturn-ring-c",
         "solar-saturn-ring solar-saturn-ring-b", "solar-saturn-ring solar-saturn-ring-a"]
     assert globe["globe"] == [1] and far["globe"] == [] and near["globe"] == []
@@ -526,19 +745,61 @@ def test_the_rings_cross_the_globe_in_front_of_it(tmp_path):
     # half is the other, hidden behind the globe where the globe is
     assert got["B"] < 0
     assert [c["y"] for c in svg["clips"][:2]] == [80, -2]
+    # The pass over the globe is clipped to the globe's own near half-disc, so it cannot
+    # paint the band anywhere the globe is not
+    assert svg["clips"][3]["id"] == "solar-saturn-front" and svg["clips"][3]["d"].endswith("Z")
+    assert front["cls"] == "solar-saturn-front"
 
     css = (Path(__file__).resolve().parent.parent
            / "static" / "css" / "solar_system.css").read_text()
     rule = lambda sel: css[css.index(sel + " {"):css.index("}", css.index(sel + " {"))]
-    rings = rule("#bodies-tab .solar-saturn-svg .solar-saturn-ring-b")
-    assert "fill: var(--solar-body-saturn);" in rings
-    globe_fill = rule("#bodies-tab .solar-saturn-svg .solar-saturn-globe")
-    assert "fill: var(--solar-saturn-globe);" in globe_fill
+    # One colour for the rings, wherever they are drawn: the sides, the band over the globe
+    # and the darker globe under it are what the card's own rules say they are
+    for key in ("b", "a", "c"):
+        assert "fill: var(--solar-body-saturn);" in rule(
+            f"#bodies-tab .solar-saturn-svg .solar-saturn-ring-{key}")
+        assert "fill: var(--solar-body-saturn);" not in rule(
+            f"#bodies-tab .solar-saturn-svg .solar-saturn-front .solar-saturn-ring-{key}"), \
+            "the front pass keeps the ring's own colour, and only its strength is its own"
+    assert "fill: var(--solar-saturn-globe);" in rule(
+        "#bodies-tab .solar-saturn-svg .solar-saturn-globe")
+    assert "fill: var(--solar-saturn-shadow);" in rule(
+        "#bodies-tab .solar-saturn-svg .solar-saturn-shadow")
     scoped = rule("#solar-saturn")
     assert "--solar-saturn-globe: " in scoped and "--solar-body-saturn" not in scoped, \
         "the globe's own value, in the card's own scope"
-    band, disc = scoped.split("--solar-saturn-globe: ")[1].split(";")[0], "#d3bd8c"
-    assert band.lower() != disc, "a different colour from the rings, or the band is invisible"
+    # The band over the globe is the rings' own colour at full strength, where the sides
+    # have it at less: over the body colour their own strengths would leave only a stripe
+    strength = lambda sel: float(rule(sel).split("fill-opacity: ")[1].split(";")[0])
+    sides = strength("#bodies-tab .solar-saturn-svg .solar-saturn-ring-b")
+    over = strength("#bodies-tab .solar-saturn-svg .solar-saturn-front .solar-saturn-ring-b")
+    assert over == 1 and sides < over, "the band is the ring colour at full strength"
+    assert strength("#bodies-tab .solar-saturn-svg .solar-saturn-front .solar-saturn-ring-a") > \
+        strength("#bodies-tab .solar-saturn-svg .solar-saturn-ring-a"), "and so is the A ring"
+    # The globe is a colour of its own, a good deal darker than the rings: it is the
+    # difference the band is read against, so it cannot be the rings' own colour
+    globe_fill = rule("#bodies-tab .solar-saturn-svg .solar-saturn-globe")
+    assert "fill: var(--solar-saturn-globe);" in globe_fill
+    disc = "#d3bd8c"
+    globe_tone = scoped.split("--solar-saturn-globe: ")[1].split(";")[0]
+    assert globe_tone.lower() != disc, "a different colour from the rings"
+    lit = [int(disc[i:i + 2], 16) for i in (1, 3, 5)]
+    dark = [int(globe_tone[i:i + 2], 16) for i in (1, 3, 5)]
+    assert sum(lit) - sum(dark) > 90, "and a good deal darker: 30 a channel, at least"
+
+    # The shadow's band: the darker of the two, and the narrower -- the ring band across the
+    # globe is the whole ring system's own width there, the C ring's inner edge out to the A
+    # ring's outer edge, projected by the tilt the module reports
+    shadow = rule("#bodies-tab .solar-saturn-svg .solar-saturn-shadow")
+    assert "fill: var(--solar-saturn-shadow);" in shadow
+    assert float(shadow.split("fill-opacity: ")[1].split(";")[0]) <= 0.6, "the darker band"
+
+    assert got["shadow"], "the shadow has an outline of its own"
+    band = math.sin(math.radians(abs(got["B"]))) * (got["radiusRs"] - got["edgeInner"])
+    assert band > 0
+    shadow_box = _bbox(got["shadow"])
+    assert (shadow_box[3] - shadow_box[1]) / svg["scale"] < band, \
+        "the shadow band is the narrower of the two, as the brief says"
 
 
 def test_the_rings_tile_is_read_at_the_width_it_is_drawn(tmp_path):

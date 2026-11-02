@@ -1862,11 +1862,12 @@
     // radii, where the globe is 1 and the A ring's outer edge 2.2666, so the strip reaches
     // NovaSolarSaturn.STRIP_RS of them each side of the centre.
     const SAT_DOT_PX = 4;                    // a moon the drawing names
-    const SAT_SMALL_PX = 2.5;                // Mimas, Enceladus and Hyperion, left unnamed
+    const SAT_SMALL_PX = 2.5;                // Mimas and Enceladus, left unnamed
     const SAT_CHEVRON_PX = 5;                // a moon beyond the edge of the figure
     const SAT_FAR_CLIP = 'solar-saturn-far';
     const SAT_NEAR_CLIP = 'solar-saturn-near';
     const SAT_GLOBE_CLIP = 'solar-saturn-globe';
+    const SAT_FRONT_CLIP = 'solar-saturn-front';
 
     /** What one of Saturn's moons is doing tonight, in the module's own order of states: in
      *  front of the globe (`onDisc` when it is inside the limb as well, which is a transit),
@@ -1981,7 +1982,10 @@
         const k = (cx - 8) / NovaSolarSaturn.STRIP_RS;        // pixels per Saturn radius
         const px = v => Math.round(v * 100) / 100;
         const r = t.rings;
-        const d = NovaSolarSaturn.diagram(t.geometry, state.cardView, t.moons, r.radiusRs);
+        // The figure's own moons, in the module's own list and order, so each drawn entry
+        // here has its own row of the engine's sky-frame ones
+        const moons = t.moons.filter(m => NovaSolarSaturn.DRAWN.indexOf(m.name) >= 0);
+        const d = NovaSolarSaturn.diagram(t.geometry, state.cardView, moons, r.radiusRs);
         const rw = r.radiusRs * k;
         const rh = rw * Math.abs(Math.sin(r.B * Math.PI / 180));   // the rings' own half-height
         const sy = state.cardView === 'inverted' ? 1 : -1;
@@ -1994,12 +1998,18 @@
         svgEl(svg, 'title', {}).textContent = [S.diagramAria, i18n.planetNorthUp, S.legendFilled,
             S.legendHollow, S.legendEdge, S.legendShadow, S.legendSmall].filter(Boolean).join('\n');
 
-        // The half-plane each half of the rings is clipped to, and the globe's own clip for
-        // the shadow (that one in the figure's radii, where it is used)
+        // The half-plane each half of the rings is clipped to, the globe's own clip for the
+        // shadow, and the globe's near half-disc for the rings that cross it -- the last two
+        // in the figure's radii, where they are used
         const clip = id => svgEl(svg, 'clipPath', {id: id, 'clipPathUnits': 'userSpaceOnUse'});
         svgEl(clip(SAT_FAR_CLIP), 'rect', {x: -2, y: nearBelow ? -2 : cy, width: W + 4, height: cy + 2});
         svgEl(clip(SAT_NEAR_CLIP), 'rect', {x: -2, y: nearBelow ? cy : -2, width: W + 4, height: cy + 2});
         svgEl(clip(SAT_GLOBE_CLIP), 'circle', {cx: 0, cy: 0, r: 1});
+        // From the globe's left limb to its right, at the globe's own radius: clockwise on
+        // the page passes over the top, so sweep 1 is the half above the centre line and 0
+        // the one below it
+        svgEl(clip(SAT_FRONT_CLIP), 'path', {d: 'M ' + px(cx - k) + ' ' + cy + ' A ' + px(k)
+            + ' ' + px(k) + ' 0 ' + (nearBelow ? 0 : 1) + ' 1 ' + px(cx + k) + ' ' + cy + ' Z'});
 
         // The figure is drawn in Saturn radii: one group per layer, in the order they cover
         // each other -- the far rings, the globe with the shadow on it, the near rings
@@ -2015,32 +2025,59 @@
                   'path', {d: d.shadow, class: 'solar-saturn-shadow'});
         }
         ringPaths(scaled(svgEl(svg, 'g', {'clip-path': 'url(#' + SAT_NEAR_CLIP + ')'})));
+        // The near half once more, on the globe's own near half-disc: over the globe the
+        // sides' strengths wash out against the body colour, so the band the rings cut across
+        // the planet is drawn in the rings' own three colours at full strength. The shadow the
+        // rings cast stays what the globe's own layer put there, a band of its own beside
+        // them, and the rings cover it only where they really do pass in front of it.
+        ringPaths(scaled(svgEl(svg, 'g', {class: 'solar-saturn-front',
+                                          'clip-path': 'url(#' + SAT_FRONT_CLIP + ')'})));
 
-        // The moons: a dot for the ones the figure reaches, a chevron at its edge for the ones
-        // it does not, a smaller and unnamed dot for Mimas, Enceladus and Hyperion. A moon's
-        // own line across the figure can run higher than the figure's own half-height -- the
-        // strip is only about 1.8 radii tall, and the ring plane tilts the far moons out of
-        // it -- so the marker is kept inside the box, as the names already are, and the
-        // tooltip keeps the distance that says how far out the moon really is.
+        // The moons: a dot at its own place for the ones the figure reaches, a chevron where
+        // the line to it leaves the figure for the ones it does not, and a smaller unnamed
+        // dot for Mimas and Enceladus. Nothing is clamped: a moon is drawn where it is or
+        // marked at the edge its own line leaves through, never at a place it does not have.
+        // A moon's line across the drawing runs far outside a strip under two radii tall --
+        // the ring plane tilts the moons out of it, more the further out they are -- and the
+        // distance that says how far out is the tooltip's.
+        const leave = (dx, dy, size) => {
+            const inset = size + 2;
+            const tx = dx === 0 ? Infinity : ((dx > 0 ? W - inset : inset) - cx) / dx;
+            const ty = dy === 0 ? Infinity : ((dy > 0 ? H - inset : inset) - cy) / dy;
+            const t = Math.min(tx, ty);
+            return {x: cx + t * dx, y: cy + t * dy};
+        };
         const spots = d.moons.map((m, i) => {
-            const sky = t.moons[i];
+            const sky = moons[i];
             const rad = m.labelled ? SAT_DOT_PX : SAT_SMALL_PX;
-            const x = cx + m.x * k;
-            const edge = (m.off ? SAT_CHEVRON_PX : rad) + 2;
-            const y = Math.min(H - edge, Math.max(edge, cy + m.y * k));
+            const size = m.off ? SAT_CHEVRON_PX : rad;
+            const dx = m.x * k, dy = m.y * k;
+            const held = !m.off && Math.abs(dx) <= cx - size - 2 && Math.abs(dy) <= cy - size - 2;
+            const at = held ? {x: cx + dx, y: cy + dy} : leave(dx, dy, size);
             const g = svgEl(svg, 'g', {class: 'solar-saturn-moon solar-saturn-moon-' +
                 (sky.behindDisc ? 'behind' : 'visible') + (m.labelled ? '' : ' solar-saturn-moon-small'),
                 'data-moon': m.name, 'data-side': sky.side, 'data-brightness': sky.brightness || ''});
-            if (m.off) {
-                const s = m.off === 'east' ? 1 : -1;
-                svgEl(g, 'path', {d: 'M ' + px(x - s * SAT_CHEVRON_PX) + ' ' + px(y - SAT_CHEVRON_PX)
-                    + ' L ' + px(x) + ' ' + px(y)
-                    + ' L ' + px(x - s * SAT_CHEVRON_PX) + ' ' + px(y + SAT_CHEVRON_PX)});
+            let box;
+            if (held) {
+                svgEl(g, 'circle', {cx: px(at.x), cy: px(at.y), r: rad});
+                box = {x0: at.x - rad - 1, x1: at.x + rad + 1,
+                       y0: at.y - rad - 1, y1: at.y + rad + 1};
             } else {
-                svgEl(g, 'circle', {cx: px(x), cy: px(y), r: rad});
+                // The chevron's tip is where the line leaves the figure and it points the way
+                // the moon is: its own line drawn, not a fixed mark at the figure's edge
+                const len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
+                const back = [at.x - ux * SAT_CHEVRON_PX, at.y - uy * SAT_CHEVRON_PX];
+                const arms = [[back[0] + uy * SAT_CHEVRON_PX, back[1] - ux * SAT_CHEVRON_PX],
+                              [back[0] - uy * SAT_CHEVRON_PX, back[1] + ux * SAT_CHEVRON_PX]];
+                svgEl(g, 'path', {d: 'M ' + px(arms[0][0]) + ' ' + px(arms[0][1])
+                    + ' L ' + px(at.x) + ' ' + px(at.y)
+                    + ' L ' + px(arms[1][0]) + ' ' + px(arms[1][1])});
+                const xs = arms.map(a => a[0]).concat([at.x]), ys = arms.map(a => a[1]).concat([at.y]);
+                box = {x0: Math.min(...xs) - 1, x1: Math.max(...xs) + 1,
+                       y0: Math.min(...ys) - 1, y1: Math.max(...ys) + 1};
             }
             svgEl(g, 'title', {}).textContent = m.name + '\n' + saturnMoonTip(sky, S);
-            return {m: m, x: x, y: y};
+            return {m: m, x: at.x, y: at.y, box: box};
         });
 
         // Celestial north, out past the ring system, so the names keep clear of both
@@ -2055,10 +2092,13 @@
                                           'text-anchor': 'middle', 'dominant-baseline': 'central'});
         north.textContent = S.north || 'N';
         svgEl(north, 'title', {}).textContent = i18n.celestialNorth || '';
+        // The arrow and the ring system first, then the moons' own markers: a name belongs
+        // beside its moon, never on top of it, and never on another moon either
         const placed = [labelBox(nx, ny, labelWidth(north.textContent, north)),
             {x0: Math.min(ax0, ax1) - 3, x1: Math.max(ax0, ax1) + 3,
              y0: Math.min(ay0, ay1) - 3, y1: Math.max(ay0, ay1) + 3},
-            {x0: cx - rw - 2, x1: cx + rw + 2, y0: cy - rh - 2, y1: cy + rh + 2}];
+            {x0: cx - rw - 2, x1: cx + rw + 2, y0: cy - rh - 2, y1: cy + rh + 2}]
+            .concat(spots.map(o => o.box));
 
         // The named moons' labels, the nearest the planet placed first, in the lanes the
         // Jupiter strip uses: drawn first so the browser can measure them
@@ -2075,9 +2115,14 @@
             for (const dy of JUP_LANES) {
                 const y = Math.min(H - JUP_LABEL_PX / 2, Math.max(JUP_LABEL_PX / 2, o.y + dy));
                 const b = labelBox(lx, y, width);
-                const hits = placed.filter(p => overlaps(p, b)).length;
-                if (!spot || hits < spot.hits) spot = {y: y, b: b, hits: hits};
-                if (!hits) break;
+                // A name never sits on its own moon: a lane that covers its own marker loses
+                // to any lane that does not, however many other names it covers. For a moon
+                // in the top or bottom rows the clamp pulls the first lane onto it, so its
+                // own marker has to weigh more than the rest.
+                const score = placed.filter(p => overlaps(p, b)).length
+                    + (overlaps(o.box, b) ? 100 : 0);
+                if (!spot || score < spot.score) spot = {y: y, b: b, score: score};
+                if (!score) break;
             }
             placed.push(spot.b);
             label.setAttribute('x', String(px(lx)));
