@@ -266,6 +266,21 @@ def get_object_list():
     return jsonify({"objects": enabled_names})
 
 
+@api_bp.route('/api/simbad_status')
+def api_simbad_status():
+    """Whether the SIMBAD tab may embed Strasbourg, asked when the tab opens.
+
+    Answers from simbad_service's cache when it knows; otherwise probes
+    Strasbourg once. Same access rule as core.graph_dashboard(): guests
+    included. Mirrors are never probed - they refuse framing.
+    """
+    # --- Manual Auth Check for Guest Support (same as core.graph_dashboard()) ---
+    if not (current_user.is_authenticated or nova.SINGLE_USER_MODE or getattr(g, 'is_guest', False)):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    return jsonify({"embed": simbad_service.strasbourg_embeddable()})
+
+
 @api_bp.route('/api/journal/objects')
 @login_required
 def get_journal_objects():

@@ -1137,6 +1137,60 @@ def test_api_scan_frame_unavailable(client, db_session, monkeypatch):
     assert body['code'] == 'simbad_unavailable'
 
 
+# --- /api/simbad_status: decides whether the SIMBAD tab embeds Strasbourg ---
+
+def test_simbad_status_embeds_when_strasbourg_probe_succeeds(client, monkeypatch):
+    probed = []
+    monkeypatch.setattr(simbad_service, '_probe',
+                        lambda host: probed.append(host) or True)
+    saved = dict(simbad_service._health)
+    simbad_service._health.clear()
+    try:
+        response = client.get('/api/simbad_status')
+        assert response.status_code == 200
+        assert response.get_json() == {"embed": True}
+        assert probed == ["simbad.cds.unistra.fr"]
+
+        # The probe result is recorded: the next call answers from the cache.
+        assert client.get('/api/simbad_status').get_json() == {"embed": True}
+        assert probed == ["simbad.cds.unistra.fr"]
+    finally:
+        simbad_service._health.clear()
+        simbad_service._health.update(saved)
+
+
+def test_simbad_status_does_not_embed_when_strasbourg_probe_fails(client, monkeypatch):
+    probed = []
+    monkeypatch.setattr(simbad_service, '_probe',
+                        lambda host: probed.append(host) or False)
+    saved = dict(simbad_service._health)
+    simbad_service._health.clear()
+    try:
+        response = client.get('/api/simbad_status')
+        assert response.status_code == 200
+        assert response.get_json() == {"embed": False}
+        assert probed == ["simbad.cds.unistra.fr"]
+    finally:
+        simbad_service._health.clear()
+        simbad_service._health.update(saved)
+
+
+def test_simbad_status_answers_from_cache_without_probing(client, monkeypatch):
+    def _must_not_probe(host):
+        raise AssertionError("the cache already knows; must not probe")
+    monkeypatch.setattr(simbad_service, '_probe', _must_not_probe)
+    saved = dict(simbad_service._health)
+    simbad_service._health.clear()
+    try:
+        simbad_service.mark_up("simbad.cds.unistra.fr")
+        assert client.get('/api/simbad_status').get_json() == {"embed": True}
+        simbad_service.mark_down("simbad.cds.unistra.fr")
+        assert client.get('/api/simbad_status').get_json() == {"embed": False}
+    finally:
+        simbad_service._health.clear()
+        simbad_service._health.update(saved)
+
+
 # --- /search_object: uses the SIMBAD descriptive name for Common Name ---
 
 def test_search_object_uses_simbad_name(client, monkeypatch):

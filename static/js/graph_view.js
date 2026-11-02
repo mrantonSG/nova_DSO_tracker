@@ -553,16 +553,41 @@
 
         var iframe = document.getElementById('simbadIframe');
         if (!iframe) {
-            // The server rendered the translated unavailable message instead of
-            // the iframe: either no host is known to work, or the current host
-            // is a mirror, which refuses to be framed.
+            // Fast path: the server already rendered the translated unavailable
+            // message because the cache knows a mirror is current, and mirrors
+            // refuse to be framed.
             simbadLoaded = true;
             return;
         }
+
+        var container = document.getElementById('simbadContainer');
         var simbadHost = (window.NOVA_GRAPH_DATA && window.NOVA_GRAPH_DATA.simbadHost)
             || 'simbad.cds.unistra.fr';
-        iframe.src = 'https://' + simbadHost + '/simbad/sim-basic?Ident=' + encodeURIComponent(objectName) + '&submit=SIMBAD+search';
+
+        function showSimbadUnavailable() {
+            container.innerHTML = '<div class="offline-message" style="min-height: 400px;">' + window.t('simbad_unavailable') + '</div>';
+        }
+
+        // The tab is opened lazily, so ask the server whether Strasbourg can be
+        // embedded: it answers from its cache, or probes Strasbourg once.
         simbadLoaded = true;
+        container.innerHTML = '<div class="offline-message" style="min-height: 400px;">' + window.t('loading') + '</div>';
+
+        fetch('/api/simbad_status', { headers: { 'Accept': 'application/json' } })
+            .then(function (response) {
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                return response.json();
+            })
+            .then(function (data) {
+                if (!data || !data.embed) {
+                    showSimbadUnavailable();
+                    return;
+                }
+                container.innerHTML = '';
+                container.appendChild(iframe);
+                iframe.src = 'https://' + simbadHost + '/simbad/sim-basic?Ident=' + encodeURIComponent(objectName) + '&submit=SIMBAD+search';
+            })
+            .catch(showSimbadUnavailable);
     }
 
     /**

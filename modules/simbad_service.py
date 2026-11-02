@@ -177,6 +177,16 @@ def is_available_cached():
     return any(health[host][0] for host in known)
 
 
+def strasbourg_embeddable():
+    """True if Strasbourg is up, so the SIMBAD tab may embed it.
+
+    Cache-only while the cached verdict is still fresh; otherwise runs the same
+    probe the failover path uses, for Strasbourg only. Mirrors are never probed
+    here - they refuse framing, so their health is irrelevant to embedding.
+    """
+    return _ensure_host_usable(HOSTS[0])
+
+
 def make_simbad_instance(host, row_limit=1):
     """Build a per-call Simbad instance bound to host with a default timeout."""
     simbad = Simbad()
