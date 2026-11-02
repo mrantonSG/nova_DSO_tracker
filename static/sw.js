@@ -43,7 +43,13 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - network-first strategy
 self.addEventListener('fetch', (event) => {
-    // Network-first for all requests
+    // Leave non-GET and cross-origin requests (sky survey tiles, CDS, CDNs) to the
+    // browser: without respondWith a failed request fails as a network error, not as
+    // an empty 503 that callers would take for a real answer.
+    if (event.request.method !== 'GET') return;
+    if (new URL(event.request.url).origin !== self.location.origin) return;
+
+    // Network-first for same-origin GET requests
     event.respondWith(
         fetch(event.request)
             .then((response) => {
