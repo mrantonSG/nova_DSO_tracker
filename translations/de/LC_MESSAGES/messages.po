@@ -6280,8 +6280,8 @@ msgid "GRS transit (predicted)"
 msgstr "GRF-Durchgang (Vorhersage)"
 
 #: templates/solar_system.html:153
-msgid "Back to the built-in longitude"
-msgstr "Zurück zur eingebauten Länge"
+msgid "Back to the default longitude"
+msgstr "Zurück zur Standardlänge"
 
 #: templates/solar_system.html:156
 msgid "System II longitude (°)"
@@ -6919,6 +6919,11 @@ msgid ""
 msgstr ""
 "Eingebaute Länge: System II %(lon)s° am %(date)s (JUPOS über Sky & "
 "Telescope; BAA Jupiter Section)."
+
+#: templates/solar_system.html:436
+#, python-format
+msgid "Longitude from Nova: System II %(lon)s° on %(date)s."
+msgstr "Länge von Nova: System II %(lon)s° am %(date)s."
 
 #: templates/solar_system.html:436
 #, python-format

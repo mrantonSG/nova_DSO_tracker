@@ -6086,8 +6086,8 @@ msgid "GRS transit (predicted)"
 msgstr "大红斑过中央经线（预测）"
 
 #: templates/solar_system.html:153
-msgid "Back to the built-in longitude"
-msgstr "恢复内置经度"
+msgid "Back to the default longitude"
+msgstr "恢复默认经度"
 
 #: templates/solar_system.html:156
 msgid "System II longitude (°)"
@@ -6683,6 +6683,11 @@ msgid ""
 msgstr ""
 "内置经度：系统 II %(lon)s°（%(date)s）（JUPOS，经 Sky & Telescope；BAA Jupiter "
 "Section）。"
+
+#: templates/solar_system.html:436
+#, python-format
+msgid "Longitude from Nova: System II %(lon)s° on %(date)s."
+msgstr "来自 Nova 的经度：系统 II %(lon)s°（%(date)s）。"
 
 #: templates/solar_system.html:436
 #, python-format
