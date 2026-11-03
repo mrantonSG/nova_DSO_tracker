@@ -145,6 +145,17 @@ The Inspiration Tab offers a visual way to browse potential targets. Instead of 
 ![Inspiration tab](docs/Screenshot%202026-02-27%20at%2014.08.21.jpg)
 ![Inspiration detail](docs/Screenshot%202026-02-27%20at%2014.08.35.jpg)
 
+### Your Results: The Gallery Tab
+
+The Gallery tab on the dashboard is a showcase of your own astrophotos — every photo you have attached to a journal session or a project.
+
+* **Project and Session Tiles:** Project tiles show the target, the rig(s) used, the project name and its total integration time. Session tiles show the filter, integration time and date.
+* **Newest First:** Projects and sessions are merged into one grid, sorted by date.
+* **Click Through:** Click a tile to open that project or session in the journal.
+* **Thumbnails:** Nova creates a small thumbnail for every uploaded image, so the grid loads quickly. Images uploaded before thumbnails existed get one automatically the first time the Gallery shows them.
+
+![Gallery tab](docs/Screenshot_71_gallery.jpg)
+
 ### Long-Term Planning: The Yearly Heatmap
 
 The Yearly Heatmap visualizes target visibility over the next 12 months.
