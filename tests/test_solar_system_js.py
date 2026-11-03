@@ -99,6 +99,9 @@ const context = {
     localStorage: input.storage === 'throws' ? throwing() : store(), sessionStorage: store(),
     solarI18n: input.i18n,
     solarEquipment: input.equipment,
+    // The template's own inline blob: the GRS longitude this instance fetched, or null.
+    // Undefined here when a case passes none, which the page reads the same way.
+    solarGrs: input.grs,
     setInterval: fn => { interval = fn; return 1; },
     setTimeout: (fn, ms) => setTimeout(fn, ms),
     requestAnimationFrame: fn => setTimeout(() => { frames++; fn(Date.now()); }, 0),

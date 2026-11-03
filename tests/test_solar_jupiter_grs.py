@@ -126,6 +126,8 @@ _REFERENCE = r"""
 const SJ = NovaSolarJupiter;
 const opts = night => ({ inputs: { location: input.site }, nowMs: input.nowMs, simDate: night });
 const ref = o => SJ.grsReference(o);
+// The value an instance can fetch and pass in as the fallback: { lon, date, drift }
+const CENTRAL = { lon: 98.5, date: '2026-10-20', drift: 1.9 };
 return {
     constants: { grs: SJ.GRS, stale: SJ.GRS_STALE_DAYS },
     plain: ref(null), user: ref({ lon: 300.25, date: '2026-10-01' }),
@@ -133,10 +135,20 @@ return {
     bad: [ref({ lon: 400, date: '2026-10-01' }), ref({ lon: -1, date: '2026-10-01' }),
           ref({ lon: NaN, date: '2026-10-01' }), ref({ lon: '91', date: '2026-10-01' }),
           ref({ lon: 91, date: '2026-02-30' }), ref({ lon: 91, date: '1.6.2026' }), ref({})],
+    // The value this instance fetched: the middle of the three, and the only one whose
+    // own rate is used for every reference, the user's own included
+    central: SJ.grsReference(null, CENTRAL),
+    centralNoRate: SJ.grsReference(null, { lon: 98.5, date: '2026-10-20' }),
+    overCentral: SJ.grsReference({ lon: 300.25, date: '2026-10-01' }, CENTRAL),
+    centralBad: [SJ.grsReference(null, { lon: 400, date: '2026-10-20' }),
+                 SJ.grsReference(null, { lon: 98.5, date: '2026-02-30' }),
+                 SJ.grsReference(null, { lon: '98.5', date: '2026-10-20' }),
+                 SJ.grsReference(null, undefined), SJ.grsReference(null, null)],
     // The drift: 1.75 deg a month from the reference date, wrapping at 360
     atRef: SJ.grsLongitude(ref(null), Date.UTC(2026, 5, 1)),
     yearOn: SJ.grsLongitude(ref(null), Date.UTC(2027, 5, 1)),
     wrap: SJ.grsLongitude(ref({ lon: 359, date: '2026-10-01' }), Date.UTC(2026, 11, 1)),
+    centralAtRef: SJ.grsLongitude(SJ.grsReference(null, CENTRAL), Date.UTC(2026, 9, 20)),
     fresh: SJ.grs(opts('2026-11-02'), null), old: SJ.grs(opts('2026-12-09'), null),
     mine: SJ.grs(opts('2026-12-09'), { lon: 100, date: '2026-12-01' }),
 };
@@ -148,9 +160,12 @@ def test_grs_reference_drift_and_staleness(tmp_path):
     grs = got["constants"]["grs"]
     assert (grs["lon"], grs["date"], grs["driftPerMonth"]) == (91.0, "2026-06-01", 1.75)
     assert got["constants"]["stale"] == 183
-    assert got["plain"] == {"lon": 91.0, "date": "2026-06-01", "user": False}
-    assert got["user"] == {"lon": 300.25, "date": "2026-10-01", "user": True}
-    assert got["wrapped"] == {"lon": 0, "date": "2026-10-01", "user": True}
+    assert got["plain"] == {"lon": 91.0, "date": "2026-06-01", "user": False,
+                            "origin": "builtin", "drift": 1.75}
+    assert got["user"] == {"lon": 300.25, "date": "2026-10-01", "user": True,
+                           "origin": "user", "drift": 1.75}
+    assert got["wrapped"] == {"lon": 0, "date": "2026-10-01", "user": True,
+                              "origin": "user", "drift": 1.75}
     assert all(b == got["plain"] for b in got["bad"]), got["bad"]
     assert got["atRef"] == pytest.approx(91.0, abs=1e-9)
     month = 365.25 / 12                                   # days
@@ -161,6 +176,22 @@ def test_grs_reference_drift_and_staleness(tmp_path):
     assert (got["old"]["ageDays"], got["old"]["stale"]) == (191, True)
     assert (got["mine"]["ageDays"], got["mine"]["stale"], got["mine"]["user"]) == (8, False, True)
     assert (got["mine"]["refLon"], got["mine"]["refDate"]) == (100, "2026-12-01")
+
+
+def test_grs_reference_falls_back_to_the_value_the_instance_fetched(tmp_path):
+    """One rate for every reference: the fetched value's own when there is one, the shipped
+    rate otherwise. The user's own longitude is theirs, but it drifts at the instance's rate."""
+    got = _run(tmp_path, _REFERENCE)
+    assert got["central"] == {"lon": 98.5, "date": "2026-10-20", "user": False,
+                              "origin": "central", "drift": 1.9}
+    assert got["centralNoRate"] == {"lon": 98.5, "date": "2026-10-20", "user": False,
+                                    "origin": "central", "drift": 1.75}, "no rate of its own"
+    assert got["overCentral"] == {"lon": 300.25, "date": "2026-10-01", "user": True,
+                                  "origin": "user", "drift": 1.9}, "the user's longitude, the instance's rate"
+    assert all(b == got["plain"] for b in got["centralBad"]), got["centralBad"]
+    # A rate of its own, applied from its own date: at the reference date, the longitude is
+    # the measured one, untouched
+    assert got["centralAtRef"] == pytest.approx(98.5, abs=1e-9)
 
 
 _STATES = r"""

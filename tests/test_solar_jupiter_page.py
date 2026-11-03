@@ -53,6 +53,7 @@ I18N = {
         "grs": {"none": "GRS NONE", "nextOne": "NEXT {time}", "meta": "II {lon} @ {date}", "help": "GRS HELP",
                 "tonight": "TONIGHT {times}", "next": "NEXT:", "noNext": "NO NEXT",
                 "source": "DEFAULT {lon} {date}", "user": "YOURS {lon} {date}",
+                "central": "CENTRAL {lon} {date}",
                 "drift": "DRIFT {rate}", "stale": "STALE", "where": "WHERE"},
         "grsMarker": "GRS MARK", "legendVisible": "L-VISIBLE", "legendBehind": "L-BEHIND",
         "legendEclipsed": "L-ECLIPSED", "legendShadow": "L-SHADOW", "legendGrs": "L-GRS",
@@ -312,7 +313,11 @@ assert _DRIVER.count(_STORE) == 1
 _CARDS_DRIVER = _DRIVER.replace(_STORE, "setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) };")
 
 
-def _run(tmp_path, steps, search="?body=jupiter", sim=None, storage=None, order=CARDS_ORDER, i18n=None):
+def _run(tmp_path, steps, search="?body=jupiter", sim=None, storage=None, order=CARDS_ORDER,
+         i18n=None, grs=None):
+    """Drive the page in node. `grs` is the template's inline server value: the longitude
+    this instance fetched, or None when it has none (the driver then leaves solarGrs
+    undefined, exactly as a template without a value renders it)."""
     driver = tmp_path / "driver.js"
     driver.write_text(_CARDS_DRIVER)
     case = tmp_path / "steps.js"
@@ -323,7 +328,8 @@ def _run(tmp_path, steps, search="?body=jupiter", sim=None, storage=None, order=
     inp = tmp_path / "in.json"
     inp.write_text(json.dumps({"inputs": {"location": LONDON}, "i18n": i18n or I18N,
                                "equipment": {"telescopes": [], "cameras": []},
-                               "search": search, "sim": sim, "storage": storage, "nowMs": NOW_MS}))
+                               "search": search, "sim": sim, "storage": storage,
+                               "grs": grs, "nowMs": NOW_MS}))
     out = tmp_path / "out.json"
     run = subprocess.run(
         [NODE, str(driver), str(case), str(inp), str(out), str(STATIC_JS / "solar_system.js")]
@@ -721,10 +727,10 @@ def test_a_galilean_row_opens_jupiter_on_the_bodies_tab(tmp_path):
 _GRS = """
 const SJ = h.context.NovaSolarJupiter;
 const gopts = {inputs: {location: %(site)s}, nowMs: NOW_MS, simDate: '%(sim)s'};
-const grsOf = o => { const g = SJ.grs(gopts, o);
+const grsOf = (o, central) => { const g = SJ.grs(gopts, o, central);
     return { tonight: g.tonight.map(x => ({hm: x.hm, utcMs: x.utcMs})),
              next: g.next.map(x => ({hm: x.hm, utcMs: x.utcMs})), stale: g.stale,
-             refLon: g.refLon, refDate: g.refDate }; };
+             refLon: g.refLon, refDate: g.refDate, drift: g.driftPerMonth, origin: g.origin }; };
 """
 
 
@@ -897,6 +903,186 @@ def test_grs_tile_works_with_blocked_storage(tmp_path):
     assert got["reset"]["grs"]["meta"] == "II 91.0 @ 1 Jun 2026"
 
 
+# --- the longitude this instance fetched ------------------------------------------------------
+#
+# The template renders the value the instance's server fetched as the inline `solarGrs`
+# blob, or null when it has none. The card sits between the user's own value and the
+# shipped default: the steps read it back the way the page does, from the global the
+# driver was handed.
+
+CENTRAL = {"lon": 98.5, "date": "2026-10-20", "drift": 1.9, "origin": "central"}
+
+
+def test_grs_uses_the_longitude_this_instance_fetched(tmp_path):
+    """No value of the user's own: the card predicts from the longitude the instance
+    fetched, at the rate that came with it, and the tooltip says the value is Nova's. 20
+    October is three weeks before the night, so no age warning."""
+    got = _run(tmp_path, _oracle("2026-11-07") + _grs("2026-11-07") + """
+        h.online();
+        await h.load('bodies');
+        const c = h.context.solarGrs;
+        return { card: jupCard(), g: grsOf(null, c),
+                 ref: SJ.grsReference(null, c),
+                 marker: SJ.diagram(t.geometry, 'normal', t.moons,
+                                    SJ.grsLongitude(SJ.grsReference(null, c), t.instantUtc)).grs };
+    """, sim="2026-11-07", grs=CENTRAL)
+    g, tile, card = got["g"], got["card"]["grs"], got["card"]
+    assert (g["refLon"], g["refDate"], g["drift"], g["origin"]) == (98.5, "2026-10-20", 1.9, "central")
+    assert g["tonight"], "the spot crosses the meridian tonight"
+    assert tile["times"] != "03:14", "not the time the shipped default predicts for this night"
+    assert tile["times"] == " · ".join(x["hm"] for x in g["tonight"])
+    assert tile["meta"] == "II 98.5 @ 20 Oct 2026"
+    assert tile["stale"] == "false" and not tile["reset"] and tile["edit"]
+    lines = tile["title"].split("\n")
+    assert "CENTRAL 98.5 20 Oct 2026" in lines, "the tooltip names Nova as the source"
+    assert "DEFAULT 91.0 1 Jun 2026" not in lines
+    assert "YOURS 98.5 20 Oct 2026" not in lines, "not the user's own measurement"
+    assert "STALE" not in lines
+    # The drawing marks the spot at the same longitude the tile predicts from
+    marks = card["svg"]["grs"]
+    if got["marker"]["visible"]:
+        k, cx, cy = card["svg"]["scale"], card["svg"]["width"] / 2, card["svg"]["height"] / 2
+        assert len(marks) == 1
+        assert marks[0]["cx"] == pytest.approx(cx + got["marker"]["x"] * k, abs=0.02)
+        assert marks[0]["cy"] == pytest.approx(cy + got["marker"]["y"] * k, abs=0.02)
+    else:
+        assert marks == []
+
+
+def test_the_users_own_longitude_wins_and_drifts_at_the_instances_rate(tmp_path):
+    """The user's measurement is still the one the card uses, and it drifts at the rate
+    that came with the central value: the rate is the instance's, the longitude is theirs.
+    Reset goes back to the value in use, which is now the fetched one, not the default."""
+    got = _run(tmp_path, _grs("2026-11-07") + """
+        h.online();
+        await h.load('bodies');
+        const c = h.context.solarGrs, mine = {lon: 120.5, date: '2026-11-01'};
+        return { card: jupCard(), g: grsOf(mine, c), alone: grsOf(mine, null) };
+    """, sim="2026-11-07", grs=CENTRAL,
+        storage={"nova_solar_grs": json.dumps({"lon": 120.5, "date": "2026-11-01"})})
+    g, mine = got["g"], got["alone"]
+    assert (g["refLon"], g["refDate"], g["origin"]) == (120.5, "2026-11-01", "user")
+    assert g["drift"] == 1.9, "the instance's current rate"
+    assert mine["drift"] == 1.75, "with no central value the built-in rate is all there is"
+    assert "DRIFT +1.90" in got["card"]["grs"]["title"].split("\n"), \
+        "the rate the tooltip names is the one the prediction uses"
+    lines = got["card"]["grs"]["title"].split("\n")
+    assert "YOURS 120.5 1 Nov 2026" in lines and got["card"]["grs"]["reset"]
+    assert "CENTRAL 98.5 20 Oct 2026" not in lines, "the card is on the user's value"
+    assert got["card"]["grs"]["meta"] == "II 120.5 @ 1 Nov 2026"
+
+
+def test_the_edit_form_starts_from_the_longitude_in_use(tmp_path):
+    """Edit opens on the value the card is predicting from: the fetched one, not the
+    shipped default."""
+    got = _run(tmp_path, """
+        h.online();
+        await h.load('bodies');
+        await h.$('solar-jupiter-grs-edit').fire('click');
+        return { lon: h.$('solar-jupiter-grs-lon').value, date: h.$('solar-jupiter-grs-date').value,
+                 times: jupCard().grs.times };
+    """, sim="2026-11-07", grs=CENTRAL)
+    assert (got["lon"], got["date"]) == ("98.5", "2026-10-20")
+    assert got["times"] != "03:14"
+
+
+def test_the_shipped_default_is_used_when_the_instance_has_no_longitude(tmp_path):
+    """A fresh instance with no network renders the blob as null and the card is the card
+    it was before any of this existed."""
+    got = _run(tmp_path, _grs("2026-11-07") + """
+        h.online();
+        await h.load('bodies');
+        return { card: jupCard(), g: grsOf(null, null) };
+    """, sim="2026-11-07", grs=None)
+    g, tile = got["g"], got["card"]["grs"]
+    assert (g["refLon"], g["refDate"], g["drift"], g["origin"]) == (91.0, "2026-06-01", 1.75, "builtin")
+    assert tile["times"] == "03:14" and tile["meta"] == "II 91.0 @ 1 Jun 2026"
+    lines = tile["title"].split("\n")
+    assert "DEFAULT 91.0 1 Jun 2026" in lines and "CENTRAL" not in tile["title"]
+
+
+@pytest.mark.parametrize("blob", [
+    {},                                             # nothing usable in it
+    {"lon": "98.5", "date": "2026-10-20"},          # a longitude that is not a number
+    {"lon": 98.5, "date": "20 Oct 2026"},           # not a YYYY-MM-DD date
+    {"lon": 400.0, "date": "2026-10-20"},           # outside the sphere
+    {"lon": -1.0, "date": "2026-10-20"},
+    {"lon": 98.5, "date": "2026-02-30"},            # a day that does not exist
+    [98.5, "2026-10-20"],                           # not an object at all
+    "98.5",
+])
+def test_a_blob_the_card_cannot_use_falls_back_to_the_default(tmp_path, blob):
+    """Whatever the file on disk holds, a value the card cannot predict from is ignored
+    rather than trusted: the built-in default is then used, as it always was."""
+    got = _run(tmp_path, _grs("2026-11-07") + """
+        h.online();
+        await h.load('bodies');
+        return { card: jupCard(), g: grsOf(null, h.context.solarGrs) };
+    """, sim="2026-11-07", grs=blob)
+    assert got["g"]["origin"] == "builtin"
+    assert got["card"]["grs"]["times"] == "03:14"
+    assert got["card"]["grs"]["meta"] == "II 91.0 @ 1 Jun 2026"
+    assert "DEFAULT 91.0 1 Jun 2026" in got["card"]["grs"]["title"].split("\n")
+
+
+def test_a_value_with_no_rate_of_its_own_drifts_at_the_built_in_rate(tmp_path):
+    """The rate is optional in the file: a value that carries none is used, and drifts at
+    the rate shipped with this build."""
+    got = _run(tmp_path, _grs("2026-11-07") + """
+        h.online();
+        await h.load('bodies');
+        return { card: jupCard(), g: grsOf(null, h.context.solarGrs) };
+    """, sim="2026-11-07", grs={"lon": 98.5, "date": "2026-10-20", "origin": "central"})
+    assert (got["g"]["refLon"], got["g"]["origin"], got["g"]["drift"]) == (98.5, "central", 1.75)
+    assert got["card"]["grs"]["times"] != "03:14", "the longitude still moved the prediction"
+
+
+def test_the_values_own_date_decides_the_age_warning(tmp_path):
+    """The file that arrived yesterday can describe a longitude measured in January. The
+    card warns on the date in the value, never on when the instance fetched it: the same
+    night is warned about with a January value and not with the June default."""
+    january = {"lon": 91.0, "date": "2026-01-05", "drift": 1.75, "origin": "central"}
+    steps = _grs("2026-11-07") + """
+        h.online();
+        await h.load('bodies');
+        return { card: jupCard(), g: grsOf(null, h.context.solarGrs) };
+    """
+    old = _run(tmp_path, steps, sim="2026-11-07", grs=january)
+    assert old["g"]["stale"] and old["card"]["grs"]["stale"] == "true"
+    assert old["card"]["grs"]["times"], "the prediction is kept, only flagged"
+    assert old["card"]["grs"]["title"].split("\n")[-2:] == ["STALE", "WHERE"]
+    assert "CENTRAL 91.0 5 Jan 2026" in old["card"]["grs"]["title"].split("\n")
+
+    fresh = _run(tmp_path, steps, sim="2026-11-07", grs=None)
+    assert not fresh["g"]["stale"] and fresh["card"]["grs"]["stale"] == "false"
+    assert "STALE" not in fresh["card"]["grs"]["title"]
+
+
+def test_the_rate_that_came_with_the_value_drives_the_transits(tmp_path):
+    """Longitude and date held fixed, only the rate changes: the predicted transit moves.
+    With the rate the build ships, the same longitude and date give back exactly the
+    default's answer, so it is the rate that moved it."""
+    base = {"lon": 91.0, "date": "2026-06-01", "origin": "central"}
+    steps = _grs("2026-11-07") + """
+        h.online();
+        await h.load('bodies');
+        return { g: grsOf(null, h.context.solarGrs), card: jupCard().grs };
+    """
+    slow = _run(tmp_path, steps, sim="2026-11-07", grs=dict(base, drift=-3.0))
+    fast = _run(tmp_path, steps, sim="2026-11-07", grs=dict(base, drift=6.0))
+    same = _run(tmp_path, steps, sim="2026-11-07", grs=dict(base, drift=1.75))
+    plain = _run(tmp_path, steps, sim="2026-11-07", grs=None)
+
+    for got, rate in ((slow, -3.0), (fast, 6.0), (same, 1.75)):
+        assert got["g"]["refLon"] == 91.0 and got["g"]["refDate"] == "2026-06-01"
+        assert got["g"]["drift"] == rate
+        assert got["card"]["times"] == " · ".join(x["hm"] for x in got["g"]["tonight"])
+    assert slow["card"]["times"] != fast["card"]["times"], "the rate moved the transit"
+    assert same["card"]["times"] == plain["card"]["times"] == "03:14"
+    assert same["g"]["tonight"] == plain["g"]["tonight"]
+    assert slow["g"]["tonight"] != plain["g"]["tonight"]
+
+
 # --- the drawing ---------------------------------------------------------------------------
 
 def _boxes(labels):
@@ -1012,6 +1198,64 @@ def test_page_loads_the_card_scripts_after_their_engines(client):
     assert at("nova_jupiter.js") < at("nova_solar_jupiter.js") < at("solar_system.js")
     assert at("nova_mars.js") < at("nova_solar_mars.js") < at("solar_system.js")
     assert at("nova_moon_features.js") < at("nova_solar_moon.js")
+
+
+def _grs_blob(html):
+    """The value the template handed the page, parsed back out of the inline blob."""
+    match = re.search(r"^const solarGrs = (.*);$", html, re.M)
+    assert match, "the template renders solarGrs"
+    return json.loads(match.group(1))
+
+
+def _write_grs_cache(directory, **fields):
+    """The instance's cache file, in the shape nova/grs.py writes it."""
+    directory.mkdir(parents=True, exist_ok=True)
+    (directory / "grs.json").write_text(json.dumps(
+        {"fetched_at": 1793649600.0,
+         "value": {"schema": 1, "longitude_ii": 98.5, "date": "2026-10-20",
+                   "drift_deg_per_month": 1.9, "source": "Some Observatory",
+                   **fields}}))
+
+
+def test_the_page_hands_the_card_the_longitude_this_instance_fetched(client, isolated_cache_dir):
+    """With a cached value on disk, the rendered page carries it for the card."""
+    _write_grs_cache(isolated_cache_dir)
+    html = client.get("/solar_system").get_data(as_text=True)
+    assert _grs_blob(html) == {"lon": 98.5, "date": "2026-10-20", "drift": 1.9,
+                               "origin": "central"}
+
+
+def test_the_page_hands_the_card_null_when_the_instance_has_none(client, isolated_cache_dir):
+    """A fresh instance, or one that has never reached the host: nothing is invented, and
+    the card falls back to its own default."""
+    assert not list(isolated_cache_dir.glob("grs.json"))
+    assert _grs_blob(client.get("/solar_system").get_data(as_text=True)) is None
+
+
+def test_the_files_attribution_is_never_put_into_the_page(client, isolated_cache_dir):
+    """The attribution is for the log and for anyone reading the cache file: the tooltip's
+    wording is translated, and the page shows nothing that came from the file's own text."""
+    _write_grs_cache(isolated_cache_dir, source="Credit <script>Whoever</script>")
+    html = client.get("/solar_system").get_data(as_text=True)
+    assert "Whoever" not in html and "Some Observatory" not in html
+    assert "source" not in _grs_blob(html)
+
+
+def test_an_unreadable_cache_file_still_renders_the_page(client, isolated_cache_dir):
+    """A file that is not a value at all is no value: the page renders, with no blob."""
+    isolated_cache_dir.mkdir(parents=True, exist_ok=True)
+    (isolated_cache_dir / "grs.json").write_text("{not json")
+    response = client.get("/solar_system")
+    assert response.status_code == 200
+    assert _grs_blob(response.get_data(as_text=True)) is None
+
+
+def test_the_reset_button_says_default_not_built_in(client):
+    """The value the button goes back to can be the one the instance fetched, so the
+    wording no longer claims it is the built-in one."""
+    html = client.get("/solar_system").get_data(as_text=True)
+    assert 'title="Back to the default longitude"' in html
+    assert "built-in longitude" not in html
 
 
 # --- the stylesheet ------------------------------------------------------------------------

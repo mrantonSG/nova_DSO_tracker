@@ -66,6 +66,13 @@
  * once the user picks one); the three detail cards' one shared view nova_solar_view;
  * the Jupiter card's own Great Red Spot longitude nova_solar_grs ({ lon, date }).
  *
+ * The Great Red Spot's longitude comes from one of three places, in this order: the
+ * user's own measurement (localStorage nova_solar_grs), the value this instance fetched
+ * from the catalog host (the page's solarGrs, null when it has none), and the default
+ * shipped in nova_solar_jupiter.js. The tooltip names which one it is. Staleness is
+ * judged by the value's own measurement date, so an offline instance with an old value
+ * still shows the age warning.
+ *
  * When /get_locations does not answer with JSON (a guest), the page uses the location
  * /api/desktop_inputs picks without a parameter and never POSTs /set_location.
  */
@@ -1395,6 +1402,13 @@
         return o && NovaSolarJupiter.grsReference(o).user ? {lon: o.lon, date: o.date} : null;
     }
 
+    /** The central longitude this instance fetched ({ lon, date, drift }), or null when it
+     *  has none: the page is then on the shipped default, or on the user's own value.
+     *  Sits between the two in the fallback chain, and the card reads it as `fallback`. */
+    function serverGrs() {
+        return (typeof solarGrs !== 'undefined' && solarGrs) ? solarGrs : null;
+    }
+
     /** The GRS tile: tonight's predicted transits large, the longitude the prediction starts
      *  from and its date under them (the warning colour once that is over six months old),
      *  the next nights' transits in the tooltip; Edit and Reset inline. */
@@ -1417,7 +1431,12 @@
             G.help,
             grs.tonight.length ? fill(G.tonight, {times: grs.tonight.map(x => localDateTime(x.utcMs)).join(', ')}) : '',
             grs.next.length ? G.next + '\n' + grs.next.map(x => localDateTime(x.utcMs)).join('\n') : G.noNext,
-            fill(grs.user ? G.user : G.source, {lon: grs.refLon.toFixed(1), date: refDate}),
+            // Where the value came from, so a longitude that is not the user's own is
+            // never mistaken for one: their own measurement, this instance's fetched
+            // value, or the default shipped with this build.
+            fill(grs.origin === 'user' ? G.user
+                 : grs.origin === 'central' ? (G.central || '')
+                 : G.source, {lon: grs.refLon.toFixed(1), date: refDate}),
             fill(G.drift, {rate: '+' + grs.driftPerMonth.toFixed(2)}),
             grs.stale ? G.stale : '',
             // Where a current value is found: always, and so right after the warning
@@ -1447,7 +1466,10 @@
         grsForm(false);
         const redraw = () => { state.jupiterDrawn = null; renderJupiter(); };
         $('solar-jupiter-grs-edit').addEventListener('click', () => {
-            const ref = NovaSolarJupiter.grsReference(state.grsOverride);
+            // Prefilled with the effective reference, not with the default: a user editing
+            // a value that came from the instance, or from the default, must see what the
+            // card is actually predicting from.
+            const ref = NovaSolarJupiter.grsReference(state.grsOverride, serverGrs());
             $('solar-jupiter-grs-lon').value = ref.lon.toFixed(1);
             $('solar-jupiter-grs-date').value = ref.date;
             $('solar-jupiter-grs-date').max = locationToday();
@@ -1640,13 +1662,13 @@
                 state.jupiter.key = key;
             }
             if (state.jupiter.grsKey !== grsKey) {
-                state.jupiter.grs = NovaSolarJupiter.grs(opts, state.grsOverride);
+                state.jupiter.grs = NovaSolarJupiter.grs(opts, state.grsOverride, serverGrs());
                 state.jupiter.grsKey = grsKey;
             }
             t = state.jupiter.tonight;
             next = state.jupiter.next;
             grs = state.jupiter.grs;
-            const ref = NovaSolarJupiter.grsReference(state.grsOverride);
+            const ref = NovaSolarJupiter.grsReference(state.grsOverride, serverGrs());
             jupiterDiagram(t, NovaSolarJupiter.grsLongitude(ref, t.instantUtc));
             jupiterTiles(t);
             renderGrs(grs);

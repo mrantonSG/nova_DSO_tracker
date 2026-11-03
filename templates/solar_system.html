@@ -150,7 +150,7 @@
                         <span id="solar-jupiter-grs-meta" class="solar-card-tile-note solar-card-grs-meta"></span>
                         <span class="solar-card-grs-actions">
                             <button type="button" id="solar-jupiter-grs-edit" class="solar-card-grs-button">{{ _('Edit') }}</button>
-                            <button type="button" id="solar-jupiter-grs-reset" class="solar-card-grs-button" title="{{ _('Back to the built-in longitude') }}" hidden>{{ _('Reset') }}</button>
+                            <button type="button" id="solar-jupiter-grs-reset" class="solar-card-grs-button" title="{{ _('Back to the default longitude') }}" hidden>{{ _('Reset') }}</button>
                         </span>
                         <div id="solar-jupiter-grs-form" class="solar-card-grs-form" hidden>
                             <label class="solar-card-grs-field">{{ _('System II longitude (°)') }}
@@ -433,6 +433,7 @@ const solarI18n = {
             next:      {{ _('The next nights:') | tojson }},
             noNext:    {{ _('No transit while Jupiter is up in the next nights.') | tojson }},
             source:    {{ _('Built-in longitude: System II %(lon)s° on %(date)s (JUPOS via Sky & Telescope; BAA Jupiter Section).', lon='{lon}', date='{date}') | tojson }},
+            central:   {{ _('Longitude from Nova: System II %(lon)s° on %(date)s.', lon='{lon}', date='{date}') | tojson }},
             user:      {{ _('Your longitude: System II %(lon)s° on %(date)s.', lon='{lon}', date='{date}') | tojson }},
             drift:     {{ _('Drift applied since that date: %(rate)s° a month.', rate='{rate}') | tojson }},
             stale:     {{ _('This longitude is more than six months old, so the times may be well off. Enter a recent value (JUPOS, BAA, ALPO) with Edit.') | tojson }},
@@ -676,6 +677,9 @@ const solarI18n = {
     }
 };
 const solarEquipment = {{ solar_equipment | tojson }};
+// The Great Red Spot's longitude fetched by this instance, or null when it has none:
+// static/js/nova_solar_jupiter.js then predicts from its built-in default.
+const solarGrs = {{ solar_grs | tojson }};
 </script>
 
 <script src="{{ url_for('static', filename='js/chart/chart.umd.min.js') }}?v={{ version }}" defer></script>

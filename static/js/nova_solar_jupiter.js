@@ -106,11 +106,15 @@
  *   same set — pays for them once. Measured on this machine: 154 ms for London and 114 ms
  *   for Singapore over the 6-month window, against the Calendar's own 322 ms build.
  *
- * grs(opts, override) -> the Great Red Spot's predicted transits of the central meridian:
+ * grs(opts, override, fallback) -> the Great Red Spot's predicted transits of the central
+ *   meridian:
  *   {
  *     refLon, refDate, user,      the System II longitude the prediction starts from, the
  *                                 day it was measured, and whether it is the user's own
- *                                 (override, { lon, date }) or the shipped GRS default
+ *                                 (override, { lon, date })
+ *     origin,                     where it came from: 'user', 'central' (the value this
+ *                                 instance fetched, `fallback`, { lon, date, drift }) or
+ *                                 'builtin' (the shipped GRS default below)
  *     driftPerMonth, lat,         the drift applied from refDate, and the latitude the
  *                                 spot is drawn at
  *     ageDays, stale,             refDate's age on the observing night, and whether that
@@ -123,9 +127,13 @@
  *   the longitude drifting at driftPerMonth from refDate. These are predictions: the spot
  *   wanders by a few degrees from any straight-line drift.
  *
- * grsReference(override) -> { lon, date, user }: the override when it is a usable one
- *   (lon 0..360, date a real YYYY-MM-DD), else the default. grsLongitude(ref, utcMs) ->
- *   the drifted System II longitude at utcMs.
+ * grsReference(override, fallback) -> { lon, date, user, origin, drift }: the override when
+ *   it is a usable one (lon 0..360, date a real YYYY-MM-DD), else `fallback` when that is,
+ *   else the shipped default. One rate is applied to whichever it is: the fetched value's
+ *   own drift when the instance has one, else the shipped rate, and a user override drifts
+ *   at that same rate (it carries only a longitude and a date, having been measured against
+ *   the same published numbers). grsLongitude(ref, utcMs) -> the drifted System II
+ *   longitude at utcMs.
  *
  * diagram(g, mode, moons, grsLon) -> the system drawn in Jupiter's own frame, Jupiter
  *   radii from the disc's centre, x right and y down as SVG has them (the page scales it
@@ -179,7 +187,10 @@
     // The Great Red Spot. Its System II longitude is not predictable from theory: it drifts
     // slowly and unevenly, and amateurs follow it from measurements. The default is the
     // published value (JUPOS via Sky & Telescope; BAA Jupiter Section): System II 91.0 deg
-    // on 2026-06-01, drifting +1.75 deg a month. The user can enter a newer measurement.
+    // on 2026-06-01, drifting +1.75 deg a month. The user can enter a newer measurement, and
+    // an instance that fetches the centrally hosted value passes it in as `fallback`, which
+    // replaces this default; with no network, or before the first fetch, this is what the
+    // card predicts from, exactly as it did before that existed.
     // Latitude: the spot's centre sits at about 22 deg south (planetographic).
     const GRS = Object.freeze({ lon: 91.0, date: '2026-06-01', driftPerMonth: 1.75, lat: -22,
         source: 'JUPOS via Sky & Telescope; BAA Jupiter Section' });
@@ -425,18 +436,41 @@
         return t.getUTCFullYear() === +m[1] && t.getUTCMonth() === +m[2] - 1 && t.getUTCDate() === +m[3];
     }
 
-    function grsReference(override) {
+    /** A value the predictions can start from: a longitude in 0..360 and a real
+     *  measurement date. Anything else (absent, unreadable, out of range) is not. */
+    function usableReference(ref) {
+        return !!ref && typeof ref.lon === 'number' && isFinite(ref.lon)
+            && ref.lon >= 0 && ref.lon <= 360 && isDate(ref.date);
+    }
+
+    /** The one rate every reference drifts at: the fetched value's own when the instance
+     *  has one, else the shipped rate. */
+    function driftRate(fallback) {
+        const c = fallback || null;
+        return (usableReference(c) && typeof c.drift === 'number' && isFinite(c.drift))
+            ? c.drift : GRS.driftPerMonth;
+    }
+
+    function grsReference(override, fallback) {
         const o = override || null;
-        if (o && typeof o.lon === 'number' && isFinite(o.lon) && o.lon >= 0 && o.lon <= 360 && isDate(o.date)) {
-            return { lon: mod(o.lon, 360), date: o.date, user: true };
+        const rate = driftRate(fallback);
+        if (usableReference(o)) {
+            return { lon: mod(o.lon, 360), date: o.date, user: true, origin: 'user', drift: rate };
         }
-        return { lon: GRS.lon, date: GRS.date, user: false };
+        if (usableReference(fallback)) {
+            return { lon: mod(fallback.lon, 360), date: fallback.date,
+                     user: false, origin: 'central', drift: rate };
+        }
+        return { lon: GRS.lon, date: GRS.date, user: false, origin: 'builtin',
+                 drift: GRS.driftPerMonth };
     }
 
     function grsLongitude(ref, utcMs) {
         const d = parseDate(ref.date);
+        const rate = (typeof ref.drift === 'number' && isFinite(ref.drift))
+            ? ref.drift : GRS.driftPerMonth;
         const months = (finite(utcMs, 'utcMs') - Date.UTC(d.year, d.month - 1, d.day)) / MONTH_MS;
-        return mod(finite(ref.lon, 'GRS longitude') + GRS.driftPerMonth * months, 360);
+        return mod(finite(ref.lon, 'GRS longitude') + rate * months, 360);
     }
 
     /** The spot's transits in one night window while Jupiter is at or above the threshold:
@@ -467,10 +501,10 @@
         return out;
     }
 
-    function grs(opts, override) {
+    function grs(opts, override, fallback) {
         const c = context(opts);
         const E = c.E, s = c.s;
-        const ref = grsReference(override);
+        const ref = grsReference(override, fallback);
         const d = parseDate(c.date);
         const sun = {};
         const transits = date => grsTransits(E.N.nightWindow(date, s, E.A, E.W, sun), ref, c, date);
@@ -480,8 +514,8 @@
         }
         const ageDays = Math.round(dayNumber(d) - dayNumber(parseDate(ref.date)));
         return {
-            refLon: ref.lon, refDate: ref.date, user: ref.user,
-            driftPerMonth: GRS.driftPerMonth, lat: GRS.lat,
+            refLon: ref.lon, refDate: ref.date, user: ref.user, origin: ref.origin,
+            driftPerMonth: ref.drift, lat: GRS.lat,
             ageDays: ageDays, stale: ageDays > GRS_STALE_DAYS,
             tonight: transits(c.date),
             next: next,
