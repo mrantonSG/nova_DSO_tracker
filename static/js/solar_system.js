@@ -133,6 +133,8 @@
         grsOverride: null,
         jupiterWidth: 0,
         mars: { key: null, tonight: null },
+        venus: { key: null, tonight: null },
+        mercury: { key: null, tonight: null },
         saturn: { key: null, tonight: null },
         saturnWidth: 0,
         cardView: 'normal',
@@ -506,6 +508,8 @@
         renderMoon();
         renderJupiter();
         renderMars();
+        renderInner('venus');
+        renderInner('mercury');
         renderSaturn();
         renderCalc();
         showChart();
@@ -1231,6 +1235,8 @@
                 renderMoon();
                 renderJupiter();
                 renderMars();
+                renderInner('venus');
+                renderInner('mercury');
                 renderSaturn();
             });
         });
@@ -1877,6 +1883,126 @@
         state.marsDrawn = drawn;
     }
 
+    // ------------------------------------------------- Venus and Mercury cards
+
+    /** What the two tiles say. The best-window tile is about tonight, so it comes first,
+     *  in the shape of the Mars card's: a value, a note under it, and the rest in the
+     *  tooltip. */
+    function innerTiles(body, t) {
+        const M = i18n.inner || {};
+        const tiles = $('solar-' + body + '-tiles');
+        tiles.innerHTML = '';
+        const best = t.best;
+        // One sample is a window whenever the planet is above the threshold for less than
+        // one sampling interval, and a range from a time to itself would read as a fault:
+        // it is shown as the one time it is.
+        const one = best && best.samples === 1;
+        const tile = cardTile(tiles, 'solar-card', M.best,
+            best ? (one ? best.startHm : best.startHm + '–' + best.endHm)
+                : t.daylightOnly ? M.daylightOnly : '–',
+            best ? (one ? fill(M.bestOneHelp, {time: best.startHm, threshold: Math.round(t.threshold)})
+                : fill(M.bestHelp, {minutes: best.minutes, threshold: Math.round(t.threshold)}))
+                : t.daylightOnly ? M.daylightOnlyHelp : M.bestNoneHelp);
+        if (best) span(tile, best.side === 'evening' ? M.evening : M.morning, 'solar-card-tile-note');
+        cardTile(tiles, 'solar-card', M.illuminated, Math.round(t.illuminated * 100) + '%',
+            M.illuminatedHelp);
+        cardTile(tiles, 'solar-card', M.diameter, t.diameterArcsec.toFixed(1) + '″', M.diameterHelp);
+    }
+
+    /** Venus's or Mercury's disc tonight: the phase angle's terminator across it, the lit
+     *  limb turned towards the Sun, and the planet's own north up, as the Mars card. The
+     *  disc alone is scaled, by the shared scale the module carries (NovaSolarInner, the
+     *  header): the two planets are drawn against each other, so a crescent Venus near
+     *  inferior conjunction fills the figure while Mercury at superior conjunction is a
+     *  small disc. The rim, the terminator and the pole tick hold their weight through
+     *  that scale in the stylesheet, and the north arrow keeps its own size outside the
+     *  scaled group, so it stays readable over the smaller disc. */
+    function innerDiagram(body, t) {
+        const M = i18n.inner || {};
+        const box = $('solar-' + body + '-diagram');
+        box.innerHTML = '';
+        const d = NovaSolarInner.diagram(t, state.cardView);
+        const svg = svgEl(box, 'svg', {
+            viewBox: '-1.3 -1.3 2.6 2.6', role: 'img',
+            class: 'solar-card-svg solar-inner-svg solar-' + body + '-svg',
+            'aria-label': M.diagramAria || '',
+        });
+        svgEl(svg, 'title', {}).textContent = [M.diagramAria, i18n.planetNorthUp]
+            .filter(Boolean).join('\n');
+
+        const s = t.scale;
+        const disc = svgEl(svg, 'g', {class: 'solar-inner-disc'});
+        disc.setAttribute('transform', 'scale(' + s.toFixed(4) + ')');
+        svgEl(disc, 'circle', {cx: 0, cy: 0, r: 1, class: 'solar-card-surface'});
+        if (d.shaded) svgEl(disc, 'path', {d: d.shaded, class: 'solar-card-shaded'});
+        if (d.terminator) svgEl(disc, 'path', {d: d.terminator, class: 'solar-card-terminator'});
+        svgEl(disc, 'circle', {cx: 0, cy: 0, r: 1, class: 'solar-card-rim'});
+
+        // The pole: a tick inside the limb, as Mars's
+        const pole = svgEl(disc, 'g', {class: 'solar-card-pole'});
+        svgEl(pole, 'path', {d: 'M ' + (d.pole.x * 0.74).toFixed(3) + ' ' + (d.pole.y * 0.74).toFixed(3)
+            + ' L ' + d.pole.x.toFixed(3) + ' ' + d.pole.y.toFixed(3)});
+        svgEl(pole, 'title', {}).textContent = M.poleNorth || '';
+
+        // Celestial north: an arrow out from the limb at its position angle, its N past
+        // the tip in HTML (a fixed 12 px at any drawing size). It starts a fixed 0.12
+        // units past the limb whatever the scale, so it is the same arrow on either disc.
+        const r3 = v => Math.round(v * 1000) / 1000;
+        const a0 = s * 1.05, a1 = a0 + 0.12;
+        const arrow = svgEl(svg, 'g', {class: 'solar-card-north-arrow'});
+        svgEl(arrow, 'path', {d: arrowPath(d.north.x * a0, d.north.y * a0,
+                                           d.north.x * a1, d.north.y * a1, 0.05, r3)});
+        svgEl(arrow, 'title', {}).textContent = i18n.celestialNorth || '';
+        const north = span(box, M.north || 'N', 'solar-card-north-label');
+        north.style.left = ((d.north.x * (a1 + 0.07) + 1.3) / 2.6 * 100).toFixed(2) + '%';
+        north.style.top = ((d.north.y * (a1 + 0.07) + 1.3) / 2.6 * 100).toFixed(2) + '%';
+        north.title = i18n.celestialNorth || '';
+    }
+
+    /** The Venus or the Mercury card, while that body is selected; computed once per night,
+     *  as the Moon's. The two cards are the one card in different colours, so this is the
+     *  one renderer and the template writes both sections from the one macro. */
+    function renderInner(body) {
+        const box = $('solar-' + body);
+        if (typeof NovaSolarInner === 'undefined' || !state.result || state.selected !== body) {
+            box.hidden = true;
+            return;
+        }
+        box.hidden = false;
+        const M = i18n.inner || {};
+        const drawnKey = body + 'Drawn';
+        let t, drawn;
+        try {
+            const key = calendarKey();
+            drawn = JSON.stringify([key, simDate(), state.cardView, document.documentElement.lang || '']);
+            if (state[drawnKey] === drawn) return;
+            if (state[body].key !== key) {
+                const opts = {inputs: state.inputs, nowMs: Date.now(), simDate: simDate()};
+                state[body] = {key: null, tonight: NovaSolarInner.tonight(body, opts)};
+                state[body].key = key;
+            }
+            t = state[body].tonight;
+            innerDiagram(body, t);
+            innerTiles(body, t);
+        } catch (e) {
+            console.error('Solar System: could not calculate the ' + body + ' card', e);
+            state[body] = {key: null, tonight: null};
+            state[drawnKey] = null;
+            $('solar-' + body + '-title').textContent = bodyName(body);
+            showCardError(body, M.error || i18n.error);
+            return;
+        }
+        showCardError(body, null);
+        $('solar-' + body + '-title').textContent = bodyName(body) + ' · '
+            + fill(M.highestAt, {time: t.hm});
+
+        const empty = $('solar-' + body + '-empty');
+        const reason = t.muted ? (t.mutedReason === 'notUp' ? M.notUp : i18n.belowThreshold) : '';
+        empty.textContent = reason || '';
+        empty.hidden = !reason;
+        state[drawnKey] = drawn;
+    }
+
     // ------------------------------------------------------ Saturn card
 
     // Saturn's figure is the Jupiter strip's shape -- a wide drawing at the width it is
@@ -2355,6 +2481,8 @@
             renderMoon();
             renderJupiter();
             renderMars();
+            renderInner('venus');
+            renderInner('mercury');
             renderSaturn();
             renderCalc();
             showChart(force);

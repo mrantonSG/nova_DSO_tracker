@@ -24,8 +24,8 @@ PAGE_SCRIPTS = [
     "nova_plot_data.js", "nova_solar_rows.js", "nova_solar_calendar.js",
     "nova_moon.js", "nova_moon_features.js", "nova_jupiter.js", "nova_mars.js",
     "nova_mars_features.js", "nova_solar_moon.js", "nova_solar_jupiter.js",
-    "nova_solar_mars.js", "nova_solar_rigfit.js", "solar_system_chart.js",
-    "solar_system.js",
+    "nova_solar_mars.js", "nova_solar_inner.js", "nova_solar_rigfit.js",
+    "solar_system_chart.js", "solar_system.js",
 ]
 
 

@@ -1,0 +1,260 @@
+API VERSION: 1.2
+API SOURCE: NASA/JPL Horizons API
+
+
+
+*******************************************************************************
+Ephemeris / API_USER Mon Nov  2 19:37:08 2026 Pasadena, USA      / Horizons    
+*******************************************************************************
+Target body name: Venus (299)                     {source: DE441}
+Center body name: Earth (399)                     {source: DE441}
+Center-site name: GEOCENTRIC
+*******************************************************************************
+Start time      : A.D. 2026-Jan-01 00:00:00.0000 UT      
+Stop  time      : A.D. 2028-Dec-31 00:00:00.0000 UT      
+Step-size       : 10080 minutes
+*******************************************************************************
+Target pole/equ : IAU_VENUS                       {East-longitude positive}
+Target radii    : 6051.8, 6051.8, 6051.8 km       {Equator_a, b, pole_c}       
+Center geodetic : 0.0, 0.0, -6378.137             {E-lon(deg),Lat(deg),Alt(km)}
+Center cylindric: 0.0, 0.0, 0.0                   {E-lon(deg),Dxy(km),Dz(km)}
+Center pole/equ : ITRF93                          {East-longitude positive}
+Center radii    : 6378.137, 6378.137, 6356.752 km {Equator_a, b, pole_c}       
+Target primary  : Sun
+Vis. interferer : MOON (R_eq= 1737.400) km        {source: DE441}
+Rel. light bend : Sun                             {source: DE441}
+Rel. lght bnd GM: 1.3271E+11 km^3/s^2                                          
+Atmos refraction: NO (AIRLESS)
+RA format       : HMS
+Time format     : CAL 
+Calendar mode   : Mixed Julian/Gregorian
+EOP file        : eop.261102.p270129                                           
+EOP coverage    : DATA-BASED 1962-JAN-20 TO 2026-NOV-02. PREDICTS-> 2027-JAN-28
+Units conversion: 1 au= 149597870.700 km, c= 299792.458 km/s, 1 day= 86400.0 s 
+Table cut-offs 1: Elevation (-90.0deg=NO ),Airmass (>38.000=NO), Daylight (NO )
+Table cut-offs 2: Solar elongation (  0.0,180.0=NO ),Local Hour Angle( 0.0=NO )
+Table cut-offs 3: RA/DEC angular rate (     0.0=NO )                           
+Table format    : Comma Separated Values (spreadsheet)
+*******************************************************************************
+ Date__(UT)__HR:MN, , ,   NP.ang,  NP.dist,
+*******************************************
+$$SOE
+ 2026-Jan-01 00:00, , , 357.1704,    4.879,
+ 2026-Jan-08 00:00, , , 353.5306,    4.876,
+ 2026-Jan-15 00:00, , , 350.0945,    4.879,
+ 2026-Jan-22 00:00, , , 346.9608,    4.887,
+ 2026-Jan-29 00:00, , , 344.2053,    4.901,
+ 2026-Feb-05 00:00, , , 341.8781,    4.920,
+ 2026-Feb-12 00:00, , , 340.0079,    4.946,
+ 2026-Feb-19 00:00, , , 338.6073,    4.977,
+ 2026-Feb-26 00:00, , , 337.6791,    5.016,
+ 2026-Mar-05 00:00, , , 337.2199,    5.062,
+ 2026-Mar-12 00:00, , , 337.2243,   -5.115,
+ 2026-Mar-19 00:00, , , 337.6872,   -5.177,
+ 2026-Mar-26 00:00, , , 338.6042,   -5.248,
+ 2026-Apr-02 00:00, , , 339.9696,   -5.330,
+ 2026-Apr-09 00:00, , , 341.7755,   -5.422,
+ 2026-Apr-16 00:00, , , 344.0068,   -5.526,
+ 2026-Apr-23 00:00, , , 346.6367,   -5.645,
+ 2026-Apr-30 00:00, , , 349.6196,   -5.778,
+ 2026-May-07 00:00, , , 352.8901,   -5.929,
+ 2026-May-14 00:00, , , 356.3623,   -6.098,
+ 2026-May-21 00:00, , , 359.9329,   -6.288,
+ 2026-May-28 00:00, , ,   3.4867,   -6.503,
+ 2026-Jun-04 00:00, , ,   6.9115,   -6.744,
+ 2026-Jun-11 00:00, , ,  10.1099,   -7.015,
+ 2026-Jun-18 00:00, , ,  13.0054,   -7.321,
+ 2026-Jun-25 00:00, , ,  15.5439,   -7.666,
+ 2026-Jul-02 00:00, , ,  17.6959,   -8.056,
+ 2026-Jul-09 00:00, , ,  19.4530,   -8.497,
+ 2026-Jul-16 00:00, , ,  20.8221,   -8.997,
+ 2026-Jul-23 00:00, , ,  21.8191,    9.568,
+ 2026-Jul-30 00:00, , ,  22.4669,   10.221,
+ 2026-Aug-06 00:00, , ,  22.7939,   10.973,
+ 2026-Aug-13 00:00, , ,  22.8325,   11.840,
+ 2026-Aug-20 00:00, , ,  22.6200,   12.850,
+ 2026-Aug-27 00:00, , ,  22.2018,   14.033,
+ 2026-Sep-03 00:00, , ,  21.6360,   15.423,
+ 2026-Sep-10 00:00, , ,  20.9961,   17.061,
+ 2026-Sep-17 00:00, , ,  20.3767,   18.989,
+ 2026-Sep-24 00:00, , ,  19.8957,   21.232,
+ 2026-Oct-01 00:00, , ,  19.6777,   23.751,
+ 2026-Oct-08 00:00, , ,  19.8073,   26.370,
+ 2026-Oct-15 00:00, , ,  20.2620,   28.700,
+ 2026-Oct-22 00:00, , ,  20.8706,   30.130,
+ 2026-Oct-29 00:00, , ,  21.3921,   30.123,
+ 2026-Nov-05 00:00, , ,  21.6843,   28.678,
+ 2026-Nov-12 00:00, , ,  21.7401,   26.336,
+ 2026-Nov-19 00:00, , ,  21.5858,   23.709,
+ 2026-Nov-26 00:00, , ,  21.2156,   21.193,
+ 2026-Dec-03 00:00, , ,  20.5968,  -18.960,
+ 2026-Dec-10 00:00, , ,  19.6913,  -17.049,
+ 2026-Dec-17 00:00, , ,  18.4684,  -15.433,
+ 2026-Dec-24 00:00, , ,  16.9062,  -14.068,
+ 2026-Dec-31 00:00, , ,  14.9934,  -12.912,
+ 2027-Jan-07 00:00, , ,  12.7337,  -11.929,
+ 2027-Jan-14 00:00, , ,  10.1483,  -11.087,
+ 2027-Jan-21 00:00, , ,   7.2732,  -10.360,
+ 2027-Jan-28 00:00, , ,   4.1599,   -9.729,
+ 2027-Feb-04 00:00, , ,   0.8786,   -9.176,
+ 2027-Feb-11 00:00, , , 357.5174,   -8.691,
+ 2027-Feb-18 00:00, , , 354.1728,   -8.261,
+ 2027-Feb-25 00:00, , , 350.9413,   -7.878,
+ 2027-Mar-04 00:00, , , 347.9142,   -7.536,
+ 2027-Mar-11 00:00, , , 345.1725,   -7.229,
+ 2027-Mar-18 00:00, , , 342.7805,   -6.953,
+ 2027-Mar-25 00:00, , , 340.7831,    6.704,
+ 2027-Apr-01 00:00, , , 339.2097,    6.478,
+ 2027-Apr-08 00:00, , , 338.0777,    6.273,
+ 2027-Apr-15 00:00, , , 337.3954,    6.088,
+ 2027-Apr-22 00:00, , , 337.1647,    5.920,
+ 2027-Apr-29 00:00, , , 337.3844,    5.767,
+ 2027-May-06 00:00, , , 338.0524,    5.629,
+ 2027-May-13 00:00, , , 339.1648,    5.504,
+ 2027-May-20 00:00, , , 340.7151,    5.392,
+ 2027-May-27 00:00, , , 342.6935,    5.292,
+ 2027-Jun-03 00:00, , , 345.0819,    5.202,
+ 2027-Jun-10 00:00, , , 347.8496,   -5.123,
+ 2027-Jun-17 00:00, , , 350.9486,   -5.054,
+ 2027-Jun-24 00:00, , , 354.3132,   -4.994,
+ 2027-Jul-01 00:00, , , 357.8580,   -4.943,
+ 2027-Jul-08 00:00, , ,   1.4805,   -4.902,
+ 2027-Jul-15 00:00, , ,   5.0683,   -4.869,
+ 2027-Jul-22 00:00, , ,   8.5118,   -4.844,
+ 2027-Jul-29 00:00, , ,  11.7122,   -4.828,
+ 2027-Aug-05 00:00, , ,  14.5882,   -4.819,
+ 2027-Aug-12 00:00, , ,  17.0780,   -4.819,
+ 2027-Aug-19 00:00, , ,  19.1417,   -4.826,
+ 2027-Aug-26 00:00, , ,  20.7567,   -4.841,
+ 2027-Sep-02 00:00, , ,  21.9122,   -4.863,
+ 2027-Sep-09 00:00, , ,  22.6046,   -4.892,
+ 2027-Sep-16 00:00, , ,  22.8344,   -4.929,
+ 2027-Sep-23 00:00, , ,  22.6030,    4.974,
+ 2027-Sep-30 00:00, , ,  21.9113,    5.025,
+ 2027-Oct-07 00:00, , ,  20.7598,    5.084,
+ 2027-Oct-14 00:00, , ,  19.1516,    5.151,
+ 2027-Oct-21 00:00, , ,  17.0942,    5.226,
+ 2027-Oct-28 00:00, , ,  14.6047,    5.308,
+ 2027-Nov-04 00:00, , ,  11.7164,    5.400,
+ 2027-Nov-11 00:00, , ,   8.4848,    5.500,
+ 2027-Nov-18 00:00, , ,   4.9894,    5.611,
+ 2027-Nov-25 00:00, , ,   1.3312,    5.732,
+ 2027-Dec-02 00:00, , , 357.6288,    5.865,
+ 2027-Dec-09 00:00, , , 354.0076,    6.011,
+ 2027-Dec-16 00:00, , , 350.5850,    6.172,
+ 2027-Dec-23 00:00, , , 347.4583,    6.348,
+ 2027-Dec-30 00:00, , , 344.6991,    6.542,
+ 2028-Jan-06 00:00, , , 342.3546,    6.756,
+ 2028-Jan-13 00:00, , , 340.4485,    6.993,
+ 2028-Jan-20 00:00, , , 338.9859,    7.255,
+ 2028-Jan-27 00:00, , , 337.9599,    7.547,
+ 2028-Feb-03 00:00, , , 337.3579,   -7.874,
+ 2028-Feb-10 00:00, , , 337.1639,   -8.240,
+ 2028-Feb-17 00:00, , , 337.3603,   -8.653,
+ 2028-Feb-24 00:00, , , 337.9288,   -9.122,
+ 2028-Mar-02 00:00, , , 338.8494,   -9.656,
+ 2028-Mar-09 00:00, , , 340.0965,  -10.270,
+ 2028-Mar-16 00:00, , , 341.6357,  -10.980,
+ 2028-Mar-23 00:00, , , 343.4210,  -11.807,
+ 2028-Mar-30 00:00, , , 345.3893,  -12.778,
+ 2028-Apr-06 00:00, , , 347.4530,  -13.926,
+ 2028-Apr-13 00:00, , , 349.4981,  -15.292,
+ 2028-Apr-20 00:00, , , 351.3887,  -16.916,
+ 2028-Apr-27 00:00, , , 352.9660,  -18.842,
+ 2028-May-04 00:00, , , 354.0491,  -21.085,
+ 2028-May-11 00:00, , , 354.4558,  -23.575,
+ 2028-May-18 00:00, , , 354.0703,  -26.066,
+ 2028-May-25 00:00, , , 352.9437,  -28.058,
+ 2028-Jun-01 00:00, , , 351.3815,  -28.912,
+ 2028-Jun-08 00:00, , , 349.8757,  -28.267,
+ 2028-Jun-15 00:00, , , 348.8516,   26.390,
+ 2028-Jun-22 00:00, , , 348.4841,   23.926,
+ 2028-Jun-29 00:00, , , 348.7572,   21.414,
+ 2028-Jul-06 00:00, , , 349.5941,   19.123,
+ 2028-Jul-13 00:00, , , 350.9209,   17.140,
+ 2028-Jul-20 00:00, , , 352.6716,   15.464,
+ 2028-Jul-27 00:00, , , 354.7834,   14.056,
+ 2028-Aug-03 00:00, , , 357.1959,   12.870,
+ 2028-Aug-10 00:00, , , 359.8478,   11.865,
+ 2028-Aug-17 00:00, , ,   2.6679,   11.010,
+ 2028-Aug-24 00:00, , ,   5.5735,   10.276,
+ 2028-Aug-31 00:00, , ,   8.4764,    9.642,
+ 2028-Sep-07 00:00, , ,  11.2901,    9.090,
+ 2028-Sep-14 00:00, , ,  13.9313,    8.606,
+ 2028-Sep-21 00:00, , ,  16.3232,    8.182,
+ 2028-Sep-28 00:00, , ,  18.4015,    7.807,
+ 2028-Oct-05 00:00, , ,  20.1171,    7.473,
+ 2028-Oct-12 00:00, , ,  21.4339,   -7.176,
+ 2028-Oct-19 00:00, , ,  22.3263,   -6.911,
+ 2028-Oct-26 00:00, , ,  22.7773,   -6.674,
+ 2028-Nov-02 00:00, , ,  22.7766,   -6.461,
+ 2028-Nov-09 00:00, , ,  22.3182,   -6.270,
+ 2028-Nov-16 00:00, , ,  21.3988,   -6.097,
+ 2028-Nov-23 00:00, , ,  20.0192,   -5.942,
+ 2028-Nov-30 00:00, , ,  18.1858,   -5.803,
+ 2028-Dec-07 00:00, , ,  15.9122,   -5.676,
+ 2028-Dec-14 00:00, , ,  13.2247,   -5.563,
+ 2028-Dec-21 00:00, , ,  10.1677,   -5.460,
+ 2028-Dec-28 00:00, , ,   6.8071,    5.368,
+$$EOE
+*******************************************************************************
+Column meaning:
+ 
+TIME
+
+  Times PRIOR to 1962 are UT1, a mean-solar time closely related to the
+prior but now-deprecated GMT. Times AFTER 1962 are in UTC, the current
+civil or "wall-clock" time-scale. UTC is kept within 0.9 seconds of UT1
+using integer leap-seconds for 1972 and later years.
+
+  Conversion from the internal Barycentric Dynamical Time (TDB) of solar
+system dynamics to the non-uniform civil UT time-scale requested for output
+has not been determined for UTC times after the next July or January 1st.
+Therefore, the last known leap-second is used as a constant over future
+intervals.
+
+  Time tags refer to the UT time-scale conversion from TDB on Earth
+regardless of observer location within the solar system, although clock
+rates may differ due to the local gravity field and no analog to "UT"
+may be defined for that location.
+
+  Any 'b' symbol in the 1st-column denotes a B.C. date. First-column blank
+(" ") denotes an A.D. date.
+ 
+CALENDAR SYSTEM
+
+  Mixed calendar mode was active such that calendar dates after AD 1582-Oct-15
+(if any) are in the modern Gregorian system. Dates prior to 1582-Oct-5 (if any)
+are in the Julian calendar system, which is automatically extended for dates
+prior to its adoption on 45-Jan-1 BC.  The Julian calendar is useful for
+matching historical dates. The Gregorian calendar more accurately corresponds
+to the Earth's orbital motion and seasons. A "Gregorian-only" calendar mode is
+available if such physical events are the primary interest.
+
+  NOTE: "n.a." in output means quantity "not available" at the print-time.
+ 
+ 'NP.ang,  NP.dist,' =
+  Targets' apparent north-pole position angle (counter-clockwise with respect
+to the direction of the true-of-date reference-frame north-pole) and its
+angular distance from the sub-observer point (center of disk) at observation
+time.  A negative distance indicates the planets' north-pole is on the hidden
+hemisphere.  Units: DEGREES and ARCSECONDS
+
+Computations by ...
+
+    Solar System Dynamics Group, Horizons On-Line Ephemeris System
+    4800 Oak Grove Drive, Jet Propulsion Laboratory
+    Pasadena, CA  91109   USA
+
+    General site: https://ssd.jpl.nasa.gov/
+    Mailing list: https://ssd.jpl.nasa.gov/email_list.html
+    System news : https://ssd.jpl.nasa.gov/horizons/news.html
+    User Guide  : https://ssd.jpl.nasa.gov/horizons/manual.html
+    Connect     : browser        https://ssd.jpl.nasa.gov/horizons/app.html#/x
+                  API            https://ssd-api.jpl.nasa.gov/doc/horizons.html
+                  command-line   telnet ssd.jpl.nasa.gov 6775
+                  e-mail/batch   https://ssd.jpl.nasa.gov/ftp/ssd/horizons_batch.txt
+                  scripts        https://ssd.jpl.nasa.gov/ftp/ssd/SCRIPTS
+    Inquiries   : Jon.D.Giorgini@jpl.nasa.gov
+
+*******************************************************************************

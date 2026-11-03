@@ -1108,17 +1108,21 @@
    N in HTML over the drawing at a fixed size.
    ================================================================= */
 #solar-jupiter,
-#solar-mars {
+#solar-mars,
+#solar-venus,
+#solar-mercury {
   container: solar-card / inline-size;
-  /* A moon's shadow on Jupiter, and Mars's unlit side. The planets' body colours are the
-     same in both themes, so these are too; they are set in both, like the Moon card's,
-     so a theme can change them in one place. */
+  /* A moon's shadow on Jupiter, and Mars's, Venus's and Mercury's unlit sides. The
+     planets' body colours are the same in both themes, so these are too; they are set in
+     both, like the Moon card's, so a theme can change them in one place. */
   --solar-card-shadow: #000;
   --solar-card-night: #14100c;
 }
 
 :root[data-theme="dark"] #solar-jupiter,
-:root[data-theme="dark"] #solar-mars {
+:root[data-theme="dark"] #solar-mars,
+:root[data-theme="dark"] #solar-venus,
+:root[data-theme="dark"] #solar-mercury {
   --solar-card-shadow: #000;
   --solar-card-night: #14100c;
 }
@@ -1126,12 +1130,18 @@
 #bodies-tab #solar-jupiter[hidden],
 #bodies-tab #solar-jupiter-body[hidden],
 #bodies-tab #solar-mars[hidden],
-#bodies-tab #solar-mars-body[hidden] {
+#bodies-tab #solar-mars-body[hidden],
+#bodies-tab #solar-venus[hidden],
+#bodies-tab #solar-venus-body[hidden],
+#bodies-tab #solar-mercury[hidden],
+#bodies-tab #solar-mercury-body[hidden] {
   display: none;
 }
 
 @container solar-card (min-width: 620px) {
-  #bodies-tab #solar-mars-body {
+  #bodies-tab #solar-mars-body,
+  #bodies-tab #solar-venus-body,
+  #bodies-tab #solar-mercury-body {
     grid-template-columns: 240px minmax(0, 1fr);
     align-items: start;
   }
@@ -1143,11 +1153,43 @@
   min-width: 0;
 }
 
-#bodies-tab #solar-mars-diagram {
+#bodies-tab #solar-mars-diagram,
+#bodies-tab #solar-venus-diagram,
+#bodies-tab #solar-mercury-diagram {
   position: relative;
   width: 100%;
   max-width: 240px;
   aspect-ratio: 1;
+}
+
+/* Venus and Mercury: the disc's own colour, and the line weights held while the disc is
+   scaled. The two are drawn against each other on the one scale (NovaSolarInner, header),
+   so Venus at its largest is the big disc and Mercury at its smallest a little one, and
+   the drawing is scaled by a factor of 0.15 to 1. The rim, the terminator and the pole
+   tick are inside the group that carries that scale, so without this they would thin away
+   to nothing on the small disc. vector-effect: non-scaling-stroke takes the stroke out of
+   the group's transform and measures it in the drawing's own units instead, which is the
+   unit disc here, so the widths the other cards' rim, terminator and pole are drawn at
+   hold at any scale and need no overriding. The north arrow is outside the scaled group
+   and so needs nothing either. */
+#bodies-tab .solar-venus-svg .solar-card-surface {
+  fill: var(--solar-body-venus);
+}
+
+#bodies-tab .solar-mercury-svg .solar-card-surface {
+  fill: var(--solar-body-mercury);
+}
+
+#bodies-tab .solar-inner-svg .solar-card-rim,
+#bodies-tab .solar-inner-svg .solar-card-terminator,
+#bodies-tab .solar-inner-svg .solar-card-pole path {
+  vector-effect: non-scaling-stroke;
+}
+
+/* The north arrow, at Mars's weight: it sits outside the scaled group, so it is already
+   in the drawing's own units and has to be given a width explicitly */
+#bodies-tab .solar-inner-svg .solar-card-north-arrow path {
+  stroke-width: 0.02;
 }
 
 /* Jupiter: the moons' line, the disc on it, the moons and their shadows */

@@ -27,7 +27,7 @@ from test_solar_system_js import _DRIVER, LONDON, NODE, PAGE_ORDER, STATIC_JS
 CARDS_ORDER = PAGE_ORDER + ("nova_moon.js", "nova_moon_features.js", "nova_jupiter.js",
                             "nova_mars.js", "nova_mars_features.js", "nova_saturn.js",
                             "nova_solar_moon.js", "nova_solar_jupiter.js", "nova_solar_mars.js",
-                            "nova_solar_saturn.js")
+                            "nova_solar_saturn.js", "nova_solar_inner.js")
 
 # 2 Nov 2026 20:00 UTC
 NOW_MS = 1793649600000
@@ -98,6 +98,16 @@ I18N = {
         "legendFilled": "L-FILLED", "legendHollow": "L-HOLLOW", "legendEdge": "L-EDGE",
         "legendShadow": "L-SHADOW", "legendSmall": "L-SMALL",
         "empty": {"notUp": "NOTUP"},
+    },
+    "inner": {
+        "error": "INNER ERROR", "highestAt": "at {time}", "north": "N",
+        "best": "BEST WINDOW", "bestHelp": "BEST TIP {minutes} {threshold}",
+        "bestOneHelp": "ONE TIP {time} {threshold}", "bestNoneHelp": "BEST NONE",
+        "evening": "evening", "morning": "morning",
+        "daylightOnly": "Daylight only", "daylightOnlyHelp": "DAY TIP",
+        "illuminated": "ILLUMINATED", "illuminatedHelp": "ILLUM TIP",
+        "diameter": "DIAMETER", "diameterHelp": "DIAM TIP",
+        "diagramAria": "INNER DIAGRAM", "poleNorth": "POLE N", "notUp": "NOTUP",
     },
 }
 
@@ -314,10 +324,11 @@ _CARDS_DRIVER = _DRIVER.replace(_STORE, "setItem: (k, v) => m.set(k, String(v)),
 
 
 def _run(tmp_path, steps, search="?body=jupiter", sim=None, storage=None, order=CARDS_ORDER,
-         i18n=None, grs=None):
+         i18n=None, grs=None, location=None):
     """Drive the page in node. `grs` is the template's inline server value: the longitude
     this instance fetched, or None when it has none (the driver then leaves solarGrs
-    undefined, exactly as a template without a value renders it)."""
+    undefined, exactly as a template without a value renders it). `location` is the site
+    the page is handed, LONDON unless a case needs another one."""
     driver = tmp_path / "driver.js"
     driver.write_text(_CARDS_DRIVER)
     case = tmp_path / "steps.js"
@@ -326,7 +337,7 @@ def _run(tmp_path, steps, search="?body=jupiter", sim=None, storage=None, order=
     # for what the page sees.
     case.write_text(f"const NOW_MS = {NOW_MS};\n" + _VIEWS + steps)
     inp = tmp_path / "in.json"
-    inp.write_text(json.dumps({"inputs": {"location": LONDON}, "i18n": i18n or I18N,
+    inp.write_text(json.dumps({"inputs": {"location": location or LONDON}, "i18n": i18n or I18N,
                                "equipment": {"telescopes": [], "cameras": []},
                                "search": search, "sim": sim, "storage": storage,
                                "grs": grs, "nowMs": NOW_MS}))
@@ -354,6 +365,21 @@ const next = J.nextNights(opts);
 
 def _oracle(sim):
     return _ORACLE % {"site": SITE, "sim": sim}
+
+
+# The Venus card's first tile — the best window — beside the module's own answer for the
+# same site, the same simulated night and the same pinned clock.
+_INNER = """
+h.online();
+await h.load('bodies');
+const loc = %(site)s, sim = '%(sim)s';
+const t = h.context.NovaSolarInner.tonight('venus',
+    {inputs: {location: loc}, nowMs: NOW_MS, simDate: sim});
+const tile = h.$('solar-venus-tiles').children[0];
+return { hm: t.hm, best: t.best, title: h.$('solar-venus-title').textContent,
+         label: tile.children[0].textContent,
+         value: tile.children[1].children[0].textContent, tip: tile.title };
+"""
 
 
 def _num(text):
@@ -647,6 +673,29 @@ def test_the_cards_view_switch_is_shared_and_mirrors_the_drawing(tmp_path):
         assert y == pytest.approx(-normal[moon][1], abs=0.02)
     assert got["diagonal"]["svg"]["north"][0]["x"] - cx == pytest.approx(
         -(got["normal"]["svg"]["north"][0]["x"] - cx), abs=0.02)
+
+
+def test_a_one_sample_window_is_shown_as_a_time_and_not_a_range(tmp_path):
+    """Venus's best window on the same night at the two ends of the settings' Calculation
+    Precision: at 15 minutes it is a run of four samples and the tile shows the range, and
+    at the coarsest 60-minute step the run is a single sample, where a range from a time
+    to itself would read as a fault — the tile shows that one time instead, and the two
+    tiles' own tooltips say which of the two they are. Both values are the module's."""
+    coarse = _run(tmp_path, _INNER % {"site": json.dumps({**LONDON, "sampling_interval": 60}),
+                                      "sim": "2026-11-27"},
+                  search="?body=venus", sim="2026-11-27",
+                  location={**LONDON, "sampling_interval": 60})
+    fine = _run(tmp_path, _INNER % {"site": SITE, "sim": "2026-11-27"},
+                search="?body=venus", sim="2026-11-27")
+
+    assert coarse["best"]["samples"] == 1 and fine["best"]["samples"] > 1, (
+        "the two cases are not the two shapes of window")
+    assert fine["value"] == fine["best"]["startHm"] + "–" + fine["best"]["endHm"]
+    assert fine["tip"] == f"BEST TIP {fine['best']['minutes']} 20"
+    assert coarse["value"] == coarse["best"]["startHm"] == coarse["hm"], (
+        "the one-sample window is not the single time the title names")
+    assert "–" not in coarse["value"], "a one-sample window is drawn as a range"
+    assert coarse["tip"] == f"ONE TIP {coarse['hm']} 20"
 
 
 def test_the_calendar_carries_the_galilean_rows_and_the_filter_narrows_them(tmp_path):
@@ -1177,9 +1226,11 @@ def test_page_has_the_three_cards_between_the_moon_and_the_calculator(client):
         assert f'<p id="solar-{card}-error" class="status-secondary" role="alert" hidden></p>' in html
         assert f'<div id="solar-{card}-diagram" class="solar-card-diagram solar-{card}-diagram">' in html
         assert f'<div class="solar-card-views" role="group" aria-label="View"' in html
-    assert html.count('class="solar-card-views"') == 3
-    assert html.count('class="solar-card-view"') == 9
-    assert html.count('data-card-view="normal" aria-pressed="true"') == 3
+    # Page-wide counts: the five cards that carry the shared view buttons are Jupiter,
+    # Mars, Saturn and the two inner planets, which sit between Mars and Saturn
+    assert html.count('class="solar-card-views"') == 5
+    assert html.count('class="solar-card-view"') == 15
+    assert html.count('data-card-view="normal" aria-pressed="true"') == 5
     assert ">Jupiter detail</h3>" in html and ">Mars detail</h3>" in html
     assert ">Saturn detail</h3>" in html
     assert 'id="solar-jupiter-shadows"' in html and 'id="solar-jupiter-no-shadows"' in html

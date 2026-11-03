@@ -49,6 +49,31 @@
 {% block body %}
 {{ flash_messages() }}
 
+{# The Venus and Mercury cards. The two are the same card — a disc at tonight's phase,
+   oriented by the bright limb and the planet's own pole, then the window it is worth
+   looking at — in different colours, so they are written once. Everything inside is
+   filled in by solar_system.js; the ids are solar-<body>-* throughout. #}
+{% macro inner_card(body, title) %}
+    <div id="solar-{{ body }}" class="content-section" hidden>
+        <h3 id="solar-{{ body }}-title">{{ title }}</h3>
+        <p id="solar-{{ body }}-error" class="status-secondary" role="alert" hidden></p>
+        <div id="solar-{{ body }}-body" class="solar-card-body">
+            <div class="solar-card-figure">
+                <div id="solar-{{ body }}-diagram" class="solar-card-diagram solar-{{ body }}-diagram"></div>
+                <div class="solar-card-views" role="group" aria-label="{{ _('View') }}" title="{{ _("The real field also rotates with the planet's position in the sky.") }}">
+                    <button type="button" class="solar-card-view" data-card-view="normal" aria-pressed="true">{{ _('Normal') }}</button>
+                    <button type="button" class="solar-card-view" data-card-view="diagonal" aria-pressed="false" title="{{ _('Star diagonal (mirrored)') }}">{{ _('Diagonal') }}</button>
+                    <button type="button" class="solar-card-view" data-card-view="inverted" aria-pressed="false" title="{{ _('Newtonian (inverted)') }}">{{ _('Newtonian') }}</button>
+                </div>
+            </div>
+            <div class="solar-card-info">
+                <div id="solar-{{ body }}-tiles" class="solar-card-tiles"></div>
+                <p id="solar-{{ body }}-empty" class="solar-card-empty" hidden></p>
+            </div>
+        </div>
+    </div>
+{% endmacro %}
+
 <div class="tab-container" role="tablist">
     <button class="tab-button active" data-tab="bodies" id="bodies-tab-button" role="tab" aria-controls="bodies-tab" aria-selected="true">{{ _('Bodies') }}</button>
     <button class="tab-button" data-tab="calendar" id="calendar-tab-button" role="tab" aria-controls="calendar-tab" aria-selected="false">{{ _('Calendar') }}</button>
@@ -204,6 +229,10 @@
             <p id="solar-mars-credit" class="solar-card-credit" hidden></p>
         </div>
     </div>
+
+    {{ inner_card('venus', _('Venus detail')) }}
+
+    {{ inner_card('mercury', _('Mercury detail')) }}
 
     <div id="solar-saturn" class="content-section" hidden>
         <h3 id="solar-saturn-title">{{ _('Saturn detail') }}</h3>
@@ -526,6 +555,26 @@ const solarI18n = {
             labyrinthus:  {{ _('Labyrinthus (labyrinth)') | tojson }}
         }
     },
+    inner: {
+        error:         {{ _('The planet card could not be calculated.') | tojson }},
+        highestAt:     {{ _('highest tonight at %(time)s', time='{time}') | tojson }},
+        north:         {{ _('N') | tojson }},
+        best:          {{ _('Best window') | tojson }},
+        bestHelp:      {{ _('The longest stretch of tonight with the planet above your altitude threshold, between sunset and sunrise (about %(minutes)s min). Use the threshold of %(threshold)s° from your settings; the Sun is below the horizon throughout.', minutes='{minutes}', threshold='{threshold}') | tojson }},
+        bestOneHelp:   {{ _('The one sample tonight at or above %(threshold)s°, at %(time)s: at your Calculation Precision the stretch above the threshold is narrower than a single step, so there is no range to give. A finer precision would time it.', threshold='{threshold}', time='{time}') | tojson }},
+        bestNoneHelp:  {{ _('The planet does not reach your altitude threshold during tonight’s darkness at all.') | tojson }},
+        evening:       {{ _('evening') | tojson }},
+        morning:       {{ _('morning') | tojson }},
+        daylightOnly:  {{ _('Daylight only') | tojson }},
+        daylightOnlyHelp: {{ _('The planet only clears your altitude threshold while the Sun is up, so it is a daytime target: a bright sky and a low altitude. Worth trying with a telescope on a transparent day, not by eye.') | tojson }},
+        illuminated:   {{ _('Illuminated') | tojson }},
+        illuminatedHelp: {{ _('The lit fraction of the disc right now. Both of these planets show phases like the Moon, and for Venus the phase and the apparent size run opposite ways: it is biggest as a thin crescent, near inferior conjunction, and smallest when it is fully lit on the far side of the Sun.') | tojson }},
+        diameter:      {{ _('Diameter') | tojson }},
+        diameterHelp:  {{ _('Apparent size in arcseconds. The two discs on this page share one scale, from Mercury at its smallest to Venus at its largest, so their sizes against each other are what the drawing shows.') | tojson }},
+        diagramAria:   {{ _('The planet at tonight’s phase: the lit part faces the Sun, and the disc is drawn with the planet’s own north up') | tojson }},
+        poleNorth:     {{ _('The planet’s north pole') | tojson }},
+        notUp:         {{ _('Does not rise during the night') | tojson }}
+    },
     saturn: {
         title:         {{ _('Saturn detail') | tojson }},
         error:         {{ _('Saturn detail could not be calculated.') | tojson }},
@@ -702,6 +751,7 @@ const solarGrs = {{ solar_grs | tojson }};
 <script src="{{ url_for('static', filename='js/nova_solar_moon.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_solar_jupiter.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_solar_mars.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/nova_solar_inner.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_solar_saturn.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_solar_rigfit.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_weather_icons.js') }}?v={{ version }}" defer></script>
