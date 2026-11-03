@@ -40,16 +40,46 @@ def _payload(**over):
 
 
 class _Response:
-    """Enough of requests.Response for the module: a status, a body, and the call it
-    makes on one."""
+    """Enough of requests.Response for the module: a status, a body that streams the
+    way a real one does, and the calls the module makes on it."""
 
-    def __init__(self, payload=None, status=200, raw=None):
+    def __init__(self, payload=None, status=200, raw=None, headers=None, chunk=8192):
         self.status_code = status
         self.content = raw if raw is not None else json.dumps(payload).encode("utf-8")
+        self.headers = {} if headers is None else headers
+        self.chunk = chunk
+        self.served = []            # every piece of body handed out
+        self.closed = False
 
     def raise_for_status(self):
         if self.status_code >= 400:
             raise requests_lib.exceptions.HTTPError(f"HTTP {self.status_code}")
+
+    def iter_content(self, size=8192):
+        step = min(size, self.chunk)
+        for i in range(0, len(self.content), step):
+            piece = self.content[i:i + step]
+            self.served.append(piece)
+            yield piece
+
+    def close(self):
+        self.closed = True
+
+
+class _Endless(_Response):
+    """A body that never ends, in pieces no larger than the module's own read size:
+    the read has to stop at the cap, not wait for the host to stop."""
+
+    LIMIT = 100_000                 # so a missing cap fails the test instead of hanging
+
+    def __init__(self, piece=1024, **kwargs):
+        super().__init__(raw=b"", **kwargs)
+        self.piece = piece
+
+    def iter_content(self, size=8192):
+        for _ in range(self.LIMIT):
+            self.served.append(b"x" * self.piece)
+            yield b"x" * self.piece
 
 
 def _serve(monkeypatch, response=None, error=None):
@@ -216,6 +246,30 @@ def test_a_negative_drift_within_the_bound_is_accepted():
     assert grs.validate_grs_value(_payload(drift_deg_per_month=-2.0))["drift_deg_per_month"] == -2.0
 
 
+def test_a_whole_number_too_large_for_a_float_is_not_a_number():
+    """JSON can carry 10**400 as an integer literal, and float() raises on it rather
+    than returning an infinity: that is "not a number", not a crash."""
+    assert grs._real_number(10 ** 400) is None
+    assert grs._real_number(-(10 ** 400)) is None
+
+
+@pytest.mark.parametrize("bad", [
+    {"longitude_ii": 10 ** 400}, {"drift_deg_per_month": -(10 ** 400)},
+])
+def test_an_integer_too_large_for_a_float_is_rejected_as_a_value(bad):
+    with pytest.raises(ValueError):
+        grs.validate_grs_value(_payload(**bad))
+
+
+def test_a_date_in_non_ascii_digits_is_normalised_to_the_day_it_names():
+    """Python's \\d and int() both take Unicode decimal digits, the browser's \\d does
+    not, so the day is stored as written in ASCII rather than as it arrived: the card
+    then reads the same date the server validated."""
+    value = grs.validate_grs_value(_payload(date="٢٠٢٦-06-01"))
+    assert value["date"] == "2026-06-01"
+    assert value["date"].isascii()
+
+
 # --- 3. one fetch ----------------------------------------------------------
 
 def test_a_good_response_is_validated_cached_and_served(monkeypatch):
@@ -293,6 +347,49 @@ def test_an_oversized_body_is_rejected(monkeypatch):
     assert grs.read_grs_value()["lon"] == 77.0
 
 
+def test_the_body_is_streamed_not_buffered_whole(monkeypatch):
+    calls = _fetch(monkeypatch, response=_Response(_payload()))
+    assert calls[0]["stream"] is True
+
+
+def test_a_body_that_never_ends_is_cut_off_at_the_cap(monkeypatch):
+    """A host that streams without end must not be read to the end: the read stops at
+    the cap, the response is closed, and the value already on disk is kept."""
+    _write_cache_file(grs.CACHE_DIR, _payload(longitude_ii=77.0))
+    response = _Endless()
+    _fetch(monkeypatch, response=response)
+    assert response.served, "the body was not read as a stream at all"
+    assert response.closed, "the streamed response was left open"
+    assert len(response.served) <= grs.GRS_MAX_BYTES // response.piece + 1, \
+        f"read {len(response.served)} pieces: the cap did not stop the download"
+    assert grs.read_grs_value()["lon"] == 77.0
+
+
+def test_a_declared_size_over_the_cap_is_refused_without_reading_a_byte(monkeypatch):
+    _write_cache_file(grs.CACHE_DIR, _payload(longitude_ii=77.0))
+    response = _Response(_payload(), headers={"Content-Length": str(grs.GRS_MAX_BYTES + 1)})
+    _fetch(monkeypatch, response=response)
+    assert response.served == [], "a declared size over the cap must not be read"
+    assert response.closed
+    assert grs.read_grs_value()["lon"] == 77.0
+
+
+def test_a_content_length_header_that_is_not_a_number_falls_back_to_the_cap(monkeypatch):
+    """A junk header is not a reason to refuse a good value: the read still caps it."""
+    response = _Response(_payload(), headers={"Content-Length": "banana"})
+    _fetch(monkeypatch, response=response)
+    assert grs.read_grs_value()["lon"] == 91.0
+
+
+def test_the_response_is_closed_after_a_rejected_one(monkeypatch):
+    """The close is in a finally, so a failure on the way does not leak the connection."""
+    _write_cache_file(grs.CACHE_DIR, _payload(longitude_ii=77.0))
+    response = _Response(raw=b"<html>not found</html>", headers={"Content-Length": "21"})
+    _fetch(monkeypatch, response=response)
+    assert response.closed
+    assert grs.read_grs_value()["lon"] == 77.0
+
+
 def test_the_first_good_fetch_needs_no_previous_value(monkeypatch):
     assert grs.read_grs_value() is None
     _fetch(monkeypatch, response=_Response(_payload()))
@@ -343,6 +440,63 @@ def test_a_cache_value_from_long_ago_is_still_served(_cache_dir):
     # the module never withholds an old value.
     _write_cache_file(str(_cache_dir), _payload(date="2020-01-01"))
     assert grs.read_grs_value()["date"] == "2020-01-01"
+
+
+# --- 4b. the fetch time the file claims ------------------------------------
+#
+# The value is served whatever the stamp says; the stamp only decides whether the
+# file is due to be replaced. A stamp that cannot be believed is treated as 0.0,
+# which reads as "due", so the file is refetched rather than kept for a day it did
+# not earn. Everything here is a hand-edited file: the module writes time.time().
+
+_BAD_STAMPS = {
+    "not a number": '"yesterday"',
+    "a NaN literal": "NaN",
+    "an Infinity literal": "Infinity",
+    "a null": "null",
+    "a boolean": "true",
+    "a century ahead": "1e18",
+}
+
+
+@pytest.mark.parametrize("label", list(_BAD_STAMPS))
+def test_an_unusable_fetch_time_is_due_for_a_refresh(label, _cache_dir):
+    # Written out by hand, the way an edited file arrives: json.dump would not produce
+    # these literals from a value.
+    path = os.path.join(str(_cache_dir), grs.GRS_FILENAME)
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write('{"fetched_at": %s, "value": %s}'
+                     % (_BAD_STAMPS[label], json.dumps(_payload())))
+    assert grs.read_grs_value()["lon"] == 91.0, f"{label}: the value is still served"
+    assert grs._needs_refresh(time.time()) is True, f"{label}: the file must be replaced"
+
+
+def test_a_fetch_time_a_few_hours_ahead_is_believed(_cache_dir):
+    # A clock a little ahead of ours is a clock, not a lie: within the slack the file
+    # is as fresh as it says.
+    _write_cache_file(str(_cache_dir), _payload(), fetched_at=time.time() + 3600)
+    assert grs._needs_refresh(time.time()) is False
+
+
+def test_a_value_that_cannot_be_used_does_not_spend_the_day_it_claims(_cache_dir):
+    """A broken value with a fresh stamp is due at once: otherwise a file written by an
+    older build, or edited by hand, would keep the card on the built-in default for a
+    day before anything replaced it."""
+    _write_cache_file(str(_cache_dir), _payload(longitude_ii=9999.0))
+    assert grs.read_grs_value() is None
+    assert grs._needs_refresh(time.time()) is True
+
+
+def test_a_broken_value_with_a_fresh_stamp_is_replaced_by_the_next_refresh(monkeypatch, _cache_dir):
+    from nova.helpers import try_acquire_file_lock, release_file_lock
+    _write_cache_file(str(_cache_dir), _payload(longitude_ii=9999.0))
+    calls = _serve(monkeypatch, response=_Response(_payload(longitude_ii=91.0)))
+    grs._refresh_locked()
+    assert len(calls) == 1, "the file claimed to be fresh; it must still be replaced"
+    assert grs.read_grs_value()["lon"] == 91.0
+    handle = try_acquire_file_lock(grs.grs_cache_path())
+    assert handle is not None, "the fetch kept the lock"
+    release_file_lock(handle)
 
 
 # --- 5. once a day ---------------------------------------------------------
@@ -410,6 +564,27 @@ def test_maybe_refresh_fetches_again_after_a_day(monkeypatch):
     grs.maybe_refresh_grs(_app())
     _wait_for(lambda: grs.read_grs_value()["lon"] == 95.0)
     assert len(calls) == 1
+
+
+def test_a_fresh_file_does_not_spend_the_process_guard(monkeypatch):
+    """Looking at a file that is still fresh must not buy a day of silence: the guard is
+    spent only when a fetch starts, so a value 23 hours old is replaced an hour later in
+    the same process, not 24 hours after the first page load."""
+    monkeypatch.setattr(grs, "BACKGROUND_TASKS_DISABLED", False)
+    _write_cache_file(grs.CACHE_DIR, _payload(longitude_ii=77.0),
+                      fetched_at=time.time() - (23 * 60 * 60))
+    calls = _serve(monkeypatch, response=_Response(_payload(longitude_ii=95.0)))
+    grs.maybe_refresh_grs(_app())
+    time.sleep(0.2)
+    assert calls == [], "a 23 hour old value is not due yet"
+    assert grs._last_attempt == 0.0, "nothing was fetched, so nothing is spent"
+
+    # An hour later the same process looks again, and the file is over a day old.
+    _write_cache_file(grs.CACHE_DIR, _payload(longitude_ii=77.0),
+                      fetched_at=time.time() - (grs.GRS_MAX_AGE_SECONDS + 60))
+    grs.maybe_refresh_grs(_app())
+    _wait_for(lambda: grs.read_grs_value()["lon"] == 95.0)
+    assert len(calls) == 1, "the fetch that the fresh file deferred never happened"
 
 
 def test_maybe_refresh_tries_only_once_per_process_per_day(monkeypatch):

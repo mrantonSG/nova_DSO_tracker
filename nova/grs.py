@@ -20,6 +20,15 @@ value is kept at instance/cache/grs.json, so it survives a restart and an offlin
 period. A file that is missing, unreachable, malformed, or implausible leaves that
 value alone, and a value whose own measurement date is old still shows the card's
 age warning: staleness is judged by the date in the value, never by when it arrived.
+The download is bounded, not only the value: the response is streamed and abandoned
+the moment it passes GRS_MAX_BYTES, so a host that answers with something enormous
+costs the instance a few kilobytes and a closed connection, not its memory.
+
+Two workers do not fetch at the same time: the fetch holds try_acquire_file_lock
+(nova/helpers.py) across the whole request. That lock is fcntl's advisory lock, so on
+Windows -- which has no fcntl -- it is a no-op and takes no handle: both workers may
+fetch, and a write that collides with a reader is caught, leaving the previous value
+in place for the next refresh to replace.
 
 NOVA_DISABLE_BACKGROUND_TASKS=1 (which tests/conftest.py sets) switches the whole
 thing off: nothing is fetched, no thread is started, and the page uses whatever is
@@ -52,7 +61,9 @@ GRS_SCHEMA = 1
 
 GRS_TIMEOUT = 5                 # seconds; short, the thread is throwaway
 GRS_MAX_BYTES = 64 * 1024       # a value this size is a broken or hostile host
+GRS_READ_CHUNK = 8192           # bytes per read while the body is streamed in
 GRS_MAX_AGE_SECONDS = 24 * 60 * 60
+GRS_STAMP_SLACK = 24 * 60 * 60  # a fetch time this far ahead is a clock that is behind
 GRS_DRIFT_MAX = 30.0            # deg a month; the published rate is about 1.75
 GRS_SOURCE_MAX = 200            # characters of the file's own attribution
 
@@ -72,10 +83,15 @@ def grs_cache_path() -> str:
 
 def _real_number(value):
     """`value` as a float when it is a finite int or float, else None.
-    A bool is rejected: it is an int in Python, and `true` is not a longitude."""
+    A bool is rejected: it is an int in Python, and `true` is not a longitude. An int
+    too large for a float (10**400, which JSON can carry) is no number either, and
+    float() raises on it rather than returning an infinity."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return None
-    number = float(value)
+    try:
+        number = float(value)
+    except OverflowError:
+        return None
     return number if math.isfinite(number) else None
 
 
@@ -99,6 +115,10 @@ def validate_grs_value(payload, today=None) -> dict:
     published today in another timezone is not rejected), a plausible drift, and an
     optional attribution. The attribution is kept for the log and for anyone reading
     the cache file; it is never put into the tooltip, whose wording is translated.
+
+    The date is returned as the day it names, not as written: Python's `\\d` and int()
+    both accept Unicode decimal digits that the browser's `\\d` does not, so '٢٠٢٦-06-01'
+    would pass here and then be refused by the card.
     """
     if not isinstance(payload, dict):
         raise ValueError("not a JSON object")
@@ -131,8 +151,22 @@ def validate_grs_value(payload, today=None) -> dict:
     if not isinstance(source, str):
         source = ""
 
-    return {"schema": GRS_SCHEMA, "longitude_ii": lon, "date": date_text,
+    return {"schema": GRS_SCHEMA, "longitude_ii": lon, "date": day.isoformat(),
             "drift_deg_per_month": drift, "source": source[:GRS_SOURCE_MAX]}
+
+
+def _cached_at(stored, now=None) -> float:
+    """The file's own fetch time, or 0.0 when it is missing, unreadable, non-finite
+    (JSON carries NaN and Infinity), or more than a day ahead -- a clock that should
+    not be trusted to hold the file's age. 0.0 reads as "due for a refresh"."""
+    stamp = _real_number(stored.get("fetched_at"))
+    if stamp is None:
+        return 0.0
+    if now is None:
+        now = time.time()
+    if stamp > now + GRS_STAMP_SLACK:
+        return 0.0
+    return stamp
 
 
 def _read_cache():
@@ -144,17 +178,16 @@ def _read_cache():
         if not isinstance(stored, dict):
             return 0.0, None
         try:
-            stamp = float(stored.get("fetched_at") or 0.0)
-        except (TypeError, ValueError):
-            stamp = 0.0
-        try:
             # Re-validated on read: the file is on the instance's own disk and may
             # have been written by an older build, or edited by hand.
             value = validate_grs_value(stored.get("value"))
         except ValueError:
-            return stamp, None
-        return stamp, {"lon": value["longitude_ii"], "date": value["date"],
-                       "drift": value["drift_deg_per_month"], "origin": "central"}
+            # An unusable value is no value, and its stamp must not keep the file in
+            # place for the day it claims: 0.0 means the next page load replaces it.
+            return 0.0, None
+        return _cached_at(stored), {"lon": value["longitude_ii"], "date": value["date"],
+                                    "drift": value["drift_deg_per_month"],
+                                    "origin": "central"}
     except Exception:
         return 0.0, None
 
@@ -191,22 +224,59 @@ def _write_cache(value) -> None:
         raise
 
 
+def _read_capped_body(response) -> bytes:
+    """The response body, or ValueError as soon as it passes GRS_MAX_BYTES.
+
+    The body is read in chunks and the read is abandoned at the cap, so a host that
+    answers with something enormous costs the instance one chunk of memory and a
+    closed connection rather than the whole file. A Content-Length that is already
+    over the cap is refused before a byte is read at all.
+    """
+    declared = response.headers.get("Content-Length")
+    if declared is not None:
+        try:
+            declared_bytes = int(str(declared).strip())
+        except (TypeError, ValueError):
+            declared_bytes = None    # unparsable: the read below still caps it
+        if declared_bytes is not None and declared_bytes > GRS_MAX_BYTES:
+            raise ValueError(f"Content-Length {declared_bytes} is over {GRS_MAX_BYTES} bytes")
+
+    chunks = []
+    total = 0
+    for chunk in response.iter_content(GRS_READ_CHUNK):
+        if not chunk:
+            continue
+        total += len(chunk)
+        if total > GRS_MAX_BYTES:
+            raise ValueError(f"response is over {GRS_MAX_BYTES} bytes")
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
 def _fetch_and_store() -> None:
     """One fetch. Never raises: every failure keeps the value already on disk."""
     url = grs_url()
     try:
         print(f"[GRS] Fetching the central longitude from {url}")
         # No redirects: a 3xx must not be able to move the request to another host,
-        # or downgrade it to plain http.
-        response = requests.get(url, timeout=GRS_TIMEOUT, allow_redirects=False)
-        response.raise_for_status()
-        if response.status_code != 200:
-            # allow_redirects=False: a 3xx is a failure, not a hop to another host that
-            # could be plain http, and not something to parse as a value.
-            raise ValueError(f"HTTP {response.status_code}, not 200")
-        body = response.content[:GRS_MAX_BYTES + 1]
-        if len(body) > GRS_MAX_BYTES:
-            raise ValueError(f"response is over {GRS_MAX_BYTES} bytes")
+        # or downgrade it to plain http. Streamed, so the body is bounded as it
+        # arrives and is never buffered whole (see _read_capped_body).
+        response = requests.get(url, timeout=GRS_TIMEOUT, allow_redirects=False,
+                                stream=True)
+        try:
+            response.raise_for_status()
+            if response.status_code != 200:
+                # allow_redirects=False: a 3xx is a failure, not a hop to another host
+                # that could be plain http, and not something to parse as a value.
+                raise ValueError(f"HTTP {response.status_code}, not 200")
+            body = _read_capped_body(response)
+        finally:
+            # Whatever happened above, including the cap being hit: a streamed
+            # response holds its connection until it is read out or closed.
+            try:
+                response.close()
+            except Exception:
+                pass                 # a failed close must not change the outcome
         value = validate_grs_value(json.loads(body.decode("utf-8")))
     except Exception as e:
         # Offline, unreachable, not uploaded yet, malformed, or implausible: keep
@@ -256,7 +326,12 @@ def maybe_refresh_grs(app) -> None:
     Called from the Solar System route. The page is never held up: this only starts
     a daemon thread, and only when this process has not tried within the last day
     and the file is old. The thread then takes the cross-worker lock, so two
-    Gunicorn workers cannot fetch at the same time.
+    Gunicorn workers do not fetch at the same time.
+
+    The once-a-day guard is spent only when a fetch is actually started, never on a
+    look at a file that is still fresh: otherwise a value that was a few hours old at
+    the first page load would not be replaced until a day after *that*, and the
+    instance would run on a day-old value for part of every second day.
     """
     global _last_attempt
     if BACKGROUND_TASKS_DISABLED or app.config.get("TESTING"):
@@ -265,13 +340,18 @@ def maybe_refresh_grs(app) -> None:
     with _attempt_lock:
         if (now - _last_attempt) < GRS_MAX_AGE_SECONDS:
             return
-        _last_attempt = now
     try:
         if not _needs_refresh(now):
             return
     except Exception as e:
         print(f"[GRS] Could not check the cached longitude: {e}")
         return
+    with _attempt_lock:
+        # Two requests in flight at once: the first to get here starts the fetch and
+        # spends the guard; the second then finds it spent and does nothing.
+        if (time.time() - _last_attempt) < GRS_MAX_AGE_SECONDS:
+            return
+        _last_attempt = time.time()
     try:
         threading.Thread(target=_refresh_locked, name="grs-refresh", daemon=True).start()
     except Exception as e:
