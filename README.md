@@ -2,10 +2,14 @@
 
 A Flask-based web application for astrophotographers — track deep-sky objects, plan imaging sessions, and log your results.
 
+**New in 7.1:** the [Solar System](#solar-system) page — planets and the Moon, with an event calendar, a planetary imaging calculator, a seeing forecast, and detail cards for the Moon, Jupiter, Mars and Saturn.
+
 ---
 
 ## Features
 
+* **Solar System:** Planets and the Moon for your location — rise/transit/set, altitude charts, a Calendar of oppositions, elongations and conjunctions, a planetary imaging calculator with a seeing forecast, and detail cards for the Moon, Jupiter, Mars, Saturn, Venus and Mercury.
+* **Fast, Browser-Side Calculations:** The dashboard table, charts, Outlook, yearly heatmap and Imaging Opportunities are calculated in your browser in milliseconds, with the server as a fallback.
 * **Ask Nova AI:** AI-powered target ranking that analyzes your object list against current sky conditions, moon phase, and equipment to recommend the best targets for tonight. Supports Anthropic, OpenAI, Ollama, and any OpenAI-compatible provider. Entirely optional — works without AI.
 * **Log File Analysis:** Import and analyze session logs from ASIAIR, PHD2, and N.I.N.A. Reports include guiding performance, autofocus V-curves, exposure stats, and session swimlane timelines.
 * **Multi-Language Support:** Available in English, German, French, Spanish, Japanese, and Chinese Simplified. Language selector in the header with persistent preference per user.
@@ -15,7 +19,8 @@ A Flask-based web application for astrophotographers — track deep-sky objects,
 * **Custom Mono Filters:** Define custom mono filters in the journal with per-session tracking and full YAML export/import support.
 * **Night Explorer (Inspiration Tab):** Visual gallery of targets currently observable from your location, shown 20 tiles per page and following the dashboard's current sort order.
 * **Yearly Heatmap:** Waterfall visualization of target visibility over 12 months with moon period indicators.
-* **Project Management & Journal:** Group imaging sessions into Projects, track integration time, generate PDF reports with embedded log charts.
+* **Project Management & Journal:** Group imaging sessions into Projects, track integration time, rate your guiding against your rig's image scale, and generate PDF reports with embedded log charts.
+* **Gallery Tab:** A showcase grid of your session and project photos, linked straight to the journal.
 * **Mosaic Planning & Export:** Plan multi-pane mosaics in the Framing Assistant and export as CSV for ASIAIR or N.I.N.A.
 * **Real-time Tracking:** Altitude and azimuth tracking for DSOs updated every minute.
 * **Theme Preference:** Choose Light, Dark, or Follow System. Your preference persists across sessions.
@@ -46,9 +51,11 @@ When opening Nova, you see a list of DSOs sorted by default by their current alt
 * **Horizon Mask:** If a Horizon Mask is defined and an object is obstructed by terrain, the field turns yellow.
 * **Observable Window:** The "Observable" column shows the minutes an object is visible between astronomical dusk and dawn.
 * **Quick View:** Click the 'i' icon next to an object's name to quickly see its inspiration image and altitude graph without leaving the dashboard.
+* **Live Updates:** The table is recalculated in your browser every 60 seconds, without a request to the server.
+* **Tabs:** Position, Properties, Outlook, Heatmap, Inspiration, Journal and Gallery. The **Gallery** tab shows your session and project photos as a card grid; click a tile to open that session or project.
 
-![Dashboard overview](docs/Screenshot%202026-02-27%20at%2014.07.27.jpg)
-![Dashboard detail](docs/Screenshot%202026-02-27%20at%2014.07.46.jpg)
+![Dashboard overview](docs/Screenshot_71_dashboard.jpg)
+![Dashboard in dark mode](docs/Screenshot_71_dashboard_dark.jpg)
 
 ### Ask Nova AI
 
@@ -63,6 +70,30 @@ Ask Nova is disabled by default. To enable it, see [AI Configuration](#ai-config
 
 ![Screenshot 2026-03-28 at 13.57.23.jpg](docs/Screenshot%202026-03-28%20at%2013.57.23.jpg)
 ![Screenshot 2026-03-28 at 13.58.23.jpg](docs/Screenshot%202026-03-28%20at%2013.58.23.jpg)
+
+### Solar System
+
+Click the planet icon in the dashboard header to open the Solar System page. Everything on it is calculated in your browser for the selected location.
+
+* **Bodies:** Mercury to Neptune and the Moon, with current altitude and azimuth, rise, transit and set, tonight's maximum altitude, magnitude, apparent diameter, illumination and elongation. Click a body to see its altitude chart for tonight, a month or a year.
+* **Calendar:** Upcoming oppositions, greatest elongations, planet–planet and Moon–planet conjunctions, Venus brilliancy and dichotomy, lunar X and V, Jupiter double shadow transits and Iapetus elongations. Hover a Mars opposition to see its date of closest approach. Filter by body or event type, or hide events that are not visible from your location.
+* **Planetary Calculator:** Pick a telescope, camera and Barlow from your equipment to see the disc size in pixels, whether your focal ratio matches the camera, how much detail to expect, the rotation limit for a single video, and a sensor preview with a suggested ROI (or mosaic panel count for the Moon).
+* **Seeing Forecast:** A four-night seeing outlook derived from the jet stream over your location.
+* **Moon detail:** Colongitude, libration and illumination, with the craters and maria on the terminator tonight.
+* **Jupiter detail:** Galilean moon positions, Great Red Spot transit time and central meridian, tonight's satellite and shadow transits, and shadow transits over the coming nights.
+* **Mars detail:** Central meridian, the best time tonight, and the surface features on the disc.
+* **Saturn detail:** Ring tilt and whether the rings are opening or closing, and the positions of Titan, Iapetus and the inner moons.
+* **Venus and Mercury:** Phase cards showing the disc at tonight's phase and when it is worth looking.
+
+Detail diagrams can be flipped to match a diagonal or Newtonian view.
+
+![Solar System — bodies](docs/Screenshot_71_solar_bodies.jpg)
+![Solar System — calendar](docs/Screenshot_71_solar_calendar.jpg)
+![Planetary calculator and seeing forecast](docs/Screenshot_71_solar_calculator.jpg)
+![Moon detail](docs/Screenshot_71_solar_moon.jpg)
+![Jupiter detail](docs/Screenshot_71_solar_jupiter.jpg)
+![Mars detail](docs/Screenshot_71_solar_mars.jpg)
+![Saturn detail](docs/Screenshot_71_solar_saturn.jpg)
 
 ### Multi-Language Support
 
@@ -129,21 +160,24 @@ The Yearly Heatmap visualizes target visibility over the next 12 months.
 
 The Journal is a full **Project Management System**.
 
-![Journal overview](docs/Screenshot%202026-02-27%20at%2014.10.01.jpg)
+![Journal overview](docs/Screenshot_71_journal.jpg)
 
 1. **Projects:** A Project groups multiple imaging sessions toward a single goal (e.g., "Mosaic of M31" or "HaOIII data for Helix").
 
     * **Dedicated Project Pages:** Each project has its own detail page with aggregated stats and rich text notes for goals, framing, and processing.
-    * **Status:** Track if a project is `In Progress`, `On Hold`, `Completed`, or `Abandoned`.
+    * **Status:** Track if a project is `In Planning`, `In Progress`, `On Hold`, `Completed`, or `Abandoned`.
     * **Integration:** Nova automatically sums the exposure time from all linked sessions.
 
 ![Project detail](docs/Screenshot%202026-02-27%20at%2014.10.16.jpg)
 
-2. **Planning Mode ("New Project"):** Create a project before you have data to plan targets ahead of time.
+2. **Planning Mode ("New Project"):** Create a project before you have data to plan targets ahead of time. Projects without sessions still appear in the Journal table and the object switcher.
 
 ![New project](docs/Screenshot%202026-02-27%20at%2014.10.39.jpg)
 
-3. **Rig Snapshots:** When you add a session, Nova records a snapshot of your rig's metrics. If you change your telescope configuration later, the history of old sessions remains accurate.
+3. **Rig Snapshots:** When you add a session, Nova records a snapshot of your rig's metrics. If you change your telescope configuration later, the history of old sessions remains accurate. Rigs you no longer use can be marked **inactive**: they stay in your list and in old sessions, but are no longer offered for new ones.
+
+    * **Session Form:** Sessions are edited in four tabs — Overview, Equipment & Acquisition, Calibration & Outcome, and Logs & Files — with Save, Save Draft and Cancel always in view.
+    * **Guiding Quality Rating:** Your guiding RMS is rated Excellent, Good, Acceptable, Borderline or Unusable based on the image scale of the rig you used. The rating appears in the session summary and report, and the Logs > Guiding tab charts your RMS against these limits.
 
 4. **Guide Optics & Dither Recommendations:** Configure guiding equipment (OAG or guide scope + guide camera) per rig. When set up, dither recommendations appear on rig cards and in the journal form, showing suggested dither pixel values based on your guide camera pixel scale. A rig info modal (⓪ button in the journal form) shows full computed specs including FL, f-ratio, image scale, FOV, and dither guidance.
 
@@ -174,13 +208,16 @@ The Journal is a full **Project Management System**.
 
 Clicking a DSO in the main list opens the Detailed View.
 
-* **Altitude Graphs:** Shows the object's path for the current night.
+* **Altitude Graphs:** Shows the object's path for the current night, with day, month and year views.
+* **Weather:** The day chart shows cloud cover and seeing as icons along the top; hover a block for details.
+* **Location Selector:** Switch the observing location directly from the status strip.
 * **Moon Separation:** Displays angular separation from the moon on the main graph.
+* **Rig Data Tab:** Shows how the object fits each of your active rigs.
 * **Object Info Tab:** Shows the inspiration content you added for the target — custom image, credit, and description (added via Manage Objects).
 * **Imaging Opportunities:** Click "Find Imaging Opportunities" to calculate the best dates based on your horizon and moon constraints.
 * **AI Observation Notes:** Generate contextual notes about the target directly from the graph view.
 
-![Object detail](docs/Screenshot%202026-02-27%20at%2014.12.55.jpg)
+![Object detail](docs/Screenshot_71_graph.jpg)
 
 ### Framing Assistant
 
@@ -217,7 +254,7 @@ The Configuration page manages your library of objects, locations, and equipment
 
 ![Manage objects](docs/Screenshot%202026-02-27%20at%2014.20.18.jpg)
 
-**Duplicate Manager:** Scan your library for objects within 2.5 arcminutes of each other. Choose which entry to keep — Nova automatically migrates all journal entries and projects before deleting the duplicate.
+**Duplicate Manager:** Scan your library for objects within 2.5 arcminutes of each other. Choose which entry to keep — Nova automatically migrates all journal entries and projects before deleting the duplicate. If two entries are genuinely different objects, choose **Ignore, keep both** and the pair won't be reported again.
 
 ![Duplicate manager](docs/Screenshot%202026-02-27%20at%2014.20.28.jpg)
 
@@ -267,6 +304,8 @@ docker run -d \
 
 ### Manual Python Installation
 
+Nova requires Python 3.13 (the version used by the Docker image).
+
 1. **Clone the repository:**
 ```bash
 git clone https://github.com/mrantonSG/nova_DSO_tracker.git
@@ -286,8 +325,7 @@ pip install -r requirements.txt
 
 4. **Run the application:**
 ```bash
-export FLASK_APP=nova
-flask run
+python nova.py
 ```
 
 Access the application at `http://localhost:5001`.
@@ -335,7 +373,8 @@ Nova supports two modes, configured in `instance/.env`:
 * **Single-user mode (Default):** No login required. The app assumes one user and bypasses authentication.
 * **Multi-user mode:** Ideal for hosting on a shared or public server. Requires login.
     * To enable, set `SINGLE_USER_MODE=False` in your `.env` file.
-    * Initialize the database and create the first admin account with `flask init-db`.
+    * On the first start, Nova creates the admin account (`USER_ADMIN_USERNAME`, default `admin`). Set `USER_ADMIN_PASSWORD` in `.env` to choose its password; otherwise a random password is generated and printed once to the server log.
+    * Visitors who are not logged in are sent to the login page. Guest mode is available at `/guest`.
 
 ### User Management (Multi-User Mode)
 
@@ -344,23 +383,37 @@ Nova supports two modes, configured in `instance/.env`:
 When logged in as `admin`, a **Users** link appears in the header. The admin panel at `/admin/users` allows you to:
 
 * Create new user accounts
-* Activate or deactivate users
+* **Deactivate** a user to pause the account: they can no longer log in, but all of their data is kept, and **Activate** restores access
 * Reset passwords
-* Delete users (login credentials only — observing data is preserved)
+* **Delete** a user to remove them permanently: the login **and all of their data** (objects, projects, journal sessions, photos and log files) are deleted and cannot be recovered
+
+Admin accounts cannot be deactivated or deleted.
 
 ![Screenshot 2026-03-08 at 10.30.40.jpg](docs/Screenshot%202026-03-08%20at%2010.30.40.jpg)
 
 **CLI Commands:**
 
-All commands are interactive and prompt for input.
+All commands are interactive and prompt for input. They are only available in multi-user mode. Run them from the Nova folder and pass `--app nova` so Flask can find the application:
+
+```bash
+# Manual installation (with the virtual environment activated)
+flask --app nova add-user
+
+# Docker Compose
+docker compose exec nova flask --app nova add-user
+
+# Plain Docker (container named nova)
+docker exec -it nova flask --app nova add-user
+```
 
 | Command | Description |
 |---|---|
-| `flask init-db` | Initialize the database and create the first admin user |
-| `flask add-user` | Create a new user account |
-| `flask rename-user` | Rename an existing user |
-| `flask change-password` | Change a user's password |
-| `flask delete-user` | Delete a user account |
+| `flask --app nova init-db` | Create the user tables if missing (not needed on a new install — Nova creates tables and the admin on first start) |
+| `flask --app nova add-user` | Create a new user account |
+| `flask --app nova rename-user` | Rename an existing user |
+| `flask --app nova change-password` | Change a user's password |
+| `flask --app nova delete-user` | Delete a user account and all of their data |
+| `flask --app nova purge-orphaned-users` | Remove leftover data of users whose login was deleted by an older version |
 
 ---
 
