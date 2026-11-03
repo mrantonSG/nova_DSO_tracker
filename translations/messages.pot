@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-03 08:36+0800\n"
+"POT-Creation-Date: 2026-11-03 09:46+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -6076,7 +6076,7 @@ msgid "GRS transit (predicted)"
 msgstr ""
 
 #: templates/solar_system.html:153
-msgid "Back to the built-in longitude"
+msgid "Back to the default longitude"
 msgstr ""
 
 #: templates/solar_system.html:156
@@ -6668,6 +6668,11 @@ msgstr ""
 msgid ""
 "Built-in longitude: System II %(lon)s° on %(date)s (JUPOS via Sky & "
 "Telescope; BAA Jupiter Section)."
+msgstr ""
+
+#: templates/solar_system.html:436
+#, python-format
+msgid "Longitude from Nova: System II %(lon)s° on %(date)s."
 msgstr ""
 
 #: templates/solar_system.html:436
