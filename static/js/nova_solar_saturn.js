@@ -677,7 +677,10 @@
     function nextTitanSeason(nowMs, E) {
         for (let y = 0; y < NEXT_SEASON_YEARS; y++) {
             const start = nowMs + y * SEASON_DAYS * DAY_MS;
-            if (start > REFERENCE_END_MS) return null;
+            // The season's own end has to be inside the engine's reference, not just its
+            // start: a crossing found past the last row would be a claim the fixture does
+            // not back, and the walk would be reading the reference's garbage
+            if (start + SEASON_DAYS * DAY_MS > REFERENCE_END_MS) return null;
             const c = closestOver(start, SEASON_DAYS, ['Titan'], E, TITAN_STEP_MS).Titan;
             if (c && c.r < 1) return { closestRs: c.r, utcMs: Math.round(c.t) };
         }

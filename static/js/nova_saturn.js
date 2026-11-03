@@ -106,9 +106,9 @@
  * Two notes on the references, both of which the parity check depends on:
  *   - ephem's Saturn.earth_tilt and .sun_tilt are libastro's own ring tilt. libastro's
  *     BDL Saturn data is good from 1999 to 2039 and produces garbage during 2040, which is
- *     why the fixture stops at 2039-12-31; nothing here is validated beyond that, and there
- *     is nothing in ch. 45 or ch. 46 that would break there — the limit is the reference's,
- *     not the theory's.
+ *     why the fixture's last row is 2039-12-20; nothing here is validated beyond that, and
+ *     there is nothing in ch. 45 or ch. 46 that would break there — the limit is the
+ *     reference's, not the theory's.
  *   - ephem's satellite x/y/z come from libastro's satmoon.c, which is also a
  *     Dourneau/Meeus ch. 46 implementation. It is therefore a cross-check on the
  *     transcription rather than an independent theory, and the harness says so. The

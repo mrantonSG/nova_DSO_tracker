@@ -1862,8 +1862,26 @@
     // radii, where the globe is 1 and the A ring's outer edge 2.2666, so the strip reaches
     // NovaSolarSaturn.STRIP_RS of them each side of the centre.
     const SAT_DOT_PX = 4;                    // a moon the drawing names
-    const SAT_SMALL_PX = 2.5;                // Mimas and Enceladus, left unnamed
+    const SAT_SMALL_PX = 2.5;                // Mimas and Enceladus, whose dots stay small
     const SAT_CHEVRON_PX = 5;                // a moon beyond the edge of the figure
+    // The two smallest moons. Their dots are always the small one, and their names are set
+    // only where the lane search finds a lane free outright: at this scale a name has to be
+    // earned, and Titan's, Rhea's and the rest are seen to first.
+    const SAT_SMALL = ['Mimas', 'Enceladus'];
+    // How far off the ring plane the figure reaches, in Saturn radii. The moons ride the ring
+    // plane, so this is what decides whether one is drawn where it is or marked at the edge.
+    const SAT_PLANE_RS = 2;
+    // The figure's height: tall enough for a moon SAT_PLANE_RS off the plane to be drawn as a
+    // dot there -- its whole marker, plus the 2 px the figure keeps clear of its own edge --
+    // at the scale the card's own width sets, and never shorter than the Jupiter strip. The
+    // cap is where the card stops growing: past it the widest cards mark those moons at the
+    // edge, as they always did.
+    const SAT_MAX_HEIGHT = 240;
+    // The Jupiter lanes, and the further ones a moon in front of or behind the globe needs:
+    // its own name has to clear the globe, which is half the figure tall. The list is scanned
+    // in order and the first free lane wins, so the extra ones only ever come into play where
+    // the Jupiter list runs out.
+    const SAT_LANES = JUP_LANES.concat([-79, 81, -95, 97, -111, 113]);
     const SAT_FAR_CLIP = 'solar-saturn-far';
     const SAT_NEAR_CLIP = 'solar-saturn-near';
     const SAT_GLOBE_CLIP = 'solar-saturn-globe';
@@ -1978,8 +1996,14 @@
         const box = $('solar-saturn-diagram');
         box.innerHTML = '';
         const W = Math.max(240, Math.round(box.clientWidth || 0) || 720);
-        const H = JUP_HEIGHT, cx = W / 2, cy = H / 2;
+        const cx = W / 2;
         const k = (cx - 8) / NovaSolarSaturn.STRIP_RS;        // pixels per Saturn radius
+        // The height follows the scale the card's width sets, so the ring plane and the moons
+        // on it get the room their own markers need at that scale
+        const H = Math.round(Math.min(SAT_MAX_HEIGHT, Math.max(JUP_HEIGHT,
+            2 * (SAT_PLANE_RS * k + SAT_DOT_PX + 2))));
+        box.style.height = H + 'px';                          // the SVG fills the box exactly
+        const cy = H / 2;
         const px = v => Math.round(v * 100) / 100;
         const r = t.rings;
         // The figure's own moons, in the module's own list and order, so each drawn entry
@@ -2049,13 +2073,14 @@
         };
         const spots = d.moons.map((m, i) => {
             const sky = moons[i];
-            const rad = m.labelled ? SAT_DOT_PX : SAT_SMALL_PX;
+            const small = SAT_SMALL.indexOf(m.name) >= 0;
+            const rad = small ? SAT_SMALL_PX : SAT_DOT_PX;
             const size = m.off ? SAT_CHEVRON_PX : rad;
             const dx = m.x * k, dy = m.y * k;
             const held = !m.off && Math.abs(dx) <= cx - size - 2 && Math.abs(dy) <= cy - size - 2;
             const at = held ? {x: cx + dx, y: cy + dy} : leave(dx, dy, size);
             const g = svgEl(svg, 'g', {class: 'solar-saturn-moon solar-saturn-moon-' +
-                (sky.behindDisc ? 'behind' : 'visible') + (m.labelled ? '' : ' solar-saturn-moon-small'),
+                (sky.behindDisc ? 'behind' : 'visible') + (small ? ' solar-saturn-moon-small' : ''),
                 'data-moon': m.name, 'data-side': sky.side, 'data-brightness': sky.brightness || ''});
             let box;
             if (held) {
@@ -2092,27 +2117,30 @@
                                           'text-anchor': 'middle', 'dominant-baseline': 'central'});
         north.textContent = S.north || 'N';
         svgEl(north, 'title', {}).textContent = i18n.celestialNorth || '';
-        // The arrow and the ring system first, then the moons' own markers: a name belongs
-        // beside its moon, never on top of it, and never on another moon either
+        // The arrow, the globe and the ring system first, then the moons' own markers: a name
+        // belongs beside its moon, never on top of it, and never on the planet, on the rings
+        // or on another name either
         const placed = [labelBox(nx, ny, labelWidth(north.textContent, north)),
             {x0: Math.min(ax0, ax1) - 3, x1: Math.max(ax0, ax1) + 3,
              y0: Math.min(ay0, ay1) - 3, y1: Math.max(ay0, ay1) + 3},
-            {x0: cx - rw - 2, x1: cx + rw + 2, y0: cy - rh - 2, y1: cy + rh + 2}]
+            {x0: cx - rw - 2, x1: cx + rw + 2, y0: cy - rh - 2, y1: cy + rh + 2},
+            {x0: cx - k - 2, x1: cx + k + 2, y0: cy - k - 2, y1: cy + k + 2}]
             .concat(spots.map(o => o.box));
 
-        // The named moons' labels, the nearest the planet placed first, in the lanes the
-        // Jupiter strip uses: drawn first so the browser can measure them
-        spots.filter(o => o.m.labelled)
-            .sort((a, b) => Math.abs(a.m.x) - Math.abs(b.m.x)).forEach(o => {
+        // One name in the nearest lane that will hold it, in the lanes the Jupiter strip uses
+        // and the further ones SAT_LANES adds. `required` names -- everything but Mimas and
+        // Enceladus -- take the best lane there is; the two small ones are drawn only where a
+        // lane is free outright, and the text element is taken away again where none is.
+        const nameMoon = (o, required) => {
             const label = svgEl(svg, 'text', {x: px(o.x), y: px(o.y), class: 'solar-card-moon-label',
                                               'data-moon': o.m.name, 'text-anchor': 'middle',
                                               'dominant-baseline': 'central'});
-            label.textContent = o.m.name;
+            label.textContent = o.m.name;                  // drawn first, so it can be measured
             const width = labelWidth(o.m.name, label);
             const half = (width + 4) / 2;
             const lx = Math.min(W - half, Math.max(half, o.x));
             let spot = null;
-            for (const dy of JUP_LANES) {
+            for (const dy of SAT_LANES) {
                 const y = Math.min(H - JUP_LABEL_PX / 2, Math.max(JUP_LABEL_PX / 2, o.y + dy));
                 const b = labelBox(lx, y, width);
                 // A name never sits on its own moon: a lane that covers its own marker loses
@@ -2124,10 +2152,17 @@
                 if (!spot || score < spot.score) spot = {y: y, b: b, score: score};
                 if (!score) break;
             }
+            if (!required && spot.score) { svg.removeChild(label); return; }
             placed.push(spot.b);
             label.setAttribute('x', String(px(lx)));
             label.setAttribute('y', String(px(spot.y)));
-        });
+        };
+        // The moons the card always names, the nearest the planet first, and then the two
+        // small ones in the room that is left
+        const nearest = (a, b) => Math.abs(a.m.x) - Math.abs(b.m.x);
+        const small = o => SAT_SMALL.indexOf(o.m.name) >= 0;
+        spots.filter(o => !small(o)).sort(nearest).forEach(o => nameMoon(o, true));
+        spots.filter(small).sort(nearest).forEach(o => nameMoon(o, false));
         state.saturnWidth = W;
     }
 

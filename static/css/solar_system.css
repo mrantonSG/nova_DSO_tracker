@@ -1451,22 +1451,27 @@
    THE SATURN CARD (#solar-saturn)
 
    The Jupiter card's shape -- a wide strip drawn in pixels, so its names stay 12 px -- with
-   the ring system on it. The globe is the planet's body colour, and the rings that same
-   colour in three strengths: the C ring is the dusky one and the faintest, the B ring the
-   brightest, the A ring between them. The globe is a good deal darker than the rings
-   because the rings' near half crosses in front of it: the band has to read as brighter
-   than the planet it passes over, and over the body colour the sides' own strengths leave
-   only a stripe -- so the near half is drawn once over the whole figure as the sides have
-   it, and once more on the globe's own near half-disc at full strength, in the same colours
-   (see .solar-saturn-front below). The band the rings' shadow cuts across the globe is a
-   dark fill over the body colour, in either theme, as the card's shadow colour is. Nothing
-   here says anything about a telescope: the Cassini division is drawn as the gap it is,
-   because that is what the geometry gives at this scale, and no more is claimed of it.
+   the ring system on it. The globe is the planet's own pale yellow, and the rings the same
+   material in three strengths: the C ring is the dusky one and the faintest, the B ring the
+   brightest, the A ring between them. The planet is not darkened to tell the band apart --
+   that is what the thin outline below is for -- so the near half is drawn once over the
+   whole figure as the sides have it, and once more on the globe's own near half-disc at
+   full strength, in the same colours and with the outline on it (see .solar-saturn-front
+   below). The band the rings' shadow cuts across the globe is a dark fill over the body
+   colour, in either theme, as the card's shadow colour is. Nothing here says anything
+   about a telescope: the Cassini division is drawn as the gap it is, because that is what
+   the geometry gives at this scale, and no more is claimed of it.
    ================================================================= */
 #solar-saturn {
   container: solar-card / inline-size;
   --solar-saturn-shadow: #14100c;
-  --solar-saturn-globe: #9d8659;
+  /* Saturn is a pale yellow planet in either theme, as its body colour is, and the rings
+     are drawn from that same colour: the band that crosses the globe is told apart by the
+     outline, not by a darker globe. So the globe is a little paler than the ring fills and
+     the outline is a darker brown of the same hue -- in the dark theme both are seen against
+     the card rather than against the globe, and the same two values hold. */
+  --solar-saturn-globe: #ddcfa4;
+  --solar-saturn-ring-edge: #7c6733;
 }
 
 #bodies-tab #solar-saturn[hidden],
@@ -1481,7 +1486,8 @@
   min-width: 0;
 }
 
-/* The globe, a shade under the rings that cross it */
+/* The globe, the planet's own pale yellow: a shade paler than the rings that cross it,
+   which is what the outline on that band is for */
 #bodies-tab .solar-saturn-svg .solar-saturn-globe {
   fill: var(--solar-saturn-globe);
   stroke: var(--text-muted);
@@ -1520,9 +1526,15 @@
    colours as the sides, at full strength, because against the body colour the sides' own
    strengths leave only a stripe. This is the pass that makes the crossing read as the rings
    in front of the planet; the shadow's band stays what the globe's layer drew, darker and
-   narrower, beside it. */
+   narrower, beside it. The planet is a pale yellow and the rings are the same colour, so
+   the band is outlined here rather than the globe darkened: one thin darker line on each
+   ring region, which is the mark of where the rings really are and carries the Cassini gap
+   with it. The strokes are the ring paths' own outer and inner edges, one screen pixel at
+   any scale (vector-effect: non-scaling-stroke). */
 #bodies-tab .solar-saturn-svg .solar-saturn-front .solar-saturn-ring {
-  stroke: none;
+  stroke: var(--solar-saturn-ring-edge);
+  stroke-width: 0.7;
+  stroke-opacity: 1;
 }
 
 #bodies-tab .solar-saturn-svg .solar-saturn-front .solar-saturn-ring-b {

@@ -55,6 +55,7 @@ function makeElement(tag, id) {
             toggle(c, on) { if (on === undefined) on = !this.set.has(c); if (on) this.set.add(c); else this.set.delete(c); return on; },
         },
         appendChild(child) { this.children.push(child); return child; },
+        removeChild(child) { const i = this.children.indexOf(child); if (i >= 0) this.children.splice(i, 1); return child; },
         setAttribute(k, v) { this.attrs[k] = String(v); },
         addEventListener(type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); },
         fire(type) { return Promise.all((this.listeners[type] || []).map(fn => fn({}))); },

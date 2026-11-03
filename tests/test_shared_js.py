@@ -48,7 +48,7 @@ SHARED_WITH_NOVA_IOS = {
     "nova_moon.js": "0923926b15164174c1695eaa6e93d2996b8f51546aeca5b263b1dda07a70fe4e",
     "nova_jupiter.js": "7eb7956ecacbe999cfca242615f3fa03b6172cc5dbd5d40adf9f279ee59188d0",
     "nova_mars.js": "2f8357b7391beb2a6afde272065e21dd06d8853c4b43c139e42afbebe3893fdf",
-    "nova_saturn.js": "154fe1aefbc4cb10765a53f637f51882c0c6e9b5f8a8acb0167d6e18f5a436a2",
+    "nova_saturn.js": "8bdfe7f1549b0ce28b81fcd48f25532f0b2b1c8278aeb7bfb7bfbf4e96a5f43f",
 }
 
 DRIFT_HELP = (
