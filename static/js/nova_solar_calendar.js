@@ -3,8 +3,10 @@
  *
  * The planets' best-placed moments over the coming months: the next oppositions of
  * Mars, Jupiter, Saturn, Uranus and Neptune, the greatest eastern (evening) and
- * western (morning) elongations of Mercury and Venus, and the conjunctions of two
- * planets or of the Moon and a bright planet. No Sun, no occultations.
+ * western (morning) elongations of Mercury and Venus, Venus's greatest brilliancy and
+ * its theoretical dichotomy, the two inner planets' conjunctions with the Sun, and the
+ * conjunctions of two planets or of the Moon and a bright planet. No Sun as a body of
+ * its own, and no occultation is searched for.
  * No DOM: the page (static/js/solar_system.js) renders the rows and formats the numbers.
  *
  * Built on the shared engines and the Bodies tab's own rules, looked up as globals at
@@ -25,6 +27,32 @@
  *   Accuracy: within 0.4 h of ephem 4.2 for 2024-2034, checked by
  *   tests/test_solar_calendar.py. Verified for that span only; the engine's elements
  *   are fitted for 1800-2050.
+ *
+ * searchInner(body, startUtcMs, endUtcMs) -> [{ kind, utcMs }] in time order, geocentric:
+ * the extra events of the two inner planets, which never come to opposition but do have
+ * a brightness, a half phase to date and a conjunction with the Sun. [] for any other
+ * body.
+ *   - 'greatestBrilliancy' (Venus): a minimum of its apparent magnitude, one sample a
+ *     day, narrowed to a minute by golden section, kept only when it is a real one —
+ *     see BRILLIANCY_MIN_PHASE_DEG.
+ *   - 'dichotomy' (Venus): the illuminated fraction crossing one half, the instant the
+ *     terminator would look straight if the planet had no atmosphere. An observed half
+ *     phase falls days early or late of it, on the side of the Sun the planet is on —
+ *     the Schröter effect, first recorded by Johann Hieronymus Schröter in 1793 — so
+ *     this date is the theoretical one. One sample a day, narrowed to a minute by
+ *     bisection. Both crossings per synodic period are rows: the evening one before
+ *     inferior conjunction and the morning one after it.
+ *   - 'inferiorConjunction' (Mercury and Venus) and 'superiorConjunction' (Venus): the
+ *     Sun-planet-Earth elongation changing sign, + to − and − to + respectively — the
+ *     planet crossing the Sun's ecliptic longitude, nearer than the Sun at an inferior
+ *     conjunction. One sample a day, narrowed to a minute by bisection. The elongation
+ *     does not reach zero there, and elongationDeg is signed by the side, so what the
+ *     search sees is a jump across the crossing and what the row shows is the planet's
+ *     own ecliptic latitude: the few degrees by which it misses the Sun (Venus's
+ *     8.5 deg at the widest over 2024-2035). Mercury's superior conjunction is not a
+ *     row: it is the planet's faintest and most distant moment, lost behind the Sun,
+ *     while its two greatest elongations already date its evening and morning
+ *     apparitions.
  *
  * searchPair(a, b, startUtcMs, endUtcMs, opts) -> [{ kind: 'conjunction', utcMs, sepDeg }]
  *   in time order: the minima of the two bodies' angular separation below opts.limitDeg
@@ -63,7 +91,10 @@
  *     sampling_interval minutes); for a conjunction the higher of the two bodies'.
  *     muted: maxAlt below altitude_threshold, mutedReason 'altitude'. A conjunction is
  *     also muted when it is closer to the Sun than SUN_MIN_DEG, mutedReason 'sun' (which
- *     wins when both apply). Never dropped; mutedReason is null when not muted.
+ *     wins when both apply); a conjunction of an inner planet with the Sun is that same
+ *     rule, and is in the glare by definition, so its elongation is under SUN_MIN_DEG
+ *     and it is muted for the same reason. Never dropped; mutedReason is null when not
+ *     muted.
  *   - A Moon conjunction is a matter of minutes (the Moon moves its own width an hour),
  *     so the night's maximum does not decide it: it is muted, mutedReason 'moment', unless
  *     at its instant the Sun is down (sunAltDeg below NovaAstro.SUN_RISE_SET_ALT, the
@@ -118,6 +149,23 @@
     const PLANET_LIMIT_DEG = 2;
     const MOON_LIMIT_DEG = 1;
     const SUN_MIN_DEG = 15;
+    // Venus's greatest brilliancy is a minimum of its apparent magnitude, but the
+    // magnitude curve has other shallow minima that are not it, and they are of two
+    // kinds: near superior conjunction, where the disc is nearly full and the curve
+    // turns over (phase angle 7-13 deg, elongation 4-9 deg), and the thin crescent just
+    // before or after inferior conjunction (phase angle 170-175 deg, elongation 4-7
+    // deg). A real greatest brilliancy is neither: measured over 2020-2040, the disc is
+    // 21-28% lit at the phase angle 116.7-125.5 deg and the elongation 35.6-40.9 deg.
+    // Both clauses below sit clear of that band and of the spurious ones. Over
+    // 2020-2040 the elongation clause is the one that rejects all 16 spurious minima —
+    // the phase-angle clause rejects none of them on its own — but it is the clause that
+    // says what the event is (a crescent), so it is kept alongside.
+    // tests/test_solar_calendar.py pins the three spurious 2026-2029 dates the bare
+    // minima would otherwise produce and checks the kept ones against ephem.
+    const BRILLIANCY_MIN_PHASE_DEG = 100;
+    const BRILLIANCY_MIN_ELONG_DEG = 20;
+    // Half the disc lit: the theoretical dichotomy (see the header).
+    const DICHOTOMY_K = 0.5;
     const MOON_STEP_MS = 3 * HOUR_MS;
     const CLOSEST_MARGIN_MS = 60 * DAY_MS;
     const PAIRS = Object.freeze((function () {
@@ -229,6 +277,66 @@
         return out;
     }
 
+    /** The instants in [start, end] where f changes sign, sampled every step, each
+     *  narrowed to a minute by bisection: the ones rising from negative to positive when
+     *  `rising` is true, the ones falling when it is false. */
+    function signChanges(f, start, end, step, rising) {
+        const out = [];
+        let t0 = start, a = f(t0);
+        for (let t1 = start + step; t1 <= end; t1 += step) {
+            const b = f(t1);
+            if ((a < 0) !== (b < 0) && (b > a) === rising) {
+                let lo = t0, hi = t1;
+                while (hi - lo > MINUTE_MS) {
+                    const mid = (lo + hi) / 2;
+                    if ((f(mid) < 0) === (a < 0)) lo = mid; else hi = mid;
+                }
+                out.push(Math.round((lo + hi) / 2));
+            }
+            t0 = t1;
+            a = b;
+        }
+        return out;
+    }
+
+    /** Venus's greatest brilliancy: the real minima of its apparent magnitude, the
+     *  spurious ones dropped by the guard on BRILLIANCY_MIN_PHASE_DEG. */
+    function greatestBrilliancy(start, end, P) {
+        const real = m => {
+            const d = P.details('venus', m.utcMs);
+            return d.phaseAngleDeg >= BRILLIANCY_MIN_PHASE_DEG
+                && Math.abs(d.elongationDeg) >= BRILLIANCY_MIN_ELONG_DEG;
+        };
+        return minima(t => P.details('venus', t).mag, start, end, DAY_MS)
+            .filter(real)
+            .map(m => ({ kind: 'greatestBrilliancy', utcMs: m.utcMs }));
+    }
+
+    /** Venus's theoretical dichotomy: the illuminated fraction crossing one half, in
+     *  both directions (DICHOTOMY_K). */
+    function dichotomies(start, end, P) {
+        const f = t => P.details('venus', t).illuminated - DICHOTOMY_K;
+        return signChanges(f, start, end, DAY_MS, true)
+            .concat(signChanges(f, start, end, DAY_MS, false))
+            .sort((x, y) => x - y)
+            .map(utcMs => ({ kind: 'dichotomy', utcMs: utcMs }));
+    }
+
+    /** The planet's conjunctions with the Sun: the elongation changing sign, falling at
+     *  an inferior conjunction and rising at a superior one. The sign is the side, so it
+     *  flips across the Sun's longitude while the elongation itself is a few degrees —
+     *  the planet's latitude (see the header). */
+    function sunConjunctions(body, start, end, P) {
+        const el = t => P.details(body, t).elongationDeg;
+        const out = [];
+        for (const rising of [false, true]) {
+            for (const utcMs of signChanges(el, start, end, DAY_MS, rising)) {
+                out.push({ kind: rising ? 'superiorConjunction' : 'inferiorConjunction', utcMs: utcMs });
+            }
+        }
+        return out.sort((x, y) => x.utcMs - y.utcMs);
+    }
+
     /** The angle between two directions given as longitude/latitude pairs, degrees (haversine). */
     function angleDeg(lon1, lat1, lon2, lat2) {
         const r = Math.PI / 180;
@@ -287,6 +395,20 @@
             : greatestElongations(body, start, end, P);
     }
 
+    function searchInner(body, startUtcMs, endUtcMs) {
+        const P = engine().P;
+        if (ELONGATION_BODIES.indexOf(body) < 0) return [];
+        const start = finite(startUtcMs, 'start'), end = finite(endUtcMs, 'end');
+        if (!(end > start)) return [];
+        const out = sunConjunctions(body, start, end, P)
+            .filter(e => body === 'venus' || e.kind === 'inferiorConjunction');
+        if (body === 'venus') {
+            out.push.apply(out, greatestBrilliancy(start, end, P));
+            out.push.apply(out, dichotomies(start, end, P));
+        }
+        return out.sort((x, y) => x.utcMs - y.utcMs);
+    }
+
     // ------------------------------------------------------------------ table
 
     function events(opts) {
@@ -311,7 +433,9 @@
         const found = [];
         const inWindow = ev => ev.utcMs >= win.start && ev.utcMs <= win.end;
         for (const body of BODIES) {
-            for (const ev of search(body, win.start - 2 * DAY_MS, win.end + 2 * DAY_MS)) {
+            const bodyEvents = search(body, win.start - 2 * DAY_MS, win.end + 2 * DAY_MS)
+                .concat(searchInner(body, win.start - 2 * DAY_MS, win.end + 2 * DAY_MS));
+            for (const ev of bodyEvents) {
                 if (inWindow(ev)) found.push({ bodies: [body], kind: ev.kind, utcMs: ev.utcMs });
             }
         }
@@ -345,7 +469,10 @@
             let elongationDeg = null;
             if (conj) elongationDeg = Math.min(Math.abs(dets[0].elongationDeg), Math.abs(dets[1].elongationDeg));
             else if (ELONGATION_BODIES.indexOf(body) >= 0) elongationDeg = Math.abs(det.elongationDeg);
-            const tooClose = conj && elongationDeg < SUN_MIN_DEG;
+            // An inner planet's conjunction with the Sun is in the glare by definition,
+            // so the same 15 deg rule applies to it, with the same reason.
+            const withSun = ev.kind === 'inferiorConjunction' || ev.kind === 'superiorConjunction';
+            const tooClose = (conj || withSun) && elongationDeg < SUN_MIN_DEG;
             const moonAt = conj ? bodies.indexOf('moon') : -1;
             let moment = null, occultation = false;
             if (moonAt >= 0) {
@@ -404,6 +531,9 @@
         BODIES: BODIES, OPPOSITION_BODIES: OPPOSITION_BODIES, ELONGATION_BODIES: ELONGATION_BODIES,
         CONJUNCTION_PLANETS: CONJUNCTION_PLANETS, MOON_PARTNERS: MOON_PARTNERS, PAIRS: PAIRS,
         PLANET_LIMIT_DEG: PLANET_LIMIT_DEG, MOON_LIMIT_DEG: MOON_LIMIT_DEG, SUN_MIN_DEG: SUN_MIN_DEG,
-        search: search, searchPair: searchPair, closestApproaches: closestApproaches, events: events,
+        BRILLIANCY_MIN_PHASE_DEG: BRILLIANCY_MIN_PHASE_DEG,
+        BRILLIANCY_MIN_ELONG_DEG: BRILLIANCY_MIN_ELONG_DEG, DICHOTOMY_K: DICHOTOMY_K,
+        search: search, searchInner: searchInner, searchPair: searchPair,
+        closestApproaches: closestApproaches, events: events,
     };
 });

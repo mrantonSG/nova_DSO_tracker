@@ -90,7 +90,8 @@
     const VIEW_KEY = 'nova_solar_view';
     // The Calendar's event types and the kinds of row each one shows
     const CAL_TYPES = {
-        planets: ['opposition', 'elongationEast', 'elongationWest'],
+        planets: ['opposition', 'elongationEast', 'elongationWest', 'greatestBrilliancy',
+                  'dichotomy', 'inferiorConjunction', 'superiorConjunction'],
         conjunctions: ['conjunction'],
         lunar: ['lunarX', 'libration'],
         galilean: ['galilean'],

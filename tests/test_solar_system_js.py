@@ -198,9 +198,12 @@ async function clickRow(id, index) { await $(id).children[index].fire('click'); 
 async function choose(id, value) { $(id).value = value; await $(id).fire('change'); for (let i = 0; i < 20; i++) await settle(); }
 // A select as data: its value and its options' value and text
 const select = id => ({value: $(id).value, options: $(id).children.map(o => [o.value, o.textContent])});
-async function setFilter(body, hide) {
+async function setFilter(body, hide, type) {
     $('solar-cal-body-filter').value = body; await $('solar-cal-body-filter').fire('change');
     $('solar-cal-hide-muted').checked = hide; await $('solar-cal-hide-muted').fire('change');
+    if (type !== undefined) {
+        $('solar-cal-type-filter').value = type; await $('solar-cal-type-filter').fire('change');
+    }
 }
 const el = id => ({hidden: $(id).hidden, text: $(id).textContent, title: $(id).title});
 const stored = key => context.localStorage.getItem(key);
@@ -357,8 +360,12 @@ FULL_I18N = dict(I18N, **{
     "belowThresholdAtClosest": "LOW AT ({first} {first_alt}°, {second} {second_alt}°)",
     "belowThresholdNight": "LOW", "exactTime": "AT {time}",
     "closestApproach": "CLOSEST {date}, {dist} million km",
+    "greatestBrilliancy": "BRIGHT", "dichotomy": "DICHOTOMY",
+    "inferiorConjunction": "INFERIOR CONJ", "superiorConjunction": "SUPERIOR CONJ",
     "eventHelp": {"opposition": "OPP HELP", "conjunction": "CONJ HELP", "conjunctionMoon": "CONJ MOON HELP",
-                  "occultation": "OCC HELP"},
+                  "occultation": "OCC HELP", "greatestBrilliancy": "BRIGHT HELP",
+                  "dichotomy": "DICHOTOMY HELP", "inferiorConjunction": "INF HELP",
+                  "superiorConjunction": "SUP HELP"},
     "calc": {
         "title": "Planetary calculator", "none": "None", "disc": "Disc", "discHelp": "DISC HELP",
         "focalRatio": "Focal ratio", "focalRatioHelp": "FR HELP", "ideal": "ideal f/{ratio}",
@@ -1265,3 +1272,47 @@ def test_seeing_shown_without_equipment(tmp_path):
     got = _seeing(tmp_path, "saturn", _upper_wind(), equipment={"telescopes": [], "cameras": []})
     assert got["summaryHidden"]
     assert not got["hidden"] and len(got["tiles"]) == 5 and got["tiles"][0]["level"] == "steady"
+
+
+def test_inner_event_rows_render_and_the_planets_filter_keeps_them(tmp_path):
+    """Venus's greatest brilliancy, its theoretical dichotomy and the conjunctions with
+    the Sun are ordinary single-body rows: the label in the Event cell, its help in the
+    tooltip, a magnitude, an elongation under 9 deg at a conjunction and 20 deg or more
+    at the other two — and the Planets type filter, the one they belong to, keeps them
+    along with the oppositions and the greatest elongations."""
+    got = _run(tmp_path, """
+        h.online();
+        await h.load('calendar');
+        const kinds = ['BRIGHT', 'DICHOTOMY', 'INFERIOR CONJ', 'SUPERIOR CONJ'];
+        const pick = () => h.table('solar-cal-body')
+            .filter(r => kinds.indexOf(r.cells[2].text) >= 0)
+            .map(r => ({body: r.body, kind: r.cells[2].text, title: r.cells[2].title,
+                        mag: r.cells[3].text, elong: r.cells[5].text, rowTitle: r.title,
+                        muted: r.classes.indexOf('geometrically-impossible') >= 0}));
+        const all = pick();
+        await h.setFilter('', false, 'planets');
+        const planets = h.table('solar-cal-body');
+        const after = pick();
+        await h.setFilter('', false, 'saturn');
+        return {all: all, after: after,
+                planetsKinds: planets.map(r => r.cells[2].text)};
+    """, i18n=FULL_I18N, sim=SIM_DATE)
+    assert got["all"] == got["after"], "the Planets filter keeps every one of them"
+    assert {r["kind"] for r in got["all"]} == {"BRIGHT", "DICHOTOMY", "INFERIOR CONJ", "SUPERIOR CONJ"}
+    assert {r["body"] for r in got["all"]} == {"venus", "mercury"}
+    assert "BRIGHT" in got["planetsKinds"] and "DICHOTOMY" in got["planetsKinds"]
+    assert any(k.startswith("Greatest elongation") or k == "opposition" for k in got["planetsKinds"])
+    assert not any(r["kind"] == "SUPERIOR CONJ" and r["body"] == "mercury" for r in got["all"])
+    for r in got["all"]:
+        help_text = {"BRIGHT": "BRIGHT HELP", "DICHOTOMY": "DICHOTOMY HELP",
+                     "INFERIOR CONJ": "INF HELP", "SUPERIOR CONJ": "SUP HELP"}[r["kind"]]
+        if r["kind"].endswith("CONJ"):
+            assert re.fullmatch(r"\d\.\d", r["elong"]) and float(r["elong"]) < 9, r
+            assert r["title"] == help_text, r
+            assert r["muted"] and r["rowTitle"].startswith("SUN "), r
+        else:
+            assert float(r["elong"]) >= 20, r
+            assert r["title"] == help_text, r
+            assert r["rowTitle"] == ("LOW" if r["muted"] else ""), r
+        assert re.fullmatch(r"-?\d+\.\d", r["mag"]), r
+    assert any(not r["muted"] for r in got["all"]), "some of them are visible that night"

@@ -28,6 +28,12 @@ PAGE_ORDER = ("nova_astro.js", "nova_transit.js", "nova_dashboard_rows.js",
               "nova_planets.js", "nova_solar_rows.js", "nova_solar_calendar.js")
 OPPOSITION_BODIES = ["mars", "jupiter", "saturn", "uranus", "neptune"]
 ELONGATION_BODIES = ["mercury", "venus"]
+ELONGATION_KINDS = ("elongationEast", "elongationWest")
+INNER_KINDS = ("greatestBrilliancy", "dichotomy", "inferiorConjunction", "superiorConjunction")
+# The kinds whose elongation is the Sun's and not a pair's: the pair columns take a
+# conjunction row, these take a single body
+SUN_CONJUNCTION_KINDS = ("inferiorConjunction", "superiorConjunction")
+CONJUNCTION_KINDS = ("conjunction",) + SUN_CONJUNCTION_KINDS
 
 LONDON = {"lat": 51.4769, "lon": -0.0005, "timezone": "Europe/London",
           "altitude_threshold": 20, "sampling_interval": 15}
@@ -96,9 +102,8 @@ AUTUMN_EVENING_MS = _ms(2026, 10, 31, 20, 0)
 
 
 def test_only_planet_events_in_time_order(tmp_path):
-    """Oppositions of the outer planets, greatest elongations of Mercury and Venus, and
-    conjunctions (the only rows with the Moon, checked below); in time order, all inside
-    the window."""
+    """Oppositions of the outer planets, the inner planets' own events, and conjunctions
+    (the only rows with the Moon, checked below); in time order, all inside the window."""
     got = _events(tmp_path, _loc(), AUTUMN_EVENING_MS)
     rows = got["rows"]
     assert got["date"] == "2026-10-31"
@@ -112,11 +117,15 @@ def test_only_planet_events_in_time_order(tmp_path):
             assert r["kind"] == "opposition"
         else:
             assert r["body"] in ELONGATION_BODIES
-            assert r["kind"] in ("elongationEast", "elongationWest")
+            assert r["kind"] in ELONGATION_KINDS or r["kind"] in INNER_KINDS
     kinds = {(r["body"], r["kind"]) for r in rows}
     # 26 months hold an opposition of every outer planet and both elongations of each inner one
     assert {(b, "opposition") for b in OPPOSITION_BODIES} <= kinds
-    assert {(b, k) for b in ELONGATION_BODIES for k in ("elongationEast", "elongationWest")} <= kinds
+    assert {(b, k) for b in ELONGATION_BODIES for k in ELONGATION_KINDS} <= kinds
+    # ... and the inner planets' own events, Mercury's the inferior conjunctions only
+    assert {("venus", k) for k in INNER_KINDS} <= kinds
+    assert ("mercury", "inferiorConjunction") in kinds
+    assert not any(r["body"] == "mercury" and r["kind"] == "superiorConjunction" for r in rows)
     assert got["window"]["start"] == _ms(2026, 10, 1, 12, 0, tz="Europe/London")
     assert got["window"]["end"] == _ms(2028, 10, 31, 12, 0, tz="Europe/London")
 
@@ -158,15 +167,16 @@ def test_night_time_and_days_follow_the_location_zone(tmp_path):
 
 def test_muted_is_max_altitude_below_threshold(tmp_path):
     """muted exactly when that night's max altitude is below the threshold, or for a
-    conjunction closer than 15 deg to the Sun (mutedReason 'sun', which wins); a Moon
-    conjunction by its instant instead of the night's maximum (mutedReason 'moment',
-    which wins over 'sun'); never dropped."""
+    conjunction closer than 15 deg to the Sun (mutedReason 'sun', which wins) — a
+    conjunction of an inner planet with the Sun is that same rule; a Moon conjunction by
+    its instant instead of the night's maximum (mutedReason 'moment', which wins over
+    'sun'); never dropped."""
     counts = []
     for threshold in (-90, 20, 89.9):
         got = _events(tmp_path, _loc(altitude_threshold=threshold), AUTUMN_EVENING_MS)
         assert got["threshold"] == threshold
         for r in got["rows"]:
-            sun = r["kind"] == "conjunction" and r["elongationDeg"] < 15
+            sun = r["kind"] in CONJUNCTION_KINDS and r["elongationDeg"] < 15
             if "moon" in r["bodies"]:
                 m = r["moment"]
                 unseen = m["daylight"] or min(m["alts"]) < threshold
@@ -217,19 +227,29 @@ def test_simulation_and_the_noon_rule(tmp_path):
 def test_elongation_column_and_event_sides(tmp_path):
     """Mercury and Venus carry the (unsigned) elongation, positive at an eastern and
     negative at a western greatest elongation; the outer planets carry none and are
-    within a few degrees of 180 at opposition."""
+    within a few degrees of 180 at opposition; the inner planets' other events carry it
+    too. At a conjunction with the Sun it is not zero but the planet's own ecliptic
+    latitude, the few degrees by which it misses the Sun (8.5 deg at the widest over
+    2024-2035, Venus 2033-03-20)."""
     got = _run(tmp_path, """
         const r = NovaSolarCalendar.events({inputs: input.inputs, nowMs: input.nowMs, simDate: null});
         result = r.rows.filter(x => x.kind !== 'conjunction')
             .map(x => [x.body, x.kind, x.elongationDeg, NovaPlanets.details(x.body, x.utcMs).elongationDeg]);
     """, {"inputs": _loc(), "nowMs": AUTUMN_EVENING_MS})
+    kinds = {k for _, k, _, _ in got}
+    assert set(ELONGATION_KINDS) <= kinds and set(INNER_KINDS) <= kinds, "every kind was compared"
     for body, kind, shown, signed in got:
         if kind == "opposition":
             assert shown is None and abs(signed) > 170, body
-        else:
-            assert shown == pytest.approx(abs(signed))
+            continue
+        assert shown == pytest.approx(abs(signed))
+        if kind in ELONGATION_KINDS:
             assert (signed > 0) is (kind == "elongationEast"), (body, kind)
             assert (17 if body == "mercury" else 45) < shown < (28 if body == "mercury" else 48)
+        elif kind.endswith("Conjunction"):
+            assert 0 < shown < 9, (body, kind, shown)
+        else:
+            assert 20 <= shown < 48, (body, kind, shown)
 
 
 def test_bad_location_throws(tmp_path):
@@ -656,3 +676,300 @@ def test_moon_conjunctions_match_ephem(tmp_path, loc):
     tol = lambda a, b: 0.25
     _match([e for e in ref if e[3] < 1.2], got, tol, 0.01)
     _match([e for e in got if e[3] < 1.2], ref, tol, 0.01)
+
+
+# ------------------------------------- the inner planets' greatest brilliancy and phase
+
+# Venus's magnitude is flat to ephem's own 0.01 mag for a week or more around greatest
+# brilliancy (the plateau runs 1-10 days over 2024-2035), so ephem cannot date the peak
+# better than the middle of that plateau, and the two are within 0.62 d of each other.
+# The margin is the plateau, not the agreement.
+BRILLIANCY_TOLERANCE_DAYS = 5
+# The reference takes the lowest magnitude over this many days either side.
+BRILLIANCY_WINDOW_DAYS = 20
+# ephem's magnitude is rounded to 0.01, so this asks for the plateau's lowest step.
+BRILLIANCY_MAG_TOLERANCE = 0.005
+# The window the two are matched in, days either side.
+MATCH_DAYS = 20
+
+_SUN = ephem.Sun()
+
+
+def _ecliptic_lon(body, t):
+    return float(ephem.Ecliptic(body, epoch=ephem.Date(t)).lon)
+
+
+def _elongation(body, t):
+    """The signed difference of the apparent ecliptic longitudes of date, wrapped to
+    -pi..pi: the same side rule as the engine's elongationDeg (its sign only has to be
+    consistent for the wrapping not to matter at these elongations)."""
+    body.compute(ephem.Date(t))
+    _SUN.compute(ephem.Date(t))
+    d = _ecliptic_lon(body, t) - _ecliptic_lon(_SUN, t)
+    return (d + math.pi) % (2 * math.pi) - math.pi
+
+
+def _phase_angle_deg(body, t):
+    body.compute(ephem.Date(t))
+    k = float(body.phase) / 100.0
+    return math.degrees(math.acos(max(-1.0, min(1.0, 2 * k - 1))))
+
+
+def _crossings(f, start, end, step=1.0):
+    """The instants where f changes sign, sampled every step, narrowed to a minute."""
+    out, t = [], start
+    a = f(t)
+    while t < end:
+        b = f(t + step)
+        if (a < 0) != (b < 0):
+            lo, hi = t, t + step
+            while hi - lo > 1 / 1440:
+                mid = (lo + hi) / 2
+                if (f(mid) < 0) == (a < 0):
+                    lo = mid
+                else:
+                    hi = mid
+            out.append((lo + hi) / 2)
+        a, t = b, t + step
+    return out
+
+
+def _ephem_inner(guard):
+    """The inner planets' events as ephem has them, over the parity span.
+    brilliancy: the middle of each plateau of Venus's magnitude that is the lowest over
+    BRILLIANCY_WINDOW_DAYS either side, with `guard`'s phase-angle and elongation
+    clauses applied, with the plateau's lowest magnitude. dichotomy: Venus's phase
+    crossing 50%. conjunctions: the elongation crossing zero, inferior when the planet
+    is the nearer of the two at that instant."""
+    start, end = _parity_span()
+    venus = ephem.Venus()
+    out = {"brilliancy": [], "dichotomy": [], "conjunctions": []}
+
+    def mag(t):
+        venus.compute(ephem.Date(t))
+        return float(venus.mag)
+
+    plateau = []
+    t = start
+    while t <= end:
+        if (_phase_angle_deg(venus, t) >= guard["phase"]
+                and abs(math.degrees(_elongation(venus, t))) >= guard["elong"]):
+            lowest = min(mag(t + x) for x in range(-BRILLIANCY_WINDOW_DAYS, BRILLIANCY_WINDOW_DAYS + 1))
+            if mag(t) <= lowest + BRILLIANCY_MAG_TOLERANCE:
+                plateau.append((t, mag(t)))
+        t += 1.0
+    groups = []
+    for day, m in plateau:
+        if groups and day - groups[-1][-1][0] <= 2 * BRILLIANCY_WINDOW_DAYS:
+            groups[-1].append((day, m))
+        else:
+            groups.append([(day, m)])
+    for g in groups:
+        out["brilliancy"].append({
+            "ms": _ephem_ms((g[0][0] + g[-1][0]) / 2),
+            "mag": min(m for _, m in g),
+            "days": len(g),
+        })
+
+    def half_lit(t):
+        venus.compute(ephem.Date(t))
+        return float(venus.phase) - 50.0
+
+    for t in _crossings(half_lit, start, end):
+        out["dichotomy"].append(_ephem_ms(t))
+
+    for name, ctor in (("venus", ephem.Venus), ("mercury", ephem.Mercury)):
+        body = ctor()
+        for t in _crossings(lambda t, body=body: _elongation(body, t), start, end):
+            body.compute(ephem.Date(t))
+            _SUN.compute(ephem.Date(t))
+            nearer = float(body.earth_distance) < float(_SUN.earth_distance)
+            out["conjunctions"].append({
+                "body": name,
+                "kind": "inferiorConjunction" if nearer else "superiorConjunction",
+                "ms": _ephem_ms(t),
+            })
+    return out
+
+
+@pytest.fixture(scope="module")
+def brilliancy_guard(tmp_path_factory):
+    """The engine's own guard constants, so the reference cannot drift from them."""
+    tmp = tmp_path_factory.mktemp("guard")
+    return _run(tmp, """
+        result = {phase: NovaSolarCalendar.BRILLIANCY_MIN_PHASE_DEG,
+                  elong: NovaSolarCalendar.BRILLIANCY_MIN_ELONG_DEG,
+                  k: NovaSolarCalendar.DICHOTOMY_K};
+    """, {})
+
+
+@pytest.fixture(scope="module")
+def ephem_inner(brilliancy_guard):
+    return _ephem_inner(brilliancy_guard)
+
+
+@pytest.fixture(scope="module")
+def engine_inner(tmp_path_factory):
+    """Every inner event both ways, with the sign of the elongation at its instant."""
+    tmp = tmp_path_factory.mktemp("inner")
+    return _run(tmp, """
+        const out = [];
+        for (const body of NovaSolarCalendar.ELONGATION_BODIES) {
+            for (const e of NovaSolarCalendar.searchInner(body, input.start, input.end)) {
+                out.push([body, e.kind, e.utcMs, Math.sign(NovaPlanets.details(body, e.utcMs).elongationDeg)]);
+            }
+        }
+        result = out;
+    """, _span_ms())
+
+
+def _paired(ref_ms, got_ms):
+    """The one `got` instant for a reference one, or None: they are a synodic period
+    apart at the nearest, so MATCH_DAYS cannot pick the wrong cycle."""
+    near = [u for u in got_ms if abs(u - ref_ms) <= MATCH_DAYS * 86400000]
+    assert len(near) <= 1, (ref_ms, near)
+    return near[0] if near else None
+
+
+def test_inner_conjunctions_match_ephem(ephem_inner, engine_inner):
+    """2024-2035: the same conjunctions with the Sun as ephem has them, each within an
+    hour (measured worst 0.27 h). The engine decides inferior from superior by the
+    direction of the elongation crossing, this reference by ephem's distances, so a
+    swapped rule fails. Mercury's superior conjunctions are the ones left out on purpose:
+    they are the only reference events with no row, and there are 35 of them."""
+    ref = ephem_inner["conjunctions"]
+    got = [(b, k, u) for b, k, u, _ in engine_inner if k in SUN_CONJUNCTION_KINDS]
+    omitted = [c for c in ref if c["body"] == "mercury" and c["kind"] == "superiorConjunction"]
+    assert len(omitted) >= 30
+    wanted = [c for c in ref if c not in omitted]
+    assert len(wanted) == len(got) >= 45, "the same events, the omitted ones aside"
+
+    by_kind = {}
+    for body, kind, ms in got:
+        by_kind.setdefault((body, kind), []).append(ms)
+    paired = []
+    for c in wanted:
+        ms = _paired(c["ms"], by_kind.get((c["body"], c["kind"]), []))
+        assert ms is not None, (c["body"], c["kind"], c["ms"])
+        assert abs(ms - c["ms"]) / 3600000 <= INSTANT_TOLERANCE_H, (c["body"], c["kind"])
+        paired.append(ms)
+    # the match is one to one, so nothing the engine found is left over
+    assert sorted(paired) == sorted(u for _, _, u in got) != []
+    assert not any(b == "mercury" and k == "superiorConjunction" for b, k, _ in got)
+
+
+def test_dichotomy_matches_ephem(ephem_inner, engine_inner):
+    """2024-2035: Venus's illuminated fraction crossing one half, as ephem's phase has
+    it, each within an hour (measured worst 0.52 h). Two a synodic period, and the side
+    alternates: the one before inferior conjunction is the evening one (east of the Sun),
+    the one after it the morning one."""
+    ref = ephem_inner["dichotomy"]
+    got = [(u, s) for b, k, u, s in engine_inner if k == "dichotomy"]
+    inward = sorted(u for b, k, u, _ in engine_inner if k == "inferiorConjunction" and b == "venus")
+    assert len(ref) == len(got) >= 12
+    for r in ref:
+        ms = _paired(r, [u for u, _ in got])
+        assert ms is not None and abs(ms - r) / 3600000 <= INSTANT_TOLERANCE_H, r
+    sides = [s for u, s in sorted(got)]
+    assert all(a != b for a, b in zip(sides, sides[1:])), sides
+    for u, s in got:
+        nearest = min((abs(c - u), c) for c in inward)[1]
+        assert s == (1 if nearest > u else -1), (u, s, nearest)
+
+
+def test_greatest_brilliancy_matches_ephem(ephem_inner, engine_inner):
+    """2024-2035: the same greatest brilliancies as ephem has them — within
+    BRILLIANCY_TOLERANCE_DAYS of the middle of ephem's plateau (measured worst 0.62 d)
+    and at a magnitude ephem calls the plateau's lowest (measured: exactly, all 14)."""
+    venus = ephem.Venus()
+    ref = ephem_inner["brilliancy"]
+    got = [u for b, k, u, _ in engine_inner if k == "greatestBrilliancy"]
+    assert len(ref) == len(got) >= 12
+    for b in ref:
+        ms = _paired(b["ms"], got)
+        assert ms is not None, b["ms"]
+        assert abs(ms - b["ms"]) / 86400000 <= BRILLIANCY_TOLERANCE_DAYS, (b["ms"], ms)
+        venus.compute(ephem.Date(ms / 86400000 + _EPHEM_EPOCH))
+        assert float(venus.mag) <= b["mag"] + BRILLIANCY_MAG_TOLERANCE, (b["ms"], ms)
+
+
+# Venus's three false magnitude minima of 2026-2029 and the guard clauses each falls
+# foul of: the thin crescent is past the half-lit point and is the elongation's alone to
+# reject, the two near superior conjunction fail both.
+FALSE_PLATEAUS = [
+    ("2026-10-25", ["elong"]),
+    ("2027-07-19", ["phase", "elong"]),
+    ("2027-08-30", ["phase", "elong"]),
+]
+
+
+def test_the_false_brilliancy_plateaus_produce_no_row(tmp_path, brilliancy_guard):
+    """Venus's magnitude curve has other shallow minima that are not greatest
+    brilliancy: one on the way to inferior conjunction, as a thin crescent, and one
+    either side of superior conjunction, where the near-full disc turns over. Three fall
+    in 2026-2029. The guard rejects each — the crescent by its elongation alone, the
+    other two by both clauses — so none is a row, and the minima the guard keeps in that
+    span are exactly the five real ones."""
+    got = _run(tmp_path, """
+        const out = [];
+        for (const e of NovaSolarCalendar.searchInner('venus', input.start, input.end)) {
+            if (e.kind === 'greatestBrilliancy') out.push(e.utcMs);
+        }
+        result = {rows: out, details: input.dates.map(d => {
+            const x = NovaPlanets.details('venus', Date.parse(d + 'T12:00:00Z'));
+            return [x.phaseAngleDeg, Math.abs(x.elongationDeg)];
+        })};
+    """, {"start": _ms(2026, 1, 1), "end": _ms(2030, 1, 1),
+          "dates": [d for d, _ in FALSE_PLATEAUS]})
+
+    guard = [brilliancy_guard["phase"], brilliancy_guard["elong"]]
+    for (date, clause), (phase, elong) in zip(FALSE_PLATEAUS, got["details"]):
+        rejected = []
+        if phase < guard[0]:
+            rejected.append("phase")
+        if elong < guard[1]:
+            rejected.append("elong")
+        assert rejected == clause, (date, phase, elong, rejected)
+        ms = _ms(*[int(x) for x in date.split("-")], 12, 0)
+        assert not [u for u in got["rows"] if abs(u - ms) <= 30 * 86400000], date
+
+    # ... and the minima the guard keeps over 2026-2029 are the five real ones, with a
+    # real least-brightness magnitude each
+    venus = ephem.Venus()
+    assert len(got["rows"]) == 5
+    for u in got["rows"]:
+        venus.compute(ephem.Date(u / 86400000 + _EPHEM_EPOCH))
+        assert -4.6 < float(venus.mag) < -4.3, u
+
+
+def test_inner_event_rows(tmp_path):
+    """A row for each of them through the whole calendar: the same single-body shape as
+    an opposition or an elongation (no pair, no Moon fields), the event's magnitude and
+    diameter, and the muting a conjunction with the Sun deserves — the Sun rule, not the
+    night's altitude, even when the planet is under the horizon anyway. Venus's greatest
+    brilliancy and its dichotomies are ordinary rows, muted by altitude alone, and its
+    magnitude at a greatest brilliancy is the -4.5 it is famous for."""
+    got = _events(tmp_path, _loc(), AUTUMN_EVENING_MS)
+    rows = [r for r in got["rows"] if r["kind"] in INNER_KINDS]
+    kinds = {r["kind"] for r in rows}
+    assert kinds == set(INNER_KINDS), "every kind is a row of this window"
+    assert {r["body"] for r in rows if r["kind"] in INNER_KINDS} == {"mercury", "venus"}
+    for r in rows:
+        assert r["bodies"] == [r["body"]]
+        assert r["sepDeg"] is None and r["other"] is None, r
+        assert r["moment"] is None and r["occultation"] is False, r
+        assert r["closestApproach"] is None and r["ringTiltDeg"] is None, r
+        if r["kind"] in SUN_CONJUNCTION_KINDS:
+            assert 0 < r["elongationDeg"] < 9, r
+            assert r["muted"] is True and r["mutedReason"] == "sun", r
+        else:
+            assert r["muted"] is (r["maxAlt"] < got["threshold"]), r
+            assert r["mutedReason"] == ("altitude" if r["muted"] else None), r
+            if r["kind"] == "greatestBrilliancy":
+                assert -4.6 < r["mag"] < -4.3, r
+                assert 20 <= r["elongationDeg"] < 45, r
+                assert 35 < r["diameterArcsec"] < 45, r
+            else:
+                assert 45 <= r["elongationDeg"] < 48, r
+                assert 20 < r["diameterArcsec"] < 30, r
+    assert any(not r["muted"] for r in rows), "some of them are visible tonight"

@@ -197,8 +197,9 @@ def test_headers_explain_themselves(client):
         assert bodies[col] == calendar[col]
     assert calendar["date"] == "The evening on which the observing night starts."
     assert re.search(r'exactTime:\s+"Exact time: \{time\}"', html)
-    for kind in ("opposition", "elongationEast", "elongationWest"):
-        assert re.search(kind + r':\s+"[^"]+"', html)
+    for kind in ("opposition", "elongationEast", "elongationWest", "greatestBrilliancy",
+                 "dichotomy", "inferiorConjunction", "superiorConjunction"):
+        assert re.search(kind + r':\s+"[^"]+"', html), kind
 
 
 @pytest.mark.parametrize("lang, date_label, date_help, exact", [
