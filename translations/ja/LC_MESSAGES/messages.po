@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-03 07:34+0800\n"
+"POT-Creation-Date: 2026-11-03 08:36+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -7197,8 +7197,8 @@ msgid "Shaded band across the globe: the shadow of the rings"
 msgstr "本体を横切る陰の帯：環の影"
 
 #: templates/solar_system.html:590
-msgid "Small unlabelled dots: Mimas and Enceladus"
-msgstr "ラベルのない小さな点：Mimas、Enceladus"
+msgid "Small dots: Mimas and Enceladus, named where there is room"
+msgstr "小さな点：Mimas、Enceladus、余裕があれば名前を表示"
 
 #: templates/solar_system.html:595
 msgid "Disc"
@@ -7563,25 +7563,4 @@ msgstr "データ：Open-Meteo"
 
 #~ msgid "Size ("
 #~ msgstr "サイズ ("
-
-#~ msgid "Moons tonight"
-#~ msgstr "今夜の衛星"
-
-#~ msgid "Satellite transits"
-#~ msgstr "衛星のトランジット"
-
-#~ msgid "Apparent diameter of the globe in arcseconds tonight."
-#~ msgstr "今夜の本体の視直径（秒角）。"
-
-#~ msgid "Brightness of the planet tonight: smaller is brighter."
-#~ msgstr "今夜の惑星の明るさ。数値が小さいほど明るい。"
-
-#~ msgid "behind the globe"
-#~ msgstr "本体の背後"
-
-#~ msgid "Titan next crosses the disc in %(date)s"
-#~ msgstr "Titan が次に円盤上を通過するのは %(date)s"
-
-#~ msgid "Small unlabelled dots: Mimas, Enceladus and Hyperion"
-#~ msgstr "ラベルのない小さな点：Mimas、Enceladus、Hyperion"
 

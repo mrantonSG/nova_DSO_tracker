@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-03 07:34+0800\n"
+"POT-Creation-Date: 2026-11-03 08:36+0800\n"
 "PO-Revision-Date: 2026-03-27 13:26+0800\n"
 "Last-Translator: \n"
 "Language: de\n"
@@ -7453,8 +7453,8 @@ msgid "Shaded band across the globe: the shadow of the rings"
 msgstr "Schattiertes Band über dem Planeten: der Schatten der Ringe"
 
 #: templates/solar_system.html:590
-msgid "Small unlabelled dots: Mimas and Enceladus"
-msgstr "Kleine unbeschriftete Punkte: Mimas und Enceladus"
+msgid "Small dots: Mimas and Enceladus, named where there is room"
+msgstr "Kleine Punkte: Mimas und Enceladus, benannt, wo Platz ist"
 
 #: templates/solar_system.html:595
 msgid "Disc"
@@ -7860,25 +7860,4 @@ msgstr "Daten: Open-Meteo"
 
 #~ msgid "Size ("
 #~ msgstr "Größe ("
-
-#~ msgid "Moons tonight"
-#~ msgstr "Monde heute Nacht"
-
-#~ msgid "Satellite transits"
-#~ msgstr "Monddurchgänge"
-
-#~ msgid "Apparent diameter of the globe in arcseconds tonight."
-#~ msgstr "Scheinbarer Durchmesser des Planeten in Bogensekunden heute Nacht."
-
-#~ msgid "Brightness of the planet tonight: smaller is brighter."
-#~ msgstr "Helligkeit des Planeten heute Nacht: kleiner ist heller."
-
-#~ msgid "behind the globe"
-#~ msgstr "hinter dem Planeten"
-
-#~ msgid "Titan next crosses the disc in %(date)s"
-#~ msgstr "Titan zieht das nächste Mal im %(date)s über die Scheibe"
-
-#~ msgid "Small unlabelled dots: Mimas, Enceladus and Hyperion"
-#~ msgstr "Kleine unbeschriftete Punkte: Mimas, Enceladus und Hyperion"
 
