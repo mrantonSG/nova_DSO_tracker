@@ -1899,7 +1899,7 @@
         // it is shown as the one time it is.
         const one = best && best.samples === 1;
         const tile = cardTile(tiles, 'solar-card', M.best,
-            best ? (one ? best.startHm : best.startHm + '–' + best.endHm)
+            best ? (one ? fill(M.from, {time: best.startHm}) : best.startHm + '–' + best.endHm)
                 : t.daylightOnly ? M.daylightOnly : '–',
             best ? (one ? fill(M.bestOneHelp, {time: best.startHm, threshold: Math.round(t.threshold)})
                 : fill(M.bestHelp, {minutes: best.minutes, threshold: Math.round(t.threshold)}))
@@ -1907,7 +1907,6 @@
         if (best) span(tile, best.side === 'evening' ? M.evening : M.morning, 'solar-card-tile-note');
         cardTile(tiles, 'solar-card', M.illuminated, Math.round(t.illuminated * 100) + '%',
             M.illuminatedHelp);
-        cardTile(tiles, 'solar-card', M.diameter, t.diameterArcsec.toFixed(1) + '″', M.diameterHelp);
     }
 
     /** Venus's or Mercury's disc tonight: the phase angle's terminator across it, the lit

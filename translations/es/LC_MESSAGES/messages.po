@@ -7295,6 +7295,11 @@ msgstr "Mejor ventana"
 
 #: templates/solar_system.html:571
 #, python-format
+msgid "From %(time)s"
+msgstr "Desde %(time)s"
+
+#: templates/solar_system.html:571
+#, python-format
 msgid ""
 "The longest stretch of tonight with the planet above your altitude "
 "threshold, between sunset and sunrise (about %(minutes)s min). Use the "

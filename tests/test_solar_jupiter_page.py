@@ -101,7 +101,7 @@ I18N = {
     },
     "inner": {
         "error": "INNER ERROR", "highestAt": "at {time}", "north": "N",
-        "best": "BEST WINDOW", "bestHelp": "BEST TIP {minutes} {threshold}",
+        "best": "BEST WINDOW", "from": "FROM {time}", "bestHelp": "BEST TIP {minutes} {threshold}",
         "bestOneHelp": "ONE TIP {time} {threshold}", "bestNoneHelp": "BEST NONE",
         "evening": "evening", "morning": "morning",
         "daylightOnly": "Daylight only", "daylightOnlyHelp": "DAY TIP",
@@ -692,8 +692,10 @@ def test_a_one_sample_window_is_shown_as_a_time_and_not_a_range(tmp_path):
         "the two cases are not the two shapes of window")
     assert fine["value"] == fine["best"]["startHm"] + "–" + fine["best"]["endHm"]
     assert fine["tip"] == f"BEST TIP {fine['best']['minutes']} 20"
-    assert coarse["value"] == coarse["best"]["startHm"] == coarse["hm"], (
-        "the one-sample window is not the single time the title names")
+    assert coarse["value"] == "FROM " + coarse["best"]["startHm"], (
+        "the one-sample window is not shown as 'From HH:MM'")
+    assert coarse["best"]["startHm"] == coarse["hm"], (
+        "the one-sample window's start time does not match the title's time")
     assert "–" not in coarse["value"], "a one-sample window is drawn as a range"
     assert coarse["tip"] == f"ONE TIP {coarse['hm']} 20"
 

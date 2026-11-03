@@ -568,6 +568,7 @@ const solarI18n = {
         highestAt:     {{ _('highest tonight at %(time)s', time='{time}') | tojson }},
         north:         {{ _('N') | tojson }},
         best:          {{ _('Best window') | tojson }},
+        from:          {{ _('From %(time)s', time='{time}') | tojson }},
         bestHelp:      {{ _('The longest stretch of tonight with the planet above your altitude threshold, between sunset and sunrise (about %(minutes)s min). Use the threshold of %(threshold)s° from your settings; the Sun is below the horizon throughout.', minutes='{minutes}', threshold='{threshold}') | tojson }},
         bestOneHelp:   {{ _('The one sample tonight at or above %(threshold)s°, at %(time)s: at your Calculation Precision the stretch above the threshold is narrower than a single step, so there is no range to give. A finer precision would time it.', threshold='{threshold}', time='{time}') | tojson }},
         bestNoneHelp:  {{ _('The planet does not reach your altitude threshold during tonight’s darkness at all.') | tojson }},

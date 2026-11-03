@@ -7057,6 +7057,11 @@ msgstr "最佳时段"
 
 #: templates/solar_system.html:571
 #, python-format
+msgid "From %(time)s"
+msgstr "从 %(time)s"
+
+#: templates/solar_system.html:571
+#, python-format
 msgid ""
 "The longest stretch of tonight with the planet above your altitude "
 "threshold, between sunset and sunrise (about %(minutes)s min). Use the "
