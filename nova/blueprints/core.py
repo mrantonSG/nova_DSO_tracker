@@ -73,6 +73,7 @@ from nova.helpers import (
     try_acquire_file_lock,
     release_file_lock,
 )
+from nova.grs import maybe_refresh_grs, read_grs_value
 from nova.models import (
     AnalyticsEvent,
     AnalyticsLogin,
@@ -1755,14 +1756,22 @@ def solar_system():
     Same access rules as index(). Everything astronomical is computed in the browser
     (static/js/nova_solar_rows.js on nova_planets.js) from /api/desktop_inputs; the
     page carries only the telescopes and cameras for its planetary calculator
-    (_solar_equipment).
+    (_solar_equipment) and the Great Red Spot's centrally fetched longitude.
+
+    maybe_refresh_grs only starts a daemon thread and returns at once, so a day-old
+    value never delays the page: this render uses what is already on disk, and the
+    fresh value appears on the next one. read_grs_value is None on an instance that
+    has never fetched one, and the card then falls back to its built-in default.
     """
     load_full_astro_context()
     if not (current_user.is_authenticated or nova.SINGLE_USER_MODE or getattr(g, 'is_guest', False)):
         return redirect(url_for('core.login'))
 
+    maybe_refresh_grs(current_app)
+
     return render_template('solar_system.html',
-                           solar_equipment=_solar_equipment(get_db(), getattr(g, 'db_user', None)))
+                           solar_equipment=_solar_equipment(get_db(), getattr(g, 'db_user', None)),
+                           solar_grs=read_grs_value())
 
 
 @core_bp.route('/sun_events')

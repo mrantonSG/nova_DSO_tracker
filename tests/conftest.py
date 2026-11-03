@@ -101,6 +101,7 @@ _CACHE_DIR_MODULES = (
     'nova.config',
     'nova',
     'nova.helpers',
+    'nova.grs',
     'nova.blueprints.api',
     'nova.blueprints.core',
     'nova.blueprints.tools',
