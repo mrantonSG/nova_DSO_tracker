@@ -101,7 +101,7 @@ import modules.nova_data_fetcher as nova_data_fetcher
 from ics import Calendar, Event
 import arrow
 
-from nova.config import ADMIN_USERS, CACHE_DIR, UPLOAD_FOLDER, cache_worker_status
+from nova.config import ADMIN_USERS, BACKGROUND_TASKS_DISABLED, CACHE_DIR, UPLOAD_FOLDER, cache_worker_status
 from nova.record_links import (
     adopt_unlinked_rows, components_by_uid, location_references, object_references, rig_components,
 )
@@ -157,10 +157,11 @@ def _skyglow_needs_recompute(cache_path, lat, lon, elev, sqm):
         return True
 
 
-# The key the hosted Nova skyglow service is reached with when instance/.env
-# carries no SKYGLOW_API_KEY of its own. The placeholder is inert: the check below
-# treats it as no key, so a build shipping without a real key here keeps skyglow
-# switched off instead of sending the placeholder as a credential.
+# The shared key the hosted Nova skyglow service is reached with when instance/.env
+# carries no SKYGLOW_API_KEY of its own. This is a real key, not a placeholder: it is
+# what makes skyglow work out of the box with no setup, and the check below sends it
+# like any other credential. A SKYGLOW_API_KEY in instance/.env still wins (see the
+# `or` below), so an instance with its own key never uses this one.
 DEFAULT_SKYGLOW_API_KEY = "f78213266124959a129e44d52c7a3d606382f402f338403b2926eac45466382c"
 
 
@@ -211,6 +212,9 @@ def _run_skyglow_task(app, location_id, lat, lon, elevation, sqm_zenith, bortle_
 
 def _fire_skyglow_for_locations(app, locations, instance_path):
     """Launch fire-and-forget skyglow computation threads for a list of locations."""
+    if BACKGROUND_TASKS_DISABLED:
+        print("[SKYGLOW] background tasks disabled, skipping")
+        return
     cache_dir = os.path.join(instance_path, 'skyglow')
     for loc in locations:
         uid = str(loc.id)
