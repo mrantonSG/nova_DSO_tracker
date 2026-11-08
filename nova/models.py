@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
-    create_engine, Column, Integer, Float, String, Boolean, Date,
+    create_engine, Column, Integer, Float, String, Boolean, Date, DateTime,
     ForeignKey, Text, UniqueConstraint, CheckConstraint, Table, Index, text
 )
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker, scoped_session
@@ -38,6 +38,10 @@ class DbUser(Base):
     username = Column(String(80), unique=True, nullable=False, index=True)
     password_hash = Column(String(256), nullable=True)
     active = Column(Boolean, nullable=False, default=True)
+    # Midnight UTC of the last authenticated request (multi-user only). NULL
+    # means no activity recorded yet; existing databases get the column from
+    # the users.last_seen startup patch in nova/__init__.py.
+    last_seen = Column(DateTime, nullable=True)
 
     # --- Relationships ---
     locations = relationship("Location", back_populates="user", cascade="all, delete-orphan")

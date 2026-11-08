@@ -525,6 +525,12 @@ def _run_schema_patches(conn):
     Args:
         conn: An active SQLAlchemy connection with an open transaction
     """
+    # --- users.last_seen: multi-user activity date (hosted instance) ---
+    cols_users = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(users);").fetchall()}
+    if "last_seen" not in cols_users:
+        conn.exec_driver_sql("ALTER TABLE users ADD COLUMN last_seen DATETIME;")
+        print("[DB PATCH] Added missing column users.last_seen")
+
     # --- Get table info for journal_sessions ---
     cols_journal = conn.exec_driver_sql("PRAGMA table_info(journal_sessions);").fetchall()
     colnames_journal = {row[1] for row in cols_journal}  # (cid, name, type, notnull, dflt_value, pk)
@@ -1624,6 +1630,52 @@ def apply_purge_note():
         app.logger.warning(f"[PURGE SYNC] Could not apply purge note: {e}")
 
 
+# --- Users.last_seen: one write per user per day (multi-user aggregate activity) ---
+_last_seen_day = {}  # username -> (user.id, UTC date) already written by this process
+
+
+def _touch_user_last_seen(user):
+    """Stamp today's UTC date on a user's row after an authenticated request.
+
+    At most one UPDATE per user per day: the loaded row carries last_seen, so
+    the common case costs no query; the per-process cache skips even that.
+    The write runs on its own short session so a failure cannot disturb the
+    request's session. Any error is logged at debug level and swallowed.
+    """
+    if SINGLE_USER_MODE or user is None:
+        return
+    session = None
+    try:
+        today = datetime.now(timezone.utc).date()
+        username = getattr(user, "username", None)
+        if not username or _last_seen_day.get(username) == (user.id, today):
+            return
+        last_seen = getattr(user, "last_seen", None)
+        if last_seen is not None and last_seen.date() == today:
+            _last_seen_day[username] = (user.id, today)
+            return
+        session = SessionLocal.session_factory()
+        session.query(DbUser).filter(DbUser.id == user.id).update(
+            {DbUser.last_seen: datetime(today.year, today.month, today.day)},
+            synchronize_session=False,
+        )
+        session.commit()
+        _last_seen_day[username] = (user.id, today)
+    except Exception as e:
+        if session is not None:
+            try:
+                session.rollback()
+            except Exception:
+                pass
+        app.logger.debug("[LAST SEEN] Could not record activity: %s", e)
+    finally:
+        if session is not None:
+            try:
+                session.close()
+            except Exception:
+                pass
+
+
 @app.before_request
 def _apply_purge_note_hook():
     if not SINGLE_USER_MODE:
@@ -1686,6 +1738,9 @@ def load_global_request_context():
 
         if not app_db_user:
             return
+
+        if not getattr(g, "is_guest", False):
+            _touch_user_last_seen(app_db_user)
 
         # --- Load UI Prefs (general settings) ---
         g.user_config = {}
