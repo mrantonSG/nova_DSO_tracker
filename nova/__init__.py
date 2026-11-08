@@ -174,6 +174,15 @@ DEFAULT_HTTP_TIMEOUT = 10       # Standard timeout for most HTTP requests
 TELEMETRY_TIMEOUT = 5           # Shorter timeout for telemetry pings
 from nova.config import SIMBAD_TIMEOUT  # Timeout for SIMBAD queries
 
+# Telemetry endpoint defaults.
+# LEGACY_TELEMETRY_ENDPOINT is the Google Apps Script URL baked into the
+# instance/.env of installs created before the central collector existed. It is
+# only ever compared against, never written: send_telemetry_async transparently
+# redirects that exact value to DEFAULT_TELEMETRY_ENDPOINT in memory, so .env is
+# never modified at runtime.
+LEGACY_TELEMETRY_ENDPOINT = "https://script.google.com/macros/s/AKfycbz9Up3EEFuuwcbLnXtnsagyZjoE4oASl2PIjr4qgnaNhOsXzNQJykgtzhbCINXFVCDh-w/exec"
+DEFAULT_TELEMETRY_ENDPOINT = "https://telemetry.nova-tracker.com/v1/ping"
+
 # Scoring Constants
 SCORING_WINDOW_SECONDS = 43200  # 12 hours in seconds - max observable duration for scoring
 
@@ -1348,7 +1357,7 @@ def _ensure_env_defaults(env_path: str = ENV_FILE):
         if not _has_key("INSTANCE_ID"):
             additions.append(f"INSTANCE_ID={secrets.token_hex(16)}")
         if not _has_key("NOVA_TELEMETRY_ENDPOINT"):
-            additions.append("NOVA_TELEMETRY_ENDPOINT=https://script.google.com/macros/s/AKfycbz9Up3EEFuuwcbLnXtnsagyZjoE4oASl2PIjr4qgnaNhOsXzNQJykgtzhbCINXFVCDh-w/exec")
+            additions.append(f"NOVA_TELEMETRY_ENDPOINT={DEFAULT_TELEMETRY_ENDPOINT}")
         if not _has_key("NOVA_CATALOG_URL"):
             additions.append(f"NOVA_CATALOG_URL=https://catalogs.nova-tracker.com")
 
@@ -1442,7 +1451,7 @@ if not os.path.exists(ENV_FILE):
     with open(ENV_FILE, "w") as f:
         f.write(f"SECRET_KEY={secret_key}\n")
         f.write(
-            "NOVA_TELEMETRY_ENDPOINT=https://script.google.com/macros/s/AKfycbz9Up3EEFuuwcbLnXtnsagyZjoE4oASl2PIjr4qgnaNhOsXzNQJykgtzhbCINXFVCDh-w/exec\n")
+            f"NOVA_TELEMETRY_ENDPOINT={DEFAULT_TELEMETRY_ENDPOINT}\n")
         instance_id = secrets.token_hex(16)
         f.write(f"INSTANCE_ID={instance_id}\n")
         f.write(f"NOVA_CATALOG_URL=https://catalogs.nova-tracker.com\n")
@@ -1709,7 +1718,7 @@ def load_global_request_context():
         # Multi-user, unauthenticated: guest mode only when explicitly entered via /guest.
         _gate_exempt = (
             'core.login', 'core.guest_entry', 'core.set_language', 'core.logout',
-            'core.sso_login', 'core.analytics_dashboard',
+            'core.sso_login', 'core.analytics_dashboard', 'core.analytics_json',
             'api.provision_user', 'api.deprovision_user',
             'api.get_latest_version', 'api.telemetry_ping',
             'mobile.service_worker',
@@ -2686,6 +2695,44 @@ def telemetry_mark_sent(state_dir: Path):
         pass
 
 
+def telemetry_channel() -> str:
+    """Deployment channel tag: env NOVA_TELEMETRY_CHANNEL, default 'prod'.
+
+    Carried on telemetry pings and on skyglow requests. Never raises: a missing
+    or blank value, or any read error, yields 'prod'.
+    """
+    try:
+        return (os.getenv('NOVA_TELEMETRY_CHANNEL', 'prod') or 'prod').strip() or 'prod'
+    except Exception:
+        return 'prod'
+
+
+def _telemetry_ui_language():
+    """UI language of the single-user 'default' account, read from its UiPref blob.
+
+    Read straight from the DB rather than get_locale(): the daily telemetry ping
+    runs in a daemon thread that has no request context. Returns None in
+    multi-user mode, when the preference is unset, or on any error.
+    """
+    try:
+        if not SINGLE_USER_MODE:
+            return None
+        session = SessionLocal()
+        try:
+            user = session.query(DbUser).filter_by(username="default").one_or_none()
+            if user is None:
+                return None
+            pref = session.query(UiPref).filter_by(user_id=user.id).first()
+            if pref is None or not pref.json_blob:
+                return None
+            blob = json.loads(pref.json_blob)
+            return blob.get('language') or None
+        finally:
+            session.close()
+    except Exception:
+        return None
+
+
 def build_telemetry_payload(user_config, browser_user_agent: str = ''):
     # === START REFACTOR ===
     # Get counts directly from the database, which is the single source of truth.
@@ -2756,6 +2803,8 @@ def build_telemetry_payload(user_config, browser_user_agent: str = ''):
         "journals_count": journals_count,
         "feature_usage": feature_usage,
         "login_count_30d": login_count_30d,
+        "channel": telemetry_channel(),
+        "ui_language": _telemetry_ui_language(),
     }
 
 def send_telemetry_async(user_config, browser_user_agent: str = '', force: bool = False):
@@ -2779,6 +2828,11 @@ def send_telemetry_async(user_config, browser_user_agent: str = '', force: bool 
         # Prefer env var, else fallback to user_config's telemetry.endpoint
         endpoint = (os.environ.get('NOVA_TELEMETRY_ENDPOINT', '').strip()
                     or (tcfg.get('endpoint', '') if isinstance(tcfg, dict) else ''))
+        # Installs whose .env still carries the legacy Apps Script URL are
+        # redirected to the current collector here, in memory only. Any other
+        # custom value is left untouched.
+        if endpoint == LEGACY_TELEMETRY_ENDPOINT:
+            endpoint = DEFAULT_TELEMETRY_ENDPOINT
         TELEMETRY_DEBUG_STATE['endpoint'] = endpoint
         if not endpoint:
             TELEMETRY_DEBUG_STATE['last_error'] = "no-endpoint"
@@ -2825,10 +2879,58 @@ def send_telemetry_async(user_config, browser_user_agent: str = '', force: bool 
         # print("[TELEMETRY] Outer exception:", e)
         TELEMETRY_DEBUG_STATE['last_error'] = str(e)
 
+# --- Cross-process telemetry election ---
+# Telemetry ownership is a dedicated non-blocking file lock (instance/
+# telemetry.lock), acquired lazily in the request path via the shared
+# try_acquire_file_lock helper. Only the holder sends; the returned handle is
+# kept open for the life of the process so the lock stays held. A process that
+# fails to acquire retries at most once every 10 minutes, so if the owner dies
+# the OS drops its lock and another process takes over on its next retry.
+_TELEMETRY_LOCK_RETRY_SECONDS = 600
+_telemetry_lock_fh = None
+_telemetry_lock_next_retry = 0.0
+
+
+def _telemetry_lock_path() -> str:
+    # try_acquire_file_lock appends ".lock": this resolves to instance/telemetry.lock.
+    return os.path.join(INSTANCE_PATH, "telemetry")
+
+
+def _telemetry_process_owns_send() -> bool:
+    """True in the one process holding the cross-process telemetry lock.
+
+    Acquired lazily on first call; the handle is kept open for the life of the
+    process so the lock stays held. A process that fails to acquire retries at
+    most once every 10 minutes. Independent of the background-worker election
+    (should_start_threads), so it works in reloader children too. Never raises.
+    """
+    global _telemetry_lock_fh, _telemetry_lock_next_retry
+    if BACKGROUND_TASKS_DISABLED:
+        # Unchanged disabled behaviour: no lock, no sends.
+        return False
+    if _telemetry_lock_fh is not None:
+        return True
+    now = time.monotonic()
+    if now < _telemetry_lock_next_retry:
+        return False
+    try:
+        fh = try_acquire_file_lock(_telemetry_lock_path())
+    except Exception:
+        fh = None
+    if fh is None:
+        _telemetry_lock_next_retry = now + _TELEMETRY_LOCK_RETRY_SECONDS
+        return False
+    _telemetry_lock_fh = fh  # keep open -> the lock stays held for the process lifetime
+    return True
+
+
 # --- Telemetry startup + daily scheduler ---
 def _start_telemetry_scheduler_once():
     """On first request after (re)start: send telemetry once, then schedule daily pings."""
     if BACKGROUND_TASKS_DISABLED:
+        return
+    # Only the elected worker sends: no startup ping, no daily loop elsewhere.
+    if not _telemetry_process_owns_send():
         return
     if _telemetry_startup_once.is_set():
         return
@@ -2891,10 +2993,12 @@ def _telemetry_bootstrap_hook():
         except Exception:
             pass
 
-    # 2) Only once per process, trigger a normal (throttled) send that includes UA
+    # 2) Only once per process, trigger a normal (throttled) send that includes UA.
+    # The elected worker sends it on its first HTML request; other workers skip.
     try:
         if not current_app.config.get("_UA_BOOTSTRAP_SENT", False):
-            if is_get and accepts_html and not is_static and not is_telemetry:
+            if is_get and accepts_html and not is_static and not is_telemetry \
+                    and _telemetry_process_owns_send():
                 ua = current_app.config.get("_LAST_UA", "")  # use the cached UA
 
                 # Resolve a username to load config for telemetry enabled flag, etc.
@@ -3094,6 +3198,11 @@ def ensure_telemetry_defaults():
 def telemetry_startup_ping_once():
     # Emulate old before_first_request semantics with a thread-safe guard
     if not _telemetry_startup_once.is_set():
+        # Claim the once-flag only once this process actually owns the lock: a
+        # non-owner that later takes over must still be able to start its daily
+        # loop, which is gated on the same flag.
+        if not _telemetry_process_owns_send():
+            return
         _telemetry_startup_once.set()
         try:
             username = "default" if SINGLE_USER_MODE else (current_user.username if current_user.is_authenticated else "guest_user")

@@ -9,6 +9,7 @@ Auth & utility routes: login, logout, SSO, language setting, favicon, uploaded i
 # =============================================================================
 import datetime
 from datetime import timedelta
+import hmac
 import json
 import os
 import subprocess
@@ -91,7 +92,7 @@ from nova.models import (
     UserCustomFilter,
 )
 from nova.journal_rows import build_journal_rows, GRAPH_SESSION_JS_FIELDS
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 import calendar
 
 from modules.astro_calculations import calculate_sun_events_cached, calculate_moon_phase_cached, calculate_observable_duration_vectorized
@@ -101,7 +102,7 @@ import modules.nova_data_fetcher as nova_data_fetcher
 from ics import Calendar, Event
 import arrow
 
-from nova.config import ADMIN_USERS, BACKGROUND_TASKS_DISABLED, CACHE_DIR, UPLOAD_FOLDER, cache_worker_status
+from nova.config import ADMIN_USERS, APP_VERSION, BACKGROUND_TASKS_DISABLED, CACHE_DIR, UPLOAD_FOLDER, cache_worker_status
 from nova.record_links import (
     adopt_unlinked_rows, components_by_uid, location_references, object_references, rig_components,
 )
@@ -186,13 +187,11 @@ def _run_skyglow_task(app, location_id, lat, lon, elevation, sqm_zenith, bortle_
             response = requests.post(
                 service_url,
                 json={'lat': lat, 'lon': lon, 'elev_m': elev, 'sqm_zenith': sqm},
-                headers={'X-API-Key': api_key},
+                headers={'X-API-Key': api_key, 'X-Nova-Channel': nova.telemetry_channel()},
                 timeout=120
             )
             response.raise_for_status()
             horizon = response.json()
-            record_event('skyglow_computed')
-            record_event('skyglow_cache_hit' if horizon.get('cache_hit') else 'skyglow_cache_miss')
             os.makedirs(cache_dir, exist_ok=True)
             out_path = os.path.join(cache_dir, f"{location_id}.json")
             horizon['_meta'] = {
@@ -2046,6 +2045,117 @@ def analytics_dashboard():
         today_str=today.strftime('%b %d'),
         days_count=days_count
     )
+
+
+# Account KINDS excluded from /analytics.json user aggregates (never names).
+_ANALYTICS_EXCLUDED_KINDS = ("admin", "default", "guest")
+
+
+def _analytics_excluded_usernames():
+    """Usernames excluded from the /analytics.json user aggregates."""
+    return set(ADMIN_USERS) | {"default", "guest_user"}
+
+
+def _provisioned_account_count():
+    """Active accounts in users.db (the auth DB), excluding ADMIN_USERS.
+
+    Multi-user only. Returns None in single-user mode or if the auth DB can't
+    be read. Never raises.
+    """
+    try:
+        import nova.auth as _auth
+        if _auth.db is None:
+            return None
+        rows = _auth.db.session.scalars(_auth.db.select(_auth.User)).all()
+        return sum(1 for u in rows
+                   if getattr(u, "active", True)
+                   and getattr(u, "username", None) not in ADMIN_USERS)
+    except Exception:
+        return None
+
+
+def _dbuser_activity_counts(session):
+    """(used_app, active_7d, active_30d) from app.db `users`, exclusions applied.
+
+    active_7d / active_30d are exact 7- and 30-day windows including today:
+    last_seen >= today-6 and last_seen >= today-29 (midnight boundaries).
+    """
+    excluded = _analytics_excluded_usernames()
+    base = session.query(DbUser).filter(
+        DbUser.active.is_(True), ~DbUser.username.in_(excluded)
+    )
+
+    def _midnight(day):
+        return datetime(day.year, day.month, day.day)
+
+    today = date.today()
+    cut7 = _midnight(today - timedelta(days=6))
+    cut30 = _midnight(today - timedelta(days=29))
+    return (
+        base.count(),
+        base.filter(DbUser.last_seen >= cut7).count(),
+        base.filter(DbUser.last_seen >= cut30).count(),
+    )
+
+
+@core_bp.route('/analytics.json')
+def analytics_json():
+    """
+    Machine-readable analytics aggregates. Same secret gate as /analytics
+    (ANALYTICS_SECRET via ?secret=), compared with hmac.compare_digest.
+    Aggregates only: no usernames, no per-user rows.
+    """
+    secret = os.getenv('ANALYTICS_SECRET', '')
+    provided = request.args.get('secret', '')
+    if not secret or not provided or not hmac.compare_digest(provided, secret):
+        abort(403)
+
+    today = date.today()
+    since = today - timedelta(days=89)  # 90 distinct days, inclusive of today
+
+    session = SessionLocal()
+    try:
+        event_rows = session.query(
+            AnalyticsEvent.date, AnalyticsEvent.event_name, AnalyticsEvent.count
+        ).filter(
+            AnalyticsEvent.date >= since, AnalyticsEvent.date <= today
+        ).order_by(AnalyticsEvent.date, AnalyticsEvent.event_name).all()
+
+        login_rows = session.query(
+            AnalyticsLogin.date, AnalyticsLogin.login_count
+        ).filter(
+            AnalyticsLogin.date >= since, AnalyticsLogin.date <= today
+        ).order_by(AnalyticsLogin.date).all()
+
+        users = None
+        if not nova.SINGLE_USER_MODE:
+            used_app, active_7d, active_30d = _dbuser_activity_counts(session)
+            users = {
+                "provisioned": _provisioned_account_count(),
+                "used_app": used_app,
+                "active_7d": active_7d,
+                "active_30d": active_30d,
+                "excluded": list(_ANALYTICS_EXCLUDED_KINDS),
+            }
+    finally:
+        session.close()
+
+    return jsonify({
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "app_version": APP_VERSION,
+        "mode": "single" if nova.SINGLE_USER_MODE else "multi",
+        "users": users,
+        "events_daily": [
+            {"date": d.isoformat(), "event": name, "count": int(count)}
+            for (d, name, count) in event_rows
+        ],
+        "logins_daily": [
+            {"date": d.isoformat(), "count": int(count)}
+            for (d, count) in login_rows
+        ],
+    })
+
+
 @core_bp.route('/graph_dashboard/<path:object_name>')
 def graph_dashboard(object_name):
     from nova import STELLARIUM_API_URL_BASE
