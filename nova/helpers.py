@@ -585,6 +585,19 @@ def save_log_to_filesystem(session_id: int, log_type: str, content: str, origina
     return os.path.join('instance', 'logs', log_type, filename)
 
 
+def log_file_path(db_value: str) -> str:
+    """The absolute path a stored log value names, or "" when it is raw content.
+
+    The same resolution read_log_content() does, exposed so a caller that needs
+    the path itself (instance sync's file export) does not have to repeat it.
+    """
+    if not is_log_path(db_value):
+        return ""
+    if db_value.startswith('instance/'):
+        return os.path.join(os.path.dirname(INSTANCE_PATH), db_value)
+    return db_value
+
+
 def read_log_content(db_value: str) -> str:
     """
     Read log content from either filesystem path or raw content.
@@ -601,11 +614,7 @@ def read_log_content(db_value: str) -> str:
     # Check if it's a filesystem path (no newlines = path, has newlines = raw content)
     if '\n' not in db_value and db_value.startswith('instance/logs/'):
         # It's a filesystem path - read from file
-        # Convert relative path to absolute
-        if db_value.startswith('instance/'):
-            filepath = os.path.join(os.path.dirname(INSTANCE_PATH), db_value)
-        else:
-            filepath = db_value
+        filepath = log_file_path(db_value)
 
         try:
             with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
@@ -622,6 +631,43 @@ def is_log_path(db_value: str) -> bool:
     if not db_value:
         return False
     return '\n' not in db_value and db_value.startswith('instance/logs/')
+
+
+def log_owner_session_id(filename: str) -> str:
+    """The session id a log filename is prefixed with ("278_Autorun_Log.txt" -> "278").
+
+    Empty string when the name carries no "<digits>_" prefix.
+    save_log_to_filesystem builds every name this way, and purge matches on it.
+    """
+    head, sep, _tail = (filename or "").partition("_")
+    return head if sep and head.isdigit() else ""
+
+
+# === Derived image files ===
+
+def thumb_path_for(image_path: str) -> str:
+    """The thumbnail path that belongs beside a live image path."""
+    return os.path.join(os.path.dirname(image_path),
+                        "thumb_" + os.path.basename(image_path))
+
+
+def remove_thumbnail(image_path: str) -> bool:
+    """Delete the derived thumbnail of `image_path`, if one is on disk.
+
+    A thumbnail is regenerated on first read (journal_rows.session_image_url for
+    session photos, the project block in core.graph_dashboard for project
+    images), so one left over from a replaced original is stale and must go.
+    Best effort: a failure here must never fail the request that is replacing
+    the original. Returns True when a file was removed.
+    """
+    try:
+        path = thumb_path_for(image_path)
+        if os.path.isfile(path):
+            os.remove(path)
+            return True
+    except OSError as e:
+        print(f"[THUMB] Could not remove thumbnail for {image_path}: {e}")
+    return False
 
 
 # === Data conversion helpers ===
@@ -1839,6 +1885,14 @@ def purge_user_app_data(username: str, dry_run: bool = True) -> dict:
 
     # --- Files: collect (path, base) pairs; everything must stay inside its base ---
     candidates = [(os.path.join(UPLOAD_FOLDER, username), UPLOAD_FOLDER)]
+    if user_id is not None:
+        # Instance sync keeps its own copies of a user's files under instance/:
+        # files staged for a transfer that never completed, and files moved
+        # aside by a Download from server. Both hold this user's bytes only.
+        candidates.append((os.path.join(INSTANCE_PATH, "sync_staging", str(user_id)),
+                           os.path.join(INSTANCE_PATH, "sync_staging")))
+        candidates.append((os.path.join(INSTANCE_PATH, "replaced", str(user_id)),
+                           os.path.join(INSTANCE_PATH, "replaced")))
     for name in (f"config_{username}.yaml", f"journal_{username}.yaml", f"rigs_{username}.yaml"):
         candidates.append((os.path.join(CONFIG_DIR, name), CONFIG_DIR))
 

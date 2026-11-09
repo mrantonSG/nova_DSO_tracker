@@ -48,16 +48,22 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
+import shutil
+import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Any, Iterable, Mapping, NamedTuple, Optional
 
-from sqlalchemy import and_, func, insert as sa_insert, or_, select, text
+from sqlalchemy import and_, func, insert as sa_insert, or_, select, text, Text
 from sqlalchemy import delete as sa_delete, update as sa_update
 from sqlalchemy.orm import selectinload
 
-from nova.helpers import release_file_lock, try_acquire_file_lock
+from nova.helpers import (
+    log_file_path, log_owner_session_id, release_file_lock, try_acquire_file_lock,
+)
+from nova.config import UPLOAD_FOLDER
 from nova.models import (
     INSTANCE_PATH,
     AstroObject,
@@ -93,11 +99,111 @@ PAYLOAD_FORMAT = 1
 KEY_CHANGED_AT = "sync_changed_at"
 KEY_HORIZON = "horizon_mask"
 KEY_PROJECT_IDS = "project_ids"
-RESERVED_KEYS = (KEY_CHANGED_AT, KEY_HORIZON, KEY_PROJECT_IDS)
+KEY_FILES = "__files__"
+RESERVED_KEYS = (KEY_CHANGED_AT, KEY_HORIZON, KEY_PROJECT_IDS, KEY_FILES)
 
 # The one natural key a ui_prefs record carries. Its real key is the user's row
 # id, which is instance-local and must not travel.
 UI_PREF_KEY = "self"
+
+# --- File transfer (step 4) ---------------------------------------------------
+
+# A note's link to an image, canonicalised for the wire: user-independent, and
+# impossible to mistake for a filesystem path or for anything a browser serves.
+FILE_TOKEN = "nova-file:"
+FILE_TOKEN_MISSING = "nova-file-missing:"
+
+# The URL shape a rich-text column stores today, and that the canonical form
+# replaces: /uploads/<username>/<filename>. The username segment is the part
+# that must not travel.
+_UPLOAD_LINK = re.compile(r"/uploads/([^/\"'\\\s<>]+)/([^/\"'\\\s<>]+)")
+
+# The three places Trix repeats one image: the attachment JSON (HTML-escaped, so
+# the whole path sits between &quot;), an <img src>, an <a href>. Each pattern
+# captures its own delimiters rather than looking around them: Python's re has
+# no variable-width look-behind, and `&quot;` and `&#34;` are different widths.
+# The replacement puts the delimiters back untouched, so the text is unchanged
+# except for the path.
+_HTML_ESCAPED_UPLOAD_LINK = re.compile(
+    r"(?P<open>&quot;|&#34;)/uploads/"
+    r"(?P<user>[^/\"'\s<>:]+)/(?P<name>[^/\"'\s<>:]+)"
+    r"(?P<close>&quot;|&#34;)")
+_HTML_ATTR_UPLOAD_LINK = re.compile(
+    r"(?P<open>\b(?:src|href)=\")/uploads/"
+    r"(?P<user>[^/\"'\s<>]+)/(?P<name>[^/\"'\s<>]+)(?P<close>\")")
+
+# The canonical-token shapes accepted in an incoming record (validation).
+_FILE_TOKEN = re.compile(r"nova-file:([0-9a-f]{64})\.([a-z0-9]{1,8})")
+_FILE_TOKEN_ANY = re.compile(r"nova-file(?:-missing)?:")
+_FILE_TOKEN_MISSING = re.compile(r"nova-file-missing:([^\"'\s<>]+)")
+_HEX64 = re.compile(r"[0-9a-f]{64}")
+
+# A link form this instance must never write into a column (see localize_text).
+_UPLOAD_USERNAME = re.compile(r"/uploads/[^/\"'\s<>]+/")
+
+# --- File roles and their caps ------------------------------------------------
+
+ROLE_SESSION_PHOTO = "session_photo"
+ROLE_PROJECT_IMAGE = "project_image"
+ROLE_NOTE_IMAGE = "note_image"
+ROLE_SESSION_LOG = "session_log"
+
+# Per-role transfer caps. These are the SYNC caps, not the app's upload caps: a
+# file above its cap is skipped and reported, never queued (a file that is
+# skipped will never arrive, and a pending entry would hold the watermark for
+# ever). session photo matches the 5 MB the upload route enforces; project
+# images and note images have no route cap today, so these are the only limit
+# a sync sees.
+MAX_SYNC_FILE_BYTES = {
+    ROLE_SESSION_PHOTO: 5 * 1024 * 1024,
+    ROLE_SESSION_LOG: 10 * 1024 * 1024,
+    ROLE_NOTE_IMAGE: 10 * 1024 * 1024,
+    ROLE_PROJECT_IMAGE: 50 * 1024 * 1024,
+}
+
+# The image extensions an upload route accepts (nova/config.py's
+# ALLOWED_EXTENSIONS) and the log extensions save_log_to_filesystem is used with.
+IMAGE_EXTENSIONS = frozenset({"png", "jpg", "jpeg", "gif"})
+LOG_EXTENSIONS = {"asiair": "txt", "phd2": "txt", "nina": "log"}
+
+# The log type a FILE column names. A ref built from a record carries the column
+# name in `slot`; a ref built from a file on disk carries the type. Both must
+# resolve to the same directory, so the two spellings meet here.
+LOG_TYPE_BY_SLOT = {"asiair_log_content": "asiair", "phd2_log_content": "phd2",
+                    "nina_log_content": "nina"}
+
+
+def log_type_of(slot: str) -> str:
+    """The log directory a ref's `slot` names, whichever spelling it uses."""
+    if slot in LOG_EXTENSIONS:
+        return slot
+    return LOG_TYPE_BY_SLOT.get(slot, "")
+
+# Why a file is reported instead of transferred.
+SKIP_MISSING = "missing_on_sender"
+SKIP_TOO_LARGE = "over_cap"
+SKIP_UNSUPPORTED = "unsupported_type"
+SKIP_FOREIGN = "not_this_users_file"
+
+# The FILE columns, by model, and the role each carries.
+_FILE_SLOTS: dict[type, dict[str, tuple[str, str]]] = {
+    JournalSession: {
+        "session_image_file": (ROLE_SESSION_PHOTO, "session_image_file"),
+        "asiair_log_content": (ROLE_SESSION_LOG, "asiair"),
+        "phd2_log_content": (ROLE_SESSION_LOG, "phd2"),
+        "nina_log_content": (ROLE_SESSION_LOG, "nina"),
+    },
+    Project: {
+        "final_image_file": (ROLE_PROJECT_IMAGE, "final_image_file"),
+    },
+}
+
+# Where a staged file lands. Under instance/ on purpose: the final move is a
+# same-filesystem os.replace and therefore atomic.
+STAGING_DIRNAME = "sync_staging"
+# Where a Download from server moves the files it displaces. Never deleted by
+# sync in this release; purge removes it with the user.
+REPLACED_DIRNAME = "replaced"
 
 # --- Tunables ----------------------------------------------------------------
 
@@ -128,6 +234,14 @@ REFUSAL_UNKNOWN_TABLE = "unknown_table"
 REFUSAL_UNKNOWN_COLUMN = "unknown_column"
 REFUSAL_UNCLASSIFIED_COLUMN = "unclassified_column"
 REFUSAL_BAD_FORMAT = "bad_format"
+# A file token in a record the payload cannot explain, or in a place a file
+# token may not appear (correction G).
+REFUSAL_DANGLING_FILE = "dangling_file_token"
+REFUSAL_FILE_TOKEN_COLUMN = "file_token_in_non_text_column"
+REFUSAL_BAD_FILE_REF = "bad_file_reference"
+REFUSAL_FILE_VERIFY = "file_verification_failed"
+REFUSAL_FILE_TOO_LARGE = "file_over_cap"
+REFUSAL_NO_DISK_SPACE = "insufficient_disk_space"
 
 # --- Action ops --------------------------------------------------------------
 
@@ -494,6 +608,209 @@ class SyncRefused(Exception):
         self.refusal = refusal
 
 
+# --- Files: identity ----------------------------------------------------------
+#
+# A file is content. Its identity on the wire is its sha256 plus a role, never
+# its name: the receiver keeps its own naming scheme (<session id>.<ext>,
+# project_<id>.<ext>, note_img_<fresh hex>.<ext>, <session id>_<name>), so code
+# that builds a path keeps working, and the same photo on two instances is the
+# same file even though both call it something else.
+
+@dataclass(frozen=True)
+class FileRef:
+    """One file a record references, as the wire describes it."""
+
+    role: str                       # ROLE_*
+    table: str                      # the owning table
+    key: str                        # the owning record's natural key
+    slot: str                       # the column, or "note_img" for rich text
+    sha256: str = ""                # "" when the file is missing on this side
+    size: int = 0
+    ext: str = ""
+    name: str = ""                  # display only; never used to build a path
+    missing: bool = False
+    reason: str = ""                # SKIP_* when the file cannot travel
+
+    @property
+    def ident(self) -> str:
+        """A stable one-file key: two refs with the same ident are the same file."""
+        return self.sha256 or f"missing:{self.table}:{self.key}:{self.slot}:{self.name}"
+
+    def descriptor(self) -> dict:
+        """The entry this ref contributes to a payload's `files` manifest."""
+        return {"role": self.role, "size": int(self.size or 0),
+                "ext": self.ext, "name": self.name}
+
+
+def file_cap(role: str) -> int:
+    """The largest file of `role` a sync will carry."""
+    return MAX_SYNC_FILE_BYTES.get(role, 0)
+
+
+def _sha256_of(path: str) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _role_ext_ok(role: str, ext: str) -> bool:
+    if role in (ROLE_SESSION_PHOTO, ROLE_PROJECT_IMAGE, ROLE_NOTE_IMAGE):
+        return ext in IMAGE_EXTENSIONS
+    if role == ROLE_SESSION_LOG:
+        return ext in ("txt", "log")
+    return False
+
+
+def _ref_for_path(*, role: str, table: str, key: str, slot: str, path: str,
+                  name: str = "", ext: str = "") -> FileRef:
+    """The ref of a path on this instance's own disk, or a skipped one.
+
+    Every reason a file cannot travel is decided here, so the manifest and the
+    plan agree by construction:
+      * unsupported extension or role -> SKIP_UNSUPPORTED
+      * not on disk                   -> SKIP_MISSING (a missing: ref)
+      * larger than the role's cap    -> SKIP_TOO_LARGE
+    """
+    name = name or os.path.basename(path or "")
+    ext = (ext or (name.rsplit(".", 1)[1].lower() if "." in name else ""))
+    base = dict(role=role, table=table, key=key, slot=slot, name=name, ext=ext)
+    if not _role_ext_ok(role, ext):
+        return FileRef(**base, missing=True, reason=SKIP_UNSUPPORTED)
+    if not path or not os.path.isfile(path):
+        return FileRef(**base, missing=True, reason=SKIP_MISSING)
+    try:
+        size = os.path.getsize(path)
+        if size > file_cap(role):
+            return FileRef(**base, size=size, missing=True, reason=SKIP_TOO_LARGE)
+        return FileRef(**base, sha256=_sha256_of(path), size=size)
+    except OSError:
+        return FileRef(**base, missing=True, reason=SKIP_MISSING)
+
+
+# --- Files: rich text ---------------------------------------------------------
+
+def _user_upload_root(user, instance_path: str = None) -> str:
+    """This instance's upload directory for `user` (absolute).
+
+    `instance_path` overrides the configured root for tests and for callers that
+    operate on a copy; UPLOAD_FOLDER is INSTANCE_PATH/uploads, so the override
+    keeps the two in step.
+    """
+    if instance_path:
+        return os.path.join(instance_path, "uploads",
+                            getattr(user, "username", "") or "")
+    return os.path.join(UPLOAD_FOLDER, getattr(user, "username", "") or "")
+
+
+def _resolve_own_image(user, filename: str, instance_path: str = None) -> str:
+    """The path of `filename` inside this user's own upload dir, or "".
+
+    Only this user's directory is ever consulted (correction F): a link to
+    anyone else's folder — a shared note written on another account — is a
+    missing file, never a read of someone else's bytes.
+    """
+    if not filename or filename != os.path.basename(filename):
+        return ""
+    root = os.path.realpath(_user_upload_root(user, instance_path))
+    path = os.path.realpath(os.path.join(root, filename))
+    if os.path.commonpath([path, root]) != root or path == root:
+        return ""
+    return path if os.path.isfile(path) else ""
+
+
+def canonicalize_text(db, user, model: type, column: str, text: str,
+                      key: str = "", instance_path: str = None,
+                      skipped: Optional[list] = None):
+    """`text` with every image link replaced by a user-independent token.
+
+    Returns (canonical text, [FileRef]). Three link shapes are handled and each
+    replacement covers the whole URL, so the three or four copies Trix writes
+    for one image all collapse in one pass:
+        /uploads/<user>/note_img_x.jpg          (plain text)
+        &quot;/uploads/<user>/note_img_x.jpg&quot; (attachment JSON, HTML-escaped)
+        src="/uploads/<user>/note_img_x.jpg"    (img and anchor attributes)
+    A file that is not in THIS user's upload dir becomes a name-only
+    nova-file-missing: token: the username still comes off the wire, and no
+    other user's bytes ever enter a payload.
+
+    `key` is the owning record's natural key, carried on the refs so a transfer
+    failure can name the record to re-request. `instance_path` overrides the
+    configured root so a caller working on a copy resolves its own files.
+    """
+    if not isinstance(text, str) or not text:
+        return text, []
+    if "/uploads/" not in text:
+        return text, []
+
+    refs: dict[str, FileRef] = {}
+
+    def resolve(_username_segment: str, filename: str) -> str:
+        path = _resolve_own_image(user, filename, instance_path)
+        ref = (None if path else FileRef(
+            role=ROLE_NOTE_IMAGE, table=model.__tablename__, key=key,
+            slot="note_img", name=filename, missing=True, reason=SKIP_FOREIGN))
+        if ref is None:
+            ref = _ref_for_path(role=ROLE_NOTE_IMAGE, table=model.__tablename__,
+                                key=key, slot="note_img", path=path,
+                                name=filename)
+        if ref.missing:
+            # Not this user's, not on disk, or untilable (unsupported type or
+            # over its cap): the link cannot travel as bytes, so it travels as
+            # a name and the export reports it. The caller passes a list when it
+            # wants the reason (correction E: reported, never queued).
+            if skipped is not None:
+                skipped.append(ref)
+            return FILE_TOKEN_MISSING + filename
+        refs.setdefault(ref.sha256, ref)
+        return f"{FILE_TOKEN}{ref.sha256}.{ref.ext}"
+
+    # Attachment JSON first: the whole path is already between &quot;, and a
+    # bare pass over it would leave the quotes intact but match a second time.
+    text = _HTML_ESCAPED_UPLOAD_LINK.sub(
+        lambda m: m.group("open") + resolve(m.group("user"), m.group("name"))
+        + m.group("close"), text)
+    text = _HTML_ATTR_UPLOAD_LINK.sub(
+        lambda m: m.group("open") + resolve(m.group("user"), m.group("name"))
+        + m.group("close"), text)
+    text = _UPLOAD_LINK.sub(lambda m: resolve(m.group(1), m.group(2)), text)
+    return text, list(refs.values())
+
+
+def _local_url(filename: str, username: str = "") -> str:
+    """This instance's URL for a file it just stored for `username`."""
+    return f"/uploads/{username}/{filename}"
+
+
+def localize_text(model: type, column: str, text: str, mapping: Mapping[str, str],
+                  username: str = "") -> str:
+    """The canonical form back to this instance's own /uploads/ URLs.
+
+    `mapping` is sha256 -> the local filename the receiver chose. A token whose
+    digest is absent becomes a link to the digest-derived name, which 404s
+    exactly as a broken link does today: no half-written file, no other user's
+    directory.
+
+    `username` is passed in rather than read from a global: the function stays
+    pure, and a request can never leak its own identity into an apply.
+    """
+    if not isinstance(text, str) or "nova-file" not in text:
+        return text
+
+    def replace_sha(match):
+        digest, ext = match.group(1), match.group(2)
+        name = mapping.get(digest)
+        if not name:
+            return _local_url(f"{digest}.{ext}", username)
+        return _local_url(name, username)
+
+    # A missing token is already a filename: it only needs the URL prefix.
+    text = _FILE_TOKEN_MISSING.sub(
+        lambda m: _local_url(m.group(1), username), text)
+    return _FILE_TOKEN.sub(replace_sha, text)
+
+
 # --- Plan objects ------------------------------------------------------------
 
 class Renamed(NamedTuple):
@@ -567,6 +884,24 @@ class MergePlan:
     # (table, key) records this plan could not place yet. The apply reports
     # them back so the caller does not move its watermark past them.
     deferred: list = field(default_factory=list)
+    # FileRefs this plan needs on this disk, and the ones it cannot get. A
+    # pending entry is a file that should arrive and did not: the watermark
+    # holds, exactly as it does for a deferred record. A skipped entry is a
+    # file that will never arrive (over its cap, or missing on the sender):
+    # the record syncs without it, and holding the watermark would hold it for
+    # ever.
+    files: list = field(default_factory=list)
+    # Every (record, slot) needing a physical placement, not deduped: `files`
+    # is what to fetch (one copy per digest), this is what to move into place.
+    placements: list = field(default_factory=list)
+    pending_files: list = field(default_factory=list)
+    skipped_files: list = field(default_factory=list)
+    # Files a sync delete or replace leaves unreferenced. Reported, never
+    # deleted in this release.
+    orphaned_files: list = field(default_factory=list)
+    # The manifest the payload carried, so the apply knows what the sender can
+    # actually send and which tokens resolve.
+    manifest: dict = field(default_factory=dict)
 
     @property
     def has_verbatim(self) -> bool:
@@ -593,6 +928,12 @@ class MergePlan:
             "conflicts": [c._asdict() for c in self.conflicts],
             "refusals": [r._asdict() for r in self.refusals],
             "totals": self.totals._asdict(),
+            "files": {
+                "needed": len(self.files),
+                "bytes": sum(int(r.size or 0) for r in self.files),
+                "skipped": len(self.skipped_files),
+            },
+            "orphaned_files": [_ref_summary(r) for r in self.orphaned_files],
         }
 
 
@@ -616,6 +957,25 @@ class MergeResult:
     # (table, key) records this apply could not place. record_push_accepted
     # leaves the watermark alone when it is non-empty, so they are re-offered.
     deferred: list = field(default_factory=list)
+    # (table, key, slot, sha256) files that should have arrived and did not.
+    # Same effect on the watermark as `deferred`.
+    pending_files: list = field(default_factory=list)
+    # (table, key, slot, sha256) files staged and moved into place by
+    # commit_staged_files. Empty until it runs.
+    placed_files: list = field(default_factory=list)
+    # Files this apply left unreferenced. Reported, never deleted.
+    orphaned_files: list = field(default_factory=list)
+    # Files the payload reported but could not carry (over cap, not on the
+    # sender, not this user's). Reported, never pending: a file that will never
+    # arrive must not hold the watermark for ever.
+    skipped_files: list = field(default_factory=list)
+    # The refs the apply's rows need. commit_staged_files() reads this; it is
+    # not JSON, so it stays out of any summary.
+    files_expected: list = field(default_factory=list)
+    # A download's displaced files, moved aside by move_replaced_files() after
+    # the commit. (name, size) pairs; nothing here was deleted.
+    replaced_files: list = field(default_factory=list)
+    replaced_bytes: int = 0
 
 
 @dataclass
@@ -627,10 +987,34 @@ class DownloadPlan:
     inserting: dict = field(default_factory=dict)
     refusals: list = field(default_factory=list)
     fingerprint: str = ""
+    # The files the snapshot brings, and the ones it leaves behind.
+    files: list = field(default_factory=list)
+    # Every (record, slot) needing a physical placement, not deduped by digest.
+    placements: list = field(default_factory=list)
+    skipped_files: list = field(default_factory=list)
+    # Files a replacement would move aside into instance/replaced/<user>/.
+    replaced: list = field(default_factory=list)
+    replaced_bytes: int = 0
 
     @property
     def refused(self) -> bool:
         return bool(self.refusals)
+
+    def summary(self) -> dict:
+        """The dialog's view: what is wiped, what arrives, what is moved aside."""
+        return {
+            "side": "local",
+            "wiping": dict(self.wiping),
+            "inserting": dict(self.inserting),
+            "refusals": [r._asdict() for r in self.refusals],
+            "files": {
+                "incoming": len(self.files),
+                "bytes": sum(int(r.size or 0) for r in self.files),
+                "skipped": len(self.skipped_files),
+                "replaced": len(self.replaced),
+                "replaced_bytes": int(self.replaced_bytes),
+            },
+        }
 
 
 # --- Payload helpers ---------------------------------------------------------
@@ -648,7 +1032,7 @@ def _record_values(model: type, record: Mapping[str, Any]) -> dict:
             continue
         raw = record[column]
         values[column] = parse_date(raw) if column in _DATE_COLUMNS else raw
-    for reserved in (KEY_HORIZON, KEY_PROJECT_IDS):
+    for reserved in (KEY_HORIZON, KEY_PROJECT_IDS, KEY_FILES):
         if reserved in record:
             values[reserved] = record[reserved]
     # Carried so a write stored exactly as received keeps the sender's stamp:
@@ -658,12 +1042,36 @@ def _record_values(model: type, record: Mapping[str, Any]) -> dict:
     return values
 
 
-def record_to_payload(model: type, row: Any) -> dict:
-    """One row as a payload record: synced columns, links as UIDs, plus sets."""
+def record_to_payload(model: type, row: Any, *, user=None,
+                      instance_path: str = None) -> dict:
+    """One row as a payload record: synced columns, links as UIDs, plus sets.
+
+    With `user`, the FILE columns (`__files__`) and every rich-text image link
+    are carried in their canonical, receiver-independent form. Without it the
+    record is the step-3 shape, unchanged.
+    """
     out: dict[str, Any] = {}
+    key = row_key(model, row)
+    rich = RICH_TEXT_COLUMNS.get(model, ())
     for column in sync_columns(model):
-        out[column] = to_iso(getattr(row, column))
+        value = to_iso(getattr(row, column))
+        if user is not None and column in rich:
+            value, _refs = canonicalize_text(None, user, model, column, value, key,
+                                             instance_path)
+        out[column] = value
     out[KEY_CHANGED_AT] = to_iso(row.sync_changed_at)
+    if user is not None and model in _FILE_SLOTS:
+        slots: dict[str, str] = {}
+        for slot in _FILE_SLOTS[model]:
+            ref = _slot_ref(model, row, slot, _FILE_SLOTS[model][slot][0], user,
+                            instance_path)
+            if ref.missing:
+                continue
+            # In this user's own naming scheme when it travels, never the
+            # sender's name: the receiver rebuilds <local id>.<ext>.
+            slots[slot] = ref.sha256
+        if slots:
+            out[KEY_FILES] = slots
     if model is Location:
         out[KEY_HORIZON] = [
             [point.az_deg, point.alt_min_deg]
@@ -683,6 +1091,612 @@ def _tombstone_to_payload(tombstone: SyncTombstone) -> dict:
         "key": key,
         "deleted_at": to_iso(tombstone.deleted_at),
     }
+
+
+# --- Files: what a row references ---------------------------------------------
+
+# The SYNC text columns that can hold a rich-text /uploads/ link. A new note
+# column must be listed here or its images will not travel: the guard test
+# checks that every listed name is a real SYNC column, not that every SYNC text
+# column is listed (a name or a number cannot carry a link).
+RICH_TEXT_COLUMNS: dict[type, tuple[str, ...]] = {
+    AstroObject: ("project_name", "shared_notes", "image_url"),
+    JournalSession: ("notes",),
+    Project: ("description_notes", "framing_notes", "processing_notes", "goals"),
+}
+
+
+def _slot_ref(model: type, row, slot: str, role: str, user,
+              instance_path: str = None) -> FileRef:
+    """The ref one FILE column of `row` carries (photo, project image, log)."""
+    key = row_key(model, row)
+    value = getattr(row, slot, None)
+    if not value:
+        return FileRef(role=role, table=model.__tablename__, key=key, slot=slot,
+                       missing=True, reason=SKIP_MISSING)
+    if role == ROLE_SESSION_LOG:
+        # Path form and raw-content form both end up as bytes on the wire: a
+        # raw content value is a legacy row and is read as its own text.
+        path = _log_path(value, instance_path)
+        name = os.path.basename(path) if path else f"{row.external_id or row.id}.log"
+        ext = (name.rsplit(".", 1)[1].lower() if "." in name else "txt")
+        base = dict(role=role, table=model.__tablename__, key=key, slot=slot,
+                    name=name, ext=ext)
+        if not path:
+            # Raw content in the column: a file that exists only in the DB.
+            try:
+                payload = value.encode("utf-8", errors="ignore")
+            except Exception:
+                return FileRef(**base, missing=True, reason=SKIP_UNSUPPORTED)
+            if len(payload) > file_cap(role):
+                return FileRef(**base, size=len(payload), missing=True,
+                               reason=SKIP_TOO_LARGE)
+            return FileRef(**base, sha256=hashlib.sha256(payload).hexdigest(),
+                           size=len(payload))
+        # Correction F: only a log whose filename prefix is one of THIS user's
+        # session ids may travel. Anything else in a shared log directory is
+        # somebody else's bytes.
+        return _ref_for_path(role=role, table=model.__tablename__, key=key,
+                             slot=slot, path=path, name=name, ext=ext)
+    path = os.path.join(_user_upload_root(user, instance_path), value)
+    return _ref_for_path(role=role, table=model.__tablename__, key=key, slot=slot,
+                         path=path, name=value)
+
+
+def _log_path(db_value: str, instance_path: str = None) -> str:
+    """helpers.log_file_path, re-rooted at `instance_path` when one is given.
+
+    A stored log value is an "instance/logs/..." path that resolves against the
+    parent of INSTANCE_PATH. Under an override the same relative path is
+    re-rooted at the override, which is the point: the caller works inside a
+    copy of the instance directory, not the configured one.
+    """
+    path = log_file_path(db_value)
+    if not path or not instance_path:
+        return path
+    return os.path.join(instance_path, os.path.relpath(path, INSTANCE_PATH))
+
+
+def collect_files(db, user, *, rows=None, instance_path: str = None) -> list:
+    """Every file the given rows reference, as FileRefs.
+
+    `rows` is {model: [row, ...]}. Without it every row of every synced model
+    for this user is walked, which is what a snapshot or a repair check needs.
+    A ref that cannot travel carries its reason (SKIP_*) instead of a digest.
+    """
+    if rows is None:
+        rows = {model: _load_rows(db, model, user.id) for model in PLAN_ORDER}
+
+    owner_sessions = set()
+    for session in rows.get(JournalSession, []) or []:
+        if session.external_id:
+            owner_sessions.add(str(session.external_id))
+        if session.id is not None:
+            owner_sessions.add(str(session.id))
+
+    refs: list[FileRef] = []
+    for model, table_rows in rows.items():
+        slots = _FILE_SLOTS.get(model, {})
+        rich = RICH_TEXT_COLUMNS.get(model, ())
+        for row in table_rows:
+            key = row_key(model, row)
+            for slot, (role, log_type) in slots.items():
+                value = getattr(row, slot, None)
+                if not value:
+                    continue
+                ref = _slot_ref(model, row, slot, role, user, instance_path)
+                if role == ROLE_SESSION_LOG and not ref.missing:
+                    # Correction F: the FILE NAME's prefix is what decides
+                    # ownership, not the row that names it. A session may point
+                    # at a file another session wrote, and only this user's own
+                    # sessions' files may travel.
+                    owner = _log_session_of(value, instance_path)
+                    if str(owner) not in owner_sessions:
+                        ref = FileRef(**{**ref.__dict__, "missing": True,
+                                         "reason": SKIP_FOREIGN})
+                refs.append(ref)
+            for column in rich:
+                _text, found = canonicalize_text(db, user, model, column,
+                                                 getattr(row, column, None), key,
+                                                 instance_path, skipped=refs)
+                refs.extend(found)
+
+    # One ref per (role, digest): the same file referenced twice travels once.
+    unique: dict[str, FileRef] = {}
+    for ref in refs:
+        unique.setdefault(f"{ref.role}:{ref.ident}", ref)
+    return list(unique.values())
+
+
+def _log_session_of(value: str, instance_path: str = None) -> str:
+    """The session id a path-form log value is named after."""
+    path = _log_path(value, instance_path) or value
+    return log_owner_session_id(os.path.basename(path))
+
+
+def export_files(db, user, refs) -> dict:
+    """The payload's `files` manifest: descriptors only, never bytes.
+
+    Keyed by sha256, so a file two records share has one entry. A ref that
+    cannot travel is not in here: the export reports it as skipped instead.
+    """
+    manifest: dict[str, dict] = {}
+    for ref in refs:
+        if ref.missing or not ref.sha256:
+            continue
+        manifest.setdefault(ref.sha256, ref.descriptor())
+    return manifest
+
+
+def _ref_summary(ref: FileRef) -> dict:
+    """A JSON-safe description of one file, for a plan or an export report."""
+    return {
+        "role": ref.role, "table": ref.table, "key": ref.key, "slot": ref.slot,
+        "sha256": ref.sha256, "size": int(ref.size or 0), "ext": ref.ext,
+        "name": ref.name, "missing": bool(ref.missing), "reason": ref.reason,
+    }
+
+
+# --- Files: staging and placement --------------------------------------------
+
+@dataclass
+class StagedFile:
+    """One file written into the staging directory and not yet moved anywhere."""
+
+    ref: FileRef
+    path: str                       # the staged path, <user>/<sha256>.<ext>
+    local_name: str = ""            # the name it will take once placed
+    skipped: bool = False
+    reason: str = ""
+
+
+def staging_dir(user, instance_path: str = None) -> str:
+    """This user's staging directory (created on first use)."""
+    base = os.path.join(instance_path or INSTANCE_PATH, STAGING_DIRNAME,
+                        str(getattr(user, "id", "0") or "0"))
+    os.makedirs(base, exist_ok=True)
+    return base
+
+
+def replaced_dir(user, timestamp: str, instance_path: str = None) -> str:
+    """Where a Download from server moves the files it displaces."""
+    base = os.path.join(instance_path or INSTANCE_PATH, REPLACED_DIRNAME,
+                        str(getattr(user, "id", "0") or "0"), timestamp)
+    os.makedirs(base, exist_ok=True)
+    return base
+
+
+def staged_index(user, *, verify: bool = False, instance_path: str = None) -> dict:
+    """{sha256: path} of what is already staged for this user.
+
+    With verify, a staged file's digest is recomputed and a mismatch drops it,
+    so a retried transfer never trusts a half-written or corrupted file. The
+    name is the digest, so the check is a plain hash of the file it names.
+    """
+    base = os.path.join(instance_path or INSTANCE_PATH, STAGING_DIRNAME,
+                        str(getattr(user, "id", "0") or "0"))
+    found: dict[str, str] = {}
+    try:
+        names = os.listdir(base)
+    except FileNotFoundError:
+        return found
+    for name in names:
+        if name.endswith(".part"):
+            continue
+        digest, _dot, _ext = name.partition(".")
+        if not _HEX64.fullmatch(digest):
+            continue
+        path = os.path.join(base, name)
+        if verify:
+            try:
+                if not os.path.isfile(path) or _sha256_of(path) != digest:
+                    discard_staged(StagedFile(
+                        FileRef(role="", table="", key="", slot=""), path))
+                    continue
+            except OSError:
+                continue
+        found[digest] = path
+    return found
+
+
+def files_needed(plan, user, *, have: Optional[Mapping[str, str]] = None,
+                 instance_path: str = None) -> list:
+    """The plan's files this disk does not already hold, by sha256.
+
+    `have` is a {sha256: path} index; without it the staging directory is
+    scanned and verified. A digest staged and verified is not requested again,
+    which is what makes a retried download resume instead of starting over.
+    Deduplicated by digest: one file two records share is fetched once.
+    """
+    index = dict(have) if have is not None else staged_index(
+        user, verify=True, instance_path=instance_path)
+    needed: dict[str, FileRef] = {}
+    for ref in getattr(plan, "files", []) or []:
+        if not ref.sha256 or ref.missing:
+            continue
+        if ref.sha256 in index:
+            continue
+        needed.setdefault(ref.sha256, ref)
+    return list(needed.values())
+
+
+def _copy_hashed(source, destination_part: str, *, max_bytes: int):
+    """Stream `source` into `destination_part`, returning (sha256, size).
+
+    An over-cap stream is truncated by raising, so a hostile transfer cannot
+    fill the disk before the size is checked.
+    """
+    digest = hashlib.sha256()
+    written = 0
+    with open(destination_part, "wb") as out:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            if not isinstance(chunk, (bytes, bytearray)):
+                chunk = bytes(chunk)
+            written += len(chunk)
+            if written > max_bytes:
+                raise ValueError("over_cap")
+            digest.update(chunk)
+            out.write(chunk)
+    return digest.hexdigest(), written
+
+
+def stage_file(user, ref, stream, *, declared_size: Optional[int] = None,
+               instance_path: str = None) -> StagedFile:
+    """Write one incoming file into staging and verify it.
+
+    The file is streamed to "<sha>.part", fsynced, atomically renamed to
+    "<sha>.<ext>", and only then compared with the declared digest and size. A
+    mismatch discards it. Nothing outside the user's staging directory is
+    written, and no live path is touched: commit_staged_files() runs after the
+    DB commit and moves verified files into place.
+
+    An over-cap or unsupported file is returned as skipped, not raised: the
+    record it belongs to syncs without it.
+    """
+    base = staging_dir(user, instance_path)
+    cap = file_cap(ref.role)
+    if not _role_ext_ok(ref.role, ref.ext) or not _HEX64.fullmatch(ref.sha256 or ""):
+        return StagedFile(ref=ref, path="", skipped=True, reason=SKIP_UNSUPPORTED)
+    if declared_size is not None and int(declared_size) > cap:
+        return StagedFile(ref=ref, path="", skipped=True, reason=SKIP_TOO_LARGE)
+    final = os.path.join(base, f"{ref.sha256}.{ref.ext}")
+    part = final + ".part"
+    try:
+        digest, size = _copy_hashed(stream, part, max_bytes=cap)
+    except ValueError:
+        discard_staged(StagedFile(ref=ref, path=part))
+        return StagedFile(ref=ref, path="", skipped=True, reason=SKIP_TOO_LARGE)
+    except OSError:
+        discard_staged(StagedFile(ref=ref, path=part))
+        return StagedFile(ref=ref, path="", skipped=True, reason=SKIP_MISSING)
+    if digest != ref.sha256 or (declared_size is not None
+                                and int(declared_size) != size):
+        discard_staged(StagedFile(ref=ref, path=part))
+        return StagedFile(ref=ref, path="", skipped=True, reason=SKIP_UNSUPPORTED)
+    try:
+        _fsync_file(part)
+    except OSError:
+        pass
+    os.replace(part, final)
+    return StagedFile(ref=ref, path=final, local_name=ref.name)
+
+
+def _fsync_file(path: str) -> None:
+    """Flush a file to disk before it is renamed into place."""
+    handle = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(handle)
+    finally:
+        os.close(handle)
+
+
+def staged_ok(staged: StagedFile) -> bool:
+    """Whether a staged file is on disk and still hashes to its digest."""
+    if staged is None or staged.skipped or not staged.path:
+        return False
+    try:
+        return (os.path.isfile(staged.path)
+                and _sha256_of(staged.path) == staged.ref.sha256)
+    except OSError:
+        return False
+
+
+def discard_staged(staged: StagedFile) -> None:
+    """Remove a staged file and its .part. Never raises."""
+    if staged is None or not staged.path:
+        return
+    for path in (staged.path, staged.path + ".part"):
+        try:
+            if os.path.isfile(path):
+                os.remove(path)
+        except OSError:
+            pass
+
+
+@dataclass
+class CommitReport:
+    """What commit_staged_files() moved, and what it could not."""
+
+    placed: list = field(default_factory=list)      # (table, key, slot, sha256)
+    pending: list = field(default_factory=list)      # same shape: try again
+    skipped: list = field(default_factory=list)      # FileRef with a reason
+    orphaned: list = field(default_factory=list)     # FileRef, left on disk
+
+
+def local_name_for(model: type, row, ref: FileRef) -> str:
+    """The name this instance gives `ref`'s file. Never the sender's name.
+
+    It reproduces what the write path would have produced, so every reader and
+    every cleanup rule that builds a path from the column keeps working:
+        session photo   <local session id>.<ext>
+        project image   project_<local project id>.<ext>
+        note image      note_img_<fresh hex>.<ext>
+        session log     <local session id>_<sanitized name>
+    """
+    if ref.role == ROLE_SESSION_PHOTO:
+        if row is not None and getattr(row, "id", None) is not None:
+            return f"{row.id}.{ref.ext}"
+        return f"{_stable_id(ref.key)}.{ref.ext}"
+    if ref.role == ROLE_PROJECT_IMAGE:
+        return f"project_{getattr(row, 'id', None) or ref.key}.{ref.ext}"
+    if ref.role == ROLE_NOTE_IMAGE:
+        # Deterministic, not random: the same digest always lands on the same
+        # name, so localize_text (inside the row's own write) and the physical
+        # move (commit_staged_files, after the commit) agree without having to
+        # hand a name across the commit boundary.
+        return note_image_name(ref.sha256, ref.ext)
+    if ref.role == ROLE_SESSION_LOG:
+        safe = re.sub(r"[^a-zA-Z0-9_\-\.]", "_", ref.name or "log.txt")[:100]
+        owner = getattr(row, "id", None) or _stable_id(ref.key)
+        return f"{owner}_{safe}"
+    return f"{ref.sha256}.{ref.ext}"
+
+
+def _stable_id(key: str) -> str:
+    """A filename-safe stand-in for a natural key when no row id is at hand."""
+    cleaned = re.sub(r"[^a-zA-Z0-9_\-\.]", "_", str(key or ""))[:80]
+    return cleaned or "record"
+
+
+def note_image_name(sha256: str, ext: str) -> str:
+    """The name this instance gives an arriving note image. Deterministic.
+
+    The original route used twelve random hex digits; a digest prefix is just
+    as opaque, keeps the note_img_ prefix the read route allows across users,
+    and makes the name a pure function of the content.
+    """
+    return f"note_img_{sha256[:12]}.{ext}"
+
+
+def note_image_names(values: Mapping[str, Any]) -> dict:
+    """{sha256: local name} for every note-image token a record's text carries."""
+    mapping: dict[str, str] = {}
+    for column, value in values.items():
+        if not isinstance(value, str) or FILE_TOKEN not in value:
+            continue
+        for match in _FILE_TOKEN.finditer(value):
+            mapping.setdefault(match.group(1),
+                               note_image_name(match.group(1), match.group(2)))
+    return mapping
+
+
+def _slot_role(model: type, slot: str):
+    entry = _FILE_SLOTS.get(model, {}).get(slot)
+    return entry[0] if entry else None
+
+
+def commit_staged_files(db, result, staged, *, user,
+                        instance_path: str = None) -> CommitReport:
+    """Move verified files into place and write their columns. After the commit.
+
+    The plan's record write happened in apply_merge/apply_download and the
+    caller committed it. This runs next, then writes the local filename into
+    each FILE column, one small Core UPDATE per row per slot.
+
+    Those updates must NOT bump sync_rev or sync_changed_at: the value they
+    write (<local id>.<ext>) is this instance's naming scheme, instance-local
+    by definition. Bumping would send the receiver's name back to the sender
+    as an edit and overwrite the sender's own file name.
+
+    Idempotent: a file already in place is left alone; a staged file that is
+    gone is reported pending, not an error. A file that fails verification is
+    discarded and reported pending, and its column is not written, so no record
+    ever points at a half-written file.
+    """
+    report = CommitReport()
+    by_digest = {s.ref.sha256: s for s in (staged or []) if s and not s.skipped}
+    for ref in getattr(result, "files_expected", []) or []:
+        if ref.missing or not ref.sha256:
+            report.skipped.append(ref)
+            continue
+        s = by_digest.get(ref.sha256)
+        if s is None:
+            report.pending.append((ref.table, ref.key, ref.slot, ref.sha256))
+            continue
+        if not staged_ok(s):
+            discard_staged(s)
+            report.pending.append((ref.table, ref.key, ref.slot, ref.sha256))
+            continue
+        model = TABLE_MODEL.get(ref.table)
+        if model is None:
+            report.skipped.append(ref)
+            continue
+        # A note image names no FILE column: its record's rich text already
+        # points at the digest-derived name the row's write localized to. Only
+        # the bytes need moving.
+        if ref.role == ROLE_NOTE_IMAGE:
+            outcome = _place_note_image(user, ref, s, instance_path=instance_path)
+            if outcome == "placed":
+                report.placed.append((ref.table, ref.key, ref.slot, ref.sha256))
+            else:
+                report.pending.append((ref.table, ref.key, ref.slot, ref.sha256))
+            continue
+        if ref.slot not in _FILE_SLOTS.get(model, {}):
+            report.skipped.append(ref)
+            continue
+        outcome = _place_one(db, user, model, ref, s, instance_path=instance_path)
+        if outcome == "placed":
+            report.placed.append((ref.table, ref.key, ref.slot, ref.sha256))
+        else:
+            report.pending.append((ref.table, ref.key, ref.slot, ref.sha256))
+
+    # A staged copy is dropped only once every placement for its digest is done:
+    # one file two records share is placed twice, and the first move would
+    # otherwise leave the second with nothing to move.
+    wanted: dict[str, int] = {}
+    done: dict[str, int] = {}
+    for ref in getattr(result, "files_expected", []) or []:
+        if ref.sha256 and not ref.missing:
+            wanted[ref.sha256] = wanted.get(ref.sha256, 0) + 1
+    for entry in report.placed:
+        done[entry[3]] = done.get(entry[3], 0) + 1
+    for digest, count in done.items():
+        if count >= wanted.get(digest, count) and digest in by_digest:
+            # Nothing left to retry under this digest; drop the staged copy so
+            # the next run does not think it has more work to do.
+            discard_staged(by_digest[digest])
+
+    for shape in ("pending", "skipped", "orphaned"):
+        target = getattr(result, f"{shape}_files", None)
+        if target is None:
+            target = []
+            setattr(result, f"{shape}_files", target)
+        target.extend(getattr(report, shape))
+    return report
+
+
+def _place_note_image(user, ref: FileRef, staged: StagedFile,
+                      instance_path: str = None) -> str:
+    """Move an arriving note image to the name its record's text already names.
+
+    A note image has no FILE column: it is referenced only by the digest-derived
+    name localize_text put into the record's rich text during the row's write.
+    The name is a pure function of the digest, so this computes the same one
+    without the row. An existing file with the same digest is left alone.
+    """
+    name = note_image_name(ref.sha256, ref.ext)
+    root = os.path.realpath(_user_upload_root(user, instance_path))
+    os.makedirs(root, exist_ok=True)
+    live = os.path.realpath(os.path.join(root, name))
+    if os.path.commonpath([live, root]) != root:
+        return "skipped"
+    staging_root = os.path.realpath(staging_dir(user, instance_path))
+    if os.path.commonpath(
+            [os.path.realpath(staged.path), staging_root]) != staging_root:
+        return "skipped"
+    try:
+        if not (os.path.exists(live) and _sha256_of(live) == ref.sha256):
+            # Copied, not moved: one file two records share is placed twice from
+            # the same staged copy. commit_staged_files discards it once every
+            # placement for the digest is done.
+            shutil.copyfile(staged.path, live)
+    except OSError:
+        return "pending"
+    return "placed"
+
+
+def _place_one(db, user, model: type, ref: FileRef, staged: StagedFile,
+               instance_path: str = None) -> str:
+    """Move one verified file to its live path and record the name in its column."""
+    conn = db.connection()
+    natural = _KEY_COLUMN.get(model)
+    if natural is None:
+        return "skipped"
+    key_value = ref.key
+    row = db.execute(
+        select(model).where(model.user_id == user.id,
+                            getattr(model, natural) == key_value)
+    ).scalars().first()
+    if row is None:
+        return "skipped"      # the record was deleted between plan and commit
+
+    if ref.role == ROLE_SESSION_LOG:
+        log_type = _FILE_SLOTS[model][ref.slot][1]
+        local_name = local_name_for(model, row, ref)
+        log_dir = os.path.join(instance_path or INSTANCE_PATH, "logs", log_type)
+        os.makedirs(log_dir, exist_ok=True)
+        live = os.path.join(log_dir, local_name)
+        staging_root = os.path.realpath(staging_dir(user, instance_path))
+        if os.path.commonpath([os.path.realpath(staged.path), staging_root]) != staging_root:
+            return "skipped"
+        if os.path.realpath(os.path.dirname(live)) != os.path.realpath(log_dir):
+            return "skipped"
+        try:
+            if not (os.path.exists(live) and _sha256_of(live) == ref.sha256):
+                shutil.copyfile(staged.path, live)
+        except OSError:
+            return "pending"
+        value = os.path.join("instance", "logs", log_type, local_name)
+        if ref.slot == "asiair_log_content":
+            conn.execute(sa_update(model.__table__).where(
+                model.__table__.c.id == row.id,
+                model.__table__.c.user_id == user.id,
+            ).values(asiair_log_content=value))
+        elif ref.slot == "phd2_log_content":
+            conn.execute(sa_update(model.__table__).where(
+                model.__table__.c.id == row.id,
+                model.__table__.c.user_id == user.id,
+            ).values(phd2_log_content=value))
+        else:
+            conn.execute(sa_update(model.__table__).where(
+                model.__table__.c.id == row.id,
+                model.__table__.c.user_id == user.id,
+            ).values(nina_log_content=value))
+        # The log changed, so the cached parse of it is stale.
+        conn.execute(sa_update(model.__table__).where(
+            model.__table__.c.id == row.id,
+            model.__table__.c.user_id == user.id,
+        ).values(log_analysis_cache=None))
+        return "placed"
+
+    local_name = local_name_for(model, row, ref)
+    root = os.path.realpath(_user_upload_root(user, instance_path))
+    os.makedirs(root, exist_ok=True)
+    live = os.path.realpath(os.path.join(root, local_name))
+    if os.path.commonpath([live, root]) != root:
+        return "skipped"
+    # Correction D: a stale thumbnail goes before the original is replaced.
+    from nova.helpers import remove_thumbnail
+    remove_thumbnail(live)
+    try:
+        if not (os.path.exists(live) and _sha256_of(live) == ref.sha256):
+            # Copied, not moved: one digest may feed several records, each with
+            # its own local name. The staged copy is discarded once all of them
+            # are placed (see commit_staged_files).
+            shutil.copyfile(staged.path, live)
+    except OSError:
+        return "pending"
+    column = "session_image_file" if ref.role == ROLE_SESSION_PHOTO else "final_image_file"
+    conn.execute(sa_update(model.__table__).where(
+        model.__table__.c.id == row.id,
+        model.__table__.c.user_id == user.id,
+    ).values(**{column: local_name}))
+    return "placed"
+
+
+def missing_local_files(db, user, instance_path: str = None) -> list:
+    """Every file this user's records name that this disk does not have.
+
+    Re-derives each FILE column's ref from the row itself, the same rule the
+    export uses. The repair request names the ref by (table, key, slot) because
+    a file that is gone cannot be hashed here: the peer resolves it by record.
+
+    Runs at the end of a sync and on demand; it is the safety net for a crash
+    between commit and move, a file deleted out of band, and a download that
+    stopped after its commit.
+    """
+    found: list[FileRef] = []
+    for model in PLAN_ORDER:
+        if model not in _FILE_SLOTS:
+            continue
+        for row in _load_rows(db, model, user.id):
+            for slot, (role, _log_type) in _FILE_SLOTS[model].items():
+                if not getattr(row, slot, None):
+                    continue
+                ref = _slot_ref(model, row, slot, role, user, instance_path)
+                if ref.missing:
+                    found.append(ref)
+    return found
 
 
 def counter_rev(db, user_id) -> int:
@@ -735,7 +1749,8 @@ def _blob_default_location(blob) -> Optional[str]:
 # --- Export ------------------------------------------------------------------
 
 def export_changes(db, user, since_rev: int, *, side: str = "local",
-                   exclude_revs: Iterable[int] = ()) -> dict:
+                   exclude_revs: Iterable[int] = (), with_files: bool = True,
+                   instance_path: str = None) -> dict:
     """Everything this instance has changed for `user` above `since_rev`.
 
     Rows and tombstones with sync_rev > since_rev. Account markers ride only in
@@ -746,30 +1761,44 @@ def export_changes(db, user, since_rev: int, *, side: str = "local",
     the pull that follows leaves out exactly what the pusher just sent while
     everything the hub decided about those records still travels. A side never
     receives what it just sent.
+
+    with_files describes the changed rows' files in the payload: an `__files__`
+    map on the record and a `files` manifest beside it, plus `skipped_files`
+    for what cannot travel. Descriptors only; the bytes are the caller's to
+    fetch with stage_file(). with_files=False is the step-3 shape.
     """
     uid = user.id
     payload = _envelope(db, user, side=side, snapshot=False)
     excluded = sorted({int(rev) for rev in exclude_revs if rev is not None})
 
+    changed: dict[type, list] = {}
     for model in PLAN_ORDER:
         query = select(model).where(model.user_id == uid,
                                     model.sync_rev > since_rev)
         if excluded:
             query = query.where(model.sync_rev.notin_(excluded))
-        rows = db.scalars(query).all()
+        rows = list(db.scalars(query).all())
         if rows:
+            changed[model] = rows
             payload["records"][model.__tablename__] = [
-                record_to_payload(model, row) for row in rows
+                record_to_payload(model, row, user=user if with_files else None,
+                                  instance_path=instance_path)
+                for row in rows
             ]
 
     payload["tombstones"] = [
         _tombstone_to_payload(t)
         for t in _visible_tombstones(db, uid, side, since_rev, excluded)
     ]
+    if with_files:
+        refs = collect_files(db, user, rows=changed, instance_path=instance_path)
+        payload["files"] = export_files(db, user, refs)
+        payload["skipped_files"] = [_ref_summary(r) for r in refs if r.missing]
     return payload
 
 
-def export_snapshot(db, user, *, side: str = "server") -> dict:
+def export_snapshot(db, user, *, side: str = "server",
+                    instance_path: str = None) -> dict:
     """The whole account, for a Download from server.
 
     A hub refuses while it holds nothing beyond its own starter data: handing
@@ -786,16 +1815,22 @@ def export_snapshot(db, user, *, side: str = "server") -> dict:
     # The rev this snapshot was taken at: the local stores it as its cursor, so
     # the next Sync now asks the hub only for what happened after this point.
     payload["server_rev"] = payload["rev"]
+    everything: dict[type, list] = {}
     for model in PLAN_ORDER:
         rows = _load_rows(db, model, uid)
+        everything[model] = rows
         if rows:
             payload["records"][model.__tablename__] = [
-                record_to_payload(model, row) for row in rows
+                record_to_payload(model, row, user=user,
+                                  instance_path=instance_path) for row in rows
             ]
 
     payload["tombstones"] = [
         _tombstone_to_payload(t) for t in _visible_tombstones(db, uid, side, None)
     ]
+    refs = collect_files(db, user, rows=everything, instance_path=instance_path)
+    payload["files"] = export_files(db, user, refs)
+    payload["skipped_files"] = [_ref_summary(r) for r in refs if r.missing]
     return payload
 
 
@@ -1103,6 +2138,33 @@ def _validate_payload(payload, *, side: Optional[str] = None,
     if side == "server" and not allow_snapshot and payload.get("snapshot"):
         refusals.append(Refusal(REFUSAL_BAD_FORMAT, {"reason": "snapshot in a push"}))
 
+    manifest = payload.get("files")
+    if manifest is not None and not isinstance(manifest, dict):
+        return [Refusal(REFUSAL_BAD_FORMAT, {"reason": "files is not a mapping"})]
+    for digest, descriptor in (manifest or {}).items():
+        if not isinstance(digest, str) or not _HEX64.match(digest):
+            refusals.append(Refusal(REFUSAL_BAD_FILE_REF, {"sha256": digest}))
+            continue
+        if not isinstance(descriptor, dict):
+            refusals.append(Refusal(REFUSAL_BAD_FILE_REF, {"sha256": digest}))
+            continue
+        if descriptor.get("role") not in MAX_SYNC_FILE_BYTES:
+            refusals.append(Refusal(REFUSAL_BAD_FILE_REF,
+                                    {"sha256": digest, "role": descriptor.get("role")}))
+        try:
+            size = int(descriptor.get("size") or 0)
+        except (TypeError, ValueError):
+            size = -1
+        if size < 0:
+            refusals.append(Refusal(REFUSAL_BAD_FILE_REF, {"sha256": digest}))
+        elif size > file_cap(descriptor.get("role") or ""):
+            refusals.append(Refusal(REFUSAL_FILE_TOO_LARGE,
+                                    {"sha256": digest, "size": size}))
+        if not _role_ext_ok(descriptor.get("role") or "",
+                            str(descriptor.get("ext") or "")):
+            refusals.append(Refusal(REFUSAL_BAD_FILE_REF,
+                                    {"sha256": digest, "ext": descriptor.get("ext")}))
+
     records = payload.get("records") or {}
     if not isinstance(records, dict):
         return [Refusal(REFUSAL_BAD_FORMAT, {"reason": "records is not a mapping"})]
@@ -1112,6 +2174,7 @@ def _validate_payload(payload, *, side: Optional[str] = None,
             refusals.append(Refusal(REFUSAL_UNKNOWN_TABLE, {"table": table}))
             continue
         allowed = set(sync_columns(model)) | set(RESERVED_KEYS)
+        refusals.extend(_validate_file_tokens(model, rows or [], manifest or {}))
         for row in rows or []:
             if not isinstance(row, dict):
                 refusals.append(Refusal(REFUSAL_BAD_FORMAT, {"table": table}))
@@ -1138,6 +2201,54 @@ def _validate_payload(payload, *, side: Optional[str] = None,
     return refusals
 
 
+def _text_sync_columns(model: type) -> frozenset:
+    """The SYNC text columns of `model` — the only place a file token may sit."""
+    return frozenset(
+        column.name for column in model.__table__.columns
+        if column.name in sync_columns(model) and isinstance(column.type, Text)
+    ) | frozenset(RICH_TEXT_COLUMNS.get(model, ()))
+
+
+def _validate_file_tokens(model: type, rows, manifest: Mapping[str, Any]) -> list:
+    """Correction G: a token must name a manifest entry, in a text column.
+
+    A `nova-file:` token the manifest does not explain would be resolved by
+    nobody and would arrive at the other side as a link to a file that does not
+    exist; a token in a column that is not text is a record trying to smuggle a
+    reference through a numeric field. Both refuse the payload rather than leave
+    a record pointing at nothing.
+    """
+    refusals: list[Refusal] = []
+    text_columns = _text_sync_columns(model)
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        files = row.get(KEY_FILES) or {}
+        if isinstance(files, dict):
+            for slot, digest in files.items():
+                if slot not in _FILE_SLOTS.get(model, {}):
+                    refusals.append(Refusal(REFUSAL_BAD_FILE_REF,
+                                            {"table": model.__tablename__,
+                                             "slot": slot}))
+                elif digest not in manifest:
+                    refusals.append(Refusal(REFUSAL_DANGLING_FILE, {
+                        "table": model.__tablename__, "slot": slot,
+                        "sha256": digest}))
+        for column, value in row.items():
+            if not isinstance(value, str) or not _FILE_TOKEN_ANY.search(value):
+                continue
+            if column not in text_columns:
+                refusals.append(Refusal(REFUSAL_FILE_TOKEN_COLUMN, {
+                    "table": model.__tablename__, "column": column}))
+                continue
+            for match in _FILE_TOKEN.finditer(value):
+                if match.group(1) not in manifest:
+                    refusals.append(Refusal(REFUSAL_DANGLING_FILE, {
+                        "table": model.__tablename__, "column": column,
+                        "sha256": match.group(1)}))
+    return refusals
+
+
 def free_name(taken: set, base: str) -> str:
     """`base` with the first free " (n)" suffix. Never returns a taken name."""
     if base not in taken:
@@ -1160,18 +2271,68 @@ def _identity_values(model: type, row) -> dict:
     return out
 
 
-def _row_content(db, model: type, row, record: Mapping[str, Any]) -> bool:
+def _local_file_digest(model: type, row, slot: str, role: str, user,
+                       instance_path: str = None) -> Optional[str]:
+    """The sha256 of the file `row` holds for `slot`, or None when it is absent.
+
+    None means "different from any digest": a record whose text matches but
+    whose file is gone here is a change (correction B).
+    """
+    ref = _slot_ref(model, row, slot, role, user, instance_path)
+    return None if ref.missing else ref.sha256
+
+
+def _files_equal(model: type, row, record: Mapping[str, Any], user,
+                 instance_path: str = None) -> bool:
+    """Whether every file the record names is already the one on this disk.
+
+    A slot the record does not name is not compared: the record is saying it
+    carries no file there, and a receiver that holds one is not a conflict, it
+    is the newest-wins rule's business. A slot the record names with a digest
+    that is absent, or whose local file cannot be read, is a difference.
+    """
+    incoming = record.get(KEY_FILES)
+    if not isinstance(incoming, dict):
+        return True
+    if user is None:
+        return True
+    slots = _FILE_SLOTS.get(model)
+    if not slots:
+        return True
+    for slot, digest in incoming.items():
+        if slot not in slots:
+            continue
+        role = slots[slot][0]
+        local = _local_file_digest(model, row, slot, role, user, instance_path)
+        if local != digest:
+            return False
+    return True
+
+
+def _row_content(db, model: type, row, record: Mapping[str, Any], user=None,
+                 instance_path: str = None) -> bool:
     """True when `row` already holds exactly what `record` carries.
 
     Synced content only. sync_changed_at is not a column of any model, so it
     never enters this comparison: a record that comes back with a stamp a
     re-measured offset has nudged is still the same record, and equal content
     means no write and no rev whatever the two stamps say.
+
+    Text is compared in its canonical form (a /uploads/<user>/ link on this disk
+    against the record's nova-file: token), so the same note is a no-op however
+    its two sides name the user. Files are content too (correction B): a record
+    that names a digest this disk does not hold is a change even when every
+    column matches, so the new bytes travel through newest-wins.
     """
+    rich = RICH_TEXT_COLUMNS.get(model, ())
     for column, value in _record_values(model, record).items():
         if column in RESERVED_KEYS:
             continue  # sets, compared below against the rows that hold them
         current = getattr(row, column, None)
+        if column in rich and user is not None:
+            current, _refs = canonicalize_text(db, user, model, column,
+                                               current, row_key(model, row),
+                                               instance_path)
         if isinstance(current, (date, datetime)) and isinstance(value, (date, datetime)):
             if current != value:
                 return False
@@ -1188,23 +2349,35 @@ def _row_content(db, model: type, row, record: Mapping[str, Any]) -> bool:
         if sorted(record.get(KEY_PROJECT_IDS) or []) != sorted(
                 project.id for project in row.projects):
             return False
-    return True
+    return _files_equal(model, row, record, user, instance_path)
 
 
-def _same_content(db, model: type, row, values: Mapping[str, Any]) -> bool:
+def _same_content(db, model: type, row, values: Mapping[str, Any], user=None,
+                  record: Optional[Mapping[str, Any]] = None,
+                  instance_path: str = None) -> bool:
     """Whether `row` already carries `values`, ignoring the columns that name it.
 
     The same rule as _row_content, for the place where two identities have
     already been decided to be one record (a name collision): the key column
     differs by definition there, so what is left to compare is the content.
+    `record` is the incoming record, when the caller has one, so its file
+    digests can be compared too.
     """
     key_column = _KEY_COLUMN.get(model)
+    rich = RICH_TEXT_COLUMNS.get(model, ())
     for column, value in values.items():
         if column in RESERVED_KEYS or column == key_column:
             continue
-        if getattr(row, column, None) != value:
+        current = getattr(row, column, None)
+        if column in rich and user is not None:
+            current, _refs = canonicalize_text(db, user, model, column,
+                                               current, row_key(model, row),
+                                               instance_path)
+        if current != value:
             return False
-    return True
+    if record is None:
+        return True
+    return _files_equal(model, row, record, user, instance_path)
 
 
 class _Builder:
@@ -1228,6 +2401,21 @@ class _Builder:
         self.inserts: list[tuple] = []
         self.remap: dict[str, str] = {}     # retired object uid -> surviving uid
         self.taken: dict[type, set] = {}    # unique values in use, per model
+        # Files: refs the records bring, refs that will not travel, and refs
+        # for a token whose descriptor the sender did not send.
+        self.files: list[FileRef] = []
+        # Every (record, slot) that needs a physical placement, NOT deduped by
+        # digest: one file two records share is fetched once but placed twice.
+        self.placements: list[FileRef] = []
+        self.pending_files: list[FileRef] = []
+        self.skipped_files: list[FileRef] = []
+        self.orphaned_files: list[FileRef] = []
+        self.manifest: dict = {}
+        # The local user, so file digests can be read from disk.
+        self.user = None
+        # The instance directory those digests are read under. Production leaves
+        # it None; a caller working on a copy passes its own.
+        self.instance_path: Optional[str] = None
 
     def add(self, action: Action) -> None:
         self.actions.append(action)
@@ -1367,7 +2555,9 @@ def _plan_object_collision(db, builder: _Builder, model: type, record: dict,
         incoming_at = builder.to_local_clock(
             parse_datetime(record.get(KEY_CHANGED_AT)))
         if (incoming_at and incoming_at > (winner_row.sync_changed_at or datetime.min)
-                and not _same_content(db, model, winner_row, values)):
+                and not _same_content(db, model, winner_row, values,
+                                      builder.user, record,
+                                      builder.instance_path)):
             merged = dict(values)
             merged.pop("record_uid", None)
             builder.remember(model, winner_row)
@@ -1531,7 +2721,8 @@ def _plan_record_update(db, builder: _Builder, model: type, record: dict,
         builder.count_updated(table)
         return
 
-    if _row_content(db, model, existing, record) and not decided:
+    if _row_content(db, model, existing, record, builder.user,
+                    builder.instance_path) and not decided:
         return  # nothing to do: an idempotent re-delivery
 
     local_at = existing.sync_changed_at or datetime.min
@@ -1676,8 +2867,141 @@ def _totals(db, user_id, deletions: int) -> Totals:
     return Totals(records, deletions, ratio)
 
 
+def _plan_files(db, builder: _Builder, payload, index: dict) -> None:
+    """Collect the files the plan's writes need, and the ones it leaves behind.
+
+    A record that will be written names its files in `__files__`; a rich-text
+    column names them inline as nova-file: tokens. A named digest the manifest
+    describes and this disk does not hold is `files` (the caller fetches it).
+    A digest the manifest does not describe, or one the sender marked skipped,
+    is `skipped_files`: the record still syncs, without that file. Rich-text
+    images are always optional, so they are skipped, never pending: there is no
+    record change to hold back for them.
+
+    The receiver's own rows that a delete or a replace displaces are reported
+    in `orphaned_files`. Nothing is deleted: the file stays on disk.
+    """
+    written = {(a.table, a.key) for a in builder.actions
+               if a.op in (OP_INSERT, OP_UPDATE)}
+    deleted = {(a.table, a.key) for a in builder.actions if a.op == OP_DELETE}
+    skipped_by_sender = {
+        (s.get("table"), str(s.get("key")))
+        for s in (payload.get("skipped_files") or []) if isinstance(s, dict)
+    }
+
+    manifest = builder.manifest
+    seen: set[str] = set()
+    for model in PLAN_ORDER:
+        table = model.__tablename__
+        slots = _FILE_SLOTS.get(model, {})
+        if not slots and model not in RICH_TEXT_COLUMNS:
+            continue
+        for record in (payload.get("records") or {}).get(table) or []:
+            if not isinstance(record, dict):
+                continue
+            key = natural_key(model, record)
+            if (table, key) not in written and (table, key) not in deleted:
+                continue
+            for slot, digest in (record.get(KEY_FILES) or {}).items():
+                if slot not in slots:
+                    continue
+                role = slots[slot][0]
+                ref = FileRef(role=role, table=table, key=key, slot=slot,
+                              sha256=digest,
+                              size=int((manifest.get(digest) or {}).get("size") or 0),
+                              ext=str((manifest.get(digest) or {}).get("ext") or ""),
+                              name=str((manifest.get(digest) or {}).get("name") or ""))
+                if digest in skipped_by_sender:
+                    ref = FileRef(**{**ref.__dict__, "missing": True,
+                                     "reason": SKIP_MISSING})
+                    builder.skipped_files.append(ref)
+                elif digest not in manifest:
+                    builder.skipped_files.append(
+                        FileRef(**{**ref.__dict__, "missing": True,
+                                   "reason": SKIP_MISSING}))
+                elif (table, key) in written:
+                    builder.placements.append(ref)
+                    if digest not in seen:
+                        builder.files.append(ref)
+                seen.add(digest)
+            for column in RICH_TEXT_COLUMNS.get(model, ()):
+                for ref in _record_text_refs(model, record, column, key, manifest):
+                    if ref.ident in seen:
+                        continue
+                    seen.add(ref.ident)
+                    if ref.sha256 and ref.sha256 not in manifest:
+                        builder.skipped_files.append(
+                            FileRef(**{**ref.__dict__, "missing": True,
+                                       "reason": SKIP_MISSING}))
+                    else:
+                        builder.placements.append(ref)
+                        builder.files.append(ref)
+
+    _collect_orphans(db, builder, index, deleted)
+
+
+def _record_text_refs(model: type, record: Mapping[str, Any], column: str,
+                      key: str, manifest: Optional[Mapping[str, Any]] = None) -> list:
+    """The note-image refs a record's canonical text still names.
+
+    A token carries only a digest and an extension, but the sender resolves its
+    own file by name, so the name and size come from the manifest descriptor the
+    sender wrote beside that digest.
+    """
+    text = record.get(column)
+    if not isinstance(text, str) or FILE_TOKEN not in text:
+        return []
+    refs = []
+    for match in _FILE_TOKEN.finditer(text):
+        digest, ext = match.group(1), match.group(2)
+        descriptor = (manifest or {}).get(digest) or {}
+        refs.append(FileRef(role=ROLE_NOTE_IMAGE, table=model.__tablename__,
+                            key=key, slot="note_img", sha256=digest,
+                            ext=ext,
+                            size=int(descriptor.get("size") or 0),
+                            name=str(descriptor.get("name") or "")))
+    return refs
+
+
+def _collect_orphans(db, builder: _Builder, index: dict, deleted: set) -> None:
+    """The files a delete or replace leaves unreferenced, as refs. Never deleted.
+
+    Only rows this instance already held are considered: a replaced photo is
+    the local file whose row the plan overwrites with another digest, and a
+    delete's files are the ones the deleted row named.
+    """
+    user = builder.user
+    if user is None:
+        return
+    for table, key in deleted:
+        model = TABLE_MODEL.get(table)
+        row = (index.get(table) or {}).get(key)
+        if model is None or row is None or model not in _FILE_SLOTS:
+            continue
+        for slot, (role, _log_type) in _FILE_SLOTS[model].items():
+            ref = _slot_ref(model, row, slot, role, user, builder.instance_path)
+            if ref.sha256:
+                builder.orphaned_files.append(ref)
+
+    for action in builder.actions:
+        if action.op != OP_UPDATE:
+            continue
+        model = TABLE_MODEL.get(action.table)
+        row = (index.get(action.table) or {}).get(action.key)
+        incoming = action.values.get(KEY_FILES)
+        if model is None or row is None or not isinstance(incoming, dict):
+            continue
+        for slot, (role, _log_type) in _FILE_SLOTS.get(model, {}).items():
+            if slot not in incoming:
+                continue
+            old = _slot_ref(model, row, slot, role, user, builder.instance_path)
+            if old.sha256 and old.sha256 != incoming.get(slot):
+                builder.orphaned_files.append(old)
+
+
 def plan_merge(db, user, payload, *, side: str, offset_seconds: float = 0.0,
-               allow_mass_delete: bool = False) -> MergePlan:
+               allow_mass_delete: bool = False,
+               instance_path: str = None) -> MergePlan:
     """Decide what an incoming payload does, without writing anything.
 
     The result is what apply_merge() executes, exactly, and what an Apply/Abort
@@ -1711,6 +3035,9 @@ def plan_merge(db, user, payload, *, side: str, offset_seconds: float = 0.0,
     index: dict[str, dict] = {}
     unique_index: dict[type, dict] = {}
     builder = _Builder(side, uid, skew)
+    builder.user = user
+    builder.instance_path = instance_path
+    builder.manifest = payload.get("files") or {}
 
     for model in PLAN_ORDER:
         table = model.__tablename__
@@ -1749,6 +3076,9 @@ def plan_merge(db, user, payload, *, side: str, offset_seconds: float = 0.0,
 
     # Phase 3 — the text copies of a renamed identity.
     _plan_renames(db, builder)
+
+    # Phase 3b — the files these records need, and the ones they will not get.
+    _plan_files(db, builder, payload, index)
 
     # Phase 4 — a delete that would orphan a live record is skipped, and the
     # row is touched so the hub learns it is still needed.
@@ -1799,6 +3129,14 @@ def plan_merge(db, user, payload, *, side: str, offset_seconds: float = 0.0,
     plan.inserts = builder.inserts
     plan.ref_counts = ref_counts
     plan.deferred = builder.deferred
+    plan.files = builder.files
+    plan.placements = builder.placements
+    plan.skipped_files = builder.skipped_files
+    plan.orphaned_files = builder.orphaned_files
+    plan.manifest = builder.manifest
+    # A file that should arrive and did not is pending from the start: staging
+    # fails or never runs, and the watermark must hold.
+    plan.pending_files = list(builder.files)
 
     deletions = sum(plan.deleted.values())
     plan.totals = _totals(db, uid, deletions)
@@ -1852,7 +3190,10 @@ def apply_merge(db, plan: MergePlan, *, user=None) -> MergeResult:
 
     conn = db.connection()
     result = MergeResult(counter_before=counter_rev(db, user_id),
-                         deferred=list(plan.deferred))
+                         deferred=list(plan.deferred),
+                         files_expected=list(plan.placements or plan.files),
+                         skipped_files=list(plan.skipped_files),
+                         orphaned_files=list(plan.orphaned_files))
 
     # Two revs, in this order: records stored exactly as received, then records
     # the receiver altered or decided about. R_changed is always the higher.
@@ -1873,7 +3214,8 @@ def apply_merge(db, plan: MergePlan, *, user=None) -> MergeResult:
             if action.table != table or action.op not in (OP_INSERT, OP_UPDATE):
                 continue
             _write_row(db, conn, model, action,
-                       r_changed if action.changed else r_verbatim, user_id)
+                       r_changed if action.changed else r_verbatim, user_id,
+                       getattr(user, "username", "") or "")
             if action.op == OP_INSERT:
                 # The record exists again, so a tombstone under its key would
                 # only make the other side delete it. The listener does the same
@@ -1918,11 +3260,21 @@ def apply_merge(db, plan: MergePlan, *, user=None) -> MergeResult:
 
 
 def _write_row(db, conn, model: type, action: Action, rev: Optional[int],
-               user_id: int) -> None:
+               user_id: int, username: str = "") -> None:
     """One insert or update, through Core so the ORM listener never sees it."""
     values = dict(action.values)
     horizon = values.pop(KEY_HORIZON, None)
     project_ids = values.pop(KEY_PROJECT_IDS, None)
+    values.pop(KEY_FILES, None)   # a reference set, never a column
+
+    # The incoming text is canonical (nova-file: tokens). It is localized here,
+    # inside the same statement as the row, so a record never exists pointing at
+    # a token and its images never point at the sender's username.
+    name_for = note_image_names(values)
+    for column in RICH_TEXT_COLUMNS.get(model, ()):
+        if isinstance(values.get(column), str):
+            values[column] = localize_text(model, column, values[column],
+                                           name_for, username)
 
     # A record stored exactly as received keeps the sender's stamp (the plan put
     # it in values, offset-corrected). Anything the receiver decided is stamped
@@ -2040,7 +3392,8 @@ def _write_tombstone(conn, user_id: int, action: Action, rev: Optional[int]) -> 
 
 # --- Download from server ----------------------------------------------------
 
-def plan_download(db, user, snapshot, *, offset_seconds: float = 0.0) -> DownloadPlan:
+def plan_download(db, user, snapshot, *, offset_seconds: float = 0.0,
+                  instance_path: str = None) -> DownloadPlan:
     """What a Download from server would wipe and write. Writes nothing."""
     plan = DownloadPlan(
         snapshot=snapshot,
@@ -2087,8 +3440,368 @@ def plan_download(db, user, snapshot, *, offset_seconds: float = 0.0) -> Downloa
             select(func.count()).select_from(model).where(model.user_id == uid)
         ) or 0
         plan.inserting[table] = len((snapshot.get("records") or {}).get(table) or [])
+
+    # The snapshot's files, and what the replacement will move aside. The
+    # displaced files are exactly today's uploads and this account's log files:
+    # a download wipes every record, so nothing this account holds is still
+    # referenced afterwards.
+    incoming = {model: [] for model in PLAN_ORDER}
+    manifest = snapshot.get("files") or {}
+    for table, rows in (snapshot.get("records") or {}).items():
+        model = TABLE_MODEL.get(table)
+        if model is None:
+            continue
+        for record in rows or []:
+            if not isinstance(record, dict):
+                continue
+            key = natural_key(model, record)
+            for slot, digest in (record.get(KEY_FILES) or {}).items():
+                if slot not in _FILE_SLOTS.get(model, {}) or digest not in manifest:
+                    plan.skipped_files.append({"table": table, "key": key,
+                                               "slot": slot, "sha256": digest,
+                                               "reason": SKIP_MISSING})
+                    continue
+                descriptor = manifest.get(digest) or {}
+                plan.placements.append(FileRef(
+                    role=descriptor.get("role") or _FILE_SLOTS[model][slot][0],
+                    table=table, key=key, slot=slot, sha256=digest,
+                    size=int(descriptor.get("size") or 0),
+                    ext=str(descriptor.get("ext") or ""),
+                    name=str(descriptor.get("name") or "")))
+            for column in RICH_TEXT_COLUMNS.get(model, ()):
+                for ref in _record_text_refs(model, record, column, key, manifest):
+                    if ref.sha256 and ref.sha256 in manifest:
+                        plan.placements.append(ref)
+                    else:
+                        plan.skipped_files.append({
+                            "table": table, "key": key, "slot": ref.slot,
+                            "sha256": ref.sha256, "reason": SKIP_MISSING})
+    plan.files = _unique_refs(plan.placements)
+    plan.replaced = _replacement_files(db, user, plan.files,
+                                       instance_path=instance_path)
+    plan.replaced_bytes = sum(int(r.size or 0) for r in plan.replaced)
+    # A download whose bytes would not fit is refused here, before the caller
+    # fetches anything: a half-filled staging directory is worse than a "no".
+    refusal = disk_space_refusal(plan, instance_path=instance_path)
+    if refusal is not None:
+        plan.refusals.append(refusal)
     plan.fingerprint = _fingerprint(db, uid, [], [], {})
     return plan
+
+
+def _unique_refs(refs) -> list:
+    seen: set[str] = set()
+    out = []
+    for ref in refs:
+        if ref.sha256 in seen:
+            continue
+        seen.add(ref.sha256)
+        out.append(ref)
+    return out
+
+
+def _replacement_files(db, user, incoming, *, instance_path: str = None) -> list:
+    """The files a Download from server displaces, as refs.
+
+    Everything in this user's uploads directory, plus every log file whose name
+    is one of this account's session ids. Every one of them is a candidate: the
+    wipe removes every record, so at plan time nothing here is referenced. What
+    actually moves is decided after the commit, by move_replaced_files(), which
+    knows the local names the new records ended up with — a file the new rows
+    still name (same content, same local id) stays exactly where it is.
+
+    `incoming` is accepted for the caller's convenience and is not used to
+    pre-filter: a digest match does not mean the file keeps its name.
+    """
+    del incoming
+    displaced: list[FileRef] = []
+    root = _user_upload_root(user, instance_path)
+    for name in _listdir(root):
+        path = os.path.join(root, name)
+        if not os.path.isfile(path):
+            continue
+        if name.startswith("note_img_"):
+            role = ROLE_NOTE_IMAGE
+        elif name.startswith("project_"):
+            role = ROLE_PROJECT_IMAGE
+        else:
+            role = ROLE_SESSION_PHOTO
+        try:
+            size = os.path.getsize(path)
+            digest = _sha256_of(path)
+        except OSError:
+            continue
+        displaced.append(FileRef(role=role, table="", key="", slot="", name=name,
+                                 sha256=digest, size=size,
+                                 ext=name.rsplit(".", 1)[-1].lower()))
+    owner_sessions = set()
+    for session in db.scalars(
+            select(JournalSession).where(JournalSession.user_id == user.id)).all():
+        if session.external_id:
+            owner_sessions.add(str(session.external_id))
+        owner_sessions.add(str(session.id))
+    for log_type in ("asiair", "phd2", "nina"):
+        log_dir = os.path.join(instance_path or INSTANCE_PATH, "logs", log_type)
+        for name in _listdir(log_dir):
+            if log_owner_session_id(name) not in owner_sessions:
+                continue
+            path = os.path.join(log_dir, name)
+            try:
+                size = os.path.getsize(path)
+                digest = _sha256_of(path)
+            except OSError:
+                continue
+            displaced.append(FileRef(role=ROLE_SESSION_LOG, table="", key="",
+                                     slot=log_type, name=name, sha256=digest,
+                                     size=size,
+                                     ext=name.rsplit(".", 1)[-1].lower()))
+    return displaced
+
+
+def _listdir(path: str) -> list:
+    try:
+        return sorted(os.listdir(path))
+    except OSError:
+        return []
+
+
+# --- Download: moving the displaced files aside (correction C) ----------------
+
+# Headroom over the incoming bytes before a download may start: the staging
+# copy and the live copy both exist for a moment, so free space must cover the
+# payload twice with room to spare.
+DISK_SPACE_FACTOR = 2.0
+DISK_SPACE_SLACK_BYTES = 32 * 1024 * 1024
+
+
+def _free_bytes(path: str) -> Optional[int]:
+    """Free bytes on the filesystem holding `path`, or None when it cannot be read."""
+    probe = path
+    while probe and not os.path.exists(probe):
+        parent = os.path.dirname(probe)
+        if parent == probe:
+            break
+        probe = parent
+    try:
+        return shutil.disk_usage(probe or ".").free
+    except OSError:
+        return None
+
+
+def disk_space_refusal(plan, instance_path: str = None) -> Optional[Refusal]:
+    """The refusal for a download whose bytes would not fit, or None.
+
+    Checked before a single byte is fetched, so a download that cannot finish
+    never starts and never leaves a half-filled staging directory behind.
+    """
+    needed = sum(int(r.size or 0) for r in getattr(plan, "files", []) or [])
+    if not needed:
+        return None
+    free = _free_bytes(instance_path or INSTANCE_PATH)
+    if free is None:
+        return None      # cannot measure: do not block a download over that
+    required = int(needed * DISK_SPACE_FACTOR) + DISK_SPACE_SLACK_BYTES
+    if free < required:
+        return Refusal(REFUSAL_NO_DISK_SPACE, {
+            "needed_bytes": needed, "required_bytes": required, "free_bytes": free,
+        })
+    return None
+
+
+def move_replaced_files(db, plan, user, *, instance_path: str = None,
+                        timestamp: Optional[str] = None) -> CommitReport:
+    """Move the files a download displaces into instance/replaced/<user>/<ts>/.
+
+    Runs after apply_download's commit and before commit_staged_files: by then
+    every row is the hub's, so a file no current record names is one this
+    account no longer refers to. Nothing is deleted (correction C) — a
+    replacement is a move, and the old bytes stay on disk under a timestamped
+    directory until purge takes the user away.
+
+    Idempotent by construction: the move happens first, the column update
+    second. A crash in between leaves the row still naming the old file, which
+    the next run finds gone from its live path and simply does not move again.
+    A file a current record references, and every staged file about to land, is
+    never moved.
+    """
+    report = CommitReport()
+    if user is None:
+        return report
+    displaced = list(getattr(plan, "replaced", []) or [])
+    if not displaced:
+        return report
+    stamp = timestamp or utc_now().strftime("%Y%m%dT%H%M%SZ")
+    try:
+        target = replaced_dir(user, stamp, instance_path)
+    except OSError:
+        return report
+    keep = _referenced_paths(db, user, instance_path=instance_path)
+    # A download's rows carry no FILE column until commit_staged_files writes
+    # one, so a file about to be placed under an unchanged name looks
+    # unreferenced here. The placements say exactly which names will land.
+    keep |= _incoming_paths(db, plan, user, instance_path=instance_path)
+    staged = set(staged_index(user, instance_path=instance_path).values())
+    staged = {os.path.realpath(p) for p in staged}
+
+    for ref in displaced:
+        live = _displaced_path(user, ref, instance_path=instance_path)
+        if not live:
+            continue
+        real = os.path.realpath(live)
+        if real in staged:
+            continue                      # about to be replaced by the arriving file
+        if os.path.exists(real) and real in keep:
+            continue                      # a current record still names it
+        try:
+            if not os.path.isfile(real):
+                continue
+            size = os.path.getsize(real)
+            moved = os.path.join(target, os.path.basename(real))
+            if os.path.exists(moved):
+                # Already moved by an earlier run of this same replacement.
+                continue
+            shutil.move(real, moved)
+        except OSError:
+            report.pending.append((ref.table, ref.key, ref.slot, ref.sha256))
+            continue
+        report.placed.append((ref.table, ref.key, ref.slot, ref.sha256))
+        report.orphaned.append(FileRef(role=ref.role, table="", key="", slot="",
+                                       name=os.path.basename(real),
+                                       sha256=ref.sha256, size=size, ext=ref.ext))
+    return report
+
+
+def _incoming_paths(db, plan, user, instance_path: str = None) -> set:
+    """The realpaths the download's placements are about to write.
+
+    After apply_download's commit the rows exist but their FILE columns are
+    still the payload's (a digest, or nothing), so _referenced_paths cannot see
+    them. This resolves each placement to the name commit_staged_files will give
+    it and returns that path, so the move-aside never moves a file that is
+    about to be rewritten in place.
+    """
+    keep: set[str] = set()
+    root = os.path.realpath(_user_upload_root(user, instance_path))
+    for ref in getattr(plan, "placements", []) or []:
+        if ref.missing or not ref.sha256:
+            continue
+        if ref.role == ROLE_NOTE_IMAGE:
+            keep.add(os.path.realpath(
+                os.path.join(root, note_image_name(ref.sha256, ref.ext))))
+            continue
+        model = TABLE_MODEL.get(ref.table)
+        if model is None:
+            continue
+        if ref.role == ROLE_SESSION_LOG:
+            log_type = log_type_of(ref.slot)
+            if not log_type:
+                continue
+            row = _row_by_key(db, model, user.id, ref.key)
+            name = (local_name_for(model, row, ref) if row is not None
+                    else local_name_for(model, None, ref))
+            keep.add(os.path.realpath(os.path.join(
+                instance_path or INSTANCE_PATH, "logs", log_type, name)))
+            continue
+        if ref.slot not in _FILE_SLOTS.get(model, {}):
+            continue
+        row = _row_by_key(db, model, user.id, ref.key)
+        name = local_name_for(model, row, ref)
+        keep.add(os.path.realpath(os.path.join(root, name)))
+    return keep
+
+
+def _row_by_key(db, model: type, user_id: int, key: str):
+    """The row a natural key names, or None."""
+    column = _KEY_COLUMN.get(model)
+    if column is None:
+        return None
+    return db.execute(
+        select(model).where(model.user_id == user_id,
+                            getattr(model, column) == key)
+    ).scalars().first()
+
+
+def _displaced_path(user, ref: FileRef, instance_path: str = None) -> str:
+    """Where a displaced ref lives on this disk, or "" when it has no home."""
+    if ref.role == ROLE_SESSION_LOG:
+        log_type = log_type_of(ref.slot) or "asiair"
+        base = os.path.join(instance_path or INSTANCE_PATH, "logs", log_type)
+    else:
+        base = _user_upload_root(user, instance_path)
+    name = os.path.basename(ref.name or "")
+    if not name:
+        return ""
+    return os.path.join(base, name)
+
+
+def file_source_path(ref: FileRef, user, instance_path: str = None) -> str:
+    """Where `ref`'s bytes live on the side that is sending them.
+
+    The sender's own naming scheme, resolved the same way its readers resolve
+    it: a session photo and a note image are in the user's uploads directory, a
+    log is in its type's directory. Returns "" when the file is not there, which
+    is the same answer _slot_ref() would have given at export time.
+    """
+    if not ref.sha256:
+        return ""
+    if ref.role == ROLE_SESSION_LOG:
+        log_type = log_type_of(ref.slot)
+        if not log_type:
+            return ""
+        base = os.path.join(instance_path or INSTANCE_PATH, "logs", log_type)
+        path = os.path.join(base, os.path.basename(ref.name or ""))
+    else:
+        path = os.path.join(_user_upload_root(user, instance_path),
+                            os.path.basename(ref.name or ""))
+    try:
+        return path if os.path.isfile(path) else ""
+    except OSError:
+        return ""
+
+
+def _referenced_paths(db, user, instance_path: str = None) -> set:
+    """The realpaths every current record's FILE columns and text links name.
+
+    A log's column holds an "instance/logs/..." path that resolves against the
+    *parent* of INSTANCE_PATH (helpers.log_file_path). Under an override the
+    same relative path is re-rooted at the override, which is the whole point:
+    the caller is working inside a copy of the instance directory.
+    """
+    keep: set[str] = set()
+
+    def _reroot(path: str) -> str:
+        if not path or not instance_path:
+            return path
+        return os.path.join(instance_path, os.path.relpath(path, INSTANCE_PATH))
+
+    for model in PLAN_ORDER:
+        slots = _FILE_SLOTS.get(model, {})
+        rich = RICH_TEXT_COLUMNS.get(model, ())
+        for row in _load_rows(db, model, user.id):
+            for slot in slots:
+                value = getattr(row, slot, None)
+                if not value:
+                    continue
+                if slots[slot][0] == ROLE_SESSION_LOG:
+                    path = _reroot(log_file_path(value))
+                else:
+                    path = os.path.join(_user_upload_root(user, instance_path), value)
+                if path:
+                    keep.add(os.path.realpath(path))
+            for column in rich:
+                text = getattr(row, column, None)
+                if not isinstance(text, str) or "/uploads/" not in text:
+                    continue
+                for match in _UPLOAD_LINK.finditer(text):
+                    filename = match.group(2)
+                    if filename != os.path.basename(filename):
+                        continue
+                    root = os.path.realpath(_user_upload_root(user, instance_path))
+                    path = os.path.realpath(os.path.join(root, filename))
+                    if path.startswith(root + os.sep):
+                        keep.add(path)
+    return keep
+
 
 
 def apply_download(db, plan: DownloadPlan, *, user=None) -> MergeResult:
@@ -2128,8 +3841,20 @@ def apply_download(db, plan: DownloadPlan, *, user=None) -> MergeResult:
     mark_account(conn, uid, "replaced")
 
     # Write, with one verbatim rev: everything here came from the hub.
+    counter_before = counter_rev(db, uid)
     r_verbatim = next_rev(conn, uid)
-    result = MergeResult(r_verbatim=r_verbatim)
+    username = (getattr(user, "username", "") or "") if user is not None else ""
+    result = MergeResult(
+        counter_before=counter_before,
+        r_verbatim=r_verbatim,
+        files_expected=list(plan.placements or plan.files),
+        skipped_files=list(plan.skipped_files),
+        # What the wipe displaced. The move itself is the caller's next step,
+        # after this transaction commits (correction C): a move cannot be rolled
+        # back, so it must not happen before the rows that justify it are safe.
+        replaced_files=[(r.name, int(r.size or 0)) for r in plan.replaced],
+        replaced_bytes=int(plan.replaced_bytes),
+    )
     records = plan.snapshot.get("records") or {}
 
     for model in PLAN_ORDER:
@@ -2145,7 +3870,7 @@ def apply_download(db, plan: DownloadPlan, *, user=None) -> MergeResult:
             actions.append(Action(OP_INSERT, table, natural_key(model, record),
                                   False, values))
         for action in actions:
-            _write_row(db, conn, model, action, r_verbatim, uid)
+            _write_row(db, conn, model, action, r_verbatim, uid, username)
         if actions:
             result.created[table] = len(actions)
 

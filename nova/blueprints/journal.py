@@ -45,11 +45,13 @@ from nova.record_links import (
 from nova.helpers import (
     get_db, allowed_file, safe_float, safe_int,
     save_log_to_filesystem, read_log_content, dither_display,
+    remove_thumbnail,
     # Moved from nova.__init__ for clean imports
     load_full_astro_context, generate_session_id,
     _compute_rig_metrics_from_components, get_ra_dec, invalidate_object_caches,
     guiding_rms_limits
 )
+from nova.sync_tracking import mark_file_changed
 from nova.analytics import record_event
 from nova.report_graphs import generate_session_charts
 
@@ -319,8 +321,12 @@ def journal_add():
                         if not safe_image_path.startswith(upload_root + os.sep):
                             _flash_rejected_upload(action, _("Invalid session image filename."))
                         else:
+                            # A photo written to a live name invalidates the
+                            # thumbnail of the bytes it replaces (correction D).
+                            remove_thumbnail(safe_image_path)
                             file.save(safe_image_path)
                             new_session.session_image_file = new_filename
+                            mark_file_changed(new_session, "session_image_file")
 
                             # Best-effort thumbnail generation — must not fail the request
                             # or roll back the original upload if it errors (corrupt image,
@@ -400,12 +406,15 @@ def journal_add():
             if asiair_content:
                 path = save_log_to_filesystem(new_session.id, 'asiair', asiair_content, asiair_filename)
                 new_session.asiair_log_content = path
+                mark_file_changed(new_session, "asiair_log_content")
             if phd2_content:
                 path = save_log_to_filesystem(new_session.id, 'phd2', phd2_content, phd2_filename)
                 new_session.phd2_log_content = path
+                mark_file_changed(new_session, "phd2_log_content")
             if nina_content:
                 path = save_log_to_filesystem(new_session.id, 'nina', nina_content, nina_filename)
                 new_session.nina_log_content = path
+                mark_file_changed(new_session, "nina_log_content")
             if asiair_content or phd2_content or nina_content:
                 db.commit()
 
@@ -699,6 +708,8 @@ def journal_edit(session_id):
                             os.remove(old_image_path)
                         except Exception as e:
                             print(f"Error deleting file: {e}")
+                        # The original is gone, so a thumbnail of it is stale.
+                        remove_thumbnail(old_image_path)
                     session_to_edit.session_image_file = None
     
             # File Handling (New Image Upload)
@@ -720,8 +731,13 @@ def journal_edit(session_id):
                         if not safe_image_path.startswith(upload_root + os.sep):
                             _flash_rejected_upload(action, _("Invalid session image filename."))
                         else:
+                            # The name is "<id>.<ext>", so replacing a photo
+                            # changes no column: the stale thumbnail goes and
+                            # the record is stamped by hand (corrections A, D).
+                            remove_thumbnail(safe_image_path)
                             file.save(safe_image_path)
                             session_to_edit.session_image_file = new_filename
+                            mark_file_changed(session_to_edit, "session_image_file")
 
             # --- Log file handling (stored as TEXT in DB) ---
             # Track if we need to invalidate the analysis cache
@@ -747,6 +763,7 @@ def journal_edit(session_id):
                         content = log_file.read().decode('utf-8', errors='ignore')
                         path = save_log_to_filesystem(session_to_edit.id, 'asiair', content, log_file.filename)
                         session_to_edit.asiair_log_content = path
+                        mark_file_changed(session_to_edit, "asiair_log_content")
                         invalidate_cache = True
 
             if 'phd2_log' in request.files:
@@ -765,6 +782,7 @@ def journal_edit(session_id):
                         content = log_file.read().decode('utf-8', errors='ignore')
                         path = save_log_to_filesystem(session_to_edit.id, 'phd2', content, log_file.filename)
                         session_to_edit.phd2_log_content = path
+                        mark_file_changed(session_to_edit, "phd2_log_content")
                         invalidate_cache = True
 
             # NINA log upload with validation
@@ -787,6 +805,7 @@ def journal_edit(session_id):
                         content = log_file.read().decode('utf-8', errors='ignore')
                         path = save_log_to_filesystem(session_to_edit.id, 'nina', content, log_file.filename)
                         session_to_edit.nina_log_content = path
+                        mark_file_changed(session_to_edit, "nina_log_content")
                         invalidate_cache = True
                         nina_imported = True
                         flash(_("NINA log imported successfully."), "success")
@@ -987,6 +1006,8 @@ def journal_delete(session_id):
                 is_within_user_dir = False
             if is_within_user_dir and os.path.isfile(image_path):
                 os.remove(image_path)
+                # The original is gone, so its thumbnail is stale (correction D).
+                remove_thumbnail(image_path)
 
         db.delete(session_to_delete)
         db.commit()

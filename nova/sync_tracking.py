@@ -35,6 +35,7 @@ everything a single flush touches is one change set.
 
 from sqlalchemy import bindparam, event, inspect, select, text
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 
 from nova.models import (
     AstroObject, Component, HorizonPoint, JournalSession, Location, Project,
@@ -81,6 +82,43 @@ def record_key(obj):
     if isinstance(obj, UiPref):
         return str(obj.user_id) if obj.user_id is not None else ""
     return ""
+
+
+# The FILE-bucket columns per model (see _COLUMN_CLASSES in nova/sync_engine.py,
+# which imports this module, so the names are repeated rather than imported).
+FILE_SLOTS = {
+    "journal_sessions": ("session_image_file", "asiair_log_content",
+                         "phd2_log_content", "nina_log_content",
+                         "log_analysis_cache"),
+    "projects": ("final_image_file",),
+}
+
+
+def mark_file_changed(obj, slot):
+    """Make a flush stamp `obj` because one of its files changed on disk.
+
+    A photo, a project image and a log keep their name when they are replaced
+    (a session photo is "<id>.<ext>" whichever bytes it holds), so the column
+    does not change and before_flush would see an unmodified row and stamp
+    nothing. Sync compares file content by digest, not by name, so the record
+    has to carry a new rev or the new bytes never travel.
+
+    flag_modified() on the column raises is_modified() for this object (verified:
+    a loaded attribute flagged this way puts the object in session.dirty and makes
+    is_modified() True), and the listener then stamps it. The attribute must be
+    loaded first: flag_modified() raises for an attribute "not present in the
+    object state".
+
+    Returns True when the row was marked. Safe to call on any object.
+    """
+    if obj is None or slot not in FILE_SLOTS.get(obj.__tablename__, ()):
+        return False
+    try:
+        getattr(obj, slot)          # force the load flag_modified() needs
+        flag_modified(obj, slot)
+    except Exception:
+        return False
+    return True
 
 
 def _old_value(obj, name):

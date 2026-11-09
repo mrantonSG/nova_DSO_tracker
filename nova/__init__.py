@@ -156,6 +156,7 @@ from nova.helpers import (
     outlook_cache_file, resolve_sampling_interval, resolve_altitude_threshold,
     bust_astro_context_cache, bust_nightly_curves_cache, bust_observable_objects_cache,
     purge_note_path, read_purge_note,
+    remove_thumbnail,
 )
 from nova.config import DEFAULT_DITHER_MAIN_SHIFT_PX
 from nova.report_graphs import generate_session_charts
@@ -3165,6 +3166,8 @@ def _handle_project_image_upload(file_object, project_id: str, username: str, ex
                 old_image_path = os.path.join(user_upload_dir, existing_filename)
                 if _is_within_user_dir(old_image_path) and os.path.exists(old_image_path):
                     os.remove(old_image_path)
+                    # The original is gone, so its thumbnail is stale.
+                    remove_thumbnail(old_image_path)
 
             file_extension = file_object.filename.rsplit('.', 1)[1].lower()
             new_filename = f"project_{project_id}.{file_extension}"
@@ -3172,6 +3175,9 @@ def _handle_project_image_upload(file_object, project_id: str, username: str, ex
             if not _is_within_user_dir(new_image_path):
                 raise ValueError(f"Refusing to save project image outside user upload dir: {new_image_path}")
             os.makedirs(user_upload_dir, exist_ok=True)
+            # A write to a live name invalidates any thumbnail of the bytes it
+            # replaces (correction D); a fresh one is built below.
+            remove_thumbnail(new_image_path)
             file_object.save(new_image_path)
 
             # Best-effort thumbnail generation — must not fail the request

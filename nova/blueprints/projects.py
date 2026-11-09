@@ -35,8 +35,9 @@ from nova.models import (
 from nova.record_links import sync_project_link
 from nova.helpers import (
     get_db, load_full_astro_context, read_log_content, invalidate_object_caches,
-    is_safe_redirect_target, safe_int
+    is_safe_redirect_target, safe_int, remove_thumbnail
 )
+from nova.sync_tracking import mark_file_changed
 from nova.analytics import record_event
 from nova.report_graphs import generate_session_charts
 
@@ -103,6 +104,8 @@ def project_detail(project_id):
                         is_within_user_dir = False
                     if is_within_user_dir:
                         os.remove(final_image_path)
+                        # The original is gone, so its thumbnail is stale.
+                        remove_thumbnail(final_image_path)
                     project.final_image_file = None
                 except Exception as e:
                     print(f"Error deleting final image: {e}")
@@ -131,6 +134,9 @@ def project_detail(project_id):
             # Finalize image file update
             if new_filename:
                 project.final_image_file = new_filename
+                # The name is "project_<id>.<ext>": replacing an image changes
+                # no column, so the record is stamped by hand (correction A).
+                mark_file_changed(project, "final_image_file")
 
             db.commit()
             invalidate_object_caches(g.db_user.id, username, [], curves=False)
