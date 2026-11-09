@@ -392,9 +392,19 @@ def delete_project(project_id):
             flash(_("Project not found."), "error")
             return redirect(url_for('core.index'))
 
-        # Delete the project.
-        # Note: Sessions will NOT be deleted. Their project_id will automatically set to NULL
-        # because of the ForeignKey(ondelete="SET NULL") definition in your model.
+        # Unlink the sessions first. PRAGMA foreign_keys is off, so the
+        # ForeignKey(ondelete="SET NULL") on journal_sessions.project_id never
+        # fires: without this the sessions would keep pointing at a project row
+        # that no longer exists. Both links are cleared, through the ORM so the
+        # sync listener stamps each session (it reads attribute history).
+        # The sessions themselves are kept and become standalone.
+        for session in list(project.journal_sessions_m2m):
+            project.journal_sessions_m2m.remove(session)
+        for session in db.query(JournalSession).filter(
+                JournalSession.project_id == project.id).all():
+            session.project_id = None
+        db.flush()
+
         db.delete(project)
         db.commit()
         invalidate_object_caches(user.id, username, [], curves=False)

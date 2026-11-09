@@ -16,13 +16,15 @@ The location link is read by location_references for the delete rule;
 session locations shown elsewhere still come from the stored location_name text.
 """
 
+import json
 from typing import NamedTuple, Optional
 
 from sqlalchemy import and_, func, inspect, or_, select, text
 from sqlalchemy.orm.exc import ObjectDeletedError
 
 from nova.models import (
-    AstroObject, Component, JournalSession, Location, Project, Rig, SavedFraming, _new_record_uid,
+    AstroObject, Component, JournalSession, Location, Project, Rig, SavedFraming,
+    UiPref, _new_record_uid,
 )
 from nova.sync_tracking import stamp_rows
 
@@ -377,7 +379,7 @@ def refresh_rig_row_numbers(db, user_id):
 
 # --- Adopt on create and move between objects ----------------------------------
 
-def _empty_uid_rows(db, user_id, model, uid_col, name_col, uid, name):
+def empty_uid_rows(db, user_id, model, uid_col, name_col, uid, name):
     """This user's `model` rows whose UID equals `uid`, or whose UID is empty
     (NULL or "") and whose name column equals `name` exactly. A row whose UID
     points elsewhere is never returned."""
@@ -492,7 +494,7 @@ def repoint_object_links(db, user_id, old_uid, old_name, new_uid, new_name,
         (JournalSession, "sessions", JournalSession.object_record_uid, JournalSession.object_name),
         (Project, "projects", Project.target_object_record_uid, Project.target_object_name),
     ):
-        for r in _empty_uid_rows(db, user_id, model, uid_col, name_col, old_uid, old_name):
+        for r in empty_uid_rows(db, user_id, model, uid_col, name_col, old_uid, old_name):
             setattr(r, name_col.key, new_name)
             setattr(r, uid_col.key, new_uid)
             moved[key] += 1
@@ -505,7 +507,7 @@ def repoint_object_links(db, user_id, old_uid, old_name, new_uid, new_name,
     if delete_conflicting_framing:
         framing_keep = db.query(SavedFraming).filter_by(
             user_id=user_id, object_name=new_name).one_or_none()
-    for f in _empty_uid_rows(db, user_id, SavedFraming, SavedFraming.object_record_uid,
+    for f in empty_uid_rows(db, user_id, SavedFraming, SavedFraming.object_record_uid,
                              SavedFraming.object_name, old_uid, old_name):
         if framing_keep is not None and framing_keep.id != f.id:
             db.delete(f)
@@ -529,6 +531,63 @@ def repoint_object_links(db, user_id, old_uid, old_name, new_uid, new_name,
                 f.object_name = new_name
                 moved["framings"] += 1
     return moved
+
+
+def repoint_location_links(db, user_id, old_uid, old_name, new_uid, new_name):
+    """Point this user's rows linked to one location at another location.
+
+    The location equivalent of repoint_object_links, for a location rename or a
+    location merge. A session is linked to the old location when its
+    location_record_uid equals `old_uid`, or when that UID is empty (NULL or "")
+    and its location_name equals `old_name` exactly. Each such session gets the
+    new name text and the new UID. A session already linked to the new location
+    (its UID equals `new_uid`) only gets the new name text, its UID untouched. A
+    session whose UID points at any other location is never touched.
+
+    ui_prefs holds the default location as a name, not a UID, so it is repointed
+    only when it equals `old_name` exactly and `new_name` is not empty. A name
+    is never cleared: an unmatched default is left to resolve_default_location_name.
+    Returns {"sessions": n, "ui_prefs": n}.
+    """
+    moved = {"sessions": 0, "ui_prefs": 0}
+    for r in empty_uid_rows(db, user_id, JournalSession,
+                             JournalSession.location_record_uid,
+                             JournalSession.location_name, old_uid, old_name):
+        r.location_name = new_name
+        r.location_record_uid = new_uid
+        moved["sessions"] += 1
+    if new_uid:
+        for r in db.query(JournalSession).filter(
+                JournalSession.user_id == user_id,
+                JournalSession.location_record_uid == new_uid).all():
+            if r.location_name != new_name:
+                r.location_name = new_name
+                moved["sessions"] += 1
+    if new_name and old_name:
+        prefs = db.query(UiPref).filter(UiPref.user_id == user_id).first()
+        if prefs is not None and _prefs_default_location(prefs) == old_name:
+            settings = _prefs_settings(prefs)
+            settings["default_location"] = new_name
+            prefs.json_blob = json.dumps(settings, ensure_ascii=False)
+            moved["ui_prefs"] = 1
+    return moved
+
+
+def _prefs_settings(prefs):
+    """ui_prefs' blob as a dict. A missing or unreadable blob reads as {}."""
+    if not prefs or not prefs.json_blob:
+        return {}
+    try:
+        settings = json.loads(prefs.json_blob)
+    except (TypeError, ValueError):
+        return {}
+    return settings if isinstance(settings, dict) else {}
+
+
+def _prefs_default_location(prefs):
+    """The location name ui_prefs names as default, or None."""
+    name = _prefs_settings(prefs).get("default_location")
+    return str(name) if name else None
 
 
 # --- Bulk ------------------------------------------------------------------------
