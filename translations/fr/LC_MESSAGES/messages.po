@@ -7988,6 +7988,90 @@ msgstr "Au-dessus de votre seuil d'altitude pendant moins d'une heure"
 msgid "Data: Open-Meteo"
 msgstr "Données : Open-Meteo"
 
+#: templates/config_form.html
+msgid "Sync"
+msgstr "Synchronisation"
+
+#: templates/sync_tokens.html
+msgid "Nova – Sync Tokens"
+msgstr "Nova – Jetons de synchronisation"
+
+#: templates/sync_tokens.html
+msgid "Sync Tokens"
+msgstr "Jetons de synchronisation"
+
+#: templates/sync_tokens.html
+msgid "Instance Sync"
+msgstr "Synchronisation d'instances"
+
+#: templates/sync_tokens.html
+msgid "Pair another Nova instance with this server. Each instance needs its own token."
+msgstr "Associez une autre instance Nova à ce serveur. Chaque instance a besoin de son propre jeton."
+
+#: templates/sync_tokens.html
+msgid "Copy this token now. We store only a hash of it, so it will never be shown again."
+msgstr "Copiez ce jeton maintenant. Nous n'en conservons qu'un hachage ; il ne sera plus jamais affiché."
+
+#: templates/sync_tokens.html
+msgid "Token Label"
+msgstr "Libellé du jeton"
+
+#: templates/sync_tokens.html
+msgid "e.g. MacBook Air, Observatory PC"
+msgstr "p. ex. MacBook Air, PC de l'observatoire"
+
+#: templates/sync_tokens.html
+msgid "Create Token"
+msgstr "Créer un jeton"
+
+#: templates/sync_tokens.html
+msgid "Created"
+msgstr "Créé le"
+
+#: templates/sync_tokens.html
+msgid "Last used"
+msgstr "Dernière utilisation"
+
+#: templates/sync_tokens.html
+msgid "Never used"
+msgstr "Jamais utilisé"
+
+#: templates/sync_tokens.html
+msgid "Revoked"
+msgstr "Révoqué"
+
+#: templates/sync_tokens.html
+msgid "Revoking stops that instance from syncing. This cannot be undone."
+msgstr "Révoquer ce jeton empêche cette instance de se synchroniser. Cette action est irréversible."
+
+#: templates/sync_tokens.html
+msgid "Revoke"
+msgstr "Révoquer"
+
+#: templates/sync_tokens.html
+msgid "No sync tokens yet."
+msgstr "Aucun jeton de synchronisation pour l'instant."
+
+#: templates/sync_tokens.html
+msgid "Create one for each instance you want to sync to this server."
+msgstr "Créez-en un pour chaque instance à synchroniser avec ce serveur."
+
+#: nova/blueprints/sync_tokens.py
+msgid "Not available for the guest account."
+msgstr "Non disponible pour le compte invité."
+
+#: nova/blueprints/sync_tokens.py
+msgid "Token label is required."
+msgstr "Le libellé du jeton est obligatoire."
+
+#: nova/blueprints/sync_tokens.py
+msgid "That token no longer exists."
+msgstr "Ce jeton n'existe plus."
+
+#: nova/blueprints/sync_tokens.py
+msgid "This token was already created. For security it can't be shown again — revoke it and create a new one if you didn't copy it."
+msgstr "Ce jeton a déjà été créé. Pour des raisons de sécurité, il ne peut plus être affiché — révoquez-le et créez-en un nouveau si vous ne l'avez pas copié."
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Suggestions de rafraîchissement"
 

@@ -7632,6 +7632,90 @@ msgstr "高于您的高度阈值的时间不到一小时"
 msgid "Data: Open-Meteo"
 msgstr "数据：Open-Meteo"
 
+#: templates/config_form.html
+msgid "Sync"
+msgstr "同步"
+
+#: templates/sync_tokens.html
+msgid "Nova – Sync Tokens"
+msgstr "Nova – 同步令牌"
+
+#: templates/sync_tokens.html
+msgid "Sync Tokens"
+msgstr "同步令牌"
+
+#: templates/sync_tokens.html
+msgid "Instance Sync"
+msgstr "实例同步"
+
+#: templates/sync_tokens.html
+msgid "Pair another Nova instance with this server. Each instance needs its own token."
+msgstr "将另一个 Nova 实例与此服务器配对。每个实例都需要自己的令牌。"
+
+#: templates/sync_tokens.html
+msgid "Copy this token now. We store only a hash of it, so it will never be shown again."
+msgstr "请立即复制此令牌。我们只存储它的哈希值，因此它不会再次显示。"
+
+#: templates/sync_tokens.html
+msgid "Token Label"
+msgstr "令牌标签"
+
+#: templates/sync_tokens.html
+msgid "e.g. MacBook Air, Observatory PC"
+msgstr "例如 MacBook Air、天文台电脑"
+
+#: templates/sync_tokens.html
+msgid "Create Token"
+msgstr "创建令牌"
+
+#: templates/sync_tokens.html
+msgid "Created"
+msgstr "创建于"
+
+#: templates/sync_tokens.html
+msgid "Last used"
+msgstr "上次使用"
+
+#: templates/sync_tokens.html
+msgid "Never used"
+msgstr "从未使用"
+
+#: templates/sync_tokens.html
+msgid "Revoked"
+msgstr "已撤销"
+
+#: templates/sync_tokens.html
+msgid "Revoking stops that instance from syncing. This cannot be undone."
+msgstr "撤销后该实例将无法同步。此操作无法撤销。"
+
+#: templates/sync_tokens.html
+msgid "Revoke"
+msgstr "撤销"
+
+#: templates/sync_tokens.html
+msgid "No sync tokens yet."
+msgstr "尚无同步令牌。"
+
+#: templates/sync_tokens.html
+msgid "Create one for each instance you want to sync to this server."
+msgstr "为每个要同步到此服务器的实例创建一个令牌。"
+
+#: nova/blueprints/sync_tokens.py
+msgid "Not available for the guest account."
+msgstr "访客账户不可用。"
+
+#: nova/blueprints/sync_tokens.py
+msgid "Token label is required."
+msgstr "令牌标签为必填项。"
+
+#: nova/blueprints/sync_tokens.py
+msgid "That token no longer exists."
+msgstr "该令牌已不存在。"
+
+#: nova/blueprints/sync_tokens.py
+msgid "This token was already created. For security it can't be shown again — revoke it and create a new one if you didn't copy it."
+msgstr "此令牌已创建。出于安全考虑，它无法再次显示——如果你没有复制它，请撤销并创建一个新的。"
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "刷新建议"
 

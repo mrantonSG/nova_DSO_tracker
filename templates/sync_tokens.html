@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Nova – Sync Tokens') }}{% endblock %}
+{% from "macros.html" import flash_messages %}
+
+{% block head_extra %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/config_form.css') }}?v={{ version }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/gallery_section.css') }}?v={{ version }}">
+{% endblock %}
+
+{% block page_title %}
+    <h2>{{ _('Sync Tokens') }} <span class="subtitle">({{ _('Instance Sync') }})</span></h2>
+{% endblock %}
+
+{% block header_actions %}
+    <button class="action-button" data-nav-url="{{ url_for('core.index') }}">&#8592; {{ _('Back to Dashboard') }}</button>
+{% endblock %}
+
+{% block body %}
+
+  {{ flash_messages() }}
+
+  <div class="container">
+    <div class="column">
+      <h2>{{ _('Sync Tokens') }}</h2>
+      <p style="font-size:14px; color: var(--text-secondary);">
+        {{ _('Pair another Nova instance with this server. Each instance needs its own token.') }}
+      </p>
+
+      {% if new_token %}
+      <ul>
+        <li style="border: 2px dashed var(--border-color, #e5e2dc); display: block;">
+          <div class="item-info">
+            <div style="margin-bottom: 6px;">{{ _('Copy this token now. We store only a hash of it, so it will never be shown again.') }}</div>
+            <code id="sync-new-token" style="font-family: var(--font-mono, monospace); font-size: 12px; word-break: break-all; color: var(--text-primary);">{{ new_token }}</code>
+          </div>
+          <div class="item-actions" style="margin-top: 10px;">
+            <!-- .column button (config_form.css) is 0,1,1 and would repaint the
+                 ghost class as a filled primary button. .form-actions
+                 button[type="button"] (nova-theme.css) is 0,2,1 and carries the
+                 ghost styling, so this wrapper is what makes the ghost win. -->
+            <div class="form-actions">
+              <button type="button" class="inline-button-ghost" id="sync-copy-btn"
+                      data-copied="{{ _('Copied!') }}" onclick="copySyncToken()">{{ _('Copy') }}</button>
+            </div>
+          </div>
+        </li>
+      </ul>
+      <hr>
+      {% endif %}
+
+      <form method="post" action="{{ url_for('sync.create_token') }}">
+        <input type="hidden" name="nonce" value="{{ nonce }}">
+        <div class="form-group">
+          <label for="sync-token-label">{{ _('Token Label') }}</label>
+          <input type="text" id="sync-token-label" name="label" maxlength="100" required
+                 placeholder="{{ _('e.g. MacBook Air, Observatory PC') }}">
+        </div>
+        <button type="submit" class="action-button">{{ _('Create Token') }}</button>
+      </form>
+
+      <hr>
+
+      {% if tokens %}
+      <ul>
+        {% for token in tokens %}
+        <li>
+          <div class="item-info">
+            <strong>{{ token.label }}</strong><br>
+            <span style="font-size:12px; color: var(--text-muted);">
+              {{ _('Created') }} {{ token.created_at.strftime('%Y-%m-%d %H:%M') if token.created_at else '—' }}
+              &middot;
+              {% if token.last_used_at %}
+                {{ _('Last used') }} {{ token.last_used_at.strftime('%Y-%m-%d %H:%M') }}
+              {% else %}
+                {{ _('Never used') }}
+              {% endif %}
+            </span>
+          </div>
+          <div class="item-actions">
+            {% if token.revoked_at %}
+              <span style="font-size:12px; color: var(--text-muted);">{{ _('Revoked') }}</span>
+            {% else %}
+              <form method="post" action="{{ url_for('sync.revoke_token') }}" style="display:inline; margin:0;"
+                    data-confirm="{{ _('Revoking stops that instance from syncing. This cannot be undone.') }}">
+                <input type="hidden" name="token_id" value="{{ token.id }}">
+                <button type="submit" class="delete-btn">{{ _('Revoke') }}</button>
+              </form>
+            {% endif %}
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="gallery-empty-state">
+        <div class="gallery-empty-icon">&#128273;</div>
+        <p>{{ _('No sync tokens yet.') }}</p>
+        <p style="font-size:13px;">{{ _('Create one for each instance you want to sync to this server.') }}</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <script>
+    function legacyCopySyncToken(text) {
+      // navigator.clipboard is undefined on non-HTTPS, which is how most
+      // self-hosted instances are reached, so the fallback is the common path.
+      try {
+        var area = document.createElement('textarea');
+        area.value = text;
+        area.style.position = 'fixed';
+        area.style.opacity = '0';
+        document.body.appendChild(area);
+        area.focus();
+        area.select();
+        var ok = document.execCommand('copy');
+        document.body.removeChild(area);
+        return ok;
+      } catch (err) {
+        console.error('Clipboard fallback failed:', err);
+        return false;
+      }
+    }
+
+    function copySyncToken() {
+      var source = document.getElementById('sync-new-token');
+      var button = document.getElementById('sync-copy-btn');
+      if (!source) { return; }
+      var text = source.textContent.trim();
+      function copied() {
+        if (!button) { return; }
+        if (!button.dataset.original) { button.dataset.original = button.textContent; }
+        button.textContent = button.dataset.copied;
+        setTimeout(function () { button.textContent = button.dataset.original; }, 2000);
+      }
+      function failed(err) {
+        console.error('Clipboard write failed:', err);
+        alert(window.t ? window.t('clipboard_failed') : 'Failed to copy to clipboard.');
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(copied).catch(function (err) {
+          if (legacyCopySyncToken(text)) { copied(); } else { failed(err); }
+        });
+        return;
+      }
+      if (legacyCopySyncToken(text)) { copied(); } else { failed(new Error('execCommand copy returned false')); }
+    }
+  </script>
+
+{% endblock %}

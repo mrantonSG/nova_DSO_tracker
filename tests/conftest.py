@@ -106,6 +106,7 @@ _CACHE_DIR_MODULES = (
     'nova.blueprints.core',
     'nova.blueprints.tools',
     'nova.workers.heatmap',
+    'nova.sync_transport',
 )
 
 

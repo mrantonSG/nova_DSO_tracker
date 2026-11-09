@@ -172,6 +172,8 @@ from nova.blueprints.journal import journal_bp
 from nova.blueprints.mobile import mobile_bp
 from nova.blueprints.projects import projects_bp
 from nova.blueprints.tools import tools_bp
+from nova.blueprints.sync_api import sync_api_bp
+from nova.blueprints.sync_tokens import sync_bp
 from nova.ai.routes import register_ai_blueprint
 
 
@@ -1672,6 +1674,11 @@ if not SINGLE_USER_MODE:
         from sentry_sdk.integrations.flask import FlaskIntegration
         from sentry_sdk.integrations.logging import LoggingIntegration
 
+        # before_send only ever removes fields (see nova/sync_transport.py): the
+        # SDK redacts the Authorization header purely because send_default_pii is
+        # off, and a sync request carries a long-lived bearer token.
+        from nova.sync_transport import scrub_sentry_event
+
         sentry_sdk.init(
             dsn=SENTRY_DSN,
             integrations=[
@@ -1682,6 +1689,7 @@ if not SINGLE_USER_MODE:
                 ),
             ],
             release=APP_VERSION,
+            before_send=scrub_sentry_event,
         )
 
 # --- Auth setup (db, User, login_manager live in nova.auth) ---
@@ -1795,14 +1803,59 @@ def _touch_user_last_seen(user):
                 pass
 
 
+# Endpoints reachable without a session in multi-user mode. The sync API is
+# here for completeness: it authenticates with a bearer token, and the early
+# return in load_global_request_context below is what actually keeps it out of
+# the login gate.
+GATE_EXEMPT_ENDPOINTS = (
+    'core.login', 'core.guest_entry', 'core.set_language', 'core.logout',
+    'core.sso_login', 'core.analytics_dashboard', 'core.analytics_json',
+    'api.provision_user', 'api.deprovision_user',
+    'api.get_latest_version', 'api.telemetry_ping',
+    'mobile.service_worker',
+    # --- instance sync API (bearer token, never a session) ---
+    'sync_api.hello', 'sync_api.changes', 'sync_api.snapshot',
+    'sync_api.fetch_file', 'sync_api.push_plan', 'sync_api.push_file',
+    'sync_api.push_apply', 'sync_api.push_cancel', 'sync_api.repair',
+)
+
+# The blueprint that owns GATE_EXEMPT_ENDPOINTS' sync half. Requests here are
+# token-authenticated and must not provision a user, count a visit or run any
+# telemetry hook.
+SYNC_API_BLUEPRINT = 'sync_api'
+
+
+def _is_sync_api_request():
+    """Whether the request being handled belongs to the sync API.
+
+    False when there is no request at all: these hooks are ordinary functions
+    and are also called directly (tests, workers), where touching `request`
+    would raise instead of answering.
+    """
+    if not has_request_context():
+        return False
+    return request.blueprint == SYNC_API_BLUEPRINT
+
+
 @app.before_request
 def _apply_purge_note_hook():
+    if _is_sync_api_request():
+        return
     if not SINGLE_USER_MODE:
         apply_purge_note()
 
 
 @app.before_request
 def load_global_request_context():
+    # 0. The sync API lives outside the session model entirely: it authenticates
+    #    with a bearer token, and everything below (user provisioning, UI prefs,
+    #    the login gate, visit counting) is either wrong or wasted for it. Its
+    #    own decorator sets g.sync_user instead of g.db_user.
+    if _is_sync_api_request():
+        g.db_user = None
+        g.is_guest = False
+        return
+
     # 1. Skip all expensive logic for static files
     if request.endpoint in ('static', 'core.favicon'):
         return
@@ -1826,14 +1879,7 @@ def load_global_request_context():
         return
     else:
         # Multi-user, unauthenticated: guest mode only when explicitly entered via /guest.
-        _gate_exempt = (
-            'core.login', 'core.guest_entry', 'core.set_language', 'core.logout',
-            'core.sso_login', 'core.analytics_dashboard', 'core.analytics_json',
-            'api.provision_user', 'api.deprovision_user',
-            'api.get_latest_version', 'api.telemetry_ping',
-            'mobile.service_worker',
-        )
-        if not session.get('guest_mode') and request.endpoint not in _gate_exempt:
+        if not session.get('guest_mode') and request.endpoint not in GATE_EXEMPT_ENDPOINTS:
             g.db_user = None
             if request.path.startswith(('/api/', '/telemetry/', '/get_', '/sun_events', '/trigger_update')):
                 return jsonify({"error": "authentication required"}), 401
@@ -2757,6 +2803,9 @@ def _note_recent_visitor():
     try:
         if app.config.get('TESTING'):
             return None
+        if _is_sync_api_request():
+            # A sync request is a machine, not a visitor.
+            return None
         user = getattr(g, 'db_user', None)
         if user is not None and getattr(user, 'username', None):
             _recent_visitors[user.username] = time.time()
@@ -3083,6 +3132,10 @@ def _start_telemetry_scheduler_once():
 
 @app.before_request
 def _telemetry_bootstrap_hook():
+    if _is_sync_api_request():
+        # Sync traffic is not user browsing, and it must not consume the
+        # once-per-process bootstrap slot the first real page view should get.
+        return
     # Ensure the once-per-process startup scheduler is kicked off
     _start_telemetry_scheduler_once()
 
@@ -3311,6 +3364,10 @@ def ensure_telemetry_defaults():
 
 @app.before_request
 def telemetry_startup_ping_once():
+    if _is_sync_api_request():
+        # Claiming the once-flag here would send the startup ping (and burn the
+        # slot) on behalf of a background sync rather than the first page view.
+        return
     # Emulate old before_first_request semantics with a thread-safe guard
     if not _telemetry_startup_once.is_set():
         # Claim the once-flag only once this process actually owns the lock: a
@@ -4346,6 +4403,9 @@ app.register_blueprint(projects_bp)
 app.register_blueprint(tools_bp)
 from nova.blueprints.admin import admin_bp
 app.register_blueprint(admin_bp)
+# Instance sync: the session-authenticated token page and the token-only API.
+app.register_blueprint(sync_bp)
+app.register_blueprint(sync_api_bp)
 
 # Register AI blueprint (conditional on AI_API_KEY being set)
 register_ai_blueprint(app)

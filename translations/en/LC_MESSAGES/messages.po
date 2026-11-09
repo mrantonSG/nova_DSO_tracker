@@ -7619,6 +7619,90 @@ msgstr ""
 msgid "Data: Open-Meteo"
 msgstr ""
 
+#: templates/config_form.html
+msgid "Sync"
+msgstr ""
+
+#: templates/sync_tokens.html
+msgid "Nova – Sync Tokens"
+msgstr ""
+
+#: templates/sync_tokens.html
+msgid "Sync Tokens"
+msgstr ""
+
+#: templates/sync_tokens.html
+msgid "Instance Sync"
+msgstr ""
+
+#: templates/sync_tokens.html
+msgid "Pair another Nova instance with this server. Each instance needs its own token."
+msgstr ""
+
+#: templates/sync_tokens.html
+msgid "Copy this token now. We store only a hash of it, so it will never be shown again."
+msgstr ""
+
+#: templates/sync_tokens.html
+msgid "Token Label"
+msgstr ""
+
+#: templates/sync_tokens.html
+msgid "e.g. MacBook Air, Observatory PC"
+msgstr ""
+
+#: templates/sync_tokens.html
+msgid "Create Token"
+msgstr ""
+
+#: templates/sync_tokens.html
+msgid "Created"
+msgstr ""
+
+#: templates/sync_tokens.html
+msgid "Last used"
+msgstr ""
+
+#: templates/sync_tokens.html
+msgid "Never used"
+msgstr ""
+
+#: templates/sync_tokens.html
+msgid "Revoked"
+msgstr ""
+
+#: templates/sync_tokens.html
+msgid "Revoking stops that instance from syncing. This cannot be undone."
+msgstr ""
+
+#: templates/sync_tokens.html
+msgid "Revoke"
+msgstr ""
+
+#: templates/sync_tokens.html
+msgid "No sync tokens yet."
+msgstr ""
+
+#: templates/sync_tokens.html
+msgid "Create one for each instance you want to sync to this server."
+msgstr ""
+
+#: nova/blueprints/sync_tokens.py
+msgid "Not available for the guest account."
+msgstr ""
+
+#: nova/blueprints/sync_tokens.py
+msgid "Token label is required."
+msgstr ""
+
+#: nova/blueprints/sync_tokens.py
+msgid "That token no longer exists."
+msgstr ""
+
+#: nova/blueprints/sync_tokens.py
+msgid "This token was already created. For security it can't be shown again — revoke it and create a new one if you didn't copy it."
+msgstr ""
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr ""
 

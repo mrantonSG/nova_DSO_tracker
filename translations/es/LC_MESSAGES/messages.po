@@ -7949,6 +7949,90 @@ msgstr "Por encima de su umbral de altitud durante menos de una hora"
 msgid "Data: Open-Meteo"
 msgstr "Datos: Open-Meteo"
 
+#: templates/config_form.html
+msgid "Sync"
+msgstr "Sincronización"
+
+#: templates/sync_tokens.html
+msgid "Nova – Sync Tokens"
+msgstr "Nova – Tokens de sincronización"
+
+#: templates/sync_tokens.html
+msgid "Sync Tokens"
+msgstr "Tokens de sincronización"
+
+#: templates/sync_tokens.html
+msgid "Instance Sync"
+msgstr "Sincronización de instancias"
+
+#: templates/sync_tokens.html
+msgid "Pair another Nova instance with this server. Each instance needs its own token."
+msgstr "Empareja otra instancia de Nova con este servidor. Cada instancia necesita su propio token."
+
+#: templates/sync_tokens.html
+msgid "Copy this token now. We store only a hash of it, so it will never be shown again."
+msgstr "Copia este token ahora. Solo guardamos su hash, así que nunca se volverá a mostrar."
+
+#: templates/sync_tokens.html
+msgid "Token Label"
+msgstr "Etiqueta del token"
+
+#: templates/sync_tokens.html
+msgid "e.g. MacBook Air, Observatory PC"
+msgstr "p. ej. MacBook Air, PC del observatorio"
+
+#: templates/sync_tokens.html
+msgid "Create Token"
+msgstr "Crear token"
+
+#: templates/sync_tokens.html
+msgid "Created"
+msgstr "Creado"
+
+#: templates/sync_tokens.html
+msgid "Last used"
+msgstr "Último uso"
+
+#: templates/sync_tokens.html
+msgid "Never used"
+msgstr "Nunca usado"
+
+#: templates/sync_tokens.html
+msgid "Revoked"
+msgstr "Revocado"
+
+#: templates/sync_tokens.html
+msgid "Revoking stops that instance from syncing. This cannot be undone."
+msgstr "Revocar el token impide que esa instancia se sincronice. Esto no se puede deshacer."
+
+#: templates/sync_tokens.html
+msgid "Revoke"
+msgstr "Revocar"
+
+#: templates/sync_tokens.html
+msgid "No sync tokens yet."
+msgstr "Aún no hay tokens de sincronización."
+
+#: templates/sync_tokens.html
+msgid "Create one for each instance you want to sync to this server."
+msgstr "Crea uno por cada instancia que quieras sincronizar con este servidor."
+
+#: nova/blueprints/sync_tokens.py
+msgid "Not available for the guest account."
+msgstr "No disponible para la cuenta de invitado."
+
+#: nova/blueprints/sync_tokens.py
+msgid "Token label is required."
+msgstr "La etiqueta del token es obligatoria."
+
+#: nova/blueprints/sync_tokens.py
+msgid "That token no longer exists."
+msgstr "Ese token ya no existe."
+
+#: nova/blueprints/sync_tokens.py
+msgid "This token was already created. For security it can't be shown again — revoke it and create a new one if you didn't copy it."
+msgstr "Este token ya se creó. Por seguridad no se puede volver a mostrar: revócalo y crea uno nuevo si no lo copiaste."
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Actualizar sugerencias"
 

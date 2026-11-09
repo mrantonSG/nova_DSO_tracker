@@ -1889,14 +1889,22 @@ def purge_user_app_data(username: str, dry_run: bool = True) -> dict:
     candidates = [(os.path.join(UPLOAD_FOLDER, username), UPLOAD_FOLDER)]
     if user_id is not None:
         # Instance sync keeps its own copies of a user's files under instance/:
-        # files staged for a transfer that never completed, and files moved
-        # aside by a Download from server. Both hold this user's bytes only.
+        # files staged for a transfer that never completed, files moved
+        # aside by a Download from server, and the accumulator of a push whose
+        # upload never finished. All hold this user's bytes only.
         # The whole per-user directory is removed, not just the files in it: a
         # leftover epoch subdirectory (instance/replaced/<id>/<timestamp>/) must
         # go too.
-        for sync_dir in ("sync_staging", "replaced"):
+        for sync_dir in ("sync_staging", "replaced", "sync_uploads"):
             base = os.path.join(INSTANCE_PATH, sync_dir)
             candidates.append((os.path.join(base, str(user_id)), base))
+        # Pre-push account snapshots (instance/backups/sync/<id>/<stamp>/, one dir
+        # per push) and the in-flight push session in the cache dir. Names are
+        # spelled out rather than imported from nova.sync_transport, which imports
+        # this module.
+        sync_backups = os.path.join(BACKUP_DIR, "sync")
+        candidates.append((os.path.join(sync_backups, str(user_id)), sync_backups))
+        candidates.append((os.path.join(CACHE_DIR, f"sync_push_{user_id}.json"), CACHE_DIR))
     for name in (f"config_{username}.yaml", f"journal_{username}.yaml", f"rigs_{username}.yaml"):
         candidates.append((os.path.join(CONFIG_DIR, name), CONFIG_DIR))
 

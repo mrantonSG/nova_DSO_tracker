@@ -7650,6 +7650,90 @@ msgstr "高度閾値を超えるのは1時間未満です"
 msgid "Data: Open-Meteo"
 msgstr "データ：Open-Meteo"
 
+#: templates/config_form.html
+msgid "Sync"
+msgstr "同期"
+
+#: templates/sync_tokens.html
+msgid "Nova – Sync Tokens"
+msgstr "Nova – 同期トークン"
+
+#: templates/sync_tokens.html
+msgid "Sync Tokens"
+msgstr "同期トークン"
+
+#: templates/sync_tokens.html
+msgid "Instance Sync"
+msgstr "インスタンス同期"
+
+#: templates/sync_tokens.html
+msgid "Pair another Nova instance with this server. Each instance needs its own token."
+msgstr "別の Nova インスタンスをこのサーバーとペアリングします。インスタンスごとに専用のトークンが必要です。"
+
+#: templates/sync_tokens.html
+msgid "Copy this token now. We store only a hash of it, so it will never be shown again."
+msgstr "このトークンを今すぐコピーしてください。保存されるのはハッシュのみで、再表示されることはありません。"
+
+#: templates/sync_tokens.html
+msgid "Token Label"
+msgstr "トークンのラベル"
+
+#: templates/sync_tokens.html
+msgid "e.g. MacBook Air, Observatory PC"
+msgstr "例：MacBook Air、観測所PC"
+
+#: templates/sync_tokens.html
+msgid "Create Token"
+msgstr "トークンを作成"
+
+#: templates/sync_tokens.html
+msgid "Created"
+msgstr "作成"
+
+#: templates/sync_tokens.html
+msgid "Last used"
+msgstr "最終使用"
+
+#: templates/sync_tokens.html
+msgid "Never used"
+msgstr "未使用"
+
+#: templates/sync_tokens.html
+msgid "Revoked"
+msgstr "失効済み"
+
+#: templates/sync_tokens.html
+msgid "Revoking stops that instance from syncing. This cannot be undone."
+msgstr "失効させるとそのインスタンスは同期できなくなります。この操作は取り消せません。"
+
+#: templates/sync_tokens.html
+msgid "Revoke"
+msgstr "失効"
+
+#: templates/sync_tokens.html
+msgid "No sync tokens yet."
+msgstr "同期トークンはまだありません。"
+
+#: templates/sync_tokens.html
+msgid "Create one for each instance you want to sync to this server."
+msgstr "このサーバーと同期するインスタンスごとに1つ作成してください。"
+
+#: nova/blueprints/sync_tokens.py
+msgid "Not available for the guest account."
+msgstr "ゲストアカウントでは利用できません。"
+
+#: nova/blueprints/sync_tokens.py
+msgid "Token label is required."
+msgstr "トークンのラベルは必須です。"
+
+#: nova/blueprints/sync_tokens.py
+msgid "That token no longer exists."
+msgstr "そのトークンは存在しません。"
+
+#: nova/blueprints/sync_tokens.py
+msgid "This token was already created. For security it can't be shown again — revoke it and create a new one if you didn't copy it."
+msgstr "このトークンはすでに作成されています。セキュリティ上の理由により再表示できません。コピーしていない場合は、失効させて新しいトークンを作成してください。"
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "更新提案"
 
