@@ -710,7 +710,10 @@ def journal_edit(session_id):
                             print(f"Error deleting file: {e}")
                         # The original is gone, so a thumbnail of it is stale.
                         remove_thumbnail(old_image_path)
-                    session_to_edit.session_image_file = None
+                    # Emptied on purpose, and "" says so: instance sync sends an
+                    # explicit removal as a null in the record's file map, where
+                    # a NULL column would only mean "this slot never held one".
+                    session_to_edit.session_image_file = ""
     
             # File Handling (New Image Upload)
             if 'session_image' in request.files:
@@ -810,17 +813,18 @@ def journal_edit(session_id):
                         nina_imported = True
                         flash(_("NINA log imported successfully."), "success")
     
-            # Log deletion via checkbox
+            # Log deletion via checkbox. "" rather than None: an emptied slot
+            # is a removal the peer must honour, a never-set one is not.
             if request.form.get('delete_asiair_log') == '1':
-                session_to_edit.asiair_log_content = None
+                session_to_edit.asiair_log_content = ""
                 invalidate_cache = True
     
             if request.form.get('delete_phd2_log') == '1':
-                session_to_edit.phd2_log_content = None
+                session_to_edit.phd2_log_content = ""
                 invalidate_cache = True
     
             if request.form.get('delete_nina_log') == '1':
-                session_to_edit.nina_log_content = None
+                session_to_edit.nina_log_content = ""
                 invalidate_cache = True
     
             # Invalidate analysis cache if logs changed

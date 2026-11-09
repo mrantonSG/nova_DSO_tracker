@@ -88,9 +88,16 @@ def record_key(obj):
 # which imports this module, so the names are repeated rather than imported).
 FILE_SLOTS = {
     "journal_sessions": ("session_image_file", "asiair_log_content",
-                         "phd2_log_content", "nina_log_content",
-                         "log_analysis_cache"),
+                         "phd2_log_content", "nina_log_content"),
     "projects": ("final_image_file",),
+}
+
+# Columns the engine's DERIVED bucket holds: computed here from something else,
+# never carried in a payload. A write that changes nothing but one of these is
+# not a change to sync, so it must not stamp a row or bump a rev. Only the
+# models that have such a column are listed.
+DERIVED_COLUMNS = {
+    "journal_sessions": ("log_analysis_cache",),
 }
 
 
@@ -293,8 +300,33 @@ def _point_location(point, session):
     return None
 
 
+def _derived_only(session, obj):
+    """True when the only columns this flush changes are the DERIVED ones.
+
+    A parse of a log cached into log_analysis_cache is derived: it is never
+    exported and never compared on the wire, so caching it must leave the rev
+    exactly where it was (a derived column carries no change). Reading the row's
+    own history rather than is_modified() is what makes this exact - is_modified
+    answers "any column moved", which is the question this one has to refine.
+    """
+    derived = DERIVED_COLUMNS.get(obj.__tablename__)
+    if not derived:
+        return False
+    state = inspect(obj)
+    changed = False
+    for column in obj.__table__.columns:
+        if not state.attrs[column.name].history.has_changes():
+            continue
+        if column.name not in derived:
+            return False          # a real column moved: this is a change
+        changed = True
+    return changed
+
+
 def _really_changed(session, obj):
     """True when the flush would write something worth syncing."""
+    if _derived_only(session, obj):
+        return False
     if isinstance(obj, JournalSession):
         # Adding or removing a project link is a session change even though no
         # column of the row itself moves.

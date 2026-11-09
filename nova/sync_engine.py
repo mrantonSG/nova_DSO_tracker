@@ -56,7 +56,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Any, Iterable, Mapping, NamedTuple, Optional
 
-from sqlalchemy import and_, func, insert as sa_insert, or_, select, text, Text
+from sqlalchemy import and_, func, insert as sa_insert, or_, select, text
 from sqlalchemy import delete as sa_delete, update as sa_update
 from sqlalchemy.orm import selectinload
 
@@ -101,6 +101,13 @@ KEY_HORIZON = "horizon_mask"
 KEY_PROJECT_IDS = "project_ids"
 KEY_FILES = "__files__"
 RESERVED_KEYS = (KEY_CHANGED_AT, KEY_HORIZON, KEY_PROJECT_IDS, KEY_FILES)
+
+# An emptied FILE column is not the same thing as one that was never set. "" is
+# the user having removed the file -- the removal routes write it -- and NULL is
+# a slot that never held one. Only the first is an explicit removal, and only it
+# travels as an explicit null in `__files__` (see record_to_payload): a slot this
+# instance cannot send says nothing, and the peer keeps whatever it holds.
+FILE_REMOVED = ""
 
 # The one natural key a ui_prefs record carries. Its real key is the user's row
 # id, which is instance-local and must not travel.
@@ -958,7 +965,9 @@ class MergeResult:
     # leaves the watermark alone when it is non-empty, so they are re-offered.
     deferred: list = field(default_factory=list)
     # (table, key, slot, sha256) files that should have arrived and did not.
-    # Same effect on the watermark as `deferred`.
+    # Same effect on the watermark as `deferred`: an apply whose placements
+    # never landed must not let the cursor move, and a hub's push response
+    # carries its commit's pending list back to the pusher.
     pending_files: list = field(default_factory=list)
     # (table, key, slot, sha256) files staged and moved into place by
     # commit_staged_files. Empty until it runs.
@@ -976,6 +985,10 @@ class MergeResult:
     # the commit. (name, size) pairs; nothing here was deleted.
     replaced_files: list = field(default_factory=list)
     replaced_bytes: int = 0
+    # The hub rev a Download wrote, and only a Download. Its cursor moves inside
+    # apply_download, before a byte is placed, so commit_staged_files needs this
+    # to tell a download whose files were lost from a pull whose were.
+    snapshot_rev: Optional[int] = None
 
 
 @dataclass
@@ -1061,11 +1074,20 @@ def record_to_payload(model: type, row: Any, *, user=None,
         out[column] = value
     out[KEY_CHANGED_AT] = to_iso(row.sync_changed_at)
     if user is not None and model in _FILE_SLOTS:
-        slots: dict[str, str] = {}
+        slots: dict[str, Any] = {}
         for slot in _FILE_SLOTS[model]:
+            if getattr(row, slot, None) == FILE_REMOVED:
+                # The user emptied the slot. An explicit null is what tells the
+                # peer to clear its copy; leaving the slot out would say the
+                # opposite, "no news about this file, keep yours".
+                slots[slot] = None
+                continue
             ref = _slot_ref(model, row, slot, _FILE_SLOTS[model][slot][0], user,
                             instance_path)
             if ref.missing:
+                # Set here but untransferable -- gone from disk, over the cap,
+                # another user's bytes. The peer's copy is the only one left, so
+                # the slot is left out rather than nulled or sent broken.
                 continue
             # In this user's own naming scheme when it travels, never the
             # sender's name: the receiver rebuilds <local id>.<ext>.
@@ -1235,6 +1257,16 @@ def _ref_summary(ref: FileRef) -> dict:
         "sha256": ref.sha256, "size": int(ref.size or 0), "ext": ref.ext,
         "name": ref.name, "missing": bool(ref.missing), "reason": ref.reason,
     }
+
+
+def _ref_key(ref: FileRef) -> tuple:
+    """One FileRef as the (table, key, slot, sha256) tuple the wire uses.
+
+    A MergeResult reports its pending files in this shape, the same one a
+    CommitReport and the push response's `pending_files` carry, so a caller
+    compares them without knowing which source it got one from.
+    """
+    return (ref.table, ref.key, ref.slot, ref.sha256)
 
 
 # --- Files: staging and placement --------------------------------------------
@@ -1511,9 +1543,14 @@ def commit_staged_files(db, result, staged, *, user,
             continue
         s = by_digest.get(ref.sha256)
         if s is None:
-            report.pending.append((ref.table, ref.key, ref.slot, ref.sha256))
-            continue
-        if not staged_ok(s):
+            # No staged copy this run. That is a retry of a file an earlier run
+            # already placed in the common case, so it is pending only when the
+            # live file is not yet the one the digest names.
+            if not _live_file_ok(db, ref, user, instance_path=instance_path):
+                report.pending.append((ref.table, ref.key, ref.slot, ref.sha256))
+                continue
+            s = StagedFile(ref=ref, path="")   # already in place: nothing to move
+        elif not staged_ok(s):
             discard_staged(s)
             report.pending.append((ref.table, ref.key, ref.slot, ref.sha256))
             continue
@@ -1540,6 +1577,25 @@ def commit_staged_files(db, result, staged, *, user,
         else:
             report.pending.append((ref.table, ref.key, ref.slot, ref.sha256))
 
+    # The watermark follows this report, not the plan's earlier guess: a file
+    # whose bytes landed is no longer pending, and one whose transfer failed and
+    # whose live copy is still not here holds the watermark for the next run.
+    if result is not None:
+        result.pending_files = [tuple(entry) for entry in report.pending]
+        result.placed_files = [tuple(entry) for entry in report.placed]
+        # A Download has no record-level watermark step of its own, and its
+        # cursor moved inside apply_download, before a single byte was placed.
+        # The hub would then sit below the cursor for good and a file that never
+        # arrived would never be offered again. Drop the cursor to zero so the
+        # next pull walks the snapshot once more: every record is a content
+        # no-op, the file that was already here is skipped by digest, and the
+        # bytes that were lost are fetched this time.
+        if report.pending and getattr(result, "snapshot_rev", None) is not None:
+            state = db.scalars(
+                select(SyncState).where(SyncState.user_id == user.id)).first()
+            if state is not None:
+                state.server_cursor = 0
+
     # A staged copy is dropped only once every placement for its digest is done:
     # one file two records share is placed twice, and the first move would
     # otherwise leave the second with nothing to move.
@@ -1556,13 +1612,38 @@ def commit_staged_files(db, result, staged, *, user,
             # the next run does not think it has more work to do.
             discard_staged(by_digest[digest])
 
-    for shape in ("pending", "skipped", "orphaned"):
+    for shape in ("skipped", "orphaned"):
         target = getattr(result, f"{shape}_files", None)
         if target is None:
             target = []
             setattr(result, f"{shape}_files", target)
         target.extend(getattr(report, shape))
     return report
+
+
+def _place_from_staged(staged_path: str, live: str) -> None:
+    """Write a staged file to `live` without ever leaving a half-written file.
+
+    A plain copy onto the live name is not atomic: a failure part-way through
+    leaves the new bytes truncated and the old ones already gone, and a record
+    that names that file then points at rubbish - the one thing rule 4 forbids.
+    The bytes go to "<live>.part", are flushed to disk, and are renamed over the
+    live name, exactly as stage_file() does when it stages. os.replace is atomic
+    within one filesystem, so a reader sees either the old file or the new one,
+    never a mixture, and a leftover .part is cleanup, not data loss.
+    """
+    part = live + ".part"
+    try:
+        shutil.copyfile(staged_path, part)
+        _fsync_file(part)
+        os.replace(part, live)
+    except OSError:
+        try:
+            if os.path.isfile(part):
+                os.remove(part)
+        except OSError:
+            pass
+        raise
 
 
 def _place_note_image(user, ref: FileRef, staged: StagedFile,
@@ -1580,19 +1661,49 @@ def _place_note_image(user, ref: FileRef, staged: StagedFile,
     live = os.path.realpath(os.path.join(root, name))
     if os.path.commonpath([live, root]) != root:
         return "skipped"
-    staging_root = os.path.realpath(staging_dir(user, instance_path))
-    if os.path.commonpath(
-            [os.path.realpath(staged.path), staging_root]) != staging_root:
-        return "skipped"
+    if staged.path:
+        staging_root = os.path.realpath(staging_dir(user, instance_path))
+        if os.path.commonpath(
+                [os.path.realpath(staged.path), staging_root]) != staging_root:
+            return "skipped"
+    elif not (os.path.exists(live) and _sha256_of(live) == ref.sha256):
+        return "pending"      # nothing staged and nothing in place: try again
     try:
         if not (os.path.exists(live) and _sha256_of(live) == ref.sha256):
             # Copied, not moved: one file two records share is placed twice from
             # the same staged copy. commit_staged_files discards it once every
             # placement for the digest is done.
-            shutil.copyfile(staged.path, live)
+            _place_from_staged(staged.path, live)
     except OSError:
         return "pending"
     return "placed"
+
+
+def _live_file_ok(db, ref: FileRef, user, instance_path: str = None) -> bool:
+    """Whether `ref`'s file is already on this disk under its live name.
+
+    This instance's own naming scheme, so a second commit with no staged copy is
+    a no-op when an earlier run already placed the file, and pending when the
+    transfer failed and the bytes never arrived. A photo's name carries the
+    local row id and a log's its stored path, so both are resolved through the
+    row the natural key names, exactly as _place_one rebuilds them.
+    """
+    if not ref.sha256:
+        return False
+    model = TABLE_MODEL.get(ref.table)
+    row = _row_by_key(db, model, user.id, ref.key) if model is not None else None
+    if ref.role == ROLE_SESSION_LOG:
+        live = _log_path(getattr(row, ref.slot, None), instance_path) if row else ""
+    elif ref.role == ROLE_NOTE_IMAGE:
+        live = os.path.join(_user_upload_root(user, instance_path),
+                            note_image_name(ref.sha256, ref.ext))
+    else:
+        live = os.path.join(_user_upload_root(user, instance_path),
+                            local_name_for(model, row, ref))
+    try:
+        return bool(live) and os.path.isfile(live) and _sha256_of(live) == ref.sha256
+    except OSError:
+        return False
 
 
 def _place_one(db, user, model: type, ref: FileRef, staged: StagedFile,
@@ -1616,14 +1727,17 @@ def _place_one(db, user, model: type, ref: FileRef, staged: StagedFile,
         log_dir = os.path.join(instance_path or INSTANCE_PATH, "logs", log_type)
         os.makedirs(log_dir, exist_ok=True)
         live = os.path.join(log_dir, local_name)
-        staging_root = os.path.realpath(staging_dir(user, instance_path))
-        if os.path.commonpath([os.path.realpath(staged.path), staging_root]) != staging_root:
-            return "skipped"
+        if staged.path:
+            staging_root = os.path.realpath(staging_dir(user, instance_path))
+            if os.path.commonpath([os.path.realpath(staged.path), staging_root]) != staging_root:
+                return "skipped"
+        elif not (os.path.exists(live) and _sha256_of(live) == ref.sha256):
+            return "pending"  # nothing staged and nothing in place: try again
         if os.path.realpath(os.path.dirname(live)) != os.path.realpath(log_dir):
             return "skipped"
         try:
             if not (os.path.exists(live) and _sha256_of(live) == ref.sha256):
-                shutil.copyfile(staged.path, live)
+                _place_from_staged(staged.path, live)
         except OSError:
             return "pending"
         value = os.path.join("instance", "logs", log_type, local_name)
@@ -1655,6 +1769,9 @@ def _place_one(db, user, model: type, ref: FileRef, staged: StagedFile,
     live = os.path.realpath(os.path.join(root, local_name))
     if os.path.commonpath([live, root]) != root:
         return "skipped"
+    if not staged.path and not (os.path.exists(live)
+                                and _sha256_of(live) == ref.sha256):
+        return "pending"          # nothing staged and nothing in place: try again
     # Correction D: a stale thumbnail goes before the original is replaced.
     from nova.helpers import remove_thumbnail
     remove_thumbnail(live)
@@ -1663,7 +1780,7 @@ def _place_one(db, user, model: type, ref: FileRef, staged: StagedFile,
             # Copied, not moved: one digest may feed several records, each with
             # its own local name. The staged copy is discarded once all of them
             # are placed (see commit_staged_files).
-            shutil.copyfile(staged.path, live)
+            _place_from_staged(staged.path, live)
     except OSError:
         return "pending"
     column = "session_image_file" if ref.role == ROLE_SESSION_PHOTO else "final_image_file"
@@ -2138,11 +2255,23 @@ def _validate_payload(payload, *, side: Optional[str] = None,
     if side == "server" and not allow_snapshot and payload.get("snapshot"):
         refusals.append(Refusal(REFUSAL_BAD_FORMAT, {"reason": "snapshot in a push"}))
 
+    # The report a hub returns with an accepted push: the files it could not
+    # place. A local reads it to keep its watermark, so it must be a list of
+    # 4-tuples (table, key, slot, sha256) and nothing else, or a hostile hub
+    # could shape it into anything.
+    pending = payload.get("pending_files")
+    if pending is not None:
+        if not isinstance(pending, list) or not all(
+                isinstance(entry, (list, tuple)) and len(entry) == 4
+                for entry in pending):
+            refusals.append(Refusal(REFUSAL_BAD_FILE_REF,
+                                    {"reason": "pending_files is not a list of refs"}))
+
     manifest = payload.get("files")
     if manifest is not None and not isinstance(manifest, dict):
         return [Refusal(REFUSAL_BAD_FORMAT, {"reason": "files is not a mapping"})]
     for digest, descriptor in (manifest or {}).items():
-        if not isinstance(digest, str) or not _HEX64.match(digest):
+        if not isinstance(digest, str) or not _HEX64.fullmatch(digest):
             refusals.append(Refusal(REFUSAL_BAD_FILE_REF, {"sha256": digest}))
             continue
         if not isinstance(descriptor, dict):
@@ -2202,11 +2331,15 @@ def _validate_payload(payload, *, side: Optional[str] = None,
 
 
 def _text_sync_columns(model: type) -> frozenset:
-    """The SYNC text columns of `model` — the only place a file token may sit."""
-    return frozenset(
-        column.name for column in model.__table__.columns
-        if column.name in sync_columns(model) and isinstance(column.type, Text)
-    ) | frozenset(RICH_TEXT_COLUMNS.get(model, ()))
+    """The columns of `model` a file token may sit in: exactly the rich text.
+
+    A token is only ever resolved by localize_text(), which _write_row runs on
+    the columns in RICH_TEXT_COLUMNS and no others. A plain SYNC Text column is
+    copied through verbatim, so a token accepted there would reach the row
+    unresolved and leave the record pointing at a name no reader can fetch.
+    Being Text is not the test; being rewritten is.
+    """
+    return frozenset(RICH_TEXT_COLUMNS.get(model, ()))
 
 
 def _validate_file_tokens(model: type, rows, manifest: Mapping[str, Any]) -> list:
@@ -2230,6 +2363,15 @@ def _validate_file_tokens(model: type, rows, manifest: Mapping[str, Any]) -> lis
                     refusals.append(Refusal(REFUSAL_BAD_FILE_REF,
                                             {"table": model.__tablename__,
                                              "slot": slot}))
+                elif digest is None:
+                    continue   # an explicit removal names no manifest entry
+                elif not isinstance(digest, str) or not _HEX64.fullmatch(digest):
+                    # A placement is resolved by digest; a malformed one would
+                    # surface on the receiving side too late to refuse the whole
+                    # payload, which is where this check belongs.
+                    refusals.append(Refusal(REFUSAL_BAD_FILE_REF,
+                                            {"table": model.__tablename__,
+                                             "slot": slot, "sha256": digest}))
                 elif digest not in manifest:
                     refusals.append(Refusal(REFUSAL_DANGLING_FILE, {
                         "table": model.__tablename__, "slot": slot,
@@ -2289,7 +2431,10 @@ def _files_equal(model: type, row, record: Mapping[str, Any], user,
     A slot the record does not name is not compared: the record is saying it
     carries no file there, and a receiver that holds one is not a conflict, it
     is the newest-wins rule's business. A slot the record names with a digest
-    that is absent, or whose local file cannot be read, is a difference.
+    that is absent, or whose local file cannot be read, is a difference. A slot
+    the record names as null is an explicit removal: a difference only when this
+    side still names a file there, so a removal a side has already taken is not
+    re-applied for ever.
     """
     incoming = record.get(KEY_FILES)
     if not isinstance(incoming, dict):
@@ -2301,6 +2446,10 @@ def _files_equal(model: type, row, record: Mapping[str, Any], user,
         return True
     for slot, digest in incoming.items():
         if slot not in slots:
+            continue
+        if digest is None:
+            if getattr(row, slot, None):
+                return False
             continue
         role = slots[slot][0]
         local = _local_file_digest(model, row, slot, role, user, instance_path)
@@ -2903,7 +3052,9 @@ def _plan_files(db, builder: _Builder, payload, index: dict) -> None:
             if (table, key) not in written and (table, key) not in deleted:
                 continue
             for slot, digest in (record.get(KEY_FILES) or {}).items():
-                if slot not in slots:
+                if slot not in slots or digest is None:
+                    # An explicit removal needs nothing fetched or placed: the
+                    # column write below is the whole of it.
                     continue
                 role = slots[slot][0]
                 ref = FileRef(role=role, table=table, key=key, slot=slot,
@@ -3191,6 +3342,7 @@ def apply_merge(db, plan: MergePlan, *, user=None) -> MergeResult:
     conn = db.connection()
     result = MergeResult(counter_before=counter_rev(db, user_id),
                          deferred=list(plan.deferred),
+                         pending_files=[_ref_key(r) for r in plan.pending_files],
                          files_expected=list(plan.placements or plan.files),
                          skipped_files=list(plan.skipped_files),
                          orphaned_files=list(plan.orphaned_files))
@@ -3265,7 +3417,15 @@ def _write_row(db, conn, model: type, action: Action, rev: Optional[int],
     values = dict(action.values)
     horizon = values.pop(KEY_HORIZON, None)
     project_ids = values.pop(KEY_PROJECT_IDS, None)
-    values.pop(KEY_FILES, None)   # a reference set, never a column
+    files = values.pop(KEY_FILES, None)   # a reference set, never a column
+    if isinstance(files, dict):
+        # An explicit removal is the one thing in `__files__` that is a column
+        # write: the record said "no file here". Everything else in the map is
+        # a digest, and a digest becomes this instance's own name through the
+        # placement step -- never a column value.
+        for slot, digest in files.items():
+            if digest is None and slot in _FILE_SLOTS.get(model, {}):
+                values[slot] = FILE_REMOVED
 
     # The incoming text is canonical (nova-file: tokens). It is localized here,
     # inside the same statement as the row, so a record never exists pointing at
@@ -3847,6 +4007,8 @@ def apply_download(db, plan: DownloadPlan, *, user=None) -> MergeResult:
     result = MergeResult(
         counter_before=counter_before,
         r_verbatim=r_verbatim,
+        snapshot_rev=plan.server_rev,
+        pending_files=[_ref_key(r) for r in (plan.placements or plan.files)],
         files_expected=list(plan.placements or plan.files),
         skipped_files=list(plan.skipped_files),
         # What the wipe displaced. The move itself is the caller's next step,
@@ -3901,19 +4063,25 @@ def apply_download(db, plan: DownloadPlan, *, user=None) -> MergeResult:
 
 # --- Sync-run watermarks -----------------------------------------------------
 
-def record_push_accepted(db, user, rev_at_export: int, *, deferred: Iterable = ()) -> None:
+def record_push_accepted(db, user, rev_at_export: int, *, deferred: Iterable = (),
+                         commit: "CommitReport" = None) -> None:
     """After a hub accepts a push: this local's changes are on the hub.
 
     local_pushed_rev never advances past a rev this sync did not create, so it
     is set to the rev the export carried, not to the counter's current value.
-    It does not advance at all when the hub deferred something: that record was
-    not placed, so leaving the watermark where it is is what makes the next push
-    offer it again.
+    It does not advance at all when the hub deferred a record or could not place
+    a file: neither was written, so leaving the watermark where it is is what
+    makes the next push offer it again. Re-delivering a record that did land is
+    a no-op, so re-offering the whole batch costs nothing.
+
+    `commit` is the CommitReport the hub's push response carried. Its `pending`
+    list is a file that should have arrived and did not, which holds the
+    watermark exactly as a deferral does.
     """
     state = db.scalars(select(SyncState).where(SyncState.user_id == user.id)).first()
     if state is None:
         return
-    if deferred:
+    if deferred or getattr(commit, "pending", None):
         db.flush()
         return
     state.local_pushed_rev = max(state.local_pushed_rev or 0, int(rev_at_export))
@@ -3931,8 +4099,12 @@ def record_pull_applied(db, user, result: MergeResult, server_rev: int,
     rather than swallowed. R_changed always stays above it, which is how a
     record this side renamed or unified reaches the hub.
 
-    The cursor does not move past a record the apply deferred: the next pull
-    must offer it again until it lands.
+    The cursor does not move past a record the apply deferred, nor past a file
+    that should have arrived and did not: the next pull must offer both again
+    until they land. `result.pending_files` is the file half of that, and it is
+    right whether or not commit_staged_files has run: the apply seeds it from
+    the plan (a transfer that never ran has placed nothing) and the commit
+    rewrites it with what it actually managed to move.
     """
     state = db.scalars(select(SyncState).where(SyncState.user_id == user.id)).first()
     if state is None:
@@ -3940,7 +4112,7 @@ def record_pull_applied(db, user, result: MergeResult, server_rev: int,
     if (result.counter_before == int(rev_at_export)
             and result.r_verbatim is not None):
         state.local_pushed_rev = result.r_verbatim
-    if result.deferred:
+    if result.deferred or result.pending_files:
         db.flush()
         return
     state.server_cursor = int(server_rev)

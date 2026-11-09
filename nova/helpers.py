@@ -1726,7 +1726,9 @@ def delete_user(username: str) -> bool:
 
 
 def _path_within(path: str, base: str) -> bool:
-    """True if `path` resolves to a location strictly inside `base`."""
+    """True if `path` resolves to `base` itself or a location inside it."""
+    if os.path.realpath(path) == os.path.realpath(base):
+        return True
     return os.path.realpath(path).startswith(os.path.realpath(base) + os.sep)
 
 
@@ -1889,10 +1891,12 @@ def purge_user_app_data(username: str, dry_run: bool = True) -> dict:
         # Instance sync keeps its own copies of a user's files under instance/:
         # files staged for a transfer that never completed, and files moved
         # aside by a Download from server. Both hold this user's bytes only.
-        candidates.append((os.path.join(INSTANCE_PATH, "sync_staging", str(user_id)),
-                           os.path.join(INSTANCE_PATH, "sync_staging")))
-        candidates.append((os.path.join(INSTANCE_PATH, "replaced", str(user_id)),
-                           os.path.join(INSTANCE_PATH, "replaced")))
+        # The whole per-user directory is removed, not just the files in it: a
+        # leftover epoch subdirectory (instance/replaced/<id>/<timestamp>/) must
+        # go too.
+        for sync_dir in ("sync_staging", "replaced"):
+            base = os.path.join(INSTANCE_PATH, sync_dir)
+            candidates.append((os.path.join(base, str(user_id)), base))
     for name in (f"config_{username}.yaml", f"journal_{username}.yaml", f"rigs_{username}.yaml"):
         candidates.append((os.path.join(CONFIG_DIR, name), CONFIG_DIR))
 

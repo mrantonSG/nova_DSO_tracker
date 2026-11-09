@@ -34,11 +34,18 @@ from nova.helpers import (
     bust_astro_context_cache,
     bust_nightly_curves_cache,
     invalidate_object_caches,
+    remove_thumbnail,
 )
 from nova.models import (
-    DbUser, AstroObject, Component, Rig, Location,
+    DbUser, AstroObject, Component, Rig, Location, Project,
     JournalSession, SavedFraming, UserCustomFilter, UiPref,
 )
+from nova.sync_tracking import mark_file_changed
+
+# The log directory a ZIP entry names, and the column that stores its path.
+LOG_COLUMN_BY_TYPE = {"asiair": "asiair_log_content",
+                      "phd2": "phd2_log_content",
+                      "nina": "nina_log_content"}
 from nova.record_links import (
     NAME_LINKS, component_rig_usage, resync_user_links, rig_components, rig_references,
     sync_rig_links,
@@ -1087,6 +1094,70 @@ def download_journal_photos():
         download_name=download_name
     )
 
+def _stamp_imported_photo(db, user_id, filename: str) -> None:
+    """Stamp the session or project a just-extracted photo belongs to.
+
+    The ZIP carries the reader's own names flatly (see download_journal_photos,
+    which writes them that way), so "<id>.<ext>" is a session's photo and
+    "project_<id>.<ext>" a project's. An overwritten photo still deserves the
+    stamp: the column is the same, the bytes are not. A stale thumbnail goes
+    too, or readers would keep serving the old image from it.
+    """
+    if not filename:
+        return
+    upload_root = os.path.join(UPLOAD_FOLDER, "default" if SINGLE_USER_MODE
+                               else current_user.username)
+    stem, ext = os.path.splitext(filename)
+    row = None
+    if stem.startswith("project_"):
+        row = db.query(Project).filter(
+            Project.id == stem[len("project_"):],
+            Project.user_id == user_id).one_or_none()
+        if row is not None:
+            row.final_image_file = filename
+            mark_file_changed(row, "final_image_file")
+    elif stem.isdigit():
+        row = db.query(JournalSession).filter(
+            JournalSession.id == int(stem),
+            JournalSession.user_id == user_id).one_or_none()
+        if row is not None:
+            row.session_image_file = filename
+            mark_file_changed(row, "session_image_file")
+    if row is None:
+        return
+    # This route is otherwise a pure file operation, so nothing here has ever
+    # needed a commit: without one the teardown's SessionLocal.remove() rolls
+    # the new rev back and the record keeps pointing at the old digest.
+    db.commit()
+    remove_thumbnail(os.path.join(upload_root, filename))
+
+
+def _stamp_restored_log(db, user_id, log_type: str, log_filename: str) -> None:
+    """Stamp the session whose stored log path names a just-extracted log.
+
+    The ZIP carries the reader's own names -- download_journal_photos writes
+    "logs/<type>/<filename>" -- and a session's log column holds exactly that
+    path, so basename is what ties the restored bytes to their row. Only the
+    session that names the file is stamped: a log nobody points at is a file,
+    not a record. The file is only extracted when its live path was empty, so
+    the case this covers is a log that had gone missing coming back.
+    """
+    column = LOG_COLUMN_BY_TYPE.get(log_type)
+    if not log_filename or column is None:
+        return
+    rows = db.query(JournalSession).filter(
+        JournalSession.user_id == user_id,
+        getattr(JournalSession, column).isnot(None),
+        getattr(JournalSession, column) != "").all()
+    for row in rows:
+        if os.path.basename(getattr(row, column) or "") == log_filename:
+            mark_file_changed(row, column)
+            # No column moved -- the path is the one that was already stored --
+            # so nothing would commit the stamp without this.
+            db.commit()
+            return
+
+
 @tools_bp.route('/import_journal_photos', methods=['POST'])
 @login_required
 def import_journal_photos():
@@ -1118,6 +1189,9 @@ def import_journal_photos():
     if os.path.commonpath([os.path.realpath(UPLOAD_FOLDER), os.path.realpath(user_upload_dir)]) != os.path.realpath(UPLOAD_FOLDER):
         abort(400)
     os.makedirs(user_upload_dir, exist_ok=True)  # Ensure the destination exists
+    db = get_db()
+    import_user = db.query(DbUser).filter_by(username=username).one_or_none()
+    import_user_id = import_user.id if import_user else None
 
     try:
         if not zipfile.is_zipfile(file):
@@ -1150,6 +1224,12 @@ def import_journal_photos():
                         continue
                     with zf.open(member) as source, open(log_target, "wb") as target:
                         target.write(source.read())
+                    # A session whose log had gone missing gets its path back
+                    # with no column written, so before_flush would stamp
+                    # nothing and the restored bytes would never travel.
+                    if import_user_id is not None:
+                        _stamp_restored_log(db, import_user_id, log_type,
+                                            log_filename)
                     extracted_count += 1
                     continue
 
@@ -1172,6 +1252,16 @@ def import_journal_photos():
                 # Extract the file data
                 with zf.open(member) as source, open(target_path, "wb") as target:
                     target.write(source.read())
+
+                # An import can write over a photo a record already names, and
+                # a photo keeps its name whichever bytes it holds, so no column
+                # moves and before_flush would stamp nothing: the new bytes
+                # would never travel. The name is the reader's scheme
+                # ("<session id>.<ext>", "project_<id>.<ext>"), the same rule
+                # sync's local_name_for() rebuilds, so the rows can be found
+                # from it.
+                if import_user_id is not None:
+                    _stamp_imported_photo(db, import_user_id, filename)
 
                 extracted_count += 1
 

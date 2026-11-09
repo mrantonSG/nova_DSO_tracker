@@ -93,6 +93,7 @@ from nova.models import (
 )
 from nova.journal_rows import build_journal_rows, GRAPH_SESSION_JS_FIELDS
 from nova.sync_tracking import stamp_rows, tombstone_keys_of
+from nova.sync_engine import FILE_REMOVED
 from datetime import date, datetime, timedelta, timezone
 import calendar
 
@@ -2600,10 +2601,21 @@ def graph_dashboard(object_name):
             _log_columns = ('log_analysis_cache', 'asiair_log_content',
                             'phd2_log_content', 'nina_log_content')
 
+            # A file column the user emptied holds "" -- instance sync's marker
+            # for a removal (FILE_REMOVED) -- and a slot that never held a file
+            # holds NULL. Every other reader treats the two alike, because they
+            # are all truthiness tests; JSON does not, because "" is a value and
+            # null is not. This payload's shape is a contract the native app
+            # reads, so an emptied slot ships as the null it always shipped as.
+            _emptied_file_columns = ('session_image_file', 'final_image_file')
+
             def serialize_session_list(sessions_in):
                 serialized = []
                 for s in sessions_in:
                     s_copy = {k: v for k, v in s.items() if k not in _log_columns}
+                    for column in _emptied_file_columns:
+                        if s_copy.get(column) == FILE_REMOVED:
+                            s_copy[column] = None
                     # Convert date objects to ISO strings
                     if isinstance(s_copy.get('date_utc'), (date, datetime)):
                         s_copy['date_utc'] = s_copy['date_utc'].isoformat()

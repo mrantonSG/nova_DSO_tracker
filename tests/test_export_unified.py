@@ -8,6 +8,7 @@ from types import SimpleNamespace
 
 import yaml
 
+from nova.helpers import is_log_path, log_file_path, read_log_content
 from nova.models import (
     AstroObject, Component, DbUser, JournalSession, Location, Project, Rig,
     SavedFraming, UiPref,
@@ -234,3 +235,57 @@ def test_import_config_route_accepts_new_format(client, db_session, tmp_path, mo
     for forbidden in ("format_version", "record_uid", "locations", "objects",
                       "saved_framings", "saved_views"):
         assert forbidden not in blob
+
+
+def test_an_emptied_file_slot_exports_and_imports_cleanly(client, db_session,
+                                                           tmp_path):
+    """A removal the user made is a value in the file, not a change to its shape.
+
+    A row whose file the user deleted holds "" -- instance sync's removal marker
+    (FILE_REMOVED); a row that never had one holds NULL. The exporter writes the
+    column as it stands, so such a slot now travels as an empty string where it
+    used to travel as null. That is a value, not a format: no key appears or
+    goes and format_version stays 2. The importer's lines for these columns are
+    the ones master has, so an older Nova runs the same ones -- it stores the
+    empty value, and every reader of these columns, old and new, is a truthiness
+    test (read_log_content, is_log_path, the stored_log_name macro), so none of
+    them can tell "" from NULL.
+    """
+    r = _populate(db_session, "default", obj="M31")
+    r.sess.session_image_file = ""          # removed by the user
+    r.sess.asiair_log_content = ""          # ... as was this log
+    r.proj.final_image_file = ""
+    db_session.commit()
+
+    assert export_user_to_yaml("default", out_dir=str(tmp_path)) is True
+    jdoc_text = (tmp_path / "journal_default.yaml").read_text()
+    jdoc = yaml.safe_load(jdoc_text)
+
+    session_row = jdoc["sessions"][0]
+    # The shape is untouched: same keys, same format version.
+    assert OLD_SESSION <= set(session_row)
+    assert jdoc["format_version"] == 2
+    # The emptied slots travel as plain empty scalars.
+    assert session_row["session_image_file"] == ""
+    assert session_row["asiair_log_content"] == ""
+    assert jdoc["projects"][0]["final_image_file"] == ""
+
+    resp = client.post('/import_journal',
+                       data={'file': (io.BytesIO(jdoc_text.encode()),
+                                      'journal.yaml')},
+                       content_type='multipart/form-data')
+    assert resp.status_code == 302
+
+    db_session.expire_all()
+    u = db_session.query(DbUser).filter_by(username="default").one()
+    imported = db_session.query(JournalSession).filter_by(
+        user_id=u.id, object_name="M31").one()
+    # The removal survived the round trip, and reads as "no file" everywhere.
+    assert imported.session_image_file == ""
+    assert not imported.session_image_file
+    assert imported.asiair_log_content == ""
+    assert read_log_content(imported.asiair_log_content) is None
+    assert is_log_path(imported.asiair_log_content) is False
+    assert log_file_path(imported.asiair_log_content) == ""
+    assert db_session.query(Project).filter_by(
+        user_id=u.id, id=r.proj.id).one().final_image_file == ""

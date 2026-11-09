@@ -143,6 +143,18 @@ def _seed_files(dirs, username, uid, session_id):
     targets.append(os.path.join(dirs["cache"], f"import_conflicts_{uid}.json"))
     for path in targets[1:]:
         _write(path)
+    # A staged transfer that never completed, and a file a Download from server
+    # moved aside under a timestamp directory. The purge reports and removes the
+    # whole per-user directory, so that (not the files) is what to expect back.
+    # Seeded here, after the write loop above: these are directories, and the
+    # loop writes every path it is given as a file.
+    for sync_dir, name in (("sync_staging", "ab" * 32 + ".png"),
+                           ("replaced", os.path.join("20260101T000000Z",
+                                                     "handled.png"))):
+        root = os.path.dirname(os.path.abspath(dirs["uploads"]))
+        user_dir = os.path.join(root, sync_dir, str(uid))
+        _write(os.path.join(user_dir, name))
+        targets.append(user_dir)
     return targets
 
 
@@ -154,6 +166,9 @@ def env(db_session, tmp_path, isolated_cache_dir, monkeypatch):
         path.mkdir(parents=True)
         dirs[rel] = str(path)
         monkeypatch.setattr(f"nova.helpers.{attr}", str(path))
+    # The instance root the sync cleanup reads is the temp dir itself: its
+    # sync_staging/ and replaced/ subdirectories are the ones seeded below.
+    monkeypatch.setattr("nova.helpers.INSTANCE_PATH", str(tmp_path))
     monkeypatch.setattr("nova.helpers.ADMIN_USERS", {"admin"})
     logins = set()
     _install_auth_mock(monkeypatch, logins)
@@ -326,6 +341,23 @@ def test_refusals_change_nothing(env, monkeypatch, case, username):
     assert summary["deleted_files"] == []
     assert _db_snapshot(env.s) == db_before
     assert _file_snapshot(env) == files_before
+
+
+def test_purge_removes_the_users_sync_directories(env):
+    """instance/sync_staging/<id>/ and instance/replaced/<id>/ go with the user."""
+    staging = os.path.join(env.tmp, "sync_staging", str(A_ID))
+    replaced = os.path.join(env.tmp, "replaced", str(A_ID))
+    assert os.path.isdir(staging) and os.path.isdir(replaced)
+
+    summary = _purge(env, A_NAME, dry_run=False)
+
+    assert not os.path.exists(staging)
+    assert not os.path.exists(replaced)
+    assert staging in summary["deleted_files"]
+    assert replaced in summary["deleted_files"]
+    # The other user's directories are untouched.
+    assert os.path.isdir(os.path.join(env.tmp, "sync_staging", str(B_ID)))
+    assert os.path.isdir(os.path.join(env.tmp, "replaced", str(B_ID)))
 
 
 def test_path_traversal_username_does_not_escape_uploads(env):

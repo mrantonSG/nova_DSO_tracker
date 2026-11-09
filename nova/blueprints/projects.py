@@ -106,7 +106,10 @@ def project_detail(project_id):
                         os.remove(final_image_path)
                         # The original is gone, so its thumbnail is stale.
                         remove_thumbnail(final_image_path)
-                    project.final_image_file = None
+                    # "" rather than None: the user removed the image, and
+                    # instance sync sends that as an explicit removal so the
+                    # peer clears its own copy. A NULL slot would say nothing.
+                    project.final_image_file = ""
                 except Exception as e:
                     print(f"Error deleting final image: {e}")
                     flash(_("Error deleting old image."), "warning")

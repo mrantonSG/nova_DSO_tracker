@@ -18,7 +18,7 @@ from nova.models import (
     UserCustomFilter,
 )
 from nova.record_links import adopt_unlinked_rows_for_user, resync_user_links
-from nova.sync_tracking import ACCOUNT_TABLE
+from nova.sync_tracking import ACCOUNT_TABLE, mark_file_changed
 
 
 # --- Helpers -------------------------------------------------------------------
@@ -194,6 +194,66 @@ def test_a_save_with_no_real_change_does_not_bump(db_session, user):
     assert _rev(db_session, user.id) == rev
     assert loc.sync_changed_at == stamp
     assert loc.sync_rev == rev
+
+
+def test_writing_the_analysis_cache_alone_does_not_bump(db_session, user):
+    """log_analysis_cache is derived: caching a parse is not a synced change."""
+    session = _session(db_session, user.id)
+    rev = _rev(db_session, user.id)
+    stamp = session.sync_changed_at
+
+    session.log_analysis_cache = json.dumps({"rms": 1.2})
+    db_session.commit()
+
+    db_session.expire_all()
+    assert _rev(db_session, user.id) == rev
+    assert session.sync_rev == rev
+    assert session.sync_changed_at == stamp
+
+
+def test_a_new_log_still_bumps_the_session(db_session, user):
+    """A real column moving alongside the cache still stamps the row."""
+    session = _session(db_session, user.id)
+    rev = _rev(db_session, user.id)
+
+    session.asiair_log_content = "instance/logs/asiair/1_Autorun_Log.txt"
+    session.log_analysis_cache = json.dumps({"rms": 1.2})
+    db_session.commit()
+
+    db_session.expire_all()
+    assert _rev(db_session, user.id) > rev
+    assert session.sync_rev > rev
+
+
+def test_a_cache_write_then_a_log_write_still_bumps(db_session, user):
+    session = _session(db_session, user.id)
+    session.asiair_log_content = "instance/logs/asiair/1_Autorun_Log.txt"
+    db_session.commit()
+    rev = _rev(db_session, user.id)
+
+    session.log_analysis_cache = json.dumps({"rms": 2.0})
+    db_session.commit()
+    db_session.expire_all()
+    assert _rev(db_session, user.id) == rev     # derived only
+
+    session.phd2_log_content = "instance/logs/phd2/1_PHD2_GuideLog.txt"
+    db_session.commit()
+    db_session.expire_all()
+    assert _rev(db_session, user.id) > rev      # a real log moved
+
+
+def test_mark_file_changed_does_not_accept_the_derived_cache(db_session, user):
+    """FILE_SLOTS is what mark_file_changed accepts; the derived column is not a
+    file slot any more, so a caller cannot stamp a row over a cache write."""
+    from nova.sync_tracking import FILE_SLOTS
+    session = _session(db_session, user.id)
+    rev = _rev(db_session, user.id)
+
+    assert "log_analysis_cache" not in FILE_SLOTS["journal_sessions"]
+    assert mark_file_changed(session, "log_analysis_cache") is False
+    db_session.commit()
+    db_session.expire_all()
+    assert _rev(db_session, user.id) == rev
 
 
 def test_horizon_point_changes_bump_their_location(db_session, user):

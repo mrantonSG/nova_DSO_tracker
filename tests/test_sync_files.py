@@ -34,8 +34,9 @@ from nova.sync_engine import (
     REFUSAL_FILE_TOO_LARGE, REFUSAL_NO_DISK_SPACE,
     ROLE_NOTE_IMAGE, ROLE_PROJECT_IMAGE, ROLE_SESSION_LOG, ROLE_SESSION_PHOTO,
     SKIP_FOREIGN, SKIP_MISSING, SKIP_TOO_LARGE,
-    SyncRefused, apply_download, apply_merge, canonicalize_text,
-    collect_files, commit_staged_files, disk_space_refusal, export_changes,
+    CommitReport, SyncRefused, apply_download, apply_merge, canonicalize_text,
+    collect_files, commit_staged_files, counter_rev, disk_space_refusal,
+    export_changes, record_pull_applied, record_push_accepted,
     export_snapshot, export_files, files_needed, file_source_path,
     local_name_for, localize_text, missing_local_files, move_replaced_files,
     note_image_name, plan_download, plan_merge, stage_file, staged_index,
@@ -52,6 +53,15 @@ JPG = b"\xff\xd8\xff\xe0" + b"jpeg-bytes" * 16
 
 def sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def _fail_the_rename(monkeypatch):
+    """Make _place_from_staged's rename fail, as a disk error mid-placement would."""
+    import nova.sync_engine as engine
+
+    def boom(_src, _dst):
+        raise OSError("disk full")
+    monkeypatch.setattr(engine.os, "replace", boom)
 
 
 # --- Two installations, each with its own instance directory -------------------
@@ -137,6 +147,9 @@ class Node:
     def state(self):
         self.db.expire_all()
         return self.db.query(SyncState).filter_by(user_id=self.uid).one_or_none()
+
+    def rev(self):
+        return counter_rev(self.db, self.uid)
 
     def rows(self, model):
         self.db.expire_all()
@@ -679,6 +692,67 @@ def test_a_token_in_a_non_text_column_is_refused(hub, local):
     assert any(r.code == REFUSAL_FILE_TOKEN_COLUMN for r in plan.refusals)
 
 
+def test_a_token_in_a_plain_text_column_is_refused(hub, local):
+    """catalog_info is Text but not rich text, so localize_text never rewrites it.
+
+    A token accepted there would be copied into the row verbatim and the record
+    would point at a name no reader can resolve. Correction G is about what the
+    receiver can rewrite, not about the column's SQL type.
+    """
+    add_object(local, "M 31")
+    payload = {
+        "format": PAYLOAD_FORMAT, "account": "hub", "side": "server",
+        "rev": 1, "snapshot": False, "tombstones": [],
+        "files": {sha(PNG): {"role": ROLE_NOTE_IMAGE, "size": len(PNG),
+                             "ext": "png", "name": "x.png"}},
+        "records": {"astro_objects": [{
+            "record_uid": "uid-1", "object_name": "M 31",
+            "catalog_info": f"{FILE_TOKEN}{sha(PNG)}.png",
+            "sync_changed_at": "2026-01-01T00:00:00.000000",
+        }]},
+    }
+    plan = plan_merge(local.db, local.user, payload, side="local",
+                      instance_path=local.instance_path)
+    assert any(r.code == REFUSAL_FILE_TOKEN_COLUMN for r in plan.refusals)
+
+
+def test_a_token_in_a_rich_text_column_is_still_accepted(hub, local):
+    """The restriction must not cut out the columns tokens do travel in."""
+    seed_pairing(local, hub)
+    add_object(local, "M 31")
+    payload = {
+        "format": PAYLOAD_FORMAT, "account": "hub", "side": "server",
+        "rev": 1, "snapshot": False, "tombstones": [],
+        "files": {sha(PNG): {"role": ROLE_NOTE_IMAGE, "size": len(PNG),
+                             "ext": "png", "name": "x.png"}},
+        "records": {"astro_objects": [{
+            "record_uid": "uid-1", "object_name": "M 31",
+            "shared_notes": f"<p>{FILE_TOKEN}{sha(PNG)}.png</p>",
+            "sync_changed_at": "2026-01-01T00:00:00.000000",
+        }]},
+    }
+    plan = plan_merge(local.db, local.user, payload, side="local",
+                      instance_path=local.instance_path)
+    assert plan.refusals == []
+
+
+def test_a_shaped_file_digest_is_refused(hub, local):
+    """A digest is exactly 64 hex; one character more is not a digest."""
+    add_object(local, "M 31")
+    payload = {
+        "format": PAYLOAD_FORMAT, "account": "hub", "side": "server",
+        "rev": 1, "snapshot": False, "tombstones": [],
+        "records": {"astro_objects": [{
+            "record_uid": "uid-1", "object_name": "M 31",
+            "sync_changed_at": "2026-01-01T00:00:00.000000",
+            "__files__": {"image_url": sha(PNG) + "ff"},
+        }]},
+    }
+    plan = plan_merge(local.db, local.user, payload, side="local",
+                      instance_path=local.instance_path)
+    assert any(r.code == REFUSAL_BAD_FILE_REF for r in plan.refusals)
+
+
 def test_a_manifest_entry_with_a_bad_digest_is_refused(hub, local):
     payload = {
         "format": PAYLOAD_FORMAT, "account": "hub", "side": "server",
@@ -941,6 +1015,386 @@ def test_the_same_file_on_two_records_is_fetched_once(hub, local):
     for external_id in ("s1", "s2"):
         landed = local.one(JournalSession, external_id=external_id)
         assert local.read(landed.session_image_file) == PNG
+
+
+# =============================================================================
+# 9b. Rule 6: a file that did not arrive holds the watermark
+# =============================================================================
+
+def test_a_pull_whose_transfer_failed_holds_the_cursor(hub, local):
+    """The cursor must not pass a rev whose file never landed.
+
+    The whole sync-run order is exercised with the transfer made to fail: the
+    apply still writes the rows (they do not depend on the bytes), the commit
+    reports the file pending, and the cursor update sees that and stays put.
+    """
+    session = add_session(hub, "s1")
+    hub.put(f"{session.id}.png", PNG)
+    session.session_image_file = f"{session.id}.png"
+    hub.commit()
+    seed_pairing(local, hub)
+
+    rev_at_export = local.rev()
+    cursor_before = local.state().server_cursor or 0
+    payload = export_changes(hub.db, hub.user, cursor_before, side="server",
+                             instance_path=hub.instance_path)
+    plan = plan_merge(local.db, local.user, payload, side="local",
+                      instance_path=local.instance_path)
+    result = apply_merge(local.db, plan, user=local.user)
+    local.commit()
+    commit = commit_staged_files(local.db, result, [], user=local.user,
+                                 instance_path=local.instance_path)   # bytes lost
+    assert len(commit.pending) == 1
+    record_pull_applied(local.db, local.user, result, payload["rev"],
+                        rev_at_export)
+    local.commit()
+
+    assert local.state().server_cursor == cursor_before     # the cursor held
+    # The column is named by the placement, not the apply: the bytes never
+    # arrived, so no local name was ever written.
+    landed = local.one(JournalSession, external_id="s1")
+    assert landed.session_image_file is None
+
+    # The next pull offers it again, fetches it, and only then advances. The
+    # transport's own order is written out here: pull()'s stand-in stops before
+    # the watermark step, which is the step under test.
+    payload = export_changes(hub.db, hub.user, local.state().server_cursor or 0,
+                             side="server", instance_path=hub.instance_path)
+    plan = plan_merge(local.db, local.user, payload, side="local",
+                      instance_path=local.instance_path)
+    staged = transfer(hub, local, plan.files)
+    result = apply_merge(local.db, plan, user=local.user)
+    local.commit()
+    commit = commit_staged_files(local.db, result, staged, user=local.user,
+                                 instance_path=local.instance_path)
+    assert commit.pending == []
+    record_pull_applied(local.db, local.user, result, payload["rev"],
+                        local.rev())
+    local.commit()
+    landed = local.one(JournalSession, external_id="s1")
+    assert local.read(landed.session_image_file) == PNG
+    assert local.state().server_cursor == payload["rev"]
+
+
+def test_a_pull_that_lost_a_file_re_offers_it_in_the_plan(hub, local):
+    session = add_session(hub, "s1")
+    hub.put(f"{session.id}.png", PNG)
+    session.session_image_file = f"{session.id}.png"
+    hub.commit()
+    seed_pairing(local, hub)
+
+    payload = export_changes(hub.db, hub.user, 0, side="server",
+                             instance_path=hub.instance_path)
+    plan = plan_merge(local.db, local.user, payload, side="local",
+                      instance_path=local.instance_path)
+    result = apply_merge(local.db, plan, user=local.user)
+    local.commit()
+    commit_staged_files(local.db, result, [], user=local.user,
+                        instance_path=local.instance_path)
+    assert result.pending_files
+
+    # The plan built from the held cursor still asks for the bytes.
+    again = export_changes(hub.db, hub.user, local.state().server_cursor or 0,
+                           side="server", instance_path=hub.instance_path)
+    replan = plan_merge(local.db, local.user, again, side="local",
+                        instance_path=local.instance_path)
+    assert [r.sha256 for r in replan.files] == [sha(PNG)]
+
+
+def test_a_pull_that_placed_everything_advances_the_cursor(hub, local):
+    session = add_session(hub, "s1")
+    hub.put(f"{session.id}.png", PNG)
+    session.session_image_file = f"{session.id}.png"
+    hub.commit()
+    seed_pairing(local, hub)
+
+    rev_at_export = local.rev()
+    payload = export_changes(hub.db, hub.user, 0, side="server",
+                             instance_path=hub.instance_path)
+    plan = plan_merge(local.db, local.user, payload, side="local",
+                      instance_path=local.instance_path)
+    staged = transfer(hub, local, plan.files)
+    result = apply_merge(local.db, plan, user=local.user)
+    local.commit()
+    commit = commit_staged_files(local.db, result, staged, user=local.user,
+                                 instance_path=local.instance_path)
+    assert commit.pending == []
+    record_pull_applied(local.db, local.user, result, payload["rev"],
+                        rev_at_export)
+    local.commit()
+
+    assert local.state().server_cursor == payload["rev"]
+    landed = local.one(JournalSession, external_id="s1")
+    assert local.read(landed.session_image_file) == PNG
+
+
+def test_a_hub_with_a_pending_file_keeps_the_local_watermark(hub, local):
+    """The hub's push response carries what it could not place."""
+    session = add_session(local, "s1")
+    local.put(f"{session.id}.png", PNG)
+    session.session_image_file = f"{session.id}.png"
+    local.commit()
+    seed_pairing(local, hub)
+
+    rev_at_export = local.rev()
+    payload = export_changes(local.db, local.user, 0, side="local",
+                             instance_path=local.instance_path)
+    plan = plan_merge(hub.db, hub.user, payload, side="server",
+                      instance_path=hub.instance_path)
+    result = apply_merge(hub.db, plan, user=hub.user)
+    hub.commit()
+    commit = commit_staged_files(hub.db, result, [], user=hub.user,
+                                 instance_path=hub.instance_path)  # bytes lost
+    assert len(commit.pending) == 1
+    # This is the report the hub sends back with its "accepted" answer.
+    record_push_accepted(local.db, local.user, rev_at_export,
+                         deferred=result.deferred, commit=commit)
+    local.commit()
+
+    assert local.state().local_pushed_rev == 0      # the watermark held
+
+
+def test_a_hub_with_every_file_placed_advances_the_watermark(hub, local):
+    session = add_session(local, "s1")
+    local.put(f"{session.id}.png", PNG)
+    session.session_image_file = f"{session.id}.png"
+    local.commit()
+    seed_pairing(local, hub)
+
+    rev_at_export = local.rev()
+    payload = export_changes(local.db, local.user, 0, side="local",
+                             instance_path=local.instance_path)
+    plan = plan_merge(hub.db, hub.user, payload, side="server",
+                      instance_path=hub.instance_path)
+    staged = transfer(local, hub, plan.files)
+    result = apply_merge(hub.db, plan, user=hub.user)
+    hub.commit()
+    commit = commit_staged_files(hub.db, result, staged, user=hub.user,
+                                 instance_path=hub.instance_path)
+    assert commit.pending == []
+    record_push_accepted(local.db, local.user, rev_at_export, commit=commit)
+    local.commit()
+
+    assert local.state().local_pushed_rev == rev_at_export
+
+
+def test_a_failed_replacement_leaves_the_old_live_file_intact(hub, local,
+                                                              monkeypatch):
+    """Mid-placement failure: the live file is still the old one.
+
+    A copy straight onto the live name would have truncated it before the error.
+    The placement writes "<live>.part" and renames, so a failing rename leaves
+    the original exactly as it was and no half-written file behind.
+    """
+    session = add_session(hub, "s1")
+    hub.put(f"{session.id}.png", PNG)
+    session.session_image_file = f"{session.id}.png"
+    hub.commit()
+    seed_pairing(local, hub)
+    pull(local, hub)
+
+    landed = local.one(JournalSession, external_id="s1")
+    assert local.read(landed.session_image_file) == PNG
+
+    session = hub.one(JournalSession, external_id="s1")
+    hub.put(f"{session.id}.png", PNG_ALT)
+    mark_file_changed(session, "session_image_file")
+    hub.commit()
+
+    payload = export_changes(hub.db, hub.user, local.state().server_cursor or 0,
+                             side="server", instance_path=hub.instance_path)
+    plan = plan_merge(local.db, local.user, payload, side="local",
+                      instance_path=local.instance_path)
+    staged = transfer(hub, local, plan.files)
+    result = apply_merge(local.db, plan, user=local.user)
+    local.commit()
+
+    _fail_the_rename(monkeypatch)
+    commit = commit_staged_files(local.db, result, staged, user=local.user,
+                                 instance_path=local.instance_path)
+    assert len(commit.pending) == 1
+    assert local.read(landed.session_image_file) == PNG
+    assert not os.path.exists(
+        local.upload_path(landed.session_image_file + ".part"))
+
+
+def test_a_part_rename_puts_the_whole_file_in_place(hub, local):
+    session = add_session(hub, "s1")
+    hub.put(f"{session.id}.png", PNG)
+    session.session_image_file = f"{session.id}.png"
+    hub.commit()
+    seed_pairing(local, hub)
+    pull(local, hub)
+
+    landed = local.one(JournalSession, external_id="s1")
+    assert local.read(landed.session_image_file) == PNG
+    assert not os.path.exists(
+        local.upload_path(landed.session_image_file + ".part"))
+
+
+def test_a_second_commit_places_nothing_and_moves_no_rev(hub, local):
+    """commit_staged_files is idempotent, its column write included."""
+    session = add_session(hub, "s1")
+    hub.put(f"{session.id}.png", PNG)
+    session.session_image_file = f"{session.id}.png"
+    hub.commit()
+    seed_pairing(local, hub)
+
+    payload = export_changes(hub.db, hub.user, 0, side="server",
+                             instance_path=hub.instance_path)
+    plan = plan_merge(local.db, local.user, payload, side="local",
+                      instance_path=local.instance_path)
+    staged = transfer(hub, local, plan.files)
+    result = apply_merge(local.db, plan, user=local.user)
+    local.commit()
+    first = commit_staged_files(local.db, result, staged, user=local.user,
+                                instance_path=local.instance_path)
+    local.commit()
+    assert len(first.placed) == 1
+
+    landed = local.one(JournalSession, external_id="s1")
+    rev_after_first = landed.sync_rev
+    stamp_after_first = landed.sync_changed_at
+    mtime = os.path.getmtime(local.upload_path(landed.session_image_file))
+
+    # A second run, with nothing staged: the file is already in place.
+    second = commit_staged_files(local.db, result, [], user=local.user,
+                                 instance_path=local.instance_path)
+    local.commit()
+
+    assert second.pending == []          # not reported as lost
+    live = local.one(JournalSession, external_id="s1")
+    assert live.session_image_file == landed.session_image_file
+    assert live.sync_rev == rev_after_first
+    assert live.sync_changed_at == stamp_after_first
+    assert os.path.getmtime(local.upload_path(live.session_image_file)) == mtime
+
+
+def test_a_missing_photo_does_not_clear_the_peers_copy(hub, local):
+    """A file this side cannot send says nothing about the peer's copy.
+
+    The record names the slot only when the bytes are here to send, so a photo
+    that has gone missing on one side must leave the other's alone: the notes,
+    which really did change, are the only thing that travels.
+    """
+    session = add_session(local, "s1")
+    local.put(f"{session.id}.png", PNG)
+    session.session_image_file = f"{session.id}.png"
+    local.commit()
+    seed_pairing(local, hub)
+    push(local, hub)
+
+    hub_session = hub.one(JournalSession, external_id="s1")
+    hub_name = hub_session.session_image_file
+    assert hub.read(hub_name) == PNG
+
+    session = local.one(JournalSession, external_id="s1")
+    os.remove(local.upload_path(session.session_image_file))  # gone, out of band
+    session.notes = "reworked the stack"
+    local.commit()
+    push(local, hub)
+
+    hub_session = hub.one(JournalSession, external_id="s1")
+    assert hub_session.session_image_file == hub_name      # the photo is kept
+    assert hub.read(hub_name) == PNG
+    assert hub_session.notes == "reworked the stack"       # the edit travelled
+
+
+def test_a_removal_clears_the_peers_slot(hub, local):
+    """A slot emptied on purpose travels as an explicit null.
+
+    A photo's name is "<id>.<ext>" whatever the bytes are, so the removal is the
+    one thing the record can say about it. Without the null the hub would keep a
+    photo the user deleted; with it the hub clears the slot and the bytes stay
+    on disk as an orphan - reported, never deleted.
+    """
+    session = add_session(local, "s1")
+    local.put(f"{session.id}.png", PNG)
+    session.session_image_file = f"{session.id}.png"
+    local.commit()
+    seed_pairing(local, hub)
+    push(local, hub)
+    hub_name = hub.one(JournalSession, external_id="s1").session_image_file
+    assert hub.read(hub_name) == PNG
+
+    session = local.one(JournalSession, external_id="s1")
+    session.session_image_file = ""      # what the edit route's removal writes
+    mark_file_changed(session, "session_image_file")
+    local.commit()
+    result = push(local, hub)
+
+    hub_session = hub.one(JournalSession, external_id="s1")
+    assert not hub_session.session_image_file      # the slot is cleared
+    assert hub.has(hub_name)                       # the file is not deleted
+    assert [ref.slot for ref in result.orphaned_files] == ["session_image_file"]
+
+
+def test_a_removal_that_already_landed_is_not_re_applied(hub, local):
+    """An empty slot agrees with an explicit null: no write, no echo."""
+    session = add_session(local, "s1")
+    session.session_image_file = ""
+    local.commit()
+    seed_pairing(local, hub)
+    push(local, hub)
+
+    hub_session = hub.one(JournalSession, external_id="s1")
+    assert not hub_session.session_image_file
+    # The record is offered again by the next pull, and it changes nothing.
+    landed = pull(local, hub)
+    assert landed.updated.get("journal_sessions", 0) == 0
+
+
+# =============================================================================
+# 9c. Rule: a download's cursor never outruns the bytes
+# =============================================================================
+
+def test_a_download_that_lost_a_file_re_opens_the_cursor(hub, local):
+    """apply_download moves the cursor before a byte is placed.
+
+    With a file lost in transit the hub would sit below the cursor for good and
+    the file would never be offered again. The commit drops the cursor to zero,
+    so the next pull walks the snapshot once more: records are content no-ops,
+    and the bytes that never arrived are fetched this time.
+    """
+    session = add_session(hub, "s1")
+    hub.put(f"{session.id}.png", PNG)
+    session.session_image_file = f"{session.id}.png"
+    hub.commit()
+    seed_pairing(local, hub)
+
+    snapshot = export_snapshot(hub.db, hub.user, side="server",
+                               instance_path=hub.instance_path)
+    plan = plan_download(local.db, local.user, snapshot,
+                         instance_path=local.instance_path)
+    result = apply_download(local.db, plan, user=local.user)
+    local.commit()
+    commit = commit_staged_files(local.db, result, [], user=local.user,
+                                 instance_path=local.instance_path)  # bytes lost
+    local.commit()
+
+    assert len(commit.pending) == 1
+    assert (local.state().server_cursor or 0) == 0     # the cursor was dropped
+
+    # The next pull walks the snapshot again and fetches what never arrived.
+    # The transport's own order is written out here: pull()'s stand-in stops
+    # before the watermark step, which is the step under test.
+    payload = export_changes(hub.db, hub.user, local.state().server_cursor or 0,
+                             side="server", instance_path=hub.instance_path)
+    plan = plan_merge(local.db, local.user, payload, side="local",
+                      instance_path=local.instance_path)
+    staged = transfer(hub, local, plan.files)
+    result = apply_merge(local.db, plan, user=local.user)
+    local.commit()
+    commit = commit_staged_files(local.db, result, staged, user=local.user,
+                                 instance_path=local.instance_path)
+    assert commit.pending == []
+    record_pull_applied(local.db, local.user, result, payload["rev"],
+                        local.rev())
+    local.commit()
+
+    landed = local.one(JournalSession, external_id="s1")
+    assert local.read(landed.session_image_file) == PNG
+    assert local.state().server_cursor == hub.rev()
 
 
 # =============================================================================

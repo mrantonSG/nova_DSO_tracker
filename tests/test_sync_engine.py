@@ -26,7 +26,8 @@ from nova.record_links import sync_project_link
 from nova.sync_engine import (
     _KEY_COLUMN,
     MASS_DELETE_RATIO, MAX_CLOCK_SKEW_SECONDS,
-    OP_DELETE, OP_TOMBSTONE, OP_UPDATE, PAYLOAD_FORMAT,
+    KEY_FILES, OP_DELETE, OP_TOMBSTONE, OP_UPDATE, PAYLOAD_FORMAT,
+    ROLE_SESSION_PHOTO,
     REFUSAL_BAD_FORMAT, REFUSAL_CLOCK_SKEW, REFUSAL_LOCAL_REPLACED,
     REFUSAL_MASS_DELETE, REFUSAL_MISSING_KEY, REFUSAL_MISSING_TIMESTAMP,
     REFUSAL_NEEDS_DOWNLOAD, REFUSAL_NOT_PAIRED, REFUSAL_PLAN_STALE,
@@ -36,7 +37,8 @@ from nova.sync_engine import (
     SyncRefused, account_marker_rev, all_classified_columns, apply_download,
     apply_merge, check_sync_preconditions, counter_rev, export_changes,
     export_snapshot, parse_datetime, plan_download, plan_merge,
-    record_pull_applied, record_push_accepted, start_pairing, sync_columns,
+    CommitReport, record_pull_applied, record_push_accepted, start_pairing,
+    sync_columns,
     sync_lock,
 )
 from nova.sync_tracking import ACCOUNT_TABLE, mark_account, next_rev
@@ -154,8 +156,10 @@ def push(local, hub, *, allow_mass_delete=False):
     result = apply_merge(hub.db, plan, user=hub.user)
     hub.commit()
     # The hub reports what it deferred, and the watermark does not move past it.
+    # An empty report stands in for the rest of the push response: a plan with
+    # no placements has no pending files to report.
     record_push_accepted(local.db, local.user, rev_at_export,
-                         deferred=result.deferred)
+                         deferred=result.deferred, commit=CommitReport())
     local.commit()
     return result
 
@@ -1590,6 +1594,51 @@ def test_planning_twice_gives_the_same_actions(local, hub):
     assert first.fingerprint == second.fingerprint
     assert [(a.table, a.key, a.op) for a in first.actions] == [
         (a.table, a.key, a.op) for a in second.actions]
+
+
+def _one_file_payload(digest, manifest):
+    """A payload whose session names a photo the receiver does not hold."""
+    return {
+        "format": PAYLOAD_FORMAT, "account": "hub", "side": "server",
+        "rev": 1, "snapshot": False, "tombstones": [],
+        "files": {digest: manifest},
+        "records": {"journal_sessions": [{
+            "external_id": "s1", "date_utc": "2026-01-02",
+            "sync_changed_at": "2026-01-01T00:00:00.000000",
+            KEY_FILES: {"session_image_file": digest},
+        }]},
+    }
+
+
+def test_a_plans_placements_start_pending(hub, local):
+    """Rule 6 without any transport: a plan that needs a file is pending until a
+    commit says otherwise, so a lost transfer cannot let the cursor move."""
+    digest = "ab" * 32
+    payload = _one_file_payload(digest, {"role": ROLE_SESSION_PHOTO,
+                                         "size": 10, "ext": "png",
+                                         "name": "x.png"})
+    plan = plan_merge(local.db, local.user, payload, side="local")
+    assert plan.refused is False
+    assert [r.sha256 for r in plan.pending_files] == [digest]
+
+    rev_at_export = local.rev()
+    cursor_before = local.state().server_cursor or 0
+    result = apply_merge(local.db, plan, user=local.user)
+    assert [entry[3] for entry in result.pending_files] == [digest]
+
+    # commit_staged_files never runs: the bytes were lost on the way.
+    record_pull_applied(local.db, local.user, result, payload["rev"], rev_at_export)
+    local.commit()
+    assert local.state().server_cursor == cursor_before
+
+
+def test_a_plan_with_no_files_is_not_pending(hub, local):
+    payload = _one_file_payload("ab" * 32, {"role": ROLE_SESSION_PHOTO,
+                                            "size": 10, "ext": "png",
+                                            "name": "x.png"})
+    del payload["records"]["journal_sessions"][0][KEY_FILES]
+    plan = plan_merge(local.db, local.user, payload, side="local")
+    assert plan.pending_files == []
 
 
 # =============================================================================
