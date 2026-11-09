@@ -22,12 +22,15 @@ from nova.models import (
     Project, Rig, SavedFraming, SavedView, SyncCounter, SyncState, SyncTombstone,
     UiPref, UserCustomFilter, session_projects,
 )
+from nova.record_links import sync_project_link
 from nova.sync_engine import (
     _KEY_COLUMN,
-    MASS_DELETE_RATIO, MAX_CLOCK_SKEW_SECONDS, PAYLOAD_FORMAT,
+    MASS_DELETE_RATIO, MAX_CLOCK_SKEW_SECONDS,
+    OP_DELETE, OP_TOMBSTONE, OP_UPDATE, PAYLOAD_FORMAT,
     REFUSAL_BAD_FORMAT, REFUSAL_CLOCK_SKEW, REFUSAL_LOCAL_REPLACED,
-    REFUSAL_MASS_DELETE, REFUSAL_MISSING_KEY, REFUSAL_NEEDS_DOWNLOAD,
-    REFUSAL_NOT_PAIRED, REFUSAL_PLAN_STALE, REFUSAL_REMOTE_REPLACED,
+    REFUSAL_MASS_DELETE, REFUSAL_MISSING_KEY, REFUSAL_MISSING_TIMESTAMP,
+    REFUSAL_NEEDS_DOWNLOAD, REFUSAL_NOT_PAIRED, REFUSAL_PLAN_STALE,
+    REFUSAL_REMOTE_REPLACED,
     REFUSAL_SERVER_UNTOUCHED, REFUSAL_SESSION_NO_KEY, REFUSAL_SYNC_RUNNING,
     REFUSAL_UNCLASSIFIED_COLUMN, REFUSAL_UNKNOWN_COLUMN, REFUSAL_UNKNOWN_TABLE,
     SyncRefused, account_marker_rev, all_classified_columns, apply_download,
@@ -150,16 +153,19 @@ def push(local, hub, *, allow_mass_delete=False):
         raise SyncRefused(plan.refusals[0])
     result = apply_merge(hub.db, plan, user=hub.user)
     hub.commit()
-    record_push_accepted(local.db, local.user, rev_at_export)
+    # The hub reports what it deferred, and the watermark does not move past it.
+    record_push_accepted(local.db, local.user, rev_at_export,
+                         deferred=result.deferred)
     local.commit()
     return result
 
 
-def pull(local, hub, *, allow_mass_delete=False):
+def pull(local, hub, *, allow_mass_delete=False, exclude_revs=()):
     """Sync now, hub -> local. Returns the local's MergeResult."""
     rev_at_export = local.rev()
     cursor = local.state().server_cursor or 0
-    payload = export_changes(hub.db, hub.user, cursor, side="server")
+    payload = export_changes(hub.db, hub.user, cursor, side="server",
+                             exclude_revs=exclude_revs)
     server_rev = payload["rev"]
     plan = plan_merge(local.db, local.user, payload, side="local",
                       allow_mass_delete=allow_mass_delete)
@@ -561,15 +567,170 @@ def test_applying_the_same_payload_twice_changes_nothing(local, hub):
 
 
 def test_a_re_delivered_row_is_not_re_stamped(local, hub):
-    """The second delivery keeps the first apply's sync_changed_at."""
+    """(M4) A second apply of the same payload changes nothing at all."""
     add_object(hub.db, hub.uid, "M 31")
-    pull(local, hub)
-    first = local.one(AstroObject, object_name="M 31").sync_changed_at
-
     payload = export_snapshot(hub.db, hub.user, side="server")
-    plan = plan_merge(local.db, local.user, payload, side="local")
+
+    first = apply_merge(local.db,
+                        plan_merge(local.db, local.user, payload, side="local"),
+                        user=local.user)
+    local.commit()
+    landed = local.one(AstroObject, object_name="M 31")
+    before = (landed.sync_changed_at, landed.sync_rev, local.rev())
+
+    again = plan_merge(local.db, local.user, payload, side="local")
+    assert again.actions == []
+    second = apply_merge(local.db, again, user=local.user)
+    local.commit()
+
+    after = local.one(AstroObject, object_name="M 31")
+    assert (after.sync_changed_at, after.sync_rev) == before[:2]
+    assert local.rev() == before[2]
+    assert second.r_verbatim is None and second.r_changed is None
+    assert second.push_revs == []
+
+
+def test_a_pushed_record_keeps_the_senders_timestamp(local, hub):
+    """(D1) A verbatim insert stores the author's sync_changed_at."""
+    add_object(local.db, local.uid, "M 31")
+    moment = utc_now() - timedelta(days=2)
+    stamp(local.db, AstroObject, local.one(AstroObject, object_name="M 31").id,
+          moment)
+
+    push(local, hub)
+    assert hub.one(AstroObject, object_name="M 31").sync_changed_at == moment
+
+
+def test_a_pushed_edit_keeps_the_senders_timestamp(local, hub):
+    """(D1) ... and so does a verbatim update. The hub must not keep its own
+    older stamp, or a third copy would rate its own row as the newer one."""
+    add_object(local.db, local.uid, "M 31")
+    push(local, hub)
+    pull(local, hub)
+
+    local_obj = local.one(AstroObject, object_name="M 31")
+    local_obj.ra_hours = 6.0
+    local.commit()
+    moment = utc_now() + timedelta(days=1)
+    stamp(local.db, AstroObject, local_obj.id, moment)
+
+    push(local, hub)
+    updated = hub.one(AstroObject, object_name="M 31")
+    assert updated.ra_hours == 6.0
+    assert updated.sync_changed_at == moment
+
+
+def test_an_edit_through_the_hub_reaches_a_third_copy(hub):
+    """(D1) end to end: hub creates, two locals pull, the second edits and
+    pushes, the first pulls. The edit must land on the first copy."""
+    early = Node("early")
+    late = Node("late")
+    try:
+        for node in (early, late):
+            start_pairing(node.db, node.user, server_url=HUB_URL)
+            node.commit()
+            node.db.query(SyncState).filter_by(user_id=node.uid).update(
+                {"last_sync_at": utc_now()})
+            node.commit()
+
+        add_object(hub.db, hub.uid, "M 31", ra=1.0)
+        pull(early, hub)
+        pull(late, hub)
+
+        edited = late.one(AstroObject, object_name="M 31")
+        edited.ra_hours = 6.0
+        late.commit()
+        push(late, hub)
+        assert hub.one(AstroObject, object_name="M 31").ra_hours == 6.0
+
+        pull(early, hub)
+        assert early.one(AstroObject, object_name="M 31").ra_hours == 6.0
+    finally:
+        late.close()
+        early.close()
+
+
+def test_a_newer_hub_edit_beats_a_local_delete(local, hub):
+    """(Rule 5, the other order) The local deletes, the hub edits afterwards."""
+    add_object(local.db, local.uid, "M 31", ra=1.0)
+    push(local, hub)
+    pull(local, hub)
+
+    local.db.delete(local.one(AstroObject, object_name="M 31"))
+    local.commit()
+    hub_obj = hub.one(AstroObject, object_name="M 31")
+    hub_obj.ra_hours = 8.0
+    hub.commit()
+
+    result = push(local, hub)
+    survived = hub.one(AstroObject, object_name="M 31")
+    assert survived is not None and survived.ra_hours == 8.0
+    assert [r.reason for r in result.resurrected] == ["local_edit_newer"]
+
+    pull(local, hub)
+    back = local.one(AstroObject, object_name="M 31")
+    assert back is not None and back.ra_hours == 8.0
+    assert local.tombstones("astro_objects") == []
+
+
+def test_a_pull_that_re_creates_a_row_drops_its_tombstone(local, hub):
+    """(Rule 14) The apply's own insert path clears the tombstone under the key."""
+    obj = add_object(hub.db, hub.uid, "M 31", ra=1.0)
+    uid = obj.record_uid
+    pull(local, hub)
+
+    hub.db.delete(hub.one(AstroObject, object_name="M 31"))
+    hub.commit()
+    pull(local, hub)
+    assert local.rows(AstroObject) == []
+    assert [key for key, _ in local.tombstones("astro_objects")] == [uid]
+
+    # The hub puts the same record back under the key it had before.
+    hub.db.add(AstroObject(user_id=hub.uid, object_name="M 31", ra_hours=3.0,
+                           dec_deg=2.0, record_uid=uid))
+    hub.commit()
+    pull(local, hub)
+
+    assert local.tombstones("astro_objects") == []
+    assert local.one(AstroObject, object_name="M 31").ra_hours == 3.0
+
+
+def test_identical_content_is_a_no_op_however_the_stamp_moved(hub):
+    """(Correction 2) The offset is re-measured every sync, so a record can come
+    back with a stamp a second off. Equal content writes nothing."""
+    obj = add_object(hub.db, hub.uid, "M 31", ra=1.0, dec=2.0)
+    before = hub.rev()
+
+    payload = make_payload({"astro_objects": [
+        obj_rec(obj.record_uid, "M 31", utc_now() + timedelta(seconds=1.5))]})
+    plan = plan_merge(hub.db, hub.user, payload, side="server")
     assert plan.actions == []
-    assert local.one(AstroObject, object_name="M 31").sync_changed_at == first
+
+    result = apply_merge(hub.db, plan, user=hub.user)
+    hub.commit()
+    assert result.r_verbatim is None and result.r_changed is None
+    assert result.push_revs == []
+    assert hub.rev() == before
+    assert hub.one(AstroObject, object_name="M 31").ra_hours == 1.0
+
+
+def test_a_collision_of_identical_content_does_not_re_stamp_the_row(local, hub):
+    """(Correction 2) The same rule where the receiver has to decide: the
+    retired UID is forgotten, but a row that already matches is left alone."""
+    hub_obj = add_object(hub.db, hub.uid, "Veil", ra=1.0, dec=2.0)
+    stamp_before = hub_obj.sync_changed_at
+
+    payload = make_payload({"astro_objects": [
+        obj_rec("other-uid", "Veil", utc_now() + timedelta(seconds=1.5))]})
+    plan = plan_merge(hub.db, hub.user, payload, side="server")
+    assert [(a.op, a.table) for a in plan.actions] == [
+        (OP_TOMBSTONE, "astro_objects")]
+
+    apply_merge(hub.db, plan, user=hub.user)
+    hub.commit()
+    survivor = hub.one(AstroObject, object_name="Veil")
+    assert survivor.record_uid == hub_obj.record_uid
+    assert survivor.sync_changed_at == stamp_before
 
 
 def test_a_deleted_record_can_come_back(local, hub):
@@ -699,6 +860,59 @@ def test_the_hub_does_show_its_account_marker(local, hub):
     assert any(t["table"] == ACCOUNT_TABLE for t in payload["tombstones"])
 
 
+def test_a_pusher_can_exclude_what_the_hub_stored_verbatim(local, hub):
+    """(Rule 2) A hub hands back the revs it wrote verbatim, and the pull that
+    follows leaves them out: a side never receives what it just sent."""
+    add_object(local.db, local.uid, "M 42")
+    result = push(local, hub)
+
+    assert result.r_verbatim is not None
+    assert result.push_revs == [result.r_verbatim]
+
+    cursor = local.state().server_cursor or 0
+    echoed = export_changes(hub.db, hub.user, cursor, side="server",
+                            exclude_revs=result.push_revs)
+    assert echoed["records"] == {}
+
+    everything = export_changes(hub.db, hub.user, cursor, side="server")
+    assert [r["object_name"] for r in everything["records"]["astro_objects"]] == [
+        "M 42"]
+
+
+def test_a_second_local_still_receives_a_pushed_record(local, hub):
+    """(Rule 2) The exclusion is the pusher's, not the hub's."""
+    other = Node("other")
+    try:
+        start_pairing(other.db, other.user, server_url=HUB_URL)
+        other.commit()
+        other.db.query(SyncState).filter_by(user_id=other.uid).update(
+            {"last_sync_at": utc_now()})
+        other.commit()
+
+        add_object(local.db, local.uid, "M 42")
+        push(local, hub)
+        pull(other, hub)
+        assert other.one(AstroObject, object_name="M 42") is not None
+    finally:
+        other.close()
+
+
+def test_a_record_the_hub_decides_about_reaches_the_pusher(local, hub):
+    """(Rule 2) Excluding the verbatim rev must not exclude the rev the hub
+    decided on: that is how the pusher learns its record was unified."""
+    hub_obj = add_object(hub.db, hub.uid, "Veil")
+    add_object(local.db, local.uid, "Veil")     # the hub unifies this one
+    add_object(local.db, local.uid, "M 42")     # ... and stores this verbatim
+
+    result = push(local, hub)
+    assert result.r_verbatim is not None
+    assert result.push_revs == [result.r_verbatim]
+
+    pull(local, hub, exclude_revs=result.push_revs)
+    assert local.one(AstroObject, object_name="Veil").record_uid == \
+        hub_obj.record_uid
+
+
 # =============================================================================
 # 4. Natural keys and collisions
 # =============================================================================
@@ -771,8 +985,9 @@ def test_a_custom_filter_key_is_matched_by_identity(local, hub):
 def test_an_object_unification_does_not_touch_notes(local, hub):
     add_object(hub.db, hub.uid, "Veil", description_text="hub notes")
     add_object(local.db, local.uid, "Veil", description_text="local notes")
+    # A delta, not a snapshot: a hub refuses a snapshot in a push (Rule 3).
     plan = plan_merge(hub.db, hub.user,
-                      export_snapshot(local.db, local.user, side="local"),
+                      export_changes(local.db, local.user, 0, side="local"),
                       side="server")
     assert len(plan.unified) == 1
     apply_merge(hub.db, plan, user=hub.user)
@@ -872,6 +1087,59 @@ def test_ui_prefs_blobs_merge_instead_of_replacing(local, hub):
     assert merged["rig_sort"] == "name-desc"
 
 
+def test_components_of_the_same_name_are_never_renamed(local, hub):
+    """(Rule 10) A component has no unique value to collide on: two cameras may
+    share a name, and neither is renamed to make room for the other."""
+    for _ in range(2):
+        hub.db.add(Component(user_id=hub.uid, kind="camera", name="Cam",
+                             sensor_width_mm=20.0, sensor_height_mm=15.0,
+                             pixel_size_um=3.0))
+    local.db.add(Component(user_id=local.uid, kind="camera", name="Cam",
+                           sensor_width_mm=20.0, sensor_height_mm=15.0,
+                           pixel_size_um=3.0))
+    hub.commit()
+    local.commit()
+
+    plan = plan_merge(local.db, local.user,
+                      export_snapshot(hub.db, hub.user, side="server"),
+                      side="local")
+    assert plan.renames == []
+    assert plan.conflicts == []
+    assert plan.created == {"components": 2}
+
+    apply_merge(local.db, plan, user=local.user)
+    local.commit()
+    assert [c.name for c in local.rows(Component)] == ["Cam"] * 3
+
+
+def test_a_deferred_framing_is_re_offered_until_it_lands(local, hub):
+    """(V2) A record the receiver cannot place yet must not be skipped by the
+    cursor, or the next pull steps past it and it never arrives."""
+    hub_obj = add_object(hub.db, hub.uid, "Veil")
+    add_framing(hub.db, hub.uid, "Veil", object_record_uid=hub_obj.record_uid,
+                ra=10.0)
+    # The local holds a framing of the same name pointing at an object of its
+    # own: until the two identities converge the incoming one cannot be told
+    # apart from it, so it waits.
+    add_framing(local.db, local.uid, "Veil", object_record_uid="local-only",
+                ra=20.0)
+
+    cursor = local.state().server_cursor or 0
+    result = pull(local, hub)
+    assert result.deferred == [("saved_framings", hub_obj.record_uid)]
+    assert (local.state().server_cursor or 0) == cursor     # not moved past it
+    assert len(local.rows(SavedFraming)) == 1
+
+    # The blocker goes, so the next pull offers it again and it lands.
+    local.db.delete(local.one(SavedFraming, object_record_uid="local-only"))
+    local.commit()
+    pull(local, hub)
+
+    landed = local.one(SavedFraming, object_record_uid=hub_obj.record_uid)
+    assert landed is not None and landed.ra == 10.0
+    assert (local.state().server_cursor or 0) != cursor
+
+
 # =============================================================================
 # 5. Referential safety
 # =============================================================================
@@ -927,23 +1195,22 @@ def test_a_referenced_component_is_not_deleted(local, hub):
 
 
 def test_a_deleted_project_leaves_its_sessions_standalone(local, hub):
-    """(G) delete_project unlinks first, so the sessions survive on both sides."""
-    from nova.blueprints.projects import delete_project  # noqa: F401
-    from nova.models import session_projects as _sp
-
+    """(G) The shape the route produces — links cleared, then the row — seen
+    through a sync. The route itself is covered by the test below."""
     add_project(hub.db, hub.uid, "p1", "Veil")
     session = add_session(hub.db, hub.uid, "s1", project_id="p1")
-    hub.db.execute(_sp.insert().values(session_id=session.id, project_id="p1"))
+    hub.db.execute(session_projects.insert().values(session_id=session.id,
+                                                    project_id="p1"))
     hub.commit()
     pull(local, hub)
 
     # Delete the project the way the route does: unlink through the ORM.
     project = hub.one(Project, id="p1")
-    for s in list(project.journal_sessions_m2m):
-        project.journal_sessions_m2m.remove(s)
-    for s in hub.db.query(JournalSession).filter(
+    for link in list(project.journal_sessions_m2m):
+        project.journal_sessions_m2m.remove(link)
+    for linked in hub.db.query(JournalSession).filter(
             JournalSession.project_id == "p1").all():
-        s.project_id = None
+        linked.project_id = None
     hub.db.flush()
     hub.db.delete(project)
     hub.commit()
@@ -953,6 +1220,51 @@ def test_a_deleted_project_leaves_its_sessions_standalone(local, hub):
     assert local.one(Project, id="p1") is None
     survived = local.one(JournalSession, external_id="s1")
     assert survived is not None and survived.project_id is None
+
+
+def test_the_delete_project_route_unlinks_before_it_deletes(client, db_session):
+    """(Rule 11 / G) The real route, through the test client."""
+    user = db_session.query(DbUser).filter_by(username="default").one()
+    project = Project(id="p_sync_test", user_id=user.id, name="Veil",
+                      target_object_name="M42", status="In Progress")
+    session = JournalSession(user_id=user.id, project_id="p_sync_test",
+                             external_id="s1", object_name="M42",
+                             date_utc=datetime(2026, 1, 2).date())
+    db_session.add_all([project, session])
+    db_session.flush()
+    sync_project_link(db_session, project)
+    db_session.commit()
+    session_id = session.id
+
+    response = client.post("/project/delete/p_sync_test",
+                           data={"redirect_object": "M42"})
+    assert response.status_code in (301, 302)
+
+    db_session.expire_all()
+    assert db_session.get(Project, "p_sync_test") is None
+    survivor = db_session.get(JournalSession, session_id)
+    assert survivor is not None and survivor.project_id is None
+    assert db_session.execute(
+        session_projects.select().where(
+            session_projects.c.session_id == session_id)
+    ).all() == []
+
+
+def test_a_skipped_delete_leaves_no_tombstone(local, hub):
+    """(V3) A delete that phase 4 turns into a re-stamp must not leave the
+    tombstone that came with it: the record is still here."""
+    add_object(local.db, local.uid, "Veil")
+    obj = local.one(AstroObject, object_name="Veil")
+    add_session(local.db, local.uid, "s1", object_record_uid=obj.record_uid,
+                object_name="Veil")
+    push(local, hub)
+
+    hub.db.delete(hub.one(AstroObject, object_name="Veil"))
+    hub.commit()
+    pull(local, hub)
+
+    assert local.one(AstroObject, object_name="Veil") is not None
+    assert [key for key, _ in local.tombstones("astro_objects")] == []
 
 
 # =============================================================================
@@ -1035,11 +1347,39 @@ def test_a_hub_replace_marker_makes_the_local_download(local, hub):
     assert REFUSAL_REMOTE_REPLACED in [r.code for r in plan.refusals]
 
 
-def test_the_hub_accepts_a_local_seeded_marker(local, hub):
-    payload = make_payload(tombstones=[{"table": ACCOUNT_TABLE, "key": "seeded",
-                                        "deleted_at": iso(utc_now())}])
+def test_the_hub_refuses_an_account_marker_from_a_local(local, hub):
+    """(Rule 3) A local's payload never carries one — _visible_tombstones strips
+    markers out of everything a local builds — so one arriving here was not made
+    by this engine. "replaced" included: a peer must not be able to declare the
+    account replaced by asking."""
+    for key in ("replaced", "seeded"):
+        payload = make_payload(tombstones=[{"table": ACCOUNT_TABLE, "key": key,
+                                            "deleted_at": iso(utc_now())}])
+        plan = plan_merge(hub.db, hub.user, payload, side="server")
+        assert [r.code for r in plan.refusals] == [REFUSAL_BAD_FORMAT], key
+
+
+def test_the_hub_refuses_a_snapshot_in_a_push(local, hub):
+    """(Rule 3) A whole account only ever travels as a download, which wipes."""
+    payload = make_payload({"astro_objects": [obj_rec("u1", "M 31", utc_now())]})
+    payload["snapshot"] = True
     plan = plan_merge(hub.db, hub.user, payload, side="server")
-    assert not plan.refused
+    assert [r.code for r in plan.refusals] == [REFUSAL_BAD_FORMAT]
+
+
+def test_a_local_accepts_the_hubs_account_marker(local, hub):
+    """(Rule 3, other direction) A hub does send the markers in its own history,
+    and a local leaves them to _plan_tombstone: "seeded" is the hub's own
+    bookkeeping and is ignored, not refused."""
+    add_object(hub.db, hub.uid, "M 31")
+    payload = export_changes(hub.db, hub.user, 0, side="server")
+    payload["tombstones"].append({"table": ACCOUNT_TABLE, "key": "seeded",
+                                  "deleted_at": iso(utc_now())})
+
+    plan = plan_merge(local.db, local.user, payload, side="local")
+    assert plan.refusals == []
+    assert [a for a in plan.actions if a.table == ACCOUNT_TABLE] == []
+    assert local.tombstones(ACCOUNT_TABLE) == []
 
 
 def test_the_hub_refuses_an_unknown_marker(local, hub):
@@ -1087,11 +1427,107 @@ def test_an_acceptable_clock_offset_is_fine(hub):
 
 
 def test_the_offset_is_added_to_the_incoming_timestamp(local):
-    """offset_seconds is the peer's clock minus this one, so it is added."""
+    """offset_seconds is this instance's clock minus the peer's, so it is added."""
     from nova.sync_engine import shift
     moment = datetime(2026, 1, 1, 12, 0, 0)
     assert shift(moment, 60) == moment + timedelta(seconds=60)
     assert shift(moment, -60) == moment - timedelta(seconds=60)
+
+
+def test_a_fast_local_clock_does_not_hide_a_newer_hub_edit(local, hub):
+    """(V1) The proving variant: raw comparison keeps the local, shifted
+    comparison takes the hub's edit.
+
+    The local's clock runs 200 s fast, so offset_seconds is +200 and the hub's
+    stamp is moved forward by it before the two are compared. The local's own
+    copy reads moment+200; the hub's edit is stamped moment+100 — lower, since
+    it is a hub stamp — but in true time it happened 100 s later. Compared raw,
+    moment+100 < moment+200, so the local would keep its row and the edit would
+    never land. Shifted, moment+100+200 > moment+200, so the edit wins.
+    """
+    add_object(local.db, local.uid, "M 31", ra=1.0)
+    push(local, hub)
+    pull(local, hub)
+
+    moment = utc_now()
+    stamp(local.db, AstroObject, local.one(AstroObject, object_name="M 31").id,
+          moment + timedelta(seconds=200))
+    hub_obj = hub.one(AstroObject, object_name="M 31")
+    hub_obj.ra_hours = 9.0
+    hub.commit()
+    stamp(hub.db, AstroObject, hub_obj.id, moment + timedelta(seconds=100))
+
+    payload = export_changes(hub.db, hub.user, local.state().server_cursor or 0,
+                             side="server")
+    plan = plan_merge(local.db, local.user, payload, side="local",
+                      offset_seconds=200)
+    assert not plan.refused
+    apply_merge(local.db, plan, user=local.user)
+    local.commit()
+    assert local.one(AstroObject, object_name="M 31").ra_hours == 9.0
+
+
+def test_an_apply_that_raises_mid_way_changes_nothing(local, hub, monkeypatch):
+    """(Rule 7) One transaction per apply: a failure leaves the rows, the
+    tombstones, the counter and the watermarks exactly as they were."""
+    add_object(hub.db, hub.uid, "M 42")
+    add_object(hub.db, hub.uid, "M 31")
+    pull(local, hub)
+    hub.db.delete(hub.one(AstroObject, object_name="M 31"))
+    hub.commit()
+
+    payload = export_changes(hub.db, hub.user, local.state().server_cursor or 0,
+                             side="server")
+    plan = plan_merge(local.db, local.user, payload, side="local")
+    assert any(a.op == OP_TOMBSTONE for a in plan.actions)
+
+    before_rev = local.rev()
+    before_cursor = local.state().server_cursor
+    before_pushed = local.state().local_pushed_rev
+
+    import nova.sync_engine as engine
+
+    def boom(conn, user_id, action, rev):
+        raise RuntimeError("mid-apply")
+
+    monkeypatch.setattr(engine, "_write_tombstone", boom)
+    with pytest.raises(RuntimeError):
+        apply_merge(local.db, plan, user=local.user)
+    local.db.rollback()
+    local.db.expire_all()
+
+    assert {o.object_name for o in local.rows(AstroObject)} == {"M 31", "M 42"}
+    assert local.tombstones("astro_objects") == []
+    assert local.rev() == before_rev
+    assert local.state().server_cursor == before_cursor
+    assert local.state().local_pushed_rev == before_pushed
+
+
+def test_an_apply_is_scoped_to_the_plans_user(local):
+    """(M1) Every by-id write carries user_id, so a stray row id cannot reach
+    another account's row."""
+    other = DbUser(username="other")
+    local.db.add(other)
+    local.db.commit()
+    local.db.add(AstroObject(user_id=other.id, object_name="Theirs",
+                             ra_hours=1.0, dec_deg=2.0))
+    local.db.commit()
+    their_id = local.db.query(AstroObject).filter_by(
+        object_name="Theirs").one().id
+
+    add_object(local.db, local.uid, "Mine")
+    mine = local.one(AstroObject, object_name="Mine")
+    payload = make_payload(tombstones=[
+        tomb("astro_objects", mine.record_uid, utc_now() + timedelta(seconds=5))])
+    plan = plan_merge(local.db, local.user, payload, side="local")
+    action = next(a for a in plan.actions if a.op == OP_DELETE)
+    action.row_id = their_id          # point the delete at the other account
+
+    apply_merge(local.db, plan, user=local.user)
+    local.commit()
+    local.db.expire_all()
+    assert local.db.query(AstroObject).filter_by(
+        id=their_id).one_or_none() is not None
 
 
 def test_a_mass_delete_is_refused(local, hub):
@@ -1246,9 +1682,60 @@ def test_a_renamed_record_reaches_the_hub_on_the_next_push(local, hub):
     assert to_push["records"]["astro_objects"]
 
 
+def test_a_deferred_push_does_not_advance_the_watermark(local, hub):
+    """(Correction 3) A hub that could not place a record must leave the local's
+    watermark alone, or the next push would never offer it again."""
+    hub_obj = add_object(hub.db, hub.uid, "Veil")
+    # A stale framing on the hub: it names the object but points at an identity
+    # that is no longer the object's own, which is what a delete-and-re-create
+    # leaves behind. It is what makes the incoming framing unresolvable.
+    add_framing(hub.db, hub.uid, "Veil", object_record_uid="retired-uid", ra=1.0)
+
+    add_object(local.db, local.uid, "Veil")
+    local_uid = local.one(AstroObject, object_name="Veil").record_uid
+    add_framing(local.db, local.uid, "Veil", object_record_uid=local_uid, ra=2.0)
+
+    watermark = local.state().local_pushed_rev or 0
+    result = push(local, hub)
+
+    assert result.deferred == [("saved_framings", local_uid)]
+    assert (local.state().local_pushed_rev or 0) == watermark
+    assert [f.object_record_uid for f in hub.rows(SavedFraming)] == ["retired-uid"]
+
+    # Clear the blocker and push again: the same record is offered again, and
+    # this time it lands under the identity its object has on the hub.
+    hub.db.delete(hub.one(SavedFraming, object_record_uid="retired-uid"))
+    hub.commit()
+    push(local, hub)
+
+    assert [f.object_record_uid for f in hub.rows(SavedFraming)] == [
+        hub_obj.record_uid]
+    assert (local.state().local_pushed_rev or 0) > watermark
+
+
 # =============================================================================
 # 9. Download from server
 # =============================================================================
+
+def test_a_download_without_a_timestamp_is_refused(local, hub):
+    """(M3) The apply writes every record straight through, so the plan refuses
+    the whole snapshot rather than writing half of it."""
+    snapshot = make_payload({"astro_objects": [
+        {"record_uid": "u1", "object_name": "M 31"}]})
+    snapshot["snapshot"] = True
+    plan = plan_download(local.db, local.user, snapshot)
+    assert [r.code for r in plan.refusals] == [REFUSAL_MISSING_TIMESTAMP]
+
+
+def test_a_download_without_a_natural_key_is_refused(local, hub):
+    """(M3) A record the apply could not key is refused, not written."""
+    snapshot = make_payload({"astro_objects": [
+        {"object_name": "M 31", "ra_hours": 1.0, "dec_deg": 2.0,
+         "sync_changed_at": iso(utc_now())}]})
+    snapshot["snapshot"] = True
+    plan = plan_download(local.db, local.user, snapshot)
+    assert [r.code for r in plan.refusals] == [REFUSAL_MISSING_KEY]
+
 
 def test_a_download_replaces_the_local_account(local, hub):
     add_object(hub.db, hub.uid, "M 31")

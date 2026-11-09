@@ -444,9 +444,12 @@ def parse_date(value: Any) -> Optional[date]:
 def shift(moment: Optional[datetime], offset_seconds: float) -> Optional[datetime]:
     """`moment` moved into this instance's clock by the measured offset.
 
-    offset_seconds is the peer's clock minus this instance's clock, so it is
-    ADDED to a timestamp that came from the peer. Applied identically on both
-    sides, which is what makes "newest" mean the same thing everywhere.
+    offset_seconds is THIS instance's clock minus the peer's, so it is ADDED to
+    a timestamp that came from the peer: a local running 200 s fast measures
+    +200, and a hub stamp is moved forward by that much before the two are
+    compared. A local stamp is already in this clock and is never shifted.
+    Applied identically on both sides, which is what makes "newest" mean the
+    same thing everywhere.
     """
     if moment is None or not offset_seconds:
         return moment
@@ -561,6 +564,9 @@ class MergePlan:
     touched: list = field(default_factory=list)
     inserts: list = field(default_factory=list)
     ref_counts: dict = field(default_factory=dict)
+    # (table, key) records this plan could not place yet. The apply reports
+    # them back so the caller does not move its watermark past them.
+    deferred: list = field(default_factory=list)
 
     @property
     def has_verbatim(self) -> bool:
@@ -603,6 +609,13 @@ class MergeResult:
     # compares it with the rev the export carried to tell whether a local write
     # slipped in between the two.
     counter_before: Optional[int] = None
+    # The rev the receiver wrote records verbatim under. A hub hands it back to
+    # the pusher, which excludes it from its next pull: a side never receives
+    # what it just sent, but everything the receiver decided still travels.
+    push_revs: list = field(default_factory=list)
+    # (table, key) records this apply could not place. record_push_accepted
+    # leaves the watermark alone when it is non-empty, so they are re-offered.
+    deferred: list = field(default_factory=list)
 
 
 @dataclass
@@ -638,6 +651,10 @@ def _record_values(model: type, record: Mapping[str, Any]) -> dict:
     for reserved in (KEY_HORIZON, KEY_PROJECT_IDS):
         if reserved in record:
             values[reserved] = record[reserved]
+    # Carried so a write stored exactly as received keeps the sender's stamp:
+    # the plan replaces this raw text with the offset-corrected datetime.
+    if KEY_CHANGED_AT in record:
+        values[KEY_CHANGED_AT] = record[KEY_CHANGED_AT]
     return values
 
 
@@ -717,26 +734,37 @@ def _blob_default_location(blob) -> Optional[str]:
 
 # --- Export ------------------------------------------------------------------
 
-def export_changes(db, user, since_rev: int, *, side: str = "local") -> dict:
+def export_changes(db, user, since_rev: int, *, side: str = "local",
+                   exclude_revs: Iterable[int] = ()) -> dict:
     """Everything this instance has changed for `user` above `since_rev`.
 
     Rows and tombstones with sync_rev > since_rev. Account markers ride only in
     a hub's payload: a local never pushes one.
+
+    exclude_revs are revs the caller must not be handed back. A hub fills it
+    with the revs it wrote verbatim for the pusher (MergeResult.push_revs), so
+    the pull that follows leaves out exactly what the pusher just sent while
+    everything the hub decided about those records still travels. A side never
+    receives what it just sent.
     """
     uid = user.id
     payload = _envelope(db, user, side=side, snapshot=False)
+    excluded = sorted({int(rev) for rev in exclude_revs if rev is not None})
 
     for model in PLAN_ORDER:
-        rows = db.scalars(
-            select(model).where(model.user_id == uid, model.sync_rev > since_rev)
-        ).all()
+        query = select(model).where(model.user_id == uid,
+                                    model.sync_rev > since_rev)
+        if excluded:
+            query = query.where(model.sync_rev.notin_(excluded))
+        rows = db.scalars(query).all()
         if rows:
             payload["records"][model.__tablename__] = [
                 record_to_payload(model, row) for row in rows
             ]
 
     payload["tombstones"] = [
-        _tombstone_to_payload(t) for t in _visible_tombstones(db, uid, side, since_rev)
+        _tombstone_to_payload(t)
+        for t in _visible_tombstones(db, uid, side, since_rev, excluded)
     ]
     return payload
 
@@ -771,11 +799,14 @@ def export_snapshot(db, user, *, side: str = "server") -> dict:
     return payload
 
 
-def _visible_tombstones(db, user_id, side, since_rev):
+def _visible_tombstones(db, user_id, side, since_rev, exclude_revs=()):
     """The tombstones this side may show: a local's never include markers."""
     query = select(SyncTombstone).where(SyncTombstone.user_id == user_id)
     if since_rev is not None:
         query = query.where(SyncTombstone.sync_rev > since_rev)
+    excluded = [int(rev) for rev in exclude_revs if rev is not None]
+    if excluded:
+        query = query.where(SyncTombstone.sync_rev.notin_(excluded))
     rows = db.scalars(query).all()
     if side == "server":
         return rows
@@ -980,12 +1011,19 @@ def _grouped_reference_counts(db, user_id: int, deletes: Iterable[tuple[str, str
         for source_model, column in sources:
             add(source_model, column, table)
 
-    # session_projects rows, which are not a model.
+    # session_projects rows, which are not a model. Scoped to this user's own
+    # sessions: another account's session pointing at the same project id is
+    # not a reference this account's delete would orphan.
     project_keys = wanted.get(Project.__tablename__)
     if project_keys:
         rows = db.execute(
             select(session_projects.c.project_id, func.count())
-            .where(session_projects.c.project_id.in_(sorted(project_keys)))
+            .where(
+                session_projects.c.project_id.in_(sorted(project_keys)),
+                session_projects.c.session_id.in_(
+                    select(JournalSession.id).where(
+                        JournalSession.user_id == user_id)),
+            )
             .group_by(session_projects.c.project_id)
         ).all()
         for value, number in rows:
@@ -1040,13 +1078,30 @@ def _post_plan_reference_counts(db, user_id, builder) -> dict:
 
 # --- Planning ----------------------------------------------------------------
 
-def _validate_payload(payload) -> list:
-    """Structural checks on an incoming payload. Empty list when it is usable."""
+def _validate_payload(payload, *, side: Optional[str] = None,
+                      allow_snapshot: bool = False) -> list:
+    """Structural checks on an incoming payload. Empty list when it is usable.
+
+    `side` is the side RECEIVING it. On the hub that means a local sent it, and
+    a local sends neither a snapshot (a whole account only ever travels as a
+    download, which wipes first) nor an account marker — _visible_tombstones
+    strips markers out of every payload a local builds, so one arriving here was
+    not something this engine produced, and a peer must not be able to declare
+    the account replaced. Both are refused, "replaced" included.
+
+    The other direction is deliberately unchecked: a hub does send the markers
+    in its own history, and _plan_tombstone decides what each kind means to a
+    local. allow_snapshot is for the one caller that receives a real snapshot,
+    plan_download.
+    """
     refusals: list[Refusal] = []
     if not isinstance(payload, dict):
         return [Refusal(REFUSAL_BAD_FORMAT, {"reason": "not a mapping"})]
     if payload.get("format") != PAYLOAD_FORMAT:
         return [Refusal(REFUSAL_BAD_FORMAT, {"found": payload.get("format")})]
+
+    if side == "server" and not allow_snapshot and payload.get("snapshot"):
+        refusals.append(Refusal(REFUSAL_BAD_FORMAT, {"reason": "snapshot in a push"}))
 
     records = payload.get("records") or {}
     if not isinstance(records, dict):
@@ -1074,6 +1129,10 @@ def _validate_payload(payload) -> list:
             refusals.append(Refusal(REFUSAL_BAD_FORMAT, {"reason": "bad tombstone"}))
             continue
         table = tombstone["table"]
+        if side == "server" and table == ACCOUNT_TABLE:
+            refusals.append(Refusal(REFUSAL_BAD_FORMAT, {
+                "reason": "account marker", "key": tombstone.get("key")}))
+            continue
         if table != ACCOUNT_TABLE and table not in TABLE_MODEL:
             refusals.append(Refusal(REFUSAL_UNKNOWN_TABLE, {"table": table}))
     return refusals
@@ -1102,7 +1161,13 @@ def _identity_values(model: type, row) -> dict:
 
 
 def _row_content(db, model: type, row, record: Mapping[str, Any]) -> bool:
-    """True when `row` already holds exactly what `record` carries."""
+    """True when `row` already holds exactly what `record` carries.
+
+    Synced content only. sync_changed_at is not a column of any model, so it
+    never enters this comparison: a record that comes back with a stamp a
+    re-measured offset has nudged is still the same record, and equal content
+    means no write and no rev whatever the two stamps say.
+    """
     for column, value in _record_values(model, record).items():
         if column in RESERVED_KEYS:
             continue  # sets, compared below against the rows that hold them
@@ -1126,12 +1191,30 @@ def _row_content(db, model: type, row, record: Mapping[str, Any]) -> bool:
     return True
 
 
+def _same_content(db, model: type, row, values: Mapping[str, Any]) -> bool:
+    """Whether `row` already carries `values`, ignoring the columns that name it.
+
+    The same rule as _row_content, for the place where two identities have
+    already been decided to be one record (a name collision): the key column
+    differs by definition there, so what is left to compare is the content.
+    """
+    key_column = _KEY_COLUMN.get(model)
+    for column, value in values.items():
+        if column in RESERVED_KEYS or column == key_column:
+            continue
+        if getattr(row, column, None) != value:
+            return False
+    return True
+
+
 class _Builder:
     """Collects the actions and the counts of one plan."""
 
-    def __init__(self, side: str, user_id: int):
+    def __init__(self, side: str, user_id: int, offset_seconds: float = 0.0):
         self.side = side
         self.user_id = user_id
+        self.offset_seconds = offset_seconds
+        self.deferred: list[tuple[str, str]] = []
         self.actions: list[Action] = []
         self.by_key: dict[tuple[str, str], Action] = {}
         self.created: dict[str, int] = {}
@@ -1149,6 +1232,16 @@ class _Builder:
     def add(self, action: Action) -> None:
         self.actions.append(action)
         self.by_key[(action.table, action.key)] = action
+
+    def to_local_clock(self, moment: Optional[datetime]) -> Optional[datetime]:
+        """A peer's timestamp, moved into this instance's clock.
+
+        The one place the offset is applied on the plan side: every comparison
+        between an incoming stamp and a stored one goes through here, so
+        "newest" means the same thing on both sides. None passes through (the
+        caller refuses a record without a stamp).
+        """
+        return shift(moment, self.offset_seconds)
 
     def rekey(self, action: Action, new_key: str) -> None:
         """A dependent whose natural key changed under it (a framing's object)."""
@@ -1268,9 +1361,13 @@ def _plan_object_collision(db, builder: _Builder, model: type, record: dict,
 
     if hub_side:
         # The hub keeps its own row, adopting the incoming content when it is
-        # newer. Retire the incoming UID so both sides forget it.
-        incoming_at = parse_datetime(record.get(KEY_CHANGED_AT))
-        if incoming_at and incoming_at > (winner_row.sync_changed_at or datetime.min):
+        # newer. Retire the incoming UID so both sides forget it. "Newer" is
+        # only half of it: content that already matches is not a change, however
+        # far a re-measured offset has moved the incoming stamp.
+        incoming_at = builder.to_local_clock(
+            parse_datetime(record.get(KEY_CHANGED_AT)))
+        if (incoming_at and incoming_at > (winner_row.sync_changed_at or datetime.min)
+                and not _same_content(db, model, winner_row, values)):
             merged = dict(values)
             merged.pop("record_uid", None)
             builder.remember(model, winner_row)
@@ -1327,13 +1424,16 @@ def _plan_record(db, builder: _Builder, model: type, record: dict, index: dict,
         refusals.append(Refusal(code, {"table": table}))
         return
 
-    incoming_at = parse_datetime(record.get(KEY_CHANGED_AT))
+    incoming_at = builder.to_local_clock(parse_datetime(record.get(KEY_CHANGED_AT)))
     if incoming_at is None:
         refusals.append(Refusal(REFUSAL_MISSING_TIMESTAMP,
                                 {"table": table, "key": key}))
         return
 
     values = _record_values(model, record)
+    # A record stored exactly as received keeps the sender's stamp, so a third
+    # copy rates it against the same moment the other two did.
+    values[KEY_CHANGED_AT] = incoming_at
     # A UID the receiver already retired in this plan points at the winner.
     for column in ("object_record_uid", "rig_record_uid"):
         uid = values.get(column)
@@ -1380,6 +1480,7 @@ def _plan_record(db, builder: _Builder, model: type, record: dict, index: dict,
                     table, key, "deferred",
                     {"reason": "object_identity_unresolved", "name": wanted},
                 ))
+                builder.deferred.append((table, key))
                 return
             taken = builder.taken.setdefault(model, set())
             fresh = free_name(taken, wanted)
@@ -1415,7 +1516,7 @@ def _plan_record_update(db, builder: _Builder, model: type, record: dict,
             taken.add(fresh)
             decided = True
 
-    incoming_at = parse_datetime(record.get(KEY_CHANGED_AT))
+    incoming_at = builder.to_local_clock(parse_datetime(record.get(KEY_CHANGED_AT)))
     if model is UiPref:
         merged, differs = _merge_prefs_blob(
             existing.json_blob, values.get("json_blob"),
@@ -1454,7 +1555,7 @@ def _plan_tombstone(db, builder: _Builder, tombstone: dict, index: dict,
     """Decide what one incoming tombstone does to the receiver."""
     table = tombstone.get("table")
     key = str(tombstone.get("key") or "")
-    deleted_at = parse_datetime(tombstone.get("deleted_at"))
+    deleted_at = builder.to_local_clock(parse_datetime(tombstone.get("deleted_at")))
 
     if table == ACCOUNT_TABLE:
         if key not in ACCOUNT_KINDS:
@@ -1466,7 +1567,9 @@ def _plan_tombstone(db, builder: _Builder, tombstone: dict, index: dict,
             refusals.append(Refusal(REFUSAL_REMOTE_REPLACED,
                                     {"deleted_at": to_iso(deleted_at)}))
             return
-        builder.add(Action(OP_TOMBSTONE, ACCOUNT_TABLE, key, False, {}))
+        # "seeded" is the hub's own bookkeeping — where its starter data came
+        # from. It says nothing about a local's records, so a local ignores it
+        # rather than writing a marker of its own.
         return
 
     model = TABLE_MODEL.get(table)
@@ -1599,7 +1702,7 @@ def plan_merge(db, user, payload, *, side: str, offset_seconds: float = 0.0,
     if precondition is not None:
         plan.refusals.append(precondition)
 
-    plan.refusals.extend(_validate_payload(payload))
+    plan.refusals.extend(_validate_payload(payload, side=side))
     if plan.refusals:
         plan.totals = _totals(db, uid, 0)
         return plan
@@ -1607,7 +1710,7 @@ def plan_merge(db, user, payload, *, side: str, offset_seconds: float = 0.0,
     # The receiver's state, by natural key and by unique value.
     index: dict[str, dict] = {}
     unique_index: dict[type, dict] = {}
-    builder = _Builder(side, uid)
+    builder = _Builder(side, uid, skew)
 
     for model in PLAN_ORDER:
         table = model.__tablename__
@@ -1657,8 +1760,18 @@ def plan_merge(db, user, payload, *, side: str, offset_seconds: float = 0.0,
         if ref_counts.get(pair, 0) > 0
     }
     if survivors:
+        # The paired tombstone goes with the delete it came in with: the record
+        # is still here, and a tombstone under it would only tell the peer to
+        # delete it again.
+        dropped = {
+            (action.table, action.key) for action in builder.actions
+            if action.op == OP_TOMBSTONE and (action.table, action.key) in survivors
+        }
         kept: list[Action] = []
         for action in builder.actions:
+            if (action.op == OP_TOMBSTONE
+                    and (action.table, action.key) in dropped):
+                continue
             if action.op == OP_DELETE and (action.table, action.key) in survivors:
                 builder.resurrected.append(
                     Resurrected(action.table, action.key, "still_referenced"))
@@ -1685,6 +1798,7 @@ def plan_merge(db, user, payload, *, side: str, offset_seconds: float = 0.0,
     plan.touched = builder.touched
     plan.inserts = builder.inserts
     plan.ref_counts = ref_counts
+    plan.deferred = builder.deferred
 
     deletions = sum(plan.deleted.values())
     plan.totals = _totals(db, uid, deletions)
@@ -1737,7 +1851,8 @@ def apply_merge(db, plan: MergePlan, *, user=None) -> MergeResult:
         raise SyncRefused(Refusal(REFUSAL_PLAN_STALE, {"user_id": user_id}))
 
     conn = db.connection()
-    result = MergeResult(counter_before=counter_rev(db, user_id))
+    result = MergeResult(counter_before=counter_rev(db, user_id),
+                         deferred=list(plan.deferred))
 
     # Two revs, in this order: records stored exactly as received, then records
     # the receiver altered or decided about. R_changed is always the higher.
@@ -1745,6 +1860,11 @@ def apply_merge(db, plan: MergePlan, *, user=None) -> MergeResult:
     r_changed = next_rev(conn, user_id) if plan.has_changed else None
     result.r_verbatim = r_verbatim
     result.r_changed = r_changed
+    # Handed back to the side that pushed: its next pull excludes this rev, so
+    # it does not receive its own records back. A verbatim rev is by definition
+    # the one records stored exactly as received.
+    if r_verbatim is not None:
+        result.push_revs = [r_verbatim]
 
     # 1. Upserts, parents first.
     for table in _APPLY_ORDER:
@@ -1776,7 +1896,7 @@ def apply_merge(db, plan: MergePlan, *, user=None) -> MergeResult:
                 result.skipped_at_apply.append(
                     Resurrected(table, action.key, "still_referenced"))
                 continue
-            _delete_row(conn, model, action)
+            _delete_row(conn, model, action, user_id)
             result.deleted[table] = result.deleted.get(table, 0) + 1
 
     # 3. Tombstones, each re-stamped with a local rev. One whose delete was
@@ -1804,9 +1924,12 @@ def _write_row(db, conn, model: type, action: Action, rev: Optional[int],
     horizon = values.pop(KEY_HORIZON, None)
     project_ids = values.pop(KEY_PROJECT_IDS, None)
 
+    # A record stored exactly as received keeps the sender's stamp (the plan put
+    # it in values, offset-corrected). Anything the receiver decided is stamped
+    # now: its decision is what the stamp describes.
     stamp = values.pop("sync_changed_at", None)
-    if stamp is None:
-        stamp = utc_now() if action.changed else _existing_stamp(db, model, action.row_id)
+    if stamp is None or action.changed:
+        stamp = utc_now()
     values["sync_changed_at"] = stamp
     values["sync_rev"] = rev
 
@@ -1819,7 +1942,8 @@ def _write_row(db, conn, model: type, action: Action, rev: Optional[int],
         new_id = action.row_id
         conn.execute(
             sa_update(model.__table__)
-            .where(model.__table__.c.id == action.row_id)
+            .where(model.__table__.c.id == action.row_id,
+                   model.__table__.c.user_id == user_id)
             .values(**values)
         )
 
@@ -1847,17 +1971,12 @@ def _write_row(db, conn, model: type, action: Action, rev: Optional[int],
             conn.execute(sa_insert(session_projects), rows)
 
 
-def _existing_stamp(db, model: type, row_id) -> Optional[datetime]:
-    """The stored sync_changed_at of a row, for an update that carries none."""
-    if row_id is None:
-        return utc_now()
-    return db.scalar(
-        select(model.sync_changed_at).where(model.__table__.c.id == row_id)
-    ) or utc_now()
+def _delete_row(conn, model: type, action: Action, user_id: int) -> None:
+    """One delete, with the children SQLite's foreign keys would have taken.
 
-
-def _delete_row(conn, model: type, action: Action) -> None:
-    """One delete, with the children SQLite's foreign keys would have taken."""
+    Scoped to the plan's user: a row id from a payload must never reach another
+    account's row.
+    """
     row_id = action.row_id
     if row_id is None:
         return
@@ -1870,7 +1989,9 @@ def _delete_row(conn, model: type, action: Action) -> None:
     if model is Project:
         conn.execute(sa_delete(session_projects).where(
             session_projects.c.project_id == action.key))
-    conn.execute(sa_delete(model.__table__).where(model.__table__.c.id == row_id))
+    conn.execute(sa_delete(model.__table__).where(
+        model.__table__.c.id == row_id,
+        model.__table__.c.user_id == user_id))
 
 
 def _drop_tombstone(conn, user_id: int, table: str, key: str) -> None:
@@ -1936,11 +2057,30 @@ def plan_download(db, user, snapshot, *, offset_seconds: float = 0.0) -> Downloa
             "offset_seconds": skew, "max": MAX_CLOCK_SKEW_SECONDS,
         }))
 
-    plan.refusals.extend(_validate_payload(snapshot))
+    plan.refusals.extend(_validate_payload(snapshot, allow_snapshot=True))
     if plan.refusals:
         return plan
 
     uid = plan.user_id
+    # All or nothing: an apply writes every record straight through, so a
+    # record it could not key or stamp refuses the whole snapshot rather than
+    # leaving half of it written.
+    for table, rows in (snapshot.get("records") or {}).items():
+        model = TABLE_MODEL.get(table)
+        if model is None:
+            continue
+        for record in rows or []:
+            if not isinstance(record, dict):
+                continue
+            if not natural_key(model, record):
+                plan.refusals.append(Refusal(REFUSAL_MISSING_KEY,
+                                             {"table": table}))
+            if parse_datetime(record.get(KEY_CHANGED_AT)) is None:
+                plan.refusals.append(Refusal(REFUSAL_MISSING_TIMESTAMP,
+                                             {"table": table}))
+    if plan.refusals:
+        return plan
+
     for model in PLAN_ORDER:
         table = model.__tablename__
         plan.wiping[table] = db.scalar(
@@ -2036,14 +2176,20 @@ def apply_download(db, plan: DownloadPlan, *, user=None) -> MergeResult:
 
 # --- Sync-run watermarks -----------------------------------------------------
 
-def record_push_accepted(db, user, rev_at_export: int) -> None:
+def record_push_accepted(db, user, rev_at_export: int, *, deferred: Iterable = ()) -> None:
     """After a hub accepts a push: this local's changes are on the hub.
 
     local_pushed_rev never advances past a rev this sync did not create, so it
     is set to the rev the export carried, not to the counter's current value.
+    It does not advance at all when the hub deferred something: that record was
+    not placed, so leaving the watermark where it is is what makes the next push
+    offer it again.
     """
     state = db.scalars(select(SyncState).where(SyncState.user_id == user.id)).first()
     if state is None:
+        return
+    if deferred:
+        db.flush()
         return
     state.local_pushed_rev = max(state.local_pushed_rev or 0, int(rev_at_export))
     db.flush()
@@ -2059,6 +2205,9 @@ def record_pull_applied(db, user, result: MergeResult, server_rev: int,
     otherwise it is left alone, so an edit that slipped in is pushed next time
     rather than swallowed. R_changed always stays above it, which is how a
     record this side renamed or unified reaches the hub.
+
+    The cursor does not move past a record the apply deferred: the next pull
+    must offer it again until it lands.
     """
     state = db.scalars(select(SyncState).where(SyncState.user_id == user.id)).first()
     if state is None:
@@ -2066,6 +2215,9 @@ def record_pull_applied(db, user, result: MergeResult, server_rev: int,
     if (result.counter_before == int(rev_at_export)
             and result.r_verbatim is not None):
         state.local_pushed_rev = result.r_verbatim
+    if result.deferred:
+        db.flush()
+        return
     state.server_cursor = int(server_rev)
     state.last_sync_at = utc_now()
     db.flush()
