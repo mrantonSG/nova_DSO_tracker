@@ -76,13 +76,20 @@ class Project(Base):
     goals = Column(Text, nullable=True)  # Goals and completion status (rich text)
     status = Column(String(32), nullable=False, default="In Progress")  # e.g., 'In Progress', 'Completed', 'On Hold'
 
+    # --- Instance sync (see nova/sync_time.py): stamped by the sync_v1
+    # upgrade backfill; nothing writes these yet.
+    sync_changed_at = Column(DateTime, nullable=True)
+    sync_rev = Column(Integer, nullable=True)
     user = relationship("DbUser", back_populates="projects")
     sessions = relationship("JournalSession", back_populates="project")
     journal_sessions_m2m = relationship(
         "JournalSession", secondary=session_projects, back_populates="projects"
     )
 
-    __table_args__ = (UniqueConstraint('user_id', 'name', name='uq_user_project_name'),)
+    __table_args__ = (
+        UniqueConstraint('user_id', 'name', name='uq_user_project_name'),
+        Index('ix_projects_user_sync_rev', 'user_id', 'sync_rev'),
+    )
 
 class SavedView(Base):
     __tablename__ = 'saved_views'
@@ -94,8 +101,15 @@ class SavedView(Base):
     is_shared = Column(Boolean, nullable=False, default=False, index=True) # <-- New
     original_user_id = Column(Integer, ForeignKey('users.id', ondelete="SET NULL"), nullable=True, index=True) # <-- New
     original_item_id = Column(Integer, nullable=True, index=True) # <-- New
+    # --- Instance sync (see nova/sync_time.py): stamped by the sync_v1
+    # upgrade backfill; nothing writes these yet.
+    sync_changed_at = Column(DateTime, nullable=True)
+    sync_rev = Column(Integer, nullable=True)
     user = relationship("DbUser", foreign_keys=[user_id], back_populates="saved_views")
-    __table_args__ = (UniqueConstraint('user_id', 'name', name='uq_user_view_name'),)
+    __table_args__ = (
+        UniqueConstraint('user_id', 'name', name='uq_user_view_name'),
+        Index('ix_saved_views_user_sync_rev', 'user_id', 'sync_rev'),
+    )
 
 class Location(Base):
     __tablename__ = 'locations'
@@ -114,12 +128,17 @@ class Location(Base):
     bortle_scale = Column(Integer, nullable=True)
     elevation = Column(Float, nullable=True)  # observer elevation in metres
     sqm_zenith = Column(Float, nullable=True)  # measured zenith SQM (mag/arcsec²)
+    # --- Instance sync (see nova/sync_time.py): stamped by the sync_v1
+    # upgrade backfill; nothing writes these yet.
+    sync_changed_at = Column(DateTime, nullable=True)
+    sync_rev = Column(Integer, nullable=True)
     user = relationship("DbUser", back_populates="locations")
     horizon_points = relationship("HorizonPoint", back_populates="location", cascade="all, delete-orphan")
     __table_args__ = (
         UniqueConstraint('user_id', 'name', name='uq_user_location_name'),
         CheckConstraint('bortle_scale IS NULL OR (bortle_scale >= 1 AND bortle_scale <= 9)', name='ck_bortle_scale_range'),
         Index('uq_locations_user_record_uid', 'user_id', 'record_uid', unique=True),
+        Index('ix_locations_user_sync_rev', 'user_id', 'sync_rev'),
     )
 
 
@@ -160,11 +179,16 @@ class SavedFraming(Base):
 
     updated_at = Column(Date, default=datetime.utcnow)
 
+    # --- Instance sync (see nova/sync_time.py): stamped by the sync_v1
+    # upgrade backfill; nothing writes these yet.
+    sync_changed_at = Column(DateTime, nullable=True)
+    sync_rev = Column(Integer, nullable=True)
     user = relationship("DbUser", backref="saved_framings")
     __table_args__ = (
         UniqueConstraint('user_id', 'object_name', name='uq_user_object_framing'),
         # Name must match the index created in _run_schema_patches.
         Index('ix_saved_framings_user_object_record_uid', 'user_id', 'object_record_uid'),
+        Index('ix_saved_framings_user_sync_rev', 'user_id', 'sync_rev'),
     )
 
 class HorizonPoint(Base):
@@ -194,6 +218,10 @@ class AstroObject(Base):
     is_shared = Column(Boolean, nullable=False, default=False, index=True)
     shared_notes = Column(Text, nullable=True)
     original_user_id = Column(Integer, ForeignKey('users.id', ondelete="SET NULL"), nullable=True, index=True)
+    # --- Instance sync (see nova/sync_time.py): stamped by the sync_v1
+    # upgrade backfill; nothing writes these yet.
+    sync_changed_at = Column(DateTime, nullable=True)
+    sync_rev = Column(Integer, nullable=True)
     user = relationship("DbUser", foreign_keys=[user_id], back_populates="objects")
     original_item_id = Column(Integer, nullable=True, index=True)
     catalog_sources = Column(Text, nullable=True)
@@ -212,6 +240,7 @@ class AstroObject(Base):
     __table_args__ = (
         UniqueConstraint('user_id', 'object_name', name='uq_user_object'),
         Index('uq_astro_objects_user_record_uid', 'user_id', 'record_uid', unique=True),
+        Index('ix_astro_objects_user_sync_rev', 'user_id', 'sync_rev'),
     )
 
     def to_dict(self):
@@ -275,10 +304,15 @@ class Component(Base):
     is_shared = Column(Boolean, nullable=False, default=False, index=True)
     original_user_id = Column(Integer, ForeignKey('users.id', ondelete="SET NULL"), nullable=True, index=True)
     original_item_id = Column(Integer, nullable=True, index=True)
+    # --- Instance sync (see nova/sync_time.py): stamped by the sync_v1
+    # upgrade backfill; nothing writes these yet.
+    sync_changed_at = Column(DateTime, nullable=True)
+    sync_rev = Column(Integer, nullable=True)
     user = relationship("DbUser", foreign_keys=[user_id], back_populates="components")
     rigs_using = relationship("Rig", back_populates="telescope", foreign_keys="Rig.telescope_id")
     __table_args__ = (
         Index('uq_components_user_record_uid', 'user_id', 'record_uid', unique=True),
+        Index('ix_components_user_sync_rev', 'user_id', 'sync_rev'),
     )
 
 
@@ -315,6 +349,10 @@ class Rig(Base):
     guide_focal_length_mm = Column(Float, nullable=True)
     guide_camera_name = Column(String(256), nullable=True)
     guide_pixel_size_um = Column(Float, nullable=True)
+    # --- Instance sync (see nova/sync_time.py): stamped by the sync_v1
+    # upgrade backfill; nothing writes these yet.
+    sync_changed_at = Column(DateTime, nullable=True)
+    sync_rev = Column(Integer, nullable=True)
     # Relationships
     user = relationship("DbUser", back_populates="rigs")
     telescope = relationship("Component", foreign_keys=[telescope_id])
@@ -325,6 +363,7 @@ class Rig(Base):
     __table_args__ = (
         UniqueConstraint('user_id', 'rig_name', name='uq_user_rig_name'),
         Index('uq_rigs_user_record_uid', 'user_id', 'record_uid', unique=True),
+        Index('ix_rigs_user_sync_rev', 'user_id', 'sync_rev'),
     )
 
 
@@ -416,6 +455,10 @@ class JournalSession(Base):
     # --- Draft session support ---
     draft = Column(Boolean, nullable=False, default=False, index=True)
 
+    # --- Instance sync (see nova/sync_time.py): stamped by the sync_v1
+    # upgrade backfill; nothing writes these yet.
+    sync_changed_at = Column(DateTime, nullable=True)
+    sync_rev = Column(Integer, nullable=True)
     user = relationship("DbUser", back_populates="sessions")
     project = relationship("Project", back_populates="sessions")
     projects = relationship(
@@ -425,6 +468,7 @@ class JournalSession(Base):
     # Name must match the index created in _run_schema_patches.
     __table_args__ = (
         Index('ix_journal_sessions_user_object_record_uid', 'user_id', 'object_record_uid'),
+        Index('ix_journal_sessions_user_sync_rev', 'user_id', 'sync_rev'),
     )
 
 class UiPref(Base):
@@ -432,7 +476,14 @@ class UiPref(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
     json_blob = Column(Text, nullable=True)
+    # --- Instance sync (see nova/sync_time.py): stamped by the sync_v1
+    # upgrade backfill; nothing writes these yet.
+    sync_changed_at = Column(DateTime, nullable=True)
+    sync_rev = Column(Integer, nullable=True)
     user = relationship("DbUser", back_populates="ui_prefs")
+    __table_args__ = (
+        Index('ix_ui_prefs_user_sync_rev', 'user_id', 'sync_rev'),
+    )
 
 
 # --- ANALYTICS MODELS (GDPR-compliant, no PII) ---
@@ -459,5 +510,63 @@ class UserCustomFilter(Base):
     filter_key = Column(String(64), nullable=False)
     filter_label = Column(String(64), nullable=False)
     created_at = Column(Date, default=datetime.utcnow)
+    # --- Instance sync (see nova/sync_time.py): stamped by the sync_v1
+    # upgrade backfill; nothing writes these yet.
+    sync_changed_at = Column(DateTime, nullable=True)
+    sync_rev = Column(Integer, nullable=True)
 
-    __table_args__ = (UniqueConstraint('user_id', 'filter_key', name='uq_user_filter_key'),)
+    __table_args__ = (
+        UniqueConstraint('user_id', 'filter_key', name='uq_user_filter_key'),
+        Index('ix_user_custom_filters_user_sync_rev', 'user_id', 'sync_rev'),
+    )
+
+
+# --- INSTANCE SYNC -----------------------------------------------------------
+# Local side (sync_state), server side (sync_tokens) and the change clock.
+# Step 1 adds the schema only; nothing reads or writes these tables yet.
+class SyncCounter(Base):
+    """Per-user logical clock. rev only ever grows."""
+    __tablename__ = 'sync_counter'
+    user_id = Column(Integer, primary_key=True)
+    rev = Column(Integer, nullable=False, default=0, server_default=text("0"))
+
+
+class SyncTombstone(Base):
+    """Deleted records, so a deletion can propagate between instances."""
+    __tablename__ = 'sync_tombstones'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, nullable=False)
+    table_name = Column(String(64), nullable=False)
+    record_key = Column(String(128), nullable=False)
+    deleted_at = Column(DateTime, nullable=False)
+    sync_rev = Column(Integer, nullable=True)
+    __table_args__ = (
+        UniqueConstraint('user_id', 'table_name', 'record_key', name='uq_sync_tombstone_record'),
+        Index('ix_sync_tombstones_user_sync_rev', 'user_id', 'sync_rev'),
+    )
+
+
+class SyncState(Base):
+    """This installation's pairing with a sync server (local side)."""
+    __tablename__ = 'sync_state'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, nullable=False, unique=True)
+    server_url = Column(String(255), nullable=True)
+    token = Column(String(255), nullable=True)
+    server_account = Column(String(150), nullable=True)
+    server_cursor = Column(Integer, nullable=False, default=0, server_default=text("0"))
+    local_pushed_rev = Column(Integer, nullable=False, default=0, server_default=text("0"))
+    paired_at = Column(DateTime, nullable=True)
+    last_sync_at = Column(DateTime, nullable=True)
+
+
+class SyncToken(Base):
+    """Bearer tokens issued by the sync server (VPS side; no users FK)."""
+    __tablename__ = 'sync_tokens'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, nullable=False)
+    token_hash = Column(String(128), nullable=False, unique=True)
+    label = Column(String(100), nullable=True)
+    created_at = Column(DateTime, nullable=True)
+    last_used_at = Column(DateTime, nullable=True)
+    revoked_at = Column(DateTime, nullable=True)

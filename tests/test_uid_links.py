@@ -112,7 +112,9 @@ def _indexes_on(conn, table, cols):
 
 def _markers(engine):
     with engine.connect() as conn:
-        return [r[0] for r in conn.exec_driver_sql("SELECT name FROM nova_migrations;").fetchall()]
+        return sorted(
+            r[0] for r in conn.exec_driver_sql("SELECT name FROM nova_migrations;").fetchall()
+        )
 
 
 class World:
@@ -184,7 +186,7 @@ def _assert_schema(engine):
             assert new_col in _columns(conn, table), f"{table}.{new_col}"
         for table, name in NEW_INDEXES.items():
             assert _indexes_on(conn, table, ["user_id", "object_record_uid"]) == [name]
-    assert _markers(engine) == ["uid_links_v1"]
+    assert _markers(engine) == ["sync_v1", "uid_links_v1"]
 
 
 def test_upgrade_adds_columns_indexes_and_marker():
@@ -364,14 +366,14 @@ def test_fill_runs_once_and_does_not_relink_after_unlink():
     session_id = ids[("journal_sessions", "object_record_uid")]
 
     _patch(w.engine)
-    assert _markers(w.engine) == ["uid_links_v1"]
+    assert _markers(w.engine) == ["sync_v1", "uid_links_v1"]
     assert _value(w.engine, "journal_sessions", "object_record_uid", session_id) == w.uid_of("object")
 
     with w.engine.begin() as conn:  # user unlinks; the old column is still filled
         conn.exec_driver_sql("UPDATE journal_sessions SET object_record_uid = NULL WHERE id = ?;", (session_id,))
     _patch(w.engine)
     assert _value(w.engine, "journal_sessions", "object_record_uid", session_id) is None
-    assert _markers(w.engine) == ["uid_links_v1"]
+    assert _markers(w.engine) == ["sync_v1", "uid_links_v1"]
 
     with w.engine.begin() as conn:
         conn.exec_driver_sql("DELETE FROM nova_migrations;")

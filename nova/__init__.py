@@ -117,6 +117,7 @@ from nova.record_links import (
     LINKS as UID_LINKS, adopt_unlinked_rows_for_user, framed_object_uids,
     repoint_object_links, rig_for_uid, sync_rig_links,
 )
+from nova.sync_time import utc_now
 from nova.config import (
     APP_VERSION, TEMPLATE_DIR, CACHE_DIR, CONFIG_DIR, BACKUP_DIR,
     UPLOAD_FOLDER, ENV_FILE, FIRST_RUN_ENV_CREATED, SINGLE_USER_MODE,
@@ -523,6 +524,14 @@ def _seed_new_user_from_yaml(db_session, user_to_seed: 'DbUser'):
     except Exception as e:
         print(f"   -> [SEEDING] ERROR importing from YAML for '{user_to_seed.username}': {e}")
         raise e
+
+
+# Tables carrying sync_changed_at / sync_rev. Index names must match the
+# Index() entries in nova/models.py so create_all and the patch never make two.
+SYNC_TABLES = (
+    "locations", "astro_objects", "components", "rigs", "journal_sessions",
+    "projects", "saved_views", "saved_framings", "user_custom_filters", "ui_prefs",
+)
 
 
 def _run_schema_patches(conn):
@@ -1042,6 +1051,94 @@ def _run_schema_patches(conn):
         conn.exec_driver_sql(
             "INSERT OR IGNORE INTO nova_migrations (name, applied_at) "
             "VALUES ('uid_links_v1', datetime('now'));"
+        )
+
+    # --- Instance sync: columns, tables, and the one-time sync_v1 backfill ---
+    # Step 1 stores the change clock only. Nothing writes these columns yet.
+    for table in SYNC_TABLES:
+        cols = {row[1] for row in conn.exec_driver_sql(f"PRAGMA table_info({table});").fetchall()}
+        if "sync_changed_at" not in cols:
+            conn.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN sync_changed_at DATETIME;")
+            print(f"[DB PATCH] Added missing column {table}.sync_changed_at")
+        if "sync_rev" not in cols:
+            conn.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN sync_rev INTEGER;")
+            print(f"[DB PATCH] Added missing column {table}.sync_rev")
+        conn.exec_driver_sql(
+            f"CREATE INDEX IF NOT EXISTS ix_{table}_user_sync_rev "
+            f"ON {table}(user_id, sync_rev);"
+        )
+
+    # sync_counter/sync_state are per-installation; sync_tokens is the server
+    # side and deliberately has no FK to this install's users table.
+    for table_sql in (
+        "CREATE TABLE IF NOT EXISTS sync_counter ("
+        "user_id INTEGER PRIMARY KEY, rev INTEGER NOT NULL DEFAULT 0);",
+        "CREATE TABLE IF NOT EXISTS sync_tombstones ("
+        "id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, "
+        "table_name VARCHAR(64) NOT NULL, record_key VARCHAR(128) NOT NULL, "
+        "deleted_at DATETIME NOT NULL, sync_rev INTEGER, "
+        "CONSTRAINT uq_sync_tombstone_record "
+        "UNIQUE(user_id, table_name, record_key));",
+        "CREATE INDEX IF NOT EXISTS ix_sync_tombstones_user_sync_rev "
+        "ON sync_tombstones(user_id, sync_rev);",
+        "CREATE TABLE IF NOT EXISTS sync_state ("
+        "id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL UNIQUE, "
+        "server_url VARCHAR(255), token VARCHAR(255), server_account VARCHAR(150), "
+        "server_cursor INTEGER NOT NULL DEFAULT 0, "
+        "local_pushed_rev INTEGER NOT NULL DEFAULT 0, "
+        "paired_at DATETIME, last_sync_at DATETIME);",
+        "CREATE TABLE IF NOT EXISTS sync_tokens ("
+        "id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, "
+        "token_hash VARCHAR(128) NOT NULL UNIQUE, label VARCHAR(100), "
+        "created_at DATETIME, last_used_at DATETIME, revoked_at DATETIME);",
+    ):
+        conn.exec_driver_sql(table_sql)
+
+    # One-time fill. Stamps, counters, external_ids and the marker commit in
+    # one transaction; a failure rolls all of it back and the next startup
+    # runs it again.
+    sync_done = conn.exec_driver_sql(
+        "SELECT 1 FROM nova_migrations WHERE name = 'sync_v1';"
+    ).fetchone()
+    if not sync_done:
+        # One timestamp for the whole run: every pre-existing row looks
+        # changed at upgrade time, never "changed by the other instance".
+        stamped_at = utc_now()
+        for table in SYNC_TABLES:
+            conn.exec_driver_sql(
+                f"UPDATE {table} SET sync_changed_at = ?, sync_rev = 1;",
+                (stamped_at.strftime("%Y-%m-%d %H:%M:%S.%f"),),
+            )
+        conn.exec_driver_sql(
+            "INSERT OR IGNORE INTO sync_counter (user_id, rev) SELECT id, 1 FROM users;"
+        )
+        # Sessions predating external_id (or carrying '') get one, chosen so
+        # the per-user partial unique index stays satisfied.
+        missing = conn.exec_driver_sql(
+            "SELECT id, user_id FROM journal_sessions "
+            "WHERE external_id IS NULL OR external_id = '' ORDER BY id;"
+        ).fetchall()
+        for session_id, user_id in missing:
+            while True:
+                new_external_id = generate_session_id()
+                clash = conn.exec_driver_sql(
+                    "SELECT 1 FROM journal_sessions "
+                    "WHERE user_id = ? AND external_id = ?;",
+                    (user_id, new_external_id),
+                ).fetchone()
+                if not clash:
+                    break
+            conn.exec_driver_sql(
+                "UPDATE journal_sessions SET external_id = ? WHERE id = ?;",
+                (new_external_id, session_id),
+            )
+        conn.exec_driver_sql(
+            "INSERT OR IGNORE INTO nova_migrations (name, applied_at) "
+            "VALUES ('sync_v1', datetime('now'));"
+        )
+        print(
+            f"[DB PATCH] sync_v1: stamped existing rows at {stamped_at.isoformat()} "
+            f"and provisioned {len(missing)} external_id(s)"
         )
 
 
