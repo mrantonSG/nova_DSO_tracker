@@ -24,6 +24,7 @@ from sqlalchemy.orm.exc import ObjectDeletedError
 from nova.models import (
     AstroObject, Component, JournalSession, Location, Project, Rig, SavedFraming, _new_record_uid,
 )
+from nova.sync_tracking import stamp_rows
 
 
 class Link(NamedTuple):
@@ -455,6 +456,10 @@ def adopt_unlinked_rows_for_user(db, user_id, links=NAME_LINKS):
             raise ValueError(f"{link.name} is a row-number link and is never adopted in bulk")
         expected = _expected_uid_sql(link, link.table)
         empty = f"NULLIF({link.table}.{link.uid_col}, '') IS NULL"
+        # A raw UPDATE raises no ORM event: stamp the rows it changes first, with
+        # the same criterion, before the UID column stops being empty (sync step 2).
+        stamp_rows(db.connection(), link.table, user_id,
+                   f"{empty} AND {expected} IS NOT NULL")
         changed[link.name] = db.execute(
             text(f"UPDATE {link.table} SET {link.uid_col} = {expected} "
                  f"WHERE user_id = :user_id AND {empty} AND {expected} IS NOT NULL"),
@@ -551,6 +556,10 @@ def resync_user_links(db, user_id, links=NAME_LINKS):
     changed = {}
     for link in links:
         expected = _expected_uid_sql(link, link.table)
+        # A raw UPDATE raises no ORM event: stamp the rows it changes first, with
+        # the same criterion (sync step 2).
+        stamp_rows(db.connection(), link.table, user_id,
+                   f"{expected} IS NOT NULL AND {link.uid_col} IS NOT {expected}")
         changed[link.name] = db.execute(
             text(f"UPDATE {link.table} SET {link.uid_col} = {expected} "
                  f"WHERE user_id = :user_id AND {expected} IS NOT NULL "

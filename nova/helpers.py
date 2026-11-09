@@ -28,6 +28,7 @@ from nova.models import (
     SessionLocal, Location, AstroObject, Component, SavedFraming,
     DbUser, Project, SavedView, HorizonPoint, Rig, JournalSession, UiPref,
     UserCustomFilter, session_projects,
+    SyncCounter, SyncState, SyncToken, SyncTombstone,
 )
 from nova.record_links import framed_object_uids
 import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay live (see nova/config.py)
@@ -1812,6 +1813,17 @@ def purge_user_app_data(username: str, dry_run: bool = True) -> dict:
                         update(table).where(where).values(**values)).rowcount
                 summary["deleted_rows"]["users"] = db.execute(
                     delete(DbUser.__table__).where(DbUser.id == user_id)).rowcount
+                # Instance sync: a purged user id must leave no sync state behind.
+                # SQLite reuses row ids, so a user provisioned later must never
+                # inherit this one's counter, tombstones, pairing or tokens.
+                # Not reported in summary["deleted_rows"]: that shape is fixed.
+                for _table, _column in (
+                    (SyncCounter.__table__, SyncCounter.user_id),
+                    (SyncTombstone.__table__, SyncTombstone.user_id),
+                    (SyncState.__table__, SyncState.user_id),
+                    (SyncToken.__table__, SyncToken.user_id),
+                ):
+                    db.execute(delete(_table).where(_column == user_id))
                 db.commit()
         else:
             logger.info(f"[PURGE] No app.db user row for '{username}'; cleaning username-keyed files only.")

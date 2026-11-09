@@ -118,6 +118,13 @@ from nova.record_links import (
     repoint_object_links, rig_for_uid, sync_rig_links,
 )
 from nova.sync_time import utc_now
+from nova.sync_tracking import mark_account, register_sync_tracking
+
+# --- Instance sync change tracking (step 2) ---------------------------------
+# One before_flush listener on sqlalchemy.orm.Session, so every session built
+# from SessionLocal is covered, scoped or private. Idempotent; nothing reads
+# what it writes yet (step 3 does).
+register_sync_tracking()
 from nova.config import (
     APP_VERSION, TEMPLATE_DIR, CACHE_DIR, CONFIG_DIR, BACKUP_DIR,
     UPLOAD_FOLDER, ENV_FILE, FIRST_RUN_ENV_CREATED, SINGLE_USER_MODE,
@@ -476,6 +483,11 @@ def get_or_create_db_user(db_session, username: str) -> 'DbUser':
         else:
             # Normal users are seeded from config_default.yaml
             _seed_new_user_from_yaml(db_session, new_user)
+
+        # Instance sync: starter data is a whole-account event, not a set of
+        # individual creations. The marker rides in the same transaction, so it
+        # is only visible if the seeding itself commits.
+        mark_account(db_session, new_user.id, "seeded")
 
         db_session.commit()
 

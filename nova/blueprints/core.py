@@ -92,6 +92,7 @@ from nova.models import (
     UserCustomFilter,
 )
 from nova.journal_rows import build_journal_rows, GRAPH_SESSION_JS_FIELDS
+from nova.sync_tracking import stamp_rows, tombstone_keys_of
 from datetime import date, datetime, timedelta, timezone
 import calendar
 
@@ -492,7 +493,9 @@ def set_location_api():
         return jsonify({"status": "error", "message": "Location not found"}), 404
 
     try:
-        # Step 1: Clear ALL is_default for this user
+        # Step 1: Clear ALL is_default for this user. A bulk UPDATE raises no ORM
+        # event, so the rows it changes are stamped first (sync step 2).
+        stamp_rows(db.connection(), "locations", user_id, "is_default = 1")
         db.query(Location).filter_by(user_id=user_id).update(
             {"is_default": False}, synchronize_session=False
         )
@@ -828,6 +831,13 @@ def config_form():
                             continue
                         if refs.framings:
                             # Only a saved framing refers to it: it goes with the object (Q1).
+                            # A bulk DELETE raises no ORM event: tombstone its keys first.
+                            tombstone_keys_of(
+                                db, "saved_framings", app_db_user.id,
+                                db.query(SavedFraming.object_record_uid).filter_by(
+                                    user_id=app_db_user.id,
+                                    object_record_uid=obj.record_uid,
+                                ))
                             db.query(SavedFraming).filter_by(
                                 user_id=app_db_user.id,
                                 object_record_uid=obj.record_uid,

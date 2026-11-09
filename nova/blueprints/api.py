@@ -26,6 +26,7 @@ import pytz
 
 import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay live (see nova/config.py)
 from modules import simbad_service
+from nova.sync_tracking import stamp_rows_in, tombstone_keys_of, tombstone_rows
 from nova.config import (
     ADMIN_USERS, TELEMETRY_DEBUG_STATE, LATEST_VERSION_INFO,
     nightly_curves_cache, observable_objects_cache,
@@ -503,6 +504,7 @@ def bulk_update_objects():
         if action == 'delete':
             # Check for dependencies (Journals or Projects) before deleting
             safe_to_delete = []
+            safe_to_delete_uids = []
             skipped_count = 0
 
             # We need to iterate to check relationships since bulk delete bypasses Python-level checks
@@ -516,15 +518,24 @@ def bulk_update_objects():
                 else:
                     if refs.framings:
                         # Only a saved framing refers to it: it goes with the object (Q1).
+                        # A bulk DELETE raises no ORM event: tombstone its keys first.
+                        tombstone_keys_of(
+                            db, "saved_framings", user_id,
+                            db.query(SavedFraming.object_record_uid).filter_by(
+                                user_id=user_id, object_record_uid=obj.record_uid))
                         db.query(SavedFraming).filter_by(
                             user_id=user_id, object_record_uid=obj.record_uid
                         ).delete(synchronize_session=False)
                     safe_to_delete.append(obj.object_name)
+                    safe_to_delete_uids.append(obj.record_uid)
                     if obj.active_project:
                         outlook_needed = True
 
             if safe_to_delete:
-                # Perform the delete only on safe IDs
+                # Perform the delete only on safe IDs. A bulk DELETE raises no ORM
+                # event: tombstone the keys in the same transaction (sync step 2).
+                tombstone_rows(db.connection(), "astro_objects", user_id,
+                               safe_to_delete_uids)
                 delete_q = db.query(AstroObject).filter(
                     AstroObject.user_id == user_id,
                     AstroObject.object_name.in_(safe_to_delete)
@@ -538,9 +549,14 @@ def bulk_update_objects():
             if skipped_count > 0:
                 msg += f" (Skipped {skipped_count} objects used in Journals/Projects)"
         elif action == 'enable':
+            # A bulk UPDATE raises no ORM event: stamp the rows it changes first.
+            stamp_rows_in(db.connection(), "astro_objects", user_id, "object_name",
+                          object_ids, where_sql="enabled IS NOT 1")
             count = query.update({AstroObject.enabled: True}, synchronize_session=False)
             msg = f"Enabled {count} objects."
         elif action == 'disable':
+            stamp_rows_in(db.connection(), "astro_objects", user_id, "object_name",
+                          object_ids, where_sql="enabled IS NOT 0")
             count = query.update({AstroObject.enabled: False}, synchronize_session=False)
             msg = f"Disabled {count} objects."
         else:

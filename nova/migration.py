@@ -36,6 +36,7 @@ from nova.record_links import (
     adopt_unlinked_rows_for_user, sync_framing_links, sync_project_link, sync_rig_links,
     sync_session_links, uid_of, uid_for_name, rig_for_uid, refresh_rig_row_numbers,
 )
+from nova.sync_tracking import mark_account, stamp_rows
 
 def load_catalog_pack(pack_id: str) -> tuple[dict | None, dict | None]:
     """Load a specific catalog pack from the central web repository."""
@@ -223,6 +224,10 @@ def wipe_user_data(db, user, config=False, rigs=False, journal=False, everything
     if everything:
         db.query(UiPref).filter_by(user_id=uid).delete()
         db.query(UserCustomFilter).filter_by(user_id=uid).delete()
+    # Instance sync: a wipe is an account-level event. No per-record tombstones
+    # are written (the rows are about to be replaced, not merely removed); the
+    # "replaced" marker rides in the caller's transaction (sync step 2).
+    mark_account(db, uid, "replaced")
     db.flush()
 
 
@@ -359,6 +364,8 @@ def _migrate_locations(db, user: DbUser, config: dict, saved_uids=None, remap=No
         remap = {}
 
     # First, clear default flags for this user's locations. We'll set the correct one below.
+    # A bulk UPDATE raises no ORM event: stamp the rows it changes first (sync step 2).
+    stamp_rows(db.connection(), "locations", user.id, "is_default = 1")
     db.query(Location).filter_by(user_id=user.id).update({Location.is_default: False})
     db.flush()
 
