@@ -404,15 +404,15 @@ def journal_add():
 
             # Now save logs to filesystem with session ID
             if asiair_content:
-                path = save_log_to_filesystem(new_session.id, 'asiair', asiair_content, asiair_filename)
+                path = save_log_to_filesystem(new_session.id, 'asiair', asiair_content, asiair_filename, db)
                 new_session.asiair_log_content = path
                 mark_file_changed(new_session, "asiair_log_content")
             if phd2_content:
-                path = save_log_to_filesystem(new_session.id, 'phd2', phd2_content, phd2_filename)
+                path = save_log_to_filesystem(new_session.id, 'phd2', phd2_content, phd2_filename, db)
                 new_session.phd2_log_content = path
                 mark_file_changed(new_session, "phd2_log_content")
             if nina_content:
-                path = save_log_to_filesystem(new_session.id, 'nina', nina_content, nina_filename)
+                path = save_log_to_filesystem(new_session.id, 'nina', nina_content, nina_filename, db)
                 new_session.nina_log_content = path
                 mark_file_changed(new_session, "nina_log_content")
             if asiair_content or phd2_content or nina_content:
@@ -764,7 +764,7 @@ def journal_edit(session_id):
                         _flash_rejected_upload(action, _("ASIAir log file is too large. Maximum size is 10 MB."))
                     else:
                         content = log_file.read().decode('utf-8', errors='ignore')
-                        path = save_log_to_filesystem(session_to_edit.id, 'asiair', content, log_file.filename)
+                        path = save_log_to_filesystem(session_to_edit.id, 'asiair', content, log_file.filename, db)
                         session_to_edit.asiair_log_content = path
                         mark_file_changed(session_to_edit, "asiair_log_content")
                         invalidate_cache = True
@@ -783,7 +783,7 @@ def journal_edit(session_id):
                         _flash_rejected_upload(action, _("PHD2 log file is too large. Maximum size is 10 MB."))
                     else:
                         content = log_file.read().decode('utf-8', errors='ignore')
-                        path = save_log_to_filesystem(session_to_edit.id, 'phd2', content, log_file.filename)
+                        path = save_log_to_filesystem(session_to_edit.id, 'phd2', content, log_file.filename, db)
                         session_to_edit.phd2_log_content = path
                         mark_file_changed(session_to_edit, "phd2_log_content")
                         invalidate_cache = True
@@ -806,7 +806,7 @@ def journal_edit(session_id):
                         _flash_rejected_upload(action, _("NINA log file is too large. Maximum size is 10 MB."))
                     else:
                         content = log_file.read().decode('utf-8', errors='ignore')
-                        path = save_log_to_filesystem(session_to_edit.id, 'nina', content, log_file.filename)
+                        path = save_log_to_filesystem(session_to_edit.id, 'nina', content, log_file.filename, db)
                         session_to_edit.nina_log_content = path
                         mark_file_changed(session_to_edit, "nina_log_content")
                         invalidate_cache = True

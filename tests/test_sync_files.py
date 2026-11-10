@@ -33,7 +33,7 @@ from nova.sync_engine import (
     REFUSAL_BAD_FILE_REF, REFUSAL_DANGLING_FILE, REFUSAL_FILE_TOKEN_COLUMN,
     REFUSAL_FILE_TOO_LARGE, REFUSAL_NO_DISK_SPACE,
     ROLE_NOTE_IMAGE, ROLE_PROJECT_IMAGE, ROLE_SESSION_LOG, ROLE_SESSION_PHOTO,
-    SKIP_FOREIGN, SKIP_MISSING, SKIP_TOO_LARGE,
+    SKIP_FOREIGN, SKIP_MISSING, SKIP_SHARED, SKIP_TOO_LARGE,
     CommitReport, SyncRefused, apply_download, apply_merge, canonicalize_text,
     collect_files, commit_staged_files, counter_rev, disk_space_refusal,
     export_changes, record_pull_applied, record_push_accepted,
@@ -627,20 +627,114 @@ def test_a_link_to_another_users_directory_is_a_missing_token(hub, local):
     assert sha(PNG) not in json.dumps(payload.get("files") or {})
 
 
-def test_a_log_owned_by_another_session_is_skipped(hub, local):
-    session = add_session(hub, "s1")
-    hub.put_log("asiair", "9999_Someone_Elses.txt", b"not mine")
-    session.asiair_log_content = os.path.join("instance", "logs", "asiair",
-                                              "9999_Someone_Elses.txt")
-    hub.commit()
+def test_stale_prefix_own_log_travels_on_download(hub, local):
+    """A log whose filename prefix matches no session still belongs to its
+    sole referencing user, so it travels on a Download from server."""
     seed_pairing(local, hub)
+    s = add_session(hub, "stale-own")
+    hub.put_log("asiair", "999_stale.txt", b"stale bytes")
+    s.asiair_log_content = "instance/logs/asiair/999_stale.txt"
+    mark_file_changed(s, "asiair_log_content")
+    hub.commit()
 
-    payload = export_changes(hub.db, hub.user, 0, side="server",
-                             instance_path=hub.instance_path)
-    assert payload["files"] == {}
-    # Not this account's file: the reason says so, rather than being folded
-    # into a generic "missing" (correction F).
-    assert payload["skipped_files"][0]["reason"] == SKIP_FOREIGN
+    download(local, hub)  # raises SyncRefused on any refusal
+    landed = local.one(JournalSession, external_id="stale-own")
+    assert landed.asiair_log_content
+    assert os.path.isfile(os.path.join(
+        local.instance_path, "logs", "asiair",
+        os.path.basename(landed.asiair_log_content)))
+
+
+def test_stale_prefix_own_log_travels_on_push(hub, local):
+    seed_pairing(local, hub)
+    s = add_session(local, "stale-own-push")
+    local.put_log("asiair", "999_stale.txt", b"stale bytes")
+    s.asiair_log_content = "instance/logs/asiair/999_stale.txt"
+    mark_file_changed(s, "asiair_log_content")
+    local.commit()
+
+    push(local, hub)
+    landed = hub.one(JournalSession, external_id="stale-own-push")
+    assert landed.asiair_log_content
+    assert os.path.isfile(os.path.join(
+        hub.instance_path, "logs", "asiair",
+        os.path.basename(landed.asiair_log_content)))
+
+
+def test_shared_log_withheld_from_everyone(hub):
+    """A path two users both reference is withheld from both (no leak)."""
+    path = "instance/logs/asiair/777_shared.txt"
+    hub.put_log("asiair", "777_shared.txt", b"shared bytes")
+    a = add_session(hub, "a-shared")
+    a.asiair_log_content = path
+    mark_file_changed(a, "asiair_log_content")
+    other = DbUser(username="other-user")
+    hub.db.add(other); hub.db.commit()
+    hub.db.add(JournalSession(user_id=other.id, external_id="b-shared",
+                              date_utc=datetime(2026, 1, 2).date(),
+                              asiair_log_content=path))
+    hub.commit()
+
+    snapshot = export_snapshot(hub.db, hub.user, side="server",
+                               instance_path=hub.instance_path)
+    record = snapshot["records"]["journal_sessions"][0]
+    assert "asiair_log_content" not in (record.get(KEY_FILES) or {})
+    assert {s["slot"]: s["reason"] for s in snapshot["skipped_files"]} \
+        .get("asiair_log_content") == SKIP_SHARED
+    assert sha(b"shared bytes") not in json.dumps(snapshot.get("files") or {})
+
+
+def _files_digests_unmanifested(payload):
+    manifest = payload.get("files") or {}
+    bad = []
+    for table, rows in (payload.get("records") or {}).items():
+        for record in rows:
+            for slot, digest in (record.get(KEY_FILES) or {}).items():
+                if digest is not None and digest not in manifest:
+                    bad.append((table, slot))
+    return bad
+
+
+def test_export_invariant_every_files_digest_in_manifest(hub):
+    """Every __files__ digest is in the manifest or an explicit null, on both
+    export paths, with a stale-prefix own log and a shared log present."""
+    own = add_session(hub, "own")
+    hub.put_log("asiair", "999_own.txt", b"own")
+    own.asiair_log_content = "instance/logs/asiair/999_own.txt"
+    mark_file_changed(own, "asiair_log_content")
+    shared_path = "instance/logs/asiair/888_shared.txt"
+    hub.put_log("asiair", "888_shared.txt", b"shared")
+    other = DbUser(username="other-2")
+    hub.db.add(other); hub.db.commit()
+    hub.db.add(JournalSession(user_id=other.id, external_id="other-s",
+                              date_utc=datetime(2026, 1, 2).date(),
+                              asiair_log_content=shared_path))
+    hub.db.add(JournalSession(user_id=hub.uid, external_id="shared-s",
+                              date_utc=datetime(2026, 1, 2).date(),
+                              asiair_log_content=shared_path))
+    hub.commit()
+
+    for payload in (
+        export_changes(hub.db, hub.user, 0, side="server",
+                       instance_path=hub.instance_path),
+        export_snapshot(hub.db, hub.user, side="server",
+                        instance_path=hub.instance_path),
+    ):
+        assert _files_digests_unmanifested(payload) == []
+
+
+def test_save_log_overwrite_guard_renames_colliding_path(hub, monkeypatch):
+    import nova.helpers as H
+    asiair = os.path.join(hub.instance_path, "logs", "asiair")
+    os.makedirs(asiair, exist_ok=True)
+    monkeypatch.setattr(H, "ASIAIR_LOGS_DIR", asiair)
+    hub.db.add(JournalSession(user_id=hub.uid, external_id="other",
+                              date_utc=datetime(2026, 1, 2).date(),
+                              asiair_log_content="instance/logs/asiair/200_x.txt"))
+    hub.commit()
+    path = H.save_log_to_filesystem(200, "asiair", "new content", "x.txt", db=hub.db)
+    assert os.path.basename(path) != "200_x.txt"
+    assert os.path.basename(path).startswith("200_x")
 
 
 def test_canonicalize_only_reads_this_users_directory(hub):

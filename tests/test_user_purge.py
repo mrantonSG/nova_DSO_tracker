@@ -387,6 +387,30 @@ def test_exact_id_matching_spares_b_files(env):
     assert env.s.get(DbUser, B_ID) is not None
 
 
+def test_purge_removes_superseded_prefix_log(env):
+    """A log file still named with the user's session id is purged even when no
+    row references it any more (legacy prefix rule)."""
+    _write(os.path.join(env.dirs["logs/asiair"], f"{A_SESSION}_superseded.txt"))
+    env.s.commit()
+    summary = _purge(env, A_NAME, dry_run=False)
+    path = os.path.join(env.dirs["logs/asiair"], f"{A_SESSION}_superseded.txt")
+    assert path in summary["deleted_files"]
+    assert not os.path.exists(path)
+
+
+def test_purge_spares_prefix_file_referenced_by_other_user(env):
+    """A file named with the user's session id, but referenced by another user's
+    row, is not purged."""
+    bob = env.s.query(JournalSession).filter_by(user_id=B_ID).one()
+    bob.asiair_log_content = f"instance/logs/asiair/{A_SESSION}_cross.txt"
+    _write(os.path.join(env.dirs["logs/asiair"], f"{A_SESSION}_cross.txt"))
+    env.s.commit()
+    summary = _purge(env, A_NAME, dry_run=False)
+    path = os.path.join(env.dirs["logs/asiair"], f"{A_SESSION}_cross.txt")
+    assert path not in summary["deleted_files"]
+    assert os.path.exists(path)
+
+
 def test_heatmap_glob_is_anchored_after_the_user_id(env):
     """"heatmap_v*_{user_id}_*" would match another user's file: bob is id 21, so a
     chunk of his at location id 2 is heatmap_v7_21_2_x.part0.json, and the wildcard

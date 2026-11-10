@@ -61,7 +61,8 @@ from sqlalchemy import delete as sa_delete, update as sa_update
 from sqlalchemy.orm import selectinload
 
 from nova.helpers import (
-    log_file_path, log_owner_session_id, release_file_lock, try_acquire_file_lock,
+    log_file_path, release_file_lock, shared_log_paths, try_acquire_file_lock,
+    unique_log_name,
 )
 from nova.config import UPLOAD_FOLDER
 from nova.models import (
@@ -191,6 +192,7 @@ SKIP_MISSING = "missing_on_sender"
 SKIP_TOO_LARGE = "over_cap"
 SKIP_UNSUPPORTED = "unsupported_type"
 SKIP_FOREIGN = "not_this_users_file"
+SKIP_SHARED = "shared"
 
 # The FILE columns, by model, and the role each carries.
 _FILE_SLOTS: dict[type, dict[str, tuple[str, str]]] = {
@@ -1056,7 +1058,7 @@ def _record_values(model: type, record: Mapping[str, Any]) -> dict:
 
 
 def record_to_payload(model: type, row: Any, *, user=None,
-                      instance_path: str = None) -> dict:
+                      instance_path: str = None, shared_paths=None) -> dict:
     """One row as a payload record: synced columns, links as UIDs, plus sets.
 
     With `user`, the FILE columns (`__files__`) and every rich-text image link
@@ -1083,7 +1085,7 @@ def record_to_payload(model: type, row: Any, *, user=None,
                 slots[slot] = None
                 continue
             ref = _slot_ref(model, row, slot, _FILE_SLOTS[model][slot][0], user,
-                            instance_path)
+                            instance_path, shared_paths)
             if ref.missing:
                 # Set here but untransferable -- gone from disk, over the cap,
                 # another user's bytes. The peer's copy is the only one left, so
@@ -1129,7 +1131,7 @@ RICH_TEXT_COLUMNS: dict[type, tuple[str, ...]] = {
 
 
 def _slot_ref(model: type, row, slot: str, role: str, user,
-              instance_path: str = None) -> FileRef:
+              instance_path: str = None, shared_paths=None) -> FileRef:
     """The ref one FILE column of `row` carries (photo, project image, log)."""
     key = row_key(model, row)
     value = getattr(row, slot, None)
@@ -1143,6 +1145,10 @@ def _slot_ref(model: type, row, slot: str, role: str, user,
         return FileRef(role=role, table=model.__tablename__, key=key, slot=slot,
                        sha256="", missing=False)
     if role == ROLE_SESSION_LOG:
+        if shared_paths and value in shared_paths:
+            return FileRef(role=role, table=model.__tablename__, key=key,
+                           slot=slot, name=os.path.basename(value) or "",
+                           missing=True, reason=SKIP_SHARED)
         # Path form and raw-content form both end up as bytes on the wire: a
         # raw content value is a legacy row and is read as its own text.
         path = _log_path(value, instance_path)
@@ -1185,7 +1191,8 @@ def _log_path(db_value: str, instance_path: str = None) -> str:
     return os.path.join(instance_path, os.path.relpath(path, INSTANCE_PATH))
 
 
-def collect_files(db, user, *, rows=None, instance_path: str = None) -> list:
+def collect_files(db, user, *, rows=None, instance_path: str = None,
+                  shared_paths=None) -> list:
     """Every file the given rows reference, as FileRefs.
 
     `rows` is {model: [row, ...]}. Without it every row of every synced model
@@ -1194,13 +1201,8 @@ def collect_files(db, user, *, rows=None, instance_path: str = None) -> list:
     """
     if rows is None:
         rows = {model: _load_rows(db, model, user.id) for model in PLAN_ORDER}
-
-    owner_sessions = set()
-    for session in rows.get(JournalSession, []) or []:
-        if session.external_id:
-            owner_sessions.add(str(session.external_id))
-        if session.id is not None:
-            owner_sessions.add(str(session.id))
+    if shared_paths is None:
+        shared_paths = shared_log_paths(db)
 
     refs: list[FileRef] = []
     for model, table_rows in rows.items():
@@ -1212,16 +1214,8 @@ def collect_files(db, user, *, rows=None, instance_path: str = None) -> list:
                 value = getattr(row, slot, None)
                 if not value:
                     continue
-                ref = _slot_ref(model, row, slot, role, user, instance_path)
-                if role == ROLE_SESSION_LOG and not ref.missing:
-                    # Correction F: the FILE NAME's prefix is what decides
-                    # ownership, not the row that names it. A session may point
-                    # at a file another session wrote, and only this user's own
-                    # sessions' files may travel.
-                    owner = _log_session_of(value, instance_path)
-                    if str(owner) not in owner_sessions:
-                        ref = FileRef(**{**ref.__dict__, "missing": True,
-                                         "reason": SKIP_FOREIGN})
+                ref = _slot_ref(model, row, slot, role, user, instance_path,
+                                shared_paths)
                 refs.append(ref)
             for column in rich:
                 _text, found = canonicalize_text(db, user, model, column,
@@ -1234,12 +1228,6 @@ def collect_files(db, user, *, rows=None, instance_path: str = None) -> list:
     for ref in refs:
         unique.setdefault(f"{ref.role}:{ref.ident}", ref)
     return list(unique.values())
-
-
-def _log_session_of(value: str, instance_path: str = None) -> str:
-    """The session id a path-form log value is named after."""
-    path = _log_path(value, instance_path) or value
-    return log_owner_session_id(os.path.basename(path))
 
 
 def export_files(db, user, refs) -> dict:
@@ -1730,6 +1718,7 @@ def _place_one(db, user, model: type, ref: FileRef, staged: StagedFile,
     if ref.role == ROLE_SESSION_LOG:
         log_type = _FILE_SLOTS[model][ref.slot][1]
         local_name = local_name_for(model, row, ref)
+        local_name = unique_log_name(db, log_type, local_name, row.id)
         log_dir = os.path.join(instance_path or INSTANCE_PATH, "logs", log_type)
         os.makedirs(log_dir, exist_ok=True)
         live = os.path.join(log_dir, local_name)
@@ -1893,6 +1882,7 @@ def export_changes(db, user, since_rev: int, *, side: str = "local",
     uid = user.id
     payload = _envelope(db, user, side=side, snapshot=False)
     excluded = sorted({int(rev) for rev in exclude_revs if rev is not None})
+    shared = shared_log_paths(db) if with_files else None
 
     changed: dict[type, list] = {}
     for model in PLAN_ORDER:
@@ -1905,7 +1895,7 @@ def export_changes(db, user, since_rev: int, *, side: str = "local",
             changed[model] = rows
             payload["records"][model.__tablename__] = [
                 record_to_payload(model, row, user=user if with_files else None,
-                                  instance_path=instance_path)
+                                  instance_path=instance_path, shared_paths=shared)
                 for row in rows
             ]
 
@@ -1914,7 +1904,8 @@ def export_changes(db, user, since_rev: int, *, side: str = "local",
         for t in _visible_tombstones(db, uid, side, since_rev, excluded)
     ]
     if with_files:
-        refs = collect_files(db, user, rows=changed, instance_path=instance_path)
+        refs = collect_files(db, user, rows=changed, instance_path=instance_path,
+                             shared_paths=shared)
         payload["files"] = export_files(db, user, refs)
         payload["skipped_files"] = [_ref_summary(r) for r in refs if r.missing]
     return payload
@@ -1938,6 +1929,7 @@ def export_snapshot(db, user, *, side: str = "server",
     # The rev this snapshot was taken at: the local stores it as its cursor, so
     # the next Sync now asks the hub only for what happened after this point.
     payload["server_rev"] = payload["rev"]
+    shared = shared_log_paths(db)
     everything: dict[type, list] = {}
     for model in PLAN_ORDER:
         rows = _load_rows(db, model, uid)
@@ -1945,13 +1937,15 @@ def export_snapshot(db, user, *, side: str = "server",
         if rows:
             payload["records"][model.__tablename__] = [
                 record_to_payload(model, row, user=user,
-                                  instance_path=instance_path) for row in rows
+                                  instance_path=instance_path,
+                                  shared_paths=shared) for row in rows
             ]
 
     payload["tombstones"] = [
         _tombstone_to_payload(t) for t in _visible_tombstones(db, uid, side, None)
     ]
-    refs = collect_files(db, user, rows=everything, instance_path=instance_path)
+    refs = collect_files(db, user, rows=everything, instance_path=instance_path,
+                         shared_paths=shared)
     payload["files"] = export_files(db, user, refs)
     payload["skipped_files"] = [_ref_summary(r) for r in refs if r.missing]
     return payload
@@ -3700,23 +3694,31 @@ def _replacement_files(db, user, incoming, *, instance_path: str = None) -> list
         displaced.append(FileRef(role=role, table="", key="", slot="", name=name,
                                  sha256=digest, size=size,
                                  ext=name.rsplit(".", 1)[-1].lower()))
-    owner_sessions = set()
+    # Logs: only paths this user references exclusively (referential ownership).
+    # A shared path (two distinct owners) is not this user's to displace; a
+    # stale-prefix path this user's rows still name is.
+    shared = shared_log_paths(db)
+    seen = set()
     for session in db.scalars(
             select(JournalSession).where(JournalSession.user_id == user.id)).all():
-        if session.external_id:
-            owner_sessions.add(str(session.external_id))
-        owner_sessions.add(str(session.id))
-    for log_type in ("asiair", "phd2", "nina"):
-        log_dir = os.path.join(instance_path or INSTANCE_PATH, "logs", log_type)
-        for name in _listdir(log_dir):
-            if log_owner_session_id(name) not in owner_sessions:
+        for slot, log_type in (("asiair_log_content", "asiair"),
+                               ("phd2_log_content", "phd2"),
+                               ("nina_log_content", "nina")):
+            value = getattr(session, slot, None)
+            if not value or value in shared or value in seen:
                 continue
-            path = os.path.join(log_dir, name)
+            if not value.startswith("instance/logs/"):
+                continue
+            seen.add(value)
+            path = _log_path(value, instance_path)
+            if not path or not os.path.isfile(path):
+                continue
             try:
                 size = os.path.getsize(path)
                 digest = _sha256_of(path)
             except OSError:
                 continue
+            name = os.path.basename(path)
             displaced.append(FileRef(role=ROLE_SESSION_LOG, table="", key="",
                                      slot=log_type, name=name, sha256=digest,
                                      size=size,

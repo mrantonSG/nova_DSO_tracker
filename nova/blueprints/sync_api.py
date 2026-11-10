@@ -27,7 +27,7 @@ from flask import Blueprint, Response, g, jsonify, request, send_file
 from sqlalchemy import select
 
 from nova.config import APP_VERSION
-from nova.helpers import get_db
+from nova.helpers import get_db, shared_log_paths
 from nova.sync_engine import (
     MAX_SYNC_FILE_BYTES, FileRef, MergeResult, PLAN_ORDER, REFUSAL_BAD_FILE_REF,
     REFUSAL_BAD_FORMAT, REFUSAL_FILE_TOO_LARGE, REFUSAL_FILE_VERIFY,
@@ -260,8 +260,10 @@ def snapshot() -> Response:
         page = _page_rows(db, model, user.id, after_id, limit + 1)
         done = len(page) <= limit
         rows = page[:limit]
-        records = [record_to_payload(model, row, user=user) for row in rows]
-        refs = collect_files(db, user, rows={model: rows})
+        shared = shared_log_paths(db)
+        records = [record_to_payload(model, row, user=user, shared_paths=shared)
+                   for row in rows]
+        refs = collect_files(db, user, rows={model: rows}, shared_paths=shared)
         manifest = export_files(db, user, refs)
         skipped = [_ref_summary(r) for r in refs if r.missing]
         rev = counter_rev(db, user.id)

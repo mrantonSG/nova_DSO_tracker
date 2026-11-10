@@ -585,7 +585,7 @@ def _ensure_log_dirs():
     os.makedirs(NINA_LOGS_DIR, exist_ok=True)
 
 
-def save_log_to_filesystem(session_id: int, log_type: str, content: str, original_filename: str = None) -> str:
+def save_log_to_filesystem(session_id: int, log_type: str, content: str, original_filename: str = None, db=None) -> str:
     """
     Save log content to filesystem and return the relative path.
 
@@ -605,7 +605,7 @@ def save_log_to_filesystem(session_id: int, log_type: str, content: str, origina
     if len(safe_name) > 100:
         safe_name = safe_name[:100]
 
-    filename = f"{session_id}_{safe_name}"
+    filename = unique_log_name(db, log_type, f"{session_id}_{safe_name}", session_id)
 
     if log_type == 'asiair':
         filepath = os.path.join(ASIAIR_LOGS_DIR, filename)
@@ -670,14 +670,73 @@ def is_log_path(db_value: str) -> bool:
     return '\n' not in db_value and db_value.startswith('instance/logs/')
 
 
-def log_owner_session_id(filename: str) -> str:
-    """The session id a log filename is prefixed with ("278_Autorun_Log.txt" -> "278").
+_LOG_COLUMN_BY_TYPE = {
+    "asiair": "asiair_log_content",
+    "phd2": "phd2_log_content",
+    "nina": "nina_log_content",
+}
 
-    Empty string when the name carries no "<digits>_" prefix.
-    save_log_to_filesystem builds every name this way, and purge matches on it.
+
+def log_path_owners(db) -> dict:
+    """Path-form log value -> set of user_ids whose journal_sessions rows store it.
+
+    The referential ownership source of truth: a log path is owned by a user
+    only when every row that stores it (in any of the three *_log_content
+    columns) is that user's. Raw content never appears here — the LIKE below
+    matches only the "instance/logs/..." path form.
     """
-    head, sep, _tail = (filename or "").partition("_")
-    return head if sep and head.isdigit() else ""
+    from sqlalchemy import text
+    rows = db.execute(text(
+        "SELECT user_id, value FROM ("
+        " SELECT user_id, asiair_log_content AS value FROM journal_sessions"
+        "  WHERE asiair_log_content LIKE 'instance/logs/%'"
+        " UNION ALL"
+        " SELECT user_id, phd2_log_content FROM journal_sessions"
+        "  WHERE phd2_log_content LIKE 'instance/logs/%'"
+        " UNION ALL"
+        " SELECT user_id, nina_log_content FROM journal_sessions"
+        "  WHERE nina_log_content LIKE 'instance/logs/%'"
+        ")"
+    )).fetchall()
+    owners = {}
+    for user_id, value in rows:
+        owners.setdefault(value, set()).add(user_id)
+    return owners
+
+
+def shared_log_paths(db) -> set:
+    """Path-form log values referenced by more than one distinct user.
+
+    Such a path is withheld from every sync and every purge: no single user
+    owns it.
+    """
+    return {value for value, uids in log_path_owners(db).items() if len(uids) > 1}
+
+
+def unique_log_name(db, log_type: str, filename: str, exclude_session_id) -> str:
+    """`filename`, suffixed until no other session row stores that log path.
+
+    Same-row replacement keeps the name; a name another row already references
+    is made unique so a write never overwrites a file a different row names.
+    """
+    column = getattr(JournalSession, _LOG_COLUMN_BY_TYPE[log_type])
+
+    def claimed(name):
+        if db is None:
+            return False
+        path = os.path.join("instance", "logs", log_type, name)
+        return db.query(JournalSession.id).filter(
+            column == path, JournalSession.id != exclude_session_id).first() is not None
+
+    if not claimed(filename):
+        return filename
+    stem, ext = os.path.splitext(filename)
+    counter = 1
+    while True:
+        candidate = f"{stem}_{counter}{ext}"
+        if not claimed(candidate):
+            return candidate
+        counter += 1
 
 
 # === Derived image files ===
@@ -1821,6 +1880,9 @@ def purge_user_app_data(username: str, dry_run: bool = True) -> dict:
     db = SessionLocal.session_factory()  # own session: never commit a caller's pending work
     user_id = None
     session_ids = []
+    log_paths = []        # (stored path, log_type) this user's rows reference
+    shared_logs = set()   # log paths referenced by more than one distinct user
+    foreign_logs = set()  # log paths referenced by at least one other user
     try:
         db_user = db.query(DbUser).filter_by(username=username).one_or_none()
         if db_user is not None:
@@ -1831,6 +1893,17 @@ def purge_user_app_data(username: str, dry_run: bool = True) -> dict:
                 return list(db.scalars(select(model.id).where(model.user_id == user_id)))
 
             session_ids = _ids(JournalSession)
+            _owners = log_path_owners(db)
+            shared_logs = {p for p, o in _owners.items() if len(o) > 1}
+            foreign_logs = {p for p, o in _owners.items() if o - {user_id}}
+            log_paths = []
+            for _log_row in db.query(JournalSession).filter(JournalSession.user_id == user_id).all():
+                for _col, _type in (("asiair_log_content", "asiair"),
+                                    ("phd2_log_content", "phd2"),
+                                    ("nina_log_content", "nina")):
+                    _val = getattr(_log_row, _col)
+                    if _val and is_log_path(_val):
+                        log_paths.append((_val, _type))
             project_ids = _ids(Project)
             location_ids = _ids(Location)
             rig_ids = _ids(Rig)
@@ -1946,7 +2019,23 @@ def purge_user_app_data(username: str, dry_run: bool = True) -> dict:
     outlook_files = []
     if user_id is not None:
         sid_strs = {str(s) for s in session_ids}
-        for log_dir in (ASIAIR_LOGS_DIR, PHD2_LOGS_DIR, NINA_LOGS_DIR):
+        log_dirs = {"asiair": ASIAIR_LOGS_DIR, "phd2": PHD2_LOGS_DIR, "nina": NINA_LOGS_DIR}
+        seen_log_paths = set()
+        # Set A: logs referenced only by this user's rows (referential). A
+        # stale-prefix path the user's rows still name is removed here.
+        for value, log_type in log_paths:
+            if value in shared_logs:
+                continue
+            base = log_dirs[log_type]
+            abs_path = os.path.join(base, os.path.basename(value))
+            if abs_path in seen_log_paths:
+                continue
+            seen_log_paths.add(abs_path)
+            candidates.append((abs_path, base))
+        # Set B: legacy — files whose numeric prefix is one of this user's
+        # current session ids, so a superseded log (no row references it) still
+        # goes. A path another user's row references is left alone.
+        for log_type, log_dir in log_dirs.items():
             try:
                 names = os.listdir(log_dir)
             except FileNotFoundError:
@@ -1955,8 +2044,17 @@ def purge_user_app_data(username: str, dry_run: bool = True) -> dict:
                 summary["file_errors"].append(f"{log_dir}: {e}")
                 continue
             for name in names:
-                if "_" in name and name.split("_", 1)[0] in sid_strs:
-                    candidates.append((os.path.join(log_dir, name), log_dir))
+                head = name.split("_", 1)[0] if "_" in name else ""
+                if head not in sid_strs:
+                    continue
+                value = os.path.join("instance", "logs", log_type, name)
+                if value in foreign_logs:
+                    continue
+                abs_path = os.path.join(log_dir, name)
+                if abs_path in seen_log_paths:
+                    continue
+                seen_log_paths.add(abs_path)
+                candidates.append((abs_path, log_dir))
         # Enumerate the versions rather than globbing "heatmap_v*": a wildcard there
         # also matches another user's file (purging user 1 would match
         # heatmap_v7_12_1_...). Each pattern stays anchored to "{user_id}_".
