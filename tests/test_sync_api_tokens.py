@@ -14,15 +14,21 @@ break by accident: it links only stylesheets that already exist, and its own
 markup hardcodes no colour (so dark mode cannot be broken by this page).
 """
 
+import json
 import logging
+import os
 import pathlib
 import re
+import shutil
+import subprocess
 
 import pytest
 
 from nova.models import DbUser, SyncToken
 from nova.sync_time import utc_now
 from nova.sync_transport import hash_token, new_token
+
+NODE = shutil.which("node")
 
 TEMPLATE = (pathlib.Path(__file__).resolve().parents[1]
             / "templates" / "sync_tokens.html")
@@ -417,3 +423,146 @@ def test_the_copy_button_is_a_ghost_and_the_submit_is_primary():
 
 def test_the_page_renders_the_empty_state_when_there_are_no_tokens(hub):
     assert "gallery-empty-state" in hub.client.get("/sync").data.decode()
+
+
+# =============================================================================
+# 6. NOVA_SYNC_CLIENT off: the section is gone and every client route 404s
+# =============================================================================
+
+def test_nova_sync_client_off_404s_client_routes_and_hides_the_section(hub, monkeypatch):
+    monkeypatch.setattr("nova.blueprints.sync_tokens.NOVA_SYNC_CLIENT", False)
+
+    for route in ("/sync/connect", "/sync/download", "/sync/sync",
+                  "/sync/confirm", "/sync/abort"):
+        assert hub.client.post(route, data={}).status_code == 404
+    assert hub.client.get("/sync/job").status_code == 404
+
+    body = hub.client.get("/sync").data.decode()
+    assert "Sync with a server" not in body
+    assert "Use this Nova as a server" in body
+
+
+# =============================================================================
+# 7. One user cannot see, confirm or abort another user's job (rule 10)
+# =============================================================================
+
+def test_one_user_cannot_see_confirm_or_abort_another_users_job(
+        multi_user_client, monkeypatch, tmp_path):
+    import nova.sync_job as sj
+    client, ids = multi_user_client
+    user_a, user_b = ids["user_a_id"], ids["user_b_id"]
+
+    monkeypatch.setattr(sj, "INSTANCE_PATH", str(tmp_path))
+    sj.save_job(user_b, {
+        "job_id": "b", "start_token": "b", "user_id": user_b, "kind": "download",
+        "phase": "awaiting_confirmation", "progress": 0.9,
+        "phase_label": "awaiting_confirmation",
+        "summary": {"kind": "download", "requires_replace_typed": False,
+                    "server_counts": {}, "local_counts": {},
+                    "files": {"incoming": 0, "bytes": 0, "replaced": 0},
+                    "unsynced_local_changes": 0},
+        "result": None, "error": None,
+        "started_at": "2026-01-01T00:00:00", "heartbeat_at": "2026-01-01T00:00:00",
+        "pid": os.getpid(),
+    })
+
+    # A's job poll reports exactly "not running" — nothing of B's summary.
+    assert client.get("/sync/job").get_json() == {"running": False}
+
+    # A's abort and confirm leave B's job file untouched.
+    client.post("/sync/abort")
+    assert sj.load_job(user_b) is not None
+    client.post("/sync/confirm", data={"replace_confirmed": "REPLACE"})
+    assert sj.load_job(user_b) is not None
+
+    # Job files and backups are per user.
+    assert sj.job_dir(user_b) != sj.job_dir(user_a)
+
+
+# =============================================================================
+# 8. The typed REPLACE keeps Apply disabled until the text matches (rule 11)
+# =============================================================================
+
+_REPLACE_DRIVER = r"""
+'use strict';
+const fs = require('fs');
+const vm = require('vm');
+const [scriptFile, outFile] = process.argv.slice(2);
+
+function el(id) {
+  return { id, dataset: {}, value: '', disabled: false, listeners: {},
+           addEventListener(type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); } };
+}
+const byId = {};
+const document = { getElementById: (id) => byId[id] || null };
+byId['sync-replace-input'] = el('sync-replace-input');
+byId['sync-replace-input'].dataset.expected = 'REPLACE';
+byId['sync-confirm-form'] = el('sync-confirm-form');
+byId['sync-apply-btn'] = el('sync-apply-btn');
+
+const ctx = { console, document, window: {}, setTimeout, clearTimeout };
+vm.createContext(ctx);
+vm.runInContext(fs.readFileSync(scriptFile, 'utf8'), ctx, { filename: 'inline.js' });
+
+const input = byId['sync-replace-input'];
+const apply = byId['sync-apply-btn'];
+const initial = apply.disabled;
+input.value = 'REPLACE';
+(input.listeners['input'] || []).forEach((fn) => fn());
+fs.writeFileSync(outFile, JSON.stringify({ initialDisabled: initial, afterMatchDisabled: apply.disabled }));
+"""
+
+
+@pytest.fixture(scope="module")
+def run_replace(tmp_path_factory):
+    if NODE is None:
+        pytest.skip("node is not installed")
+    tmp = tmp_path_factory.mktemp("syncjs")
+    driver = tmp / "driver.cjs"
+    driver.write_text(_REPLACE_DRIVER, encoding="utf-8")
+
+    def run(script):
+        sf = tmp / "inline.js"
+        sf.write_text(script, encoding="utf-8")
+        out = tmp / "out.json"
+        proc = subprocess.run([NODE, str(driver), str(sf), str(out)],
+                              capture_output=True, text=True, timeout=60)
+        assert proc.returncode == 0, proc.stderr
+        return json.loads(out.read_text(encoding="utf-8"))
+
+    return run
+
+
+def _seed_download_job(hub, db_session, monkeypatch, tmp_path):
+    """An awaiting download job that requires the typed REPLACE, for the page."""
+    import nova.sync_job as sj
+    from nova.sync_engine import to_iso
+    monkeypatch.setattr(sj, "INSTANCE_PATH", str(tmp_path))
+    now = to_iso(utc_now())
+    sj.save_job(hub.user.id, {
+        "job_id": "x", "start_token": "x", "user_id": hub.user.id,
+        "kind": "download", "phase": "awaiting_confirmation", "progress": 0.9,
+        "phase_label": "awaiting_confirmation",
+        "summary": {"kind": "download", "requires_replace_typed": True,
+                    "server_counts": {"astro_objects": 5},
+                    "local_counts": {"astro_objects": 1},
+                    "unsynced_local_changes": 0,
+                    "files": {"incoming": 1, "bytes": 1024, "replaced": 1}},
+        "result": None, "error": None,
+        "started_at": now, "heartbeat_at": now,
+        "pid": os.getpid(),
+    })
+
+
+def test_the_typed_replace_starts_apply_disabled(hub, db_session, monkeypatch,
+                                                 tmp_path, run_replace):
+    _seed_download_job(hub, db_session, monkeypatch, tmp_path)
+    html = hub.client.get("/sync").data.decode()
+
+    scripts = re.findall(r"<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>", html, re.S)
+    script = next(s for s in scripts if "sync-replace-input" in s)
+    assert 'data-expected="REPLACE"' in html
+
+    result = run_replace(script)
+    assert result["initialDisabled"] is True
+    assert result["afterMatchDisabled"] is False

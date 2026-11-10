@@ -252,3 +252,113 @@ def test_token_never_in_log(caplog, hub):
             pass
     joined = "\n".join(caplog.messages) + "\n".join(r.getMessage() for r in caplog.records)
     assert "super-secret-token-value" not in joined
+
+
+# --- Backup pruning keeps the latest five (rule 5) ----------------------------
+
+def test_backup_pruning_keeps_the_latest_five(monkeypatch, tmp_path):
+    from nova.sync_job import _prune_backups
+    monkeypatch.setattr("nova.sync_job.BACKUP_DIR", str(tmp_path))
+    base = tmp_path / "sync" / "7"
+    base.mkdir(parents=True)
+    for i in range(6):
+        (base / f"stamp{i}").mkdir()
+
+    _prune_backups(7, keep=5)
+
+    assert sorted(p.name for p in base.iterdir()) == [
+        "stamp1", "stamp2", "stamp3", "stamp4", "stamp5"]
+
+
+# --- Every writer into uploads/ or logs/ is atomic (rule 5) -------------------
+
+def _raw_write_sites():
+    """(relpath, line, function, primitive) for every raw file write in nova/."""
+    import re
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1] / "nova"
+    prims = [
+        (re.compile(r'open\([^)]*["\'](?:w|wb|a|ab|w\+|wb\+)["\']'), "open-write"),
+        (re.compile(r'\.save\('), ".save"),
+        (re.compile(r'shutil\.(?:copy|copyfile|copy2|move)'), "shutil.copy/move"),
+        (re.compile(r'\.write_bytes\('), "write_bytes"),
+    ]
+    sites = []
+    for path in sorted(root.rglob("*.py")):
+        funcs = []
+        for i, line in enumerate(path.read_text().splitlines(), 1):
+            m = re.match(r'^(\s*)def\s+(\w+)', line)
+            if m:
+                indent = len(m.group(1))
+                while funcs and funcs[-1][0] >= indent:
+                    funcs.pop()
+                funcs.append((indent, m.group(2)))
+            if line.strip().startswith("#"):
+                continue
+            for rx, label in prims:
+                if rx.search(line):
+                    fn = funcs[-1][1] if funcs else "<module>"
+                    sites.append((str(path.relative_to(root)), i, fn, label))
+    return sites
+
+
+def test_every_file_write_is_atomic_or_outside_uploads_and_logs():
+    """A non-atomic writer into uploads/ or logs/ would corrupt the hard-link
+    backup. Raw writes may appear only (a) inside the atomic helpers or the
+    engine's placement (both finish with os.replace), or (b) in the explicit
+    allowlist of writers whose target is never uploads/ or logs/."""
+    ATOMIC = {
+        # The atomic mechanism itself, or a caller that wraps its write in
+        # write_file_atomic / staging-then-os.replace.
+        "write_file_atomic", "_atomic_write_yaml",
+        "_place_from_staged", "_copy_hashed", "_fetch_file",
+        "save_log_to_filesystem", "_save_artifact", "backup_local",
+        "import_journal_photos", "upload_editor_image",
+        "journal_add", "journal_edit", "session_image_url",
+        "_is_within_user_dir", "index",
+    }
+    NON_UPLOAD_LOG = {
+        # Writes files that never live under uploads/ or logs/, so a hard-link
+        # snapshot of those two trees is untouched: cache, config, env, backups,
+        # the two-phase job file, and move-aside (which only renames out).
+        "initialize_instance_directory", "_timestamped_copy", "_has_key",
+        "migrate_journal_data", "update_outlook_cache", "sync_outlook_cache",
+        "_fire_startup_skyglow_check", "get_yearly_heatmap_chunk", "_run_skyglow_task",
+        "_save_conflicts", "import_yaml_for_user", "_write_cache", "append_purge_note",
+        "_backup_with_rotation", "move_replaced_files", "save_job", "_hardlink_tree",
+        "save_push_session", "heatmap_background_worker",
+    }
+    violations = [
+        f"{f}:{line} [{prim}] in {fn}"
+        for f, line, fn, prim in _raw_write_sites()
+        if fn not in ATOMIC and fn not in NON_UPLOAD_LOG
+    ]
+    assert not violations, (
+        "raw writers not through write_file_atomic / the engine's placement:\n"
+        + "\n".join(violations))
+
+
+# --- Download confirm refuses anything but the exact REPLACE text (rule 11) ---
+
+def test_download_confirm_without_exact_replace_is_refused(monkeypatch, tmp_path):
+    from nova.sync_job import confirm_job, save_job
+    monkeypatch.setattr("nova.sync_job.INSTANCE_PATH", str(tmp_path))
+    uid = 7
+    save_job(uid, {
+        "job_id": "x", "start_token": "x", "user_id": uid, "kind": "download",
+        "phase": "awaiting_confirmation", "progress": 0.9,
+        "phase_label": "awaiting_confirmation",
+        "summary": {"kind": "download", "requires_replace_typed": True},
+        "result": None, "error": None,
+        "started_at": "2026-01-01T00:00:00", "heartbeat_at": "2026-01-01T00:00:00",
+        "pid": os.getpid(),
+    })
+
+    # The refusal raises before any thread is started, so a dummy app is enough.
+    with pytest.raises(SyncRefused) as exc:
+        confirm_job(object(), uid, replace_confirmed="replace")
+    assert exc.value.refusal.code == "replace_required"
+
+    with pytest.raises(SyncRefused) as exc:
+        confirm_job(object(), uid, replace_confirmed="REPLACE ")
+    assert exc.value.refusal.code == "replace_required"

@@ -11,7 +11,6 @@ on-disk job status.
 
 import json
 import os
-import shutil
 import time
 from datetime import date, datetime
 
@@ -23,11 +22,11 @@ from sqlalchemy.pool import StaticPool
 
 import nova
 from nova.models import (
-    INSTANCE_PATH, Base, DbUser, JournalSession, Location, AstroObject,
+    Base, DbUser, JournalSession, Location, AstroObject,
     SyncState, SyncToken,
 )
 from nova.sync_client import SyncClient, SyncTransportError
-from nova.sync_engine import SyncRefused, counter_rev, start_pairing
+from nova.sync_engine import SyncRefused, Refusal, counter_rev, start_pairing
 from nova.sync_job import (
     abort_job, clear_job, confirm_job, job_status, load_job, save_job, start_job,
 )
@@ -88,20 +87,40 @@ class _TestSyncClient(SyncClient):
 
 # --- Harness ------------------------------------------------------------------
 
+def _patch_sync_dirs(monkeypatch, tmp_path):
+    """Point every sync filesystem root at a fresh per-test directory.
+
+    Each sync module binds INSTANCE_PATH / UPLOAD_FOLDER / BACKUP_DIR / CACHE_DIR
+    from config at import time, so isolating a test means patching every
+    binding. Everything the local side and the hub write — jobs, staging,
+    replaced files, the upload accumulator, the push session and the pre-push
+    snapshots — then lands under tmp_path and disappears with the test instead
+    of lingering in the shared session instance.
+    """
+    instance = tmp_path / "instance"
+    uploads = instance / "uploads"
+    backups = instance / "backups"
+    cache = instance / "cache"
+    for mod, attr, value in (
+        ("nova.sync_job", "INSTANCE_PATH", instance),
+        ("nova.sync_job", "BACKUP_DIR", backups),
+        ("nova.sync_job", "UPLOAD_FOLDER", uploads),
+        ("nova.sync_job", "CACHE_DIR", cache),
+        ("nova.sync_engine", "INSTANCE_PATH", instance),
+        ("nova.sync_engine", "UPLOAD_FOLDER", uploads),
+        ("nova.sync_transport", "INSTANCE_PATH", instance),
+        ("nova.sync_transport", "BACKUP_DIR", backups),
+        ("nova.sync_transport", "CACHE_DIR", cache),
+    ):
+        monkeypatch.setattr(f"{mod}.{attr}", str(value))
+    return instance
+
+
 @pytest.fixture
-def harness(db_session, monkeypatch):
+def harness(db_session, monkeypatch, tmp_path):
+    instance = _patch_sync_dirs(monkeypatch, tmp_path)
     user = nova.get_or_create_db_user(db_session, "default")
     db_session.commit()
-
-    # Wipe per-user filesystem state from a previous test: INSTANCE_PATH is
-    # shared across the session, so a leftover job file, staging dir or upload
-    # would leak into this test.
-    for name in ("uploads/default", "uploads/hubuser",
-                 "sync_jobs", "sync_staging", "replaced", "sync_uploads"):
-        shutil.rmtree(os.path.join(INSTANCE_PATH, name), ignore_errors=True)
-    for uid in (user.id, 999):
-        shutil.rmtree(os.path.join(INSTANCE_PATH, "backups", "sync", str(uid)),
-                      ignore_errors=True)
 
     hub_engine = create_engine("sqlite:///:memory:", poolclass=StaticPool,
                                connect_args={"check_same_thread": False})
@@ -116,7 +135,7 @@ def harness(db_session, monkeypatch):
     hub_app.register_blueprint(sync_api_bp)
 
     # Distinct user id (999) so the two installations' per-user staging dirs,
-    # lock files, backups and push sessions never collide under INSTANCE_PATH.
+    # lock files, backups and push sessions never collide under the instance dir.
     hdb = HubSession()
     hub_user = DbUser(id=999, username="hubuser")
     hdb.add(hub_user)
@@ -140,7 +159,7 @@ def harness(db_session, monkeypatch):
 
     return {"app": nova.app, "local_user": user, "local_db": db_session,
             "hub_user": hub_user, "hub_session": HubSession, "hub_app": hub_app,
-            "token": token}
+            "token": token, "instance_path": str(instance)}
 
 
 def _hub(harness, *rows):
@@ -174,8 +193,8 @@ def _session(user_id, external_id, image=None):
                           date_utc=date(2026, 1, 2), session_image_file=image)
 
 
-def _write_upload(username, filename, data):
-    d = os.path.join(INSTANCE_PATH, "uploads", username)
+def _write_upload(instance_path, username, filename, data):
+    d = os.path.join(instance_path, "uploads", username)
     os.makedirs(d, exist_ok=True)
     with open(os.path.join(d, filename), "wb") as f:
         f.write(data)
@@ -224,7 +243,7 @@ def _stamp(db, model, row_id, moment):
 def test_download_end_to_end_with_files(harness):
     uid = harness["local_user"].id
     # Local has data that must be moved aside.
-    _write_upload("default", "old.jpg", b"local-old-bytes")
+    _write_upload(harness["instance_path"], "default", "old.jpg", b"local-old-bytes")
     _local_query(harness, lambda db: db.add(_session(uid, "old-sess", image="old.jpg")) or None)
     harness["local_db"].commit()
 
@@ -233,7 +252,7 @@ def test_download_end_to_end_with_files(harness):
          _obj(999, "M 1"), _obj(999, "M 2"), _obj(999, "M 3"), _obj(999, "M 4"),
          _obj(999, "M 5"),
          _session(999, "hub-sess", image="hub.jpg"))
-    _write_upload("hubuser", "hub.jpg", PNG)
+    _write_upload(harness["instance_path"], "hubuser", "hub.jpg", PNG)
 
     st = _run_phase1(harness, "download")
     assert st["phase"] == "awaiting_confirmation", st
@@ -256,16 +275,16 @@ def test_download_end_to_end_with_files(harness):
     assert _local_query(harness, lambda db: db.query(JournalSession).filter_by(user_id=uid).one()).external_id == "hub-sess"
 
     # The photo landed (local naming), the displaced file was moved aside.
-    uploads = os.path.join(INSTANCE_PATH, "uploads", "default")
+    uploads = os.path.join(harness["instance_path"], "uploads", "default")
     placed = [n for n in os.listdir(uploads) if os.path.isfile(os.path.join(uploads, n))]
     assert "old.jpg" not in placed
     assert any(open(os.path.join(uploads, n), "rb").read() == PNG for n in placed)
 
-    replaced_root = os.path.join(INSTANCE_PATH, "replaced", str(uid))
+    replaced_root = os.path.join(harness["instance_path"], "replaced", str(uid))
     assert os.path.isdir(replaced_root)
 
     # Backup dir written (app.db + uploads/ + logs/).
-    backups = os.path.join(INSTANCE_PATH, "backups", "sync", str(uid))
+    backups = os.path.join(harness["instance_path"], "backups", "sync", str(uid))
     dirs = [d for d in os.listdir(backups) if os.path.isdir(os.path.join(backups, d))]
     assert len(dirs) == 1
     assert os.path.exists(os.path.join(backups, dirs[0], "app.db"))
@@ -284,7 +303,7 @@ def test_sync_now_both_directions(harness):
     _local_query(harness, lambda db: db.add(_obj(uid, "LOCAL", ra=5.0, dec=-10.0)))
     _local_query(harness, lambda db: db.add(_session(uid, "local-sess", image="local.jpg")))
     harness["local_db"].commit()
-    _write_upload("default", "local.jpg", PNG)
+    _write_upload(harness["instance_path"], "default", "local.jpg", PNG)
 
     # Hub: an object to pull down + a "SHARED" object that both will edit.
     _hub(harness, _obj(999, "HUB", ra=9.0), _obj(999, "SHARED", ra=1.0))
@@ -503,7 +522,7 @@ def test_interrupted_upload_resumes(harness, monkeypatch):
     _mark_downloaded(harness)
     _local_query(harness, lambda db: db.add(_session(uid, "local-sess", image="photo.jpg")))
     harness["local_db"].commit()
-    _write_upload("default", "photo.jpg", BIG)
+    _write_upload(harness["instance_path"], "default", "photo.jpg", BIG)
 
     calls = {"n": 0}
     orig = _TestSyncClient.push_file_chunk
@@ -531,7 +550,7 @@ def test_interrupted_upload_resumes(harness, monkeypatch):
 def test_interrupted_download_resumes_via_range(harness, monkeypatch):
     uid = harness["local_user"].id
     _hub(harness, _session(999, "hub-sess", image="hub.jpg"))
-    _write_upload("hubuser", "hub.jpg", BIG)
+    _write_upload(harness["instance_path"], "hubuser", "hub.jpg", BIG)
 
     state = {"fail": True, "resume_from": []}
     orig = _TestSyncClient.fetch_file_iter
@@ -563,5 +582,143 @@ def test_interrupted_download_resumes_via_range(harness, monkeypatch):
     assert st["phase"] == "done", st
 
     assert state["resume_from"][-1] == 100                     # Range resume used
-    uploads = os.path.join(INSTANCE_PATH, "uploads", "default")
+    uploads = os.path.join(harness["instance_path"], "uploads", "default")
     assert any(open(os.path.join(uploads, n), "rb").read() == BIG for n in os.listdir(uploads))
+
+
+# =============================================================================
+# 10. Push mass-delete summary reports the refusal's count
+# =============================================================================
+
+def test_push_mass_delete_summary_reports_the_refusal_count(harness, monkeypatch):
+    uid = harness["local_user"].id
+    _mark_downloaded(harness)
+
+    def refuse_push(self, payload, clock_offset_seconds, allow_mass_delete=False):
+        raise SyncRefused(Refusal("mass_delete",
+                                  {"deletions": 42, "records": 50, "limit": 0.10}))
+    monkeypatch.setattr(_TestSyncClient, "push_plan", refuse_push)
+
+    st = _run_phase1(harness, "sync")
+    assert st["phase"] == "awaiting_confirmation", st
+    summary = st["summary"]
+    assert summary["mass_delete"] is True
+    assert summary["up"]["deleted"] == 42
+    assert summary["mass_delete_detail"]["deletions"] == 42
+
+
+# =============================================================================
+# 11. Apply guard (rule 1): deletions, mass delete, and explicit confirm
+# =============================================================================
+
+def _sync_shared_objects(harness, count, *, prefix="OBJ"):
+    """Seed `count` objects on the hub and pull them to the local in one sync."""
+    uid = harness["local_user"].id
+    _hub(harness, *[_obj(999, f"{prefix}{i}") for i in range(count)])
+    st = _run_phase1(harness, "sync")
+    assert st["phase"] == "awaiting_confirmation", st
+    confirm_job(harness["app"], uid)
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+    assert st["phase"] == "done", st
+
+
+def _hub_delete_all_objects(harness):
+    def fn(db):
+        for o in db.query(AstroObject).filter_by(user_id=999).all():
+            db.delete(o)
+        db.commit()
+    _hub_query(harness, fn)
+
+
+def test_apply_guard_extra_hub_deletions_stop_the_sync(harness):
+    """More deletions than the summary showed -> plan_stale, nothing applied."""
+    uid = harness["local_user"].id
+    _mark_downloaded(harness)
+    _sync_shared_objects(harness, 3)
+
+    st = _run_phase1(harness, "sync")
+    assert st["phase"] == "awaiting_confirmation", st
+    assert st["summary"]["deletions"] == 0
+
+    # A hub deletion slips in after the summary was shown.
+    _hub_query(harness, lambda db: (
+        db.delete(db.query(AstroObject).filter_by(user_id=999, object_name="OBJ0").one()),
+        db.commit()))
+
+    confirm_job(harness["app"], uid)
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+    assert st["phase"] == "failed", st
+    assert st["error"]["code"] == "plan_stale", st
+
+
+def test_apply_guard_new_mass_delete_at_confirm_stops(harness):
+    """A mass delete that appears only at confirm (not in the summary) stops."""
+    uid = harness["local_user"].id
+    _mark_downloaded(harness)
+    _sync_shared_objects(harness, 40)
+
+    st = _run_phase1(harness, "sync")
+    assert st["phase"] == "awaiting_confirmation", st
+    assert st["summary"]["mass_delete"] is False
+
+    _hub_delete_all_objects(harness)   # now the pull is a mass delete, never shown
+
+    confirm_job(harness["app"], uid)   # no allow_mass_delete
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+    assert st["phase"] == "failed", st
+    assert st["error"]["code"] == "mass_delete", st
+
+
+def test_pull_mass_delete_applied_only_after_explicit_confirm(harness):
+    """The mass delete is refused without approval, then applied with it."""
+    uid = harness["local_user"].id
+    _mark_downloaded(harness)
+    _sync_shared_objects(harness, 40)
+
+    _hub_delete_all_objects(harness)   # phase 1 shows the mass delete
+
+    st = _run_phase1(harness, "sync")
+    assert st["phase"] == "awaiting_confirmation", st
+    assert st["summary"]["mass_delete"] is True
+
+    with pytest.raises(SyncRefused) as exc:
+        confirm_job(harness["app"], uid)   # no explicit approval
+    assert exc.value.refusal.code == "mass_delete"
+    assert job_status(uid)["phase"] == "awaiting_confirmation"
+    assert _local_query(harness, lambda db: db.query(AstroObject).filter_by(user_id=uid).count()) == 40
+
+    confirm_job(harness["app"], uid, allow_mass_delete=True)
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+    assert st["phase"] == "done", st
+    assert _local_query(harness, lambda db: db.query(AstroObject).filter_by(user_id=uid).count()) == 0
+
+
+# =============================================================================
+# 12. Pull excludes the push revs (rule 2)
+# =============================================================================
+
+def test_pull_excludes_the_push_revs(harness, monkeypatch):
+    """The job passes push_revs as exclude_revs — a [] would fail this."""
+    uid = harness["local_user"].id
+    _mark_downloaded(harness)
+    _local_query(harness, lambda db: db.add(_obj(uid, "LOCAL")))
+    harness["local_db"].commit()
+    _hub(harness, _obj(999, "HUB"))
+
+    seen = []
+    orig = _TestSyncClient.changes
+
+    def spy(self, since_rev, exclude_revs=None, with_files=True):
+        seen.append(list(exclude_revs or []))
+        return orig(self, since_rev, exclude_revs=exclude_revs, with_files=with_files)
+    monkeypatch.setattr(_TestSyncClient, "changes", spy)
+
+    st = _run_phase1(harness, "sync")
+    assert st["phase"] == "awaiting_confirmation", st
+    confirm_job(harness["app"], uid)
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+    assert st["phase"] == "done", st
+
+    assert len(seen) >= 2            # phase 1 (provisional) + phase 2 (real)
+    assert seen[0] == []             # the provisional pull excludes nothing
+    assert seen[-1] != []            # the real pull excludes the push revs

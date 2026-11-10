@@ -1932,21 +1932,14 @@ def purge_user_app_data(username: str, dry_run: bool = True) -> dict:
         # The whole per-user directory is removed, not just the files in it: a
         # leftover epoch subdirectory (instance/replaced/<id>/<timestamp>/) must
         # go too.
-        for sync_dir in ("sync_staging", "replaced", "sync_uploads"):
-            base = os.path.join(INSTANCE_PATH, sync_dir)
-            candidates.append((os.path.join(base, str(user_id)), base))
-        # Pre-push account snapshots (instance/backups/sync/<id>/<stamp>/, one dir
-        # per push) and the in-flight push session in the cache dir. Names are
-        # spelled out rather than imported from nova.sync_transport, which imports
-        # this module.
-        sync_backups = os.path.join(BACKUP_DIR, "sync")
-        candidates.append((os.path.join(sync_backups, str(user_id)), sync_backups))
-        candidates.append((os.path.join(CACHE_DIR, f"sync_push_{user_id}.json"), CACHE_DIR))
-        # Local-side client state: the two-phase job and its stored artifacts
-        # (instance/sync_jobs/<id>/). Spelled out rather than imported to avoid
-        # a circular import.
-        candidates.append((os.path.join(INSTANCE_PATH, "sync_jobs", str(user_id)),
-                           os.path.join(INSTANCE_PATH, "sync_jobs")))
+        # Instance sync keeps its own copies of a user's files (two-phase job,
+        # staging, files moved aside by a Download, the upload accumulator, the
+        # push session and the pre-push snapshots). The path list lives in
+        # nova.sync_job.cleanup_user_sync so it cannot drift from the layout the
+        # job runner and engine actually use; the import is lazy to avoid a cycle.
+        from nova.sync_job import cleanup_user_sync
+        candidates.extend(cleanup_user_sync(user_id, instance_path=INSTANCE_PATH,
+                                            backup_dir=BACKUP_DIR, cache_dir=CACHE_DIR))
     for name in (f"config_{username}.yaml", f"journal_{username}.yaml", f"rigs_{username}.yaml"):
         candidates.append((os.path.join(CONFIG_DIR, name), CONFIG_DIR))
 

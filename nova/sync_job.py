@@ -34,19 +34,21 @@ import uuid
 
 from sqlalchemy import select
 
-from nova.config import BACKUP_DIR, UPLOAD_FOLDER
+from nova.config import BACKUP_DIR, CACHE_DIR, UPLOAD_FOLDER
 from nova.helpers import LOGS_DIR, get_db, write_file_atomic
 from nova.models import DB_PATH, INSTANCE_PATH, DbUser, SyncState
 from nova.sync_client import SyncClient, SyncTransportError
 from nova.sync_engine import (
     REFUSAL_MASS_DELETE, REFUSAL_NOT_PAIRED, REFUSAL_PLAN_STALE,
     REFUSAL_SERVER_UNTOUCHED, REFUSAL_SYNC_RUNNING,
+    REPLACED_DIRNAME, STAGING_DIRNAME,
     CommitReport, FileRef, Refusal, StagedFile, SyncRefused,
     apply_download, apply_merge, check_sync_preconditions, commit_staged_files,
     counter_rev, discard_staged, export_changes, files_needed, file_source_path,
     move_replaced_files, plan_download, plan_merge, record_pull_applied,
     record_push_accepted, stage_file, staged_index, staging_dir, sync_lock, to_iso,
 )
+from nova.sync_transport import SYNC_UPLOAD_DIRNAME
 from nova.sync_time import utc_now
 
 logger = logging.getLogger(__name__)
@@ -509,13 +511,20 @@ def _phase1_sync(db, user, start_token: str) -> None:
     _save_artifact(uid, "pull_payload.json", pull_payload)
 
     push_summary = push_session.get("plan") if push_session else {}
+    # When the hub refused the push plan as a mass delete there is no plan
+    # summary to read counts from (push_session is None): take the deletion
+    # count from the refusal's own detail so the user confirms the real number,
+    # not zero.
+    up_deleted = _sum_counts(push_summary.get("deleted"))
+    if push_mass_delete:
+        up_deleted = int((push_mass_delete_detail or {}).get("deletions") or 0)
     summary = {
         "kind": "sync",
         "push": push_summary,
         "pull": pull_plan.summary(),
         "up": {"created": _sum_counts(push_summary.get("created")),
                "updated": _sum_counts(push_summary.get("updated")),
-               "deleted": _sum_counts(push_summary.get("deleted"))},
+               "deleted": up_deleted},
         "down": {"created": _sum_counts(pull_plan.created),
                  "updated": _sum_counts(pull_plan.updated),
                  "deleted": _sum_counts(pull_plan.deleted)},
@@ -798,10 +807,35 @@ def _prune_backups(user_id: int, keep: int = BACKUP_KEEP) -> None:
         shutil.rmtree(path, ignore_errors=True)
 
 
-def cleanup_user_sync(user_id: int, instance_path: str = None) -> None:
-    """Drop a purged user's local sync jobs and backups."""
-    shutil.rmtree(job_dir(user_id, instance_path), ignore_errors=True)
-    shutil.rmtree(os.path.join(BACKUP_DIR, "sync", str(int(user_id))), ignore_errors=True)
+def cleanup_user_sync(user_id: int, instance_path: str = None,
+                      backup_dir: str = None, cache_dir: str = None) -> list:
+    """(path, base) pairs for every per-user sync artifact a purge must remove.
+
+    The single source of truth for where the sync subsystem stores a user's
+    files — the two-phase job, the staging directory, files moved aside by a
+    Download from server, the push upload accumulator, the in-flight push
+    session, and the pre-push snapshots. ``purge_user_app_data`` imports this
+    lazily (to avoid a cycle) and removes/reports each pair itself, so its
+    dry-run lists exactly the paths a real purge deletes and the two can never
+    drift from the layout the job runner and engine actually use.
+
+    ``backup_dir`` and ``cache_dir`` default to this module's constants, but the
+    caller passes its own (possibly patched) bindings so the paths agree with
+    ``nova.sync_transport``'s push-session location under a test override.
+    """
+    uid = str(int(user_id))
+    root = instance_path or INSTANCE_PATH
+    backup = backup_dir or BACKUP_DIR
+    cache = cache_dir or CACHE_DIR
+    return [
+        (os.path.join(root, "sync_jobs", uid), os.path.join(root, "sync_jobs")),
+        (os.path.join(root, STAGING_DIRNAME, uid), os.path.join(root, STAGING_DIRNAME)),
+        (os.path.join(root, REPLACED_DIRNAME, uid), os.path.join(root, REPLACED_DIRNAME)),
+        (os.path.join(root, SYNC_UPLOAD_DIRNAME, uid),
+         os.path.join(root, SYNC_UPLOAD_DIRNAME)),
+        (os.path.join(backup, "sync", uid), os.path.join(backup, "sync")),
+        (os.path.join(cache, f"sync_push_{uid}.json"), cache),
+    ]
 
 
 def job_status(user_id: int) -> dict:
