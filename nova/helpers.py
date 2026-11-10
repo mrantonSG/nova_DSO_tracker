@@ -474,7 +474,12 @@ def write_file_atomic(path: str, writer) -> None:
     """
     directory = os.path.dirname(path) or "."
     os.makedirs(directory, exist_ok=True)
-    fd, tmp = tempfile.mkstemp(prefix=".tmp_", dir=directory)
+    # Keep the target's extension on the temp name: Pillow infers an image's
+    # format from the path extension, and a bare ".tmp_xxxx" has none, so an
+    # Image.save(tmp) without an explicit format= raises
+    # "unknown file extension: " (regression from the atomic-write switch).
+    suffix = os.path.splitext(path)[1]
+    fd, tmp = tempfile.mkstemp(prefix=".tmp_", suffix=suffix, dir=directory)
     os.close(fd)
     try:
         writer(tmp)
