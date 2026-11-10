@@ -29,6 +29,11 @@ BACKGROUND_TASKS_DISABLED = os.environ.get("NOVA_DISABLE_BACKGROUND_TASKS") == "
 # --- Mode ---
 SINGLE_USER_MODE = config('SINGLE_USER_MODE', default='True') == 'True'
 
+# Instance sync, client side. Read at startup; documented in .env.example only
+# and never written at runtime. The hub (VPS) runs with this off: it serves the
+# sync API and mints tokens but does not connect to another server.
+NOVA_SYNC_CLIENT = config('NOVA_SYNC_CLIENT', default='on').strip().lower() != 'off'
+
 ADMIN_USERS_RAW = config('ADMIN_USERS', default='admin')
 ADMIN_USERS = {u.strip() for u in ADMIN_USERS_RAW.split(",") if u.strip()}
 USER_ADMIN_USERNAME = config('USER_ADMIN_USERNAME', default='admin')

@@ -7703,6 +7703,180 @@ msgstr ""
 msgid "This token was already created. For security it can't be shown again — revoke it and create a new one if you didn't copy it."
 msgstr ""
 
+msgid "This app and the server speak different sync versions. Update one of them."
+msgstr ""
+
+msgid "The sync token was rejected."
+msgstr ""
+
+msgid "This token has been revoked."
+msgstr ""
+
+msgid "The guest account can't sync."
+msgstr ""
+
+msgid "Not connected to a server."
+msgstr ""
+
+msgid "Download from the server first."
+msgstr ""
+
+msgid "This server has no data yet — import your YAML files there first."
+msgstr ""
+
+msgid "Local data was replaced from a YAML import."
+msgstr ""
+
+msgid "The server's data was replaced from a YAML import."
+msgstr ""
+
+msgid "A sync is already running."
+msgstr ""
+
+msgid "The data changed during sync — retrying."
+msgstr ""
+
+msgid "This sync would delete %(deletions)s of %(records)s records."
+msgstr ""
+
+msgid "Your computer's clock is off by %(minutes)s minutes."
+msgstr ""
+
+msgid "The server sent an unreadable response."
+msgstr ""
+
+msgid "This server uses data shapes this app doesn't know."
+msgstr ""
+
+msgid "The server sent a record this app can't import."
+msgstr ""
+
+msgid "A session record can't be matched."
+msgstr ""
+
+msgid "A file reference in the sync is invalid."
+msgstr ""
+
+msgid "A file is too large to sync."
+msgstr ""
+
+msgid "A file failed its checksum."
+msgstr ""
+
+msgid "Not enough disk space."
+msgstr ""
+
+msgid "Could not reach the server."
+msgstr ""
+
+msgid "The sync failed unexpectedly."
+msgstr ""
+
+msgid "The last sync was interrupted. Run Sync now to finish."
+msgstr ""
+
+msgid "Type REPLACE to continue."
+msgstr ""
+
+msgid "Sync failed (%(code)s)."
+msgstr ""
+
+msgid "Server URL and token are required."
+msgstr ""
+
+msgid "This URL is not a valid sync server address."
+msgstr ""
+
+msgid "Connected over an insecure connection — the token travels in the clear on this network."
+msgstr ""
+
+msgid "Connected to %(account)s."
+msgstr ""
+
+msgid "Disconnected."
+msgstr ""
+
+msgid "Sync cancelled."
+msgstr ""
+
+msgid "Nova – Sync"
+msgstr ""
+
+msgid "Use this Nova as a server"
+msgstr ""
+
+msgid "Sync with a server"
+msgstr ""
+
+msgid "Connect this Nova to another instance to download or sync your data."
+msgstr ""
+
+msgid "Syncing…"
+msgstr ""
+
+msgid "Download from server"
+msgstr ""
+
+msgid "Server records"
+msgstr ""
+
+msgid "Local records"
+msgstr ""
+
+msgid "Unsynced local changes"
+msgstr ""
+
+msgid "Files to download"
+msgstr ""
+
+msgid "Files that will be moved aside"
+msgstr ""
+
+msgid "Sync summary"
+msgstr ""
+
+msgid "Up"
+msgstr ""
+
+msgid "Down"
+msgstr ""
+
+msgid "Abort"
+msgstr ""
+
+msgid "This sync will delete a large number of records."
+msgstr ""
+
+msgid "Connected to"
+msgstr ""
+
+msgid "Last synced"
+msgstr ""
+
+msgid "Needs download"
+msgstr ""
+
+msgid "Sync now"
+msgstr ""
+
+msgid "Disconnect"
+msgstr ""
+
+msgid "Disconnect from this server?"
+msgstr ""
+
+msgid "Server URL"
+msgstr ""
+
+msgid "Sync token"
+msgstr ""
+
+msgid "Connect"
+msgstr ""
+
+msgid "Enter the server URL and a sync token created there."
+msgstr ""
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr ""
 

@@ -8072,6 +8072,180 @@ msgstr "Ce jeton n'existe plus."
 msgid "This token was already created. For security it can't be shown again — revoke it and create a new one if you didn't copy it."
 msgstr "Ce jeton a déjà été créé. Pour des raisons de sécurité, il ne peut plus être affiché — révoquez-le et créez-en un nouveau si vous ne l'avez pas copié."
 
+msgid "This app and the server speak different sync versions. Update one of them."
+msgstr "Cette app et le serveur utilisent des versions de synchronisation différentes. Mettez l'un des deux à jour."
+
+msgid "The sync token was rejected."
+msgstr "Le jeton de synchronisation a été refusé."
+
+msgid "This token has been revoked."
+msgstr "Ce jeton a été révoqué."
+
+msgid "The guest account can't sync."
+msgstr "Le compte invité ne peut pas synchroniser."
+
+msgid "Not connected to a server."
+msgstr "Non connecté à un serveur."
+
+msgid "Download from the server first."
+msgstr "Téléchargez d'abord depuis le serveur."
+
+msgid "This server has no data yet — import your YAML files there first."
+msgstr "Ce serveur n'a pas encore de données — importez d'abord vos fichiers YAML là-bas."
+
+msgid "Local data was replaced from a YAML import."
+msgstr "Les données locales ont été remplacées par un import YAML."
+
+msgid "The server's data was replaced from a YAML import."
+msgstr "Les données du serveur ont été remplacées par un import YAML."
+
+msgid "A sync is already running."
+msgstr "Une synchronisation est déjà en cours."
+
+msgid "The data changed during sync — retrying."
+msgstr "Les données ont changé pendant la synchronisation — nouvelle tentative."
+
+msgid "This sync would delete %(deletions)s of %(records)s records."
+msgstr "Cette synchronisation supprimerait %(deletions)s enregistrements sur %(records)s."
+
+msgid "Your computer's clock is off by %(minutes)s minutes."
+msgstr "L'horloge de votre ordinateur est décalée de %(minutes)s minutes."
+
+msgid "The server sent an unreadable response."
+msgstr "Le serveur a envoyé une réponse illisible."
+
+msgid "This server uses data shapes this app doesn't know."
+msgstr "Ce serveur utilise des structures de données que cette app ne connaît pas."
+
+msgid "The server sent a record this app can't import."
+msgstr "Le serveur a envoyé un enregistrement que cette app ne peut pas importer."
+
+msgid "A session record can't be matched."
+msgstr "Un enregistrement de session ne peut pas être mis en correspondance."
+
+msgid "A file reference in the sync is invalid."
+msgstr "Une référence de fichier dans la synchronisation est invalide."
+
+msgid "A file is too large to sync."
+msgstr "Un fichier est trop volumineux pour être synchronisé."
+
+msgid "A file failed its checksum."
+msgstr "La somme de contrôle d'un fichier a échoué."
+
+msgid "Not enough disk space."
+msgstr "Espace disque insuffisant."
+
+msgid "Could not reach the server."
+msgstr "Impossible de joindre le serveur."
+
+msgid "The sync failed unexpectedly."
+msgstr "La synchronisation a échoué de manière inattendue."
+
+msgid "The last sync was interrupted. Run Sync now to finish."
+msgstr "La dernière synchronisation a été interrompue. Lancez « Synchroniser maintenant » pour la terminer."
+
+msgid "Type REPLACE to continue."
+msgstr "Saisissez REPLACE pour continuer."
+
+msgid "Sync failed (%(code)s)."
+msgstr "Échec de la synchronisation (%(code)s)."
+
+msgid "Server URL and token are required."
+msgstr "L'URL du serveur et le jeton sont requis."
+
+msgid "This URL is not a valid sync server address."
+msgstr "Cette URL n'est pas une adresse de serveur de synchronisation valide."
+
+msgid "Connected over an insecure connection — the token travels in the clear on this network."
+msgstr "Connecté via une connexion non sécurisée — le jeton circule en clair sur ce réseau."
+
+msgid "Connected to %(account)s."
+msgstr "Connecté à %(account)s."
+
+msgid "Disconnected."
+msgstr "Déconnecté."
+
+msgid "Sync cancelled."
+msgstr "Synchronisation annulée."
+
+msgid "Nova – Sync"
+msgstr "Nova – Sync"
+
+msgid "Use this Nova as a server"
+msgstr "Utiliser ce Nova comme serveur"
+
+msgid "Sync with a server"
+msgstr "Synchroniser avec un serveur"
+
+msgid "Connect this Nova to another instance to download or sync your data."
+msgstr "Connectez ce Nova à une autre instance pour télécharger ou synchroniser vos données."
+
+msgid "Syncing…"
+msgstr "Synchronisation…"
+
+msgid "Download from server"
+msgstr "Télécharger depuis le serveur"
+
+msgid "Server records"
+msgstr "Enregistrements du serveur"
+
+msgid "Local records"
+msgstr "Enregistrements locaux"
+
+msgid "Unsynced local changes"
+msgstr "Modifications locales non synchronisées"
+
+msgid "Files to download"
+msgstr "Fichiers à télécharger"
+
+msgid "Files that will be moved aside"
+msgstr "Fichiers qui seront déplacés de côté"
+
+msgid "Sync summary"
+msgstr "Résumé de la synchronisation"
+
+msgid "Up"
+msgstr "Envoi"
+
+msgid "Down"
+msgstr "Réception"
+
+msgid "Abort"
+msgstr "Annuler"
+
+msgid "This sync will delete a large number of records."
+msgstr "Cette synchronisation supprimera un grand nombre d'enregistrements."
+
+msgid "Connected to"
+msgstr "Connecté à"
+
+msgid "Last synced"
+msgstr "Dernière synchronisation"
+
+msgid "Needs download"
+msgstr "Téléchargement requis"
+
+msgid "Sync now"
+msgstr "Synchroniser maintenant"
+
+msgid "Disconnect"
+msgstr "Déconnecter"
+
+msgid "Disconnect from this server?"
+msgstr "Se déconnecter de ce serveur ?"
+
+msgid "Server URL"
+msgstr "URL du serveur"
+
+msgid "Sync token"
+msgstr "Jeton de synchronisation"
+
+msgid "Connect"
+msgstr "Se connecter"
+
+msgid "Enter the server URL and a sync token created there."
+msgstr "Saisissez l'URL du serveur et un jeton de synchronisation créé là-bas."
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Suggestions de rafraîchissement"
 

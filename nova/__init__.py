@@ -142,6 +142,7 @@ from nova.helpers import (
     get_db, get_user_log_string, allowed_file, _yaml_dump_pretty,
     is_valid_username,
     _mkdirp, _backup_with_rotation, _atomic_write_yaml, _FileLock,
+    write_file_atomic,
     try_acquire_file_lock, release_file_lock,
     to_yaml_filter, safe_float, safe_int, convert_to_native_python,
     load_effective_settings,
@@ -3231,7 +3232,7 @@ def _handle_project_image_upload(file_object, project_id: str, username: str, ex
             # A write to a live name invalidates any thumbnail of the bytes it
             # replaces (correction D); a fresh one is built below.
             remove_thumbnail(new_image_path)
-            file_object.save(new_image_path)
+            write_file_atomic(new_image_path, lambda p: file_object.save(p))
 
             # Best-effort thumbnail generation — must not fail the request
             # or affect the original upload if it errors (corrupt image,
@@ -3242,11 +3243,11 @@ def _handle_project_image_upload(file_object, project_id: str, username: str, ex
                 with Image.open(saved_image_path) as img:
                     img.thumbnail((480, 480))
                     if file_extension in ('jpg', 'jpeg'):
-                        img.save(thumb_path, quality=85)
+                        write_file_atomic(thumb_path, lambda p: img.save(p, quality=85))
                     elif file_extension == 'png':
-                        img.save(thumb_path, optimize=True)
+                        write_file_atomic(thumb_path, lambda p: img.save(p, optimize=True))
                     else:
-                        img.save(thumb_path)
+                        write_file_atomic(thumb_path, lambda p: img.save(p))
             except Exception as thumb_err:
                 current_app.logger.warning(
                     f"Failed to generate thumbnail for project image '{new_filename}': {thumb_err}"

@@ -7734,6 +7734,180 @@ msgstr "そのトークンは存在しません。"
 msgid "This token was already created. For security it can't be shown again — revoke it and create a new one if you didn't copy it."
 msgstr "このトークンはすでに作成されています。セキュリティ上の理由により再表示できません。コピーしていない場合は、失効させて新しいトークンを作成してください。"
 
+msgid "This app and the server speak different sync versions. Update one of them."
+msgstr "このアプリとサーバーの同期バージョンが異なります。どちらかを更新してください。"
+
+msgid "The sync token was rejected."
+msgstr "同期トークンが拒否されました。"
+
+msgid "This token has been revoked."
+msgstr "このトークンは失効しています。"
+
+msgid "The guest account can't sync."
+msgstr "ゲストアカウントは同期できません。"
+
+msgid "Not connected to a server."
+msgstr "サーバーに接続されていません。"
+
+msgid "Download from the server first."
+msgstr "先にサーバーからダウンロードしてください。"
+
+msgid "This server has no data yet — import your YAML files there first."
+msgstr "このサーバーにはまだデータがありません。先にそこで YAML ファイルをインポートしてください。"
+
+msgid "Local data was replaced from a YAML import."
+msgstr "ローカルデータが YAML インポートによって置き換えられました。"
+
+msgid "The server's data was replaced from a YAML import."
+msgstr "サーバーのデータが YAML インポートによって置き換えられました。"
+
+msgid "A sync is already running."
+msgstr "同期はすでに実行中です。"
+
+msgid "The data changed during sync — retrying."
+msgstr "同期中にデータが変更されました。再試行します。"
+
+msgid "This sync would delete %(deletions)s of %(records)s records."
+msgstr "この同期は %(records)s 件中 %(deletions)s 件のレコードを削除します。"
+
+msgid "Your computer's clock is off by %(minutes)s minutes."
+msgstr "コンピューターの時計が %(minutes)s 分ずれています。"
+
+msgid "The server sent an unreadable response."
+msgstr "サーバーから読み取れない応答が返されました。"
+
+msgid "This server uses data shapes this app doesn't know."
+msgstr "このサーバーはこのアプリが認識しないデータ形式を使用しています。"
+
+msgid "The server sent a record this app can't import."
+msgstr "サーバーはこのアプリがインポートできないレコードを送信しました。"
+
+msgid "A session record can't be matched."
+msgstr "セッションレコードを照合できません。"
+
+msgid "A file reference in the sync is invalid."
+msgstr "同期内のファイル参照が無効です。"
+
+msgid "A file is too large to sync."
+msgstr "ファイルが大きすぎて同期できません。"
+
+msgid "A file failed its checksum."
+msgstr "ファイルのチェックサムが一致しませんでした。"
+
+msgid "Not enough disk space."
+msgstr "ディスク容量が不足しています。"
+
+msgid "Could not reach the server."
+msgstr "サーバーに接続できませんでした。"
+
+msgid "The sync failed unexpectedly."
+msgstr "同期が予期せず失敗しました。"
+
+msgid "The last sync was interrupted. Run Sync now to finish."
+msgstr "前回の同期が中断されました。完了するには「今すぐ同期」を実行してください。"
+
+msgid "Type REPLACE to continue."
+msgstr "続行するには「REPLACE」と入力してください。"
+
+msgid "Sync failed (%(code)s)."
+msgstr "同期に失敗しました（%(code)s）。"
+
+msgid "Server URL and token are required."
+msgstr "サーバー URL とトークンが必要です。"
+
+msgid "This URL is not a valid sync server address."
+msgstr "この URL は有効な同期サーバーアドレスではありません。"
+
+msgid "Connected over an insecure connection — the token travels in the clear on this network."
+msgstr "安全でない接続で接続されています。トークンはこのネットワーク上で平文で送信されます。"
+
+msgid "Connected to %(account)s."
+msgstr "%(account)s に接続しました。"
+
+msgid "Disconnected."
+msgstr "切断しました。"
+
+msgid "Sync cancelled."
+msgstr "同期をキャンセルしました。"
+
+msgid "Nova – Sync"
+msgstr "Nova – 同期"
+
+msgid "Use this Nova as a server"
+msgstr "この Nova をサーバーとして使用"
+
+msgid "Sync with a server"
+msgstr "サーバーと同期"
+
+msgid "Connect this Nova to another instance to download or sync your data."
+msgstr "この Nova を別のインスタンスに接続して、データをダウンロードまたは同期します。"
+
+msgid "Syncing…"
+msgstr "同期中…"
+
+msgid "Download from server"
+msgstr "サーバーからダウンロード"
+
+msgid "Server records"
+msgstr "サーバーのレコード"
+
+msgid "Local records"
+msgstr "ローカルのレコード"
+
+msgid "Unsynced local changes"
+msgstr "未同期のローカル変更"
+
+msgid "Files to download"
+msgstr "ダウンロードするファイル"
+
+msgid "Files that will be moved aside"
+msgstr "退避されるファイル"
+
+msgid "Sync summary"
+msgstr "同期の概要"
+
+msgid "Up"
+msgstr "送信"
+
+msgid "Down"
+msgstr "受信"
+
+msgid "Abort"
+msgstr "中止"
+
+msgid "This sync will delete a large number of records."
+msgstr "この同期は多数のレコードを削除します。"
+
+msgid "Connected to"
+msgstr "接続先:"
+
+msgid "Last synced"
+msgstr "最終同期"
+
+msgid "Needs download"
+msgstr "ダウンロードが必要"
+
+msgid "Sync now"
+msgstr "今すぐ同期"
+
+msgid "Disconnect"
+msgstr "切断"
+
+msgid "Disconnect from this server?"
+msgstr "このサーバーから切断しますか？"
+
+msgid "Server URL"
+msgstr "サーバー URL"
+
+msgid "Sync token"
+msgstr "同期トークン"
+
+msgid "Connect"
+msgstr "接続"
+
+msgid "Enter the server URL and a sync token created there."
+msgstr "サーバー URL と、そこで作成した同期トークンを入力してください。"
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "更新提案"
 

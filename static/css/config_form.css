@@ -1749,3 +1749,45 @@
       border-radius: 4px;
       margin-left: 8px;
     }
+
+/* --- Instance sync: connect / progress / summary --- */
+.sync-progress-track {
+  height: 6px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 8px 0;
+}
+.sync-progress-fill {
+  height: 100%;
+  background: var(--primary-color);
+  width: 0;
+  transition: width 0.4s ease;
+}
+.sync-summary ul {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+}
+.sync-summary li {
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 2px 0;
+}
+.sync-summary-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.sync-error {
+  border: 1px solid rgba(180, 60, 60, 0.18);
+  background: rgba(180, 60, 60, 0.08);
+  color: #a04040;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin: 10px 0;
+  font-size: 13px;
+}
+[data-theme="dark"] .sync-error {
+  color: #d06060;
+}

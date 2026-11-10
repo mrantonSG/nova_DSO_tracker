@@ -1133,9 +1133,15 @@ def _slot_ref(model: type, row, slot: str, role: str, user,
     """The ref one FILE column of `row` carries (photo, project image, log)."""
     key = row_key(model, row)
     value = getattr(row, slot, None)
-    if not value:
+    if value is None:
         return FileRef(role=role, table=model.__tablename__, key=key, slot=slot,
                        missing=True, reason=SKIP_MISSING)
+    if value == "":
+        # FILE_REMOVED: the slot was deliberately emptied. That is "no file",
+        # not "a file that failed to resolve", so it must not be listed as
+        # missing_on_sender in skipped_files.
+        return FileRef(role=role, table=model.__tablename__, key=key, slot=slot,
+                       sha256="", missing=False)
     if role == ROLE_SESSION_LOG:
         # Path form and raw-content form both end up as bytes on the wire: a
         # raw content value is a legacy row and is read as its own text.

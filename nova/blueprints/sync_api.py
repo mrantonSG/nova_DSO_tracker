@@ -17,6 +17,7 @@ the upload is refused as plan_stale instead of overwriting the newer edit.
 from __future__ import annotations
 
 import hashlib
+import os
 import uuid
 from datetime import timedelta
 from functools import wraps
@@ -287,6 +288,39 @@ def _page_rows(db, model, user_id: int, after_id: int, limit: int) -> list:
         .order_by(model.id).limit(limit)))
 
 
+def _file_response(path: str) -> Response:
+    """Serve `path`, honouring a single byte Range even though this is POST.
+
+    Werkzeug's ``send_file(conditional=True)`` only applies Range to GET/HEAD,
+    and every sync endpoint is POST (token auth). The client resumes a dropped
+    download with a ``Range: bytes=N-`` header, so it is handled here by hand:
+    one open-ended or closed range is answered 206, anything else falls back to
+    the full file.
+    """
+    try:
+        size = os.path.getsize(path)
+    except OSError:
+        size = 0
+    rng = request.range
+    ranges = list(getattr(rng, "ranges", []) or []) if rng is not None else []
+    if getattr(rng, "units", "") == "bytes" and len(ranges) == 1:
+        start, end = ranges[0]
+        start = 0 if start is None else int(start)
+        end = size - 1 if end is None else int(end)
+        if start >= size:
+            return Response(status=416, headers={"Content-Range": f"bytes */{size}"})
+        end = max(start, min(end, size - 1))
+        length = end - start + 1
+        with open(path, "rb") as handle:
+            handle.seek(start)
+            data = handle.read(length)
+        return Response(data, status=206,
+                        headers={"Content-Range": f"bytes {start}-{end}/{size}",
+                                 "Content-Length": str(length),
+                                 "Accept-Ranges": "bytes"})
+    return send_file(path, conditional=True)
+
+
 # --- Pull: one file -----------------------------------------------------------
 
 @sync_api_bp.route('/api/sync/v1/file', methods=['POST'])
@@ -329,7 +363,7 @@ def fetch_file() -> Response:
             return _refuse(Refusal(REFUSAL_BAD_FILE_REF,
                                    {"table": table, "key": key, "slot": slot,
                                     "reason": "not_on_disk"}), 404)
-        response = send_file(path, conditional=True)
+        response = _file_response(path)
         response.headers["X-Nova-Sha256"] = ref.sha256
     response.headers[PROTOCOL_HEADER] = str(PROTOCOL_VERSION)
     return response

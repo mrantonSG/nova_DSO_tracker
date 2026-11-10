@@ -459,6 +459,44 @@ def _atomic_write_yaml(path: str, data: dict):
             pass
 
 
+def write_file_atomic(path: str, writer) -> None:
+    """Write `path` atomically: writer(tmp) then fsync + os.replace.
+
+    A file written this way never mutates its previous inode, so a hard-link
+    snapshot taken before the write still holds the old bytes — instance sync's
+    backup relies on exactly this (its snapshot hard-links uploads/ and logs/,
+    and placement elsewhere uses os.replace, so a replaced file keeps its old
+    inode under the backup link).
+
+    `writer` receives the temporary path and must write the full contents there
+    (e.g. ``lambda p: file.save(p)`` for a Werkzeug FileStorage, or
+    ``lambda p: img.save(p, quality=85)`` for a PIL Image).
+    """
+    directory = os.path.dirname(path) or "."
+    os.makedirs(directory, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(prefix=".tmp_", dir=directory)
+    os.close(fd)
+    try:
+        writer(tmp)
+        # Flush the file to disk before it is renamed into place.
+        try:
+            handle = os.open(tmp, os.O_RDONLY)
+            try:
+                os.fsync(handle)
+            finally:
+                os.close(handle)
+        except OSError:
+            pass
+        os.replace(tmp, path)  # atomic on POSIX
+    except Exception:
+        try:
+            if os.path.exists(tmp):
+                os.remove(tmp)
+        except Exception:
+            pass
+        raise
+
+
 class _FileLock:
     """Simple advisory lock; no-ops if fcntl is unavailable."""
     def __init__(self, path: str):
@@ -578,8 +616,7 @@ def save_log_to_filesystem(session_id: int, log_type: str, content: str, origina
     else:
         raise ValueError(f"Unknown log_type: {log_type}")
 
-    with open(filepath, 'w', encoding='utf-8', errors='ignore') as f:
-        f.write(content)
+    write_file_atomic(filepath, lambda p: open(p, 'w', encoding='utf-8', errors='ignore').write(content))
 
     # Return path relative to instance/
     return os.path.join('instance', 'logs', log_type, filename)
@@ -1905,6 +1942,11 @@ def purge_user_app_data(username: str, dry_run: bool = True) -> dict:
         sync_backups = os.path.join(BACKUP_DIR, "sync")
         candidates.append((os.path.join(sync_backups, str(user_id)), sync_backups))
         candidates.append((os.path.join(CACHE_DIR, f"sync_push_{user_id}.json"), CACHE_DIR))
+        # Local-side client state: the two-phase job and its stored artifacts
+        # (instance/sync_jobs/<id>/). Spelled out rather than imported to avoid
+        # a circular import.
+        candidates.append((os.path.join(INSTANCE_PATH, "sync_jobs", str(user_id)),
+                           os.path.join(INSTANCE_PATH, "sync_jobs")))
     for name in (f"config_{username}.yaml", f"journal_{username}.yaml", f"rigs_{username}.yaml"):
         candidates.append((os.path.join(CONFIG_DIR, name), CONFIG_DIR))
 

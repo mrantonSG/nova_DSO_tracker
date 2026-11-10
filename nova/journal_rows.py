@@ -19,6 +19,7 @@ from flask import current_app, url_for
 from PIL import Image
 
 from nova.config import UPLOAD_FOLDER
+from nova.helpers import write_file_atomic
 from nova.models import AstroObject, JournalSession, Project, session_projects
 
 
@@ -142,11 +143,11 @@ def session_image_url(username, session_image_file):
                     with Image.open(session_original_path) as session_img:
                         session_img.thumbnail((480, 480))
                         if session_file_extension in ('jpg', 'jpeg'):
-                            session_img.save(session_thumb_path, quality=85)
+                            write_file_atomic(session_thumb_path, lambda p: session_img.save(p, quality=85))
                         elif session_file_extension == 'png':
-                            session_img.save(session_thumb_path, optimize=True)
+                            write_file_atomic(session_thumb_path, lambda p: session_img.save(p, optimize=True))
                         else:
-                            session_img.save(session_thumb_path)
+                            write_file_atomic(session_thumb_path, lambda p: session_img.save(p))
                     session_image_filename = session_thumb_filename
             except Exception as session_thumb_err:
                 current_app.logger.warning(

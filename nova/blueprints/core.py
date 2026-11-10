@@ -73,6 +73,7 @@ from nova.helpers import (
     invalidate_object_caches,
     try_acquire_file_lock,
     release_file_lock,
+    write_file_atomic,
 )
 from nova.grs import maybe_refresh_grs, read_grs_value
 from nova.models import (
@@ -1684,11 +1685,11 @@ def index():
                         with Image.open(project_original_path) as project_img:
                             project_img.thumbnail((480, 480))
                             if project_file_extension in ('jpg', 'jpeg'):
-                                project_img.save(project_thumb_path, quality=85)
+                                write_file_atomic(project_thumb_path, lambda p: project_img.save(p, quality=85))
                             elif project_file_extension == 'png':
-                                project_img.save(project_thumb_path, optimize=True)
+                                write_file_atomic(project_thumb_path, lambda p: project_img.save(p, optimize=True))
                             else:
-                                project_img.save(project_thumb_path)
+                                write_file_atomic(project_thumb_path, lambda p: project_img.save(p))
                         project_image_filename = project_thumb_filename
                 except Exception as project_thumb_err:
                     current_app.logger.warning(

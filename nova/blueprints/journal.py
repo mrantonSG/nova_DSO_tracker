@@ -45,7 +45,7 @@ from nova.record_links import (
 from nova.helpers import (
     get_db, allowed_file, safe_float, safe_int,
     save_log_to_filesystem, read_log_content, dither_display,
-    remove_thumbnail,
+    remove_thumbnail, write_file_atomic,
     # Moved from nova.__init__ for clean imports
     load_full_astro_context, generate_session_id,
     _compute_rig_metrics_from_components, get_ra_dec, invalidate_object_caches,
@@ -324,7 +324,7 @@ def journal_add():
                             # A photo written to a live name invalidates the
                             # thumbnail of the bytes it replaces (correction D).
                             remove_thumbnail(safe_image_path)
-                            file.save(safe_image_path)
+                            write_file_atomic(safe_image_path, lambda p: file.save(p))
                             new_session.session_image_file = new_filename
                             mark_file_changed(new_session, "session_image_file")
 
@@ -336,11 +336,11 @@ def journal_add():
                                 with Image.open(safe_image_path) as img:
                                     img.thumbnail((480, 480))
                                     if file_extension in ('jpg', 'jpeg'):
-                                        img.save(thumb_path, quality=85)
+                                        write_file_atomic(thumb_path, lambda p: img.save(p, quality=85))
                                     elif file_extension == 'png':
-                                        img.save(thumb_path, optimize=True)
+                                        write_file_atomic(thumb_path, lambda p: img.save(p, optimize=True))
                                     else:
-                                        img.save(thumb_path)
+                                        write_file_atomic(thumb_path, lambda p: img.save(p))
                             except Exception as thumb_err:
                                 current_app.logger.warning(
                                     f"[JOURNAL] Failed to generate thumbnail for session image '{new_filename}': {thumb_err}"
@@ -738,7 +738,7 @@ def journal_edit(session_id):
                             # changes no column: the stale thumbnail goes and
                             # the record is stamped by hand (corrections A, D).
                             remove_thumbnail(safe_image_path)
-                            file.save(safe_image_path)
+                            write_file_atomic(safe_image_path, lambda p: file.save(p))
                             session_to_edit.session_image_file = new_filename
                             mark_file_changed(session_to_edit, "session_image_file")
 

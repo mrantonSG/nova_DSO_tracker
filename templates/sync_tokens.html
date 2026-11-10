@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}{{ _('Nova – Sync Tokens') }}{% endblock %}
-{% from "macros.html" import flash_messages %}
+{% block title %}{{ _('Nova – Sync') }}{% endblock %}
+{% from "macros.html" import flash_messages, help_badge %}
 
 {% block head_extra %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/config_form.css') }}?v={{ version }}">
@@ -8,7 +8,7 @@
 {% endblock %}
 
 {% block page_title %}
-    <h2>{{ _('Sync Tokens') }} <span class="subtitle">({{ _('Instance Sync') }})</span></h2>
+    <h2>{{ _('Instance Sync') }}</h2>
 {% endblock %}
 
 {% block header_actions %}
@@ -21,7 +21,7 @@
 
   <div class="container">
     <div class="column">
-      <h2>{{ _('Sync Tokens') }}</h2>
+      <h2>{{ _('Use this Nova as a server') }} {{ help_badge('sync') }}</h2>
       <p style="font-size:14px; color: var(--text-secondary);">
         {{ _('Pair another Nova instance with this server. Each instance needs its own token.') }}
       </p>
@@ -34,10 +34,6 @@
             <code id="sync-new-token" style="font-family: var(--font-mono, monospace); font-size: 12px; word-break: break-all; color: var(--text-primary);">{{ new_token }}</code>
           </div>
           <div class="item-actions" style="margin-top: 10px;">
-            <!-- .column button (config_form.css) is 0,1,1 and would repaint the
-                 ghost class as a filled primary button. .form-actions
-                 button[type="button"] (nova-theme.css) is 0,2,1 and carries the
-                 ghost styling, so this wrapper is what makes the ghost win. -->
             <div class="form-actions">
               <button type="button" class="inline-button-ghost" id="sync-copy-btn"
                       data-copied="{{ _('Copied!') }}" onclick="copySyncToken()">{{ _('Copy') }}</button>
@@ -98,12 +94,130 @@
       </div>
       {% endif %}
     </div>
+
+    {% if sync_view.enabled %}
+    <div class="column">
+      <h2>{{ _('Sync with a server') }} {{ help_badge('sync') }}</h2>
+      <p style="font-size:14px; color: var(--text-secondary);">
+        {{ _('Connect this Nova to another instance to download or sync your data.') }}
+      </p>
+
+      {% if sync_view.job and sync_view.job.phase in ('queued', 'planning', 'backup', 'upload', 'download_files', 'applying') %}
+        <div class="sync-progress" id="sync-progress" data-poll="1">
+          <p>{{ _('Syncing…') }} <span id="sync-progress-pct"></span></p>
+          <div class="sync-progress-track"><div class="sync-progress-fill" id="sync-progress-fill"></div></div>
+        </div>
+      {% elif sync_view.job and sync_view.job.phase == 'awaiting_confirmation' %}
+        {% set s = sync_view.job.summary %}
+        <div class="sync-summary">
+          {% if s.kind == 'download' %}
+            <h3>{{ _('Download from server') }}</h3>
+            <ul>
+              <li>{{ _('Server records') }}: <strong>{{ s.server_counts.values() | sum }}</strong></li>
+              <li>{{ _('Local records') }}: <strong>{{ s.local_counts.values() | sum }}</strong></li>
+              {% if s.unsynced_local_changes %}
+                <li>{{ _('Unsynced local changes') }}: <strong>{{ s.unsynced_local_changes }}</strong></li>
+              {% endif %}
+              <li>{{ _('Files to download') }}: <strong>{{ s.files.incoming }}</strong> ({{ s.files.bytes | filesizeformat }})</li>
+              {% if s.files.replaced %}
+                <li>{{ _('Files that will be moved aside') }}: <strong>{{ s.files.replaced }}</strong></li>
+              {% endif %}
+            </ul>
+            <form method="post" action="{{ url_for('sync.confirm') }}" id="sync-confirm-form" data-replace="{{ '1' if s.requires_replace_typed else '0' }}">
+              {% if s.requires_replace_typed %}
+                <div class="form-group">
+                  <label for="sync-replace-input">{{ _('Type REPLACE to continue') }}</label>
+                  <input type="text" id="sync-replace-input" name="replace_confirmed" autocomplete="off" data-expected="REPLACE">
+                </div>
+              {% endif %}
+              <div class="sync-summary-actions">
+                <button type="submit" class="action-button" id="sync-apply-btn">{{ _('Apply') }}</button>
+                <button type="button" class="btn-secondary" onclick="document.getElementById('sync-abort-form').submit()">{{ _('Abort') }}</button>
+              </div>
+            </form>
+          {% else %}
+            <h3>{{ _('Sync summary') }}</h3>
+            <ul>
+              <li>{{ _('Up') }}: <strong>{{ s.up.created }}</strong> / <strong>{{ s.up.updated }}</strong> / <strong>{{ s.up.deleted }}</strong></li>
+              <li>{{ _('Down') }}: <strong>{{ s.down.created }}</strong> / <strong>{{ s.down.updated }}</strong> / <strong>{{ s.down.deleted }}</strong></li>
+            </ul>
+            <form method="post" action="{{ url_for('sync.confirm') }}" id="sync-confirm-form" data-mass-delete="{{ '1' if s.mass_delete else '0' }}">
+              <input type="hidden" name="allow_mass_delete" value="0" id="sync-mass-delete-field">
+              <div class="sync-summary-actions">
+                <button type="submit" class="action-button" id="sync-apply-btn">{{ _('Apply') }}</button>
+                <button type="button" class="btn-secondary" onclick="document.getElementById('sync-abort-form').submit()">{{ _('Abort') }}</button>
+              </div>
+            </form>
+          {% endif %}
+        </div>
+      {% elif sync_view.error_message %}
+        <div class="sync-error">
+          <p>{{ sync_view.error_message }}</p>
+          <button type="button" class="inline-button-ghost" onclick="document.getElementById('sync-abort-form').submit()">{{ _('Dismiss') }}</button>
+        </div>
+      {% endif %}
+
+      {% if sync_view.paired %}
+      <ul>
+        <li>
+          <div class="item-info">
+            <strong>{{ _('Connected to') }} {{ sync_view.server_account or '—' }}</strong><br>
+            <span style="font-size:12px; color: var(--text-muted);">{{ sync_view.server_url }}</span><br>
+            <span style="font-size:12px; color: var(--text-muted);">
+              {% if sync_view.last_sync_at %}
+                {{ _('Last synced') }} {{ sync_view.last_sync_at.strftime('%Y-%m-%d %H:%M') }}
+              {% else %}
+                {{ _('Needs download') }}
+              {% endif %}
+            </span>
+          </div>
+          <div class="item-actions">
+            {% if sync_view.needs_download %}
+              <form method="post" action="{{ url_for('sync.download') }}" style="display:inline; margin:0;">
+                <button type="submit" class="action-button">{{ _('Download from server') }}</button>
+              </form>
+              <button type="button" class="inline-button-ghost" disabled title="{{ _('Download from the server first.') }}">{{ _('Sync now') }}</button>
+            {% else %}
+              <form method="post" action="{{ url_for('sync.sync_now') }}" style="display:inline; margin:0;">
+                <button type="submit" class="action-button">{{ _('Sync now') }}</button>
+              </form>
+              <form method="post" action="{{ url_for('sync.download') }}" style="display:inline; margin:0;">
+                <button type="submit" class="inline-button-ghost">{{ _('Download from server') }}</button>
+              </form>
+            {% endif %}
+            <form method="post" action="{{ url_for('sync.disconnect') }}" style="display:inline; margin:0;"
+                  data-confirm="{{ _('Disconnect from this server?') }}">
+              <button type="submit" class="inline-button-danger">{{ _('Disconnect') }}</button>
+            </form>
+          </div>
+        </li>
+      </ul>
+      {% else %}
+      <form method="post" action="{{ url_for('sync.connect') }}" id="sync-connect-form">
+        <div class="form-group">
+          <label for="sync-server-url">{{ _('Server URL') }}</label>
+          <input type="text" id="sync-server-url" name="server_url" value="{{ default_server_url }}" required>
+        </div>
+        <div class="form-group">
+          <label for="sync-token">{{ _('Sync token') }}</label>
+          <input type="password" id="sync-token" name="token" required>
+        </div>
+        <button type="submit" class="action-button">{{ _('Connect') }}</button>
+      </form>
+      <div class="gallery-empty-state">
+        <div class="gallery-empty-icon">&#128279;</div>
+        <p>{{ _('Not connected to a server.') }}</p>
+        <p style="font-size:13px;">{{ _('Enter the server URL and a sync token created there.') }}</p>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
   </div>
+
+  <form method="post" action="{{ url_for('sync.abort_confirm') }}" id="sync-abort-form" style="display:none"></form>
 
   <script>
     function legacyCopySyncToken(text) {
-      // navigator.clipboard is undefined on non-HTTPS, which is how most
-      // self-hosted instances are reached, so the fallback is the common path.
       try {
         var area = document.createElement('textarea');
         area.value = text;
@@ -144,6 +258,60 @@
       }
       if (legacyCopySyncToken(text)) { copied(); } else { failed(new Error('execCommand copy returned false')); }
     }
+
+    (function () {
+      'use strict';
+
+      // Typed REPLACE: enable Apply only once the input matches.
+      var replaceInput = document.getElementById('sync-replace-input');
+      var replaceForm = document.getElementById('sync-confirm-form');
+      if (replaceInput && replaceForm) {
+        var applyBtn = document.getElementById('sync-apply-btn');
+        var expected = replaceInput.dataset.expected || 'REPLACE';
+        var check = function () { applyBtn.disabled = replaceInput.value.trim() !== expected; };
+        check();
+        replaceInput.addEventListener('input', check);
+      }
+
+      // Mass-delete confirm on Apply.
+      if (replaceForm && replaceForm.dataset.massDelete === '1') {
+        var massApplyBtn = document.getElementById('sync-apply-btn');
+        massApplyBtn.addEventListener('click', function (e) {
+          e.preventDefault();
+          window.novaConfirm({{ _('This sync will delete a large number of records.') | tojson }},
+            { danger: true, confirmLabel: {{ _('Apply') | tojson }}, cancelLabel: {{ _('Abort') | tojson }} })
+            .then(function (ok) {
+              if (ok) {
+                document.getElementById('sync-mass-delete-field').value = '1';
+                replaceForm.submit();
+              }
+            });
+        });
+      }
+
+      // Poll a running job and reload once it leaves the running phases.
+      var progress = document.getElementById('sync-progress');
+      if (progress) {
+        var fill = document.getElementById('sync-progress-fill');
+        var pct = document.getElementById('sync-progress-pct');
+        var poll = function () {
+          fetch('{{ url_for('sync.job') }}', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (job) {
+              if (job.running) {
+                var p = Math.round((job.progress || 0) * 100);
+                fill.style.width = p + '%';
+                pct.textContent = p + '%';
+                setTimeout(poll, 1200);
+              } else {
+                location.reload();
+              }
+            })
+            .catch(function () { setTimeout(poll, 2500); });
+        };
+        poll();
+      }
+    })();
   </script>
 
 {% endblock %}

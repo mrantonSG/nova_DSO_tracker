@@ -7716,6 +7716,180 @@ msgstr "该令牌已不存在。"
 msgid "This token was already created. For security it can't be shown again — revoke it and create a new one if you didn't copy it."
 msgstr "此令牌已创建。出于安全考虑，它无法再次显示——如果你没有复制它，请撤销并创建一个新的。"
 
+msgid "This app and the server speak different sync versions. Update one of them."
+msgstr "此应用与服务器的同步版本不同。请更新其中之一。"
+
+msgid "The sync token was rejected."
+msgstr "同步令牌被拒绝。"
+
+msgid "This token has been revoked."
+msgstr "此令牌已被撤销。"
+
+msgid "The guest account can't sync."
+msgstr "访客账户无法同步。"
+
+msgid "Not connected to a server."
+msgstr "未连接到服务器。"
+
+msgid "Download from the server first."
+msgstr "请先从服务器下载。"
+
+msgid "This server has no data yet — import your YAML files there first."
+msgstr "此服务器还没有数据——请先在那里导入你的 YAML 文件。"
+
+msgid "Local data was replaced from a YAML import."
+msgstr "本地数据已通过 YAML 导入被替换。"
+
+msgid "The server's data was replaced from a YAML import."
+msgstr "服务器的数据已通过 YAML 导入被替换。"
+
+msgid "A sync is already running."
+msgstr "已有同步正在进行。"
+
+msgid "The data changed during sync — retrying."
+msgstr "同步期间数据发生了变化——正在重试。"
+
+msgid "This sync would delete %(deletions)s of %(records)s records."
+msgstr "此同步将删除 %(records)s 条记录中的 %(deletions)s 条。"
+
+msgid "Your computer's clock is off by %(minutes)s minutes."
+msgstr "你的电脑时钟偏差了 %(minutes)s 分钟。"
+
+msgid "The server sent an unreadable response."
+msgstr "服务器返回了无法读取的响应。"
+
+msgid "This server uses data shapes this app doesn't know."
+msgstr "此服务器使用了此应用无法识别的数据结构。"
+
+msgid "The server sent a record this app can't import."
+msgstr "服务器发送了一条此应用无法导入的记录。"
+
+msgid "A session record can't be matched."
+msgstr "无法匹配会话记录。"
+
+msgid "A file reference in the sync is invalid."
+msgstr "同步中的文件引用无效。"
+
+msgid "A file is too large to sync."
+msgstr "文件太大，无法同步。"
+
+msgid "A file failed its checksum."
+msgstr "文件校验和校验失败。"
+
+msgid "Not enough disk space."
+msgstr "磁盘空间不足。"
+
+msgid "Could not reach the server."
+msgstr "无法连接到服务器。"
+
+msgid "The sync failed unexpectedly."
+msgstr "同步意外失败。"
+
+msgid "The last sync was interrupted. Run Sync now to finish."
+msgstr "上次同步被中断。请运行“立即同步”以完成。"
+
+msgid "Type REPLACE to continue."
+msgstr "输入 REPLACE 以继续。"
+
+msgid "Sync failed (%(code)s)."
+msgstr "同步失败（%(code)s）。"
+
+msgid "Server URL and token are required."
+msgstr "服务器 URL 和令牌为必填项。"
+
+msgid "This URL is not a valid sync server address."
+msgstr "此 URL 不是有效的同步服务器地址。"
+
+msgid "Connected over an insecure connection — the token travels in the clear on this network."
+msgstr "已通过不安全的连接连接——令牌在此网络上以明文传输。"
+
+msgid "Connected to %(account)s."
+msgstr "已连接到 %(account)s。"
+
+msgid "Disconnected."
+msgstr "已断开连接。"
+
+msgid "Sync cancelled."
+msgstr "同步已取消。"
+
+msgid "Nova – Sync"
+msgstr "Nova – 同步"
+
+msgid "Use this Nova as a server"
+msgstr "将此 Nova 用作服务器"
+
+msgid "Sync with a server"
+msgstr "与服务器同步"
+
+msgid "Connect this Nova to another instance to download or sync your data."
+msgstr "将此 Nova 连接到另一实例以下载或同步你的数据。"
+
+msgid "Syncing…"
+msgstr "同步中…"
+
+msgid "Download from server"
+msgstr "从服务器下载"
+
+msgid "Server records"
+msgstr "服务器记录"
+
+msgid "Local records"
+msgstr "本地记录"
+
+msgid "Unsynced local changes"
+msgstr "未同步的本地更改"
+
+msgid "Files to download"
+msgstr "要下载的文件"
+
+msgid "Files that will be moved aside"
+msgstr "将被移开的文件"
+
+msgid "Sync summary"
+msgstr "同步摘要"
+
+msgid "Up"
+msgstr "上传"
+
+msgid "Down"
+msgstr "下载"
+
+msgid "Abort"
+msgstr "中止"
+
+msgid "This sync will delete a large number of records."
+msgstr "此同步将删除大量记录。"
+
+msgid "Connected to"
+msgstr "已连接到"
+
+msgid "Last synced"
+msgstr "上次同步"
+
+msgid "Needs download"
+msgstr "需要下载"
+
+msgid "Sync now"
+msgstr "立即同步"
+
+msgid "Disconnect"
+msgstr "断开连接"
+
+msgid "Disconnect from this server?"
+msgstr "与此服务器断开连接？"
+
+msgid "Server URL"
+msgstr "服务器 URL"
+
+msgid "Sync token"
+msgstr "同步令牌"
+
+msgid "Connect"
+msgstr "连接"
+
+msgid "Enter the server URL and a sync token created there."
+msgstr "输入服务器 URL 和在那里创建的同步令牌。"
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "刷新建议"
 

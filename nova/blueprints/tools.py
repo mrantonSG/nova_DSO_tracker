@@ -35,6 +35,7 @@ from nova.helpers import (
     bust_nightly_curves_cache,
     invalidate_object_caches,
     remove_thumbnail,
+    write_file_atomic,
 )
 from nova.models import (
     DbUser, AstroObject, Component, Rig, Location, Project,
@@ -1222,8 +1223,8 @@ def import_journal_photos():
                     # Never overwrite existing log files
                     if os.path.exists(log_target):
                         continue
-                    with zf.open(member) as source, open(log_target, "wb") as target:
-                        target.write(source.read())
+                    with zf.open(member) as source:
+                        write_file_atomic(log_target, lambda p: open(p, "wb").write(source.read()))
                     # A session whose log had gone missing gets its path back
                     # with no column written, so before_flush would stamp
                     # nothing and the restored bytes would never travel.
@@ -1250,8 +1251,8 @@ def import_journal_photos():
                 target_path = os.path.join(user_upload_dir, filename)
 
                 # Extract the file data
-                with zf.open(member) as source, open(target_path, "wb") as target:
-                    target.write(source.read())
+                with zf.open(member) as source:
+                    write_file_atomic(target_path, lambda p: open(p, "wb").write(source.read()))
 
                 # An import can write over a photo a record already names, and
                 # a photo keeps its name whichever bytes it holds, so no column
@@ -1369,7 +1370,7 @@ def upload_editor_image():
 
             # Save the file
             save_path = os.path.join(user_upload_dir, new_filename)
-            file.save(save_path)
+            write_file_atomic(save_path, lambda p: file.save(p))
 
             # This must match the `get_uploaded_image` route
             public_url = url_for('core.get_uploaded_image', username=username, filename=new_filename)
