@@ -197,7 +197,7 @@ def _touch(user_id: int, start_token: str, **updates) -> dict:
 
 def _mark_failed(user_id: int, start_token: str, refusal: Refusal) -> None:
     try:
-        _touch(user_id, start_token, phase=PHASE_FAILED, progress=1.0,
+        _touch(user_id, start_token, phase=PHASE_FAILED,
                phase_label=PHASE_FAILED,
                error={"code": refusal.code, "detail": dict(refusal.detail or {})})
     except _Superseded:

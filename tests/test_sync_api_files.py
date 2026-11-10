@@ -568,6 +568,42 @@ def test_a_file_fetch_with_the_wrong_digest_is_refused(hub):
     assert _codes(resp) == ["bad_file_reference"]
 
 
+def test_each_note_image_in_one_record_is_fetched_by_its_digest(hub):
+    """A note with several images serves each by its own digest, not the first."""
+    hub.db.add(Project(id="np1", user_id=hub.uid, name="Veil",
+                       status="In Progress"))
+    hub.db.commit()
+    os.makedirs(os.path.join(UPLOAD_FOLDER, "default"), exist_ok=True)
+
+    images = {}
+    for i, data in enumerate((PNG, PNG + b"-2", PNG + b"-3")):
+        name = f"note_img_{i}.png"
+        with open(os.path.join(UPLOAD_FOLDER, "default", name), "wb") as handle:
+            handle.write(data)
+        images[_import_digest(data)] = data
+
+    hub.db.expire_all()
+    row = hub.db.query(Project).filter_by(id="np1").one()
+    row.description_notes = "".join(
+        f'<img src="/uploads/default/note_img_{i}.png">' for i in range(3))
+    hub.db.commit()
+
+    for digest, data in images.items():
+        resp = _api(hub, FETCH, token=hub.token,
+                    body={"table": "projects", "key": "np1",
+                          "slot": "note_img", "sha256": digest})
+        assert resp.status_code == 200, resp.get_json()
+        assert resp.data == data
+        assert resp.headers["X-Nova-Sha256"] == digest
+
+    # A digest the record does not reference is still refused.
+    resp = _api(hub, FETCH, token=hub.token,
+                body={"table": "projects", "key": "np1",
+                      "slot": "note_img", "sha256": _import_digest(b"nope")})
+    assert resp.status_code == 404
+    assert _codes(resp) == ["bad_file_reference"]
+
+
 def test_another_accounts_file_cannot_be_named(hub, db_session):
     other = DbUser(username="Other")
     db_session.add(other)

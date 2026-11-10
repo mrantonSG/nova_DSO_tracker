@@ -356,7 +356,9 @@ def fetch_file() -> Response:
             return _refuse(Refusal(REFUSAL_BAD_FILE_REF,
                                    {"table": table, "key": key}), 404)
         refs = collect_files(db, user, rows={model: [row]})
-        ref = next((r for r in refs if r.slot == slot and not r.missing), None)
+        ref = next((r for r in refs
+                    if r.slot == slot and not r.missing
+                    and (not digest or r.sha256 == digest)), None)
         if ref is None or (digest and digest != ref.sha256):
             return _refuse(Refusal(REFUSAL_BAD_FILE_REF,
                                    {"table": table, "key": key, "slot": slot}), 404)

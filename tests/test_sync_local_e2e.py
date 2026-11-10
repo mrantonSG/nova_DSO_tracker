@@ -9,6 +9,7 @@ confirm_job / abort_job — and the background thread is joined by polling the
 on-disk job status.
 """
 
+import hashlib
 import json
 import os
 import time
@@ -22,7 +23,7 @@ from sqlalchemy.pool import StaticPool
 
 import nova
 from nova.models import (
-    Base, DbUser, JournalSession, Location, AstroObject,
+    Base, DbUser, JournalSession, Location, AstroObject, Project,
     SyncState, SyncToken,
 )
 from nova.sync_client import SyncClient, SyncTransportError
@@ -291,6 +292,56 @@ def test_download_end_to_end_with_files(harness):
     assert os.path.exists(os.path.join(backups, dirs[0], "uploads"))
 
 
+def test_download_multi_image_notes(harness):
+    """A hub note with several images downloads all of them, not just the first."""
+    uid = harness["local_user"].id
+    instance = harness["instance_path"]
+
+    proj_images = {"np1.png": PNG, "np2.png": PNG + b"-2", "np3.png": PNG + b"-3"}
+    obj_images = {"no1.png": PNG + b"-4", "no2.png": PNG + b"-5"}
+
+    def seed(db):
+        proj = Project(id="hub-proj", user_id=999, name="Veil",
+                       status="In Progress")
+        proj.description_notes = "".join(
+            f'<img src="/uploads/hubuser/{n}">' for n in proj_images)
+        db.add(proj)
+        obj = AstroObject(user_id=999, object_name="HUB-NOTE",
+                          ra_hours=1.0, dec_deg=2.0)
+        obj.shared_notes = "".join(
+            f'<img src="/uploads/hubuser/{n}">' for n in obj_images)
+        db.add(obj)
+        db.commit()
+    _hub_query(harness, seed)
+    for name, data in {**proj_images, **obj_images}.items():
+        _write_upload(instance, "hubuser", name, data)
+
+    st = _run_phase1(harness, "download")
+    assert st["phase"] == "awaiting_confirmation", st
+    confirm_job(harness["app"], uid, replace_confirmed="REPLACE")
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+    assert st["phase"] == "done", st
+
+    # Every image landed under the local naming and the links were rewritten.
+    local_uploads = os.path.join(instance, "uploads", "default")
+    got = {}
+    for name in os.listdir(local_uploads):
+        with open(os.path.join(local_uploads, name), "rb") as handle:
+            got[hashlib.sha256(handle.read()).hexdigest()] = name
+    for data in list(proj_images.values()) + list(obj_images.values()):
+        assert hashlib.sha256(data).hexdigest() in got
+
+    proj = _local_query(harness, lambda db: db.query(Project).filter_by(
+        user_id=uid, id="hub-proj").one())
+    assert "/uploads/hubuser/" not in proj.description_notes
+    assert proj.description_notes.count("/uploads/default/note_img_") == 3
+
+    obj = _local_query(harness, lambda db: db.query(AstroObject).filter_by(
+        user_id=uid, object_name="HUB-NOTE").one())
+    assert "/uploads/hubuser/" not in obj.shared_notes
+    assert obj.shared_notes.count("/uploads/default/note_img_") == 2
+
+
 # =============================================================================
 # 2. Sync now, both directions, with files, a deletion and a conflict
 # =============================================================================
@@ -350,6 +401,44 @@ def test_sync_now_both_directions(harness):
     assert _local_query(harness, lambda db: db.query(AstroObject).filter_by(user_id=uid, object_name="HUB").one_or_none()) is None
 
 
+def test_push_multi_image_notes(harness):
+    """A local note with several images pushes all of them to the hub."""
+    uid = harness["local_user"].id
+    instance = harness["instance_path"]
+    _mark_downloaded(harness)
+
+    images = {"lp1.png": PNG, "lp2.png": PNG + b"-2", "lp3.png": PNG + b"-3"}
+
+    def seed(db):
+        proj = Project(id="local-proj", user_id=uid, name="Veil",
+                       status="In Progress")
+        proj.description_notes = "".join(
+            f'<img src="/uploads/default/{n}">' for n in images)
+        db.add(proj)
+        db.commit()
+    _local_query(harness, seed)
+    for name, data in images.items():
+        _write_upload(instance, "default", name, data)
+
+    st = _run_phase1(harness, "sync")
+    assert st["phase"] == "awaiting_confirmation", st
+    confirm_job(harness["app"], uid)
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+    assert st["phase"] == "done", st
+
+    hub_proj = _hub_query(harness, lambda db: db.query(Project).filter_by(
+        user_id=999, id="local-proj").one())
+    assert hub_proj.description_notes.count("/uploads/hubuser/note_img_") == 3
+
+    hub_uploads = os.path.join(instance, "uploads", "hubuser")
+    got = {}
+    for name in os.listdir(hub_uploads):
+        with open(os.path.join(hub_uploads, name), "rb") as handle:
+            got[hashlib.sha256(handle.read()).hexdigest()] = name
+    for data in images.values():
+        assert hashlib.sha256(data).hexdigest() in got
+
+
 # =============================================================================
 # 3. Apply guard: local edit after summary -> stop and re-ask
 # =============================================================================
@@ -372,6 +461,26 @@ def test_apply_guard_local_edit_between_summary_and_confirm(harness):
     assert st["error"]["code"] == "plan_stale", st
     # Nothing from the hub was applied.
     assert _local_query(harness, lambda db: db.query(AstroObject).filter_by(user_id=uid, object_name="HUB-ONLY").one_or_none()) is None
+
+
+def test_failed_job_keeps_its_progress(harness):
+    """A failed job reports the progress it reached, never a full 1.0."""
+    uid = harness["local_user"].id
+    _hub(harness, _obj(999, "HUB-ONLY"))
+
+    st = _run_phase1(harness, "download")
+    assert st["phase"] == "awaiting_confirmation", st
+
+    # A local edit lands between the summary and the confirm: phase 2 re-checks
+    # the counter and refuses, so the job fails without moving the cursor.
+    _local_query(harness, lambda db: db.add(_obj(uid, "SNEAKY")))
+    harness["local_db"].commit()
+
+    confirm_job(harness["app"], uid, replace_confirmed="REPLACE")
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+    assert st["phase"] == "failed", st
+    assert st["error"]["code"] == "plan_stale", st
+    assert st["progress"] < 1.0, st
 
 
 # =============================================================================
