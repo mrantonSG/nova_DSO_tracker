@@ -7833,14 +7833,14 @@ msgstr "同期をキャンセルしました。"
 msgid "Nova – Sync"
 msgstr "Nova – 同期"
 
-msgid "Use this Nova as a server"
-msgstr "この Nova をサーバーとして使用"
+msgid "Use this Nova instance as a server"
+msgstr "この Nova インスタンスをサーバーとして使用"
 
 msgid "Sync with a server"
 msgstr "サーバーと同期"
 
-msgid "Connect this Nova to another instance to download or sync your data."
-msgstr "この Nova を別のインスタンスに接続して、データをダウンロードまたは同期します。"
+msgid "Connect this Nova instance to a server to download or sync your data."
+msgstr "この Nova インスタンスをサーバーに接続して、データをダウンロードまたは同期します。"
 
 msgid "Syncing…"
 msgstr "同期中…"
@@ -7887,6 +7887,46 @@ msgstr "最終同期"
 msgid "Needs download"
 msgstr "ダウンロードが必要"
 
+#: templates/sync_tokens.html:125
+msgid "file"
+msgid_plural "files"
+msgstr[0] "ファイル"
+
+#: templates/sync_tokens.html:135
+msgid ""
+"All data on this computer will be replaced by the server's data (a backup"
+" is taken first)."
+msgstr "このコンピューター上のすべてのデータがサーバーのデータで置き換えられます（先にバックアップが作成されます）。"
+
+#: templates/sync_tokens.html:156 templates/sync_tokens.html:162
+msgid "new"
+msgstr "新規"
+
+#: templates/sync_tokens.html:157 templates/sync_tokens.html:163
+msgid "changed"
+msgstr "変更"
+
+#: templates/sync_tokens.html:158 templates/sync_tokens.html:164
+#, python-format
+msgid "up to %(n)s deleted"
+msgstr "最大 %(n)s 件削除"
+
+#: templates/sync_tokens.html:158 templates/sync_tokens.html:164
+msgid "deleted"
+msgstr "削除"
+
+#: templates/sync_tokens.html:168
+msgid "Files"
+msgstr "ファイル"
+
+#: templates/sync_tokens.html:168
+msgid "to upload"
+msgstr "アップロード"
+
+#: templates/sync_tokens.html:168
+msgid "to download"
+msgstr "ダウンロード"
+
 msgid "Sync now"
 msgstr "今すぐ同期"
 
@@ -7907,6 +7947,14 @@ msgstr "接続"
 
 msgid "Enter the server URL and a sync token created there."
 msgstr "サーバー URL と、そこで作成した同期トークンを入力してください。"
+
+#: templates/sync_tokens.html:142
+msgid "Type REPLACE to continue"
+msgstr "続行するには「REPLACE」と入力してください"
+
+#: templates/sync_tokens.html:196
+msgid "Download incomplete — run Sync now to finish"
+msgstr "ダウンロードが未完了です — 完了するには「今すぐ同期」を実行してください。"
 
 #~ msgid "Refresh Suggestions"
 #~ msgstr "更新提案"

@@ -7,7 +7,7 @@ gardez un ordinateur de maison et un d'observatoire à jour.
 #### Configurer le serveur
 
 1. Sur la machine qui conservera vos données, ouvrez **Configuration → Sync**.
-2. Sous **Utiliser ce Nova comme serveur**, créez un jeton pour chaque instance
+2. Sous **Utiliser cette instance Nova comme serveur**, créez un jeton pour chaque instance
    qui se connectera. Copiez-le immédiatement : seul un hash est conservé, il ne
    pourra donc jamais être réaffiché.
 

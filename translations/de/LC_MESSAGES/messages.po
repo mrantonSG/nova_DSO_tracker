@@ -8152,14 +8152,14 @@ msgstr "Synchronisierung abgebrochen."
 msgid "Nova – Sync"
 msgstr "Nova – Sync"
 
-msgid "Use this Nova as a server"
-msgstr "Dieses Nova als Server verwenden"
+msgid "Use this Nova instance as a server"
+msgstr "Diese Nova-Instanz als Server verwenden"
 
 msgid "Sync with a server"
 msgstr "Mit einem Server synchronisieren"
 
-msgid "Connect this Nova to another instance to download or sync your data."
-msgstr "Verbinden Sie dieses Nova mit einer anderen Instanz, um Ihre Daten herunterzuladen oder zu synchronisieren."
+msgid "Connect this Nova instance to a server to download or sync your data."
+msgstr "Verbinden Sie diese Nova-Instanz mit einem Server, um Ihre Daten herunterzuladen oder zu synchronisieren."
 
 msgid "Syncing…"
 msgstr "Synchronisiere…"
@@ -8206,6 +8206,47 @@ msgstr "Zuletzt synchronisiert"
 msgid "Needs download"
 msgstr "Download erforderlich"
 
+#: templates/sync_tokens.html:125
+msgid "file"
+msgid_plural "files"
+msgstr[0] "Datei"
+msgstr[1] "Dateien"
+
+#: templates/sync_tokens.html:135
+msgid ""
+"All data on this computer will be replaced by the server's data (a backup"
+" is taken first)."
+msgstr "Alle Daten auf diesem Computer werden durch die Daten des Servers ersetzt (zuvor wird eine Sicherung erstellt)."
+
+#: templates/sync_tokens.html:156 templates/sync_tokens.html:162
+msgid "new"
+msgstr "neu"
+
+#: templates/sync_tokens.html:157 templates/sync_tokens.html:163
+msgid "changed"
+msgstr "geändert"
+
+#: templates/sync_tokens.html:158 templates/sync_tokens.html:164
+#, python-format
+msgid "up to %(n)s deleted"
+msgstr "bis zu %(n)s gelöscht"
+
+#: templates/sync_tokens.html:158 templates/sync_tokens.html:164
+msgid "deleted"
+msgstr "gelöscht"
+
+#: templates/sync_tokens.html:168
+msgid "Files"
+msgstr "Dateien"
+
+#: templates/sync_tokens.html:168
+msgid "to upload"
+msgstr "hochzuladen"
+
+#: templates/sync_tokens.html:168
+msgid "to download"
+msgstr "herunterzuladen"
+
 msgid "Sync now"
 msgstr "Jetzt synchronisieren"
 
@@ -8226,6 +8267,14 @@ msgstr "Verbinden"
 
 msgid "Enter the server URL and a sync token created there."
 msgstr "Geben Sie die Server-URL und ein dort erstelltes Sync-Token ein."
+
+#: templates/sync_tokens.html:142
+msgid "Type REPLACE to continue"
+msgstr "Geben Sie REPLACE ein, um fortzufahren"
+
+#: templates/sync_tokens.html:196
+msgid "Download incomplete — run Sync now to finish"
+msgstr "Download unvollständig — führen Sie „Jetzt synchronisieren“ aus, um ihn abzuschließen."
 
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Vorschläge aktualisieren"

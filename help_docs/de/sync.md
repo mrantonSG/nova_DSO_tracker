@@ -7,7 +7,7 @@ Heim- und einen Observatoriumsrechner auf demselben Stand.
 #### Server einrichten
 
 1. Öffnen Sie auf dem Rechner, der die Daten halten soll, **Konfiguration → Sync**.
-2. Erstellen Sie unter **Dieses Nova als Server verwenden** ein Token für jede
+2. Erstellen Sie unter **Diese Nova-Instanz als Server verwenden** ein Token für jede
    Instanz, die sich verbindet. Kopieren Sie das Token sofort — es wird nur ein
    Hash davon gespeichert, daher kann es nie wieder angezeigt werden.
 

@@ -41,7 +41,7 @@ from nova.sync_client import SyncClient, SyncTransportError
 from nova.sync_engine import (
     REFUSAL_MASS_DELETE, REFUSAL_NOT_PAIRED, REFUSAL_PLAN_STALE,
     REFUSAL_SERVER_UNTOUCHED, REFUSAL_SYNC_RUNNING,
-    REPLACED_DIRNAME, STAGING_DIRNAME,
+    REPLACED_DIRNAME, STAGING_DIRNAME, _PARENT_TABLES,
     CommitReport, FileRef, Refusal, StagedFile, SyncRefused,
     apply_download, apply_merge, check_sync_preconditions, commit_staged_files,
     counter_rev, discard_staged, export_changes, file_slot_role, files_needed,
@@ -350,6 +350,22 @@ def _local_has_data(plan) -> bool:
     return sum(int(v) for v in getattr(plan, "wiping", {}).values()) > 0
 
 
+def _first_download(db, user) -> bool:
+    """True when this pairing has never downloaded (nothing pushed, no last_sync_at)."""
+    state = db.scalars(select(SyncState).where(SyncState.user_id == user.id)).first()
+    return (state is None) or ((state.last_sync_at is None) and not (state.local_pushed_rev or 0))
+
+
+def _may_skip_deletes(deleted) -> bool:
+    """True when a plan deletes rows in a reference-checked table.
+
+    Those deletes can still be skipped at apply time ("edit beats delete" /
+    "still referenced"), so the planned count is an upper bound and the summary
+    says "up to N deleted".
+    """
+    return any(table in _PARENT_TABLES and count for table, count in (deleted or {}).items())
+
+
 def _unsynced_local_count(db, user) -> int:
     state = db.scalars(select(SyncState).where(SyncState.user_id == user.id)).first()
     since = int(state.local_pushed_rev or 0) if state else 0
@@ -377,6 +393,7 @@ def _phase1_download(db, user, start_token: str) -> None:
         "local_counts": dict(plan.wiping),
         "files": plan.summary()["files"],
         "unsynced_local_changes": _unsynced_local_count(db, user),
+        "first_download": _first_download(db, user),
         "deletions": 0,
         "counter_rev": counter_rev(db, uid),
         "offset_seconds": hello.get("_clock_offset_seconds", 0.0),
@@ -525,10 +542,12 @@ def _phase1_sync(db, user, start_token: str) -> None:
         "pull": pull_plan.summary(),
         "up": {"created": _sum_counts(push_summary.get("created")),
                "updated": _sum_counts(push_summary.get("updated")),
-               "deleted": up_deleted},
+               "deleted": up_deleted,
+               "may_skip_deleted": _may_skip_deletes(push_summary.get("deleted"))},
         "down": {"created": _sum_counts(pull_plan.created),
                  "updated": _sum_counts(pull_plan.updated),
-                 "deleted": _sum_counts(pull_plan.deleted)},
+                 "deleted": _sum_counts(pull_plan.deleted),
+                 "may_skip_deleted": _may_skip_deletes(pull_plan.deleted)},
         "deletions": _sum_counts(pull_plan.deleted),
         "mass_delete": push_mass_delete or pull_mass_delete,
         "mass_delete_detail": mass_delete_detail,

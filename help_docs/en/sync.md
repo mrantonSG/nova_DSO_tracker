@@ -7,7 +7,7 @@ an observatory computer in step.
 #### Set up the server
 
 1. On the machine that will hold your data, open **Configuration → Sync**.
-2. Under **Use this Nova as a server**, create a token for each instance that
+2. Under **Use this Nova instance as a server**, create a token for each instance that
    will connect. Copy the token immediately — only a hash of it is stored, so
    it can never be shown again.
 

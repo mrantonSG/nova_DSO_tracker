@@ -21,7 +21,7 @@
 
   <div class="container">
     <div class="column">
-      <h2>{{ _('Use this Nova as a server') }} {{ help_badge('sync') }}</h2>
+      <h2>{{ _('Use this Nova instance as a server') }} {{ help_badge('sync') }}</h2>
       <p style="font-size:14px; color: var(--text-secondary);">
         {{ _('Pair another Nova instance with this server. Each instance needs its own token.') }}
       </p>
@@ -99,7 +99,7 @@
     <div class="column">
       <h2>{{ _('Sync with a server') }} {{ help_badge('sync') }}</h2>
       <p style="font-size:14px; color: var(--text-secondary);">
-        {{ _('Connect this Nova to another instance to download or sync your data.') }}
+        {{ _('Connect this Nova instance to a server to download or sync your data.') }}
       </p>
 
       {% if sync_view.job and sync_view.job.phase in ('queued', 'planning', 'backup', 'upload', 'download_files', 'applying') %}
@@ -112,17 +112,30 @@
         <div class="sync-summary">
           {% if s.kind == 'download' %}
             <h3>{{ _('Download from server') }}</h3>
-            <ul>
-              <li>{{ _('Server records') }}: <strong>{{ s.server_counts.values() | sum }}</strong></li>
-              <li>{{ _('Local records') }}: <strong>{{ s.local_counts.values() | sum }}</strong></li>
-              {% if s.unsynced_local_changes %}
-                <li>{{ _('Unsynced local changes') }}: <strong>{{ s.unsynced_local_changes }}</strong></li>
-              {% endif %}
-              <li>{{ _('Files to download') }}: <strong>{{ s.files.incoming }}</strong> ({{ s.files.bytes | filesizeformat }})</li>
+            <ul class="sync-summary-list">
+              <li class="sync-kv">
+                <span class="sync-kv-label">{{ _('Server records') }}</span>
+                <span class="sync-kv-value">{{ s.server_counts.values() | sum }}</span>
+              </li>
+              <li class="sync-kv">
+                <span class="sync-kv-label">{{ _('Local records') }}</span>
+                <span class="sync-kv-value">{{ s.local_counts.values() | sum }}</span>
+              </li>
+              <li class="sync-files">
+                {{ s.files.incoming }} {{ ngettext('file', 'files', s.files.incoming) }} · {{ s.files.bytes | filesizeformat }}
+              </li>
               {% if s.files.replaced %}
-                <li>{{ _('Files that will be moved aside') }}: <strong>{{ s.files.replaced }}</strong></li>
+                <li class="sync-kv">
+                  <span class="sync-kv-label">{{ _('Files that will be moved aside') }}</span>
+                  <span class="sync-kv-value">{{ s.files.replaced }}</span>
+                </li>
               {% endif %}
             </ul>
+            {% if s.first_download %}
+              <p class="sync-warning">{{ _('All data on this computer will be replaced by the server\'s data (a backup is taken first).') }}</p>
+            {% elif s.unsynced_local_changes %}
+              <p class="sync-warning">{{ _('Unsynced local changes') }}: {{ s.unsynced_local_changes }}</p>
+            {% endif %}
             <form method="post" action="{{ url_for('sync.confirm') }}" id="sync-confirm-form" data-replace="{{ '1' if s.requires_replace_typed else '0' }}">
               {% if s.requires_replace_typed %}
                 <div class="form-group">
@@ -130,22 +143,35 @@
                   <input type="text" id="sync-replace-input" name="replace_confirmed" autocomplete="off" data-expected="REPLACE">
                 </div>
               {% endif %}
-              <div class="sync-summary-actions">
-                <button type="submit" class="action-button" id="sync-apply-btn">{{ _('Apply') }}</button>
-                <button type="button" class="btn-secondary" onclick="document.getElementById('sync-abort-form').submit()">{{ _('Abort') }}</button>
+              <div class="sync-actions">
+                <button type="button" class="inline-button-ghost" onclick="document.getElementById('sync-abort-form').submit()">{{ _('Abort') }}</button>
+                <button type="submit" id="sync-apply-btn" class="{{ 'inline-button-danger' if s.requires_replace_typed else 'action-button' }}">{{ _('Apply') }}</button>
               </div>
             </form>
           {% else %}
             <h3>{{ _('Sync summary') }}</h3>
-            <ul>
-              <li>{{ _('Up') }}: <strong>{{ s.up.created }}</strong> / <strong>{{ s.up.updated }}</strong> / <strong>{{ s.up.deleted }}</strong></li>
-              <li>{{ _('Down') }}: <strong>{{ s.down.created }}</strong> / <strong>{{ s.down.updated }}</strong> / <strong>{{ s.down.deleted }}</strong></li>
+            <ul class="sync-summary-list">
+              <li class="sync-summary-row">
+                {{ _('Up') }}:
+                {{ s.up.created }} {{ _('new') }} ·
+                {{ s.up.updated }} {{ _('changed') }} ·
+                {% if s.up.may_skip_deleted %}{{ _('up to %(n)s deleted', n=s.up.deleted) }}{% else %}{{ s.up.deleted }} {{ _('deleted') }}{% endif %}
+              </li>
+              <li class="sync-summary-row">
+                {{ _('Down') }}:
+                {{ s.down.created }} {{ _('new') }} ·
+                {{ s.down.updated }} {{ _('changed') }} ·
+                {% if s.down.may_skip_deleted %}{{ _('up to %(n)s deleted', n=s.down.deleted) }}{% else %}{{ s.down.deleted }} {{ _('deleted') }}{% endif %}
+              </li>
             </ul>
+            <p class="sync-files">
+              {{ _('Files') }}: {{ s.files.up }} {{ _('to upload') }} · {{ s.files.down }} {{ _('to download') }} ({{ s.files.down_bytes | filesizeformat }})
+            </p>
             <form method="post" action="{{ url_for('sync.confirm') }}" id="sync-confirm-form" data-mass-delete="{{ '1' if s.mass_delete else '0' }}">
               <input type="hidden" name="allow_mass_delete" value="0" id="sync-mass-delete-field">
-              <div class="sync-summary-actions">
-                <button type="submit" class="action-button" id="sync-apply-btn">{{ _('Apply') }}</button>
-                <button type="button" class="btn-secondary" onclick="document.getElementById('sync-abort-form').submit()">{{ _('Abort') }}</button>
+              <div class="sync-actions">
+                <button type="button" class="inline-button-ghost" onclick="document.getElementById('sync-abort-form').submit()">{{ _('Abort') }}</button>
+                <button type="submit" id="sync-apply-btn" class="{{ 'inline-button-danger' if (s.up.deleted + s.down.deleted) > 0 else 'action-button' }}">{{ _('Apply') }}</button>
               </div>
             </form>
           {% endif %}
@@ -159,13 +185,13 @@
 
       {% if sync_view.paired %}
       <ul>
-        <li>
+        <li class="sync-status-card">
           <div class="item-info">
             <strong>{{ _('Connected to') }} {{ sync_view.server_account or '—' }}</strong><br>
             <span style="font-size:12px; color: var(--text-muted);">{{ sync_view.server_url }}</span><br>
             <span style="font-size:12px; color: var(--text-muted);">
               {% if sync_view.last_sync_at %}
-                {{ _('Last synced') }} <time id="sync-last-synced" datetime="{{ sync_view.last_sync_at.strftime('%Y-%m-%dT%H:%M:%SZ') }}">{{ sync_view.last_sync_at.strftime('%Y-%m-%d %H:%M') }} UTC</time>
+                {{ _('Last synced') }} <time id="sync-last-synced" datetime="{{ sync_view.last_sync_at.strftime('%Y-%m-%dT%H:%M:%SZ') }}">{{ sync_view.last_sync_at | dateformat('medium') }} {{ sync_view.last_sync_at | timeformat('short') }}</time>
               {% elif sync_view.download_incomplete %}
                 {{ _('Download incomplete — run Sync now to finish') }}
               {% else %}
@@ -173,24 +199,24 @@
               {% endif %}
             </span>
           </div>
-          <div class="item-actions">
-            {% if sync_view.needs_download %}
-              <form method="post" action="{{ url_for('sync.download') }}" style="display:inline; margin:0;">
-                <button type="submit" class="action-button">{{ _('Download from server') }}</button>
-              </form>
-              <button type="button" class="inline-button-ghost" disabled title="{{ _('Download from the server first.') }}">{{ _('Sync now') }}</button>
-            {% else %}
-              <form method="post" action="{{ url_for('sync.sync_now') }}" style="display:inline; margin:0;">
-                <button type="submit" class="action-button">{{ _('Sync now') }}</button>
-              </form>
-              <form method="post" action="{{ url_for('sync.download') }}" style="display:inline; margin:0;">
-                <button type="submit" class="inline-button-ghost">{{ _('Download from server') }}</button>
-              </form>
-            {% endif %}
-            <form method="post" action="{{ url_for('sync.disconnect') }}" style="display:inline; margin:0;"
+          <div class="sync-actions">
+            <form method="post" action="{{ url_for('sync.disconnect') }}" style="margin:0;"
                   data-confirm="{{ _('Disconnect from this server?') }}">
               <button type="submit" class="inline-button-danger">{{ _('Disconnect') }}</button>
             </form>
+            {% if sync_view.needs_download %}
+              <form method="post" action="{{ url_for('sync.download') }}" style="margin:0;">
+                <button type="submit" class="inline-button-ghost">{{ _('Download from server') }}</button>
+              </form>
+              <button type="button" class="action-button" disabled title="{{ _('Download from the server first.') }}">{{ _('Sync now') }}</button>
+            {% else %}
+              <form method="post" action="{{ url_for('sync.download') }}" style="margin:0;">
+                <button type="submit" class="inline-button-ghost">{{ _('Download from server') }}</button>
+              </form>
+              <form method="post" action="{{ url_for('sync.sync_now') }}" style="margin:0;">
+                <button type="submit" class="action-button">{{ _('Sync now') }}</button>
+              </form>
+            {% endif %}
           </div>
         </li>
       </ul>
@@ -219,8 +245,10 @@
   <form method="post" action="{{ url_for('sync.abort_confirm') }}" id="sync-abort-form" style="display:none"></form>
 
   <script>
-    // "Last synced" is stored and rendered in UTC; rewrite the <time> element
-    // to the browser's local time. The no-JS fallback keeps the UTC text.
+    // "Last synced" is rendered as a UTC ISO-8601 instant with a server-side
+    // fallback in the app's language. Rewrite it to the viewer's local timezone
+    // in the app's language; the fallback text stays when JS is off or Intl is
+    // missing.
     (function () {
       var el = document.getElementById('sync-last-synced');
       if (!el || !el.getAttribute) { return; }
@@ -228,12 +256,16 @@
       if (!dt) { return; }
       var d = new Date(dt);
       if (isNaN(d.getTime())) { return; }
-      el.textContent = d.toLocaleString([], {
-        year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit'
-      });
+      var lang = (document.documentElement && document.documentElement.lang) || undefined;
+      try {
+        el.textContent = new Intl.DateTimeFormat(lang, {
+          dateStyle: 'medium', timeStyle: 'short'
+        }).format(d);
+      } catch (e) { /* leave the server-rendered fallback */ }
     })();
+  </script>
 
+  <script>
     function legacyCopySyncToken(text) {
       try {
         var area = document.createElement('textarea');

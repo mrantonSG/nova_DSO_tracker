@@ -7815,14 +7815,14 @@ msgstr "同步已取消。"
 msgid "Nova – Sync"
 msgstr "Nova – 同步"
 
-msgid "Use this Nova as a server"
-msgstr "将此 Nova 用作服务器"
+msgid "Use this Nova instance as a server"
+msgstr "将此 Nova 实例用作服务器"
 
 msgid "Sync with a server"
 msgstr "与服务器同步"
 
-msgid "Connect this Nova to another instance to download or sync your data."
-msgstr "将此 Nova 连接到另一实例以下载或同步你的数据。"
+msgid "Connect this Nova instance to a server to download or sync your data."
+msgstr "将此 Nova 实例连接到服务器以下载或同步你的数据。"
 
 msgid "Syncing…"
 msgstr "同步中…"
@@ -7869,6 +7869,46 @@ msgstr "上次同步"
 msgid "Needs download"
 msgstr "需要下载"
 
+#: templates/sync_tokens.html:125
+msgid "file"
+msgid_plural "files"
+msgstr[0] "个文件"
+
+#: templates/sync_tokens.html:135
+msgid ""
+"All data on this computer will be replaced by the server's data (a backup"
+" is taken first)."
+msgstr "此计算机上的所有数据将被服务器上的数据替换（会先创建备份）。"
+
+#: templates/sync_tokens.html:156 templates/sync_tokens.html:162
+msgid "new"
+msgstr "新增"
+
+#: templates/sync_tokens.html:157 templates/sync_tokens.html:163
+msgid "changed"
+msgstr "已更改"
+
+#: templates/sync_tokens.html:158 templates/sync_tokens.html:164
+#, python-format
+msgid "up to %(n)s deleted"
+msgstr "最多删除 %(n)s 个"
+
+#: templates/sync_tokens.html:158 templates/sync_tokens.html:164
+msgid "deleted"
+msgstr "已删除"
+
+#: templates/sync_tokens.html:168
+msgid "Files"
+msgstr "文件"
+
+#: templates/sync_tokens.html:168
+msgid "to upload"
+msgstr "待上传"
+
+#: templates/sync_tokens.html:168
+msgid "to download"
+msgstr "待下载"
+
 msgid "Sync now"
 msgstr "立即同步"
 
@@ -7889,6 +7929,14 @@ msgstr "连接"
 
 msgid "Enter the server URL and a sync token created there."
 msgstr "输入服务器 URL 和在那里创建的同步令牌。"
+
+#: templates/sync_tokens.html:142
+msgid "Type REPLACE to continue"
+msgstr "输入 REPLACE 以继续"
+
+#: templates/sync_tokens.html:196
+msgid "Download incomplete — run Sync now to finish"
+msgstr "下载未完成 — 请运行“立即同步”以完成。"
 
 #~ msgid "Refresh Suggestions"
 #~ msgstr "刷新建议"

@@ -24,7 +24,7 @@ import subprocess
 
 import pytest
 
-from nova.models import DbUser, SyncToken
+from nova.models import DbUser, SyncState, SyncToken
 from nova.sync_time import utc_now
 from nova.sync_transport import hash_token, new_token
 
@@ -439,7 +439,7 @@ def test_nova_sync_client_off_404s_client_routes_and_hides_the_section(hub, monk
 
     body = hub.client.get("/sync").data.decode()
     assert "Sync with a server" not in body
-    assert "Use this Nova as a server" in body
+    assert "Use this Nova instance as a server" in body
 
 
 # =============================================================================
@@ -566,3 +566,93 @@ def test_the_typed_replace_starts_apply_disabled(hub, db_session, monkeypatch,
     result = run_replace(script)
     assert result["initialDisabled"] is True
     assert result["afterMatchDisabled"] is False
+
+
+# =============================================================================
+# 9. "Last synced" is a local-time, app-language instant (rule 12)
+# =============================================================================
+
+_LAST_SYNCED_DRIVER = r"""
+'use strict';
+const fs = require('fs');
+const vm = require('vm');
+const [scriptFile, outFile] = process.argv.slice(2);
+
+let captured = null;
+const byId = {
+  'sync-last-synced': {
+    _text: '',
+    getAttribute(name) { return name === 'datetime' ? '2026-11-10T18:11:00Z' : null; },
+    set textContent(v) { this._text = v; },
+  },
+};
+const document = {
+  getElementById: (id) => byId[id] || null,
+  documentElement: { lang: 'de' },
+};
+const Intl = {
+  DateTimeFormat: function (locale, opts) {
+    captured = { locale, opts };
+    return { format: function () { return 'LOCALIZED'; } };
+  },
+};
+
+const ctx = { document, Intl };
+vm.createContext(ctx);
+vm.runInContext(fs.readFileSync(scriptFile, 'utf8'), ctx, { filename: 'inline.js' });
+
+fs.writeFileSync(outFile, JSON.stringify({
+  locale: captured ? captured.locale : null,
+  dateStyle: captured ? captured.opts.dateStyle : null,
+  timeStyle: captured ? captured.opts.timeStyle : null,
+  textContent: byId['sync-last-synced']._text,
+}));
+"""
+
+
+def _seed_paired_synced(hub, db_session):
+    """A paired client that has completed a download (so "Last synced" renders)."""
+    user = db_session.query(DbUser).filter_by(username="default").one()
+    state = db_session.query(SyncState).filter_by(user_id=user.id).first()
+    if state is None:
+        state = SyncState(user_id=user.id)
+        db_session.add(state)
+    state.server_url = "https://example.com"
+    state.server_account = "hub"
+    state.local_pushed_rev = 5
+    state.last_sync_at = utc_now()
+    db_session.commit()
+    return user
+
+
+def test_last_synced_time_uses_iso_z_and_formats_in_app_locale(hub, db_session, tmp_path):
+    if NODE is None:
+        pytest.skip("node is not installed")
+
+    _seed_paired_synced(hub, db_session)
+    html = hub.client.get("/sync").data.decode()
+
+    # The <time> element carries the UTC instant as ISO-8601 with a trailing Z.
+    m = re.search(r'<time id="sync-last-synced" datetime="([^"]+)"', html)
+    assert m, "no <time id=\"sync-last-synced\"> element rendered"
+    assert re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", m.group(1)), m.group(1)
+
+    # The script formats with the page's <html lang>, not the browser default.
+    scripts = re.findall(r"<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>", html, re.S)
+    script = next(s for s in scripts if "sync-last-synced" in s)
+    assert "Intl.DateTimeFormat" in script
+    assert "document.documentElement.lang" in script
+
+    driver = tmp_path / "driver.cjs"
+    driver.write_text(_LAST_SYNCED_DRIVER, encoding="utf-8")
+    sf = tmp_path / "inline.js"
+    sf.write_text(script, encoding="utf-8")
+    out = tmp_path / "out.json"
+    proc = subprocess.run([NODE, str(driver), str(sf), str(out)],
+                          capture_output=True, text=True, timeout=60)
+    assert proc.returncode == 0, proc.stderr
+    result = json.loads(out.read_text(encoding="utf-8"))
+    assert result["locale"] == "de"
+    assert result["dateStyle"] == "medium"
+    assert result["timeStyle"] == "short"
+    assert result["textContent"] == "LOCALIZED"

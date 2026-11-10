@@ -7,7 +7,7 @@ día un equipo de casa y otro del observatorio.
 #### Configurar el servidor
 
 1. En el equipo que guardará tus datos, abre **Configuración → Sync**.
-2. En **Usar este Nova como servidor**, crea un token para cada instancia que se
+2. En **Usar esta instancia de Nova como servidor**, crea un token para cada instancia que se
    conectará. Copia el token de inmediato: solo se guarda un hash, por lo que
    nunca podrá volver a mostrarse.
 
