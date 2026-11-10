@@ -32,7 +32,7 @@ from nova.helpers import get_db
 from nova.models import SyncState, SyncToken
 from nova.sync_client import (DEFAULT_SERVER_URL, SyncClient, SyncTransportError,
                               validate_server_url)
-from nova.sync_engine import SyncRefused, start_pairing
+from nova.sync_engine import SyncRefused, download_status, start_pairing
 from nova.sync_job import abort_job, confirm_job, job_status, start_job
 from nova.sync_time import utc_now
 from nova.sync_transport import GUEST_USERNAME, hash_token, new_token
@@ -151,7 +151,9 @@ def _sync_view(db, user):
     view["server_url"] = state.server_url if state else None
     view["paired_at"] = state.paired_at if state else None
     view["last_sync_at"] = state.last_sync_at if state else None
-    view["needs_download"] = view["paired"] and (not state or state.last_sync_at is None)
+    status = download_status(state)
+    view["needs_download"] = view["paired"] and status == "needs_download"
+    view["download_incomplete"] = view["paired"] and status == "incomplete"
     job = job_status(user.id)
     view["job"] = job
     if job and job.get("error"):

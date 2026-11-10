@@ -1309,6 +1309,59 @@ def test_a_local_must_download_before_it_pushes(bare, hub):
     assert [r.code for r in plan.refusals] == [REFUSAL_NEEDS_DOWNLOAD]
 
 
+def _complete_download(node, hub):
+    """Pair, download, and place files so the node is fully synced (cursor and
+    completion time set), the state a re-pair must unwind."""
+    from nova.sync_engine import commit_staged_files
+    start_pairing(node.db, node.user, server_url=HUB_URL, account="hub")
+    node.commit()
+    add_object(hub.db, hub.uid, "M 31")
+    result = download(node, hub)
+    commit_staged_files(node.db, result, [], user=node.user)
+    node.commit()
+    state = node.state()
+    assert state.server_cursor > 0 and state.local_pushed_rev > 0
+    assert state.last_sync_at is not None
+    assert check_sync_preconditions(node.db, node.user, side="local") is None
+
+
+def test_a_new_pairing_starts_at_the_download_lock(bare):
+    start_pairing(bare.db, bare.user, server_url=HUB_URL, account="hub")
+    bare.commit()
+    state = bare.state()
+    assert state.server_cursor == 0
+    assert state.local_pushed_rev == 0
+    assert state.last_sync_at is None
+    assert check_sync_preconditions(bare.db, bare.user, side="local").code == REFUSAL_NEEDS_DOWNLOAD
+
+
+def test_re_pairing_after_a_download_rearms_the_download_lock(bare, hub):
+    """A completed download's watermarks are reset on re-pair, so a fresh
+    download is required before pushing again (the disconnect -> connect path)."""
+    _complete_download(bare, hub)
+    start_pairing(bare.db, bare.user, server_url=HUB_URL, account="hub")
+    bare.commit()
+    state = bare.state()
+    assert state.server_cursor == 0
+    assert state.local_pushed_rev == 0
+    assert state.last_sync_at is None
+    assert check_sync_preconditions(bare.db, bare.user, side="local").code == REFUSAL_NEEDS_DOWNLOAD
+
+
+def test_re_pairing_with_a_different_account_rearms_the_download_lock(bare, hub):
+    """A token for a different account is a fresh pairing: the watermarks are
+    reset and a download is required, even though the old account had synced."""
+    _complete_download(bare, hub)
+    start_pairing(bare.db, bare.user, server_url=HUB_URL, token="other-token",
+                  account="other")
+    bare.commit()
+    state = bare.state()
+    assert state.server_cursor == 0
+    assert state.local_pushed_rev == 0
+    assert state.last_sync_at is None
+    assert check_sync_preconditions(bare.db, bare.user, side="local").code == REFUSAL_NEEDS_DOWNLOAD
+
+
 def test_a_freshly_downloaded_local_may_push(paired):
     assert check_sync_preconditions(paired.db, paired.user, side="local") is None
 
@@ -1816,13 +1869,25 @@ def test_a_download_leaves_nothing_to_push(local, hub):
     assert payload["records"] == {} and payload["tombstones"] == []
 
 
-def test_a_download_sets_the_cursor_and_the_time(local, hub):
+def test_a_download_leaves_the_cursor_at_zero_until_files_place(local, hub):
     add_object(hub.db, hub.uid, "M 31")
     result = download(local, hub)
     state = local.state()
+    assert state.server_cursor == 0          # apply_download does not advance it
+    assert state.last_sync_at is None        # and does not mark it complete
+    assert state.local_pushed_rev > 0        # but a download has committed
+    assert result.created["astro_objects"] == 1
+
+
+def test_commit_staged_files_marks_the_download_complete(local, hub):
+    from nova.sync_engine import commit_staged_files
+    add_object(hub.db, hub.uid, "M 31")
+    result = download(local, hub)
+    commit_staged_files(local.db, result, [], user=local.user)
+    local.commit()
+    state = local.state()
     assert state.server_cursor == hub.rev()
     assert state.last_sync_at is not None
-    assert result.created["astro_objects"] == 1
 
 
 def test_a_download_moves_the_local_horizon_points(local, hub):

@@ -831,3 +831,242 @@ def test_pull_excludes_the_push_revs(harness, monkeypatch):
     assert len(seen) >= 2            # phase 1 (provisional) + phase 2 (real)
     assert seen[0] == []             # the provisional pull excludes nothing
     assert seen[-1] != []            # the real pull excludes the push revs
+
+
+# =============================================================================
+# 13. Shared digests across roles, per-file placement failure, combination
+# =============================================================================
+
+def _sha256_of_bytes(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def _file_digest(path):
+    with open(path, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def _upload_digest_map(instance, username):
+    root = os.path.join(instance, "uploads", username)
+    if not os.path.isdir(root):
+        return {}
+    out = {}
+    for name in os.listdir(root):
+        path = os.path.join(root, name)
+        if os.path.isfile(path):
+            out[_file_digest(path)] = name
+    return out
+
+
+def test_download_shared_digest_across_roles(harness):
+    """One digest served as a session photo, a project image and a note image
+    lands under three distinct names/columns — the manifest's single role field
+    must never override the slot's role."""
+    uid = harness["local_user"].id
+    instance = harness["instance_path"]
+    shared = PNG + b"-shared-roles"
+    digest = _sha256_of_bytes(shared)
+
+    def seed(db):
+        proj = Project(id="hub-proj", user_id=999, name="Veil", status="In Progress",
+                       final_image_file="shared.jpg")
+        proj.description_notes = '<img src="/uploads/hubuser/shared.jpg">'
+        db.add(proj)
+        db.add(JournalSession(user_id=999, external_id="hub-sess",
+                              date_utc=date(2026, 1, 2), session_image_file="shared.jpg"))
+        db.commit()
+    _hub_query(harness, seed)
+    _write_upload(instance, "hubuser", "shared.jpg", shared)
+
+    st = _run_phase1(harness, "download")
+    assert st["phase"] == "awaiting_confirmation", st
+    confirm_job(harness["app"], uid, replace_confirmed="REPLACE")
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+    assert st["phase"] == "done", st
+    assert st["result"]["pending_files"] == 0
+
+    proj = _local_query(harness, lambda db: db.query(Project).filter_by(
+        user_id=uid, id="hub-proj").one())
+    sess = _local_query(harness, lambda db: db.query(JournalSession).filter_by(
+        user_id=uid, external_id="hub-sess").one())
+
+    uploads = os.path.join(instance, "uploads", "default")
+    assert proj.final_image_file and proj.final_image_file.startswith("project_")
+    assert sess.session_image_file and sess.session_image_file.endswith(".jpg")
+    assert _file_digest(os.path.join(uploads, proj.final_image_file)) == digest
+    assert _file_digest(os.path.join(uploads, sess.session_image_file)) == digest
+
+    # The note image localized to its digest-derived name, same bytes.
+    assert "/uploads/hubuser/" not in proj.description_notes
+    note_name = f"note_img_{digest[:12]}.jpg"
+    assert note_name in os.listdir(uploads)
+    assert _file_digest(os.path.join(uploads, note_name)) == digest
+
+
+def test_push_shared_digest_across_roles(harness):
+    """The same bytes pushed up land on the hub under the right columns/names."""
+    uid = harness["local_user"].id
+    instance = harness["instance_path"]
+    _mark_downloaded(harness)
+    shared = PNG + b"-shared-push"
+    digest = _sha256_of_bytes(shared)
+
+    def seed(db):
+        proj = Project(id="local-proj", user_id=uid, name="Veil", status="In Progress",
+                       final_image_file="shared.jpg")
+        proj.description_notes = '<img src="/uploads/default/shared.jpg">'
+        db.add(proj)
+        db.add(JournalSession(user_id=uid, external_id="local-sess",
+                              date_utc=date(2026, 1, 2), session_image_file="shared.jpg"))
+        db.commit()
+    _local_query(harness, seed)
+    _write_upload(instance, "default", "shared.jpg", shared)
+
+    st = _run_phase1(harness, "sync")
+    assert st["phase"] == "awaiting_confirmation", st
+    confirm_job(harness["app"], uid)
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+    assert st["phase"] == "done", st
+
+    hub_proj = _hub_query(harness, lambda db: db.query(Project).filter_by(
+        user_id=999, id="local-proj").one())
+    hub_sess = _hub_query(harness, lambda db: db.query(JournalSession).filter_by(
+        user_id=999, external_id="local-sess").one())
+    assert hub_proj.final_image_file
+    assert hub_sess.session_image_file
+    hub_uploads = os.path.join(instance, "uploads", "hubuser")
+    assert _file_digest(os.path.join(hub_uploads, hub_proj.final_image_file)) == digest
+    assert _file_digest(os.path.join(hub_uploads, hub_sess.session_image_file)) == digest
+    assert f"note_img_{digest[:12]}.jpg" in os.listdir(hub_uploads)
+
+
+def test_exception_placing_one_file_is_pending_then_heals(harness, monkeypatch):
+    """A placement crash is counted pending, not fatal: the rest place, the
+    cursor stays 0 (incomplete), and the next Sync now heals it."""
+    uid = harness["local_user"].id
+    instance = harness["instance_path"]
+    _hub(harness,
+         _session(999, "sess-a", image="a.jpg"),
+         _session(999, "sess-b", image="b.jpg"))
+    _write_upload(instance, "hubuser", "a.jpg", PNG)
+    _write_upload(instance, "hubuser", "b.jpg", PNG + b"-b")
+
+    import nova.sync_engine as sync_engine
+    real_place_one = sync_engine._place_one
+    fired = {"n": 0}
+
+    def flaky(db, user, model, ref, staged, instance_path=None):
+        if fired["n"] == 0:
+            fired["n"] += 1
+            raise RuntimeError("simulated placement failure")
+        return real_place_one(db, user, model, ref, staged, instance_path=instance_path)
+    monkeypatch.setattr("nova.sync_engine._place_one", flaky)
+
+    st = _run_phase1(harness, "download")
+    assert st["phase"] == "awaiting_confirmation", st
+    confirm_job(harness["app"], uid, replace_confirmed="REPLACE")
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+    assert st["phase"] == "done", st
+    assert st["result"]["pending_files"] == 1
+
+    # Cursor not advanced, download not complete, but a download did commit.
+    state = _local_query(harness, lambda db: db.query(SyncState).filter_by(user_id=uid).one())
+    assert state.server_cursor == 0
+    assert state.last_sync_at is None
+    assert state.local_pushed_rev > 0
+
+    # Exactly one of the two photos landed.
+    placed = {n: _file_digest(os.path.join(instance, "uploads", "default", n))
+              for n in os.listdir(os.path.join(instance, "uploads", "default"))}
+    assert sum(1 for d in placed.values() if d in (_sha256_of_bytes(PNG),
+                                                   _sha256_of_bytes(PNG + b"-b"))) == 1
+
+    # Heal: next Sync now re-fetches the missing file and completes.
+    monkeypatch.setattr("nova.sync_engine._place_one", real_place_one)
+    st = _run_phase1(harness, "sync")
+    assert st["phase"] == "awaiting_confirmation", st
+    confirm_job(harness["app"], uid)
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+    assert st["phase"] == "done", st
+
+    state = _local_query(harness, lambda db: db.query(SyncState).filter_by(user_id=uid).one())
+    assert state.server_cursor > 0
+    assert state.last_sync_at is not None
+    placed = {n: _file_digest(os.path.join(instance, "uploads", "default", n))
+              for n in os.listdir(os.path.join(instance, "uploads", "default"))}
+    assert sum(1 for d in placed.values() if d in (_sha256_of_bytes(PNG),
+                                                   _sha256_of_bytes(PNG + b"-b"))) == 2
+
+
+def test_combination_mixed_scenarios(harness):
+    """A deterministic mix — shared digests, multi-image notes, a removed slot,
+    a missing-on-disk file, an over-cap file and an own log — downloads and
+    syncs back with zero refusals and every transferable file in place."""
+    uid = harness["local_user"].id
+    instance = harness["instance_path"]
+    shared = b"SHARED-COMBINATION"
+    shared_digest = _sha256_of_bytes(shared)
+    note_a = b"note-a"
+    note_b = b"note-b"
+    log_bytes = b"asiair log line\n" * 20
+    log_digest = _sha256_of_bytes(log_bytes)
+
+    def seed(db):
+        proj = Project(id="combo-proj", user_id=999, name="Combo", status="In Progress",
+                       final_image_file="shared.jpg")
+        proj.description_notes = '<img src="/uploads/hubuser/shared.jpg">'
+        db.add(proj)
+        db.add(JournalSession(user_id=999, external_id="combo-shared",
+                              date_utc=date(2026, 1, 2), session_image_file="shared.jpg"))
+        proj2 = Project(id="combo-notes", user_id=999, name="Notes", status="In Progress")
+        proj2.description_notes = ('<img src="/uploads/hubuser/n1.png">'
+                                   '<img src="/uploads/hubuser/n2.png">')
+        db.add(proj2)
+        db.add(JournalSession(user_id=999, external_id="combo-removed",
+                              date_utc=date(2026, 1, 2), session_image_file=""))
+        db.add(JournalSession(user_id=999, external_id="combo-missing",
+                              date_utc=date(2026, 1, 2), session_image_file="nope.jpg"))
+        db.add(JournalSession(user_id=999, external_id="combo-log",
+                              date_utc=date(2026, 1, 2),
+                              asiair_log_content="instance/logs/asiair/999_combo_log.txt"))
+        db.add(JournalSession(user_id=999, external_id="combo-big",
+                              date_utc=date(2026, 1, 2), session_image_file="big.jpg"))
+        db.commit()
+
+    _hub_query(harness, seed)
+    _write_upload(instance, "hubuser", "shared.jpg", shared)
+    _write_upload(instance, "hubuser", "n1.png", note_a)
+    _write_upload(instance, "hubuser", "n2.png", note_b)
+    _write_upload(instance, "hubuser", "big.jpg", b"\x00" * (5 * 1024 * 1024 + 1))
+    os.makedirs(os.path.join(instance, "logs", "asiair"), exist_ok=True)
+    with open(os.path.join(instance, "logs", "asiair", "999_combo_log.txt"), "wb") as f:
+        f.write(log_bytes)
+
+    st = _run_phase1(harness, "download")
+    assert st["phase"] == "awaiting_confirmation", st
+    confirm_job(harness["app"], uid, replace_confirmed="REPLACE")
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+    assert st["phase"] == "done", st
+    assert st["result"]["pending_files"] == 0
+
+    # Every transferable file placed with the right digest.
+    got = _upload_digest_map(instance, "default")
+    for data in (shared, note_a, note_b):
+        assert _sha256_of_bytes(data) in got
+    logs_root = os.path.join(instance, "logs", "asiair")
+    assert log_digest in {_file_digest(os.path.join(logs_root, n))
+                          for n in os.listdir(logs_root)
+                          if os.path.isfile(os.path.join(logs_root, n))}
+    # The removed slot, missing file and over-cap file carried no bytes.
+    assert not any(n.endswith("big.jpg") for n in os.listdir(os.path.join(instance, "uploads", "default")))
+
+    # Sync back both ways: zero refusals and both sides equal.
+    st = _run_phase1(harness, "sync")
+    assert st["phase"] == "awaiting_confirmation", st
+    confirm_job(harness["app"], uid)
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+    assert st["phase"] == "done", st
+
+    local_projects = _local_query(harness, lambda db: db.query(Project).filter_by(user_id=uid).count())
+    hub_projects = _hub_query(harness, lambda db: db.query(Project).filter_by(user_id=999).count())
+    assert local_projects == hub_projects == 2

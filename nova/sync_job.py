@@ -44,8 +44,9 @@ from nova.sync_engine import (
     REPLACED_DIRNAME, STAGING_DIRNAME,
     CommitReport, FileRef, Refusal, StagedFile, SyncRefused,
     apply_download, apply_merge, check_sync_preconditions, commit_staged_files,
-    counter_rev, discard_staged, export_changes, files_needed, file_source_path,
-    move_replaced_files, plan_download, plan_merge, record_pull_applied,
+    counter_rev, discard_staged, export_changes, file_slot_role, files_needed,
+    file_source_path, move_replaced_files, plan_download, plan_merge,
+    record_pull_applied,
     record_push_accepted, stage_file, staged_index, staging_dir, sync_lock, to_iso,
 )
 from nova.sync_transport import SYNC_UPLOAD_DIRNAME
@@ -554,7 +555,12 @@ def _refs_from_needed(files_needed, manifest):
         except (IndexError, TypeError):
             continue
         desc = (manifest or {}).get(sha256) or {}
-        refs.append(FileRef(role=desc.get("role") or "", table=table, key=key,
+        # The role comes from the slot, never the manifest's single `role` field:
+        # one digest may serve several slots/roles, and the manifest records only
+        # the first. The descriptor's role is the fallback for note images, whose
+        # slot "note_img" has no FILE column.
+        role = file_slot_role(table, slot) or desc.get("role") or ""
+        refs.append(FileRef(role=role, table=table, key=key,
                             slot=slot, sha256=sha256, size=int(desc.get("size") or 0),
                             ext=desc.get("ext") or "", name=desc.get("name") or ""))
     return refs
@@ -610,6 +616,10 @@ def _phase2_sync(db, user, start_token: str, allow_mass_delete: bool) -> None:
     rev_at_export_pull = counter_rev(db, uid)
     result = apply_merge(db, pull_plan, user=user)
     server_rev = int(pull_payload.get("rev") or 0)
+    # The pull's cursor also advances only once its files are placed, so
+    # commit_staged_files carries this rev the same way a download carries
+    # snapshot_rev.
+    result.server_rev = server_rev
     record_pull_applied(db, user, result, server_rev, rev_at_export_pull)
     db.commit()
 

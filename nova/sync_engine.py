@@ -47,6 +47,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import re
 import shutil
@@ -91,6 +92,8 @@ from nova.sync_tracking import (
     next_rev,
     record_key,
 )
+
+logger = logging.getLogger(__name__)
 
 # --- Payload format ----------------------------------------------------------
 
@@ -991,6 +994,10 @@ class MergeResult:
     # apply_download, before a byte is placed, so commit_staged_files needs this
     # to tell a download whose files were lost from a pull whose were.
     snapshot_rev: Optional[int] = None
+    # The hub rev a pull consumed. A pull's cursor also only advances once its
+    # files are placed (commit_staged_files), so the pull path carries its
+    # server_rev here the same way a download carries snapshot_rev.
+    server_rev: Optional[int] = None
 
 
 @dataclass
@@ -1459,19 +1466,20 @@ def local_name_for(model: type, row, ref: FileRef) -> str:
         note image      note_img_<fresh hex>.<ext>
         session log     <local session id>_<sanitized name>
     """
-    if ref.role == ROLE_SESSION_PHOTO:
+    role = _ref_role(model, ref)
+    if role == ROLE_SESSION_PHOTO:
         if row is not None and getattr(row, "id", None) is not None:
             return f"{row.id}.{ref.ext}"
         return f"{_stable_id(ref.key)}.{ref.ext}"
-    if ref.role == ROLE_PROJECT_IMAGE:
+    if role == ROLE_PROJECT_IMAGE:
         return f"project_{getattr(row, 'id', None) or ref.key}.{ref.ext}"
-    if ref.role == ROLE_NOTE_IMAGE:
+    if role == ROLE_NOTE_IMAGE:
         # Deterministic, not random: the same digest always lands on the same
         # name, so localize_text (inside the row's own write) and the physical
         # move (commit_staged_files, after the commit) agree without having to
         # hand a name across the commit boundary.
         return note_image_name(ref.sha256, ref.ext)
-    if ref.role == ROLE_SESSION_LOG:
+    if role == ROLE_SESSION_LOG:
         safe = re.sub(r"[^a-zA-Z0-9_\-\.]", "_", ref.name or "log.txt")[:100]
         owner = getattr(row, "id", None) or _stable_id(ref.key)
         return f"{owner}_{safe}"
@@ -1511,6 +1519,26 @@ def _slot_role(model: type, slot: str):
     return entry[0] if entry else None
 
 
+def _ref_role(model, ref: "FileRef") -> str:
+    """The role `ref` carries, from its slot when it has a known FILE slot.
+
+    One digest may legitimately serve several slots/roles (a session photo and a
+    project image with the same bytes), so a manifest's single `role` field is
+    only authoritative for a note image, whose slot ``note_img`` has no FILE
+    column. For a known FILE slot the role is a pure function of (model, slot).
+    """
+    role = _slot_role(model, ref.slot) if model is not None else None
+    return role if role is not None else ref.role
+
+
+def file_slot_role(table: str, slot: str) -> str:
+    """The role a (table, slot) carries, or "" when it is not a known FILE slot."""
+    model = TABLE_MODEL.get(table)
+    if model is None:
+        return ""
+    return _slot_role(model, slot) or ""
+
+
 def commit_staged_files(db, result, staged, *, user,
                         instance_path: str = None) -> CommitReport:
     """Move verified files into place and write their columns. After the commit.
@@ -1531,64 +1559,85 @@ def commit_staged_files(db, result, staged, *, user,
     """
     report = CommitReport()
     by_digest = {s.ref.sha256: s for s in (staged or []) if s and not s.skipped}
-    for ref in getattr(result, "files_expected", []) or []:
-        if ref.missing or not ref.sha256:
-            report.skipped.append(ref)
-            continue
-        s = by_digest.get(ref.sha256)
-        if s is None:
-            # No staged copy this run. That is a retry of a file an earlier run
-            # already placed in the common case, so it is pending only when the
-            # live file is not yet the one the digest names.
-            if not _live_file_ok(db, ref, user, instance_path=instance_path):
+    try:
+        for ref in getattr(result, "files_expected", []) or []:
+            try:
+                if ref.missing or not ref.sha256:
+                    report.skipped.append(ref)
+                    continue
+                s = by_digest.get(ref.sha256)
+                if s is None:
+                    # No staged copy this run. That is a retry of a file an earlier
+                    # run already placed in the common case, so it is pending only
+                    # when the live file is not yet the one the digest names.
+                    if not _live_file_ok(db, ref, user, instance_path=instance_path):
+                        report.pending.append((ref.table, ref.key, ref.slot, ref.sha256))
+                        continue
+                    s = StagedFile(ref=ref, path="")   # already in place: nothing to move
+                elif not staged_ok(s):
+                    discard_staged(s)
+                    report.pending.append((ref.table, ref.key, ref.slot, ref.sha256))
+                    continue
+                model = TABLE_MODEL.get(ref.table)
+                if model is None:
+                    report.skipped.append(ref)
+                    continue
+                # A note image names no FILE column: its record's rich text
+                # already points at the digest-derived name the row's write
+                # localized to. Only the bytes need moving.
+                if _ref_role(model, ref) == ROLE_NOTE_IMAGE:
+                    outcome = _place_note_image(user, ref, s, instance_path=instance_path)
+                    if outcome == "placed":
+                        report.placed.append((ref.table, ref.key, ref.slot, ref.sha256))
+                    else:
+                        report.pending.append((ref.table, ref.key, ref.slot, ref.sha256))
+                    continue
+                if ref.slot not in _FILE_SLOTS.get(model, {}):
+                    report.skipped.append(ref)
+                    continue
+                outcome = _place_one(db, user, model, ref, s, instance_path=instance_path)
+                if outcome == "placed":
+                    report.placed.append((ref.table, ref.key, ref.slot, ref.sha256))
+                else:
+                    report.pending.append((ref.table, ref.key, ref.slot, ref.sha256))
+            except Exception:
+                # One file must never abort the rest: count it pending and carry
+                # on. The pending/cursor logic below still runs.
+                logger.exception("sync: placing file %s (%s) failed",
+                                 ref.sha256, getattr(ref, "slot", ""))
                 report.pending.append((ref.table, ref.key, ref.slot, ref.sha256))
-                continue
-            s = StagedFile(ref=ref, path="")   # already in place: nothing to move
-        elif not staged_ok(s):
-            discard_staged(s)
-            report.pending.append((ref.table, ref.key, ref.slot, ref.sha256))
-            continue
-        model = TABLE_MODEL.get(ref.table)
-        if model is None:
-            report.skipped.append(ref)
-            continue
-        # A note image names no FILE column: its record's rich text already
-        # points at the digest-derived name the row's write localized to. Only
-        # the bytes need moving.
-        if ref.role == ROLE_NOTE_IMAGE:
-            outcome = _place_note_image(user, ref, s, instance_path=instance_path)
-            if outcome == "placed":
-                report.placed.append((ref.table, ref.key, ref.slot, ref.sha256))
-            else:
-                report.pending.append((ref.table, ref.key, ref.slot, ref.sha256))
-            continue
-        if ref.slot not in _FILE_SLOTS.get(model, {}):
-            report.skipped.append(ref)
-            continue
-        outcome = _place_one(db, user, model, ref, s, instance_path=instance_path)
-        if outcome == "placed":
-            report.placed.append((ref.table, ref.key, ref.slot, ref.sha256))
-        else:
-            report.pending.append((ref.table, ref.key, ref.slot, ref.sha256))
-
-    # The watermark follows this report, not the plan's earlier guess: a file
-    # whose bytes landed is no longer pending, and one whose transfer failed and
-    # whose live copy is still not here holds the watermark for the next run.
-    if result is not None:
-        result.pending_files = [tuple(entry) for entry in report.pending]
-        result.placed_files = [tuple(entry) for entry in report.placed]
-        # A Download has no record-level watermark step of its own, and its
-        # cursor moved inside apply_download, before a single byte was placed.
-        # The hub would then sit below the cursor for good and a file that never
-        # arrived would never be offered again. Drop the cursor to zero so the
-        # next pull walks the snapshot once more: every record is a content
-        # no-op, the file that was already here is skipped by digest, and the
-        # bytes that were lost are fetched this time.
-        if report.pending and getattr(result, "snapshot_rev", None) is not None:
-            state = db.scalars(
-                select(SyncState).where(SyncState.user_id == user.id)).first()
-            if state is not None:
-                state.server_cursor = 0
+    finally:
+        # The watermark follows this report, not the plan's earlier guess: a file
+        # whose bytes landed is no longer pending, and one whose transfer failed
+        # and whose live copy is still not here holds the watermark for the next
+        # run. This block runs even if a placement raised, so a download is only
+        # marked complete once nothing is left to place.
+        if result is not None:
+            result.pending_files = [tuple(entry) for entry in report.pending]
+            result.placed_files = [tuple(entry) for entry in report.placed]
+            # A Download has no record-level watermark step of its own: its
+            # cursor is left at 0 by apply_download, and only here — once every
+            # file has landed — does it advance to server_rev and stamp the
+            # completion time. A pending file keeps the cursor at 0 so the next
+            # pull walks the snapshot once more: every record is a content no-op,
+            # the file that was already here is skipped by digest, and the bytes
+            # that were lost are fetched this time.
+            server_rev = getattr(result, "snapshot_rev", None)
+            is_download = server_rev is not None
+            if server_rev is None:
+                server_rev = getattr(result, "server_rev", None)
+            if server_rev is not None:
+                state = db.scalars(
+                    select(SyncState).where(SyncState.user_id == user.id)).first()
+                if state is not None:
+                    if report.pending:
+                        # A download re-offers everything from the top; a pull
+                        # leaves its cursor where record_pull_applied put it.
+                        if is_download:
+                            state.server_cursor = 0
+                    else:
+                        state.server_cursor = int(server_rev)
+                        state.last_sync_at = utc_now()
 
     # A staged copy is dropped only once every placement for its digest is done:
     # one file two records share is placed twice, and the first move would
@@ -1686,9 +1735,10 @@ def _live_file_ok(db, ref: FileRef, user, instance_path: str = None) -> bool:
         return False
     model = TABLE_MODEL.get(ref.table)
     row = _row_by_key(db, model, user.id, ref.key) if model is not None else None
-    if ref.role == ROLE_SESSION_LOG:
+    role = _ref_role(model, ref)
+    if role == ROLE_SESSION_LOG:
         live = _log_path(getattr(row, ref.slot, None), instance_path) if row else ""
-    elif ref.role == ROLE_NOTE_IMAGE:
+    elif role == ROLE_NOTE_IMAGE:
         live = os.path.join(_user_upload_root(user, instance_path),
                             note_image_name(ref.sha256, ref.ext))
     else:
@@ -1715,7 +1765,7 @@ def _place_one(db, user, model: type, ref: FileRef, staged: StagedFile,
     if row is None:
         return "skipped"      # the record was deleted between plan and commit
 
-    if ref.role == ROLE_SESSION_LOG:
+    if _ref_role(model, ref) == ROLE_SESSION_LOG:
         log_type = _FILE_SLOTS[model][ref.slot][1]
         local_name = local_name_for(model, row, ref)
         local_name = unique_log_name(db, log_type, local_name, row.id)
@@ -1778,7 +1828,10 @@ def _place_one(db, user, model: type, ref: FileRef, staged: StagedFile,
             _place_from_staged(staged.path, live)
     except OSError:
         return "pending"
-    column = "session_image_file" if ref.role == ROLE_SESSION_PHOTO else "final_image_file"
+    # The column is the slot, never a guess from the role: one digest can serve a
+    # session photo and a project image, whose columns differ. The slot is the
+    # single unambiguous source for both the role and the column.
+    column = ref.slot
     conn.execute(sa_update(model.__table__).where(
         model.__table__.c.id == row.id,
         model.__table__.c.user_id == user.id,
@@ -2042,6 +2095,23 @@ def sync_lock(user_id: int, instance_path: str = None):
         release_file_lock(handle)
 
 
+def download_status(state) -> str:
+    """'needs_download' | 'incomplete' | 'complete' for a SyncState (or None).
+
+    A fresh pair has never downloaded (local_pushed_rev == 0 and no last_sync_at).
+    A download that committed its records but whose files are not all placed has
+    local_pushed_rev > 0 but no last_sync_at. A completed download (or pull) has
+    both.
+    """
+    if state is None:
+        return "needs_download"
+    if state.last_sync_at is not None:
+        return "complete"
+    if (state.local_pushed_rev or 0) > 0:
+        return "incomplete"
+    return "needs_download"
+
+
 def check_sync_preconditions(db, user, *, side: str = "local") -> Optional[Refusal]:
     """What stops "Sync now" before a plan is even built. None when clear."""
     if side != "local":
@@ -2053,8 +2123,11 @@ def check_sync_preconditions(db, user, *, side: str = "local") -> Optional[Refus
     # Download lock: a paired local downloads before it pushes. A freshly
     # provisioned account is seeded from templates and those rows are stamped
     # at provisioning time, so pushing them could beat the hub's real data on
-    # timestamps. A completed download is what sets last_sync_at.
-    if state.last_sync_at is None:
+    # timestamps. A download (complete or not) is what first advances
+    # local_pushed_rev; once it has, the account holds the hub's records and
+    # "Sync now" may run — an incomplete download heals by re-fetching the files
+    # its still-zero cursor re-offers.
+    if state.last_sync_at is None and not (state.local_pushed_rev or 0):
         return Refusal(REFUSAL_NEEDS_DOWNLOAD, {
             "user_id": user.id,
             "seeded_rev": account_marker_rev(db, user.id, "seeded"),
@@ -3077,16 +3150,18 @@ def _plan_files(db, builder: _Builder, payload, index: dict) -> None:
                 seen.add(digest)
             for column in RICH_TEXT_COLUMNS.get(model, ()):
                 for ref in _record_text_refs(model, record, column, key, manifest):
-                    if ref.ident in seen:
-                        continue
-                    seen.add(ref.ident)
                     if ref.sha256 and ref.sha256 not in manifest:
                         builder.skipped_files.append(
                             FileRef(**{**ref.__dict__, "missing": True,
                                        "reason": SKIP_MISSING}))
-                    else:
-                        builder.placements.append(ref)
+                        continue
+                    # A note image is its own placement even when its digest also
+                    # feeds a FILE slot (one file, several roles): only the bytes
+                    # are deduped for fetching.
+                    builder.placements.append(ref)
+                    if ref.ident not in seen:
                         builder.files.append(ref)
+                    seen.add(ref.ident)
 
     _collect_orphans(db, builder, index, deleted)
 
@@ -3623,7 +3698,7 @@ def plan_download(db, user, snapshot, *, offset_seconds: float = 0.0,
                     continue
                 descriptor = manifest.get(digest) or {}
                 plan.placements.append(FileRef(
-                    role=descriptor.get("role") or _FILE_SLOTS[model][slot][0],
+                    role=_FILE_SLOTS[model][slot][0],
                     table=table, key=key, slot=slot, sha256=digest,
                     size=int(descriptor.get("size") or 0),
                     ext=str(descriptor.get("ext") or ""),
@@ -4055,14 +4130,19 @@ def apply_download(db, plan: DownloadPlan, *, user=None) -> MergeResult:
         _write_tombstone(conn, uid, Action(OP_TOMBSTONE, table, key, False, {}),
                          r_verbatim)
 
-    # Watermarks last, in the same transaction.
+    # Watermarks last, in the same transaction. The cursor stays at 0 and
+    # last_sync_at is cleared: a download is not complete until its files are
+    # placed. commit_staged_files() advances the cursor to server_rev and stamps
+    # last_sync_at only once nothing is pending. local_pushed_rev ends above the
+    # "replaced" marker, so the download's own replace never trips the
+    # local_replaced refusal.
     state = db.scalars(select(SyncState).where(SyncState.user_id == uid)).first()
     if state is None:
         state = SyncState(user_id=uid)
         db.add(state)
-    state.server_cursor = plan.server_rev
+    state.server_cursor = 0
     state.local_pushed_rev = counter_rev(db, uid)
-    state.last_sync_at = utc_now()
+    state.last_sync_at = None
 
     db.flush()
     db.expire_all()
