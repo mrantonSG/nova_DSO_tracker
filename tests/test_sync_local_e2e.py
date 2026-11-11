@@ -1207,7 +1207,9 @@ def test_a_drop_during_the_pulls_file_fetch_heals_on_the_next_sync(
     st = _sync_to_done(harness)
     assert st["phase"] == "done", st
     assert st["result"]["unrestored_files"] == 0
-    assert st["result"]["down"] == {"created": 0, "updated": 0, "deleted": 0}
+    # A file-only placement: no record write, but the record changed (once).
+    assert st["result"]["down"] == {"created": 0, "updated": 1, "deleted": 0}
+    assert st["summary"]["down"]["updated"] == 1             # as the summary said
 
     landed = _local_query(harness, lambda db: db.query(JournalSession)
                           .filter_by(user_id=uid, external_id="hub-sess").one())
@@ -1328,6 +1330,43 @@ def test_staged_bytes_the_hub_lost_are_uploaded_again(harness, monkeypatch, firs
     assert _hub_owed(harness) == []
     assert _local_query(harness, lambda db: db.query(SyncState)
                         .filter_by(user_id=uid).one()).local_pushed_rev > 0
+
+
+def _toast(harness, uid):
+    from nova.blueprints.sync_tokens import _completion_toast
+    with harness["app"].test_request_context():
+        return _completion_toast(load_job(uid))
+
+
+def test_an_owed_file_uploaded_again_counts_its_record_once_everywhere(harness, monkeypatch):
+    """The hub lost the staged bytes of a record it already wrote. The next
+    Sync now changes that record by its file alone: the confirmation summary,
+    the result and the completion toast all count it as one changed record."""
+    uid = harness["local_user"].id
+    _mark_downloaded(harness)
+    _local_query(harness, lambda db: db.add(_session(uid, "local-sess", image="photo.jpg")))
+    harness["local_db"].commit()
+    _write_upload(harness["instance_path"], "default", "photo.jpg", BIG)
+    _script_offsets(monkeypatch, 0.0)
+    monkeypatch.setattr("nova.sync_job._backoff", lambda _i: 0.0)
+
+    st = _hub_dies_before_placing(harness, monkeypatch)
+    assert st["phase"] == "failed", st
+    staging = _hub_staging(harness)
+    for name in os.listdir(staging):
+        if name.startswith(_sha256_of_bytes(BIG)):
+            os.remove(os.path.join(staging, name))           # the staged bytes are lost
+
+    st = _run_phase1(harness, "sync")
+    assert st["phase"] == "awaiting_confirmation", st
+    assert st["summary"]["files"]["up"] == 1
+    assert st["summary"]["up"]["updated"] == 1               # file only, counted once
+    confirm_job(harness["app"], uid)
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+
+    assert st["phase"] == "done", st
+    assert st["result"]["up"] == {"created": 0, "updated": 1, "deleted": 0}
+    assert _toast(harness, uid)[1].startswith("Sync complete: 1 sent,")
 
 
 def test_an_owed_file_is_dropped_when_a_newer_edit_supersedes_it(harness, monkeypatch):
@@ -1731,19 +1770,56 @@ def test_a_hung_worker_stops_its_heartbeat_and_reads_interrupted(harness, monkey
 def test_progress_keeps_a_slow_worker_alive_past_the_limit(harness, monkeypatch):
     """Slow is not hung: a step that keeps moving bytes (here, noting progress)
     outlasts the limit several times and never reads interrupted."""
+    # Deterministic: both clocks the liveness rules read (the wall clock that
+    # job_status ages heartbeat_at with, the monotonic one the ticker measures
+    # progress on) are one fake clock that moves only when the slow step moves
+    # it, and the ticker's beats are driven from that step instead of a
+    # real-time thread. Machine load cannot age the job.
+    import types
     import nova.sync_job as job
     uid = harness["local_user"].id
     _mark_downloaded(harness)
     _hub(harness, _obj(999, "M 1"))
-    monkeypatch.setattr(job, "HEARTBEAT_INTERVAL_SECONDS", 0.05)
-    monkeypatch.setattr(job, "HEARTBEAT_STALE_SECONDS", 0.4)
-    monkeypatch.setattr(job, "HEARTBEAT_PROGRESS_LIMIT_SECONDS", 0.3)
+
+    clock = {"t": 0.0}
+    wall_zero = utc_now()
+    monkeypatch.setattr(job, "utc_now",
+                        lambda: wall_zero + timedelta(seconds=clock["t"]))
+    monkeypatch.setattr(job, "time", types.SimpleNamespace(
+        monotonic=lambda: clock["t"], sleep=time.sleep))
+
+    beats = []
+
+    class _DrivenHeartbeat(job._Heartbeat):
+        """The real ticker, minus its thread: the test calls _tick()."""
+        def __init__(self, *args):
+            super().__init__(*args)
+            beats.append(self)
+
+        def _run(self):
+            return
+
+    monkeypatch.setattr(job, "_Heartbeat", _DrivenHeartbeat)
+
+    interval = job.HEARTBEAT_INTERVAL_SECONDS
+    limit = job.HEARTBEAT_PROGRESS_LIMIT_SECONDS
+    stale = job.HEARTBEAT_STALE_SECONDS
+    ticks_per_progress = 5                  # progress noted every 5 beats ...
+    assert interval * ticks_per_progress < limit  # ... well inside the limit
+    assert interval < stale
+    seen = []
     real_backup = job.backup_local
 
     def slow_backup(db, user):
         token = job.load_job(user.id)["start_token"]
-        for _ in range(15):
-            time.sleep(0.1)
+        ticker = beats[-1]
+        while clock["t"] < 3 * limit:       # outlasts the limit three times
+            for _ in range(ticks_per_progress):
+                clock["t"] += interval
+                assert ticker._tick()       # never judged stalled
+                status = job_status(user.id)
+                seen.append((status.get("phase"),
+                             (status.get("error") or {}).get("code")))
             job._note_progress(user.id, token)
         return real_backup(db, user)
     monkeypatch.setattr(job, "backup_local", slow_backup)
@@ -1751,16 +1827,12 @@ def test_progress_keeps_a_slow_worker_alive_past_the_limit(harness, monkeypatch)
     st = _run_phase1(harness, "sync")
     assert st["phase"] == "awaiting_confirmation", st
     confirm_job(harness["app"], uid)
-    seen = []
-    deadline = time.time() + 20
-    while time.time() < deadline:
-        status = job_status(uid)
-        seen.append((status.get("phase"), (status.get("error") or {}).get("code")))
-        if status.get("phase") in ("done", "failed"):
-            break
-        time.sleep(0.05)
-    assert seen[-1] == ("done", None), seen[-5:]
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+
+    assert clock["t"] >= 3 * limit and clock["t"] > 3 * stale
+    assert seen and all(phase != "failed" for phase, _code in seen), seen
     assert ("failed", "interrupted") not in seen
+    assert (st["phase"], (st.get("error") or {}).get("code")) == ("done", None), st
 
 
 def test_a_job_whose_worker_really_died_still_reads_interrupted(harness, monkeypatch):

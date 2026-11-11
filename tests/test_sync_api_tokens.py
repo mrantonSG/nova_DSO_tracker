@@ -787,6 +787,50 @@ def test_sync_files_line_shows_none_to_transfer_when_zero(hub, monkeypatch, tmp_
     assert "to upload" not in body
 
 
+def _files_line(hub, monkeypatch, tmp_path, files) -> str:
+    """The awaiting-confirmation page's files line for a summary's `files`."""
+    import nova.sync_job as sj
+    from nova.sync_engine import to_iso
+    monkeypatch.setattr(sj, "INSTANCE_PATH", str(tmp_path))
+    now = to_iso(utc_now())
+    sj.save_job(hub.user.id, {
+        "job_id": "x", "start_token": "x", "user_id": hub.user.id,
+        "kind": "sync", "phase": "awaiting_confirmation", "progress": 0.9,
+        "phase_label": "awaiting_confirmation",
+        "summary": {"kind": "sync",
+                    "up": {"created": 0, "updated": 1, "deleted": 0,
+                           "may_skip_deleted": False},
+                    "down": {"created": 0, "updated": 0, "deleted": 0,
+                             "may_skip_deleted": False},
+                    "files": files, "mass_delete": False},
+        "result": None, "error": None,
+        "started_at": now, "heartbeat_at": now,
+        "pid": os.getpid(),
+    })
+    body = hub.client.get("/sync").data.decode()
+    line = re.search(r'<p class="sync-files">(.*?)</p>', body, re.S).group(1)
+    return " ".join(line.split())
+
+
+def test_sync_files_line_sizes_each_direction(hub, monkeypatch, tmp_path):
+    line = _files_line(hub, monkeypatch, tmp_path,
+                       {"up": 1, "up_bytes": 1883332, "down": 2, "down_bytes": 2048})
+    assert line == "Files: 1 to upload (1.9 MB) · 2 to download (2.0 kB)"
+
+
+def test_sync_files_line_omits_a_zero_size(hub, monkeypatch, tmp_path):
+    line = _files_line(hub, monkeypatch, tmp_path,
+                       {"up": 1, "up_bytes": 1883332, "down": 0, "down_bytes": 0})
+    assert line == "Files: 1 to upload (1.9 MB) · 0 to download"
+    assert "0 Bytes" not in line
+
+
+def test_sync_files_line_of_a_job_saved_before_up_bytes(hub, monkeypatch, tmp_path):
+    line = _files_line(hub, monkeypatch, tmp_path,
+                       {"up": 3, "down": 0, "down_bytes": 0})
+    assert line == "Files: 3 to upload · 0 to download"
+
+
 # =============================================================================
 # 12. CSRF: every session-authenticated POST of the sync blueprint
 # =============================================================================

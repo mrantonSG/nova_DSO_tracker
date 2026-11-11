@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-11 22:12+0800\n"
+"POT-Creation-Date: 2026-11-12 00:41+0800\n"
 "PO-Revision-Date: 2026-03-27 13:26+0800\n"
 "Last-Translator: \n"
 "Language: de\n"
@@ -8444,12 +8444,18 @@ msgid "none to transfer"
 msgstr "nichts zu übertragen"
 
 #: templates/sync_tokens.html:188
-msgid "to upload"
-msgstr "hochzuladen"
+#, python-format
+msgid "%(num)d to upload"
+msgid_plural "%(num)d to upload"
+msgstr[0] "%(num)d hochzuladen"
+msgstr[1] "%(num)d hochzuladen"
 
 #: templates/sync_tokens.html:188
-msgid "to download"
-msgstr "herunterzuladen"
+#, python-format
+msgid "%(num)d to download"
+msgid_plural "%(num)d to download"
+msgstr[0] "%(num)d herunterzuladen"
+msgstr[1] "%(num)d herunterzuladen"
 
 #: templates/sync_tokens.html:214
 msgid "Connected to"
@@ -8582,4 +8588,10 @@ msgstr "Diese Synchronisierung löscht eine große Anzahl von Datensätzen."
 
 #~ msgid "Files to download"
 #~ msgstr "Herunterzuladende Dateien"
+
+#~ msgid "to upload"
+#~ msgstr "hochzuladen"
+
+#~ msgid "to download"
+#~ msgstr "herunterzuladen"
 

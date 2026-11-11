@@ -934,6 +934,9 @@ class MergePlan:
     # content already matches and that only need a file placed. No record write
     # and no rev: the placement is all there is to do.
     heal: dict = field(default_factory=dict)
+    # (table, key) of records counted in `updated` for their files alone (a
+    # heal, an owed re-delivery): no record write, but their files change.
+    file_only: set = field(default_factory=set)
     # FileRefs this plan needs on this disk, and the ones it cannot get. A
     # pending entry is a file that should arrive and did not: the watermark
     # holds, exactly as it does for a deferred record. A skipped entry is a
@@ -1387,8 +1390,10 @@ def files_needed(plan, user, *, have: Optional[Mapping[str, str]] = None,
     """The plan's files this disk does not already hold, by sha256.
 
     `have` is a {sha256: path} index; without it the staging directory is
-    scanned and verified. A digest staged and verified is not requested again,
-    which is what makes a retried download resume instead of starting over.
+    scanned and verified. A file this disk already holds LIVE for its slot
+    never reaches here: _plan_files leaves it out of plan.files. A digest
+    staged and verified is not requested again, which is what makes a retried
+    download resume instead of starting over.
     Deduplicated by digest: one file two records share is fetched once.
     """
     index = dict(have) if have is not None else staged_index(
@@ -3245,6 +3250,10 @@ class _Builder:
         # Hub side only: the standing owed placements, as
         # (table, key, slot, sha256). See _owed_redelivery.
         self.owed: set = set()
+        # (table, key) of records this plan changes by their files alone: an
+        # owed re-delivery on a hub (the placement is the hub's owed note's).
+        # A heal is found from its placements. See _count_file_only.
+        self.file_only: set = set()
         self.actions: list[Action] = []
         self.by_key: dict[tuple[str, str], Action] = {}
         self.created: dict[str, int] = {}
@@ -3725,6 +3734,7 @@ def _plan_record_update(db, builder: _Builder, model: type, record: dict,
                 # again because the hub still owes its file. Not a conflict:
                 # the owed note places the file (asking for the bytes again
                 # when they are gone), and nothing here is decided twice.
+                builder.file_only.add((table, key))
                 return
         else:
             lost_notes: list = []
@@ -3901,9 +3911,35 @@ def _plan_files(db, builder: _Builder, payload, index: dict) -> None:
 
     The receiver's own rows that a delete or a replace displaces are reported
     in `orphaned_files`. Nothing is deleted: the file stays on disk.
+
+    A written record's slot whose LIVE file here (the one the row's column
+    names now) already has the named digest is neither fetched nor placed:
+    a record write never touches a FILE column, so the row keeps that file.
+    The same holds for a note image already on disk under its digest name.
+    Only the bytes that would change travel.
     """
     written = {(a.table, a.key) for a in builder.actions
                if a.op in (OP_INSERT, OP_UPDATE)}
+    # The existing row each update writes, so a slot can be compared with the
+    # file this disk already holds for it. An insert has no file here yet.
+    updated_rows = {(a.table, a.key): a.row_id for a in builder.actions
+                    if a.op == OP_UPDATE and a.row_id is not None}
+    user = builder.user
+    live_digests: dict = {}
+
+    def held_live(model, table, key, slot, role, digest) -> bool:
+        """Whether the row this update writes already holds `digest` in `slot`."""
+        row_id = updated_rows.get((table, key))
+        if row_id is None or user is None:
+            return False
+        ident = (table, key, slot)
+        if ident not in live_digests:
+            row = db.get(model, row_id)
+            live_digests[ident] = (
+                _local_file_digest(model, row, slot, role, user,
+                                   builder.instance_path)
+                if row is not None and row.user_id == user.id else None)
+        return live_digests[ident] == digest
     deleted = {(a.table, a.key) for a in builder.actions if a.op == OP_DELETE}
     skipped_by_sender = {
         (s.get("table"), str(s.get("key")))
@@ -3947,6 +3983,8 @@ def _plan_files(db, builder: _Builder, payload, index: dict) -> None:
                     builder.skipped_files.append(
                         FileRef(**{**ref.__dict__, "missing": True,
                                    "reason": SKIP_MISSING}))
+                elif is_written and held_live(model, table, key, slot, role, digest):
+                    continue    # the live file is already these bytes
                 elif is_written or (heal is not None and slot in heal["slots"]):
                     builder.placements.append(ref)
                     if digest not in seen:
@@ -3964,6 +4002,9 @@ def _plan_files(db, builder: _Builder, payload, index: dict) -> None:
                             FileRef(**{**ref.__dict__, "missing": True,
                                        "reason": SKIP_MISSING}))
                         continue
+                    if user is not None and _live_file_ok(
+                            db, ref, user, builder.instance_path):
+                        continue    # already on disk under its digest name
                     # A note image is its own placement even when its digest also
                     # feeds a FILE slot (one file, several roles): only the bytes
                     # are deduped for fetching.
@@ -3973,6 +4014,45 @@ def _plan_files(db, builder: _Builder, payload, index: dict) -> None:
                     seen.add(ref.ident)
 
     _collect_orphans(db, builder, index, deleted)
+
+
+def _written_keys(actions) -> set:
+    """(table, key) of every record the actions insert or update."""
+    return {(a.table, a.key) for a in actions if a.op in (OP_INSERT, OP_UPDATE)}
+
+
+def _count_file_only(builder: _Builder) -> set:
+    """Count each record this plan changes by its files alone as updated.
+
+    A heal places files and writes no record, and a hub's owed re-delivery
+    leaves the placement to its owed note: either way the record's files
+    change, so the summary counts it. A record that is also written is
+    already counted, and is not counted again. Returns the (table, key)s.
+    """
+    file_only = ({(r.table, r.key) for r in builder.placements}
+                 | builder.file_only) - _written_keys(builder.actions)
+    for table, _key in sorted(file_only):
+        builder.count_updated(table)
+    return file_only
+
+
+def count_file_only(plan: MergePlan, refs, counts: Optional[dict] = None) -> None:
+    """Count the records `refs` place files for as updated, once each.
+
+    For placements decided outside plan_merge (a hub's owed files it asks the
+    client for again): a record the plan already counts is not counted twice.
+    `counts` is the {table: n} to add to: the plan's own `updated` by default,
+    an apply's MergeResult.updated for the result.
+    """
+    counts = plan.updated if counts is None else counts
+    counted = _written_keys(plan.actions) | plan.file_only
+    for ref in refs:
+        ident = (ref.table, ref.key)
+        if ident in counted:
+            continue
+        counted.add(ident)
+        plan.file_only.add(ident)
+        counts[ref.table] = counts.get(ref.table, 0) + 1
 
 
 def _record_text_refs(model: type, record: Mapping[str, Any], column: str,
@@ -4162,6 +4242,7 @@ def plan_merge(db, user, payload, *, side: str, offset_seconds: float = 0.0,
         builder.actions = kept
         builder.by_key = {(a.table, a.key): a for a in kept}
 
+    plan.file_only = _count_file_only(builder)
     plan.actions = builder.actions
     plan.created = builder.created
     plan.updated = builder.updated
@@ -4289,6 +4370,11 @@ def apply_merge(db, plan: MergePlan, *, user=None) -> MergeResult:
                 continue
             _delete_row(conn, model, action, user_id)
             result.deleted[table] = result.deleted.get(table, 0) + 1
+
+    # A record whose files alone change (a heal, an owed re-delivery) is a
+    # changed record here too, counted once, as the plan's summary counts it.
+    for table, _key in sorted(plan.file_only):
+        result.updated[table] = result.updated.get(table, 0) + 1
 
     # 3. Tombstones, each re-stamped with a local rev. One whose delete was
     #    skipped above is not written: the record is still here, and a

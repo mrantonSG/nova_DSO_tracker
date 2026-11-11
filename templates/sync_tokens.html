@@ -185,7 +185,7 @@
               {% if s.files.up == 0 and s.files.down == 0 %}
                 {{ _('Files') }}: {{ _('none to transfer') }}
               {% else %}
-                {{ _('Files') }}: {{ s.files.up }} {{ _('to upload') }} · {{ s.files.down }} {{ _('to download') }} ({{ s.files.down_bytes | filesizeformat }})
+                {{ _('Files') }}: {{ ngettext('%(num)d to upload', '%(num)d to upload', s.files.up) }}{% if s.files.up_bytes %} ({{ s.files.up_bytes | filesizeformat }}){% endif %} · {{ ngettext('%(num)d to download', '%(num)d to download', s.files.down) }}{% if s.files.down_bytes %} ({{ s.files.down_bytes | filesizeformat }}){% endif %}
               {% endif %}
             </p>
             <form method="post" action="{{ url_for('sync.confirm') }}" id="sync-confirm-form" data-mass-delete="{{ '1' if s.mass_delete else '0' }}"

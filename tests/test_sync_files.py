@@ -2349,7 +2349,8 @@ def test_a_later_replacement_reaches_a_computer_that_did_not_change_the_row(hub,
 
     landed = local.one(JournalSession, external_id="s1")
     assert local.read(landed.session_image_file) == PNG_ALT
-    assert result.updated == {} and local.rev() == rev_before
+    # No record write and no rev, but the record's file changed: counted once.
+    assert result.updated == {"journal_sessions": 1} and local.rev() == rev_before
 
 
 # --- The exact rule, across three computers ----------------------------------
@@ -2873,3 +2874,225 @@ def test_a_link_to_a_project_the_same_push_creates_is_kept(hub, local):
     landed = hub.one(JournalSession, external_id="s1")
     assert landed.project_id == "p-new" and _links(hub) == [(landed.id, "p-new")]
 
+
+
+# =============================================================================
+# A file the receiver already holds live is never sent or placed again, and a
+# record whose files change counts as changed even with no record write
+# =============================================================================
+
+ASIAIR = b"ASIAIR autorun log\r\nline two\r\n" * 40
+PHD2 = b"PHD2 guide log\nframe 1\n" * 60
+
+
+def _session_with_photo_and_logs(node, external_id="s1"):
+    """A session holding a photo and both logs, as the journal stores them."""
+    session = _session_with_photo(node, external_id)
+    for slot, log_type, name, data in (
+            ("asiair_log_content", "asiair", "Autorun_Log.txt", ASIAIR),
+            ("phd2_log_content", "phd2", "PHD2_GuideLog.txt", PHD2)):
+        path = node.put_log(log_type, f"{session.id}_{name}", data)
+        setattr(session, slot, os.path.join("instance", "logs", log_type,
+                                            os.path.basename(path)))
+    node.commit()
+    return node.one(JournalSession, external_id=external_id)
+
+
+def _edit_photo(node, external_id="s1", data=PNG_ALT):
+    """The journal edit form saving a new photo and nothing else."""
+    row = node.one(JournalSession, external_id=external_id)
+    node.put(row.session_image_file, data)
+    mark_file_changed(row, "session_image_file")
+    node.commit()
+
+
+def _log_state(node, external_id="s1"):
+    """Each log's column, and the identity and mtime of the file it names, plus
+    the parse cache a re-placement would clear."""
+    row = node.one(JournalSession, external_id=external_id)
+    state = {"cache": row.log_analysis_cache}
+    for slot, log_type in (("asiair_log_content", "asiair"),
+                           ("phd2_log_content", "phd2")):
+        value = getattr(row, slot)
+        info = os.stat(node.log_path(log_type, os.path.basename(value)))
+        state[slot] = (value, info.st_ino, info.st_mtime_ns)
+    return state
+
+
+def _set_log_cache(node, external_id="s1"):
+    """A parsed-log cache, written past the tracking listener (no rev, no stamp)."""
+    node.db.execute(text("UPDATE journal_sessions SET log_analysis_cache = 'parsed' "
+                         "WHERE external_id = :k AND user_id = :u"),
+                    {"k": external_id, "u": node.uid})
+    node.commit()
+
+
+def _logs_in(refs) -> list:
+    return [r.slot for r in refs if r.slot.endswith("_log_content")]
+
+
+def test_a_photo_only_edit_pushes_exactly_the_photo(hub, local):
+    _session_with_photo_and_logs(local)
+    seed_pairing(local, hub)
+    push(local, hub)
+    _set_log_cache(hub)
+    logs_before = _log_state(hub)
+    _edit_photo(local)
+
+    payload = export_changes(local.db, local.user, 0, side="local",
+                             instance_path=local.instance_path)
+    plan = plan_merge(hub.db, hub.user, payload, side="server",
+                      instance_path=hub.instance_path)
+
+    # The record carries all three slots; only the photo is new to the hub.
+    assert set(payload["records"]["journal_sessions"][0][KEY_FILES]) == {
+        "session_image_file", "asiair_log_content", "phd2_log_content"}
+    needed = files_needed(plan, hub.user, instance_path=hub.instance_path)
+    assert [r.sha256 for r in needed] == [sha(PNG_ALT)]
+    assert [r.slot for r in plan.placements] == ["session_image_file"]
+    assert plan.summary()["files"] == {"needed": 1, "bytes": len(PNG_ALT),
+                                       "skipped": 0}
+    assert plan.updated == {"journal_sessions": 1}
+
+    staged = transfer(local, hub, plan.files)
+    result = apply_merge(hub.db, plan, user=hub.user)
+    hub.commit()
+    report = commit_staged_files(hub.db, result, staged, user=hub.user,
+                                 instance_path=hub.instance_path)
+    hub.commit()
+
+    assert report.pending == []
+    landed = hub.one(JournalSession, external_id="s1")
+    assert hub.read(landed.session_image_file) == PNG_ALT
+    assert _log_state(hub) == logs_before      # never re-placed, cache kept
+
+
+def test_a_photo_only_edit_pulls_exactly_the_photo(hub, local):
+    _session_with_photo_and_logs(hub)
+    seed_pairing(local, hub)
+    pull(local, hub)
+    _set_log_cache(local)
+    logs_before = _log_state(local)
+    _edit_photo(hub)
+
+    payload = export_changes(hub.db, hub.user, 0, side="server",
+                             instance_path=hub.instance_path)
+    plan = plan_merge(local.db, local.user, payload, side="local",
+                      instance_path=local.instance_path)
+
+    assert [r.sha256 for r in plan.files] == [sha(PNG_ALT)]
+    assert _logs_in(plan.placements) == []
+    assert plan.updated == {"journal_sessions": 1}     # written once, counted once
+
+    staged = transfer(hub, local, plan.files)
+    result = apply_merge(local.db, plan, user=local.user)
+    local.commit()
+    commit_staged_files(local.db, result, staged, user=local.user,
+                        instance_path=local.instance_path)
+    local.commit()
+
+    landed = local.one(JournalSession, external_id="s1")
+    assert local.read(landed.session_image_file) == PNG_ALT
+    assert _log_state(local) == logs_before
+
+
+def test_an_unchanged_note_image_is_not_fetched_again(hub, local):
+    session = add_session(hub, "s1")
+    hub.put("note.png", PNG)
+    session.notes = '<img src="/uploads/hub/note.png">'
+    hub.commit()
+    seed_pairing(local, hub)
+    pull(local, hub)
+
+    row = hub.one(JournalSession, external_id="s1")
+    row.weather_notes = "clear"                        # a text-only edit
+    hub.commit()
+    payload = export_changes(hub.db, hub.user, 0, side="server",
+                             instance_path=hub.instance_path)
+    plan = plan_merge(local.db, local.user, payload, side="local",
+                      instance_path=local.instance_path)
+
+    assert [a.op for a in plan.actions] == ["update"]
+    assert plan.files == [] and plan.placements == []
+
+
+def test_a_pull_that_only_places_a_file_counts_the_record_as_changed(hub, local):
+    _session_with_photo_and_logs(hub)
+    seed_pairing(local, hub)
+    payload = export_changes(hub.db, hub.user, 0, side="server",
+                             instance_path=hub.instance_path)
+    plan = plan_merge(local.db, local.user, payload, side="local",
+                      instance_path=local.instance_path)
+    result = apply_merge(local.db, plan, user=local.user)
+    local.commit()
+    commit_staged_files(local.db, result, [], user=local.user,
+                        instance_path=local.instance_path)       # the bytes were lost
+    local.commit()
+    _mark_synced(local)
+
+    replan = plan_merge(local.db, local.user, payload, side="local",
+                        instance_path=local.instance_path)
+
+    assert replan.actions == []                        # a heal: no record write
+    assert sorted(r.slot for r in replan.placements) == [
+        "asiair_log_content", "phd2_log_content", "session_image_file"]
+    assert replan.updated == {"journal_sessions": 1}   # one record, three files
+    assert replan.summary()["updated"] == {"journal_sessions": 1}
+
+    staged = transfer(hub, local, replan.files)
+    result = apply_merge(local.db, replan, user=local.user)
+    local.commit()
+    commit_staged_files(local.db, result, staged, user=local.user,
+                        instance_path=local.instance_path)
+    local.commit()
+    assert result.updated == {"journal_sessions": 1}   # the result counts it the same
+
+
+def test_a_written_record_with_a_new_file_is_counted_once_in_the_result(hub, local):
+    _session_with_photo_and_logs(hub)
+    seed_pairing(local, hub)
+    pull(local, hub)
+    row = hub.one(JournalSession, external_id="s1")
+    row.weather_notes = "windy"                        # content and photo change
+    hub.put(row.session_image_file, PNG_ALT)
+    mark_file_changed(row, "session_image_file")
+    hub.commit()
+
+    result = pull(local, hub)
+
+    assert result.updated == {"journal_sessions": 1}
+
+
+def test_a_push_that_only_places_an_owed_file_counts_the_record_as_changed(hub, local):
+    from nova.sync_engine import count_file_only
+    _session_with_photo(local)
+    seed_pairing(local, hub)
+    _hub_apply(local, hub, stage=False)                # record written, file owed
+    _owed, reupload = _settle(hub)
+    assert [r.sha256 for r in reupload] == [sha(PNG)]
+
+    again = export_changes(local.db, local.user, 0, side="local",
+                           instance_path=local.instance_path)
+    replan = plan_merge(hub.db, hub.user, again, side="server",
+                        instance_path=hub.instance_path)
+
+    assert replan.actions == []                        # an owed re-delivery
+    assert replan.updated == {"journal_sessions": 1}
+    count_file_only(replan, reupload)                  # the same record: not twice
+    assert replan.summary()["updated"] == {"journal_sessions": 1}
+    result = apply_merge(hub.db, replan, user=hub.user)
+    count_file_only(replan, reupload, counts=result.updated)
+    hub.commit()
+    assert result.updated == {"journal_sessions": 1}   # the result: once, too
+
+    # Owed bytes asked for again with no record in the push still count it.
+    empty = plan_merge(hub.db, hub.user, {**again, "records": {}},
+                       side="server", instance_path=hub.instance_path)
+    assert empty.updated == {}
+    count_file_only(empty, reupload)
+    assert empty.summary()["updated"] == {"journal_sessions": 1}
+    empty_result = {}
+    fresh = plan_merge(hub.db, hub.user, {**again, "records": {}},
+                       side="server", instance_path=hub.instance_path)
+    count_file_only(fresh, reupload, counts=empty_result)
+    assert empty_result == {"journal_sessions": 1}

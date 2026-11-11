@@ -36,7 +36,7 @@ from nova.sync_engine import (
     StagedFile, SyncRefused, TABLE_MODEL, _FILE_SLOTS, _HEX64, _log_path,
     _ref_summary, _role_ext_ok, _row_by_key, _user_upload_root,
     account_marker_rev, apply_merge, collect_files,
-    commit_staged_files, counter_rev, export_changes, export_files,
+    commit_staged_files, count_file_only, counter_rev, export_changes, export_files,
     file_cap, file_source_path, files_needed, finish_placements,
     missing_local_slots, note_image_name, note_owed_files, plan_merge,
     placement_guard, placement_target, record_to_payload,
@@ -116,6 +116,19 @@ def _settle_owed(db, user) -> tuple:
     request; the engine commits what it placed and only then clears what that
     settled. Returns (still owed, to upload again)."""
     return settle_owed_files(db, user)
+
+
+def _reupload_refs(session) -> list:
+    """The owed files a push session asked for again, as FileRefs."""
+    refs = []
+    for entry in session.get("reupload") or []:
+        try:
+            table, key, slot, sha256 = entry[0], entry[1], entry[2], entry[3]
+        except (IndexError, TypeError):
+            continue
+        refs.append(FileRef(role="", table=str(table), key=str(key),
+                            slot=str(slot), sha256=str(sha256)))
+    return refs
 
 
 def _result_summary(result) -> dict:
@@ -458,6 +471,8 @@ def push_plan() -> Response:
             if ref.sha256 not in asked:
                 asked.add(ref.sha256)
                 needed_list.append([ref.table, ref.key, ref.slot, ref.sha256])
+        # The records those owed files land on change too: counted, once each.
+        count_file_only(plan, reupload)
         session_id = uuid.uuid4().hex
         session = {
             "protocol": PROTOCOL_VERSION,
@@ -474,6 +489,9 @@ def push_plan() -> Response:
             # and the role/ext of each are decided here, never by the request.
             "file_refs": file_refs,
             "files_needed": needed_list,
+            # The owed files asked for again: their records are counted as
+            # changed in the apply's result too, as the plan's summary counts them.
+            "reupload": [[r.table, r.key, r.slot, r.sha256] for r in reupload],
         }
         save_push_session(user.id, session)
         # Existence only (nothing hashed): this runs on every push plan.
@@ -641,6 +659,7 @@ def push_apply() -> Response:
 
         try:
             result = apply_merge(db, plan, user=user)
+            count_file_only(plan, _reupload_refs(session), counts=result.updated)
             # Write-ahead: what this apply's rows need placed is noted before
             # the commit, so a hub that dies between the commit and the
             # placement still knows what it owes.

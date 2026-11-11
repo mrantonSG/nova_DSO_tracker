@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-11 22:12+0800\n"
+"POT-Creation-Date: 2026-11-12 00:41+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -8074,12 +8074,16 @@ msgid "none to transfer"
 msgstr "転送するものはありません"
 
 #: templates/sync_tokens.html:188
-msgid "to upload"
-msgstr "アップロード"
+#, python-format
+msgid "%(num)d to upload"
+msgid_plural "%(num)d to upload"
+msgstr[0] "%(num)d 件アップロード"
 
 #: templates/sync_tokens.html:188
-msgid "to download"
-msgstr "ダウンロード"
+#, python-format
+msgid "%(num)d to download"
+msgid_plural "%(num)d to download"
+msgstr[0] "%(num)d 件ダウンロード"
 
 #: templates/sync_tokens.html:214
 msgid "Connected to"
@@ -8209,4 +8213,10 @@ msgstr "この同期は多数のレコードを削除します。"
 
 #~ msgid "Files to download"
 #~ msgstr "ダウンロードするファイル"
+
+#~ msgid "to upload"
+#~ msgstr "アップロード"
+
+#~ msgid "to download"
+#~ msgstr "ダウンロード"
 

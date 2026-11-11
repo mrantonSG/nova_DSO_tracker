@@ -302,16 +302,23 @@ class _Heartbeat:
         last = _PROGRESS.get((int(self._user_id), self._token))
         return last is not None and time.monotonic() - last > self._limit
 
+    def _tick(self) -> bool:
+        """One beat of the ticker. False once the worker has stalled: the
+        heartbeat then stops for good."""
+        if self._stalled():
+            logger.warning("sync: job for user %s made no progress for %ss; "
+                           "its heartbeat stops", self._user_id, int(self._limit))
+            return False
+        try:
+            _beat(self._user_id, self._token)
+        except Exception:
+            logger.debug("sync heartbeat failed", exc_info=True)
+        return True
+
     def _run(self) -> None:
         while not self._stop.wait(self._interval):
-            if self._stalled():
-                logger.warning("sync: job for user %s made no progress for %ss; "
-                               "its heartbeat stops", self._user_id, int(self._limit))
+            if not self._tick():
                 return
-            try:
-                _beat(self._user_id, self._token)
-            except Exception:
-                logger.debug("sync heartbeat failed", exc_info=True)
 
     def __enter__(self):
         _note_progress(self._user_id, self._token)
@@ -1140,6 +1147,9 @@ def _phase1_sync(db, user, start_token: str) -> None:
     if push_mass_delete:
         up_deleted = int((push_mass_delete_detail or {}).get("deletions") or 0)
     server_rev = int(pull_payload.get("rev") or 0)
+    up_refs = _upload_refs(
+        db, user, (push_session.get("files_needed") or []) if push_session else [],
+        push_payload.get("files") or {})
     summary = {
         "kind": "sync",
         "push": push_summary,
@@ -1171,9 +1181,8 @@ def _phase1_sync(db, user, start_token: str) -> None:
         "fingerprint": push_session.get("fingerprint") if push_session else None,
         "files_needed": push_session.get("files_needed") if push_session else [],
         "hub_missing": push_session.get("hub_missing") if push_session else [],
-        "files": {"up": len(_upload_refs(
-                      db, user, (push_session.get("files_needed") or []) if push_session else [],
-                      push_payload.get("files") or {})),
+        "files": {"up": len(up_refs),
+                  "up_bytes": sum(int(r.size or 0) for r in up_refs),
                   "up_place": int((push_session.get("files_to_place") or 0) if push_session else 0),
                   "down_place": len(pull_plan.placements or []),
                   "down": pull_plan.summary()["files"]["needed"],

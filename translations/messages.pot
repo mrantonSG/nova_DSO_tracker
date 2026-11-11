@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-11 22:12+0800\n"
+"POT-Creation-Date: 2026-11-12 00:41+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -8036,12 +8036,18 @@ msgid "none to transfer"
 msgstr ""
 
 #: templates/sync_tokens.html:188
-msgid "to upload"
-msgstr ""
+#, python-format
+msgid "%(num)d to upload"
+msgid_plural "%(num)d to upload"
+msgstr[0] ""
+msgstr[1] ""
 
 #: templates/sync_tokens.html:188
-msgid "to download"
-msgstr ""
+#, python-format
+msgid "%(num)d to download"
+msgid_plural "%(num)d to download"
+msgstr[0] ""
+msgstr[1] ""
 
 #: templates/sync_tokens.html:214
 msgid "Connected to"
