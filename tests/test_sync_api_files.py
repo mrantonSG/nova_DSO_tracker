@@ -786,6 +786,102 @@ def test_a_repair_does_not_put_back_a_photo_the_hub_removed(hub):
     assert hub.db.query(JournalSession).filter_by(external_id="s1").one().session_image_file == ""
 
 
+@pytest.mark.parametrize("offset", ["0", "-1"])
+def test_a_repair_is_refused_for_a_slot_that_names_no_file(hub, offset):
+    """The record has no photo. A repair restores a file the record names and
+    the disk lost; it never attaches one to a record that has none - on the
+    upload and on the resume path alike."""
+    row = JournalSession(user_id=hub.uid, external_id="s1", date_utc=date(2026, 1, 10))
+    hub.db.add(row)
+    hub.db.commit()
+    hub.db.expire_all()
+    _forget_upload(f"{row.id}.png")
+    from nova.sync_engine import counter_rev
+    rev = counter_rev(hub.db, hub.uid)
+
+    resp = _api(hub, REPAIR, token=hub.token, raw=PNG,
+                headers=_repair_headers(offset=offset))
+
+    assert _codes(resp) == ["bad_file_reference"]
+    assert resp.get_json()["refusals"][0]["detail"]["reason"] == "slot_empty"
+    hub.db.expire_all()
+    assert hub.db.query(JournalSession).filter_by(external_id="s1").one().session_image_file is None
+    assert not os.path.exists(os.path.join(UPLOAD_FOLDER, "default", f"{row.id}.png"))
+    assert counter_rev(hub.db, hub.uid) == rev
+
+
+def test_a_repair_never_writes_over_a_file_at_its_target_path(hub):
+    """The column names 1.jpg, which is gone. The request says "png", so the
+    placement would write 1.png - and a file is already there. Refused: a
+    repair fills a gap, it never writes over anything on disk."""
+    row = JournalSession(user_id=hub.uid, external_id="s1", date_utc=date(2026, 1, 10))
+    hub.db.add(row)
+    hub.db.commit()
+    hub.db.expire_all()
+    row.session_image_file = f"{row.id}.jpg"
+    hub.db.commit()
+    _forget_upload(f"{row.id}.jpg")
+    keep = os.path.join(UPLOAD_FOLDER, "default", f"{row.id}.png")
+    os.makedirs(os.path.dirname(keep), exist_ok=True)
+    with open(keep, "wb") as handle:
+        handle.write(b"bytes already on disk")
+    other = PNG + b"-repair"
+
+    resp = _api(hub, REPAIR, token=hub.token, raw=other,
+                headers=_repair_headers(data=other, ext="png"))
+
+    assert resp.status_code == 409
+    assert _codes(resp) == ["file_exists"]
+    with open(keep, "rb") as handle:
+        assert handle.read() == b"bytes already on disk"
+    hub.db.expire_all()
+    assert (hub.db.query(JournalSession).filter_by(external_id="s1").one()
+            .session_image_file == f"{row.id}.jpg")
+    _forget_upload(f"{row.id}.png")
+
+
+def _note_session(hub, digest, ext="png", named=True):
+    from nova.sync_engine import note_image_name
+    name = note_image_name(digest, ext)
+    notes = f'<p>x</p><img src="/uploads/default/{name}">' if named else "<p>no image</p>"
+    row = JournalSession(user_id=hub.uid, external_id="s1", date_utc=date(2026, 1, 10),
+                         notes=notes)
+    hub.db.add(row)
+    hub.db.commit()
+    _forget_upload(name)
+    return name
+
+
+def _note_headers(data):
+    return _repair_headers(slot="note_img", data=data)
+
+
+def test_a_note_image_repair_is_refused_when_the_text_does_not_name_it(hub):
+    data = PNG + b"-note-unnamed"
+    name = _note_session(hub, _import_digest(data), named=False)
+
+    resp = _api(hub, REPAIR, token=hub.token, raw=data, headers=_note_headers(data))
+
+    assert _codes(resp) == ["bad_file_reference"]
+    assert resp.get_json()["refusals"][0]["detail"]["reason"] == "not_referenced"
+    assert not os.path.exists(os.path.join(UPLOAD_FOLDER, "default", name))
+
+
+def test_a_note_image_the_text_names_is_restored_and_never_overwritten(hub):
+    data = PNG + b"-note-named"
+    name = _note_session(hub, _import_digest(data))
+    path = os.path.join(UPLOAD_FOLDER, "default", name)
+
+    resp = _api(hub, REPAIR, token=hub.token, raw=data, headers=_note_headers(data))
+    assert resp.status_code == 200, resp.get_json()
+    with open(path, "rb") as handle:
+        assert handle.read() == data
+
+    again = _api(hub, REPAIR, token=hub.token, raw=data, headers=_note_headers(data))
+    assert again.status_code == 409 and _codes(again) == ["file_exists"]
+    _forget_upload(name)
+
+
 def test_a_repair_resume_reports_what_is_held_for_a_missing_file(hub):
     row = JournalSession(user_id=hub.uid, external_id="s1",
                          date_utc=date(2026, 1, 10))

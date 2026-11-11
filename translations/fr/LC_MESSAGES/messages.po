@@ -8343,6 +8343,10 @@ msgid "Project \"%(name)s\" was not synced: its ID is already used by another ac
 msgstr "Le projet « %(name)s » n'a pas été synchronisé : son identifiant est déjà utilisé par un autre compte sur le serveur."
 
 #, python-format
+msgid "A session's link to project \"%(name)s\" was not synced: that project is not part of this account."
+msgstr "Le lien d'une session avec le projet « %(name)s » n'a pas été synchronisé : ce projet ne fait pas partie de ce compte."
+
+#, python-format
 msgid "%(name)s — this computer's version kept"
 msgstr "%(name)s — version de cet ordinateur conservée"
 

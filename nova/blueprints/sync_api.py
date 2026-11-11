@@ -37,9 +37,11 @@ from nova.sync_engine import (
     _ref_summary, _role_ext_ok, _row_by_key, _user_upload_root,
     account_marker_rev, apply_merge, collect_files,
     commit_staged_files, counter_rev, export_changes, export_files,
-    file_cap, file_source_path, files_needed, missing_local_slots,
-    note_image_name, plan_merge,
-    record_to_payload, row_key, server_untouched, staged_index, sync_lock, to_iso,
+    file_cap, file_source_path, files_needed,
+    missing_local_slots, note_image_name, note_owed_files, plan_merge,
+    placement_target, record_to_payload, row_key, server_untouched,
+    settle_owed_files,
+    staged_index, sync_lock, to_iso,
 )
 from nova.sync_time import utc_now
 from nova.sync_transport import (
@@ -106,6 +108,15 @@ def _int_header(name: str) -> Optional[int]:
         return int(raw)
     except (TypeError, ValueError):
         return None
+
+
+def _settle_owed(db, user) -> tuple:
+    """Finish the file placements an earlier push left owing (see the engine's
+    note_owed_files). Runs under the account's lock at the start of a sync
+    request and commits what it placed. Returns (still owed, to upload again)."""
+    owed, reupload = settle_owed_files(db, user)
+    db.commit()
+    return owed, reupload
 
 
 def _result_summary(result) -> dict:
@@ -219,6 +230,7 @@ def changes() -> Response:
     db = get_db()
     user = g.sync_user
     with sync_lock(user.id):
+        _settle_owed(db, user)
         payload = export_changes(db, user, since, side="server",
                                  exclude_revs=exclude,
                                  with_files=bool(body.get("with_files", True)))
@@ -257,6 +269,7 @@ def snapshot() -> Response:
         if server_untouched(db, user.id):
             return _refuse(Refusal(REFUSAL_SERVER_UNTOUCHED,
                                    {"seeded_rev": account_marker_rev(db, user.id, "seeded")}))
+        _settle_owed(db, user)
         # One row beyond the page decides `done`. A page that is exactly full
         # cannot tell "the table ends here" from "there is another page", and
         # the alternative is sending the client a page it did not ask for
@@ -415,6 +428,9 @@ def push_plan() -> Response:
     hub_offset = hub_offset_from_client(client_offset)
     with sync_lock(user.id):
         sweep_uploads(user.id)
+        # First the hub finishes what an earlier push left owing: placed from
+        # staging when the bytes are still here, asked for again when not.
+        _owed, reupload = _settle_owed(db, user)
         plan = plan_merge(db, user, payload, side="server",
                           offset_seconds=hub_offset,
                           allow_mass_delete=bool(body.get("allow_mass_delete", False)))
@@ -423,6 +439,26 @@ def push_plan() -> Response:
 
         refs = list(plan.placements or plan.files)
         needed = files_needed(plan, user)
+        file_refs = [{"role": r.role, "table": r.table, "key": r.key,
+                      "slot": r.slot, "sha256": r.sha256, "ext": r.ext,
+                      "size": int(r.size or 0), "name": r.name}
+                     for r in refs if r.sha256 and not r.missing]
+        files_to_place = len(file_refs)
+        needed_list = [[r.table, r.key, r.slot, r.sha256] for r in needed]
+        # An owed file whose staged bytes are gone joins the upload allowlist
+        # and the list of files asked for: only the client can supply it.
+        allowed = {entry["sha256"] for entry in file_refs}
+        asked = {entry[3] for entry in needed_list}
+        for ref in reupload:
+            if ref.sha256 not in allowed:
+                allowed.add(ref.sha256)
+                file_refs.append({"role": ref.role, "table": ref.table,
+                                  "key": ref.key, "slot": ref.slot,
+                                  "sha256": ref.sha256, "ext": ref.ext,
+                                  "size": int(ref.size or 0), "name": ref.name})
+            if ref.sha256 not in asked:
+                asked.add(ref.sha256)
+                needed_list.append([ref.table, ref.key, ref.slot, ref.sha256])
         session_id = uuid.uuid4().hex
         session = {
             "protocol": PROTOCOL_VERSION,
@@ -437,11 +473,8 @@ def push_plan() -> Response:
             "payload": payload,
             # The upload allowlist: a digest the plan does not name is refused,
             # and the role/ext of each are decided here, never by the request.
-            "file_refs": [{"role": r.role, "table": r.table, "key": r.key,
-                           "slot": r.slot, "sha256": r.sha256, "ext": r.ext,
-                           "size": int(r.size or 0), "name": r.name}
-                          for r in refs if r.sha256 and not r.missing],
-            "files_needed": [[r.table, r.key, r.slot, r.sha256] for r in needed],
+            "file_refs": file_refs,
+            "files_needed": needed_list,
         }
         save_push_session(user.id, session)
         # Existence only (nothing hashed): this runs on every push plan.
@@ -456,7 +489,7 @@ def push_plan() -> Response:
         # Every file this push will PLACE, uploaded now or already staged from
         # an earlier attempt. A push with nothing to upload can still have
         # files to place, and the client must not call such a push empty.
-        "files_to_place": len(session["file_refs"]),
+        "files_to_place": files_to_place,
         "hub_missing": [[r.table, r.key, r.slot, r.sha256] for r in hub_missing],
     })
 
@@ -609,6 +642,10 @@ def push_apply() -> Response:
 
         try:
             result = apply_merge(db, plan, user=user)
+            # Write-ahead: what this apply's rows need placed is noted before
+            # the commit, so a hub that dies between the commit and the
+            # placement still knows what it owes.
+            note_owed_files(db, user, result)
             db.commit()
         except SyncRefused as exc:
             db.rollback()
@@ -618,6 +655,11 @@ def push_apply() -> Response:
         staged = _staged_for(db, user, plan)
         commit_staged_files(db, result, staged, user=user)
         db.commit()
+        # Whatever is still owed - from this apply or an earlier one whose bytes
+        # this session uploaded again - is tried once more, and what remains is
+        # the pending list the pusher's watermark waits on.
+        owed, _reupload = _settle_owed(db, user)
+        result.pending_files = [(r.table, r.key, r.slot, r.sha256) for r in owed]
         clear_push_session(user.id)
 
     return _ok({"plan": plan.summary(), "result": _result_summary(result)})
@@ -664,9 +706,12 @@ def repair() -> Response:
     writes no rev — a file name is instance-local, so placing one is not a
     change to sync.
 
-    A repair FILLS; it never overwrites. A slot whose file is on this disk is
-    refused with file_exists whatever the request carries, so a repair cannot
-    replace bytes the hub holds (that is a push's job, with its conflict rules).
+    A repair FILLS; it never overwrites and never attaches. It is accepted
+    only when the row's column names a file for the slot, that file is absent,
+    and the path the placement would write to is free; a note image only when
+    the record's text names it. A slot that names no file is refused
+    (bad_file_reference), anything already on disk is refused (file_exists):
+    new or different bytes are a push's job, with its conflict rules.
     The digest header is checked to be a digest before anything reads it — it
     becomes part of a path — on the resume path (offset -1) exactly as on an
     upload.
@@ -739,9 +784,17 @@ def _repair_role(model: type, slot: str, ext: str) -> Optional[str]:
 def _repair_target_refusal(db, user, model, row, slot, role, digest, ext):
     """Why this slot may not be repaired, or None when it may be filled.
 
-    file_exists           the slot's file is on this disk (never overwritten)
-    bad_file_reference    the slot was emptied on purpose, or the record's text
-                          does not name this note image
+    A repair restores a file the record NAMES and this disk lost. Nothing else:
+
+    bad_file_reference    the slot names no file (never had one, or was emptied
+                          on purpose), or the record's text does not name this
+                          note image
+    file_exists           the named file is on this disk, or the path the
+                          repaired file would be written to is taken
+
+    The hub cannot check the digest of bytes it no longer has, so it is strict
+    about everything it can check: a repair never attaches a file to a record
+    that has none, and never writes over a file that is there.
     """
     table = model.__tablename__
     where = {"table": table, "key": row_key(model, row), "slot": slot}
@@ -751,12 +804,12 @@ def _repair_target_refusal(db, user, model, row, slot, role, digest, ext):
                     for column in RICH_TEXT_COLUMNS.get(model, ()))
         if not named:
             return Refusal(REFUSAL_BAD_FILE_REF, dict(where, reason="not_referenced"))
-        if os.path.isfile(os.path.join(_user_upload_root(user), name)):
+        if os.path.exists(os.path.join(_user_upload_root(user), name)):
             return Refusal(REFUSAL_FILE_EXISTS, where)
         return None
     value = getattr(row, slot, None)
     if value is None:
-        return None                       # never placed: nothing to overwrite
+        return Refusal(REFUSAL_BAD_FILE_REF, dict(where, reason="slot_empty"))
     if value == FILE_REMOVED:
         return Refusal(REFUSAL_BAD_FILE_REF, dict(where, reason="slot_removed"))
     if role == ROLE_SESSION_LOG:
@@ -765,7 +818,14 @@ def _repair_target_refusal(db, user, model, row, slot, role, digest, ext):
             return Refusal(REFUSAL_FILE_EXISTS, where)   # raw text in the column
     else:
         path = os.path.join(_user_upload_root(user), value)
-    if os.path.isfile(path):
+    if os.path.exists(path):
+        return Refusal(REFUSAL_FILE_EXISTS, where)
+    # Where the placement would write: the engine builds the name itself and
+    # takes the extension from the request, so it need not be the name the
+    # column holds. A file already there is never written over.
+    target = placement_target(db, user, model, row,
+                              _repair_ref(model, row, slot, role, digest, ext, 0))
+    if not target or os.path.exists(target):
         return Refusal(REFUSAL_FILE_EXISTS, where)
     return None
 

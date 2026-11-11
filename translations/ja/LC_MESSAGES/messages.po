@@ -8002,6 +8002,10 @@ msgid "Project \"%(name)s\" was not synced: its ID is already used by another ac
 msgstr "プロジェクト「%(name)s」は同期されませんでした。その ID はサーバーの別のアカウントですでに使用されています。"
 
 #, python-format
+msgid "A session's link to project \"%(name)s\" was not synced: that project is not part of this account."
+msgstr "セッションとプロジェクト「%(name)s」のリンクは同期されませんでした。そのプロジェクトはこのアカウントのものではありません。"
+
+#, python-format
 msgid "%(name)s — this computer's version kept"
 msgstr "%(name)s — この PC のバージョンを保持"
 

@@ -393,6 +393,38 @@ def test_the_session_projects_backfill_stamps_the_sessions_it_links(tmp_path, ca
     assert after[3] == before[3]
 
 
+def test_the_session_projects_backfill_links_only_the_users_own_existing_project(
+        tmp_path, capsys):
+    """A project_id that names another user's project, or no project at all,
+    never becomes a session_projects row - and such a session is not stamped,
+    on this startup or the next."""
+    engine = _current_db(tmp_path)
+    with engine.begin() as conn:
+        _session_row(conn, 1, 1, "p1", linked=False)      # alice -> her own project
+        _session_row(conn, 2, 1, "p2", linked=False)      # alice -> bob's project
+        _session_row(conn, 3, 1, "ghost", linked=False)   # alice -> nothing
+        before, counters = _stamps(conn), _counters(conn)
+    capsys.readouterr()
+
+    with engine.begin() as conn:
+        _run_schema_patches(conn)
+
+    assert "for 1 session(s)" in capsys.readouterr().out
+    with engine.connect() as conn:
+        links = sorted(tuple(r) for r in conn.exec_driver_sql(
+            "SELECT session_id, project_id FROM session_projects;").fetchall())
+        assert links == [(1, "p1")]
+        after = _stamps(conn)
+        assert _counters(conn) == {1: counters[1] + 1, 2: counters[2]}
+    assert after[1] != before[1]
+    assert after[2] == before[2] and after[3] == before[3]
+
+    with engine.begin() as conn:
+        _run_schema_patches(conn)                          # and nothing on a restart
+        assert _stamps(conn) == after
+    assert "Backfilled session_projects" not in capsys.readouterr().out
+
+
 def test_the_session_projects_backfill_is_a_no_op_when_nothing_is_missing(tmp_path, capsys):
     engine = _current_db(tmp_path)
     with engine.begin() as conn:

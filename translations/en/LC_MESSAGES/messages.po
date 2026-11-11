@@ -7974,6 +7974,10 @@ msgid "Project \"%(name)s\" was not synced: its ID is already used by another ac
 msgstr ""
 
 #, python-format
+msgid "A session's link to project \"%(name)s\" was not synced: that project is not part of this account."
+msgstr ""
+
+#, python-format
 msgid "%(name)s — this computer's version kept"
 msgstr ""
 

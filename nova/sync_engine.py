@@ -63,7 +63,7 @@ from sqlalchemy.orm import selectinload
 
 from nova.helpers import (
     log_file_path, release_file_lock, shared_log_paths, try_acquire_file_lock,
-    unique_log_name,
+    unique_log_name, write_file_atomic,
 )
 from nova.config import UPLOAD_FOLDER
 from nova.models import (
@@ -228,13 +228,6 @@ MAX_CLOCK_SKEW_SECONDS = 300
 MASS_DELETE_RATIO = 0.10
 MASS_DELETE_MIN_RECORDS = 20
 
-# Two stamps of one record this close together are the same author write, seen
-# through two clock-offset measurements (the offset is re-measured on every run
-# and the stored stamp carries the earlier one). Only used to tell a file whose
-# bytes were lost in transit from a file that was genuinely replaced later: the
-# first is healed without a record write, the second goes through newest-wins.
-FILE_HEAL_TOLERANCE_SECONDS = 30
-
 # --- Refusal codes -----------------------------------------------------------
 
 REFUSAL_NOT_PAIRED = "not_paired"
@@ -268,6 +261,14 @@ REFUSAL_FILE_EXISTS = "file_exists"
 # Why a record was left out of an apply for good (not deferred: re-offering it
 # would not help). Carried in MergePlan.blocked / MergeResult.blocked.
 BLOCKED_PROJECT_ID_TAKEN = "project_id_taken"
+# A session's link to a project that is not one of this account's projects: the
+# session syncs, the link does not. Reported once per project id.
+BLOCKED_PROJECT_LINK = "project_link_dropped"
+
+# The hub's note of the file placements an apply still owes (see
+# note_owed_files). It lives in the user's staging directory, beside the staged
+# bytes it describes; its name is not a digest, so staged_index() skips it.
+OWED_FILENAME = "owed.json"
 
 # --- Action ops --------------------------------------------------------------
 
@@ -1689,7 +1690,206 @@ def commit_staged_files(db, result, staged, *, user,
             target = []
             setattr(result, f"{shape}_files", target)
         target.extend(getattr(report, shape))
+    # A placement a hub's apply noted as owed is settled the moment the file is
+    # in place, whoever placed it (the apply, a later request, a repair).
+    if report.placed:
+        _clear_owed_files(user, report.placed, instance_path)
     return report
+
+
+# --- Files: what a hub's apply still owes ------------------------------------
+#
+# A hub commits a push's records first and places their files second, because a
+# file move cannot be rolled back. If the hub dies in between, or a placement
+# fails, the record is there and its file is not - and the merge cannot repair
+# that by itself: the same record offered again carries the same author stamp
+# seen through a re-measured clock offset, so newest-wins would be a coin flip.
+#
+# So the hub writes down what it owes BEFORE it commits (write-ahead), and
+# finishes the job itself at the start of the next sync request. An entry names
+# one placement and the rev and stamp the apply gave the row:
+#
+#   - the row no longer carries that rev and stamp -> somebody changed it since
+#     (or the apply never committed): the entry is void and is discarded;
+#   - the staged bytes are still here -> the file is placed, the entry is
+#     cleared, and the row gets a new rev (same stamp) so every other computer
+#     is offered the record again and receives the file;
+#   - the staged bytes are gone -> the entry stays and the push plan asks the
+#     client to upload them again.
+#
+# No clock is read anywhere in this.
+
+def _owed_file(user, instance_path: str = None) -> str:
+    """The note's path. Does not create the staging directory."""
+    return os.path.join(instance_path or INSTANCE_PATH, STAGING_DIRNAME,
+                        str(getattr(user, "id", "0") or "0"), OWED_FILENAME)
+
+
+def load_owed_files(user, instance_path: str = None) -> list:
+    """The placements this hub still owes for `user`, as a list of dicts."""
+    try:
+        with open(_owed_file(user, instance_path), "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, ValueError):
+        return []
+    if not isinstance(data, list):
+        return []
+    return [entry for entry in data if isinstance(entry, dict)]
+
+
+def _save_owed_files(user, entries, instance_path: str = None) -> None:
+    """Write the note atomically; an empty note is removed."""
+    path = _owed_file(user, instance_path)
+    if not entries:
+        try:
+            if os.path.isfile(path):
+                os.remove(path)
+        except OSError:
+            pass
+        return
+    text_out = json.dumps(list(entries))
+    # Temp file + fsync + os.replace: a reader sees the old note or the new
+    # one, never half of either.
+    write_file_atomic(path, lambda tmp: _write_text(tmp, text_out))
+
+
+def _write_text(path: str, content: str) -> None:
+    handle = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    try:
+        os.write(handle, content.encode("utf-8"))
+    finally:
+        os.close(handle)
+
+
+def _owed_ident(table, key, slot, sha256) -> tuple:
+    """One owed placement. A FILE slot holds one file, so a newer entry for the
+    slot replaces the older one; a record's note images are told apart by digest."""
+    model = TABLE_MODEL.get(table)
+    is_slot = model is not None and slot in _FILE_SLOTS.get(model, {})
+    return (str(table), str(key), str(slot), "" if is_slot else str(sha256))
+
+
+def _owed_ref(entry: Mapping[str, Any]) -> FileRef:
+    return FileRef(role=str(entry.get("role") or ""), table=str(entry.get("table") or ""),
+                   key=str(entry.get("key") or ""), slot=str(entry.get("slot") or ""),
+                   sha256=str(entry.get("sha256") or ""),
+                   size=int(entry.get("size") or 0), ext=str(entry.get("ext") or ""),
+                   name=str(entry.get("name") or ""))
+
+
+def _owed_entry_stands(db, user, entry: Mapping[str, Any]) -> bool:
+    """Whether the row is still exactly the one the entry was written for."""
+    model = TABLE_MODEL.get(entry.get("table"))
+    if model is None or not _HEX64.fullmatch(str(entry.get("sha256") or "")):
+        return False
+    row = _row_by_key(db, model, user.id, str(entry.get("key") or ""))
+    if row is None:
+        return False
+    revs = {entry.get("rev"), entry.get("rev_next")} - {None}
+    return (int(row.sync_rev or 0) in {int(rev) for rev in revs}
+            and to_iso(row.sync_changed_at) == entry.get("stamp"))
+
+
+def note_owed_files(db, user, result, instance_path: str = None) -> None:
+    """Write down every placement `result`'s apply needs. BEFORE the commit.
+
+    Call it between apply_merge() and the commit: the rows are flushed, so each
+    one's rev and stamp are the ones the commit will make durable. If the
+    commit never happens the rows keep their old revs and the entries are void.
+    """
+    refs = [ref for ref in getattr(result, "files_expected", []) or []
+            if ref.sha256 and not ref.missing]
+    if not refs:
+        return
+    noted = {_owed_ident(e.get("table"), e.get("key"), e.get("slot"), e.get("sha256")): e
+             for e in load_owed_files(user, instance_path)}
+    for ref in refs:
+        model = TABLE_MODEL.get(ref.table)
+        row = _row_by_key(db, model, user.id, ref.key) if model is not None else None
+        if row is None:
+            continue
+        noted[_owed_ident(ref.table, ref.key, ref.slot, ref.sha256)] = {
+            "role": _ref_role(model, ref), "table": ref.table, "key": ref.key,
+            "slot": ref.slot, "sha256": ref.sha256, "ext": ref.ext,
+            "size": int(ref.size or 0), "name": ref.name,
+            "rev": int(row.sync_rev or 0), "stamp": to_iso(row.sync_changed_at),
+        }
+    _save_owed_files(user, list(noted.values()), instance_path)
+
+
+def _clear_owed_files(user, placed, instance_path: str = None) -> None:
+    """Drop the entries whose file is now in place. `placed` is a list of
+    (table, key, slot, sha256)."""
+    entries = load_owed_files(user, instance_path)
+    if not entries:
+        return
+    done = {(str(t), str(k), str(s), str(d)) for t, k, s, d in placed}
+    kept = [e for e in entries
+            if (str(e.get("table")), str(e.get("key")), str(e.get("slot")),
+                str(e.get("sha256"))) not in done]
+    if len(kept) != len(entries):
+        _save_owed_files(user, kept, instance_path)
+
+
+def settle_owed_files(db, user, instance_path: str = None) -> tuple:
+    """Finish what an earlier apply owes. Returns (still owed, to upload again).
+
+    Both are lists of FileRef. "Still owed" is every entry that stands and
+    could not be placed now; "to upload again" is the part of it whose staged
+    bytes are gone, which only the client can supply. The caller commits.
+
+    A row whose file is placed here gets a new rev and keeps its stamp: the
+    record did not change, but a computer that pulled it while the file was
+    missing has to be offered it again to receive the file.
+    """
+    entries = load_owed_files(user, instance_path)
+    if not entries:
+        return [], []
+    standing = [e for e in entries if _owed_entry_stands(db, user, e)]
+    if len(standing) != len(entries):
+        _save_owed_files(user, standing, instance_path)
+    if not standing:
+        return [], []
+
+    index = staged_index(user, verify=True, instance_path=instance_path)
+    refs = [_owed_ref(entry) for entry in standing]
+    staged = [StagedFile(ref=ref, path=index[ref.sha256], local_name=ref.name)
+              for ref in refs if ref.sha256 in index]
+    report = commit_staged_files(db, MergeResult(files_expected=refs), staged,
+                                 user=user, instance_path=instance_path)
+
+    placed_rows = {}
+    for table, key, _slot, _digest in report.placed:
+        model = TABLE_MODEL.get(table)
+        row = _row_by_key(db, model, user.id, key) if model is not None else None
+        if row is not None:
+            placed_rows[(str(table), str(key))] = (model, row.id, int(row.sync_rev or 0))
+    if placed_rows:
+        conn = db.connection()
+        rev = next_rev(conn, user.id)
+        # Entries the same row still has open follow it to its new rev. Written
+        # before the commit, with the row's present rev kept beside the new
+        # one, so the entry stands whether or not that commit lands.
+        left = load_owed_files(user, instance_path)
+        for entry in left:
+            held = placed_rows.get((str(entry.get("table")), str(entry.get("key"))))
+            if held is not None:
+                entry["rev"] = held[2]
+                entry["rev_next"] = rev
+        _save_owed_files(user, left, instance_path)
+        for model, row_id, _old in placed_rows.values():
+            conn.execute(sa_update(model.__table__).where(
+                model.__table__.c.id == row_id,
+                model.__table__.c.user_id == user.id,
+            ).values(sync_rev=rev))
+        db.flush()
+        db.expire_all()
+
+    owed = [_owed_ref(entry) for entry in load_owed_files(user, instance_path)]
+    if not owed:
+        return [], []
+    index = staged_index(user, instance_path=instance_path)
+    return owed, [ref for ref in owed if ref.sha256 not in index]
 
 
 def _place_from_staged(staged_path: str, live: str) -> None:
@@ -1865,6 +2065,28 @@ def _place_one(db, user, model: type, ref: FileRef, staged: StagedFile,
         model.__table__.c.user_id == user.id,
     ).values(**{column: local_name}))
     return "placed"
+
+
+def placement_target(db, user, model: type, row, ref: FileRef,
+                     instance_path: str = None) -> str:
+    """The live path _place_one() would write `ref`'s file to for `row`, or ""
+    when it has no safe home. For a caller that must know, before any byte
+    moves, whether a placement would land on a file that is already there."""
+    role = _ref_role(model, ref)
+    name = local_name_for(model, row, ref)
+    if role == ROLE_SESSION_LOG:
+        slot = _FILE_SLOTS.get(model, {}).get(ref.slot)
+        if slot is None:
+            return ""
+        name = unique_log_name(db, slot[1], name, row.id)
+        root = os.path.join(instance_path or INSTANCE_PATH, "logs", slot[1])
+    else:
+        root = _user_upload_root(user, instance_path)
+    root = os.path.realpath(root)
+    target = os.path.realpath(os.path.join(root, name))
+    if os.path.commonpath([target, root]) != root:
+        return ""
+    return target
 
 
 def missing_local_files(db, user, instance_path: str = None) -> list:
@@ -2606,9 +2828,11 @@ def _file_differences(model: type, row, record: Mapping[str, Any], user,
     different  the record names a digest and this disk holds other bytes
     removed    one side emptied the slot and the other still holds a file
 
-    The first is always a heal. The second is a heal only when the two stamps
-    are one write (see FILE_HEAL_TOLERANCE_SECONDS). The third is a real change
-    and is never healed: a deliberate removal must not be undone by a retry.
+    On a local whose row is unchanged since its last sync the first two are a
+    heal: the hub's file is placed and no record is written. The third is a
+    column write, so it is never a heal: it goes through the record rules like
+    any other change. On a hub, and on a local whose row changed, all three are
+    record changes (newest wins, the files follow the winner).
     """
     missing: list = []
     different: list = []
@@ -2759,8 +2983,17 @@ class _Builder:
         # sessions that follow drop only the links to those).
         self.blocked: list[dict] = []
         self.foreign_projects: dict[str, bool] = {}
+        # The project ids a session may link to: this account's projects, as
+        # they are here plus the ones this plan creates. Filled by plan_merge
+        # and _plan_record (projects are planned before sessions).
+        self.own_projects: set[str] = set()
+        self.dropped_links: set[str] = set()
         # File-only placements: {(table, key): {"slots": set, "notes": set}}.
+        # Local side only, and only for a row unchanged since the last sync.
         self.heal: dict[tuple[str, str], dict] = {}
+        # This local's push watermark (SyncState.local_pushed_rev): a row whose
+        # sync_rev is at or below it has not changed since the last sync.
+        self.pushed_rev: int = 0
         self.actions: list[Action] = []
         self.by_key: dict[tuple[str, str], Action] = {}
         self.created: dict[str, int] = {}
@@ -2793,6 +3026,18 @@ class _Builder:
     def add(self, action: Action) -> None:
         self.actions.append(action)
         self.by_key[(action.table, action.key)] = action
+
+    def unchanged_since_sync(self, row) -> bool:
+        """Whether a LOCAL row is as the last sync left it.
+
+        Exact, and no clock is read: every local write gives the row a rev
+        above the push watermark, and the watermark only moves past a rev once
+        the hub has it (or once a pull or download wrote the row itself). A hub
+        has no such watermark, so nothing is ever "unchanged" there.
+        """
+        if self.side != "local":
+            return False
+        return int(getattr(row, "sync_rev", None) or 0) <= self.pushed_rev
 
     def to_local_clock(self, moment: Optional[datetime]) -> Optional[datetime]:
         """A peer's timestamp, moved into this instance's clock.
@@ -3004,21 +3249,52 @@ def _foreign_project_ids(db, user_id, project_ids) -> set:
                                      Project.user_id.is_(None)))).all())
 
 
-def _without_foreign_projects(record: Mapping[str, Any], foreign) -> Mapping[str, Any]:
-    """A session record minus its links to projects in `foreign`.
+def _own_project_links(record: Mapping[str, Any], own) -> tuple:
+    """A session record keeping only its links to this account's projects.
 
-    Only the links go: the session itself is this account's and syncs as usual.
-    The record is copied, never edited in place - the payload stays as sent.
+    Returns (record, dropped): `own` is the set of project ids (as text) the
+    session may link to, `dropped` the ids it named that are not among them -
+    another account's project, or an id nobody holds. Only the links go: the
+    session itself is this account's and syncs as usual. Ids are compared as
+    text and a kept id is written as text, so 5 and "5" are one project. The
+    record is copied, never edited in place - the payload stays as sent.
     """
-    if not foreign:
-        return record
+    dropped: list[str] = []
     out = dict(record)
-    if out.get("project_id") in foreign:
-        out["project_id"] = None
-    if isinstance(out.get(KEY_PROJECT_IDS), list):
-        out[KEY_PROJECT_IDS] = [pid for pid in out[KEY_PROJECT_IDS]
-                                if pid not in foreign]
-    return out
+    single = out.get("project_id")
+    if single is not None and single != "":
+        if str(single) in own:
+            out["project_id"] = str(single)
+        else:
+            dropped.append(str(single))
+            out["project_id"] = None
+    many = out.get(KEY_PROJECT_IDS)
+    if many is not None:
+        kept: list[str] = []
+        for pid in (many if isinstance(many, (list, tuple)) else []):
+            if pid is None or pid == "":
+                continue
+            if str(pid) in own:
+                if str(pid) not in kept:
+                    kept.append(str(pid))
+            else:
+                dropped.append(str(pid))
+        out[KEY_PROJECT_IDS] = kept
+    return out, dropped
+
+
+def _report_dropped_links(blocked: list, seen: set, dropped, skip=()) -> None:
+    """Report each dropped project link once, like a blocked project.
+
+    A link to a project this same apply already reported as blocked (by name)
+    is not reported again: the one line says both.
+    """
+    for pid in dropped:
+        if pid in seen or pid in skip:
+            continue
+        seen.add(pid)
+        blocked.append({"table": JournalSession.__tablename__, "key": pid,
+                        "name": pid, "reason": BLOCKED_PROJECT_LINK})
 
 
 def _plan_record(db, builder: _Builder, model: type, record: dict, index: dict,
@@ -3042,11 +3318,19 @@ def _plan_record(db, builder: _Builder, model: type, record: dict, index: dict,
             "reason": BLOCKED_PROJECT_ID_TAKEN,
         })
         return
+    if model is Project:
+        # Planned before any session (PLAN_ORDER), so a session in this same
+        # payload may link to a project this plan creates.
+        builder.own_projects.add(key)
     if model is JournalSession:
-        linked = [record.get("project_id")] + list(record.get(KEY_PROJECT_IDS) or [])
-        record = _without_foreign_projects(
-            record, {pid for pid in linked
-                     if pid and _project_is_foreign(db, builder, pid)})
+        # A session links only to this account's projects - the ones here and
+        # the ones this plan writes. Anything else (another account's project,
+        # an id nobody holds yet) is dropped and reported.
+        record, dropped = _own_project_links(record, builder.own_projects)
+        _report_dropped_links(
+            builder.blocked, builder.dropped_links, dropped,
+            skip={b["key"] for b in builder.blocked
+                  if b.get("reason") == BLOCKED_PROJECT_ID_TAKEN})
 
     incoming_at = builder.to_local_clock(parse_datetime(record.get(KEY_CHANGED_AT)))
     if incoming_at is None:
@@ -3156,31 +3440,37 @@ def _plan_record_update(db, builder: _Builder, model: type, record: dict,
         return
 
     local_at = existing.sync_changed_at or datetime.min
-    lost_notes: list = []
-    heal: dict = {}
-    if not decided and _content_equal(db, model, existing, record, builder.user,
-                                      builder.instance_path,
-                                      missing_notes=lost_notes):
-        # The record itself is already here. What is left is its files, and a
-        # file is healed without consulting the clocks: comparing this row's
-        # stamp with the same stamp seen through a re-measured offset is a coin
-        # flip, and losing it would leave the file missing for good.
-        missing, different, removed = _file_differences(
-            model, existing, record, builder.user, builder.instance_path)
-        same_write = abs((incoming_at - local_at).total_seconds()) \
-            <= FILE_HEAL_TOLERANCE_SECONDS
-        heal = {"slots": set(missing) | (set(different) if same_write else set()),
-                "notes": set(lost_notes)}
-        if not removed and (same_write or not different):
-            # Nothing but files to place (or nothing at all: an idempotent
-            # re-delivery). No record write, no rev, no stamp.
-            if heal["slots"] or heal["notes"]:
-                builder.heal[(table, key)] = heal
-            return
-        # A file was genuinely replaced or removed after the last sync: that is
-        # a change like any other and goes through newest-wins below. A file
-        # this side is merely missing is still filled if the row is kept.
-        heal = {"slots": set(missing), "notes": set(lost_notes)}
+    if not decided:
+        if builder.side != "local":
+            # A hub never heals. A record in a push was changed by the client,
+            # so a file that differs is a real change: it goes through
+            # newest-wins below and, when taken, is written with a rev, which
+            # is what carries it on to every other copy. (A file the hub itself
+            # failed to place is not this function's business: the hub finishes
+            # that from its own note - see note_owed_files.)
+            if _row_content(db, model, existing, record, builder.user,
+                            builder.instance_path):
+                return  # nothing to do: an idempotent re-delivery
+        else:
+            lost_notes: list = []
+            if _content_equal(db, model, existing, record, builder.user,
+                              builder.instance_path, missing_notes=lost_notes):
+                missing, different, removed = _file_differences(
+                    model, existing, record, builder.user, builder.instance_path)
+                if not (missing or different or removed or lost_notes):
+                    return  # nothing to do: an idempotent re-delivery
+                if not removed and builder.unchanged_since_sync(existing):
+                    # The record is already here and this row has not changed
+                    # since the last sync, so the hub's files are simply the
+                    # current ones: place them. No record write, no rev, no
+                    # stamp, and no clock is consulted.
+                    builder.heal[(table, key)] = {
+                        "slots": set(missing) | set(different),
+                        "notes": set(lost_notes)}
+                    return
+                # This row changed here since the last sync, or a slot was
+                # emptied on one side: a change like any other. Newest wins
+                # below and the files follow the winner.
 
     take = incoming_at > local_at or (
         incoming_at == local_at and builder.side == "local"
@@ -3190,8 +3480,6 @@ def _plan_record_update(db, builder: _Builder, model: type, record: dict,
             table, key, "kept_local",
             {"incoming_at": to_iso(incoming_at), "local_at": to_iso(local_at)},
         ))
-        if heal and (heal["slots"] or heal["notes"]):
-            builder.heal[(table, key)] = heal
         return
     builder.add(Action(OP_UPDATE, table, key, decided, values, existing.id,
                        _identity_values(model, existing),
@@ -3509,11 +3797,15 @@ def plan_merge(db, user, payload, *, side: str, offset_seconds: float = 0.0,
     builder.user = user
     builder.instance_path = instance_path
     builder.manifest = payload.get("files") or {}
+    if side == "local":
+        builder.pushed_rev = pushed_watermark(db, uid)
 
     for model in PLAN_ORDER:
         table = model.__tablename__
         rows = _load_rows(db, model, uid)
         index[table] = {row_key(model, row): row for row in rows}
+        if model is Project:
+            builder.own_projects.update(index[table])
         unique_column = UNIQUE_KEY.get(model)
         if unique_column:
             unique_index[model] = {}
@@ -3768,6 +4060,13 @@ def _write_row(db, conn, model: type, action: Action, rev: Optional[int],
     values["sync_changed_at"] = stamp
     values["sync_rev"] = rev
 
+    if model is JournalSession and values.get("project_id") not in (None, ""):
+        # The last line of defence for the plan's rule: a session never points
+        # at a project that is not this account's, whatever the plan carried.
+        # Parents are written first, so a project this apply creates counts.
+        single = str(values["project_id"])
+        values["project_id"] = single if single in _own_project_ids(db, user_id) else None
+
     if action.op == OP_INSERT:
         values.setdefault("user_id", user_id)
         inserted = conn.execute(sa_insert(model.__table__).values(**values))
@@ -3795,15 +4094,31 @@ def _write_row(db, conn, model: type, action: Action, rev: Optional[int],
     if model is JournalSession and project_ids is not None and new_id is not None:
         conn.execute(sa_delete(session_projects).where(
             session_projects.c.session_id == new_id))
-        known = set(db.scalars(
-            select(Project.id).where(Project.user_id == user_id)
-        ).all())
-        rows = [
-            {"session_id": new_id, "project_id": pid}
-            for pid in project_ids if pid in known
-        ]
-        if rows:
-            conn.execute(sa_insert(session_projects), rows)
+        known = _own_project_ids(db, user_id)
+        linked: list[str] = []
+        for pid in (project_ids if isinstance(project_ids, (list, tuple)) else []):
+            if pid is not None and str(pid) in known and str(pid) not in linked:
+                linked.append(str(pid))
+        if linked:
+            conn.execute(sa_insert(session_projects), [
+                {"session_id": new_id, "project_id": pid} for pid in linked])
+
+
+def _own_project_ids(db, user_id: int) -> set:
+    """The ids (as text) of the projects this account holds right now."""
+    return {str(pid) for pid in db.scalars(
+        select(Project.id).where(Project.user_id == user_id)).all()}
+
+
+def pushed_watermark(db, user_id) -> int:
+    """This local's push watermark, or 0 when it is not paired.
+
+    A row with sync_rev at or below it is unchanged since the last sync: the
+    one test the file-healing rules use, on the merge and on the healing pass.
+    """
+    value = db.scalar(select(SyncState.local_pushed_rev)
+                      .where(SyncState.user_id == user_id))
+    return int(value or 0)
 
 
 def _delete_row(conn, model: type, action: Action, user_id: int) -> None:
@@ -4354,14 +4669,14 @@ def apply_download(db, plan: DownloadPlan, *, user=None) -> MergeResult:
     # A project id another account on this instance holds can neither be
     # written nor linked to (projects.id is unique across accounts). This
     # account's own projects were wiped above, so any id still present is
-    # somebody else's.
+    # somebody else's, and the projects a session may link to are exactly the
+    # ones this snapshot brings and this apply writes.
     named = [r.get("id") for r in records.get(Project.__tablename__) or []
              if isinstance(r, dict)]
-    for r in records.get(JournalSession.__tablename__) or []:
-        if isinstance(r, dict):
-            named.append(r.get("project_id"))
-            named.extend(r.get(KEY_PROJECT_IDS) or [])
     foreign = _foreign_project_ids(db, uid, named)
+    own_projects = {str(pid) for pid in named
+                    if pid not in (None, "") and str(pid) not in foreign}
+    dropped_links: set = set()
 
     for model in PLAN_ORDER:
         table = model.__tablename__
@@ -4376,7 +4691,9 @@ def apply_download(db, plan: DownloadPlan, *, user=None) -> MergeResult:
                     "reason": BLOCKED_PROJECT_ID_TAKEN})
                 continue
             if model is JournalSession:
-                record = _without_foreign_projects(record, foreign)
+                record, dropped = _own_project_links(record, own_projects)
+                _report_dropped_links(result.blocked, dropped_links, dropped,
+                                      skip=foreign)
             values = _record_values(model, record)
             values[KEY_HORIZON] = record.get(KEY_HORIZON)
             values[KEY_PROJECT_IDS] = record.get(KEY_PROJECT_IDS)

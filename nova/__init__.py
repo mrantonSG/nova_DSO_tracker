@@ -1007,8 +1007,12 @@ def _run_schema_patches(conn):
     # is inserted, stamped or printed when every link is already there.
     backfilled_sessions = []
     try:
+        # Only a link to a project that exists AND belongs to the session's own
+        # user is backfilled: a project_id that names nothing, or another
+        # account's project, must never become a session_projects row.
         backfilled_sessions = conn.exec_driver_sql(
             "SELECT js.id, js.user_id FROM journal_sessions js "
+            "JOIN projects p ON p.id = js.project_id AND p.user_id = js.user_id "
             "WHERE js.project_id IS NOT NULL AND NOT EXISTS ("
             "SELECT 1 FROM session_projects sp "
             "WHERE sp.session_id = js.id AND sp.project_id = js.project_id) "
@@ -1017,7 +1021,9 @@ def _run_schema_patches(conn):
         if backfilled_sessions:
             conn.exec_driver_sql(
                 "INSERT OR IGNORE INTO session_projects (session_id, project_id) "
-                "SELECT id, project_id FROM journal_sessions WHERE project_id IS NOT NULL"
+                "SELECT js.id, js.project_id FROM journal_sessions js "
+                "JOIN projects p ON p.id = js.project_id AND p.user_id = js.user_id "
+                "WHERE js.project_id IS NOT NULL"
             )
             print(
                 f"[DB PATCH] Backfilled session_projects from "

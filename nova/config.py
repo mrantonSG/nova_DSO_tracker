@@ -36,13 +36,17 @@ def sync_client_enabled(raw, single_user_mode: bool) -> bool:
     personal computer that syncs to a server — and off for a multi-user one,
     which IS the server. A multi-user instance with the client on lets every
     signed-in user make the server send requests to an address of their
-    choosing, so there it must be asked for explicitly. An explicit value wins
-    in either mode: off/false/0/no turn it off, anything else turns it on.
+    choosing, so there it must be asked for explicitly: only true/on/1/yes
+    turn it on. Anything else there — a typo included — leaves it off.
+    A single-user installation is turned off by off/false/0/no; an unrecognised
+    value there keeps the mode's default (on).
     """
     value = (raw or '').strip().lower()
-    if not value:
-        return bool(single_user_mode)
-    return value not in ('off', 'false', '0', 'no')
+    if value in ('true', 'on', '1', 'yes'):
+        return True
+    if value in ('false', 'off', '0', 'no'):
+        return False
+    return bool(single_user_mode)
 
 
 # Instance sync, client side. Read at startup; documented in .env.example only

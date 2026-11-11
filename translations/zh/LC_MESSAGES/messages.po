@@ -7984,6 +7984,10 @@ msgid "Project \"%(name)s\" was not synced: its ID is already used by another ac
 msgstr "项目“%(name)s”未同步：其 ID 已被服务器上的另一个账户使用。"
 
 #, python-format
+msgid "A session's link to project \"%(name)s\" was not synced: that project is not part of this account."
+msgstr "会话与项目“%(name)s”的关联未同步：该项目不属于此账户。"
+
+#, python-format
 msgid "%(name)s — this computer's version kept"
 msgstr "%(name)s — 保留这台电脑的版本"
 

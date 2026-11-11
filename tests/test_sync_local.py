@@ -497,6 +497,14 @@ def test_a_job_that_meets_an_old_server_reports_it(monkeypatch):
     ("no", True, False),
     ("on", True, True),
     ("off", False, False),
+    ("yes", False, True),        # the four explicit ways to say on...
+    (" YES ", False, True),
+    ("onn", False, False),       # ...and nothing else: a typo is not a yes
+    ("enabled", False, False),
+    ("of", False, False),
+    ("2", False, False),
+    ("onn", True, True),         # single-user: an unknown value keeps the default
+    ("no", False, False),
 ])
 def test_the_sync_client_default_follows_the_user_mode(raw, single_user, expected):
     from nova.config import sync_client_enabled
@@ -508,6 +516,7 @@ def test_env_example_leaves_the_sync_client_to_the_mode():
     text = (pathlib.Path(__file__).resolve().parents[1] / ".env.example").read_text()
     assert "\nNOVA_SYNC_CLIENT=\n" in text
     assert "NOVA_SYNC_CLIENT=on\n" not in text
+    assert "anything else" in text          # says what a typo does
 
 
 @pytest.mark.parametrize("lang", ["en", "de", "es", "fr", "ja", "zh"])

@@ -71,9 +71,12 @@ def _csrf_refused(_exc):
 
     The page is rendered again (with a fresh token in every form) under a 400,
     so a form that simply sat open too long can be retried straight away.
+    "Nothing" includes the completion toast: a refused POST may come from
+    another site, and it must not use up the one showing of "N files could not
+    be restored" — that waits for the next page the user really opens.
     """
     flash(_("This form expired. Please try again."), 'error')
-    return _render(), 400
+    return _render(completion_toast=False), 400
 
 # The open nonces live in the session as a small list, not a single value: two
 # tabs each hold their own form, and the second tab's submit must not be
@@ -181,11 +184,15 @@ def refusal_message(code: str, detail: dict = None) -> str:
 def blocked_message(entry: dict) -> str:
     """The translated line for one record a sync left out for good.
 
-    Today that is a project whose id another account already uses, on the
-    server (a push) or on this computer (a pull or a download). The message
-    names the project, so the user knows which one did not travel.
+    That is a project whose id another account already uses, on the server (a
+    push) or on this computer (a pull or a download), or a session's link to a
+    project that is not this account's. The message names the project, so the
+    user knows which one did not travel.
     """
     name = (entry or {}).get("name") or (entry or {}).get("key") or "?"
+    if (entry or {}).get("reason") == "project_link_dropped":
+        return _('A session\'s link to project "%(name)s" was not synced: that '
+                 'project is not part of this account.') % {"name": name}
     if (entry or {}).get("side") == "local":
         return _('Project "%(name)s" was not synced: its ID is already used by '
                  'another account on this computer.') % {"name": name}
@@ -301,7 +308,7 @@ def _flash_completion_toast(user, sync_view) -> None:
     consume_toast(user.id, job.get("start_token"))
 
 
-def _render(new_token=None):
+def _render(new_token=None, completion_toast=True):
     db = get_db()
     user = _current_user()
     tokens = []
@@ -309,7 +316,8 @@ def _render(new_token=None):
         tokens = list(db.query(SyncToken).filter_by(user_id=user.id)
                       .order_by(SyncToken.id.desc()).all())
     sync_view = _sync_view(db, user)
-    _flash_completion_toast(user, sync_view)
+    if completion_toast:
+        _flash_completion_toast(user, sync_view)
     # The reveal response is uncacheable because set_cache_headers() in the app
     # factory marks every non-static HTML response no-store.
     return render_template('sync_tokens.html', tokens=tokens, new_token=new_token,

@@ -1088,6 +1088,41 @@ def test_completion_reports_files_that_could_not_be_restored(hub, monkeypatch, t
     assert "1 file could not be restored" in hub.client.get("/sync").data.decode()
 
 
+def test_a_refused_csrf_post_does_not_use_up_the_completion_toast(
+        hub, csrf_on, monkeypatch, tmp_path):
+    """A POST without the CSRF token did nothing - and "nothing" includes the
+    one showing of what the last sync could not restore. Another site can make
+    the browser send such a POST; the warning must still be there afterwards."""
+    _seed_done_job(hub, monkeypatch, tmp_path,
+                   summary={"kind": "sync",
+                            "files": {"up": 0, "down": 0, "down_bytes": 0}},
+                   result={"up": {"created": 1, "updated": 0, "deleted": 0},
+                           "down": {"created": 0, "updated": 0, "deleted": 0},
+                           "unrestored_files": 2, "pending_files": 2})
+
+    refused = hub.client.post("/sync/sync", data={})
+    assert refused.status_code == 400
+    assert "could not be restored" not in refused.data.decode()
+
+    page = hub.client.get("/sync").data.decode()
+    assert "2 files could not be restored" in page            # still shown, once
+    assert "could not be restored" not in hub.client.get("/sync").data.decode()
+
+
+def test_completion_names_a_dropped_project_link(hub, monkeypatch, tmp_path):
+    _seed_done_job(hub, monkeypatch, tmp_path,
+                   summary={"kind": "sync",
+                            "files": {"up": 0, "down": 0, "down_bytes": 0}},
+                   result={"up": {"created": 1, "updated": 0, "deleted": 0},
+                           "down": {"created": 0, "updated": 0, "deleted": 0},
+                           "blocked": [{"table": "journal_sessions", "key": "p-9",
+                                        "name": "p-9", "side": "server",
+                                        "reason": "project_link_dropped"}]})
+    page = hub.client.get("/sync").data.decode()
+    assert "link to project" in page and "p-9" in page
+    assert "is not part of this account" in page
+
+
 def test_completion_names_a_blocked_project(hub, monkeypatch, tmp_path):
     _seed_done_job(hub, monkeypatch, tmp_path,
                    summary={"kind": "sync",
