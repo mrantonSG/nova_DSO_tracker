@@ -228,6 +228,13 @@ MAX_CLOCK_SKEW_SECONDS = 300
 MASS_DELETE_RATIO = 0.10
 MASS_DELETE_MIN_RECORDS = 20
 
+# Two stamps of one record this close together are the same author write, seen
+# through two clock-offset measurements (the offset is re-measured on every run
+# and the stored stamp carries the earlier one). Only used to tell a file whose
+# bytes were lost in transit from a file that was genuinely replaced later: the
+# first is healed without a record write, the second goes through newest-wins.
+FILE_HEAL_TOLERANCE_SECONDS = 30
+
 # --- Refusal codes -----------------------------------------------------------
 
 REFUSAL_NOT_PAIRED = "not_paired"
@@ -254,6 +261,13 @@ REFUSAL_BAD_FILE_REF = "bad_file_reference"
 REFUSAL_FILE_VERIFY = "file_verification_failed"
 REFUSAL_FILE_TOO_LARGE = "file_over_cap"
 REFUSAL_NO_DISK_SPACE = "insufficient_disk_space"
+# A repair may only fill a file this disk lacks; one that is here is never
+# overwritten by a repair.
+REFUSAL_FILE_EXISTS = "file_exists"
+
+# Why a record was left out of an apply for good (not deferred: re-offering it
+# would not help). Carried in MergePlan.blocked / MergeResult.blocked.
+BLOCKED_PROJECT_ID_TAKEN = "project_id_taken"
 
 # --- Action ops --------------------------------------------------------------
 
@@ -896,6 +910,14 @@ class MergePlan:
     # (table, key) records this plan could not place yet. The apply reports
     # them back so the caller does not move its watermark past them.
     deferred: list = field(default_factory=list)
+    # Records this plan will never write, as {"table", "key", "name",
+    # "reason"}: a project whose id another account on this instance already
+    # owns. Reported, and never holds a watermark - re-offering cannot help.
+    blocked: list = field(default_factory=list)
+    # {(table, key): {"slots": {...}, "notes": {...}}} - records whose synced
+    # content already matches and that only need a file placed. No record write
+    # and no rev: the placement is all there is to do.
+    heal: dict = field(default_factory=dict)
     # FileRefs this plan needs on this disk, and the ones it cannot get. A
     # pending entry is a file that should arrive and did not: the watermark
     # holds, exactly as it does for a deferred record. A skipped entry is a
@@ -940,6 +962,7 @@ class MergePlan:
             "conflicts": [c._asdict() for c in self.conflicts],
             "refusals": [r._asdict() for r in self.refusals],
             "totals": self.totals._asdict(),
+            "blocked": [dict(b) for b in self.blocked],
             "files": {
                 "needed": len(self.files),
                 "bytes": sum(int(r.size or 0) for r in self.files),
@@ -969,6 +992,8 @@ class MergeResult:
     # (table, key) records this apply could not place. record_push_accepted
     # leaves the watermark alone when it is non-empty, so they are re-offered.
     deferred: list = field(default_factory=list)
+    # Records left out for good (see MergePlan.blocked). Never holds a watermark.
+    blocked: list = field(default_factory=list)
     # (table, key, slot, sha256) files that should have arrived and did not.
     # Same effect on the watermark as `deferred`: an apply whose placements
     # never landed must not let the cursor move, and a hub's push response
@@ -1005,6 +1030,9 @@ class DownloadPlan:
     snapshot: dict
     server_rev: int
     user_id: Optional[int] = None
+    # This instance's clock minus the hub's, as plan_merge takes it: the apply
+    # shifts every hub stamp by it, the same convention a merge uses.
+    offset_seconds: float = 0.0
     wiping: dict = field(default_factory=dict)
     inserting: dict = field(default_factory=dict)
     refusals: list = field(default_factory=list)
@@ -1864,6 +1892,44 @@ def missing_local_files(db, user, instance_path: str = None) -> list:
     return found
 
 
+def missing_local_slots(db, user, instance_path: str = None) -> list:
+    """Every FILE slot of this user's records whose file is not on this disk.
+
+    The cheap form of missing_local_files(): existence only, nothing is hashed,
+    so it can run at the end of every sync. A slot that is empty, a log kept as
+    raw text in its column, and a log more than one account references are not
+    missing. Refs carry no digest - the file is gone, so the peer resolves it by
+    (table, key, slot).
+    """
+    shared = shared_log_paths(db)
+    found: list[FileRef] = []
+    for model, slots in _FILE_SLOTS.items():
+        for row in _load_rows(db, model, user.id):
+            key = row_key(model, row)
+            if not key:
+                continue
+            for slot, (role, _log_type) in slots.items():
+                value = getattr(row, slot, None)
+                if not value:
+                    continue
+                if role == ROLE_SESSION_LOG:
+                    if value in shared:
+                        continue
+                    path = _log_path(value, instance_path)
+                    if not path:
+                        continue        # raw content: the column is the file
+                else:
+                    path = os.path.join(_user_upload_root(user, instance_path), value)
+                if os.path.isfile(path):
+                    continue
+                name = os.path.basename(path)
+                found.append(FileRef(
+                    role=role, table=model.__tablename__, key=key, slot=slot,
+                    name=name, ext=(name.rsplit(".", 1)[1].lower() if "." in name else ""),
+                    missing=True, reason=SKIP_MISSING))
+    return found
+
+
 def counter_rev(db, user_id) -> int:
     """This user's sync counter, or 0 before the first change."""
     row = db.execute(
@@ -2531,9 +2597,74 @@ def _files_equal(model: type, row, record: Mapping[str, Any], user,
     return True
 
 
-def _row_content(db, model: type, row, record: Mapping[str, Any], user=None,
-                 instance_path: str = None) -> bool:
-    """True when `row` already holds exactly what `record` carries.
+def _file_differences(model: type, row, record: Mapping[str, Any], user,
+                      instance_path: str = None) -> tuple:
+    """How the record's file slots differ from this disk: (missing, different,
+    removed).
+
+    missing    the record names a digest and this disk holds no file there
+    different  the record names a digest and this disk holds other bytes
+    removed    one side emptied the slot and the other still holds a file
+
+    The first is always a heal. The second is a heal only when the two stamps
+    are one write (see FILE_HEAL_TOLERANCE_SECONDS). The third is a real change
+    and is never healed: a deliberate removal must not be undone by a retry.
+    """
+    missing: list = []
+    different: list = []
+    removed: list = []
+    incoming = record.get(KEY_FILES)
+    slots = _FILE_SLOTS.get(model)
+    if not isinstance(incoming, dict) or user is None or not slots:
+        return missing, different, removed
+    for slot, digest in incoming.items():
+        if slot not in slots:
+            continue
+        if digest is None:
+            if getattr(row, slot, None):
+                removed.append(slot)
+            continue
+        if getattr(row, slot, None) == FILE_REMOVED:
+            removed.append(slot)        # emptied here, still held by the peer
+            continue
+        local = _local_file_digest(model, row, slot, slots[slot][0], user,
+                                   instance_path)
+        if local == digest:
+            continue
+        (missing if local is None else different).append(slot)
+    return missing, different, removed
+
+
+def _missing_note_digests(current: str, incoming: str) -> Optional[list]:
+    """The digests of the note images `incoming` names and this disk lacks, when
+    that is the ONLY way the two texts differ; None when they differ otherwise.
+
+    `current` is this row's text in canonical form: an image this disk does not
+    hold reads as nova-file-missing:<name>. `incoming` names the same image as
+    nova-file:<sha>.<ext>, and an arriving note image is always stored under the
+    digest-derived note_image_name(). So a missing token whose name is exactly
+    that is the same image, lost on its way here - not a different note.
+    """
+    if not isinstance(current, str) or not isinstance(incoming, str):
+        return None
+    if FILE_TOKEN_MISSING not in current or FILE_TOKEN not in incoming:
+        return None
+    found: list = []
+
+    def as_missing(match):
+        token = FILE_TOKEN_MISSING + note_image_name(match.group(1), match.group(2))
+        if token in current:
+            found.append(match.group(1))
+            return token
+        return match.group(0)
+
+    return found if (_FILE_TOKEN.sub(as_missing, incoming) == current and found) else None
+
+
+def _content_equal(db, model: type, row, record: Mapping[str, Any], user=None,
+                   instance_path: str = None,
+                   missing_notes: Optional[list] = None) -> bool:
+    """True when `row` holds the record's synced content, FILE slots aside.
 
     Synced content only. sync_changed_at is not a column of any model, so it
     never enters this comparison: a record that comes back with a stamp a
@@ -2542,9 +2673,9 @@ def _row_content(db, model: type, row, record: Mapping[str, Any], user=None,
 
     Text is compared in its canonical form (a /uploads/<user>/ link on this disk
     against the record's nova-file: token), so the same note is a no-op however
-    its two sides name the user. Files are content too (correction B): a record
-    that names a digest this disk does not hold is a change even when every
-    column matches, so the new bytes travel through newest-wins.
+    its two sides name the user. With `missing_notes` (a list), a text that
+    differs only because a note image never arrived here still counts as equal,
+    and the digests of those images are appended to it: the caller places them.
     """
     rich = RICH_TEXT_COLUMNS.get(model, ())
     for column, value in _record_values(model, record).items():
@@ -2555,6 +2686,11 @@ def _row_content(db, model: type, row, record: Mapping[str, Any], user=None,
             current, _refs = canonicalize_text(db, user, model, column,
                                                current, row_key(model, row),
                                                instance_path)
+            if current != value and missing_notes is not None:
+                lost = _missing_note_digests(current, value)
+                if lost is not None:
+                    missing_notes.extend(lost)
+                    continue
         if isinstance(current, (date, datetime)) and isinstance(value, (date, datetime)):
             if current != value:
                 return False
@@ -2571,7 +2707,16 @@ def _row_content(db, model: type, row, record: Mapping[str, Any], user=None,
         if sorted(record.get(KEY_PROJECT_IDS) or []) != sorted(
                 project.id for project in row.projects):
             return False
-    return _files_equal(model, row, record, user, instance_path)
+    return True
+
+
+def _row_content(db, model: type, row, record: Mapping[str, Any], user=None,
+                 instance_path: str = None) -> bool:
+    """True when `row` already holds exactly what `record` carries, files
+    included (correction B): a record that names a digest this disk does not
+    hold is not the same record, even when every column matches."""
+    return (_content_equal(db, model, row, record, user, instance_path)
+            and _files_equal(model, row, record, user, instance_path))
 
 
 def _same_content(db, model: type, row, values: Mapping[str, Any], user=None,
@@ -2610,6 +2755,12 @@ class _Builder:
         self.user_id = user_id
         self.offset_seconds = offset_seconds
         self.deferred: list[tuple[str, str]] = []
+        # Records left out for good, and the project ids among them (so the
+        # sessions that follow drop only the links to those).
+        self.blocked: list[dict] = []
+        self.foreign_projects: dict[str, bool] = {}
+        # File-only placements: {(table, key): {"slots": set, "notes": set}}.
+        self.heal: dict[tuple[str, str], dict] = {}
         self.actions: list[Action] = []
         self.by_key: dict[tuple[str, str], Action] = {}
         self.created: dict[str, int] = {}
@@ -2825,6 +2976,51 @@ def _merge_prefs_blob(local_blob, incoming_blob, incoming_newer: bool):
     return text, text != (local_blob or "")
 
 
+def _project_is_foreign(db, builder: _Builder, project_id) -> bool:
+    """Whether `project_id` is a project another account on this instance owns.
+
+    projects.id is the table's primary key, so it is unique across every
+    account here, not per user. An id that belongs to someone else can neither
+    be written (the insert would hit their row's key) nor be linked to (the
+    link would point a session at another account's project).
+    """
+    pid = str(project_id or "").strip()
+    if not pid:
+        return False
+    if pid not in builder.foreign_projects:
+        builder.foreign_projects[pid] = _foreign_project_ids(
+            db, builder.user_id, [pid]) != set()
+    return builder.foreign_projects[pid]
+
+
+def _foreign_project_ids(db, user_id, project_ids) -> set:
+    """The ids among `project_ids` that a different account's project holds."""
+    wanted = sorted({str(pid) for pid in project_ids if pid})
+    if not wanted:
+        return set()
+    return set(db.scalars(
+        select(Project.id).where(Project.id.in_(wanted),
+                                 or_(Project.user_id != user_id,
+                                     Project.user_id.is_(None)))).all())
+
+
+def _without_foreign_projects(record: Mapping[str, Any], foreign) -> Mapping[str, Any]:
+    """A session record minus its links to projects in `foreign`.
+
+    Only the links go: the session itself is this account's and syncs as usual.
+    The record is copied, never edited in place - the payload stays as sent.
+    """
+    if not foreign:
+        return record
+    out = dict(record)
+    if out.get("project_id") in foreign:
+        out["project_id"] = None
+    if isinstance(out.get(KEY_PROJECT_IDS), list):
+        out[KEY_PROJECT_IDS] = [pid for pid in out[KEY_PROJECT_IDS]
+                                if pid not in foreign]
+    return out
+
+
 def _plan_record(db, builder: _Builder, model: type, record: dict, index: dict,
                  unique_index: dict, refusals: list) -> None:
     """Decide what one incoming record does to the receiver."""
@@ -2835,6 +3031,22 @@ def _plan_record(db, builder: _Builder, model: type, record: dict, index: dict,
         code = REFUSAL_SESSION_NO_KEY if model is JournalSession else REFUSAL_MISSING_KEY
         refusals.append(Refusal(code, {"table": table}))
         return
+
+    if (model is Project and index.get(table, {}).get(key) is None
+            and _project_is_foreign(db, builder, key)):
+        # Another account here already owns this id. The project is left out,
+        # and so are the links to it (below); everything else syncs.
+        builder.blocked.append({
+            "table": table, "key": key,
+            "name": str(record.get("name") or key),
+            "reason": BLOCKED_PROJECT_ID_TAKEN,
+        })
+        return
+    if model is JournalSession:
+        linked = [record.get("project_id")] + list(record.get(KEY_PROJECT_IDS) or [])
+        record = _without_foreign_projects(
+            record, {pid for pid in linked
+                     if pid and _project_is_foreign(db, builder, pid)})
 
     incoming_at = builder.to_local_clock(parse_datetime(record.get(KEY_CHANGED_AT)))
     if incoming_at is None:
@@ -2943,11 +3155,33 @@ def _plan_record_update(db, builder: _Builder, model: type, record: dict,
         builder.count_updated(table)
         return
 
-    if _row_content(db, model, existing, record, builder.user,
-                    builder.instance_path) and not decided:
-        return  # nothing to do: an idempotent re-delivery
-
     local_at = existing.sync_changed_at or datetime.min
+    lost_notes: list = []
+    heal: dict = {}
+    if not decided and _content_equal(db, model, existing, record, builder.user,
+                                      builder.instance_path,
+                                      missing_notes=lost_notes):
+        # The record itself is already here. What is left is its files, and a
+        # file is healed without consulting the clocks: comparing this row's
+        # stamp with the same stamp seen through a re-measured offset is a coin
+        # flip, and losing it would leave the file missing for good.
+        missing, different, removed = _file_differences(
+            model, existing, record, builder.user, builder.instance_path)
+        same_write = abs((incoming_at - local_at).total_seconds()) \
+            <= FILE_HEAL_TOLERANCE_SECONDS
+        heal = {"slots": set(missing) | (set(different) if same_write else set()),
+                "notes": set(lost_notes)}
+        if not removed and (same_write or not different):
+            # Nothing but files to place (or nothing at all: an idempotent
+            # re-delivery). No record write, no rev, no stamp.
+            if heal["slots"] or heal["notes"]:
+                builder.heal[(table, key)] = heal
+            return
+        # A file was genuinely replaced or removed after the last sync: that is
+        # a change like any other and goes through newest-wins below. A file
+        # this side is merely missing is still filled if the row is kept.
+        heal = {"slots": set(missing), "notes": set(lost_notes)}
+
     take = incoming_at > local_at or (
         incoming_at == local_at and builder.side == "local"
     )
@@ -2956,6 +3190,8 @@ def _plan_record_update(db, builder: _Builder, model: type, record: dict,
             table, key, "kept_local",
             {"incoming_at": to_iso(incoming_at), "local_at": to_iso(local_at)},
         ))
+        if heal and (heal["slots"] or heal["notes"]):
+            builder.heal[(table, key)] = heal
         return
     builder.add(Action(OP_UPDATE, table, key, decided, values, existing.id,
                        _identity_values(model, existing),
@@ -3122,13 +3358,17 @@ def _plan_files(db, builder: _Builder, payload, index: dict) -> None:
             if not isinstance(record, dict):
                 continue
             key = natural_key(model, record)
-            if (table, key) not in written and (table, key) not in deleted:
+            heal = builder.heal.get((table, key))
+            is_written = (table, key) in written
+            if not is_written and (table, key) not in deleted and heal is None:
                 continue
             for slot, digest in (record.get(KEY_FILES) or {}).items():
                 if slot not in slots or digest is None:
                     # An explicit removal needs nothing fetched or placed: the
                     # column write below is the whole of it.
                     continue
+                if heal is not None and not is_written and slot not in heal["slots"]:
+                    continue    # a file-only heal touches only the slots it names
                 role = slots[slot][0]
                 ref = FileRef(role=role, table=table, key=key, slot=slot,
                               sha256=digest,
@@ -3143,13 +3383,18 @@ def _plan_files(db, builder: _Builder, payload, index: dict) -> None:
                     builder.skipped_files.append(
                         FileRef(**{**ref.__dict__, "missing": True,
                                    "reason": SKIP_MISSING}))
-                elif (table, key) in written:
+                elif is_written or (heal is not None and slot in heal["slots"]):
                     builder.placements.append(ref)
                     if digest not in seen:
                         builder.files.append(ref)
+                else:
+                    continue    # a record this plan leaves alone: nothing to place
                 seen.add(digest)
             for column in RICH_TEXT_COLUMNS.get(model, ()):
                 for ref in _record_text_refs(model, record, column, key, manifest):
+                    if heal is not None and not is_written \
+                            and ref.sha256 not in heal["notes"]:
+                        continue    # a file-only heal places only what is lost
                     if ref.sha256 and ref.sha256 not in manifest:
                         builder.skipped_files.append(
                             FileRef(**{**ref.__dict__, "missing": True,
@@ -3355,6 +3600,8 @@ def plan_merge(db, user, payload, *, side: str, offset_seconds: float = 0.0,
     plan.inserts = builder.inserts
     plan.ref_counts = ref_counts
     plan.deferred = builder.deferred
+    plan.blocked = builder.blocked
+    plan.heal = builder.heal
     plan.files = builder.files
     plan.placements = builder.placements
     plan.skipped_files = builder.skipped_files
@@ -3417,6 +3664,7 @@ def apply_merge(db, plan: MergePlan, *, user=None) -> MergeResult:
     conn = db.connection()
     result = MergeResult(counter_before=counter_rev(db, user_id),
                          deferred=list(plan.deferred),
+                         blocked=[dict(b) for b in plan.blocked],
                          pending_files=[_ref_key(r) for r in plan.pending_files],
                          files_expected=list(plan.placements or plan.files),
                          skipped_files=list(plan.skipped_files),
@@ -3640,6 +3888,7 @@ def plan_download(db, user, snapshot, *, offset_seconds: float = 0.0,
         skew = float(offset_seconds or 0.0)
     except (TypeError, ValueError):
         skew = 0.0
+    plan.offset_seconds = skew
     if abs(skew) > MAX_CLOCK_SKEW_SECONDS:
         plan.refusals.append(Refusal(REFUSAL_CLOCK_SKEW, {
             "offset_seconds": skew, "max": MAX_CLOCK_SKEW_SECONDS,
@@ -4102,16 +4351,40 @@ def apply_download(db, plan: DownloadPlan, *, user=None) -> MergeResult:
     )
     records = plan.snapshot.get("records") or {}
 
+    # A project id another account on this instance holds can neither be
+    # written nor linked to (projects.id is unique across accounts). This
+    # account's own projects were wiped above, so any id still present is
+    # somebody else's.
+    named = [r.get("id") for r in records.get(Project.__tablename__) or []
+             if isinstance(r, dict)]
+    for r in records.get(JournalSession.__tablename__) or []:
+        if isinstance(r, dict):
+            named.append(r.get("project_id"))
+            named.extend(r.get(KEY_PROJECT_IDS) or [])
+    foreign = _foreign_project_ids(db, uid, named)
+
     for model in PLAN_ORDER:
         table = model.__tablename__
         actions = []
         for record in records.get(table) or []:
             if not isinstance(record, dict):
                 continue
+            if model is Project and str(record.get("id") or "") in foreign:
+                result.blocked.append({
+                    "table": table, "key": str(record.get("id")),
+                    "name": str(record.get("name") or record.get("id")),
+                    "reason": BLOCKED_PROJECT_ID_TAKEN})
+                continue
+            if model is JournalSession:
+                record = _without_foreign_projects(record, foreign)
             values = _record_values(model, record)
             values[KEY_HORIZON] = record.get(KEY_HORIZON)
             values[KEY_PROJECT_IDS] = record.get(KEY_PROJECT_IDS)
-            values["sync_changed_at"] = parse_datetime(record.get(KEY_CHANGED_AT))
+            # The hub's stamp, moved into this instance's clock exactly as a
+            # merge moves it: a later pull compares the stored stamp with the
+            # same record shifted the same way, so the two must agree.
+            values["sync_changed_at"] = shift(
+                parse_datetime(record.get(KEY_CHANGED_AT)), plan.offset_seconds)
             actions.append(Action(OP_INSERT, table, natural_key(model, record),
                                   False, values))
         for action in actions:

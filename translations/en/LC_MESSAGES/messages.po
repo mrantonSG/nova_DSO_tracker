@@ -7956,6 +7956,44 @@ msgstr ""
 msgid "none to transfer"
 msgstr ""
 
+msgid "This form expired. Please try again."
+msgstr ""
+
+msgid "This server doesn't support sync — it needs a newer Nova version."
+msgstr ""
+
+msgid "The server already has this file."
+msgstr ""
+
+#, python-format
+msgid "Project \"%(name)s\" was not synced: its ID is already used by another account on this computer."
+msgstr ""
+
+#, python-format
+msgid "Project \"%(name)s\" was not synced: its ID is already used by another account on the server."
+msgstr ""
+
+#, python-format
+msgid "%(name)s — this computer's version kept"
+msgstr ""
+
+#, python-format
+msgid "%(name)s — server version kept"
+msgstr ""
+
+#, python-format
+msgid "%(num)s file could not be restored"
+msgid_plural "%(num)s files could not be restored"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Changed on both sides"
+msgstr ""
+
+#, python-format
+msgid "and %(n)s more"
+msgstr ""
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr ""
 

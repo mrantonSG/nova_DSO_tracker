@@ -24,6 +24,11 @@ Import). That is what makes the first download possible.
    token you created there, then **Connect**. The server's account name is
    shown, and the token is stored on this machine.
 
+**Sync with a server** is available by default on a single-user installation.
+On a multi-user installation it is switched off, because that installation is
+normally the server; an administrator can enable it by setting
+`NOVA_SYNC_CLIENT=on` in `instance/.env` and restarting Nova.
+
 #### Download from server
 
 The first sync for every pairing is a **download**: it replaces this machine's

@@ -466,6 +466,8 @@ HTTP_STATUS_BY_REFUSAL = {
     "file_over_cap": 413,
     "file_verification_failed": 400,
     "insufficient_disk_space": 507,
+    # a repair fills a missing file only; one that is there is a conflict
+    "file_exists": 409,
 }
 
 

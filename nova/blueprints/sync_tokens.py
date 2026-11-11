@@ -16,6 +16,13 @@ Creating is guarded by a one-time nonce, because a browser reload re-POSTs the
 form. The nonce is issued by the GET that renders the form and consumed by the
 POST that uses it, so a reload, a double click or a back-and-resubmit finds
 nothing to consume and creates nothing.
+
+Every POST here is CSRF-protected (Flask-WTF), in single- and multi-user mode
+alike. Single-user mode has no login at all, so without the token any page the
+user visits could post to this blueprint: revoke a token, pair this installation
+with another server, or confirm a download that replaces the local data. The
+token-only API (nova.blueprints.sync_api) is a different blueprint and stays
+exempt — it carries a bearer token, never a session.
 """
 
 from __future__ import annotations
@@ -25,6 +32,7 @@ import secrets
 from flask import (Blueprint, abort, current_app, flash, g, jsonify, redirect,
                    render_template, request, session, url_for)
 from flask_babel import gettext as _, ngettext
+from flask_wtf.csrf import CSRFError
 from functools import wraps
 
 from nova.config import NOVA_SYNC_CLIENT
@@ -42,6 +50,30 @@ from nova.sync_transport import GUEST_USERNAME, hash_token, new_token
 sync_bp = Blueprint('sync', __name__)
 
 LABEL_MAX = 100
+
+
+@sync_bp.before_request
+def _csrf_protect_sync():
+    """Refuse a POST that does not carry this session's CSRF token.
+
+    Not gated on the user mode (unlike the admin blueprint): single-user mode is
+    the one where a cross-site POST needs no cookie at all. The form field
+    ``csrf_token`` and the ``X-CSRFToken`` header are both accepted.
+    """
+    if request.method == "POST" and current_app.config.get("WTF_CSRF_ENABLED", True):
+        from nova import csrf
+        csrf.protect()
+
+
+@sync_bp.errorhandler(CSRFError)
+def _csrf_refused(_exc):
+    """A missing, wrong or expired CSRF token: nothing was done.
+
+    The page is rendered again (with a fresh token in every form) under a 400,
+    so a form that simply sat open too long can be retried straight away.
+    """
+    flash(_("This form expired. Please try again."), 'error')
+    return _render(), 400
 
 # The open nonces live in the session as a small list, not a single value: two
 # tabs each hold their own form, and the second tab's submit must not be
@@ -89,6 +121,10 @@ def refusal_message(code: str, detail: dict = None) -> str:
     detail = detail or {}
     if code == "protocol_mismatch":
         return _("This app and the server speak different sync versions. Update one of them.")
+    if code == "server_no_sync":
+        return _("This server doesn't support sync — it needs a newer Nova version.")
+    if code == "file_exists":
+        return _("The server already has this file.")
     if code == "token_invalid":
         return _("The sync token was rejected.")
     if code == "token_revoked":
@@ -142,6 +178,29 @@ def refusal_message(code: str, detail: dict = None) -> str:
     return _("Sync failed (%(code)s).") % {"code": code}
 
 
+def blocked_message(entry: dict) -> str:
+    """The translated line for one record a sync left out for good.
+
+    Today that is a project whose id another account already uses, on the
+    server (a push) or on this computer (a pull or a download). The message
+    names the project, so the user knows which one did not travel.
+    """
+    name = (entry or {}).get("name") or (entry or {}).get("key") or "?"
+    if (entry or {}).get("side") == "local":
+        return _('Project "%(name)s" was not synced: its ID is already used by '
+                 'another account on this computer.') % {"name": name}
+    return _('Project "%(name)s" was not synced: its ID is already used by '
+             'another account on the server.') % {"name": name}
+
+
+def conflict_message(entry: dict) -> str:
+    """One "changed on both sides" line: the record and whose copy stays."""
+    name = (entry or {}).get("name") or "?"
+    if (entry or {}).get("kept") == "local":
+        return _("%(name)s — this computer's version kept") % {"name": name}
+    return _("%(name)s — server version kept") % {"name": name}
+
+
 def _sync_view(db, user):
     """The local-sync state the page renders, plus the current job."""
     view = {"enabled": NOVA_SYNC_CLIENT}
@@ -158,6 +217,10 @@ def _sync_view(db, user):
     view["download_incomplete"] = view["paired"] and status == "incomplete"
     job = job_status(user.id)
     view["job"] = job
+    summary = (job or {}).get("summary") or {}
+    view["conflict_lines"] = [conflict_message(c) for c in summary.get("conflicts") or []]
+    view["conflicts_more"] = int(summary.get("conflicts_more") or 0)
+    view["blocked_lines"] = [blocked_message(b) for b in summary.get("blocked") or []]
     if job and job.get("error"):
         view["error_message"] = refusal_message(job["error"]["code"], job["error"].get("detail"))
     else:
@@ -226,6 +289,15 @@ def _flash_completion_toast(user, sync_view) -> None:
         return
     kind, message = toast
     flash(message, kind)
+    # What the run could not do rides with its completion, once: files neither
+    # side could restore, and records left out for good.
+    result = job.get("result") or {}
+    unrestored = int(result.get("unrestored_files") or 0)
+    if unrestored:
+        flash(ngettext("%(num)s file could not be restored",
+                       "%(num)s files could not be restored", unrestored), 'warning')
+    for entry in result.get("blocked") or []:
+        flash(blocked_message(entry), 'warning')
     consume_toast(user.id, job.get("start_token"))
 
 
@@ -413,11 +485,15 @@ def confirm():
     user = _current_user()
     if user is None:
         abort(403)
-    allow_mass_delete = request.form.get('allow_mass_delete') == '1'
+    # Two approvals, one per side: the form sets each only for the side whose
+    # plan asked, and confirm_job honours each only for that side.
+    allow_push = request.form.get('allow_mass_delete_push') == '1'
+    allow_pull = request.form.get('allow_mass_delete_pull') == '1'
     replace_confirmed = (request.form.get('replace_confirmed') or '').strip()
     try:
         confirm_job(current_app._get_current_object(), user.id,
-                    allow_mass_delete=allow_mass_delete,
+                    allow_push_mass_delete=allow_push,
+                    allow_pull_mass_delete=allow_pull,
                     replace_confirmed=replace_confirmed)
     except SyncRefused as exc:
         flash(refusal_message(exc.refusal.code, exc.refusal.detail), 'error')

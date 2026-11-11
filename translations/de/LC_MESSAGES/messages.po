@@ -8306,6 +8306,44 @@ msgstr "Alles ist auf dem neuesten Stand"
 msgid "none to transfer"
 msgstr "nichts zu übertragen"
 
+msgid "This form expired. Please try again."
+msgstr "Dieses Formular ist abgelaufen. Bitte versuchen Sie es erneut."
+
+msgid "This server doesn't support sync — it needs a newer Nova version."
+msgstr "Dieser Server unterstützt keine Synchronisierung — er benötigt eine neuere Nova-Version."
+
+msgid "The server already has this file."
+msgstr "Der Server hat diese Datei bereits."
+
+#, python-format
+msgid "Project \"%(name)s\" was not synced: its ID is already used by another account on this computer."
+msgstr "Projekt „%(name)s“ wurde nicht synchronisiert: Seine ID wird bereits von einem anderen Konto auf diesem Computer verwendet."
+
+#, python-format
+msgid "Project \"%(name)s\" was not synced: its ID is already used by another account on the server."
+msgstr "Projekt „%(name)s“ wurde nicht synchronisiert: Seine ID wird bereits von einem anderen Konto auf dem Server verwendet."
+
+#, python-format
+msgid "%(name)s — this computer's version kept"
+msgstr "%(name)s — Version dieses Computers behalten"
+
+#, python-format
+msgid "%(name)s — server version kept"
+msgstr "%(name)s — Serverversion behalten"
+
+#, python-format
+msgid "%(num)s file could not be restored"
+msgid_plural "%(num)s files could not be restored"
+msgstr[0] "%(num)s Datei konnte nicht wiederhergestellt werden"
+msgstr[1] "%(num)s Dateien konnten nicht wiederhergestellt werden"
+
+msgid "Changed on both sides"
+msgstr "Auf beiden Seiten geändert"
+
+#, python-format
+msgid "and %(n)s more"
+msgstr "und %(n)s weitere"
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Vorschläge aktualisieren"
 

@@ -45,6 +45,7 @@
       {% endif %}
 
       <form method="post" action="{{ url_for('sync.create_token') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="nonce" value="{{ nonce }}">
         <div class="form-group">
           <label for="sync-token-label">{{ _('Token Label') }}</label>
@@ -78,6 +79,7 @@
             {% else %}
               <form method="post" action="{{ url_for('sync.revoke_token') }}" style="display:inline; margin:0;"
                     data-confirm="{{ _('Revoking stops that instance from syncing. This cannot be undone.') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="token_id" value="{{ token.id }}">
                 <button type="submit" class="delete-btn">{{ _('Revoke') }}</button>
               </form>
@@ -137,6 +139,7 @@
               <p class="sync-warning">{{ _('Unsynced local changes') }}: {{ s.unsynced_local_changes }}</p>
             {% endif %}
             <form method="post" action="{{ url_for('sync.confirm') }}" id="sync-confirm-form" data-replace="{{ '1' if s.requires_replace_typed else '0' }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               {% if s.requires_replace_typed %}
                 <div class="form-group">
                   <label for="sync-replace-input">{{ _('Type REPLACE to continue') }}</label>
@@ -164,6 +167,20 @@
                 {% if s.down.may_skip_deleted %}{{ _('up to %(n)s deleted', n=s.down.deleted) }}{% else %}{{ s.down.deleted }} {{ _('deleted') }}{% endif %}
               </li>
             </ul>
+            {% if sync_view.conflict_lines %}
+              <p class="sync-warning">{{ _('Changed on both sides') }}</p>
+              <ul class="sync-summary-list">
+                {% for line in sync_view.conflict_lines %}
+                  <li class="sync-summary-row">{{ line }}</li>
+                {% endfor %}
+                {% if sync_view.conflicts_more %}
+                  <li class="sync-summary-row">{{ _('and %(n)s more', n=sync_view.conflicts_more) }}</li>
+                {% endif %}
+              </ul>
+            {% endif %}
+            {% for line in sync_view.blocked_lines %}
+              <p class="sync-warning">{{ line }}</p>
+            {% endfor %}
             <p class="sync-files">
               {% if s.files.up == 0 and s.files.down == 0 %}
                 {{ _('Files') }}: {{ _('none to transfer') }}
@@ -171,8 +188,11 @@
                 {{ _('Files') }}: {{ s.files.up }} {{ _('to upload') }} · {{ s.files.down }} {{ _('to download') }} ({{ s.files.down_bytes | filesizeformat }})
               {% endif %}
             </p>
-            <form method="post" action="{{ url_for('sync.confirm') }}" id="sync-confirm-form" data-mass-delete="{{ '1' if s.mass_delete else '0' }}">
-              <input type="hidden" name="allow_mass_delete" value="0" id="sync-mass-delete-field">
+            <form method="post" action="{{ url_for('sync.confirm') }}" id="sync-confirm-form" data-mass-delete="{{ '1' if s.mass_delete else '0' }}"
+                  data-mass-delete-push="{{ '1' if s.push_mass_delete else '0' }}" data-mass-delete-pull="{{ '1' if s.pull_mass_delete else '0' }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="allow_mass_delete_push" value="0" id="sync-mass-delete-push-field">
+              <input type="hidden" name="allow_mass_delete_pull" value="0" id="sync-mass-delete-pull-field">
               <div class="sync-actions">
                 <button type="button" class="inline-button-ghost" onclick="document.getElementById('sync-abort-form').submit()">{{ _('Abort') }}</button>
                 <button type="submit" id="sync-apply-btn" class="{{ 'inline-button-danger' if (s.up.deleted + s.down.deleted) > 0 else 'action-button' }}">{{ _('Apply') }}</button>
@@ -206,18 +226,22 @@
           <div class="sync-actions">
             <form method="post" action="{{ url_for('sync.disconnect') }}" style="margin:0;"
                   data-confirm="{{ _('Disconnect from this server?') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button type="submit" class="inline-button-danger">{{ _('Disconnect') }}</button>
             </form>
             {% if sync_view.needs_download %}
               <form method="post" action="{{ url_for('sync.download') }}" style="margin:0;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="inline-button-ghost">{{ _('Download from server') }}</button>
               </form>
               <button type="button" class="action-button" disabled title="{{ _('Download from the server first.') }}">{{ _('Sync now') }}</button>
             {% else %}
               <form method="post" action="{{ url_for('sync.download') }}" style="margin:0;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="inline-button-ghost">{{ _('Download from server') }}</button>
               </form>
               <form method="post" action="{{ url_for('sync.sync_now') }}" style="margin:0;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="action-button">{{ _('Sync now') }}</button>
               </form>
             {% endif %}
@@ -226,6 +250,7 @@
       </ul>
       {% else %}
       <form method="post" action="{{ url_for('sync.connect') }}" id="sync-connect-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-group">
           <label for="sync-server-url">{{ _('Server URL') }}</label>
           <input type="text" id="sync-server-url" name="server_url" value="{{ default_server_url }}" required>
@@ -246,7 +271,7 @@
     {% endif %}
   </div>
 
-  <form method="post" action="{{ url_for('sync.abort_confirm') }}" id="sync-abort-form" style="display:none"></form>
+  <form method="post" action="{{ url_for('sync.abort_confirm') }}" id="sync-abort-form" style="display:none"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"></form>
 
   <script>
     // "Last synced" is rendered as a UTC ISO-8601 instant with a server-side
@@ -335,7 +360,9 @@
             { danger: true, confirmLabel: {{ _('Apply') | tojson }}, cancelLabel: {{ _('Abort') | tojson }} })
             .then(function (ok) {
               if (ok) {
-                document.getElementById('sync-mass-delete-field').value = '1';
+                // One approval per side, each only where that side's plan asked.
+                document.getElementById('sync-mass-delete-push-field').value = replaceForm.dataset.massDeletePush === '1' ? '1' : '0';
+                document.getElementById('sync-mass-delete-pull-field').value = replaceForm.dataset.massDeletePull === '1' ? '1' : '0';
                 replaceForm.submit();
               }
             });
@@ -348,7 +375,7 @@
         var fill = document.getElementById('sync-progress-fill');
         var pct = document.getElementById('sync-progress-pct');
         var poll = function () {
-          fetch('{{ url_for('sync.job') }}', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+          fetch('{{ url_for('sync.job') }}', { headers: { 'Accept': 'application/json', 'X-CSRFToken': {{ csrf_token() | tojson }} }, credentials: 'same-origin' })
             .then(function (r) { return r.json(); })
             .then(function (job) {
               if (job.running) {

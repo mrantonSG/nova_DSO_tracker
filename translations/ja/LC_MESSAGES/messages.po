@@ -7984,6 +7984,43 @@ msgstr "すべて最新の状態です"
 msgid "none to transfer"
 msgstr "転送するものはありません"
 
+msgid "This form expired. Please try again."
+msgstr "このフォームの有効期限が切れました。もう一度お試しください。"
+
+msgid "This server doesn't support sync — it needs a newer Nova version."
+msgstr "このサーバーは同期に対応していません — より新しいバージョンの Nova が必要です。"
+
+msgid "The server already has this file."
+msgstr "サーバーにはすでにこのファイルがあります。"
+
+#, python-format
+msgid "Project \"%(name)s\" was not synced: its ID is already used by another account on this computer."
+msgstr "プロジェクト「%(name)s」は同期されませんでした。その ID はこの PC の別のアカウントですでに使用されています。"
+
+#, python-format
+msgid "Project \"%(name)s\" was not synced: its ID is already used by another account on the server."
+msgstr "プロジェクト「%(name)s」は同期されませんでした。その ID はサーバーの別のアカウントですでに使用されています。"
+
+#, python-format
+msgid "%(name)s — this computer's version kept"
+msgstr "%(name)s — この PC のバージョンを保持"
+
+#, python-format
+msgid "%(name)s — server version kept"
+msgstr "%(name)s — サーバーのバージョンを保持"
+
+#, python-format
+msgid "%(num)s file could not be restored"
+msgid_plural "%(num)s files could not be restored"
+msgstr[0] "%(num)s 個のファイルを復元できませんでした"
+
+msgid "Changed on both sides"
+msgstr "両側で変更あり"
+
+#, python-format
+msgid "and %(n)s more"
+msgstr "ほか %(n)s 件"
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "更新提案"
 

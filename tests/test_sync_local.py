@@ -17,7 +17,7 @@ from flask import Flask
 
 from nova.helpers import write_file_atomic
 from nova.models import SyncToken
-from nova.sync_client import (SyncClient, normalize_server_url,
+from nova.sync_client import (SyncClient, SyncTransportError, normalize_server_url,
                               validate_server_url)
 from nova.sync_engine import (ROLE_SESSION_PHOTO, JournalSession, Refusal,
                               SyncRefused, _slot_ref)
@@ -362,3 +362,157 @@ def test_download_confirm_without_exact_replace_is_refused(monkeypatch, tmp_path
     with pytest.raises(SyncRefused) as exc:
         confirm_job(object(), uid, replace_confirmed="REPLACE ")
     assert exc.value.refusal.code == "replace_required"
+
+
+# =============================================================================
+# Protocol handling: refusals are read before the protocol field
+# =============================================================================
+
+class _Canned:
+    """A requests-style session that answers every POST with one fixed reply."""
+
+    def __init__(self, status, body, headers=None):
+        self._reply = (status, body if isinstance(body, bytes) else
+                       json.dumps(body).encode("utf-8"), headers or {})
+        self.calls = 0
+
+    def post(self, _url, **_kwargs):
+        self.calls += 1
+        return _FakeResponse(*self._reply)
+
+
+def _refusal_text(code, detail=None):
+    from nova import app
+    from nova.blueprints.sync_tokens import refusal_message
+    with app.test_request_context("/sync"):
+        return refusal_message(code, detail or {})
+
+
+def test_a_hub_on_another_protocol_version_is_a_protocol_mismatch(hub):
+    """A real hub (protocol 1) and a client built for protocol 2. The hub's
+    refusal carries ITS version in `protocol`; the client must read the refusal
+    first instead of tripping over that field."""
+    client = SyncClient("https://hub.invalid", hub["token"],
+                        session=_FakeSession(hub["app"]), protocol=2)
+    with pytest.raises(SyncRefused) as exc:
+        client.hello()
+    assert exc.value.refusal.code == "protocol_mismatch"
+    assert exc.value.refusal.detail["supported"] == 1
+    assert _refusal_text("protocol_mismatch") == (
+        "This app and the server speak different sync versions. Update one of them.")
+
+
+def test_a_newer_hubs_mismatch_refusal_is_read_by_this_client():
+    """The other direction: a v2 hub refusing this v1 client."""
+    reply = {"protocol": 2, "refusals": [{"code": "protocol_mismatch",
+                                          "detail": {"supported": 2, "found": "1"}}]}
+    client = SyncClient("https://hub.invalid", "t", session=_Canned(400, reply))
+    with pytest.raises(SyncRefused) as exc:
+        client.hello()
+    assert exc.value.refusal.code == "protocol_mismatch"
+    assert exc.value.refusal.detail == {"supported": 2, "found": "1"}
+
+
+def test_an_answer_on_another_protocol_without_a_refusal_is_a_mismatch_too():
+    client = SyncClient("https://hub.invalid", "t",
+                        session=_Canned(200, {"protocol": 7, "server_time": "x"}))
+    with pytest.raises(SyncRefused) as exc:
+        client.hello()
+    assert exc.value.refusal.code == "protocol_mismatch"
+    assert exc.value.refusal.detail == {"supported": 7, "found": 1}
+
+
+def test_any_other_refusal_is_still_read_whatever_protocol_it_names():
+    reply = {"protocol": 2, "refusals": [{"code": "token_revoked", "detail": {}}]}
+    client = SyncClient("https://hub.invalid", "t", session=_Canned(401, reply))
+    with pytest.raises(SyncRefused) as exc:
+        client.hello()
+    assert exc.value.refusal.code == "token_revoked"
+
+
+@pytest.mark.parametrize("status,body", [
+    (404, b"<!doctype html><title>404 Not Found</title>"),      # single-user, no route
+    (405, b"<!doctype html><title>405 Method Not Allowed</title>"),
+    (401, {"error": "authentication required"}),                # multi-user login gate
+    (404, {"error": "not found"}),
+])
+def test_a_server_from_before_sync_gets_its_own_message(status, body):
+    client = SyncClient("https://old.invalid", "t", session=_Canned(status, body))
+    with pytest.raises(SyncRefused) as exc:
+        client.hello()
+    assert exc.value.refusal.code == "server_no_sync"
+    assert _refusal_text("server_no_sync") == (
+        "This server doesn't support sync — it needs a newer Nova version.")
+
+
+def test_a_real_nova_without_the_sync_api_is_recognised():
+    """Not a canned reply: a Flask app with no /api/sync routes at all."""
+    old = Flask("old-nova")
+    old.config["TESTING"] = True
+    client = SyncClient("https://old.invalid", "t", session=_FakeSession(old))
+    with pytest.raises(SyncRefused) as exc:
+        client.hello()
+    assert exc.value.refusal.code == "server_no_sync"
+
+
+@pytest.mark.parametrize("status,body", [
+    (500, b"<html>Internal Server Error</html>"),
+    (502, b"Bad Gateway"),
+    (200, b"<html>captive portal</html>"),
+    (200, {"hello": "world"}),              # JSON, but no protocol and not a 4xx
+])
+def test_a_broken_answer_is_still_a_transport_error(status, body):
+    client = SyncClient("https://hub.invalid", "t", session=_Canned(status, body))
+    with pytest.raises(SyncTransportError):
+        client.hello()
+
+
+def test_a_job_that_meets_an_old_server_reports_it(monkeypatch):
+    """Through the job runner: the code survives to the status the page reads."""
+    from nova.sync_engine import Refusal
+    assert _refusal_text("server_no_sync") != _refusal_text("network_error")
+    assert _refusal_text("server_no_sync") != _refusal_text("protocol_mismatch")
+    assert "(server_no_sync)" not in _refusal_text("server_no_sync")
+    assert Refusal("server_no_sync", {}).code == "server_no_sync"
+
+
+# =============================================================================
+# NOVA_SYNC_CLIENT: on in single-user mode, off in multi-user unless asked for
+# =============================================================================
+
+@pytest.mark.parametrize("raw,single_user,expected", [
+    ("", True, True),            # unset, a personal computer: a client
+    (None, True, True),
+    ("", False, False),          # unset, a multi-user server: not a client
+    (None, False, False),
+    ("   ", False, False),
+    ("on", False, True),         # explicitly enabled on a multi-user instance
+    ("ON", False, True),
+    ("true", False, True),
+    ("1", False, True),
+    ("off", True, False),        # explicitly disabled on a single-user one
+    (" Off ", True, False),
+    ("false", True, False),
+    ("0", True, False),
+    ("no", True, False),
+    ("on", True, True),
+    ("off", False, False),
+])
+def test_the_sync_client_default_follows_the_user_mode(raw, single_user, expected):
+    from nova.config import sync_client_enabled
+    assert sync_client_enabled(raw, single_user) is expected
+
+
+def test_env_example_leaves_the_sync_client_to_the_mode():
+    import pathlib
+    text = (pathlib.Path(__file__).resolve().parents[1] / ".env.example").read_text()
+    assert "\nNOVA_SYNC_CLIENT=\n" in text
+    assert "NOVA_SYNC_CLIENT=on\n" not in text
+
+
+@pytest.mark.parametrize("lang", ["en", "de", "es", "fr", "ja", "zh"])
+def test_the_help_page_documents_the_sync_client_switch(lang):
+    import pathlib
+    text = (pathlib.Path(__file__).resolve().parents[1]
+            / "help_docs" / lang / "sync.md").read_text(encoding="utf-8")
+    assert "NOVA_SYNC_CLIENT=on" in text

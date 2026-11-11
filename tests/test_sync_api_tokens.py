@@ -785,3 +785,350 @@ def test_sync_files_line_shows_none_to_transfer_when_zero(hub, monkeypatch, tmp_
     body = hub.client.get("/sync").data.decode()
     assert "none to transfer" in body
     assert "to upload" not in body
+
+
+# =============================================================================
+# 12. CSRF: every session-authenticated POST of the sync blueprint
+# =============================================================================
+#
+# conftest switches the check off for the suite (csrf_checks_off); these tests
+# switch it back on. Single-user mode is the important one: it has no login, so
+# without the token ANY page could post here.
+
+CSRF_IN_FORM = re.compile(r'name="csrf_token" value="([^"]+)"')
+
+SYNC_POST_ROUTES = (
+    "/sync/token/create", "/sync/token/revoke", "/sync/connect",
+    "/sync/disconnect", "/sync/download", "/sync/sync", "/sync/confirm",
+    "/sync/abort",
+)
+
+
+@pytest.fixture
+def csrf_on(monkeypatch):
+    import nova
+    monkeypatch.setitem(nova.app.config, "WTF_CSRF_ENABLED", True)
+
+
+def _csrf(client):
+    """The token the sync page was rendered with, for this client's session."""
+    return CSRF_IN_FORM.findall(client.get("/sync").data.decode())[0]
+
+
+def _pair(db, user_id):
+    db.add(SyncState(user_id=user_id, server_url="https://hub.invalid",
+                     token="t", server_account="hubuser", paired_at=utc_now(),
+                     last_sync_at=utc_now()))
+    db.commit()
+
+
+def test_the_sync_blueprint_has_exactly_these_post_routes():
+    """A new POST route added to the blueprint must be added to the list the
+    CSRF tests walk, or it would go untested."""
+    import nova
+    found = sorted(rule.rule for rule in nova.app.url_map.iter_rules()
+                   if rule.endpoint.startswith("sync.") and "POST" in rule.methods)
+    assert found == sorted(SYNC_POST_ROUTES)
+
+
+@pytest.mark.parametrize("route", SYNC_POST_ROUTES)
+def test_a_post_without_a_csrf_token_is_refused_in_single_user_mode(hub, csrf_on, route):
+    token_row = _token_for(hub.db, hub.user.id)
+    hub.db.commit()
+    _pair(hub.db, hub.user.id)
+    nonce = _nonce(hub.client)
+
+    resp = hub.client.post(route, data={
+        "nonce": nonce, "label": "MacBook",
+        "token_id": str(_tokens(hub.db, hub.user.id)[0].id),
+        "server_url": "https://hub.invalid", "token": "t",
+        "replace_confirmed": "REPLACE"})
+
+    assert resp.status_code == 400
+    # Nothing happened: no token minted or revoked, still paired, no job.
+    rows = _tokens(hub.db, hub.user.id)
+    assert len(rows) == 1 and rows[0].revoked_at is None
+    hub.db.expire_all()
+    assert hub.db.query(SyncState).filter_by(user_id=hub.user.id).count() == 1
+    import nova.sync_job as sj
+    assert sj.load_job(hub.user.id) is None
+    assert token_row is not None
+
+
+@pytest.mark.parametrize("route", SYNC_POST_ROUTES)
+def test_a_post_with_a_wrong_csrf_token_is_refused(hub, csrf_on, route):
+    resp = hub.client.post(route, data={"csrf_token": "not-the-token"})
+    assert resp.status_code == 400
+
+
+def test_a_refused_post_renders_the_page_again_with_a_fresh_token(hub, csrf_on):
+    resp = hub.client.post("/sync/token/revoke", data={"token_id": "1"})
+    body = resp.data.decode()
+    assert resp.status_code == 400
+    assert "This form expired. Please try again." in body
+    assert CSRF_IN_FORM.findall(body)
+
+
+def test_creating_and_revoking_work_with_the_csrf_token(hub, csrf_on):
+    page = hub.client.get("/sync").data.decode()
+    token = CSRF_IN_FORM.findall(page)[0]
+    nonce = NONCE_IN_FORM.findall(page)[0]
+
+    created = hub.client.post("/sync/token/create", data={
+        "csrf_token": token, "nonce": nonce, "label": "MacBook"})
+    assert created.status_code == 200
+    rows = _tokens(hub.db, hub.user.id)
+    assert [r.label for r in rows] == ["MacBook"]
+
+    revoked = hub.client.post("/sync/token/revoke", data={
+        "csrf_token": _csrf(hub.client), "token_id": str(rows[0].id)})
+    assert revoked.status_code == 302
+    assert _tokens(hub.db, hub.user.id)[0].revoked_at is not None
+
+
+def test_the_client_routes_work_with_the_csrf_token(hub, csrf_on, monkeypatch, tmp_path):
+    import nova.sync_job as sj
+    monkeypatch.setattr(sj, "INSTANCE_PATH", str(tmp_path))
+    started = []
+    monkeypatch.setattr("nova.blueprints.sync_tokens.start_job",
+                        lambda app, uid, kind: started.append(kind))
+    _pair(hub.db, hub.user.id)
+
+    for route, kind in (("/sync/download", "download"), ("/sync/sync", "sync")):
+        resp = hub.client.post(route, data={"csrf_token": _csrf(hub.client)})
+        assert resp.status_code == 302
+        assert started[-1] == kind
+    assert hub.client.post("/sync/abort",
+                           data={"csrf_token": _csrf(hub.client)}).status_code == 302
+    assert hub.client.post("/sync/confirm",
+                           data={"csrf_token": _csrf(hub.client)}).status_code == 302
+    assert hub.client.post("/sync/disconnect",
+                           data={"csrf_token": _csrf(hub.client)}).status_code == 302
+    hub.db.expire_all()
+    assert hub.db.query(SyncState).filter_by(user_id=hub.user.id).count() == 0
+
+
+def test_the_csrf_token_is_accepted_as_a_header(hub, csrf_on):
+    _pair(hub.db, hub.user.id)
+    resp = hub.client.post("/sync/disconnect",
+                           headers={"X-CSRFToken": _csrf(hub.client)})
+    assert resp.status_code == 302
+    hub.db.expire_all()
+    assert hub.db.query(SyncState).filter_by(user_id=hub.user.id).count() == 0
+
+
+@pytest.mark.parametrize("route", SYNC_POST_ROUTES)
+def test_a_post_without_a_csrf_token_is_refused_in_multi_user_mode(
+        multi_user_client, csrf_on, route):
+    client, _ids = multi_user_client
+    assert client.post(route, data={"label": "x", "token_id": "1"}).status_code == 400
+
+
+def test_a_post_with_the_csrf_token_works_in_multi_user_mode(multi_user_client, csrf_on):
+    client, ids = multi_user_client
+    page = client.get("/sync").data.decode()
+    resp = client.post("/sync/token/create", data={
+        "csrf_token": CSRF_IN_FORM.findall(page)[0],
+        "nonce": NONCE_IN_FORM.findall(page)[0], "label": "Observatory"})
+    assert resp.status_code == 200
+    assert "Copy this token now" in resp.data.decode()
+
+
+def test_the_token_only_sync_api_stays_exempt_from_csrf(hub, csrf_on):
+    plaintext = _token_for(hub.db, hub.user.id)
+    hub.db.commit()
+    resp = _api(hub, "/api/sync/v1/hello", token=plaintext)
+    assert resp.status_code == 200, resp.get_json()
+
+
+def test_every_form_on_the_page_carries_the_csrf_token(hub, monkeypatch, tmp_path):
+    """Rendered in each state that shows a different set of forms."""
+    import nova.sync_job as sj
+    monkeypatch.setattr(sj, "INSTANCE_PATH", str(tmp_path))
+
+    def forms_and_tokens():
+        body = hub.client.get("/sync").data.decode()
+        # Only this page's own forms: the base layout has forms of its own.
+        return (len(re.findall(r'<form\b[^>]*action="/sync', body)),
+                len(CSRF_IN_FORM.findall(body)), body)
+
+    forms, tokens, _body = forms_and_tokens()                 # unpaired
+    assert forms == tokens and forms >= 3
+
+    _token_for(hub.db, hub.user.id)
+    hub.db.commit()
+    _pair(hub.db, hub.user.id)
+    forms, tokens, _body = forms_and_tokens()                 # paired, with a token row
+    assert forms == tokens and forms >= 6
+
+    for summary in (
+        {"kind": "download", "requires_replace_typed": True, "server_counts": {},
+         "local_counts": {}, "files": {"incoming": 0, "bytes": 0, "replaced": 0},
+         "unsynced_local_changes": 0},
+        {"kind": "sync", "up": {"created": 1, "updated": 0, "deleted": 0},
+         "down": {"created": 0, "updated": 0, "deleted": 0},
+         "files": {"up": 0, "down": 0, "down_bytes": 0}, "mass_delete": False},
+    ):
+        sj.save_job(hub.user.id, {
+            "job_id": "x", "start_token": "x", "user_id": hub.user.id,
+            "kind": summary["kind"], "phase": "awaiting_confirmation",
+            "progress": 0.9, "phase_label": "awaiting_confirmation",
+            "summary": summary, "result": None, "error": None,
+            "started_at": "2026-01-01T00:00:00",
+            "heartbeat_at": sj.to_iso(utc_now()), "pid": os.getpid()})
+        forms, tokens, body = forms_and_tokens()              # awaiting confirmation
+        assert forms == tokens
+        assert 'id="sync-confirm-form"' in body
+
+
+def test_the_job_poll_sends_the_csrf_header():
+    source = (pathlib.Path(__file__).resolve().parents[1]
+              / "templates" / "sync_tokens.html").read_text(encoding="utf-8")
+    fetches = re.findall(r"fetch\([^\n]*", source)
+    assert fetches
+    assert all("'X-CSRFToken': {{ csrf_token() | tojson }}" in call for call in fetches)
+
+
+# =============================================================================
+# 13. What the summary and the completion say beyond the counts
+# =============================================================================
+
+def _seed_awaiting_sync(hub, monkeypatch, tmp_path, **extra):
+    import nova.sync_job as sj
+    monkeypatch.setattr(sj, "INSTANCE_PATH", str(tmp_path))
+    summary = {"kind": "sync", "up": {"created": 0, "updated": 2, "deleted": 0},
+               "down": {"created": 0, "updated": 2, "deleted": 0},
+               "files": {"up": 0, "down": 0, "down_bytes": 0}, "mass_delete": False}
+    summary.update(extra)
+    sj.save_job(hub.user.id, {
+        "job_id": "x", "start_token": "x", "user_id": hub.user.id, "kind": "sync",
+        "phase": "awaiting_confirmation", "progress": 0.9,
+        "phase_label": "awaiting_confirmation", "summary": summary,
+        "result": None, "error": None, "started_at": "2026-01-01T00:00:00",
+        "heartbeat_at": sj.to_iso(utc_now()), "pid": os.getpid()})
+
+
+def test_the_summary_shows_which_copy_of_a_conflicting_record_stays(
+        hub, monkeypatch, tmp_path):
+    _pair(hub.db, hub.user.id)
+    _seed_awaiting_sync(hub, monkeypatch, tmp_path, conflicts=[
+        {"table": "astro_objects", "name": "M 31", "kept": "server"},
+        {"table": "journal_sessions", "name": "2026-01-02 NGC 7000", "kept": "local"},
+    ], conflicts_more=3)
+
+    body = hub.client.get("/sync").data.decode()
+
+    assert "Changed on both sides" in body
+    assert "M 31 — server version kept" in body
+    assert "2026-01-02 NGC 7000 — this computer&#39;s version kept" in body
+    assert "and 3 more" in body
+
+
+def test_a_summary_without_conflicts_shows_no_conflict_block(hub, monkeypatch, tmp_path):
+    _pair(hub.db, hub.user.id)
+    _seed_awaiting_sync(hub, monkeypatch, tmp_path)
+    body = hub.client.get("/sync").data.decode()
+    assert "Changed on both sides" not in body
+    assert "version kept" not in body
+
+
+def test_the_summary_names_a_project_the_server_will_not_take(hub, monkeypatch, tmp_path):
+    _pair(hub.db, hub.user.id)
+    _seed_awaiting_sync(hub, monkeypatch, tmp_path, blocked=[
+        {"table": "projects", "key": "abc", "name": "Veil mosaic",
+         "reason": "project_id_taken", "side": "server"}])
+    body = hub.client.get("/sync").data.decode()
+    assert ("Project &#34;Veil mosaic&#34; was not synced: its ID is already used "
+            "by another account on the server.") in body
+
+
+def test_the_separate_mass_delete_fields_follow_the_side_that_asked(
+        hub, monkeypatch, tmp_path):
+    _pair(hub.db, hub.user.id)
+    _seed_awaiting_sync(hub, monkeypatch, tmp_path, mass_delete=True,
+                        push_mass_delete=False, pull_mass_delete=True)
+    body = hub.client.get("/sync").data.decode()
+    assert 'data-mass-delete-push="0"' in body
+    assert 'data-mass-delete-pull="1"' in body
+    assert 'name="allow_mass_delete_push" value="0"' in body
+    assert 'name="allow_mass_delete_pull" value="0"' in body
+    assert 'name="allow_mass_delete"' not in body
+
+
+def test_the_confirm_route_passes_each_approval_on_its_own(hub, monkeypatch):
+    seen = {}
+    monkeypatch.setattr("nova.blueprints.sync_tokens.confirm_job",
+                        lambda app, uid, **kwargs: seen.update(kwargs))
+    hub.client.post("/sync/confirm", data={"allow_mass_delete_pull": "1"})
+    assert seen["allow_pull_mass_delete"] is True
+    assert seen["allow_push_mass_delete"] is False
+    # The old one-switch field is no longer an approval of anything.
+    seen.clear()
+    hub.client.post("/sync/confirm", data={"allow_mass_delete": "1"})
+    assert seen["allow_pull_mass_delete"] is False
+    assert seen["allow_push_mass_delete"] is False
+
+
+def test_completion_reports_files_that_could_not_be_restored(hub, monkeypatch, tmp_path):
+    _seed_done_job(hub, monkeypatch, tmp_path,
+                   summary={"kind": "sync",
+                            "files": {"up": 0, "down": 0, "down_bytes": 0}},
+                   result={"up": {"created": 1, "updated": 0, "deleted": 0},
+                           "down": {"created": 0, "updated": 0, "deleted": 0},
+                           "unrestored_files": 2, "pending_files": 2})
+    first = hub.client.get("/sync").data.decode()
+    assert "Sync complete: 1 sent, 0 received" in first
+    assert "2 files could not be restored" in first
+    assert "could not be restored" not in hub.client.get("/sync").data.decode()
+
+    _seed_done_job(hub, monkeypatch, tmp_path,
+                   summary={"kind": "download",
+                            "files": {"incoming": 3, "bytes": 1, "replaced": 0}},
+                   result={"down": {"astro_objects": 1}, "unrestored_files": 1})
+    assert "1 file could not be restored" in hub.client.get("/sync").data.decode()
+
+
+def test_completion_names_a_blocked_project(hub, monkeypatch, tmp_path):
+    _seed_done_job(hub, monkeypatch, tmp_path,
+                   summary={"kind": "sync",
+                            "files": {"up": 0, "down": 0, "down_bytes": 0}},
+                   result={"up": {"created": 1, "updated": 0, "deleted": 0},
+                           "down": {"created": 0, "updated": 0, "deleted": 0},
+                           "blocked": [{"name": "Veil mosaic", "side": "server"},
+                                       {"name": "Rosette", "side": "local"}]})
+    body = hub.client.get("/sync").data.decode()
+    assert "Veil mosaic" in body and "another account on the server" in body
+    assert "Rosette" in body and "another account on this computer" in body
+
+
+def test_a_clean_completion_adds_no_warning(hub, monkeypatch, tmp_path):
+    _seed_done_job(hub, monkeypatch, tmp_path,
+                   summary={"kind": "sync",
+                            "files": {"up": 0, "down": 0, "down_bytes": 0}},
+                   result={"up": {"created": 1, "updated": 0, "deleted": 0},
+                           "down": {"created": 0, "updated": 0, "deleted": 0},
+                           "unrestored_files": 0, "blocked": []})
+    body = hub.client.get("/sync").data.decode()
+    assert "could not be restored" not in body
+    assert "was not synced" not in body
+
+
+def test_connecting_to_a_server_without_sync_says_so(hub, monkeypatch):
+    from nova.sync_engine import Refusal, SyncRefused
+
+    class _OldServer:
+        def __init__(self, *_a, **_k):
+            pass
+
+        def hello(self):
+            raise SyncRefused(Refusal("server_no_sync", {"status": 404}))
+    monkeypatch.setattr("nova.blueprints.sync_tokens.SyncClient", _OldServer)
+
+    resp = hub.client.post("/sync/connect", data={
+        "server_url": "https://old.example", "token": "t"}, follow_redirects=True)
+
+    body = resp.data.decode()
+    assert "support sync — it needs a newer Nova version." in body
+    assert "Could not reach the server" not in body
+    hub.db.expire_all()
+    assert hub.db.query(SyncState).filter_by(user_id=hub.user.id).count() == 0

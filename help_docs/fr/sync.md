@@ -24,6 +24,12 @@ données → Importer). C'est ce qui rend le premier téléchargement possible.
    jeton créé là-bas, puis **Se connecter**. Le nom du compte serveur s'affiche
    et le jeton est stocké sur cette machine.
 
+**Synchroniser avec un serveur** est disponible par défaut sur une installation
+mono-utilisateur. Sur une installation multi-utilisateur, cette fonction est
+désactivée, car cette installation est normalement le serveur ; un
+administrateur peut l'activer avec `NOVA_SYNC_CLIENT=on` dans `instance/.env`,
+puis en redémarrant Nova.
+
 #### Télécharger depuis le serveur
 
 La première synchronisation de chaque appairage est un **téléchargement** : il

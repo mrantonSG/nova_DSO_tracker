@@ -29,10 +29,27 @@ BACKGROUND_TASKS_DISABLED = os.environ.get("NOVA_DISABLE_BACKGROUND_TASKS") == "
 # --- Mode ---
 SINGLE_USER_MODE = config('SINGLE_USER_MODE', default='True') == 'True'
 
+def sync_client_enabled(raw, single_user_mode: bool) -> bool:
+    """Whether this installation may connect to another Nova as a sync client.
+
+    Unset (or empty), the mode decides: on for a single-user installation — a
+    personal computer that syncs to a server — and off for a multi-user one,
+    which IS the server. A multi-user instance with the client on lets every
+    signed-in user make the server send requests to an address of their
+    choosing, so there it must be asked for explicitly. An explicit value wins
+    in either mode: off/false/0/no turn it off, anything else turns it on.
+    """
+    value = (raw or '').strip().lower()
+    if not value:
+        return bool(single_user_mode)
+    return value not in ('off', 'false', '0', 'no')
+
+
 # Instance sync, client side. Read at startup; documented in .env.example only
-# and never written at runtime. The hub (VPS) runs with this off: it serves the
-# sync API and mints tokens but does not connect to another server.
-NOVA_SYNC_CLIENT = config('NOVA_SYNC_CLIENT', default='on').strip().lower() != 'off'
+# and never written at runtime. The hub (VPS) serves the sync API and mints
+# tokens but does not connect to another server.
+NOVA_SYNC_CLIENT = sync_client_enabled(config('NOVA_SYNC_CLIENT', default=''),
+                                       SINGLE_USER_MODE)
 
 ADMIN_USERS_RAW = config('ADMIN_USERS', default='admin')
 ADMIN_USERS = {u.strip() for u in ADMIN_USERS_RAW.split(",") if u.strip()}

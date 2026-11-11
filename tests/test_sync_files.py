@@ -1673,3 +1673,461 @@ def test_export_files_describes_a_manifest_by_digest(hub, local):
     manifest = export_files(local.db, local.user, refs)
     assert manifest[sha(PNG)]["role"] == ROLE_SESSION_PHOTO
     assert manifest[sha(PNG)]["ext"] == "png"
+
+
+# =============================================================================
+# 12. Healing a lost file never depends on the clocks
+# =============================================================================
+#
+# The record is committed first and its file placed after. When the file does
+# not land, the record is offered again — and compared with a row that holds
+# the SAME author stamp, shifted by the offset an earlier run measured. The
+# offset is re-measured on every run, so "which stamp is newer" is noise. These
+# tests fix both offsets and assert the file is planned whatever they are.
+
+OFFSET_PAIRS = [
+    (0.0, 0.0),            # the old tests' case
+    (0.05, -0.05),         # re-measured lower
+    (-0.05, 0.05),         # re-measured higher
+    (2.5, -3.0),           # a jumpy link
+    (-120.0, -119.4),      # a clock well off, steady
+]
+
+
+def _stamp_of(node, model, **match):
+    return node.one(model, **match).sync_changed_at
+
+
+def _set_stamp(node, model, row_id, moment):
+    node.db.execute(
+        text(f"UPDATE {model.__tablename__} SET sync_changed_at = :m WHERE id = :i"),
+        {"m": moment.strftime("%Y-%m-%d %H:%M:%S.%f"), "i": row_id})
+    node.commit()
+
+
+def _session_with_photo(node, external_id="s1", data=PNG):
+    session = add_session(node, external_id)
+    node.put(f"{session.id}.png", data)
+    session.session_image_file = f"{session.id}.png"
+    node.commit()
+    return node.one(JournalSession, external_id=external_id)
+
+
+@pytest.mark.parametrize("first,second", OFFSET_PAIRS)
+def test_a_pull_that_lost_a_file_heals_whatever_the_offsets_are(hub, local, first, second):
+    _session_with_photo(hub)
+    seed_pairing(local, hub)
+
+    payload = export_changes(hub.db, hub.user, 0, side="server",
+                             instance_path=hub.instance_path)
+    plan = plan_merge(local.db, local.user, payload, side="local",
+                      offset_seconds=first, instance_path=local.instance_path)
+    result = apply_merge(local.db, plan, user=local.user)
+    local.commit()
+    commit_staged_files(local.db, result, [], user=local.user,
+                        instance_path=local.instance_path)       # the bytes were lost
+    local.commit()
+    assert result.pending_files
+    rev_before = local.rev()
+    stamp_before = _stamp_of(local, JournalSession, external_id="s1")
+
+    again = export_changes(hub.db, hub.user, local.state().server_cursor or 0,
+                           side="server", instance_path=hub.instance_path)
+    replan = plan_merge(local.db, local.user, again, side="local",
+                        offset_seconds=second, instance_path=local.instance_path)
+    assert [r.sha256 for r in replan.files] == [sha(PNG)]
+    assert replan.actions == []                       # file only: no record write
+    assert not replan.conflicts
+
+    staged = transfer(hub, local, replan.files)
+    healed = apply_merge(local.db, replan, user=local.user)
+    local.commit()
+    commit = commit_staged_files(local.db, healed, staged, user=local.user,
+                                 instance_path=local.instance_path)
+    local.commit()
+
+    assert commit.pending == []
+    landed = local.one(JournalSession, external_id="s1")
+    assert local.read(landed.session_image_file) == PNG
+    assert local.rev() == rev_before                  # no new rev
+    assert landed.sync_changed_at == stamp_before     # no stamp change
+    assert healed.r_verbatim is None and healed.r_changed is None
+
+
+@pytest.mark.parametrize("first,second", OFFSET_PAIRS)
+def test_a_push_the_hub_could_not_place_heals_whatever_the_offsets_are(hub, local, first, second):
+    _session_with_photo(local)
+    seed_pairing(local, hub)
+
+    payload = export_changes(local.db, local.user, 0, side="local",
+                             instance_path=local.instance_path)
+    plan = plan_merge(hub.db, hub.user, payload, side="server",
+                      offset_seconds=first, instance_path=hub.instance_path)
+    result = apply_merge(hub.db, plan, user=hub.user)
+    hub.commit()
+    commit = commit_staged_files(hub.db, result, [], user=hub.user,
+                                 instance_path=hub.instance_path)  # lost on the hub
+    hub.commit()
+    assert len(commit.pending) == 1
+    rev_before = hub.rev()
+    stamp_before = _stamp_of(hub, JournalSession, external_id="s1")
+
+    # The watermark held, so the local offers the same record again.
+    again = export_changes(local.db, local.user, 0, side="local",
+                           instance_path=local.instance_path)
+    replan = plan_merge(hub.db, hub.user, again, side="server",
+                        offset_seconds=second, instance_path=hub.instance_path)
+    assert [r.sha256 for r in replan.files] == [sha(PNG)]
+    assert replan.actions == []
+
+    staged = transfer(local, hub, replan.files)
+    healed = apply_merge(hub.db, replan, user=hub.user)
+    hub.commit()
+    commit = commit_staged_files(hub.db, healed, staged, user=hub.user,
+                                 instance_path=hub.instance_path)
+    hub.commit()
+
+    assert commit.pending == []
+    landed = hub.one(JournalSession, external_id="s1")
+    assert hub.read(landed.session_image_file) == PNG
+    assert hub.rev() == rev_before
+    assert landed.sync_changed_at == stamp_before
+    assert healed.push_revs == []                     # nothing for a pull to exclude
+
+
+@pytest.mark.parametrize("first,second", OFFSET_PAIRS)
+def test_a_download_that_lost_a_file_heals_whatever_the_offsets_are(hub, local, first, second):
+    _session_with_photo(hub)
+    seed_pairing(local, hub)
+
+    snapshot = export_snapshot(hub.db, hub.user, side="server",
+                               instance_path=hub.instance_path)
+    plan = plan_download(local.db, local.user, snapshot, offset_seconds=first,
+                         instance_path=local.instance_path)
+    result = apply_download(local.db, plan, user=local.user)
+    local.commit()
+    commit_staged_files(local.db, result, [], user=local.user,
+                        instance_path=local.instance_path)       # the bytes were lost
+    local.commit()
+    assert (local.state().server_cursor or 0) == 0
+
+    payload = export_changes(hub.db, hub.user, 0, side="server",
+                             instance_path=hub.instance_path)
+    replan = plan_merge(local.db, local.user, payload, side="local",
+                        offset_seconds=second, instance_path=local.instance_path)
+    assert [r.sha256 for r in replan.files] == [sha(PNG)]
+    assert replan.actions == []
+
+    staged = transfer(hub, local, replan.files)
+    healed = apply_merge(local.db, replan, user=local.user)
+    local.commit()
+    commit = commit_staged_files(local.db, healed, staged, user=local.user,
+                                 instance_path=local.instance_path)
+    assert commit.pending == []
+    landed = local.one(JournalSession, external_id="s1")
+    assert local.read(landed.session_image_file) == PNG
+
+
+@pytest.mark.parametrize("offset", [0.0, 90.0, -90.0])
+def test_a_download_stores_stamps_shifted_like_a_merge(hub, local, offset):
+    """apply_download moves every hub stamp into this clock by the measured
+    offset — the convention plan_merge uses — so a later pull compares like
+    with like."""
+    from datetime import timedelta
+    hub_row = _session_with_photo(hub)
+    seed_pairing(local, hub)
+
+    snapshot = export_snapshot(hub.db, hub.user, side="server",
+                               instance_path=hub.instance_path)
+    plan = plan_download(local.db, local.user, snapshot, offset_seconds=offset,
+                         instance_path=local.instance_path)
+    apply_download(local.db, plan, user=local.user)
+    local.commit()
+
+    landed = local.one(JournalSession, external_id="s1")
+    assert landed.sync_changed_at == hub_row.sync_changed_at + timedelta(seconds=offset)
+
+
+@pytest.mark.parametrize("first,second", OFFSET_PAIRS)
+def test_a_replaced_photo_whose_bytes_were_lost_heals(hub, local, first, second):
+    """The record of a replacement landed, the new bytes did not: the old photo
+    is still here under the same name. Same write, so it is a heal."""
+    session = _session_with_photo(hub)
+    seed_pairing(local, hub)
+    pull(local, hub)
+
+    hub.put(f"{session.id}.png", PNG_ALT)
+    mark_file_changed(hub.one(JournalSession, external_id="s1"), "session_image_file")
+    hub.commit()
+    _set_stamp(hub, JournalSession, session.id, utc_now().replace(microsecond=0)
+               + __import__("datetime").timedelta(hours=1))
+
+    cursor = local.state().server_cursor or 0
+    payload = export_changes(hub.db, hub.user, cursor, side="server",
+                             instance_path=hub.instance_path)
+    plan = plan_merge(local.db, local.user, payload, side="local",
+                      offset_seconds=first, instance_path=local.instance_path)
+    assert [a.op for a in plan.actions] == ["update"]         # a real replacement
+    result = apply_merge(local.db, plan, user=local.user)
+    local.commit()
+    commit_staged_files(local.db, result, [], user=local.user,
+                        instance_path=local.instance_path)       # new bytes lost
+    local.commit()
+    landed = local.one(JournalSession, external_id="s1")
+    assert local.read(landed.session_image_file) == PNG          # still the old photo
+
+    replan = plan_merge(local.db, local.user, payload, side="local",
+                        offset_seconds=second, instance_path=local.instance_path)
+    assert [r.sha256 for r in replan.files] == [sha(PNG_ALT)]
+    assert replan.actions == []
+    staged = transfer(hub, local, replan.files)
+    healed = apply_merge(local.db, replan, user=local.user)
+    local.commit()
+    commit_staged_files(local.db, healed, staged, user=local.user,
+                        instance_path=local.instance_path)
+    local.commit()
+    assert local.read(local.one(JournalSession, external_id="s1").session_image_file) == PNG_ALT
+
+
+def test_a_later_replacement_is_still_a_record_change(hub, local):
+    """A photo replaced long after the last sync is not a heal: it is written
+    as a record change with a rev, so it travels on to every other copy."""
+    from datetime import timedelta
+    session = _session_with_photo(hub)
+    seed_pairing(local, hub)
+    pull(local, hub)
+    rev_before = local.rev()
+
+    hub.put(f"{session.id}.png", PNG_ALT)
+    mark_file_changed(hub.one(JournalSession, external_id="s1"), "session_image_file")
+    hub.commit()
+    _set_stamp(hub, JournalSession, session.id, utc_now() + timedelta(hours=1))
+
+    result = pull(local, hub)
+
+    landed = local.one(JournalSession, external_id="s1")
+    assert local.read(landed.session_image_file) == PNG_ALT
+    assert result.updated == {"journal_sessions": 1}
+    assert local.rev() > rev_before
+    assert landed.sync_rev == result.r_verbatim
+
+
+def test_an_older_replacement_never_beats_a_newer_file(hub, local):
+    """Both sides replaced the photo; the hub's is an hour older. The local
+    keeps its own bytes — a different file is only healed within one write."""
+    from datetime import timedelta
+    session = _session_with_photo(hub)
+    seed_pairing(local, hub)
+    pull(local, hub)
+    mine = local.one(JournalSession, external_id="s1")
+
+    hub.put(f"{session.id}.png", PNG_ALT)
+    mark_file_changed(hub.one(JournalSession, external_id="s1"), "session_image_file")
+    hub.commit()
+    _set_stamp(hub, JournalSession, session.id, utc_now() + timedelta(hours=1))
+    local.put(mine.session_image_file, JPG)
+    mark_file_changed(mine, "session_image_file")
+    local.commit()
+    _set_stamp(local, JournalSession, mine.id, utc_now() + timedelta(hours=2))
+
+    payload = export_changes(hub.db, hub.user, local.state().server_cursor or 0,
+                             side="server", instance_path=hub.instance_path)
+    plan = plan_merge(local.db, local.user, payload, side="local",
+                      instance_path=local.instance_path)
+
+    assert plan.actions == [] and plan.files == []
+    assert [c.resolution for c in plan.conflicts] == ["kept_local"]
+
+
+@pytest.mark.parametrize("first,second", OFFSET_PAIRS)
+def test_a_lost_note_image_heals_whatever_the_offsets_are(hub, local, first, second):
+    obj = add_object(hub, "M 31")
+    hub.put("note_img_bbbbbbbbbbbb.jpg", JPG)
+    obj.shared_notes = '<p>x</p><img src="/uploads/hub/note_img_bbbbbbbbbbbb.jpg">'
+    hub.commit()
+    seed_pairing(local, hub)
+
+    payload = export_changes(hub.db, hub.user, 0, side="server",
+                             instance_path=hub.instance_path)
+    plan = plan_merge(local.db, local.user, payload, side="local",
+                      offset_seconds=first, instance_path=local.instance_path)
+    result = apply_merge(local.db, plan, user=local.user)
+    local.commit()
+    commit_staged_files(local.db, result, [], user=local.user,
+                        instance_path=local.instance_path)       # the image was lost
+    local.commit()
+    name = note_image_name(sha(JPG), "jpg")
+    assert not local.has(name)
+    rev_before = local.rev()
+
+    replan = plan_merge(local.db, local.user, payload, side="local",
+                        offset_seconds=second, instance_path=local.instance_path)
+    assert [r.sha256 for r in replan.files] == [sha(JPG)]
+    assert replan.actions == []
+    staged = transfer(hub, local, replan.files)
+    healed = apply_merge(local.db, replan, user=local.user)
+    local.commit()
+    commit_staged_files(local.db, healed, staged, user=local.user,
+                        instance_path=local.instance_path)
+    local.commit()
+
+    assert local.read(name) == JPG
+    assert local.rev() == rev_before
+
+
+def test_a_removed_photo_is_never_healed_back(hub, local):
+    """The local emptied the slot on purpose. The hub's unchanged record still
+    names the photo, but that is a change to settle by newest-wins, not a lost
+    file to put back."""
+    from datetime import timedelta
+    session = _session_with_photo(hub)
+    seed_pairing(local, hub)
+    pull(local, hub)
+    mine = local.one(JournalSession, external_id="s1")
+    mine.session_image_file = ""
+    local.commit()
+    _set_stamp(local, JournalSession, mine.id, utc_now() + timedelta(hours=1))
+
+    payload = export_changes(hub.db, hub.user, 0, side="server",
+                             instance_path=hub.instance_path)
+    plan = plan_merge(local.db, local.user, payload, side="local",
+                      instance_path=local.instance_path)
+
+    assert plan.files == [] and plan.actions == []
+    assert local.one(JournalSession, external_id="s1").session_image_file == ""
+
+
+def test_missing_local_slots_reports_only_files_gone_from_disk(hub):
+    from nova.sync_engine import missing_local_slots
+    here = _session_with_photo(hub, "here")
+    gone = _session_with_photo(hub, "gone")
+    add_session(hub, "none")                                  # never had a photo
+    emptied = _session_with_photo(hub, "emptied")
+    emptied.session_image_file = ""
+    hub.commit()
+    os.remove(hub.upload_path(gone.session_image_file))
+
+    refs = missing_local_slots(hub.db, hub.user, instance_path=hub.instance_path)
+
+    assert [(r.table, r.key, r.slot, r.ext) for r in refs] == [
+        ("journal_sessions", "gone", "session_image_file", "png")]
+    assert hub.has(here.session_image_file)
+
+
+# =============================================================================
+# 13. A project id another account already owns
+# =============================================================================
+
+def _other_account_with_project(node, project_id, name="Theirs"):
+    other = DbUser(username="other")
+    node.db.add(other)
+    node.db.commit()
+    node.db.add(Project(id=project_id, user_id=other.id, name=name,
+                        status="In Progress"))
+    node.db.commit()
+    return other
+
+
+def test_a_project_id_another_account_owns_is_blocked_and_the_rest_syncs(hub, local):
+    other = _other_account_with_project(hub, "shared-id")
+    add_project(local, "shared-id", name="Veil mosaic")
+    add_project(local, "mine-only", name="Rosette")
+    session = add_session(local, "s1", project_id="shared-id")
+    session.projects = [local.one(Project, id="shared-id"),
+                        local.one(Project, id="mine-only")]
+    local.commit()
+    add_object(local, "M 42")
+    seed_pairing(local, hub)
+
+    payload = export_changes(local.db, local.user, 0, side="local",
+                             instance_path=local.instance_path)
+    plan = plan_merge(hub.db, hub.user, payload, side="server",
+                      instance_path=hub.instance_path)
+
+    assert not plan.refused
+    assert plan.blocked == [{"table": "projects", "key": "shared-id",
+                             "name": "Veil mosaic", "reason": "project_id_taken"}]
+    assert plan.summary()["blocked"] == plan.blocked
+    assert plan.deferred == []                       # blocked never holds a watermark
+
+    result = apply_merge(hub.db, plan, user=hub.user)
+    hub.commit()
+
+    assert result.blocked == plan.blocked
+    # Their project is untouched, and this account got no row under that id.
+    theirs = hub.db.query(Project).filter_by(id="shared-id").one()
+    assert (theirs.user_id, theirs.name) == (other.id, "Theirs")
+    assert [p.id for p in hub.rows(Project)] == ["mine-only"]
+    # Everything else arrived; only the links to the blocked project are gone.
+    assert hub.one(AstroObject, object_name="M 42") is not None
+    landed = hub.one(JournalSession, external_id="s1")
+    assert landed.project_id is None
+    assert [p.id for p in landed.projects] == ["mine-only"]
+    linked = hub.db.execute(text(
+        "SELECT project_id FROM session_projects WHERE session_id = :s"),
+        {"s": landed.id}).fetchall()
+    assert [row[0] for row in linked] == ["mine-only"]
+
+
+def test_a_blocked_project_does_not_make_the_next_push_rewrite_its_sessions(hub, local):
+    """The session was stored without the blocked link; offered again it is the
+    same record, not a change."""
+    _other_account_with_project(hub, "shared-id")
+    add_project(local, "shared-id", name="Veil mosaic")
+    add_session(local, "s1", project_id="shared-id")
+    seed_pairing(local, hub)
+    push(local, hub)
+    rev_before = hub.rev()
+
+    payload = export_changes(local.db, local.user, 0, side="local",
+                             instance_path=local.instance_path)
+    plan = plan_merge(hub.db, hub.user, payload, side="server",
+                      instance_path=hub.instance_path)
+
+    assert plan.actions == []
+    assert [b["key"] for b in plan.blocked] == ["shared-id"]
+    assert hub.rev() == rev_before
+
+
+def test_a_session_link_to_another_accounts_project_is_never_written(hub, local):
+    """Even with no project record in the payload: a session that names an id
+    someone else owns arrives without that link."""
+    other = _other_account_with_project(hub, "shared-id")
+    add_session(local, "s1", project_id="shared-id")
+    seed_pairing(local, hub)
+
+    push(local, hub)
+
+    landed = hub.one(JournalSession, external_id="s1")
+    assert landed.project_id is None
+    assert hub.db.query(Project).filter_by(id="shared-id").one().user_id == other.id
+
+
+def test_a_download_skips_a_project_id_another_local_account_owns(hub, local):
+    other = _other_account_with_project(local, "shared-id")
+    add_project(hub, "shared-id", name="Veil mosaic")
+    add_session(hub, "s1", project_id="shared-id")
+    seed_pairing(local, hub)
+
+    result = download(local, hub)
+
+    assert [b["name"] for b in result.blocked] == ["Veil mosaic"]
+    assert local.db.query(Project).filter_by(id="shared-id").one().user_id == other.id
+    assert local.rows(Project) == []
+    assert local.one(JournalSession, external_id="s1").project_id is None
+
+
+def test_a_download_drops_a_session_link_to_another_local_accounts_project(hub, local):
+    """No project record in the snapshot at all: the session alone names an id
+    that belongs to someone else on this computer."""
+    other = _other_account_with_project(local, "shared-id")
+    session = add_session(hub, "s1")
+    hub.db.execute(text("UPDATE journal_sessions SET project_id = 'shared-id' WHERE id = :i"),
+                   {"i": session.id})
+    hub.commit()
+    seed_pairing(local, hub)
+
+    download(local, hub)
+
+    assert local.one(JournalSession, external_id="s1").project_id is None
+    assert local.db.query(Project).filter_by(id="shared-id").one().user_id == other.id

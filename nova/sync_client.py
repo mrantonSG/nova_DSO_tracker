@@ -24,8 +24,8 @@ from urllib.parse import urlsplit
 import requests
 
 from nova.sync_engine import PAYLOAD_FORMAT, PLAN_ORDER, Refusal, SyncRefused, parse_datetime
-from nova.sync_transport import (AUTH_HEADER, BEARER_PREFIX, PROTOCOL_HEADER,
-                                 PROTOCOL_VERSION)
+from nova.sync_transport import (AUTH_HEADER, BEARER_PREFIX, CODE_PROTOCOL_MISMATCH,
+                                 PROTOCOL_HEADER, PROTOCOL_VERSION)
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +39,13 @@ CHUNK_BYTES = 1024 * 1024
 # needs_download, clock_skew, mass_delete, server_untouched, local_replaced,
 # remote_replaced) are raised immediately and never retried here.
 _RETRYABLE_HTTP = frozenset({408, 425, 429, 500, 502, 503, 504})
+
+# The address answered, but not as a sync server: a Nova from before instance
+# sync has no /api/sync/ routes (an HTML 404/405 in single-user mode) or stops
+# the request at its login gate (a 401 that carries no protocol field). A
+# client-side code — no hub ever sends it.
+CODE_SERVER_NO_SYNC = "server_no_sync"
+_NO_SYNC_HTTP = frozenset({401, 403, 404, 405})
 
 
 class SyncTransportError(Exception):
@@ -167,16 +174,26 @@ class SyncClient:
                                            data=data, timeout=timeout), path)
 
     def _parse_json(self, resp: requests.Response, path: str) -> dict:
+        """A response body as a dict, or the refusal it carries.
+
+        Refusals are read BEFORE the protocol field. A hub on another protocol
+        version says so with a protocol_mismatch refusal, and that refusal's
+        own `protocol` is the hub's version: checking the field first would
+        turn the one answer written for this case into a generic network
+        error. A server that is no sync server at all gets its own code.
+        """
         if resp.status_code in _RETRYABLE_HTTP:
             raise SyncTransportError(f"hub answered {resp.status_code} for {path}")
         try:
             payload = resp.json()
         except ValueError as exc:
+            if resp.status_code in _NO_SYNC_HTTP:
+                raise SyncRefused(Refusal(CODE_SERVER_NO_SYNC,
+                                          {"status": resp.status_code})) from exc
             raise SyncTransportError(f"hub answered non-JSON ({resp.status_code}) for {path}",
                                      cause=exc) from exc
         if not isinstance(payload, dict):
             raise SyncTransportError(f"hub answered a non-object for {path}")
-        self._check_protocol(payload, path)
         refusals = payload.get("refusals")
         if refusals:
             first = refusals[0] if isinstance(refusals, list) and refusals else None
@@ -184,13 +201,24 @@ class SyncClient:
                 raise SyncRefused(Refusal(str(first.get("code") or "bad_format"),
                                           dict(first.get("detail") or {})))
             raise SyncRefused(Refusal("bad_format", {}))
+        self._check_protocol(payload, path, resp.status_code)
         return payload
 
-    def _check_protocol(self, payload: dict, path: str) -> None:
+    def _check_protocol(self, payload: dict, path: str, status: int = 200) -> None:
         sent = payload.get("protocol")
-        if sent is None or int(sent) != self.protocol:
-            raise SyncTransportError(
-                f"protocol mismatch for {path}: hub {sent}, client {self.protocol}")
+        if sent is None:
+            if status in _NO_SYNC_HTTP:
+                # JSON, but not the sync API's: an older multi-user Nova's
+                # login gate answers /api/ paths with {"error": ...} and a 401.
+                raise SyncRefused(Refusal(CODE_SERVER_NO_SYNC, {"status": status}))
+            raise SyncTransportError(f"hub answer for {path} carried no protocol")
+        try:
+            version = int(sent)
+        except (TypeError, ValueError):
+            version = None
+        if version != self.protocol:
+            raise SyncRefused(Refusal(CODE_PROTOCOL_MISMATCH,
+                                      {"supported": sent, "found": self.protocol}))
 
     # -- handshake -------------------------------------------------------------
 
@@ -292,6 +320,26 @@ class SyncClient:
         if resume_from > 0 and resp.status_code == 416:
             # Already complete at this offset: nothing more to read.
             return
+        self._parse_json(resp, "/api/sync/v1/file")  # raises on a refusal
+        raise SyncTransportError(f"file fetch answered {resp.status_code}")
+
+    def fetch_slot(self, table: str, key: str, slot: str, sha256: str = "",
+                   chunk: int = CHUNK_BYTES):
+        """One file by the record and slot that names it: (info, byte iterator).
+
+        For a file this side cannot hash because it is not here. `info` is what
+        the hub says it is sending — {"sha256", "ext", "size"} from the response
+        headers — and the caller verifies the stream against that digest.
+        """
+        body = {"table": table, "key": key, "slot": slot, "sha256": sha256 or ""}
+        resp = self._post("/api/sync/v1/file", body, stream=True,
+                          timeout=(self.connect_timeout, 120.0))
+        if resp.status_code == 200:
+            headers = resp.headers or {}
+            info = {"sha256": headers.get("X-Nova-Sha256") or "",
+                    "ext": headers.get("X-Nova-Ext") or "",
+                    "size": headers.get("X-Nova-Size") or 0}
+            return info, (piece for piece in resp.iter_content(chunk) if piece)
         self._parse_json(resp, "/api/sync/v1/file")  # raises on a refusal
         raise SyncTransportError(f"file fetch answered {resp.status_code}")
 

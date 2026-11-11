@@ -1016,9 +1016,10 @@ def test_push_shared_digest_across_roles(harness):
     assert f"note_img_{digest[:12]}.jpg" in os.listdir(hub_uploads)
 
 
-def test_exception_placing_one_file_is_pending_then_heals(harness, monkeypatch):
-    """A placement crash is counted pending, not fatal: the rest place, the
-    cursor stays 0 (incomplete), and the next Sync now heals it."""
+def test_exception_placing_one_file_is_healed_before_the_run_ends(harness, monkeypatch):
+    """A placement crash is counted pending, not fatal: the rest place, and the
+    healing pass at the end of the same run fetches the file again and places
+    it — so the download completes with nothing left over."""
     uid = harness["local_user"].id
     instance = harness["instance_path"]
     _hub(harness,
@@ -1032,8 +1033,8 @@ def test_exception_placing_one_file_is_pending_then_heals(harness, monkeypatch):
     fired = {"n": 0}
 
     def flaky(db, user, model, ref, staged, instance_path=None):
-        if fired["n"] == 0:
-            fired["n"] += 1
+        fired["n"] += 1
+        if fired["n"] == 1:
             raise RuntimeError("simulated placement failure")
         return real_place_one(db, user, model, ref, staged, instance_path=instance_path)
     monkeypatch.setattr("nova.sync_engine._place_one", flaky)
@@ -1043,27 +1044,9 @@ def test_exception_placing_one_file_is_pending_then_heals(harness, monkeypatch):
     confirm_job(harness["app"], uid, replace_confirmed="REPLACE")
     st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
     assert st["phase"] == "done", st
-    assert st["result"]["pending_files"] == 1
-
-    # Cursor not advanced, download not complete, but a download did commit.
-    state = _local_query(harness, lambda db: db.query(SyncState).filter_by(user_id=uid).one())
-    assert state.server_cursor == 0
-    assert state.last_sync_at is None
-    assert state.local_pushed_rev > 0
-
-    # Exactly one of the two photos landed.
-    placed = {n: _file_digest(os.path.join(instance, "uploads", "default", n))
-              for n in os.listdir(os.path.join(instance, "uploads", "default"))}
-    assert sum(1 for d in placed.values() if d in (_sha256_of_bytes(PNG),
-                                                   _sha256_of_bytes(PNG + b"-b"))) == 1
-
-    # Heal: next Sync now re-fetches the missing file and completes.
-    monkeypatch.setattr("nova.sync_engine._place_one", real_place_one)
-    st = _run_phase1(harness, "sync")
-    assert st["phase"] == "awaiting_confirmation", st
-    confirm_job(harness["app"], uid)
-    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
-    assert st["phase"] == "done", st
+    assert fired["n"] >= 3                       # failed once, healed, and the other
+    assert st["result"]["unrestored_files"] == 0
+    assert st["result"]["pending_files"] == 0
 
     state = _local_query(harness, lambda db: db.query(SyncState).filter_by(user_id=uid).one())
     assert state.server_cursor > 0
@@ -1146,3 +1129,619 @@ def test_combination_mixed_scenarios(harness):
     local_projects = _local_query(harness, lambda db: db.query(Project).filter_by(user_id=uid).count())
     hub_projects = _hub_query(harness, lambda db: db.query(Project).filter_by(user_id=999).count())
     assert local_projects == hub_projects == 2
+
+
+# =============================================================================
+# 20. A network drop after the record commit heals, whatever the clocks do
+# =============================================================================
+#
+# The offset is measured afresh on every run. These tests script it, so the run
+# that heals always sees a DIFFERENT offset from the run that lost the file, in
+# the direction that used to leave the file missing for good.
+
+def _script_offsets(monkeypatch, *offsets):
+    """Make each hello() measure the next scripted offset (the last one repeats)."""
+    left = list(offsets)
+
+    def measured(_server_time, _t0, _t3):
+        return left.pop(0) if len(left) > 1 else left[0]
+    monkeypatch.setattr("nova.sync_client.measure_clock_offset", measured)
+
+
+def _local_photo_digests(harness):
+    root = os.path.join(harness["instance_path"], "uploads", "default")
+    if not os.path.isdir(root):
+        return set()
+    return {_file_digest(os.path.join(root, n)) for n in os.listdir(root)
+            if os.path.isfile(os.path.join(root, n))}
+
+
+def _hub_photo_digests(harness):
+    root = os.path.join(harness["instance_path"], "uploads", "hubuser")
+    if not os.path.isdir(root):
+        return set()
+    return {_file_digest(os.path.join(root, n)) for n in os.listdir(root)
+            if os.path.isfile(os.path.join(root, n))}
+
+
+def _sync_to_done(harness, **confirm):
+    uid = harness["local_user"].id
+    start_job(harness["app"], uid, "sync")
+    st = _wait(uid, lambda s: s.get("phase") in ("awaiting_confirmation", "done", "failed"))
+    if st["phase"] == "awaiting_confirmation":
+        confirm_job(harness["app"], uid, **confirm)
+        st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+    return st
+
+
+@pytest.mark.parametrize("first,second", [(0.4, -0.4), (-0.4, 0.4), (0.0, -2.0)])
+def test_a_drop_during_the_pulls_file_fetch_heals_on_the_next_sync(
+        harness, monkeypatch, first, second):
+    uid = harness["local_user"].id
+    _mark_downloaded(harness)
+    _hub(harness, _session(999, "hub-sess", image="hub.jpg"))
+    _write_upload(harness["instance_path"], "hubuser", "hub.jpg", BIG)
+    _script_offsets(monkeypatch, first, second)
+
+    orig = _TestSyncClient.fetch_file_iter
+    state = {"fail": True}
+
+    def flaky(self, ref, resume_from=0, chunk=1024 * 1024):
+        if state["fail"]:
+            raise SyncTransportError("simulated drop after the record commit")
+        return orig(self, ref, resume_from=resume_from, chunk=chunk)
+    monkeypatch.setattr(_TestSyncClient, "fetch_file_iter", flaky)
+
+    st = _sync_to_done(harness)
+    assert st["phase"] == "failed" and st["error"]["code"] == "network_error", st
+    # The record is committed, its photo is not here, and the cursor is held.
+    landed = _local_query(harness, lambda db: db.query(JournalSession)
+                          .filter_by(user_id=uid, external_id="hub-sess").one())
+    assert not landed.session_image_file
+    assert _sha256_of_bytes(BIG) not in _local_photo_digests(harness)
+    rev_before = _local_query(harness, lambda db: counter_rev(db, uid))
+    stamp_before = landed.sync_changed_at
+
+    state["fail"] = False
+    st = _sync_to_done(harness)
+    assert st["phase"] == "done", st
+    assert st["result"]["unrestored_files"] == 0
+    assert st["result"]["down"] == {"created": 0, "updated": 0, "deleted": 0}
+
+    landed = _local_query(harness, lambda db: db.query(JournalSession)
+                          .filter_by(user_id=uid, external_id="hub-sess").one())
+    assert landed.session_image_file
+    assert _sha256_of_bytes(BIG) in _local_photo_digests(harness)
+    assert landed.sync_changed_at == stamp_before          # file only: no record write
+    assert _local_query(harness, lambda db: counter_rev(db, uid)) == rev_before
+
+
+@pytest.mark.parametrize("first,second", [(0.4, -0.4), (-0.4, 0.4), (0.0, 0.0)])
+def test_a_drop_after_the_hubs_record_commit_heals_on_the_next_sync(
+        harness, monkeypatch, first, second):
+    """The hub commits the pushed records, then the connection dies before it
+    places their files. The watermark holds, the record is offered again, and
+    the hub places the file without rewriting the record."""
+    uid = harness["local_user"].id
+    _mark_downloaded(harness)
+    _local_query(harness, lambda db: db.add(_session(uid, "local-sess", image="photo.jpg")))
+    harness["local_db"].commit()
+    _write_upload(harness["instance_path"], "default", "photo.jpg", BIG)
+    _script_offsets(monkeypatch, first, second)
+    monkeypatch.setattr("nova.sync_job._backoff", lambda _i: 0.0)
+
+    import nova.blueprints.sync_api as api
+    real_commit = api.commit_staged_files
+    state = {"fail": True}
+
+    def dropped(*args, **kwargs):
+        if state["fail"]:
+            raise SyncTransportError("simulated drop after the hub's record commit")
+        return real_commit(*args, **kwargs)
+    monkeypatch.setattr(api, "commit_staged_files", dropped)
+
+    st = _sync_to_done(harness)
+    assert st["phase"] == "failed" and st["error"]["code"] == "network_error", st
+    hub_sess = _hub_query(harness, lambda db: db.query(JournalSession)
+                          .filter_by(user_id=999, external_id="local-sess").one())
+    assert not hub_sess.session_image_file                  # record there, file not
+    assert _sha256_of_bytes(BIG) not in _hub_photo_digests(harness)
+    hub_stamp = hub_sess.sync_changed_at
+    hub_rev = _hub_query(harness, lambda db: counter_rev(db, 999))
+    assert _local_query(harness, lambda db: db.query(SyncState)
+                        .filter_by(user_id=uid).one()).local_pushed_rev == 0
+
+    state["fail"] = False
+    st = _sync_to_done(harness)
+    assert st["phase"] == "done", st
+    assert st["result"]["unrestored_files"] == 0
+
+    hub_sess = _hub_query(harness, lambda db: db.query(JournalSession)
+                          .filter_by(user_id=999, external_id="local-sess").one())
+    assert hub_sess.session_image_file
+    assert _sha256_of_bytes(BIG) in _hub_photo_digests(harness)
+    assert hub_sess.sync_changed_at == hub_stamp
+    assert _hub_query(harness, lambda db: counter_rev(db, 999)) == hub_rev
+    assert _local_query(harness, lambda db: db.query(SyncState)
+                        .filter_by(user_id=uid).one()).local_pushed_rev > 0
+
+
+@pytest.mark.parametrize("first,second", [(0.4, -0.4), (-0.4, 0.4), (-3.0, -3.0)])
+def test_a_drop_after_the_downloads_record_commit_heals_on_the_next_sync(
+        harness, monkeypatch, first, second):
+    uid = harness["local_user"].id
+    _hub(harness, _session(999, "hub-sess", image="hub.jpg"))
+    _write_upload(harness["instance_path"], "hubuser", "hub.jpg", BIG)
+    _script_offsets(monkeypatch, first, second)
+
+    import nova.sync_job as job
+    real_commit = job.commit_staged_files
+    state = {"fail": True}
+
+    def dropped(*args, **kwargs):
+        if state["fail"]:
+            raise SyncTransportError("simulated death after the download's commit")
+        return real_commit(*args, **kwargs)
+    monkeypatch.setattr(job, "commit_staged_files", dropped)
+
+    st = _run_phase1(harness, "download")
+    assert st["phase"] == "awaiting_confirmation", st
+    confirm_job(harness["app"], uid, replace_confirmed="REPLACE")
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+    assert st["phase"] == "failed", st
+    sync_state = _local_query(harness, lambda db: db.query(SyncState).filter_by(user_id=uid).one())
+    assert sync_state.server_cursor == 0 and sync_state.last_sync_at is None
+    assert sync_state.local_pushed_rev > 0                   # the records did commit
+    assert _sha256_of_bytes(BIG) not in _local_photo_digests(harness)
+    # A staged copy must not be what saves the day: the bytes are fetched again.
+    import shutil
+    shutil.rmtree(os.path.join(harness["instance_path"], "sync_staging", str(uid)),
+                  ignore_errors=True)
+
+    state["fail"] = False
+    st = _sync_to_done(harness)
+    assert st["phase"] == "done", st
+    assert st["result"]["unrestored_files"] == 0
+    assert _sha256_of_bytes(BIG) in _local_photo_digests(harness)
+    sync_state = _local_query(harness, lambda db: db.query(SyncState).filter_by(user_id=uid).one())
+    assert sync_state.server_cursor > 0 and sync_state.last_sync_at is not None
+
+
+# =============================================================================
+# 21. The healing pass
+# =============================================================================
+
+def _download_one_photo(harness, data=BIG):
+    """Both sides end up holding one session and its photo."""
+    uid = harness["local_user"].id
+    _hub(harness, _session(999, "hub-sess", image="hub.jpg"))
+    _write_upload(harness["instance_path"], "hubuser", "hub.jpg", data)
+    st = _run_phase1(harness, "download")
+    assert st["phase"] == "awaiting_confirmation", st
+    confirm_job(harness["app"], uid, replace_confirmed="REPLACE")
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+    assert st["phase"] == "done", st
+    assert _sha256_of_bytes(data) in _local_photo_digests(harness)
+
+
+def test_a_file_the_hub_lost_is_restored_through_repair(harness):
+    """The hub's record names a photo its disk no longer has. Nothing changed,
+    so no plan mentions it — the healing pass of an otherwise empty sync
+    uploads it through /repair."""
+    uid = harness["local_user"].id
+    _download_one_photo(harness)
+    hub_path = os.path.join(harness["instance_path"], "uploads", "hubuser", "hub.jpg")
+    os.remove(hub_path)
+    hub_rev = _hub_query(harness, lambda db: counter_rev(db, 999))
+
+    st = _sync_to_done(harness)
+
+    assert st["phase"] == "done", st
+    assert st["result"]["unrestored_files"] == 0
+    assert _sha256_of_bytes(BIG) in _hub_photo_digests(harness)
+    hub_sess = _hub_query(harness, lambda db: db.query(JournalSession)
+                          .filter_by(user_id=999, external_id="hub-sess").one())
+    hub_file = os.path.join(harness["instance_path"], "uploads", "hubuser",
+                            hub_sess.session_image_file)
+    assert _file_digest(hub_file) == _sha256_of_bytes(BIG)
+    assert _hub_query(harness, lambda db: counter_rev(db, 999)) == hub_rev   # no rev
+
+
+def test_a_file_this_computer_lost_is_fetched_by_record_and_slot(harness):
+    uid = harness["local_user"].id
+    _download_one_photo(harness)
+    landed = _local_query(harness, lambda db: db.query(JournalSession)
+                          .filter_by(user_id=uid, external_id="hub-sess").one())
+    local_path = os.path.join(harness["instance_path"], "uploads", "default",
+                              landed.session_image_file)
+    os.remove(local_path)
+    rev_before = _local_query(harness, lambda db: counter_rev(db, uid))
+
+    st = _sync_to_done(harness)
+
+    assert st["phase"] == "done", st
+    assert st["result"]["unrestored_files"] == 0
+    assert _file_digest(local_path) == _sha256_of_bytes(BIG)
+    assert _local_query(harness, lambda db: counter_rev(db, uid)) == rev_before
+
+
+def test_a_file_gone_on_both_sides_is_reported_and_holds_no_watermark(harness):
+    uid = harness["local_user"].id
+    _download_one_photo(harness)
+    landed = _local_query(harness, lambda db: db.query(JournalSession)
+                          .filter_by(user_id=uid, external_id="hub-sess").one())
+    os.remove(os.path.join(harness["instance_path"], "uploads", "default",
+                           landed.session_image_file))
+    os.remove(os.path.join(harness["instance_path"], "uploads", "hubuser", "hub.jpg"))
+    # A real change as well, so this is a full two-phase sync, not an empty one.
+    _hub(harness, _obj(999, "M 77"))
+    before = _local_query(harness, lambda db: db.query(SyncState)
+                          .filter_by(user_id=uid).one().server_cursor)
+
+    st = _sync_to_done(harness)
+
+    assert st["phase"] == "done", st
+    # One file, missing on both sides, is one file — not one per side.
+    assert st["result"]["unrestored_files"] == 1
+    sync_state = _local_query(harness, lambda db: db.query(SyncState).filter_by(user_id=uid).one())
+    assert sync_state.server_cursor > before                 # the cursor moved on
+    assert sync_state.last_sync_at is not None
+    assert _local_query(harness, lambda db: db.query(AstroObject)
+                        .filter_by(user_id=uid, object_name="M 77").count()) == 1
+
+
+# =============================================================================
+# 22. Mass-delete approvals are separate
+# =============================================================================
+
+def _spy_brakes(monkeypatch):
+    """Record the allow_mass_delete each side's plan was built with in phase 2."""
+    seen = {"push": [], "pull": []}
+    orig_push = _TestSyncClient.push_plan
+
+    def push_plan(self, payload, clock_offset_seconds, allow_mass_delete=False):
+        seen["push"].append(bool(allow_mass_delete))
+        return orig_push(self, payload, clock_offset_seconds,
+                         allow_mass_delete=allow_mass_delete)
+    monkeypatch.setattr(_TestSyncClient, "push_plan", push_plan)
+
+    import nova.sync_job as job
+    orig_plan = job.plan_merge
+
+    def plan_merge(db, user, payload, **kwargs):
+        seen["pull"].append(bool(kwargs.get("allow_mass_delete")))
+        return orig_plan(db, user, payload, **kwargs)
+    monkeypatch.setattr(job, "plan_merge", plan_merge)
+    return seen
+
+
+def test_a_pull_side_approval_never_opens_the_push_brake(harness, monkeypatch):
+    uid = harness["local_user"].id
+    _mark_downloaded(harness)
+    _sync_shared_objects(harness, 40)
+    _hub_delete_all_objects(harness)                        # the pull is the mass delete
+    _local_query(harness, lambda db: db.add(_obj(uid, "LOCAL-NEW")))   # and a push exists
+    harness["local_db"].commit()
+
+    st = _run_phase1(harness, "sync")
+    assert st["phase"] == "awaiting_confirmation", st
+    assert st["summary"]["pull_mass_delete"] is True
+    assert st["summary"]["push_mass_delete"] is False
+
+    seen = _spy_brakes(monkeypatch)
+    confirm_job(harness["app"], uid, allow_mass_delete=True)
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+    assert st["phase"] == "done", st
+
+    assert seen["push"] and not any(seen["push"])           # the hub never saw it
+    assert seen["pull"] == [True]
+    job = load_job(uid)
+    assert job["allow_pull_mass_delete"] is True
+    assert job["allow_push_mass_delete"] is False
+
+
+def test_a_push_side_approval_never_opens_the_pull_brake(harness, monkeypatch):
+    uid = harness["local_user"].id
+    _mark_downloaded(harness)
+    _sync_shared_objects(harness, 40)
+
+    def delete_local(db):
+        for o in db.query(AstroObject).filter_by(user_id=uid).all():
+            db.delete(o)
+        db.commit()
+    _local_query(harness, delete_local)                     # the push is the mass delete
+    _hub(harness, _obj(999, "HUB-NEW"))                     # and a pull exists
+
+    st = _run_phase1(harness, "sync")
+    assert st["phase"] == "awaiting_confirmation", st
+    assert st["summary"]["push_mass_delete"] is True
+    assert st["summary"]["pull_mass_delete"] is False
+
+    seen = _spy_brakes(monkeypatch)
+    confirm_job(harness["app"], uid, allow_mass_delete=True)
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+    assert st["phase"] == "done", st
+
+    assert seen["push"] == [True]
+    assert seen["pull"] == [False]                          # the local plan never saw it
+
+
+def test_approving_the_wrong_side_is_not_an_approval(harness):
+    uid = harness["local_user"].id
+    _mark_downloaded(harness)
+    _sync_shared_objects(harness, 40)
+    _hub_delete_all_objects(harness)
+
+    st = _run_phase1(harness, "sync")
+    assert st["summary"]["pull_mass_delete"] is True
+
+    with pytest.raises(SyncRefused) as exc:
+        confirm_job(harness["app"], uid, allow_push_mass_delete=True,
+                    allow_pull_mass_delete=False)
+    assert exc.value.refusal.code == "mass_delete"
+    assert job_status(uid)["phase"] == "awaiting_confirmation"
+    assert _local_query(harness, lambda db: db.query(AstroObject)
+                        .filter_by(user_id=uid).count()) == 40
+
+    confirm_job(harness["app"], uid, allow_pull_mass_delete=True)
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+    assert st["phase"] == "done", st
+
+
+# =============================================================================
+# 23. Job liveness
+# =============================================================================
+
+def test_a_long_step_never_makes_a_live_job_read_interrupted(harness, monkeypatch):
+    """The backup outlasts the stale threshold several times over. The worker's
+    own ticker keeps the heartbeat fresh, so no poll ever reports the job dead."""
+    import nova.sync_job as job
+    uid = harness["local_user"].id
+    _mark_downloaded(harness)
+    _hub(harness, _obj(999, "M 1"))
+    monkeypatch.setattr(job, "HEARTBEAT_INTERVAL_SECONDS", 0.05)
+    monkeypatch.setattr(job, "HEARTBEAT_STALE_SECONDS", 0.4)
+    real_backup = job.backup_local
+
+    def slow_backup(db, user):
+        time.sleep(1.5)
+        return real_backup(db, user)
+    monkeypatch.setattr(job, "backup_local", slow_backup)
+
+    st = _run_phase1(harness, "sync")
+    assert st["phase"] == "awaiting_confirmation", st
+    confirm_job(harness["app"], uid)
+
+    seen = []
+    deadline = time.time() + 20
+    while time.time() < deadline:
+        status = job_status(uid)
+        seen.append((status.get("phase"), (status.get("error") or {}).get("code")))
+        if status.get("phase") in ("done", "failed"):
+            break
+        time.sleep(0.05)
+
+    assert seen[-1] == ("done", None), seen[-5:]
+    assert ("failed", "interrupted") not in seen
+    assert sum(1 for phase, _ in seen if phase == "backup") > 10     # polled all through it
+
+
+def test_a_job_whose_worker_really_died_still_reads_interrupted(harness, monkeypatch):
+    """The ticker lives in the worker's process. With no worker there is no
+    beat, and the stale heartbeat still means the job is dead."""
+    import nova.sync_job as job
+    uid = harness["local_user"].id
+    monkeypatch.setattr(job, "HEARTBEAT_STALE_SECONDS", 0.2)
+    dead = job._new_job(uid, "sync")
+    dead["phase"] = "applying"
+    save_job(uid, dead)
+    time.sleep(0.4)
+    status = job_status(uid)
+    assert status["phase"] == "failed" and status["error"]["code"] == "interrupted"
+
+
+def test_a_second_confirm_is_refused_and_never_supersedes_the_worker(harness, monkeypatch):
+    import nova.sync_job as job
+    uid = harness["local_user"].id
+    _mark_downloaded(harness)
+    _hub(harness, _obj(999, "M 1"))
+    real_backup = job.backup_local
+
+    def slow_backup(db, user):
+        time.sleep(0.6)                                      # the worker is alive and busy
+        return real_backup(db, user)
+    monkeypatch.setattr(job, "backup_local", slow_backup)
+
+    st = _run_phase1(harness, "sync")
+    assert st["phase"] == "awaiting_confirmation", st
+    confirm_job(harness["app"], uid)
+    token = load_job(uid)["start_token"]
+    assert load_job(uid)["phase"] != "awaiting_confirmation"   # confirmed at once
+
+    for _ in range(3):                                       # a double click, a re-POST
+        with pytest.raises(SyncRefused) as exc:
+            confirm_job(harness["app"], uid)
+        assert exc.value.refusal.code == "sync_running"
+        assert load_job(uid)["start_token"] == token         # the worker keeps its job
+
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+    assert st["phase"] == "done", st
+    assert _local_query(harness, lambda db: db.query(AstroObject)
+                        .filter_by(user_id=uid, object_name="M 1").count()) == 1
+
+
+def test_two_confirms_at_once_start_one_worker(harness, monkeypatch):
+    import threading
+    import nova.sync_job as job
+    uid = harness["local_user"].id
+    _mark_downloaded(harness)
+    _hub(harness, _obj(999, "M 1"))
+    started = []
+    real_phase2 = job._run_phase2
+
+    def counting(*args, **kwargs):
+        started.append(args[3])
+        return real_phase2(*args, **kwargs)
+    monkeypatch.setattr(job, "_run_phase2", counting)
+
+    st = _run_phase1(harness, "sync")
+    assert st["phase"] == "awaiting_confirmation", st
+
+    outcomes = []
+
+    def confirm():
+        try:
+            confirm_job(harness["app"], uid)
+            outcomes.append("started")
+        except SyncRefused as exc:
+            outcomes.append(exc.refusal.code)
+    threads = [threading.Thread(target=confirm) for _ in range(6)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+    assert st["phase"] == "done", st
+    assert sorted(outcomes) == ["started"] + ["sync_running"] * 5
+    assert len(started) == 1
+
+
+# =============================================================================
+# 24. The summary names records changed on both sides
+# =============================================================================
+
+def _rename_common(harness, names, *, hub_wins):
+    """Edit the same objects on both sides; the later stamp decides who wins."""
+    from datetime import timedelta
+    uid = harness["local_user"].id
+    now = utc_now()
+
+    def edit_hub(db):
+        for name in names:
+            row = db.query(AstroObject).filter_by(user_id=999, object_name=name).one()
+            row.common_name = f"{name} (server)"
+            db.commit()
+            _stamp(db, AstroObject, row.id,
+                   now + timedelta(minutes=10 if hub_wins else 1))
+    _hub_query(harness, edit_hub)
+
+    db = harness["local_db"]
+    for name in names:
+        row = db.query(AstroObject).filter_by(user_id=uid, object_name=name).one()
+        row.common_name = f"{name} (this computer)"
+        db.commit()
+        _stamp(db, AstroObject, row.id, now + timedelta(minutes=1 if hub_wins else 10))
+
+
+def test_the_summary_lists_records_changed_on_both_sides(harness):
+    uid = harness["local_user"].id
+    _mark_downloaded(harness)
+    _sync_shared_objects(harness, 8)
+    _rename_common(harness, ["OBJ0", "OBJ1"], hub_wins=True)
+    _rename_common(harness, ["OBJ2"], hub_wins=False)
+    # Changed on one side only: not a conflict.
+    _hub_query(harness, lambda db: (
+        setattr(db.query(AstroObject).filter_by(user_id=999, object_name="OBJ3").one(),
+                "common_name", "only the server"), db.commit()))
+
+    st = _run_phase1(harness, "sync")
+    assert st["phase"] == "awaiting_confirmation", st
+    summary = st["summary"]
+
+    assert sorted((c["name"], c["kept"]) for c in summary["conflicts"]) == [
+        ("OBJ0", "server"), ("OBJ1", "server"), ("OBJ2", "local")]
+    assert summary["conflicts_more"] == 0
+
+    confirm_job(harness["app"], uid)
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+    assert st["phase"] == "done", st
+    # The line told the truth about which copy stays, on both sides.
+    for name, expected in (("OBJ0", "OBJ0 (server)"), ("OBJ2", "OBJ2 (this computer)")):
+        assert _local_query(harness, lambda db: db.query(AstroObject).filter_by(
+            user_id=uid, object_name=name).one().common_name) == expected
+        assert _hub_query(harness, lambda db: db.query(AstroObject).filter_by(
+            user_id=999, object_name=name).one().common_name) == expected
+
+
+def test_the_summary_names_five_conflicts_and_counts_the_rest(harness):
+    _mark_downloaded(harness)
+    _sync_shared_objects(harness, 8)
+    _rename_common(harness, [f"OBJ{i}" for i in range(7)], hub_wins=True)
+
+    st = _run_phase1(harness, "sync")
+    assert st["phase"] == "awaiting_confirmation", st
+    assert len(st["summary"]["conflicts"]) == 5
+    assert st["summary"]["conflicts_more"] == 2
+
+
+def test_the_same_edit_on_both_sides_is_not_a_conflict(harness):
+    uid = harness["local_user"].id
+    _mark_downloaded(harness)
+    _sync_shared_objects(harness, 2)
+    _hub_query(harness, lambda db: (
+        setattr(db.query(AstroObject).filter_by(user_id=999, object_name="OBJ0").one(),
+                "common_name", "Crab"), db.commit()))
+    row = harness["local_db"].query(AstroObject).filter_by(
+        user_id=uid, object_name="OBJ0").one()
+    row.common_name = "Crab"
+    harness["local_db"].commit()
+
+    start_job(harness["app"], uid, "sync")
+    st = _wait(uid, lambda s: s.get("phase") in ("awaiting_confirmation", "done", "failed"))
+    assert st["phase"] in ("awaiting_confirmation", "done"), st
+    assert (st.get("summary") or {}).get("conflicts") in ([], None)
+
+
+# =============================================================================
+# 25. A project id another account owns on the hub
+# =============================================================================
+
+def test_a_project_id_taken_on_the_hub_is_named_and_the_rest_syncs(harness):
+    uid = harness["local_user"].id
+    _mark_downloaded(harness)
+
+    def other_account(db):
+        other = DbUser(id=500, username="someone-else")
+        db.add(other)
+        db.commit()
+        db.add(Project(id="shared-id", user_id=500, name="Theirs", status="In Progress"))
+        db.commit()
+    _hub_query(harness, other_account)
+
+    db = harness["local_db"]
+    db.add(Project(id="shared-id", user_id=uid, name="Veil mosaic", status="In Progress"))
+    db.add(_obj(uid, "M 42"))
+    db.add(JournalSession(user_id=uid, external_id="local-sess",
+                          date_utc=date(2026, 1, 2), project_id="shared-id"))
+    db.commit()
+
+    st = _run_phase1(harness, "sync")
+    assert st["phase"] == "awaiting_confirmation", st
+    assert st["summary"]["blocked"] == [{
+        "table": "projects", "key": "shared-id", "name": "Veil mosaic",
+        "reason": "project_id_taken", "side": "server"}]
+
+    confirm_job(harness["app"], uid)
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+    assert st["phase"] == "done", st
+    assert [b["name"] for b in st["result"]["blocked"]] == ["Veil mosaic"]
+
+    # The other account's project is untouched; everything else arrived.
+    theirs = _hub_query(harness, lambda db: db.query(Project).filter_by(id="shared-id").one())
+    assert (theirs.user_id, theirs.name) == (500, "Theirs")
+    assert _hub_query(harness, lambda db: db.query(AstroObject)
+                      .filter_by(user_id=999, object_name="M 42").count()) == 1
+    hub_sess = _hub_query(harness, lambda db: db.query(JournalSession)
+                          .filter_by(user_id=999, external_id="local-sess").one())
+    assert hub_sess.project_id is None
+    # A blocked record does not hold the watermark: the next sync is a quiet one.
+    assert _local_query(harness, lambda db: db.query(SyncState)
+                        .filter_by(user_id=uid).one()).local_pushed_rev > 0
+    st = _sync_to_done(harness)
+    assert st["phase"] == "done" and st["result"].get("empty") is True, st
+
+    from nova.blueprints.sync_tokens import blocked_message
+    with harness["app"].test_request_context("/sync"):
+        message = blocked_message(st_blocked := {"name": "Veil mosaic", "side": "server"})
+    assert "Veil mosaic" in message and "another account on the server" in message

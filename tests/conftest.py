@@ -173,6 +173,17 @@ class _TestThreading(types.ModuleType):
 
 
 @pytest.fixture(autouse=True)
+def csrf_checks_off(monkeypatch):
+    """Tests post forms without a CSRF token.
+
+    The sync blueprint protects every POST (nova/blueprints/sync_tokens.py) and
+    honours WTF_CSRF_ENABLED, so the suite switches the check off here and the
+    CSRF tests switch it back on for themselves.
+    """
+    monkeypatch.setitem(app.config, 'WTF_CSRF_ENABLED', False)
+
+
+@pytest.fixture(autouse=True)
 def no_outlook_thread(monkeypatch):
     import nova
     monkeypatch.setattr(nova, "threading", _TestThreading("threading"))

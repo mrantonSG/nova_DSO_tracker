@@ -30,12 +30,15 @@ from nova.config import APP_VERSION
 from nova.helpers import get_db, shared_log_paths
 from nova.sync_engine import (
     MAX_SYNC_FILE_BYTES, FileRef, MergeResult, PLAN_ORDER, REFUSAL_BAD_FILE_REF,
-    REFUSAL_BAD_FORMAT, REFUSAL_FILE_TOO_LARGE, REFUSAL_FILE_VERIFY,
-    REFUSAL_PLAN_STALE, REFUSAL_SERVER_UNTOUCHED, ROLE_NOTE_IMAGE, Refusal,
-    StagedFile, SyncRefused, TABLE_MODEL, _FILE_SLOTS, _HEX64, _ref_summary,
-    _role_ext_ok, _row_by_key, account_marker_rev, apply_merge, collect_files,
+    FILE_REMOVED, REFUSAL_BAD_FORMAT, REFUSAL_FILE_EXISTS, REFUSAL_FILE_TOO_LARGE,
+    REFUSAL_FILE_VERIFY, REFUSAL_PLAN_STALE, REFUSAL_SERVER_UNTOUCHED,
+    RICH_TEXT_COLUMNS, ROLE_NOTE_IMAGE, ROLE_SESSION_LOG, Refusal,
+    StagedFile, SyncRefused, TABLE_MODEL, _FILE_SLOTS, _HEX64, _log_path,
+    _ref_summary, _role_ext_ok, _row_by_key, _user_upload_root,
+    account_marker_rev, apply_merge, collect_files,
     commit_staged_files, counter_rev, export_changes, export_files,
-    file_cap, file_source_path, files_needed, missing_local_files, plan_merge,
+    file_cap, file_source_path, files_needed, missing_local_slots,
+    note_image_name, plan_merge,
     record_to_payload, row_key, server_untouched, staged_index, sync_lock, to_iso,
 )
 from nova.sync_time import utc_now
@@ -118,6 +121,7 @@ def _result_summary(result) -> dict:
         "r_changed": result.r_changed,
         "push_revs": list(result.push_revs),
         "deferred": [list(entry) for entry in result.deferred],
+        "blocked": [dict(entry) for entry in result.blocked],
         "pending_files": [list(entry) for entry in result.pending_files],
         "placed_files": [list(entry) for entry in result.placed_files],
         "skipped_files": [_ref_summary(r) for r in result.skipped_files],
@@ -369,6 +373,10 @@ def fetch_file() -> Response:
                                     "reason": "not_on_disk"}), 404)
         response = _file_response(path)
         response.headers["X-Nova-Sha256"] = ref.sha256
+        # For a caller that asks by record and slot because its own copy is
+        # gone (the healing pass): it cannot know the type or the size.
+        response.headers["X-Nova-Ext"] = ref.ext
+        response.headers["X-Nova-Size"] = str(int(ref.size or 0))
     response.headers[PROTOCOL_HEADER] = str(PROTOCOL_VERSION)
     return response
 
@@ -436,7 +444,8 @@ def push_plan() -> Response:
             "files_needed": [[r.table, r.key, r.slot, r.sha256] for r in needed],
         }
         save_push_session(user.id, session)
-        hub_missing = missing_local_files(db, user)
+        # Existence only (nothing hashed): this runs on every push plan.
+        hub_missing = missing_local_slots(db, user)
 
     return _ok({
         "session_id": session_id,
@@ -444,6 +453,10 @@ def push_plan() -> Response:
         "plan": plan.summary(),
         "fingerprint": plan.fingerprint,
         "files_needed": session["files_needed"],
+        # Every file this push will PLACE, uploaded now or already staged from
+        # an earlier attempt. A push with nothing to upload can still have
+        # files to place, and the client must not call such a push empty.
+        "files_to_place": len(session["file_refs"]),
         "hub_missing": [[r.table, r.key, r.slot, r.sha256] for r in hub_missing],
     })
 
@@ -650,6 +663,13 @@ def repair() -> Response:
     a single file placed into a row that already exists, and the placement
     writes no rev — a file name is instance-local, so placing one is not a
     change to sync.
+
+    A repair FILLS; it never overwrites. A slot whose file is on this disk is
+    refused with file_exists whatever the request carries, so a repair cannot
+    replace bytes the hub holds (that is a push's job, with its conflict rules).
+    The digest header is checked to be a digest before anything reads it — it
+    becomes part of a path — on the resume path (offset -1) exactly as on an
+    upload.
     """
     table = request.headers.get("X-Nova-Table", "")
     key = request.headers.get("X-Nova-Key", "")
@@ -662,6 +682,8 @@ def repair() -> Response:
     model = TABLE_MODEL.get(table)
     if model is None or not key or not slot:
         return _refuse(Refusal(REFUSAL_BAD_FILE_REF, {"reason": "not_a_record"}), 404)
+    if not _HEX64.fullmatch(digest):
+        return _refuse(Refusal(REFUSAL_BAD_FILE_REF, {"reason": "sha256"}), 400)
     role = _repair_role(model, slot, ext)
     if role is None:
         return _refuse(Refusal(REFUSAL_BAD_FILE_REF,
@@ -674,6 +696,9 @@ def repair() -> Response:
         if row is None:
             return _refuse(Refusal(REFUSAL_BAD_FILE_REF,
                                    {"table": table, "key": key}), 404)
+        refusal = _repair_target_refusal(db, user, model, row, slot, role, digest, ext)
+        if refusal is not None:
+            return _refuse(refusal)
         if offset == -1:
             return _ok({"received": upload_received(user.id, digest, ext),
                         "expected": total, "complete": False})
@@ -709,6 +734,40 @@ def _repair_role(model: type, slot: str, ext: str) -> Optional[str]:
     else:
         return None
     return role if _role_ext_ok(role, ext) else None
+
+
+def _repair_target_refusal(db, user, model, row, slot, role, digest, ext):
+    """Why this slot may not be repaired, or None when it may be filled.
+
+    file_exists           the slot's file is on this disk (never overwritten)
+    bad_file_reference    the slot was emptied on purpose, or the record's text
+                          does not name this note image
+    """
+    table = model.__tablename__
+    where = {"table": table, "key": row_key(model, row), "slot": slot}
+    if role == ROLE_NOTE_IMAGE and slot not in _FILE_SLOTS.get(model, {}):
+        name = note_image_name(digest, ext)
+        named = any(name in (getattr(row, column, None) or "")
+                    for column in RICH_TEXT_COLUMNS.get(model, ()))
+        if not named:
+            return Refusal(REFUSAL_BAD_FILE_REF, dict(where, reason="not_referenced"))
+        if os.path.isfile(os.path.join(_user_upload_root(user), name)):
+            return Refusal(REFUSAL_FILE_EXISTS, where)
+        return None
+    value = getattr(row, slot, None)
+    if value is None:
+        return None                       # never placed: nothing to overwrite
+    if value == FILE_REMOVED:
+        return Refusal(REFUSAL_BAD_FILE_REF, dict(where, reason="slot_removed"))
+    if role == ROLE_SESSION_LOG:
+        path = _log_path(value)
+        if not path:
+            return Refusal(REFUSAL_FILE_EXISTS, where)   # raw text in the column
+    else:
+        path = os.path.join(_user_upload_root(user), value)
+    if os.path.isfile(path):
+        return Refusal(REFUSAL_FILE_EXISTS, where)
+    return None
 
 
 def _repair_ref(model, row, slot, role, digest, ext, size):

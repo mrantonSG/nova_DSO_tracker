@@ -646,7 +646,10 @@ def test_repair_places_a_missing_file_into_an_existing_record(hub):
     name = f"{row.id}.png"
     row.session_image_file = name
     hub.db.commit()
-    # ...but the bytes are not on the hub's disk.
+    # ...but the bytes are not on the hub's disk. The uploads directory is the
+    # session-wide one and row ids repeat across tests, so an earlier test's
+    # file of the same name is cleared: a repair only fills a missing file.
+    _forget_upload(name)
 
     headers = {"X-Nova-Table": "journal_sessions", "X-Nova-Key": "s1",
                "X-Nova-Slot": "session_image_file",
@@ -691,6 +694,127 @@ def test_a_repair_cannot_choose_a_role_or_an_extension(hub):
     resp = _api(hub, REPAIR, token=hub.token, raw=PNG, headers=headers)
     assert resp.status_code == 404
     assert _codes(resp) == ["bad_file_reference"]
+
+
+def _forget_upload(name):
+    path = os.path.join(UPLOAD_FOLDER, "default", name)
+    if os.path.exists(path):
+        os.remove(path)
+
+
+def _repair_headers(key="s1", slot="session_image_file", data=PNG, ext="png",
+                    offset="0", digest=None):
+    return {"X-Nova-Table": "journal_sessions", "X-Nova-Key": key,
+            "X-Nova-Slot": slot,
+            "X-Nova-Sha256": _import_digest(data) if digest is None else digest,
+            "X-Nova-Ext": ext, "X-Nova-Total": str(len(data)),
+            "X-Nova-Offset": offset}
+
+
+def test_a_repair_never_overwrites_a_file_the_hub_holds(hub):
+    """The hub has the photo. A repair carrying other bytes is refused with
+    file_exists and the hub's bytes are untouched."""
+    row = _session_with_photo(hub, "s1", data=PNG)
+    other = PNG + b"-other-bytes"
+
+    resp = _api(hub, REPAIR, token=hub.token, raw=other,
+                headers=_repair_headers(data=other))
+
+    assert resp.status_code == 409
+    assert _codes(resp) == ["file_exists"]
+    with open(os.path.join(UPLOAD_FOLDER, "default", row.session_image_file), "rb") as handle:
+        assert handle.read() == PNG
+
+
+def test_a_repair_with_the_same_bytes_is_refused_too(hub):
+    _session_with_photo(hub, "s1", data=PNG)
+    resp = _api(hub, REPAIR, token=hub.token, raw=PNG, headers=_repair_headers())
+    assert resp.status_code == 409
+    assert _codes(resp) == ["file_exists"]
+
+
+def test_a_repair_resume_is_refused_for_a_file_the_hub_holds(hub):
+    """Offset -1 (how much do you hold?) answers file_exists as well: a client
+    learns the file is there before it sends a byte."""
+    _session_with_photo(hub, "s1", data=PNG)
+    resp = _api(hub, REPAIR, token=hub.token, raw=b"",
+                headers=_repair_headers(offset="-1"))
+    assert resp.status_code == 409
+    assert _codes(resp) == ["file_exists"]
+
+
+@pytest.mark.parametrize("digest", [
+    "", "abc", "g" * 64, "A" * 63, "../../../../etc/passwd",
+    "0" * 60 + "/../x",
+])
+@pytest.mark.parametrize("offset", ["0", "-1"])
+def test_a_repair_with_a_bad_digest_is_refused_before_anything_reads_it(
+        hub, monkeypatch, digest, offset):
+    """The digest becomes part of a path (the accumulator's name), so it is
+    checked to be 64 hex digits first — on an upload and on the resume path."""
+    row = JournalSession(user_id=hub.uid, external_id="s1",
+                         date_utc=date(2026, 1, 10), session_image_file="gone.png")
+    hub.db.add(row)
+    hub.db.commit()
+    touched = []
+    import nova.blueprints.sync_api as api
+    monkeypatch.setattr(api, "upload_received",
+                        lambda *a, **k: touched.append(a) or 0)
+    monkeypatch.setattr(api, "write_chunk",
+                        lambda *a, **k: touched.append(a) or 0)
+
+    resp = _api(hub, REPAIR, token=hub.token, raw=PNG,
+                headers=_repair_headers(digest=digest, offset=offset))
+
+    assert resp.status_code == 400
+    assert _codes(resp) == ["bad_file_reference"]
+    assert resp.get_json()["refusals"][0]["detail"] == {"reason": "sha256"}
+    assert touched == []
+
+
+def test_a_repair_does_not_put_back_a_photo_the_hub_removed(hub):
+    row = JournalSession(user_id=hub.uid, external_id="s1",
+                         date_utc=date(2026, 1, 10), session_image_file="")
+    hub.db.add(row)
+    hub.db.commit()
+
+    resp = _api(hub, REPAIR, token=hub.token, raw=PNG, headers=_repair_headers())
+
+    assert _codes(resp) == ["bad_file_reference"]
+    assert resp.get_json()["refusals"][0]["detail"]["reason"] == "slot_removed"
+    hub.db.expire_all()
+    assert hub.db.query(JournalSession).filter_by(external_id="s1").one().session_image_file == ""
+
+
+def test_a_repair_resume_reports_what_is_held_for_a_missing_file(hub):
+    row = JournalSession(user_id=hub.uid, external_id="s1",
+                         date_utc=date(2026, 1, 10))
+    hub.db.add(row)
+    hub.db.commit()
+    hub.db.expire_all()
+    row.session_image_file = f"{row.id}.png"
+    hub.db.commit()
+    _forget_upload(f"{row.id}.png")
+
+    resp = _api(hub, REPAIR, token=hub.token, raw=b"",
+                headers=_repair_headers(offset="-1"))
+
+    assert resp.status_code == 200, resp.get_json()
+    assert resp.get_json()["complete"] is False
+
+
+def test_a_file_fetch_by_slot_names_the_digest_type_and_size(hub):
+    """The healing pass asks by record and slot with no digest of its own; the
+    answer's headers are all it has to verify and place the file."""
+    _session_with_photo(hub, "s1", data=PNG)
+    resp = _api(hub, FETCH, token=hub.token,
+                body={"table": "journal_sessions", "key": "s1",
+                      "slot": "session_image_file"})
+    assert resp.status_code == 200
+    assert resp.data == PNG
+    assert resp.headers["X-Nova-Sha256"] == _import_digest(PNG)
+    assert resp.headers["X-Nova-Ext"] == "png"
+    assert resp.headers["X-Nova-Size"] == str(len(PNG))
 
 
 # =============================================================================

@@ -7966,6 +7966,43 @@ msgstr "所有内容均为最新"
 msgid "none to transfer"
 msgstr "没有需要传输的内容"
 
+msgid "This form expired. Please try again."
+msgstr "此表单已过期，请重试。"
+
+msgid "This server doesn't support sync — it needs a newer Nova version."
+msgstr "此服务器不支持同步 — 它需要更新版本的 Nova。"
+
+msgid "The server already has this file."
+msgstr "服务器已有此文件。"
+
+#, python-format
+msgid "Project \"%(name)s\" was not synced: its ID is already used by another account on this computer."
+msgstr "项目“%(name)s”未同步：其 ID 已被这台电脑上的另一个账户使用。"
+
+#, python-format
+msgid "Project \"%(name)s\" was not synced: its ID is already used by another account on the server."
+msgstr "项目“%(name)s”未同步：其 ID 已被服务器上的另一个账户使用。"
+
+#, python-format
+msgid "%(name)s — this computer's version kept"
+msgstr "%(name)s — 保留这台电脑的版本"
+
+#, python-format
+msgid "%(name)s — server version kept"
+msgstr "%(name)s — 保留服务器的版本"
+
+#, python-format
+msgid "%(num)s file could not be restored"
+msgid_plural "%(num)s files could not be restored"
+msgstr[0] "%(num)s 个文件无法恢复"
+
+msgid "Changed on both sides"
+msgstr "两边都有更改"
+
+#, python-format
+msgid "and %(n)s more"
+msgstr "以及另外 %(n)s 项"
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "刷新建议"
 

@@ -24,6 +24,12 @@ Server verschieben, importieren Sie dort zuerst Ihre YAML-Dateien
    erstellte Token ein und klicken Sie auf **Verbinden**. Der Kontoname des
    Servers wird angezeigt; das Token wird auf diesem Rechner gespeichert.
 
+**Mit einem Server synchronisieren** ist bei einer Einzelbenutzer-Installation
+standardmäßig verfügbar. Bei einer Mehrbenutzer-Installation ist es
+ausgeschaltet, weil diese Installation normalerweise der Server ist; ein
+Administrator kann es mit `NOVA_SYNC_CLIENT=on` in `instance/.env` und einem
+Neustart von Nova einschalten.
+
 #### Vom Server herunterladen
 
 Die erste Synchronisierung jeder Kopplung ist ein **Download**: Er ersetzt die

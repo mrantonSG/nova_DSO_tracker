@@ -24,6 +24,11 @@ Importar). Eso es lo que permite la primera descarga.
    el token que creaste allí, y pulsa **Conectar**. Se muestra el nombre de la
    cuenta del servidor y el token se guarda en este equipo.
 
+**Sincronizar con un servidor** está disponible por defecto en una instalación
+de un solo usuario. En una instalación multiusuario está desactivado, porque
+esa instalación suele ser el servidor; un administrador puede activarlo con
+`NOVA_SYNC_CLIENT=on` en `instance/.env` y reiniciando Nova.
+
 #### Descargar del servidor
 
 La primera sincronización de cada emparejamiento es una **descarga**: sustituye
