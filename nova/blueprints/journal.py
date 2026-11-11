@@ -371,6 +371,10 @@ def journal_add():
                     else:
                         asiair_content = log_file.read().decode('utf-8', errors='ignore')
                         asiair_filename = log_file.filename
+                        if not asiair_content.strip():
+                            _flash_rejected_upload(action, _("The uploaded log file is empty."))
+                            asiair_content = None
+                            asiair_filename = None
 
             if 'phd2_log' in request.files:
                 log_file = request.files['phd2_log']
@@ -385,6 +389,10 @@ def journal_add():
                     else:
                         phd2_content = log_file.read().decode('utf-8', errors='ignore')
                         phd2_filename = log_file.filename
+                        if not phd2_content.strip():
+                            _flash_rejected_upload(action, _("The uploaded log file is empty."))
+                            phd2_content = None
+                            phd2_filename = None
 
             if 'nina_log' in request.files:
                 log_file = request.files['nina_log']
@@ -399,6 +407,10 @@ def journal_add():
                     else:
                         nina_content = log_file.read().decode('utf-8', errors='ignore')
                         nina_filename = log_file.filename
+                        if not nina_content.strip():
+                            _flash_rejected_upload(action, _("The uploaded log file is empty."))
+                            nina_content = None
+                            nina_filename = None
 
             db.commit()  # Commit to get session ID
 
@@ -764,10 +776,13 @@ def journal_edit(session_id):
                         _flash_rejected_upload(action, _("ASIAir log file is too large. Maximum size is 10 MB."))
                     else:
                         content = log_file.read().decode('utf-8', errors='ignore')
-                        path = save_log_to_filesystem(session_to_edit.id, 'asiair', content, log_file.filename, db)
-                        session_to_edit.asiair_log_content = path
-                        mark_file_changed(session_to_edit, "asiair_log_content")
-                        invalidate_cache = True
+                        if not content.strip():
+                            _flash_rejected_upload(action, _("The uploaded log file is empty."))
+                        else:
+                            path = save_log_to_filesystem(session_to_edit.id, 'asiair', content, log_file.filename, db)
+                            session_to_edit.asiair_log_content = path
+                            mark_file_changed(session_to_edit, "asiair_log_content")
+                            invalidate_cache = True
 
             if 'phd2_log' in request.files:
                 log_file = request.files['phd2_log']
@@ -783,10 +798,13 @@ def journal_edit(session_id):
                         _flash_rejected_upload(action, _("PHD2 log file is too large. Maximum size is 10 MB."))
                     else:
                         content = log_file.read().decode('utf-8', errors='ignore')
-                        path = save_log_to_filesystem(session_to_edit.id, 'phd2', content, log_file.filename, db)
-                        session_to_edit.phd2_log_content = path
-                        mark_file_changed(session_to_edit, "phd2_log_content")
-                        invalidate_cache = True
+                        if not content.strip():
+                            _flash_rejected_upload(action, _("The uploaded log file is empty."))
+                        else:
+                            path = save_log_to_filesystem(session_to_edit.id, 'phd2', content, log_file.filename, db)
+                            session_to_edit.phd2_log_content = path
+                            mark_file_changed(session_to_edit, "phd2_log_content")
+                            invalidate_cache = True
 
             # NINA log upload with validation
             nina_imported = False
@@ -806,12 +824,15 @@ def journal_edit(session_id):
                         _flash_rejected_upload(action, _("NINA log file is too large. Maximum size is 10 MB."))
                     else:
                         content = log_file.read().decode('utf-8', errors='ignore')
-                        path = save_log_to_filesystem(session_to_edit.id, 'nina', content, log_file.filename, db)
-                        session_to_edit.nina_log_content = path
-                        mark_file_changed(session_to_edit, "nina_log_content")
-                        invalidate_cache = True
-                        nina_imported = True
-                        flash(_("NINA log imported successfully."), "success")
+                        if not content.strip():
+                            _flash_rejected_upload(action, _("The uploaded log file is empty."))
+                        else:
+                            path = save_log_to_filesystem(session_to_edit.id, 'nina', content, log_file.filename, db)
+                            session_to_edit.nina_log_content = path
+                            mark_file_changed(session_to_edit, "nina_log_content")
+                            invalidate_cache = True
+                            nina_imported = True
+                            flash(_("NINA log imported successfully."), "success")
     
             # Log deletion via checkbox. "" rather than None: an emptied slot
             # is a removal the peer must honour, a never-set one is not.
