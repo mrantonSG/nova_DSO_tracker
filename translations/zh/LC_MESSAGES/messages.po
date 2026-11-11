@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-03 12:53+0800\n"
+"POT-Creation-Date: 2026-11-11 22:12+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh\n"
@@ -62,7 +62,7 @@ msgstr "自动对焦失败"
 msgid "Log parsed but no structured data found."
 msgstr "日志已解析，但未找到结构化数据。"
 
-#: nova/blueprints/admin.py:20 nova/blueprints/tools.py:1399
+#: nova/blueprints/admin.py:20 nova/blueprints/tools.py:1490
 msgid "Not authorized."
 msgstr "未授权。"
 
@@ -88,8 +88,8 @@ msgstr "用户'%(username)s'创建成功。"
 
 #: nova/blueprints/admin.py:80 nova/blueprints/admin.py:101
 #: nova/blueprints/admin.py:122 nova/blueprints/mobile.py:109
-#: nova/blueprints/mobile.py:507 nova/blueprints/tools.py:503
-#: nova/blueprints/tools.py:535 nova/blueprints/tools.py:997
+#: nova/blueprints/mobile.py:507 nova/blueprints/tools.py:511
+#: nova/blueprints/tools.py:543 nova/blueprints/tools.py:1005
 msgid "User not found."
 msgstr "未找到用户。"
 
@@ -124,351 +124,357 @@ msgstr "用户'%(username)s'已删除。"
 msgid "User deleted, but some data could not be removed. Check the server log."
 msgstr "用户已删除，但部分数据无法移除。请查看服务器日志。"
 
-#: nova/blueprints/api.py:208
+#: nova/blueprints/api.py:209
 msgid "Object not found"
 msgstr "未找到对象"
 
-#: nova/blueprints/api.py:597
+#: nova/blueprints/api.py:613
 #, python-format
 msgid "<p>Error reading help file: %(error)s</p>"
 msgstr "<p>读取帮助文件时出错：%(error)s</p>"
 
-#: nova/blueprints/api.py:1062 nova/blueprints/core.py:1262
-#: nova/blueprints/core.py:1310 templates/base.html:188
+#: nova/blueprints/api.py:1078 nova/blueprints/core.py:1277
+#: nova/blueprints/core.py:1325 templates/base.html:188
 #: templates/graph_view.html:279 templates/mobile_add_object.html:58
 msgid "SIMBAD is currently unavailable. Please try again later."
 msgstr "SIMBAD 目前不可用。请稍后再试。"
 
-#: nova/blueprints/api.py:1671
+#: nova/blueprints/api.py:1687
 msgid "No file uploaded"
 msgstr "未上传文件"
 
-#: nova/blueprints/api.py:1675
+#: nova/blueprints/api.py:1691
 msgid "Empty filename"
 msgstr "文件名为空"
 
-#: nova/blueprints/api.py:1682
+#: nova/blueprints/api.py:1698
 msgid "File is too large. Maximum size is 10 MB."
 msgstr "文件过大。最大为 10 MB。"
 
-#: nova/blueprints/api.py:1725 nova/blueprints/api.py:3406
+#: nova/blueprints/api.py:1741 nova/blueprints/api.py:3422
 msgid "User not found"
 msgstr "未找到用户"
 
-#: nova/blueprints/api.py:1729
+#: nova/blueprints/api.py:1745
 msgid "Session not found"
 msgstr "未找到会话"
 
-#: nova/blueprints/api.py:3100
+#: nova/blueprints/api.py:3116
 msgid "Object data not found or invalid."
 msgstr "天体数据未找到或无效。"
 
-#: nova/blueprints/api.py:3104
+#: nova/blueprints/api.py:3120
 msgid "RA/DEC missing for object."
 msgstr "缺少对象的RA/DEC。"
 
-#: nova/blueprints/api.py:3109
+#: nova/blueprints/api.py:3125
 msgid "Invalid RA/DEC format for object."
 msgstr "对象的RA/DEC格式无效。"
 
-#: nova/blueprints/api.py:3272
+#: nova/blueprints/api.py:3288
 msgid "Could not generate time series for plot."
 msgstr "无法生成图表的时间序列。"
 
-#: nova/blueprints/api.py:3370
+#: nova/blueprints/api.py:3386
 msgid "Location not configured"
 msgstr "未配置位置"
 
-#: nova/blueprints/api.py:4347
+#: nova/blueprints/api.py:4363
 msgid "Missing or invalid lat/lon parameters"
 msgstr "缺少 lat/lon 参数或参数无效"
 
-#: nova/blueprints/api.py:4356
+#: nova/blueprints/api.py:4372
 msgid "Invalid datetime format"
 msgstr "日期时间格式无效"
 
-#: nova/blueprints/api.py:4376
+#: nova/blueprints/api.py:4392
 msgid "Calibration star catalog not found"
 msgstr "未找到校准星表"
 
-#: nova/blueprints/core.py:238
+#: nova/blueprints/core.py:244
 msgid "Logged out successfully!"
 msgstr "退出登录成功！"
 
-#: nova/blueprints/core.py:277
+#: nova/blueprints/core.py:283
 #, python-format
 msgid "Language '%(lang)s' is not supported."
 msgstr "不支持'%(lang)s'语言。"
 
-#: nova/blueprints/core.py:337
+#: nova/blueprints/core.py:343
 msgid "Logged in successfully!"
 msgstr "登录成功！"
 
-#: nova/blueprints/core.py:362
+#: nova/blueprints/core.py:368
 msgid "Invalid username or password."
 msgstr "用户名或密码无效。"
 
-#: nova/blueprints/core.py:370
+#: nova/blueprints/core.py:376
 msgid "Single Sign-On is not applicable in single-user mode."
 msgstr "单用户模式下不适用单点登录。"
 
-#: nova/blueprints/core.py:378
+#: nova/blueprints/core.py:384
 msgid "SSO Error: No token provided."
 msgstr "SSO错误：未提供令牌。"
 
-#: nova/blueprints/core.py:384
+#: nova/blueprints/core.py:390
 msgid "SSO Error: SSO is not configured on the server."
 msgstr "SSO错误：服务器上未配置SSO。"
 
-#: nova/blueprints/core.py:403
+#: nova/blueprints/core.py:409
 #, python-format
 msgid "Welcome back, %(username)s!"
 msgstr "欢迎回来，%(username)s！"
 
-#: nova/blueprints/core.py:406
+#: nova/blueprints/core.py:412
 #, python-format
 msgid "SSO Error: User '%(username)s' not found or is disabled in Nova."
 msgstr "SSO错误：未找到用户'%(username)s'或已在Nova中禁用。"
 
-#: nova/blueprints/core.py:410
+#: nova/blueprints/core.py:416
 msgid "SSO Error: The login link has expired. Please try again from WordPress."
 msgstr "SSO错误：登录链接已过期。请从WordPress重试。"
 
-#: nova/blueprints/core.py:413
+#: nova/blueprints/core.py:419
 msgid "SSO Error: Invalid login token."
 msgstr "SSO错误：登录令牌无效。"
 
-#: nova/blueprints/core.py:630
+#: nova/blueprints/core.py:638
 #, python-format
 msgid "Could not find user '%(username)s' in the database."
 msgstr "在数据库中找不到用户'%(username)s'。"
 
-#: nova/blueprints/core.py:719
+#: nova/blueprints/core.py:727
 msgid "Warning: Horizon Mask was invalid and was ignored."
 msgstr "警告：地平线掩码无效，已忽略。"
 
-#: nova/blueprints/core.py:749
+#: nova/blueprints/core.py:757
 msgid ""
 "Cannot delete your last location. You must have at least one location "
 "configured."
 msgstr "无法删除您的最后一个位置。您必须至少配置一个位置。"
 
-#: nova/blueprints/core.py:754
+#: nova/blueprints/core.py:762
 msgid ""
 "Cannot deactivate your only active location. You must keep at least one "
 "active location."
 msgstr "无法停用您唯一的活动位置。您必须保持至少一个活动位置。"
 
-#: nova/blueprints/core.py:800
+#: nova/blueprints/core.py:808
 #, python-format
 msgid "Warning: Horizon Mask for '%(location_name)s' was invalid and ignored."
 msgstr "警告：'%(location_name)s'的地平线掩码无效，已忽略。"
 
-#: nova/blueprints/core.py:883
+#: nova/blueprints/core.py:898
 #, python-format
 msgid "%(message)s updated successfully."
 msgstr "%(message)s更新成功。"
 
-#: nova/blueprints/core.py:885
+#: nova/blueprints/core.py:900
 #, python-format
 msgid ""
 "Cannot delete object '%(name)s': it is still used by %(sessions)d "
 "session(s) and %(projects)d project(s)."
 msgstr "无法删除对象 '%(name)s'：它仍被 %(sessions)d 个会话和 %(projects)d 个项目使用。"
 
-#: nova/blueprints/core.py:889
+#: nova/blueprints/core.py:904
 #, python-format
 msgid "Cannot delete location '%(name)s': it is used by %(sessions)d session(s)."
 msgstr "无法删除地点 '%(name)s'：它被 %(sessions)d 个会话使用。"
 
-#: nova/blueprints/core.py:968
+#: nova/blueprints/core.py:983
 #, python-format
 msgid "A database error occurred: %(error)s"
 msgstr "发生数据库错误：%(error)s"
 
-#: nova/blueprints/core.py:1182
+#: nova/blueprints/core.py:1197
 msgid "Label required"
 msgstr "标签为必填项"
 
-#: nova/blueprints/core.py:1192
+#: nova/blueprints/core.py:1207
 msgid "Filter already exists"
 msgstr "过滤器已存在"
 
-#: nova/blueprints/core.py:1209
+#: nova/blueprints/core.py:1224
 msgid "Filter not found"
 msgstr "未找到过滤器"
 
-#: nova/blueprints/core.py:1238 nova/blueprints/core.py:1284
+#: nova/blueprints/core.py:1253 nova/blueprints/core.py:1299
 msgid "No object specified."
 msgstr "未指定天体。"
 
-#: nova/blueprints/core.py:1253
+#: nova/blueprints/core.py:1268
 msgid "This object is already in your library."
 msgstr "该天体已在您的库中。"
 
-#: nova/blueprints/core.py:1271 nova/blueprints/core.py:1917
-#: nova/blueprints/core.py:1944 templates/mobile_add_object.html:57
+#: nova/blueprints/core.py:1286 nova/blueprints/core.py:1932
+#: nova/blueprints/core.py:1959 templates/mobile_add_object.html:57
 msgid "Object not found."
 msgstr "未找到对象。"
 
-#: nova/blueprints/core.py:1590
+#: nova/blueprints/core.py:1605
 msgid "Fetched and saved missing object details."
 msgstr "获取并保存了缺失的对象详细信息。"
 
-#: nova/blueprints/core.py:1592
+#: nova/blueprints/core.py:1607
 msgid "No missing data found or no updates needed."
 msgstr "未找到缺失数据或无需更新。"
 
-#: nova/blueprints/core.py:1596
+#: nova/blueprints/core.py:1611
 #, python-format
 msgid "An error occurred during data fetching: %(error)s"
 msgstr "数据获取期间发生错误：%(error)s"
 
-#: nova/blueprints/core.py:2050
+#: nova/blueprints/core.py:2176
 msgid "Please log in to view object details."
 msgstr "请登录以查看天体详情。"
 
-#: nova/blueprints/core.py:2065
+#: nova/blueprints/core.py:2191
 #, python-format
 msgid "User '%(username)s' not found."
 msgstr "未找到用户'%(username)s'。"
 
-#: nova/blueprints/core.py:2081
+#: nova/blueprints/core.py:2207
 #, python-format
 msgid "Requested location '%(location_name)s' not found, using default."
 msgstr "请求的位置'%(location_name)s'未找到，使用默认值。"
 
-#: nova/blueprints/core.py:2099
+#: nova/blueprints/core.py:2225
 msgid "Error: No valid location configured or selected for this user."
 msgstr "错误：此用户未配置或选择有效的位置。"
 
-#: nova/blueprints/core.py:2117
+#: nova/blueprints/core.py:2243
 #, python-format
 msgid "Object '%(object_name)s' not found in your configuration."
 msgstr "在您的配置中未找到对象'%(object_name)s'。"
 
-#: nova/blueprints/core.py:2392
+#: nova/blueprints/core.py:2518
 msgid "Invalid date components provided, defaulting to current date."
 msgstr "提供的日期组件无效，默认为当前日期。"
 
-#: nova/blueprints/core.py:2596
+#: nova/blueprints/core.py:2733
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
 msgstr "加载%(object_name)s的详细信息时发生错误。"
 
-#: nova/blueprints/journal.py:119 nova/blueprints/journal.py:478
+#: nova/blueprints/journal.py:121 nova/blueprints/journal.py:499
 #: nova/blueprints/mobile.py:549
 msgid "Invalid date format."
 msgstr "日期格式无效。"
 
-#: nova/blueprints/journal.py:310 nova/blueprints/journal.py:711
+#: nova/blueprints/journal.py:312 nova/blueprints/journal.py:737
 msgid "Session image is too large. Maximum size is 5 MB."
 msgstr "会话图片过大。最大为 5 MB。"
 
-#: nova/blueprints/journal.py:320 nova/blueprints/journal.py:721
+#: nova/blueprints/journal.py:322 nova/blueprints/journal.py:747
 msgid "Invalid session image filename."
 msgstr "会话图片文件名无效。"
 
-#: nova/blueprints/journal.py:360 nova/blueprints/journal.py:741
+#: nova/blueprints/journal.py:366 nova/blueprints/journal.py:772
 msgid ""
 "This is the Chinese-language version of the ASIAir log. Please upload the"
 " standard English log file instead."
 msgstr "这是 ASIAir 日志的中文版本。请上传标准的英文日志文件。"
 
-#: nova/blueprints/journal.py:362 nova/blueprints/journal.py:743
+#: nova/blueprints/journal.py:368 nova/blueprints/journal.py:774
 msgid "ASIAir log file must be a .txt file."
 msgstr "ASIAir 日志文件必须是 .txt 文件。"
 
-#: nova/blueprints/journal.py:364 nova/blueprints/journal.py:745
+#: nova/blueprints/journal.py:370 nova/blueprints/journal.py:776
 msgid "ASIAir log file is too large. Maximum size is 10 MB."
 msgstr "ASIAir 日志文件过大。最大为 10 MB。"
 
-#: nova/blueprints/journal.py:376 nova/blueprints/journal.py:761
+#: nova/blueprints/journal.py:375 nova/blueprints/journal.py:393
+#: nova/blueprints/journal.py:411 nova/blueprints/journal.py:780
+#: nova/blueprints/journal.py:802 nova/blueprints/journal.py:828
+msgid "The uploaded log file is empty."
+msgstr "上传的日志文件为空。"
+
+#: nova/blueprints/journal.py:386 nova/blueprints/journal.py:796
 msgid "PHD2 log file must be a .txt file."
 msgstr "PHD2 日志文件必须是 .txt 文件。"
 
-#: nova/blueprints/journal.py:378 nova/blueprints/journal.py:763
+#: nova/blueprints/journal.py:388 nova/blueprints/journal.py:798
 msgid "PHD2 log file is too large. Maximum size is 10 MB."
 msgstr "PHD2 日志文件过大。最大为 10 MB。"
 
-#: nova/blueprints/journal.py:390 nova/blueprints/journal.py:783
+#: nova/blueprints/journal.py:404 nova/blueprints/journal.py:822
 msgid "NINA log file must be a .log file."
 msgstr "NINA 日志文件必须是 .log 文件。"
 
-#: nova/blueprints/journal.py:392 nova/blueprints/journal.py:785
+#: nova/blueprints/journal.py:406 nova/blueprints/journal.py:824
 msgid "NINA log file is too large. Maximum size is 10 MB."
 msgstr "NINA 日志文件过大。最大为 10 MB。"
 
-#: nova/blueprints/journal.py:422 nova/blueprints/mobile.py:708
+#: nova/blueprints/journal.py:443 nova/blueprints/mobile.py:716
 msgid "New journal entry added successfully!"
 msgstr "新日记条目添加成功！"
 
-#: nova/blueprints/journal.py:448
+#: nova/blueprints/journal.py:469
 msgid "To add a new session, please select an object first."
 msgstr "要添加新会话，请先选择一个对象。"
 
-#: nova/blueprints/journal.py:462
+#: nova/blueprints/journal.py:483
 msgid "Journal entry not found or you do not have permission to edit it."
 msgstr "未找到日记条目或您没有权限编辑它。"
 
-#: nova/blueprints/journal.py:792
+#: nova/blueprints/journal.py:835
 msgid "NINA log imported successfully."
 msgstr "NINA 日志导入成功。"
 
-#: nova/blueprints/journal.py:822
+#: nova/blueprints/journal.py:866
 msgid "Journal entry updated successfully!"
 msgstr "日记条目更新成功！"
 
-#: nova/blueprints/journal.py:845
+#: nova/blueprints/journal.py:889
 msgid "Cannot edit session: associated object name is missing."
 msgstr "无法编辑会话：关联的对象名称缺失。"
 
-#: nova/blueprints/journal.py:870
+#: nova/blueprints/journal.py:914
 msgid "Project name is required."
 msgstr "项目名称为必填项。"
 
-#: nova/blueprints/journal.py:876
+#: nova/blueprints/journal.py:920
 #, python-format
 msgid "A project named '%(project_name)s' already exists."
 msgstr "名为'%(project_name)s'的项目已存在。"
 
-#: nova/blueprints/journal.py:895
+#: nova/blueprints/journal.py:939
 #, python-format
 msgid "Project '%(project_name)s' created successfully."
 msgstr "项目'%(project_name)s'创建成功。"
 
-#: nova/blueprints/journal.py:911
+#: nova/blueprints/journal.py:955
 #, python-format
 msgid "Error creating project: %(error)s"
 msgstr "创建项目时出错：%(error)s"
 
-#: nova/blueprints/journal.py:926
+#: nova/blueprints/journal.py:970
 msgid "Session to duplicate not found."
 msgstr "未找到要复制的会话。"
 
-#: nova/blueprints/journal.py:954
+#: nova/blueprints/journal.py:998
 msgid "Session duplicated successfully."
 msgstr "会话复制成功。"
 
-#: nova/blueprints/journal.py:965
+#: nova/blueprints/journal.py:1009
 #, python-format
 msgid "Error duplicating session: %(error)s"
 msgstr "复制会话时出错：%(error)s"
 
-#: nova/blueprints/journal.py:993
+#: nova/blueprints/journal.py:1039
 msgid "Journal entry deleted successfully."
 msgstr "日记条目删除成功。"
 
-#: nova/blueprints/journal.py:999
+#: nova/blueprints/journal.py:1045
 msgid "Journal entry not found or you do not have permission to delete it."
 msgstr "未找到日记条目或您没有权限删除它。"
 
-#: nova/blueprints/journal.py:1016 nova/blueprints/journal.py:1202
+#: nova/blueprints/journal.py:1062 nova/blueprints/journal.py:1248
 msgid "Session not found."
 msgstr "未找到会话。"
 
-#: nova/blueprints/journal.py:1210 nova/blueprints/projects.py:66
-#: nova/blueprints/projects.py:392
+#: nova/blueprints/journal.py:1256 nova/blueprints/projects.py:67
+#: nova/blueprints/projects.py:401
 msgid "Project not found."
 msgstr "未找到项目。"
 
@@ -485,144 +491,382 @@ msgstr "未找到位置。"
 msgid "Object coordinates not available."
 msgstr "物体坐标不详。"
 
-#: nova/blueprints/mobile.py:724
+#: nova/blueprints/mobile.py:732
 #, python-format
 msgid "Error saving journal entry: %(error)s"
 msgstr "保存日记条目时出错：%(error)s"
 
-#: nova/blueprints/projects.py:109
+#: nova/blueprints/projects.py:115
 msgid "Error deleting old image."
 msgstr "删除旧图像时出错。"
 
-#: nova/blueprints/projects.py:137
+#: nova/blueprints/projects.py:146
 msgid "Project updated successfully."
 msgstr "项目更新成功！"
 
-#: nova/blueprints/projects.py:158
+#: nova/blueprints/projects.py:167
 #, python-format
 msgid "An error occurred: %(error)s"
 msgstr "发生错误：%(error)s"
 
-#: nova/blueprints/projects.py:402
+#: nova/blueprints/projects.py:421
 #, python-format
 msgid "Project '%(project_name)s' deleted. Sessions are now standalone."
 msgstr "项目'%(project_name)s'已删除。会话现在是独立的。"
 
-#: nova/blueprints/projects.py:410
+#: nova/blueprints/projects.py:429
 #, python-format
 msgid "Error deleting project: %(error)s"
 msgstr "删除项目时出错：%(error)s"
 
-#: nova/blueprints/tools.py:122
+#: nova/blueprints/sync_tokens.py:78
+msgid "This form expired. Please try again."
+msgstr "此表单已过期，请重试。"
+
+#: nova/blueprints/sync_tokens.py:126
+msgid "This app and the server speak different sync versions. Update one of them."
+msgstr "此应用与服务器的同步版本不同。请更新其中之一。"
+
+#: nova/blueprints/sync_tokens.py:128
+msgid "This server doesn't support sync — it needs a newer Nova version."
+msgstr "此服务器不支持同步 — 它需要更新版本的 Nova。"
+
+#: nova/blueprints/sync_tokens.py:130
+msgid "The server already has this file."
+msgstr "服务器已有此文件。"
+
+#: nova/blueprints/sync_tokens.py:132
+msgid "The sync token was rejected."
+msgstr "同步令牌被拒绝。"
+
+#: nova/blueprints/sync_tokens.py:134
+msgid "This token has been revoked."
+msgstr "此令牌已被撤销。"
+
+#: nova/blueprints/sync_tokens.py:136
+msgid "The guest account can't sync."
+msgstr "访客账户无法同步。"
+
+#: nova/blueprints/sync_tokens.py:138 nova/blueprints/sync_tokens.py:473
+#: nova/blueprints/sync_tokens.py:491 templates/sync_tokens.html:266
+msgid "Not connected to a server."
+msgstr "未连接到服务器。"
+
+#: nova/blueprints/sync_tokens.py:140 templates/sync_tokens.html:237
+msgid "Download from the server first."
+msgstr "请先从服务器下载。"
+
+#: nova/blueprints/sync_tokens.py:142
+msgid "This server has no data yet — import your YAML files there first."
+msgstr "此服务器还没有数据——请先在那里导入你的 YAML 文件。"
+
+#: nova/blueprints/sync_tokens.py:144
+msgid "Local data was replaced from a YAML import."
+msgstr "本地数据已通过 YAML 导入被替换。"
+
+#: nova/blueprints/sync_tokens.py:146
+msgid "The server's data was replaced from a YAML import."
+msgstr "服务器的数据已通过 YAML 导入被替换。"
+
+#: nova/blueprints/sync_tokens.py:148
+msgid "A sync is already running."
+msgstr "已有同步正在进行。"
+
+#: nova/blueprints/sync_tokens.py:150
+msgid "The data changed during sync — retrying."
+msgstr "同步期间数据发生了变化——正在重试。"
+
+#: nova/blueprints/sync_tokens.py:152
+#, python-format
+msgid "This sync would delete %(deletions)s of %(records)s records."
+msgstr "此同步将删除 %(records)s 条记录中的 %(deletions)s 条。"
+
+#: nova/blueprints/sync_tokens.py:156
+#, python-format
+msgid "Your computer's clock is off by %(minutes)s minutes."
+msgstr "你的电脑时钟偏差了 %(minutes)s 分钟。"
+
+#: nova/blueprints/sync_tokens.py:158
+msgid "The server sent an unreadable response."
+msgstr "服务器返回了无法读取的响应。"
+
+#: nova/blueprints/sync_tokens.py:160
+msgid "This server uses data shapes this app doesn't know."
+msgstr "此服务器使用了此应用无法识别的数据结构。"
+
+#: nova/blueprints/sync_tokens.py:162
+msgid "The server sent a record this app can't import."
+msgstr "服务器发送了一条此应用无法导入的记录。"
+
+#: nova/blueprints/sync_tokens.py:164
+msgid "A session record can't be matched."
+msgstr "无法匹配会话记录。"
+
+#: nova/blueprints/sync_tokens.py:166
+msgid "A file reference in the sync is invalid."
+msgstr "同步中的文件引用无效。"
+
+#: nova/blueprints/sync_tokens.py:168
+msgid "A file is too large to sync."
+msgstr "文件太大，无法同步。"
+
+#: nova/blueprints/sync_tokens.py:170
+msgid "A file failed its checksum."
+msgstr "文件校验和校验失败。"
+
+#: nova/blueprints/sync_tokens.py:172
+msgid "Not enough disk space."
+msgstr "磁盘空间不足。"
+
+#: nova/blueprints/sync_tokens.py:174 nova/blueprints/sync_tokens.py:433
+msgid "Could not reach the server."
+msgstr "无法连接到服务器。"
+
+#: nova/blueprints/sync_tokens.py:176
+msgid "The sync failed unexpectedly."
+msgstr "同步意外失败。"
+
+#: nova/blueprints/sync_tokens.py:178
+msgid "The last sync was interrupted. Run Sync now to finish."
+msgstr "上次同步被中断。请运行“立即同步”以完成。"
+
+#: nova/blueprints/sync_tokens.py:180
+msgid "Type REPLACE to continue."
+msgstr "输入 REPLACE 以继续。"
+
+#: nova/blueprints/sync_tokens.py:181
+#, python-format
+msgid "Sync failed (%(code)s)."
+msgstr "同步失败（%(code)s）。"
+
+#: nova/blueprints/sync_tokens.py:194
+#, python-format
+msgid ""
+"A session's link to project \"%(name)s\" was not synced: that project is "
+"not part of this account."
+msgstr "会话与项目“%(name)s”的关联未同步：该项目不属于此账户。"
+
+#: nova/blueprints/sync_tokens.py:197
+#, python-format
+msgid ""
+"Project \"%(name)s\" was not synced: its ID is already used by another "
+"account on this computer."
+msgstr "项目“%(name)s”未同步：其 ID 已被这台电脑上的另一个账户使用。"
+
+#: nova/blueprints/sync_tokens.py:199
+#, python-format
+msgid ""
+"Project \"%(name)s\" was not synced: its ID is already used by another "
+"account on the server."
+msgstr "项目“%(name)s”未同步：其 ID 已被服务器上的另一个账户使用。"
+
+#: nova/blueprints/sync_tokens.py:207
+#, python-format
+msgid "\"%(name)s\": file missing on the server and could not be safely restored."
+msgstr "“%(name)s”：服务器上缺少该文件，无法安全恢复。"
+
+#: nova/blueprints/sync_tokens.py:215
+#, python-format
+msgid "%(name)s — this computer's version kept"
+msgstr "%(name)s — 保留这台电脑的版本"
+
+#: nova/blueprints/sync_tokens.py:216
+#, python-format
+msgid "%(name)s — server version kept"
+msgstr "%(name)s — 保留服务器的版本"
+
+#: nova/blueprints/sync_tokens.py:262
+msgid "Everything is up to date"
+msgstr "所有内容均为最新"
+
+#: nova/blueprints/sync_tokens.py:267
+#, python-format
+msgid "Download complete: %(records)s, %(files)s"
+msgstr "下载完成：%(records)s，%(files)s"
+
+#: nova/blueprints/sync_tokens.py:268
+#, python-format
+msgid "%(num)s record"
+msgid_plural "%(num)s records"
+msgstr[0] "%(num)s 条记录"
+
+#: nova/blueprints/sync_tokens.py:269 nova/blueprints/sync_tokens.py:279
+#, python-format
+msgid "%(num)s file"
+msgid_plural "%(num)s files"
+msgstr[0] "%(num)s 个文件"
+
+#: nova/blueprints/sync_tokens.py:277
+#, python-format
+msgid "Sync complete: %(sent)s sent, %(received)s received · %(files)s"
+msgstr "同步完成：已发送 %(sent)s 条，已接收 %(received)s 条 · %(files)s"
+
+#: nova/blueprints/sync_tokens.py:281
+#, python-format
+msgid "Sync complete: %(sent)s sent, %(received)s received"
+msgstr "同步完成：已发送 %(sent)s 条，已接收 %(received)s 条"
+
+#: nova/blueprints/sync_tokens.py:312
+#, python-format
+msgid "%(num)s file could not be restored"
+msgid_plural "%(num)s files could not be restored"
+msgstr[0] "%(num)s 个文件无法恢复"
+
+#: nova/blueprints/sync_tokens.py:361 nova/blueprints/sync_tokens.py:391
+msgid "Not available for the guest account."
+msgstr "访客账户不可用。"
+
+#: nova/blueprints/sync_tokens.py:367
+msgid ""
+"This token was already created. For security it can't be shown again — "
+"revoke it and create a new one if you didn't copy it."
+msgstr "此令牌已创建。出于安全考虑，它无法再次显示——如果你没有复制它，请撤销并创建一个新的。"
+
+#: nova/blueprints/sync_tokens.py:374
+msgid "Token label is required."
+msgstr "令牌标签为必填项。"
+
+#: nova/blueprints/sync_tokens.py:401
+msgid "That token no longer exists."
+msgstr "该令牌已不存在。"
+
+#: nova/blueprints/sync_tokens.py:419
+msgid "Server URL and token are required."
+msgstr "服务器 URL 和令牌为必填项。"
+
+#: nova/blueprints/sync_tokens.py:424
+msgid "This URL is not a valid sync server address."
+msgstr "此 URL 不是有效的同步服务器地址。"
+
+#: nova/blueprints/sync_tokens.py:441
+msgid ""
+"Connected over an insecure connection — the token travels in the clear on"
+" this network."
+msgstr "已通过不安全的连接连接——令牌在此网络上以明文传输。"
+
+#: nova/blueprints/sync_tokens.py:444
+#, python-format
+msgid "Connected to %(account)s."
+msgstr "已连接到 %(account)s。"
+
+#: nova/blueprints/sync_tokens.py:460
+msgid "Disconnected."
+msgstr "已断开连接。"
+
+#: nova/blueprints/sync_tokens.py:528
+msgid "Sync cancelled."
+msgstr "同步已取消。"
+
+#: nova/blueprints/tools.py:130
 #, python-format
 msgid "Error: Unknown component type '%(component_type)s'."
 msgstr "错误：未知的组件类型'%(component_type)s'。"
 
-#: nova/blueprints/tools.py:143
+#: nova/blueprints/tools.py:151
 #, python-format
 msgid "Component '%(component_name)s' added successfully."
 msgstr "组件'%(component_name)s'添加成功。"
 
-#: nova/blueprints/tools.py:146
+#: nova/blueprints/tools.py:154
 #, python-format
 msgid "Error adding component: %(error)s"
 msgstr "添加组件时出错：%(error)s"
 
-#: nova/blueprints/tools.py:161
+#: nova/blueprints/tools.py:169
 msgid "Authorization error."
 msgstr "授权错误。"
 
-#: nova/blueprints/tools.py:183
+#: nova/blueprints/tools.py:191
 #, python-format
 msgid "Component '%(component_name)s' updated successfully."
 msgstr "组件'%(component_name)s'更新成功。"
 
-#: nova/blueprints/tools.py:186
+#: nova/blueprints/tools.py:194
 #, python-format
 msgid "Error updating component: %(error)s"
 msgstr "更新组件时出错：%(error)s"
 
-#: nova/blueprints/tools.py:227 nova/blueprints/tools.py:300
+#: nova/blueprints/tools.py:235 nova/blueprints/tools.py:308
 msgid "Component not found."
 msgstr "未找到组件。"
 
-#: nova/blueprints/tools.py:244 nova/blueprints/tools.py:321
+#: nova/blueprints/tools.py:252 nova/blueprints/tools.py:329
 msgid "Rig not found."
 msgstr "未找到rig。"
 
-#: nova/blueprints/tools.py:254
+#: nova/blueprints/tools.py:262
 #, python-format
 msgid "Rig '%(rig_name)s' updated successfully."
 msgstr "Rig'%(rig_name)s'更新成功。"
 
-#: nova/blueprints/tools.py:267
+#: nova/blueprints/tools.py:275
 #, python-format
 msgid "Rig '%(rig_name)s' created successfully."
 msgstr "Rig'%(rig_name)s'创建成功。"
 
-#: nova/blueprints/tools.py:289
+#: nova/blueprints/tools.py:297
 #, python-format
 msgid "Error saving rig: %(error)s"
 msgstr "保存rig时出错：%(error)s"
 
-#: nova/blueprints/tools.py:303
+#: nova/blueprints/tools.py:311
 msgid "Cannot delete component: It is used in at least one rig."
 msgstr "无法删除组件：它至少在一个rig中使用。"
 
-#: nova/blueprints/tools.py:307
+#: nova/blueprints/tools.py:315
 msgid "Component deleted successfully."
 msgstr "组件删除成功。"
 
-#: nova/blueprints/tools.py:310
+#: nova/blueprints/tools.py:318
 #, python-format
 msgid "Error deleting component: %(error)s"
 msgstr "删除组件时出错：%(error)s"
 
-#: nova/blueprints/tools.py:325
+#: nova/blueprints/tools.py:333
 #, python-format
 msgid ""
 "Cannot delete rig '%(name)s': it is used by %(sessions)d session(s). "
 "Untick Active to hide it instead."
 msgstr "无法删除设备 '%(name)s'：它被 %(sessions)d 个会话使用。请取消勾选“活跃”以将其隐藏。"
 
-#: nova/blueprints/tools.py:337
+#: nova/blueprints/tools.py:345
 #, python-format
 msgid "Rig deleted successfully. Deleted %(count)d saved framing(s) that used it."
 msgstr "设备删除成功。已删除使用该设备的 %(count)d 个已保存构图。"
 
-#: nova/blueprints/tools.py:340
+#: nova/blueprints/tools.py:348
 msgid "Rig deleted successfully."
 msgstr "Rig删除成功。"
 
-#: nova/blueprints/tools.py:343
+#: nova/blueprints/tools.py:351
 #, python-format
 msgid "Error deleting rig: %(error)s"
 msgstr "删除rig时出错：%(error)s"
 
-#: nova/blueprints/tools.py:523
+#: nova/blueprints/tools.py:531
 #, python-format
 msgid "Error generating config file: %(error)s"
 msgstr "生成配置文件时出错：%(error)s"
 
-#: nova/blueprints/tools.py:555
+#: nova/blueprints/tools.py:563
 #, python-format
 msgid "Error generating journal file: %(error)s"
 msgstr "生成日记文件时出错：%(error)s"
 
-#: nova/blueprints/tools.py:562
+#: nova/blueprints/tools.py:570
 #, python-format
 msgid ""
 "Import refused: the file has format version %(found)s, but this version "
 "of Nova reads files up to version %(known)s. Nothing was changed."
 msgstr "导入被拒绝：文件的格式版本为 %(found)s，但此版本的 Nova 只能读取不高于 %(known)s 的版本。未做任何更改。"
 
-#: nova/blueprints/tools.py:565 nova/blueprints/tools.py:657
-#: nova/blueprints/tools.py:800
+#: nova/blueprints/tools.py:573 nova/blueprints/tools.py:665
+#: nova/blueprints/tools.py:808
 #, python-format
 msgid "Import failed: %(error)s"
 msgstr "导入失败：%(error)s"
 
-#: nova/blueprints/tools.py:567 templates/_journal_section.html:2999
+#: nova/blueprints/tools.py:575 templates/_journal_section.html:2999
 #: templates/_project_subtab.html:195 templates/graph_view.html:48
 #: templates/graph_view.html:49 templates/index.html:50
 #: templates/index.html:212 templates/index.html:230
@@ -633,227 +877,227 @@ msgstr "导入失败：%(error)s"
 msgid "Location"
 msgstr "地点"
 
-#: nova/blueprints/tools.py:567 templates/base.html:267
+#: nova/blueprints/tools.py:575 templates/base.html:267
 #: templates/index.html:146 templates/index.html:207 templates/index.html:245
 msgid "Object"
 msgstr "天体"
 
-#: nova/blueprints/tools.py:567
+#: nova/blueprints/tools.py:575
 msgid "Component"
 msgstr "组件"
 
-#: nova/blueprints/tools.py:568 templates/_journal_section.html:3046
+#: nova/blueprints/tools.py:576 templates/_journal_section.html:3046
 #: templates/graph_view.html:314 templates/index.html:164
 #: templates/mobile_journal_new.html:237 templates/project_report.html:1167
 msgid "Rig"
 msgstr "设备"
 
-#: nova/blueprints/tools.py:568 templates/mobile_framing_coords.html:2
+#: nova/blueprints/tools.py:576 templates/mobile_framing_coords.html:2
 #: templates/mobile_object_detail.html:527 templates/mobile_outlook.html:183
 #: templates/mobile_up_now.html:895
 msgid "Framing"
 msgstr "构图"
 
-#: nova/blueprints/tools.py:568
+#: nova/blueprints/tools.py:576
 msgid "Saved view"
 msgstr "已保存视图"
 
-#: nova/blueprints/tools.py:569 templates/_journal_section.html:3002
+#: nova/blueprints/tools.py:577 templates/_journal_section.html:3002
 #: templates/index.html:209 templates/journal_report.html:690
 msgid "Project"
 msgstr "项目"
 
-#: nova/blueprints/tools.py:569
+#: nova/blueprints/tools.py:577
 msgid "Journal session"
 msgstr "日志会话"
 
-#: nova/blueprints/tools.py:569
+#: nova/blueprints/tools.py:577
 msgid "Custom filter"
 msgstr "自定义滤镜"
 
-#: nova/blueprints/tools.py:572
+#: nova/blueprints/tools.py:580
 msgid "the name is missing"
 msgstr "缺少名称"
 
-#: nova/blueprints/tools.py:573
+#: nova/blueprints/tools.py:581
 msgid "the ID is missing"
 msgstr "缺少 ID"
 
-#: nova/blueprints/tools.py:574
+#: nova/blueprints/tools.py:582
 msgid "the date is missing"
 msgstr "缺少日期"
 
-#: nova/blueprints/tools.py:575
+#: nova/blueprints/tools.py:583
 msgid "the date is not valid"
 msgstr "日期无效"
 
-#: nova/blueprints/tools.py:576
+#: nova/blueprints/tools.py:584
 msgid "the settings are missing"
 msgstr "缺少设置"
 
-#: nova/blueprints/tools.py:577
+#: nova/blueprints/tools.py:585
 msgid "a horizon point is not valid"
 msgstr "地平线点无效"
 
-#: nova/blueprints/tools.py:578
+#: nova/blueprints/tools.py:586
 msgid "its record_uid already belongs to another record"
 msgstr "其 record_uid 已属于另一条记录"
 
-#: nova/blueprints/tools.py:580
+#: nova/blueprints/tools.py:588
 #, python-format
 msgid ""
 "Import refused: %(record)s '%(name)s' could not be imported (%(reason)s)."
 " Nothing was changed."
 msgstr "导入被拒绝：%(record)s '%(name)s' 无法导入（%(reason)s）。未做任何更改。"
 
-#: nova/blueprints/tools.py:589 nova/blueprints/tools.py:594
+#: nova/blueprints/tools.py:597 nova/blueprints/tools.py:602
 msgid "No file selected for journal import."
 msgstr "未选择文件用于导入日记。"
 
-#: nova/blueprints/tools.py:610
+#: nova/blueprints/tools.py:618
 #, python-format
 msgid "Invalid journal file structure: %(message)s"
 msgstr "日记文件结构无效：%(message)s"
 
-#: nova/blueprints/tools.py:634
+#: nova/blueprints/tools.py:642
 msgid "Journal imported successfully! (Previous journal data was replaced)"
 msgstr "日记导入成功！（之前的日记数据已被替换）"
 
-#: nova/blueprints/tools.py:646
+#: nova/blueprints/tools.py:654
 #, python-format
 msgid "Import failed: Invalid YAML format in the journal file. %(error)s"
 msgstr "导入失败：日记文件中的 YAML 格式无效。%(error)s"
 
-#: nova/blueprints/tools.py:660
+#: nova/blueprints/tools.py:668
 msgid "Invalid file type. Please upload a .yaml journal file."
 msgstr "文件类型无效。请上传.yaml日记文件。"
 
-#: nova/blueprints/tools.py:672
+#: nova/blueprints/tools.py:680
 msgid "Authentication error during import."
 msgstr "导入期间身份验证错误。"
 
-#: nova/blueprints/tools.py:677 nova/blueprints/tools.py:682
+#: nova/blueprints/tools.py:685 nova/blueprints/tools.py:690
 msgid "No file selected for import."
 msgstr "未选择文件用于导入。"
 
-#: nova/blueprints/tools.py:706
+#: nova/blueprints/tools.py:714
 msgid "Cannot import: Configuration must contain at least one location."
 msgstr "无法导入：配置必须包含至少一个位置。"
 
-#: nova/blueprints/tools.py:714
+#: nova/blueprints/tools.py:722
 msgid "Cannot import: Configuration must contain at least one active location."
 msgstr "无法导入：配置必须包含至少一个活动位置。"
 
-#: nova/blueprints/tools.py:747
+#: nova/blueprints/tools.py:755
 msgid "Config imported successfully! (Previous config was replaced)"
 msgstr "配置导入成功！（之前的配置已被替换）"
 
-#: nova/blueprints/tools.py:794
+#: nova/blueprints/tools.py:802
 #, python-format
 msgid "Import failed: Invalid YAML. (%(error)s)"
 msgstr "导入失败：YAML无效。（%(error)s）"
 
-#: nova/blueprints/tools.py:819
+#: nova/blueprints/tools.py:827
 msgid "Authentication error during catalog import."
 msgstr "导入目录期间身份验证错误。"
 
-#: nova/blueprints/tools.py:829
+#: nova/blueprints/tools.py:837
 msgid "Catalog pack not found or invalid."
 msgstr "未找到目录包或无效。"
 
-#: nova/blueprints/tools.py:855
+#: nova/blueprints/tools.py:863
 msgid "Catalog import failed due to an internal error."
 msgstr "目录导入失败，原因：内部错误。"
 
-#: nova/blueprints/tools.py:1017
+#: nova/blueprints/tools.py:1025
 #, python-format
 msgid "Error generating rig config: %(error)s"
 msgstr "生成rig配置时出错：%(error)s"
 
-#: nova/blueprints/tools.py:1072
+#: nova/blueprints/tools.py:1080
 msgid "No journal photos found to download."
 msgstr "未找到要下载的日记照片。"
 
-#: nova/blueprints/tools.py:1103
+#: nova/blueprints/tools.py:1175
 msgid "No file selected for photo import."
 msgstr "未选择文件用于照片导入。"
 
-#: nova/blueprints/tools.py:1108
+#: nova/blueprints/tools.py:1180
 msgid "Please select a valid .zip file to import."
 msgstr "请选择要导入的有效 .zip 文件。"
 
-#: nova/blueprints/tools.py:1124
+#: nova/blueprints/tools.py:1199
 msgid "Import failed: The uploaded file is not a valid ZIP archive."
 msgstr "导入失败：上传的文件不是有效的ZIP存档。"
 
-#: nova/blueprints/tools.py:1178
+#: nova/blueprints/tools.py:1269
 #, python-format
 msgid "Journal photos imported successfully! Extracted %(count)d files."
 msgstr "日记照片导入成功！已解压%(count)d个文件。"
 
-#: nova/blueprints/tools.py:1181
+#: nova/blueprints/tools.py:1272
 msgid "Import failed: The ZIP file appears to be corrupted."
 msgstr "导入失败：ZIP文件似乎已损坏。"
 
-#: nova/blueprints/tools.py:1183
+#: nova/blueprints/tools.py:1274
 #, python-format
 msgid "An unexpected error occurred during import: %(error)s"
 msgstr "导入期间发生意外错误：%(error)s"
 
-#: nova/blueprints/tools.py:1191 nova/blueprints/tools.py:1196
+#: nova/blueprints/tools.py:1282 nova/blueprints/tools.py:1287
 msgid "No file selected for rigs import."
 msgstr "未选择文件用于rigs导入。"
 
-#: nova/blueprints/tools.py:1226
+#: nova/blueprints/tools.py:1317
 msgid "Rigs configuration imported and synced to database successfully!"
 msgstr "Rigs配置导入并成功同步到数据库！"
 
-#: nova/blueprints/tools.py:1236
+#: nova/blueprints/tools.py:1327
 #, python-format
 msgid "Error importing rigs file: %(error)s"
 msgstr "导入rigs文件时出错：%(error)s"
 
-#: nova/blueprints/tools.py:1239
+#: nova/blueprints/tools.py:1330
 msgid "Invalid file type. Please upload a .yaml or .yml file."
 msgstr "文件类型无效。请上传.yaml或.yml文件。"
 
-#: nova/blueprints/tools.py:1301
+#: nova/blueprints/tools.py:1392
 msgid "Not authorized to export another user's data."
 msgstr "无权导出其他用户的数据。"
 
-#: nova/blueprints/tools.py:1305
+#: nova/blueprints/tools.py:1396
 msgid "Export failed (no such user or empty data)."
 msgstr "导出失败（无此用户或数据为空）。"
 
-#: nova/blueprints/tools.py:1334
+#: nova/blueprints/tools.py:1425
 msgid "Username is required in multi-user mode."
 msgstr "多用户模式下用户名为必填项。"
 
-#: nova/blueprints/tools.py:1339
+#: nova/blueprints/tools.py:1430
 msgid "Not authorized to import for another user."
 msgstr "无权为其他用户导入。"
 
-#: nova/blueprints/tools.py:1347
+#: nova/blueprints/tools.py:1438
 msgid "Please provide config, rigs, and journal YAML files."
 msgstr "请提供config、rigs和journal YAML文件。"
 
-#: nova/blueprints/tools.py:1385
+#: nova/blueprints/tools.py:1476
 msgid "Import completed successfully!"
 msgstr "导入完成成功！"
 
-#: nova/blueprints/tools.py:1389
+#: nova/blueprints/tools.py:1480
 msgid "Import failed. See server logs for details."
 msgstr "导入失败。详情请查看服务器日志。"
 
-#: nova/blueprints/tools.py:1392
+#: nova/blueprints/tools.py:1483
 msgid "Import crashed. Check logs."
 msgstr "导入崩溃。检查日志。"
 
-#: nova/blueprints/tools.py:1403
+#: nova/blueprints/tools.py:1494
 msgid "Database repair completed."
 msgstr "数据库修复完成。"
 
-#: nova/blueprints/tools.py:1405
+#: nova/blueprints/tools.py:1496
 #, python-format
 msgid "Repair failed: %(error)s"
 msgstr "修复失败：%(error)s"
@@ -913,7 +1157,7 @@ msgstr "中天时间"
 msgid "Duration"
 msgstr "持续时间"
 
-#: templates/_inspiration_section.html:504 templates/config_form.html:580
+#: templates/_inspiration_section.html:504 templates/config_form.html:582
 #: templates/index.html:157 templates/mobile_up_now.html:982
 msgid "Constellation"
 msgstr "星座"
@@ -927,7 +1171,7 @@ msgstr "来源：Wiki"
 #: templates/_objects_section.html:474 templates/base.html:254
 #: templates/base.html:443 templates/base.html:461 templates/base.html:466
 #: templates/base.html:475 templates/base.html:514
-#: templates/config_form.html:680 templates/graph_view.html:288
+#: templates/config_form.html:682 templates/graph_view.html:288
 msgid "Close"
 msgstr "关闭"
 
@@ -1001,8 +1245,8 @@ msgid "h"
 msgstr "h"
 
 #: templates/_inspiration_section.html:542 templates/_objects_section.html:463
-#: templates/base.html:108 templates/config_form.html:603
-#: templates/config_form.html:632 templates/config_form.html:668
+#: templates/base.html:108 templates/config_form.html:605
+#: templates/config_form.html:634 templates/config_form.html:670
 #: templates/graph_view.html:119 templates/graph_view.html:133
 #: templates/graph_view.html:688 templates/mobile_object_detail.html:588
 msgid "Loading..."
@@ -1222,13 +1466,13 @@ msgstr "导星（RMS）"
 
 #: templates/_journal_section.html:2374 templates/_journal_section.html:3338
 #: templates/base.html:229 templates/journal_report.html:736
-#: templates/journal_report.html:993 templates/solar_system.html:690
+#: templates/journal_report.html:993 templates/solar_system.html:691
 msgid "Excellent"
 msgstr "优秀"
 
 #: templates/_journal_section.html:2374 templates/_journal_section.html:3339
 #: templates/base.html:230 templates/journal_report.html:736
-#: templates/journal_report.html:993 templates/solar_system.html:691
+#: templates/journal_report.html:993 templates/solar_system.html:692
 msgid "Good"
 msgstr "良好"
 
@@ -1281,12 +1525,12 @@ msgid "Rig Specs:"
 msgstr "Rig规格："
 
 #: templates/_journal_section.html:2403 templates/_journal_section.html:2445
-#: templates/config_form.html:489 templates/journal_report.html:761
+#: templates/config_form.html:491 templates/journal_report.html:761
 msgid "Telescope:"
 msgstr "望远镜："
 
 #: templates/_journal_section.html:2404 templates/_journal_section.html:2449
-#: templates/config_form.html:495 templates/journal_report.html:771
+#: templates/config_form.html:497 templates/journal_report.html:771
 msgid "Camera:"
 msgstr "相机："
 
@@ -1939,7 +2183,7 @@ msgid "-- Manually Enter Below --"
 msgstr "-- 在下方手动输入 --"
 
 #: templates/_journal_section.html:3053 templates/admin_users.html:79
-#: templates/config_form.html:710 templates/graph_view.html:315
+#: templates/config_form.html:712 templates/graph_view.html:315
 msgid "Inactive"
 msgstr "不活跃"
 
@@ -2193,8 +2437,8 @@ msgstr "最多时长"
 msgid "Filter by status"
 msgstr "筛选状态"
 
-#: templates/_journal_section.html:3256 templates/config_form.html:595
-#: templates/config_form.html:624 templates/config_form.html:660
+#: templates/_journal_section.html:3256 templates/config_form.html:597
+#: templates/config_form.html:626 templates/config_form.html:662
 #: templates/index.html:191 templates/index.html:223
 msgid "All"
 msgstr "全部"
@@ -2364,8 +2608,8 @@ msgid "e.g., Cyg"
 msgstr "例如：Cyg"
 
 #: templates/_objects_section.html:45 templates/_objects_section.html:143
-#: templates/_objects_section.html:307 templates/config_form.html:579
-#: templates/config_form.html:643 templates/index.html:158
+#: templates/_objects_section.html:307 templates/config_form.html:581
+#: templates/config_form.html:645 templates/index.html:158
 #: templates/mobile_up_now.html:965
 msgid "Type"
 msgstr "类型"
@@ -2395,8 +2639,8 @@ msgid "Shared by Me"
 msgstr "我分享的"
 
 #: templates/_objects_section.html:57 templates/_objects_section.html:116
-#: templates/base.html:123 templates/config_form.html:597
-#: templates/config_form.html:626 templates/config_form.html:662
+#: templates/base.html:123 templates/config_form.html:599
+#: templates/config_form.html:628 templates/config_form.html:664
 msgid "Imported"
 msgstr "已导入"
 
@@ -2415,7 +2659,7 @@ msgstr "来源"
 msgid "e.g., messier (use = for exact)"
 msgstr "例如：messier（使用 = 表示精确匹配）"
 
-#: templates/_objects_section.html:68 templates/config_form.html:582
+#: templates/_objects_section.html:68 templates/config_form.html:584
 #: templates/graph_view.html:154 templates/index.html:165
 #: templates/mobile_journal_new.html:376
 #: templates/mobile_object_detail.html:534 templates/project_report.html:1121
@@ -2553,7 +2797,7 @@ msgstr "私人备注"
 msgid "Personal notes... (not shared)"
 msgstr "个人备注...（不共享）"
 
-#: templates/_objects_section.html:253 templates/config_form.html:677
+#: templates/_objects_section.html:253 templates/config_form.html:679
 msgid "Shared Notes"
 msgstr "共享备注"
 
@@ -2569,7 +2813,7 @@ msgstr "与其他用户分享此天体"
 msgid "Update Objects"
 msgstr "更新天体"
 
-#: templates/_objects_section.html:282 templates/config_form.html:577
+#: templates/_objects_section.html:282 templates/config_form.html:579
 #: templates/index.html:218 templates/mobile_add_object.html:17
 msgid "Object ID"
 msgstr "天体 ID"
@@ -2654,7 +2898,7 @@ msgid ""
 "overwritten, and overlapping objects are skipped."
 msgstr "星表包是服务器提供的天体集合，您可以将其导入到您的库中。导入不会破坏性修改：现有天体永远不会被覆盖，重叠的天体将被跳过。"
 
-#: templates/_objects_section.html:403 templates/config_form.html:614
+#: templates/_objects_section.html:403 templates/config_form.html:616
 #: templates/graph_view.html:248
 msgid "Description"
 msgstr "描述"
@@ -2668,8 +2912,8 @@ msgid "Objects"
 msgstr "天体"
 
 #: templates/_objects_section.html:406 templates/base.html:271
-#: templates/config_form.html:583 templates/config_form.html:616
-#: templates/config_form.html:645
+#: templates/config_form.html:585 templates/config_form.html:618
+#: templates/config_form.html:647
 msgid "Action"
 msgstr "操作"
 
@@ -2836,6 +3080,7 @@ msgid "Admin"
 msgstr "管理员"
 
 #: templates/admin_users.html:14 templates/config_form.html:26
+#: templates/sync_tokens.html:15
 msgid "Back to Dashboard"
 msgstr "返回仪表板"
 
@@ -2990,7 +3235,7 @@ msgstr "已保存"
 msgid "Error"
 msgstr "错误："
 
-#: templates/base.html:117 templates/solar_system.html:652
+#: templates/base.html:117 templates/solar_system.html:653
 msgid "None"
 msgstr "无"
 
@@ -3093,12 +3338,12 @@ msgstr "选择望远镜"
 msgid "Select Camera"
 msgstr "选择相机"
 
-#: templates/base.html:153 templates/config_form.html:652
+#: templates/base.html:153 templates/config_form.html:654
 #: templates/project_report.html:1174 templates/solar_system.html:261
 msgid "Telescope"
 msgstr "望远镜"
 
-#: templates/base.html:154 templates/config_form.html:653
+#: templates/base.html:154 templates/config_form.html:655
 #: templates/project_report.html:1178 templates/solar_system.html:262
 msgid "Camera"
 msgstr "相机"
@@ -3705,8 +3950,8 @@ msgstr "该语言的翻译是机器生成的，可能不准确。请帮助我们
 msgid "Submit feedback"
 msgstr "提交反馈"
 
-#: templates/base.html:462 templates/config_form.html:285
-#: templates/config_form.html:370 templates/graph_view.html:80
+#: templates/base.html:462 templates/config_form.html:287
+#: templates/config_form.html:372 templates/graph_view.html:80
 msgid "Help"
 msgstr "帮助"
 
@@ -3832,112 +4077,116 @@ msgid "Journal Photos"
 msgstr "日志照片"
 
 #: templates/config_form.html:77
+msgid "Sync"
+msgstr "同步"
+
+#: templates/config_form.html:79
 msgid "Help with Data Tools"
 msgstr "数据工具帮助"
 
-#: templates/config_form.html:84
+#: templates/config_form.html:86
 msgid "General Settings"
 msgstr "常规设置"
 
-#: templates/config_form.html:85 templates/config_form.html:217
+#: templates/config_form.html:87 templates/config_form.html:219
 #: templates/macros.html:79
 msgid "Click for help"
 msgstr "点击获取帮助"
 
-#: templates/config_form.html:90
+#: templates/config_form.html:92
 msgid "Altitude Threshold (°):"
 msgstr "高度阈值（°）："
 
-#: templates/config_form.html:99
+#: templates/config_form.html:101
 msgid "Theme:"
 msgstr "主题："
 
-#: templates/config_form.html:105
+#: templates/config_form.html:107
 msgid "Follow System"
 msgstr "跟随系统"
 
-#: templates/config_form.html:110
+#: templates/config_form.html:112
 msgid "Light"
 msgstr "浅色"
 
-#: templates/config_form.html:115
+#: templates/config_form.html:117
 msgid "Dark"
 msgstr "深色"
 
-#: templates/config_form.html:120
+#: templates/config_form.html:122
 msgid ""
 "Choose how Nova appears. \"Follow System\" matches your OS setting and "
 "updates automatically."
 msgstr "选择 Nova 的显示方式。\"跟随系统\"与您的操作系统设置匹配并自动更新。"
 
-#: templates/config_form.html:127
+#: templates/config_form.html:129
 msgid "Min Observable (min):"
 msgstr "最小可观测（分钟）："
 
-#: templates/config_form.html:132
+#: templates/config_form.html:134
 msgid "Min Max Altitude (°):"
 msgstr "最小最大高度（°）："
 
-#: templates/config_form.html:139
+#: templates/config_form.html:141
 #, python-format
 msgid "Max Moon Illum (%%):"
 msgstr "最大月亮相位（%%）："
 
-#: templates/config_form.html:144
+#: templates/config_form.html:146
 msgid "Min Moon Sep (°):"
 msgstr "最小月球角距（°）："
 
-#: templates/config_form.html:149
+#: templates/config_form.html:151
 msgid "Search months:"
 msgstr "搜索月份："
 
-#: templates/config_form.html:157
+#: templates/config_form.html:159
 msgid "Calc. Invisible Objects:"
 msgstr "计算不可见天体："
 
-#: templates/config_form.html:162
+#: templates/config_form.html:164
 msgid ""
 "If checked, Nova will calculate curves for ALL objects, even those "
 "geometrically impossible to see from your location (disabling the \"Smart"
 " Skip\" optimization)."
 msgstr "如果选中，Nova将计算所有天体的曲线，包括从您的位置几何上不可能看到的天体（禁用\"智能跳过\"优化）。"
 
-#: templates/config_form.html:168
+#: templates/config_form.html:170
 msgid "Hide Invisible Objects:"
 msgstr "隐藏不可见天体："
 
-#: templates/config_form.html:173
+#: templates/config_form.html:175
 msgid ""
 "If checked, objects that are geometrically impossible to see will be "
 "hidden from the main list by default. They will still appear if you "
 "specifically search for them."
 msgstr "如果选中，几何上不可能看到的天体将默认从主列表中隐藏。如果您专门搜索它们，它们仍会显示。"
 
-#: templates/config_form.html:180
+#: templates/config_form.html:182
 msgid "Calculation Precision:"
 msgstr "计算精度："
 
-#: templates/config_form.html:183
+#: templates/config_form.html:185
 msgid "High (10 min samples)"
 msgstr "高（10 分钟采样）"
 
-#: templates/config_form.html:184
+#: templates/config_form.html:186
 msgid "Default (15 min samples)"
 msgstr "默认（15 分钟采样）"
 
-#: templates/config_form.html:185
+#: templates/config_form.html:187
 msgid "Balanced (20 min samples)"
 msgstr "平衡（20 分钟采样）"
 
-#: templates/config_form.html:186
+#: templates/config_form.html:188
 msgid "Fast (30 min samples)"
 msgstr "快速（30 分钟采样）"
 
-#: templates/config_form.html:187
+#: templates/config_form.html:189
 msgid "Fastest (60 min samples)"
 msgstr "最快（60 分钟采样）"
 
-#: templates/config_form.html:190
+#: templates/config_form.html:192
 msgid ""
 "Note: Your 'Current Altitude' is always calculated in real-time. This "
 "setting only refines the accuracy of the nightly overview values (Max "
@@ -3945,11 +4194,11 @@ msgid ""
 " devices."
 msgstr "注意：您的'当前高度'始终实时计算。此设置仅优化夜览概览值的准确性（最大高度、可观测持续时间等）。对于低功耗设备，建议使用'快速'。"
 
-#: templates/config_form.html:198
+#: templates/config_form.html:200
 msgid "Anonymous Telemetry:"
 msgstr "匿名遥测："
 
-#: templates/config_form.html:203
+#: templates/config_form.html:205
 msgid ""
 "Nova sends a small anonymous heartbeat (app version, system type, and "
 "counts of your data entries like objects, rigs, locations, and journals)."
@@ -3957,484 +4206,484 @@ msgid ""
 "Allowing it really helps me improve Nova."
 msgstr "Nova会发送一个小的匿名心跳（应用版本、系统类型和您的数据条目计数，如天体、设备配置、位置和日记）。绝不会收集个人详细信息，您可以随时选择退出。允许它确实有助于我改进Nova。"
 
-#: templates/config_form.html:208
+#: templates/config_form.html:210
 msgid "Save Settings"
 msgstr "保存设置"
 
-#: templates/config_form.html:216
+#: templates/config_form.html:218
 msgid "Locations Configuration"
 msgstr "位置配置"
 
-#: templates/config_form.html:222
+#: templates/config_form.html:224
 msgid "Add New Location"
 msgstr "添加新位置"
 
-#: templates/config_form.html:226 templates/config_form.html:424
-#: templates/config_form.html:443 templates/config_form.html:463
+#: templates/config_form.html:228 templates/config_form.html:426
+#: templates/config_form.html:445 templates/config_form.html:465
 #: templates/index.html:300
 msgid "Name:"
 msgstr "名称："
 
-#: templates/config_form.html:227
+#: templates/config_form.html:229
 msgid "e.g., Home Observatory"
 msgstr "例如：家庭天文台"
 
-#: templates/config_form.html:230 templates/config_form.html:317
+#: templates/config_form.html:232 templates/config_form.html:319
 msgid "Lat:"
 msgstr "纬度："
 
-#: templates/config_form.html:234 templates/config_form.html:321
+#: templates/config_form.html:236 templates/config_form.html:323
 msgid "Lon:"
 msgstr "经度："
 
-#: templates/config_form.html:238 templates/config_form.html:325
+#: templates/config_form.html:240 templates/config_form.html:327
 msgid "Elevation:"
 msgstr "海拔："
 
-#: templates/config_form.html:240 templates/config_form.html:327
+#: templates/config_form.html:242 templates/config_form.html:329
 msgid "Elevation (m)"
 msgstr "海拔（米）"
 
-#: templates/config_form.html:243 templates/config_form.html:330
+#: templates/config_form.html:245 templates/config_form.html:332
 msgid "Timezone:"
 msgstr "时区："
 
-#: templates/config_form.html:245
+#: templates/config_form.html:247
 msgid "Type to search..."
 msgstr "输入以搜索..."
 
-#: templates/config_form.html:254 templates/config_form.html:340
-#: templates/config_form.html:484
+#: templates/config_form.html:256 templates/config_form.html:342
+#: templates/config_form.html:486
 msgid "Active:"
 msgstr "活跃："
 
-#: templates/config_form.html:258 templates/config_form.html:344
+#: templates/config_form.html:260 templates/config_form.html:346
 msgid "Bortle:"
 msgstr "Bortle："
 
-#: templates/config_form.html:260 templates/config_form.html:346
+#: templates/config_form.html:262 templates/config_form.html:348
 msgid "Not set"
 msgstr "未设置"
 
-#: templates/config_form.html:261 templates/config_form.html:347
+#: templates/config_form.html:263 templates/config_form.html:349
 msgid "Exceptional dark sky"
 msgstr "极佳的暗夜天空"
 
-#: templates/config_form.html:262 templates/config_form.html:348
+#: templates/config_form.html:264 templates/config_form.html:350
 msgid "Truly dark sky"
 msgstr "真正的暗夜天空"
 
-#: templates/config_form.html:263 templates/config_form.html:349
+#: templates/config_form.html:265 templates/config_form.html:351
 msgid "Rural sky"
 msgstr "乡村天空"
 
-#: templates/config_form.html:264 templates/config_form.html:350
+#: templates/config_form.html:266 templates/config_form.html:352
 msgid "Rural/suburban transition"
 msgstr "乡村/郊区过渡"
 
-#: templates/config_form.html:265 templates/config_form.html:351
+#: templates/config_form.html:267 templates/config_form.html:353
 msgid "Suburban sky"
 msgstr "郊区天空"
 
-#: templates/config_form.html:266 templates/config_form.html:352
+#: templates/config_form.html:268 templates/config_form.html:354
 msgid "Bright suburban sky"
 msgstr "明亮的郊区天空"
 
-#: templates/config_form.html:267 templates/config_form.html:353
+#: templates/config_form.html:269 templates/config_form.html:355
 msgid "Suburban/urban transition"
 msgstr "郊区/城市过渡"
 
-#: templates/config_form.html:268 templates/config_form.html:354
+#: templates/config_form.html:270 templates/config_form.html:356
 msgid "City sky"
 msgstr "城市天空"
 
-#: templates/config_form.html:269 templates/config_form.html:355
+#: templates/config_form.html:271 templates/config_form.html:357
 msgid "Inner-city sky"
 msgstr "市中心天空"
 
-#: templates/config_form.html:273 templates/config_form.html:359
+#: templates/config_form.html:275 templates/config_form.html:361
 msgid "SQM Zenith:"
 msgstr "天顶SQM："
 
-#: templates/config_form.html:274 templates/config_form.html:360
+#: templates/config_form.html:276 templates/config_form.html:362
 msgid ""
 "Leave blank to derive from Bortle scale. Enter a measured SQM value "
 "(mag/arcsec²) if available."
 msgstr "留空则根据 Bortle 等级推算。如有实测 SQM 值（mag/arcsec²），请填写。"
 
-#: templates/config_form.html:276 templates/config_form.html:362
+#: templates/config_form.html:278 templates/config_form.html:364
 msgid "Zenith SQM (optional)"
 msgstr "天顶SQM（可选）"
 
-#: templates/config_form.html:284 templates/config_form.html:369
+#: templates/config_form.html:286 templates/config_form.html:371
 msgid "Horizon Mask:"
 msgstr "地平线遮罩："
 
-#: templates/config_form.html:288 templates/config_form.html:373
+#: templates/config_form.html:290 templates/config_form.html:375
 msgid "Optional. e.g., [[0, 35], [90, 15]]"
 msgstr "可选。例如：[[0, 35], [90, 15]]"
 
-#: templates/config_form.html:290 templates/config_form.html:375
+#: templates/config_form.html:292 templates/config_form.html:377
 msgid "Import a Stellarium .hzn horizon file"
 msgstr "导入 Stellarium .hzn 地平线文件"
 
-#: templates/config_form.html:290 templates/config_form.html:375
+#: templates/config_form.html:292 templates/config_form.html:377
 msgid "Import .hzn"
 msgstr "导入 .hzn"
 
-#: templates/config_form.html:300 templates/config_form.html:384
+#: templates/config_form.html:302 templates/config_form.html:386
 msgid "Comments:"
 msgstr "备注："
 
-#: templates/config_form.html:301 templates/config_form.html:385
+#: templates/config_form.html:303 templates/config_form.html:387
 msgid "Notes on sky quality, obstructions, etc."
 msgstr "关于天空质量、遮挡等的备注。"
 
-#: templates/config_form.html:306
+#: templates/config_form.html:308
 msgid "Add"
 msgstr "添加"
 
-#: templates/config_form.html:392
+#: templates/config_form.html:394
 msgid "Del:"
 msgstr "删除："
 
-#: templates/config_form.html:394
+#: templates/config_form.html:396
 msgid "Cannot delete your only location"
 msgstr "无法删除您的唯一位置"
 
-#: templates/config_form.html:398
+#: templates/config_form.html:400
 msgid "View on Google Maps"
 msgstr "在 Google 地图上查看"
 
-#: templates/config_form.html:399
+#: templates/config_form.html:401
 msgid "Open Map"
 msgstr "打开地图"
 
-#: templates/config_form.html:405
+#: templates/config_form.html:407
 msgid "Update Locations"
 msgstr "更新位置"
 
-#: templates/config_form.html:416
+#: templates/config_form.html:418
 msgid "1. Define Your Components"
 msgstr "1. 定义您的组件"
 
-#: templates/config_form.html:417
+#: templates/config_form.html:419
 msgid "Help with Rigs"
 msgstr "设备帮助"
 
-#: templates/config_form.html:419
+#: templates/config_form.html:421
 msgid ""
 "Add or update your equipment here. To edit an item, click \"Edit\" to "
 "load its details into the form, make your changes, and click the "
 "\"Update\" button."
 msgstr "在此处添加或更新您的设备。要编辑项目，请点击\"编辑\"将其详细信息加载到表单中，进行更改，然后点击\"更新\"按钮。"
 
-#: templates/config_form.html:420
+#: templates/config_form.html:422
 msgid "Telescopes"
 msgstr "望远镜"
 
-#: templates/config_form.html:424
+#: templates/config_form.html:426
 msgid "e.g., Celestron EdgeHD 11"
 msgstr "例如：Celestron EdgeHD 11"
 
-#: templates/config_form.html:425
+#: templates/config_form.html:427
 msgid "Aperture (mm):"
 msgstr "口径（mm）："
 
-#: templates/config_form.html:426
+#: templates/config_form.html:428
 msgid "Focal Length (mm):"
 msgstr "焦距（mm）："
 
-#: templates/config_form.html:430 templates/config_form.html:450
-#: templates/config_form.html:468
+#: templates/config_form.html:432 templates/config_form.html:452
+#: templates/config_form.html:470
 msgid "Share this component"
 msgstr "分享此组件"
 
-#: templates/config_form.html:433
+#: templates/config_form.html:435
 msgid "Add Telescope"
 msgstr "添加望远镜"
 
-#: templates/config_form.html:439
+#: templates/config_form.html:441
 msgid "Cameras"
 msgstr "相机"
 
-#: templates/config_form.html:443
+#: templates/config_form.html:445
 msgid "e.g., ZWO ASI2600MC Pro"
 msgstr "例如：ZWO ASI2600MC Pro"
 
-#: templates/config_form.html:444
+#: templates/config_form.html:446
 msgid "Sensor Width (mm):"
 msgstr "传感器宽度（mm）："
 
-#: templates/config_form.html:445
+#: templates/config_form.html:447
 msgid "Sensor Height (mm):"
 msgstr "传感器高度（mm）："
 
-#: templates/config_form.html:446
+#: templates/config_form.html:448
 msgid "Pixel Size (μm):"
 msgstr "像素大小（μm）："
 
-#: templates/config_form.html:453
+#: templates/config_form.html:455
 msgid "Add Camera"
 msgstr "添加相机"
 
-#: templates/config_form.html:459
+#: templates/config_form.html:461
 msgid "Reducers / Extenders"
 msgstr "减焦镜 / 增距镜"
 
-#: templates/config_form.html:463
+#: templates/config_form.html:465
 msgid "e.g., Celestron 0.7x Reducer"
 msgstr "例如：Celestron 0.7x 减焦镜"
 
-#: templates/config_form.html:464
+#: templates/config_form.html:466
 msgid "Factor:"
 msgstr "系数："
 
-#: templates/config_form.html:464
+#: templates/config_form.html:466
 msgid "e.g., 0.7 for reducer"
 msgstr "例如：0.7 表示减焦镜"
 
-#: templates/config_form.html:471
+#: templates/config_form.html:473
 msgid "Add Reducer/Extender"
 msgstr "添加减焦镜/增距镜"
 
-#: templates/config_form.html:478
+#: templates/config_form.html:480
 msgid "2. Configure Your Rigs"
 msgstr "2. 配置您的设备"
 
-#: templates/config_form.html:479
+#: templates/config_form.html:481
 msgid ""
 "Combine your components into a complete imaging rig. To edit, click "
 "\"Edit\" to load the rig into the form below."
 msgstr "将您的组件组合成完整的成像设备。要编辑，请点击\"编辑\"将设备加载到下方的表单中。"
 
-#: templates/config_form.html:482
+#: templates/config_form.html:484
 msgid "Rig Name:"
 msgstr "设备名称："
 
-#: templates/config_form.html:482
+#: templates/config_form.html:484
 msgid "e.g., C11 Deep Sky Rig"
 msgstr "例如：C11 深空设备"
 
-#: templates/config_form.html:491
+#: templates/config_form.html:493
 msgid "-- Select a Telescope --"
 msgstr "-- 选择望远镜 --"
 
-#: templates/config_form.html:497
+#: templates/config_form.html:499
 msgid "-- Select a Camera --"
 msgstr "-- 选择相机 --"
 
-#: templates/config_form.html:501
+#: templates/config_form.html:503
 msgid "Reducer / Extender (Optional):"
 msgstr "减焦镜 / 增距镜（可选）："
 
-#: templates/config_form.html:503 templates/config_form.html:519
-#: templates/config_form.html:525
+#: templates/config_form.html:505 templates/config_form.html:521
+#: templates/config_form.html:527
 msgid "-- None --"
 msgstr "-- 无 --"
 
-#: templates/config_form.html:508
+#: templates/config_form.html:510
 msgid "Guide Optics"
 msgstr "导星光学系统"
 
-#: templates/config_form.html:508
+#: templates/config_form.html:510
 msgid "Optional — for dither recommendations"
 msgstr "可选 — 用于抖动建议"
 
-#: templates/config_form.html:513
+#: templates/config_form.html:515
 msgid "Off-Axis Guider (OAG) — uses main scope focal length"
 msgstr "偏轴导星器（OAG）— 使用主镜焦距"
 
-#: templates/config_form.html:517
+#: templates/config_form.html:519
 msgid "Guide Scope:"
 msgstr "导星镜："
 
-#: templates/config_form.html:523
+#: templates/config_form.html:525
 msgid "Guide Camera:"
 msgstr "导星相机："
 
-#: templates/config_form.html:529
+#: templates/config_form.html:531
 msgid "Create Rig"
 msgstr "创建设备"
 
-#: templates/config_form.html:533
+#: templates/config_form.html:535
 msgid "Select Your Typical Seeing:"
 msgstr "选择您的典型视宁度："
 
-#: templates/config_form.html:535
+#: templates/config_form.html:537
 msgid "-- Select Seeing to Assess Rigs --"
 msgstr "-- 选择视宁度以评估设备 --"
 
-#: templates/config_form.html:536
+#: templates/config_form.html:538
 msgid "Excellent Seeing (1.0\" - 2.0\" FWHM)"
 msgstr "优秀视宁度（1.0\" - 2.0\" FWHM）"
 
-#: templates/config_form.html:537
+#: templates/config_form.html:539
 msgid "Good Seeing (2.0\" - 4.0\" FWHM)"
 msgstr "良好视宁度（2.0\" - 4.0\" FWHM）"
 
-#: templates/config_form.html:538
+#: templates/config_form.html:540
 msgid "Poor Seeing (> 4.0\" FWHM)"
 msgstr "较差视宁度（> 4.0\" FWHM）"
 
-#: templates/config_form.html:542
+#: templates/config_form.html:544
 msgid "Sort rigs by:"
 msgstr "设备排序方式："
 
-#: templates/config_form.html:544
+#: templates/config_form.html:546
 msgid "Name (A→Z)"
 msgstr "名称（A→Z）"
 
-#: templates/config_form.html:545
+#: templates/config_form.html:547
 msgid "Name (Z→A)"
 msgstr "名称（Z→A）"
 
-#: templates/config_form.html:546
+#: templates/config_form.html:548
 msgid "Effective Focal Length (low→high)"
 msgstr "有效焦距（低→高）"
 
-#: templates/config_form.html:547
+#: templates/config_form.html:549
 msgid "Effective Focal Length (high→low)"
 msgstr "有效焦距（高→低）"
 
-#: templates/config_form.html:548
+#: templates/config_form.html:550
 msgid "f/ratio (low→high)"
 msgstr "焦比（低→高）"
 
-#: templates/config_form.html:549
+#: templates/config_form.html:551
 msgid "f/ratio (high→low)"
 msgstr "焦比（高→低）"
 
-#: templates/config_form.html:550
+#: templates/config_form.html:552
 msgid "Image Scale (low→high)"
 msgstr "图像比例（低→高）"
 
-#: templates/config_form.html:551
+#: templates/config_form.html:553
 msgid "Image Scale (high→low)"
 msgstr "图像比例（高→低）"
 
-#: templates/config_form.html:552
+#: templates/config_form.html:554
 msgid "FOV Width (low→high)"
 msgstr "视场宽度（低→高）"
 
-#: templates/config_form.html:553
+#: templates/config_form.html:555
 msgid "FOV Width (high→low)"
 msgstr "视场宽度（高→低）"
 
-#: templates/config_form.html:554
+#: templates/config_form.html:556
 msgid "Recently Added (newest first)"
 msgstr "最近添加（最新的在前）"
 
-#: templates/config_form.html:555
+#: templates/config_form.html:557
 msgid "Recently Added (oldest first)"
 msgstr "最近添加（最旧的在前）"
 
-#: templates/config_form.html:558
+#: templates/config_form.html:560
 msgid "Existing Rigs"
 msgstr "现有设备"
 
-#: templates/config_form.html:566
+#: templates/config_form.html:568
 msgid "Shared Items from Other Users"
 msgstr "其他用户共享的项"
 
-#: templates/config_form.html:567
+#: templates/config_form.html:569
 msgid "Help with Shared Items"
 msgstr "共享项帮助"
 
-#: templates/config_form.html:569
+#: templates/config_form.html:571
 msgid ""
 "Here you can find Objects and Components shared by other users in the "
 "system. Click \"Import\" to add a copy to your own configuration."
 msgstr "在此处您可以找到系统中其他用户共享的天体和组件。点击\"导入\"将副本添加到您自己的配置中。"
 
-#: templates/config_form.html:571
+#: templates/config_form.html:573
 msgid "Shared Objects"
 msgstr "共享的天体"
 
-#: templates/config_form.html:576
+#: templates/config_form.html:578
 msgid "Img"
 msgstr "图片"
 
-#: templates/config_form.html:578 templates/index.html:147
+#: templates/config_form.html:580 templates/index.html:147
 #: templates/index.html:208 templates/index.html:246
 #: templates/mobile_add_object.html:21
 msgid "Common Name"
 msgstr "通用名称"
 
-#: templates/config_form.html:581 templates/config_form.html:615
-#: templates/config_form.html:644
+#: templates/config_form.html:583 templates/config_form.html:617
+#: templates/config_form.html:646
 msgid "Shared By"
 msgstr "共享者"
 
-#: templates/config_form.html:587
+#: templates/config_form.html:589
 msgid "Filter ID..."
 msgstr "筛选 ID..."
 
-#: templates/config_form.html:588 templates/config_form.html:619
-#: templates/config_form.html:648
+#: templates/config_form.html:590 templates/config_form.html:621
+#: templates/config_form.html:650
 msgid "Filter name..."
 msgstr "筛选名称..."
 
-#: templates/config_form.html:589
+#: templates/config_form.html:591
 msgid "Filter type..."
 msgstr "筛选类型..."
 
-#: templates/config_form.html:590
+#: templates/config_form.html:592
 msgid "Filter con..."
 msgstr "筛选星座..."
 
-#: templates/config_form.html:591 templates/config_form.html:621
-#: templates/config_form.html:657
+#: templates/config_form.html:593 templates/config_form.html:623
+#: templates/config_form.html:659
 msgid "Filter user..."
 msgstr "筛选用户..."
 
-#: templates/config_form.html:596 templates/config_form.html:625
-#: templates/config_form.html:661
+#: templates/config_form.html:598 templates/config_form.html:627
+#: templates/config_form.html:663
 msgid "Not Imported"
 msgstr "未导入"
 
-#: templates/config_form.html:608
+#: templates/config_form.html:610
 msgid "Shared Views"
 msgstr "共享视图"
 
-#: templates/config_form.html:613
+#: templates/config_form.html:615
 msgid "View Name"
 msgstr "视图名称"
 
-#: templates/config_form.html:620
+#: templates/config_form.html:622
 msgid "Filter desc..."
 msgstr "筛选描述..."
 
-#: templates/config_form.html:637
+#: templates/config_form.html:639
 msgid "Shared Components"
 msgstr "共享的组件"
 
-#: templates/config_form.html:642
+#: templates/config_form.html:644
 msgid "Component Name"
 msgstr "组件名称"
 
-#: templates/config_form.html:651
+#: templates/config_form.html:653
 msgid "All Types"
 msgstr "所有类型"
 
-#: templates/config_form.html:654
+#: templates/config_form.html:656
 msgid "Reducer/Extender"
 msgstr "减焦镜/增距镜"
 
-#: templates/config_form.html:686
+#: templates/config_form.html:688
 msgid "Fetching Details..."
 msgstr "正在获取详情..."
 
-#: templates/config_form.html:690
+#: templates/config_form.html:692
 msgid "Please wait, communicating with SIMBAD..."
 msgstr "请稍候，正在与 SIMBAD 通信..."
 
-#: templates/config_form.html:713
+#: templates/config_form.html:715
 #, python-brace-format
 msgid "Are you sure you want to delete the rig '{name}'?"
 msgstr "您确定要删除设备 '{name}' 吗？"
 
-#: templates/config_form.html:714
+#: templates/config_form.html:716
 #, python-brace-format
 msgid ""
 "Are you sure you want to delete the rig '{name}'? This will also delete "
@@ -4763,7 +5012,7 @@ msgid ""
 "mount."
 msgstr "坐标为 JNow（实时 / 当日平春分点），以匹配您的赤道仪。"
 
-#: templates/graph_view.html:395
+#: templates/graph_view.html:395 templates/sync_tokens.html:39
 msgid "Copy"
 msgstr "复制"
 
@@ -5545,7 +5794,7 @@ msgstr "登录"
 msgid "Continue as Guest"
 msgstr "以访客身份继续"
 
-#: templates/macros.html:147
+#: templates/macros.html:147 templates/sync_tokens.html:206
 msgid "Dismiss"
 msgstr "关闭"
 
@@ -5644,6 +5893,7 @@ msgstr "查看完整马赛克平面图"
 
 #: templates/mobile_framing_coords.html:45
 #: templates/mobile_framing_coords.html:55 templates/mobile_mosaic_copy.html:24
+#: templates/sync_tokens.html:39
 msgid "Copied!"
 msgstr "已复制！"
 
@@ -5704,7 +5954,7 @@ msgstr "默认"
 msgid "Mosaic:"
 msgstr "拼接："
 
-#: templates/mobile_mosaic_copy.html:8 templates/solar_system.html:674
+#: templates/mobile_mosaic_copy.html:8 templates/solar_system.html:675
 msgid "Mosaic"
 msgstr "拼接"
 
@@ -5812,7 +6062,8 @@ msgstr "Alt 最大值"
 msgid "or type name..."
 msgstr "或输入名称..."
 
-#: templates/mobile_up_now.html:991
+#: templates/mobile_up_now.html:991 templates/sync_tokens.html:151
+#: templates/sync_tokens.html:198 templates/sync_tokens.html:360
 msgid "Apply"
 msgstr "申请"
 
@@ -6044,7 +6295,7 @@ msgid ""
 msgstr "视直径（角秒）。行星摄影最重要的数值。"
 
 #: templates/solar_system.html:97 templates/solar_system.html:322
-#: templates/solar_system.html:580
+#: templates/solar_system.html:581
 msgid "Diameter"
 msgstr "视直径"
 
@@ -6053,7 +6304,7 @@ msgid "Lit fraction of the disc as seen from Earth."
 msgstr "从地球看到的圆面被照亮的比例。"
 
 #: templates/solar_system.html:98 templates/solar_system.html:418
-#: templates/solar_system.html:578
+#: templates/solar_system.html:579
 msgid "Illuminated"
 msgstr "被照亮比例"
 
@@ -6065,7 +6316,7 @@ msgstr "与太阳的角距离。越大越容易在暗夜中看到。"
 msgid "Elongation"
 msgstr "距角"
 
-#: templates/solar_system.html:114 templates/solar_system.html:729
+#: templates/solar_system.html:114 templates/solar_system.html:730
 msgid "Tonight"
 msgstr "今晚"
 
@@ -6137,11 +6388,11 @@ msgstr "金星详情"
 msgid "Mercury detail"
 msgstr "水星详情"
 
-#: templates/solar_system.html:238 templates/solar_system.html:587
+#: templates/solar_system.html:238 templates/solar_system.html:588
 msgid "Saturn detail"
 msgstr "土星详情"
 
-#: templates/solar_system.html:259 templates/solar_system.html:651
+#: templates/solar_system.html:259 templates/solar_system.html:652
 msgid "Planetary calculator"
 msgstr "行星计算器"
 
@@ -6441,8 +6692,9 @@ msgid ""
 " early or late of it — the Schröter effect, first recorded by Johann "
 "Hieronymus Schröter in 1793 — so this is the geometric date, not the one "
 "to look for."
-msgstr "理论上的半相：圆面一半被照亮，此时若金星没有大气，明暗界线看起来应是笔直的。实际观测到的半相会比它早或晚几天——即施罗特效应，由约翰·希罗尼穆斯·施罗特于"
- " 1793 年首次记录——所以这里给出的是几何日期，而不是应当守候的日期。"
+msgstr ""
+"理论上的半相：圆面一半被照亮，此时若金星没有大气，明暗界线看起来应是笔直的。实际观测到的半相会比它早或晚几天——即施罗特效应，由约翰·希罗尼穆斯·施罗特于"
+" 1793 年首次记录——所以这里给出的是几何日期，而不是应当守候的日期。"
 
 #: templates/solar_system.html:395
 msgid ""
@@ -6529,7 +6781,7 @@ msgstr "地貌名称：%(source)s"
 
 #: templates/solar_system.html:413 templates/solar_system.html:458
 #: templates/solar_system.html:524 templates/solar_system.html:568
-#: templates/solar_system.html:589
+#: templates/solar_system.html:590
 #, python-format
 msgid "highest tonight at %(time)s"
 msgstr "今晚 %(time)s 最高"
@@ -6632,7 +6884,7 @@ msgstr "今晚的月球：受光部分、明暗界线和今晚的地貌"
 
 #: templates/solar_system.html:440 templates/solar_system.html:459
 #: templates/solar_system.html:525 templates/solar_system.html:569
-#: templates/solar_system.html:590
+#: templates/solar_system.html:591
 msgid "N"
 msgstr "北"
 
@@ -7060,52 +7312,54 @@ msgstr "最佳时段"
 msgid "From %(time)s"
 msgstr "从 %(time)s"
 
-#: templates/solar_system.html:571
+#: templates/solar_system.html:572
 #, python-format
 msgid ""
 "The longest stretch of tonight with the planet above your altitude "
 "threshold, between sunset and sunrise (about %(minutes)s min). Use the "
 "threshold of %(threshold)s° from your settings; the Sun is below the "
 "horizon throughout."
-msgstr "今晚行星高于你所设高度阈值的最长一段，介于日落与日出之间（约 %(minutes)s 分钟）。使用你设置中的 %(threshold)s°"
- " 阈值；在此期间太阳始终在地平线以下。"
+msgstr ""
+"今晚行星高于你所设高度阈值的最长一段，介于日落与日出之间（约 %(minutes)s 分钟）。使用你设置中的 %(threshold)s° "
+"阈值；在此期间太阳始终在地平线以下。"
 
-#: templates/solar_system.html:572
+#: templates/solar_system.html:573
 #, python-format
 msgid ""
 "The one sample tonight at or above %(threshold)s°, at %(time)s: at your "
 "Calculation Precision the stretch above the threshold is narrower than a "
 "single step, so there is no range to give. A finer precision would time "
 "it."
-msgstr "今晚唯一达到或高于 %(threshold)s° 的采样点，时间为"
- " %(time)s：在你当前的计算精度下，高于阈值的时段比单一步长还窄，因此没有区间可给。用更精细的精度就能定出它的时间。"
+msgstr ""
+"今晚唯一达到或高于 %(threshold)s° 的采样点，时间为 "
+"%(time)s：在你当前的计算精度下，高于阈值的时段比单一步长还窄，因此没有区间可给。用更精细的精度就能定出它的时间。"
 
-#: templates/solar_system.html:573
+#: templates/solar_system.html:574
 msgid ""
 "The planet does not reach your altitude threshold during tonight’s "
 "darkness at all."
 msgstr "今晚的黑暗时段内，行星完全达不到你所设的高度阈值。"
 
-#: templates/solar_system.html:574
+#: templates/solar_system.html:575
 msgid "evening"
 msgstr "傍晚"
 
-#: templates/solar_system.html:575
+#: templates/solar_system.html:576
 msgid "morning"
 msgstr "清晨"
 
-#: templates/solar_system.html:576
+#: templates/solar_system.html:577
 msgid "Daylight only"
 msgstr "仅白天可见"
 
-#: templates/solar_system.html:577
+#: templates/solar_system.html:578
 msgid ""
 "The planet only clears your altitude threshold while the Sun is up, so it"
 " is a daytime target: a bright sky and a low altitude. Worth trying with "
 "a telescope on a transparent day, not by eye."
 msgstr "行星只在太阳位于地平线以上时超过你的高度阈值，因此这是一个白天目标：天空明亮且高度很低。晴朗天气用望远镜值得一试，肉眼则不行。"
 
-#: templates/solar_system.html:579
+#: templates/solar_system.html:580
 msgid ""
 "The lit fraction of the disc right now. Both of these planets show phases"
 " like the Moon, and for Venus the phase and the apparent size run "
@@ -7114,188 +7368,188 @@ msgid ""
 "Sun."
 msgstr "此刻圆面被照亮的比例。这两颗行星都像月亮一样有相位，而金星是相位与视大小此消彼长：靠近下合时呈细月牙，视直径最大；运行到太阳另一侧完全被照亮时，视直径最小。"
 
-#: templates/solar_system.html:581
+#: templates/solar_system.html:582
 msgid ""
 "Apparent size in arcseconds. The two discs on this page share one scale, "
 "from Mercury at its smallest to Venus at its largest, so their sizes "
 "against each other are what the drawing shows."
 msgstr "视大小，单位为角秒。本页两个圆面共用同一比例尺，从最小的水星到最大的金星，因此图中所显示的是它们彼此的相对大小。"
 
-#: templates/solar_system.html:582
+#: templates/solar_system.html:583
 msgid ""
 "The planet at tonight’s phase: the lit part faces the Sun, and the disc "
 "is drawn with the planet’s own north up"
 msgstr "行星在今夜的相位：被照亮的朝向太阳，圆面按行星自身的北方朝上绘制"
 
-#: templates/solar_system.html:583
+#: templates/solar_system.html:584
 msgid "The planet’s north pole"
 msgstr "行星的北极"
 
-#: templates/solar_system.html:584
+#: templates/solar_system.html:585
 msgid "Does not rise during the night"
 msgstr "整夜不升起"
 
-#: templates/solar_system.html:588
+#: templates/solar_system.html:589
 msgid "Saturn detail could not be calculated."
 msgstr "无法计算土星详情。"
 
-#: templates/solar_system.html:591
+#: templates/solar_system.html:592
 msgid "Rings"
 msgstr "光环"
 
-#: templates/solar_system.html:592
+#: templates/solar_system.html:593
 msgid ""
 "B is the Earth’s latitude above the ring plane: how far the rings are "
 "tilted towards us. Positive is the north face, negative the south, and "
 "near 0° they are edge-on."
 msgstr "B 是地球在光环平面之上的纬度，即光环朝我们倾斜的程度。正值表示北面，负值表示南面，接近 0° 时几乎侧向对着我们。"
 
-#: templates/solar_system.html:594
+#: templates/solar_system.html:595
 msgid "north face towards us"
 msgstr "北面朝向地球"
 
-#: templates/solar_system.html:595
+#: templates/solar_system.html:596
 msgid "south face towards us"
 msgstr "南面朝向地球"
 
-#: templates/solar_system.html:598 templates/solar_system.html:602
+#: templates/solar_system.html:599 templates/solar_system.html:603
 msgid "north face"
 msgstr "北面"
 
-#: templates/solar_system.html:599 templates/solar_system.html:603
+#: templates/solar_system.html:600 templates/solar_system.html:604
 msgid "south face"
 msgstr "南面"
 
-#: templates/solar_system.html:605
+#: templates/solar_system.html:606
 #, python-format
 msgid "The Sun lights the %(face)s"
 msgstr "太阳照亮%(face)s"
 
-#: templates/solar_system.html:606
+#: templates/solar_system.html:607
 msgid "The Earth and the Sun see opposite faces of the rings tonight"
 msgstr "今晚地球和太阳看到的是光环相反的两面"
 
-#: templates/solar_system.html:608
+#: templates/solar_system.html:609
 msgid "opening"
 msgstr "张开"
 
-#: templates/solar_system.html:609
+#: templates/solar_system.html:610
 msgid "closing"
 msgstr "收拢"
 
-#: templates/solar_system.html:611
+#: templates/solar_system.html:612
 #, python-format
 msgid "Over the next two years: %(trend)s"
 msgstr "未来两年：%(trend)s"
 
-#: templates/solar_system.html:612
+#: templates/solar_system.html:613
 msgid ""
 "Over the next month the tilt moves the other way: a short-term wobble "
 "inside this longer swing"
 msgstr "未来一个月内倾角会反向变化：这是更长周期摆动中的短期摆动"
 
-#: templates/solar_system.html:613
+#: templates/solar_system.html:614
 #, python-format
 msgid ""
 "B′, the Sun’s latitude above the ring plane (negative is the south face):"
 " %(bprime)s°"
 msgstr "B′，太阳在环平面以上的纬度（负值为南面）：%(bprime)s°"
 
-#: templates/solar_system.html:614
+#: templates/solar_system.html:615
 msgid ""
 "The tilt of the rings, B, over the next two years, and whether they are "
 "opening or closing"
 msgstr "未来两年光环倾角 B 的变化，以及光环是在张开还是收拢"
 
-#: templates/solar_system.html:615
+#: templates/solar_system.html:616
 #, python-format
 msgid "The ring system spans %(arcsec)s″ across"
 msgstr "光环系统横跨 %(arcsec)s″"
 
-#: templates/solar_system.html:616
+#: templates/solar_system.html:617
 #, python-format
 msgid "The outer edge of the A ring is %(rs)s Saturn radii from the centre"
 msgstr "A 环外缘距中心 %(rs)s 个土星半径"
 
-#: templates/solar_system.html:618
+#: templates/solar_system.html:619
 msgid "east of Saturn"
 msgstr "土星东侧"
 
-#: templates/solar_system.html:619
+#: templates/solar_system.html:620
 msgid "west of Saturn"
 msgstr "土星西侧"
 
-#: templates/solar_system.html:622
+#: templates/solar_system.html:623
 msgid "in front of the globe"
 msgstr "在本体前方"
 
-#: templates/solar_system.html:623
+#: templates/solar_system.html:624
 msgid "crossing the disc"
 msgstr "正经过圆面"
 
-#: templates/solar_system.html:624
+#: templates/solar_system.html:625
 msgid "on the far side of its orbit"
 msgstr "在其轨道的远端"
 
-#: templates/solar_system.html:625
+#: templates/solar_system.html:626
 msgid "hidden behind the globe"
 msgstr "隐藏在本体后方"
 
-#: templates/solar_system.html:627
+#: templates/solar_system.html:628
 #, python-format
 msgid "%(rs)s Saturn radii from the centre"
 msgstr "距中心 %(rs)s 个土星半径"
 
-#: templates/solar_system.html:628
+#: templates/solar_system.html:629
 #, python-format
 msgid "Mean opposition magnitude %(mag)s"
 msgstr "冲日平均星等 %(mag)s"
 
-#: templates/solar_system.html:629
+#: templates/solar_system.html:630
 msgid "Western elongation: the bright trailing side faces us"
 msgstr "西大距：较亮的后随面朝向地球"
 
-#: templates/solar_system.html:630
+#: templates/solar_system.html:631
 msgid "Eastern elongation: the dark leading side faces us"
 msgstr "东大距：较暗的前导面朝向地球"
 
-#: templates/solar_system.html:631
+#: templates/solar_system.html:632
 msgid ""
 "Iapetus is two-toned: one hemisphere is bright, the other covered in dark"
 " material. It is brightest at western elongation, about magnitude 10.1, "
 "and faintest at eastern, about 11.9."
 msgstr "Iapetus 分为两色：一个半球明亮，另一个覆盖着暗色物质。西大距时最亮，约 10.1 等；东大距时最暗，约 11.9 等。"
 
-#: templates/solar_system.html:632
+#: templates/solar_system.html:633
 msgid "Iapetus: JPL/Cassini Outreach, “East is Least and West is Best”"
 msgstr "Iapetus：JPL/Cassini Outreach，“East is Least and West is Best”"
 
-#: templates/solar_system.html:633
+#: templates/solar_system.html:634
 msgid "No Titan transits this season"
 msgstr "本季没有 Titan 凌星"
 
-#: templates/solar_system.html:634
+#: templates/solar_system.html:635
 #, python-format
 msgid "Titan crosses the disc again on %(date)s"
 msgstr "Titan 将于 %(date)s 再次经过圆面"
 
-#: templates/solar_system.html:635
+#: templates/solar_system.html:636
 #, python-format
 msgid ""
 "%(names)s also cross the disc this season, but they are far too small and"
 " faint to be seen against it"
 msgstr "%(names)s 本季也会经过圆面，但它们太小太暗，在圆面上根本看不到"
 
-#: templates/solar_system.html:636
+#: templates/solar_system.html:637
 msgid "Titan crosses the disc this season"
 msgstr "Titan 本季经过圆面"
 
-#: templates/solar_system.html:637
+#: templates/solar_system.html:638
 #, python-format
 msgid "closest approach %(rs)s Saturn radii from the centre, %(date)s"
 msgstr "最近距离为距中心 %(rs)s 个土星半径，%(date)s"
 
-#: templates/solar_system.html:638
+#: templates/solar_system.html:639
 msgid ""
 "How close the centre of the satellite’s orbit comes to the centre of the "
 "disc in the next twelve months. Inside one Saturn radius the satellite "
@@ -7304,181 +7558,181 @@ msgid ""
 "calculated."
 msgstr "未来十二个月内卫星轨道中心与圆面中心的最近距离。小于一个土星半径时，卫星会经过圆面——凌星、掩星以及介于两者之间的部分现象都算在内。经过的具体时刻不作计算。"
 
-#: templates/solar_system.html:640
+#: templates/solar_system.html:641
 msgid "Saturn is not up during the night"
 msgstr "夜间土星不在天空中"
 
-#: templates/solar_system.html:642
+#: templates/solar_system.html:643
 #, python-format
 msgid "Satellite magnitudes: %(source)s"
 msgstr "卫星星等：%(source)s"
 
-#: templates/solar_system.html:643
+#: templates/solar_system.html:644
 msgid ""
 "Saturn tonight: the globe, the rings and the shadow they cast on it, and "
 "the satellites"
 msgstr "今晚的土星：本体、光环及其投在本体上的阴影，以及各卫星"
 
-#: templates/solar_system.html:644
+#: templates/solar_system.html:645
 msgid "Filled dot: a satellite beside or in front of the globe"
 msgstr "实心点：位于本体旁边或前方的卫星"
 
-#: templates/solar_system.html:645
+#: templates/solar_system.html:646
 msgid "Hollow dot: a satellite behind the globe"
 msgstr "空心点：位于本体后方的卫星"
 
-#: templates/solar_system.html:646
+#: templates/solar_system.html:647
 msgid ""
 "Chevron at the edge of the figure: a satellite beyond it, its distance in"
 " the tooltip"
 msgstr "图形边缘的尖角：更远处的卫星，其距离见提示"
 
-#: templates/solar_system.html:647
+#: templates/solar_system.html:648
 msgid "Shaded band across the globe: the shadow of the rings"
 msgstr "横贯本体的阴影带：光环的阴影"
 
-#: templates/solar_system.html:648
+#: templates/solar_system.html:649
 msgid "Small dots: Mimas and Enceladus, named where there is room"
 msgstr "小点：Mimas 和 Enceladus，有空间时标注"
 
-#: templates/solar_system.html:653
+#: templates/solar_system.html:654
 msgid "Disc"
 msgstr "圆面"
 
-#: templates/solar_system.html:654
+#: templates/solar_system.html:655
 msgid ""
 "Apparent diameter of the body in pixels with this telescope, camera and "
 "amplification."
 msgstr "使用此望远镜、相机和增倍时天体视直径对应的像素数。"
 
-#: templates/solar_system.html:655
+#: templates/solar_system.html:656
 msgid "Focal ratio"
 msgstr "焦比"
 
-#: templates/solar_system.html:656
+#: templates/solar_system.html:657
 msgid ""
 "Rule of thumb for good seeing: 5 x pixel size in µm. Many imagers use 3-5"
 " x, lower for average seeing or colour cameras."
 msgstr "良好视宁度下的经验法则：像素大小（µm）的5倍。许多拍摄者使用3-5倍，视宁度一般或使用彩色相机时取较低值。"
 
-#: templates/solar_system.html:657
+#: templates/solar_system.html:658
 #, python-format
 msgid "ideal f/%(ratio)s"
 msgstr "理想 f/%(ratio)s"
 
-#: templates/solar_system.html:659
+#: templates/solar_system.html:660
 msgid "on target"
 msgstr "合适"
 
-#: templates/solar_system.html:660
+#: templates/solar_system.html:661
 msgid "below ideal"
 msgstr "低于理想值"
 
-#: templates/solar_system.html:661
+#: templates/solar_system.html:662
 msgid "above ideal"
 msgstr "高于理想值"
 
-#: templates/solar_system.html:663
+#: templates/solar_system.html:664
 msgid "Detail"
 msgstr "细节"
 
-#: templates/solar_system.html:664
+#: templates/solar_system.html:665
 msgid ""
 "How much detail the aperture can resolve on this planet: diameter divided"
 " by the telescope's resolution (Dawes limit). Seeing often limits this "
 "further."
 msgstr "口径在这颗行星上能分辨多少细节：视直径除以望远镜的分辨率（道斯极限）。视宁度往往会进一步限制它。"
 
-#: templates/solar_system.html:666
+#: templates/solar_system.html:667
 msgid "Fine detail"
 msgstr "精细细节"
 
-#: templates/solar_system.html:667
+#: templates/solar_system.html:668
 msgid "Main features"
 msgstr "主要特征"
 
-#: templates/solar_system.html:668
+#: templates/solar_system.html:669
 msgid "Disc only"
 msgstr "仅圆面"
 
-#: templates/solar_system.html:670
+#: templates/solar_system.html:671
 #, python-format
 msgid "about %(n)s resolvable points across"
 msgstr "直径上约可分辨 %(n)s 个点"
 
-#: templates/solar_system.html:671
+#: templates/solar_system.html:672
 msgid "Rotation limit"
 msgstr "自转限制"
 
-#: templates/solar_system.html:672
+#: templates/solar_system.html:673
 msgid ""
 "Longest single capture before rotation blurs detail at the disc centre, "
 "without derotation. With derotation (e.g. WinJUPOS) much longer captures "
 "are possible."
 msgstr "在不做消旋处理时，自转使圆面中心细节模糊之前的最长单次拍摄时间。使用消旋（如 WinJUPOS）可以拍摄长得多的时间。"
 
-#: templates/solar_system.html:673
+#: templates/solar_system.html:674
 #, python-format
 msgid "%(min)s min %(sec)s s"
 msgstr "%(min)s分%(sec)s秒"
 
-#: templates/solar_system.html:675
+#: templates/solar_system.html:676
 msgid ""
 "Frames needed for the full disc, each overlapping its neighbours by 20 "
 "percent."
 msgstr "拍摄整个圆面所需的帧数，每帧与相邻帧重叠百分之二十。"
 
-#: templates/solar_system.html:676
+#: templates/solar_system.html:677
 msgid "Fits in one frame"
 msgstr "一帧即可容纳"
 
-#: templates/solar_system.html:677
+#: templates/solar_system.html:678
 #, python-format
 msgid "%(n)s panels (%(cols)s × %(rows)s)"
 msgstr "%(n)s 帧（%(cols)s × %(rows)s）"
 
-#: templates/solar_system.html:679
+#: templates/solar_system.html:680
 msgid "Size of the planet on your sensor"
 msgstr "行星在传感器上的大小"
 
-#: templates/solar_system.html:680
+#: templates/solar_system.html:681
 msgid "Matches your camera's pixel size"
 msgstr "与相机的像素尺寸匹配"
 
-#: templates/solar_system.html:681
+#: templates/solar_system.html:682
 msgid ""
 "Your pixels are too coarse to record all the detail. Use more "
 "amplification."
 msgstr "像素太粗，无法记录全部细节。请提高增倍。"
 
-#: templates/solar_system.html:682
+#: templates/solar_system.html:683
 msgid ""
 "Bigger image but no extra detail, and dimmer frames. Use less "
 "amplification and enlarge the result in processing instead."
 msgstr "图像更大但细节不会增加，而且单帧更暗。请降低增倍，改为在后期处理中放大结果。"
 
-#: templates/solar_system.html:683
+#: templates/solar_system.html:684
 msgid "Limited by the telescope's aperture, not the camera"
 msgstr "受望远镜口径限制，而非相机"
 
-#: templates/solar_system.html:684
+#: templates/solar_system.html:685
 msgid "Longest single video before the planet's rotation blurs detail"
 msgstr "行星自转使细节模糊前单段视频的最长时长"
 
-#: templates/solar_system.html:685
+#: templates/solar_system.html:686
 msgid "Frames needed to cover the whole disc"
 msgstr "覆盖整个圆面所需的画幅数"
 
-#: templates/solar_system.html:688
+#: templates/solar_system.html:689
 #, python-format
 msgid "%(level)s setup for %(body)s."
 msgstr "%(body)s 的配置：%(level)s。"
 
-#: templates/solar_system.html:692
+#: templates/solar_system.html:693
 msgid "Limited"
 msgstr "受限"
 
-#: templates/solar_system.html:694
+#: templates/solar_system.html:695
 #, python-format
 msgid ""
 "The level combines three checks: how much detail the aperture can resolve"
@@ -7487,124 +7741,124 @@ msgid ""
 "blur down)."
 msgstr "评级综合三项检查：口径在这颗行星上能分辨多少细节、焦比与相机理想值的差距，以及行星今晚升到多高（至少 %(alt)s° 可减少大气造成的模糊）。"
 
-#: templates/solar_system.html:695
+#: templates/solar_system.html:696
 #, python-format
 msgid "%(body)s is low tonight (max %(alt)s°); expect atmospheric blur."
 msgstr "%(body)s 今晚位置较低（最高 %(alt)s°），会受到大气模糊影响。"
 
-#: templates/solar_system.html:696
+#: templates/solar_system.html:697
 #, python-format
 msgid "Use %(amp)s amplification for the best sampling."
 msgstr "使用 %(amp)s 增倍可获得最佳采样。"
 
-#: templates/solar_system.html:697
+#: templates/solar_system.html:698
 #, python-format
 msgid ""
 "%(body)s: no amplification brings this telescope and camera closer to the"
 " ideal."
 msgstr "%(body)s：任何增倍都无法让这台望远镜和相机更接近理想值。"
 
-#: templates/solar_system.html:698
+#: templates/solar_system.html:699
 #, python-format
 msgid "%(body)s stays a small disc with any telescope of this size."
 msgstr "使用这种口径的任何望远镜，%(body)s 都只是一个小圆面。"
 
-#: templates/solar_system.html:699
+#: templates/solar_system.html:700
 msgid "Fine detail possible, focal ratio on target."
 msgstr "可拍出精细细节，焦比合适。"
 
-#: templates/solar_system.html:700
+#: templates/solar_system.html:701
 msgid "Main features possible, focal ratio on target."
 msgstr "可拍出主要特征，焦比合适。"
 
-#: templates/solar_system.html:701
+#: templates/solar_system.html:702
 msgid "Focal ratio on target."
 msgstr "焦比合适。"
 
-#: templates/solar_system.html:704
+#: templates/solar_system.html:705
 #, python-format
 msgid ""
 "Scale preview: sensor %(w)s × %(h)s pixels, %(body)s %(disc)s pixels "
 "across."
 msgstr "比例预览：传感器 %(w)s × %(h)s 像素，%(body)s 直径 %(disc)s 像素。"
 
-#: templates/solar_system.html:705
+#: templates/solar_system.html:706
 msgid ""
 "Lit side shown to the right; on your sensor it depends on the camera's "
 "rotation."
 msgstr "亮面显示在右侧；在传感器上的方向取决于相机的旋转角度。"
 
-#: templates/solar_system.html:706
+#: templates/solar_system.html:707
 msgid "not to scale (too small)"
 msgstr "未按比例（太小）"
 
-#: templates/solar_system.html:707
+#: templates/solar_system.html:708
 #, python-format
 msgid ""
 "A %(w)s × %(h)s region of interest (ROI) is enough: more frames per "
 "second."
 msgstr "使用 %(w)s × %(h)s 的感兴趣区域（ROI）就足够了：每秒帧数更多。"
 
-#: templates/solar_system.html:708
+#: templates/solar_system.html:709
 msgid ""
 "A region of interest (ROI) reads out only part of the sensor. Smaller "
 "frames transfer faster, so the camera records more frames per second for "
 "stacking."
 msgstr "感兴趣区域（ROI）只读出传感器的一部分。较小的画面传输更快，因此相机每秒能录制更多帧用于叠加。"
 
-#: templates/solar_system.html:709
+#: templates/solar_system.html:710
 msgid "No scale preview."
 msgstr "无比例预览。"
 
-#: templates/solar_system.html:712
+#: templates/solar_system.html:713
 msgid "The telescope has no focal length."
 msgstr "望远镜未设置焦距。"
 
-#: templates/solar_system.html:713
+#: templates/solar_system.html:714
 msgid "The telescope has no aperture."
 msgstr "望远镜未设置口径。"
 
-#: templates/solar_system.html:714
+#: templates/solar_system.html:715
 msgid "The camera has no pixel size."
 msgstr "相机未设置像素大小。"
 
-#: templates/solar_system.html:715
+#: templates/solar_system.html:716
 msgid "The camera has no sensor size."
 msgstr "相机未设置传感器尺寸。"
 
-#: templates/solar_system.html:716
+#: templates/solar_system.html:717
 msgid ""
 "Check the camera's sensor size: it should be in millimetres (e.g. 7.68 × "
 "4.32 mm)."
 msgstr "请检查相机的传感器尺寸：应以毫米为单位（例如 7.68 × 4.32 mm）。"
 
-#: templates/solar_system.html:717
+#: templates/solar_system.html:718
 msgid "Cannot be calculated from these values."
 msgstr "无法根据这些数值计算。"
 
-#: templates/solar_system.html:721
+#: templates/solar_system.html:722
 #, python-format
 msgid "Seeing tonight: %(level)s (jet stream %(speed)s m/s)"
 msgstr "今晚视宁度：%(level)s（急流 %(speed)s m/s）"
 
-#: templates/solar_system.html:722
+#: templates/solar_system.html:723
 #, python-format
 msgid "Seeing %(day)s: %(level)s (jet stream %(speed)s m/s)"
 msgstr "%(day)s视宁度：%(level)s（急流 %(speed)s m/s）"
 
-#: templates/solar_system.html:724
+#: templates/solar_system.html:725
 msgid "likely steady"
 msgstr "可能平稳"
 
-#: templates/solar_system.html:725
+#: templates/solar_system.html:726
 msgid "average"
 msgstr "一般"
 
-#: templates/solar_system.html:726
+#: templates/solar_system.html:727
 msgid "likely poor"
 msgstr "可能较差"
 
-#: templates/solar_system.html:728
+#: templates/solar_system.html:729
 #, python-format
 msgid ""
 "A forecast, not a measurement. Seeing is estimated from the jet stream: "
@@ -7616,400 +7870,244 @@ msgstr ""
 "这是预报，不是测量值。视宁度根据高空急流估算：9–12 公里高度（200–300 hPa）的风速，取当晚%(body)s最佳时段的中位数（峰值 "
 "%(max)s m/s）。高空气流平稳时，图像通常更稳定；近地面湍流未计入。数据：Open-Meteo。"
 
-#: templates/solar_system.html:730
+#: templates/solar_system.html:731
 msgid "less reliable beyond 3 days"
 msgstr "超过 3 天可靠性较低"
 
-#: templates/solar_system.html:731
+#: templates/solar_system.html:732
 msgid "No seeing forecast for this night"
 msgstr "这一晚没有视宁度预报"
 
-#: templates/solar_system.html:732
+#: templates/solar_system.html:733
 msgid "Above the altitude threshold for less than an hour"
 msgstr "高于您的高度阈值的时间不到一小时"
 
-#: templates/solar_system.html:733
+#: templates/solar_system.html:734
 msgid "Data: Open-Meteo"
 msgstr "数据：Open-Meteo"
 
-#: templates/config_form.html
-msgid "Sync"
-msgstr "同步"
-
-#: templates/sync_tokens.html
-msgid "Nova – Sync Tokens"
-msgstr "Nova – 同步令牌"
-
-#: templates/sync_tokens.html
-msgid "Sync Tokens"
-msgstr "同步令牌"
-
-#: templates/sync_tokens.html
-msgid "Instance Sync"
-msgstr "实例同步"
-
-#: templates/sync_tokens.html
-msgid "Pair another Nova instance with this server. Each instance needs its own token."
-msgstr "将另一个 Nova 实例与此服务器配对。每个实例都需要自己的令牌。"
-
-#: templates/sync_tokens.html
-msgid "Copy this token now. We store only a hash of it, so it will never be shown again."
-msgstr "请立即复制此令牌。我们只存储它的哈希值，因此它不会再次显示。"
-
-#: templates/sync_tokens.html
-msgid "Token Label"
-msgstr "令牌标签"
-
-#: templates/sync_tokens.html
-msgid "e.g. MacBook Air, Observatory PC"
-msgstr "例如 MacBook Air、天文台电脑"
-
-#: templates/sync_tokens.html
-msgid "Create Token"
-msgstr "创建令牌"
-
-#: templates/sync_tokens.html
-msgid "Created"
-msgstr "创建于"
-
-#: templates/sync_tokens.html
-msgid "Last used"
-msgstr "上次使用"
-
-#: templates/sync_tokens.html
-msgid "Never used"
-msgstr "从未使用"
-
-#: templates/sync_tokens.html
-msgid "Revoked"
-msgstr "已撤销"
-
-#: templates/sync_tokens.html
-msgid "Revoking stops that instance from syncing. This cannot be undone."
-msgstr "撤销后该实例将无法同步。此操作无法撤销。"
-
-#: templates/sync_tokens.html
-msgid "Revoke"
-msgstr "撤销"
-
-#: templates/sync_tokens.html
-msgid "No sync tokens yet."
-msgstr "尚无同步令牌。"
-
-#: templates/sync_tokens.html
-msgid "Create one for each instance you want to sync to this server."
-msgstr "为每个要同步到此服务器的实例创建一个令牌。"
-
-#: nova/blueprints/sync_tokens.py
-msgid "Not available for the guest account."
-msgstr "访客账户不可用。"
-
-#: nova/blueprints/sync_tokens.py
-msgid "Token label is required."
-msgstr "令牌标签为必填项。"
-
-#: nova/blueprints/sync_tokens.py
-msgid "That token no longer exists."
-msgstr "该令牌已不存在。"
-
-#: nova/blueprints/sync_tokens.py
-msgid "This token was already created. For security it can't be shown again — revoke it and create a new one if you didn't copy it."
-msgstr "此令牌已创建。出于安全考虑，它无法再次显示——如果你没有复制它，请撤销并创建一个新的。"
-
-msgid "This app and the server speak different sync versions. Update one of them."
-msgstr "此应用与服务器的同步版本不同。请更新其中之一。"
-
-msgid "The sync token was rejected."
-msgstr "同步令牌被拒绝。"
-
-msgid "This token has been revoked."
-msgstr "此令牌已被撤销。"
-
-msgid "The guest account can't sync."
-msgstr "访客账户无法同步。"
-
-msgid "Not connected to a server."
-msgstr "未连接到服务器。"
-
-msgid "Download from the server first."
-msgstr "请先从服务器下载。"
-
-msgid "This server has no data yet — import your YAML files there first."
-msgstr "此服务器还没有数据——请先在那里导入你的 YAML 文件。"
-
-msgid "Local data was replaced from a YAML import."
-msgstr "本地数据已通过 YAML 导入被替换。"
-
-msgid "The server's data was replaced from a YAML import."
-msgstr "服务器的数据已通过 YAML 导入被替换。"
-
-msgid "A sync is already running."
-msgstr "已有同步正在进行。"
-
-msgid "The data changed during sync — retrying."
-msgstr "同步期间数据发生了变化——正在重试。"
-
-msgid "This sync would delete %(deletions)s of %(records)s records."
-msgstr "此同步将删除 %(records)s 条记录中的 %(deletions)s 条。"
-
-msgid "Your computer's clock is off by %(minutes)s minutes."
-msgstr "你的电脑时钟偏差了 %(minutes)s 分钟。"
-
-msgid "The server sent an unreadable response."
-msgstr "服务器返回了无法读取的响应。"
-
-msgid "This server uses data shapes this app doesn't know."
-msgstr "此服务器使用了此应用无法识别的数据结构。"
-
-msgid "The server sent a record this app can't import."
-msgstr "服务器发送了一条此应用无法导入的记录。"
-
-msgid "A session record can't be matched."
-msgstr "无法匹配会话记录。"
-
-msgid "A file reference in the sync is invalid."
-msgstr "同步中的文件引用无效。"
-
-msgid "A file is too large to sync."
-msgstr "文件太大，无法同步。"
-
-msgid "A file failed its checksum."
-msgstr "文件校验和校验失败。"
-
-msgid "Not enough disk space."
-msgstr "磁盘空间不足。"
-
-msgid "Could not reach the server."
-msgstr "无法连接到服务器。"
-
-msgid "The sync failed unexpectedly."
-msgstr "同步意外失败。"
-
-msgid "The last sync was interrupted. Run Sync now to finish."
-msgstr "上次同步被中断。请运行“立即同步”以完成。"
-
-msgid "Type REPLACE to continue."
-msgstr "输入 REPLACE 以继续。"
-
-msgid "Sync failed (%(code)s)."
-msgstr "同步失败（%(code)s）。"
-
-msgid "Server URL and token are required."
-msgstr "服务器 URL 和令牌为必填项。"
-
-msgid "This URL is not a valid sync server address."
-msgstr "此 URL 不是有效的同步服务器地址。"
-
-msgid "Connected over an insecure connection — the token travels in the clear on this network."
-msgstr "已通过不安全的连接连接——令牌在此网络上以明文传输。"
-
-msgid "Connected to %(account)s."
-msgstr "已连接到 %(account)s。"
-
-msgid "Disconnected."
-msgstr "已断开连接。"
-
-msgid "Sync cancelled."
-msgstr "同步已取消。"
-
+#: templates/sync_tokens.html:2
 msgid "Nova – Sync"
 msgstr "Nova – 同步"
 
+#: templates/sync_tokens.html:11
+msgid "Instance Sync"
+msgstr "实例同步"
+
+#: templates/sync_tokens.html:24
 msgid "Use this Nova instance as a server"
 msgstr "将此 Nova 实例用作服务器"
 
+#: templates/sync_tokens.html:26
+msgid ""
+"Pair another Nova instance with this server. Each instance needs its own "
+"token."
+msgstr "将另一个 Nova 实例与此服务器配对。每个实例都需要自己的令牌。"
+
+#: templates/sync_tokens.html:33
+msgid ""
+"Copy this token now. We store only a hash of it, so it will never be "
+"shown again."
+msgstr "请立即复制此令牌。我们只存储它的哈希值，因此它不会再次显示。"
+
+#: templates/sync_tokens.html:51
+msgid "Token Label"
+msgstr "令牌标签"
+
+#: templates/sync_tokens.html:53
+msgid "e.g. MacBook Air, Observatory PC"
+msgstr "例如 MacBook Air、天文台电脑"
+
+#: templates/sync_tokens.html:55
+msgid "Create Token"
+msgstr "创建令牌"
+
+#: templates/sync_tokens.html:67
+msgid "Created"
+msgstr "创建于"
+
+#: templates/sync_tokens.html:70
+msgid "Last used"
+msgstr "上次使用"
+
+#: templates/sync_tokens.html:72
+msgid "Never used"
+msgstr "从未使用"
+
+#: templates/sync_tokens.html:78
+msgid "Revoked"
+msgstr "已撤销"
+
+#: templates/sync_tokens.html:81
+msgid "Revoking stops that instance from syncing. This cannot be undone."
+msgstr "撤销后该实例将无法同步。此操作无法撤销。"
+
+#: templates/sync_tokens.html:84
+msgid "Revoke"
+msgstr "撤销"
+
+#: templates/sync_tokens.html:94
+msgid "No sync tokens yet."
+msgstr "尚无同步令牌。"
+
+#: templates/sync_tokens.html:95
+msgid "Create one for each instance you want to sync to this server."
+msgstr "为每个要同步到此服务器的实例创建一个令牌。"
+
+#: templates/sync_tokens.html:102
 msgid "Sync with a server"
 msgstr "与服务器同步"
 
+#: templates/sync_tokens.html:104
 msgid "Connect this Nova instance to a server to download or sync your data."
 msgstr "将此 Nova 实例连接到服务器以下载或同步你的数据。"
 
+#: templates/sync_tokens.html:109
 msgid "Syncing…"
 msgstr "同步中…"
 
+#: templates/sync_tokens.html:116 templates/sync_tokens.html:235
+#: templates/sync_tokens.html:241
 msgid "Download from server"
 msgstr "从服务器下载"
 
+#: templates/sync_tokens.html:119
 msgid "Server records"
 msgstr "服务器记录"
 
+#: templates/sync_tokens.html:123
 msgid "Local records"
 msgstr "本地记录"
 
-msgid "Unsynced local changes"
-msgstr "未同步的本地更改"
-
-msgid "Files to download"
-msgstr "要下载的文件"
-
-msgid "Files that will be moved aside"
-msgstr "将被移开的文件"
-
-msgid "Sync summary"
-msgstr "同步摘要"
-
-msgid "Up"
-msgstr "上传"
-
-msgid "Down"
-msgstr "下载"
-
-msgid "Abort"
-msgstr "中止"
-
-msgid "This sync will delete a large number of records."
-msgstr "此同步将删除大量记录。"
-
-msgid "Connected to"
-msgstr "已连接到"
-
-msgid "Last synced"
-msgstr "上次同步"
-
-msgid "Needs download"
-msgstr "需要下载"
-
-#: templates/sync_tokens.html:125
+#: templates/sync_tokens.html:127
 msgid "file"
 msgid_plural "files"
 msgstr[0] "个文件"
 
-#: templates/sync_tokens.html:135
+#: templates/sync_tokens.html:131
+msgid "Files that will be moved aside"
+msgstr "将被移开的文件"
+
+#: templates/sync_tokens.html:137
 msgid ""
 "All data on this computer will be replaced by the server's data (a backup"
 " is taken first)."
 msgstr "此计算机上的所有数据将被服务器上的数据替换（会先创建备份）。"
 
-#: templates/sync_tokens.html:156 templates/sync_tokens.html:162
+#: templates/sync_tokens.html:139
+msgid "Unsynced local changes"
+msgstr "未同步的本地更改"
+
+#: templates/sync_tokens.html:145
+msgid "Type REPLACE to continue"
+msgstr "输入 REPLACE 以继续"
+
+#: templates/sync_tokens.html:150 templates/sync_tokens.html:197
+#: templates/sync_tokens.html:360
+msgid "Abort"
+msgstr "中止"
+
+#: templates/sync_tokens.html:155
+msgid "Sync summary"
+msgstr "同步摘要"
+
+#: templates/sync_tokens.html:158
+msgid "Up"
+msgstr "上传"
+
+#: templates/sync_tokens.html:159 templates/sync_tokens.html:165
 msgid "new"
 msgstr "新增"
 
-#: templates/sync_tokens.html:157 templates/sync_tokens.html:163
+#: templates/sync_tokens.html:160 templates/sync_tokens.html:166
 msgid "changed"
 msgstr "已更改"
 
-#: templates/sync_tokens.html:158 templates/sync_tokens.html:164
+#: templates/sync_tokens.html:161 templates/sync_tokens.html:167
 #, python-format
 msgid "up to %(n)s deleted"
 msgstr "最多删除 %(n)s 个"
 
-#: templates/sync_tokens.html:158 templates/sync_tokens.html:164
+#: templates/sync_tokens.html:161 templates/sync_tokens.html:167
 msgid "deleted"
 msgstr "已删除"
 
-#: templates/sync_tokens.html:168
-msgid "Files"
-msgstr "文件"
+#: templates/sync_tokens.html:164
+msgid "Down"
+msgstr "下载"
 
-#: templates/sync_tokens.html:168
-msgid "to upload"
-msgstr "待上传"
-
-#: templates/sync_tokens.html:168
-msgid "to download"
-msgstr "待下载"
-
-msgid "Sync now"
-msgstr "立即同步"
-
-msgid "Disconnect"
-msgstr "断开连接"
-
-msgid "Disconnect from this server?"
-msgstr "与此服务器断开连接？"
-
-msgid "Server URL"
-msgstr "服务器 URL"
-
-msgid "Sync token"
-msgstr "同步令牌"
-
-msgid "Connect"
-msgstr "连接"
-
-msgid "Enter the server URL and a sync token created there."
-msgstr "输入服务器 URL 和在那里创建的同步令牌。"
-
-#: templates/sync_tokens.html:142
-msgid "Type REPLACE to continue"
-msgstr "输入 REPLACE 以继续"
-
-#: templates/sync_tokens.html:196
-msgid "Download incomplete — run Sync now to finish"
-msgstr "下载未完成 — 请运行“立即同步”以完成。"
-
-#, python-format
-msgid "Sync complete: %(sent)s sent, %(received)s received"
-msgstr "同步完成：已发送 %(sent)s 条，已接收 %(received)s 条"
-
-#, python-format
-msgid "Sync complete: %(sent)s sent, %(received)s received · %(files)s"
-msgstr "同步完成：已发送 %(sent)s 条，已接收 %(received)s 条 · %(files)s"
-
-#, python-format
-msgid "Download complete: %(records)s, %(files)s"
-msgstr "下载完成：%(records)s，%(files)s"
-
-#, python-format
-msgid "%(num)s record"
-msgid_plural "%(num)s records"
-msgstr[0] "%(num)s 条记录"
-
-#, python-format
-msgid "%(num)s file"
-msgid_plural "%(num)s files"
-msgstr[0] "%(num)s 个文件"
-
-msgid "Everything is up to date"
-msgstr "所有内容均为最新"
-
-msgid "none to transfer"
-msgstr "没有需要传输的内容"
-
-msgid "This form expired. Please try again."
-msgstr "此表单已过期，请重试。"
-
-msgid "This server doesn't support sync — it needs a newer Nova version."
-msgstr "此服务器不支持同步 — 它需要更新版本的 Nova。"
-
-msgid "The server already has this file."
-msgstr "服务器已有此文件。"
-
-#, python-format
-msgid "Project \"%(name)s\" was not synced: its ID is already used by another account on this computer."
-msgstr "项目“%(name)s”未同步：其 ID 已被这台电脑上的另一个账户使用。"
-
-#, python-format
-msgid "Project \"%(name)s\" was not synced: its ID is already used by another account on the server."
-msgstr "项目“%(name)s”未同步：其 ID 已被服务器上的另一个账户使用。"
-
-#, python-format
-msgid "A session's link to project \"%(name)s\" was not synced: that project is not part of this account."
-msgstr "会话与项目“%(name)s”的关联未同步：该项目不属于此账户。"
-
-#, python-format
-msgid "\"%(name)s\": file missing on the server and could not be safely restored."
-msgstr "“%(name)s”：服务器上缺少该文件，无法安全恢复。"
-
-#, python-format
-msgid "%(name)s — this computer's version kept"
-msgstr "%(name)s — 保留这台电脑的版本"
-
-#, python-format
-msgid "%(name)s — server version kept"
-msgstr "%(name)s — 保留服务器的版本"
-
-#, python-format
-msgid "%(num)s file could not be restored"
-msgid_plural "%(num)s files could not be restored"
-msgstr[0] "%(num)s 个文件无法恢复"
-
+#: templates/sync_tokens.html:171
 msgid "Changed on both sides"
 msgstr "两边都有更改"
 
+#: templates/sync_tokens.html:177
 #, python-format
 msgid "and %(n)s more"
 msgstr "以及另外 %(n)s 项"
+
+#: templates/sync_tokens.html:186 templates/sync_tokens.html:188
+msgid "Files"
+msgstr "文件"
+
+#: templates/sync_tokens.html:186
+msgid "none to transfer"
+msgstr "没有需要传输的内容"
+
+#: templates/sync_tokens.html:188
+msgid "to upload"
+msgstr "待上传"
+
+#: templates/sync_tokens.html:188
+msgid "to download"
+msgstr "待下载"
+
+#: templates/sync_tokens.html:214
+msgid "Connected to"
+msgstr "已连接到"
+
+#: templates/sync_tokens.html:218
+msgid "Last synced"
+msgstr "上次同步"
+
+#: templates/sync_tokens.html:220
+msgid "Download incomplete — run Sync now to finish"
+msgstr "下载未完成 — 请运行“立即同步”以完成。"
+
+#: templates/sync_tokens.html:222
+msgid "Needs download"
+msgstr "需要下载"
+
+#: templates/sync_tokens.html:228
+msgid "Disconnect from this server?"
+msgstr "与此服务器断开连接？"
+
+#: templates/sync_tokens.html:230
+msgid "Disconnect"
+msgstr "断开连接"
+
+#: templates/sync_tokens.html:237 templates/sync_tokens.html:245
+msgid "Sync now"
+msgstr "立即同步"
+
+#: templates/sync_tokens.html:255
+msgid "Server URL"
+msgstr "服务器 URL"
+
+#: templates/sync_tokens.html:259
+msgid "Sync token"
+msgstr "同步令牌"
+
+#: templates/sync_tokens.html:262
+msgid "Connect"
+msgstr "连接"
+
+#: templates/sync_tokens.html:267
+msgid "Enter the server URL and a sync token created there."
+msgstr "输入服务器 URL 和在那里创建的同步令牌。"
+
+#: templates/sync_tokens.html:359
+msgid "This sync will delete a large number of records."
+msgstr "此同步将删除大量记录。"
 
 #~ msgid "Refresh Suggestions"
 #~ msgstr "刷新建议"
@@ -8079,4 +8177,13 @@ msgstr "以及另外 %(n)s 项"
 
 #~ msgid "Size ("
 #~ msgstr "尺寸（"
+
+#~ msgid "Nova – Sync Tokens"
+#~ msgstr "Nova – 同步令牌"
+
+#~ msgid "Sync Tokens"
+#~ msgstr "同步令牌"
+
+#~ msgid "Files to download"
+#~ msgstr "要下载的文件"
 

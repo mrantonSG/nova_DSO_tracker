@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-03 12:53+0800\n"
+"POT-Creation-Date: 2026-11-11 22:12+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -64,7 +64,7 @@ msgstr "Enfoque automático fallido"
 msgid "Log parsed but no structured data found."
 msgstr "Se ha analizado el registro pero no se han encontrado datos estructurados."
 
-#: nova/blueprints/admin.py:20 nova/blueprints/tools.py:1399
+#: nova/blueprints/admin.py:20 nova/blueprints/tools.py:1490
 msgid "Not authorized."
 msgstr "No autorizado."
 
@@ -92,8 +92,8 @@ msgstr "Usuario '%(username)s' creado con éxito."
 
 #: nova/blueprints/admin.py:80 nova/blueprints/admin.py:101
 #: nova/blueprints/admin.py:122 nova/blueprints/mobile.py:109
-#: nova/blueprints/mobile.py:507 nova/blueprints/tools.py:503
-#: nova/blueprints/tools.py:535 nova/blueprints/tools.py:997
+#: nova/blueprints/mobile.py:507 nova/blueprints/tools.py:511
+#: nova/blueprints/tools.py:543 nova/blueprints/tools.py:1005
 msgid "User not found."
 msgstr "Usuario no encontrado."
 
@@ -130,136 +130,136 @@ msgstr ""
 "Usuario eliminado, pero algunos datos no se pudieron eliminar. Compruebe "
 "el registro del servidor."
 
-#: nova/blueprints/api.py:208
+#: nova/blueprints/api.py:209
 msgid "Object not found"
 msgstr "Objeto no encontrado"
 
-#: nova/blueprints/api.py:597
+#: nova/blueprints/api.py:613
 #, python-format
 msgid "<p>Error reading help file: %(error)s</p>"
 msgstr "<p>Error al leer archivo de ayuda: %(error)s</p>"
 
-#: nova/blueprints/api.py:1062 nova/blueprints/core.py:1262
-#: nova/blueprints/core.py:1310 templates/base.html:188
+#: nova/blueprints/api.py:1078 nova/blueprints/core.py:1277
+#: nova/blueprints/core.py:1325 templates/base.html:188
 #: templates/graph_view.html:279 templates/mobile_add_object.html:58
 msgid "SIMBAD is currently unavailable. Please try again later."
 msgstr "SIMBAD no está disponible en este momento. Inténtalo de nuevo más tarde."
 
-#: nova/blueprints/api.py:1671
+#: nova/blueprints/api.py:1687
 msgid "No file uploaded"
 msgstr "No se ha cargado ningún archivo"
 
-#: nova/blueprints/api.py:1675
+#: nova/blueprints/api.py:1691
 msgid "Empty filename"
 msgstr "Nombre de archivo vacío"
 
-#: nova/blueprints/api.py:1682
+#: nova/blueprints/api.py:1698
 msgid "File is too large. Maximum size is 10 MB."
 msgstr "El archivo es demasiado grande. El tamaño máximo es de 10 MB."
 
-#: nova/blueprints/api.py:1725 nova/blueprints/api.py:3406
+#: nova/blueprints/api.py:1741 nova/blueprints/api.py:3422
 msgid "User not found"
 msgstr "Usuario no encontrado"
 
-#: nova/blueprints/api.py:1729
+#: nova/blueprints/api.py:1745
 msgid "Session not found"
 msgstr "Sesión no encontrada"
 
-#: nova/blueprints/api.py:3100
+#: nova/blueprints/api.py:3116
 msgid "Object data not found or invalid."
 msgstr "Datos del objeto no encontrados o no válidos."
 
-#: nova/blueprints/api.py:3104
+#: nova/blueprints/api.py:3120
 msgid "RA/DEC missing for object."
 msgstr "Falta RA/DEC para el objeto."
 
-#: nova/blueprints/api.py:3109
+#: nova/blueprints/api.py:3125
 msgid "Invalid RA/DEC format for object."
 msgstr "Formato de RA/DEC no válido para el objeto."
 
-#: nova/blueprints/api.py:3272
+#: nova/blueprints/api.py:3288
 msgid "Could not generate time series for plot."
 msgstr "No se pudo generar la serie temporal para el gráfico."
 
-#: nova/blueprints/api.py:3370
+#: nova/blueprints/api.py:3386
 msgid "Location not configured"
 msgstr "Ubicación no configurada"
 
-#: nova/blueprints/api.py:4347
+#: nova/blueprints/api.py:4363
 msgid "Missing or invalid lat/lon parameters"
 msgstr "Parámetros lat/lon faltantes o no válidos"
 
-#: nova/blueprints/api.py:4356
+#: nova/blueprints/api.py:4372
 msgid "Invalid datetime format"
 msgstr "Formato de fecha y hora no válido."
 
-#: nova/blueprints/api.py:4376
+#: nova/blueprints/api.py:4392
 msgid "Calibration star catalog not found"
 msgstr "No se encontró el catálogo de estrellas de calibración."
 
-#: nova/blueprints/core.py:238
+#: nova/blueprints/core.py:244
 msgid "Logged out successfully!"
 msgstr "¡Sesión cerrada con éxito!"
 
-#: nova/blueprints/core.py:277
+#: nova/blueprints/core.py:283
 #, python-format
 msgid "Language '%(lang)s' is not supported."
 msgstr "El idioma '%(lang)s' no está soportado."
 
-#: nova/blueprints/core.py:337
+#: nova/blueprints/core.py:343
 msgid "Logged in successfully!"
 msgstr "¡Sesión iniciada con éxito!"
 
-#: nova/blueprints/core.py:362
+#: nova/blueprints/core.py:368
 msgid "Invalid username or password."
 msgstr "Nombre de usuario o contraseña no válidos."
 
-#: nova/blueprints/core.py:370
+#: nova/blueprints/core.py:376
 msgid "Single Sign-On is not applicable in single-user mode."
 msgstr ""
 "El inicio de sesión único (SSO) no es aplicable en modo de un solo "
 "usuario."
 
-#: nova/blueprints/core.py:378
+#: nova/blueprints/core.py:384
 msgid "SSO Error: No token provided."
 msgstr "Error de SSO: No se proporcionó ningún token."
 
-#: nova/blueprints/core.py:384
+#: nova/blueprints/core.py:390
 msgid "SSO Error: SSO is not configured on the server."
 msgstr "Error de SSO: SSO no está configurado en el servidor."
 
-#: nova/blueprints/core.py:403
+#: nova/blueprints/core.py:409
 #, python-format
 msgid "Welcome back, %(username)s!"
 msgstr "¡Bienvenido de nuevo, %(username)s!"
 
-#: nova/blueprints/core.py:406
+#: nova/blueprints/core.py:412
 #, python-format
 msgid "SSO Error: User '%(username)s' not found or is disabled in Nova."
 msgstr ""
 "Error de SSO: Usuario '%(username)s' no encontrado o está deshabilitado "
 "en Nova."
 
-#: nova/blueprints/core.py:410
+#: nova/blueprints/core.py:416
 msgid "SSO Error: The login link has expired. Please try again from WordPress."
 msgstr ""
 "Error de SSO: El enlace de inicio de sesión ha expirado. Por favor, "
 "inténtelo de nuevo desde WordPress."
 
-#: nova/blueprints/core.py:413
+#: nova/blueprints/core.py:419
 msgid "SSO Error: Invalid login token."
 msgstr "Error de SSO: Token de inicio de sesión no válido."
 
-#: nova/blueprints/core.py:630
+#: nova/blueprints/core.py:638
 #, python-format
 msgid "Could not find user '%(username)s' in the database."
 msgstr "No se pudo encontrar el usuario '%(username)s' en la base de datos."
 
-#: nova/blueprints/core.py:719
+#: nova/blueprints/core.py:727
 msgid "Warning: Horizon Mask was invalid and was ignored."
 msgstr "Advertencia: La máscara de horizonte no era válida y se ignoró."
 
-#: nova/blueprints/core.py:749
+#: nova/blueprints/core.py:757
 msgid ""
 "Cannot delete your last location. You must have at least one location "
 "configured."
@@ -267,7 +267,7 @@ msgstr ""
 "No se puede eliminar su última ubicación. Debe tener al menos una "
 "ubicación configurada."
 
-#: nova/blueprints/core.py:754
+#: nova/blueprints/core.py:762
 msgid ""
 "Cannot deactivate your only active location. You must keep at least one "
 "active location."
@@ -275,19 +275,19 @@ msgstr ""
 "No se puede desactivar su única ubicación activa. Debe mantener al menos "
 "una ubicación activa."
 
-#: nova/blueprints/core.py:800
+#: nova/blueprints/core.py:808
 #, python-format
 msgid "Warning: Horizon Mask for '%(location_name)s' was invalid and ignored."
 msgstr ""
 "Advertencia: La máscara de horizonte para '%(location_name)s' no era "
 "válida y se ignoró."
 
-#: nova/blueprints/core.py:883
+#: nova/blueprints/core.py:898
 #, python-format
 msgid "%(message)s updated successfully."
 msgstr "%(message)s actualizado con éxito."
 
-#: nova/blueprints/core.py:885
+#: nova/blueprints/core.py:900
 #, python-format
 msgid ""
 "Cannot delete object '%(name)s': it is still used by %(sessions)d "
@@ -296,106 +296,106 @@ msgstr ""
 "No se puede eliminar el objeto '%(name)s': todavía lo usan %(sessions)d "
 "sesión(es) y %(projects)d proyecto(s)."
 
-#: nova/blueprints/core.py:889
+#: nova/blueprints/core.py:904
 #, python-format
 msgid "Cannot delete location '%(name)s': it is used by %(sessions)d session(s)."
 msgstr ""
 "No se puede eliminar la ubicación '%(name)s': la usan %(sessions)d "
 "sesión(es)."
 
-#: nova/blueprints/core.py:968
+#: nova/blueprints/core.py:983
 #, python-format
 msgid "A database error occurred: %(error)s"
 msgstr "Ocurrió un error de base de datos: %(error)s"
 
-#: nova/blueprints/core.py:1182
+#: nova/blueprints/core.py:1197
 msgid "Label required"
 msgstr "Etiqueta requerida"
 
-#: nova/blueprints/core.py:1192
+#: nova/blueprints/core.py:1207
 msgid "Filter already exists"
 msgstr "El filtro ya existe"
 
-#: nova/blueprints/core.py:1209
+#: nova/blueprints/core.py:1224
 msgid "Filter not found"
 msgstr "Filtro no encontrado"
 
-#: nova/blueprints/core.py:1238 nova/blueprints/core.py:1284
+#: nova/blueprints/core.py:1253 nova/blueprints/core.py:1299
 msgid "No object specified."
 msgstr "No se especificó ningún objeto."
 
-#: nova/blueprints/core.py:1253
+#: nova/blueprints/core.py:1268
 msgid "This object is already in your library."
 msgstr "Este objeto ya está en su biblioteca."
 
-#: nova/blueprints/core.py:1271 nova/blueprints/core.py:1917
-#: nova/blueprints/core.py:1944 templates/mobile_add_object.html:57
+#: nova/blueprints/core.py:1286 nova/blueprints/core.py:1932
+#: nova/blueprints/core.py:1959 templates/mobile_add_object.html:57
 msgid "Object not found."
 msgstr "Objeto no encontrado."
 
-#: nova/blueprints/core.py:1590
+#: nova/blueprints/core.py:1605
 msgid "Fetched and saved missing object details."
 msgstr "Detalles del objeto faltantes recuperados y guardados."
 
-#: nova/blueprints/core.py:1592
+#: nova/blueprints/core.py:1607
 msgid "No missing data found or no updates needed."
 msgstr "No se encontraron datos faltantes o no se necesitan actualizaciones."
 
-#: nova/blueprints/core.py:1596
+#: nova/blueprints/core.py:1611
 #, python-format
 msgid "An error occurred during data fetching: %(error)s"
 msgstr "Ocurrió un error durante la recuperación de datos: %(error)s"
 
-#: nova/blueprints/core.py:2050
+#: nova/blueprints/core.py:2176
 msgid "Please log in to view object details."
 msgstr "Por favor, inicie sesión para ver los detalles del objeto."
 
-#: nova/blueprints/core.py:2065
+#: nova/blueprints/core.py:2191
 #, python-format
 msgid "User '%(username)s' not found."
 msgstr "Usuario '%(username)s' no encontrado."
 
-#: nova/blueprints/core.py:2081
+#: nova/blueprints/core.py:2207
 #, python-format
 msgid "Requested location '%(location_name)s' not found, using default."
 msgstr ""
 "Ubicación solicitada '%(location_name)s' no encontrada, usando la "
 "predeterminada."
 
-#: nova/blueprints/core.py:2099
+#: nova/blueprints/core.py:2225
 msgid "Error: No valid location configured or selected for this user."
 msgstr ""
 "Error: No hay una ubicación válida configurada o seleccionada para este "
 "usuario."
 
-#: nova/blueprints/core.py:2117
+#: nova/blueprints/core.py:2243
 #, python-format
 msgid "Object '%(object_name)s' not found in your configuration."
 msgstr "Objeto '%(object_name)s' no encontrado en su configuración."
 
-#: nova/blueprints/core.py:2392
+#: nova/blueprints/core.py:2518
 msgid "Invalid date components provided, defaulting to current date."
 msgstr "Componentes de fecha no válidos proporcionados, usando la fecha actual."
 
-#: nova/blueprints/core.py:2596
+#: nova/blueprints/core.py:2733
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
 msgstr "Ocurrió un error al cargar los detalles de %(object_name)s."
 
-#: nova/blueprints/journal.py:119 nova/blueprints/journal.py:478
+#: nova/blueprints/journal.py:121 nova/blueprints/journal.py:499
 #: nova/blueprints/mobile.py:549
 msgid "Invalid date format."
 msgstr "Formato de fecha no válido."
 
-#: nova/blueprints/journal.py:310 nova/blueprints/journal.py:711
+#: nova/blueprints/journal.py:312 nova/blueprints/journal.py:737
 msgid "Session image is too large. Maximum size is 5 MB."
 msgstr "La imagen de la sesión es demasiado grande. El tamaño máximo es de 5 MB."
 
-#: nova/blueprints/journal.py:320 nova/blueprints/journal.py:721
+#: nova/blueprints/journal.py:322 nova/blueprints/journal.py:747
 msgid "Invalid session image filename."
 msgstr "Nombre de archivo de imagen de sesión no válido."
 
-#: nova/blueprints/journal.py:360 nova/blueprints/journal.py:741
+#: nova/blueprints/journal.py:366 nova/blueprints/journal.py:772
 msgid ""
 "This is the Chinese-language version of the ASIAir log. Please upload the"
 " standard English log file instead."
@@ -403,106 +403,112 @@ msgstr ""
 "Esta es la versión en chino del registro de ASIAir. Por favor, sube el "
 "archivo de registro en inglés estándar."
 
-#: nova/blueprints/journal.py:362 nova/blueprints/journal.py:743
+#: nova/blueprints/journal.py:368 nova/blueprints/journal.py:774
 msgid "ASIAir log file must be a .txt file."
 msgstr "El archivo de registro ASIAir debe ser un archivo .txt."
 
-#: nova/blueprints/journal.py:364 nova/blueprints/journal.py:745
+#: nova/blueprints/journal.py:370 nova/blueprints/journal.py:776
 msgid "ASIAir log file is too large. Maximum size is 10 MB."
 msgstr ""
 "El archivo de registro ASIAir es demasiado grande. El tamaño máximo es de"
 " 10 MB."
 
-#: nova/blueprints/journal.py:376 nova/blueprints/journal.py:761
+#: nova/blueprints/journal.py:375 nova/blueprints/journal.py:393
+#: nova/blueprints/journal.py:411 nova/blueprints/journal.py:780
+#: nova/blueprints/journal.py:802 nova/blueprints/journal.py:828
+msgid "The uploaded log file is empty."
+msgstr "El archivo de registro cargado está vacío."
+
+#: nova/blueprints/journal.py:386 nova/blueprints/journal.py:796
 msgid "PHD2 log file must be a .txt file."
 msgstr "El archivo de registro PHD2 debe ser un archivo .txt."
 
-#: nova/blueprints/journal.py:378 nova/blueprints/journal.py:763
+#: nova/blueprints/journal.py:388 nova/blueprints/journal.py:798
 msgid "PHD2 log file is too large. Maximum size is 10 MB."
 msgstr ""
 "El archivo de registro PHD2 es demasiado grande. El tamaño máximo es de "
 "10 MB."
 
-#: nova/blueprints/journal.py:390 nova/blueprints/journal.py:783
+#: nova/blueprints/journal.py:404 nova/blueprints/journal.py:822
 msgid "NINA log file must be a .log file."
 msgstr "El archivo de registro NINA debe ser un archivo .log."
 
-#: nova/blueprints/journal.py:392 nova/blueprints/journal.py:785
+#: nova/blueprints/journal.py:406 nova/blueprints/journal.py:824
 msgid "NINA log file is too large. Maximum size is 10 MB."
 msgstr ""
 "El archivo de registro NINA es demasiado grande. El tamaño máximo es de "
 "10 MB."
 
-#: nova/blueprints/journal.py:422 nova/blueprints/mobile.py:708
+#: nova/blueprints/journal.py:443 nova/blueprints/mobile.py:716
 msgid "New journal entry added successfully!"
 msgstr "¡Nueva entrada de diario añadida con éxito!"
 
-#: nova/blueprints/journal.py:448
+#: nova/blueprints/journal.py:469
 msgid "To add a new session, please select an object first."
 msgstr "Para añadir una nueva sesión, seleccione primero un objeto."
 
-#: nova/blueprints/journal.py:462
+#: nova/blueprints/journal.py:483
 msgid "Journal entry not found or you do not have permission to edit it."
 msgstr "Entrada de diario no encontrada o no tiene permiso para editarla."
 
-#: nova/blueprints/journal.py:792
+#: nova/blueprints/journal.py:835
 msgid "NINA log imported successfully."
 msgstr "Registro NINA importado con éxito."
 
-#: nova/blueprints/journal.py:822
+#: nova/blueprints/journal.py:866
 msgid "Journal entry updated successfully!"
 msgstr "¡Entrada de diario actualizada con éxito!"
 
-#: nova/blueprints/journal.py:845
+#: nova/blueprints/journal.py:889
 msgid "Cannot edit session: associated object name is missing."
 msgstr "No se puede editar la sesión: falta el nombre del objeto asociado."
 
-#: nova/blueprints/journal.py:870
+#: nova/blueprints/journal.py:914
 msgid "Project name is required."
 msgstr "El nombre del proyecto es obligatorio."
 
-#: nova/blueprints/journal.py:876
+#: nova/blueprints/journal.py:920
 #, python-format
 msgid "A project named '%(project_name)s' already exists."
 msgstr "Ya existe un proyecto llamado '%(project_name)s'."
 
-#: nova/blueprints/journal.py:895
+#: nova/blueprints/journal.py:939
 #, python-format
 msgid "Project '%(project_name)s' created successfully."
 msgstr "Proyecto '%(project_name)s' creado con éxito."
 
-#: nova/blueprints/journal.py:911
+#: nova/blueprints/journal.py:955
 #, python-format
 msgid "Error creating project: %(error)s"
 msgstr "Error al crear proyecto: %(error)s"
 
-#: nova/blueprints/journal.py:926
+#: nova/blueprints/journal.py:970
 msgid "Session to duplicate not found."
 msgstr "Sesión a duplicar no encontrada."
 
-#: nova/blueprints/journal.py:954
+#: nova/blueprints/journal.py:998
 msgid "Session duplicated successfully."
 msgstr "Sesión duplicada con éxito."
 
-#: nova/blueprints/journal.py:965
+#: nova/blueprints/journal.py:1009
 #, python-format
 msgid "Error duplicating session: %(error)s"
 msgstr "Error al duplicar sesión: %(error)s"
 
-#: nova/blueprints/journal.py:993
+#: nova/blueprints/journal.py:1039
 msgid "Journal entry deleted successfully."
 msgstr "Entrada de diario eliminada con éxito."
 
-#: nova/blueprints/journal.py:999
+#: nova/blueprints/journal.py:1045
 msgid "Journal entry not found or you do not have permission to delete it."
 msgstr "Entrada de diario no encontrada o no tiene permiso para eliminarla."
 
-#: nova/blueprints/journal.py:1016 nova/blueprints/journal.py:1202
+#: nova/blueprints/journal.py:1062 nova/blueprints/journal.py:1248
 msgid "Session not found."
 msgstr "Sesión no encontrada."
 
-#: nova/blueprints/journal.py:1210 nova/blueprints/projects.py:66
-#: nova/blueprints/projects.py:392
+#: nova/blueprints/journal.py:1256 nova/blueprints/projects.py:67
+#: nova/blueprints/projects.py:401
 msgid "Project not found."
 msgstr "Proyecto no encontrado."
 
@@ -519,102 +525,363 @@ msgstr "Ubicación no encontrada."
 msgid "Object coordinates not available."
 msgstr "Coordenadas del objeto no disponibles."
 
-#: nova/blueprints/mobile.py:724
+#: nova/blueprints/mobile.py:732
 #, python-format
 msgid "Error saving journal entry: %(error)s"
 msgstr "Error al guardar entrada de diario: %(error)s"
 
-#: nova/blueprints/projects.py:109
+#: nova/blueprints/projects.py:115
 msgid "Error deleting old image."
 msgstr "Error al eliminar la imagen antigua."
 
-#: nova/blueprints/projects.py:137
+#: nova/blueprints/projects.py:146
 msgid "Project updated successfully."
 msgstr "Proyecto actualizado con éxito."
 
-#: nova/blueprints/projects.py:158
+#: nova/blueprints/projects.py:167
 #, python-format
 msgid "An error occurred: %(error)s"
 msgstr "Ocurrió un error: %(error)s"
 
-#: nova/blueprints/projects.py:402
+#: nova/blueprints/projects.py:421
 #, python-format
 msgid "Project '%(project_name)s' deleted. Sessions are now standalone."
 msgstr ""
 "Proyecto '%(project_name)s' eliminado. Las sesiones ahora son "
 "independientes."
 
-#: nova/blueprints/projects.py:410
+#: nova/blueprints/projects.py:429
 #, python-format
 msgid "Error deleting project: %(error)s"
 msgstr "Error al eliminar proyecto: %(error)s"
 
-#: nova/blueprints/tools.py:122
+#: nova/blueprints/sync_tokens.py:78
+msgid "This form expired. Please try again."
+msgstr "Este formulario ha caducado. Inténtalo de nuevo."
+
+#: nova/blueprints/sync_tokens.py:126
+msgid "This app and the server speak different sync versions. Update one of them."
+msgstr ""
+"Esta app y el servidor usan versiones de sincronización distintas. "
+"Actualiza uno de ellos."
+
+#: nova/blueprints/sync_tokens.py:128
+msgid "This server doesn't support sync — it needs a newer Nova version."
+msgstr ""
+"Este servidor no admite la sincronización — necesita una versión más "
+"reciente de Nova."
+
+#: nova/blueprints/sync_tokens.py:130
+msgid "The server already has this file."
+msgstr "El servidor ya tiene este archivo."
+
+#: nova/blueprints/sync_tokens.py:132
+msgid "The sync token was rejected."
+msgstr "El token de sincronización fue rechazado."
+
+#: nova/blueprints/sync_tokens.py:134
+msgid "This token has been revoked."
+msgstr "Este token ha sido revocado."
+
+#: nova/blueprints/sync_tokens.py:136
+msgid "The guest account can't sync."
+msgstr "La cuenta de invitado no puede sincronizar."
+
+#: nova/blueprints/sync_tokens.py:138 nova/blueprints/sync_tokens.py:473
+#: nova/blueprints/sync_tokens.py:491 templates/sync_tokens.html:266
+msgid "Not connected to a server."
+msgstr "No conectado a un servidor."
+
+#: nova/blueprints/sync_tokens.py:140 templates/sync_tokens.html:237
+msgid "Download from the server first."
+msgstr "Descarga primero desde el servidor."
+
+#: nova/blueprints/sync_tokens.py:142
+msgid "This server has no data yet — import your YAML files there first."
+msgstr "Este servidor aún no tiene datos: importa primero allí tus archivos YAML."
+
+#: nova/blueprints/sync_tokens.py:144
+msgid "Local data was replaced from a YAML import."
+msgstr "Los datos locales se reemplazaron mediante una importación YAML."
+
+#: nova/blueprints/sync_tokens.py:146
+msgid "The server's data was replaced from a YAML import."
+msgstr "Los datos del servidor se reemplazaron mediante una importación YAML."
+
+#: nova/blueprints/sync_tokens.py:148
+msgid "A sync is already running."
+msgstr "Ya hay una sincronización en curso."
+
+#: nova/blueprints/sync_tokens.py:150
+msgid "The data changed during sync — retrying."
+msgstr "Los datos cambiaron durante la sincronización: reintentando."
+
+#: nova/blueprints/sync_tokens.py:152
+#, python-format
+msgid "This sync would delete %(deletions)s of %(records)s records."
+msgstr "Esta sincronización eliminaría %(deletions)s de %(records)s registros."
+
+#: nova/blueprints/sync_tokens.py:156
+#, python-format
+msgid "Your computer's clock is off by %(minutes)s minutes."
+msgstr "El reloj de tu equipo está desviado %(minutes)s minutos."
+
+#: nova/blueprints/sync_tokens.py:158
+msgid "The server sent an unreadable response."
+msgstr "El servidor envió una respuesta ilegible."
+
+#: nova/blueprints/sync_tokens.py:160
+msgid "This server uses data shapes this app doesn't know."
+msgstr "Este servidor usa estructuras de datos que esta app no reconoce."
+
+#: nova/blueprints/sync_tokens.py:162
+msgid "The server sent a record this app can't import."
+msgstr "El servidor envió un registro que esta app no puede importar."
+
+#: nova/blueprints/sync_tokens.py:164
+msgid "A session record can't be matched."
+msgstr "No se pudo emparejar un registro de sesión."
+
+#: nova/blueprints/sync_tokens.py:166
+msgid "A file reference in the sync is invalid."
+msgstr "Una referencia de archivo en la sincronización no es válida."
+
+#: nova/blueprints/sync_tokens.py:168
+msgid "A file is too large to sync."
+msgstr "Un archivo es demasiado grande para sincronizar."
+
+#: nova/blueprints/sync_tokens.py:170
+msgid "A file failed its checksum."
+msgstr "Falló la suma de comprobación de un archivo."
+
+#: nova/blueprints/sync_tokens.py:172
+msgid "Not enough disk space."
+msgstr "No hay suficiente espacio en disco."
+
+#: nova/blueprints/sync_tokens.py:174 nova/blueprints/sync_tokens.py:433
+msgid "Could not reach the server."
+msgstr "No se pudo conectar con el servidor."
+
+#: nova/blueprints/sync_tokens.py:176
+msgid "The sync failed unexpectedly."
+msgstr "La sincronización falló de forma inesperada."
+
+#: nova/blueprints/sync_tokens.py:178
+msgid "The last sync was interrupted. Run Sync now to finish."
+msgstr ""
+"La última sincronización se interrumpió. Ejecuta «Sincronizar ahora» para"
+" terminarla."
+
+#: nova/blueprints/sync_tokens.py:180
+msgid "Type REPLACE to continue."
+msgstr "Escribe REPLACE para continuar."
+
+#: nova/blueprints/sync_tokens.py:181
+#, python-format
+msgid "Sync failed (%(code)s)."
+msgstr "Error de sincronización (%(code)s)."
+
+#: nova/blueprints/sync_tokens.py:194
+#, python-format
+msgid ""
+"A session's link to project \"%(name)s\" was not synced: that project is "
+"not part of this account."
+msgstr ""
+"El vínculo de una sesión con el proyecto «%(name)s» no se sincronizó: ese"
+" proyecto no forma parte de esta cuenta."
+
+#: nova/blueprints/sync_tokens.py:197
+#, python-format
+msgid ""
+"Project \"%(name)s\" was not synced: its ID is already used by another "
+"account on this computer."
+msgstr ""
+"El proyecto «%(name)s» no se sincronizó: su ID ya lo usa otra cuenta en "
+"este equipo."
+
+#: nova/blueprints/sync_tokens.py:199
+#, python-format
+msgid ""
+"Project \"%(name)s\" was not synced: its ID is already used by another "
+"account on the server."
+msgstr ""
+"El proyecto «%(name)s» no se sincronizó: su ID ya lo usa otra cuenta en "
+"el servidor."
+
+#: nova/blueprints/sync_tokens.py:207
+#, python-format
+msgid "\"%(name)s\": file missing on the server and could not be safely restored."
+msgstr ""
+"«%(name)s»: el archivo no está en el servidor y no se pudo restaurar de "
+"forma segura."
+
+#: nova/blueprints/sync_tokens.py:215
+#, python-format
+msgid "%(name)s — this computer's version kept"
+msgstr "%(name)s — se conserva la versión de este equipo"
+
+#: nova/blueprints/sync_tokens.py:216
+#, python-format
+msgid "%(name)s — server version kept"
+msgstr "%(name)s — se conserva la versión del servidor"
+
+#: nova/blueprints/sync_tokens.py:262
+msgid "Everything is up to date"
+msgstr "Todo está actualizado"
+
+#: nova/blueprints/sync_tokens.py:267
+#, python-format
+msgid "Download complete: %(records)s, %(files)s"
+msgstr "Descarga completa: %(records)s, %(files)s"
+
+#: nova/blueprints/sync_tokens.py:268
+#, python-format
+msgid "%(num)s record"
+msgid_plural "%(num)s records"
+msgstr[0] "%(num)s registro"
+msgstr[1] "%(num)s registros"
+
+#: nova/blueprints/sync_tokens.py:269 nova/blueprints/sync_tokens.py:279
+#, python-format
+msgid "%(num)s file"
+msgid_plural "%(num)s files"
+msgstr[0] "%(num)s archivo"
+msgstr[1] "%(num)s archivos"
+
+#: nova/blueprints/sync_tokens.py:277
+#, python-format
+msgid "Sync complete: %(sent)s sent, %(received)s received · %(files)s"
+msgstr ""
+"Sincronización completa: %(sent)s enviados, %(received)s recibidos · "
+"%(files)s"
+
+#: nova/blueprints/sync_tokens.py:281
+#, python-format
+msgid "Sync complete: %(sent)s sent, %(received)s received"
+msgstr "Sincronización completa: %(sent)s enviados, %(received)s recibidos"
+
+#: nova/blueprints/sync_tokens.py:312
+#, python-format
+msgid "%(num)s file could not be restored"
+msgid_plural "%(num)s files could not be restored"
+msgstr[0] "No se pudo restaurar %(num)s archivo"
+msgstr[1] "No se pudieron restaurar %(num)s archivos"
+
+#: nova/blueprints/sync_tokens.py:361 nova/blueprints/sync_tokens.py:391
+msgid "Not available for the guest account."
+msgstr "No disponible para la cuenta de invitado."
+
+#: nova/blueprints/sync_tokens.py:367
+msgid ""
+"This token was already created. For security it can't be shown again — "
+"revoke it and create a new one if you didn't copy it."
+msgstr ""
+"Este token ya se creó. Por seguridad no se puede volver a mostrar: "
+"revócalo y crea uno nuevo si no lo copiaste."
+
+#: nova/blueprints/sync_tokens.py:374
+msgid "Token label is required."
+msgstr "La etiqueta del token es obligatoria."
+
+#: nova/blueprints/sync_tokens.py:401
+msgid "That token no longer exists."
+msgstr "Ese token ya no existe."
+
+#: nova/blueprints/sync_tokens.py:419
+msgid "Server URL and token are required."
+msgstr "Se requieren la URL del servidor y el token."
+
+#: nova/blueprints/sync_tokens.py:424
+msgid "This URL is not a valid sync server address."
+msgstr "Esta URL no es una dirección de servidor de sincronización válida."
+
+#: nova/blueprints/sync_tokens.py:441
+msgid ""
+"Connected over an insecure connection — the token travels in the clear on"
+" this network."
+msgstr ""
+"Conectado mediante una conexión no segura: el token viaja sin cifrar en "
+"esta red."
+
+#: nova/blueprints/sync_tokens.py:444
+#, python-format
+msgid "Connected to %(account)s."
+msgstr "Conectado a %(account)s."
+
+#: nova/blueprints/sync_tokens.py:460
+msgid "Disconnected."
+msgstr "Desconectado."
+
+#: nova/blueprints/sync_tokens.py:528
+msgid "Sync cancelled."
+msgstr "Sincronización cancelada."
+
+#: nova/blueprints/tools.py:130
 #, python-format
 msgid "Error: Unknown component type '%(component_type)s'."
 msgstr "Error: Tipo de componente desconocido '%(component_type)s'."
 
-#: nova/blueprints/tools.py:143
+#: nova/blueprints/tools.py:151
 #, python-format
 msgid "Component '%(component_name)s' added successfully."
 msgstr "Componente '%(component_name)s' añadido con éxito."
 
-#: nova/blueprints/tools.py:146
+#: nova/blueprints/tools.py:154
 #, python-format
 msgid "Error adding component: %(error)s"
 msgstr "Error al añadir componente: %(error)s"
 
-#: nova/blueprints/tools.py:161
+#: nova/blueprints/tools.py:169
 msgid "Authorization error."
 msgstr "Error de autorización."
 
-#: nova/blueprints/tools.py:183
+#: nova/blueprints/tools.py:191
 #, python-format
 msgid "Component '%(component_name)s' updated successfully."
 msgstr "Componente '%(component_name)s' actualizado con éxito."
 
-#: nova/blueprints/tools.py:186
+#: nova/blueprints/tools.py:194
 #, python-format
 msgid "Error updating component: %(error)s"
 msgstr "Error al actualizar componente: %(error)s"
 
-#: nova/blueprints/tools.py:227 nova/blueprints/tools.py:300
+#: nova/blueprints/tools.py:235 nova/blueprints/tools.py:308
 msgid "Component not found."
 msgstr "Componente no encontrado."
 
-#: nova/blueprints/tools.py:244 nova/blueprints/tools.py:321
+#: nova/blueprints/tools.py:252 nova/blueprints/tools.py:329
 msgid "Rig not found."
 msgstr "Rig no encontrado."
 
-#: nova/blueprints/tools.py:254
+#: nova/blueprints/tools.py:262
 #, python-format
 msgid "Rig '%(rig_name)s' updated successfully."
 msgstr "Rig '%(rig_name)s' actualizado con éxito."
 
-#: nova/blueprints/tools.py:267
+#: nova/blueprints/tools.py:275
 #, python-format
 msgid "Rig '%(rig_name)s' created successfully."
 msgstr "Rig '%(rig_name)s' creado con éxito."
 
-#: nova/blueprints/tools.py:289
+#: nova/blueprints/tools.py:297
 #, python-format
 msgid "Error saving rig: %(error)s"
 msgstr "Error al guardar rig: %(error)s"
 
-#: nova/blueprints/tools.py:303
+#: nova/blueprints/tools.py:311
 msgid "Cannot delete component: It is used in at least one rig."
 msgstr "No se puede eliminar el componente: se usa en al menos un rig."
 
-#: nova/blueprints/tools.py:307
+#: nova/blueprints/tools.py:315
 msgid "Component deleted successfully."
 msgstr "Componente eliminado con éxito."
 
-#: nova/blueprints/tools.py:310
+#: nova/blueprints/tools.py:318
 #, python-format
 msgid "Error deleting component: %(error)s"
 msgstr "Error al eliminar componente: %(error)s"
 
-#: nova/blueprints/tools.py:325
+#: nova/blueprints/tools.py:333
 #, python-format
 msgid ""
 "Cannot delete rig '%(name)s': it is used by %(sessions)d session(s). "
@@ -623,33 +890,33 @@ msgstr ""
 "No se puede eliminar el rig '%(name)s': lo usan %(sessions)d sesión(es). "
 "Desmarque «Activa» para ocultarlo en su lugar."
 
-#: nova/blueprints/tools.py:337
+#: nova/blueprints/tools.py:345
 #, python-format
 msgid "Rig deleted successfully. Deleted %(count)d saved framing(s) that used it."
 msgstr ""
 "Rig eliminado con éxito. Se eliminaron %(count)d encuadre(s) guardado(s) "
 "que lo usaban."
 
-#: nova/blueprints/tools.py:340
+#: nova/blueprints/tools.py:348
 msgid "Rig deleted successfully."
 msgstr "Rig eliminado con éxito."
 
-#: nova/blueprints/tools.py:343
+#: nova/blueprints/tools.py:351
 #, python-format
 msgid "Error deleting rig: %(error)s"
 msgstr "Error al eliminar rig: %(error)s"
 
-#: nova/blueprints/tools.py:523
+#: nova/blueprints/tools.py:531
 #, python-format
 msgid "Error generating config file: %(error)s"
 msgstr "Error al generar archivo de configuración: %(error)s"
 
-#: nova/blueprints/tools.py:555
+#: nova/blueprints/tools.py:563
 #, python-format
 msgid "Error generating journal file: %(error)s"
 msgstr "Error al generar archivo de diario: %(error)s"
 
-#: nova/blueprints/tools.py:562
+#: nova/blueprints/tools.py:570
 #, python-format
 msgid ""
 "Import refused: the file has format version %(found)s, but this version "
@@ -659,13 +926,13 @@ msgstr ""
 "pero esta versión de Nova lee archivos hasta la versión %(known)s. No se "
 "cambió nada."
 
-#: nova/blueprints/tools.py:565 nova/blueprints/tools.py:657
-#: nova/blueprints/tools.py:800
+#: nova/blueprints/tools.py:573 nova/blueprints/tools.py:665
+#: nova/blueprints/tools.py:808
 #, python-format
 msgid "Import failed: %(error)s"
 msgstr "Error al importar: %(error)s"
 
-#: nova/blueprints/tools.py:567 templates/_journal_section.html:2999
+#: nova/blueprints/tools.py:575 templates/_journal_section.html:2999
 #: templates/_project_subtab.html:195 templates/graph_view.html:48
 #: templates/graph_view.html:49 templates/index.html:50
 #: templates/index.html:212 templates/index.html:230
@@ -676,73 +943,73 @@ msgstr "Error al importar: %(error)s"
 msgid "Location"
 msgstr "Ubicación"
 
-#: nova/blueprints/tools.py:567 templates/base.html:267
+#: nova/blueprints/tools.py:575 templates/base.html:267
 #: templates/index.html:146 templates/index.html:207 templates/index.html:245
 msgid "Object"
 msgstr "Objeto"
 
-#: nova/blueprints/tools.py:567
+#: nova/blueprints/tools.py:575
 msgid "Component"
 msgstr "Componente"
 
-#: nova/blueprints/tools.py:568 templates/_journal_section.html:3046
+#: nova/blueprints/tools.py:576 templates/_journal_section.html:3046
 #: templates/graph_view.html:314 templates/index.html:164
 #: templates/mobile_journal_new.html:237 templates/project_report.html:1167
 msgid "Rig"
 msgstr "Rig"
 
-#: nova/blueprints/tools.py:568 templates/mobile_framing_coords.html:2
+#: nova/blueprints/tools.py:576 templates/mobile_framing_coords.html:2
 #: templates/mobile_object_detail.html:527 templates/mobile_outlook.html:183
 #: templates/mobile_up_now.html:895
 msgid "Framing"
 msgstr "Encuadre"
 
-#: nova/blueprints/tools.py:568
+#: nova/blueprints/tools.py:576
 msgid "Saved view"
 msgstr "Vista guardada"
 
-#: nova/blueprints/tools.py:569 templates/_journal_section.html:3002
+#: nova/blueprints/tools.py:577 templates/_journal_section.html:3002
 #: templates/index.html:209 templates/journal_report.html:690
 msgid "Project"
 msgstr "Proyecto"
 
-#: nova/blueprints/tools.py:569
+#: nova/blueprints/tools.py:577
 msgid "Journal session"
 msgstr "Sesión del diario"
 
-#: nova/blueprints/tools.py:569
+#: nova/blueprints/tools.py:577
 msgid "Custom filter"
 msgstr "Filtro personalizado"
 
-#: nova/blueprints/tools.py:572
+#: nova/blueprints/tools.py:580
 msgid "the name is missing"
 msgstr "falta el nombre"
 
-#: nova/blueprints/tools.py:573
+#: nova/blueprints/tools.py:581
 msgid "the ID is missing"
 msgstr "falta el ID"
 
-#: nova/blueprints/tools.py:574
+#: nova/blueprints/tools.py:582
 msgid "the date is missing"
 msgstr "falta la fecha"
 
-#: nova/blueprints/tools.py:575
+#: nova/blueprints/tools.py:583
 msgid "the date is not valid"
 msgstr "la fecha no es válida"
 
-#: nova/blueprints/tools.py:576
+#: nova/blueprints/tools.py:584
 msgid "the settings are missing"
 msgstr "faltan los ajustes"
 
-#: nova/blueprints/tools.py:577
+#: nova/blueprints/tools.py:585
 msgid "a horizon point is not valid"
 msgstr "un punto del horizonte no es válido"
 
-#: nova/blueprints/tools.py:578
+#: nova/blueprints/tools.py:586
 msgid "its record_uid already belongs to another record"
 msgstr "su record_uid ya pertenece a otro registro"
 
-#: nova/blueprints/tools.py:580
+#: nova/blueprints/tools.py:588
 #, python-format
 msgid ""
 "Import refused: %(record)s '%(name)s' could not be imported (%(reason)s)."
@@ -751,168 +1018,168 @@ msgstr ""
 "Importación rechazada: no se pudo importar %(record)s '%(name)s' "
 "(%(reason)s). No se cambió nada."
 
-#: nova/blueprints/tools.py:589 nova/blueprints/tools.py:594
+#: nova/blueprints/tools.py:597 nova/blueprints/tools.py:602
 msgid "No file selected for journal import."
 msgstr "No se ha seleccionado ningún archivo para la importación del diario."
 
-#: nova/blueprints/tools.py:610
+#: nova/blueprints/tools.py:618
 #, python-format
 msgid "Invalid journal file structure: %(message)s"
 msgstr "Estructura de archivo de diario no válida: %(message)s"
 
-#: nova/blueprints/tools.py:634
+#: nova/blueprints/tools.py:642
 msgid "Journal imported successfully! (Previous journal data was replaced)"
 msgstr ""
 "¡Diario importado con éxito! (Los datos anteriores del diario fueron "
 "reemplazados)"
 
-#: nova/blueprints/tools.py:646
+#: nova/blueprints/tools.py:654
 #, python-format
 msgid "Import failed: Invalid YAML format in the journal file. %(error)s"
 msgstr ""
 "Error al importar: formato YAML no válido en el archivo de diario. "
 "%(error)s"
 
-#: nova/blueprints/tools.py:660
+#: nova/blueprints/tools.py:668
 msgid "Invalid file type. Please upload a .yaml journal file."
 msgstr "Tipo de archivo no válido. Por favor, cargue un archivo de diario .yaml."
 
-#: nova/blueprints/tools.py:672
+#: nova/blueprints/tools.py:680
 msgid "Authentication error during import."
 msgstr "Error de autenticación durante la importación."
 
-#: nova/blueprints/tools.py:677 nova/blueprints/tools.py:682
+#: nova/blueprints/tools.py:685 nova/blueprints/tools.py:690
 msgid "No file selected for import."
 msgstr "No se ha seleccionado ningún archivo para importar."
 
-#: nova/blueprints/tools.py:706
+#: nova/blueprints/tools.py:714
 msgid "Cannot import: Configuration must contain at least one location."
 msgstr ""
 "No se puede importar: La configuración debe contener al menos una "
 "ubicación."
 
-#: nova/blueprints/tools.py:714
+#: nova/blueprints/tools.py:722
 msgid "Cannot import: Configuration must contain at least one active location."
 msgstr ""
 "No se puede importar: La configuración debe contener al menos una "
 "ubicación activa."
 
-#: nova/blueprints/tools.py:747
+#: nova/blueprints/tools.py:755
 msgid "Config imported successfully! (Previous config was replaced)"
 msgstr ""
 "¡Configuración importada con éxito! (La configuración anterior fue "
 "reemplazada)"
 
-#: nova/blueprints/tools.py:794
+#: nova/blueprints/tools.py:802
 #, python-format
 msgid "Import failed: Invalid YAML. (%(error)s)"
 msgstr "Error al importar: YAML no válido. (%(error)s)"
 
-#: nova/blueprints/tools.py:819
+#: nova/blueprints/tools.py:827
 msgid "Authentication error during catalog import."
 msgstr "Error de autenticación durante la importación del catálogo."
 
-#: nova/blueprints/tools.py:829
+#: nova/blueprints/tools.py:837
 msgid "Catalog pack not found or invalid."
 msgstr "Paquete de catálogo no encontrado o no válido."
 
-#: nova/blueprints/tools.py:855
+#: nova/blueprints/tools.py:863
 msgid "Catalog import failed due to an internal error."
 msgstr "La importación del catálogo falló debido a un error interno."
 
-#: nova/blueprints/tools.py:1017
+#: nova/blueprints/tools.py:1025
 #, python-format
 msgid "Error generating rig config: %(error)s"
 msgstr "Error al generar configuración de rig: %(error)s"
 
-#: nova/blueprints/tools.py:1072
+#: nova/blueprints/tools.py:1080
 msgid "No journal photos found to download."
 msgstr "No se encontraron fotos del diario para descargar."
 
-#: nova/blueprints/tools.py:1103
+#: nova/blueprints/tools.py:1175
 msgid "No file selected for photo import."
 msgstr "No se ha seleccionado ningún archivo para la importación de fotos."
 
-#: nova/blueprints/tools.py:1108
+#: nova/blueprints/tools.py:1180
 msgid "Please select a valid .zip file to import."
 msgstr "Por favor, seleccione un archivo .zip válido para importar."
 
-#: nova/blueprints/tools.py:1124
+#: nova/blueprints/tools.py:1199
 msgid "Import failed: The uploaded file is not a valid ZIP archive."
 msgstr "Error al importar: El archivo cargado no es un archivo ZIP válido."
 
-#: nova/blueprints/tools.py:1178
+#: nova/blueprints/tools.py:1269
 #, python-format
 msgid "Journal photos imported successfully! Extracted %(count)d files."
 msgstr "¡Fotos del diario importadas con éxito! Se extrajeron %(count)d archivos."
 
-#: nova/blueprints/tools.py:1181
+#: nova/blueprints/tools.py:1272
 msgid "Import failed: The ZIP file appears to be corrupted."
 msgstr "Error al importar: El archivo ZIP parece estar dañado."
 
-#: nova/blueprints/tools.py:1183
+#: nova/blueprints/tools.py:1274
 #, python-format
 msgid "An unexpected error occurred during import: %(error)s"
 msgstr "Ocurrió un error inesperado durante la importación: %(error)s"
 
-#: nova/blueprints/tools.py:1191 nova/blueprints/tools.py:1196
+#: nova/blueprints/tools.py:1282 nova/blueprints/tools.py:1287
 msgid "No file selected for rigs import."
 msgstr "No se ha seleccionado ningún archivo para la importación de rigs."
 
-#: nova/blueprints/tools.py:1226
+#: nova/blueprints/tools.py:1317
 msgid "Rigs configuration imported and synced to database successfully!"
 msgstr ""
 "¡Configuración de rigs importada y sincronizada con la base de datos con "
 "éxito!"
 
-#: nova/blueprints/tools.py:1236
+#: nova/blueprints/tools.py:1327
 #, python-format
 msgid "Error importing rigs file: %(error)s"
 msgstr "Error al importar archivo de rigs: %(error)s"
 
-#: nova/blueprints/tools.py:1239
+#: nova/blueprints/tools.py:1330
 msgid "Invalid file type. Please upload a .yaml or .yml file."
 msgstr "Tipo de archivo no válido. Por favor, cargue un archivo .yaml o .yml."
 
-#: nova/blueprints/tools.py:1301
+#: nova/blueprints/tools.py:1392
 msgid "Not authorized to export another user's data."
 msgstr "No autorizado para exportar los datos de otro usuario."
 
-#: nova/blueprints/tools.py:1305
+#: nova/blueprints/tools.py:1396
 msgid "Export failed (no such user or empty data)."
 msgstr "Error al exportar (no existe el usuario o datos vacíos)."
 
-#: nova/blueprints/tools.py:1334
+#: nova/blueprints/tools.py:1425
 msgid "Username is required in multi-user mode."
 msgstr "Se requiere el nombre de usuario en modo multi-usuario."
 
-#: nova/blueprints/tools.py:1339
+#: nova/blueprints/tools.py:1430
 msgid "Not authorized to import for another user."
 msgstr "No autorizado para importar para otro usuario."
 
-#: nova/blueprints/tools.py:1347
+#: nova/blueprints/tools.py:1438
 msgid "Please provide config, rigs, and journal YAML files."
 msgstr "Por favor, proporcione los archivos YAML de configuración, rigs y diario."
 
-#: nova/blueprints/tools.py:1385
+#: nova/blueprints/tools.py:1476
 msgid "Import completed successfully!"
 msgstr "¡Importación completada con éxito!"
 
-#: nova/blueprints/tools.py:1389
+#: nova/blueprints/tools.py:1480
 msgid "Import failed. See server logs for details."
 msgstr ""
 "La importación falló. Consulte los registros del servidor para más "
 "detalles."
 
-#: nova/blueprints/tools.py:1392
+#: nova/blueprints/tools.py:1483
 msgid "Import crashed. Check logs."
 msgstr "La importación falló. Compruebe los registros."
 
-#: nova/blueprints/tools.py:1403
+#: nova/blueprints/tools.py:1494
 msgid "Database repair completed."
 msgstr "Reparación de la base de datos completada."
 
-#: nova/blueprints/tools.py:1405
+#: nova/blueprints/tools.py:1496
 #, python-format
 msgid "Repair failed: %(error)s"
 msgstr "Error en la reparación: %(error)s"
@@ -974,7 +1241,7 @@ msgstr "Hora de tránsito"
 msgid "Duration"
 msgstr "Duración"
 
-#: templates/_inspiration_section.html:504 templates/config_form.html:580
+#: templates/_inspiration_section.html:504 templates/config_form.html:582
 #: templates/index.html:157 templates/mobile_up_now.html:982
 msgid "Constellation"
 msgstr "Constelación"
@@ -988,7 +1255,7 @@ msgstr "Fuente: Wiki"
 #: templates/_objects_section.html:474 templates/base.html:254
 #: templates/base.html:443 templates/base.html:461 templates/base.html:466
 #: templates/base.html:475 templates/base.html:514
-#: templates/config_form.html:680 templates/graph_view.html:288
+#: templates/config_form.html:682 templates/graph_view.html:288
 msgid "Close"
 msgstr "Cerrar"
 
@@ -1062,8 +1329,8 @@ msgid "h"
 msgstr "h"
 
 #: templates/_inspiration_section.html:542 templates/_objects_section.html:463
-#: templates/base.html:108 templates/config_form.html:603
-#: templates/config_form.html:632 templates/config_form.html:668
+#: templates/base.html:108 templates/config_form.html:605
+#: templates/config_form.html:634 templates/config_form.html:670
 #: templates/graph_view.html:119 templates/graph_view.html:133
 #: templates/graph_view.html:688 templates/mobile_object_detail.html:588
 msgid "Loading..."
@@ -1283,13 +1550,13 @@ msgstr "GUIADO (RMS)"
 
 #: templates/_journal_section.html:2374 templates/_journal_section.html:3338
 #: templates/base.html:229 templates/journal_report.html:736
-#: templates/journal_report.html:993 templates/solar_system.html:690
+#: templates/journal_report.html:993 templates/solar_system.html:691
 msgid "Excellent"
 msgstr "Excelente"
 
 #: templates/_journal_section.html:2374 templates/_journal_section.html:3339
 #: templates/base.html:230 templates/journal_report.html:736
-#: templates/journal_report.html:993 templates/solar_system.html:691
+#: templates/journal_report.html:993 templates/solar_system.html:692
 msgid "Good"
 msgstr "Bueno"
 
@@ -1342,12 +1609,12 @@ msgid "Rig Specs:"
 msgstr "Especificaciones del rig:"
 
 #: templates/_journal_section.html:2403 templates/_journal_section.html:2445
-#: templates/config_form.html:489 templates/journal_report.html:761
+#: templates/config_form.html:491 templates/journal_report.html:761
 msgid "Telescope:"
 msgstr "Telescopio:"
 
 #: templates/_journal_section.html:2404 templates/_journal_section.html:2449
-#: templates/config_form.html:495 templates/journal_report.html:771
+#: templates/config_form.html:497 templates/journal_report.html:771
 msgid "Camera:"
 msgstr "Cámara:"
 
@@ -2004,7 +2271,7 @@ msgid "-- Manually Enter Below --"
 msgstr "-- Introducir manualmente a continuación --"
 
 #: templates/_journal_section.html:3053 templates/admin_users.html:79
-#: templates/config_form.html:710 templates/graph_view.html:315
+#: templates/config_form.html:712 templates/graph_view.html:315
 msgid "Inactive"
 msgstr "Inactivo"
 
@@ -2258,8 +2525,8 @@ msgstr "Más horas"
 msgid "Filter by status"
 msgstr "Filtrar por estado"
 
-#: templates/_journal_section.html:3256 templates/config_form.html:595
-#: templates/config_form.html:624 templates/config_form.html:660
+#: templates/_journal_section.html:3256 templates/config_form.html:597
+#: templates/config_form.html:626 templates/config_form.html:662
 #: templates/index.html:191 templates/index.html:223
 msgid "All"
 msgstr "Todos"
@@ -2431,8 +2698,8 @@ msgid "e.g., Cyg"
 msgstr "p. ej., Cyg"
 
 #: templates/_objects_section.html:45 templates/_objects_section.html:143
-#: templates/_objects_section.html:307 templates/config_form.html:579
-#: templates/config_form.html:643 templates/index.html:158
+#: templates/_objects_section.html:307 templates/config_form.html:581
+#: templates/config_form.html:645 templates/index.html:158
 #: templates/mobile_up_now.html:965
 msgid "Type"
 msgstr "Tipo"
@@ -2462,8 +2729,8 @@ msgid "Shared by Me"
 msgstr "Compartido por mí"
 
 #: templates/_objects_section.html:57 templates/_objects_section.html:116
-#: templates/base.html:123 templates/config_form.html:597
-#: templates/config_form.html:626 templates/config_form.html:662
+#: templates/base.html:123 templates/config_form.html:599
+#: templates/config_form.html:628 templates/config_form.html:664
 msgid "Imported"
 msgstr "Importado"
 
@@ -2482,7 +2749,7 @@ msgstr "Fuente"
 msgid "e.g., messier (use = for exact)"
 msgstr "p. ej., messier (use = para exacto)"
 
-#: templates/_objects_section.html:68 templates/config_form.html:582
+#: templates/_objects_section.html:68 templates/config_form.html:584
 #: templates/graph_view.html:154 templates/index.html:165
 #: templates/mobile_journal_new.html:376
 #: templates/mobile_object_detail.html:534 templates/project_report.html:1121
@@ -2620,7 +2887,7 @@ msgstr "Notas privadas"
 msgid "Personal notes... (not shared)"
 msgstr "Notas personales... (no compartidas)"
 
-#: templates/_objects_section.html:253 templates/config_form.html:677
+#: templates/_objects_section.html:253 templates/config_form.html:679
 msgid "Shared Notes"
 msgstr "Notas compartidas"
 
@@ -2636,7 +2903,7 @@ msgstr "Compartir este objeto con otros usuarios"
 msgid "Update Objects"
 msgstr "Actualizar objetos"
 
-#: templates/_objects_section.html:282 templates/config_form.html:577
+#: templates/_objects_section.html:282 templates/config_form.html:579
 #: templates/index.html:218 templates/mobile_add_object.html:17
 msgid "Object ID"
 msgstr "ID de objeto"
@@ -2725,7 +2992,7 @@ msgstr ""
 "destructiva: los objetos existentes nunca se sobrescriben y los objetos "
 "superpuestos se omiten."
 
-#: templates/_objects_section.html:403 templates/config_form.html:614
+#: templates/_objects_section.html:403 templates/config_form.html:616
 #: templates/graph_view.html:248
 msgid "Description"
 msgstr "Descripción"
@@ -2739,8 +3006,8 @@ msgid "Objects"
 msgstr "Objetos"
 
 #: templates/_objects_section.html:406 templates/base.html:271
-#: templates/config_form.html:583 templates/config_form.html:616
-#: templates/config_form.html:645
+#: templates/config_form.html:585 templates/config_form.html:618
+#: templates/config_form.html:647
 msgid "Action"
 msgstr "Acción"
 
@@ -2918,6 +3185,7 @@ msgid "Admin"
 msgstr "Administrador"
 
 #: templates/admin_users.html:14 templates/config_form.html:26
+#: templates/sync_tokens.html:15
 msgid "Back to Dashboard"
 msgstr "Volver al panel de control"
 
@@ -3077,7 +3345,7 @@ msgstr "Guardado"
 msgid "Error"
 msgstr "Error:"
 
-#: templates/base.html:117 templates/solar_system.html:652
+#: templates/base.html:117 templates/solar_system.html:653
 msgid "None"
 msgstr "Ninguno"
 
@@ -3186,12 +3454,12 @@ msgstr "Seleccionar telescopio"
 msgid "Select Camera"
 msgstr "Seleccionar cámara"
 
-#: templates/base.html:153 templates/config_form.html:652
+#: templates/base.html:153 templates/config_form.html:654
 #: templates/project_report.html:1174 templates/solar_system.html:261
 msgid "Telescope"
 msgstr "Telescopio"
 
-#: templates/base.html:154 templates/config_form.html:653
+#: templates/base.html:154 templates/config_form.html:655
 #: templates/project_report.html:1178 templates/solar_system.html:262
 msgid "Camera"
 msgstr "Cámara"
@@ -3818,8 +4086,8 @@ msgstr ""
 msgid "Submit feedback"
 msgstr "Enviar comentarios"
 
-#: templates/base.html:462 templates/config_form.html:285
-#: templates/config_form.html:370 templates/graph_view.html:80
+#: templates/base.html:462 templates/config_form.html:287
+#: templates/config_form.html:372 templates/graph_view.html:80
 msgid "Help"
 msgstr "Ayuda"
 
@@ -3953,39 +4221,43 @@ msgid "Journal Photos"
 msgstr "Fotos del diario"
 
 #: templates/config_form.html:77
+msgid "Sync"
+msgstr "Sincronización"
+
+#: templates/config_form.html:79
 msgid "Help with Data Tools"
 msgstr "Ayuda con herramientas de datos"
 
-#: templates/config_form.html:84
+#: templates/config_form.html:86
 msgid "General Settings"
 msgstr "Configuración general"
 
-#: templates/config_form.html:85 templates/config_form.html:217
+#: templates/config_form.html:87 templates/config_form.html:219
 #: templates/macros.html:79
 msgid "Click for help"
 msgstr "Haga clic para obtener ayuda"
 
-#: templates/config_form.html:90
+#: templates/config_form.html:92
 msgid "Altitude Threshold (°):"
 msgstr "Umbral de altitud (°):"
 
-#: templates/config_form.html:99
+#: templates/config_form.html:101
 msgid "Theme:"
 msgstr "Tema:"
 
-#: templates/config_form.html:105
+#: templates/config_form.html:107
 msgid "Follow System"
 msgstr "Seguir sistema"
 
-#: templates/config_form.html:110
+#: templates/config_form.html:112
 msgid "Light"
 msgstr "Claro"
 
-#: templates/config_form.html:115
+#: templates/config_form.html:117
 msgid "Dark"
 msgstr "Oscuro"
 
-#: templates/config_form.html:120
+#: templates/config_form.html:122
 msgid ""
 "Choose how Nova appears. \"Follow System\" matches your OS setting and "
 "updates automatically."
@@ -3993,32 +4265,32 @@ msgstr ""
 "Elija cómo aparece Nova. \"Seguir sistema\" coincide con la configuración"
 " de su sistema operativo y se actualiza automáticamente."
 
-#: templates/config_form.html:127
+#: templates/config_form.html:129
 msgid "Min Observable (min):"
 msgstr "Mínimo observable (min):"
 
-#: templates/config_form.html:132
+#: templates/config_form.html:134
 msgid "Min Max Altitude (°):"
 msgstr "Altitud máxima mínima (°):"
 
-#: templates/config_form.html:139
+#: templates/config_form.html:141
 #, python-format
 msgid "Max Moon Illum (%%):"
 msgstr "Iluminación máxima lunar (%%):"
 
-#: templates/config_form.html:144
+#: templates/config_form.html:146
 msgid "Min Moon Sep (°):"
 msgstr "Sep lunar mínima (°):"
 
-#: templates/config_form.html:149
+#: templates/config_form.html:151
 msgid "Search months:"
 msgstr "Meses de búsqueda:"
 
-#: templates/config_form.html:157
+#: templates/config_form.html:159
 msgid "Calc. Invisible Objects:"
 msgstr "Calc. objetos invisibles:"
 
-#: templates/config_form.html:162
+#: templates/config_form.html:164
 msgid ""
 "If checked, Nova will calculate curves for ALL objects, even those "
 "geometrically impossible to see from your location (disabling the \"Smart"
@@ -4028,11 +4300,11 @@ msgstr ""
 "aquellos geométricamente imposibles de ver desde su ubicación "
 "(deshabilitando la optimización \"Omisión inteligente\")."
 
-#: templates/config_form.html:168
+#: templates/config_form.html:170
 msgid "Hide Invisible Objects:"
 msgstr "Ocultar objetos invisibles:"
 
-#: templates/config_form.html:173
+#: templates/config_form.html:175
 msgid ""
 "If checked, objects that are geometrically impossible to see will be "
 "hidden from the main list by default. They will still appear if you "
@@ -4042,31 +4314,31 @@ msgstr ""
 "ocultarán de la lista principal de forma predeterminada. Aún aparecerán "
 "si usted los busca específicamente."
 
-#: templates/config_form.html:180
+#: templates/config_form.html:182
 msgid "Calculation Precision:"
 msgstr "Precisión de cálculo:"
 
-#: templates/config_form.html:183
+#: templates/config_form.html:185
 msgid "High (10 min samples)"
 msgstr "Alta (muestras de 10 min)"
 
-#: templates/config_form.html:184
+#: templates/config_form.html:186
 msgid "Default (15 min samples)"
 msgstr "Predeterminada (muestras de 15 min)"
 
-#: templates/config_form.html:185
+#: templates/config_form.html:187
 msgid "Balanced (20 min samples)"
 msgstr "Equilibrada (muestras de 20 min)"
 
-#: templates/config_form.html:186
+#: templates/config_form.html:188
 msgid "Fast (30 min samples)"
 msgstr "Rápida (muestras de 30 min)"
 
-#: templates/config_form.html:187
+#: templates/config_form.html:189
 msgid "Fastest (60 min samples)"
 msgstr "La más rápida (muestras de 60 min)"
 
-#: templates/config_form.html:190
+#: templates/config_form.html:192
 msgid ""
 "Note: Your 'Current Altitude' is always calculated in real-time. This "
 "setting only refines the accuracy of the nightly overview values (Max "
@@ -4078,11 +4350,11 @@ msgstr ""
 "nocturna (Altitud máxima, Duración observable, etc.). 'Rápida' se "
 "recomienda para dispositivos de baja potencia."
 
-#: templates/config_form.html:198
+#: templates/config_form.html:200
 msgid "Anonymous Telemetry:"
 msgstr "Telemetría anónima:"
 
-#: templates/config_form.html:203
+#: templates/config_form.html:205
 msgid ""
 "Nova sends a small anonymous heartbeat (app version, system type, and "
 "counts of your data entries like objects, rigs, locations, and journals)."
@@ -4095,106 +4367,106 @@ msgstr ""
 "optar por no participar en cualquier momento. Permitirlo realmente me "
 "ayuda a mejorar Nova."
 
-#: templates/config_form.html:208
+#: templates/config_form.html:210
 msgid "Save Settings"
 msgstr "Guardar configuración"
 
-#: templates/config_form.html:216
+#: templates/config_form.html:218
 msgid "Locations Configuration"
 msgstr "Configuración de ubicaciones"
 
-#: templates/config_form.html:222
+#: templates/config_form.html:224
 msgid "Add New Location"
 msgstr "Añadir nueva ubicación"
 
-#: templates/config_form.html:226 templates/config_form.html:424
-#: templates/config_form.html:443 templates/config_form.html:463
+#: templates/config_form.html:228 templates/config_form.html:426
+#: templates/config_form.html:445 templates/config_form.html:465
 #: templates/index.html:300
 msgid "Name:"
 msgstr "Nombre:"
 
-#: templates/config_form.html:227
+#: templates/config_form.html:229
 msgid "e.g., Home Observatory"
 msgstr "p. ej., Observatorio del hogar"
 
-#: templates/config_form.html:230 templates/config_form.html:317
+#: templates/config_form.html:232 templates/config_form.html:319
 msgid "Lat:"
 msgstr "Lat:"
 
-#: templates/config_form.html:234 templates/config_form.html:321
+#: templates/config_form.html:236 templates/config_form.html:323
 msgid "Lon:"
 msgstr "Lon:"
 
-#: templates/config_form.html:238 templates/config_form.html:325
+#: templates/config_form.html:240 templates/config_form.html:327
 msgid "Elevation:"
 msgstr "Elevación:"
 
-#: templates/config_form.html:240 templates/config_form.html:327
+#: templates/config_form.html:242 templates/config_form.html:329
 msgid "Elevation (m)"
 msgstr "Elevación (m)"
 
-#: templates/config_form.html:243 templates/config_form.html:330
+#: templates/config_form.html:245 templates/config_form.html:332
 msgid "Timezone:"
 msgstr "Zona horaria:"
 
-#: templates/config_form.html:245
+#: templates/config_form.html:247
 msgid "Type to search..."
 msgstr "Escriba para buscar..."
 
-#: templates/config_form.html:254 templates/config_form.html:340
-#: templates/config_form.html:484
+#: templates/config_form.html:256 templates/config_form.html:342
+#: templates/config_form.html:486
 msgid "Active:"
 msgstr "Activa:"
 
-#: templates/config_form.html:258 templates/config_form.html:344
+#: templates/config_form.html:260 templates/config_form.html:346
 msgid "Bortle:"
 msgstr "Bortle:"
 
-#: templates/config_form.html:260 templates/config_form.html:346
+#: templates/config_form.html:262 templates/config_form.html:348
 msgid "Not set"
 msgstr "No establecido"
 
-#: templates/config_form.html:261 templates/config_form.html:347
+#: templates/config_form.html:263 templates/config_form.html:349
 msgid "Exceptional dark sky"
 msgstr "Cielo oscuro excepcional"
 
-#: templates/config_form.html:262 templates/config_form.html:348
+#: templates/config_form.html:264 templates/config_form.html:350
 msgid "Truly dark sky"
 msgstr "Cielo verdaderamente oscuro"
 
-#: templates/config_form.html:263 templates/config_form.html:349
+#: templates/config_form.html:265 templates/config_form.html:351
 msgid "Rural sky"
 msgstr "Cielo rural"
 
-#: templates/config_form.html:264 templates/config_form.html:350
+#: templates/config_form.html:266 templates/config_form.html:352
 msgid "Rural/suburban transition"
 msgstr "Transición rural/suburbana"
 
-#: templates/config_form.html:265 templates/config_form.html:351
+#: templates/config_form.html:267 templates/config_form.html:353
 msgid "Suburban sky"
 msgstr "Cielo suburbano"
 
-#: templates/config_form.html:266 templates/config_form.html:352
+#: templates/config_form.html:268 templates/config_form.html:354
 msgid "Bright suburban sky"
 msgstr "Cielo suburbano brillante"
 
-#: templates/config_form.html:267 templates/config_form.html:353
+#: templates/config_form.html:269 templates/config_form.html:355
 msgid "Suburban/urban transition"
 msgstr "Transición suburbana/urbana"
 
-#: templates/config_form.html:268 templates/config_form.html:354
+#: templates/config_form.html:270 templates/config_form.html:356
 msgid "City sky"
 msgstr "Cielo urbano"
 
-#: templates/config_form.html:269 templates/config_form.html:355
+#: templates/config_form.html:271 templates/config_form.html:357
 msgid "Inner-city sky"
 msgstr "Cielo de centro urbano"
 
-#: templates/config_form.html:273 templates/config_form.html:359
+#: templates/config_form.html:275 templates/config_form.html:361
 msgid "SQM Zenith:"
 msgstr "SQM Cenital:"
 
-#: templates/config_form.html:274 templates/config_form.html:360
+#: templates/config_form.html:276 templates/config_form.html:362
 msgid ""
 "Leave blank to derive from Bortle scale. Enter a measured SQM value "
 "(mag/arcsec²) if available."
@@ -4202,67 +4474,67 @@ msgstr ""
 "Déjelo en blanco para derivarlo de la escala de Bortle. Introduzca un "
 "valor SQM medido (mag/arcsec²) si dispone de él."
 
-#: templates/config_form.html:276 templates/config_form.html:362
+#: templates/config_form.html:278 templates/config_form.html:364
 msgid "Zenith SQM (optional)"
 msgstr "SQM cenital (opcional)"
 
-#: templates/config_form.html:284 templates/config_form.html:369
+#: templates/config_form.html:286 templates/config_form.html:371
 msgid "Horizon Mask:"
 msgstr "Máscara de horizonte:"
 
-#: templates/config_form.html:288 templates/config_form.html:373
+#: templates/config_form.html:290 templates/config_form.html:375
 msgid "Optional. e.g., [[0, 35], [90, 15]]"
 msgstr "Opcional. p. ej., [[0, 35], [90, 15]]"
 
-#: templates/config_form.html:290 templates/config_form.html:375
+#: templates/config_form.html:292 templates/config_form.html:377
 msgid "Import a Stellarium .hzn horizon file"
 msgstr "Importar un archivo de horizonte .hzn de Stellarium"
 
-#: templates/config_form.html:290 templates/config_form.html:375
+#: templates/config_form.html:292 templates/config_form.html:377
 msgid "Import .hzn"
 msgstr "Importar .hzn"
 
-#: templates/config_form.html:300 templates/config_form.html:384
+#: templates/config_form.html:302 templates/config_form.html:386
 msgid "Comments:"
 msgstr "Comentarios:"
 
-#: templates/config_form.html:301 templates/config_form.html:385
+#: templates/config_form.html:303 templates/config_form.html:387
 msgid "Notes on sky quality, obstructions, etc."
 msgstr "Notas sobre calidad del cielo, obstrucciones, etc."
 
-#: templates/config_form.html:306
+#: templates/config_form.html:308
 msgid "Add"
 msgstr "Añadir"
 
-#: templates/config_form.html:392
+#: templates/config_form.html:394
 msgid "Del:"
 msgstr "Eliminar:"
 
-#: templates/config_form.html:394
+#: templates/config_form.html:396
 msgid "Cannot delete your only location"
 msgstr "No se puede eliminar su única ubicación"
 
-#: templates/config_form.html:398
+#: templates/config_form.html:400
 msgid "View on Google Maps"
 msgstr "Ver en Google Maps"
 
-#: templates/config_form.html:399
+#: templates/config_form.html:401
 msgid "Open Map"
 msgstr "Abrir mapa"
 
-#: templates/config_form.html:405
+#: templates/config_form.html:407
 msgid "Update Locations"
 msgstr "Actualizar ubicaciones"
 
-#: templates/config_form.html:416
+#: templates/config_form.html:418
 msgid "1. Define Your Components"
 msgstr "1. Defina sus componentes"
 
-#: templates/config_form.html:417
+#: templates/config_form.html:419
 msgid "Help with Rigs"
 msgstr "Ayuda con Rigs"
 
-#: templates/config_form.html:419
+#: templates/config_form.html:421
 msgid ""
 "Add or update your equipment here. To edit an item, click \"Edit\" to "
 "load its details into the form, make your changes, and click the "
@@ -4272,80 +4544,80 @@ msgstr ""
 "\"Editar\" para cargar sus detalles en el formulario, realice sus cambios"
 " y haga clic en el botón \"Actualizar\"."
 
-#: templates/config_form.html:420
+#: templates/config_form.html:422
 msgid "Telescopes"
 msgstr "Telescopios"
 
-#: templates/config_form.html:424
+#: templates/config_form.html:426
 msgid "e.g., Celestron EdgeHD 11"
 msgstr "p. ej., Celestron EdgeHD 11"
 
-#: templates/config_form.html:425
+#: templates/config_form.html:427
 msgid "Aperture (mm):"
 msgstr "Apertura (mm):"
 
-#: templates/config_form.html:426
+#: templates/config_form.html:428
 msgid "Focal Length (mm):"
 msgstr "Longitud focal (mm):"
 
-#: templates/config_form.html:430 templates/config_form.html:450
-#: templates/config_form.html:468
+#: templates/config_form.html:432 templates/config_form.html:452
+#: templates/config_form.html:470
 msgid "Share this component"
 msgstr "Compartir este componente"
 
-#: templates/config_form.html:433
+#: templates/config_form.html:435
 msgid "Add Telescope"
 msgstr "Añadir telescopio"
 
-#: templates/config_form.html:439
+#: templates/config_form.html:441
 msgid "Cameras"
 msgstr "Cámaras"
 
-#: templates/config_form.html:443
+#: templates/config_form.html:445
 msgid "e.g., ZWO ASI2600MC Pro"
 msgstr "p. ej., ZWO ASI2600MC Pro"
 
-#: templates/config_form.html:444
+#: templates/config_form.html:446
 msgid "Sensor Width (mm):"
 msgstr "Ancho del sensor (mm):"
 
-#: templates/config_form.html:445
+#: templates/config_form.html:447
 msgid "Sensor Height (mm):"
 msgstr "Altura del sensor (mm):"
 
-#: templates/config_form.html:446
+#: templates/config_form.html:448
 msgid "Pixel Size (μm):"
 msgstr "Tamaño de píxel (μm):"
 
-#: templates/config_form.html:453
+#: templates/config_form.html:455
 msgid "Add Camera"
 msgstr "Añadir cámara"
 
-#: templates/config_form.html:459
+#: templates/config_form.html:461
 msgid "Reducers / Extenders"
 msgstr "Reductores / Extensores"
 
-#: templates/config_form.html:463
+#: templates/config_form.html:465
 msgid "e.g., Celestron 0.7x Reducer"
 msgstr "p. ej., Celestron 0.7x Reductor"
 
-#: templates/config_form.html:464
+#: templates/config_form.html:466
 msgid "Factor:"
 msgstr "Factor:"
 
-#: templates/config_form.html:464
+#: templates/config_form.html:466
 msgid "e.g., 0.7 for reducer"
 msgstr "p. ej., 0.7 para reductor"
 
-#: templates/config_form.html:471
+#: templates/config_form.html:473
 msgid "Add Reducer/Extender"
 msgstr "Añadir reductor/extensor"
 
-#: templates/config_form.html:478
+#: templates/config_form.html:480
 msgid "2. Configure Your Rigs"
 msgstr "2. Configure sus Rigs"
 
-#: templates/config_form.html:479
+#: templates/config_form.html:481
 msgid ""
 "Combine your components into a complete imaging rig. To edit, click "
 "\"Edit\" to load the rig into the form below."
@@ -4353,140 +4625,140 @@ msgstr ""
 "Combine sus componentes en un rig de imágenes completo. Para editar, haga"
 " clic en \"Editar\" para cargar el rig en el formulario a continuación."
 
-#: templates/config_form.html:482
+#: templates/config_form.html:484
 msgid "Rig Name:"
 msgstr "Nombre del rig:"
 
-#: templates/config_form.html:482
+#: templates/config_form.html:484
 msgid "e.g., C11 Deep Sky Rig"
 msgstr "p. ej., Rig C11 Cielo Profundo"
 
-#: templates/config_form.html:491
+#: templates/config_form.html:493
 msgid "-- Select a Telescope --"
 msgstr "-- Seleccione un telescopio --"
 
-#: templates/config_form.html:497
+#: templates/config_form.html:499
 msgid "-- Select a Camera --"
 msgstr "-- Seleccione una cámara --"
 
-#: templates/config_form.html:501
+#: templates/config_form.html:503
 msgid "Reducer / Extender (Optional):"
 msgstr "Reductor / Extensor (opcional):"
 
-#: templates/config_form.html:503 templates/config_form.html:519
-#: templates/config_form.html:525
+#: templates/config_form.html:505 templates/config_form.html:521
+#: templates/config_form.html:527
 msgid "-- None --"
 msgstr "-- Ninguno --"
 
-#: templates/config_form.html:508
+#: templates/config_form.html:510
 msgid "Guide Optics"
 msgstr "Ópticas de guiado"
 
-#: templates/config_form.html:508
+#: templates/config_form.html:510
 msgid "Optional — for dither recommendations"
 msgstr "Opcional — para recomendaciones de dither"
 
-#: templates/config_form.html:513
+#: templates/config_form.html:515
 msgid "Off-Axis Guider (OAG) — uses main scope focal length"
 msgstr "Guiador fuera de eje (OAG) — usa la longitud focal del tubo principal"
 
-#: templates/config_form.html:517
+#: templates/config_form.html:519
 msgid "Guide Scope:"
 msgstr "Tubo de guiado:"
 
-#: templates/config_form.html:523
+#: templates/config_form.html:525
 msgid "Guide Camera:"
 msgstr "Cámara de guiado:"
 
-#: templates/config_form.html:529
+#: templates/config_form.html:531
 msgid "Create Rig"
 msgstr "Crear rig"
 
-#: templates/config_form.html:533
+#: templates/config_form.html:535
 msgid "Select Your Typical Seeing:"
 msgstr "Seleccione su calidad de imagen típica:"
 
-#: templates/config_form.html:535
+#: templates/config_form.html:537
 msgid "-- Select Seeing to Assess Rigs --"
 msgstr "-- Seleccionar calidad de imagen para evaluar rigs --"
 
-#: templates/config_form.html:536
+#: templates/config_form.html:538
 msgid "Excellent Seeing (1.0\" - 2.0\" FWHM)"
 msgstr "Calidad de imagen excelente (1,0\" - 2,0\" FWHM)"
 
-#: templates/config_form.html:537
+#: templates/config_form.html:539
 msgid "Good Seeing (2.0\" - 4.0\" FWHM)"
 msgstr "Calidad de imagen buena (2,0\" - 4,0\" FWHM)"
 
-#: templates/config_form.html:538
+#: templates/config_form.html:540
 msgid "Poor Seeing (> 4.0\" FWHM)"
 msgstr "Calidad de imagen pobre (> 4,0\" FWHM)"
 
-#: templates/config_form.html:542
+#: templates/config_form.html:544
 msgid "Sort rigs by:"
 msgstr "Ordenar rigs por:"
 
-#: templates/config_form.html:544
+#: templates/config_form.html:546
 msgid "Name (A→Z)"
 msgstr "Nombre (A→Z)"
 
-#: templates/config_form.html:545
+#: templates/config_form.html:547
 msgid "Name (Z→A)"
 msgstr "Nombre (Z→A)"
 
-#: templates/config_form.html:546
+#: templates/config_form.html:548
 msgid "Effective Focal Length (low→high)"
 msgstr "Longitud focal efectiva (baja→alta)"
 
-#: templates/config_form.html:547
+#: templates/config_form.html:549
 msgid "Effective Focal Length (high→low)"
 msgstr "Longitud focal efectiva (alta→baja)"
 
-#: templates/config_form.html:548
+#: templates/config_form.html:550
 msgid "f/ratio (low→high)"
 msgstr "relación f (baja→alta)"
 
-#: templates/config_form.html:549
+#: templates/config_form.html:551
 msgid "f/ratio (high→low)"
 msgstr "relación f (alta→baja)"
 
-#: templates/config_form.html:550
+#: templates/config_form.html:552
 msgid "Image Scale (low→high)"
 msgstr "Escala de imagen (baja→alta)"
 
-#: templates/config_form.html:551
+#: templates/config_form.html:553
 msgid "Image Scale (high→low)"
 msgstr "Escala de imagen (alta→baja)"
 
-#: templates/config_form.html:552
+#: templates/config_form.html:554
 msgid "FOV Width (low→high)"
 msgstr "Ancho de campo de visión (bajo→alto)"
 
-#: templates/config_form.html:553
+#: templates/config_form.html:555
 msgid "FOV Width (high→low)"
 msgstr "Ancho de campo de visión (alto→bajo)"
 
-#: templates/config_form.html:554
+#: templates/config_form.html:556
 msgid "Recently Added (newest first)"
 msgstr "Añadidos recientemente (más recientes primero)"
 
-#: templates/config_form.html:555
+#: templates/config_form.html:557
 msgid "Recently Added (oldest first)"
 msgstr "Añadidos recientemente (más antiguos primero)"
 
-#: templates/config_form.html:558
+#: templates/config_form.html:560
 msgid "Existing Rigs"
 msgstr "Rigs existentes"
 
-#: templates/config_form.html:566
+#: templates/config_form.html:568
 msgid "Shared Items from Other Users"
 msgstr "Elementos compartidos de otros usuarios"
 
-#: templates/config_form.html:567
+#: templates/config_form.html:569
 msgid "Help with Shared Items"
 msgstr "Ayuda con elementos compartidos"
 
-#: templates/config_form.html:569
+#: templates/config_form.html:571
 msgid ""
 "Here you can find Objects and Components shared by other users in the "
 "system. Click \"Import\" to add a copy to your own configuration."
@@ -4495,94 +4767,94 @@ msgstr ""
 " en el sistema. Haga clic en \"Importar\" para añadir una copia a su "
 "propia configuración."
 
-#: templates/config_form.html:571
+#: templates/config_form.html:573
 msgid "Shared Objects"
 msgstr "Objetos compartidos"
 
-#: templates/config_form.html:576
+#: templates/config_form.html:578
 msgid "Img"
 msgstr "Img"
 
-#: templates/config_form.html:578 templates/index.html:147
+#: templates/config_form.html:580 templates/index.html:147
 #: templates/index.html:208 templates/index.html:246
 #: templates/mobile_add_object.html:21
 msgid "Common Name"
 msgstr "Nombre común"
 
-#: templates/config_form.html:581 templates/config_form.html:615
-#: templates/config_form.html:644
+#: templates/config_form.html:583 templates/config_form.html:617
+#: templates/config_form.html:646
 msgid "Shared By"
 msgstr "Compartido por"
 
-#: templates/config_form.html:587
+#: templates/config_form.html:589
 msgid "Filter ID..."
 msgstr "Filtrar ID..."
 
-#: templates/config_form.html:588 templates/config_form.html:619
-#: templates/config_form.html:648
+#: templates/config_form.html:590 templates/config_form.html:621
+#: templates/config_form.html:650
 msgid "Filter name..."
 msgstr "Filtrar nombre..."
 
-#: templates/config_form.html:589
+#: templates/config_form.html:591
 msgid "Filter type..."
 msgstr "Filtrar tipo..."
 
-#: templates/config_form.html:590
+#: templates/config_form.html:592
 msgid "Filter con..."
 msgstr "Filtrar constelación..."
 
-#: templates/config_form.html:591 templates/config_form.html:621
-#: templates/config_form.html:657
+#: templates/config_form.html:593 templates/config_form.html:623
+#: templates/config_form.html:659
 msgid "Filter user..."
 msgstr "Filtrar usuario..."
 
-#: templates/config_form.html:596 templates/config_form.html:625
-#: templates/config_form.html:661
+#: templates/config_form.html:598 templates/config_form.html:627
+#: templates/config_form.html:663
 msgid "Not Imported"
 msgstr "No importados"
 
-#: templates/config_form.html:608
+#: templates/config_form.html:610
 msgid "Shared Views"
 msgstr "Vistas compartidas"
 
-#: templates/config_form.html:613
+#: templates/config_form.html:615
 msgid "View Name"
 msgstr "Nombre de vista"
 
-#: templates/config_form.html:620
+#: templates/config_form.html:622
 msgid "Filter desc..."
 msgstr "Filtrar descripción..."
 
-#: templates/config_form.html:637
+#: templates/config_form.html:639
 msgid "Shared Components"
 msgstr "Componentes compartidos"
 
-#: templates/config_form.html:642
+#: templates/config_form.html:644
 msgid "Component Name"
 msgstr "Nombre del componente"
 
-#: templates/config_form.html:651
+#: templates/config_form.html:653
 msgid "All Types"
 msgstr "Todos los tipos"
 
-#: templates/config_form.html:654
+#: templates/config_form.html:656
 msgid "Reducer/Extender"
 msgstr "Reductor/Extensor"
 
-#: templates/config_form.html:686
+#: templates/config_form.html:688
 msgid "Fetching Details..."
 msgstr "Obteniendo detalles..."
 
-#: templates/config_form.html:690
+#: templates/config_form.html:692
 msgid "Please wait, communicating with SIMBAD..."
 msgstr "Espere por favor, comunicándose con SIMBAD..."
 
-#: templates/config_form.html:713
+#: templates/config_form.html:715
 #, python-brace-format
 msgid "Are you sure you want to delete the rig '{name}'?"
 msgstr "¿Está seguro de que desea eliminar el rig '{name}'?"
 
-#: templates/config_form.html:714
+#: templates/config_form.html:716
 #, python-brace-format
 msgid ""
 "Are you sure you want to delete the rig '{name}'? This will also delete "
@@ -4928,7 +5200,7 @@ msgstr ""
 "Las coordenadas están en JNow (tiempo real / equinoccio medio de la "
 "fecha) para coincidir con su montura."
 
-#: templates/graph_view.html:395
+#: templates/graph_view.html:395 templates/sync_tokens.html:39
 msgid "Copy"
 msgstr "Copiar"
 
@@ -5713,7 +5985,7 @@ msgstr "Iniciar sesión"
 msgid "Continue as Guest"
 msgstr "Continuar como invitado"
 
-#: templates/macros.html:147
+#: templates/macros.html:147 templates/sync_tokens.html:206
 msgid "Dismiss"
 msgstr "Cerrar"
 
@@ -5812,6 +6084,7 @@ msgstr "Ver plano completo del mosaico"
 
 #: templates/mobile_framing_coords.html:45
 #: templates/mobile_framing_coords.html:55 templates/mobile_mosaic_copy.html:24
+#: templates/sync_tokens.html:39
 msgid "Copied!"
 msgstr "¡Copiado!"
 
@@ -5872,7 +6145,7 @@ msgstr "Predeterminado"
 msgid "Mosaic:"
 msgstr "Mosaico:"
 
-#: templates/mobile_mosaic_copy.html:8 templates/solar_system.html:674
+#: templates/mobile_mosaic_copy.html:8 templates/solar_system.html:675
 msgid "Mosaic"
 msgstr "Mosaico"
 
@@ -5982,7 +6255,8 @@ msgstr "Alt Max"
 msgid "or type name..."
 msgstr "o escribe el nombre..."
 
-#: templates/mobile_up_now.html:991
+#: templates/mobile_up_now.html:991 templates/sync_tokens.html:151
+#: templates/sync_tokens.html:198 templates/sync_tokens.html:360
 msgid "Apply"
 msgstr "Solicitar"
 
@@ -6218,7 +6492,7 @@ msgstr ""
 "astrofotografía planetaria."
 
 #: templates/solar_system.html:97 templates/solar_system.html:322
-#: templates/solar_system.html:580
+#: templates/solar_system.html:581
 msgid "Diameter"
 msgstr "Diámetro"
 
@@ -6227,7 +6501,7 @@ msgid "Lit fraction of the disc as seen from Earth."
 msgstr "Fracción iluminada del disco vista desde la Tierra."
 
 #: templates/solar_system.html:98 templates/solar_system.html:418
-#: templates/solar_system.html:578
+#: templates/solar_system.html:579
 msgid "Illuminated"
 msgstr "Iluminado"
 
@@ -6241,7 +6515,7 @@ msgstr ""
 msgid "Elongation"
 msgstr "Elongación"
 
-#: templates/solar_system.html:114 templates/solar_system.html:729
+#: templates/solar_system.html:114 templates/solar_system.html:730
 msgid "Tonight"
 msgstr "Esta noche"
 
@@ -6313,11 +6587,11 @@ msgstr "Detalles de Venus"
 msgid "Mercury detail"
 msgstr "Detalles de Mercurio"
 
-#: templates/solar_system.html:238 templates/solar_system.html:587
+#: templates/solar_system.html:238 templates/solar_system.html:588
 msgid "Saturn detail"
 msgstr "Detalles de Saturno"
 
-#: templates/solar_system.html:259 templates/solar_system.html:651
+#: templates/solar_system.html:259 templates/solar_system.html:652
 msgid "Planetary calculator"
 msgstr "Calculadora planetaria"
 
@@ -6621,10 +6895,11 @@ msgid ""
 "Venus at its brightest: wide enough as a crescent to be bright and near "
 "enough to be big, and the two run opposite ways. It outshines every star "
 "and every other planet."
-msgstr "Venus en su máximo brillo: una fase creciente lo bastante ancha para ser"
- " brillante y una distancia lo bastante corta para verse grande, dos"
- " efectos que van en sentidos opuestos. Supera en brillo a todas las"
- " estrellas y a los demás planetas."
+msgstr ""
+"Venus en su máximo brillo: una fase creciente lo bastante ancha para ser "
+"brillante y una distancia lo bastante corta para verse grande, dos "
+"efectos que van en sentidos opuestos. Supera en brillo a todas las "
+"estrellas y a los demás planetas."
 
 #: templates/solar_system.html:394
 msgid ""
@@ -6633,28 +6908,31 @@ msgid ""
 " early or late of it — the Schröter effect, first recorded by Johann "
 "Hieronymus Schröter in 1793 — so this is the geometric date, not the one "
 "to look for."
-msgstr "La media fase teórica: la mitad del disco iluminada, donde el terminador"
- " parecería recto si Venus no tuviera atmósfera. Las medias fases"
- " observadas caen días antes o después — el efecto Schröter, descrito por"
- " primera vez por Johann Hieronymus Schröter en 1793 —, así que esta es la"
- " fecha geométrica, no la que hay que buscar."
+msgstr ""
+"La media fase teórica: la mitad del disco iluminada, donde el terminador "
+"parecería recto si Venus no tuviera atmósfera. Las medias fases "
+"observadas caen días antes o después — el efecto Schröter, descrito por "
+"primera vez por Johann Hieronymus Schröter en 1793 —, así que esta es la "
+"fecha geométrica, no la que hay que buscar."
 
 #: templates/solar_system.html:395
 msgid ""
 "Between the Earth and the Sun, lost in the glare, crossing from the "
 "evening sky to the morning one. The separation is not zero: the "
 "elongation column is the few degrees by which it misses the Sun."
-msgstr "Entre la Tierra y el Sol, perdida en su resplandor, pasa del cielo"
- " vespertino al matutino. La separación no es cero: la columna de"
- " elongación da los pocos grados en que falla al Sol."
+msgstr ""
+"Entre la Tierra y el Sol, perdida en su resplandor, pasa del cielo "
+"vespertino al matutino. La separación no es cero: la columna de "
+"elongación da los pocos grados en que falla al Sol."
 
 #: templates/solar_system.html:396
 msgid ""
 "Behind the Sun, lost in the glare, crossing from the morning sky to the "
 "evening one. Venus comes out of it fully lit and at its smallest."
-msgstr "Detrás del Sol, perdida en su resplandor, pasa del cielo matutino al"
- " vespertino. Venus reaparece totalmente iluminada y con su tamaño más"
- " pequeño."
+msgstr ""
+"Detrás del Sol, perdida en su resplandor, pasa del cielo matutino al "
+"vespertino. Venus reaparece totalmente iluminada y con su tamaño más "
+"pequeño."
 
 #: templates/solar_system.html:397
 msgid "Closest apparent approach of the two bodies."
@@ -6742,7 +7020,7 @@ msgstr "Nombres de las formaciones: %(source)s"
 
 #: templates/solar_system.html:413 templates/solar_system.html:458
 #: templates/solar_system.html:524 templates/solar_system.html:568
-#: templates/solar_system.html:589
+#: templates/solar_system.html:590
 #, python-format
 msgid "highest tonight at %(time)s"
 msgstr "más alta esta noche a las %(time)s"
@@ -6852,7 +7130,7 @@ msgstr ""
 
 #: templates/solar_system.html:440 templates/solar_system.html:459
 #: templates/solar_system.html:525 templates/solar_system.html:569
-#: templates/solar_system.html:590
+#: templates/solar_system.html:591
 msgid "N"
 msgstr "N"
 
@@ -7298,105 +7576,112 @@ msgstr "Mejor ventana"
 msgid "From %(time)s"
 msgstr "Desde %(time)s"
 
-#: templates/solar_system.html:571
+#: templates/solar_system.html:572
 #, python-format
 msgid ""
 "The longest stretch of tonight with the planet above your altitude "
 "threshold, between sunset and sunrise (about %(minutes)s min). Use the "
 "threshold of %(threshold)s° from your settings; the Sun is below the "
 "horizon throughout."
-msgstr "El tramo más largo de esta noche con el planeta por encima de su umbral de"
- " altitud, entre la puesta y la salida del sol (unos %(minutes)s min). Se"
- " usa el umbral de %(threshold)s° de sus ajustes; el Sol permanece bajo el"
- " horizonte durante todo el tramo."
+msgstr ""
+"El tramo más largo de esta noche con el planeta por encima de su umbral "
+"de altitud, entre la puesta y la salida del sol (unos %(minutes)s min). "
+"Se usa el umbral de %(threshold)s° de sus ajustes; el Sol permanece bajo "
+"el horizonte durante todo el tramo."
 
-#: templates/solar_system.html:572
+#: templates/solar_system.html:573
 #, python-format
 msgid ""
 "The one sample tonight at or above %(threshold)s°, at %(time)s: at your "
 "Calculation Precision the stretch above the threshold is narrower than a "
 "single step, so there is no range to give. A finer precision would time "
 "it."
-msgstr "La única muestra de esta noche que alcanza o supera %(threshold)s°, a las"
- " %(time)s: con su precisión de cálculo el tramo por encima del umbral es"
- " más estrecho que un solo paso, así que no hay intervalo que dar. Una"
- " precisión más fina lo situaría en el tiempo."
+msgstr ""
+"La única muestra de esta noche que alcanza o supera %(threshold)s°, a las"
+" %(time)s: con su precisión de cálculo el tramo por encima del umbral es "
+"más estrecho que un solo paso, así que no hay intervalo que dar. Una "
+"precisión más fina lo situaría en el tiempo."
 
-#: templates/solar_system.html:573
+#: templates/solar_system.html:574
 msgid ""
 "The planet does not reach your altitude threshold during tonight’s "
 "darkness at all."
-msgstr "El planeta no alcanza su umbral de altitud en ningún momento durante la"
- " oscuridad de esta noche."
+msgstr ""
+"El planeta no alcanza su umbral de altitud en ningún momento durante la "
+"oscuridad de esta noche."
 
-#: templates/solar_system.html:574
+#: templates/solar_system.html:575
 msgid "evening"
 msgstr "vespertino"
 
-#: templates/solar_system.html:575
+#: templates/solar_system.html:576
 msgid "morning"
 msgstr "matutino"
 
-#: templates/solar_system.html:576
+#: templates/solar_system.html:577
 msgid "Daylight only"
 msgstr "Solo de día"
 
-#: templates/solar_system.html:577
+#: templates/solar_system.html:578
 msgid ""
 "The planet only clears your altitude threshold while the Sun is up, so it"
 " is a daytime target: a bright sky and a low altitude. Worth trying with "
 "a telescope on a transparent day, not by eye."
-msgstr "El planeta solo supera su umbral de altitud mientras el Sol está por"
- " encima del horizonte, así que es un objetivo diurno: cielo claro y poca"
- " altura. Merece la pena intentarlo con telescopio en un día transparente,"
- " no a simple vista."
+msgstr ""
+"El planeta solo supera su umbral de altitud mientras el Sol está por "
+"encima del horizonte, así que es un objetivo diurno: cielo claro y poca "
+"altura. Merece la pena intentarlo con telescopio en un día transparente, "
+"no a simple vista."
 
-#: templates/solar_system.html:579
+#: templates/solar_system.html:580
 msgid ""
 "The lit fraction of the disc right now. Both of these planets show phases"
 " like the Moon, and for Venus the phase and the apparent size run "
 "opposite ways: it is biggest as a thin crescent, near inferior "
 "conjunction, and smallest when it is fully lit on the far side of the "
 "Sun."
-msgstr "La fracción iluminada del disco en este momento. Ambos planetas muestran"
- " fases como la Luna y, en Venus, la fase y el tamaño aparente van en"
- " sentidos opuestos: es mayor como fina fase creciente, cerca de la"
- " conjunción inferior, y menor cuando está totalmente iluminada al otro"
- " lado del Sol."
+msgstr ""
+"La fracción iluminada del disco en este momento. Ambos planetas muestran "
+"fases como la Luna y, en Venus, la fase y el tamaño aparente van en "
+"sentidos opuestos: es mayor como fina fase creciente, cerca de la "
+"conjunción inferior, y menor cuando está totalmente iluminada al otro "
+"lado del Sol."
 
-#: templates/solar_system.html:581
+#: templates/solar_system.html:582
 msgid ""
 "Apparent size in arcseconds. The two discs on this page share one scale, "
 "from Mercury at its smallest to Venus at its largest, so their sizes "
 "against each other are what the drawing shows."
-msgstr "Tamaño aparente en segundos de arco. Los dos discos de esta página"
- " comparten una misma escala, desde el Mercurio más pequeño hasta la Venus"
- " más grande, así que lo que muestra el dibujo es su tamaño relativo."
+msgstr ""
+"Tamaño aparente en segundos de arco. Los dos discos de esta página "
+"comparten una misma escala, desde el Mercurio más pequeño hasta la Venus "
+"más grande, así que lo que muestra el dibujo es su tamaño relativo."
 
-#: templates/solar_system.html:582
+#: templates/solar_system.html:583
 msgid ""
 "The planet at tonight’s phase: the lit part faces the Sun, and the disc "
 "is drawn with the planet’s own north up"
-msgstr "El planeta en la fase de esta noche: la parte iluminada mira hacia el Sol"
- " y el disco se dibuja con el norte del propio planeta hacia arriba"
+msgstr ""
+"El planeta en la fase de esta noche: la parte iluminada mira hacia el Sol"
+" y el disco se dibuja con el norte del propio planeta hacia arriba"
 
-#: templates/solar_system.html:583
+#: templates/solar_system.html:584
 msgid "The planet’s north pole"
 msgstr "El polo norte del planeta"
 
-#: templates/solar_system.html:584
+#: templates/solar_system.html:585
 msgid "Does not rise during the night"
 msgstr "No sale durante la noche"
 
-#: templates/solar_system.html:588
+#: templates/solar_system.html:589
 msgid "Saturn detail could not be calculated."
 msgstr "No se pudieron calcular los detalles de Saturno."
 
-#: templates/solar_system.html:591
+#: templates/solar_system.html:592
 msgid "Rings"
 msgstr "Anillos"
 
-#: templates/solar_system.html:592
+#: templates/solar_system.html:593
 msgid ""
 "B is the Earth’s latitude above the ring plane: how far the rings are "
 "tilted towards us. Positive is the north face, negative the south, and "
@@ -7406,45 +7691,45 @@ msgstr ""
 "inclinan hacia nosotros. Positivo es la cara norte, negativo la sur, y "
 "cerca de 0° se ven de canto."
 
-#: templates/solar_system.html:594
+#: templates/solar_system.html:595
 msgid "north face towards us"
 msgstr "cara norte hacia nosotros"
 
-#: templates/solar_system.html:595
+#: templates/solar_system.html:596
 msgid "south face towards us"
 msgstr "cara sur hacia nosotros"
 
-#: templates/solar_system.html:598 templates/solar_system.html:602
+#: templates/solar_system.html:599 templates/solar_system.html:603
 msgid "north face"
 msgstr "cara norte"
 
-#: templates/solar_system.html:599 templates/solar_system.html:603
+#: templates/solar_system.html:600 templates/solar_system.html:604
 msgid "south face"
 msgstr "cara sur"
 
-#: templates/solar_system.html:605
+#: templates/solar_system.html:606
 #, python-format
 msgid "The Sun lights the %(face)s"
 msgstr "El Sol ilumina la %(face)s"
 
-#: templates/solar_system.html:606
+#: templates/solar_system.html:607
 msgid "The Earth and the Sun see opposite faces of the rings tonight"
 msgstr "La Tierra y el Sol ven esta noche caras opuestas de los anillos"
 
-#: templates/solar_system.html:608
+#: templates/solar_system.html:609
 msgid "opening"
 msgstr "se abren"
 
-#: templates/solar_system.html:609
+#: templates/solar_system.html:610
 msgid "closing"
 msgstr "se cierran"
 
-#: templates/solar_system.html:611
+#: templates/solar_system.html:612
 #, python-format
 msgid "Over the next two years: %(trend)s"
 msgstr "Durante los próximos dos años, los anillos %(trend)s"
 
-#: templates/solar_system.html:612
+#: templates/solar_system.html:613
 msgid ""
 "Over the next month the tilt moves the other way: a short-term wobble "
 "inside this longer swing"
@@ -7452,7 +7737,7 @@ msgstr ""
 "Durante el próximo mes la inclinación va en sentido contrario: una "
 "oscilación de corto plazo dentro de este movimiento más largo"
 
-#: templates/solar_system.html:613
+#: templates/solar_system.html:614
 #, python-format
 msgid ""
 "B′, the Sun’s latitude above the ring plane (negative is the south face):"
@@ -7461,7 +7746,7 @@ msgstr ""
 "B′, la latitud del Sol sobre el plano de los anillos (negativa es la cara"
 " sur): %(bprime)s°"
 
-#: templates/solar_system.html:614
+#: templates/solar_system.html:615
 msgid ""
 "The tilt of the rings, B, over the next two years, and whether they are "
 "opening or closing"
@@ -7469,59 +7754,59 @@ msgstr ""
 "La inclinación de los anillos, B, durante los próximos dos años, y si se "
 "abren o se cierran"
 
-#: templates/solar_system.html:615
+#: templates/solar_system.html:616
 #, python-format
 msgid "The ring system spans %(arcsec)s″ across"
 msgstr "El sistema de anillos abarca %(arcsec)s″"
 
-#: templates/solar_system.html:616
+#: templates/solar_system.html:617
 #, python-format
 msgid "The outer edge of the A ring is %(rs)s Saturn radii from the centre"
 msgstr "El borde exterior del anillo A está a %(rs)s radios de Saturno del centro"
 
-#: templates/solar_system.html:618
+#: templates/solar_system.html:619
 msgid "east of Saturn"
 msgstr "al este de Saturno"
 
-#: templates/solar_system.html:619
+#: templates/solar_system.html:620
 msgid "west of Saturn"
 msgstr "al oeste de Saturno"
 
-#: templates/solar_system.html:622
+#: templates/solar_system.html:623
 msgid "in front of the globe"
 msgstr "delante del globo"
 
-#: templates/solar_system.html:623
+#: templates/solar_system.html:624
 msgid "crossing the disc"
 msgstr "cruzando el disco"
 
-#: templates/solar_system.html:624
+#: templates/solar_system.html:625
 msgid "on the far side of its orbit"
 msgstr "al otro lado de su órbita"
 
-#: templates/solar_system.html:625
+#: templates/solar_system.html:626
 msgid "hidden behind the globe"
 msgstr "oculto detrás del globo"
 
-#: templates/solar_system.html:627
+#: templates/solar_system.html:628
 #, python-format
 msgid "%(rs)s Saturn radii from the centre"
 msgstr "%(rs)s radios de Saturno del centro"
 
-#: templates/solar_system.html:628
+#: templates/solar_system.html:629
 #, python-format
 msgid "Mean opposition magnitude %(mag)s"
 msgstr "Magnitud media en oposición %(mag)s"
 
-#: templates/solar_system.html:629
+#: templates/solar_system.html:630
 msgid "Western elongation: the bright trailing side faces us"
 msgstr "Elongación oeste: la cara brillante trasera nos mira"
 
-#: templates/solar_system.html:630
+#: templates/solar_system.html:631
 msgid "Eastern elongation: the dark leading side faces us"
 msgstr "Elongación este: la cara oscura delantera nos mira"
 
-#: templates/solar_system.html:631
+#: templates/solar_system.html:632
 msgid ""
 "Iapetus is two-toned: one hemisphere is bright, the other covered in dark"
 " material. It is brightest at western elongation, about magnitude 10.1, "
@@ -7531,20 +7816,20 @@ msgstr ""
 "cubierto de material oscuro. Brilla más en la elongación oeste, magnitud "
 "10,1 aproximadamente, y menos en la este, unos 11,9."
 
-#: templates/solar_system.html:632
+#: templates/solar_system.html:633
 msgid "Iapetus: JPL/Cassini Outreach, “East is Least and West is Best”"
 msgstr "Iapetus: JPL/Cassini Outreach, «East is Least and West is Best»"
 
-#: templates/solar_system.html:633
+#: templates/solar_system.html:634
 msgid "No Titan transits this season"
 msgstr "Sin tránsitos de Titan esta temporada"
 
-#: templates/solar_system.html:634
+#: templates/solar_system.html:635
 #, python-format
 msgid "Titan crosses the disc again on %(date)s"
 msgstr "Titan vuelve a cruzar el disco el %(date)s"
 
-#: templates/solar_system.html:635
+#: templates/solar_system.html:636
 #, python-format
 msgid ""
 "%(names)s also cross the disc this season, but they are far too small and"
@@ -7553,16 +7838,16 @@ msgstr ""
 "%(names)s también cruzan el disco esta temporada, pero son demasiado "
 "pequeños y débiles para verse sobre él"
 
-#: templates/solar_system.html:636
+#: templates/solar_system.html:637
 msgid "Titan crosses the disc this season"
 msgstr "Titan cruza el disco esta temporada"
 
-#: templates/solar_system.html:637
+#: templates/solar_system.html:638
 #, python-format
 msgid "closest approach %(rs)s Saturn radii from the centre, %(date)s"
 msgstr "máximo acercamiento a %(rs)s radios de Saturno del centro, %(date)s"
 
-#: templates/solar_system.html:638
+#: templates/solar_system.html:639
 msgid ""
 "How close the centre of the satellite’s orbit comes to the centre of the "
 "disc in the next twelve months. Inside one Saturn radius the satellite "
@@ -7576,16 +7861,16 @@ msgstr ""
 "parciales entre ambos cuentan todos aquí. Los instantes de los cruces no "
 "se calculan."
 
-#: templates/solar_system.html:640
+#: templates/solar_system.html:641
 msgid "Saturn is not up during the night"
 msgstr "Saturno no está sobre el horizonte durante la noche"
 
-#: templates/solar_system.html:642
+#: templates/solar_system.html:643
 #, python-format
 msgid "Satellite magnitudes: %(source)s"
 msgstr "Magnitudes de los satélites: %(source)s"
 
-#: templates/solar_system.html:643
+#: templates/solar_system.html:644
 msgid ""
 "Saturn tonight: the globe, the rings and the shadow they cast on it, and "
 "the satellites"
@@ -7593,15 +7878,15 @@ msgstr ""
 "Saturno esta noche: el globo, los anillos y su sombra sobre él, y los "
 "satélites"
 
-#: templates/solar_system.html:644
+#: templates/solar_system.html:645
 msgid "Filled dot: a satellite beside or in front of the globe"
 msgstr "Punto relleno: un satélite junto al globo o delante de él"
 
-#: templates/solar_system.html:645
+#: templates/solar_system.html:646
 msgid "Hollow dot: a satellite behind the globe"
 msgstr "Punto hueco: un satélite detrás del globo"
 
-#: templates/solar_system.html:646
+#: templates/solar_system.html:647
 msgid ""
 "Chevron at the edge of the figure: a satellite beyond it, its distance in"
 " the tooltip"
@@ -7609,19 +7894,19 @@ msgstr ""
 "Ángulo en el borde de la figura: un satélite más allá, su distancia en la"
 " información emergente"
 
-#: templates/solar_system.html:647
+#: templates/solar_system.html:648
 msgid "Shaded band across the globe: the shadow of the rings"
 msgstr "Banda sombreada sobre el globo: la sombra de los anillos"
 
-#: templates/solar_system.html:648
+#: templates/solar_system.html:649
 msgid "Small dots: Mimas and Enceladus, named where there is room"
 msgstr "Puntos pequeños: Mimas y Enceladus, nombrados donde hay sitio"
 
-#: templates/solar_system.html:653
+#: templates/solar_system.html:654
 msgid "Disc"
 msgstr "Disco"
 
-#: templates/solar_system.html:654
+#: templates/solar_system.html:655
 msgid ""
 "Apparent diameter of the body in pixels with this telescope, camera and "
 "amplification."
@@ -7629,11 +7914,11 @@ msgstr ""
 "Diámetro aparente del cuerpo en píxeles con este telescopio, esta cámara "
 "y esta amplificación."
 
-#: templates/solar_system.html:655
+#: templates/solar_system.html:656
 msgid "Focal ratio"
 msgstr "Relación focal"
 
-#: templates/solar_system.html:656
+#: templates/solar_system.html:657
 msgid ""
 "Rule of thumb for good seeing: 5 x pixel size in µm. Many imagers use 3-5"
 " x, lower for average seeing or colour cameras."
@@ -7641,28 +7926,28 @@ msgstr ""
 "Regla práctica para buen seeing: 5 x tamaño de píxel en µm. Muchos "
 "astrofotógrafos usan 3-5 x, menos con seeing medio o cámaras a color."
 
-#: templates/solar_system.html:657
+#: templates/solar_system.html:658
 #, python-format
 msgid "ideal f/%(ratio)s"
 msgstr "ideal f/%(ratio)s"
 
-#: templates/solar_system.html:659
+#: templates/solar_system.html:660
 msgid "on target"
 msgstr "en el objetivo"
 
-#: templates/solar_system.html:660
+#: templates/solar_system.html:661
 msgid "below ideal"
 msgstr "por debajo del ideal"
 
-#: templates/solar_system.html:661
+#: templates/solar_system.html:662
 msgid "above ideal"
 msgstr "por encima del ideal"
 
-#: templates/solar_system.html:663
+#: templates/solar_system.html:664
 msgid "Detail"
 msgstr "Detalle"
 
-#: templates/solar_system.html:664
+#: templates/solar_system.html:665
 msgid ""
 "How much detail the aperture can resolve on this planet: diameter divided"
 " by the telescope's resolution (Dawes limit). Seeing often limits this "
@@ -7672,28 +7957,28 @@ msgstr ""
 "dividido por la resolución del telescopio (límite de Dawes). El seeing "
 "suele limitarlo aún más."
 
-#: templates/solar_system.html:666
+#: templates/solar_system.html:667
 msgid "Fine detail"
 msgstr "Detalle fino"
 
-#: templates/solar_system.html:667
+#: templates/solar_system.html:668
 msgid "Main features"
 msgstr "Rasgos principales"
 
-#: templates/solar_system.html:668
+#: templates/solar_system.html:669
 msgid "Disc only"
 msgstr "Solo el disco"
 
-#: templates/solar_system.html:670
+#: templates/solar_system.html:671
 #, python-format
 msgid "about %(n)s resolvable points across"
 msgstr "unos %(n)s puntos resolubles a lo ancho"
 
-#: templates/solar_system.html:671
+#: templates/solar_system.html:672
 msgid "Rotation limit"
 msgstr "Límite de rotación"
 
-#: templates/solar_system.html:672
+#: templates/solar_system.html:673
 msgid ""
 "Longest single capture before rotation blurs detail at the disc centre, "
 "without derotation. With derotation (e.g. WinJUPOS) much longer captures "
@@ -7703,12 +7988,12 @@ msgstr ""
 " en el centro del disco, sin derrotación. Con derrotación (p. ej. "
 "WinJUPOS) son posibles capturas mucho más largas."
 
-#: templates/solar_system.html:673
+#: templates/solar_system.html:674
 #, python-format
 msgid "%(min)s min %(sec)s s"
 msgstr "%(min)s min %(sec)s s"
 
-#: templates/solar_system.html:675
+#: templates/solar_system.html:676
 msgid ""
 "Frames needed for the full disc, each overlapping its neighbours by 20 "
 "percent."
@@ -7716,24 +8001,24 @@ msgstr ""
 "Tomas necesarias para el disco completo, cada una solapada un 20 por "
 "ciento con sus vecinas."
 
-#: templates/solar_system.html:676
+#: templates/solar_system.html:677
 msgid "Fits in one frame"
 msgstr "Cabe en una toma"
 
-#: templates/solar_system.html:677
+#: templates/solar_system.html:678
 #, python-format
 msgid "%(n)s panels (%(cols)s × %(rows)s)"
 msgstr "%(n)s paneles (%(cols)s × %(rows)s)"
 
-#: templates/solar_system.html:679
+#: templates/solar_system.html:680
 msgid "Size of the planet on your sensor"
 msgstr "Tamaño del planeta en tu sensor"
 
-#: templates/solar_system.html:680
+#: templates/solar_system.html:681
 msgid "Matches your camera's pixel size"
 msgstr "Se ajusta al tamaño de píxel de tu cámara"
 
-#: templates/solar_system.html:681
+#: templates/solar_system.html:682
 msgid ""
 "Your pixels are too coarse to record all the detail. Use more "
 "amplification."
@@ -7741,7 +8026,7 @@ msgstr ""
 "Tus píxeles son demasiado gruesos para registrar todo el detalle. Usa más"
 " amplificación."
 
-#: templates/solar_system.html:682
+#: templates/solar_system.html:683
 msgid ""
 "Bigger image but no extra detail, and dimmer frames. Use less "
 "amplification and enlarge the result in processing instead."
@@ -7749,28 +8034,28 @@ msgstr ""
 "Imagen más grande pero sin detalle adicional y fotogramas más oscuros. "
 "Usa menos amplificación y amplía el resultado en el procesado."
 
-#: templates/solar_system.html:683
+#: templates/solar_system.html:684
 msgid "Limited by the telescope's aperture, not the camera"
 msgstr "Limitado por la apertura del telescopio, no por la cámara"
 
-#: templates/solar_system.html:684
+#: templates/solar_system.html:685
 msgid "Longest single video before the planet's rotation blurs detail"
 msgstr "Vídeo más largo antes de que la rotación del planeta difumine los detalles"
 
-#: templates/solar_system.html:685
+#: templates/solar_system.html:686
 msgid "Frames needed to cover the whole disc"
 msgstr "Tomas necesarias para cubrir todo el disco"
 
-#: templates/solar_system.html:688
+#: templates/solar_system.html:689
 #, python-format
 msgid "%(level)s setup for %(body)s."
 msgstr "Configuración para %(body)s: %(level)s."
 
-#: templates/solar_system.html:692
+#: templates/solar_system.html:693
 msgid "Limited"
 msgstr "Limitado"
 
-#: templates/solar_system.html:694
+#: templates/solar_system.html:695
 #, python-format
 msgid ""
 "The level combines three checks: how much detail the aperture can resolve"
@@ -7783,19 +8068,19 @@ msgstr ""
 "cámara y la altura que alcanza el planeta esta noche (al menos %(alt)s° "
 "reduce el desenfoque atmosférico)."
 
-#: templates/solar_system.html:695
+#: templates/solar_system.html:696
 #, python-format
 msgid "%(body)s is low tonight (max %(alt)s°); expect atmospheric blur."
 msgstr ""
 "%(body)s está bajo esta noche (máx. %(alt)s°); espera desenfoque "
 "atmosférico."
 
-#: templates/solar_system.html:696
+#: templates/solar_system.html:697
 #, python-format
 msgid "Use %(amp)s amplification for the best sampling."
 msgstr "Usa una amplificación de %(amp)s para el mejor muestreo."
 
-#: templates/solar_system.html:697
+#: templates/solar_system.html:698
 #, python-format
 msgid ""
 "%(body)s: no amplification brings this telescope and camera closer to the"
@@ -7804,26 +8089,26 @@ msgstr ""
 "%(body)s: ninguna amplificación acerca este telescopio y esta cámara al "
 "ideal."
 
-#: templates/solar_system.html:698
+#: templates/solar_system.html:699
 #, python-format
 msgid "%(body)s stays a small disc with any telescope of this size."
 msgstr ""
 "%(body)s sigue siendo un disco pequeño con cualquier telescopio de este "
 "tamaño."
 
-#: templates/solar_system.html:699
+#: templates/solar_system.html:700
 msgid "Fine detail possible, focal ratio on target."
 msgstr "Detalle fino posible, relación focal en el objetivo."
 
-#: templates/solar_system.html:700
+#: templates/solar_system.html:701
 msgid "Main features possible, focal ratio on target."
 msgstr "Rasgos principales posibles, relación focal en el objetivo."
 
-#: templates/solar_system.html:701
+#: templates/solar_system.html:702
 msgid "Focal ratio on target."
 msgstr "Relación focal en el objetivo."
 
-#: templates/solar_system.html:704
+#: templates/solar_system.html:705
 #, python-format
 msgid ""
 "Scale preview: sensor %(w)s × %(h)s pixels, %(body)s %(disc)s pixels "
@@ -7832,7 +8117,7 @@ msgstr ""
 "Vista previa a escala: sensor de %(w)s × %(h)s píxeles, %(body)s mide "
 "%(disc)s píxeles de diámetro."
 
-#: templates/solar_system.html:705
+#: templates/solar_system.html:706
 msgid ""
 "Lit side shown to the right; on your sensor it depends on the camera's "
 "rotation."
@@ -7840,11 +8125,11 @@ msgstr ""
 "Lado iluminado mostrado a la derecha; en tu sensor depende de la rotación"
 " de la cámara."
 
-#: templates/solar_system.html:706
+#: templates/solar_system.html:707
 msgid "not to scale (too small)"
 msgstr "no a escala (demasiado pequeño)"
 
-#: templates/solar_system.html:707
+#: templates/solar_system.html:708
 #, python-format
 msgid ""
 "A %(w)s × %(h)s region of interest (ROI) is enough: more frames per "
@@ -7853,7 +8138,7 @@ msgstr ""
 "Basta con una región de interés (ROI) de %(w)s × %(h)s: más fotogramas "
 "por segundo."
 
-#: templates/solar_system.html:708
+#: templates/solar_system.html:709
 msgid ""
 "A region of interest (ROI) reads out only part of the sensor. Smaller "
 "frames transfer faster, so the camera records more frames per second for "
@@ -7863,27 +8148,27 @@ msgstr ""
 " más pequeños se transfieren más rápido, así que la cámara graba más "
 "fotogramas por segundo para apilar."
 
-#: templates/solar_system.html:709
+#: templates/solar_system.html:710
 msgid "No scale preview."
 msgstr "Sin vista previa a escala."
 
-#: templates/solar_system.html:712
+#: templates/solar_system.html:713
 msgid "The telescope has no focal length."
 msgstr "El telescopio no tiene distancia focal."
 
-#: templates/solar_system.html:713
+#: templates/solar_system.html:714
 msgid "The telescope has no aperture."
 msgstr "El telescopio no tiene apertura."
 
-#: templates/solar_system.html:714
+#: templates/solar_system.html:715
 msgid "The camera has no pixel size."
 msgstr "La cámara no tiene tamaño de píxel."
 
-#: templates/solar_system.html:715
+#: templates/solar_system.html:716
 msgid "The camera has no sensor size."
 msgstr "La cámara no tiene tamaño de sensor."
 
-#: templates/solar_system.html:716
+#: templates/solar_system.html:717
 msgid ""
 "Check the camera's sensor size: it should be in millimetres (e.g. 7.68 × "
 "4.32 mm)."
@@ -7891,33 +8176,33 @@ msgstr ""
 "Revisa el tamaño del sensor de la cámara: debe estar en milímetros (p. "
 "ej., 7,68 × 4,32 mm)."
 
-#: templates/solar_system.html:717
+#: templates/solar_system.html:718
 msgid "Cannot be calculated from these values."
 msgstr "No se puede calcular con estos valores."
 
-#: templates/solar_system.html:721
+#: templates/solar_system.html:722
 #, python-format
 msgid "Seeing tonight: %(level)s (jet stream %(speed)s m/s)"
 msgstr "Seeing esta noche: %(level)s (corriente en chorro %(speed)s m/s)"
 
-#: templates/solar_system.html:722
+#: templates/solar_system.html:723
 #, python-format
 msgid "Seeing %(day)s: %(level)s (jet stream %(speed)s m/s)"
 msgstr "Seeing %(day)s: %(level)s (corriente en chorro %(speed)s m/s)"
 
-#: templates/solar_system.html:724
+#: templates/solar_system.html:725
 msgid "likely steady"
 msgstr "probablemente estable"
 
-#: templates/solar_system.html:725
+#: templates/solar_system.html:726
 msgid "average"
 msgstr "regular"
 
-#: templates/solar_system.html:726
+#: templates/solar_system.html:727
 msgid "likely poor"
 msgstr "probablemente malo"
 
-#: templates/solar_system.html:728
+#: templates/solar_system.html:729
 #, python-format
 msgid ""
 "A forecast, not a measurement. Seeing is estimated from the jet stream: "
@@ -7933,404 +8218,255 @@ msgstr ""
 "estables; la turbulencia cerca del suelo no se incluye. Datos: Open-"
 "Meteo."
 
-#: templates/solar_system.html:730
+#: templates/solar_system.html:731
 msgid "less reliable beyond 3 days"
 msgstr "menos fiable más allá de 3 días"
 
-#: templates/solar_system.html:731
+#: templates/solar_system.html:732
 msgid "No seeing forecast for this night"
 msgstr "No hay previsión de seeing para esta noche"
 
-#: templates/solar_system.html:732
+#: templates/solar_system.html:733
 msgid "Above the altitude threshold for less than an hour"
 msgstr "Por encima de su umbral de altitud durante menos de una hora"
 
-#: templates/solar_system.html:733
+#: templates/solar_system.html:734
 msgid "Data: Open-Meteo"
 msgstr "Datos: Open-Meteo"
 
-#: templates/config_form.html
-msgid "Sync"
-msgstr "Sincronización"
-
-#: templates/sync_tokens.html
-msgid "Nova – Sync Tokens"
-msgstr "Nova – Tokens de sincronización"
-
-#: templates/sync_tokens.html
-msgid "Sync Tokens"
-msgstr "Tokens de sincronización"
-
-#: templates/sync_tokens.html
-msgid "Instance Sync"
-msgstr "Sincronización de instancias"
-
-#: templates/sync_tokens.html
-msgid "Pair another Nova instance with this server. Each instance needs its own token."
-msgstr "Empareja otra instancia de Nova con este servidor. Cada instancia necesita su propio token."
-
-#: templates/sync_tokens.html
-msgid "Copy this token now. We store only a hash of it, so it will never be shown again."
-msgstr "Copia este token ahora. Solo guardamos su hash, así que nunca se volverá a mostrar."
-
-#: templates/sync_tokens.html
-msgid "Token Label"
-msgstr "Etiqueta del token"
-
-#: templates/sync_tokens.html
-msgid "e.g. MacBook Air, Observatory PC"
-msgstr "p. ej. MacBook Air, PC del observatorio"
-
-#: templates/sync_tokens.html
-msgid "Create Token"
-msgstr "Crear token"
-
-#: templates/sync_tokens.html
-msgid "Created"
-msgstr "Creado"
-
-#: templates/sync_tokens.html
-msgid "Last used"
-msgstr "Último uso"
-
-#: templates/sync_tokens.html
-msgid "Never used"
-msgstr "Nunca usado"
-
-#: templates/sync_tokens.html
-msgid "Revoked"
-msgstr "Revocado"
-
-#: templates/sync_tokens.html
-msgid "Revoking stops that instance from syncing. This cannot be undone."
-msgstr "Revocar el token impide que esa instancia se sincronice. Esto no se puede deshacer."
-
-#: templates/sync_tokens.html
-msgid "Revoke"
-msgstr "Revocar"
-
-#: templates/sync_tokens.html
-msgid "No sync tokens yet."
-msgstr "Aún no hay tokens de sincronización."
-
-#: templates/sync_tokens.html
-msgid "Create one for each instance you want to sync to this server."
-msgstr "Crea uno por cada instancia que quieras sincronizar con este servidor."
-
-#: nova/blueprints/sync_tokens.py
-msgid "Not available for the guest account."
-msgstr "No disponible para la cuenta de invitado."
-
-#: nova/blueprints/sync_tokens.py
-msgid "Token label is required."
-msgstr "La etiqueta del token es obligatoria."
-
-#: nova/blueprints/sync_tokens.py
-msgid "That token no longer exists."
-msgstr "Ese token ya no existe."
-
-#: nova/blueprints/sync_tokens.py
-msgid "This token was already created. For security it can't be shown again — revoke it and create a new one if you didn't copy it."
-msgstr "Este token ya se creó. Por seguridad no se puede volver a mostrar: revócalo y crea uno nuevo si no lo copiaste."
-
-msgid "This app and the server speak different sync versions. Update one of them."
-msgstr "Esta app y el servidor usan versiones de sincronización distintas. Actualiza uno de ellos."
-
-msgid "The sync token was rejected."
-msgstr "El token de sincronización fue rechazado."
-
-msgid "This token has been revoked."
-msgstr "Este token ha sido revocado."
-
-msgid "The guest account can't sync."
-msgstr "La cuenta de invitado no puede sincronizar."
-
-msgid "Not connected to a server."
-msgstr "No conectado a un servidor."
-
-msgid "Download from the server first."
-msgstr "Descarga primero desde el servidor."
-
-msgid "This server has no data yet — import your YAML files there first."
-msgstr "Este servidor aún no tiene datos: importa primero allí tus archivos YAML."
-
-msgid "Local data was replaced from a YAML import."
-msgstr "Los datos locales se reemplazaron mediante una importación YAML."
-
-msgid "The server's data was replaced from a YAML import."
-msgstr "Los datos del servidor se reemplazaron mediante una importación YAML."
-
-msgid "A sync is already running."
-msgstr "Ya hay una sincronización en curso."
-
-msgid "The data changed during sync — retrying."
-msgstr "Los datos cambiaron durante la sincronización: reintentando."
-
-msgid "This sync would delete %(deletions)s of %(records)s records."
-msgstr "Esta sincronización eliminaría %(deletions)s de %(records)s registros."
-
-msgid "Your computer's clock is off by %(minutes)s minutes."
-msgstr "El reloj de tu equipo está desviado %(minutes)s minutos."
-
-msgid "The server sent an unreadable response."
-msgstr "El servidor envió una respuesta ilegible."
-
-msgid "This server uses data shapes this app doesn't know."
-msgstr "Este servidor usa estructuras de datos que esta app no reconoce."
-
-msgid "The server sent a record this app can't import."
-msgstr "El servidor envió un registro que esta app no puede importar."
-
-msgid "A session record can't be matched."
-msgstr "No se pudo emparejar un registro de sesión."
-
-msgid "A file reference in the sync is invalid."
-msgstr "Una referencia de archivo en la sincronización no es válida."
-
-msgid "A file is too large to sync."
-msgstr "Un archivo es demasiado grande para sincronizar."
-
-msgid "A file failed its checksum."
-msgstr "Falló la suma de comprobación de un archivo."
-
-msgid "Not enough disk space."
-msgstr "No hay suficiente espacio en disco."
-
-msgid "Could not reach the server."
-msgstr "No se pudo conectar con el servidor."
-
-msgid "The sync failed unexpectedly."
-msgstr "La sincronización falló de forma inesperada."
-
-msgid "The last sync was interrupted. Run Sync now to finish."
-msgstr "La última sincronización se interrumpió. Ejecuta «Sincronizar ahora» para terminarla."
-
-msgid "Type REPLACE to continue."
-msgstr "Escribe REPLACE para continuar."
-
-msgid "Sync failed (%(code)s)."
-msgstr "Error de sincronización (%(code)s)."
-
-msgid "Server URL and token are required."
-msgstr "Se requieren la URL del servidor y el token."
-
-msgid "This URL is not a valid sync server address."
-msgstr "Esta URL no es una dirección de servidor de sincronización válida."
-
-msgid "Connected over an insecure connection — the token travels in the clear on this network."
-msgstr "Conectado mediante una conexión no segura: el token viaja sin cifrar en esta red."
-
-msgid "Connected to %(account)s."
-msgstr "Conectado a %(account)s."
-
-msgid "Disconnected."
-msgstr "Desconectado."
-
-msgid "Sync cancelled."
-msgstr "Sincronización cancelada."
-
+#: templates/sync_tokens.html:2
 msgid "Nova – Sync"
 msgstr "Nova – Sync"
 
+#: templates/sync_tokens.html:11
+msgid "Instance Sync"
+msgstr "Sincronización de instancias"
+
+#: templates/sync_tokens.html:24
 msgid "Use this Nova instance as a server"
 msgstr "Usar esta instancia de Nova como servidor"
 
+#: templates/sync_tokens.html:26
+msgid ""
+"Pair another Nova instance with this server. Each instance needs its own "
+"token."
+msgstr ""
+"Empareja otra instancia de Nova con este servidor. Cada instancia "
+"necesita su propio token."
+
+#: templates/sync_tokens.html:33
+msgid ""
+"Copy this token now. We store only a hash of it, so it will never be "
+"shown again."
+msgstr ""
+"Copia este token ahora. Solo guardamos su hash, así que nunca se volverá "
+"a mostrar."
+
+#: templates/sync_tokens.html:51
+msgid "Token Label"
+msgstr "Etiqueta del token"
+
+#: templates/sync_tokens.html:53
+msgid "e.g. MacBook Air, Observatory PC"
+msgstr "p. ej. MacBook Air, PC del observatorio"
+
+#: templates/sync_tokens.html:55
+msgid "Create Token"
+msgstr "Crear token"
+
+#: templates/sync_tokens.html:67
+msgid "Created"
+msgstr "Creado"
+
+#: templates/sync_tokens.html:70
+msgid "Last used"
+msgstr "Último uso"
+
+#: templates/sync_tokens.html:72
+msgid "Never used"
+msgstr "Nunca usado"
+
+#: templates/sync_tokens.html:78
+msgid "Revoked"
+msgstr "Revocado"
+
+#: templates/sync_tokens.html:81
+msgid "Revoking stops that instance from syncing. This cannot be undone."
+msgstr ""
+"Revocar el token impide que esa instancia se sincronice. Esto no se puede"
+" deshacer."
+
+#: templates/sync_tokens.html:84
+msgid "Revoke"
+msgstr "Revocar"
+
+#: templates/sync_tokens.html:94
+msgid "No sync tokens yet."
+msgstr "Aún no hay tokens de sincronización."
+
+#: templates/sync_tokens.html:95
+msgid "Create one for each instance you want to sync to this server."
+msgstr "Crea uno por cada instancia que quieras sincronizar con este servidor."
+
+#: templates/sync_tokens.html:102
 msgid "Sync with a server"
 msgstr "Sincronizar con un servidor"
 
+#: templates/sync_tokens.html:104
 msgid "Connect this Nova instance to a server to download or sync your data."
-msgstr "Conecta esta instancia de Nova a un servidor para descargar o sincronizar tus datos."
+msgstr ""
+"Conecta esta instancia de Nova a un servidor para descargar o sincronizar"
+" tus datos."
 
+#: templates/sync_tokens.html:109
 msgid "Syncing…"
 msgstr "Sincronizando…"
 
+#: templates/sync_tokens.html:116 templates/sync_tokens.html:235
+#: templates/sync_tokens.html:241
 msgid "Download from server"
 msgstr "Descargar del servidor"
 
+#: templates/sync_tokens.html:119
 msgid "Server records"
 msgstr "Registros del servidor"
 
+#: templates/sync_tokens.html:123
 msgid "Local records"
 msgstr "Registros locales"
 
-msgid "Unsynced local changes"
-msgstr "Cambios locales sin sincronizar"
-
-msgid "Files to download"
-msgstr "Archivos a descargar"
-
-msgid "Files that will be moved aside"
-msgstr "Archivos que se apartarán"
-
-msgid "Sync summary"
-msgstr "Resumen de sincronización"
-
-msgid "Up"
-msgstr "Subir"
-
-msgid "Down"
-msgstr "Bajar"
-
-msgid "Abort"
-msgstr "Abortar"
-
-msgid "This sync will delete a large number of records."
-msgstr "Esta sincronización eliminará una gran cantidad de registros."
-
-msgid "Connected to"
-msgstr "Conectado a"
-
-msgid "Last synced"
-msgstr "Última sincronización"
-
-msgid "Needs download"
-msgstr "Requiere descarga"
-
-#: templates/sync_tokens.html:125
+#: templates/sync_tokens.html:127
 msgid "file"
 msgid_plural "files"
 msgstr[0] "archivo"
 msgstr[1] "archivos"
 
-#: templates/sync_tokens.html:135
+#: templates/sync_tokens.html:131
+msgid "Files that will be moved aside"
+msgstr "Archivos que se apartarán"
+
+#: templates/sync_tokens.html:137
 msgid ""
 "All data on this computer will be replaced by the server's data (a backup"
 " is taken first)."
-msgstr "Todos los datos de este ordenador se sustituirán por los datos del servidor (primero se hace una copia de seguridad)."
+msgstr ""
+"Todos los datos de este ordenador se sustituirán por los datos del "
+"servidor (primero se hace una copia de seguridad)."
 
-#: templates/sync_tokens.html:156 templates/sync_tokens.html:162
+#: templates/sync_tokens.html:139
+msgid "Unsynced local changes"
+msgstr "Cambios locales sin sincronizar"
+
+#: templates/sync_tokens.html:145
+msgid "Type REPLACE to continue"
+msgstr "Escribe REPLACE para continuar"
+
+#: templates/sync_tokens.html:150 templates/sync_tokens.html:197
+#: templates/sync_tokens.html:360
+msgid "Abort"
+msgstr "Abortar"
+
+#: templates/sync_tokens.html:155
+msgid "Sync summary"
+msgstr "Resumen de sincronización"
+
+#: templates/sync_tokens.html:158
+msgid "Up"
+msgstr "Subir"
+
+#: templates/sync_tokens.html:159 templates/sync_tokens.html:165
 msgid "new"
 msgstr "nuevo"
 
-#: templates/sync_tokens.html:157 templates/sync_tokens.html:163
+#: templates/sync_tokens.html:160 templates/sync_tokens.html:166
 msgid "changed"
 msgstr "modificado"
 
-#: templates/sync_tokens.html:158 templates/sync_tokens.html:164
+#: templates/sync_tokens.html:161 templates/sync_tokens.html:167
 #, python-format
 msgid "up to %(n)s deleted"
 msgstr "hasta %(n)s eliminados"
 
-#: templates/sync_tokens.html:158 templates/sync_tokens.html:164
+#: templates/sync_tokens.html:161 templates/sync_tokens.html:167
 msgid "deleted"
 msgstr "eliminado"
 
-#: templates/sync_tokens.html:168
-msgid "Files"
-msgstr "Archivos"
+#: templates/sync_tokens.html:164
+msgid "Down"
+msgstr "Bajar"
 
-#: templates/sync_tokens.html:168
-msgid "to upload"
-msgstr "para subir"
-
-#: templates/sync_tokens.html:168
-msgid "to download"
-msgstr "para descargar"
-
-msgid "Sync now"
-msgstr "Sincronizar ahora"
-
-msgid "Disconnect"
-msgstr "Desconectar"
-
-msgid "Disconnect from this server?"
-msgstr "¿Desconectar de este servidor?"
-
-msgid "Server URL"
-msgstr "URL del servidor"
-
-msgid "Sync token"
-msgstr "Token de sincronización"
-
-msgid "Connect"
-msgstr "Conectar"
-
-msgid "Enter the server URL and a sync token created there."
-msgstr "Introduce la URL del servidor y un token de sincronización creado allí."
-
-#: templates/sync_tokens.html:142
-msgid "Type REPLACE to continue"
-msgstr "Escribe REPLACE para continuar"
-
-#: templates/sync_tokens.html:196
-msgid "Download incomplete — run Sync now to finish"
-msgstr "Descarga incompleta — ejecuta «Sincronizar ahora» para terminarla."
-
-#, python-format
-msgid "Sync complete: %(sent)s sent, %(received)s received"
-msgstr "Sincronización completa: %(sent)s enviados, %(received)s recibidos"
-
-#, python-format
-msgid "Sync complete: %(sent)s sent, %(received)s received · %(files)s"
-msgstr "Sincronización completa: %(sent)s enviados, %(received)s recibidos · %(files)s"
-
-#, python-format
-msgid "Download complete: %(records)s, %(files)s"
-msgstr "Descarga completa: %(records)s, %(files)s"
-
-#, python-format
-msgid "%(num)s record"
-msgid_plural "%(num)s records"
-msgstr[0] "%(num)s registro"
-msgstr[1] "%(num)s registros"
-
-#, python-format
-msgid "%(num)s file"
-msgid_plural "%(num)s files"
-msgstr[0] "%(num)s archivo"
-msgstr[1] "%(num)s archivos"
-
-msgid "Everything is up to date"
-msgstr "Todo está actualizado"
-
-msgid "none to transfer"
-msgstr "nada que transferir"
-
-msgid "This form expired. Please try again."
-msgstr "Este formulario ha caducado. Inténtalo de nuevo."
-
-msgid "This server doesn't support sync — it needs a newer Nova version."
-msgstr "Este servidor no admite la sincronización — necesita una versión más reciente de Nova."
-
-msgid "The server already has this file."
-msgstr "El servidor ya tiene este archivo."
-
-#, python-format
-msgid "Project \"%(name)s\" was not synced: its ID is already used by another account on this computer."
-msgstr "El proyecto «%(name)s» no se sincronizó: su ID ya lo usa otra cuenta en este equipo."
-
-#, python-format
-msgid "Project \"%(name)s\" was not synced: its ID is already used by another account on the server."
-msgstr "El proyecto «%(name)s» no se sincronizó: su ID ya lo usa otra cuenta en el servidor."
-
-#, python-format
-msgid "A session's link to project \"%(name)s\" was not synced: that project is not part of this account."
-msgstr "El vínculo de una sesión con el proyecto «%(name)s» no se sincronizó: ese proyecto no forma parte de esta cuenta."
-
-#, python-format
-msgid "\"%(name)s\": file missing on the server and could not be safely restored."
-msgstr "«%(name)s»: el archivo no está en el servidor y no se pudo restaurar de forma segura."
-
-#, python-format
-msgid "%(name)s — this computer's version kept"
-msgstr "%(name)s — se conserva la versión de este equipo"
-
-#, python-format
-msgid "%(name)s — server version kept"
-msgstr "%(name)s — se conserva la versión del servidor"
-
-#, python-format
-msgid "%(num)s file could not be restored"
-msgid_plural "%(num)s files could not be restored"
-msgstr[0] "No se pudo restaurar %(num)s archivo"
-msgstr[1] "No se pudieron restaurar %(num)s archivos"
-
+#: templates/sync_tokens.html:171
 msgid "Changed on both sides"
 msgstr "Modificado en ambos lados"
 
+#: templates/sync_tokens.html:177
 #, python-format
 msgid "and %(n)s more"
 msgstr "y %(n)s más"
+
+#: templates/sync_tokens.html:186 templates/sync_tokens.html:188
+msgid "Files"
+msgstr "Archivos"
+
+#: templates/sync_tokens.html:186
+msgid "none to transfer"
+msgstr "nada que transferir"
+
+#: templates/sync_tokens.html:188
+msgid "to upload"
+msgstr "para subir"
+
+#: templates/sync_tokens.html:188
+msgid "to download"
+msgstr "para descargar"
+
+#: templates/sync_tokens.html:214
+msgid "Connected to"
+msgstr "Conectado a"
+
+#: templates/sync_tokens.html:218
+msgid "Last synced"
+msgstr "Última sincronización"
+
+#: templates/sync_tokens.html:220
+msgid "Download incomplete — run Sync now to finish"
+msgstr "Descarga incompleta — ejecuta «Sincronizar ahora» para terminarla."
+
+#: templates/sync_tokens.html:222
+msgid "Needs download"
+msgstr "Requiere descarga"
+
+#: templates/sync_tokens.html:228
+msgid "Disconnect from this server?"
+msgstr "¿Desconectar de este servidor?"
+
+#: templates/sync_tokens.html:230
+msgid "Disconnect"
+msgstr "Desconectar"
+
+#: templates/sync_tokens.html:237 templates/sync_tokens.html:245
+msgid "Sync now"
+msgstr "Sincronizar ahora"
+
+#: templates/sync_tokens.html:255
+msgid "Server URL"
+msgstr "URL del servidor"
+
+#: templates/sync_tokens.html:259
+msgid "Sync token"
+msgstr "Token de sincronización"
+
+#: templates/sync_tokens.html:262
+msgid "Connect"
+msgstr "Conectar"
+
+#: templates/sync_tokens.html:267
+msgid "Enter the server URL and a sync token created there."
+msgstr "Introduce la URL del servidor y un token de sincronización creado allí."
+
+#: templates/sync_tokens.html:359
+msgid "This sync will delete a large number of records."
+msgstr "Esta sincronización eliminará una gran cantidad de registros."
 
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Actualizar sugerencias"
@@ -8404,4 +8540,13 @@ msgstr "y %(n)s más"
 
 #~ msgid "Size ("
 #~ msgstr "Tamaño ("
+
+#~ msgid "Nova – Sync Tokens"
+#~ msgstr "Nova – Tokens de sincronización"
+
+#~ msgid "Sync Tokens"
+#~ msgstr "Tokens de sincronización"
+
+#~ msgid "Files to download"
+#~ msgstr "Archivos a descargar"
 
