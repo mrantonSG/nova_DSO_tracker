@@ -7926,6 +7926,36 @@ msgstr ""
 msgid "Download incomplete — run Sync now to finish"
 msgstr ""
 
+#, python-format
+msgid "Sync complete: %(sent)s sent, %(received)s received"
+msgstr ""
+
+#, python-format
+msgid "Sync complete: %(sent)s sent, %(received)s received · %(files)s"
+msgstr ""
+
+#, python-format
+msgid "Download complete: %(records)s, %(files)s"
+msgstr ""
+
+#, python-format
+msgid "%(num)s record"
+msgid_plural "%(num)s records"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(num)s file"
+msgid_plural "%(num)s files"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Everything is up to date"
+msgstr ""
+
+msgid "none to transfer"
+msgstr ""
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr ""
 

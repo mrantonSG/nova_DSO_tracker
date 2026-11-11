@@ -656,3 +656,132 @@ def test_last_synced_time_uses_iso_z_and_formats_in_app_locale(hub, db_session, 
     assert result["dateStyle"] == "medium"
     assert result["timeStyle"] == "short"
     assert result["textContent"] == "LOCALIZED"
+
+
+# =============================================================================
+# 10. Completion toast: flashed once, not on every later page load
+# =============================================================================
+
+def _seed_done_job(hub, monkeypatch, tmp_path, *, summary, result, toast_at=None):
+    import nova.sync_job as sj
+    from nova.sync_engine import to_iso
+    monkeypatch.setattr(sj, "INSTANCE_PATH", str(tmp_path))
+    now = to_iso(utc_now())
+    sj.save_job(hub.user.id, {
+        "job_id": "x", "start_token": "x", "user_id": hub.user.id,
+        "kind": summary["kind"], "phase": "done", "progress": 1.0,
+        "phase_label": "done",
+        "summary": summary, "result": result, "error": None,
+        "toast_pending": True, "toast_at": toast_at or now,
+        "started_at": now, "heartbeat_at": now,
+        "pid": os.getpid(),
+    })
+
+
+def test_completion_toast_flashes_once_after_done(hub, monkeypatch, tmp_path):
+    _seed_done_job(hub, monkeypatch, tmp_path,
+                   summary={"kind": "sync",
+                            "files": {"up": 1, "down": 2, "down_bytes": 2048}},
+                   result={"up": {"created": 1, "updated": 1, "deleted": 0},
+                           "down": {"created": 2, "updated": 0, "deleted": 0}})
+
+    first = hub.client.get("/sync").data.decode()
+    assert "Sync complete: 2 sent, 2 received · 3 files" in first
+
+    # A later load of the same finished job does not re-emit the toast.
+    second = hub.client.get("/sync").data.decode()
+    assert "Sync complete:" not in second
+
+
+def test_download_and_empty_completion_toast_messages(hub, monkeypatch, tmp_path):
+    _seed_done_job(hub, monkeypatch, tmp_path,
+                   summary={"kind": "download",
+                            "files": {"incoming": 3, "bytes": 4096, "replaced": 0}},
+                   result={"down": {"astro_objects": 2, "projects": 1},
+                           "pending_files": 0})
+    body = hub.client.get("/sync").data.decode()
+    assert "Download complete: 3 records, 3 files" in body
+
+    _seed_done_job(hub, monkeypatch, tmp_path,
+                   summary={"kind": "sync",
+                            "files": {"up": 0, "down": 0, "down_bytes": 0}},
+                   result={"up": {"created": 0, "updated": 0, "deleted": 0},
+                           "down": {"created": 0, "updated": 0, "deleted": 0},
+                           "empty": True})
+    body = hub.client.get("/sync").data.decode()
+    assert "Everything is up to date" in body
+
+
+def test_stale_completion_toast_is_consumed_without_flashing(hub, monkeypatch, tmp_path):
+    import nova.sync_job as sj
+    from datetime import timedelta
+    from nova.sync_engine import to_iso
+    old = to_iso(utc_now() - timedelta(seconds=sj.TOAST_TTL_SECONDS + 60))
+    _seed_done_job(hub, monkeypatch, tmp_path,
+                   summary={"kind": "sync",
+                            "files": {"up": 0, "down": 0, "down_bytes": 0}},
+                   result={"up": {"created": 1, "updated": 0, "deleted": 0},
+                           "down": {"created": 0, "updated": 0, "deleted": 0}},
+                   toast_at=old)
+
+    body = hub.client.get("/sync").data.decode()
+    assert "Sync complete:" not in body
+    # Consumed, not merely suppressed: the flag is cleared on disk.
+    assert sj.load_job(hub.user.id)["toast_pending"] is False
+
+
+def test_consume_toast_with_stale_start_token_leaves_newer_job(hub, monkeypatch, tmp_path):
+    import nova.sync_job as sj
+    _seed_done_job(hub, monkeypatch, tmp_path,
+                   summary={"kind": "sync",
+                            "files": {"up": 0, "down": 0, "down_bytes": 0}},
+                   result={"up": {"created": 0, "updated": 0, "deleted": 0},
+                           "down": {"created": 0, "updated": 0, "deleted": 0}})
+    # A newer job replaced the one the caller loaded (token "x").
+    newer = dict(sj.load_job(hub.user.id), job_id="y", start_token="y")
+    sj.save_job(hub.user.id, newer)
+    with open(sj.job_path(hub.user.id), "rb") as f:
+        before = f.read()
+
+    sj.consume_toast(hub.user.id, "x")
+
+    with open(sj.job_path(hub.user.id), "rb") as f:
+        assert f.read() == before
+    assert sj.load_job(hub.user.id)["toast_pending"] is True
+
+
+# =============================================================================
+# 11. Summary rows: body font, and the files line's zero case
+# =============================================================================
+
+def test_sync_summary_rows_use_body_font_and_tabular_figures():
+    css = (REPO / "static" / "css" / "config_form.css").read_text()
+    block = re.search(r"\.sync-summary-row\s*\{[^}]*\}", css).group(0)
+    assert "var(--font-mono" not in block
+    assert "font-variant-numeric: tabular-nums" in block
+
+
+def test_sync_files_line_shows_none_to_transfer_when_zero(hub, monkeypatch, tmp_path):
+    import nova.sync_job as sj
+    from nova.sync_engine import to_iso
+    monkeypatch.setattr(sj, "INSTANCE_PATH", str(tmp_path))
+    now = to_iso(utc_now())
+    sj.save_job(hub.user.id, {
+        "job_id": "x", "start_token": "x", "user_id": hub.user.id,
+        "kind": "sync", "phase": "awaiting_confirmation", "progress": 0.9,
+        "phase_label": "awaiting_confirmation",
+        "summary": {"kind": "sync",
+                    "up": {"created": 0, "updated": 0, "deleted": 0,
+                           "may_skip_deleted": False},
+                    "down": {"created": 0, "updated": 0, "deleted": 0,
+                             "may_skip_deleted": False},
+                    "files": {"up": 0, "down": 0, "down_bytes": 0},
+                    "mass_delete": False},
+        "result": None, "error": None,
+        "started_at": now, "heartbeat_at": now,
+        "pid": os.getpid(),
+    })
+
+    body = hub.client.get("/sync").data.decode()
+    assert "none to transfer" in body
+    assert "to upload" not in body

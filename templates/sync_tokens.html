@@ -165,7 +165,11 @@
               </li>
             </ul>
             <p class="sync-files">
-              {{ _('Files') }}: {{ s.files.up }} {{ _('to upload') }} · {{ s.files.down }} {{ _('to download') }} ({{ s.files.down_bytes | filesizeformat }})
+              {% if s.files.up == 0 and s.files.down == 0 %}
+                {{ _('Files') }}: {{ _('none to transfer') }}
+              {% else %}
+                {{ _('Files') }}: {{ s.files.up }} {{ _('to upload') }} · {{ s.files.down }} {{ _('to download') }} ({{ s.files.down_bytes | filesizeformat }})
+              {% endif %}
             </p>
             <form method="post" action="{{ url_for('sync.confirm') }}" id="sync-confirm-form" data-mass-delete="{{ '1' if s.mass_delete else '0' }}">
               <input type="hidden" name="allow_mass_delete" value="0" id="sync-mass-delete-field">

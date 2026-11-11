@@ -7938,6 +7938,34 @@ msgstr "输入 REPLACE 以继续"
 msgid "Download incomplete — run Sync now to finish"
 msgstr "下载未完成 — 请运行“立即同步”以完成。"
 
+#, python-format
+msgid "Sync complete: %(sent)s sent, %(received)s received"
+msgstr "同步完成：已发送 %(sent)s 条，已接收 %(received)s 条"
+
+#, python-format
+msgid "Sync complete: %(sent)s sent, %(received)s received · %(files)s"
+msgstr "同步完成：已发送 %(sent)s 条，已接收 %(received)s 条 · %(files)s"
+
+#, python-format
+msgid "Download complete: %(records)s, %(files)s"
+msgstr "下载完成：%(records)s，%(files)s"
+
+#, python-format
+msgid "%(num)s record"
+msgid_plural "%(num)s records"
+msgstr[0] "%(num)s 条记录"
+
+#, python-format
+msgid "%(num)s file"
+msgid_plural "%(num)s files"
+msgstr[0] "%(num)s 个文件"
+
+msgid "Everything is up to date"
+msgstr "所有内容均为最新"
+
+msgid "none to transfer"
+msgstr "没有需要传输的内容"
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "刷新建议"
 

@@ -1793,8 +1793,8 @@
 
 /* Compact Up/Down rows: label + counts inline, left-aligned. */
 .sync-summary-row {
-  font-family: var(--font-mono, monospace);
-  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
   color: var(--text-primary);
 }
 

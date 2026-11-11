@@ -84,6 +84,8 @@ HEARTBEAT_THROTTLE_SECONDS = 10
 BACKUP_KEEP = 5
 # plan_stale / sync_running are retried this many times before reporting.
 PLAN_STALE_RETRIES = 3
+# A completion toast older than this is consumed without being shown.
+TOAST_TTL_SECONDS = 600
 
 
 class _Superseded(Exception):
@@ -287,6 +289,20 @@ def abort_job(app, user_id: int) -> None:
         logger.warning("push_cancel failed during abort", exc_info=True)
 
 
+def consume_toast(user_id: int, start_token: str) -> None:
+    """Mark a finished job's completion toast as shown, so it flashes only once.
+
+    `start_token` is the token of the job the caller loaded. Like _touch(), the
+    job is re-read and left alone when a newer start replaced it.
+    """
+    job = load_job(user_id)
+    if job is None or job.get("start_token") != start_token:
+        return
+    if job.get("toast_pending"):
+        job["toast_pending"] = False
+        save_job(user_id, job)
+
+
 # --- Worker entry points ------------------------------------------------------
 
 def _run_phase1(app, user_id: int, kind: str, start_token: str) -> None:
@@ -433,7 +449,8 @@ def _phase2_download(db, user, start_token: str) -> None:
     _touch(uid, start_token, phase=PHASE_DONE, progress=1.0, phase_label=PHASE_DONE,
            result={"down": dict(result.created),
                    "replaced_files": result.replaced_files,
-                   "pending_files": len(result.pending_files or [])})
+                   "pending_files": len(result.pending_files or [])},
+           toast_pending=True, toast_at=to_iso(utc_now()))
 
 
 # --- Sync now -----------------------------------------------------------------
@@ -474,6 +491,34 @@ def _retry_transient(fn, attempts: int = PLAN_STALE_RETRIES):
         if i < attempts - 1:
             time.sleep(_backoff(i))
     raise last
+
+
+def _sync_plan_empty(summary) -> bool:
+    """True when a sync plan has nothing to apply in either direction."""
+    up = summary.get("up") or {}
+    down = summary.get("down") or {}
+    files = summary.get("files") or {}
+    return (
+        int(up.get("created") or 0) == 0
+        and int(up.get("updated") or 0) == 0
+        and int(up.get("deleted") or 0) == 0
+        and int(down.get("created") or 0) == 0
+        and int(down.get("updated") or 0) == 0
+        and int(down.get("deleted") or 0) == 0
+        and int(files.get("up") or 0) == 0
+        and int(files.get("down") or 0) == 0
+    )
+
+
+def _complete_empty_sync(db, uid, rev_at_export, server_rev) -> None:
+    """Advance the watermarks and last_sync_at for a sync with nothing to apply."""
+    state = db.scalars(select(SyncState).where(SyncState.user_id == uid)).first()
+    if state is None:
+        return
+    state.local_pushed_rev = max(state.local_pushed_rev or 0, int(rev_at_export))
+    state.server_cursor = int(server_rev)
+    state.last_sync_at = utc_now()
+    db.commit()
 
 
 def _phase1_sync(db, user, start_token: str) -> None:
@@ -536,6 +581,7 @@ def _phase1_sync(db, user, start_token: str) -> None:
     up_deleted = _sum_counts(push_summary.get("deleted"))
     if push_mass_delete:
         up_deleted = int((push_mass_delete_detail or {}).get("deletions") or 0)
+    server_rev = int(pull_payload.get("rev") or 0)
     summary = {
         "kind": "sync",
         "push": push_summary,
@@ -562,6 +608,15 @@ def _phase1_sync(db, user, start_token: str) -> None:
                   "down": pull_plan.summary()["files"]["needed"],
                   "down_bytes": pull_plan.summary()["files"]["bytes"]},
     }
+    if _sync_plan_empty(summary):
+        _complete_empty_sync(db, uid, rev_at_export, server_rev)
+        _touch(uid, start_token, phase=PHASE_DONE, progress=1.0, phase_label=PHASE_DONE,
+               result={"up": {"created": 0, "updated": 0, "deleted": 0},
+                       "down": {"created": 0, "updated": 0, "deleted": 0},
+                       "files": 0, "empty": True},
+               toast_pending=True, toast_at=to_iso(utc_now()))
+        return
+
     _touch(uid, start_token, phase=PHASE_AWAITING, progress=0.9, summary=summary,
            phase_label=PHASE_AWAITING)
 
@@ -655,7 +710,8 @@ def _phase2_sync(db, user, start_token: str, allow_mass_delete: bool) -> None:
                    "down": {"created": _sum_counts(result.created),
                             "updated": _sum_counts(result.updated),
                             "deleted": _sum_counts(result.deleted)},
-                   "pending_files": len(result.pending_files or [])})
+                   "pending_files": len(result.pending_files or [])},
+           toast_pending=True, toast_at=to_iso(utc_now()))
 
 
 def _state_cursor(db, uid: int) -> int:
@@ -884,7 +940,8 @@ def job_status(user_id: int) -> dict:
     if phase == PHASE_AWAITING:
         return {"running": False, "phase": phase, "progress": job.get("progress"),
                 "summary": job.get("summary"), "result": job.get("result"),
-                "error": job.get("error")}
+                "error": job.get("error"),
+                "toast_pending": job.get("toast_pending")}
     if phase in _RUNNING_PHASES and _is_stale(job):
         job = dict(job, phase=PHASE_FAILED,
                    error={"code": "interrupted", "detail": {}})
@@ -892,4 +949,5 @@ def job_status(user_id: int) -> dict:
     running = phase in _RUNNING_PHASES
     return {"running": running, "phase": phase, "progress": job.get("progress"),
             "summary": job.get("summary"), "result": job.get("result"),
-            "error": job.get("error")}
+            "error": job.get("error"),
+            "toast_pending": job.get("toast_pending")}

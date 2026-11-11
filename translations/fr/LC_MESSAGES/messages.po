@@ -8295,6 +8295,36 @@ msgstr "Saisissez REPLACE pour continuer"
 msgid "Download incomplete — run Sync now to finish"
 msgstr "Téléchargement incomplet — lancez « Synchroniser maintenant » pour le terminer."
 
+#, python-format
+msgid "Sync complete: %(sent)s sent, %(received)s received"
+msgstr "Synchronisation terminée : %(sent)s envoyé(s), %(received)s reçu(s)"
+
+#, python-format
+msgid "Sync complete: %(sent)s sent, %(received)s received · %(files)s"
+msgstr "Synchronisation terminée : %(sent)s envoyé(s), %(received)s reçu(s) · %(files)s"
+
+#, python-format
+msgid "Download complete: %(records)s, %(files)s"
+msgstr "Téléchargement terminé : %(records)s, %(files)s"
+
+#, python-format
+msgid "%(num)s record"
+msgid_plural "%(num)s records"
+msgstr[0] "%(num)s enregistrement"
+msgstr[1] "%(num)s enregistrements"
+
+#, python-format
+msgid "%(num)s file"
+msgid_plural "%(num)s files"
+msgstr[0] "%(num)s fichier"
+msgstr[1] "%(num)s fichiers"
+
+msgid "Everything is up to date"
+msgstr "Tout est à jour"
+
+msgid "none to transfer"
+msgstr "rien à transférer"
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Suggestions de rafraîchissement"
 

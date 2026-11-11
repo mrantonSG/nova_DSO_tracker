@@ -7956,6 +7956,34 @@ msgstr "続行するには「REPLACE」と入力してください"
 msgid "Download incomplete — run Sync now to finish"
 msgstr "ダウンロードが未完了です — 完了するには「今すぐ同期」を実行してください。"
 
+#, python-format
+msgid "Sync complete: %(sent)s sent, %(received)s received"
+msgstr "同期が完了しました: 送信 %(sent)s 件、受信 %(received)s 件"
+
+#, python-format
+msgid "Sync complete: %(sent)s sent, %(received)s received · %(files)s"
+msgstr "同期が完了しました: 送信 %(sent)s 件、受信 %(received)s 件 · %(files)s"
+
+#, python-format
+msgid "Download complete: %(records)s, %(files)s"
+msgstr "ダウンロードが完了しました: %(records)s、%(files)s"
+
+#, python-format
+msgid "%(num)s record"
+msgid_plural "%(num)s records"
+msgstr[0] "%(num)s レコード"
+
+#, python-format
+msgid "%(num)s file"
+msgid_plural "%(num)s files"
+msgstr[0] "%(num)s ファイル"
+
+msgid "Everything is up to date"
+msgstr "すべて最新の状態です"
+
+msgid "none to transfer"
+msgstr "転送するものはありません"
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "更新提案"
 

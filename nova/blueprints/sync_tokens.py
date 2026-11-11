@@ -24,7 +24,7 @@ import secrets
 
 from flask import (Blueprint, abort, current_app, flash, g, jsonify, redirect,
                    render_template, request, session, url_for)
-from flask_babel import gettext as _
+from flask_babel import gettext as _, ngettext
 from functools import wraps
 
 from nova.config import NOVA_SYNC_CLIENT
@@ -32,8 +32,10 @@ from nova.helpers import get_db
 from nova.models import SyncState, SyncToken
 from nova.sync_client import (DEFAULT_SERVER_URL, SyncClient, SyncTransportError,
                               validate_server_url)
-from nova.sync_engine import SyncRefused, download_status, start_pairing
-from nova.sync_job import abort_job, confirm_job, job_status, start_job
+from nova.sync_engine import (SyncRefused, download_status, parse_datetime,
+                              start_pairing)
+from nova.sync_job import (TOAST_TTL_SECONDS, abort_job, confirm_job, consume_toast,
+                           job_status, load_job, start_job)
 from nova.sync_time import utc_now
 from nova.sync_transport import GUEST_USERNAME, hash_token, new_token
 
@@ -163,6 +165,70 @@ def _sync_view(db, user):
     return view
 
 
+def _sum_int(mapping) -> int:
+    """The sum of a {key: count} mapping's values, tolerant of missing keys."""
+    return sum(int(v or 0) for v in (mapping or {}).values())
+
+
+def _completion_toast(job) -> tuple:
+    """The one-shot (kind, message) toast for a finished job, or None.
+
+    The message is composed here — at render/poll time, inside a request — so
+    ngettext and gettext use the request locale. ``empty`` short-circuits to the
+    "up to date" info toast; a download reports records + files, and a sync
+    reports records sent/received (plus files when any were transferred).
+    """
+    summary = job.get("summary") or {}
+    result = job.get("result") or {}
+    if result.get("empty"):
+        return "info", _("Everything is up to date")
+    kind = summary.get("kind")
+    if kind == "download":
+        records = _sum_int(result.get("down"))
+        files = int((summary.get("files") or {}).get("incoming") or 0)
+        return "success", _("Download complete: %(records)s, %(files)s") % {
+            "records": ngettext("%(num)s record", "%(num)s records", records),
+            "files": ngettext("%(num)s file", "%(num)s files", files),
+        }
+    if kind == "sync":
+        sent = _sum_int(result.get("up"))
+        received = _sum_int(result.get("down"))
+        files_summary = summary.get("files") or {}
+        files = int(files_summary.get("up") or 0) + int(files_summary.get("down") or 0)
+        if files:
+            return "success", _("Sync complete: %(sent)s sent, %(received)s received · %(files)s") % {
+                "sent": sent, "received": received,
+                "files": ngettext("%(num)s file", "%(num)s files", files),
+            }
+        return "success", _("Sync complete: %(sent)s sent, %(received)s received") % {
+            "sent": sent, "received": received,
+        }
+    return None
+
+
+def _flash_completion_toast(user, sync_view) -> None:
+    """Flash a finished job's toast once, then mark it consumed.
+
+    The job is read from disk rather than from sync_view, because consuming
+    needs the job's start_token, which the poll payload does not carry. A toast
+    older than TOAST_TTL_SECONDS (or without a timestamp) is consumed silently:
+    a completion the user never saw on time is not announced on a later visit.
+    """
+    job = load_job(user.id) if user is not None else None
+    if not job or job.get("phase") != "done" or not job.get("toast_pending"):
+        return
+    toast_at = parse_datetime(job.get("toast_at"))
+    if toast_at is None or (utc_now() - toast_at).total_seconds() > TOAST_TTL_SECONDS:
+        consume_toast(user.id, job.get("start_token"))
+        return
+    toast = _completion_toast(job)
+    if toast is None:
+        return
+    kind, message = toast
+    flash(message, kind)
+    consume_toast(user.id, job.get("start_token"))
+
+
 def _render(new_token=None):
     db = get_db()
     user = _current_user()
@@ -170,10 +236,12 @@ def _render(new_token=None):
     if user is not None:
         tokens = list(db.query(SyncToken).filter_by(user_id=user.id)
                       .order_by(SyncToken.id.desc()).all())
+    sync_view = _sync_view(db, user)
+    _flash_completion_toast(user, sync_view)
     # The reveal response is uncacheable because set_cache_headers() in the app
     # factory marks every non-static HTML response no-store.
     return render_template('sync_tokens.html', tokens=tokens, new_token=new_token,
-                           nonce=_issue_nonce(), sync_view=_sync_view(db, user),
+                           nonce=_issue_nonce(), sync_view=sync_view,
                            default_server_url=DEFAULT_SERVER_URL)
 
 

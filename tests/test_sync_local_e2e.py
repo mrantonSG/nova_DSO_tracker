@@ -439,6 +439,67 @@ def test_push_multi_image_notes(harness):
         assert hashlib.sha256(data).hexdigest() in got
 
 
+def test_empty_sync_skips_confirmation_and_updates_watermarks(harness):
+    """A sync with nothing to push or pull completes without a confirm step."""
+    uid = harness["local_user"].id
+    _mark_downloaded(harness)
+
+    start_job(harness["app"], uid, "sync")
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed", "awaiting_confirmation"))
+    assert st["phase"] == "done", st
+    assert st["result"]["empty"] is True
+
+    # The watermarks still advance as if the (empty) sync had run today.
+    state = _local_query(harness, lambda db: db.query(SyncState).filter_by(user_id=uid).one())
+    assert state.last_sync_at is not None
+
+
+def test_empty_sync_cursor_is_phase1_hub_rev_and_later_hub_change_is_pulled(harness, monkeypatch):
+    """The empty path stores the hub rev phase 1 saw, so a later hub change is pulled."""
+    uid = harness["local_user"].id
+    _mark_downloaded(harness)
+
+    # Give the hub a non-zero rev and bring the local level with it.
+    _hub(harness, _obj(999, "HUB-1"))
+    st = _run_phase1(harness, "sync")
+    assert st["phase"] == "awaiting_confirmation", st
+    confirm_job(harness["app"], uid)
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+    assert st["phase"] == "done", st
+
+    # Record the rev of every /changes payload the job receives.
+    seen = []
+    original = SyncClient.changes
+
+    def recording_changes(self, *args, **kwargs):
+        payload = original(self, *args, **kwargs)
+        seen.append(int(payload.get("rev") or 0))
+        return payload
+    monkeypatch.setattr(SyncClient, "changes", recording_changes)
+
+    start_job(harness["app"], uid, "sync")
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed", "awaiting_confirmation"))
+    assert st["phase"] == "done", st
+    assert st["result"]["empty"] is True
+    assert len(seen) == 1                        # phase 1 only; no second fetch
+    hub_rev = _hub_query(harness, lambda db: counter_rev(db, 999))
+    assert seen[0] == hub_rev > 0
+    state = _local_query(harness, lambda db: db.query(SyncState).filter_by(user_id=uid).one())
+    assert state.server_cursor == seen[0]
+
+    # A hub change after the empty sync is pulled by the next one.
+    _hub(harness, _obj(999, "HUB-2", ra=7.0))
+    st = _run_phase1(harness, "sync")
+    assert st["phase"] == "awaiting_confirmation", st
+    assert st["summary"]["down"]["created"] >= 1
+    confirm_job(harness["app"], uid)
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+    assert st["phase"] == "done", st
+    hub2 = _local_query(harness, lambda db: db.query(AstroObject).filter_by(
+        user_id=uid, object_name="HUB-2").one())
+    assert hub2.ra_hours == 7.0
+
+
 # =============================================================================
 # 3. Apply guard: local edit after summary -> stop and re-ask
 # =============================================================================
@@ -745,6 +806,10 @@ def test_apply_guard_extra_hub_deletions_stop_the_sync(harness):
     _mark_downloaded(harness)
     _sync_shared_objects(harness, 3)
 
+    # A new hub record makes this sync non-empty, so it pauses for a summary
+    # instead of completing instantly (an empty sync skips the confirm step).
+    _hub(harness, _obj(999, "OBJ-NEW"))
+
     st = _run_phase1(harness, "sync")
     assert st["phase"] == "awaiting_confirmation", st
     assert st["summary"]["deletions"] == 0
@@ -766,11 +831,22 @@ def test_apply_guard_new_mass_delete_at_confirm_stops(harness):
     _mark_downloaded(harness)
     _sync_shared_objects(harness, 40)
 
+    # A new hub record makes this sync non-empty, so it pauses for a summary
+    # instead of completing instantly (an empty sync skips the confirm step).
+    _hub(harness, _obj(999, "OBJ-NEW"))
+
     st = _run_phase1(harness, "sync")
     assert st["phase"] == "awaiting_confirmation", st
     assert st["summary"]["mass_delete"] is False
 
-    _hub_delete_all_objects(harness)   # now the pull is a mass delete, never shown
+    # Deleting the original 40 (but not OBJ-NEW) turns the confirm's re-plan
+    # into a mass delete the summary never showed.
+    def delete_originals(db):
+        for o in db.query(AstroObject).filter_by(user_id=999).all():
+            if o.object_name != "OBJ-NEW":
+                db.delete(o)
+        db.commit()
+    _hub_query(harness, delete_originals)
 
     confirm_job(harness["app"], uid)   # no allow_mass_delete
     st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
@@ -1060,12 +1136,12 @@ def test_combination_mixed_scenarios(harness):
     # The removed slot, missing file and over-cap file carried no bytes.
     assert not any(n.endswith("big.jpg") for n in os.listdir(os.path.join(instance, "uploads", "default")))
 
-    # Sync back both ways: zero refusals and both sides equal.
-    st = _run_phase1(harness, "sync")
-    assert st["phase"] == "awaiting_confirmation", st
-    confirm_job(harness["app"], uid)
-    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed"))
+    # Sync back both ways: with nothing left to transfer this is an empty sync
+    # that completes without a confirm step, and both sides stay equal.
+    start_job(harness["app"], uid, "sync")
+    st = _wait(uid, lambda s: s.get("phase") in ("done", "failed", "awaiting_confirmation"))
     assert st["phase"] == "done", st
+    assert st["result"]["empty"] is True
 
     local_projects = _local_query(harness, lambda db: db.query(Project).filter_by(user_id=uid).count())
     hub_projects = _hub_query(harness, lambda db: db.query(Project).filter_by(user_id=999).count())
