@@ -1032,11 +1032,12 @@ def test_exception_placing_one_file_is_healed_before_the_run_ends(harness, monke
     real_place_one = sync_engine._place_one
     fired = {"n": 0}
 
-    def flaky(db, user, model, ref, staged, instance_path=None):
+    def flaky(db, user, model, ref, staged, instance_path=None, **kwargs):
         fired["n"] += 1
         if fired["n"] == 1:
             raise RuntimeError("simulated placement failure")
-        return real_place_one(db, user, model, ref, staged, instance_path=instance_path)
+        return real_place_one(db, user, model, ref, staged,
+                              instance_path=instance_path, **kwargs)
     monkeypatch.setattr("nova.sync_engine._place_one", flaky)
 
     st = _run_phase1(harness, "download")
@@ -1424,12 +1425,17 @@ def _download_one_photo(harness, data=BIG):
 def test_a_file_the_hub_lost_is_restored_through_repair(harness):
     """The hub's record names a photo its disk no longer has. Nothing changed,
     so no plan mentions it — the healing pass of an otherwise empty sync
-    uploads it through /repair."""
+    uploads it through /repair. The record keeps its stamp, and the row gets a
+    new rev so a computer that pulled it while the file was gone is offered it
+    again."""
     uid = harness["local_user"].id
     _download_one_photo(harness)
     hub_path = os.path.join(harness["instance_path"], "uploads", "hubuser", "hub.jpg")
     os.remove(hub_path)
     hub_rev = _hub_query(harness, lambda db: counter_rev(db, 999))
+    hub_stamp = _hub_query(harness, lambda db: db.query(JournalSession)
+                           .filter_by(user_id=999, external_id="hub-sess").one()
+                           .sync_changed_at)
 
     st = _sync_to_done(harness)
 
@@ -1441,7 +1447,9 @@ def test_a_file_the_hub_lost_is_restored_through_repair(harness):
     hub_file = os.path.join(harness["instance_path"], "uploads", "hubuser",
                             hub_sess.session_image_file)
     assert _file_digest(hub_file) == _sha256_of_bytes(BIG)
-    assert _hub_query(harness, lambda db: counter_rev(db, 999)) == hub_rev   # no rev
+    assert _hub_query(harness, lambda db: counter_rev(db, 999)) == hub_rev + 1
+    assert hub_sess.sync_rev == hub_rev + 1                 # offered again
+    assert hub_sess.sync_changed_at == hub_stamp            # the record did not change
 
 
 def test_a_file_this_computer_lost_is_fetched_by_record_and_slot(harness):
@@ -2018,3 +2026,239 @@ def test_a_project_id_taken_on_the_hub_is_named_and_the_rest_syncs(harness):
     with harness["app"].test_request_context("/sync"):
         message = blocked_message(st_blocked := {"name": "Veil mosaic", "side": "server"})
     assert "Veil mosaic" in message and "another account on the server" in message
+
+
+# =============================================================================
+# Placements finish only after their commit; a newer row always wins
+# =============================================================================
+
+class _CommitFailsOnce:
+    """The hub's session, with its next commit failing once `armed` is set: the
+    transaction is rolled back and the commit raises, as a full disk or a lock
+    timeout would."""
+
+    def __init__(self, inner, armed):
+        self._inner = inner
+        self._armed = armed
+
+    def commit(self):
+        if self._armed["on"]:
+            self._armed["on"] = False
+            self._inner.rollback()
+            raise RuntimeError("simulated commit failure after the placement")
+        return self._inner.commit()
+
+    def __getattr__(self, name):
+        return getattr(self._inner, name)
+
+
+def test_a_commit_that_fails_after_the_push_placement_loses_nothing(harness, monkeypatch):
+    """H1. push_apply places the pushed photo, and the commit that would make
+    its column durable fails. The owed entry and the staged bytes are only
+    dropped after a commit that succeeded, so both are still there, and the
+    next sync request settles the placement."""
+    import nova.blueprints.sync_api as api
+    import nova.sync_job as job
+    uid = harness["local_user"].id
+    digest = _sha256_of_bytes(BIG)
+    _mark_downloaded(harness)
+    _local_query(harness, lambda db: db.add(_session(uid, "local-sess", image="photo.jpg")))
+    harness["local_db"].commit()
+    _write_upload(harness["instance_path"], "default", "photo.jpg", BIG)
+    monkeypatch.setattr("nova.sync_job._backoff", lambda _i: 0.0)
+
+    armed = {"on": False, "placed": 0}
+    real_commit_staged = api.commit_staged_files
+
+    def placing(*args, **kwargs):
+        report = real_commit_staged(*args, **kwargs)
+        armed["placed"] += len(report.placed)
+        armed["on"] = bool(report.placed)       # the very next commit fails
+        return report
+
+    hub_session = harness["hub_session"]
+    with monkeypatch.context() as patch:
+        patch.setattr(api, "commit_staged_files", placing)
+        patch.setattr(api, "get_db", lambda: _CommitFailsOnce(hub_session(), armed))
+        patch.setattr(job, "_retry_transient", lambda fn, attempts=1: fn())
+        st = _sync_to_done(harness)
+
+    assert armed["placed"] == 1 and armed["on"] is False   # placed, then the commit failed
+    assert st["phase"] == "failed", st
+    assert [e["sha256"] for e in _hub_owed(harness)] == [digest]
+    assert any(name.startswith(digest) for name in os.listdir(_hub_staging(harness)))
+    hub_sess = _hub_query(harness, lambda db: db.query(JournalSession)
+                          .filter_by(user_id=999, external_id="local-sess").one())
+    assert not hub_sess.session_image_file                  # the column write was lost
+
+    st = _sync_to_done(harness)
+
+    assert st["phase"] == "done", st
+    assert st["result"]["unrestored_files"] == 0
+    hub_sess = _hub_query(harness, lambda db: db.query(JournalSession)
+                          .filter_by(user_id=999, external_id="local-sess").one())
+    hub_file = os.path.join(harness["instance_path"], "uploads", "hubuser",
+                            hub_sess.session_image_file)
+    assert _file_digest(hub_file) == digest
+    assert _hub_owed(harness) == []
+    assert not any(name.startswith(digest) for name in os.listdir(_hub_staging(harness)))
+
+
+def test_a_browser_upload_during_the_local_heal_survives(harness, monkeypatch):
+    """M1, local side. This computer lost a photo and the healing pass fetches
+    the hub's copy. While it is being fetched the user uploads a new photo in
+    the browser - same live name, a new rev. The heal re-checks the row before
+    placing and its column write is conditional, so the new photo stays and
+    the slot is not counted as lost."""
+    from sqlalchemy.orm import object_session
+    from nova.sync_tracking import mark_file_changed
+    import nova.sync_job as job
+
+    uid = harness["local_user"].id
+    _download_one_photo(harness)
+    landed = _local_query(harness, lambda db: db.query(JournalSession)
+                          .filter_by(user_id=uid, external_id="hub-sess").one())
+    local_path = os.path.join(harness["instance_path"], "uploads", "default",
+                              landed.session_image_file)
+    os.remove(local_path)
+    rev_before = _local_query(harness, lambda db: counter_rev(db, uid))
+    new_photo = PNG + b"-uploaded-in-the-browser"
+    real_stage = job._stage_from_hub
+    fired = {"n": 0}
+
+    def upload_while_fetching(client, user, table, key, slot, sha256="", ext_hint=""):
+        if not fired["n"]:
+            fired["n"] += 1
+            db = object_session(user)
+            row = db.query(JournalSession).filter_by(
+                user_id=user.id, external_id="hub-sess").one()
+            with open(local_path, "wb") as handle:        # journal_edit's write
+                handle.write(new_photo)
+            row.session_image_file = os.path.basename(local_path)
+            mark_file_changed(row, "session_image_file")
+            db.commit()
+        return real_stage(client, user, table, key, slot, sha256, ext_hint)
+    monkeypatch.setattr(job, "_stage_from_hub", upload_while_fetching)
+
+    st = _sync_to_done(harness)
+
+    assert fired["n"] == 1
+    assert st["phase"] == "done", st
+    assert st["result"]["unrestored_files"] == 0
+    assert _file_digest(local_path) == _sha256_of_bytes(new_photo)
+    landed = _local_query(harness, lambda db: db.query(JournalSession)
+                          .filter_by(user_id=uid, external_id="hub-sess").one())
+    assert landed.sync_rev > rev_before                    # the upload's own rev
+    assert not [n for n in os.listdir(os.path.dirname(local_path)) if n.endswith(".part")]
+
+
+def test_a_file_the_hub_lost_reaches_a_computer_that_held_the_record(harness):
+    """M2 end to end: the hub loses X, this computer (C) pulls, another
+    computer (P) repairs the hub, and C receives X.
+
+    P replaced the photo; its record reached the hub and the bytes did not
+    stay. C holds the old photo under that record. The hub exports the slot as
+    "missing", so C holds the record pending - it neither takes it with its
+    old bytes nor offers those bytes to the hub as a repair. P's repair gives
+    the row a new rev; C's next pull names X and C places it."""
+    from nova.sync_tracking import mark_file_changed
+
+    uid = harness["local_user"].id
+    old_photo, new_photo = BIG, PNG + b"-p-replaced-the-photo"
+    _download_one_photo(harness, data=old_photo)
+    instance = harness["instance_path"]
+    hub_file = os.path.join(instance, "uploads", "hubuser", "hub.jpg")
+
+    # P's photo-only change lands on the hub as a record change...
+    _write_upload(instance, "hubuser", "hub.jpg", new_photo)
+
+    def p_push(db):
+        row = db.query(JournalSession).filter_by(user_id=999, external_id="hub-sess").one()
+        mark_file_changed(row, "session_image_file")
+        db.commit()
+        # P received the record through a sync before changing it, so its
+        # write is always well over a second after the one C holds.
+        _stamp(db, JournalSession, row.id, row.sync_changed_at + timedelta(seconds=30))
+    _hub_query(harness, p_push)
+    os.remove(hub_file)                                     # ...and the hub loses X
+
+    st = _sync_to_done(harness)
+
+    assert st["phase"] == "done", st
+    assert _hub_photo_digests(harness) == set()             # C did not "repair" with W
+    assert st["result"]["held_files"] == [
+        {"table": "journal_sessions", "key": "hub-sess", "name": "2026-01-02"}]
+    assert _local_photo_digests(harness) == {_sha256_of_bytes(old_photo)}
+    held_cursor = _local_query(harness, lambda db: db.query(SyncState)
+                               .filter_by(user_id=uid).one()).server_cursor
+    assert held_cursor < _hub_query(harness, lambda db: counter_rev(db, 999))
+
+    # P repairs the hub with X.
+    hub_rev = _hub_query(harness, lambda db: counter_rev(db, 999))
+    p_client = _TestSyncClient(HUB_URL, harness["token"],
+                               session=_FakeSession(harness["hub_app"]))
+    answer = p_client.repair_chunk("journal_sessions", "hub-sess", "session_image_file",
+                                   _sha256_of_bytes(new_photo), "jpg", len(new_photo),
+                                   0, new_photo)
+    assert answer["complete"] and answer["placed"], answer
+    assert _hub_query(harness, lambda db: counter_rev(db, 999)) == hub_rev + 1
+
+    st = _sync_to_done(harness)
+
+    assert st["phase"] == "done", st
+    assert st["result"]["unrestored_files"] == 0
+    assert _sha256_of_bytes(new_photo) in _local_photo_digests(harness)
+    landed = _local_query(harness, lambda db: db.query(JournalSession)
+                          .filter_by(user_id=uid, external_id="hub-sess").one())
+    local_file = os.path.join(instance, "uploads", "default", landed.session_image_file)
+    assert _file_digest(local_file) == _sha256_of_bytes(new_photo)
+    assert _local_query(harness, lambda db: db.query(SyncState)
+                        .filter_by(user_id=uid).one()).server_cursor \
+        == _hub_query(harness, lambda db: counter_rev(db, 999))
+
+
+def test_one_computer_gives_the_hub_back_a_photo_it_lost(harness, monkeypatch):
+    """The single-computer case. The hub re-offers a record it already gave
+    this computer (its stamp kept, a new rev), and its photo is gone: the slot
+    travels as "missing". This computer's row is unchanged since the last
+    sync, its content equal, and the stamps agree although the offset was
+    re-measured a few ms differently: the same write. So the record is not
+    held, the healing pass uploads the photo through /repair, and the next
+    sync finds nothing left to do."""
+    from nova.sync_tracking import next_rev
+
+    uid = harness["local_user"].id
+    _script_offsets(monkeypatch, 0.0, 0.004, -0.003)
+    _download_one_photo(harness)
+    hub_file = os.path.join(harness["instance_path"], "uploads", "hubuser", "hub.jpg")
+    os.remove(hub_file)
+
+    def reoffer(db):                    # a new rev, the stamp untouched
+        conn = db.connection()
+        rev = next_rev(conn, 999)
+        conn.execute(text("UPDATE journal_sessions SET sync_rev = :r "
+                          "WHERE user_id = 999 AND external_id = 'hub-sess'"), {"r": rev})
+        db.commit()
+    _hub_query(harness, reoffer)
+
+    st = _sync_to_done(harness)
+
+    assert st["phase"] == "done", st
+    assert st["result"]["unrestored_files"] == 0
+    assert st["result"]["held_files"] == []
+    assert _hub_photo_digests(harness) == {_sha256_of_bytes(BIG)}   # repaired
+    hub_name = _hub_query(harness, lambda db: db.query(JournalSession)
+                          .filter_by(user_id=999, external_id="hub-sess").one()
+                          .session_image_file)
+    assert _file_digest(os.path.join(os.path.dirname(hub_file), hub_name)) \
+        == _sha256_of_bytes(BIG)
+
+    st = _sync_to_done(harness)
+
+    assert st["phase"] == "done", st
+    assert st["result"]["unrestored_files"] == 0
+    assert not st["result"].get("held_files")
+    assert _local_photo_digests(harness) == {_sha256_of_bytes(BIG)}
+    assert _local_query(harness, lambda db: db.query(SyncState)
+                        .filter_by(user_id=uid).one()).server_cursor \
+        == _hub_query(harness, lambda db: counter_rev(db, 999))

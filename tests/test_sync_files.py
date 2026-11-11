@@ -1928,6 +1928,231 @@ def test_an_owed_entry_is_cleared_only_when_its_file_is_placed(hub, local, monke
     assert hub.read(hub.one(JournalSession, external_id="s1").session_image_file) == PNG
 
 
+@pytest.mark.parametrize("first,second", [(0.4, -0.4), (-0.4, 0.4), (0.0, 0.0)])
+def test_a_record_offered_again_while_its_file_is_owed_is_a_redelivery(
+        hub, local, first, second):
+    """L1. The hub wrote the pushed record and still owes its file (the bytes
+    never arrived). The client offers the same record again, its stamp seen
+    through a re-measured offset - older or newer than the hub's copy. The
+    slot names exactly the digest the standing owed entry is for, so this is a
+    re-delivery: no conflict line, no record write. The owed note does the rest."""
+    _session_with_photo(local)
+    seed_pairing(local, hub)
+    _hub_apply(local, hub, offset=first, stage=False)
+    assert [e["sha256"] for e in load_owed_files(hub.user, hub.instance_path)] == [sha(PNG)]
+    rev_before = hub.rev()
+
+    again = export_changes(local.db, local.user, 0, side="local",
+                           instance_path=local.instance_path)
+    replan = plan_merge(hub.db, hub.user, again, side="server",
+                        offset_seconds=second, instance_path=hub.instance_path)
+
+    assert replan.conflicts == []
+    assert replan.actions == []
+    apply_merge(hub.db, replan, user=hub.user)
+    hub.commit()
+    assert hub.rev() == rev_before
+
+
+def test_an_owed_digest_that_does_not_match_is_still_a_conflict(hub, local):
+    """L1's limit: only the owed digest is a re-delivery. The client changed
+    the photo since, so the record now names other bytes - that is a change,
+    decided by newest-wins as before."""
+    session = _session_with_photo(local)
+    seed_pairing(local, hub)
+    _hub_apply(local, hub, stage=False)
+    local.put(session.session_image_file, PNG_ALT)
+    mine = local.one(JournalSession, external_id="s1")
+    mark_file_changed(mine, "session_image_file")
+    local.commit()
+
+    again = export_changes(local.db, local.user, 0, side="local",
+                           instance_path=local.instance_path)
+    replan = plan_merge(hub.db, hub.user, again, side="server",
+                        instance_path=hub.instance_path)
+
+    assert [a.op for a in replan.actions] == ["update"]
+    assert [r.sha256 for r in replan.files] == [sha(PNG_ALT)]
+
+
+def test_a_browser_upload_during_the_hub_settle_survives(hub, local, monkeypatch):
+    """M1, hub side. The hub owes a photo and its staged bytes are here. While
+    the settle copies them, a browser upload replaces the photo on the hub (a
+    new rev, a new stamp, new bytes under the same live name). The settle's
+    column write is conditional on the rev and stamp it started from, so it
+    does not match: the uploaded photo stays, nothing is renamed over it, and
+    the owed entry is dropped as void."""
+    import nova.sync_engine as engine
+
+    _session_with_photo(local)
+    seed_pairing(local, hub)
+    _hub_apply(local, hub, place=False)                      # staged, owed
+    row = hub.one(JournalSession, external_id="s1")
+    live_name = f"{row.id}.png"
+    real_copy = engine._copy_to_part
+    fired = {"n": 0}
+
+    def browser_upload_then_copy(staged_path, live):
+        if not fired["n"]:
+            fired["n"] += 1
+            hub.put(live_name, JPG)                          # write_file_atomic
+            edited = hub.db.query(JournalSession).filter_by(
+                user_id=hub.uid, external_id="s1").one()
+            edited.session_image_file = live_name
+            mark_file_changed(edited, "session_image_file")
+            # Its own request, landing before the settle's column write. One
+            # in-memory connection here, so it is flushed onto it rather than
+            # committed: what the settle's conditional UPDATE sees is the same.
+            hub.db.flush()
+        return real_copy(staged_path, live)
+    monkeypatch.setattr(engine, "_copy_to_part", browser_upload_then_copy)
+    rev_after_upload = None
+
+    owed, reupload = _settle(hub)
+
+    assert fired["n"] == 1
+    assert owed == [] and reupload == []
+    assert load_owed_files(hub.user, hub.instance_path) == []
+    landed = hub.one(JournalSession, external_id="s1")
+    rev_after_upload = landed.sync_rev
+    assert landed.session_image_file == live_name
+    assert hub.read(live_name) == JPG                        # the user's photo
+    assert hub.rev() == rev_after_upload                     # the settle wrote no rev
+    assert not [n for n in os.listdir(hub.uploads) if n.endswith(".part")]
+
+
+def test_a_slot_whose_file_is_gone_is_exported_as_missing(hub):
+    """M2. A column that names a file this disk lost travels as an explicit
+    "missing" marker, not left out; an emptied slot is still null, and a slot
+    that never held a file is still absent."""
+    gone = add_session(hub, "gone")
+    gone.session_image_file = f"{gone.id}.png"               # names a file...
+    hub.commit()                                             # ...that is not here
+    emptied = add_session(hub, "emptied")
+    emptied.session_image_file = ""
+    hub.commit()
+    add_session(hub, "never")
+
+    payload = export_changes(hub.db, hub.user, 0, side="server",
+                             instance_path=hub.instance_path)
+    records = {r["external_id"]: r for r in payload["records"]["journal_sessions"]}
+
+    assert records["gone"][KEY_FILES] == {"session_image_file": "missing"}
+    assert records["emptied"][KEY_FILES] == {"session_image_file": None}
+    assert KEY_FILES not in records["never"]
+    assert payload["files"] == {}
+
+
+def test_a_receiver_holding_other_bytes_waits_for_a_file_the_hub_lost(hub, local):
+    """M2, the engine half. The hub's record names a photo it lost; this
+    computer holds a photo in that slot it cannot prove is the same one. The
+    record is held (deferred: the cursor stays) rather than taken or left
+    paired with those bytes. A receiver with no file there takes the record."""
+    _session_with_photo(hub, "s1", data=PNG)
+    _session_with_photo(local, "s1", data=PNG_ALT)
+    seed_pairing(local, hub)
+    hub_row = hub.one(JournalSession, external_id="s1")
+    os.remove(hub.upload_path(hub_row.session_image_file))  # the hub lost it
+    add_session(hub, "s2", session_image_file="lost.png")   # gone here, never there
+
+    payload = export_changes(hub.db, hub.user, 0, side="server",
+                             instance_path=hub.instance_path)
+    plan = plan_merge(local.db, local.user, payload, side="local",
+                      instance_path=local.instance_path)
+
+    assert not plan.refused, plan.refusals
+    assert plan.deferred == [("journal_sessions", "s1")]
+    assert [(c.table, c.key, c.resolution) for c in plan.conflicts] == [
+        ("journal_sessions", "s1", "deferred")]
+    assert [(a.op, a.key) for a in plan.actions] == [("insert", "s2")]
+    assert plan.files == []
+    result = apply_merge(local.db, plan, user=local.user)
+    local.commit()
+    assert result.deferred == [("journal_sessions", "s1")]
+    mine = local.one(JournalSession, external_id="s1")
+    assert local.read(mine.session_image_file) == PNG_ALT    # untouched
+    assert not local.one(JournalSession, external_id="s2").session_image_file
+
+
+def _same_write_on_both_sides(hub, local, offset):
+    """The hub's session and photo pulled here under `offset`, then a
+    completed sync: this computer holds the hub's write, unchanged since."""
+    _session_with_photo(hub)
+    seed_pairing(local, hub)
+    payload = export_changes(hub.db, hub.user, 0, side="server",
+                             instance_path=hub.instance_path)
+    plan = plan_merge(local.db, local.user, payload, side="local",
+                      offset_seconds=offset, instance_path=local.instance_path)
+    staged = transfer(hub, local, plan.files)
+    result = apply_merge(local.db, plan, user=local.user)
+    local.commit()
+    commit_staged_files(local.db, result, staged, user=local.user,
+                        instance_path=local.instance_path)
+    local.commit()
+    _mark_synced(local)
+    mine = local.one(JournalSession, external_id="s1")
+    assert local.read(mine.session_image_file) == PNG
+    hub_row = hub.one(JournalSession, external_id="s1")
+    os.remove(hub.upload_path(hub_row.session_image_file))     # the hub lost it
+    return hub_row
+
+
+@pytest.mark.parametrize("first,second", [(0.0, 0.004), (0.05, 0.047),
+                                          (-120.0, -120.003)])
+def test_the_same_write_is_not_held_when_the_hub_lost_its_file(hub, local, first, second):
+    """One computer. The hub re-offers the record it already gave this
+    computer, its photo now gone. The row is unchanged here, its content
+    equal, and the two stamps agree once the re-measured offset (a few ms
+    off the first) is applied: the same write. Not held: nothing to do here,
+    and the healing pass gives the hub its file back."""
+    _same_write_on_both_sides(hub, local, first)
+
+    payload = export_changes(hub.db, hub.user, 0, side="server",
+                             instance_path=hub.instance_path)
+    assert payload["records"]["journal_sessions"][0]["__files__"] == {
+        "session_image_file": "missing"}
+    plan = plan_merge(local.db, local.user, payload, side="local",
+                      offset_seconds=second, instance_path=local.instance_path)
+
+    assert not plan.refused, plan.refusals
+    assert plan.deferred == [] and plan.conflicts == []
+    assert plan.actions == [] and plan.files == [] and plan.heal == {}
+
+
+def test_a_newer_write_two_seconds_later_is_still_held(hub, local):
+    """The same, but the hub's record carries a stamp 2 s past this
+    computer's: a newer write (a photo-only change elsewhere leaves the
+    content equal), so these bytes may not be its file. Held."""
+    hub_row = _same_write_on_both_sides(hub, local, 0.0)
+    _set_stamp(hub, JournalSession, hub_row.id,
+               hub_row.sync_changed_at + timedelta(seconds=2))
+
+    payload = export_changes(hub.db, hub.user, 0, side="server",
+                             instance_path=hub.instance_path)
+    plan = plan_merge(local.db, local.user, payload, side="local",
+                      instance_path=local.instance_path)
+
+    assert plan.deferred == [("journal_sessions", "s1")]
+    assert [(c.key, c.resolution, c.detail["reason"]) for c in plan.conflicts] == [
+        ("s1", "deferred", "file_missing_on_hub")]
+
+
+def test_a_changed_row_here_is_held_even_with_the_same_stamp(hub, local):
+    """The row changed here since the last sync: its bytes are not the
+    last sync's, whatever the stamps say. Held."""
+    _same_write_on_both_sides(hub, local, 0.0)
+    local.db.query(SyncState).filter_by(user_id=local.uid).update(
+        {"local_pushed_rev": 0})
+    local.commit()
+
+    payload = export_changes(hub.db, hub.user, 0, side="server",
+                             instance_path=hub.instance_path)
+    plan = plan_merge(local.db, local.user, payload, side="local",
+                      instance_path=local.instance_path)
+
+    assert plan.deferred == [("journal_sessions", "s1")]
+
+
 def test_a_hub_never_heals_a_pushed_record_without_writing_it(hub, local):
     """A pushed record whose content is already on the hub and whose file is
     not: on a hub that is a record change like any other. It is written with a

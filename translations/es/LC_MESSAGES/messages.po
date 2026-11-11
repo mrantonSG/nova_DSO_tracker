@@ -8308,6 +8308,10 @@ msgid "A session's link to project \"%(name)s\" was not synced: that project is 
 msgstr "El vínculo de una sesión con el proyecto «%(name)s» no se sincronizó: ese proyecto no forma parte de esta cuenta."
 
 #, python-format
+msgid "\"%(name)s\": file missing on the server and could not be safely restored."
+msgstr "«%(name)s»: el archivo no está en el servidor y no se pudo restaurar de forma segura."
+
+#, python-format
 msgid "%(name)s — this computer's version kept"
 msgstr "%(name)s — se conserva la versión de este equipo"
 

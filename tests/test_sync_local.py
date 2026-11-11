@@ -311,7 +311,7 @@ def test_every_file_write_is_atomic_or_outside_uploads_and_logs():
         # The atomic mechanism itself, or a caller that wraps its write in
         # write_file_atomic / staging-then-os.replace.
         "write_file_atomic", "_atomic_write_yaml",
-        "_place_from_staged", "_copy_hashed", "_fetch_file",
+        "_place_from_staged", "_copy_to_part", "_copy_hashed", "_fetch_file",
         "save_log_to_filesystem", "_save_artifact", "backup_local",
         "import_journal_photos", "upload_editor_image",
         "journal_add", "journal_edit", "session_image_url",

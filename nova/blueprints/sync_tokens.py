@@ -200,6 +200,14 @@ def blocked_message(entry: dict) -> str:
              'another account on the server.') % {"name": name}
 
 
+def held_file_message(entry: dict) -> str:
+    """The line for a record a sync held: the server lost its file and this
+    computer's copy may not be that file, so it was not used to restore it."""
+    name = (entry or {}).get("name") or (entry or {}).get("key") or "?"
+    return _('"%(name)s": file missing on the server and could not be safely '
+             'restored.') % {"name": name}
+
+
 def conflict_message(entry: dict) -> str:
     """One "changed on both sides" line: the record and whose copy stays."""
     name = (entry or {}).get("name") or "?"
@@ -305,6 +313,8 @@ def _flash_completion_toast(user, sync_view) -> None:
                        "%(num)s files could not be restored", unrestored), 'warning')
     for entry in result.get("blocked") or []:
         flash(blocked_message(entry), 'warning')
+    for entry in result.get("held_files") or []:
+        flash(held_file_message(entry), 'warning')
     consume_toast(user.id, job.get("start_token"))
 
 

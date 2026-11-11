@@ -57,7 +57,8 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Any, Iterable, Mapping, NamedTuple, Optional
 
-from sqlalchemy import and_, func, insert as sa_insert, or_, select, text
+from sqlalchemy import String, and_, func, insert as sa_insert, or_, select, text
+from sqlalchemy import type_coerce
 from sqlalchemy import delete as sa_delete, update as sa_update
 from sqlalchemy.orm import selectinload
 
@@ -112,6 +113,20 @@ RESERVED_KEYS = (KEY_CHANGED_AT, KEY_HORIZON, KEY_PROJECT_IDS, KEY_FILES)
 # travels as an explicit null in `__files__` (see record_to_payload): a slot this
 # instance cannot send says nothing, and the peer keeps whatever it holds.
 FILE_REMOVED = ""
+
+# A slot whose column names a file the sender's disk no longer has. It travels
+# as this marker in `__files__`, not left out: "no news, keep yours" would let a
+# receiver pair the record with whatever bytes it holds there, and a receiver
+# that holds other bytes than the ones the record had must wait for the file
+# instead (see _held_file_slots). A hub receiving it treats it as no news.
+FILE_MISSING = "missing"
+
+# How far apart two stamps of the SAME write may read once the peer's is moved
+# into this clock. The only noise is the clock offset, re-measured on every
+# sync (milliseconds apart). A newer write from another computer can only
+# follow that computer receiving the record through a sync, so it is always
+# well over this later. Used only by _same_write.
+SAME_WRITE_TOLERANCE_SECONDS = 1.0
 
 # The one natural key a ui_prefs record carries. Its real key is the user's row
 # id, which is instance-local and must not travel.
@@ -1123,9 +1138,15 @@ def record_to_payload(model: type, row: Any, *, user=None,
             ref = _slot_ref(model, row, slot, _FILE_SLOTS[model][slot][0], user,
                             instance_path, shared_paths)
             if ref.missing:
-                # Set here but untransferable -- gone from disk, over the cap,
-                # another user's bytes. The peer's copy is the only one left, so
-                # the slot is left out rather than nulled or sent broken.
+                if getattr(row, slot, None) and ref.reason == SKIP_MISSING:
+                    # The column names a file this disk lost. Said explicitly:
+                    # a receiver holding other bytes there must not keep them
+                    # under this version of the record.
+                    slots[slot] = FILE_MISSING
+                    continue
+                # Set here but untransferable -- over the cap, another user's
+                # bytes, an unsupported type. The peer's copy is the only one
+                # left, so the slot is left out rather than nulled or sent broken.
                 continue
             # In this user's own naming scheme when it travels, never the
             # sender's name: the receiver rebuilds <local id>.<ext>.
@@ -1483,6 +1504,13 @@ class CommitReport:
     pending: list = field(default_factory=list)      # same shape: try again
     skipped: list = field(default_factory=list)      # FileRef with a reason
     orphaned: list = field(default_factory=list)     # FileRef, left on disk
+    # (table, key, slot, sha256) not placed because the row moved on between
+    # the guard's capture and the placement (an edit here, a browser upload).
+    # Not pending: the row's newer state is what travels next, not this file.
+    superseded: list = field(default_factory=list)
+    # Staged copies nothing in this run needs any more. finish_placements()
+    # drops them - only after the caller's commit, never before it.
+    discard: list = field(default_factory=list)      # StagedFile
 
 
 def local_name_for(model: type, row, ref: FileRef) -> str:
@@ -1568,8 +1596,91 @@ def file_slot_role(table: str, slot: str) -> str:
     return _slot_role(model, slot) or ""
 
 
+def placement_guard(db, user, refs) -> dict:
+    """{(table, key): (sync_rev, sync_changed_at)} of the rows `refs` belong to,
+    read from the database as they stand now.
+
+    Taken right after the write that decided a placement and before the bytes
+    are fetched or moved; commit_staged_files(guard=...) places a file only
+    while its row still carries exactly that rev and stamp. Any write to the
+    row in between - an edit, a browser upload replacing the photo - gives it
+    a new rev, and the placement is dropped instead of landing on top of it.
+    `refs` are FileRefs or (table, key, ...) tuples.
+    """
+    guard: dict = {}
+    for ref in refs or []:
+        table, key = ((ref.table, ref.key) if isinstance(ref, FileRef)
+                      else (ref[0], ref[1]))
+        if (table, key) in guard:
+            continue
+        state = _row_state(db, TABLE_MODEL.get(table), user.id, key)
+        if state is not None:
+            guard[(table, key)] = state[1:]
+    return guard
+
+
+def _row_state(db, model, user_id: int, key: str):
+    """(id, sync_rev, sync_changed_at) of the row a natural key names, read
+    through Core so no identity-map copy can hide a newer write. None when the
+    row is not there."""
+    column = _KEY_COLUMN.get(model) if model is not None else None
+    if column is None:
+        return None
+    table = model.__table__
+    found = db.execute(
+        select(table.c.id, table.c.sync_rev, _raw_stamp(table))
+        .where(table.c.user_id == user_id, table.c[column] == key)).first()
+    return None if found is None else (found[0], found[1], found[2])
+
+
+def _raw_stamp(table):
+    """sync_changed_at as the text SQLite stores, not parsed into a datetime:
+    a guard compares it exactly as stored, whatever format wrote it."""
+    return type_coerce(table.c.sync_changed_at, String)
+
+
+def _guard_clauses(table, row_id: int, user_id: int, expect) -> list:
+    """WHERE id = :id AND user_id = :user AND sync_rev = :rev AND
+    sync_changed_at = :stamp, with NULL compared as NULL."""
+    rev, stamp = expect
+    return [
+        table.c.id == row_id,
+        table.c.user_id == user_id,
+        table.c.sync_rev.is_(None) if rev is None else table.c.sync_rev == rev,
+        (table.c.sync_changed_at.is_(None) if stamp is None
+         else _raw_stamp(table) == stamp),
+    ]
+
+
+def _row_holds(conn, model: type, row_id: int, user_id: int, expect) -> bool:
+    """Whether the row still carries the guard's rev and stamp. A no-op UPDATE
+    rather than a SELECT: it also takes the write lock, so nothing can commit a
+    change to the row between this answer and the caller's commit."""
+    table = model.__table__
+    done = conn.execute(sa_update(table)
+                        .where(*_guard_clauses(table, row_id, user_id, expect))
+                        .values(sync_rev=table.c.sync_rev))
+    return done.rowcount == 1
+
+
+def finish_placements(report, *, user, instance_path: str = None) -> None:
+    """What a placement may only do once the caller's db.commit() succeeded:
+    drop the staged copies nothing needs any more and the owed entries the
+    placement settled. Before that commit both are the only way back - a
+    commit that fails leaves the column unwritten, and the next settle needs
+    the note and the bytes to try again."""
+    if report is None:
+        return
+    for staged in getattr(report, "discard", None) or []:
+        discard_staged(staged)
+    done = list(getattr(report, "placed", None) or []) + list(
+        getattr(report, "superseded", None) or [])
+    if done:
+        _clear_owed_files(user, done, instance_path)
+
+
 def commit_staged_files(db, result, staged, *, user,
-                        instance_path: str = None) -> CommitReport:
+                        instance_path: str = None, guard=None) -> CommitReport:
     """Move verified files into place and write their columns. After the commit.
 
     The plan's record write happened in apply_merge/apply_download and the
@@ -1580,6 +1691,15 @@ def commit_staged_files(db, result, staged, *, user,
     write (<local id>.<ext>) is this instance's naming scheme, instance-local
     by definition. Bumping would send the receiver's name back to the sender
     as an edit and overwrite the sender's own file name.
+
+    With `guard` (see placement_guard) a file is placed only while its row
+    still carries the rev and stamp the guard captured: the column UPDATE is
+    conditional on both, and the bytes reach the live name only when it
+    matched. A row that moved on is reported `superseded`, and nothing of it
+    is touched - neither its column nor the file under its live name.
+
+    Returns what it placed. It does not discard staged copies or clear owed
+    entries: the caller commits and then calls finish_placements(report).
 
     Idempotent: a file already in place is left alone; a staged file that is
     gone is reported pending, not an error. A file that fails verification is
@@ -1594,6 +1714,14 @@ def commit_staged_files(db, result, staged, *, user,
                 if ref.missing or not ref.sha256:
                     report.skipped.append(ref)
                     continue
+                entry = (ref.table, ref.key, ref.slot, ref.sha256)
+                expect = None
+                if guard is not None:
+                    expect = guard.get((ref.table, ref.key))
+                    if expect is None:
+                        # The row was not there when the guard was taken.
+                        report.superseded.append(entry)
+                        continue
                 s = by_digest.get(ref.sha256)
                 if s is None:
                     # No staged copy this run. That is a retry of a file an earlier
@@ -1615,20 +1743,25 @@ def commit_staged_files(db, result, staged, *, user,
                 # already points at the digest-derived name the row's write
                 # localized to. Only the bytes need moving.
                 if _ref_role(model, ref) == ROLE_NOTE_IMAGE:
+                    if expect is not None:
+                        state = _row_state(db, model, user.id, ref.key)
+                        if state is None or not _row_holds(
+                                db.connection(), model, state[0], user.id, expect):
+                            report.superseded.append(entry)
+                            continue
                     outcome = _place_note_image(user, ref, s, instance_path=instance_path)
-                    if outcome == "placed":
-                        report.placed.append((ref.table, ref.key, ref.slot, ref.sha256))
-                    else:
-                        report.pending.append((ref.table, ref.key, ref.slot, ref.sha256))
-                    continue
-                if ref.slot not in _FILE_SLOTS.get(model, {}):
+                elif ref.slot not in _FILE_SLOTS.get(model, {}):
                     report.skipped.append(ref)
                     continue
-                outcome = _place_one(db, user, model, ref, s, instance_path=instance_path)
-                if outcome == "placed":
-                    report.placed.append((ref.table, ref.key, ref.slot, ref.sha256))
                 else:
-                    report.pending.append((ref.table, ref.key, ref.slot, ref.sha256))
+                    outcome = _place_one(db, user, model, ref, s,
+                                         instance_path=instance_path, expect=expect)
+                if outcome == "placed":
+                    report.placed.append(entry)
+                elif outcome == "superseded":
+                    report.superseded.append(entry)
+                else:
+                    report.pending.append(entry)
             except Exception:
                 # One file must never abort the rest: count it pending and carry
                 # on. The pending/cursor logic below still runs.
@@ -1668,21 +1801,22 @@ def commit_staged_files(db, result, staged, *, user,
                         state.server_cursor = int(server_rev)
                         state.last_sync_at = utc_now()
 
-    # A staged copy is dropped only once every placement for its digest is done:
-    # one file two records share is placed twice, and the first move would
-    # otherwise leave the second with nothing to move.
+    # A staged copy is dropped only once every placement for its digest is done
+    # (placed, or superseded by a newer row): one file two records share is
+    # placed twice, and the first move would otherwise leave the second with
+    # nothing to move. Dropped by finish_placements(), after the caller's
+    # commit: until then the column write can still be lost, and the copy is
+    # what the next attempt places from.
     wanted: dict[str, int] = {}
     done: dict[str, int] = {}
     for ref in getattr(result, "files_expected", []) or []:
         if ref.sha256 and not ref.missing:
             wanted[ref.sha256] = wanted.get(ref.sha256, 0) + 1
-    for entry in report.placed:
+    for entry in report.placed + report.superseded:
         done[entry[3]] = done.get(entry[3], 0) + 1
     for digest, count in done.items():
         if count >= wanted.get(digest, count) and digest in by_digest:
-            # Nothing left to retry under this digest; drop the staged copy so
-            # the next run does not think it has more work to do.
-            discard_staged(by_digest[digest])
+            report.discard.append(by_digest[digest])
 
     for shape in ("skipped", "orphaned"):
         target = getattr(result, f"{shape}_files", None)
@@ -1690,10 +1824,8 @@ def commit_staged_files(db, result, staged, *, user,
             target = []
             setattr(result, f"{shape}_files", target)
         target.extend(getattr(report, shape))
-    # A placement a hub's apply noted as owed is settled the moment the file is
-    # in place, whoever placed it (the apply, a later request, a repair).
-    if report.placed:
-        _clear_owed_files(user, report.placed, instance_path)
+    # The owed entries this settles are cleared by finish_placements() too:
+    # an entry cleared before the commit is lost if the commit fails.
     return report
 
 
@@ -1831,16 +1963,64 @@ def _clear_owed_files(user, placed, instance_path: str = None) -> None:
         _save_owed_files(user, kept, instance_path)
 
 
+def reoffer_placed_rows(db, user, placed, instance_path: str = None) -> None:
+    """Give every row a hub just placed a file for a new rev, keeping its stamp.
+
+    The record did not change, but a computer that pulled it while the file was
+    missing has to be offered it again to receive the file. Used by the owed
+    settle and by /repair. Entries the same row still has open in the owed
+    note follow it to the new rev: written before the caller's commit, with the
+    row's present rev kept beside the new one, so the entry stands whether or
+    not that commit lands. The caller commits.
+    """
+    placed_rows = {}
+    for entry in placed or []:
+        table, key = str(entry[0]), str(entry[1])
+        state = _row_state(db, TABLE_MODEL.get(table), user.id, key)
+        if state is not None:
+            placed_rows[(table, key)] = (TABLE_MODEL[table], state[0],
+                                         int(state[1] or 0))
+    if not placed_rows:
+        return
+    conn = db.connection()
+    rev = next_rev(conn, user.id)
+    left = load_owed_files(user, instance_path)
+    moved = False
+    for entry in left:
+        held = placed_rows.get((str(entry.get("table")), str(entry.get("key"))))
+        if held is not None:
+            entry["rev"] = held[2]
+            entry["rev_next"] = rev
+            moved = True
+    if moved:
+        _save_owed_files(user, left, instance_path)
+    for model, row_id, _old in placed_rows.values():
+        conn.execute(sa_update(model.__table__).where(
+            model.__table__.c.id == row_id,
+            model.__table__.c.user_id == user.id,
+        ).values(sync_rev=rev))
+    db.flush()
+    db.expire_all()
+
+
 def settle_owed_files(db, user, instance_path: str = None) -> tuple:
     """Finish what an earlier apply owes. Returns (still owed, to upload again).
 
     Both are lists of FileRef. "Still owed" is every entry that stands and
     could not be placed now; "to upload again" is the part of it whose staged
-    bytes are gone, which only the client can supply. The caller commits.
+    bytes are gone, which only the client can supply.
 
-    A row whose file is placed here gets a new rev and keeps its stamp: the
-    record did not change, but a computer that pulled it while the file was
-    missing has to be offered it again to receive the file.
+    Commits what it placed, and only then clears the settled entries and the
+    staged copies (finish_placements): a commit that fails leaves both, and the
+    next settle places again from them.
+
+    Each entry is re-checked right before its placement, not only here at the
+    start: the column write is conditional on the rev and stamp the row stood
+    at, so a browser upload that lands while the bytes are being copied wins,
+    and the entry is dropped as void.
+
+    A row whose file is placed here gets a new rev and keeps its stamp (see
+    reoffer_placed_rows).
     """
     entries = load_owed_files(user, instance_path)
     if not entries:
@@ -1855,37 +2035,17 @@ def settle_owed_files(db, user, instance_path: str = None) -> tuple:
     refs = [_owed_ref(entry) for entry in standing]
     staged = [StagedFile(ref=ref, path=index[ref.sha256], local_name=ref.name)
               for ref in refs if ref.sha256 in index]
+    # The row as the standing entry found it: placed only while it still is.
+    guard = placement_guard(db, user, refs)
     report = commit_staged_files(db, MergeResult(files_expected=refs), staged,
-                                 user=user, instance_path=instance_path)
+                                 user=user, instance_path=instance_path,
+                                 guard=guard)
+    reoffer_placed_rows(db, user, report.placed, instance_path)
+    db.commit()
+    finish_placements(report, user=user, instance_path=instance_path)
 
-    placed_rows = {}
-    for table, key, _slot, _digest in report.placed:
-        model = TABLE_MODEL.get(table)
-        row = _row_by_key(db, model, user.id, key) if model is not None else None
-        if row is not None:
-            placed_rows[(str(table), str(key))] = (model, row.id, int(row.sync_rev or 0))
-    if placed_rows:
-        conn = db.connection()
-        rev = next_rev(conn, user.id)
-        # Entries the same row still has open follow it to its new rev. Written
-        # before the commit, with the row's present rev kept beside the new
-        # one, so the entry stands whether or not that commit lands.
-        left = load_owed_files(user, instance_path)
-        for entry in left:
-            held = placed_rows.get((str(entry.get("table")), str(entry.get("key"))))
-            if held is not None:
-                entry["rev"] = held[2]
-                entry["rev_next"] = rev
-        _save_owed_files(user, left, instance_path)
-        for model, row_id, _old in placed_rows.values():
-            conn.execute(sa_update(model.__table__).where(
-                model.__table__.c.id == row_id,
-                model.__table__.c.user_id == user.id,
-            ).values(sync_rev=rev))
-        db.flush()
-        db.expire_all()
-
-    owed = [_owed_ref(entry) for entry in load_owed_files(user, instance_path)]
+    owed = [_owed_ref(entry) for entry in load_owed_files(user, instance_path)
+            if _owed_entry_stands(db, user, entry)]
     if not owed:
         return [], []
     index = staged_index(user, instance_path=instance_path)
@@ -1903,18 +2063,33 @@ def _place_from_staged(staged_path: str, live: str) -> None:
     within one filesystem, so a reader sees either the old file or the new one,
     never a mixture, and a leftover .part is cleanup, not data loss.
     """
+    part = _copy_to_part(staged_path, live)
+    try:
+        os.replace(part, live)
+    except OSError:
+        _drop_part(part)
+        raise
+
+
+def _copy_to_part(staged_path: str, live: str) -> str:
+    """Copy a staged file to "<live>.part" and flush it. Returns the part path.
+    The live name is not touched; a failure leaves no part behind."""
     part = live + ".part"
     try:
         shutil.copyfile(staged_path, part)
         _fsync_file(part)
-        os.replace(part, live)
     except OSError:
-        try:
-            if os.path.isfile(part):
-                os.remove(part)
-        except OSError:
-            pass
+        _drop_part(part)
         raise
+    return part
+
+
+def _drop_part(part: str) -> None:
+    try:
+        if part and os.path.isfile(part):
+            os.remove(part)
+    except OSError:
+        pass
 
 
 def _place_note_image(user, ref: FileRef, staged: StagedFile,
@@ -1979,8 +2154,15 @@ def _live_file_ok(db, ref: FileRef, user, instance_path: str = None) -> bool:
 
 
 def _place_one(db, user, model: type, ref: FileRef, staged: StagedFile,
-               instance_path: str = None) -> str:
-    """Move one verified file to its live path and record the name in its column."""
+               instance_path: str = None, expect=None) -> str:
+    """Move one verified file to its live path and record the name in its column.
+
+    Returns "placed", "pending" (try again), "skipped" (no safe home or no
+    row) or "superseded". With `expect` (sync_rev, sync_changed_at) the column
+    UPDATE is conditional on the row still carrying both; the bytes go to a
+    temporary name first and are renamed onto the live name only when that
+    UPDATE matched. A row that moved on keeps its file and its column.
+    """
     conn = db.connection()
     natural = _KEY_COLUMN.get(model)
     if natural is None:
@@ -1993,77 +2175,78 @@ def _place_one(db, user, model: type, ref: FileRef, staged: StagedFile,
     if row is None:
         return "skipped"      # the record was deleted between plan and commit
 
-    if _ref_role(model, ref) == ROLE_SESSION_LOG:
+    table = model.__table__
+    is_log = _ref_role(model, ref) == ROLE_SESSION_LOG
+    if is_log:
         log_type = _FILE_SLOTS[model][ref.slot][1]
         local_name = local_name_for(model, row, ref)
         local_name = unique_log_name(db, log_type, local_name, row.id)
-        log_dir = os.path.join(instance_path or INSTANCE_PATH, "logs", log_type)
-        os.makedirs(log_dir, exist_ok=True)
-        live = os.path.join(log_dir, local_name)
-        if staged.path:
-            staging_root = os.path.realpath(staging_dir(user, instance_path))
-            if os.path.commonpath([os.path.realpath(staged.path), staging_root]) != staging_root:
-                return "skipped"
-        elif not (os.path.exists(live) and _sha256_of(live) == ref.sha256):
-            return "pending"  # nothing staged and nothing in place: try again
-        if os.path.realpath(os.path.dirname(live)) != os.path.realpath(log_dir):
+        root = os.path.join(instance_path or INSTANCE_PATH, "logs", log_type)
+        os.makedirs(root, exist_ok=True)
+        live = os.path.join(root, local_name)
+        if os.path.realpath(os.path.dirname(live)) != os.path.realpath(root):
             return "skipped"
-        try:
-            if not (os.path.exists(live) and _sha256_of(live) == ref.sha256):
-                _place_from_staged(staged.path, live)
-        except OSError:
-            return "pending"
-        value = os.path.join("instance", "logs", log_type, local_name)
-        if ref.slot == "asiair_log_content":
-            conn.execute(sa_update(model.__table__).where(
-                model.__table__.c.id == row.id,
-                model.__table__.c.user_id == user.id,
-            ).values(asiair_log_content=value))
-        elif ref.slot == "phd2_log_content":
-            conn.execute(sa_update(model.__table__).where(
-                model.__table__.c.id == row.id,
-                model.__table__.c.user_id == user.id,
-            ).values(phd2_log_content=value))
-        else:
-            conn.execute(sa_update(model.__table__).where(
-                model.__table__.c.id == row.id,
-                model.__table__.c.user_id == user.id,
-            ).values(nina_log_content=value))
         # The log changed, so the cached parse of it is stale.
-        conn.execute(sa_update(model.__table__).where(
-            model.__table__.c.id == row.id,
-            model.__table__.c.user_id == user.id,
-        ).values(log_analysis_cache=None))
-        return "placed"
+        values = {ref.slot: os.path.join("instance", "logs", log_type, local_name),
+                  "log_analysis_cache": None}
+    else:
+        local_name = local_name_for(model, row, ref)
+        root = os.path.realpath(_user_upload_root(user, instance_path))
+        os.makedirs(root, exist_ok=True)
+        live = os.path.realpath(os.path.join(root, local_name))
+        if os.path.commonpath([live, root]) != root:
+            return "skipped"
+        # The column is the slot, never a guess from the role: one digest can
+        # serve a session photo and a project image, whose columns differ.
+        values = {ref.slot: local_name}
+    if staged.path:
+        staging_root = os.path.realpath(staging_dir(user, instance_path))
+        if os.path.commonpath([os.path.realpath(staged.path), staging_root]) != staging_root:
+            return "skipped"
 
-    local_name = local_name_for(model, row, ref)
-    root = os.path.realpath(_user_upload_root(user, instance_path))
-    os.makedirs(root, exist_ok=True)
-    live = os.path.realpath(os.path.join(root, local_name))
-    if os.path.commonpath([live, root]) != root:
-        return "skipped"
-    if not staged.path and not (os.path.exists(live)
-                                and _sha256_of(live) == ref.sha256):
+    in_place = os.path.exists(live) and _sha256_of(live) == ref.sha256
+    if not staged.path and not in_place:
         return "pending"          # nothing staged and nothing in place: try again
-    # Correction D: a stale thumbnail goes before the original is replaced.
-    from nova.helpers import remove_thumbnail
-    remove_thumbnail(live)
+    part = ""
     try:
-        if not (os.path.exists(live) and _sha256_of(live) == ref.sha256):
+        if not in_place:
             # Copied, not moved: one digest may feed several records, each with
             # its own local name. The staged copy is discarded once all of them
-            # are placed (see commit_staged_files).
-            _place_from_staged(staged.path, live)
+            # are placed (see commit_staged_files / finish_placements).
+            part = _copy_to_part(staged.path, live)
     except OSError:
         return "pending"
-    # The column is the slot, never a guess from the role: one digest can serve a
-    # session photo and a project image, whose columns differ. The slot is the
-    # single unambiguous source for both the role and the column.
-    column = ref.slot
-    conn.execute(sa_update(model.__table__).where(
-        model.__table__.c.id == row.id,
-        model.__table__.c.user_id == user.id,
-    ).values(**{column: local_name}))
+
+    mine = [table.c.id == row.id, table.c.user_id == user.id]
+    before = None
+    if expect is not None:
+        # The values the conditional write replaces, so a rename that fails
+        # can put them back. Read through Core: they are what the guard's rev
+        # and stamp describe, since any change to them would have moved both.
+        before = conn.execute(select(*[table.c[c] for c in values])
+                              .where(*mine)).first()
+        done = conn.execute(sa_update(table)
+                            .where(*_guard_clauses(table, row.id, user.id, expect))
+                            .values(**values))
+        if done.rowcount != 1:
+            _drop_part(part)       # the live name was never touched
+            return "superseded"
+    if part:
+        if not is_log:
+            # Correction D: a stale thumbnail goes before the original is
+            # replaced - and only once the placement is certain to happen.
+            from nova.helpers import remove_thumbnail
+            remove_thumbnail(live)
+        try:
+            os.replace(part, live)
+        except OSError:
+            _drop_part(part)
+            if before is not None:
+                conn.execute(sa_update(table).where(*mine)
+                             .values(**dict(zip(values, before))))
+            return "pending"
+    if expect is None:
+        conn.execute(sa_update(table).where(*mine).values(**values))
     return "placed"
 
 
@@ -2724,8 +2907,8 @@ def _validate_file_tokens(model: type, rows, manifest: Mapping[str, Any]) -> lis
                     refusals.append(Refusal(REFUSAL_BAD_FILE_REF,
                                             {"table": model.__tablename__,
                                              "slot": slot}))
-                elif digest is None:
-                    continue   # an explicit removal names no manifest entry
+                elif digest is None or digest == FILE_MISSING:
+                    continue   # a removal, or a lost file: no manifest entry
                 elif not isinstance(digest, str) or not _HEX64.fullmatch(digest):
                     # A placement is resolved by digest; a malformed one would
                     # surface on the receiving side too late to refuse the whole
@@ -2806,7 +2989,7 @@ def _files_equal(model: type, row, record: Mapping[str, Any], user,
     if not slots:
         return True
     for slot, digest in incoming.items():
-        if slot not in slots:
+        if slot not in slots or digest == FILE_MISSING:
             continue
         if digest is None:
             if getattr(row, slot, None):
@@ -2842,7 +3025,7 @@ def _file_differences(model: type, row, record: Mapping[str, Any], user,
     if not isinstance(incoming, dict) or user is None or not slots:
         return missing, different, removed
     for slot, digest in incoming.items():
-        if slot not in slots:
+        if slot not in slots or digest == FILE_MISSING:
             continue
         if digest is None:
             if getattr(row, slot, None):
@@ -2857,6 +3040,71 @@ def _file_differences(model: type, row, record: Mapping[str, Any], user,
             continue
         (missing if local is None else different).append(slot)
     return missing, different, removed
+
+
+def _held_file_slots(model: type, row, record: Mapping[str, Any], user,
+                     instance_path: str = None) -> list:
+    """The slots the record marks FILE_MISSING while this disk holds a file
+    there. Sorted. The sender has no digest to compare against, so any bytes
+    here may differ from the ones the record had; a slot this side has no
+    file in either is nothing to keep, and is not listed."""
+    incoming = record.get(KEY_FILES)
+    slots = _FILE_SLOTS.get(model)
+    if not isinstance(incoming, dict) or user is None or not slots:
+        return []
+    held = []
+    for slot, digest in incoming.items():
+        if digest != FILE_MISSING or slot not in slots:
+            continue
+        if not getattr(row, slot, None):
+            continue
+        if _local_file_digest(model, row, slot, slots[slot][0], user,
+                              instance_path) is not None:
+            held.append(slot)
+    return sorted(held)
+
+
+def _same_write(db, builder, model: type, row, record, incoming_at) -> bool:
+    """Whether a LOCAL row and an incoming hub record are the same write.
+
+    Only then are this computer's bytes in a slot the hub lost the bytes the
+    record had, and this computer may give them back. All three must hold:
+    the row is unchanged since the last sync (so these bytes are the ones the
+    last sync left), its non-file content equals the record's, and the two
+    stamps agree to within SAME_WRITE_TOLERANCE_SECONDS once the hub's is in
+    this clock (a photo-only change elsewhere leaves the content equal and
+    only the stamp moves; a repair or settle re-offers keep it).
+    """
+    if not builder.unchanged_since_sync(row):
+        return False
+    local_at = getattr(row, "sync_changed_at", None)
+    if local_at is None or incoming_at is None:
+        return False
+    if abs((incoming_at - local_at).total_seconds()) > SAME_WRITE_TOLERANCE_SECONDS:
+        return False
+    return _content_equal(db, model, row, record, builder.user, builder.instance_path)
+
+
+def _owed_redelivery(db, builder, model: type, row, record) -> bool:
+    """Whether a pushed record differs from the hub's row only by files the
+    hub still owes - each one a standing owed entry for exactly that digest."""
+    owed = builder.owed
+    if not owed:
+        return False
+    table = model.__tablename__
+    key = row_key(model, row)
+    lost_notes: list = []
+    if not _content_equal(db, model, row, record, builder.user,
+                          builder.instance_path, missing_notes=lost_notes):
+        return False
+    missing, different, removed = _file_differences(
+        model, row, record, builder.user, builder.instance_path)
+    if removed or not (missing or different or lost_notes):
+        return False
+    incoming = record.get(KEY_FILES) or {}
+    wanted = [(table, key, slot, incoming.get(slot)) for slot in missing + different]
+    wanted += [(table, key, "note_img", digest) for digest in lost_notes]
+    return all(entry in owed for entry in wanted)
 
 
 def _missing_note_digests(current: str, incoming: str) -> Optional[list]:
@@ -2994,6 +3242,9 @@ class _Builder:
         # This local's push watermark (SyncState.local_pushed_rev): a row whose
         # sync_rev is at or below it has not changed since the last sync.
         self.pushed_rev: int = 0
+        # Hub side only: the standing owed placements, as
+        # (table, key, slot, sha256). See _owed_redelivery.
+        self.owed: set = set()
         self.actions: list[Action] = []
         self.by_key: dict[tuple[str, str], Action] = {}
         self.created: dict[str, int] = {}
@@ -3440,6 +3691,24 @@ def _plan_record_update(db, builder: _Builder, model: type, record: dict,
         return
 
     local_at = existing.sync_changed_at or datetime.min
+    if builder.side == "local":
+        held = _held_file_slots(model, existing, record, builder.user,
+                                builder.instance_path)
+        if held and not _same_write(db, builder, model, existing, record,
+                                    incoming_at):
+            # The hub lost this record's file, and this computer holds bytes
+            # in that slot it cannot tell apart from it. Taking the record
+            # would pair it with those bytes, and so would leaving it be. It
+            # waits - deferred, so the cursor holds and the next pull offers
+            # it again - until the hub has the file and names its digest.
+            # (When it IS the same write, the bytes here are the hub's own:
+            # the record is not held, the "missing" slot is no news below, and
+            # the healing pass gives the file back through /repair.)
+            builder.conflicts.append(Conflict(
+                table, key, "deferred",
+                {"reason": "file_missing_on_hub", "slots": held}))
+            builder.deferred.append((table, key))
+            return
     if not decided:
         if builder.side != "local":
             # A hub never heals. A record in a push was changed by the client,
@@ -3451,6 +3720,12 @@ def _plan_record_update(db, builder: _Builder, model: type, record: dict,
             if _row_content(db, model, existing, record, builder.user,
                             builder.instance_path):
                 return  # nothing to do: an idempotent re-delivery
+            if _owed_redelivery(db, builder, model, existing, record):
+                # The record the hub's earlier apply already wrote, offered
+                # again because the hub still owes its file. Not a conflict:
+                # the owed note places the file (asking for the bytes again
+                # when they are gone), and nothing here is decided twice.
+                return
         else:
             lost_notes: list = []
             if _content_equal(db, model, existing, record, builder.user,
@@ -3651,9 +3926,10 @@ def _plan_files(db, builder: _Builder, payload, index: dict) -> None:
             if not is_written and (table, key) not in deleted and heal is None:
                 continue
             for slot, digest in (record.get(KEY_FILES) or {}).items():
-                if slot not in slots or digest is None:
+                if slot not in slots or digest is None or digest == FILE_MISSING:
                     # An explicit removal needs nothing fetched or placed: the
-                    # column write below is the whole of it.
+                    # column write below is the whole of it. A file the sender
+                    # lost has nothing to fetch either.
                     continue
                 if heal is not None and not is_written and slot not in heal["slots"]:
                     continue    # a file-only heal touches only the slots it names
@@ -3751,7 +4027,7 @@ def _collect_orphans(db, builder: _Builder, index: dict, deleted: set) -> None:
         if model is None or row is None or not isinstance(incoming, dict):
             continue
         for slot, (role, _log_type) in _FILE_SLOTS.get(model, {}).items():
-            if slot not in incoming:
+            if slot not in incoming or incoming.get(slot) == FILE_MISSING:
                 continue
             old = _slot_ref(model, row, slot, role, user, builder.instance_path)
             if old.sha256 and old.sha256 != incoming.get(slot):
@@ -3799,6 +4075,12 @@ def plan_merge(db, user, payload, *, side: str, offset_seconds: float = 0.0,
     builder.manifest = payload.get("files") or {}
     if side == "local":
         builder.pushed_rev = pushed_watermark(db, uid)
+    elif user is not None:
+        builder.owed = {
+            (str(e.get("table")), str(e.get("key")), str(e.get("slot")),
+             str(e.get("sha256")))
+            for e in load_owed_files(user, instance_path)
+            if _owed_entry_stands(db, user, e)}
 
     for model in PLAN_ORDER:
         table = model.__tablename__
@@ -4256,9 +4538,10 @@ def plan_download(db, user, snapshot, *, offset_seconds: float = 0.0,
             key = natural_key(model, record)
             for slot, digest in (record.get(KEY_FILES) or {}).items():
                 if slot not in _FILE_SLOTS.get(model, {}) or digest not in manifest:
-                    plan.skipped_files.append({"table": table, "key": key,
-                                               "slot": slot, "sha256": digest,
-                                               "reason": SKIP_MISSING})
+                    plan.skipped_files.append({
+                        "table": table, "key": key, "slot": slot,
+                        "sha256": "" if digest == FILE_MISSING else digest,
+                        "reason": SKIP_MISSING})
                     continue
                 descriptor = manifest.get(digest) or {}
                 plan.placements.append(FileRef(

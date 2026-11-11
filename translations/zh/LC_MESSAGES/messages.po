@@ -7988,6 +7988,10 @@ msgid "A session's link to project \"%(name)s\" was not synced: that project is 
 msgstr "会话与项目“%(name)s”的关联未同步：该项目不属于此账户。"
 
 #, python-format
+msgid "\"%(name)s\": file missing on the server and could not be safely restored."
+msgstr "“%(name)s”：服务器上缺少该文件，无法安全恢复。"
+
+#, python-format
 msgid "%(name)s — this computer's version kept"
 msgstr "%(name)s — 保留这台电脑的版本"
 

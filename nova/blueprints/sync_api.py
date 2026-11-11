@@ -37,10 +37,10 @@ from nova.sync_engine import (
     _ref_summary, _role_ext_ok, _row_by_key, _user_upload_root,
     account_marker_rev, apply_merge, collect_files,
     commit_staged_files, counter_rev, export_changes, export_files,
-    file_cap, file_source_path, files_needed,
+    file_cap, file_source_path, files_needed, finish_placements,
     missing_local_slots, note_image_name, note_owed_files, plan_merge,
-    placement_target, record_to_payload, row_key, server_untouched,
-    settle_owed_files,
+    placement_guard, placement_target, record_to_payload,
+    reoffer_placed_rows, row_key, server_untouched, settle_owed_files,
     staged_index, sync_lock, to_iso,
 )
 from nova.sync_time import utc_now
@@ -113,10 +113,9 @@ def _int_header(name: str) -> Optional[int]:
 def _settle_owed(db, user) -> tuple:
     """Finish the file placements an earlier push left owing (see the engine's
     note_owed_files). Runs under the account's lock at the start of a sync
-    request and commits what it placed. Returns (still owed, to upload again)."""
-    owed, reupload = settle_owed_files(db, user)
-    db.commit()
-    return owed, reupload
+    request; the engine commits what it placed and only then clears what that
+    settled. Returns (still owed, to upload again)."""
+    return settle_owed_files(db, user)
 
 
 def _result_summary(result) -> dict:
@@ -646,6 +645,9 @@ def push_apply() -> Response:
             # the commit, so a hub that dies between the commit and the
             # placement still knows what it owes.
             note_owed_files(db, user, result)
+            # The rows as this apply leaves them: a file is placed only while
+            # its row still is exactly that.
+            guard = placement_guard(db, user, result.files_expected)
             db.commit()
         except SyncRefused as exc:
             db.rollback()
@@ -653,8 +655,11 @@ def push_apply() -> Response:
             return _refuse(exc.refusal)
 
         staged = _staged_for(db, user, plan)
-        commit_staged_files(db, result, staged, user=user)
+        report = commit_staged_files(db, result, staged, user=user, guard=guard)
         db.commit()
+        # Only now: a commit that failed leaves the owed note and the staged
+        # bytes, and the next settle places from them.
+        finish_placements(report, user=user)
         # Whatever is still owed - from this apply or an earlier one whose bytes
         # this session uploaded again - is tried once more, and what remains is
         # the pending list the pusher's watermark waits on.
@@ -702,9 +707,10 @@ def repair() -> Response:
     """Upload a file this hub's records reference but its disk lacks.
 
     The mirror of `hub_missing` in the push response. No push session: this is
-    a single file placed into a row that already exists, and the placement
-    writes no rev — a file name is instance-local, so placing one is not a
-    change to sync.
+    a single file placed into a row that already exists. The record does not
+    change - its stamp stays - but the row gets a new rev, exactly as an owed
+    placement does: a computer that pulled it while the file was missing (and
+    held it, or left that slot empty) is offered it again and receives the file.
 
     A repair FILLS; it never overwrites and never attaches. It is accepted
     only when the row's column names a file for the slot, that file is absent,
@@ -757,8 +763,12 @@ def repair() -> Response:
             if staged is None:
                 return _refuse(Refusal(REFUSAL_FILE_VERIFY, {"sha256": digest}))
             placement = MergeResult(files_expected=[ref])
-            commit_staged_files(db, placement, [staged], user=user)
+            report = commit_staged_files(
+                db, placement, [staged], user=user,
+                guard=placement_guard(db, user, [ref]))
+            reoffer_placed_rows(db, user, report.placed)
             db.commit()
+            finish_placements(report, user=user)
             result["placed"] = [list(entry) for entry in placement.placed_files]
             result["pending"] = [list(entry) for entry in placement.pending_files]
     return _ok(result)

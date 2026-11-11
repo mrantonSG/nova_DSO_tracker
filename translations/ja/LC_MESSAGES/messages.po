@@ -8006,6 +8006,10 @@ msgid "A session's link to project \"%(name)s\" was not synced: that project is 
 msgstr "セッションとプロジェクト「%(name)s」のリンクは同期されませんでした。そのプロジェクトはこのアカウントのものではありません。"
 
 #, python-format
+msgid "\"%(name)s\": file missing on the server and could not be safely restored."
+msgstr "「%(name)s」：サーバー上にはそのファイルがないため、安全に復元できませんでした。"
+
+#, python-format
 msgid "%(name)s — this computer's version kept"
 msgstr "%(name)s — この PC のバージョンを保持"
 

@@ -76,7 +76,7 @@ from nova.sync_engine import (
     _HEX64, _PARENT_TABLES, _role_ext_ok, _row_by_key,
     CommitReport, FileRef, MergeResult, Refusal, StagedFile, SyncRefused,
     apply_download, apply_merge, check_sync_preconditions, collect_files,
-    commit_staged_files,
+    commit_staged_files, finish_placements, placement_guard,
     counter_rev, discard_staged, export_changes, file_slot_role, files_needed,
     file_source_path, missing_local_slots, move_replaced_files, natural_key,
     parse_datetime, plan_download, plan_merge, pushed_watermark,
@@ -635,15 +635,17 @@ def _phase2_download(db, user, start_token: str) -> None:
     move_replaced_files(db, plan, user)
     db.commit()
     staged = _staged_for(plan, user)
-    commit_staged_files(db, result, staged, user=user)
+    guard = placement_guard(db, user, result.files_expected)
+    report = commit_staged_files(db, result, staged, user=user, guard=guard)
     db.commit()
+    finish_placements(report, user=user)
 
     # Healing pass, then the watermark is released whatever is still missing:
     # the download is complete, and a file that cannot be restored is reported
     # rather than left holding the cursor at zero for ever.
     _touch(uid, start_token, phase=PHASE_APPLYING, progress=0.92, phase_label=PHASE_APPLYING)
     unrestored = len(_heal_local(db, user, client,
-                                 _local_heal_targets(db, user, result),
+                                 _local_heal_targets(db, user, result, guard=guard),
                                  tick=lambda: _note_progress(uid, start_token)))
     _release_cursor(db, uid, plan.server_rev)
 
@@ -786,6 +788,34 @@ def _blocked(entries, side: str) -> list:
     return out
 
 
+def _held_for_lost_file(plan, pull_payload: dict) -> list:
+    """The records this pull held because the hub lost their file and this
+    computer's bytes there are not provably the same write. One entry per
+    record, however many of its slots are affected, for the run's report:
+    "file missing on the server and could not be safely restored"."""
+    records = {}
+    for table, rows in ((pull_payload or {}).get("records") or {}).items():
+        model = TABLE_MODEL.get(table)
+        if model is None:
+            continue
+        for record in rows or []:
+            if isinstance(record, dict):
+                records[(table, natural_key(model, record))] = (model, record)
+    out, seen = [], set()
+    for conflict in getattr(plan, "conflicts", None) or []:
+        if (conflict.resolution != "deferred"
+                or (conflict.detail or {}).get("reason") != "file_missing_on_hub"):
+            continue
+        ident = (conflict.table, conflict.key)
+        if ident in seen:
+            continue
+        seen.add(ident)
+        found = records.get(ident)
+        name = _display_name(*found) if found else conflict.key
+        out.append({"table": conflict.table, "key": conflict.key, "name": name})
+    return out
+
+
 # --- Healing pass ----------------------------------------------------------------
 
 def _stage_from_hub(client, user, table: str, key: str, slot: str,
@@ -825,8 +855,9 @@ def _row_unchanged(db, user, table: str, key: str, watermark: int):
     return row, int(getattr(row, "sync_rev", None) or 0) <= int(watermark)
 
 
-def _local_heal_targets(db, user, result=None, watermark=None) -> list:
-    """(table, key, slot, sha256, ext hint, fetch) of every file a heal looks at.
+def _local_heal_targets(db, user, result=None, watermark=None, guard=None) -> list:
+    """(table, key, slot, sha256, ext hint, fetch, expect) of every file a heal
+    looks at.
 
     Two sources. Placements this run could not finish: the plan decided on that
     exact digest, so fetching it is the rest of this run's own apply. And FILE
@@ -840,6 +871,11 @@ def _local_heal_targets(db, user, result=None, watermark=None) -> list:
     the value it started with: its own push moves the watermark past rows that
     were changed here, and those must still count as changed - the hub took
     the record, not the bytes this disk no longer has.
+
+    `expect` is the (sync_rev, sync_changed_at) the row must still carry when
+    its file is placed (see _heal_local). For this run's own placements it is
+    the `guard` the apply took before any byte was fetched; for a lost slot it
+    is the row as it stands now, at or below the watermark.
     """
     targets: dict[tuple, tuple] = {}
     for entry in getattr(result, "pending_files", None) or []:
@@ -848,7 +884,9 @@ def _local_heal_targets(db, user, result=None, watermark=None) -> list:
         except (IndexError, TypeError):
             continue
         ident = (table, key, slot, sha256 if slot == "note_img" else "")
-        targets[ident] = (table, key, slot, sha256 or "", "", True)
+        expect = (guard or {}).get((table, key)) if guard is not None else \
+            placement_guard(db, user, [(table, key)]).get((table, key))
+        targets[ident] = (table, key, slot, sha256 or "", "", expect is not None, expect)
     if watermark is None:
         watermark = pushed_watermark(db, user.id)
     for ref in missing_local_slots(db, user):
@@ -856,7 +894,10 @@ def _local_heal_targets(db, user, result=None, watermark=None) -> list:
         if ident in targets:
             continue
         _row, unchanged = _row_unchanged(db, user, ref.table, ref.key, watermark)
-        targets[ident] = (ref.table, ref.key, ref.slot, "", ref.ext, unchanged)
+        expect = placement_guard(db, user, [(ref.table, ref.key)]).get(
+            (ref.table, ref.key)) if unchanged else None
+        targets[ident] = (ref.table, ref.key, ref.slot, "", ref.ext,
+                          expect is not None, expect)
     return list(targets.values())
 
 
@@ -869,12 +910,20 @@ def _heal_local(db, user, client, targets, tick=None) -> set:
     installation's own business. One file failing never stops the others, and
     nothing here fails the job: a file that cannot be restored is counted, and
     so is one that must not be (fetch=False, see _local_heal_targets).
+
+    The fetch takes time, and the row may be edited meanwhile (a browser upload
+    of a new photo is exactly that). So the row is checked again right before
+    the placement - it must still carry the target's `expect`, which for a lost
+    slot is a rev at or below the watermark - and the column write is
+    conditional on the same rev and stamp. A row that moved on keeps what it
+    has: the hub's file never lands on top of the newer one, and the slot is
+    not counted as lost (the row's new state is what the next sync carries).
     """
     failed: set = set()
-    for table, key, slot, sha256, ext_hint, fetch in targets:
+    for table, key, slot, sha256, ext_hint, fetch, expect in targets:
         if tick is not None:
             tick()
-        if not fetch:
+        if not fetch or expect is None:
             failed.add((table, key, slot))
             continue
         try:
@@ -882,9 +931,17 @@ def _heal_local(db, user, client, targets, tick=None) -> set:
             if staged is None:
                 failed.add((table, key, slot))
                 continue
+            now = placement_guard(db, user, [(table, key)]).get((table, key))
+            if now != expect:
+                db.rollback()
+                continue                    # changed here while it was fetched
             report = commit_staged_files(
-                db, MergeResult(files_expected=[staged.ref]), [staged], user=user)
+                db, MergeResult(files_expected=[staged.ref]), [staged], user=user,
+                guard={(table, key): expect})
             db.commit()
+            finish_placements(report, user=user)
+            if report.superseded:
+                continue
             if not report.placed:
                 failed.add((table, key, slot))
         except (SyncRefused, SyncTransportError, OSError):
@@ -931,7 +988,7 @@ def _repair_upload(client, ref: FileRef, path: str) -> None:
             offset += len(chunk)
 
 
-def _heal_hub(db, user, client, targets, tick=None, watermark=None) -> set:
+def _heal_hub(db, user, client, targets, tick=None, watermark=None, held=()) -> set:
     """Upload each file the hub lost and this computer has. Returns the
     (table, key, slot) of every one that could NOT be restored.
 
@@ -944,7 +1001,9 @@ def _heal_hub(db, user, client, targets, tick=None, watermark=None) -> set:
     silently; so is a file the hub turns out to have (file_exists) or refuses
     as not repairable. A file missing on both sides, or an upload that fails,
     counts. `watermark` is as in _local_heal_targets: the one this run started
-    with.
+    with. `held` are the (table, key) this run's pull held back because the hub
+    lost their file and this computer's bytes may not be it: this computer is
+    exactly the one that must not supply them.
     """
     failed: set = set()
     seen: set = set()
@@ -961,6 +1020,8 @@ def _heal_hub(db, user, client, targets, tick=None, watermark=None) -> set:
         seen.add(ident)
         if tick is not None:
             tick()
+        if (table, key) in held:
+            continue
         row, unchanged = _row_unchanged(db, user, table, key, watermark)
         if row is None or not unchanged:
             continue
@@ -999,13 +1060,18 @@ def _release_cursor(db, uid: int, server_rev) -> None:
     db.commit()
 
 
-def _complete_empty_sync(db, uid, rev_at_export, server_rev) -> None:
-    """Advance the watermarks and last_sync_at for a sync with nothing to apply."""
+def _complete_empty_sync(db, uid, rev_at_export, server_rev, hold_cursor=False) -> None:
+    """Advance the watermarks and last_sync_at for a sync with nothing to apply.
+
+    `hold_cursor`: the pull held a record back (deferred), so the cursor stays
+    where it is and the next pull offers that record again.
+    """
     state = db.scalars(select(SyncState).where(SyncState.user_id == uid)).first()
     if state is None:
         return
     state.local_pushed_rev = max(state.local_pushed_rev or 0, int(rev_at_export))
-    state.server_cursor = int(server_rev)
+    if not hold_cursor:
+        state.server_cursor = int(server_rev)
     state.last_sync_at = utc_now()
     db.commit()
 
@@ -1115,14 +1181,15 @@ def _phase1_sync(db, user, start_token: str) -> None:
     }
     if _sync_plan_empty(summary):
         watermark = pushed_watermark(db, uid)      # as the last sync left it
-        _complete_empty_sync(db, uid, rev_at_export, server_rev)
+        held = {tuple(entry[:2]) for entry in pull_plan.deferred or []}
+        _complete_empty_sync(db, uid, rev_at_export, server_rev, hold_cursor=bool(held))
         # Nothing to merge is still a completed sync, so it heals too: a file
         # lost out of band shows up in no plan, only here.
         def tick():
             _note_progress(uid, start_token)
         unrestored = len(
             _heal_hub(db, user, client, summary["hub_missing"], tick=tick,
-                      watermark=watermark)
+                      watermark=watermark, held=held)
             | _heal_local(db, user, client,
                           _local_heal_targets(db, user, watermark=watermark),
                           tick=tick))
@@ -1132,6 +1199,7 @@ def _phase1_sync(db, user, start_token: str) -> None:
                        "files": 0, "empty": True,
                        "pending_files": unrestored,
                        "unrestored_files": unrestored,
+                       "held_files": _held_for_lost_file(pull_plan, pull_payload),
                        "blocked": summary["blocked"]},
                summary=summary,
                toast_pending=True, toast_at=to_iso(utc_now()))
@@ -1260,6 +1328,10 @@ def _phase2_sync(db, user, start_token: str, allow_mass_delete: bool = False, *,
     # snapshot_rev.
     result.server_rev = server_rev
     record_pull_applied(db, user, result, server_rev, rev_at_export_pull)
+    # The rows as this apply leaves them, before any byte is fetched: a file
+    # lands only while its row still is exactly that, so an edit or a browser
+    # upload made during the transfer is never overwritten by it.
+    guard = placement_guard(db, user, result.files_expected)
     db.commit()
     _touch(uid, start_token, phase=PHASE_DOWNLOAD_FILES, progress=0.75,
            phase_label=PHASE_DOWNLOAD_FILES)
@@ -1270,8 +1342,9 @@ def _phase2_sync(db, user, start_token: str, allow_mass_delete: bool = False, *,
     needed = files_needed(pull_plan, user)
     _fetch_files(client, user, needed, uid, start_token)
     staged = _staged_for(pull_plan, user)
-    commit_staged_files(db, result, staged, user=user)
+    report = commit_staged_files(db, result, staged, user=user, guard=guard)
     db.commit()
+    finish_placements(report, user=user)
 
     # --- healing pass, then the watermarks are released -------------------------
     _touch(uid, start_token, phase=PHASE_APPLYING, progress=0.92, phase_label=PHASE_APPLYING)
@@ -1280,9 +1353,11 @@ def _phase2_sync(db, user, start_token: str, allow_mass_delete: bool = False, *,
 
     # A set, so a file gone on both sides is counted once, not once per side.
     lost = _heal_hub(db, user, client, list(planned.get("hub_missing") or []),
-                     tick=tick, watermark=watermark)
+                     tick=tick, watermark=watermark,
+                     held={tuple(entry[:2]) for entry in result.deferred or []})
     lost |= _heal_local(db, user, client,
-                        _local_heal_targets(db, user, result, watermark=watermark),
+                        _local_heal_targets(db, user, result, watermark=watermark,
+                                            guard=guard),
                         tick=tick)
     # What the hub still owes from this push and this computer can supply: it
     # holds the push watermark, so the next Sync now offers the record again
@@ -1313,6 +1388,7 @@ def _phase2_sync(db, user, start_token: str, allow_mass_delete: bool = False, *,
                             "deleted": _sum_counts(result.deleted)},
                    "pending_files": unrestored,
                    "unrestored_files": unrestored,
+                   "held_files": _held_for_lost_file(pull_plan, pull_payload),
                    "blocked": hub_blocked + _blocked(result.blocked, "local")},
            toast_pending=True, toast_at=to_iso(utc_now()))
 
