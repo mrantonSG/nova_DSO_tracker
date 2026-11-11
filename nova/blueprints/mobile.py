@@ -601,9 +601,12 @@ def mobile_journal_new():
         import json
 
         # Only link a project the user owns; otherwise save as standalone
-        if project_id_for_session and db.query(Project).filter_by(
-                id=project_id_for_session, user_id=user.id).one_or_none() is None:
-            project_id_for_session = None
+        project_for_session = None
+        if project_id_for_session:
+            project_for_session = db.query(Project).filter_by(
+                id=project_id_for_session, user_id=user.id).one_or_none()
+            if project_for_session is None:
+                project_id_for_session = None
 
         # Create New Session Object
         new_session = JournalSession(
@@ -666,6 +669,11 @@ def mobile_journal_new():
             camera_name_snapshot=camera_name_snap
         )
         sync_session_links(db, new_session)
+        # The project link lives in session_projects, not only in project_id:
+        # every reader (and the sync export's project_ids) goes through the
+        # relationship. Set through the ORM, so the row is stamped with it.
+        if project_for_session is not None:
+            new_session.projects = [project_for_session]
 
         # Custom filter data (user-defined filters stored as JSON)
         from nova.models import UserCustomFilter

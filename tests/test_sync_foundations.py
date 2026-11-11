@@ -323,3 +323,158 @@ def test_yaml_export_byte_identical_across_backfill(tmp_path):
     after = _export_docs(engine, user_id)
 
     assert after == before
+
+
+# ------------------------------------------------ session_projects backfill
+def _current_db(tmp_path, name="current.db"):
+    """A database on today's schema that has already run its patches once."""
+    engine = _engine(tmp_path, name)
+    Base.metadata.create_all(engine)
+    with engine.begin() as conn:
+        conn.exec_driver_sql("INSERT INTO users (id, username, active) VALUES (1, 'alice', 1)")
+        conn.exec_driver_sql("INSERT INTO users (id, username, active) VALUES (2, 'bob', 1)")
+        conn.exec_driver_sql("INSERT INTO projects (id, user_id, name, status) "
+                             "VALUES ('p1', 1, 'Veil', 'In Progress')")
+        conn.exec_driver_sql("INSERT INTO projects (id, user_id, name, status) "
+                             "VALUES ('p2', 2, 'Rosette', 'In Progress')")
+        _run_schema_patches(conn)
+    return engine
+
+
+def _session_row(conn, session_id, user_id, project_id, linked):
+    conn.exec_driver_sql(
+        "INSERT INTO journal_sessions (id, user_id, date_utc, object_name, "
+        "external_id, project_id, draft, sync_rev, sync_changed_at) "
+        "VALUES (?, ?, '2026-01-02', 'M42', ?, ?, 0, 1, '2026-01-01 00:00:00.000000')",
+        (session_id, user_id, f"s{session_id}", project_id))
+    if linked:
+        conn.exec_driver_sql(
+            "INSERT INTO session_projects (session_id, project_id) VALUES (?, ?)",
+            (session_id, project_id))
+
+
+def _stamps(conn):
+    return {row[0]: (row[1], row[2]) for row in conn.exec_driver_sql(
+        "SELECT id, sync_rev, sync_changed_at FROM journal_sessions ORDER BY id;")}
+
+
+def _counters(conn):
+    return dict(conn.exec_driver_sql(
+        "SELECT user_id, rev FROM sync_counter ORDER BY user_id;").fetchall())
+
+
+def test_the_session_projects_backfill_stamps_the_sessions_it_links(tmp_path, capsys):
+    engine = _current_db(tmp_path)
+    with engine.begin() as conn:
+        _session_row(conn, 1, 1, "p1", linked=False)     # alice: link missing
+        _session_row(conn, 2, 1, "p1", linked=True)      # alice: already linked
+        _session_row(conn, 3, 1, None, linked=False)     # alice: standalone
+        _session_row(conn, 4, 2, "p2", linked=False)     # bob: link missing
+        before, counters = _stamps(conn), _counters(conn)
+    capsys.readouterr()
+
+    with engine.begin() as conn:
+        _run_schema_patches(conn)
+
+    out = capsys.readouterr().out
+    assert "Backfilled session_projects from journal_sessions.project_id for 2 session(s)" in out
+    with engine.connect() as conn:
+        links = sorted(tuple(r) for r in conn.exec_driver_sql(
+            "SELECT session_id, project_id FROM session_projects;").fetchall())
+        assert links == [(1, "p1"), (2, "p1"), (4, "p2")]
+        after, new_counters = _stamps(conn), _counters(conn)
+    # The two sessions that gained a link carry a fresh rev and stamp, one rev
+    # per user from that user's own counter...
+    assert new_counters == {1: counters[1] + 1, 2: counters[2] + 1}
+    assert after[1][0] == new_counters[1] and after[1][1] != before[1][1]
+    assert after[4][0] == new_counters[2] and after[4][1] != before[4][1]
+    # ...and the sessions it did not touch are exactly as they were.
+    assert after[2] == before[2]
+    assert after[3] == before[3]
+
+
+def test_the_session_projects_backfill_is_a_no_op_when_nothing_is_missing(tmp_path, capsys):
+    engine = _current_db(tmp_path)
+    with engine.begin() as conn:
+        _session_row(conn, 1, 1, "p1", linked=True)
+        _session_row(conn, 2, 1, None, linked=False)
+    with engine.connect() as conn:
+        snapshot = _snapshot_all(conn)
+    capsys.readouterr()
+
+    with engine.begin() as conn:
+        _run_schema_patches(conn)
+
+    assert "Backfilled session_projects" not in capsys.readouterr().out
+    with engine.connect() as conn:
+        assert _snapshot_all(conn) == snapshot        # no rev, no stamp, no row
+
+
+def test_a_backfilled_link_is_exported_as_a_change(tmp_path):
+    """What the stamp is for: the session shows up above the old watermark."""
+    engine = _current_db(tmp_path)
+    with engine.begin() as conn:
+        _session_row(conn, 1, 1, "p1", linked=False)
+        watermark = _counters(conn)[1]
+        _run_schema_patches(conn)
+
+    from nova.sync_engine import export_changes
+    db = sessionmaker(bind=engine)()
+    try:
+        alice = db.get(DbUser, 1)
+        payload = export_changes(db, alice, watermark, side="local", with_files=False)
+    finally:
+        db.close()
+    sessions = payload["records"]["journal_sessions"]
+    assert [(s["external_id"], s["project_ids"]) for s in sessions] == [("s1", ["p1"])]
+
+
+def test_an_upgrade_in_the_same_startup_stamps_backfilled_sessions_once(tmp_path):
+    """A pre-sync database: the backfill links the session and the sync_v1 fill
+    stamps every row at rev 1 — no second rev on top."""
+    engine = _old_db(tmp_path, "upgrade_links.db")
+    _seed_old_db(engine)
+    with engine.begin() as conn:
+        conn.exec_driver_sql(
+            "CREATE TABLE session_projects (session_id INTEGER NOT NULL, "
+            "project_id VARCHAR(64) NOT NULL, PRIMARY KEY (session_id, project_id))")
+        conn.exec_driver_sql("UPDATE journal_sessions SET project_id = 'p1'")
+        _run_schema_patches(conn)
+
+    with engine.connect() as conn:
+        assert conn.exec_driver_sql("SELECT COUNT(*) FROM session_projects").scalar() >= 1
+        assert {rev for rev, _ in _stamps(conn).values()} == {1}
+        assert set(_counters(conn).values()) == {1}
+
+
+def test_a_second_startup_prints_no_index_or_backfill_lines(tmp_path, capsys):
+    """The lines that used to print on every start of every worker."""
+    engine = _old_db(tmp_path, "quiet.db")
+    _seed_old_db(engine)
+    with engine.begin() as conn:
+        # The old global index, by its name. This baseline predates the
+        # external_id column, so it sits on the row id; only the name matters.
+        conn.exec_driver_sql(
+            "CREATE UNIQUE INDEX uq_journal_external_id ON journal_sessions(id)")
+        _run_schema_patches(conn)
+    first = capsys.readouterr().out
+    # The first run really did all of it, and says so.
+    assert "Dropped old global unique index uq_journal_external_id" in first
+    assert "Created composite unique index uq_journal_user_external_id" in first
+    assert "Created performance index idx_journal_user_date" in first
+    assert "Created performance index idx_journal_object_name" in first
+    assert "Created performance index idx_saved_views_name" in first
+
+    with engine.begin() as conn:
+        _run_schema_patches(conn)
+    second = capsys.readouterr().out
+
+    assert "Dropped" not in second
+    assert "Created" not in second
+    assert "Backfilled" not in second
+    with engine.connect() as conn:
+        names = {r[0] for r in conn.exec_driver_sql(
+            "SELECT name FROM sqlite_master WHERE type = 'index';").fetchall()}
+    assert "uq_journal_external_id" not in names
+    assert {"uq_journal_user_external_id", "idx_journal_user_date",
+            "idx_journal_object_name", "idx_saved_views_name"} <= names

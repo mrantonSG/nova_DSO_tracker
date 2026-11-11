@@ -118,7 +118,7 @@ from nova.record_links import (
     repoint_object_links, rig_for_uid, sync_rig_links,
 )
 from nova.sync_time import utc_now
-from nova.sync_tracking import mark_account, register_sync_tracking
+from nova.sync_tracking import mark_account, register_sync_tracking, stamp_rows_in
 
 # --- Instance sync change tracking (step 2) ---------------------------------
 # One before_flush listener on sqlalchemy.orm.Session, so every session built
@@ -550,6 +550,15 @@ SYNC_TABLES = (
 )
 
 
+def _index_exists(conn, name: str) -> bool:
+    """Whether SQLite has an index of this name. Lets a patch say "created" or
+    "dropped" only when it actually did: these statements run on every startup
+    of every worker, and an unconditional line reads as a change each time."""
+    return conn.exec_driver_sql(
+        "SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = ?;", (name,)
+    ).fetchone() is not None
+
+
 def _run_schema_patches(conn):
     """
     Run all schema patches against an existing database connection.
@@ -629,8 +638,10 @@ def _run_schema_patches(conn):
     # --- Drop old global unique index on external_id ---
     # This index made external_id globally unique, but it should be unique per user
     try:
+        had_old_index = _index_exists(conn, "uq_journal_external_id")
         conn.exec_driver_sql("DROP INDEX IF EXISTS uq_journal_external_id;")
-        print("[DB PATCH] Dropped old global unique index uq_journal_external_id")
+        if had_old_index:
+            print("[DB PATCH] Dropped old global unique index uq_journal_external_id")
     except Exception as idx_err:
         print(f"[DB PATCH] Could not drop old index (may not exist): {idx_err}")
 
@@ -664,28 +675,34 @@ def _run_schema_patches(conn):
     # --- Create composite unique index on (user_id, external_id) ---
     # This ensures external_id is unique per user, allowing different users to have the same external_id
     try:
+        had_index = _index_exists(conn, "uq_journal_user_external_id")
         conn.exec_driver_sql(
             "CREATE UNIQUE INDEX IF NOT EXISTS uq_journal_user_external_id ON journal_sessions(user_id, external_id) WHERE external_id IS NOT NULL;"
         )
-        print("[DB PATCH] Created composite unique index uq_journal_user_external_id on journal_sessions(user_id, external_id)")
+        if not had_index:
+            print("[DB PATCH] Created composite unique index uq_journal_user_external_id on journal_sessions(user_id, external_id)")
     except Exception as idx_err:
         print(f"[DB PATCH] Could not create journal user_external_id index: {idx_err}")
 
     # --- PERFORMANCE: Add Composite Index for Journal Sessions ---
     try:
+        had_index = _index_exists(conn, "idx_journal_user_date")
         conn.exec_driver_sql(
             "CREATE INDEX IF NOT EXISTS idx_journal_user_date ON journal_sessions(user_id, date_utc DESC);"
         )
-        print("[DB PATCH] Created performance index idx_journal_user_date on journal_sessions")
+        if not had_index:
+            print("[DB PATCH] Created performance index idx_journal_user_date on journal_sessions")
     except Exception as idx_err:
         print(f"[DB PATCH] Could not create journal user_date index: {idx_err}")
 
     # --- PERFORMANCE: Add Index for Object Name Lookups ---
     try:
+        had_index = _index_exists(conn, "idx_journal_object_name")
         conn.exec_driver_sql(
             "CREATE INDEX IF NOT EXISTS idx_journal_object_name ON journal_sessions(object_name);"
         )
-        print("[DB PATCH] Created performance index idx_journal_object_name on journal_sessions")
+        if not had_index:
+            print("[DB PATCH] Created performance index idx_journal_object_name on journal_sessions")
     except Exception as idx_err:
         print(f"[DB PATCH] Could not create journal object_name index: {idx_err}")
 
@@ -703,10 +720,12 @@ def _run_schema_patches(conn):
 
     # --- PERFORMANCE: Add Index for Saved Views Name Lookups ---
     try:
+        had_index = _index_exists(conn, "idx_saved_views_name")
         conn.exec_driver_sql(
             "CREATE INDEX IF NOT EXISTS idx_saved_views_name ON saved_views(name);"
         )
-        print("[DB PATCH] Created performance index idx_saved_views_name on saved_views")
+        if not had_index:
+            print("[DB PATCH] Created performance index idx_saved_views_name on saved_views")
     except Exception as idx_err:
         print(f"[DB PATCH] Could not create saved_views name index: {idx_err}")
 
@@ -982,15 +1001,30 @@ def _run_schema_patches(conn):
         print("[DB PATCH] Created analytics_login table")
 
     # --- Backfill session_projects from journal_sessions.project_id ---
+    # The sessions that are about to gain a link are read first: a link is part
+    # of a session's synced content (its project_ids), so those sessions are
+    # stamped further down, once the sync columns are known to exist. Nothing
+    # is inserted, stamped or printed when every link is already there.
+    backfilled_sessions = []
     try:
-        conn.exec_driver_sql(
-            "INSERT OR IGNORE INTO session_projects (session_id, project_id) "
-            "SELECT id, project_id FROM journal_sessions WHERE project_id IS NOT NULL"
-        )
-        print(
-            "[DB PATCH] Backfilled session_projects from journal_sessions.project_id"
-        )
+        backfilled_sessions = conn.exec_driver_sql(
+            "SELECT js.id, js.user_id FROM journal_sessions js "
+            "WHERE js.project_id IS NOT NULL AND NOT EXISTS ("
+            "SELECT 1 FROM session_projects sp "
+            "WHERE sp.session_id = js.id AND sp.project_id = js.project_id) "
+            "ORDER BY js.id;"
+        ).fetchall()
+        if backfilled_sessions:
+            conn.exec_driver_sql(
+                "INSERT OR IGNORE INTO session_projects (session_id, project_id) "
+                "SELECT id, project_id FROM journal_sessions WHERE project_id IS NOT NULL"
+            )
+            print(
+                f"[DB PATCH] Backfilled session_projects from "
+                f"journal_sessions.project_id for {len(backfilled_sessions)} session(s)"
+            )
     except Exception as patch_err:
+        backfilled_sessions = []
         print(
             f"[DB PATCH] Could not backfill session_projects "
             f"(table may not exist yet): {patch_err}"
@@ -1156,6 +1190,17 @@ def _run_schema_patches(conn):
             f"[DB PATCH] sync_v1: stamped existing rows at {stamped_at.isoformat()} "
             f"and provisioned {len(missing)} external_id(s)"
         )
+    elif backfilled_sessions:
+        # The session_projects backfill above gave these sessions a project
+        # link. On a database that already tracks changes that is an edit like
+        # any other, so each session gets a fresh rev and stamp (one rev per
+        # user) and the link travels on the next sync. On a database upgraded
+        # in this same startup the sync_v1 fill just stamped every row instead.
+        by_user = {}
+        for session_id, user_id in backfilled_sessions:
+            by_user.setdefault(user_id, []).append(session_id)
+        for user_id, session_ids in by_user.items():
+            stamp_rows_in(conn, "journal_sessions", user_id, "id", session_ids)
 
 
 def ensure_db_initialized_unified():
