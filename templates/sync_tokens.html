@@ -224,27 +224,27 @@
             </span>
           </div>
           <div class="sync-actions">
+            {% if sync_view.needs_download %}
+              <button type="button" class="action-button" disabled title="{{ _('Download from the server first.') }}">{{ _('Sync now') }}</button>
+              <form method="post" action="{{ url_for('sync.download') }}" style="margin:0;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="inline-button-ghost">{{ _('Download from server') }}</button>
+              </form>
+            {% else %}
+              <form method="post" action="{{ url_for('sync.sync_now') }}" style="margin:0;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="action-button">{{ _('Sync now') }}</button>
+              </form>
+              <form method="post" action="{{ url_for('sync.download') }}" style="margin:0;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="inline-button-ghost">{{ _('Download from server') }}</button>
+              </form>
+            {% endif %}
             <form method="post" action="{{ url_for('sync.disconnect') }}" style="margin:0;"
                   data-confirm="{{ _('Disconnect from this server?') }}">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button type="submit" class="inline-button-danger">{{ _('Disconnect') }}</button>
             </form>
-            {% if sync_view.needs_download %}
-              <form method="post" action="{{ url_for('sync.download') }}" style="margin:0;">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="inline-button-ghost">{{ _('Download from server') }}</button>
-              </form>
-              <button type="button" class="action-button" disabled title="{{ _('Download from the server first.') }}">{{ _('Sync now') }}</button>
-            {% else %}
-              <form method="post" action="{{ url_for('sync.download') }}" style="margin:0;">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="inline-button-ghost">{{ _('Download from server') }}</button>
-              </form>
-              <form method="post" action="{{ url_for('sync.sync_now') }}" style="margin:0;">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="action-button">{{ _('Sync now') }}</button>
-              </form>
-            {% endif %}
           </div>
         </li>
       </ul>
