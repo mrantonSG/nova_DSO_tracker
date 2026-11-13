@@ -10,10 +10,6 @@
     <h2>{{ _('User Management') }} <span class="subtitle">({{ _('Admin') }})</span></h2>
 {% endblock %}
 
-{% block header_actions %}
-    <button class="action-button" data-nav-url="{{ url_for('core.index') }}">&#8592; {{ _('Back to Dashboard') }}</button>
-{% endblock %}
-
 {% block body %}
 
   {{ flash_messages() }}

@@ -32,18 +32,6 @@
     <h2>{{ _('Dashboard') }} <span id="simulated-title-text" style="display: none; color: var(--color-simulation-active); font-weight: normal;">- {{ _('Simulated') }}</span></h2>
 {% endblock %}
 
-{% block header_actions %}
-    {% if SINGLE_USER_MODE or not is_guest %}
-       <button class="action-button" data-nav-url="{{ url_for('core.config_form') }}">{{ _('Configuration') }}</button>
-    {% endif %}
-    <a id="solar-system-link" class="about-trigger-button nav-icon-btn" href="{{ url_for('core.solar_system') }}" aria-label="{{ _('Solar System') }}" title="{{ _('Solar System') }}" style="box-sizing: border-box;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="5"></circle>
-            <ellipse cx="12" cy="12" rx="10.5" ry="3.5" transform="rotate(-20 12 12)"></ellipse>
-        </svg>
-    </a>
-{% endblock %}
-
 {% block header_content %}
 <div class="status-strip">
     <div class="status-item" style="min-width: 150px;">

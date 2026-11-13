@@ -343,6 +343,9 @@
   </head>
   <body>
 
+    {% set _endpoint = request.endpoint or '' %}
+    {% set _active_icon = 'dashboard' if _endpoint == 'core.index' else 'solar' if _endpoint == 'core.solar_system' else 'config' if _endpoint == 'core.config_form' else '' %}
+
     {% block demo_banner %}
     {% if is_guest %}
     <div class="demo-banner">
@@ -368,8 +371,32 @@
       </div>
 
       <div class="header-right">
-          {% block header_actions %}{% endblock %}
+          <div class="nav-icon-group">
+              <a href="{{ url_for('core.index') }}" class="nav-icon-btn{% if _active_icon == 'dashboard' %} is-active{% endif %}"{% if _active_icon == 'dashboard' %} aria-current="page"{% endif %} aria-label="{{ _('Dashboard') }}" title="{{ _('Dashboard') }}">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <rect width="7" height="9" x="3" y="3" rx="1"></rect>
+                      <rect width="7" height="5" x="14" y="3" rx="1"></rect>
+                      <rect width="7" height="9" x="14" y="12" rx="1"></rect>
+                      <rect width="7" height="5" x="3" y="16" rx="1"></rect>
+                  </svg>
+              </a>
+              <a id="solar-system-link" href="{{ url_for('core.solar_system') }}" class="nav-icon-btn{% if _active_icon == 'solar' %} is-active{% endif %}"{% if _active_icon == 'solar' %} aria-current="page"{% endif %} aria-label="{{ _('Solar System') }}" title="{{ _('Solar System') }}">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <circle cx="12" cy="12" r="5"></circle>
+                      <ellipse cx="12" cy="12" rx="10.5" ry="3.5" transform="rotate(-20 12 12)"></ellipse>
+                  </svg>
+              </a>
+              {% if SINGLE_USER_MODE or not is_guest %}
+              <a href="{{ url_for('core.config_form') }}" class="nav-icon-btn{% if _active_icon == 'config' %} is-active{% endif %}"{% if _active_icon == 'config' %} aria-current="page"{% endif %} aria-label="{{ _('Configuration') }}" title="{{ _('Configuration') }}">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+              </a>
+              {% endif %}
+          </div>
 
+          <div class="nav-icon-group">
           <button id="about-trigger" class="about-trigger-button nav-icon-btn" type="button" aria-label="{{ _('About Nova DSO Tracker') }}" title="{{ _('About') }}">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"></circle>
@@ -396,6 +423,9 @@
                   <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
               </svg>
           </button>
+          </div>
+
+          {% block header_actions %}{% endblock %}
 
           <div class="language-selector">
               <select id="language-select" aria-label="{{ _('Select language') }}" onchange="window.location.href=this.value">

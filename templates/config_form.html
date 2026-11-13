@@ -22,10 +22,6 @@
     <h2>{{ _('Configuration') }} <span class="subtitle">({{ _('System Settings') }})</span></h2>
 {% endblock %}
 
-{% block header_actions %}
-    <button class="action-button" data-nav-url="{{ url_for('core.index') }}">← {{ _('Back to Dashboard') }}</button>
-{% endblock %}
-
 {% block body %}
 
     {{ flash_messages() }}

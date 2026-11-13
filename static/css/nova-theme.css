@@ -674,34 +674,6 @@ dd {
 }
 
 /* =================================================================
-   6. CONFIG BUTTON (.action-button in header)
-   Primary action button styling
-   ================================================================ */
-
-.header-right .action-button {
-  background: var(--nova-accent);
-  color: white;
-  border: none;
-  padding: 6px 14px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  font-family: var(--nova-font-sans);
-  box-shadow: var(--nova-shadow-sm);
-  cursor: pointer;
-  transition: filter 0.15s ease;
-}
-
-.header-right .action-button:hover {
-  filter: brightness(0.9);
-}
-
-/* Dark mode Config button with glow */
-:root[data-theme="dark"] .header-right .action-button {
-  box-shadow: 0 0 16px rgba(122,175,192,0.2), var(--nova-shadow-sm);
-}
-
-/* =================================================================
    7. THEME TOGGLE BUTTON (moon/sun icon)
    Dark mode toggle button styling
    ================================================================ */
@@ -2764,9 +2736,15 @@ hr,
   color: var(--nova-accent);
 }
 
-/* 4px gap between adjacent nav icons (16px header gap − 12px) */
-.header-right .nav-icon-btn + .nav-icon-btn {
-  margin-left: -12px;
+/* Nav icon groups: 4px between icons within a group; 12px between the nav and
+   action groups (16px header gap − 4px). */
+.nav-icon-group {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.nav-icon-group + .nav-icon-group {
+  margin-left: -4px;
 }
 
 /* About modal overlay */

@@ -67,21 +67,15 @@ def test_page_loads_the_engines_before_its_own_scripts(client):
     assert "graph_view_chart.js" not in scripts
 
 
-def test_dashboard_header_links_to_the_page_before_about(client):
-    """A real link (base.js only follows data-nav-url on the click target itself),
-    after Configuration and immediately before the About button."""
+def test_dashboard_header_links_to_the_page(client):
+    """The Solar System nav icon (id=solar-system-link) sits in the header's nav
+    group on the dashboard and links to /solar_system."""
     html = client.get("/").get_data(as_text=True)
     link = re.search(r'<a id="solar-system-link"[^>]*>', html)
     assert link, "the dashboard has no Solar System link"
     assert 'href="/solar_system"' in link.group(0)
-    assert 'class="about-trigger-button nav-icon-btn"' in link.group(0)
+    assert 'class="nav-icon-btn' in link.group(0)
     assert 'aria-label="Solar System"' in link.group(0)
-    config_at = html.index("Configuration</button>")
-    link_at = link.start()
-    about_at = html.rindex("<button", 0, html.index('id="about-trigger"'))
-    assert config_at < link_at < about_at
-    between = html[link_at:about_at]
-    assert between.count("<button") == 0 and between.count("<a ") == 1
 
 
 def test_solar_table_does_not_use_the_dashboard_column_keys(client):

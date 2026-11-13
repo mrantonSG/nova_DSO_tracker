@@ -15,7 +15,6 @@ body {
    ================================================================ */
 
 /* Back to Dashboard button - ghost/secondary style */
-.header-right .action-button[data-action="navigate"],
 .header-actions .action-button,
 #back-button {
     margin-top: 0;
@@ -32,7 +31,6 @@ body {
     letter-spacing: 0.01em;
 }
 
-.header-right .action-button[data-action="navigate"]:hover,
 .header-actions .action-button:hover,
 #back-button:hover {
     background: var(--nova-surface-alt, var(--bg-light-gray)) !important;
@@ -40,7 +38,6 @@ body {
 }
 
 /* Dark mode back button */
-:root[data-theme="dark"] .header-right .action-button[data-action="navigate"],
 :root[data-theme="dark"] .header-actions .action-button,
 :root[data-theme="dark"] #back-button {
     background: transparent;
@@ -48,7 +45,6 @@ body {
     color: var(--nova-text-2, rgba(255,255,255,0.55));
 }
 
-:root[data-theme="dark"] .header-right .action-button[data-action="navigate"]:hover,
 :root[data-theme="dark"] .header-actions .action-button:hover,
 :root[data-theme="dark"] #back-button:hover {
     background: rgba(255,255,255,0.04) !important;

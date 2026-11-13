@@ -13,10 +13,6 @@
     <h2>{{ _('Solar System') }} <span id="simulated-title-text" style="display: none; color: var(--color-simulation-active); font-weight: normal;">- {{ _('Simulated') }}</span></h2>
 {% endblock %}
 
-{% block header_actions %}
-    {{ action_button(_('← Back to Dashboard'), data_attrs='style="background-color: var(--primary-color);" data-nav-url="' ~ url_for('core.index') ~ '"') }}
-{% endblock %}
-
 {% block header_content %}
 <div class="status-strip">
     <div class="status-item" style="min-width: 150px;">
