@@ -74,7 +74,7 @@ def test_dashboard_header_links_to_the_page_before_about(client):
     link = re.search(r'<a id="solar-system-link"[^>]*>', html)
     assert link, "the dashboard has no Solar System link"
     assert 'href="/solar_system"' in link.group(0)
-    assert 'class="about-trigger-button"' in link.group(0)
+    assert 'class="about-trigger-button nav-icon-btn"' in link.group(0)
     assert 'aria-label="Solar System"' in link.group(0)
     config_at = html.index("Configuration</button>")
     link_at = link.start()

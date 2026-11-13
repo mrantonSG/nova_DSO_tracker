@@ -706,27 +706,6 @@ dd {
    Dark mode toggle button styling
    ================================================================ */
 
-.theme-toggle-button {
-  width: 30px;
-  height: 30px;
-  border-radius: 6px;
-  background: var(--nova-surface-alt);
-  border: 1px solid var(--nova-border);
-  color: var(--nova-text-3);
-  font-size: 14px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.theme-toggle-button:hover {
-  background: var(--nova-surface);
-  border-color: var(--nova-accent-mid);
-  color: var(--nova-text);
-}
-
 .theme-toggle-button .theme-icon {
   position: absolute;
 }
@@ -1805,8 +1784,7 @@ button[type="submit"]:active,
 .ca-icon-btn,
 .cb-icon-btn,
 .cc-icon-btn,
-.help-badge,
-.theme-toggle-button {
+.help-badge {
   width: 30px;
   height: 30px;
   border-radius: 6px;
@@ -1828,8 +1806,7 @@ button[type="submit"]:active,
 .ca-icon-btn:hover,
 .cb-icon-btn:hover,
 .cc-icon-btn:hover,
-.help-badge:hover,
-.theme-toggle-button:hover {
+.help-badge:hover {
   background: var(--nova-accent-bg);
   border-color: var(--nova-accent-light);
   color: var(--nova-accent);
@@ -1841,8 +1818,7 @@ button[type="submit"]:active,
 :root[data-theme="dark"] .ca-icon-btn,
 :root[data-theme="dark"] .cb-icon-btn,
 :root[data-theme="dark"] .cc-icon-btn,
-:root[data-theme="dark"] .help-badge,
-:root[data-theme="dark"] .theme-toggle-button {
+:root[data-theme="dark"] .help-badge {
   background: rgba(255,255,255,0.04);
   border-color: var(--nova-border);
   color: var(--nova-text-3);
@@ -1853,8 +1829,7 @@ button[type="submit"]:active,
 :root[data-theme="dark"] .ca-icon-btn:hover,
 :root[data-theme="dark"] .cb-icon-btn:hover,
 :root[data-theme="dark"] .cc-icon-btn:hover,
-:root[data-theme="dark"] .help-badge:hover,
-:root[data-theme="dark"] .theme-toggle-button:hover {
+:root[data-theme="dark"] .help-badge:hover {
   background: var(--nova-accent-bg);
   border-color: var(--nova-accent-light);
   color: var(--nova-accent);
@@ -2731,12 +2706,6 @@ hr,
 
 /* About trigger button in header */
 .about-trigger-button {
-  width: 30px;
-  height: 30px;
-  border-radius: 6px;
-  background: var(--nova-surface-alt);
-  border: 1px solid var(--nova-border);
-  color: var(--nova-text-3);
   font-size: 14px;
   display: inline-flex;
   align-items: center;
@@ -2744,25 +2713,60 @@ hr,
   cursor: pointer;
   transition: all 0.15s ease;
   padding: 0;
-  margin-right: 8px;
 }
 
-.about-trigger-button:hover {
-  background: var(--nova-surface);
-  border-color: var(--nova-accent-mid);
+/* =================================================================
+   HEADER NAV ICON BUTTONS (.nav-icon-btn)
+   Solar System · Info · Theme toggle — standardized 34px icon button
+   ================================================================ */
+
+.nav-icon-btn {
+  width: 34px;
+  height: 34px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  position: relative;
+  background: var(--nova-surface-alt);
+  border: 1px solid var(--nova-border, #e5e2dc);
+  color: var(--nova-text-2);
+  box-shadow: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.nav-icon-btn:hover {
+  background: var(--hover-bg);
   color: var(--nova-text);
 }
 
-:root[data-theme="dark"] .about-trigger-button {
-  background: rgba(255,255,255,0.04);
-  border-color: var(--nova-border);
-  color: var(--nova-text-3);
+.nav-icon-btn:focus-visible {
+  outline: none;
+  border-color: var(--nova-accent);
+  box-shadow: 0 0 0 3px var(--nova-accent-bg);
 }
 
-:root[data-theme="dark"] .about-trigger-button:hover {
+.nav-icon-btn:disabled {
+  opacity: 0.45;
+}
+
+.nav-icon-btn.is-active {
   background: var(--nova-accent-bg);
-  border-color: var(--nova-accent-light);
+  border-color: var(--nova-accent);
+  color: #2d7d95;
+}
+
+:root[data-theme="dark"] .nav-icon-btn.is-active {
   color: var(--nova-accent);
+}
+
+/* 4px gap between adjacent nav icons (16px header gap − 12px) */
+.header-right .nav-icon-btn + .nav-icon-btn {
+  margin-left: -12px;
 }
 
 /* About modal overlay */

@@ -561,31 +561,6 @@
    THEME TOGGLE BUTTON
    ================================================================ */
 
-.theme-toggle-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    background: transparent;
-    border: none;
-    border-radius: 50%;
-    cursor: pointer;
-    color: var(--text-secondary);
-    transition: all 0.2s ease;
-}
-
-.theme-toggle-button:hover {
-    background-color: var(--bg-light-gray);
-    color: var(--text-primary);
-}
-
-.theme-toggle-button:focus {
-    outline: 2px solid var(--primary-color);
-    outline-offset: 2px;
-}
-
 .theme-icon {
     position: absolute;
     transition: opacity 0.2s ease, transform 0.2s ease;
