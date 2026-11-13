@@ -9,47 +9,6 @@ body {
     background: var(--nova-bg, #0f1118);
 }
 
-/* =================================================================
-   OBJECT DETAIL HEADER - FACELIFT STYLES
-   Reference: nova-desktop-facelift.html (.ca-header, .cb-header)
-   ================================================================ */
-
-/* Back to Dashboard button - ghost/secondary style */
-.header-actions .action-button,
-#back-button {
-    margin-top: 0;
-    padding: 6px 14px;
-    font-size: 12px;
-    font-weight: 600;
-    background: transparent !important;
-    color: var(--nova-accent, var(--primary-color));
-    border: 1px solid var(--nova-border, var(--border-medium));
-    border-radius: 6px;
-    cursor: pointer;
-    font-family: var(--nova-font-sans, 'DM Sans', sans-serif);
-    transition: background 0.15s ease;
-    letter-spacing: 0.01em;
-}
-
-.header-actions .action-button:hover,
-#back-button:hover {
-    background: var(--nova-surface-alt, var(--bg-light-gray)) !important;
-    border-color: var(--nova-border, var(--border-medium));
-}
-
-/* Dark mode back button */
-:root[data-theme="dark"] .header-actions .action-button,
-:root[data-theme="dark"] #back-button {
-    background: transparent;
-    border-color: var(--nova-border, rgba(255,255,255,0.07));
-    color: var(--nova-text-2, rgba(255,255,255,0.55));
-}
-
-:root[data-theme="dark"] .header-actions .action-button:hover,
-:root[data-theme="dark"] #back-button:hover {
-    background: rgba(255,255,255,0.04) !important;
-}
-
 #chart-section img {
     max-width: 100%;
     height: auto;

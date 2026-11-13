@@ -33,7 +33,6 @@ Dashboard, auth, object search, location management, graph views.
 | GET | `/get_outlook_data` | Weather outlook |
 | POST | `/proxy_focus` | Proxy to Stellarium |
 | GET | `/generate_ics/<name>` | Generate .ics calendar |
-| GET | `/analytics` | Analytics dashboard |
 | GET | `/set_language/<lang>` | Set language preference |
 | POST | `/trigger_update` | Trigger background update |
 | POST | `/update_project` | Update project fields |

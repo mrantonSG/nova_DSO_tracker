@@ -69,13 +69,6 @@ def test_latest_version_not_gated(mu_client_logged_out):
     _assert_not_gated(mu_client_logged_out.get("/api/latest_version"))
 
 
-def test_analytics_without_secret_is_403(mu_client_logged_out, monkeypatch):
-    monkeypatch.setenv("ANALYTICS_SECRET", "test-analytics-secret")
-    response = mu_client_logged_out.get("/analytics")
-    assert response.status_code == 403
-    _assert_not_gated(response)
-
-
 def test_provision_user_without_key_reaches_endpoint(mu_client_logged_out, monkeypatch):
     monkeypatch.setenv("PROVISIONING_API_KEY", "test-provisioning-key")
     response = mu_client_logged_out.post("/api/internal/provision_user", json={})

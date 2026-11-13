@@ -1861,7 +1861,7 @@ def _touch_user_last_seen(user):
 # the login gate.
 GATE_EXEMPT_ENDPOINTS = (
     'core.login', 'core.guest_entry', 'core.set_language', 'core.logout',
-    'core.sso_login', 'core.analytics_dashboard', 'core.analytics_json',
+    'core.sso_login', 'core.analytics_json',
     'api.provision_user', 'api.deprovision_user',
     'api.get_latest_version', 'api.telemetry_ping',
     'mobile.service_worker',
