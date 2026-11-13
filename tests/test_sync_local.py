@@ -316,6 +316,9 @@ def test_every_file_write_is_atomic_or_outside_uploads_and_logs():
         "import_journal_photos", "upload_editor_image",
         "journal_add", "journal_edit", "session_image_url",
         "_is_within_user_dir", "index",
+        # Thumbnails built once a DeferredWrites upload is live, each through
+        # write_file_atomic.
+        "_make_thumbnail", "_after_publish",
     }
     NON_UPLOAD_LOG = {
         # Writes files that never live under uploads/ or logs/, so a hard-link

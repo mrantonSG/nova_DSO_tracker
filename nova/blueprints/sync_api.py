@@ -23,7 +23,7 @@ from datetime import timedelta
 from functools import wraps
 from typing import Optional
 
-from flask import Blueprint, Response, g, jsonify, request, send_file
+from flask import Blueprint, Response, current_app, g, jsonify, request, send_file
 from sqlalchemy import select
 
 from nova.config import APP_VERSION
@@ -32,16 +32,17 @@ from nova.sync_engine import (
     MAX_SYNC_FILE_BYTES, FileRef, MergeResult, PLAN_ORDER, REFUSAL_BAD_FILE_REF,
     FILE_REMOVED, REFUSAL_BAD_FORMAT, REFUSAL_FILE_EXISTS, REFUSAL_FILE_TOO_LARGE,
     REFUSAL_FILE_VERIFY, REFUSAL_PLAN_STALE, REFUSAL_SERVER_UNTOUCHED,
+    REFUSAL_STAMP_MISMATCH, SAME_WRITE_TOLERANCE_SECONDS,
     RICH_TEXT_COLUMNS, ROLE_NOTE_IMAGE, ROLE_SESSION_LOG, Refusal,
     StagedFile, SyncRefused, TABLE_MODEL, _FILE_SLOTS, _HEX64, _log_path,
     _ref_summary, _role_ext_ok, _row_by_key, _user_upload_root,
     account_marker_rev, apply_merge, collect_files,
     commit_staged_files, count_file_only, counter_rev, export_changes, export_files,
-    file_cap, file_source_path, files_needed, finish_placements,
+    _written_keys, file_cap, file_source_path, files_needed, finish_placements,
     missing_local_slots, note_image_name, note_owed_files, plan_merge,
     placement_guard, placement_target, record_to_payload,
     reoffer_placed_rows, row_key, server_untouched, settle_owed_files,
-    staged_index, sync_lock, to_iso,
+    parse_datetime, staged_index, sweep_sync_leftovers, sync_lock, to_iso,
 )
 from nova.sync_time import utc_now
 from nova.sync_transport import (
@@ -116,19 +117,6 @@ def _settle_owed(db, user) -> tuple:
     request; the engine commits what it placed and only then clears what that
     settled. Returns (still owed, to upload again)."""
     return settle_owed_files(db, user)
-
-
-def _reupload_refs(session) -> list:
-    """The owed files a push session asked for again, as FileRefs."""
-    refs = []
-    for entry in session.get("reupload") or []:
-        try:
-            table, key, slot, sha256 = entry[0], entry[1], entry[2], entry[3]
-        except (IndexError, TypeError):
-            continue
-        refs.append(FileRef(role="", table=str(table), key=str(key),
-                            slot=str(slot), sha256=str(sha256)))
-    return refs
 
 
 def _result_summary(result) -> dict:
@@ -440,6 +428,10 @@ def push_plan() -> Response:
     hub_offset = hub_offset_from_client(client_offset)
     with sync_lock(user.id):
         sweep_uploads(user.id)
+        try:
+            sweep_sync_leftovers(user)
+        except Exception:
+            current_app.logger.warning("sync: left-over sweep failed", exc_info=True)
         # First the hub finishes what an earlier push left owing: placed from
         # staging when the bytes are still here, asked for again when not.
         _owed, reupload = _settle_owed(db, user)
@@ -489,9 +481,13 @@ def push_plan() -> Response:
             # and the role/ext of each are decided here, never by the request.
             "file_refs": file_refs,
             "files_needed": needed_list,
-            # The owed files asked for again: their records are counted as
-            # changed in the apply's result too, as the plan's summary counts them.
+            # The owed files asked for again.
             "reupload": [[r.table, r.key, r.slot, r.sha256] for r in reupload],
+            # Every record this plan counts as changed by its files alone. The
+            # apply counts from this list, not from its own re-plan: a file that
+            # could not be placed at plan time and lands in the apply's settle
+            # is then counted the same way in the summary and in the result.
+            "file_only": sorted([list(ident) for ident in plan.file_only]),
         }
         save_push_session(user.id, session)
         # Existence only (nothing hashed): this runs on every push plan.
@@ -658,8 +654,10 @@ def push_apply() -> Response:
             snapshot_account_yaml(user)
 
         try:
+            # Counted from the plan the summary was built from (see push_plan).
+            plan.file_only = {(str(t), str(k)) for t, k in session.get("file_only") or []} \
+                - _written_keys(plan.actions)
             result = apply_merge(db, plan, user=user)
-            count_file_only(plan, _reupload_refs(session), counts=result.updated)
             # Write-ahead: what this apply's rows need placed is noted before
             # the commit, so a hub that dies between the commit and the
             # placement still knows what it owes.
@@ -766,6 +764,12 @@ def repair() -> Response:
         if row is None:
             return _refuse(Refusal(REFUSAL_BAD_FILE_REF,
                                    {"table": table, "key": key}), 404)
+        if not _same_stamp(row, request.headers.get("X-Nova-Stamp")):
+            # The sender's row is another write than this one (a newer record
+            # whose own file this hub still owes, say): its bytes must not fill
+            # this slot. Not an error for the sender - it tries again next sync.
+            return _refuse(Refusal(REFUSAL_STAMP_MISMATCH,
+                                   {"table": table, "key": key, "slot": slot}), 409)
         refusal = _repair_target_refusal(db, user, model, row, slot, role, digest, ext)
         if refusal is not None:
             return _refuse(refusal)
@@ -791,6 +795,20 @@ def repair() -> Response:
             result["placed"] = [list(entry) for entry in placement.placed_files]
             result["pending"] = [list(entry) for entry in placement.pending_files]
     return _ok(result)
+
+
+def _same_stamp(row, sent) -> bool:
+    """Whether the stamp a repair carries (the sender's row stamp, already in
+    this hub's clock) is this row's, within SAME_WRITE_TOLERANCE_SECONDS. A
+    missing or unreadable stamp never matches."""
+    mine = getattr(row, "sync_changed_at", None)
+    try:
+        theirs = parse_datetime(sent) if sent else None
+    except (TypeError, ValueError):
+        return False
+    if mine is None or theirs is None:
+        return False
+    return abs((theirs - mine).total_seconds()) <= SAME_WRITE_TOLERANCE_SECONDS
 
 
 def _repair_role(model: type, slot: str, ext: str) -> Optional[str]:

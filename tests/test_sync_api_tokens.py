@@ -844,7 +844,7 @@ CSRF_IN_FORM = re.compile(r'name="csrf_token" value="([^"]+)"')
 SYNC_POST_ROUTES = (
     "/sync/token/create", "/sync/token/revoke", "/sync/connect",
     "/sync/disconnect", "/sync/download", "/sync/sync", "/sync/confirm",
-    "/sync/abort",
+    "/sync/abort", "/sync/held",
 )
 
 

@@ -715,6 +715,48 @@ msgstr ""
 "«%(name)s»: el archivo no está en el servidor y no se pudo restaurar de "
 "forma segura."
 
+#: nova/blueprints/sync_tokens.py:211
+#, python-format
+msgid ""
+"\"%(name)s\": this computer's copy was not used. The server has a newer "
+"version of this record, and its file is still missing on the server."
+msgstr ""
+"«%(name)s»: no se usó la copia de este equipo. El servidor tiene una "
+"versión más reciente de este registro, y su archivo sigue sin estar en el "
+"servidor."
+
+#: templates/sync_tokens.html:266 templates/sync_tokens.html:422
+msgid "Use this computer's copy"
+msgstr "Usar la copia de este equipo"
+
+#: templates/sync_tokens.html:423
+msgid ""
+"Send this computer's copy of the file to the server with the next sync? It"
+" becomes the record's file everywhere."
+msgstr ""
+"¿Enviar la copia del archivo de este equipo al servidor en la próxima "
+"sincronización? Pasará a ser el archivo del registro en todas partes."
+
+#: nova/blueprints/sync_tokens.py:563
+msgid "This computer's copy of the file will be sent with the next sync."
+msgstr ""
+"La copia del archivo de este equipo se enviará en la próxima "
+"sincronización."
+
+#: nova/blueprints/sync_tokens.py:567
+msgid "That choice is no longer available. Reload the page and try again."
+msgstr ""
+"Esa opción ya no está disponible. Recargue la página e inténtelo de nuevo."
+
+#: nova/blueprints/sync_tokens.py:247
+#, python-format
+msgid "%(num)d record will be held: its file is missing on the server."
+msgid_plural ""
+"%(num)d records will be held: their files are missing on the server."
+msgstr[0] "Se retendrá %(num)d registro: su archivo no está en el servidor."
+msgstr[1] ""
+"Se retendrán %(num)d registros: sus archivos no están en el servidor."
+
 #: nova/blueprints/sync_tokens.py:215
 #, python-format
 msgid "%(name)s — this computer's version kept"

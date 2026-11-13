@@ -181,6 +181,9 @@
             {% for line in sync_view.blocked_lines %}
               <p class="sync-warning">{{ line }}</p>
             {% endfor %}
+            {% if sync_view.held_line %}
+              <p class="sync-warning">{{ sync_view.held_line }}</p>
+            {% endif %}
             <p class="sync-files">
               {% if s.files.up == 0 and s.files.down == 0 %}
                 {{ _('Files') }}: {{ _('none to transfer') }}
@@ -248,6 +251,22 @@
           </div>
         </li>
       </ul>
+      {% for h in sync_view.held %}
+        {# A record the last sync held: the server lost its file. While this
+           computer has a copy, it can be sent as a real change. #}
+        <p class="sync-warning">{{ h.message }}</p>
+        {% if h.local_copy %}
+        <form method="post" action="{{ url_for('sync.resolve_held') }}" class="sync-actions" style="margin:0;"
+              data-held-choice="use_local">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="table" value="{{ h.table }}">
+          <input type="hidden" name="key" value="{{ h.key }}">
+          <input type="hidden" name="slot" value="{{ h.slot }}">
+          <input type="hidden" name="choice" value="use_local">
+          <button type="submit" class="inline-button-ghost">{{ _("Use this computer's copy") }}</button>
+        </form>
+        {% endif %}
+      {% endfor %}
       {% else %}
       <form method="post" action="{{ url_for('sync.connect') }}" id="sync-connect-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -391,6 +410,31 @@
         };
         poll();
       }
+    })();
+  </script>
+
+  <script>
+    (function () {
+      'use strict';
+      // Held records: sending this computer's copy is a real change, so it is
+      // confirmed first.
+      window.novaI18n = window.novaI18n || {};
+      window.novaI18n.sync_held_use_local = {{ _("Use this computer's copy") | tojson }};
+      window.novaI18n.sync_held_use_local_confirm = {{ _("Send this computer's copy of the file to the server with the next sync? It becomes the record's file everywhere.") | tojson }};
+      Array.prototype.forEach.call(document.querySelectorAll('form[data-held-choice]'), function (form) {
+        form.addEventListener('submit', function (e) {
+          if (form.dataset.heldConfirmed === '1') { return; }
+          e.preventDefault();
+          window.novaConfirm(window.t('sync_held_use_local_confirm'),
+            { confirmLabel: window.t('sync_held_use_local') })
+            .then(function (ok) {
+              if (ok) {
+                form.dataset.heldConfirmed = '1';
+                form.submit();
+              }
+            });
+        });
+      });
     })();
   </script>
 

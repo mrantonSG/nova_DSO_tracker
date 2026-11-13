@@ -42,8 +42,9 @@ from nova.sync_client import (DEFAULT_SERVER_URL, SyncClient, SyncTransportError
                               validate_server_url)
 from nova.sync_engine import (SyncRefused, download_status, parse_datetime,
                               start_pairing)
-from nova.sync_job import (TOAST_TTL_SECONDS, abort_job, confirm_job, consume_toast,
-                           job_status, load_job, start_job)
+from nova.sync_job import (HELD_USE_LOCAL, TOAST_TTL_SECONDS,
+                           abort_job, confirm_job, consume_toast, held_choices,
+                           job_status, load_job, resolve_held_file, start_job)
 from nova.sync_time import utc_now
 from nova.sync_transport import GUEST_USERNAME, hash_token, new_token
 
@@ -204,6 +205,12 @@ def held_file_message(entry: dict) -> str:
     """The line for a record a sync held: the server lost its file and this
     computer's copy may not be that file, so it was not used to restore it."""
     name = (entry or {}).get("name") or (entry or {}).get("key") or "?"
+    if (entry or {}).get("sent"):
+        # This computer sent its copy (the user chose to) and the server kept
+        # its own record, which is newer: say so, never fail silently.
+        return _('"%(name)s": this computer\'s copy was not used. The server has a '
+                 'newer version of this record, and its file is still missing on '
+                 'the server.') % {"name": name}
     return _('"%(name)s": file missing on the server and could not be safely '
              'restored.') % {"name": name}
 
@@ -236,6 +243,15 @@ def _sync_view(db, user):
     view["conflict_lines"] = [conflict_message(c) for c in summary.get("conflicts") or []]
     view["conflicts_more"] = int(summary.get("conflicts_more") or 0)
     view["blocked_lines"] = [blocked_message(b) for b in summary.get("blocked") or []]
+    held = int(summary.get("held") or 0)
+    view["held_line"] = ngettext(
+        "%(num)d record will be held: its file is missing on the server.",
+        "%(num)d records will be held: their files are missing on the server.",
+        held) if held else None
+    # The last run's held records, each with the one way out this computer can
+    # offer (see sync_job.resolve_held_file).
+    view["held"] = [dict(entry, message=held_file_message(entry))
+                    for entry in held_choices(db, user)]
     if job and job.get("error"):
         view["error_message"] = refusal_message(job["error"]["code"], job["error"].get("detail"))
     else:
@@ -526,6 +542,29 @@ def abort_confirm():
         abort(403)
     abort_job(current_app._get_current_object(), user.id)
     flash(_('Sync cancelled.'), 'success')
+    return redirect(url_for('sync.sync_tokens'))
+
+
+@sync_bp.route('/sync/held', methods=['POST'])
+@_client_gated
+def resolve_held():
+    """End the hold on one record the last sync held (see resolve_held_file).
+    The page asks for a confirmation first; the work runs under sync_lock."""
+    user = _current_user()
+    if user is None or getattr(g, 'is_guest', False):
+        abort(403)
+    choice = request.form.get('choice')
+    if choice != HELD_USE_LOCAL:
+        abort(400)
+    outcome = resolve_held_file(get_db(), user, request.form.get('table') or '',
+                                request.form.get('key') or '',
+                                request.form.get('slot') or '', choice)
+    if outcome == "done":
+        flash(_("This computer's copy of the file will be sent with the next sync."), 'success')
+    elif outcome == "busy":
+        flash(refusal_message("sync_running"), 'error')
+    else:
+        flash(_("That choice is no longer available. Reload the page and try again."), 'warning')
     return redirect(url_for('sync.sync_tokens'))
 
 

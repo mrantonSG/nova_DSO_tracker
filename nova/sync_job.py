@@ -71,12 +71,13 @@ from nova.sync_client import SyncClient, SyncTransportError
 from nova.sync_engine import (
     KEY_CHANGED_AT, REFUSAL_BAD_FILE_REF, REFUSAL_FILE_EXISTS,
     REFUSAL_MASS_DELETE, REFUSAL_NOT_PAIRED, REFUSAL_PLAN_STALE,
+    REFUSAL_STAMP_MISMATCH,
     REFUSAL_SERVER_UNTOUCHED, REFUSAL_SYNC_RUNNING,
     REPLACED_DIRNAME, ROLE_NOTE_IMAGE, STAGING_DIRNAME, TABLE_MODEL, UNIQUE_KEY,
-    _HEX64, _PARENT_TABLES, _role_ext_ok, _row_by_key,
+    _FILE_SLOTS, _HEX64, _PARENT_TABLES, _role_ext_ok, _row_by_key,
     CommitReport, FileRef, MergeResult, Refusal, StagedFile, SyncRefused,
     apply_download, apply_merge, check_sync_preconditions, collect_files,
-    commit_staged_files, finish_placements, placement_guard,
+    commit_staged_files, finish_placements, placement_guard, sweep_sync_leftovers,
     counter_rev, discard_staged, export_changes, file_slot_role, files_needed,
     file_source_path, missing_local_slots, move_replaced_files, natural_key,
     parse_datetime, plan_download, plan_merge, pushed_watermark,
@@ -85,6 +86,7 @@ from nova.sync_engine import (
     to_iso,
 )
 from nova.sync_transport import SYNC_UPLOAD_DIRNAME
+from nova.sync_tracking import mark_file_changed
 from nova.sync_time import utc_now
 
 logger = logging.getLogger(__name__)
@@ -507,6 +509,7 @@ def _run_phase1(app, user_id: int, kind: str, start_token: str) -> None:
             return
         try:
             with sync_lock(user_id), _Heartbeat(user_id, start_token):
+                _sweep_leftovers(user)
                 if kind == "download":
                     _phase1_download(db, user, start_token)
                 else:
@@ -520,6 +523,14 @@ def _run_phase1(app, user_id: int, kind: str, start_token: str) -> None:
         except Exception:
             logger.exception("sync phase 1 (%s) failed for user %s", kind, user_id)
             _mark_failed(user_id, start_token, Refusal("internal_error", {}))
+
+
+def _sweep_leftovers(user) -> None:
+    """The start-of-sync sweep (see sweep_sync_leftovers). Never fails a sync."""
+    try:
+        sweep_sync_leftovers(user)
+    except Exception:
+        logger.warning("sync: left-over sweep failed for user %s", user.id, exc_info=True)
 
 
 def _run_phase2(app, user_id: int, kind: str, start_token: str,
@@ -637,12 +648,15 @@ def _phase2_download(db, user, start_token: str) -> None:
 
     _touch(uid, start_token, phase=PHASE_APPLYING, progress=0.8, phase_label=PHASE_APPLYING)
     result = apply_download(db, plan, user=user)
+    # The rows as this apply leaves them, taken before its commit (the apply
+    # still holds the write lock): a browser upload committed at any point
+    # after it gives its row a new rev, and the placement is dropped.
+    guard = placement_guard(db, user, result.files_expected)
     db.commit()
     _touch(uid, start_token, phase=PHASE_APPLYING, progress=0.85, phase_label=PHASE_APPLYING)
     move_replaced_files(db, plan, user)
     db.commit()
     staged = _staged_for(plan, user)
-    guard = placement_guard(db, user, result.files_expected)
     report = commit_staged_files(db, result, staged, user=user, guard=guard)
     db.commit()
     finish_placements(report, user=user)
@@ -795,11 +809,16 @@ def _blocked(entries, side: str) -> list:
     return out
 
 
-def _held_for_lost_file(plan, pull_payload: dict) -> list:
+def _held_for_lost_file(plan, pull_payload: dict, pushed=()) -> list:
     """The records this pull held because the hub lost their file and this
     computer's bytes there are not provably the same write. One entry per
     record, however many of its slots are affected, for the run's report:
-    "file missing on the server and could not be safely restored"."""
+    "file missing on the server and could not be safely restored".
+
+    `pushed` are the (table, key) this run's push sent. A record that was sent
+    and is still held came back unchanged: the hub kept its own, newer copy
+    (newest wins), so this computer's file was not used. Such an entry carries
+    "sent": True and the report says exactly that."""
     records = {}
     for table, rows in ((pull_payload or {}).get("records") or {}).items():
         model = TABLE_MODEL.get(table)
@@ -819,8 +838,102 @@ def _held_for_lost_file(plan, pull_payload: dict) -> list:
         seen.add(ident)
         found = records.get(ident)
         name = _display_name(*found) if found else conflict.key
-        out.append({"table": conflict.table, "key": conflict.key, "name": name})
+        entry = {"table": conflict.table, "key": conflict.key, "name": name,
+                 "slots": sorted((conflict.detail or {}).get("slots") or [])}
+        if ident in pushed:
+            entry["sent"] = True
+        out.append(entry)
     return out
+
+
+# --- Held records: the user's way out ---------------------------------------------
+#
+# A record the pull holds because the hub lost its file and this computer's bytes
+# there may not be that file stays held for as long as nobody can give the hub
+# the file. "Use this computer's copy" (offered only when this computer has
+# the file) ends it: the slot is marked changed, so the next push carries these
+# bytes under a new rev and the normal rules decide (newest wins). Should the
+# hub's copy of the record be the newer one, the push loses, the record is
+# held again, and the run's report says that this computer's copy was not used
+# (see _held_for_lost_file).
+
+HELD_USE_LOCAL = "use_local"
+
+
+def _held_entries(job) -> list:
+    """The held records of a finished job's result."""
+    if not job or job.get("phase") != PHASE_DONE:
+        return []
+    return [entry for entry in (job.get("result") or {}).get("held_files") or []
+            if isinstance(entry, dict)]
+
+
+def held_choices(db, user) -> list:
+    """One line per held (record, slot) of the last finished run, with whether
+    this computer has a copy of that file - which decides the choice offered."""
+    out = []
+    for entry in _held_entries(load_job(user.id)):
+        table, key = entry.get("table"), entry.get("key")
+        for slot in entry.get("slots") or []:
+            has_copy = bool(_local_file_ref(db, user, table, key, slot)[1])
+            out.append({"table": table, "key": key, "slot": slot,
+                        "name": entry.get("name") or key,
+                        "sent": bool(entry.get("sent")),
+                        "local_copy": has_copy})
+    return out
+
+
+def _drop_held_slot(user_id: int, start_token: str, table: str, key: str, slot: str) -> None:
+    """Take a resolved slot off the finished job's held list, so the page
+    stops offering it. The next run's result replaces the list anyway."""
+    with _JOB_LOCK:
+        job = load_job(user_id)
+        if job is None or job.get("start_token") != start_token:
+            return
+        kept = []
+        for entry in (job.get("result") or {}).get("held_files") or []:
+            if entry.get("table") == table and entry.get("key") == key:
+                entry = dict(entry, slots=[s for s in entry.get("slots") or [] if s != slot])
+                if not entry["slots"]:
+                    continue
+            kept.append(entry)
+        job["result"]["held_files"] = kept
+        save_job(user_id, job)
+
+
+def resolve_held_file(db, user, table: str, key: str, slot: str, choice: str) -> str:
+    """Carry out one held-record choice. Returns "done", "busy" (a sync holds
+    the lock or a job is running or waiting) or "unavailable" (not held any
+    more, or the computer's copy appeared or vanished since the page showed
+    the choice). Runs only under sync_lock."""
+    job = load_job(user.id)
+    if job is not None and (job.get("phase") in _RUNNING_PHASES
+                            or job.get("phase") == PHASE_AWAITING):
+        return "busy"
+    if not any(entry.get("table") == table and entry.get("key") == key
+               and slot in (entry.get("slots") or []) for entry in _held_entries(job)):
+        return "unavailable"
+    model = TABLE_MODEL.get(table)
+    if model is None or slot not in _FILE_SLOTS.get(model, {}):
+        return "unavailable"
+    try:
+        with sync_lock(user.id):
+            row = _row_by_key(db, model, user.id, key)
+            if row is None:
+                return "unavailable"
+            has_copy = bool(_local_file_ref(db, user, table, key, slot)[1])
+            if choice != HELD_USE_LOCAL or not has_copy:
+                return "unavailable"
+            # A real change: the next push sends these bytes under a new rev.
+            mark_file_changed(row, slot)
+            db.commit()
+    except SyncRefused as exc:
+        db.rollback()
+        if exc.refusal.code == REFUSAL_SYNC_RUNNING:
+            return "busy"
+        raise
+    _drop_held_slot(user.id, job.get("start_token"), table, key, slot)
+    return "done"
 
 
 # --- Healing pass ----------------------------------------------------------------
@@ -930,6 +1043,8 @@ def _heal_local(db, user, client, targets, tick=None) -> set:
     for table, key, slot, sha256, ext_hint, fetch, expect in targets:
         if tick is not None:
             tick()
+        if placement_guard(db, user, [(table, key)]).get((table, key)) is None:
+            continue                        # the record is gone: nothing to restore
         if not fetch or expect is None:
             failed.add((table, key, slot))
             continue
@@ -941,13 +1056,14 @@ def _heal_local(db, user, client, targets, tick=None) -> set:
             now = placement_guard(db, user, [(table, key)]).get((table, key))
             if now != expect:
                 db.rollback()
-                continue                    # changed here while it was fetched
+                discard_staged(staged)      # nothing will place it now
+                continue                    # changed (or gone) while it was fetched
             report = commit_staged_files(
                 db, MergeResult(files_expected=[staged.ref]), [staged], user=user,
                 guard={(table, key): expect})
             db.commit()
             finish_placements(report, user=user)
-            if report.superseded:
+            if report.superseded or report.skipped:
                 continue
             if not report.placed:
                 failed.add((table, key, slot))
@@ -977,10 +1093,24 @@ def _local_file_ref(db, user, table: str, key: str, slot: str, sha256: str = "")
     return (ref, path) if path else (None, "")
 
 
-def _repair_upload(client, ref: FileRef, path: str) -> None:
-    """Send one file to the hub's /repair, resuming where a dropped try stopped."""
+def _hub_stamp(row, offset) -> str:
+    """The row's sync_changed_at moved into the hub's clock, as ISO text.
+
+    `offset` is this computer's clock minus the hub's (hello), so a local stamp
+    goes back by it: the reverse of shift(), which moves a hub stamp here."""
+    stamp = getattr(row, "sync_changed_at", None)
+    if stamp is None:
+        return ""
+    return to_iso(shift(stamp, -float(offset or 0.0)))
+
+
+def _repair_upload(client, ref: FileRef, path: str, stamp: str = "") -> None:
+    """Send one file to the hub's /repair, resuming where a dropped try stopped.
+
+    `stamp` is this computer's row stamp in the hub's clock: the hub refuses
+    the repair unless its own row is that same write (see sync_api.repair)."""
     received = int(client.repair_resume(ref.table, ref.key, ref.slot, ref.sha256,
-                                        ref.ext, ref.size).get("received") or 0)
+                                        ref.ext, ref.size, stamp=stamp).get("received") or 0)
     if received > int(ref.size or 0):
         received = 0
     with open(path, "rb") as handle:
@@ -991,11 +1121,12 @@ def _repair_upload(client, ref: FileRef, path: str) -> None:
             if not chunk:
                 break
             client.repair_chunk(ref.table, ref.key, ref.slot, ref.sha256,
-                                ref.ext, ref.size, offset, chunk)
+                                ref.ext, ref.size, offset, chunk, stamp=stamp)
             offset += len(chunk)
 
 
-def _heal_hub(db, user, client, targets, tick=None, watermark=None, held=()) -> set:
+def _heal_hub(db, user, client, targets, tick=None, watermark=None, held=(),
+             offset=0.0) -> set:
     """Upload each file the hub lost and this computer has. Returns the
     (table, key, slot) of every one that could NOT be restored.
 
@@ -1011,6 +1142,11 @@ def _heal_hub(db, user, client, targets, tick=None, watermark=None, held=()) -> 
     with. `held` are the (table, key) this run's pull held back because the hub
     lost their file and this computer's bytes may not be it: this computer is
     exactly the one that must not supply them.
+
+    `offset` is the run's measured clock offset: the repair carries the row's
+    stamp in the hub's clock, and a hub whose row is another write (a newer
+    record whose own file it still owes) refuses it. That refusal is "not now",
+    not a failure: the file is skipped, not counted, and tried again next sync.
     """
     failed: set = set()
     seen: set = set()
@@ -1038,9 +1174,10 @@ def _heal_hub(db, user, client, targets, tick=None, watermark=None, held=()) -> 
             if not path:
                 failed.add((table, key, slot))         # gone here too: nobody has it
                 continue
-            _repair_upload(client, ref, path)
+            _repair_upload(client, ref, path, _hub_stamp(row, offset))
         except SyncRefused as exc:
-            if exc.refusal.code not in (REFUSAL_FILE_EXISTS, REFUSAL_BAD_FILE_REF):
+            if exc.refusal.code not in (REFUSAL_FILE_EXISTS, REFUSAL_BAD_FILE_REF,
+                                        REFUSAL_STAMP_MISMATCH):
                 failed.add((table, key, slot))
         except (SyncTransportError, OSError):
             failed.add((table, key, slot))
@@ -1172,6 +1309,8 @@ def _phase1_sync(db, user, start_token: str) -> None:
         "pull_mass_delete_detail": pull_mass_delete_detail,
         "conflicts": conflicts[:CONFLICT_LINES],
         "conflicts_more": max(0, len(conflicts) - CONFLICT_LINES),
+        # Records the pull will hold because the hub lost their file (count only).
+        "held": len(_held_for_lost_file(pull_plan, pull_payload)),
         "blocked": (_blocked(push_summary.get("blocked"), "server")
                     + _blocked(pull_plan.blocked, "local")),
         "counter_rev": counter_rev(db, uid),
@@ -1198,7 +1337,7 @@ def _phase1_sync(db, user, start_token: str) -> None:
             _note_progress(uid, start_token)
         unrestored = len(
             _heal_hub(db, user, client, summary["hub_missing"], tick=tick,
-                      watermark=watermark, held=held)
+                      watermark=watermark, held=held, offset=offset)
             | _heal_local(db, user, client,
                           _local_heal_targets(db, user, watermark=watermark),
                           tick=tick))
@@ -1208,7 +1347,10 @@ def _phase1_sync(db, user, start_token: str) -> None:
                        "files": 0, "empty": True,
                        "pending_files": unrestored,
                        "unrestored_files": unrestored,
-                       "held_files": _held_for_lost_file(pull_plan, pull_payload),
+                       # A push the hub refused under newest-wins plans
+                       # nothing either way, so it lands here: say so.
+                       "held_files": _held_for_lost_file(
+                           pull_plan, pull_payload, pushed=_payload_keys(push_payload)),
                        "blocked": summary["blocked"]},
                summary=summary,
                toast_pending=True, toast_at=to_iso(utc_now()))
@@ -1216,6 +1358,18 @@ def _phase1_sync(db, user, start_token: str) -> None:
 
     _touch(uid, start_token, phase=PHASE_AWAITING, progress=0.9, summary=summary,
            phase_label=PHASE_AWAITING)
+
+
+def _payload_keys(payload) -> set:
+    """(table, key) of every record a push payload carries."""
+    keys = set()
+    for table, rows in ((payload or {}).get("records") or {}).items():
+        model = TABLE_MODEL.get(table)
+        if model is None:
+            continue
+        keys.update((table, natural_key(model, row)) for row in rows or []
+                    if isinstance(row, dict))
+    return keys
 
 
 def _upload_refs(db, user, files_needed, manifest) -> list:
@@ -1286,10 +1440,13 @@ def _phase2_sync(db, user, start_token: str, allow_mass_delete: bool = False, *,
 
     # --- push (plan → upload → apply, re-planned on plan_stale/sync_running) ---
     planned: dict = {}
+    sent: set = set()
 
     def _push():
         push_payload = _load_artifact(uid, "push_payload.json") or export_changes(
             db, user, since_rev=int(rev_at_export), side="local")
+        sent.clear()
+        sent.update(_payload_keys(push_payload))
         push_resp = client.push_plan(push_payload, offset, allow_mass_delete=allow_push)
         planned.clear()
         planned.update(push_resp)
@@ -1363,7 +1520,8 @@ def _phase2_sync(db, user, start_token: str, allow_mass_delete: bool = False, *,
     # A set, so a file gone on both sides is counted once, not once per side.
     lost = _heal_hub(db, user, client, list(planned.get("hub_missing") or []),
                      tick=tick, watermark=watermark,
-                     held={tuple(entry[:2]) for entry in result.deferred or []})
+                     held={tuple(entry[:2]) for entry in result.deferred or []},
+                     offset=offset)
     lost |= _heal_local(db, user, client,
                         _local_heal_targets(db, user, result, watermark=watermark,
                                             guard=guard),
@@ -1397,7 +1555,7 @@ def _phase2_sync(db, user, start_token: str, allow_mass_delete: bool = False, *,
                             "deleted": _sum_counts(result.deleted)},
                    "pending_files": unrestored,
                    "unrestored_files": unrestored,
-                   "held_files": _held_for_lost_file(pull_plan, pull_payload),
+                   "held_files": _held_for_lost_file(pull_plan, pull_payload, pushed=sent),
                    "blocked": hub_blocked + _blocked(result.blocked, "local")},
            toast_pending=True, toast_at=to_iso(utc_now()))
 

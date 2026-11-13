@@ -35,7 +35,7 @@ from nova.models import (
 from nova.record_links import sync_project_link
 from nova.helpers import (
     get_db, load_full_astro_context, read_log_content, invalidate_object_caches,
-    is_safe_redirect_target, safe_int, remove_thumbnail
+    is_safe_redirect_target, safe_int, remove_thumbnail, DeferredWrites
 )
 from nova.sync_tracking import mark_file_changed
 from nova.analytics import record_event
@@ -60,6 +60,8 @@ def project_detail(project_id):
     load_full_astro_context()  # Ensures g.db_user is loaded
     username = "default" if nova.SINGLE_USER_MODE else current_user.username
     db = get_db()
+    # An uploaded image reaches its live name only after the commit.
+    writes = DeferredWrites()
 
     try:
         project = db.query(Project).filter_by(id=project_id, user_id=g.db_user.id).one_or_none()
@@ -119,7 +121,8 @@ def project_detail(project_id):
                 request.files.get('final_image'),
                 project.id,
                 username,
-                project.final_image_file
+                project.final_image_file,
+                writes=writes,
             )
 
             # 3. Update all new fields (including the rich text from Trix)
@@ -142,6 +145,7 @@ def project_detail(project_id):
                 mark_file_changed(project, "final_image_file")
 
             db.commit()
+            writes.publish()
             invalidate_object_caches(g.db_user.id, username, [], curves=False)
             flash(_("Project updated successfully."), "success")
 
@@ -164,6 +168,7 @@ def project_detail(project_id):
         return redirect(url_for('core.index'))
     except Exception as e:
         db.rollback()
+        writes.discard()
         flash(_("An error occurred: %(error)s", error=e), "error")
         print(f"Error in project_detail route: {e}")
         traceback.print_exc()

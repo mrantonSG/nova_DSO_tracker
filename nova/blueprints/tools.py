@@ -35,7 +35,7 @@ from nova.helpers import (
     bust_nightly_curves_cache,
     invalidate_object_caches,
     remove_thumbnail,
-    write_file_atomic,
+    write_file_atomic, DeferredWrites,
 )
 from nova.models import (
     DbUser, AstroObject, Component, Rig, Location, Project,
@@ -1223,14 +1223,22 @@ def import_journal_photos():
                     # Never overwrite existing log files
                     if os.path.exists(log_target):
                         continue
-                    with zf.open(member) as source:
-                        write_file_atomic(log_target, lambda p: open(p, "wb").write(source.read()))
-                    # A session whose log had gone missing gets its path back
-                    # with no column written, so before_flush would stamp
-                    # nothing and the restored bytes would never travel.
-                    if import_user_id is not None:
-                        _stamp_restored_log(db, import_user_id, log_type,
-                                            log_filename)
+                    # Staged beside the live name, published after the stamp's
+                    # commit: a sync placement for the row as it stood before
+                    # that commit can never land on top of these bytes.
+                    writes = DeferredWrites()
+                    try:
+                        with zf.open(member) as source:
+                            writes.add(log_target, lambda p: open(p, "wb").write(source.read()))
+                        # A session whose log had gone missing gets its path back
+                        # with no column written, so before_flush would stamp
+                        # nothing and the restored bytes would never travel.
+                        if import_user_id is not None:
+                            _stamp_restored_log(db, import_user_id, log_type,
+                                                log_filename)
+                        writes.publish()
+                    finally:
+                        writes.discard()
                     extracted_count += 1
                     continue
 
@@ -1250,19 +1258,26 @@ def import_journal_photos():
                 # Build the final, correct, flat target path
                 target_path = os.path.join(user_upload_dir, filename)
 
-                # Extract the file data
-                with zf.open(member) as source:
-                    write_file_atomic(target_path, lambda p: open(p, "wb").write(source.read()))
+                # Extract the file data: staged beside the live name and
+                # published only after the stamp below has committed.
+                writes = DeferredWrites()
+                try:
+                    with zf.open(member) as source:
+                        writes.add(target_path, lambda p: open(p, "wb").write(source.read()),
+                                   before=remove_thumbnail)
 
-                # An import can write over a photo a record already names, and
-                # a photo keeps its name whichever bytes it holds, so no column
-                # moves and before_flush would stamp nothing: the new bytes
-                # would never travel. The name is the reader's scheme
-                # ("<session id>.<ext>", "project_<id>.<ext>"), the same rule
-                # sync's local_name_for() rebuilds, so the rows can be found
-                # from it.
-                if import_user_id is not None:
-                    _stamp_imported_photo(db, import_user_id, filename)
+                    # An import can write over a photo a record already names, and
+                    # a photo keeps its name whichever bytes it holds, so no column
+                    # moves and before_flush would stamp nothing: the new bytes
+                    # would never travel. The name is the reader's scheme
+                    # ("<session id>.<ext>", "project_<id>.<ext>"), the same rule
+                    # sync's local_name_for() rebuilds, so the rows can be found
+                    # from it.
+                    if import_user_id is not None:
+                        _stamp_imported_photo(db, import_user_id, filename)
+                    writes.publish()
+                finally:
+                    writes.discard()
 
                 extracted_count += 1
 

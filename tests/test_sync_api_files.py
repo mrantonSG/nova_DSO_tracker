@@ -27,7 +27,7 @@ from nova.helpers import purge_user_app_data
 from nova.models import (
     INSTANCE_PATH, Base, DbUser, JournalSession, Location, Project, SyncToken,
 )
-from nova.sync_engine import export_changes
+from nova.sync_engine import export_changes, to_iso
 from nova.sync_time import utc_now
 from nova.sync_transport import (
     CHUNK_BYTES, PROTOCOL_VERSION, hash_token, load_push_session, new_token,
@@ -655,7 +655,7 @@ def test_repair_places_a_missing_file_into_an_existing_record(hub):
                "X-Nova-Slot": "session_image_file",
                "X-Nova-Sha256": _import_digest(PNG),
                "X-Nova-Ext": "png", "X-Nova-Total": str(len(PNG)),
-               "X-Nova-Offset": "0"}
+               "X-Nova-Offset": "0", "X-Nova-Stamp": _row_stamp("s1")}
     resp = _api(hub, REPAIR, token=hub.token, raw=PNG, headers=headers)
     assert resp.status_code == 200, resp.get_json()
     assert resp.get_json()["complete"] is True
@@ -702,13 +702,20 @@ def _forget_upload(name):
         os.remove(path)
 
 
+def _row_stamp(key):
+    """The hub row's own stamp, as a client whose row is the same write sends it."""
+    row = nova.get_db().query(JournalSession).filter_by(external_id=key).first()
+    return to_iso(row.sync_changed_at) if row is not None else ""
+
+
 def _repair_headers(key="s1", slot="session_image_file", data=PNG, ext="png",
-                    offset="0", digest=None):
+                    offset="0", digest=None, stamp=None):
     return {"X-Nova-Table": "journal_sessions", "X-Nova-Key": key,
             "X-Nova-Slot": slot,
             "X-Nova-Sha256": _import_digest(data) if digest is None else digest,
             "X-Nova-Ext": ext, "X-Nova-Total": str(len(data)),
-            "X-Nova-Offset": offset}
+            "X-Nova-Offset": offset,
+            "X-Nova-Stamp": _row_stamp(key) if stamp is None else stamp}
 
 
 def test_a_repair_never_overwrites_a_file_the_hub_holds(hub):

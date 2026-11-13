@@ -51,6 +51,7 @@ import logging
 import os
 import re
 import shutil
+import time
 import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -63,8 +64,8 @@ from sqlalchemy import delete as sa_delete, update as sa_update
 from sqlalchemy.orm import selectinload
 
 from nova.helpers import (
-    log_file_path, release_file_lock, shared_log_paths, try_acquire_file_lock,
-    unique_log_name, write_file_atomic,
+    UPLOAD_TMP_MARKER, log_file_path, release_file_lock, shared_log_paths,
+    try_acquire_file_lock, unique_log_name, write_file_atomic,
 )
 from nova.config import UPLOAD_FOLDER
 from nova.models import (
@@ -272,6 +273,9 @@ REFUSAL_NO_DISK_SPACE = "insufficient_disk_space"
 # A repair may only fill a file this disk lacks; one that is here is never
 # overwritten by a repair.
 REFUSAL_FILE_EXISTS = "file_exists"
+# A repair whose sender's row is not the same write as the hub's row (the stamps
+# differ by more than SAME_WRITE_TOLERANCE_SECONDS): not now, try next sync.
+REFUSAL_STAMP_MISMATCH = "stamp_mismatch"
 
 # Why a record was left out of an apply for good (not deferred: re-offering it
 # would not help). Carried in MergePlan.blocked / MergeResult.blocked.
@@ -1501,6 +1505,70 @@ def discard_staged(staged: StagedFile) -> None:
             pass
 
 
+# Left-over sweep (see sweep_sync_leftovers): a placement's "<live>.part" is a
+# few seconds old at most while it is in use; a staged copy waits for a confirm
+# (30 min) or a resumed transfer, never for days.
+PART_MAX_AGE_SECONDS = 60 * 60
+STAGED_MAX_AGE_SECONDS = 24 * 60 * 60
+
+
+def sweep_sync_leftovers(user, *, instance_path: str = None, now: float = None) -> dict:
+    """Remove what interrupted transfers left behind. Call under sync_lock.
+
+    - "<live>.part" files in this user's uploads/ and in logs/<type>/ older
+      than PART_MAX_AGE_SECONDS (a placement that died between copy and rename);
+    - files in sync_staging/<user>/ older than STAGED_MAX_AGE_SECONDS that no
+      owed entry names. A staged file an owed entry still needs is kept,
+      whatever its age: it is the only copy the next settle can place from.
+
+    A browser upload's temporary (".<name>.upload-<hex>.tmp") is never touched:
+    one may be in flight, and sync_lock does not cover browser writes.
+    Returns {"part": n, "staged": n}; logs one line with the counts.
+    """
+    now = time.time() if now is None else now
+    root = instance_path or INSTANCE_PATH
+    removed = {"part": 0, "staged": 0}
+
+    def _old(path: str, limit: int) -> bool:
+        try:
+            return os.path.isfile(path) and now - os.path.getmtime(path) > limit
+        except OSError:
+            return False
+
+    def _drop(path: str, kind: str) -> None:
+        try:
+            os.remove(path)
+            removed[kind] += 1
+        except OSError:
+            pass
+
+    part_dirs = [_user_upload_root(user, instance_path)] + [
+        os.path.join(root, "logs", log_type)
+        for log_type in sorted(set(LOG_TYPE_BY_SLOT.values()))]
+    for directory in part_dirs:
+        for name in _listdir(directory):
+            if not name.endswith(".part") or UPLOAD_TMP_MARKER in name:
+                continue
+            path = os.path.join(directory, name)
+            if _old(path, PART_MAX_AGE_SECONDS):
+                _drop(path, "part")
+
+    staging = os.path.join(root, STAGING_DIRNAME, str(getattr(user, "id", "0") or "0"))
+    owed = {str(entry.get("sha256") or "") for entry in load_owed_files(user, instance_path)}
+    for name in _listdir(staging):
+        if name == OWED_FILENAME or UPLOAD_TMP_MARKER in name:
+            continue
+        if name.partition(".")[0] in owed:
+            continue
+        path = os.path.join(staging, name)
+        if _old(path, STAGED_MAX_AGE_SECONDS):
+            _drop(path, "staged")
+
+    logger.info("sync: left-over sweep for user %s removed %d partial and %d staged file(s)",
+                getattr(user, "id", "?"), removed["part"], removed["staged"])
+    return removed
+
+
 @dataclass
 class CommitReport:
     """What commit_staged_files() moved, and what it could not."""
@@ -1646,12 +1714,19 @@ def _raw_stamp(table):
 
 def _guard_clauses(table, row_id: int, user_id: int, expect) -> list:
     """WHERE id = :id AND user_id = :user AND sync_rev = :rev AND
-    sync_changed_at = :stamp, with NULL compared as NULL."""
+    sync_changed_at = :stamp, with NULL compared as NULL. `rev` may also be a
+    set of revs (an owed entry stands at its rev or its rev_next)."""
     rev, stamp = expect
+    if isinstance(rev, (set, frozenset)):
+        rev_clause = table.c.sync_rev.in_(sorted(rev))
+    elif rev is None:
+        rev_clause = table.c.sync_rev.is_(None)
+    else:
+        rev_clause = table.c.sync_rev == rev
     return [
         table.c.id == row_id,
         table.c.user_id == user_id,
-        table.c.sync_rev.is_(None) if rev is None else table.c.sync_rev == rev,
+        rev_clause,
         (table.c.sync_changed_at.is_(None) if stamp is None
          else _raw_stamp(table) == stamp),
     ]
@@ -1713,6 +1788,7 @@ def commit_staged_files(db, result, staged, *, user,
     """
     report = CommitReport()
     by_digest = {s.ref.sha256: s for s in (staged or []) if s and not s.skipped}
+    dropped: list = []
     try:
         for ref in getattr(result, "files_expected", []) or []:
             try:
@@ -1765,6 +1841,13 @@ def commit_staged_files(db, result, staged, *, user,
                     report.placed.append(entry)
                 elif outcome == "superseded":
                     report.superseded.append(entry)
+                elif outcome == "gone":
+                    # The row was deleted since the placement was decided: no
+                    # record names this file any more, so it holds nothing and
+                    # its staged copy may go. Any other refusal ("skipped": no
+                    # safe path) stays pending below - the file is still current.
+                    report.skipped.append(ref)
+                    dropped.append(entry)
                 else:
                     report.pending.append(entry)
             except Exception:
@@ -1817,7 +1900,7 @@ def commit_staged_files(db, result, staged, *, user,
     for ref in getattr(result, "files_expected", []) or []:
         if ref.sha256 and not ref.missing:
             wanted[ref.sha256] = wanted.get(ref.sha256, 0) + 1
-    for entry in report.placed + report.superseded:
+    for entry in report.placed + report.superseded + dropped:
         done[entry[3]] = done.get(entry[3], 0) + 1
     for digest, count in done.items():
         if count >= wanted.get(digest, count) and digest in by_digest:
@@ -1927,6 +2010,32 @@ def _owed_entry_stands(db, user, entry: Mapping[str, Any]) -> bool:
             and to_iso(row.sync_changed_at) == entry.get("stamp"))
 
 
+def _owed_guard(db, user, entry: Mapping[str, Any]):
+    """The placement guard an owed entry stands for: (its revs, the row's
+    stored stamp), or None when the entry no longer stands.
+
+    One read of the row through Core, so the check and the stamp the guard
+    compares against come from the same moment. The revs are the entry's own
+    (rev, and rev_next once a re-offer moved it), never the row's present one.
+    """
+    model = TABLE_MODEL.get(entry.get("table"))
+    column = _KEY_COLUMN.get(model) if model is not None else None
+    if column is None or not _HEX64.fullmatch(str(entry.get("sha256") or "")):
+        return None
+    table = model.__table__
+    found = db.execute(
+        select(table.c.sync_rev, _raw_stamp(table), table.c.sync_changed_at)
+        .where(table.c.user_id == user.id,
+               table.c[column] == str(entry.get("key") or ""))).first()
+    if found is None:
+        return None
+    revs = frozenset(int(rev) for rev in
+                     {entry.get("rev"), entry.get("rev_next")} - {None})
+    if int(found[0] or 0) not in revs or to_iso(found[2]) != entry.get("stamp"):
+        return None
+    return revs, found[1]
+
+
 def note_owed_files(db, user, result, instance_path: str = None) -> None:
     """Write down every placement `result`'s apply needs. BEFORE the commit.
 
@@ -2030,7 +2139,21 @@ def settle_owed_files(db, user, instance_path: str = None) -> tuple:
     entries = load_owed_files(user, instance_path)
     if not entries:
         return [], []
-    standing = [e for e in entries if _owed_entry_stands(db, user, e)]
+    # The guard comes from each entry itself - the rev (or rev_next) and the
+    # stamp the row carried when the entry was owed - and is taken here,
+    # before the staged copies are hashed: a browser upload committed while
+    # they are being hashed gives the row a rev no entry names, and wins.
+    standing, guard = [], {}
+    for entry in entries:
+        expect = _owed_guard(db, user, entry)
+        if expect is None:
+            continue
+        standing.append(entry)
+        ident = (str(entry.get("table")), str(entry.get("key")))
+        held = guard.get(ident)
+        # Two entries of one row both stand at the row's present rev; the
+        # guard takes only the revs both name.
+        guard[ident] = expect if held is None else (held[0] & expect[0], expect[1])
     if len(standing) != len(entries):
         _save_owed_files(user, standing, instance_path)
     if not standing:
@@ -2040,8 +2163,6 @@ def settle_owed_files(db, user, instance_path: str = None) -> tuple:
     refs = [_owed_ref(entry) for entry in standing]
     staged = [StagedFile(ref=ref, path=index[ref.sha256], local_name=ref.name)
               for ref in refs if ref.sha256 in index]
-    # The row as the standing entry found it: placed only while it still is.
-    guard = placement_guard(db, user, refs)
     report = commit_staged_files(db, MergeResult(files_expected=refs), staged,
                                  user=user, instance_path=instance_path,
                                  guard=guard)
@@ -2162,8 +2283,9 @@ def _place_one(db, user, model: type, ref: FileRef, staged: StagedFile,
                instance_path: str = None, expect=None) -> str:
     """Move one verified file to its live path and record the name in its column.
 
-    Returns "placed", "pending" (try again), "skipped" (no safe home or no
-    row) or "superseded". With `expect` (sync_rev, sync_changed_at) the column
+    Returns "placed", "pending" (try again), "skipped" (no safe home: the
+    caller keeps it pending), "gone" (the row was deleted) or "superseded".
+    With `expect` (sync_rev, sync_changed_at) the column
     UPDATE is conditional on the row still carrying both; the bytes go to a
     temporary name first and are renamed onto the live name only when that
     UPDATE matched. A row that moved on keeps its file and its column.
@@ -2178,7 +2300,7 @@ def _place_one(db, user, model: type, ref: FileRef, staged: StagedFile,
                             getattr(model, natural) == key_value)
     ).scalars().first()
     if row is None:
-        return "skipped"      # the record was deleted between plan and commit
+        return "gone"         # the record was deleted between plan and commit
 
     table = model.__table__
     is_log = _ref_role(model, ref) == ROLE_SESSION_LOG

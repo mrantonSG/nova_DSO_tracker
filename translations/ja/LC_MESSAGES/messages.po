@@ -667,6 +667,40 @@ msgstr "プロジェクト「%(name)s」は同期されませんでした。そ�
 msgid "\"%(name)s\": file missing on the server and could not be safely restored."
 msgstr "「%(name)s」：サーバー上にはそのファイルがないため、安全に復元できませんでした。"
 
+#: nova/blueprints/sync_tokens.py:211
+#, python-format
+msgid ""
+"\"%(name)s\": this computer's copy was not used. The server has a newer "
+"version of this record, and its file is still missing on the server."
+msgstr ""
+"「%(name)s」：この PC "
+"のコピーは使用されませんでした。サーバーにはこのレコードのより新しいバージョンがあり、そのファイルはサーバー上にまだありません。"
+
+#: templates/sync_tokens.html:266 templates/sync_tokens.html:422
+msgid "Use this computer's copy"
+msgstr "この PC のコピーを使用"
+
+#: templates/sync_tokens.html:423
+msgid ""
+"Send this computer's copy of the file to the server with the next sync? It"
+" becomes the record's file everywhere."
+msgstr "次回の同期で、この PC にあるファイルのコピーをサーバーに送信しますか？そのコピーがすべての場所でこのレコードのファイルになります。"
+
+#: nova/blueprints/sync_tokens.py:563
+msgid "This computer's copy of the file will be sent with the next sync."
+msgstr "この PC にあるファイルのコピーは次回の同期で送信されます。"
+
+#: nova/blueprints/sync_tokens.py:567
+msgid "That choice is no longer available. Reload the page and try again."
+msgstr "この選択肢は利用できなくなりました。ページを再読み込みして、もう一度お試しください。"
+
+#: nova/blueprints/sync_tokens.py:247
+#, python-format
+msgid "%(num)d record will be held: its file is missing on the server."
+msgid_plural ""
+"%(num)d records will be held: their files are missing on the server."
+msgstr[0] "%(num)d 件のレコードを保留します：サーバー上にそのファイルがありません。"
+
 #: nova/blueprints/sync_tokens.py:215
 #, python-format
 msgid "%(name)s — this computer's version kept"

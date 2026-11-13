@@ -502,6 +502,111 @@ def write_file_atomic(path: str, writer) -> None:
         raise
 
 
+# The middle of a browser upload's temporary name. Instance sync's leftover
+# sweep never touches a name carrying it: a browser upload may be in flight,
+# and sync_lock does not cover browser writes.
+UPLOAD_TMP_MARKER = ".upload-"
+
+
+class DeferredWrites:
+    """Browser uploads that reach their live name only after the DB commit.
+
+    Instance sync places a file under the same live name a browser upload
+    writes ("<session id>.<ext>", "project_<id>.<ext>", "<id>_<log name>"),
+    and a placement lands only while the row still carries the rev and stamp
+    it was decided on. A browser that wrote the live name BEFORE its commit
+    could have its bytes overwritten by a placement for the row as it stood
+    before that commit, leaving the committed row naming the wrong file.
+
+    So the bytes go to ".<name>.upload-<hex>.tmp" in the live name's directory
+    first (same filesystem, so os.replace is atomic). After the caller's
+    db.commit() succeeds, publish() renames each onto its live name: a
+    placement for the old row either landed before this commit (and is then
+    replaced here) or finds the row moved on and is dropped. If the commit
+    fails, discard() removes the temporaries and the live files are untouched.
+
+        writes = DeferredWrites()
+        try:
+            writes.add(live_path, lambda p: file.save(p))
+            ...
+            db.commit()
+            writes.publish()
+        finally:
+            writes.discard()          # no-op after publish()
+
+    `before`/`after` run right before/after the rename (a stale thumbnail goes
+    before the original is replaced; a fresh one is built after it). Neither
+    may fail the request: their errors are logged and swallowed.
+    """
+
+    def __init__(self):
+        self._pending = []      # (tmp, live, before, after)
+
+    def __bool__(self):
+        return bool(self._pending)
+
+    def add(self, path: str, writer, before=None, after=None) -> str:
+        """Write `path`'s new bytes to a temporary beside it. Returns the
+        temporary path, which the caller may read (a thumbnail, a check)."""
+        directory = os.path.dirname(path) or "."
+        os.makedirs(directory, exist_ok=True)
+        tmp = os.path.join(directory, ".%s%s%s.tmp" % (
+            os.path.basename(path), UPLOAD_TMP_MARKER, uuid.uuid4().hex))
+        try:
+            writer(tmp)
+            try:
+                handle = os.open(tmp, os.O_RDONLY)
+                try:
+                    os.fsync(handle)
+                finally:
+                    os.close(handle)
+            except OSError:
+                pass
+        except Exception:
+            _remove_quietly(tmp)
+            raise
+        self._pending.append((tmp, path, before, after))
+        return tmp
+
+    def publish(self) -> None:
+        """After the caller's commit: move every staged upload onto its live
+        name, in the order they were added."""
+        pending, self._pending = self._pending, []
+        for tmp, live, before, after in pending:
+            _run_hook(before, live)
+            try:
+                os.replace(tmp, live)
+            except OSError:
+                _remove_quietly(tmp)
+                logging.getLogger(__name__).exception(
+                    "upload: publishing a file failed")
+                continue
+            _run_hook(after, live)
+
+    def discard(self) -> None:
+        """The commit did not happen: drop the temporaries, touch nothing live."""
+        pending, self._pending = self._pending, []
+        for tmp, _live, _before, _after in pending:
+            _remove_quietly(tmp)
+
+
+def _remove_quietly(path: str) -> None:
+    try:
+        if path and os.path.exists(path):
+            os.remove(path)
+    except OSError:
+        pass
+
+
+def _run_hook(hook, live: str) -> None:
+    if hook is None:
+        return
+    try:
+        hook(live)
+    except Exception:
+        logging.getLogger(__name__).warning("upload: hook failed", exc_info=True)
+
+
 class _FileLock:
     """Simple advisory lock; no-ops if fcntl is unavailable."""
     def __init__(self, path: str):
@@ -590,7 +695,8 @@ def _ensure_log_dirs():
     os.makedirs(NINA_LOGS_DIR, exist_ok=True)
 
 
-def save_log_to_filesystem(session_id: int, log_type: str, content: str, original_filename: str = None, db=None) -> str:
+def save_log_to_filesystem(session_id: int, log_type: str, content: str, original_filename: str = None, db=None,
+                           writes=None) -> str:
     """
     Save log content to filesystem and return the relative path.
 
@@ -599,6 +705,8 @@ def save_log_to_filesystem(session_id: int, log_type: str, content: str, origina
         log_type: 'asiair', 'phd2', or 'nina'
         content: The raw log content
         original_filename: Optional original filename for reference
+        writes: a DeferredWrites; when given, the log is only staged beside its
+            live name and the caller publishes it after its commit
 
     Returns:
         Relative path like 'instance/logs/asiair/278_Autorun_Log.txt'
@@ -621,7 +729,12 @@ def save_log_to_filesystem(session_id: int, log_type: str, content: str, origina
     else:
         raise ValueError(f"Unknown log_type: {log_type}")
 
-    write_file_atomic(filepath, lambda p: open(p, 'w', encoding='utf-8', errors='ignore').write(content))
+    writer = lambda p: open(p, 'w', encoding='utf-8', errors='ignore').write(content)
+    if writes is not None:
+        # The caller publishes it after its commit (see DeferredWrites).
+        writes.add(filepath, writer)
+    else:
+        write_file_atomic(filepath, writer)
 
     # Return path relative to instance/
     return os.path.join('instance', 'logs', log_type, filename)

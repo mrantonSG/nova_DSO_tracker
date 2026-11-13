@@ -45,7 +45,7 @@ from nova.record_links import (
 from nova.helpers import (
     get_db, allowed_file, safe_float, safe_int,
     save_log_to_filesystem, read_log_content, dither_display,
-    remove_thumbnail, write_file_atomic,
+    remove_thumbnail, write_file_atomic, DeferredWrites,
     # Moved from nova.__init__ for clean imports
     load_full_astro_context, generate_session_id,
     _compute_rig_metrics_from_components, get_ra_dec, invalidate_object_caches,
@@ -108,6 +108,8 @@ def journal_add():
         # --- Handle action field (save_draft vs save_close) ---
         # Check action BEFORE try block so it's available in exception handler
         action = request.form.get("form_action")
+        # Uploaded files reach their live names only after the commit.
+        writes = DeferredWrites()
 
         try:
             # --- START FIX: Validate the date (only for non-draft saves) ---
@@ -321,30 +323,34 @@ def journal_add():
                         if not safe_image_path.startswith(upload_root + os.sep):
                             _flash_rejected_upload(action, _("Invalid session image filename."))
                         else:
-                            # A photo written to a live name invalidates the
-                            # thumbnail of the bytes it replaces (correction D).
-                            remove_thumbnail(safe_image_path)
-                            write_file_atomic(safe_image_path, lambda p: file.save(p))
+                            def _make_thumbnail(live, new_filename=new_filename,
+                                                file_extension=file_extension,
+                                                user_upload_dir=user_upload_dir):
+                                # Best-effort thumbnail generation — must not fail the request
+                                # or roll back the original upload if it errors (corrupt image,
+                                # unsupported format, etc).
+                                try:
+                                    thumb_path = os.path.join(user_upload_dir, f"thumb_{new_filename}")
+                                    with Image.open(live) as img:
+                                        img.thumbnail((480, 480))
+                                        if file_extension in ('jpg', 'jpeg'):
+                                            write_file_atomic(thumb_path, lambda p: img.save(p, quality=85))
+                                        elif file_extension == 'png':
+                                            write_file_atomic(thumb_path, lambda p: img.save(p, optimize=True))
+                                        else:
+                                            write_file_atomic(thumb_path, lambda p: img.save(p))
+                                except Exception as thumb_err:
+                                    current_app.logger.warning(
+                                        f"[JOURNAL] Failed to generate thumbnail for session image '{new_filename}': {thumb_err}"
+                                    )
+
+                            # Staged beside the live name; published after the
+                            # commit. A photo written to a live name invalidates
+                            # the thumbnail of the bytes it replaces (correction D).
+                            writes.add(safe_image_path, lambda p: file.save(p),
+                                       before=remove_thumbnail, after=_make_thumbnail)
                             new_session.session_image_file = new_filename
                             mark_file_changed(new_session, "session_image_file")
-
-                            # Best-effort thumbnail generation — must not fail the request
-                            # or roll back the original upload if it errors (corrupt image,
-                            # unsupported format, etc).
-                            try:
-                                thumb_path = os.path.join(user_upload_dir, f"thumb_{new_filename}")
-                                with Image.open(safe_image_path) as img:
-                                    img.thumbnail((480, 480))
-                                    if file_extension in ('jpg', 'jpeg'):
-                                        write_file_atomic(thumb_path, lambda p: img.save(p, quality=85))
-                                    elif file_extension == 'png':
-                                        write_file_atomic(thumb_path, lambda p: img.save(p, optimize=True))
-                                    else:
-                                        write_file_atomic(thumb_path, lambda p: img.save(p))
-                            except Exception as thumb_err:
-                                current_app.logger.warning(
-                                    f"[JOURNAL] Failed to generate thumbnail for session image '{new_filename}': {thumb_err}"
-                                )
 
             # --- Log file uploads (stored on filesystem, path in DB) ---
             # Read content first, we'll save after commit when we have the session ID
@@ -413,22 +419,27 @@ def journal_add():
                             nina_filename = None
 
             db.commit()  # Commit to get session ID
+            writes.publish()
 
             # Now save logs to filesystem with session ID
             if asiair_content:
-                path = save_log_to_filesystem(new_session.id, 'asiair', asiair_content, asiair_filename, db)
+                path = save_log_to_filesystem(new_session.id, 'asiair', asiair_content, asiair_filename, db,
+                                              writes=writes)
                 new_session.asiair_log_content = path
                 mark_file_changed(new_session, "asiair_log_content")
             if phd2_content:
-                path = save_log_to_filesystem(new_session.id, 'phd2', phd2_content, phd2_filename, db)
+                path = save_log_to_filesystem(new_session.id, 'phd2', phd2_content, phd2_filename, db,
+                                              writes=writes)
                 new_session.phd2_log_content = path
                 mark_file_changed(new_session, "phd2_log_content")
             if nina_content:
-                path = save_log_to_filesystem(new_session.id, 'nina', nina_content, nina_filename, db)
+                path = save_log_to_filesystem(new_session.id, 'nina', nina_content, nina_filename, db,
+                                              writes=writes)
                 new_session.nina_log_content = path
                 mark_file_changed(new_session, "nina_log_content")
             if asiair_content or phd2_content or nina_content:
                 db.commit()
+                writes.publish()
 
             # --- Handle action field (save_draft vs save_close) ---
             if action == "save_draft":
@@ -447,6 +458,7 @@ def journal_add():
                                         location=new_session.location_name))
         except Exception as e:
             db.rollback()
+            writes.discard()
             import traceback
             traceback.print_exc()
             # Return JSON error for draft saves, re-raise for normal saves
@@ -487,6 +499,8 @@ def journal_edit(session_id):
         # --- Handle action field (save_draft vs save_close) ---
         # Check action FIRST so it's available in exception handler
         action = request.form.get("form_action")
+        # Uploaded files reach their live names only after the commit.
+        writes = DeferredWrites()
 
         try:
             # --- START FIX: Validate the date (only for non-draft saves) ---
@@ -749,8 +763,9 @@ def journal_edit(session_id):
                             # The name is "<id>.<ext>", so replacing a photo
                             # changes no column: the stale thumbnail goes and
                             # the record is stamped by hand (corrections A, D).
-                            remove_thumbnail(safe_image_path)
-                            write_file_atomic(safe_image_path, lambda p: file.save(p))
+                            # Staged beside the live name; published after the commit.
+                            writes.add(safe_image_path, lambda p: file.save(p),
+                                       before=remove_thumbnail)
                             session_to_edit.session_image_file = new_filename
                             mark_file_changed(session_to_edit, "session_image_file")
 
@@ -779,7 +794,8 @@ def journal_edit(session_id):
                         if not content.strip():
                             _flash_rejected_upload(action, _("The uploaded log file is empty."))
                         else:
-                            path = save_log_to_filesystem(session_to_edit.id, 'asiair', content, log_file.filename, db)
+                            path = save_log_to_filesystem(session_to_edit.id, 'asiair', content, log_file.filename, db,
+                                                          writes=writes)
                             session_to_edit.asiair_log_content = path
                             mark_file_changed(session_to_edit, "asiair_log_content")
                             invalidate_cache = True
@@ -801,7 +817,8 @@ def journal_edit(session_id):
                         if not content.strip():
                             _flash_rejected_upload(action, _("The uploaded log file is empty."))
                         else:
-                            path = save_log_to_filesystem(session_to_edit.id, 'phd2', content, log_file.filename, db)
+                            path = save_log_to_filesystem(session_to_edit.id, 'phd2', content, log_file.filename, db,
+                                                          writes=writes)
                             session_to_edit.phd2_log_content = path
                             mark_file_changed(session_to_edit, "phd2_log_content")
                             invalidate_cache = True
@@ -827,7 +844,8 @@ def journal_edit(session_id):
                         if not content.strip():
                             _flash_rejected_upload(action, _("The uploaded log file is empty."))
                         else:
-                            path = save_log_to_filesystem(session_to_edit.id, 'nina', content, log_file.filename, db)
+                            path = save_log_to_filesystem(session_to_edit.id, 'nina', content, log_file.filename, db,
+                                                          writes=writes)
                             session_to_edit.nina_log_content = path
                             mark_file_changed(session_to_edit, "nina_log_content")
                             invalidate_cache = True
@@ -857,11 +875,13 @@ def journal_edit(session_id):
                 # Save as draft, return JSON without redirect
                 session_to_edit.draft = True
                 db.commit()
+                writes.publish()
                 return jsonify({"status": "ok", "session_id": session_id})
             else:
                 # save_close or no action (legacy): save as non-draft and redirect
                 session_to_edit.draft = False
                 db.commit()
+                writes.publish()
                 if not nina_imported:
                     flash(_("Journal entry updated successfully!"), "success")
                 record_event('journal_session_edited')
@@ -872,6 +892,7 @@ def journal_edit(session_id):
 
         except Exception as e:
             db.rollback()
+            writes.discard()
             import traceback
             traceback.print_exc()
             # Return JSON error for draft saves, re-raise for normal saves

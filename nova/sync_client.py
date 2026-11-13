@@ -379,23 +379,27 @@ class SyncClient:
 
     # -- repair -----------------------------------------------------------------
 
-    def _repair_headers(self, table, key, slot, sha256, ext, total, offset):
+    def _repair_headers(self, table, key, slot, sha256, ext, total, offset, stamp=""):
+        # X-Nova-Stamp: the sender's row stamp in the hub's clock. The hub
+        # repairs only a row that is that same write.
         return {"X-Nova-Table": table, "X-Nova-Key": key, "X-Nova-Slot": slot,
                 "X-Nova-Sha256": sha256, "X-Nova-Ext": ext,
-                "X-Nova-Total": str(int(total)), "X-Nova-Offset": str(int(offset))}
+                "X-Nova-Total": str(int(total)), "X-Nova-Offset": str(int(offset)),
+                "X-Nova-Stamp": stamp or ""}
 
     def repair_resume(self, table: str, key: str, slot: str, sha256: str,
-                      ext: str, total: int) -> dict:
+                      ext: str, total: int, stamp: str = "") -> dict:
         """offset -1: how many bytes of this repair the hub already holds."""
         return self._json("/api/sync/v1/repair", None,
                           extra_headers=self._repair_headers(
-                              table, key, slot, sha256, ext, total, -1))
+                              table, key, slot, sha256, ext, total, -1, stamp))
 
     def repair_chunk(self, table: str, key: str, slot: str, sha256: str,
-                     ext: str, total: int, offset: int, data: bytes) -> dict:
+                     ext: str, total: int, offset: int, data: bytes,
+                     stamp: str = "") -> dict:
         return self._json("/api/sync/v1/repair", None,
                           extra_headers=self._repair_headers(
-                              table, key, slot, sha256, ext, total, offset),
+                              table, key, slot, sha256, ext, total, offset, stamp),
                           data=data, timeout=(self.connect_timeout, 120.0))
 
 

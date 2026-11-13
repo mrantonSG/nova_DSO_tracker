@@ -142,7 +142,7 @@ from nova.helpers import (
     get_db, get_user_log_string, allowed_file, _yaml_dump_pretty,
     is_valid_username,
     _mkdirp, _backup_with_rotation, _atomic_write_yaml, _FileLock,
-    write_file_atomic,
+    write_file_atomic, DeferredWrites,
     try_acquire_file_lock, release_file_lock,
     to_yaml_filter, safe_float, safe_int, convert_to_native_python,
     load_effective_settings,
@@ -3243,7 +3243,8 @@ if FIRST_RUN_ENV_CREATED and not BACKGROUND_TASKS_DISABLED:
             print(f"[TELEMETRY] first-run timer init failed: {_e}")
     threading.Timer(1.0, _telemetry_first_run_timer).start()
 
-def _handle_project_image_upload(file_object, project_id: str, username: str, existing_filename: str = None):
+def _handle_project_image_upload(file_object, project_id: str, username: str, existing_filename: str = None,
+                                 writes=None):
     """
     Handles image upload for a project.
 
@@ -3251,10 +3252,16 @@ def _handle_project_image_upload(file_object, project_id: str, username: str, ex
     project_id: The ID of the project
     username: The current user's username
     existing_filename: The current filename (to delete the old one if replacing)
+    writes: the caller's DeferredWrites. The image is staged beside its live
+        name and reaches it only when the caller publishes after its commit;
+        the old file (another name) goes, and the thumbnail is built, then too.
 
     Returns the new filename or None if no file was uploaded/valid.
     """
     if file_object and file_object.filename != '' and allowed_file(file_object.filename):
+        own_writes = writes is None
+        if own_writes:
+            writes = DeferredWrites()
         try:
             user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
             user_upload_root = os.path.realpath(user_upload_dir)
@@ -3266,43 +3273,46 @@ def _handle_project_image_upload(file_object, project_id: str, username: str, ex
                 except ValueError:
                     return False
 
-            # Delete old image if replacing
-            if existing_filename:
-                old_image_path = os.path.join(user_upload_dir, existing_filename)
-                if _is_within_user_dir(old_image_path) and os.path.exists(old_image_path):
-                    os.remove(old_image_path)
-                    # The original is gone, so its thumbnail is stale.
-                    remove_thumbnail(old_image_path)
-
             file_extension = file_object.filename.rsplit('.', 1)[1].lower()
             new_filename = f"project_{project_id}.{file_extension}"
             new_image_path = os.path.join(user_upload_dir, new_filename)
             if not _is_within_user_dir(new_image_path):
                 raise ValueError(f"Refusing to save project image outside user upload dir: {new_image_path}")
             os.makedirs(user_upload_dir, exist_ok=True)
-            # A write to a live name invalidates any thumbnail of the bytes it
-            # replaces (correction D); a fresh one is built below.
-            remove_thumbnail(new_image_path)
-            write_file_atomic(new_image_path, lambda p: file_object.save(p))
 
-            # Best-effort thumbnail generation — must not fail the request
-            # or affect the original upload if it errors (corrupt image,
-            # unsupported format, etc).
-            try:
-                saved_image_path = os.path.join(user_upload_dir, new_filename)
-                thumb_path = os.path.join(user_upload_dir, f"thumb_{new_filename}")
-                with Image.open(saved_image_path) as img:
-                    img.thumbnail((480, 480))
-                    if file_extension in ('jpg', 'jpeg'):
-                        write_file_atomic(thumb_path, lambda p: img.save(p, quality=85))
-                    elif file_extension == 'png':
-                        write_file_atomic(thumb_path, lambda p: img.save(p, optimize=True))
-                    else:
-                        write_file_atomic(thumb_path, lambda p: img.save(p))
-            except Exception as thumb_err:
-                current_app.logger.warning(
-                    f"Failed to generate thumbnail for project image '{new_filename}': {thumb_err}"
-                )
+            def _after_publish(live):
+                # Delete old image if replacing it under another name (the same
+                # name was just replaced in place). Only once the new one is live.
+                if existing_filename and existing_filename != new_filename:
+                    old_image_path = os.path.join(user_upload_dir, existing_filename)
+                    if _is_within_user_dir(old_image_path) and os.path.exists(old_image_path):
+                        os.remove(old_image_path)
+                        # The original is gone, so its thumbnail is stale.
+                        remove_thumbnail(old_image_path)
+                # Best-effort thumbnail generation — must not fail the request
+                # or affect the original upload if it errors (corrupt image,
+                # unsupported format, etc).
+                try:
+                    thumb_path = os.path.join(user_upload_dir, f"thumb_{new_filename}")
+                    with Image.open(live) as img:
+                        img.thumbnail((480, 480))
+                        if file_extension in ('jpg', 'jpeg'):
+                            write_file_atomic(thumb_path, lambda p: img.save(p, quality=85))
+                        elif file_extension == 'png':
+                            write_file_atomic(thumb_path, lambda p: img.save(p, optimize=True))
+                        else:
+                            write_file_atomic(thumb_path, lambda p: img.save(p))
+                except Exception as thumb_err:
+                    current_app.logger.warning(
+                        f"Failed to generate thumbnail for project image '{new_filename}': {thumb_err}"
+                    )
+
+            # A write to a live name invalidates any thumbnail of the bytes it
+            # replaces (correction D): removed right before the new bytes land.
+            writes.add(new_image_path, lambda p: file_object.save(p),
+                       before=remove_thumbnail, after=_after_publish)
+            if own_writes:
+                writes.publish()
 
             return new_filename
         except Exception as e:

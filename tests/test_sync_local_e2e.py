@@ -27,7 +27,7 @@ from nova.models import (
     SyncState, SyncToken,
 )
 from nova.sync_client import SyncClient, SyncTransportError
-from nova.sync_engine import SyncRefused, Refusal, counter_rev, start_pairing
+from nova.sync_engine import SyncRefused, Refusal, counter_rev, start_pairing, to_iso
 from nova.sync_job import (
     abort_job, clear_job, confirm_job, job_status, load_job, save_job, start_job,
 )
@@ -2259,7 +2259,8 @@ def test_a_file_the_hub_lost_reaches_a_computer_that_held_the_record(harness):
     assert st["phase"] == "done", st
     assert _hub_photo_digests(harness) == set()             # C did not "repair" with W
     assert st["result"]["held_files"] == [
-        {"table": "journal_sessions", "key": "hub-sess", "name": "2026-01-02"}]
+        {"table": "journal_sessions", "key": "hub-sess", "name": "2026-01-02",
+         "slots": ["session_image_file"]}]
     assert _local_photo_digests(harness) == {_sha256_of_bytes(old_photo)}
     held_cursor = _local_query(harness, lambda db: db.query(SyncState)
                                .filter_by(user_id=uid).one()).server_cursor
@@ -2269,9 +2270,12 @@ def test_a_file_the_hub_lost_reaches_a_computer_that_held_the_record(harness):
     hub_rev = _hub_query(harness, lambda db: counter_rev(db, 999))
     p_client = _TestSyncClient(HUB_URL, harness["token"],
                                session=_FakeSession(harness["hub_app"]))
+    # P's row is the hub's row (P wrote it): it sends that stamp.
+    p_stamp = _hub_query(harness, lambda db: to_iso(db.query(JournalSession).filter_by(
+        user_id=999, external_id="hub-sess").one().sync_changed_at))
     answer = p_client.repair_chunk("journal_sessions", "hub-sess", "session_image_file",
                                    _sha256_of_bytes(new_photo), "jpg", len(new_photo),
-                                   0, new_photo)
+                                   0, new_photo, stamp=p_stamp)
     assert answer["complete"] and answer["placed"], answer
     assert _hub_query(harness, lambda db: counter_rev(db, 999)) == hub_rev + 1
 

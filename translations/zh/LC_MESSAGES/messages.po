@@ -665,6 +665,38 @@ msgstr "项目“%(name)s”未同步：其 ID 已被服务器上的另一个账
 msgid "\"%(name)s\": file missing on the server and could not be safely restored."
 msgstr "“%(name)s”：服务器上缺少该文件，无法安全恢复。"
 
+#: nova/blueprints/sync_tokens.py:211
+#, python-format
+msgid ""
+"\"%(name)s\": this computer's copy was not used. The server has a newer "
+"version of this record, and its file is still missing on the server."
+msgstr "“%(name)s”：未使用这台电脑上的副本。服务器上有该记录的较新版本，且服务器上仍缺少其文件。"
+
+#: templates/sync_tokens.html:266 templates/sync_tokens.html:422
+msgid "Use this computer's copy"
+msgstr "使用这台电脑上的副本"
+
+#: templates/sync_tokens.html:423
+msgid ""
+"Send this computer's copy of the file to the server with the next sync? It"
+" becomes the record's file everywhere."
+msgstr "在下次同步时将这台电脑上的文件副本发送到服务器？它将成为该记录在所有位置的文件。"
+
+#: nova/blueprints/sync_tokens.py:563
+msgid "This computer's copy of the file will be sent with the next sync."
+msgstr "这台电脑上的文件副本将在下次同步时发送。"
+
+#: nova/blueprints/sync_tokens.py:567
+msgid "That choice is no longer available. Reload the page and try again."
+msgstr "该选项已不可用。请重新加载页面后重试。"
+
+#: nova/blueprints/sync_tokens.py:247
+#, python-format
+msgid "%(num)d record will be held: its file is missing on the server."
+msgid_plural ""
+"%(num)d records will be held: their files are missing on the server."
+msgstr[0] "将暂缓 %(num)d 条记录：服务器上缺少其文件。"
+
 #: nova/blueprints/sync_tokens.py:215
 #, python-format
 msgid "%(name)s — this computer's version kept"
