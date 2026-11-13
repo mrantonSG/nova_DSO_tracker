@@ -324,6 +324,10 @@ msgstr "未找到缺失数据或无需更新。"
 msgid "An error occurred during data fetching: %(error)s"
 msgstr "数据获取期间发生错误：%(error)s"
 
+#: nova/blueprints/core.py:1963
+msgid "An internal error occurred."
+msgstr "发生内部错误。"
+
 #: nova/blueprints/core.py:2176
 msgid "Please log in to view object details."
 msgstr "请登录以查看天体详情。"

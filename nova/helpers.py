@@ -1939,6 +1939,33 @@ def delete_user(username: str) -> bool:
         return True
 
 
+def resolve_under_root(root: str, *parts, allow_root: bool = False) -> str:
+    """Join `parts` under `root` and return the resolved absolute path, or "".
+
+    The single containment check for every caller that builds a filesystem path
+    from an untrusted name: rejects absolute parts and embedded NUL bytes,
+    resolves symlinks, and refuses anything that resolves outside `root` (or is
+    `root` itself unless `allow_root` is set). Returns "" for any refusal so a
+    caller can treat it as "no safe path".
+    """
+    if any(p is None or os.path.isabs(str(p)) for p in parts):
+        return ""
+    if any("\x00" in str(p) for p in parts):
+        return ""
+    root_real = os.path.realpath(root)
+    candidate = os.path.realpath(os.path.join(root_real, *(str(p) for p in parts)))
+    try:
+        within = os.path.commonpath([candidate, root_real])
+    except ValueError:
+        # Different drives (Windows), e.g. a "C:\\..." part vs a D:\\ root.
+        return ""
+    if within != root_real:
+        return ""
+    if not allow_root and candidate == root_real:
+        return ""
+    return candidate
+
+
 def _path_within(path: str, base: str) -> bool:
     """True if `path` resolves to `base` itself or a location inside it."""
     if os.path.realpath(path) == os.path.realpath(base):

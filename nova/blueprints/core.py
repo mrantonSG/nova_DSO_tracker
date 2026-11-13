@@ -1959,7 +1959,8 @@ def update_project_active():
             return jsonify({"status": "error", "error": _("Object not found.")}), 404
     except Exception as e:
         db.rollback()
-        return jsonify({"status": "error", "error": str(e)}), 500
+        current_app.logger.exception("update_project_active failed for %r", object_name)
+        return jsonify({"status": "error", "error": _("An internal error occurred.")}), 500
 
 
 # Account KINDS excluded from /analytics.json user aggregates (never names).

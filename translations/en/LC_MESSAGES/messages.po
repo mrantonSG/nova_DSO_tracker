@@ -324,6 +324,10 @@ msgstr ""
 msgid "An error occurred during data fetching: %(error)s"
 msgstr ""
 
+#: nova/blueprints/core.py:1963
+msgid "An internal error occurred."
+msgstr ""
+
 #: nova/blueprints/core.py:2176
 msgid "Please log in to view object details."
 msgstr ""

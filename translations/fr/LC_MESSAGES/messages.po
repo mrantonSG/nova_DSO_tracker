@@ -346,6 +346,10 @@ msgstr "Aucune donnée manquante trouvée ou aucune mise à jour nécessaire."
 msgid "An error occurred during data fetching: %(error)s"
 msgstr "Une erreur s'est produite lors de la récupération des données : %(error)s"
 
+#: nova/blueprints/core.py:1963
+msgid "An internal error occurred."
+msgstr "Une erreur interne s'est produite."
+
 #: nova/blueprints/core.py:2176
 msgid "Please log in to view object details."
 msgstr "Veuillez vous connecter pour voir les détails de l'objet."

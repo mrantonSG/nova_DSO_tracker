@@ -326,6 +326,10 @@ msgstr "欠落データは見つかりませんでした、または更新の必
 msgid "An error occurred during data fetching: %(error)s"
 msgstr "データ取得中にエラーが発生しました: %(error)s"
 
+#: nova/blueprints/core.py:1963
+msgid "An internal error occurred."
+msgstr "内部エラーが発生しました。"
+
 #: nova/blueprints/core.py:2176
 msgid "Please log in to view object details."
 msgstr "オブジェクトの詳細を表示するにはログインしてください。"

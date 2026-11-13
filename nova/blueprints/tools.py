@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import stat
 import tempfile
 import uuid
 import zipfile
@@ -35,7 +36,7 @@ from nova.helpers import (
     bust_nightly_curves_cache,
     invalidate_object_caches,
     remove_thumbnail,
-    write_file_atomic, DeferredWrites,
+    write_file_atomic, DeferredWrites, resolve_under_root,
 )
 from nova.models import (
     DbUser, AstroObject, Component, Rig, Location, Project,
@@ -1242,8 +1243,17 @@ def import_journal_photos():
                     extracted_count += 1
                     continue
 
+                # Skip symlink members: a zip symlink would otherwise be written
+                # as a regular file whose target we never resolve.
+                if stat.S_ISLNK(member.external_attr >> 16):
+                    continue
+
+                # Normalise backslashes to "/" before basename, so "..\..\x.jpg"
+                # and "C:\evil.jpg" are neutralised on POSIX and Windows alike.
+                norm_name = member.filename.replace("\\", "/")
+
                 # Get just the filename, stripping all parent directories
-                filename = os.path.basename(member.filename)
+                filename = os.path.basename(norm_name)
 
                 # Skip empty filenames (like .DS_Store or empty dir entries)
                 if not filename:
@@ -1256,7 +1266,10 @@ def import_journal_photos():
                     continue
 
                 # Build the final, correct, flat target path
-                target_path = os.path.join(user_upload_dir, filename)
+                target_path = resolve_under_root(user_upload_dir, filename)
+                if not target_path:
+                    print(f"Skipping potentially malicious file: {member.filename}")
+                    continue
 
                 # Extract the file data: staged beside the live name and
                 # published only after the stamp below has committed.
@@ -1378,13 +1391,13 @@ def upload_editor_image():
 
             # Create the user's upload directory if it doesn't exist
             user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
-            # 🔒 Security Check: resolved upload dir must stay inside UPLOAD_FOLDER
-            if os.path.commonpath([os.path.realpath(UPLOAD_FOLDER), os.path.realpath(user_upload_dir)]) != os.path.realpath(UPLOAD_FOLDER):
+            # 🔒 Security Check: resolved upload path must stay inside UPLOAD_FOLDER
+            save_path = resolve_under_root(UPLOAD_FOLDER, username, new_filename)
+            if not save_path:
                 return jsonify({"error": "Invalid upload path."}), 400
             os.makedirs(user_upload_dir, exist_ok=True)
 
             # Save the file
-            save_path = os.path.join(user_upload_dir, new_filename)
             write_file_atomic(save_path, lambda p: file.save(p))
 
             # This must match the `get_uploaded_image` route
