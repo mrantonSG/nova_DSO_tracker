@@ -1936,6 +1936,43 @@
   box-shadow: none;
 }
 
+/* Disabled ghost (Sync now before a first download, while Download is the
+   primary). No hover fill, so it does not read as clickable. */
+.column .sync-actions .inline-button-ghost:disabled,
+.column .sync-actions .inline-button-ghost:disabled:hover {
+  background: transparent;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Empty states (no tokens yet / not connected): one dashed box, text left.
+   No action inside — the Create Token and Connect forms sit above the box. */
+.sync-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px dashed var(--border-color, #e5e2dc);
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+  padding: 14px 16px;
+  margin: 12px 0;
+}
+.sync-empty-text {
+  min-width: 0;
+}
+.sync-empty-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.sync-empty-desc {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
 .sync-error {
   border: 1px solid var(--danger-color);
   background: var(--danger-bg);

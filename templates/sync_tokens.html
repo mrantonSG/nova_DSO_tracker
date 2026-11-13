@@ -89,10 +89,11 @@
         {% endfor %}
       </ul>
       {% else %}
-      <div class="gallery-empty-state">
-        <div class="gallery-empty-icon">&#128273;</div>
-        <p>{{ _('No sync tokens yet.') }}</p>
-        <p style="font-size:13px;">{{ _('Create one for each instance you want to sync to this server.') }}</p>
+      <div class="sync-empty-state">
+        <div class="sync-empty-text">
+          <p class="sync-empty-title">{{ _('No sync tokens yet.') }}</p>
+          <p class="sync-empty-desc">{{ _('Create one for each instance you want to sync to this server.') }}</p>
+        </div>
       </div>
       {% endif %}
     </div>
@@ -228,10 +229,10 @@
           </div>
           <div class="sync-actions">
             {% if sync_view.needs_download %}
-              <button type="button" class="action-button" disabled title="{{ _('Download from the server first.') }}">{{ _('Sync now') }}</button>
+              <button type="button" class="inline-button-ghost" disabled title="{{ _('Download from the server first.') }}">{{ _('Sync now') }}</button>
               <form method="post" action="{{ url_for('sync.download') }}" style="margin:0;">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="inline-button-ghost">{{ _('Download from server') }}</button>
+                <button type="submit" class="action-button">{{ _('Download from server') }}</button>
               </form>
             {% else %}
               <form method="post" action="{{ url_for('sync.sync_now') }}" style="margin:0;">
@@ -280,10 +281,11 @@
         </div>
         <button type="submit" class="action-button">{{ _('Connect') }}</button>
       </form>
-      <div class="gallery-empty-state">
-        <div class="gallery-empty-icon">&#128279;</div>
-        <p>{{ _('Not connected to a server.') }}</p>
-        <p style="font-size:13px;">{{ _('Enter the server URL and a sync token created there.') }}</p>
+      <div class="sync-empty-state">
+        <div class="sync-empty-text">
+          <p class="sync-empty-title">{{ _('Not connected to a server.') }}</p>
+          <p class="sync-empty-desc">{{ _('Enter the server URL and a sync token created there.') }}</p>
+        </div>
       </div>
       {% endif %}
     </div>

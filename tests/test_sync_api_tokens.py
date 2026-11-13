@@ -422,7 +422,7 @@ def test_the_copy_button_is_a_ghost_and_the_submit_is_primary():
 
 
 def test_the_page_renders_the_empty_state_when_there_are_no_tokens(hub):
-    assert "gallery-empty-state" in hub.client.get("/sync").data.decode()
+    assert "sync-empty-state" in hub.client.get("/sync").data.decode()
 
 
 # =============================================================================
