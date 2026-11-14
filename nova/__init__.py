@@ -15,6 +15,7 @@ March 2025, Anton Gutscher
 # Imports
 # =============================================================================
 import os
+import click
 from decouple import config as decouple_config
 from ics import Calendar, Event
 import arrow
@@ -4297,6 +4298,50 @@ def _fire_startup_skyglow_check(app):
         traceback.print_exc()
 
 
+def _backfill_integration_on_startup():
+    """Recompute NULL integration minutes on every start. Never raises.
+
+    Sync writes sessions without `calculated_integration_time_minutes`, so an
+    instance that pulled before the recompute fix has rows stuck at NULL. This
+    heals them on every start — it is NULL-only and idempotent, so steady state
+    is a one-touch SELECT. Any failure is logged and swallowed: a backfill must
+    never block or crash startup.
+    """
+    from nova.helpers import backfill_integration_minutes
+    try:
+        result = backfill_integration_minutes(get_db(), dry_run=False)
+    except Exception:
+        print("[STARTUP] ERROR: integration-minutes backfill failed:")
+        traceback.print_exc()
+        return
+    if result.get("filled"):
+        print(f"[STARTUP] integration backfill: filled {result['filled']} of "
+              f"{result.get('scanned', 0)} NULL session(s)")
+
+
+def _run_backfill_once_per_process():
+    """Run the startup backfill in exactly one process per install.
+
+    Independent of the background-worker election (should_start_threads): the
+    backfill is a data repair, not a weather/heatmap/telemetry task, so it must
+    run even where those workers are disabled. A dedicated advisory lock
+    (instance/backfill.lock) makes one process of a gunicorn worker pool the
+    runner and the rest skip. Skipped under TESTING or
+    NOVA_SKIP_STARTUP_BACKFILL=1. Never raises: the runner swallows its own
+    errors.
+    """
+    if (app.config.get("TESTING")
+            or os.environ.get("NOVA_SKIP_STARTUP_BACKFILL") == "1"):
+        return
+    fh = try_acquire_file_lock(os.path.join(INSTANCE_PATH, "backfill"))
+    if fh is None:
+        return  # another process is the runner
+    try:
+        _backfill_integration_on_startup()
+    finally:
+        release_file_lock(fh)
+
+
 # =============================================================================
 # Main Entry Point
 # =============================================================================
@@ -4321,6 +4366,12 @@ if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
             print("[STARTUP] One-time init complete. Created flag. Releasing lock.")
         else:
             print("[STARTUP] Startup flag file found. Skipping init tasks.")
+
+    # --- DATA REPAIR: integration-minutes backfill ---
+    # A data repair, not a background task: run it on every start, once per
+    # install (dedicated lock), even where the weather/heatmap/telemetry workers
+    # are disabled. Never raises, so it cannot block or crash startup.
+    _run_backfill_once_per_process()
 
     # --- BACKGROUND THREADS (Single-Worker Locking) ---
     # We use a non-blocking file lock to ensure only ONE gunicorn worker
@@ -4373,6 +4424,25 @@ if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
         skyglow_startup_thread = threading.Thread(target=_fire_startup_skyglow_check, args=(app,))
         skyglow_startup_thread.daemon = True
         skyglow_startup_thread.start()
+
+
+@app.cli.command("backfill-integration")
+@click.option("--apply", is_flag=True, default=False,
+              help="Write the recomputed values (default is dry-run).")
+@click.option("--user", "user_id", type=int, default=None,
+              help="Only backfill this user id.")
+def backfill_integration_command(apply, user_id):
+    """Recompute calculated_integration_time_minutes for sessions stuck at NULL
+    (dry-run by default; pass --apply to write)."""
+    from nova.helpers import backfill_integration_minutes
+    result = backfill_integration_minutes(get_db(), dry_run=not apply,
+                                          user_id=user_id)
+    mode = "DRY-RUN" if not apply else "APPLY"
+    print(f"[{mode}] NULL sessions scanned: {result['scanned']}")
+    print(f"[{mode}]   fillable (subs data present): {result['fillable']}")
+    print(f"[{mode}]   no subs data (left NULL):     {result['no_subs']}")
+    if apply:
+        print(f"[{mode}]   filled: {result['filled']}")
 
 
 @app.cli.command("reset-guest-from-template")

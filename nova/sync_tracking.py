@@ -92,12 +92,19 @@ FILE_SLOTS = {
     "projects": ("final_image_file",),
 }
 
-# Columns the engine's DERIVED bucket holds: computed here from something else,
-# never carried in a payload. A write that changes nothing but one of these is
-# not a change to sync, so it must not stamp a row or bump a rev. Only the
-# models that have such a column are listed.
+# Columns a write may change without it being a sync change: computed here from
+# something else and never carried in a payload, so changing one of them alone
+# must not stamp a row or bump a rev. Both columns live here for the same
+# reason, even though the engine (nova/sync_engine.py _COLUMN_CLASSES) files
+# them in different buckets: `log_analysis_cache` is a FILE-bucket blob (a
+# parse-once cache of the raw log) and `calculated_integration_time_minutes` is
+# DERIVED (recomputed from synced columns). Neither travels, so neither is a
+# change worth a rev. Only the models that have such a column are listed.
 DERIVED_COLUMNS = {
-    "journal_sessions": ("log_analysis_cache",),
+    "journal_sessions": (
+        "log_analysis_cache",
+        "calculated_integration_time_minutes",
+    ),
 }
 
 

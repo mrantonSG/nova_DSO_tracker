@@ -17,8 +17,10 @@ from pathlib import Path
 from math import atan, degrees, floor, isfinite
 from urllib.parse import urlsplit
 from typing import Optional
+from collections.abc import Mapping
 
 from flask import g, has_request_context, current_app, session, request
+from sqlalchemy import update as sa_update
 from sqlalchemy.orm import selectinload
 from astropy.coordinates import SkyCoord, get_constellation, EarthLocation, AltAz, get_body
 from astropy.time import Time
@@ -1005,6 +1007,104 @@ def safe_int(value_str):
     except (ValueError, TypeError):
         print(f"Warning: Could not convert '{value_str}' to int.")
         return None
+
+
+# The seven fixed filters every journal session can record subs/exposure for.
+FIXED_FILTER_KEYS = ("L", "R", "G", "B", "Ha", "OIII", "SII")
+
+
+def compute_integration_minutes(values):
+    """Total integration time in minutes, recomputed from a session's synced
+    columns — None when the session has no subs data.
+
+    The single source of truth for
+    JournalSession.calculated_integration_time_minutes. It mirrors the write
+    path's formula (light subs × exposure, the seven fixed filters, then the
+    session's custom filters), but iterates the STORED keys of
+    `custom_filter_data` rather than the user's current UserCustomFilter
+    definitions: a filter whose definition was deleted still counts toward the
+    time the session recorded, and a session synced before its filter
+    definition arrived is still counted in full.
+
+    `values` is a Mapping (column name -> value) or an object exposing those
+    attributes. Pure — no database access. Returns round(total/60.0, 1) when
+    the total is positive, else None.
+    """
+    def _get(name):
+        return values.get(name) if isinstance(values, Mapping) else getattr(values, name, None)
+
+    def _num(value):
+        if value is None or value == "":
+            return 0
+        try:
+            return int(float(value))
+        except (TypeError, ValueError):
+            return 0
+
+    total = 0
+    subs = _get("number_of_subs_light")
+    exp = _get("exposure_time_per_sub_sec")
+    if subs and exp:
+        total += _num(subs) * _num(exp)
+    for key in FIXED_FILTER_KEYS:
+        total += _num(_get(f"filter_{key}_subs")) * _num(_get(f"filter_{key}_exposure_sec"))
+
+    custom_raw = _get("custom_filter_data")
+    if custom_raw:
+        try:
+            custom = json.loads(custom_raw)
+        except (TypeError, ValueError):
+            custom = {}
+        if isinstance(custom, dict):
+            for key, subs in custom.items():
+                if key.startswith("filter_") and key.endswith("_subs"):
+                    exp = custom.get(key[: -len("_subs")] + "_exposure_sec")
+                    total += _num(subs) * _num(exp)
+
+    return round(total / 60.0, 1) if total > 0 else None
+
+
+def backfill_integration_minutes(db, *, dry_run=True, user_id=None):
+    """Recompute calculated_integration_time_minutes for every journal session
+    whose value is NULL (a synced session the receiver never recomputed).
+
+    Returns {"scanned": n, "fillable": k, "no_subs": m, "filled": f}. In
+    dry-run `filled` is 0 and nothing is written; a session with no subs data is
+    left NULL (compute_integration_minutes returns None) and never written.
+
+    The write is a bare Core UPDATE of the single column, so the sync
+    change-tracking listener never sees it: sync_rev and sync_changed_at are
+    left exactly as they are, and no tombstone or counter bump occurs.
+    """
+    query = db.query(JournalSession).filter(
+        JournalSession.calculated_integration_time_minutes.is_(None))
+    if user_id is not None:
+        query = query.filter(JournalSession.user_id == user_id)
+
+    scanned = 0
+    fillable = []
+    no_subs = 0
+    for row in query.all():
+        scanned += 1
+        value = compute_integration_minutes(row)
+        if value is None:
+            no_subs += 1
+        else:
+            fillable.append((row.id, row.user_id, value))
+
+    if dry_run:
+        return {"scanned": scanned, "fillable": len(fillable),
+                "no_subs": no_subs, "filled": 0}
+
+    table = JournalSession.__table__
+    for row_id, uid, value in fillable:
+        db.execute(
+            sa_update(table)
+            .where(table.c.id == row_id, table.c.user_id == uid)
+            .values(calculated_integration_time_minutes=value))
+    db.commit()
+    return {"scanned": scanned, "fillable": len(fillable),
+            "no_subs": no_subs, "filled": len(fillable)}
 
 
 def convert_to_native_python(val):

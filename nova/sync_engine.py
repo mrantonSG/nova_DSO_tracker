@@ -64,8 +64,9 @@ from sqlalchemy import delete as sa_delete, update as sa_update
 from sqlalchemy.orm import selectinload
 
 from nova.helpers import (
-    UPLOAD_TMP_MARKER, log_file_path, release_file_lock, shared_log_paths,
-    try_acquire_file_lock, unique_log_name, write_file_atomic,
+    UPLOAD_TMP_MARKER, compute_integration_minutes, log_file_path,
+    release_file_lock, shared_log_paths, try_acquire_file_lock, unique_log_name,
+    write_file_atomic,
 )
 from nova.config import UPLOAD_FOLDER
 from nova.models import (
@@ -4549,6 +4550,25 @@ def _write_row(db, conn, model: type, action: Action, rev: Optional[int],
         stamp = utc_now()
     values["sync_changed_at"] = stamp
     values["sync_rev"] = rev
+
+    if model is JournalSession and "number_of_subs_light" in values:
+        # Recompute the DERIVED integration column from the synced columns in
+        # this very write. It is not in the SYNC bucket, so a payload can never
+        # set it; it is derived from the record's own custom_filter_data (stored
+        # keys), so a session whose custom-filter definition has not arrived yet
+        # is still counted in full. Riding the same Core statement, it carries
+        # this write's rev and never bumps it.
+        #
+        # The `"number_of_subs_light" in values` guard is what limits this to
+        # full-record writes: record_to_payload emits every SYNC column (and
+        # _record_values copies them all), so a full INSERT or UPDATE always
+        # carries that key, while a partial UPDATE — a rename mirror (an
+        # object/location/rig name rewritten onto its dependents) or a
+        # resurrection re-stamp — carries only its own changed columns and never
+        # this key. Do not drop the key check and recompute unconditionally on
+        # `model is JournalSession`: recomputing from a partial dict would
+        # clobber the correct value with NULL.
+        values["calculated_integration_time_minutes"] = compute_integration_minutes(values)
 
     if model is JournalSession and values.get("project_id") not in (None, ""):
         # The last line of defence for the plan's rule: a session never points

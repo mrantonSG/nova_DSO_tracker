@@ -5,6 +5,9 @@ import tempfile
 import threading
 # Must be set before nova is imported: nova starts background workers and telemetry at import time.
 os.environ["NOVA_DISABLE_BACKGROUND_TASKS"] = "1"
+# Nova also backfills integration minutes at import; skip it so collection never
+# writes to the (throwaway) instance DB.
+os.environ["NOVA_SKIP_STARTUP_BACKFILL"] = "1"
 
 # --- Throwaway instance folder, set up before nova is imported ---
 # Importing nova creates/upgrades .env, runs schema patches and migrations against
@@ -25,6 +28,7 @@ with open(os.path.join(_TEST_INSTANCE_PATH, ".env"), "w") as _f:
         "TELEMETRY_ENABLED=false\n"
         "SINGLE_USER_MODE=True\n"
         "NOVA_DISABLE_BACKGROUND_TASKS=1\n"
+        "NOVA_SKIP_STARTUP_BACKFILL=1\n"
     )
 # migrate_journal_data() only rewrites journal_*.yaml in the (temp) configs dir;
 # skip it so it doesn't run every session.

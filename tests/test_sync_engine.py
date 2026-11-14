@@ -2036,3 +2036,68 @@ def test_a_framing_without_an_object_uid_adopts_the_hubs(local, hub):
     framings = local.rows(SavedFraming)
     assert len(framings) == 1
     assert framings[0].object_record_uid == hub_obj.record_uid
+
+
+# =============================================================================
+# DERIVED column recompute (calculated_integration_time_minutes)
+# =============================================================================
+
+def test_a_synced_session_gets_integration_minutes(local, hub):
+    add_session(local.db, local.uid, "int-1",
+                number_of_subs_light=10, exposure_time_per_sub_sec=120,
+                filter_L_subs=5, filter_L_exposure_sec=60,
+                custom_filter_data=json.dumps(
+                    {"filter_NB_subs": 3, "filter_NB_exposure_sec": 30}))
+    push(local, hub)
+    landed = hub.one(JournalSession, external_id="int-1")
+    # 10*120 + 5*60 + 3*30 = 1590 s -> 26.5 min
+    assert landed.calculated_integration_time_minutes == 26.5
+
+
+def test_a_synced_session_counts_a_custom_filter_without_its_definition(local, hub):
+    # The custom filter's UserCustomFilter row never reaches the hub; the
+    # session's stored custom_filter_data still counts toward the total.
+    add_session(local.db, local.uid, "int-2",
+                number_of_subs_light=1, exposure_time_per_sub_sec=60,
+                custom_filter_data=json.dumps(
+                    {"filter_NB_subs": 3, "filter_NB_exposure_sec": 60}))
+    push(local, hub)
+    landed = hub.one(JournalSession, external_id="int-2")
+    # 1*60 + 3*60 = 240 s -> 4.0 min (custom subs counted despite no definition)
+    assert landed.calculated_integration_time_minutes == 4.0
+
+
+def test_a_synced_notes_only_update_keeps_integration_minutes(local, hub):
+    add_session(local.db, local.uid, "int-3",
+                number_of_subs_light=10, exposure_time_per_sub_sec=120)
+    push(local, hub)
+    assert hub.one(JournalSession, external_id="int-3").calculated_integration_time_minutes == 20.0
+
+    # Edit only an unrelated column and sync again: the full record still
+    # carries the subs columns, so the recompute must not drop the minutes.
+    sess = local.db.query(JournalSession).filter_by(external_id="int-3").one()
+    sess.notes = "just a note edit"
+    local.commit()
+    push(local, hub)
+    assert hub.one(JournalSession, external_id="int-3").calculated_integration_time_minutes == 20.0
+
+
+def test_a_rename_mirror_does_not_clobber_integration_minutes(local, hub):
+    add_object(hub.db, hub.uid, "M 31")
+    add_session(hub.db, hub.uid, "int-4",
+                number_of_subs_light=10, exposure_time_per_sub_sec=120,
+                object_name="M 31")  # object_record_uid stays NULL
+    pull(local, hub)
+    assert local.one(JournalSession, external_id="int-4").calculated_integration_time_minutes == 20.0
+
+    # Rename the object in place: the session's mirrored object_name is
+    # rewritten with a PARTIAL update (only object_record_uid + object_name).
+    # The derived minutes must survive the rewrite, not be recomputed from the
+    # partial set (no subs columns -> it would clobber to NULL).
+    hub.one(AstroObject, object_name="M 31").object_name = "M 31 (Andromeda)"
+    hub.commit()
+    pull(local, hub)
+
+    landed = local.one(JournalSession, external_id="int-4")
+    assert landed.object_name == "M 31 (Andromeda)"     # the mirror happened
+    assert landed.calculated_integration_time_minutes == 20.0

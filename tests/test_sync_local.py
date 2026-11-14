@@ -327,6 +327,11 @@ def test_every_file_write_is_atomic_or_outside_uploads_and_logs():
         "initialize_instance_directory", "_timestamped_copy", "_has_key",
         "migrate_journal_data", "update_outlook_cache", "sync_outlook_cache",
         "_fire_startup_skyglow_check", "get_yearly_heatmap_chunk", "_run_skyglow_task",
+        # Startup backfill (DB-only): no file writes. Listed because the scanner
+        # attributes the module-level `open(tasks_ran_flag_path, 'w')` (writing
+        # startup.done) to the last def before the startup block — now
+        # _run_backfill_once_per_process — and that file is outside uploads/logs.
+        "_backfill_integration_on_startup", "_run_backfill_once_per_process",
         "_save_conflicts", "import_yaml_for_user", "_write_cache", "append_purge_note",
         "_backup_with_rotation", "move_replaced_files", "save_job", "_hardlink_tree",
         "save_push_session", "heatmap_background_worker",
