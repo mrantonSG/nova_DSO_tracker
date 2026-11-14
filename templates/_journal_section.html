@@ -3359,6 +3359,35 @@ const journalI18n = {
     const sortSelect = document.getElementById('jss-sort');
     const statusFilterSelect = document.getElementById('jss-status-filter');
 
+    // Persist sort/status across opens (per browser, matching rigSort/lastActiveTab prefs).
+    const STORAGE_SORT = 'journalSwitcherSort';
+    const STORAGE_STATUS = 'journalSwitcherStatus';
+
+    function setSelectValue(select, value) {
+        if (!select) return;
+        const hasOption = Array.from(select.options).some(opt => opt.value === value);
+        select.value = hasOption ? value : '';
+    }
+
+    function saveSortStatus() {
+        try {
+            localStorage.setItem(STORAGE_SORT, sortSelect ? sortSelect.value : 'recent');
+            localStorage.setItem(STORAGE_STATUS, statusFilterSelect ? statusFilterSelect.value : '');
+        } catch (e) { /* storage unavailable */ }
+    }
+
+    // Apply sort/status. Explicit options win; otherwise restore last-used values.
+    // The applied values become the new "last settings".
+    function applySortStatus(options) {
+        const sort = (options && options.sort) || localStorage.getItem(STORAGE_SORT) || 'recent';
+        const status = (options && Object.prototype.hasOwnProperty.call(options, 'status'))
+            ? options.status
+            : (localStorage.getItem(STORAGE_STATUS) || '');
+        setSelectValue(sortSelect, sort);
+        setSelectValue(statusFilterSelect, status);
+        saveSortStatus();
+    }
+
     // Fetch objects from API (cached)
     async function fetchObjects() {
         if (objectsCache) return objectsCache;
@@ -3480,12 +3509,16 @@ const journalI18n = {
         }
     }
 
-    // Open modal
-    async function openModal() {
+    // Open modal. Accepts optional { sort, status } to preset the fields; otherwise
+    // restores the last-used values. Search always starts empty.
+    async function openModal(options) {
         if (!modal) return;
 
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
+
+        // Apply sort/status: explicit options override, else restore last-used.
+        applySortStatus(options);
 
         // Fetch and render objects
         const objects = await fetchObjects();
@@ -3499,6 +3532,9 @@ const journalI18n = {
             searchInput.focus();
         }
     }
+
+    // Expose for programmatic opening with explicit sort/status values.
+    window.openJournalSwitcher = openModal;
 
     // Close modal
     function closeModal() {
@@ -3544,6 +3580,7 @@ const journalI18n = {
     // Event: Sort select change
     if (sortSelect) {
         sortSelect.addEventListener('change', async function() {
+            saveSortStatus();
             const objects = await fetchObjects();
             activeIndex = -1;
             renderList(objects, currentSearchTerm);
@@ -3553,6 +3590,7 @@ const journalI18n = {
     // Event: Status filter dropdown change
     if (statusFilterSelect) {
         statusFilterSelect.addEventListener('change', function() {
+            saveSortStatus();
             // Use cached data — no re-fetch needed
             const objects = objectsCache || [];
             activeIndex = -1;
