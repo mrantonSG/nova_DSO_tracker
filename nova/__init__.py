@@ -4308,12 +4308,19 @@ def _backfill_integration_on_startup():
     never block or crash startup.
     """
     from nova.helpers import backfill_integration_minutes
+    # A private session, never the shared scoped one: a startup repair must not
+    # run on get_db()'s thread-local request session (which would commit any
+    # in-flight work and leave the repair's transaction there). Close it in
+    # finally so nothing lingers.
+    db = SessionLocal.session_factory()
     try:
-        result = backfill_integration_minutes(get_db(), dry_run=False)
+        result = backfill_integration_minutes(db, dry_run=False)
     except Exception:
         print("[STARTUP] ERROR: integration-minutes backfill failed:")
         traceback.print_exc()
         return
+    finally:
+        db.close()
     if result.get("filled"):
         print(f"[STARTUP] integration backfill: filled {result['filled']} of "
               f"{result.get('scanned', 0)} NULL session(s)")
@@ -4435,8 +4442,12 @@ def backfill_integration_command(apply, user_id):
     """Recompute calculated_integration_time_minutes for sessions stuck at NULL
     (dry-run by default; pass --apply to write)."""
     from nova.helpers import backfill_integration_minutes
-    result = backfill_integration_minutes(get_db(), dry_run=not apply,
-                                          user_id=user_id)
+    db = SessionLocal.session_factory()
+    try:
+        result = backfill_integration_minutes(db, dry_run=not apply,
+                                              user_id=user_id)
+    finally:
+        db.close()
     mode = "DRY-RUN" if not apply else "APPLY"
     print(f"[{mode}] NULL sessions scanned: {result['scanned']}")
     print(f"[{mode}]   fillable (subs data present): {result['fillable']}")

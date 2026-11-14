@@ -145,6 +145,35 @@ def test_startup_hook_swallows_an_exception(db_session, monkeypatch):
     _backfill_integration_on_startup()
 
 
+def test_startup_backfill_uses_private_session_not_get_db(db_session, monkeypatch):
+    """The startup backfill must run through a private session, not get_db().
+
+    If it ran through get_db() (the shared scoped session) the repair would
+    commit on the request session and could observe or alter in-flight work.
+    Assert it never calls get_db(), and that a fresh query through get_db()
+    still sees the filled value.
+    """
+    user = _user(db_session)
+    _add_session(db_session, user.id, "su-priv-1",
+                 number_of_subs_light=10, exposure_time_per_sub_sec=120)
+
+    calls = []
+    def spy_get_db():
+        calls.append(1)
+        return db_session
+    monkeypatch.setattr("nova.get_db", spy_get_db)
+
+    _backfill_integration_on_startup()
+
+    # The backfill used its own session, never the shared scoped one.
+    assert calls == []
+
+    db_session.expire_all()
+    filled = db_session.query(JournalSession).filter_by(
+        external_id="su-priv-1").one()
+    assert filled.calculated_integration_time_minutes == 20.0
+
+
 # --- the once-per-process startup wrapper ------------------------------------
 
 def test_run_backfill_once_per_process_skips_when_env_var_set(db_session, monkeypatch):
