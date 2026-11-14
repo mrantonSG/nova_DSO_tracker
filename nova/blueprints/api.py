@@ -15,7 +15,7 @@ from flask import (
 )
 from flask_login import login_required, current_user
 from flask_babel import gettext as _
-from sqlalchemy import and_, func
+from sqlalchemy import func
 from sqlalchemy.orm import selectinload
 
 from astropy.coordinates import EarthLocation, SkyCoord, AltAz, get_body, search_around_sky, get_constellation
@@ -286,117 +286,115 @@ def api_simbad_status():
 @login_required
 def get_journal_objects():
     """
-    Returns a list of all objects that have journal sessions with any imaging data,
+    Returns a list of all objects that have journal sessions or a project,
     sorted by most recent session date. Used by the journal object switcher.
-    Includes first_session_date, first_session_id, and first_session_location for navigation.
+    Each entry carries `project_statuses` (every project status on the object)
+    and a backward-compatible `project_status` (the most recently updated
+    project). Includes first_session_date, first_session_id, and
+    first_session_location for navigation.
     """
     db = get_db()
     user_id = g.db_user.id
 
-    # Query all sessions with any imaging data (light subs > 0 OR calculated integration > 0)
-    # This captures sessions with mono filter data that don't use number_of_subs_light
-    sessions_with_data = db.query(
-        JournalSession.id,
-        JournalSession.object_name,
-        JournalSession.object_record_uid,
-        JournalSession.date_utc,
-        JournalSession.calculated_integration_time_minutes,
-        JournalSession.location_name,
-        AstroObject.common_name,
-        AstroObject.id.label('astro_id'),
-        Project.status.label('project_status')
-    ).outerjoin(
-        AstroObject,
-        and_(AstroObject.user_id == user_id,
-             AstroObject.record_uid == JournalSession.object_record_uid,
-             JournalSession.object_record_uid.isnot(None),
-             JournalSession.object_record_uid != "",
-             AstroObject.record_uid.isnot(None),
-             AstroObject.record_uid != "")
-    ).outerjoin(
-        Project,
-        and_(Project.user_id == user_id,
-             Project.target_object_record_uid == JournalSession.object_record_uid,
-             JournalSession.object_record_uid.isnot(None),
-             JournalSession.object_record_uid != "",
-             Project.target_object_record_uid.isnot(None),
-             Project.target_object_record_uid != "")
-    ).filter(
-        JournalSession.user_id == user_id
-    ).order_by(
-        JournalSession.object_name,
-        JournalSession.date_utc.desc()
-    ).all()
+    astro_by_uid = {
+        o.record_uid: o
+        for o in db.query(AstroObject).filter_by(user_id=user_id).all()
+        if o.record_uid
+    }
+    project_by_id = {
+        p.id: p
+        for p in db.query(Project).filter_by(user_id=user_id).all()
+    }
 
-    # Aggregate by object_name. A session whose object UID is empty or points
-    # at no object of this user has no object link and is left out (rule 2).
+    # A project is "represented" once it is linked to any session (project_id
+    # FK or session_projects m2m). Pass 2 uses these project IDs — not object
+    # UIDs — so a zero-session project on an object that already has another
+    # project with sessions still shows up.
+    represented_project_ids = set()
+
+    sessions = db.query(JournalSession).filter_by(user_id=user_id) \
+        .order_by(JournalSession.object_name, JournalSession.date_utc.desc()) \
+        .options(selectinload(JournalSession.project),
+                 selectinload(JournalSession.projects)).all()
+
     objects_map = {}
-    linked_uids = []
-    for session in sessions_with_data:
-        if session.astro_id is None:
+    for session in sessions:
+        astro = astro_by_uid.get(session.object_record_uid)
+        if astro is None:
             continue
         object_name = session.object_name
         if not object_name:
             continue
-        if session.object_record_uid not in linked_uids:
-            linked_uids.append(session.object_record_uid)
 
         if object_name not in objects_map:
             objects_map[object_name] = {
-                'id': session.astro_id,
-                'name': session.common_name or object_name,
+                'id': astro.id,
+                'name': astro.common_name or object_name,
                 'catalog_id': object_name,
                 'total_minutes': 0,
                 'last_session': None,
                 'first_session_date': None,
                 'first_session_id': None,
                 'first_session_location': None,
-                'project_status': session.project_status
+                '_projects': {},
             }
 
-        # Accumulate integration time
+        entry = objects_map[object_name]
+
+        # Session-level aggregation (once per session, independent of projects).
         if session.calculated_integration_time_minutes:
-            objects_map[object_name]['total_minutes'] += session.calculated_integration_time_minutes
-
-        # Track most recent session date (for sorting)
+            entry['total_minutes'] += session.calculated_integration_time_minutes
         if session.date_utc:
-            if objects_map[object_name]['last_session'] is None or session.date_utc > objects_map[object_name]['last_session']:
-                objects_map[object_name]['last_session'] = session.date_utc
+            if entry['last_session'] is None or session.date_utc > entry['last_session']:
+                entry['last_session'] = session.date_utc
+            if entry['first_session_date'] is None or session.date_utc < entry['first_session_date']:
+                entry['first_session_date'] = session.date_utc
+                entry['first_session_id'] = session.id
+                entry['first_session_location'] = session.location_name
 
-        # Track first (oldest) session date, id, and location (for navigation)
-        if session.date_utc:
-            if objects_map[object_name]['first_session_date'] is None or session.date_utc < objects_map[object_name]['first_session_date']:
-                objects_map[object_name]['first_session_date'] = session.date_utc
-                objects_map[object_name]['first_session_id'] = session.id
-                objects_map[object_name]['first_session_location'] = session.location_name
+        # The projects this session is ACTUALLY linked to (project_id FK and
+        # session_projects m2m), not any project whose target object merely
+        # matches the session's object.
+        for project in [session.project] + list(session.projects):
+            if project is None:
+                continue
+            represented_project_ids.add(project.id)
+            entry['_projects'].setdefault(project.id, {
+                'status': project.status,
+                'changed_at': project.sync_changed_at,
+            })
 
-    # Second pass: add zero-session projects as stub entries so they show up
-    # in the object switcher even without journal sessions yet. Keyed by object
-    # name like the first pass, so an object with both sessions and a project
-    # appears once.
-    zero_session_projects = db.query(Project).filter(
-        Project.user_id == user_id,
-        Project.target_object_record_uid.isnot(None),
-        Project.target_object_record_uid != "",
-        ~Project.target_object_record_uid.in_(linked_uids)
-    ).all()
-    for project in zero_session_projects:
+    # Second pass: add projects with no linked session as stub entries so they
+    # show up in the object switcher even without journal sessions yet. A
+    # project whose object already has an entry is MERGED (its status joins the
+    # object's project_statuses) rather than overwriting hours/dates.
+    for project in project_by_id.values():
+        if project.id in represented_project_ids:
+            continue
         astro_object = object_for_uid(db, user_id, project.target_object_record_uid)
         if not astro_object:
             continue
 
-        objects_map[astro_object.object_name] = {
-            'id': astro_object.id,
-            'name': astro_object.common_name or astro_object.object_name,
-            'catalog_id': astro_object.object_name,
-            'total_minutes': 0,
-            'last_session': None,
-            'first_session_date': None,
-            'first_session_id': None,
-            'first_session_location': None,
-            'project_status': project.status,
-            'project_id': project.id
-        }
+        object_name = astro_object.object_name
+        if object_name in objects_map:
+            entry = objects_map[object_name]
+        else:
+            entry = objects_map[object_name] = {
+                'id': astro_object.id,
+                'name': astro_object.common_name or object_name,
+                'catalog_id': object_name,
+                'total_minutes': 0,
+                'last_session': None,
+                'first_session_date': None,
+                'first_session_id': None,
+                'first_session_location': None,
+                '_projects': {},
+                'project_id': project.id,
+            }
+        entry['_projects'].setdefault(project.id, {
+            'status': project.status,
+            'changed_at': project.sync_changed_at,
+        })
 
     result = []
     for obj in objects_map.values():
@@ -406,6 +404,21 @@ def get_journal_objects():
 
         # Only include location if it's a non-empty string
         first_session_location = first_session_location.strip() if first_session_location else None
+
+        # De-duplicated list of every project status on this object.
+        project_statuses = sorted(
+            {info['status'] for info in obj['_projects'].values() if info['status']}
+        )
+
+        # Backward-compatible single status: the most recently updated project
+        # wins (latest sync_changed_at, unstamped oldest); ties break on the
+        # smallest project id.
+        primary_project = max(
+            sorted(obj['_projects'].items(), key=lambda kv: kv[0]),
+            key=lambda kv: (kv[1]['changed_at'] is not None,
+                            kv[1]['changed_at'] or datetime.min),
+        ) if obj['_projects'] else None
+        project_status = primary_project[1]['status'] if primary_project else None
 
         # Build URL with location parameter if available
         url_params = {'object_name': obj['catalog_id'], 'tab': 'journal'}
@@ -424,7 +437,8 @@ def get_journal_objects():
             'last_session': obj['last_session'].strftime('%Y-%m-%d') if obj['last_session'] else None,
             'first_session_date': obj['first_session_date'].strftime('%Y-%m-%d') if obj['first_session_date'] else None,
             'first_session_location': first_session_location,
-            'project_status': obj['project_status'],
+            'project_status': project_status,
+            'project_statuses': project_statuses,
             'url': url_for('core.graph_dashboard', **url_params, _external=False)
         })
 

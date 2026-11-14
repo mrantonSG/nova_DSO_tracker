@@ -325,7 +325,9 @@ const switcherI18n = {
     function getFiltered(items) {
         const selectedStatus = statusFilterSelect ? statusFilterSelect.value : '';
         if (selectedStatus) {
-            return items.filter(obj => obj.project_status === selectedStatus);
+            return items.filter(obj =>
+                (obj.project_statuses || [obj.project_status]).includes(selectedStatus)
+            );
         }
         return items;
     }

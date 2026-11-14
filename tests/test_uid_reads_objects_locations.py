@@ -7,7 +7,7 @@ object that was deleted is never replaced by a newer row of the same name.
 """
 import json
 import re
-from datetime import date
+from datetime import date, datetime
 
 import pytest
 
@@ -231,6 +231,63 @@ def test_switcher_lists_each_object_once(mu, db_session):
     catalog_ids = [e["catalog_id"] for e in _switcher(client)]
     assert sorted(catalog_ids) == ["M42", "NGC 7000"]
     assert len(catalog_ids) == len(set(catalog_ids))
+
+
+def test_switcher_planning_project_on_object_with_completed_project(mu, db_session):
+    """An In Planning project on an object that already has a Completed project
+    (with sessions) must still surface under the In Planning filter: one entry,
+    both statuses present, hours only from the real session."""
+    client, a_id, _ = mu
+    obj = _object(db_session, a_id, "M42")
+    completed = _project(db_session, a_id, obj=obj, name="Completed", status="Completed",
+                         sync_changed_at=datetime(2026, 1, 1))
+    planning = _project(db_session, a_id, obj=obj, name="Planning", status="In Planning",
+                        sync_changed_at=datetime(2026, 2, 1))
+    _session(db_session, a_id, obj=obj, name="M42",
+             project_id=completed.id, calculated_integration_time_minutes=120)
+    db_session.commit()
+
+    entries = _switcher(client)
+    assert len(entries) == 1
+    row = entries[0]
+    assert row["catalog_id"] == "M42"
+    assert set(row["project_statuses"]) == {"Completed", "In Planning"}
+    # Backward-compatible single status = most recently updated project.
+    assert row["project_status"] == "In Planning"
+    # Hours come only from the real session (the planning project has none).
+    assert row["total_hours"] == 2.0
+
+
+def test_switcher_single_project_object(mu, db_session):
+    """Regression: an object with a single project still reports that one
+    status and only real-session hours."""
+    client, a_id, _ = mu
+    obj = _object(db_session, a_id, "M42")
+    proj = _project(db_session, a_id, obj=obj, name="Only", status="In Progress")
+    _session(db_session, a_id, obj=obj, name="M42",
+             project_id=proj.id, calculated_integration_time_minutes=60)
+    db_session.commit()
+
+    entries = _switcher(client)
+    assert len(entries) == 1
+    row = entries[0]
+    assert row["project_status"] == "In Progress"
+    assert row["project_statuses"] == ["In Progress"]
+    assert row["total_hours"] == 1.0
+
+
+def test_switcher_session_without_project_link(mu, db_session):
+    """A session with no project link (no project_id, no m2m) still appears
+    under All, with an empty status list and no error."""
+    client, a_id, _ = mu
+    obj = _object(db_session, a_id, "M42")
+    _session(db_session, a_id, obj=obj, calculated_integration_time_minutes=60)
+    db_session.commit()
+
+    entries = _switcher(client)
+    assert len(entries) == 1
+    assert entries[0]["project_statuses"] == []
+    assert entries[0]["project_status"] is None
 
 
 # --- desktop batch ---------------------------------------------------------------------
