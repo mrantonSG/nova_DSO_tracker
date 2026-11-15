@@ -628,7 +628,7 @@ msgstr "Esta sincronización eliminaría %(deletions)s de %(records)s registros.
 #: nova/blueprints/sync_tokens.py:156
 #, python-format
 msgid "Your computer's clock is off by %(minutes)s minutes."
-msgstr "El reloj de tu equipo está desviado %(minutes)s minutos."
+msgstr "El reloj de tu ordenador está desviado %(minutes)s minutos."
 
 #: nova/blueprints/sync_tokens.py:158
 msgid "The server sent an unreadable response."
@@ -701,7 +701,7 @@ msgid ""
 "account on this computer."
 msgstr ""
 "El proyecto «%(name)s» no se sincronizó: su ID ya lo usa otra cuenta en "
-"este equipo."
+"este ordenador."
 
 #: nova/blueprints/sync_tokens.py:199
 #, python-format
@@ -725,26 +725,26 @@ msgid ""
 "\"%(name)s\": this computer's copy was not used. The server has a newer "
 "version of this record, and its file is still missing on the server."
 msgstr ""
-"«%(name)s»: no se usó la copia de este equipo. El servidor tiene una "
+"«%(name)s»: no se usó la copia de este ordenador. El servidor tiene una "
 "versión más reciente de este registro, y su archivo sigue sin estar en el "
 "servidor."
 
 #: templates/sync_tokens.html:266 templates/sync_tokens.html:422
 msgid "Use this computer's copy"
-msgstr "Usar la copia de este equipo"
+msgstr "Usar la copia de este ordenador"
 
 #: templates/sync_tokens.html:423
 msgid ""
 "Send this computer's copy of the file to the server with the next sync? It"
 " becomes the record's file everywhere."
 msgstr ""
-"¿Enviar la copia del archivo de este equipo al servidor en la próxima "
+"¿Enviar la copia del archivo de este ordenador al servidor en la próxima "
 "sincronización? Pasará a ser el archivo del registro en todas partes."
 
 #: nova/blueprints/sync_tokens.py:563
 msgid "This computer's copy of the file will be sent with the next sync."
 msgstr ""
-"La copia del archivo de este equipo se enviará en la próxima "
+"La copia del archivo de este ordenador se enviará en la próxima "
 "sincronización."
 
 #: nova/blueprints/sync_tokens.py:567
@@ -764,7 +764,7 @@ msgstr[1] ""
 #: nova/blueprints/sync_tokens.py:215
 #, python-format
 msgid "%(name)s — this computer's version kept"
-msgstr "%(name)s — se conserva la versión de este equipo"
+msgstr "%(name)s — se conserva la versión de este ordenador"
 
 #: nova/blueprints/sync_tokens.py:216
 #, python-format
