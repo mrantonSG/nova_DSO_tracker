@@ -4566,6 +4566,19 @@ msgstr "较差视宁度（> 4.0\" FWHM）"
 msgid "Sort rigs by:"
 msgstr "设备排序方式："
 
+#: templates/config_form.html:557
+msgid "Filter by telescope:"
+msgstr "按望远镜筛选："
+
+#: templates/config_form.html:559 templates/config_form.html:711
+msgid "All telescopes"
+msgstr "全部望远镜"
+
+#: templates/config_form.html:712
+#, python-brace-format
+msgid "{shown} of {total}"
+msgstr "{shown} / {total}"
+
 #: templates/config_form.html:546
 msgid "Name (A→Z)"
 msgstr "名称（A→Z）"

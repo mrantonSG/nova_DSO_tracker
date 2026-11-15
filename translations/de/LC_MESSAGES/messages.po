@@ -4766,6 +4766,19 @@ msgstr "Schlechtes Seeing (> 4.0\" FWHM)"
 msgid "Sort rigs by:"
 msgstr "Sortieren der Rigs:"
 
+#: templates/config_form.html:557
+msgid "Filter by telescope:"
+msgstr "Nach Teleskop filtern:"
+
+#: templates/config_form.html:559 templates/config_form.html:711
+msgid "All telescopes"
+msgstr "Alle Teleskope"
+
+#: templates/config_form.html:712
+#, python-brace-format
+msgid "{shown} of {total}"
+msgstr "{shown} von {total}"
+
 #: templates/config_form.html:546
 msgid "Name (A→Z)"
 msgstr "Name (A→Z)"

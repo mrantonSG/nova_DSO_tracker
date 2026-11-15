@@ -1,5 +1,5 @@
     // --- Global variables (defined in inline template script) ---
-    // CURRENT_USERNAME, rigsData, rigsDataLoaded, rigSort are all defined in the inline script
+    // CURRENT_USERNAME, rigsData, rigsDataLoaded, rigSort, rigTelescopeFilter are defined in the inline script
 
     // --- DEBUG ---
     console.log('[CONFIG_FORM] External script loaded!');
@@ -187,12 +187,34 @@
 
         const { telescopes, cameras, reducers_extenders } = data.components;
         const { rigs } = data;
+
+        // --- Telescope filter: rebuild the dropdown options from the loaded rigs ---
+        // Distinct telescope names, alphabetical. Rigs whose telescope did not resolve
+        // (no telescope_name) are only shown under "All telescopes".
+        const distinctTelescopes = [...new Set(
+            rigs.map(r => r.telescope_name).filter(name => name)
+        )].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+        if (rigTelescopeFilter && !distinctTelescopes.includes(rigTelescopeFilter)) {
+            // Stored telescope no longer exists → fall back to "All telescopes", clear the key
+            rigTelescopeFilter = '';
+            localStorage.removeItem('rigTelescopeFilter');
+        }
+        const telescopeFilterEl = document.getElementById('rig-telescope-filter');
+        if (telescopeFilterEl) {
+            telescopeFilterEl.innerHTML = '<option value="">' + window.t('all_telescopes') + '</option>' +
+                distinctTelescopes.map(name => `<option value="${escapeHtmlAttr(name)}">${window.escapeHtml(name)}</option>`).join('');
+            telescopeFilterEl.value = rigTelescopeFilter;
+        }
+        const filteredRigs = rigTelescopeFilter
+            ? rigs.filter(r => r.telescope_name === rigTelescopeFilter)
+            : rigs;
+
         const sortSelectEl = document.getElementById('rig-sort');
         const currentSort = sortSelectEl ? (sortSelectEl.value || rigSort) : rigSort;
         if (sortSelectEl && sortSelectEl.value !== currentSort) {
             sortSelectEl.value = currentSort;
         }
-        const rigsSorted = sortRigs(rigs, currentSort);
+        const rigsSorted = sortRigs(filteredRigs, currentSort);
 
         // --- Helper to create shared/imported indicator ---
         const createIndicator = (c) => {
@@ -325,7 +347,9 @@
         document.getElementById('tele-count').innerText = telescopes.length;
         document.getElementById('cam-count').innerText = cameras.length;
         document.getElementById('red-count').innerText = reducers_extenders.length;
-        document.getElementById('rig-count').innerText = rigs.length;
+        document.getElementById('rig-count').innerText = rigTelescopeFilter
+            ? window.t('rig_count_of', { shown: filteredRigs.length, total: rigs.length })
+            : String(rigs.length);
     }
 
     function updateSamplingInfo() {
@@ -1031,6 +1055,20 @@
                 rigSort = rigSortEl.value;
                 localStorage.setItem('rigSort', rigSort);
                 fetch('/set_rig_sort_preference', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sort: rigSort }) });
+                if (rigsDataLoaded) { renderRigsUI(); updateSamplingInfo(); }
+            });
+        }
+        const rigTelescopeFilterEl = document.getElementById('rig-telescope-filter');
+        if (rigTelescopeFilterEl) {
+            rigTelescopeFilterEl.value = rigTelescopeFilter;
+            rigTelescopeFilterEl.addEventListener('change', () => {
+                rigTelescopeFilter = rigTelescopeFilterEl.value;
+                if (rigTelescopeFilter) {
+                    localStorage.setItem('rigTelescopeFilter', rigTelescopeFilter);
+                } else {
+                    localStorage.removeItem('rigTelescopeFilter');
+                }
+                // renderRigsUI re-applies the current sort from its own select — neither resets the other
                 if (rigsDataLoaded) { renderRigsUI(); updateSamplingInfo(); }
             });
         }

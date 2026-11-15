@@ -553,6 +553,12 @@
                     <option value="recent-asc">{{ _('Recently Added (oldest first)') }}</option>
                 </select>
             </div>
+            <div class="form-group">
+                <label for="rig-telescope-filter">{{ _('Filter by telescope:') }}</label>
+                <select id="rig-telescope-filter">
+                    <option value="">{{ _('All telescopes') }}</option>
+                </select>
+            </div>
             <h3>{{ _('Existing Rigs') }} (<span id="rig-count">0</span>)</h3>
             <ul id="existing-rigs-list"></ul>
         </div>
@@ -707,6 +713,10 @@
     // Rig "Inactive" tag: translated here, read in config_form.js via window.t()
     window.novaI18n.rig_inactive = {{ _('Inactive') | tojson }};
 
+    // Rig telescope filter: dropdown label and "X of N" count, read in config_form.js via window.t()
+    window.novaI18n.all_telescopes = {{ _('All telescopes') | tojson }};
+    window.novaI18n.rig_count_of = {{ _('{shown} of {total}') | tojson }};
+
     // Rig delete confirm text, read in config_form.js via window.t()
     window.novaI18n.rig_delete_confirm = {{ _("Are you sure you want to delete the rig '{name}'?") | tojson }};
     window.novaI18n.rig_delete_confirm_framings = {{ _("Are you sure you want to delete the rig '{name}'? This will also delete {framings} saved framing(s) that use it.") | tojson }};
@@ -716,6 +726,7 @@
     let rigsData = {}; // Store all rig data globally
     let rigsDataLoaded = false;
     let rigSort = localStorage.getItem('rigSort') || 'name-asc';    console.log('Inline script loaded, rigsData:', typeof rigsData, rigsData);
+    let rigTelescopeFilter = localStorage.getItem('rigTelescopeFilter') || '';
 
     // --- Theme Preference Live Preview ---
     document.addEventListener('DOMContentLoaded', function() {
