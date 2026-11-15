@@ -6114,7 +6114,7 @@ msgstr "或输入名称..."
 #: templates/mobile_up_now.html:991 templates/sync_tokens.html:151
 #: templates/sync_tokens.html:198 templates/sync_tokens.html:360
 msgid "Apply"
-msgstr "申请"
+msgstr "应用"
 
 #: templates/mobile_up_now.html:1000
 msgid "No objects found. Try adding one!"

@@ -6317,7 +6317,7 @@ msgstr "o escribe el nombre..."
 #: templates/mobile_up_now.html:991 templates/sync_tokens.html:151
 #: templates/sync_tokens.html:198 templates/sync_tokens.html:360
 msgid "Apply"
-msgstr "Solicitar"
+msgstr "Aplicar"
 
 #: templates/mobile_up_now.html:1000
 msgid "No objects found. Try adding one!"
