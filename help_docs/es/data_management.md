@@ -28,7 +28,7 @@ Haga clic en el menú desplegable **Importar ▼** para cargar datos desde un ar
 
 **4. Sincronización**
 
-Haga clic en **Sincronización** para mantener sincronizadas esta instancia de Nova y su cuenta en app.nova-tracker.com — objetos, ubicaciones, equipos, proyectos, sesiones del diario, fotos y archivos de registro. Cada ordenador que sincroniza necesita su propio token, de modo que varios ordenadores pueden seguir una misma cuenta en el servidor. En una instalación multiusuario, **Sincronizar con un servidor** solo aparece si un administrador lo ha activado — consulta la ayuda de la página **Sincronización**.
+Haga clic en **Sincronización** para mantener sincronizadas esta instancia de Nova y su cuenta en app.nova-tracker.com — objetos, ubicaciones, equipos, proyectos, sesiones del diario, fotos y archivos de registro. Cada ordenador que sincroniza necesita su propio token, de modo que varios ordenadores pueden seguir una misma cuenta en el servidor. En una instalación multiusuario, **Sincronizar con un servidor** solo aparece si un administrador lo ha activado — consulte la ayuda de la página **Sincronización**.
 
 * **Preparación:** En el servidor, haga clic en **Sincronización** y cree un token en **Usar esta instancia de Nova como servidor**. Solo se muestra una vez, así que cópielo de inmediato. En el otro ordenador, haga clic en **Sincronización**, introduzca la **URL del servidor** y el **Token de sincronización** y haga clic en **Conectar**.
 * **¿Sus datos están solo en este ordenador por ahora?** Exporte sus datos con **Descargar ▼**, importe esos archivos YAML en el servidor y conéctese solo después: un servidor que no contiene datos rechaza la descarga.
