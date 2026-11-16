@@ -78,6 +78,14 @@ const out = {
     localRoots: (input.localRoots || []).map(([v, s]) => fu.localHipsRoot(v, s)),
     absoluteRoots: (input.absoluteRoots || []).map(([r, o]) => fu.absoluteHipsRoot(r, o)),
     offlineRoots: (input.offlineRoots || []).map(r => fu.offlineHipsRoot(r)),
+    // The URL a local survey actually hands to Aladin: localHipsRoot -> (offline)
+    // -> absoluteHipsRoot, i.e. the same chain resolveHipsId runs in the chart.
+    resolvedToAladin: (input.resolvedToAladin || []).map(([id, map, origin, offline]) => {
+        const local = fu.localHipsRoot(id, map);
+        if (!local) return null;
+        const root = offline ? fu.offlineHipsRoot(local) : local;
+        return fu.absoluteHipsRoot(root, origin);
+    }),
     suggested: (input.suggested || []).map(([w, lo, hi]) => fu.suggestedOrderForFov(w, lo, hi)),
 };
 fs.writeFileSync(outFile, JSON.stringify(out));
@@ -93,12 +101,13 @@ def run_utils(tmp_path_factory):
     driver.write_text(_DRIVER, encoding="utf-8")
 
     def run(choose=(), is_cds=(), races=(), local_roots=(), absolute_roots=(),
-            offline_roots=(), suggested=()):
+            offline_roots=(), suggested=(), resolved_to_aladin=()):
         inp, out = tmp / "in.json", tmp / "out.json"
         inp.write_text(json.dumps({"choose": list(choose), "isCds": list(is_cds),
                                    "races": list(races), "localRoots": list(local_roots),
                                    "absoluteRoots": list(absolute_roots),
                                    "offlineRoots": list(offline_roots),
+                                   "resolvedToAladin": list(resolved_to_aladin),
                                    "suggested": list(suggested)}),
                        encoding="utf-8")
         proc = subprocess.run([NODE, str(driver), str(UTILS), str(inp), str(out)],
@@ -418,6 +427,27 @@ def test_suggested_order_from_fov(run_utils):
         [0, 4, 9],       # no frame width -> cap
     ])["suggested"]
     assert res == [7, 8, 6, 9]
+
+
+def test_local_survey_never_reaches_aladin_without_http(run_utils):
+    """Every whitelisted survey resolves to an absolute /hips/ URL before it reaches
+    Aladin -- both in the online (proxy) and offline (cache-only) view -- so Aladin
+    can never treat the local root as a HiPS ID to look up on MocServer. A survey
+    outside the whitelist has no local root at all (nothing relative leaks)."""
+    surveys = {
+        "P/DSS2/color": {"root": "/hips/dss2-color", "maxOrder": 9},
+        "P/2MASS/color": {"root": "/hips/2mass-color", "maxOrder": 9},
+        "https://www.simg.de/nebulae3/dr0_2/rgb8": {"root": "/hips/nsns-rgb8", "maxOrder": 9},
+    }
+    cases = [[sid, surveys, "https://nova.example.com", offline]
+             for sid in surveys for offline in (False, True)]
+    resolved = run_utils(resolved_to_aladin=cases)["resolvedToAladin"]
+    assert len(resolved) == 6
+    assert all(u and u.startswith("http") for u in resolved), resolved
+    outside = run_utils(resolved_to_aladin=[
+        ["P/Some/legacy", surveys, "https://nova.example.com", False],
+    ])["resolvedToAladin"]
+    assert outside == [None]
 
 
 def test_resolve_hips_id_uses_absolute_root_for_local_surveys():
