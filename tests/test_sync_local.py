@@ -319,6 +319,10 @@ def test_every_file_write_is_atomic_or_outside_uploads_and_logs():
         # Thumbnails built once a DeferredWrites upload is live, each through
         # write_file_atomic.
         "_make_thumbnail", "_after_publish",
+        # Offline-sky store: _write_bytes is always the writer body passed to
+        # write_file_atomic, so its raw open() lands on the temp file that
+        # write_file_atomic fsyncs and os.replace's.
+        "_write_bytes",
     }
     NON_UPLOAD_LOG = {
         # Writes files that never live under uploads/ or logs/, so a hard-link

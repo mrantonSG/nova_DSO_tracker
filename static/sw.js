@@ -48,6 +48,11 @@ self.addEventListener('fetch', (event) => {
     // an empty 503 that callers would take for a real answer.
     if (event.request.method !== 'GET') return;
     if (new URL(event.request.url).origin !== self.location.origin) return;
+    // Survey tiles are served by the server's own /hips/ proxy; pass them through
+    // untouched. Responding with a synthetic empty 503 here would be mistaken by
+    // the sky viewer for a real answer, exactly what the cross-origin pass-through
+    // above avoids.
+    if (new URL(event.request.url).pathname.startsWith('/hips/')) return;
 
     // Network-first for same-origin GET requests
     event.respondWith(

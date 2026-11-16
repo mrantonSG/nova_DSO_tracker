@@ -941,6 +941,25 @@ window.framingUtils_chooseBaseSurvey = function(opts) {
     return { survey, notice: true };
 };
 
+/**
+ * The local /hips/ root for a survey value, when the offline-sky proxy is on.
+ *
+ * `localSurveys` is window.NOVA_OFFLINE_SKY_SURVEYS — a map from the survey
+ * value (a CDS HiPS ID like "P/DSS2/color" or an NSNS URL) to {root, maxOrder},
+ * injected by the server from nova.offline_sky_sources.build_js_map(). Returns
+ * the local root (e.g. "/hips/dss2-color"), or null when `value` isn't a
+ * whitelisted survey or the proxy is off.
+ *
+ * @param {string} value - The survey value to resolve
+ * @param {Object} localSurveys - window.NOVA_OFFLINE_SKY_SURVEYS (or null)
+ * @returns {string|null}
+ */
+window.framingUtils_localHipsRoot = function(value, localSurveys) {
+    if (typeof value !== 'string' || !localSurveys) return null;
+    const m = localSurveys[value];
+    return (m && m.root) ? m.root : null;
+};
+
 // ==========================================================================
 // GLOBAL EXPORTS
 // ==========================================================================
@@ -984,4 +1003,5 @@ window.framingUtils = {
     decideSurveyProbe: window.framingUtils_decideSurveyProbe,
     isCdsUrl: window.framingUtils_isCdsUrl,
     chooseBaseSurvey: window.framingUtils_chooseBaseSurvey,
+    localHipsRoot: window.framingUtils_localHipsRoot,
 };

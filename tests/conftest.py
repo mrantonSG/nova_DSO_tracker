@@ -111,6 +111,7 @@ _CACHE_DIR_MODULES = (
     'nova.blueprints.tools',
     'nova.workers.heatmap',
     'nova.sync_transport',
+    'nova.offline_sky_store',
 )
 
 

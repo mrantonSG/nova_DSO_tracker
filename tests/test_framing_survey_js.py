@@ -75,6 +75,7 @@ const out = {
     choose: input.choose.map(c => fu.chooseBaseSurvey(c)),
     isCds: input.isCds.map(u => fu.isCdsUrl(u)),
     races: (input.races || []).map(simulate),
+    localRoots: (input.localRoots || []).map(([v, s]) => fu.localHipsRoot(v, s)),
 };
 fs.writeFileSync(outFile, JSON.stringify(out));
 """
@@ -88,9 +89,10 @@ def run_utils(tmp_path_factory):
     driver = tmp / "driver.cjs"
     driver.write_text(_DRIVER, encoding="utf-8")
 
-    def run(choose=(), is_cds=(), races=()):
+    def run(choose=(), is_cds=(), races=(), local_roots=()):
         inp, out = tmp / "in.json", tmp / "out.json"
-        inp.write_text(json.dumps({"choose": list(choose), "isCds": list(is_cds), "races": list(races)}),
+        inp.write_text(json.dumps({"choose": list(choose), "isCds": list(is_cds),
+                                   "races": list(races), "localRoots": list(local_roots)}),
                        encoding="utf-8")
         proc = subprocess.run([NODE, str(driver), str(UTILS), str(inp), str(out)],
                               capture_output=True, text=True, timeout=60)
@@ -336,3 +338,30 @@ def test_every_mapped_survey_is_on_cds_and_nsns_options_are_not(run_utils):
     flags = run_utils(is_cds=mapped + nsns_options)["isCds"]
     assert flags == [True] * len(mapped) + [False] * len(nsns_options)
     assert NSNS in nsns_options
+
+
+def test_local_hips_root(run_utils):
+    """localHipsRoot maps a whitelisted survey value to its /hips/ root; null otherwise.
+
+    The map is what the server injects as window.NOVA_OFFLINE_SKY_SURVEYS from
+    nova.offline_sky_sources.build_js_map(); the frontend must resolve both CDS
+    HiPS IDs and NSNS URLs through it, and leave anything unknown alone.
+    """
+    surveys = {
+        "P/DSS2/color": {"root": "/hips/dss2-color", "maxOrder": 9},
+        "https://www.simg.de/nebulae3/dr0_2/rgb8": {"root": "/hips/nsns-rgb8", "maxOrder": 9},
+    }
+    cases = [
+        ["P/DSS2/color", surveys],
+        ["https://www.simg.de/nebulae3/dr0_2/rgb8", surveys],
+        ["P/2MASS/color", surveys],          # not in this map -> null
+        [None, surveys],
+        ["P/DSS2/color", None],              # proxy off -> null
+    ]
+    assert run_utils(local_roots=cases)["localRoots"] == [
+        "/hips/dss2-color",
+        "/hips/nsns-rgb8",
+        None,
+        None,
+        None,
+    ]

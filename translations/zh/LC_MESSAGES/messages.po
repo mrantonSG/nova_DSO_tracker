@@ -8162,6 +8162,15 @@ msgstr "输入服务器 URL 和在那里创建的同步令牌。"
 msgid "This sync will delete a large number of records."
 msgstr "此同步将删除大量记录。"
 
+#: templates/base.html
+msgid "The Framing Assistant requires an active internet connection to load sky surveys."
+msgstr "构图助手需要有效的网络连接才能加载巡天图像。"
+
+#: templates/base.html
+msgid "Failed to initialize sky viewer. Please refresh and try again."
+msgstr "无法初始化天空查看器。请刷新后重试。"
+
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "刷新建议"
 

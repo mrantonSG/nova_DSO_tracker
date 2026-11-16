@@ -68,6 +68,20 @@ SECRET_KEY = config('SECRET_KEY', default=secrets.token_hex(32))
 STELLARIUM_ERROR_MESSAGE = os.getenv("STELLARIUM_ERROR_MESSAGE")
 NOVA_CATALOG_URL = config('NOVA_CATALOG_URL', default='')
 
+# --- Offline sky (survey tile proxy + on-disk cache) ---
+# Off by default; enable with OFFLINE_SKY_STORE=server in instance/.env.
+# "server": cache and serve survey tiles through the same-origin /hips/ proxy,
+#   stored under instance/cache/hips and shared across all users of the instance.
+# "off": routes return 404 and the browser talks to CDS/mirrors directly.
+OFFLINE_SKY_STORE = config('OFFLINE_SKY_STORE', default='off')
+# Cap for browsed (non-pinned) tiles, in MiB, per instance. 0 or negative = no cap (unlimited).
+OFFLINE_SKY_CACHE_MB = config('OFFLINE_SKY_CACHE_MB', default=2048, cast=int)
+
+
+def offline_sky_enabled() -> bool:
+    return OFFLINE_SKY_STORE == 'server'
+
+
 # --- File uploads ---
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 

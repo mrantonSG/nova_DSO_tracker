@@ -8184,6 +8184,15 @@ msgstr "サーバー URL と、そこで作成した同期トークンを入力�
 msgid "This sync will delete a large number of records."
 msgstr "この同期は多数のレコードを削除します。"
 
+#: templates/base.html
+msgid "The Framing Assistant requires an active internet connection to load sky surveys."
+msgstr "フレーミングアシスタントが天体サーベイを読み込むには、アクティブなインターネット接続が必要です。"
+
+#: templates/base.html
+msgid "Failed to initialize sky viewer. Please refresh and try again."
+msgstr "スカイビューアを初期化できませんでした。再読み込みして再試行してください。"
+
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "更新提案"
 

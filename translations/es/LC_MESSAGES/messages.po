@@ -8533,6 +8533,15 @@ msgstr "Introduce la URL del servidor y un token de sincronización creado allí
 msgid "This sync will delete a large number of records."
 msgstr "Esta sincronización eliminará una gran cantidad de registros."
 
+#: templates/base.html
+msgid "The Framing Assistant requires an active internet connection to load sky surveys."
+msgstr "El asistente de encuadre requiere una conexión a Internet activa para cargar los sondeos del cielo."
+
+#: templates/base.html
+msgid "Failed to initialize sky viewer. Please refresh and try again."
+msgstr "No se pudo inicializar el visor del cielo. Actualice e inténtelo de nuevo."
+
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Actualizar sugerencias"
 

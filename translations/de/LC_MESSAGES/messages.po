@@ -8569,6 +8569,15 @@ msgstr "Geben Sie die Server-URL und ein dort erstelltes Sync-Token ein."
 msgid "This sync will delete a large number of records."
 msgstr "Diese Synchronisierung löscht eine große Anzahl von Datensätzen."
 
+#: templates/base.html
+msgid "The Framing Assistant requires an active internet connection to load sky surveys."
+msgstr "Der Framing-Assistent benötigt eine aktive Internetverbindung, um Himmelsdurchmusterungen zu laden."
+
+#: templates/base.html
+msgid "Failed to initialize sky viewer. Please refresh and try again."
+msgstr "Der Himmel-Viewer konnte nicht initialisiert werden. Bitte aktualisieren und erneut versuchen."
+
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Vorschläge aktualisieren"
 

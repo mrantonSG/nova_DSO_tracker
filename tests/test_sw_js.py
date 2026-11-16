@@ -113,3 +113,13 @@ def test_same_origin_get_unchanged(run_sw):
     assert results[0] == {"responded": True, "status": 200, "body": "network " + ORIGIN + "/static/css/mobile.css"}
     assert results[1] == {"responded": True, "status": 200, "body": "cached /m"}
     assert results[2] == {"responded": True, "status": 503, "body": ""}
+
+
+def test_hips_tiles_pass_through(run_sw):
+    """Same-origin /hips/ tiles go straight to the server, up or down -- never an
+    empty 503 that the sky viewer would take for a real answer."""
+    results = run_sw([
+        {"method": "GET", "url": ORIGIN + "/hips/dss2-color/properties", "networkUp": True},
+        {"method": "GET", "url": ORIGIN + "/hips/dss2-color/Norder3/Dir0/Npix0.jpg", "networkUp": False},
+    ])
+    assert results == [{"responded": False}, {"responded": False}]

@@ -96,6 +96,13 @@
 
     function resolveHipsId(idOrUrl) {
         if (typeof idOrUrl !== "string") return idOrUrl;
+        // Offline sky on: a whitelisted survey resolves to the same-origin proxy
+        // root; the server does the CDS/mirror failover, so no direct URL here.
+        if (window.NOVA_OFFLINE_SKY) {
+            const local = window.framingUtils && window.framingUtils.localHipsRoot
+                ? window.framingUtils.localHipsRoot(idOrUrl, window.NOVA_OFFLINE_SKY_SURVEYS) : null;
+            if (local) return local;
+        }
         if (idOrUrl.startsWith("http")) return idOrUrl;
         return HIPS_ID_TO_URL[idOrUrl] || idOrUrl;
     }
@@ -200,6 +207,14 @@
 
     // The survey to display for a requested select/saved value; see framingUtils.chooseBaseSurvey
     function chooseDisplayedBase(value) {
+        // Offline sky on: the proxy serves the requested survey and fails over to
+        // the mirrors itself. Keep the requested value (so labels and credits stay
+        // keyed on it); only the tile URL becomes local via resolveHipsId. The
+        // "unreachable" notice still reflects the CDS probe.
+        if (window.NOVA_OFFLINE_SKY && window.NOVA_OFFLINE_SKY_SURVEYS
+                && Object.prototype.hasOwnProperty.call(window.NOVA_OFFLINE_SKY_SURVEYS, value)) {
+            return { survey: value, notice: !cdsReachable };
+        }
         const known = typeof value === 'string' && (value.startsWith('http') || Object.prototype.hasOwnProperty.call(HIPS_ID_TO_URL, value));
         return window.framingUtils.chooseBaseSurvey({
             requested: value,
@@ -661,6 +676,9 @@
     function displayOfflineMessage(containerId, message) {
         const container = document.getElementById(containerId);
         if (!container) return;
+        // Never wipe a live Aladin view: once the sky is up, an offline
+        // condition is surfaced via showSurveyNotice(), not by replacing the DOM.
+        if (aladin) return;
     
         // A simple, embedded SVG icon for "no connection"
         const offlineIconSvg = `
@@ -2426,12 +2444,13 @@
             });
         }
 
-        // --- MODIFIED: Check for internet connection first ---
-        if (!navigator.onLine) {
-            displayOfflineMessage('aladin-lite-div', 'The Framing Assistant requires an active internet connection to load sky surveys.');
+        // --- Check for internet connection first ---
+        // With the offline-sky proxy on, cached tiles are served locally, so open
+        // the modal and let the notice fire only if the base layer actually fails.
+        if (!navigator.onLine && !window.NOVA_OFFLINE_SKY) {
+            displayOfflineMessage('aladin-lite-div', window.t('framing_requires_internet'));
             return; // Stop execution if offline
         }
-        // --- END OF MODIFICATION ---
 
         const framingRigSelect = document.getElementById('framing-rig-select');
         let _rigParams = null;
@@ -2470,7 +2489,15 @@
         resetSurveyNotice();
         // Placeholder only when Aladin still has to be created (not over a cached view)
         if (!aladin && !framingModalController?.getCachedInstance()) showSurveyLoading();
-        ({ cdsReachable, dssMirror } = await probeSurveySources());
+        if (window.NOVA_OFFLINE_SKY) {
+            // No browser-side CDS probe: the proxy handles failover itself, and
+            // the "server unreachable" notice comes only from the base layer's
+            // errorCallback, never from browser-to-CDS reachability.
+            cdsReachable = true;
+            dssMirror = null;
+        } else {
+            ({ cdsReachable, dssMirror } = await probeSurveySources());
+        }
 
         // Check if Aladin instance is cached (already initialized from previous modal open)
         if (!aladin && framingModalController) {
@@ -2489,7 +2516,7 @@
                 const initialName = surveyOptionLabel(initialBase.survey) || initialUrl;
                 aladin = A.aladin('#aladin-lite-div', {
                     survey: A.HiPS(initialUrl, { name: initialName, cooFrame: 'equatorial', maxOrder: 9, errorCallback: onSurveyLayerError }),
-                    fov: FRAMING_CONFIG.DEFAULT_FOV,
+                    fov: FRAMING_CONFIG.DEFAULT_FOV_DEG,
                     cooFrame: 'ICRS',
                     showFullscreenControl: false,
                     showGotoControl: false,
@@ -2538,7 +2565,7 @@
             (function wireInsertIntoProject(){ const btn = document.getElementById('insert-into-project'); if (!btn) return; try { btn.removeEventListener('click', btn.__novaInsertHandler); } catch(e) {} btn.__novaInsertHandler = (ev) => { try { const q = buildFramingQuery(), href = location.pathname + q; history.replaceState(null, '', href); } catch(e) { console.warn('[nova] Insert-to-project wiring error:', e); } }; btn.addEventListener('click', btn.__novaInsertHandler); })();
             } catch (initErr) {
                 console.error('[FRAMING] Aladin initialization failed:', initErr);
-                displayOfflineMessage('aladin-lite-div', 'Failed to initialize sky viewer. Please refresh and try again.');
+                displayOfflineMessage('aladin-lite-div', window.t('framing_init_failed'));
                 return;
             }
         }

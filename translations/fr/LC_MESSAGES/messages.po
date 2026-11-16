@@ -8582,6 +8582,15 @@ msgstr "Saisissez l'URL du serveur et un jeton de synchronisation créé là-bas
 msgid "This sync will delete a large number of records."
 msgstr "Cette synchronisation supprimera un grand nombre d'enregistrements."
 
+#: templates/base.html
+msgid "The Framing Assistant requires an active internet connection to load sky surveys."
+msgstr "L'assistant de cadrage nécessite une connexion Internet active pour charger les relevés du ciel."
+
+#: templates/base.html
+msgid "Failed to initialize sky viewer. Please refresh and try again."
+msgstr "Impossible d'initialiser la visionneuse du ciel. Veuillez actualiser et réessayer."
+
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Suggestions de rafraîchissement"
 

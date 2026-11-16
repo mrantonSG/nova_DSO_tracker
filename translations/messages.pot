@@ -8084,3 +8084,11 @@ msgid ""
 "It becomes the record's file everywhere."
 msgstr ""
 
+#: templates/base.html
+msgid "The Framing Assistant requires an active internet connection to load sky surveys."
+msgstr ""
+
+#: templates/base.html
+msgid "Failed to initialize sky viewer. Please refresh and try again."
+msgstr ""
+

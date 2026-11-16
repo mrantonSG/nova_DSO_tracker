@@ -137,7 +137,8 @@ from nova.config import (
     weather_cache, CATALOG_MANIFEST_CACHE,
     _telemetry_startup_once, TELEMETRY_DEBUG_STATE, TRANSLATION_STATUS,
     AI_PROVIDER, AI_API_KEY, AI_MODEL, AI_BASE_URL, AI_ALLOWED_USERS,
-    ADMIN_USERS
+    ADMIN_USERS,
+    offline_sky_enabled,
 )
 from nova.helpers import (
     get_db, get_user_log_string, allowed_file, _yaml_dump_pretty,
@@ -176,6 +177,7 @@ from nova.blueprints.projects import projects_bp
 from nova.blueprints.tools import tools_bp
 from nova.blueprints.sync_api import sync_api_bp
 from nova.blueprints.sync_tokens import sync_bp
+from nova.blueprints.offline_sky import offline_sky_bp
 from nova.ai.routes import register_ai_blueprint
 
 
@@ -1696,6 +1698,10 @@ app.json = NumpyJSONProvider(app)
 @app.after_request
 def set_cache_headers(response):
     path = request.path
+    if path.startswith('/hips/'):
+        # Offline-sky proxy sets its own per-response Cache-Control (immutable
+        # tiles, short-lived properties); don't stamp no-store over it.
+        return response
     if path.startswith('/static/'):
         response.headers['Cache-Control'] = 'public, max-age=604800'  # 1 week
     elif path.startswith('/uploads/'):
@@ -1911,6 +1917,14 @@ def load_global_request_context():
 
     # 1. Skip all expensive logic for static files
     if request.endpoint in ('static', 'core.favicon'):
+        return
+
+    # 1b. The /hips/ tile proxy is public and stateless: survey tiles are shared
+    # across every user of the instance, so a tile fetch must not provision a
+    # user, load prefs, touch last-seen or hit the login gate.
+    if request.path.startswith('/hips/'):
+        g.db_user = None
+        g.is_guest = False
         return
 
     # 2. Handle Single-User-Mode login bypass
@@ -3452,6 +3466,26 @@ def inject_version():
     return dict(version=APP_VERSION)
 
 
+@app.context_processor
+def inject_offline_sky():
+    """Offline-sky flags for templates/JS (window.NOVA_OFFLINE_SKY[_SURVEYS]).
+
+    The survey map comes from nova.offline_sky_sources.build_js_map() -- the same
+    whitelist the /hips/ proxy serves from -- so the frontend can't drift from it.
+
+    In multi-user mode a guest or unauthenticated request gets the flag off and
+    an empty map, so its browser keeps the direct CDS path (the /hips/ proxy is
+    denied to it anyway).
+    """
+    if not offline_sky_enabled():
+        return {"OFFLINE_SKY_ENABLED": False, "OFFLINE_SKY_SURVEYS": {}}
+    from flask_login import current_user
+    if not SINGLE_USER_MODE and not current_user.is_authenticated:
+        return {"OFFLINE_SKY_ENABLED": False, "OFFLINE_SKY_SURVEYS": {}}
+    from nova.offline_sky_sources import build_js_map
+    return {"OFFLINE_SKY_ENABLED": True, "OFFLINE_SKY_SURVEYS": build_js_map()}
+
+
 
 
 
@@ -4549,6 +4583,7 @@ app.register_blueprint(admin_bp)
 # Instance sync: the session-authenticated token page and the token-only API.
 app.register_blueprint(sync_bp)
 app.register_blueprint(sync_api_bp)
+app.register_blueprint(offline_sky_bp)
 
 # Register AI blueprint (conditional on AI_API_KEY being set)
 register_ai_blueprint(app)
