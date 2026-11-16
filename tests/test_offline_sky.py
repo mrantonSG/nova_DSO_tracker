@@ -12,7 +12,9 @@ load_global_request_context returns early for them).
 
 import json
 import os
+import threading
 import time
+import uuid
 
 import pytest
 import requests
@@ -397,10 +399,14 @@ def test_eviction_respects_pin_manifest(monkeypatch):
     rels = _store_n_tiles(4, 400 * 1024)
     _age_tiles(rels, time.time())
 
-    # Step 3 seam: a pin manifest lists the oldest tile; eviction must skip it.
-    os.makedirs(hips_root(), exist_ok=True)
-    with open(os.path.join(hips_root(), ".pins.json"), "w", encoding="utf-8") as fh:
-        json.dump({"paths": [f"{DSS_COLOR}/{rels[0]}"]}, fh)
+    # A save manifest lists the oldest tile; eviction must skip it.
+    from nova.offline_sky_store import write_save_manifest
+    write_save_manifest({
+        "id": "00000000-0000-0000-0000-000000000001", "user_id": 1, "name": "x",
+        "ra": 0.0, "dec": 0.0, "radius_deg": 1.0, "surveys": [DSS_COLOR],
+        "max_order": 3, "created": "2026-01-01T00:00:00Z",
+        "paths": [f"{DSS_COLOR}/{rels[0]}"], "bytes": 0,
+    })
 
     evict_browsed()
     assert read_file(DSS_COLOR, rels[0]) is not None   # pinned, kept
@@ -514,3 +520,249 @@ def test_inject_offline_sky_multi_user_auth(monkeypatch, multi_user_client):
         uid = sess["_user_id"]
     assert _render_offline_flag(client, monkeypatch,
                                 session_updates={"_user_id": uid}) == "True"
+
+
+# ---------------------------------------------------------------------------
+# Cache-only mode (/hips/offline/...)
+# ---------------------------------------------------------------------------
+
+def test_cache_only_tile_serves_disk_and_404s_without_fetch(client, monkeypatch):
+    _server_on(monkeypatch)
+    store_file(DSS_COLOR, "Norder3/Dir0/Npix0.jpg", b"FAKEJPEG")
+
+    def fail(base, url):
+        raise AssertionError("cache-only must not hit upstream")
+
+    monkeypatch.setattr("nova.blueprints.offline_sky._fetch_upstream", fail)
+    assert client.get("/hips/offline/dss2-color/Norder3/Dir0/Npix0.jpg").status_code == 200
+    assert client.get("/hips/offline/dss2-color/Norder3/Dir0/Npix5.jpg").status_code == 404
+
+
+def test_cache_only_properties_serves_stale_and_404s(client, monkeypatch):
+    _server_on(monkeypatch)
+    store_file(DSS_COLOR, "properties", b"hips_order=9\n", count=False)
+    old = time.time() - 8 * 86400
+    os.utime(os.path.join(survey_dir(DSS_COLOR), "properties"), (old, old))
+
+    def fail(base, url):
+        raise AssertionError("cache-only properties must not hit upstream")
+
+    monkeypatch.setattr("nova.blueprints.offline_sky._fetch_upstream", fail)
+    # stale but present -> 200 from disk
+    assert client.get("/hips/offline/dss2-color/properties").status_code == 200
+    # absent -> 404, no upstream
+    assert client.get("/hips/offline/allwise-color/properties").status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Base job
+# ---------------------------------------------------------------------------
+
+def _fast_job(monkeypatch):
+    import nova.offline_sky_jobs as jobs
+    monkeypatch.setattr(jobs, "OFFLINE_SKY_JOB_DELAY_SECONDS", 0)
+    monkeypatch.setattr(jobs, "_fetch_tile_format_ext", lambda slug: "jpg")
+    monkeypatch.setattr(jobs, "_throttled_fetch", lambda base, url: b"FAKE")
+
+
+def test_base_job_enumerates_orders_0_to_N_and_pins(monkeypatch):
+    import nova.offline_sky_jobs as jobs
+    from nova.offline_sky_store import base_pinned_rel_paths
+    _fast_job(monkeypatch)
+
+    jobs._run_base(DSS_COLOR, "base:dss2-color", threading.Event())
+
+    assert jobs.base_complete(DSS_COLOR)
+    pins = base_pinned_rel_paths()
+    assert f"{DSS_COLOR}/Allsky.jpg" in pins
+    assert f"{DSS_COLOR}/Norder0/Dir0/Npix11.jpg" in pins      # last tile of order 0
+    assert f"{DSS_COLOR}/Norder3/Dir0/Npix767.jpg" in pins     # last tile of order 3
+    assert not any("Norder4" in p for p in pins)               # base stops at order 3
+
+
+def test_base_complete_when_already_cached(monkeypatch):
+    import nova.offline_sky_jobs as jobs
+    monkeypatch.setattr(jobs, "_cached_tile_ext", lambda slug: "jpg")
+    assert not jobs.base_complete(DSS_COLOR)
+    for rel in jobs.base_rel_paths(DSS_COLOR, "jpg"):
+        store_file(DSS_COLOR, rel, b"X", count=False)
+    assert jobs.base_complete(DSS_COLOR)
+
+
+# ---------------------------------------------------------------------------
+# Save job
+# ---------------------------------------------------------------------------
+
+def _manifest(**kw):
+    base = {
+        "id": str(uuid.uuid4()), "user_id": 1, "name": "M42",
+        "ra": 83.8, "dec": -5.4, "radius_deg": 1.0,
+        "surveys": [DSS_COLOR], "max_order": 5,
+        "created": "2026-01-01T00:00:00Z", "paths": [], "bytes": 0,
+    }
+    base.update(kw)
+    return base
+
+
+def test_save_job_enumerates_cone_orders_base_plus_1_to_chosen(monkeypatch):
+    import nova.offline_sky_jobs as jobs
+    from nova.offline_sky_store import read_save_manifest
+    _fast_job(monkeypatch)
+    m = _manifest()
+    jobs._run_save(m, m["id"], threading.Event())
+
+    saved = read_save_manifest(m["id"])
+    assert saved["paths"]
+    assert saved["bytes"] > 0
+    for p in saved["paths"]:
+        assert "/Norder4/" in p or "/Norder5/" in p       # base_order(3)+1 .. chosen(5)
+        assert "/Norder3/" not in p and "/Norder6/" not in p
+
+
+def test_save_job_skips_tiles_already_on_disk(monkeypatch):
+    import nova.offline_sky_jobs as jobs
+    from nova.offline_sky_store import read_save_manifest
+    _fast_job(monkeypatch)
+    calls = []
+    monkeypatch.setattr(jobs, "_throttled_fetch", lambda base, url: calls.append(url) or b"FAKE")
+
+    rels = jobs.save_rel_paths(DSS_COLOR, "jpg", 83.8, -5.4, 1.0, 5)
+    assert rels
+    for rel in rels:
+        store_file(DSS_COLOR, rel, b"X", count=False)
+
+    m = _manifest()
+    jobs._run_save(m, m["id"], threading.Event())
+    assert calls == []                                    # resume: nothing fetched again
+    assert len(read_save_manifest(m["id"])["paths"]) == len(rels)
+
+
+def test_save_job_cancel(monkeypatch):
+    import nova.offline_sky_jobs as jobs
+    from nova.offline_sky_store import read_save_manifest
+    _fast_job(monkeypatch)
+    cancel = threading.Event()
+    cancel.set()
+    m = _manifest()
+    jobs._run_save(m, m["id"], cancel)
+    assert read_save_manifest(m["id"])["status"] == "cancelled"
+    assert jobs._read_job_state(m["id"])["status"] == "cancelled"
+
+
+def test_job_throttle_limits_concurrency(monkeypatch):
+    import nova.offline_sky_jobs as jobs
+    import nova.blueprints.offline_sky as bp
+    jobs._JOB_SEMAPHORE = threading.BoundedSemaphore(2)
+    in_flight = []
+    peak = [0]
+    lock = threading.Lock()
+
+    def fake_fetch(base, url):
+        with lock:
+            in_flight.append(1)
+            peak[0] = max(peak[0], len(in_flight))
+        time.sleep(0.01)
+        with lock:
+            in_flight.pop()
+        return b"x"
+
+    monkeypatch.setattr(bp, "_fetch_upstream", fake_fetch)
+    threads = [threading.Thread(target=jobs._throttled_fetch, args=("b", f"u{i}")) for i in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert peak[0] <= 2
+
+
+# ---------------------------------------------------------------------------
+# Pin ownership, eviction, status
+# ---------------------------------------------------------------------------
+
+def test_eviction_skips_base_pins(monkeypatch):
+    from nova.offline_sky_store import add_base_pins
+    monkeypatch.setattr("nova.offline_sky_store.OFFLINE_SKY_CACHE_MB", 1)
+    rels = _store_n_tiles(4, 400 * 1024)  # pin one -> 3 browsed tiles = 1.2 MiB > 1 MiB
+    _age_tiles(rels, time.time())
+    add_base_pins([f"{DSS_COLOR}/{rels[0]}"])
+    evict_browsed()
+    assert read_file(DSS_COLOR, rels[0]) is not None   # base-pinned, kept
+    assert read_file(DSS_COLOR, rels[1]) is None       # oldest non-pinned removed
+    assert read_file(DSS_COLOR, rels[3]) is not None   # newest non-pinned kept
+
+
+def test_unpinned_tiles_become_evictable_after_delete(monkeypatch):
+    from nova.offline_sky_store import write_save_manifest, delete_save_manifest
+    monkeypatch.setattr("nova.offline_sky_store.OFFLINE_SKY_CACHE_MB", 1)
+    rels = _store_n_tiles(3, 400 * 1024)
+    _age_tiles(rels, time.time())
+    mid = "00000000-0000-0000-0000-0000000000ff"
+    write_save_manifest(_manifest(id=mid, paths=[f"{DSS_COLOR}/{rels[0]}"]))
+    evict_browsed()
+    assert read_file(DSS_COLOR, rels[0]) is not None   # pinned by the save
+    delete_save_manifest(mid)
+    evict_browsed()
+    assert read_file(DSS_COLOR, rels[0]) is None       # now ordinary and evictable
+
+
+def test_cone_max_cached_order(monkeypatch):
+    import nova.offline_sky_jobs as jobs
+    monkeypatch.setattr(jobs, "base_complete", lambda slug: True)
+    monkeypatch.setattr(jobs, "_cached_tile_ext", lambda slug: "jpg")
+    for order in (4, 5):
+        for rel in jobs.save_rel_paths(DSS_COLOR, "jpg", 83.8, -5.4, 1.0, order):
+            store_file(DSS_COLOR, rel, b"X", count=False)
+    assert jobs.cone_max_cached_order(DSS_COLOR, 83.8, -5.4, 1.0) == 5
+
+
+# ---------------------------------------------------------------------------
+# User API endpoints
+# ---------------------------------------------------------------------------
+
+def test_saves_are_owned_per_user(monkeypatch, multi_user_client):
+    from nova.offline_sky_store import write_save_manifest, read_save_manifest
+    _server_on(monkeypatch)
+    client, ids = multi_user_client
+    aid = "aaaaaaaa-0000-0000-0000-000000000001"
+    bid = "bbbbbbbb-0000-0000-0000-000000000002"
+    write_save_manifest(_manifest(id=aid, user_id=ids["user_a_id"]))
+    write_save_manifest(_manifest(id=bid, user_id=ids["user_b_id"]))
+
+    resp = client.get("/api/offline/saves")
+    assert resp.status_code == 200
+    assert [s["id"] for s in resp.get_json()["saves"]] == [aid]   # only A's saves
+
+    assert client.get(f"/api/offline/saves/{bid}/progress").status_code == 404
+    assert client.delete(f"/api/offline/saves/{bid}").status_code == 404
+    assert read_save_manifest(bid) is not None                    # B's save untouched
+
+    assert client.delete(f"/api/offline/saves/{aid}").status_code == 200
+    assert read_save_manifest(aid) is None
+
+
+def test_estimate_endpoint_returns_tile_counts(monkeypatch, client):
+    _server_on(monkeypatch)
+    import nova.offline_sky_jobs as jobs
+    monkeypatch.setattr(jobs, "_cached_tile_ext", lambda slug: "jpg")
+    resp = client.get("/api/offline/estimate?ra=83.8&dec=-5.4&radius_deg=1.0"
+                      "&max_order=5&surveys=dss2-color")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["surveys"][0]["slug"] == DSS_COLOR
+    assert data["surveys"][0]["tile_count"] > 0
+    assert data["surveys"][0]["est_bytes"] > 0
+    assert data["cap_bytes"] > 0
+
+
+def test_status_endpoint_reports_base_complete_and_order(monkeypatch, client):
+    _server_on(monkeypatch)
+    import nova.offline_sky_jobs as jobs
+    monkeypatch.setattr(jobs, "base_complete", lambda slug: True)
+    monkeypatch.setattr(jobs, "_cached_tile_ext", lambda slug: "jpg")
+    for rel in jobs.save_rel_paths(DSS_COLOR, "jpg", 83.8, -5.4, 1.0, 4):
+        store_file(DSS_COLOR, rel, b"X", count=False)
+    resp = client.get("/api/offline/status?ra=83.8&dec=-5.4&radius_deg=1.0&surveys=P/DSS2/color")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["surveys"][DSS_COLOR]["base_complete"] is True
+    assert data["surveys"][DSS_COLOR]["max_cached_order"] == 4

@@ -8092,3 +8092,67 @@ msgstr ""
 msgid "Failed to initialize sky viewer. Please refresh and try again."
 msgstr ""
 
+#: templates/base.html
+msgid "Offline view"
+msgstr ""
+
+#: templates/base.html
+msgid "Scan Frame is unavailable in offline view."
+msgstr ""
+
+#: templates/base.html
+msgid "Save for offline"
+msgstr ""
+
+#: templates/base.html
+msgid "Offline: sharp"
+msgstr ""
+
+#: templates/base.html
+msgid "Offline: low detail"
+msgstr ""
+
+#: templates/base.html
+msgid "Not available offline"
+msgstr ""
+
+#: templates/base.html
+msgid "offline"
+msgstr ""
+
+#: templates/base.html
+msgid "Saved for offline"
+msgstr ""
+
+#: templates/base.html
+msgid "Surveys"
+msgstr ""
+
+#: templates/base.html
+msgid "Standard"
+msgstr ""
+
+#: templates/base.html
+msgid "Sharp"
+msgstr ""
+
+#: templates/base.html
+msgid "Maximum"
+msgstr ""
+
+#: templates/base.html
+msgid "Suggested"
+msgstr ""
+
+#: templates/base.html
+msgid "Nothing saved for offline yet."
+msgstr ""
+
+#: templates/base.html
+msgid "tiles"
+msgstr ""
+
+#: templates/base.html
+msgid "Free space"
+msgstr ""
+

@@ -94,6 +94,13 @@
         "P/2MASS/H":                        "https://alasky.cds.unistra.fr/2MASS/H",
     });
 
+    // Offline view: when on, every /hips/ request from this modal goes to the
+    // cache-only /hips/offline/ routes (never upstream). Auto-on when the browser
+    // drops offline or the base layer fails; the user's own toggle is remembered
+    // and restored when connectivity returns.
+    let offlineViewOn = false;
+    let offlineViewUserSetting = null;
+
     function resolveHipsId(idOrUrl) {
         if (typeof idOrUrl !== "string") return idOrUrl;
         // Offline sky on: a whitelisted survey resolves to the same-origin proxy
@@ -101,7 +108,14 @@
         if (window.NOVA_OFFLINE_SKY) {
             const local = window.framingUtils && window.framingUtils.localHipsRoot
                 ? window.framingUtils.localHipsRoot(idOrUrl, window.NOVA_OFFLINE_SKY_SURVEYS) : null;
-            if (local) return local;
+            if (local) {
+                // Aladin treats a bare relative path as a HiPS ID and resolves it
+                // via MocServer (a network call that hangs offline), so the local
+                // root must always be an absolute URL.
+                const root = offlineViewOn
+                    ? window.framingUtils.offlineHipsRoot(local) : local;
+                return window.framingUtils.absoluteHipsRoot(root);
+            }
         }
         if (idOrUrl.startsWith("http")) return idOrUrl;
         return HIPS_ID_TO_URL[idOrUrl] || idOrUrl;
@@ -194,7 +208,10 @@
     // Label of the #survey-select option for a displayed survey (a DSS mirror shows as DSS2 color)
     function surveyOptionLabel(value) {
         const v = window.framingUtils.DSS_MIRRORS.includes(value) ? 'P/DSS2/color' : value;
-        return document.querySelector(`#survey-select option[value='${v}']`)?.textContent;
+        const opt = document.querySelector(`#survey-select option[value='${v}']`);
+        // Prefer the original label; the offline marker ("· offline") is appended
+        // to the option text and must not leak into Aladin's layer name.
+        return opt?.dataset?.origLabel || opt?.textContent;
     }
 
     // Frame size for the NSNS coverage check: the selected rig's diagonal, in degrees
@@ -897,6 +914,9 @@
     function onSurveyLayerError(err) {
         console.warn('[FRAMING] Survey layer failed to load:', err);
         showSurveyNotice();
+        // A failed base layer is the "server-side offline" signal: flip into
+        // offline view so cached tiles keep the sky usable (auto, not a user set).
+        if (window.NOVA_OFFLINE_SKY) setOfflineView(true, false);
     }
     
     // Catalog layer for all Nova DB objects shown in Aladin
@@ -2611,6 +2631,11 @@
         }
         updateSurveyCredit();
 
+        // Offline sky UI: show the controls, mark surveys, and kick off the
+        // low-res base fetch for the surveys actually shown.
+        wireOfflineSkyUi();
+        ensureOfflineBaseSurveys();
+
         // Set default rotation if not restored
         if (!haveRot) {
             const rotInput = document.getElementById('framing-rotation');
@@ -3789,6 +3814,17 @@
     function updateScanButtonState() {
         const btn = document.getElementById('scan-frame-btn');
         if (!btn) return;
+        if (offlineViewOn) {
+            btn.disabled = true;
+            btn.title = window.t('offline_scan_disabled');
+            btn.style.opacity = '0.45';
+            btn.style.cursor = 'not-allowed';
+            const note = document.getElementById('offline-scan-note');
+            if (note) note.hidden = false;
+            return;
+        }
+        const note = document.getElementById('offline-scan-note');
+        if (note) note.hidden = true;
         const sel = document.getElementById('framing-rig-select');
         const opt = sel ? sel.options[sel.selectedIndex] : null;
         if (!opt) return;
@@ -4192,6 +4228,377 @@
     // ============================================
     // END THEME INTEGRATION
     // ============================================
+
+    // ==========================================================================
+    // OFFLINE SKY: offline view toggle + save-for-offline + status chip
+    // ==========================================================================
+
+    const OFFLINE_BASE_ORDER = window.NOVA_OFFLINE_SKY_BASE_ORDER || 3;
+    const OFFLINE_DETAIL_PRESETS = [
+        { key: 'standard', label: () => window.t('offline_detail_standard'), order: 6 },
+        { key: 'sharp',    label: () => window.t('offline_detail_sharp'),    order: 8 },
+        { key: 'maximum',  label: () => window.t('offline_detail_maximum'),  order: null }, // survey max
+    ];
+    let offlinePollTimer = null;
+
+    function offlineEnabled() { return !!window.NOVA_OFFLINE_SKY; }
+    function offlineSurveyEntry(surveyId) {
+        return (window.NOVA_OFFLINE_SKY_SURVEYS || {})[surveyId] || null;
+    }
+    function offlineBaseId() { return document.getElementById('survey-select')?.value || 'P/DSS2/color'; }
+    function offlineBlendId() { return document.getElementById('blend-survey-select')?.value || ''; }
+
+    function offlineCurrentCenter() {
+        if (lockToObject && fovCenter && isFinite(fovCenter.ra) && isFinite(fovCenter.dec)) {
+            return { ra: fovCenter.ra, dec: fovCenter.dec };
+        }
+        if (aladin && typeof aladin.getRaDec === 'function') {
+            const rc = aladin.getRaDec();
+            if (rc && isFinite(rc[0]) && isFinite(rc[1])) return { ra: rc[0], dec: rc[1] };
+        }
+        return null;
+    }
+    // Save area: the current view or the (rotated) frame + margin, whichever is larger.
+    function offlineSaveArea() {
+        const center = offlineCurrentCenter();
+        const g = aladin && typeof aladin.getFov === 'function' ? aladin.getFov() : null;
+        const fx = Array.isArray(g) ? (Number(g[0]) || 0) : (Number(g) || 0);
+        const fy = Array.isArray(g) ? (Number(g[1]) || fx) : fx;
+        const viewRadius = Math.hypot(fx, fy) / 2;
+        const sel = document.getElementById('framing-rig-select');
+        const opt = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex] : null;
+        const fw = parseFloat(opt && opt.dataset.fovw) || 0;
+        const fh = parseFloat(opt && opt.dataset.fovh) || 0;
+        const frameWidthDeg = fw > 0 ? fw / 60 : 0;
+        const frameRadius = (fw > 0 && fh > 0) ? Math.hypot(fw / 60, fh / 60) / 2 : 0;
+        const margin = 1.15; // 15% margin
+        return { ra: center ? center.ra : null, dec: center ? center.dec : null,
+                 radiusDeg: Math.max(viewRadius, frameRadius) * margin, frameWidthDeg };
+    }
+    function offlineSuggestedOrder() {
+        const area = offlineSaveArea();
+        const entry = offlineSurveyEntry(offlineBaseId());
+        const maxOrder = entry ? entry.maxOrder : 9;
+        if (window.framingUtils && window.framingUtils.suggestedOrderForFov) {
+            return window.framingUtils.suggestedOrderForFov(
+                area.frameWidthDeg, OFFLINE_BASE_ORDER + 1, maxOrder);
+        }
+        return Math.min(8, maxOrder);
+    }
+    function offlinePresetOrder(key, maxOrder) {
+        const p = OFFLINE_DETAIL_PRESETS.find(x => x.key === key);
+        if (!p) return maxOrder;
+        return p.order === null ? maxOrder : Math.min(p.order, maxOrder);
+    }
+
+    function setOfflineView(on, fromUser) {
+        offlineViewOn = !!on;
+        if (fromUser) offlineViewUserSetting = offlineViewOn;
+        const t = document.getElementById('offline-view-toggle');
+        if (t) t.checked = offlineViewOn;
+        applyOfflineViewToLayers();
+        updateOfflineViewUi();
+    }
+
+    function applyOfflineViewToLayers() {
+        if (!aladin) return;
+        const base = offlineBaseId();
+        if (base) setSurvey(base).catch(() => {});
+        __blendLayerUrl = null;  // force the blend layer to rebuild from the new root
+        ensureBlendLayer();
+        setBlendOpacity(document.getElementById('blend-opacity')?.value || 0);
+        updateSurveyCredit();
+    }
+
+    function updateOfflineViewUi() {
+        const scanBtn = document.getElementById('scan-frame-btn');
+        const note = document.getElementById('offline-scan-note');
+        if (scanBtn && note) {
+            if (offlineViewOn) {
+                scanBtn.disabled = true;
+                scanBtn.title = window.t('offline_scan_disabled');
+                scanBtn.style.opacity = '0.45';
+                scanBtn.style.cursor = 'not-allowed';
+                note.hidden = false;
+            } else {
+                note.hidden = true;
+                updateScanButtonState();
+            }
+        }
+        refreshOfflineStatus();
+    }
+
+    function refreshOfflineStatus() {
+        if (!offlineEnabled()) return;
+        const chip = document.getElementById('offline-status-chip');
+        const area = offlineSaveArea();
+        const baseId = offlineBaseId();
+        if (!chip || !baseId || !isFinite(area.ra) || !isFinite(area.dec)) {
+            if (chip) { chip.hidden = true; }
+            return;
+        }
+        const url = `/api/offline/status?ra=${area.ra}&dec=${area.dec}` +
+            `&radius_deg=${area.radiusDeg}&surveys=${encodeURIComponent(baseId)}`;
+        fetch(url).then(r => r.ok ? r.json() : null).then(data => {
+            const byId = data && data.survey_ids ? data.surveys : null;
+            const entry = offlineSurveyEntry(baseId);
+            const slug = entry ? entry.slug : null;
+            const st = byId && slug ? byId[slug] : null;
+            if (!st) { chip.hidden = true; return; }
+            chip.hidden = false;
+            chip.classList.remove('offline-chip-sharp', 'offline-chip-low', 'offline-chip-none');
+            if (!st.base_complete) {
+                chip.textContent = window.t('offline_chip_not_available');
+                chip.classList.add('offline-chip-none');
+            } else if (st.max_cached_order >= offlineSuggestedOrder()) {
+                chip.textContent = window.t('offline_chip_sharp');
+                chip.classList.add('offline-chip-sharp');
+            } else {
+                chip.textContent = window.t('offline_chip_low');
+                chip.classList.add('offline-chip-low');
+            }
+        }).catch(() => {});
+    }
+
+    function refreshOfflineMarks() {
+        if (!offlineEnabled()) return;
+        fetch('/api/offline/base/status').then(r => r.ok ? r.json() : null).then(data => {
+            const surveys = data && data.surveys || {};
+            for (const selId of ['survey-select', 'blend-survey-select']) {
+                const sel = document.getElementById(selId);
+                if (!sel) continue;
+                for (const opt of sel.options) {
+                    const entry = offlineSurveyEntry(opt.value);
+                    const slug = entry ? entry.slug : null;
+                    const complete = slug ? !!(surveys[slug] && surveys[slug].complete) : false;
+                    opt.dataset.offline = complete ? '1' : '0';
+                    // Append the offline marker to the original label once.
+                    const baseLabel = opt.dataset.origLabel || opt.textContent;
+                    if (!opt.dataset.origLabel) opt.dataset.origLabel = baseLabel;
+                    opt.textContent = complete ? `${baseLabel} · ${window.t('offline_suffix')}` : baseLabel;
+                }
+            }
+        }).catch(() => {});
+    }
+
+    function ensureOfflineBaseSurveys() {
+        if (!offlineEnabled()) return;
+        const ids = [];
+        const base = offlineBaseId(), blend = offlineBlendId();
+        if (base) ids.push(base);
+        if (blend && blend !== base) ids.push(blend);
+        if (!ids.length) return;
+        fetch('/api/offline/base/ensure', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ surveys: ids })
+        }).then(() => refreshOfflineMarks()).catch(() => {});
+    }
+
+    // --- Save-for-offline panel ---
+    function toggleOfflineSavePanel() {
+        const panel = document.getElementById('offline-save-panel');
+        if (!panel) return;
+        const show = panel.hidden;
+        panel.hidden = !show;
+        if (show) renderOfflineSavePanel();
+    }
+
+    function renderOfflineSavePanel() {
+        const panel = document.getElementById('offline-save-panel');
+        if (!panel) return;
+        const area = offlineSaveArea();
+        const suggested = offlineSuggestedOrder();
+        const baseId = offlineBaseId(), blendId = offlineBlendId();
+        const surveys = window.NOVA_OFFLINE_SKY_SURVEYS || {};
+        const surveyIds = Object.keys(surveys);
+
+        const rows = surveyIds.map(sid => {
+            const m = surveys[sid];
+            const checked = (sid === baseId || sid === blendId) ? 'checked' : '';
+            return `<label class="offline-survey-row">` +
+                `<input type="checkbox" class="offline-survey-check" value="${sid}" ${checked}>` +
+                `<span>${m.label || sid}</span></label>`;
+        }).join('');
+
+        const preset = OFFLINE_DETAIL_PRESETS.find(p =>
+            offlinePresetOrder(p.key, offlineSurveyEntry(baseId)?.maxOrder || 9) >= suggested)
+            || OFFLINE_DETAIL_PRESETS[OFFLINE_DETAIL_PRESETS.length - 1];
+
+        panel.innerHTML =
+            `<div class="offline-save-head">${window.t('save_for_offline')}</div>` +
+            `<div class="offline-save-section"><div class="offline-save-label">${window.t('offline_surveys')}</div>${rows}</div>` +
+            `<div class="offline-save-section"><div class="offline-save-label">${window.t('offline_detail')}</div>` +
+                `<select id="offline-detail-select">` +
+                    OFFLINE_DETAIL_PRESETS.map(p =>
+                        `<option value="${p.key}" ${p.key === preset.key ? 'selected' : ''}>${p.label()}</option>`).join('') +
+                `</select>` +
+                `<span class="offline-save-suggested">${window.t('offline_suggested')}: ${suggested}</span>` +
+            `</div>` +
+            `<div id="offline-save-estimate" class="offline-save-estimate"></div>` +
+            `<div class="offline-save-actions">` +
+                `<button id="offline-save-start" class="inline-button" style="border-radius:6px;">${window.t('offline_save')}</button>` +
+                `<button id="offline-save-cancel" class="inline-button-ghost" style="border-radius:6px;" hidden>${window.t('offline_cancel')}</button>` +
+            `</div>` +
+            `<div id="offline-save-progress" class="offline-save-progress"></div>` +
+            `<div class="offline-save-section"><div class="offline-save-label">${window.t('offline_saved_for')}</div><div id="offline-saves-list"></div></div>`;
+
+        panel.querySelector('#offline-detail-select').addEventListener('change', updateOfflineEstimate);
+        panel.querySelector('#offline-save-start').addEventListener('click', startOfflineSave);
+        panel.querySelector('#offline-save-cancel').addEventListener('click', cancelOfflineSave);
+        panel.querySelectorAll('.offline-survey-check').forEach(cb => cb.addEventListener('change', updateOfflineEstimate));
+        updateOfflineEstimate();
+        renderOfflineSaves();
+    }
+
+    function offlineSelectedSurveys() {
+        const panel = document.getElementById('offline-save-panel');
+        if (!panel) return [];
+        return Array.from(panel.querySelectorAll('.offline-survey-check:checked')).map(cb => cb.value);
+    }
+    function offlineSelectedOrder() {
+        const panel = document.getElementById('offline-save-panel');
+        const key = panel?.querySelector('#offline-detail-select')?.value || 'sharp';
+        const entry = offlineSurveyEntry(offlineBaseId());
+        return offlinePresetOrder(key, entry ? entry.maxOrder : 9);
+    }
+
+    function updateOfflineEstimate() {
+        const el = document.getElementById('offline-save-estimate');
+        if (!el) return;
+        const area = offlineSaveArea();
+        const surveys = offlineSelectedSurveys();
+        if (!isFinite(area.ra) || !isFinite(area.dec) || !surveys.length) {
+            el.textContent = window.t('offline_chip_not_available');
+            return;
+        }
+        const order = offlineSelectedOrder();
+        const url = `/api/offline/estimate?ra=${area.ra}&dec=${area.dec}&radius_deg=${area.radiusDeg}` +
+            `&max_order=${order}&surveys=${surveys.map(encodeURIComponent).join(',')}`;
+        fetch(url).then(r => r.ok ? r.json() : null).then(d => {
+            if (!d) { el.textContent = ''; return; }
+            const tiles = d.surveys.reduce((a, s) => a + s.tile_count, 0);
+            const bytes = d.surveys.reduce((a, s) => a + s.est_bytes, 0);
+            const mb = (bytes / (1024 * 1024)).toFixed(1);
+            const freeMb = (d.free_bytes / (1024 * 1024)).toFixed(0);
+            const capMb = (d.cap_bytes / (1024 * 1024)).toFixed(0);
+            el.textContent = `${tiles} ${window.t('offline_tiles')} · ~${mb} MB · ` +
+                `${window.t('offline_free_space')}: ${freeMb} / ${capMb} MB`;
+        }).catch(() => {});
+    }
+
+    function startOfflineSave() {
+        const area = offlineSaveArea();
+        const surveys = offlineSelectedSurveys();
+        const order = offlineSelectedOrder();
+        if (!isFinite(area.ra) || !isFinite(area.dec) || !surveys.length) return;
+        const name = (window.NOVA_GRAPH_DATA && (window.NOVA_GRAPH_DATA.objectName || window.NOVA_GRAPH_DATA.altName)) || 'RA/Dec';
+        const btn = document.getElementById('offline-save-start');
+        if (btn) btn.disabled = true;
+        fetch('/api/offline/saves', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, ra: area.ra, dec: area.dec, radius_deg: area.radiusDeg,
+                                   surveys, max_order: order })
+        }).then(r => r.ok ? r.json() : null).then(d => {
+            if (d && d.job_id) { startOfflinePoll(d.job_id); renderOfflineSaves(); }
+            else if (btn) btn.disabled = false;
+        }).catch(() => { if (btn) btn.disabled = false; });
+    }
+
+    function startOfflinePoll(jobId) {
+        stopOfflinePoll();
+        const btn = document.getElementById('offline-save-start');
+        const cancelBtn = document.getElementById('offline-save-cancel');
+        const prog = document.getElementById('offline-save-progress');
+        if (btn) btn.disabled = true;
+        if (cancelBtn) cancelBtn.hidden = false;
+        cancelBtn.onclick = () => cancelOfflineSave(jobId);
+        offlinePollTimer = setInterval(() => {
+            fetch(`/api/offline/saves/${jobId}/progress`).then(r => r.ok ? r.json() : null).then(d => {
+                const job = d && d.job;
+                if (!job) return;
+                const status = job.status || 'running';
+                if (prog) prog.textContent = `${status} · ${job.done}/${job.total}`;
+                if (status === 'done' || status === 'cancelled' || status === 'error') {
+                    stopOfflinePoll();
+                    if (btn) btn.disabled = false;
+                    if (cancelBtn) cancelBtn.hidden = true;
+                    renderOfflineSaves();
+                    refreshOfflineMarks();
+                }
+            }).catch(() => {});
+        }, 1000);
+    }
+
+    function stopOfflinePoll() {
+        if (offlinePollTimer) { clearInterval(offlinePollTimer); offlinePollTimer = null; }
+        const cancelBtn = document.getElementById('offline-save-cancel');
+        if (cancelBtn) cancelBtn.hidden = true;
+    }
+
+    function cancelOfflineSave(jobId) {
+        if (!jobId) return;
+        fetch(`/api/offline/saves/${jobId}/cancel`, { method: 'POST' }).catch(() => {});
+    }
+
+    function renderOfflineSaves() {
+        const list = document.getElementById('offline-saves-list');
+        if (!list) return;
+        fetch('/api/offline/saves').then(r => r.ok ? r.json() : null).then(d => {
+            const saves = (d && d.saves) || [];
+            if (!saves.length) {
+                list.textContent = window.t('offline_none_saved');
+                return;
+            }
+            list.innerHTML = '';
+            saves.forEach(s => {
+                const row = document.createElement('div');
+                row.className = 'offline-save-row';
+                const mb = ((s.bytes || 0) / (1024 * 1024)).toFixed(1);
+                const label = `${s.name || 'RA/Dec'} · ${(s.surveys || []).length} · ${s.max_order} · ${mb} MB`;
+                const name = document.createElement('span');
+                name.textContent = label;
+                const del = document.createElement('button');
+                del.type = 'button';
+                del.className = 'inline-button-danger';
+                del.style.cssText = 'border-radius:6px;padding:2px 8px;font-size:11px;';
+                del.textContent = window.t('delete');
+                del.addEventListener('click', () => {
+                    fetch(`/api/offline/saves/${s.id}`, { method: 'DELETE' })
+                        .then(() => renderOfflineSaves()).catch(() => {});
+                });
+                row.append(name, del);
+                list.appendChild(row);
+            });
+        }).catch(() => {});
+    }
+
+    function wireOfflineSkyUi() {
+        const wrap = document.getElementById('offline-sky-controls');
+        if (wrap) wrap.hidden = !offlineEnabled();
+        if (!offlineEnabled()) return;
+
+        const toggle = document.getElementById('offline-view-toggle');
+        if (toggle && !toggle.__novaOfflineWired) {
+            toggle.__novaOfflineWired = true;
+            toggle.addEventListener('change', () => setOfflineView(toggle.checked, true));
+        }
+        const saveBtn = document.getElementById('save-offline-btn');
+        if (saveBtn && !saveBtn.__novaOfflineWired) {
+            saveBtn.__novaOfflineWired = true;
+            saveBtn.addEventListener('click', toggleOfflineSavePanel);
+        }
+
+        // Auto-on when the browser drops offline; restore the user's own setting
+        // when connectivity returns.
+        if (!window.__novaOfflineListeners) {
+            window.__novaOfflineListeners = true;
+            window.addEventListener('offline', () => setOfflineView(true, false));
+            window.addEventListener('online', () => setOfflineView(offlineViewUserSetting === true, false));
+        }
+
+        refreshOfflineStatus();
+        refreshOfflineMarks();
+    }
 
     // Expose theme update function for external calls
     window.updateChartForTheme = updateChartForTheme;

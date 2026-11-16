@@ -76,6 +76,9 @@ const out = {
     isCds: input.isCds.map(u => fu.isCdsUrl(u)),
     races: (input.races || []).map(simulate),
     localRoots: (input.localRoots || []).map(([v, s]) => fu.localHipsRoot(v, s)),
+    absoluteRoots: (input.absoluteRoots || []).map(([r, o]) => fu.absoluteHipsRoot(r, o)),
+    offlineRoots: (input.offlineRoots || []).map(r => fu.offlineHipsRoot(r)),
+    suggested: (input.suggested || []).map(([w, lo, hi]) => fu.suggestedOrderForFov(w, lo, hi)),
 };
 fs.writeFileSync(outFile, JSON.stringify(out));
 """
@@ -89,10 +92,14 @@ def run_utils(tmp_path_factory):
     driver = tmp / "driver.cjs"
     driver.write_text(_DRIVER, encoding="utf-8")
 
-    def run(choose=(), is_cds=(), races=(), local_roots=()):
+    def run(choose=(), is_cds=(), races=(), local_roots=(), absolute_roots=(),
+            offline_roots=(), suggested=()):
         inp, out = tmp / "in.json", tmp / "out.json"
         inp.write_text(json.dumps({"choose": list(choose), "isCds": list(is_cds),
-                                   "races": list(races), "localRoots": list(local_roots)}),
+                                   "races": list(races), "localRoots": list(local_roots),
+                                   "absoluteRoots": list(absolute_roots),
+                                   "offlineRoots": list(offline_roots),
+                                   "suggested": list(suggested)}),
                        encoding="utf-8")
         proc = subprocess.run([NODE, str(driver), str(UTILS), str(inp), str(out)],
                               capture_output=True, text=True, timeout=60)
@@ -365,3 +372,65 @@ def test_local_hips_root(run_utils):
         None,
         None,
     ]
+
+
+# ---------------------------------------------------------------------------
+# Offline-sky: absolute local root + suggested order
+# ---------------------------------------------------------------------------
+
+def test_absolute_hips_root_prefixes_origin(run_utils):
+    res = run_utils(absolute_roots=[
+        ["/hips/dss2-color", "https://nova.example.com"],
+        ["/hips/nsns-rgb8", "http://localhost:5001"],
+        ["https://alasky.cds.unistra.fr/DSS/DSSColor", "https://nova.example.com"],
+        ["/hips/dss2-color", None],
+        [None, "https://nova.example.com"],
+    ])["absoluteRoots"]
+    assert res == [
+        "https://nova.example.com/hips/dss2-color",
+        "http://localhost:5001/hips/nsns-rgb8",
+        "https://alasky.cds.unistra.fr/DSS/DSSColor",  # already absolute: unchanged
+        "http://localhost/hips/dss2-color",            # no origin: localhost fallback
+        None,
+    ]
+
+
+def test_offline_hips_root_prefixes_offline(run_utils):
+    res = run_utils(offline_roots=[
+        "/hips/dss2-color",
+        "/hips/nsns-rgb8",
+        "https://alasky.cds.unistra.fr/DSS/DSSColor",
+    ])["offlineRoots"]
+    assert res == [
+        "/hips/offline/dss2-color",
+        "/hips/offline/nsns-rgb8",
+        "https://alasky.cds.unistra.fr/DSS/DSSColor",
+    ]
+
+
+def test_suggested_order_from_fov(run_utils):
+    # A 1.5 deg frame reaches >= 1000 px at order 7 (order 6 is ~838 px), a 0.5
+    # deg frame at order 8, and anything already above the cap returns the cap.
+    res = run_utils(suggested=[
+        [1.5, 4, 9],
+        [0.5, 4, 9],
+        [3.0, 4, 9],
+        [0, 4, 9],       # no frame width -> cap
+    ])["suggested"]
+    assert res == [7, 8, 6, 9]
+
+
+def test_resolve_hips_id_uses_absolute_root_for_local_surveys():
+    """Source check: the local /hips/ root handed to Aladin is always made absolute.
+
+    A bare relative root ("/hips/dss2-color") is what Aladin would treat as a HiPS
+    ID and resolve through MocServer. resolveHipsId must wrap it with
+    framingUtils.absoluteHipsRoot (and offlineHipsRoot for the offline view), so no
+    local survey ever reaches Aladin without an http(s) origin.
+    """
+    chart = CHART.read_text(encoding="utf-8")
+    block = re.search(r"function resolveHipsId\(idOrUrl\) \{(.*?)\n    \}", chart, re.S).group(1)
+    assert "absoluteHipsRoot" in block
+    assert "offlineHipsRoot" in block
+    # the local root path is wrapped, not returned bare
+    assert "return window.framingUtils.absoluteHipsRoot(root)" in block

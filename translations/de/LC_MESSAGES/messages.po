@@ -8578,6 +8578,71 @@ msgid "Failed to initialize sky viewer. Please refresh and try again."
 msgstr "Der Himmel-Viewer konnte nicht initialisiert werden. Bitte aktualisieren und erneut versuchen."
 
 
+#: templates/base.html
+msgid "Offline view"
+msgstr "Offline-Ansicht"
+
+#: templates/base.html
+msgid "Scan Frame is unavailable in offline view."
+msgstr "Bildfeld-Scan ist in der Offline-Ansicht nicht verfügbar."
+
+#: templates/base.html
+msgid "Save for offline"
+msgstr "Für offline speichern"
+
+#: templates/base.html
+msgid "Offline: sharp"
+msgstr "Offline: scharf"
+
+#: templates/base.html
+msgid "Offline: low detail"
+msgstr "Offline: geringe Detailtiefe"
+
+#: templates/base.html
+msgid "Not available offline"
+msgstr "Offline nicht verfügbar"
+
+#: templates/base.html
+msgid "offline"
+msgstr "offline"
+
+#: templates/base.html
+msgid "Saved for offline"
+msgstr "Für offline gespeichert"
+
+#: templates/base.html
+msgid "Surveys"
+msgstr "Durchmusterungen"
+
+#: templates/base.html
+msgid "Standard"
+msgstr "Standard"
+
+#: templates/base.html
+msgid "Sharp"
+msgstr "Scharf"
+
+#: templates/base.html
+msgid "Maximum"
+msgstr "Maximal"
+
+#: templates/base.html
+msgid "Suggested"
+msgstr "Vorschlag"
+
+#: templates/base.html
+msgid "Nothing saved for offline yet."
+msgstr "Noch nichts für offline gespeichert."
+
+#: templates/base.html
+msgid "tiles"
+msgstr "Kacheln"
+
+#: templates/base.html
+msgid "Free space"
+msgstr "Freier Speicher"
+
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Vorschläge aktualisieren"
 

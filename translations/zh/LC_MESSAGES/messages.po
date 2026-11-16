@@ -8171,6 +8171,71 @@ msgid "Failed to initialize sky viewer. Please refresh and try again."
 msgstr "无法初始化天空查看器。请刷新后重试。"
 
 
+#: templates/base.html
+msgid "Offline view"
+msgstr "离线视图"
+
+#: templates/base.html
+msgid "Scan Frame is unavailable in offline view."
+msgstr "离线视图下无法使用扫描取景功能。"
+
+#: templates/base.html
+msgid "Save for offline"
+msgstr "保存以供离线使用"
+
+#: templates/base.html
+msgid "Offline: sharp"
+msgstr "离线：清晰"
+
+#: templates/base.html
+msgid "Offline: low detail"
+msgstr "离线：低细节"
+
+#: templates/base.html
+msgid "Not available offline"
+msgstr "离线不可用"
+
+#: templates/base.html
+msgid "offline"
+msgstr "离线"
+
+#: templates/base.html
+msgid "Saved for offline"
+msgstr "已保存以供离线使用"
+
+#: templates/base.html
+msgid "Surveys"
+msgstr "巡天"
+
+#: templates/base.html
+msgid "Standard"
+msgstr "标准"
+
+#: templates/base.html
+msgid "Sharp"
+msgstr "清晰"
+
+#: templates/base.html
+msgid "Maximum"
+msgstr "最大"
+
+#: templates/base.html
+msgid "Suggested"
+msgstr "建议"
+
+#: templates/base.html
+msgid "Nothing saved for offline yet."
+msgstr "尚未保存任何离线内容。"
+
+#: templates/base.html
+msgid "tiles"
+msgstr "图块"
+
+#: templates/base.html
+msgid "Free space"
+msgstr "可用空间"
+
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "刷新建议"
 

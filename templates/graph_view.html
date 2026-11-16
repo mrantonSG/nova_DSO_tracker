@@ -8,6 +8,26 @@
     const IS_GUEST_USER = {{ is_guest | tojson }};
     window.NOVA_OFFLINE_SKY = {{ OFFLINE_SKY_ENABLED | tojson }};
     window.NOVA_OFFLINE_SKY_SURVEYS = {{ OFFLINE_SKY_SURVEYS | tojson }};
+    window.NOVA_OFFLINE_SKY_BASE_ORDER = {{ OFFLINE_SKY_BASE_ORDER | tojson }};
+    window.novaI18n.offline_view = {{ _('Offline view') | tojson }};
+    window.novaI18n.offline_scan_disabled = {{ _('Scan Frame is unavailable in offline view.') | tojson }};
+    window.novaI18n.save_for_offline = {{ _('Save for offline') | tojson }};
+    window.novaI18n.offline_chip_sharp = {{ _('Offline: sharp') | tojson }};
+    window.novaI18n.offline_chip_low = {{ _('Offline: low detail') | tojson }};
+    window.novaI18n.offline_chip_not_available = {{ _('Not available offline') | tojson }};
+    window.novaI18n.offline_suffix = {{ _('offline') | tojson }};
+    window.novaI18n.offline_saved_for = {{ _('Saved for offline') | tojson }};
+    window.novaI18n.offline_surveys = {{ _('Surveys') | tojson }};
+    window.novaI18n.offline_detail = {{ _('Detail') | tojson }};
+    window.novaI18n.offline_detail_standard = {{ _('Standard') | tojson }};
+    window.novaI18n.offline_detail_sharp = {{ _('Sharp') | tojson }};
+    window.novaI18n.offline_detail_maximum = {{ _('Maximum') | tojson }};
+    window.novaI18n.offline_suggested = {{ _('Suggested') | tojson }};
+    window.novaI18n.offline_save = {{ _('Save') | tojson }};
+    window.novaI18n.offline_cancel = {{ _('Cancel') | tojson }};
+    window.novaI18n.offline_none_saved = {{ _('Nothing saved for offline yet.') | tojson }};
+    window.novaI18n.offline_tiles = {{ _('tiles') | tojson }};
+    window.novaI18n.offline_free_space = {{ _('Free space') | tojson }};
 </script>
 <script src="{{ url_for('static', filename='js/aladin.js') }}?v={{ version }}" charset="utf-8" defer></script>
 <script>
@@ -26,6 +46,32 @@
 </script>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/graph_view.css') }}?v={{ version }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/journal_form.css') }}?v={{ version }}">
+<style>
+    /* Offline-sky: save-for-offline panel + status chip. Design-system tokens only. */
+    .offline-save-panel {
+        margin-top: 10px; padding: 12px 14px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 13px; color: var(--text-primary);
+    }
+    .offline-save-head { font-weight: 700; margin-bottom: 8px; }
+    .offline-save-section { margin-top: 10px; }
+    .offline-save-label {
+        font-size: 11px; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.09em; color: var(--text-faint); margin-bottom: 4px;
+    }
+    .offline-survey-row { display: flex; align-items: center; gap: 6px; margin: 3px 0; font-size: 13px; color: var(--text-secondary); }
+    .offline-save-suggested { margin-left: 10px; font-size: 12px; color: var(--text-muted); }
+    .offline-save-estimate { margin-top: 8px; font-size: 12px; color: var(--text-secondary); }
+    .offline-save-actions { margin-top: 10px; display: flex; gap: 8px; }
+    .offline-save-progress { margin-top: 6px; font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
+    .offline-save-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--border-light); }
+    .offline-status-chip { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 5px; border: 1px solid transparent; }
+    .offline-chip-sharp { background: var(--primary-bg); color: var(--primary-hover); border-color: rgba(131,180,197,0.35); }
+    .offline-chip-low { background: var(--bg-tertiary); color: var(--text-muted); border-color: var(--border-color); }
+    .offline-chip-none { background: rgba(180,60,60,0.08); color: #a04040; border-color: rgba(180,60,60,0.18); }
+</style>
 {% endblock %}
 
 {% block page_title %}
@@ -379,6 +425,13 @@
                 <input id="blend-opacity" type="range" min="0" max="1" step="0.01" value="0" title="{{ _('Blend opacity') }}" style="width:130px; vertical-align:middle; margin-left:8px;">
             </div>
         </div>
+        <div id="offline-sky-controls" class="framing-controls" style="align-items:center; gap:12px; padding-top:2px;" hidden>
+            <button id="save-offline-btn" type="button" class="inline-button-ghost" style="padding:6px 10px;font-size:13px;border-radius:6px;" data-action="save-for-offline">{{ _('Save for offline') }}</button>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-secondary);cursor:pointer;"><input type="checkbox" id="offline-view-toggle"> {{ _('Offline view') }}</label>
+            <span id="offline-status-chip" class="offline-status-chip" hidden></span>
+            <span id="offline-scan-note" style="font-size:11px;color:var(--text-muted);" hidden>{{ _('Scan Frame is unavailable in offline view.') }}</span>
+        </div>
+        <div id="offline-save-panel" class="offline-save-panel" hidden></div>
         <div class="framing-controls" style="flex-wrap: wrap;">
             <div><label>{{ _('Brightness') }}</label><input type="range" id="img-bright" min="-1" max="1" step="0.01" value="0" data-action="update-image-adjustments"></div>
             <div><label>{{ _('Contrast') }}</label><input type="range" id="img-contrast" min="-1" max="1" step="0.01" value="0" data-action="update-image-adjustments"></div>

@@ -138,7 +138,7 @@ from nova.config import (
     _telemetry_startup_once, TELEMETRY_DEBUG_STATE, TRANSLATION_STATUS,
     AI_PROVIDER, AI_API_KEY, AI_MODEL, AI_BASE_URL, AI_ALLOWED_USERS,
     ADMIN_USERS,
-    offline_sky_enabled,
+    offline_sky_enabled, OFFLINE_SKY_BASE_ORDER,
 )
 from nova.helpers import (
     get_db, get_user_log_string, allowed_file, _yaml_dump_pretty,
@@ -3478,12 +3478,13 @@ def inject_offline_sky():
     denied to it anyway).
     """
     if not offline_sky_enabled():
-        return {"OFFLINE_SKY_ENABLED": False, "OFFLINE_SKY_SURVEYS": {}}
+        return {"OFFLINE_SKY_ENABLED": False, "OFFLINE_SKY_SURVEYS": {}, "OFFLINE_SKY_BASE_ORDER": OFFLINE_SKY_BASE_ORDER}
     from flask_login import current_user
     if not SINGLE_USER_MODE and not current_user.is_authenticated:
-        return {"OFFLINE_SKY_ENABLED": False, "OFFLINE_SKY_SURVEYS": {}}
+        return {"OFFLINE_SKY_ENABLED": False, "OFFLINE_SKY_SURVEYS": {}, "OFFLINE_SKY_BASE_ORDER": OFFLINE_SKY_BASE_ORDER}
     from nova.offline_sky_sources import build_js_map
-    return {"OFFLINE_SKY_ENABLED": True, "OFFLINE_SKY_SURVEYS": build_js_map()}
+    return {"OFFLINE_SKY_ENABLED": True, "OFFLINE_SKY_SURVEYS": build_js_map(),
+            "OFFLINE_SKY_BASE_ORDER": OFFLINE_SKY_BASE_ORDER}
 
 
 

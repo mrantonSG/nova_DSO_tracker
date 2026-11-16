@@ -8193,6 +8193,71 @@ msgid "Failed to initialize sky viewer. Please refresh and try again."
 msgstr "スカイビューアを初期化できませんでした。再読み込みして再試行してください。"
 
 
+#: templates/base.html
+msgid "Offline view"
+msgstr "オフラインビュー"
+
+#: templates/base.html
+msgid "Scan Frame is unavailable in offline view."
+msgstr "オフラインビューではフレームスキャンは利用できません。"
+
+#: templates/base.html
+msgid "Save for offline"
+msgstr "オフライン用に保存"
+
+#: templates/base.html
+msgid "Offline: sharp"
+msgstr "オフライン：高精細"
+
+#: templates/base.html
+msgid "Offline: low detail"
+msgstr "オフライン：低精細"
+
+#: templates/base.html
+msgid "Not available offline"
+msgstr "オフラインでは利用不可"
+
+#: templates/base.html
+msgid "offline"
+msgstr "オフライン"
+
+#: templates/base.html
+msgid "Saved for offline"
+msgstr "オフライン用に保存済み"
+
+#: templates/base.html
+msgid "Surveys"
+msgstr "サーベイ"
+
+#: templates/base.html
+msgid "Standard"
+msgstr "標準"
+
+#: templates/base.html
+msgid "Sharp"
+msgstr "高精細"
+
+#: templates/base.html
+msgid "Maximum"
+msgstr "最大"
+
+#: templates/base.html
+msgid "Suggested"
+msgstr "推奨"
+
+#: templates/base.html
+msgid "Nothing saved for offline yet."
+msgstr "まだオフライン用に保存されたものはありません。"
+
+#: templates/base.html
+msgid "tiles"
+msgstr "タイル"
+
+#: templates/base.html
+msgid "Free space"
+msgstr "空き容量"
+
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "更新提案"
 

@@ -6,7 +6,9 @@ Layout under CACHE_DIR/hips/:
     <slug>/Norder<o>/Dir<d>/Npix<n>.<ext>
     <slug>/Allsky.<ext>
     .total                 # summed byte count of browsed tiles (see below)
-    .pins.json             # step 3 pin manifest; absent for now (empty pin set)
+    .base-pins.json        # instance-level base tiles (orders 0..N), never evicted
+    pins/<uuid>.json       # per-user save manifests (name, cone, tile list, bytes)
+    jobs/<job_id>.json     # job state (base/save progress, resume, cancel)
 
 Sky tiles are not user-specific: the cache is shared across every user of the
 instance, which is the one deliberate exception to the "cache keys include
@@ -35,7 +37,9 @@ from nova.helpers import write_file_atomic, try_acquire_file_lock, release_file_
 
 HIPS_SUBDIR = "hips"
 TOTAL_FILENAME = ".total"
-PINS_FILENAME = ".pins.json"  # step 3; not written yet, so the pin set is empty
+BASE_PINS_FILENAME = ".base-pins.json"  # instance-level low-res base tiles (never evicted)
+PINS_DIRNAME = "pins"                    # per-user save manifests (<uuid>.json)
+JOBS_DIRNAME = "jobs"                    # job state (<job_id>.json)
 EVICT_LOCK = ".evict"
 
 _total_lock = threading.Lock()
@@ -54,8 +58,16 @@ def _total_path() -> str:
     return os.path.join(hips_root(), TOTAL_FILENAME)
 
 
-def _pins_path() -> str:
-    return os.path.join(hips_root(), PINS_FILENAME)
+def _base_pins_path() -> str:
+    return os.path.join(hips_root(), BASE_PINS_FILENAME)
+
+
+def pins_dir() -> str:
+    return os.path.join(hips_root(), PINS_DIRNAME)
+
+
+def jobs_dir() -> str:
+    return os.path.join(hips_root(), JOBS_DIRNAME)
 
 
 def _evict_lock_path() -> str:
@@ -101,6 +113,11 @@ def read_file(slug: str, rel_path: str):
         return None
 
 
+def tile_exists(slug: str, rel_path: str) -> bool:
+    """True when hips/<slug>/<rel_path> is on disk (no read of the contents)."""
+    return os.path.exists(tile_path(slug, rel_path))
+
+
 def touch(slug: str, rel_path: str) -> None:
     """Record a serve as last access (mtime). Never raises."""
     try:
@@ -119,19 +136,100 @@ def store_file(slug: str, rel_path: str, data: bytes, *, count: bool = True) -> 
         _add_bytes(len(data))
 
 
-def pinned_rel_paths() -> set:
-    """Rel paths that eviction must skip. Empty until step 3 writes a manifest."""
+def _read_json(path, default=None):
+    import json
     try:
-        import json
-        with open(_pins_path(), "r", encoding="utf-8") as handle:
-            data = json.load(handle)
-        if isinstance(data, list):
-            return {str(p) for p in data}
-        if isinstance(data, dict) and isinstance(data.get("paths"), list):
-            return {str(p) for p in data["paths"]}
+        with open(path, "r", encoding="utf-8") as handle:
+            return json.load(handle)
     except (FileNotFoundError, ValueError, OSError):
-        pass
+        return default
+
+
+def write_json_atomic(path, data) -> None:
+    """Atomically write ``data`` (any JSON-serialisable value) to ``path``.
+
+    Shared by the pin-manifest and job-state writers; the raw ``open`` stays in
+    ``_write_bytes`` (the writer body ``write_file_atomic`` fsyncs and replaces).
+    """
+    import json
+    write_file_atomic(path, lambda p: _write_bytes(p, json.dumps(data, ensure_ascii=False).encode("utf-8")))
+
+
+def _write_json(path, data) -> None:
+    write_json_atomic(path, data)
+
+
+# ---------------------------------------------------------------------------
+# Pin manifests
+#
+# Two kinds of pin, both expressed as sets of "<slug>/<rel_path>" strings:
+#   * base tiles  -- instance level, whole-sky orders 0..OFFLINE_SKY_BASE_ORDER,
+#     written by the base job and never removed except when the base is re-fetched.
+#   * save tiles  -- one manifest per user save, keyed by a UUID under pins/.
+# Eviction skips the union of the two. A tile referenced by several manifests is
+# pinned until the last referencing manifest is deleted.
+# ---------------------------------------------------------------------------
+
+def base_pinned_rel_paths() -> set:
+    data = _read_json(_base_pins_path(), {})
+    if isinstance(data, dict) and isinstance(data.get("paths"), list):
+        return {str(p) for p in data["paths"]}
     return set()
+
+
+def add_base_pins(rel_paths) -> None:
+    """Merge ``rel_paths`` into the instance-level base pin set."""
+    merged = base_pinned_rel_paths() | {str(p) for p in rel_paths}
+    _write_json(_base_pins_path(), {"paths": sorted(merged)})
+
+
+def read_save_manifest(uuid: str):
+    path = os.path.join(pins_dir(), f"{uuid}.json")
+    data = _read_json(path, None)
+    if not isinstance(data, dict):
+        return None
+    return data
+
+
+def write_save_manifest(manifest: dict) -> None:
+    os.makedirs(pins_dir(), exist_ok=True)
+    _write_json(os.path.join(pins_dir(), f"{manifest['id']}.json"), manifest)
+
+
+def delete_save_manifest(uuid: str) -> bool:
+    path = os.path.join(pins_dir(), f"{uuid}.json")
+    try:
+        os.remove(path)
+        return True
+    except FileNotFoundError:
+        return False
+
+
+def list_save_manifests():
+    """All save manifests as [(uuid, manifest), ...] (every user)."""
+    out = []
+    try:
+        names = os.listdir(pins_dir())
+    except FileNotFoundError:
+        return out
+    for name in names:
+        if not name.endswith(".json"):
+            continue
+        uuid = name[:-5]
+        manifest = read_save_manifest(uuid)
+        if manifest is not None:
+            out.append((uuid, manifest))
+    return out
+
+
+def pinned_rel_paths() -> set:
+    """Rel paths eviction must skip: base tiles plus every save manifest's tiles."""
+    pinned = base_pinned_rel_paths()
+    for _uuid, manifest in list_save_manifests():
+        paths = manifest.get("paths")
+        if isinstance(paths, list):
+            pinned |= {str(p) for p in paths}
+    return pinned
 
 
 def cap_bytes() -> int:
@@ -157,10 +255,13 @@ def evict_browsed() -> dict:
     entries = []
     for dirpath, _dirnames, filenames in os.walk(root):
         for name in filenames:
-            if name in (TOTAL_FILENAME, PINS_FILENAME, EVICT_LOCK) or name == "properties":
+            if name in (TOTAL_FILENAME, BASE_PINS_FILENAME, EVICT_LOCK) or name == "properties":
                 continue
             full = os.path.join(dirpath, name)
             rel = os.path.relpath(full, root)
+            # Manifests and job state are metadata, not tiles; never evict them.
+            if rel.split(os.sep, 1)[0] in (PINS_DIRNAME, JOBS_DIRNAME):
+                continue
             if rel in pinned:
                 continue
             try:

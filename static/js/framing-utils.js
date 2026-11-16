@@ -960,6 +960,72 @@ window.framingUtils_localHipsRoot = function(value, localSurveys) {
     return (m && m.root) ? m.root : null;
 };
 
+/**
+ * The absolute URL for a local /hips/ root, for Aladin.
+ *
+ * Aladin treats a bare relative path like "/hips/dss2-color" as a HiPS ID and
+ * resolves it through MocServer (a network call that hangs when offline). Every
+ * local root handed to Aladin must carry the origin, so this turns "/hips/<slug>"
+ * into "https://<origin>/hips/<slug>". Already-absolute URLs and non-strings are
+ * returned unchanged.
+ *
+ * @param {string} localRoot - e.g. "/hips/dss2-color"
+ * @param {string} [origin] - e.g. window.location.origin (injected for tests)
+ * @returns {string}
+ */
+window.framingUtils_absoluteHipsRoot = function(localRoot, origin) {
+    if (typeof localRoot !== 'string' || localRoot.length === 0) return localRoot;
+    if (/^https?:\/\//i.test(localRoot)) return localRoot;
+    const base = origin ||
+        (typeof window !== 'undefined' && window.location && window.location.origin) ||
+        'http://localhost';
+    try {
+        return new URL(localRoot, base).href;
+    } catch (e) {
+        return localRoot;
+    }
+};
+
+/**
+ * The offline (cache-only) variant of a local /hips/ root: "/hips/offline/<slug>".
+ *
+ * @param {string} localRoot - e.g. "/hips/dss2-color"
+ * @returns {string}
+ */
+window.framingUtils_offlineHipsRoot = function(localRoot) {
+    if (typeof localRoot !== 'string' || !localRoot.startsWith('/hips/')) return localRoot;
+    return localRoot.replace('/hips/', '/hips/offline/');
+};
+
+// HiPS tile side in degrees at order 0 (sqrt(pi/3) rad -> deg) and the tile's
+// pixel count, used by the suggested-order calculation below.
+window.framingUtils_HIPS_RES_DEG = 58.63;
+window.framingUtils_HIPS_TILE_PX = 512;
+
+/**
+ * Lowest HiPS order giving >= ~1000 px across the frame width, capped at maxOrder.
+ *
+ * A HiPS tile is TILE_PX pixels and spans RES/2^o degrees at order o, so a frame
+ * W degrees wide spans W * TILE_PX * 2^o / RES pixels. The first order (from
+ * minOrder) reaching 1000 px is the suggested detail preset for the rig.
+ *
+ * @param {number} frameWidthDeg - frame width in degrees
+ * @param {number} minOrder - lowest order to consider
+ * @param {number} maxOrder - survey's max order (hard cap)
+ * @returns {number}
+ */
+window.framingUtils_suggestedOrderForFov = function(frameWidthDeg, minOrder, maxOrder) {
+    const w = Number(frameWidthDeg);
+    if (!(w > 0)) return Number(maxOrder) || 0;
+    const lo = Math.max(0, Number(minOrder) || 0);
+    const hi = Number(maxOrder) || 0;
+    for (let o = lo; o <= hi; o++) {
+        const pxAcross = w * window.framingUtils_HIPS_TILE_PX * Math.pow(2, o) / window.framingUtils_HIPS_RES_DEG;
+        if (pxAcross >= 1000) return o;
+    }
+    return hi;
+};
+
 // ==========================================================================
 // GLOBAL EXPORTS
 // ==========================================================================
@@ -1004,4 +1070,9 @@ window.framingUtils = {
     isCdsUrl: window.framingUtils_isCdsUrl,
     chooseBaseSurvey: window.framingUtils_chooseBaseSurvey,
     localHipsRoot: window.framingUtils_localHipsRoot,
+    absoluteHipsRoot: window.framingUtils_absoluteHipsRoot,
+    offlineHipsRoot: window.framingUtils_offlineHipsRoot,
+    HIPS_RES_DEG: window.framingUtils_HIPS_RES_DEG,
+    HIPS_TILE_PX: window.framingUtils_HIPS_TILE_PX,
+    suggestedOrderForFov: window.framingUtils_suggestedOrderForFov,
 };

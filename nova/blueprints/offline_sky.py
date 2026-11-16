@@ -16,12 +16,12 @@ import threading
 import time
 
 import requests
-from flask import Blueprint, Response, session
+from flask import Blueprint, Response, g, jsonify, request, session
 from flask_login import current_user
 
 import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay live (see nova/config.py)
 from nova.config import APP_VERSION, OFFLINE_SKY_STORE
-from nova.offline_sky_sources import SURVEY_BY_SLUG
+from nova.offline_sky_sources import SURVEY_BY_SLUG, SURVEY_ID_BY_SLUG, SURVEY_SOURCES
 from nova.offline_sky_store import (
     read_file, store_file, touch, maybe_evict_async, tile_path,
 )
@@ -152,11 +152,15 @@ def _tile_response(data: bytes, rel_path: str) -> Response:
                     _TILE_CACHE_CONTROL)
 
 
-def _serve_tile(slug: str, rel_path: str) -> Response:
+def _serve_tile(slug: str, rel_path: str, cache_only: bool = False) -> Response:
     data = read_file(slug, rel_path)
     if data is not None:
         touch(slug, rel_path)
         return _tile_response(data, rel_path)
+
+    if cache_only:
+        # Offline view: serve from disk only, never contact upstream.
+        return Response(status=404)
 
     src = SURVEY_BY_SLUG[slug]
     for base in src.upstreams:
@@ -172,7 +176,7 @@ def _serve_tile(slug: str, rel_path: str) -> Response:
     return Response(status=404)
 
 
-def _serve_properties(slug: str) -> Response:
+def _serve_properties(slug: str, cache_only: bool = False) -> Response:
     src = SURVEY_BY_SLUG[slug]
     cached = read_file(slug, "properties")
     if cached is not None:
@@ -183,6 +187,11 @@ def _serve_properties(slug: str) -> Response:
         if time.time() - mtime < _PROPERTIES_MAX_AGE_SECONDS:
             # Fresh: serve from disk, no upstream.
             return _respond(cached, "text/plain; charset=utf-8", _PROPERTIES_CACHE_CONTROL)
+        if cache_only:
+            # Offline view: a stale copy is still served from disk.
+            return _respond(cached, "text/plain; charset=utf-8", _PROPERTIES_CACHE_CONTROL)
+    elif cache_only:
+        return Response(status=404)
 
     # No cache, or stale (older than 7 days): try upstreams first, re-store on
     # success; on failure fall back to the stale disk copy when there is one.
@@ -202,7 +211,7 @@ def _serve_properties(slug: str) -> Response:
     return Response(status=503)
 
 
-def _serve_moc(slug: str) -> Response:
+def _serve_moc(slug: str, cache_only: bool = False) -> Response:
     """MOC.fits: like properties (7-day stale refresh, no cap), but raw bytes
     (no service-URL stripping) and 404 when no upstream has it -- a MOC is
     optional metadata, not the survey itself."""
@@ -215,6 +224,10 @@ def _serve_moc(slug: str) -> Response:
             mtime = 0.0
         if time.time() - mtime < _PROPERTIES_MAX_AGE_SECONDS:
             return _respond(cached, "application/fits", _PROPERTIES_CACHE_CONTROL)
+        if cache_only:
+            return _respond(cached, "application/fits", _PROPERTIES_CACHE_CONTROL)
+    elif cache_only:
+        return Response(status=404)
 
     for base in src.upstreams:
         try:
@@ -229,6 +242,23 @@ def _serve_moc(slug: str) -> Response:
     if cached is not None:
         return _respond(cached, "application/fits", _PROPERTIES_CACHE_CONTROL)
     return Response(status=404)
+
+
+def _validate_tile(slug: str, order: int, dir: int, npix: int, ext: str):
+    """Return the rel path for a validated tile request, or None when invalid."""
+    if slug not in SURVEY_BY_SLUG:
+        return None
+    src = SURVEY_BY_SLUG[slug]
+    ext_l = ext.lower()
+    if ext_l not in src.exts:
+        return None
+    if order > src.max_order:
+        return None
+    if npix >= 12 * 4 ** order:
+        return None
+    if dir != (npix // 10000) * 10000:
+        return None
+    return f"Norder{order}/Dir{dir}/Npix{npix}.{ext_l}"
 
 
 @offline_sky_bp.route("/hips/<slug>/properties")
@@ -257,16 +287,257 @@ def hips_allsky(slug: str, ext: str):
 
 @offline_sky_bp.route("/hips/<slug>/Norder<int:order>/Dir<int:dir>/Npix<int:npix>.<string:ext>")
 def hips_tile(slug: str, order: int, dir: int, npix: int, ext: str):
+    if not _allowed():
+        return Response(status=404)
+    rel = _validate_tile(slug, order, dir, npix, ext)
+    if rel is None:
+        return Response(status=404)
+    return _serve_tile(slug, rel)
+
+
+# --- Cache-only variants (offline view). Same validation and disk layout, but a
+# miss is a 404 and upstream is never contacted. ---
+
+@offline_sky_bp.route("/hips/offline/<slug>/properties")
+def hips_offline_properties(slug: str):
     if not _allowed() or slug not in SURVEY_BY_SLUG:
         return Response(status=404)
-    src = SURVEY_BY_SLUG[slug]
+    return _serve_properties(slug, cache_only=True)
+
+
+@offline_sky_bp.route("/hips/offline/<slug>/Moc.fits")
+def hips_offline_moc(slug: str):
+    if not _allowed() or slug not in SURVEY_BY_SLUG:
+        return Response(status=404)
+    return _serve_moc(slug, cache_only=True)
+
+
+@offline_sky_bp.route("/hips/offline/<slug>/Allsky.<string:ext>")
+def hips_offline_allsky(slug: str, ext: str):
+    if not _allowed() or slug not in SURVEY_BY_SLUG:
+        return Response(status=404)
     ext_l = ext.lower()
-    if ext_l not in src.exts:
+    if ext_l not in SURVEY_BY_SLUG[slug].exts:
         return Response(status=404)
-    if order > src.max_order:
+    return _serve_tile(slug, f"Allsky.{ext_l}", cache_only=True)
+
+
+@offline_sky_bp.route("/hips/offline/<slug>/Norder<int:order>/Dir<int:dir>/Npix<int:npix>.<string:ext>")
+def hips_offline_tile(slug: str, order: int, dir: int, npix: int, ext: str):
+    if not _allowed():
         return Response(status=404)
-    if npix >= 12 * 4 ** order:
+    rel = _validate_tile(slug, order, dir, npix, ext)
+    if rel is None:
         return Response(status=404)
-    if dir != (npix // 10000) * 10000:
+    return _serve_tile(slug, rel, cache_only=True)
+
+
+# ---------------------------------------------------------------------------
+# Offline-sky user API (saves, jobs, status).
+#
+# These live under /api/offline/ (not /hips/), so they go through the normal
+# request context: g.db_user is set, and multi-user auth/guest rules apply.
+# ---------------------------------------------------------------------------
+
+def _api_user_id():
+    """The DB user id for the caller, or None when not permitted.
+
+    Single-user: the default user. Multi-user: a signed-in, non-guest user only.
+    """
+    if not _enabled():
+        return None
+    if not nova.SINGLE_USER_MODE and not current_user.is_authenticated:
+        return None
+    db_user = getattr(g, "db_user", None)
+    return db_user.id if db_user is not None else None
+
+
+def _survey_slug(survey_id: str):
+    src = SURVEY_SOURCES.get(survey_id)
+    return src.slug if src else None
+
+
+def _manifest_summary(manifest: dict) -> dict:
+    return {
+        "id": manifest.get("id"),
+        "name": manifest.get("name"),
+        "ra": manifest.get("ra"),
+        "dec": manifest.get("dec"),
+        "radius_deg": manifest.get("radius_deg"),
+        "surveys": manifest.get("surveys", []),
+        "max_order": manifest.get("max_order"),
+        "created": manifest.get("created"),
+        "bytes": manifest.get("bytes", 0),
+        "tile_count": len(manifest.get("paths", [])),
+        "status": manifest.get("status", "done"),
+    }
+
+
+@offline_sky_bp.route("/api/offline/saves", methods=["GET"])
+def offline_saves_list():
+    uid = _api_user_id()
+    if uid is None:
         return Response(status=404)
-    return _serve_tile(slug, f"Norder{order}/Dir{dir}/Npix{npix}.{ext_l}")
+    from nova.offline_sky_store import list_save_manifests
+    saves = []
+    for _uuid, manifest in list_save_manifests():
+        if manifest.get("user_id") == uid:
+            saves.append(_manifest_summary(manifest))
+    saves.sort(key=lambda s: s.get("created", ""), reverse=True)
+    return jsonify({"saves": saves})
+
+
+@offline_sky_bp.route("/api/offline/saves", methods=["POST"])
+def offline_saves_create():
+    uid = _api_user_id()
+    if uid is None:
+        return Response(status=404)
+    import uuid as _uuid
+    from nova.offline_sky_jobs import start_save_job
+
+    body = request.get_json(silent=True) or {}
+    name = str(body.get("name") or "").strip() or "RA/Dec"
+    try:
+        ra = float(body.get("ra"))
+        dec = float(body.get("dec"))
+        radius_deg = float(body.get("radius_deg"))
+        max_order = int(body.get("max_order"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "invalid parameters"}), 400
+    if not (-90 <= dec <= 90 and 0 < radius_deg < 180):
+        return jsonify({"error": "invalid coordinates or radius"}), 400
+
+    surveys_raw = body.get("surveys") or []
+    slugs = []
+    for sid in surveys_raw:
+        slug = _survey_slug(str(sid))
+        if slug:
+            slugs.append(slug)
+    if not slugs:
+        return jsonify({"error": "no whitelisted surveys"}), 400
+
+    # Cap the chosen order at each survey's own max order.
+    cap = min([SURVEY_BY_SLUG[s].max_order for s in slugs]) if slugs else 9
+    max_order = max(0, min(max_order, cap))
+
+    manifest = {
+        "id": str(_uuid.uuid4()),
+        "user_id": uid,
+        "name": name,
+        "ra": ra,
+        "dec": dec,
+        "radius_deg": radius_deg,
+        "surveys": slugs,
+        "max_order": max_order,
+        "created": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "paths": [],
+        "bytes": 0,
+    }
+    job_id = start_save_job(manifest)
+    return jsonify({"job_id": job_id, "manifest": _manifest_summary(manifest)})
+
+
+@offline_sky_bp.route("/api/offline/saves/<save_id>/progress", methods=["GET"])
+def offline_saves_progress(save_id: str):
+    uid = _api_user_id()
+    if uid is None:
+        return Response(status=404)
+    from nova.offline_sky_store import read_save_manifest
+    from nova.offline_sky_jobs import save_job_progress
+    manifest = read_save_manifest(save_id)
+    if not manifest or manifest.get("user_id") != uid:
+        return Response(status=404)
+    return jsonify(save_job_progress(save_id) or {"job": None, "manifest": _manifest_summary(manifest)})
+
+
+@offline_sky_bp.route("/api/offline/saves/<save_id>/cancel", methods=["POST"])
+def offline_saves_cancel(save_id: str):
+    uid = _api_user_id()
+    if uid is None:
+        return Response(status=404)
+    from nova.offline_sky_store import read_save_manifest
+    from nova.offline_sky_jobs import cancel_job
+    manifest = read_save_manifest(save_id)
+    if not manifest or manifest.get("user_id") != uid:
+        return Response(status=404)
+    return jsonify({"cancelled": cancel_job(save_id)})
+
+
+@offline_sky_bp.route("/api/offline/saves/<save_id>", methods=["DELETE"])
+def offline_saves_delete(save_id: str):
+    uid = _api_user_id()
+    if uid is None:
+        return Response(status=404)
+    from nova.offline_sky_store import delete_save_manifest, read_save_manifest
+    manifest = read_save_manifest(save_id)
+    if not manifest or manifest.get("user_id") != uid:
+        return Response(status=404)
+    delete_save_manifest(save_id)
+    return jsonify({"deleted": True})
+
+
+@offline_sky_bp.route("/api/offline/base/ensure", methods=["POST"])
+def offline_base_ensure():
+    uid = _api_user_id()
+    if uid is None:
+        return Response(status=404)
+    from nova.offline_sky_jobs import ensure_base_survey
+    surveys_raw = (request.get_json(silent=True) or {}).get("surveys") or []
+    out = []
+    for sid in surveys_raw:
+        slug = _survey_slug(str(sid))
+        if slug:
+            out.append(ensure_base_survey(slug))
+    return jsonify({"surveys": out})
+
+
+@offline_sky_bp.route("/api/offline/base/status", methods=["GET"])
+def offline_base_status():
+    uid = _api_user_id()
+    if uid is None:
+        return Response(status=404)
+    from nova.offline_sky_jobs import base_complete
+    return jsonify({"surveys": {s.slug: {"complete": base_complete(s.slug)}
+                                for s in SURVEY_SOURCES.values()}})
+
+
+@offline_sky_bp.route("/api/offline/estimate", methods=["GET"])
+def offline_estimate():
+    uid = _api_user_id()
+    if uid is None:
+        return Response(status=404)
+    from nova.offline_sky_jobs import estimate_save
+    try:
+        ra = float(request.args.get("ra"))
+        dec = float(request.args.get("dec"))
+        radius_deg = float(request.args.get("radius_deg"))
+        max_order = int(request.args.get("max_order"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "invalid parameters"}), 400
+    slugs = [s for s in (request.args.get("surveys", "").split(",")) if s]
+    return jsonify(estimate_save(ra, dec, radius_deg, slugs, max_order))
+
+
+@offline_sky_bp.route("/api/offline/status", methods=["GET"])
+def offline_status():
+    uid = _api_user_id()
+    if uid is None:
+        return Response(status=404)
+    from nova.offline_sky_jobs import base_complete, cone_max_cached_order
+    try:
+        ra = float(request.args.get("ra"))
+        dec = float(request.args.get("dec"))
+        radius_deg = float(request.args.get("radius_deg"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "invalid parameters"}), 400
+    surveys_raw = request.args.get("surveys", "")
+    result = {}
+    for sid in surveys_raw.split(","):
+        slug = _survey_slug(sid.strip())
+        if not slug:
+            continue
+        result[slug] = {
+            "base_complete": base_complete(slug),
+            "max_cached_order": cone_max_cached_order(slug, ra, dec, radius_deg),
+        }
+    return jsonify({"surveys": result, "survey_ids": {s: SURVEY_ID_BY_SLUG.get(s) for s in result}})

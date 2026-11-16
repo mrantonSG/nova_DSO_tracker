@@ -8591,6 +8591,71 @@ msgid "Failed to initialize sky viewer. Please refresh and try again."
 msgstr "Impossible d'initialiser la visionneuse du ciel. Veuillez actualiser et réessayer."
 
 
+#: templates/base.html
+msgid "Offline view"
+msgstr "Vue hors ligne"
+
+#: templates/base.html
+msgid "Scan Frame is unavailable in offline view."
+msgstr "Le balayage du champ est indisponible en vue hors ligne."
+
+#: templates/base.html
+msgid "Save for offline"
+msgstr "Enregistrer pour le hors ligne"
+
+#: templates/base.html
+msgid "Offline: sharp"
+msgstr "Hors ligne : net"
+
+#: templates/base.html
+msgid "Offline: low detail"
+msgstr "Hors ligne : faible détail"
+
+#: templates/base.html
+msgid "Not available offline"
+msgstr "Non disponible hors ligne"
+
+#: templates/base.html
+msgid "offline"
+msgstr "hors ligne"
+
+#: templates/base.html
+msgid "Saved for offline"
+msgstr "Enregistré pour le hors ligne"
+
+#: templates/base.html
+msgid "Surveys"
+msgstr "Relevés"
+
+#: templates/base.html
+msgid "Standard"
+msgstr "Standard"
+
+#: templates/base.html
+msgid "Sharp"
+msgstr "Net"
+
+#: templates/base.html
+msgid "Maximum"
+msgstr "Maximum"
+
+#: templates/base.html
+msgid "Suggested"
+msgstr "Suggéré"
+
+#: templates/base.html
+msgid "Nothing saved for offline yet."
+msgstr "Rien d'enregistré pour le hors ligne pour l'instant."
+
+#: templates/base.html
+msgid "tiles"
+msgstr "tuiles"
+
+#: templates/base.html
+msgid "Free space"
+msgstr "Espace libre"
+
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Suggestions de rafraîchissement"
 

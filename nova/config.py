@@ -76,6 +76,13 @@ NOVA_CATALOG_URL = config('NOVA_CATALOG_URL', default='')
 OFFLINE_SKY_STORE = config('OFFLINE_SKY_STORE', default='off')
 # Cap for browsed (non-pinned) tiles, in MiB, per instance. 0 or negative = no cap (unlimited).
 OFFLINE_SKY_CACHE_MB = config('OFFLINE_SKY_CACHE_MB', default=2048, cast=int)
+# Highest whole-sky order fetched for the low-res base layer. Orders 0..N plus the
+# Allsky file(s) are pinned at instance level (never evicted). N=3 is 1020 tiles.
+OFFLINE_SKY_BASE_ORDER = config('OFFLINE_SKY_BASE_ORDER', default=3, cast=int)
+# Max concurrent upstream requests the offline-sky *jobs* may have in flight, and
+# the delay between requests. The /hips/ proxy keeps its own separate budget.
+OFFLINE_SKY_JOB_CONCURRENCY = config('OFFLINE_SKY_JOB_CONCURRENCY', default=2, cast=int)
+OFFLINE_SKY_JOB_DELAY_SECONDS = config('OFFLINE_SKY_JOB_DELAY_SECONDS', default=0.05, cast=float)
 
 
 def offline_sky_enabled() -> bool:

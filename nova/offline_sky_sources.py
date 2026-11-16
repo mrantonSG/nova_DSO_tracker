@@ -116,11 +116,19 @@ SURVEY_SOURCES = {
 
 # slug -> SurveySource, for routing /hips/<slug>/...
 SURVEY_BY_SLUG = {src.slug: src for src in SURVEY_SOURCES.values()}
+# slug -> survey_id, the reverse map (the frontend's survey value).
+SURVEY_ID_BY_SLUG = {src.slug: sid for sid, src in SURVEY_SOURCES.items()}
 
 
 def build_js_map():
-    """survey_id -> {root, maxOrder}, injected as window.NOVA_OFFLINE_SKY_SURVEYS."""
+    """survey_id -> {root, slug, maxOrder, label}, injected as window.NOVA_OFFLINE_SKY_SURVEYS.
+
+    ``root`` is the same-origin /hips/ root (a relative path); the frontend turns
+    it into an absolute URL before handing it to Aladin (see framingUtils.
+    absoluteHipsRoot), and prefixes "offline/" for cache-only mode.
+    """
     return {
-        sid: {"root": f"/hips/{src.slug}", "maxOrder": src.max_order}
+        sid: {"root": f"/hips/{src.slug}", "slug": src.slug,
+              "maxOrder": src.max_order, "label": src.label}
         for sid, src in SURVEY_SOURCES.items()
     }
