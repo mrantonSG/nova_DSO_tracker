@@ -352,11 +352,11 @@ def test_nsns_capped_and_limited_to_coverage():
 # 4. Limits before start
 # ---------------------------------------------------------------------------
 
-def _post_save(client, rid, surveys=(DSS_ID,), frame=None):
+def _post_save(client, rid, surveys=(DSS_ID,), frame=None, name="LDN1295", **over):
     f = frame or {"ra": LDN_RA, "dec": LDN_DEC,
                   "frame_w_deg": LDN_W_ARCMIN / 60, "frame_h_deg": LDN_H_ARCMIN / 60}
     return client.post("/api/offline/saves", json={
-        "name": "LDN1295", **f, "rig_id": rid, "surveys": list(surveys), "detail_offset": 0})
+        "name": name, **f, "rig_id": rid, "surveys": list(surveys), "detail_offset": 0, **over})
 
 
 def test_save_rejected_over_cap(client, db_session, monkeypatch):
@@ -1437,3 +1437,255 @@ def test_a_cancelled_save_pins_nothing_but_keeps_its_tiles(upstream, runners):
     assert store.total_bytes() == len(m["paths"]) * 1000
     for key in m["paths"]:
         assert store.pinned_key_size(key) is not None   # nothing deleted
+
+
+# ---------------------------------------------------------------------------
+# Items 2-5: one entry per (user, rig, object), and the explicit no-op refusal
+# ---------------------------------------------------------------------------
+
+def test_saving_the_same_object_for_the_same_rig_merges(client, db_session, monkeypatch):
+    """Item 3: a second save adds its surveys to the entry, not a new row."""
+    _save_on(monkeypatch)
+    monkeypatch.setattr(jobs, "kick", lambda: False)
+    _install_real_facts(DSS)
+    rid = _make_rig(db_session)
+    first = _post_save(client, rid, [DSS_ID])
+    assert first.status_code == 200, first.get_json()
+    entry_id = first.get_json()["manifest"]["id"]
+
+    second = _post_save(client, rid, [DSS_ID, OIII_ID])
+    assert second.status_code == 200, second.get_json()
+    assert second.get_json()["manifest"]["id"] == entry_id, "merged into the same entry"
+
+    manifest = store.read_save_manifest(entry_id)
+    assert manifest is not None
+    # the merged entry covers both surveys and names both saves
+    assert set(manifest["surveys"]) >= {DSS, OIII}
+    assert len(manifest.get("merged_saves") or []) == 2
+
+    # and the list shows one row, not two
+    saves = client.get("/api/offline/saves?name=LDN1295").get_json()["saves"]
+    assert len(saves) == 1
+
+
+def test_a_save_with_nothing_new_is_refused(client, db_session, monkeypatch, upstream, runners):
+    """Item 2, server side: no new survey and no missing tile is a 4xx, not a
+    silent no-op merge. Nothing is written and no job is created."""
+    _save_on(monkeypatch)
+    monkeypatch.setattr(jobs, "kick", lambda: False)
+    _install_real_facts(DSS)
+    rid = _make_rig(db_session)
+    assert _post_save(client, rid, [DSS_ID]).status_code == 200
+    r = runners()
+    r.acquire()
+    r.run_pending()                             # the first save finishes
+    assert store.read_save_manifest(store.list_save_manifests()[0][0])["status"] == "done"
+    before = len(jobs.list_jobs())
+
+    again = _post_save(client, rid, [DSS_ID])
+    assert again.status_code == 409
+    assert again.get_json()["code"] == "nothing_new"
+    assert len(jobs.list_jobs()) == before, "no job created"
+    assert len(store.list_save_manifests()) == 1, "no second manifest"
+
+
+def test_a_save_adding_a_survey_is_not_refused(client, db_session, monkeypatch):
+    """The refusal is only for a genuine no-op: a new survey is real work."""
+    _save_on(monkeypatch)
+    monkeypatch.setattr(jobs, "kick", lambda: False)
+    _install_real_facts(DSS)
+    _install_real_facts(OIII)
+    rid = _make_rig(db_session)
+    assert _post_save(client, rid, [DSS_ID]).status_code == 200
+    assert _post_save(client, rid, [DSS_ID, OIII_ID]).status_code == 200
+
+
+def test_the_saved_list_is_filtered_by_object_and_counts_the_others(client, db_session, monkeypatch):
+    """Item 4: only this object's saves, plus how many belong elsewhere."""
+    _save_on(monkeypatch)
+    monkeypatch.setattr(jobs, "kick", lambda: False)
+    _install_real_facts(DSS)
+    rid = _make_rig(db_session)
+    _post_save(client, rid, [DSS_ID], name="LDN1295")
+    _post_save(client, rid, [DSS_ID], name="M106", ra=184.6, dec=47.3)
+
+    only = client.get("/api/offline/saves?name=LDN1295").get_json()
+    assert [s["name"] for s in only["saves"]] == ["LDN1295"]
+    assert only["others"] == 1
+
+    everything = client.get("/api/offline/saves").get_json()
+    assert len(everything["saves"]) == 2 and everything["others"] == 0
+
+
+def test_a_save_records_the_rig_it_was_made_for(client, db_session, monkeypatch):
+    """Item 5: the entry carries rig_id and rig_name, so a row can say which rig."""
+    _save_on(monkeypatch)
+    monkeypatch.setattr(jobs, "kick", lambda: False)
+    _install_real_facts(DSS)
+    rid = _make_rig(db_session)
+    resp = _post_save(client, rid, [DSS_ID])
+    assert resp.status_code == 200
+    manifest = resp.get_json()["manifest"]
+    assert manifest["rig_id"] == rid
+    assert manifest["rig_name"] == "Askar 50P + ASI2600MC Pro"
+    assert manifest["save_ids"], "the entry names its saves"
+
+
+def test_different_rigs_do_not_merge(client, db_session, monkeypatch):
+    """Two rigs, same object: two entries, so each can report its own detail."""
+    _save_on(monkeypatch)
+    monkeypatch.setattr(jobs, "kick", lambda: False)
+    _install_real_facts(DSS)
+    rid1 = _make_rig(db_session, name="Rig one")
+    rid2 = _make_rig(db_session, name="Rig two", pixel_um=2.4)
+    assert _post_save(client, rid1, [DSS_ID]).status_code == 200
+    assert _post_save(client, rid2, [DSS_ID]).status_code == 200
+    saves = client.get("/api/offline/saves").get_json()["saves"]
+    assert len(saves) == 2
+    assert {s["rig_name"] for s in saves} == {"Rig one", "Rig two"}
+
+
+def test_a_running_job_does_not_overwrite_another_saves_tiles(upstream, runners, _env):
+    """The merge is a union: two jobs on one entry keep both sets of tiles."""
+    upstream.size = 1000
+    frame = _small_frame()
+    entry = {"id": "E1", "user_id": 1, "name": "T", "surveys": [DSS],
+             "paths": ["dss2-color/Norder3/Dir0/Npix777.jpg"], "bytes": 1000,
+             "created": "2026-01-01T00:00:00Z", "status": "queued", "partial": True,
+             "merged_saves": ["j1", "j2"]}
+    store.write_save_manifest(entry)
+    store.store_file(DSS, "Norder3/Dir0/Npix777.jpg", b"x" * 1000)
+    for jid in ("j1", "j2"):
+        store.write_save_manifest({"id": jid, "user_id": 1, "name": "T", "surveys": [DSS],
+                                   "entry_id": "E1", "paths": [], "bytes": 0,
+                                   "created": "2026-01-01T00:00:00Z", "status": "queued"})
+        jobs.enqueue(jid, "save", {"ra": frame["ra"], "dec": frame["dec"],
+                                   "radius_deg": frame["radius_deg"], "order": 6}, [DSS])
+    r = runners()
+    r.acquire()
+    r.run_pending()
+
+    merged = store.read_save_manifest("E1")
+    assert "dss2-color/Norder3/Dir0/Npix777.jpg" in merged["paths"], \
+        "the tile the entry already had survived both jobs"
+    assert len(merged["paths"]) > 1
+    # both jobs finished; the entry's own status is the last job's to write
+    assert jobs.read_job("j1")["status"] == "done" and jobs.read_job("j2")["status"] == "done"
+
+
+def test_a_deleted_entry_stops_its_jobs(upstream, runners, _env):
+    """Deleting the entry is the same as deleting a save: the job stops rather
+    than recreating what the user removed."""
+    upstream.size = 1000
+    frame = _small_frame()
+    store.write_save_manifest({"id": "E2", "user_id": 1, "name": "T", "surveys": [DSS],
+                               "paths": [], "bytes": 0, "created": "2026-01-01T00:00:00Z",
+                               "status": "queued", "partial": True, "merged_saves": ["j3"]})
+    store.write_save_manifest({"id": "j3", "user_id": 1, "name": "T", "surveys": [DSS],
+                               "entry_id": "E2", "paths": [], "bytes": 0,
+                               "created": "2026-01-01T00:00:00Z", "status": "queued"})
+    jobs.enqueue("j3", "save", {"ra": frame["ra"], "dec": frame["dec"],
+                                "radius_deg": frame["radius_deg"], "order": 6}, [DSS])
+    assert store.read_save_manifest("E2")["merged_saves"] == ["j3"]
+
+    r = runners()
+    r.acquire()
+    store.delete_save_manifest("E2")        # the user removes the entry
+    r.run_pending()
+    # The job stops as deleted: its state and claims are dropped, and the entry
+    # is not recreated by the run.
+    assert jobs.read_job("j3") is None
+    assert store.job_pins("j3") == set()
+    assert store.read_save_manifest("E2") is None
+    # the run stops at the guard (the entry is gone), and its own file records
+    # that; its tiles are pinned by nothing and no run recreates the entry
+    assert store.read_save_manifest("j3")["status"] == "cancelled"
+    assert store.pinned_bytes() == 0
+    assert store.read_save_manifest("E2") is None
+
+
+def test_a_legacy_entry_merges_only_on_name_and_identical_geometry(client, db_session, monkeypatch):
+    """The M106 pair, as it exists on disk: two rig-less entries for one object
+    and one frame become a single row, automatically, with both surveys. A
+    rig-less entry for a different frame keeps its own row."""
+    _save_on(monkeypatch)
+    monkeypatch.setattr(jobs, "kick", lambda: False)
+    uid = store_read_uid(db_session)
+
+    def legacy(save_id, ra, dec, w, h, surveys):
+        store.write_save_manifest({
+            "id": save_id, "user_id": uid, "name": "M106",
+            "ra": ra, "dec": dec, "radius_deg": 1.0,
+            "frame_w_deg": w, "frame_h_deg": h,
+            "surveys": list(surveys),
+            "max_order": 11, "created": "2026-11-17T10:00:00Z",
+            "paths": [], "bytes": 0, "status": "done"})
+
+    legacy("L1", 184.6194, 47.3437, 0.6870, 0.4589, ["dss2-color", "nsns-halpha8"])
+    legacy("L2", 184.6194, 47.3437, 0.6870, 0.4589, ["dss2-color", "nsns-rgb8"])
+    legacy("L3", 184.6194, 47.3437, 1.2000, 0.8000, ["dss2-color"])   # another frame
+
+    # The fold happens on the runner's first pass (once per process); the list
+    # is what the user then sees.
+    r = jobs.JobRunner(rate=1000, limiter=_NoLimit(), sleep=lambda s: None)
+    r.acquire()
+    r.run_pending()
+    r.release()
+
+    rows = client.get("/api/offline/saves?name=M106").get_json()["saves"]
+    assert len(rows) == 2, "the pair is one entry; the odd frame is another"
+    merged = [r for r in rows if len(r["surveys"]) > 1][0]
+    assert set(merged["surveys"]) == {DSS, "nsns-halpha8", "nsns-rgb8"}, "surveys unioned"
+    assert merged["rig_id"] is None and merged["rig_name"] is None, \
+        "a rig-less entry shows no rig and claims no match"
+    assert set(merged["save_ids"]) == {"L1", "L2"}
+
+
+def test_a_rig_tagged_save_never_merges_into_a_legacy_entry(client, db_session, monkeypatch):
+    """The rig-less entry is superseded, not absorbed: a save that names a rig
+    gets its own entry, so its match claim is never wrong."""
+    _save_on(monkeypatch)
+    monkeypatch.setattr(jobs, "kick", lambda: False)
+    _install_real_facts(DSS)
+    rid = _make_rig(db_session)
+    store.write_save_manifest({
+        "id": "L9", "user_id": store_read_uid(db_session), "name": "M106",
+        "ra": LDN_RA, "dec": LDN_DEC, "radius_deg": 1.0, "surveys": ["dss2-color"],
+        "max_order": 11, "created": "2026-11-17T10:00:00Z",
+        "paths": [], "bytes": 0, "status": "done"})
+    resp = _post_save(client, rid, [DSS_ID], name="M106")
+    assert resp.status_code == 200
+    assert resp.get_json()["manifest"]["rig_id"] == rid
+    rows = client.get("/api/offline/saves?name=M106").get_json()["saves"]
+    assert len(rows) == 2, "the legacy entry keeps its own row (superseded, not merged)"
+
+
+def _store_read_uid(db):
+    from nova.models import DbUser
+    return db.query(DbUser).filter_by(username="default").one().id
+
+
+store_read_uid = _store_read_uid
+
+
+def test_the_progress_row_shows_each_saves_job_status(client, db_session, monkeypatch):
+    """The row is the entry; the status is its least-advanced save. Merging must
+    not leave a row showing "Waiting" while a job is actually running."""
+    _save_on(monkeypatch)
+    monkeypatch.setattr(jobs, "kick", lambda: False)
+    _install_real_facts(DSS)
+    _install_real_facts(OIII)
+    rid = _make_rig(db_session)
+    first = _post_save(client, rid, [DSS_ID])
+    entry_id = first.get_json()["manifest"]["id"]
+    second = _post_save(client, rid, [DSS_ID, OIII_ID])
+    assert second.status_code == 200
+
+    row = client.get(f"/api/offline/saves/{entry_id}/progress").get_json()
+    assert row["manifest"]["id"] == entry_id
+    assert row["manifest"]["status"] in ("queued", "running"), \
+        "a queued job makes the entry that far along"
+    assert row["job"] is not None, "the entry answers with one of its saves' jobs"
+
+    listed = client.get("/api/offline/saves?name=LDN1295").get_json()["saves"]
+    assert len(listed) == 1 and listed[0]["status"] in ("queued", "running")

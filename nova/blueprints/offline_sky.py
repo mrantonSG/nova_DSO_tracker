@@ -24,7 +24,7 @@ from nova.config import APP_VERSION, OFFLINE_SKY_STORE, OFFLINE_SKY_SAVE_ENABLED
 from nova.offline_sky_facts import allsky_rel, effective_max_order
 from nova.offline_sky_sources import SURVEY_BY_SLUG, SURVEY_ID_BY_SLUG, SURVEY_SOURCES
 from nova.offline_sky_store import (
-    read_file, store_file, touch, maybe_evict_async, tile_path,
+    entry_match, read_file, save_covered_keys, store_file, touch, maybe_evict_async, tile_path,
 )
 
 offline_sky_bp = Blueprint("offline_sky", __name__)
@@ -383,14 +383,16 @@ def _api_user_id():
     return db_user.id if db_user is not None else None
 
 
-def _rig_image_scale(uid: int, rig_id):
-    """(arcsec/px, source) for the caller's rig; raises LimitError.
+def _rig_scale(uid: int, rig_id):
+    """(arcsec/px, source, rig) for the caller's rig; raises LimitError.
 
     Same computation as the framing page's rig list (nova/blueprints/core.py):
     206.265 x camera pixel size (um) / effective focal length (mm), with the
     effective focal length = telescope focal length x reducer/extender factor,
     components resolved by record UID. Falls back to the Rig.image_scale column
     (stored at rig save time) when the components can't give it.
+
+    The rig row comes back too, so a save can record which rig it was made for.
     """
     from nova.helpers import get_db, _compute_rig_metrics_from_components
     from nova.models import Rig
@@ -408,11 +410,17 @@ def _rig_image_scale(uid: int, rig_id):
     _efl, _fr, scale, _fov = _compute_rig_metrics_from_components(
         rc.telescope, rc.camera, rc.reducer_extender)
     if scale and scale > 0:
-        return float(scale), "components"
+        return float(scale), "components", rig
     if rig.image_scale and rig.image_scale > 0:
-        return float(rig.image_scale), "stored"
+        return float(rig.image_scale), "stored", rig
     raise LimitError("rig_no_image_scale",
                      "this rig has no image scale (camera pixel size and focal length are needed)")
+
+
+def _rig_image_scale(uid: int, rig_id):
+    """(arcsec/px, source) -- _rig_scale without the rig row."""
+    scale, source, _rig = _rig_scale(uid, rig_id)
+    return scale, source
 
 
 def _limit_response(err, status=400):
@@ -427,24 +435,50 @@ def _frame_from(src):
                           src.get("frame_w_deg"), src.get("frame_h_deg"))
 
 
-def _manifest_summary(manifest: dict) -> dict:
-    """One save for the API.
+def _save_status(manifest: dict):
+    """A save's own status: what its job says, else what its file says.
 
-    Saves written by the first step-2 version (before B1) have no
-    ``detail_offset`` / frame size / ``partial`` and a job file without
-    params, so their job can never run again. They are listed as ``legacy``
-    (deletable, nothing else), a non-final status reads as "failed", and
-    ``partial`` follows the status when the manifest doesn't say.
+    The job is the authority while it exists -- it is the thing that knows
+    whether tiles are still being fetched.
+    """
+    from nova.offline_sky_jobs import read_job
+    job = read_job(manifest.get("id"))
+    return (job or {}).get("status") or manifest.get("status")
 
-    ``legacy_unfinished``: a legacy save that is not ``done`` -- it can never
-    run again and covers nothing (see ``store.save_covers``), so the list route
-    hides it.
+
+def _entry_status(manifest: dict, saved=()) -> str:
+    """One status for an entry, from the saves that make it up.
+
+    An entry is as far along as its least-advanced save: while any of its jobs
+    can still run the entry stays active (so the panel keeps polling), and
+    otherwise anything that stopped short keeps it from reading as ``done``.
+    """
+    from nova.offline_sky_jobs import ACTIVE_STATUSES
+    order = ("queued", "running", "paused")
+    saves = [manifest] + [s for s in saved if s.get("id") != manifest.get("id")]
+    statuses = [s for s in (_save_status(m) for m in saves) if s]
+    active = [s for s in statuses if s in ACTIVE_STATUSES]
+    if active:
+        return order[min(order.index(s) for s in active)]
+    for status in statuses:
+        if status != "done":
+            return status
+    return "done" if statuses else None
+
+
+def _entry_summary(manifest: dict) -> dict:
+    """One entry for the API: the merged manifest in the shape the panel reads.
+
+    An entry is a manifest file like any other; ``merged_saves`` names every save
+    folded into it (see ``store.merge_into_entry``). ``status`` here is the
+    manifest's own; the routes that list or poll entries replace it with
+    ``_entry_status``, which also looks at each save's job.
     """
     from nova.offline_sky_jobs import FINAL_STATUSES
     from nova.offline_sky_sources import SURVEY_ID_BY_SLUG
     surveys = manifest.get("surveys", [])
     legacy = "detail_offset" not in manifest
-    status = manifest.get("status", "done")
+    status = manifest.get("status") or ("failed" if legacy else "done")
     if legacy and status not in FINAL_STATUSES:
         status = "failed"
     return {
@@ -461,36 +495,83 @@ def _manifest_summary(manifest: dict) -> dict:
         "target_order": manifest.get("target_order"),
         "detail_offset": manifest.get("detail_offset"),
         "image_scale_arcsec": manifest.get("image_scale_arcsec"),
+        "rig_id": manifest.get("rig_id"),
+        "rig_name": manifest.get("rig_name"),
         "created": manifest.get("created"),
         "bytes": manifest.get("bytes", 0),
-        "tile_count": len(manifest.get("paths", [])),
+        "tile_count": len(save_covered_keys(manifest)),
         "missing": manifest.get("missing", 0),
         "partial": bool(manifest.get("partial", status != "done")),
         "status": status,
         "legacy": legacy,
         "legacy_unfinished": legacy and status != "done",
+        "save_ids": list(manifest.get("merged_saves") or []),
     }
+
+
+def _manifest_summary(manifest: dict) -> dict:
+    """One save's manifest as the API's entry shape (see ``_entry_summary``)."""
+    return _entry_summary(manifest)
+
+
+def _tracked_entries(uid):
+    """[(entry manifest, [save manifests])] for one user's live entries.
+
+    A save that was folded into another entry (``entry_id`` naming a different
+    file) is recorded, not listed: the entry is its row. A standalone save is its
+    own entry. A save whose entry has been deleted stops matching anything and is
+    ignored -- which is what keeps the list showing exactly what exists.
+    """
+    from nova.offline_sky_store import list_save_manifests
+    manifests = [m for _uuid, m in list_save_manifests() if m.get("user_id") == uid]
+    entries = {}
+    folded = {}       # entry id -> [save manifests]
+    for manifest in manifests:
+        owner = manifest.get("entry_id") or manifest.get("id")
+        if owner != manifest.get("id"):
+            folded.setdefault(owner, []).append(manifest)
+            continue
+        entries[manifest.get("id")] = manifest
+    records = []
+    for entry_id, entry in entries.items():
+        records.append((entry, folded.get(entry_id, [])))
+    return records
+
+
+def _entry_records(uid):
+    """The list-relevant records: hide an unfinished save from before B1 (it can
+    never run again and covers nothing), keep everything else."""
+    out = []
+    for manifest, saved in _tracked_entries(uid):
+        summary = _entry_summary(manifest)
+        if summary["legacy_unfinished"] and manifest.get("status") == "cancelled":
+            continue
+        out.append((manifest, saved, summary))
+    return out
 
 
 @offline_sky_bp.route("/api/offline/saves", methods=["GET"])
 def offline_saves_list():
+    """The caller's entries, for one object when ``?name=`` is given.
+
+    ``others`` counts entries for the caller's other objects, so the panel can
+    say how many are saved elsewhere without fetching them.
+    """
     uid = _api_user_id()
     if uid is None:
         return Response(status=404)
-    from nova.offline_sky_store import list_save_manifests
-    saves = []
-    for _uuid, manifest in list_save_manifests():
-        if manifest.get("user_id") != uid:
+    wanted = request.args.get("name")
+    saves, others = [], 0
+    for manifest, saved, summary in _entry_records(uid):
+        if wanted is not None and summary["name"] != wanted:
+            others += 1
             continue
-        # An unfinished save from the first step-2 version can never run again
-        # (no job params) and holds nothing: hide it rather than show a row that
-        # can only be deleted. Its file stays, so a later version could still
-        # read it.
-        if _manifest_summary(manifest)["legacy_unfinished"]:
-            continue
-        saves.append(_manifest_summary(manifest))
+        summary["status"] = _entry_status(manifest, saved)
+        summary["partial"] = bool(summary["partial"] or summary["status"] != "done")
+        summary["missing"] = max([summary["missing"]] + [s.get("missing", 0) for s in saved])
+        saves.append(summary)
     saves.sort(key=lambda s: s.get("created", ""), reverse=True)
-    return jsonify({"saves": saves})
+    return jsonify({"saves": saves, "others": others})
 
 
 def _estimate_for(uid, src):
@@ -502,10 +583,10 @@ def _estimate_for(uid, src):
     slugs = resolve_slugs(src.get("surveys") or [])
     if not slugs:
         raise LimitError("no_surveys", "no whitelisted surveys")
-    scale, scale_source = _rig_image_scale(uid, src.get("rig_id"))
+    scale, scale_source, rig = _rig_scale(uid, src.get("rig_id"))
     est = estimate(frame, scale, slugs, offset, fetch=True)
     est["image_scale"] = {"arcsec_per_px": scale, "source": scale_source,
-                          "rig_id": int(src.get("rig_id"))}
+                          "rig_id": int(src.get("rig_id")), "rig_name": rig.rig_name}
     return est
 
 
@@ -528,11 +609,47 @@ def offline_saves_create():
 
     frame = est["frame"]
     slugs = [s["slug"] for s in est["surveys"]]
+    name = str(body.get("name") or "").strip() or "RA/Dec"
+    rig_id = est["image_scale"]["rig_id"]
+    rig_name = est["image_scale"].get("rig_name")
+    total = est["total"]
+    params = {"ra": frame["ra"], "dec": frame["dec"], "radius_deg": frame["radius_deg"],
+              "order": est["requested_order"],
+              # What this save reserves under the cap / on disk until it has pinned it.
+              "reserve_bytes": total["est_bytes"] + total["adopt_bytes"],
+              "reserve_disk_bytes": total["est_bytes"]}
+
+    # The entry this save belongs to: same user, same object, same rig (or, for
+    # entries from before rigs were recorded, the same frame). Saving the same
+    # object for the same rig again adds surveys to that entry instead of making
+    # a second row.
+    probe = {"user_id": uid, "name": name, "rig_id": rig_id, "ra": frame["ra"],
+             "dec": frame["dec"], "frame_w_deg": frame["frame_w_deg"],
+             "frame_h_deg": frame["frame_h_deg"]}
+    entries = [m for m, _saved, _sum in _entry_records(uid)]
+    target = entry_match(probe, entries)
+
+    if target is not None:
+        added = [s for s in slugs if s not in set(target.get("surveys") or [])]
+        # Nothing new to download and no survey to add: refuse, rather than merge
+        # a no-op. No manifest is touched and no job is created, so the panel can
+        # show "Already saved" and Save stays disabled.
+        if not added:
+            want = _covered_keys_for(frame, est, slugs)
+            if not (want - save_covered_keys(target)):
+                return jsonify({"error": "already saved", "code": "nothing_new",
+                                "save_id": target.get("id"), "estimate": est}), 409
+        # Every job this POST creates is recorded on the entry under the pin
+        # lock, so the runner can fold each one in without losing the others.
+        save_id = str(_uuid.uuid4())
+        return _admit_into_entry(target, save_id, slugs, params, uid, name, frame,
+                                 est, rig_id, added, rig_name)
+
     save_id = str(_uuid.uuid4())
     manifest = {
         "id": save_id,
         "user_id": uid,
-        "name": str(body.get("name") or "").strip() or "RA/Dec",
+        "name": name,
         "ra": frame["ra"],
         "dec": frame["dec"],
         "frame_w_deg": frame["frame_w_deg"],
@@ -543,18 +660,15 @@ def offline_saves_create():
         "target_order": est["target_order"],
         "detail_offset": est["detail_offset"],
         "image_scale_arcsec": est["image_scale_arcsec"],
+        "rig_id": rig_id,
+        "rig_name": rig_name,
         "created": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "paths": [],
         "bytes": 0,
         "status": "queued",
         "partial": True,
+        "merged_saves": [save_id],
     }
-    total = est["total"]
-    params = {"ra": frame["ra"], "dec": frame["dec"], "radius_deg": frame["radius_deg"],
-              "order": est["requested_order"],
-              # What this save reserves under the cap / on disk until it has pinned it.
-              "reserve_bytes": total["est_bytes"] + total["adopt_bytes"],
-              "reserve_disk_bytes": total["est_bytes"]}
     # Final check + queueing in one step, so concurrent creates can't both fit.
     problem = admit_save(manifest, params, slugs,
                          params["reserve_bytes"], params["reserve_disk_bytes"])
@@ -566,6 +680,63 @@ def offline_saves_create():
     return jsonify({"job_id": save_id, "manifest": _manifest_summary(manifest), "estimate": est})
 
 
+def _covered_keys_for(frame, est, slugs) -> set:
+    """Every tile this save would cover, as "<slug>/<rel>" (no upstream calls).
+
+    Used to tell "already saved" from "a few tiles are still missing": the same
+    plan the job will fetch, so the two agree to the tile.
+    """
+    from nova.offline_sky_jobs import plan_survey
+    keys = set()
+    for slug in slugs:
+        plan = plan_survey(slug, frame["ra"], frame["dec"], frame["radius_deg"],
+                           est["requested_order"], fetch=False)
+        keys |= {f"{slug}/{rel}" for rel in plan.rel_paths()}
+    return keys
+
+
+def _admit_into_entry(entry, save_id, slugs, params, uid, name, frame, est, rig_id, added,
+                      rig_name=None):
+    """Queue this save as part of an existing entry.
+
+    One job, for the surveys being added (what the entry already covers needs no
+    new tiles). The entry's save-id list is extended under the pin lock, so two
+    concurrent creates both end up recorded and neither job loses the other's
+    tiles.
+    """
+    from nova.offline_sky_jobs import admit_save, kick
+    from nova.offline_sky_store import (add_entry_saves, merge_into_entry, read_save_manifest,
+                                        write_save_manifest)
+    manifest = {
+        "id": save_id, "user_id": uid, "name": name,
+        "ra": frame["ra"], "dec": frame["dec"],
+        "frame_w_deg": frame["frame_w_deg"], "frame_h_deg": frame["frame_h_deg"],
+        "radius_deg": frame["radius_deg"],
+        "surveys": added or slugs,
+        "max_order": est["requested_order"], "target_order": est["target_order"],
+        "detail_offset": est["detail_offset"],
+        "image_scale_arcsec": est["image_scale_arcsec"], "rig_id": rig_id,
+        "rig_name": rig_name, "entry_id": entry.get("id"),
+        "created": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "paths": [], "bytes": 0, "status": "queued", "partial": True,
+    }
+    problem = admit_save(manifest, params, added or slugs,
+                         params["reserve_bytes"], params["reserve_disk_bytes"])
+    if problem:
+        est.update(fits=False, reject=problem)
+        return jsonify({"error": problem["message"], "code": problem["code"],
+                        "estimate": est}), 409
+    add_entry_saves(entry.get("id"), [save_id])
+    # Fold the new save into the entry now, so the list shows the merged surveys
+    # straight away (the job adds its tiles when it finishes).
+    fresh = read_save_manifest(entry.get("id")) or entry
+    merge_into_entry(fresh, manifest)
+    write_save_manifest(fresh)
+    kick()
+    return jsonify({"job_id": save_id, "save_id": save_id, "entry_id": entry.get("id"),
+                    "manifest": _entry_summary(fresh), "estimate": est})
+
+
 def _owned_manifest(uid, save_id):
     from nova.offline_sky_store import read_save_manifest
     manifest = read_save_manifest(save_id)
@@ -574,19 +745,45 @@ def _owned_manifest(uid, save_id):
     return manifest
 
 
+def _entry_for_save(uid, save_id):
+    """(entry manifest, [save manifests]) for the entry a save belongs to."""
+    for manifest, saved, _summary in _entry_records(uid):
+        if manifest.get("id") == save_id or save_id in (manifest.get("merged_saves") or []):
+            return manifest, saved
+    return None, []
+
+
 @offline_sky_bp.route("/api/offline/saves/<save_id>/progress", methods=["GET"])
 def offline_saves_progress(save_id: str):
     uid = _api_user_id()
     if uid is None:
         return Response(status=404)
     from nova.offline_sky_jobs import ACTIVE_STATUSES, kick, read_job
-    manifest = _owned_manifest(uid, save_id)
+    # A save merged into an entry has its own file, but the row is the entry, so
+    # answer about the entry and let the caller's id find it either way.
+    entry, saved = _entry_for_save(uid, save_id)
+    row_id = entry.get("id") if entry else save_id
+    manifest = _owned_manifest(uid, row_id)
     if manifest is None:
         return Response(status=404)
     job = read_job(save_id)
+    if job is None and entry:
+        # The entry answers for whichever of its saves is still running (the
+        # latest one asked for), so the row keeps showing progress after a merge.
+        for other in reversed(saved):
+            job = read_job(other.get("id"))
+            if job:
+                break
     if job and job.get("status") in ACTIVE_STATUSES:
         kick()  # resume after a restart: whoever can take the lock runs it
-    return jsonify({"job": job, "manifest": _manifest_summary(manifest)})
+    summary = _manifest_summary(manifest)
+    if entry and not summary["legacy"]:
+        # An entry is as far along as its least-advanced save -- the panel polls
+        # on that, so a merged entry whose newest job runs still reads active.
+        summary["status"] = _entry_status(manifest, saved)
+        summary["partial"] = bool(summary["partial"] or summary["status"] != "done")
+    summary["id"] = row_id
+    return jsonify({"job": job, "manifest": summary})
 
 
 @offline_sky_bp.route("/api/offline/saves/<save_id>/cancel", methods=["POST"])

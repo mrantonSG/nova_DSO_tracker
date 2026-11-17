@@ -2687,6 +2687,10 @@
         if (fovLayer) fovLayer.removeAll();
         updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotation);
         updateResultDiffers();
+        // The frame the panel would save is not the same frame any more (a new
+        // rig, a mosaic step, a new rotation): its estimate and its rig lines
+        // have to follow it.
+        refreshOfflineSavePanel();
     };
     let frameRafId = null;
     function updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotationDeg) {
@@ -4077,6 +4081,24 @@
             getBaseId: offlineBaseId,
             getBlendId: offlineBlendId,
             getName: () => (window.NOVA_GRAPH_DATA && (window.NOVA_GRAPH_DATA.objectName || window.NOVA_GRAPH_DATA.altName)) || 'RA/Dec',
+            // The rig this view is set to: what a save is made for, and what a
+            // saved row's rig is compared with.
+            getRigId: () => {
+                const sel = document.getElementById('framing-rig-select');
+                const opt = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex] : null;
+                return opt ? opt.value : null;
+            },
+            getRigName: () => {
+                const sel = document.getElementById('framing-rig-select');
+                const opt = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex] : null;
+                return opt ? (opt.textContent || '').trim() : '';
+            },
+            getRigScale: () => {
+                const sel = document.getElementById('framing-rig-select');
+                const opt = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex] : null;
+                const v = parseFloat(opt && opt.dataset.imageScale);
+                return isFinite(v) && v > 0 ? v : null;
+            },
             locale: document.documentElement.lang || undefined,
             isConfirmOpen: () => {
                 const m = document.getElementById('nova-modal');
@@ -4092,6 +4114,12 @@
     /** Closes the panel and stops its timers; called on open and when the Framing tab hides. */
     function closeOfflineSavePanel() {
         if (offlineSavePanel) offlineSavePanel.close();
+    }
+
+    /** The rig or the mosaic changed: if the panel is open, re-read the estimate
+     *  and the saved list, so the numbers follow what the frame now is. */
+    function refreshOfflineSavePanel() {
+        if (offlineSavePanel && offlineSavePanel.isOpen()) offlineSavePanel.refresh();
     }
 
     function wireOfflineSkyUi() {

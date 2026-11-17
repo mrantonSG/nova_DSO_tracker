@@ -92,6 +92,7 @@
             case 'rig_no_image_scale': return t('offline_reason_rig_scale');
             case 'radius_too_large': return t('offline_reason_too_large');
             case 'nothing': return t('offline_reason_nothing');
+            case 'nothing_new': return t('offline_already_saved');
             default: return t('offline_reason_error');
         }
     }
@@ -135,7 +136,8 @@
             checkedEstimate: null,  // estimate for the checked surveys (total + verdict)
             blocked: true,
             saves: [],
-            rows: {},               // save id -> {status, cancel}
+            others: 0,              // entries saved for the caller's other objects
+            rows: {},               // save id -> {status, cancel, size}
             surveyRows: {},         // survey id -> {input, note, size, row}
             busy: false,
         };
@@ -176,6 +178,15 @@
         }
 
         function toggle() { if (state.open) close(); else open(); }
+
+        /** Re-read everything for the current frame: the estimate and the list.
+         *  Called when the rig changes, so the numbers follow the rig. */
+        function refresh() {
+            if (!state.open) return Promise.resolve();
+            state.coverage = null;
+            loadSaves();
+            scheduleEstimate(0);
+        }
 
         function handleKeydown(e) {
             if (!state.open || !e || (e.key !== 'Escape' && e.key !== 'Esc')) return false;
@@ -334,6 +345,10 @@
                         setSaveBlocked(true, reasonText(t, res.data.reject.code));
                     } else if (!res.data.total.tiles_total) {
                         setSaveBlocked(true, reasonText(t, 'nothing'));
+                    } else if (isAlreadySaved(res.data)) {
+                        // Every tile is already on disk and nothing new to fetch:
+                        // nothing to do, so Save is off and the panel says why.
+                        setSaveBlocked(true, reasonText(t, 'nothing_new'));
                     } else {
                         setSaveBlocked(false);
                     }
@@ -352,14 +367,24 @@
                 out.textContent = '';
                 return;
             }
+            // The resolution really served, which is shallower than the request
+            // when every chosen survey is capped (see the server's estimate).
             out.textContent = t('offline_detail_scale', {
-                scale: formatScale(data.requested_pixel_scale_arcsec),
+                scale: formatScale(data.effective_pixel_scale_arcsec || data.requested_pixel_scale_arcsec),
                 rig: formatScale(data.image_scale_arcsec),
             });
         }
 
         function sizeText(tiles, bytes) {
             return t('offline_tiles_mb', { tiles: tiles, mb: formatMb(bytes) });
+        }
+
+        /** Every tile of this estimate is already on disk, so a save has nothing
+         *  to download: the panel says "Already saved" and disables Save. A save
+         *  that adopts browsed tiles (adopt_bytes) still does something. */
+        function isAlreadySaved(data) {
+            var total = data && data.total;
+            return !!total && total.tiles_total > 0 && !total.tile_count && !total.adopt_bytes;
         }
 
         function renderEstimate(data) {
@@ -417,9 +442,11 @@
         // --- saved list + progress -----------------------------------------
         function loadSaves() {
             var seq = state.seq;
-            return deps.fetch('/api/offline/saves').then(readJson).then(function (res) {
+            var name = deps.getName ? deps.getName() : '';
+            return deps.fetch('/api/offline/saves?name=' + encodeURIComponent(name || '')).then(readJson).then(function (res) {
                 if (seq !== state.seq || !state.open) return;
                 state.saves = (res.ok && res.data && res.data.saves) || [];
+                state.others = (res.ok && res.data && res.data.others) || 0;
                 renderSaves();
                 syncPolling();
             }).catch(function () {});
@@ -441,6 +468,25 @@
             }
         }
 
+        /** The rig line for a save: which rig it was made for, and a warning when
+         *  the rig selected in this view needs a finer scale than the save has.
+         *  A save from before rigs were recorded shows neither. */
+        function rigLine(s) {
+            if (s.legacy || !s.rig_name) return s.legacy ? t('offline_earlier_version') : t('offline_made_for');
+            var line = t('offline_made_for_rig', { rig: s.rig_name });
+            var current = deps.getRigId ? deps.getRigId() : null;
+            if (current && s.rig_id && String(current) !== String(s.rig_id) && needsFiner(s)) {
+                return { text: line, warn: t('offline_rig_less_detail', { rig: deps.getRigName ? deps.getRigName() : '' }) };
+            }
+            return line;
+        }
+
+        /** True when the rig selected now resolves finer than this save's pixels. */
+        function needsFiner(s) {
+            var scale = deps.getRigScale ? deps.getRigScale() : null;
+            return !!(scale && s.image_scale_arcsec && scale < s.image_scale_arcsec);
+        }
+
         function renderSaves() {
             var list = $('offline-saves-list');
             if (!list) return;
@@ -448,7 +494,6 @@
             state.rows = {};
             if (!state.saves.length) {
                 list.appendChild(el('div', 'offline-saves-empty', t('offline_none_saved')));
-                return;
             }
             state.saves.forEach(function (s) {
                 var row = el('div', 'offline-save-row');
@@ -460,15 +505,31 @@
                 }
                 main.appendChild(title);
 
+                var rig = rigLine(s);
+                var size = el('span', '', formatMb(s.bytes) + ' MB');
+                if (typeof rig === 'object') {
+                    var warn = el('div', 'offline-save-rig is-warning', rig.warn);
+                    var head = el('div', 'offline-save-rig', rig.text);
+                    main.appendChild(head);
+                    main.appendChild(warn);
+                    rig = rig.text;
+                } else {
+                    main.appendChild(el('div', 'offline-save-rig', rig));
+                }
+
                 var parts = [];
                 var names = (s.surveys || []).map(function (_x, i) { return surveyLabel(s, i); });
                 if (names.length) parts.push(names.join(', '));
-                var choiceKey = s.legacy ? 'offline_earlier_version' : choiceKeyForOffset(s.detail_offset);
+                var choiceKey = s.legacy ? null : choiceKeyForOffset(s.detail_offset);
                 if (choiceKey) parts.push(t(choiceKey));
-                parts.push(formatMb(s.bytes) + ' MB');
                 var date = formatDate(s.created);
-                if (date) parts.push(date);
-                main.appendChild(el('div', 'offline-save-meta', parts.join(' · ')));
+                // surveys · detail · <size> · date, with the size its own element
+                // so a running save can update it as the server reports progress.
+                var meta = el('div', 'offline-save-meta', '');
+                if (parts.length) meta.appendChild(el('span', '', parts.join(' · ') + ' · '));
+                meta.appendChild(size);
+                if (date) meta.appendChild(el('span', '', ' · ' + date));
+                main.appendChild(meta);
 
                 var side = el('div', 'offline-save-side');
                 var status = el('span', 'offline-save-status', '');
@@ -485,12 +546,16 @@
                 row.appendChild(main);
                 row.appendChild(side);
                 list.appendChild(row);
-                state.rows[s.id] = { status: status, cancel: cancel };
+                state.rows[s.id] = { status: status, cancel: cancel, size: size };
                 applyStatus(s.id, { status: s.status, missing: s.missing });
             });
+            if (state.others > 0) {
+                list.appendChild(el('div', 'offline-saves-others',
+                    t('offline_more_other_objects', { count: state.others })));
+            }
         }
 
-        function applyStatus(id, job) {
+        function applyStatus(id, job, manifest) {
             var r = state.rows[id];
             if (!r) return;
             var st = statusText(t, job);
@@ -498,6 +563,12 @@
             if (st.tone) r.status.setAttribute('data-tone', st.tone);
             else r.status.removeAttribute('data-tone');
             r.cancel.hidden = !isActive(job.status);
+            // A running save grows: the server's manifest carries the size as of
+            // its last checkpoint, so the row shows the real figure, not the
+            // estimate it started from.
+            if (manifest && manifest.bytes !== undefined && r.size) {
+                r.size.textContent = formatMb(manifest.bytes) + ' MB';
+            }
         }
 
         function activeIds() {
@@ -525,7 +596,7 @@
                         if (res.status === 404) return true;                  // deleted elsewhere
                         var job = res.ok && res.data && res.data.job;
                         if (!job) return false;
-                        applyStatus(id, job);
+                        applyStatus(id, job, res.data.manifest);
                         var save = state.saves.filter(function (s) { return s.id === id; })[0];
                         return !!save && !isActive(job.status);
                     }).catch(function () { return false; });
@@ -581,6 +652,7 @@
             isOpen: function () { return state.open; },
             hasTimers: function () { return state.estTimer !== null || state.pollTimer !== null; },
             // for tests
+            refresh: refresh,
             _startSave: startSave,
             _pollTick: pollTick,
             _deleteSave: deleteSave,

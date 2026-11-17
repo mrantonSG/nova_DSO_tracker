@@ -386,18 +386,30 @@ def take_job_pins_locked(job_id: str) -> set:
     return keys
 
 
-def save_covers(manifest) -> set:
-    """Keys one save holds, as "<slug>/<rel>": its tiles and its missing ones.
+def save_covered_keys(manifest) -> set:
+    """The keys one save covers: its own tiles plus the ones every mirror 404'd.
 
-    ``paths`` are on disk, ``missing_paths`` were answered 404 by every mirror.
-    Both are part of what the save means to cover -- counting only ``paths``
-    would let the next save fetch the missing ones all over again.
+    Both are what the save means to have done; counting only ``paths`` would let
+    the next save fetch the missing ones all over again.
+    """
+    keys = set()
+    if not isinstance(manifest, dict):
+        return keys
+    for field in ("paths", "missing_paths"):
+        value = manifest.get(field)
+        if isinstance(value, list):
+            keys |= {str(p) for p in value}
+    return keys
+
+
+def save_covers(manifest) -> set:
+    """What one save *pins*: its coverage, or nothing when it cannot be resumed.
 
     A partial save (``stopped``, ``failed``) keeps its coverage while its job
     still has params, because that is what a later run resumes from (it picks up
     from the checkpoint rather than fetching the tiles again). A cancelled save,
-    and a save with no job params at all, covers nothing. A manifest with no
-    status covers: the first step-2 version wrote none.
+    and a save with no params to resume with (the first step-2 version wrote
+    none), covers nothing. A manifest with no status covers.
     """
     if not isinstance(manifest, dict):
         return set()
@@ -406,26 +418,225 @@ def save_covers(manifest) -> set:
         return set()
     if status in PARTIAL_STATUSES and not _job_has_params(manifest.get("id")):
         return set()
-    keys = set()
-    for field in ("paths", "missing_paths"):
-        value = manifest.get(field)
-        if isinstance(value, list):
-            keys |= {str(p) for p in value}
-    return keys
+    # A save whose entry has been deleted covers nothing: the user removed it,
+    # and its own file is only the record of what the job did. This is also what
+    # heals a stale record after a merge.
+    entry_id = manifest.get("entry_id")
+    if entry_id and entry_id != manifest.get("id") and read_save_manifest(entry_id) is None:
+        return set()
+    return save_covered_keys(manifest)
 
 
 def _job_has_params(job_id) -> bool:
     """True when the save's job still holds the params a re-run needs.
 
-    Read straight off the job file rather than through nova.offline_sky_jobs, so
-    the store keeps no import of the jobs layer. A save with no job file (or one
-    the first step-2 version wrote without params) can never run again, so it
-    resumes nothing.
+    Read off the job file rather than through nova.offline_sky_jobs, so the store
+    keeps no import of the jobs layer. A save with no job file (or one the first
+    step-2 version wrote without params) can never run again, so it resumes
+    nothing.
     """
     if not job_id:
         return False
     data = _read_json(os.path.join(jobs_dir(), f"{job_id}.json"), None)
     return bool(isinstance(data, dict) and data.get("params"))
+
+
+# ---------------------------------------------------------------------------
+# Entries: one per (user, rig, object), not one per save
+#
+# A save merges into the entry it belongs to, so saving the same object for the
+# same rig twice adds surveys to one entry instead of making a second row. The
+# key is (user_id, rig_id, name): an entry made before rigs were recorded has no
+# rig_id, so those match on name and identical geometry instead. A rig-less
+# entry never merges into a rig-tagged one -- the rig-less one is superseded, not
+# absorbed (see entry_match).
+# ---------------------------------------------------------------------------
+
+def entry_rig_id(manifest):
+    """The rig a save was made for, or None (an entry from before rigs were
+    recorded, or one saved without a rig)."""
+    value = manifest.get("rig_id") if isinstance(manifest, dict) else None
+    try:
+        return int(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _same_geometry(a, b) -> bool:
+    """True when two saves describe the same frame (to a tenth of an arcsecond)."""
+    for field in ("ra", "dec", "frame_w_deg", "frame_h_deg"):
+        try:
+            if abs(float(a.get(field)) - float(b.get(field))) > 1e-5:
+                return False
+        except (TypeError, ValueError):
+            return False
+    return True
+
+
+def entry_match(manifest, entries):
+    """The entry ``manifest`` belongs to, or None to start a new one.
+
+    Same user, same object name, and then: same rig when both name one; name and
+    identical geometry when neither does. A save that names a rig never joins a
+    rig-less entry (the older one cannot be shown a match claim) and a rig-less
+    save never joins a rig-tagged entry.
+    """
+    uid = manifest.get("user_id")
+    name = manifest.get("name")
+    rig_id = entry_rig_id(manifest)
+    for other in entries:
+        if other.get("user_id") != uid or other.get("name") != name:
+            continue
+        other_rig = entry_rig_id(other)
+        if rig_id is not None and other_rig == rig_id:
+            return other
+        if rig_id is None and other_rig is None and _same_geometry(manifest, other):
+            return other
+    return None
+
+
+def merge_into_entry(entry, manifest) -> dict:
+    """Fold ``manifest`` into ``entry`` in place and return the entry.
+
+    Union, never replace: ``surveys`` and the covered keys grow, so a running job
+    cannot overwrite what another save already has (the job's own manifest write
+    goes through here too). ``created`` stays the earliest -- an entry is as old
+    as its first save -- and ``max_order``/``target_order`` take the deepest
+    detail reached.
+    """
+    entry["surveys"] = sorted(set(entry.get("surveys") or []) | set(manifest.get("surveys") or []))
+    entry["paths"] = sorted(set(entry.get("paths") or []) | set(manifest.get("paths") or []))
+    entry["missing_paths"] = sorted(set(entry.get("missing_paths") or [])
+                                    | set(manifest.get("missing_paths") or []))
+    entry["missing"] = len(entry["missing_paths"])
+    for field in ("max_order", "target_order"):
+        values = [v for v in (entry.get(field), manifest.get(field)) if isinstance(v, int)]
+        if values:
+            entry[field] = max(values)
+    created = [c for c in (entry.get("created"), manifest.get("created")) if c]
+    if created:
+        entry["created"] = min(created)
+    for field in ("rig_id", "rig_name"):
+        if entry.get(field) is None and manifest.get(field) is not None:
+            entry[field] = manifest[field]
+    # Which saves make up this entry: its own id, plus the ones folded in. This
+    # is what keeps a merged save's file from showing as a second row.
+    ids = list(entry.get("merged_saves") or [entry.get("id")])
+    for save_id in ([manifest.get("id")] + list(manifest.get("merged_saves") or [])):
+        if save_id and save_id not in ids:
+            ids.append(save_id)
+    entry["merged_saves"] = [i for i in ids if i]
+    # The status is the job's to write (it knows which save it is running); a
+    # merge only grows what the entry holds.
+
+    return entry
+
+
+def _weakest_status(current, incoming):
+    """The status an entry takes when a save with ``incoming`` joins it.
+
+    Active beats final (the entry keeps being polled while any job runs, and the
+    least far along of two active ones wins); among final statuses anything but
+    ``done`` beats ``done``, so an entry never reads as finished while one of its
+    saves stopped short.
+    """
+    order = ("queued", "running", "paused")
+    if current in order or incoming in order:
+        if current in order and incoming in order:
+            return order[min(order.index(current), order.index(incoming))]
+        return incoming if incoming in order else current
+    if current in (None, "done"):
+        return incoming if incoming else current
+    return current
+
+
+def reconcile_entries() -> int:
+    """Fold duplicate entries from before rigs were recorded into one each.
+
+    Two rig-less entries for the same user, the same object name and the same
+    frame are one entry: the earliest one absorbs the others (their ``surveys``
+    and covered keys), and their files are then deleted -- only after the merged
+    one is on disk, so a crash can never lose a save. Entries with a rig are
+    never touched, and a rig-less entry is never folded into a rig-tagged one.
+    Returns how many files were removed.
+    """
+    entries = [m for _uuid, m in list_save_manifests()]
+    groups = {}
+    for manifest in entries:
+        if entry_rig_id(manifest) is not None:
+            continue
+        key = (manifest.get("user_id"), manifest.get("name"))
+        groups.setdefault(key, []).append(manifest)
+
+    removed = 0
+    for _key, group in groups.items():
+        if len(group) < 2:
+            continue
+        group.sort(key=lambda m: (m.get("created") or "", m.get("id") or ""))
+        keeper, rest = group[0], group[1:]
+        merged = merge_into_entry(dict(keeper), {})       # a copy, then fold each in
+        try:
+            for other in rest:
+                if not _same_geometry(merged, other):
+                    continue
+                merge_into_entry(merged, other)
+            write_save_manifest(merged)                   # the merged entry first
+        except Exception:
+            continue                                      # never delete on a failed write
+        for other in rest:
+            if not _same_geometry(merged, other):
+                continue
+            try:
+                os.remove(os.path.join(pins_dir(), f"{other['id']}.json"))
+                removed += 1
+            except OSError:
+                pass
+    if removed:
+        refresh_pinned_bytes()
+    return removed
+
+
+def add_entry_saves(entry_id, save_ids) -> None:
+    """Record save ids on an entry, under the pin lock.
+
+    Runs with the manifest write in ``admit_save`` (same lock), so a save is
+    named on the entry before its job can run and no concurrent create can drop
+    the other's id.
+    """
+    if not entry_id:
+        return
+    with pins_lock():
+        entry = read_save_manifest(entry_id)
+        if entry is None:
+            return
+        have = list(entry.get("merged_saves") or [])
+        for save_id in save_ids:
+            if save_id not in have:
+                have.append(save_id)
+        entry["merged_saves"] = have
+        write_save_manifest(entry)
+
+
+def finish_into_entry(job_id, entry_id) -> bool:
+    """Hand a finished job's claims to its entry. True when claims were handed on.
+
+    Called by the runner instead of the entry keeping its own claims file: the
+    entry's coverage grows, so the tiles stay pinned with no second bookkeeping
+    pass. False when the entry has been deleted meanwhile (the job's own
+    ``write_manifest`` then stops, as for a deleted save).
+    """
+    with pins_lock():
+        entry = read_save_manifest(entry_id)
+        if entry is None:
+            return False
+        claimed = {k for k in take_job_pins_locked(job_id)
+                   if pinned_key_size(k) is not None}
+        entry["paths"] = sorted(set(entry.get("paths") or []) | claimed)
+        entry["missing"] = len(entry.get("missing_paths") or [])
+        entry["bytes"] = sum(pinned_key_size(k) or 0 for k in save_covered_keys(entry))
+        write_save_manifest(entry)
+        refresh_pinned_bytes()
+    return True
 
 
 def pinned_rel_paths() -> set:

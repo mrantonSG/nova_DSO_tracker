@@ -366,6 +366,9 @@ def estimate(frame: dict, image_scale_arcsec: float, slugs, detail_offset: int =
             "survey_id": SURVEY_ID_BY_SLUG.get(slug),
             "requested_order": requested,
             "effective_max_order": plan.effective_max_order,
+            # The resolution this survey really serves for this frame: the
+            # requested order capped at what the survey has (see plan.capped).
+            "effective_pixel_scale_arcsec": hips_pixel_scale_arcsec(plan.effective_max_order),
             "capped": plan.capped,
             "orders": plan.orders,
             "by_order": by_order,
@@ -398,6 +401,10 @@ def estimate(frame: dict, image_scale_arcsec: float, slugs, detail_offset: int =
         "requested_order": requested,
         # Resolution of the requested detail (before any per-survey cap).
         "requested_pixel_scale_arcsec": hips_pixel_scale_arcsec(requested),
+        # ...and what the surveys really serve for this frame, which is the same
+        # unless every one of them is capped shallower than the request.
+        "effective_pixel_scale_arcsec": max(s["effective_pixel_scale_arcsec"]
+                                            for s in surveys) if surveys else None,
         "surveys": surveys,
         "total": {"tile_count": tot_new, "tiles_total": tot_all,
                   "est_bytes": tot_bytes, "adopt_bytes": tot_adopt},
@@ -673,6 +680,13 @@ class JobRunner:
         if self._reconciled:
             return
         self._reconciled = True
+        # Entries that predate the rig field were one per save; fold the ones that
+        # describe the same object and frame into a single row (the M106 pair),
+        # then re-derive the totals once for both passes.
+        try:
+            store.reconcile_entries()
+        except Exception:
+            traceback.print_exc()
         store.refresh_pinned_bytes()
 
     # --- loop ---
@@ -872,36 +886,54 @@ class JobRunner:
         manifest_path = os.path.join(store.pins_dir(), f"{job_id}.json")
 
         def save_exists():
-            """Claim guard: runs under the pin lock, so a delete can't slip in."""
-            if not os.path.exists(manifest_path):
+            """Claim guard: runs under the pin lock, so a delete can't slip in.
+
+            What must exist is where this save's tiles belong: the entry it was
+            merged into, or -- for a save that is its own entry -- its own file.
+            """
+            own = store.read_save_manifest(job_id)
+            target = (own.get("entry_id") if own else None) or job_id
+            if store.read_save_manifest(target) is None:
                 raise _Stop("cancelled", REASON_DELETED)
 
         def write_manifest(covered, missing, status, final=False):
-            """Rewrite the manifest under the pin lock; never recreate a deleted one.
+            """Write what this save has so far, under the pin lock.
 
-            ``final``: also hand the job's claims over (remove its claims file)
-            and return True when a claimed tile is on disk but now pinned by
-            nothing (the caller then re-derives the totals).
+            The save's own manifest is the record of what its job did; the entry
+            it belongs to (``entry_id``) gets the union of the two. A standalone
+            save is its own entry, so both writes land on one file. ``final``:
+            keep the pins on the entry and drop the job's claims file, returning
+            True when a claimed tile is on disk but now pinned by nothing.
             """
             leftover = False
+            current_in = {"paths": sorted(set(covered)), "missing_paths": sorted(set(missing)),
+                          "missing": len(set(missing)), "status": status,
+                          "partial": status != "done"}
             with store.pins_lock():
                 current = store.read_save_manifest(job_id)
                 if current is None:
                     if final:
                         store.take_job_pins_locked(job_id)
                     raise _Stop("cancelled", REASON_DELETED)  # save deleted meanwhile
-                current["paths"] = sorted(set(covered))
-                current["missing_paths"] = sorted(set(missing))
-                current["missing"] = len(set(missing))
-                current["bytes"] = sum(store.pinned_key_size(k) or 0 for k in current["paths"])
-                current["status"] = status
-                current["partial"] = status != "done"
+                entry_id = current.get("entry_id") or job_id
+                current.update(current_in)
+                current["bytes"] = sum(store.pinned_key_size(k) or 0
+                                       for k in store.save_covered_keys(current))
                 store.write_save_manifest(current)
+                if entry_id != job_id:
+                    entry = store.read_save_manifest(entry_id)
+                    if entry is None:
+                        if final:
+                            store.take_job_pins_locked(job_id)
+                        raise _Stop("cancelled", REASON_DELETED)  # entry deleted meanwhile
+                    store.merge_into_entry(entry, current_in)
+                    store.write_save_manifest(entry)
                 if final:
                     claimed = store.take_job_pins_locked(job_id)
                     loose = claimed - store.pinned_rel_paths()
                     # Only a tile that is on disk *and* now pinned by nothing else
-                    # moved from pinned to browsed without being handed on.
+                    # moved from pinned to browsed without being handed on. A tile
+                    # the base already pins was never this job's to release.
                     leftover = any(
                         store.pinned_key_size(k) is not None
                         and k not in store.base_pinned_rel_paths()

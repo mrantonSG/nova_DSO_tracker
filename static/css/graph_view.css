@@ -2273,6 +2273,19 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     font-weight: 500;
     color: var(--text-muted);
 }
+.offline-save-rig {
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    overflow-wrap: anywhere;
+}
+.offline-save-rig.is-warning { color: #94600f; }
+[data-theme="dark"] .offline-save-rig.is-warning { color: #e0aa50; }
+.offline-saves-others {
+    padding: 8px 0 0;
+    font-size: 11px;
+    color: var(--text-muted);
+}
 .offline-save-meta {
     margin-top: 2px;
     font-size: 11px;

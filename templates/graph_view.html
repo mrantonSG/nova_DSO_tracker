@@ -57,6 +57,11 @@
     window.novaI18n.offline_reason_too_large = {{ _('This frame is too large to save for offline.') | tojson }};
     window.novaI18n.offline_reason_nothing = {{ _('There is nothing to save for these surveys here.') | tojson }};
     window.novaI18n.offline_reason_error = {{ _('The estimate is not available right now.') | tojson }};
+    window.novaI18n.offline_already_saved = {{ _('Already saved') | tojson }};
+    window.novaI18n.offline_made_for_rig = {{ _('Made for {rig}') | tojson }};
+    window.novaI18n.offline_made_for = {{ _('Made for another rig') | tojson }};
+    window.novaI18n.offline_rig_less_detail = {{ _('Less detail than {rig} needs') | tojson }};
+    window.novaI18n.offline_more_other_objects = {{ _('{count} more saved for other objects') | tojson }};
     window.novaI18n.offline_status_waiting = {{ _('Waiting') | tojson }};
     window.novaI18n.offline_status_downloading = {{ _('Downloading {done} / {total}') | tojson }};
     window.novaI18n.offline_status_paused = {{ _('Paused – survey server not reachable') | tojson }};
@@ -362,7 +367,7 @@
                     <select id="framing-rig-select" data-action="update-framing-rig" data-inactive-label="{{ _('Inactive') }}">
                         {% if active_rigs %}
                         {% for rig in active_rigs %}
-                        <option value="{{ rig.rig_id }}" data-rig-uid="{{ rig.rig_uid or '' }}" data-fovw="{{ rig.fov_w_arcmin }}" data-fovh="{{ rig.fov_h_arcmin }}">{{ rig.rig_name }}</option>
+                        <option value="{{ rig.rig_id }}" data-rig-uid="{{ rig.rig_uid or '' }}" data-fovw="{{ rig.fov_w_arcmin }}" data-fovh="{{ rig.fov_h_arcmin }}" data-image-scale="{{ rig.image_scale or '' }}">{{ rig.rig_name }}</option>
                         {% endfor %}{% else %}<option value="">{{ _('No rigs configured') }}</option>{% endif %}
                     </select>
                 </div>

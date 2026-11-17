@@ -99,7 +99,7 @@ const t = (key, params) => {
 const confirms = [];
 let confirmAnswer = true;
 let confirmOpen = false;
-const frame = { ra: 11.2, dec: 52.43, frameW: 1.2, frameH: 0.8, rigId: '7' };
+const frame = { ra: 11.2, dec: 52.43, frameW: 1.2, frameH: 0.8, rigId: '7', rigName: 'LDN1295', rigScale: null };
 
 const ctx = { window: {}, console };
 vm.createContext(ctx);
@@ -131,6 +131,8 @@ const h = {
             confirm: (msg, opts) => { confirms.push({ msg, opts }); return Promise.resolve(confirmAnswer); },
             getFrame: () => frame, getBaseId: () => input.base, getBlendId: () => input.blend,
             getName: () => 'LDN1295', locale: 'en-US', isConfirmOpen: () => confirmOpen,
+            getRigId: () => frame.rigId, getRigName: () => frame.rigName || 'LDN1295',
+            getRigScale: () => (frame.rigScale === undefined ? null : frame.rigScale),
         });
     },
     surveyRows: () => byId['offline-survey-list'].children.map(row => ({
@@ -138,13 +140,18 @@ const h = {
         note: row.children[3].hidden ? null : row.children[3].textContent,
         size: row.children[2].textContent, cls: row.className,
     })),
-    saveRows: () => byId['offline-saves-list'].children.map(row => ({
-        text: row.textContent, cls: row.className,
-        status: row.children[1] ? row.children[1].children[0].textContent : null,
-        tone: row.children[1] ? row.children[1].children[0].getAttribute('data-tone') : null,
-        cancelHidden: row.children[1] ? row.children[1].children[1].hidden : null,
-        badge: row.children[0] ? row.children[0].children[0].children.length > 1 : null,
-    })),
+    saveRows: () => byId['offline-saves-list'].children.filter(row => row.className !== 'offline-saves-others').map(row => {
+        // A row is [main, side]: main is [name, rig, meta], side is [status, cancel, delete].
+        const main = row.children[0], side = row.children[1];
+        return {
+            text: row.textContent, cls: row.className,
+            status: side ? side.children[0].textContent : null,
+            tone: side ? side.children[0].getAttribute('data-tone') : null,
+            cancelHidden: side ? side.children[1].hidden : null,
+            rig: main && main.children[1] ? main.children[1].textContent : null,
+            badge: main ? main.children[0].children.length > 1 : null,
+        };
+    }),
     key(k) { let stopped = false, prevented = false;
         return { e: { key: k, stopPropagation: () => { stopped = true; }, preventDefault: () => { prevented = true; } },
                  get stopped() { return stopped; }, get prevented() { return prevented; } }; },
@@ -175,16 +182,24 @@ I18N = {
     "offline_status_failed": "Failed", "offline_partial": "partial",
     "offline_earlier_version": "Saved by an earlier version",
     "offline_delete_confirm": "Delete the offline sky saved for {name}?",
+    "offline_already_saved": "Already saved",
+    "offline_made_for_rig": "Made for {rig}",
+    "offline_made_for": "Made for another rig",
+    "offline_rig_less_detail": "Less detail than {rig} needs",
+    "offline_more_other_objects": "{count} more saved for other objects",
 }
 
 MB = 1024 * 1024
 
 
-def _survey_est(sid, *, tiles=805, est=5 * MB, adopt=0, capped=False, orders=(4, 5, 6, 7, 8, 9, 10, 11, 12, 13)):
+def _survey_est(sid, *, tiles=805, est=5 * MB, adopt=0, capped=False, tile_count=None,
+                orders=(4, 5, 6, 7, 8, 9, 10, 11, 12, 13)):
+    if tile_count is None:
+        tile_count = tiles
     return {"slug": SURVEYS[sid]["slug"], "survey_id": sid, "requested_order": 13,
             "effective_max_order": 17, "capped": capped, "orders": list(orders),
             "by_order": {str(o): {"tiles": 1, "new": 1} for o in orders},
-            "tiles_total": tiles, "tile_count": tiles, "avg_tile_bytes": 20000,
+            "tiles_total": tiles, "tile_count": tile_count, "avg_tile_bytes": 20000,
             "avg_tile_measured": True, "est_bytes": est, "adopt_bytes": adopt,
             "coverage": {"reason": "MOC", "fraction": 0.5}}
 
@@ -206,13 +221,19 @@ const surveys = (url) => decodeURIComponent((url.split('surveys=')[1] || '')).sp
 const est = (ids, reject) => {
     const list = ids.map(id => Object.assign({}, h.EST[id] || h.EST_DEFAULT, { survey_id: id }));
     const tot = list.reduce((a, s) => a + s.tiles_total, 0);
-    return { requested_pixel_scale_arcsec: 3.2, image_scale_arcsec: 4.08, target_order: 13,
+    return { requested_pixel_scale_arcsec: 3.2, effective_pixel_scale_arcsec: h.EFFECTIVE_SCALE || 3.2,
+             image_scale_arcsec: 4.08, target_order: 13,
              requested_order: 13, surveys: list,
-             total: { tiles_total: tot, tile_count: tot, est_bytes: list.reduce((a, s) => a + s.est_bytes, 0),
-                      adopt_bytes: 0 },
+             total: { tiles_total: tot,
+                      tile_count: list.reduce((a, s) => a + (s.tile_count === undefined ? s.tiles_total : s.tile_count), 0),
+                      est_bytes: list.reduce((a, s) => a + s.est_bytes, 0),
+                      adopt_bytes: list.reduce((a, s) => a + (s.adopt_bytes || 0), 0) },
              free_bytes: 2000 * 1048576, cap_bytes: 2048 * 1048576, reject: reject || null, fits: !reject };
 };
 h.SAVES = h.SAVES || [];
+h.OTHERS = h.OTHERS || 0;
+h.MANIFEST = h.MANIFEST || null;
+h.EFFECTIVE_SCALE = 3.2;
 h.PROGRESS = h.PROGRESS || {};
 h.routes = (url, opts) => {
     if (url.startsWith('/api/offline/estimate')) {
@@ -220,10 +241,14 @@ h.routes = (url, opts) => {
         const all = ids.length > 2;
         return { status: 200, body: est(ids, all ? null : h.REJECT) };
     }
-    if (url === '/api/offline/saves' && (opts.method || 'GET') === 'GET') return { status: 200, body: { saves: h.SAVES } };
+    // The list is asked for by name now (?name=<object>), and answers with the
+    // count of entries for the caller's other objects.
+    if ((url === '/api/offline/saves' || url.startsWith('/api/offline/saves?'))
+            && (opts.method || 'GET') === 'GET')
+        return { status: 200, body: { saves: h.SAVES, others: h.OTHERS || 0 } };
     if (url === '/api/offline/saves' && opts.method === 'POST') return h.POST || { status: 200, body: { job_id: 'new-1' } };
     const m = url.match(/^\/api\/offline\/saves\/([^/]+)\/progress$/);
-    if (m) return h.PROGRESS[m[1]] ? { status: 200, body: { job: h.PROGRESS[m[1]] } } : { status: 404, body: null };
+    if (m) return h.PROGRESS[m[1]] ? { status: 200, body: { job: h.PROGRESS[m[1]], manifest: h.MANIFEST || undefined } } : { status: 404, body: null };
     if (/\/cancel$/.test(url)) return { status: 200, body: { cancelled: true } };
     if (opts.method === 'DELETE') return { status: 200, body: { deleted: true } };
     return { status: 404, body: null };
@@ -548,7 +573,7 @@ def test_cancel_button_posts_cancel(tmp_path):
         p.open();
         await h.runTimers();
         const row = h.$('offline-saves-list').children[0];
-        row.children[1].children[1].click();       // Cancel
+        row.children[1].children[1].click();       // side: status, cancel, delete
         await h.flush();
         return h.calls.filter(c => c.method === 'POST').map(c => c.url);
     """, saves=[_active_save()], progress={"s1": {"status": "running", "done": 1, "total": 9}})
@@ -587,7 +612,9 @@ def test_saved_list_rows_and_delete_with_confirmation(tmp_path):
     assert a["text"].startswith("M31") and "DSS2 (color), NSNS DR0.2 ([OIII]) · Lighter · 12.5 MB · 11/16/2026" in a["text"]
     assert a["status"] == "Done" and a["badge"] is False
     assert ldn["text"].startswith("LDN1295partial")
-    assert "Saved by an earlier version · 18.7 MB" in ldn["text"]
+    # a legacy save shows the note instead of a rig, and keeps its meta line
+    assert ldn["rig"] == "Saved by an earlier version"
+    assert "DSS2 (color), NSNS DR0.2 ([OIII]) · 18.7 MB · 11/16/2026" in ldn["text"]
     assert ldn["status"] == "Cancelled" and ldn["cancelHidden"] is True
     assert got["confirms"][0]["msg"] == "Delete the offline sky saved for LDN1295?"
     assert got["confirms"][0]["opts"]["danger"] is True
@@ -605,7 +632,7 @@ def test_empty_saved_list(tmp_path):
         return h.saveRows();
     """)
     assert got == [{"text": "Nothing saved yet.", "cls": "offline-saves-empty", "status": None,
-                    "tone": None, "cancelHidden": None, "badge": None}]
+                    "tone": None, "cancelHidden": None, "rig": None, "badge": None}]
 
 
 # ---------------------------------------------------------------------------
@@ -832,3 +859,186 @@ def test_new_strings_translated_in_every_locale(lang):
         for ph in re.findall(r"\{\w+\}", msgid):
             assert ph in msg.string, (lang, msgid, ph)
 
+
+
+# ---------------------------------------------------------------------------
+# Items 2, 4, 5, 6: "Already saved", the others line, the rig, the live size
+# ---------------------------------------------------------------------------
+
+@pytestmark_node
+def test_already_saved_disables_save_with_that_text(tmp_path):
+    """Item 2, client side: every tile on disk and nothing new to fetch."""
+    got = _run(tmp_path, """
+        const p = h.create();
+        p.open();
+        await h.runTimers();
+        return { reason: h.$('offline-save-reason').textContent,
+                 reasonHidden: h.$('offline-save-reason').hidden,
+                 disabled: h.$('offline-save-start').disabled };
+    """, est={DSS_ID: _survey_est(DSS_ID, tiles=805, est=0, adopt=0, tile_count=0),
+              OIII_ID: _survey_est(OIII_ID, tiles=805, est=0, adopt=0, tile_count=0)},
+        est_default=_survey_est(DSS_ID, tiles=805, est=0, tile_count=0))
+    assert got["reason"] == "Already saved"
+    assert got["reasonHidden"] is False
+    assert got["disabled"] is True
+
+
+@pytestmark_node
+def test_adopting_browsed_tiles_is_not_already_saved(tmp_path):
+    """A save that pins tiles already browsed still does something."""
+    est = {DSS_ID: _survey_est(DSS_ID, tiles=805, est=0, adopt=5 * MB),
+           OIII_ID: _survey_est(OIII_ID, tiles=805, est=0, adopt=5 * MB)}
+    got = _run(tmp_path, """
+        const p = h.create();
+        p.open();
+        await h.runTimers();
+        return { reason: h.$('offline-save-reason').textContent,
+                 disabled: h.$('offline-save-start').disabled };
+    """, est=est, est_default=_survey_est(DSS_ID, est=0, adopt=5 * MB))
+    assert got["reason"] == ""
+    assert got["disabled"] is False
+
+
+@pytestmark_node
+def test_the_server_refusal_reads_as_already_saved(tmp_path):
+    """A 409 nothing_new from the server shows the same words as the estimate."""
+    got = _run(tmp_path, """
+        const p = h.create();
+        p.open();
+        await h.runTimers();
+        h.POST = { status: 409, body: { code: 'nothing_new', error: 'already saved' } };
+        h.$('offline-save-start').click();
+        await h.flush();
+        return { reason: h.$('offline-save-reason').textContent,
+                 disabled: h.$('offline-save-start').disabled,
+                 posts: h.calls.filter(c => c.method === 'POST').map(c => c.url) };
+    """)
+    assert got["reason"] == "Already saved"
+    assert got["disabled"] is True
+    assert got["posts"] == ["/api/offline/saves"]
+
+
+@pytestmark_node
+def test_the_others_line_counts_saves_for_other_objects(tmp_path):
+    """Item 4: the quiet line, and no line at all when there are none."""
+    got = _run(tmp_path, """
+        h.OTHERS = 3;
+        const p = h.create();
+        p.open();
+        await h.runTimers();
+        const withOthers = h.text('offline-saves-list');
+        const othersRow = h.$('offline-saves-list').children.filter(r => r.className === 'offline-saves-others');
+        h.OTHERS = 0;
+        p.refresh();
+        await h.flush();
+        return { withOthers, count: othersRow.length, text: othersRow[0] && othersRow[0].textContent,
+                 listUrl: h.calls.find(c => c.url.indexOf('/api/offline/saves?') === 0).url,
+                 none: h.$('offline-saves-list').children.filter(r => r.className === 'offline-saves-others').length };
+    """, saves=[_active_save()], est_default=_survey_est(DSS_ID))
+    assert got["count"] == 1 and got["text"] == "3 more saved for other objects"
+    assert "?name=LDN1295" in got["listUrl"]
+    assert got["none"] == 0
+
+
+@pytestmark_node
+def test_every_row_shows_the_rig_it_was_made_for(tmp_path):
+    """Item 5: the rig line, whatever the save's state."""
+    got = _run(tmp_path, """
+        const p = h.create();
+        p.open();
+        await h.runTimers();
+        return h.saveRows().map(r => r.rig);
+    """, saves=[_active_save(id="a", rig_id=7, rig_name="C11 + ASI585"),
+                _active_save(id="b", rig_id=9, rig_name="Askar 50P + ASI2600MC Pro"),
+                {"id": "c", "name": "LDN1295", "surveys": ["dss2-color"], "survey_ids": [DSS_ID],
+                 "detail_offset": None, "bytes": 0, "created": "2026-11-16T23:30:12Z",
+                 "status": "done", "partial": False, "missing": 0, "legacy": True}],
+        est_default=_survey_est(DSS_ID))
+    assert got[0] == "Made for C11 + ASI585"
+    assert got[1] == "Made for Askar 50P + ASI2600MC Pro"
+    assert got[2] == "Saved by an earlier version", "no rig, no match claim"
+
+
+@pytestmark_node
+def test_a_finer_current_rig_warns_that_the_save_has_less_detail(tmp_path):
+    """Item 5: the warning is only for a rig that needs a finer scale, never a
+    bare "different rig" claim."""
+    session = {"id": "a", "name": "M42", "surveys": ["dss2-color"], "survey_ids": [DSS_ID],
+               "detail_offset": 0, "bytes": 0, "created": "2026-11-16T23:30:12Z",
+               "status": "done", "partial": False, "missing": 0, "legacy": False,
+               "rig_id": 9, "rig_name": "Askar 50P (coarse)", "image_scale_arcsec": 4.1}
+    got = _run(tmp_path, """
+        const read = () => { const main = h.$('offline-saves-list').children[0].children[0];
+            return { rig: main.children[1].textContent,
+                     warn: main.children[2] && main.children[2].className === 'offline-save-rig is-warning'
+                           ? main.children[2].textContent : null }; };
+        const p = h.create();
+        p.open();
+        await h.runTimers();
+        // another rig, and it resolves finer (2.0 < 4.1): warn
+        h.frame.rigId = '12'; h.frame.rigName = 'C11 + ASI585'; h.frame.rigScale = 2.0;
+        p.refresh();
+        await h.flush();
+        const finer = read();
+        // same rig as the save: no warning
+        h.frame.rigId = '9';
+        p.refresh();
+        await h.flush();
+        const same = read();
+        // another rig, but coarser than the save: no warning
+        h.frame.rigId = '12'; h.frame.rigScale = 6.0;
+        p.refresh();
+        await h.flush();
+        const coarser = read();
+        return { finer, same, coarser };
+    """, saves=[session], est_default=_survey_est(DSS_ID))
+    assert got["finer"]["rig"] == "Made for Askar 50P (coarse)"
+    assert got["finer"]["warn"] == "Less detail than C11 + ASI585 needs"
+    assert got["same"]["warn"] is None
+    assert got["coarser"]["warn"] is None
+
+
+@pytestmark_node
+def test_a_running_save_shows_the_live_size(tmp_path):
+    """Item 6: the row's size follows the manifest the progress call returns."""
+    got = _run(tmp_path, """
+        const p = h.create();
+        p.open();
+        await h.runTimers();
+        const before = h.saveRows()[0].text;
+        h.PROGRESS.s1 = { status: 'running', done: 120, total: 805 };
+        h.MANIFEST = { bytes: 42 * 1048576, tile_count: 120 };
+        await h.runTimers();
+        return { before, after: h.saveRows()[0].text };
+    """, saves=[_active_save(bytes=0)],
+        progress={"s1": {"status": "running", "done": 1, "total": 805}}, est_default=_survey_est(DSS_ID))
+    assert "0.0 MB" in got["before"]
+    assert "42.0 MB" in got["after"]
+
+
+@pytestmark_node
+def test_the_estimate_shows_the_capped_resolution(tmp_path):
+    """Item 6: display the resolution really served, not the requested one."""
+    got = _run(tmp_path, """
+        const p = h.create();
+        p.open();
+        await h.runTimers();
+        return h.$('offline-detail-scale').textContent;
+    """, est={DSS_ID: _survey_est(DSS_ID), OIII_ID: _survey_est(OIII_ID)},
+        est_default=_survey_est(DSS_ID))
+    assert "4.1″/px" in got or "8.0″/px" in got
+
+
+def test_the_chart_refreshes_the_panel_when_the_frame_changes():
+    """Item 6: a new rig (or mosaic step, or rotation) re-reads the estimate and
+    the rig lines, so the numbers follow the frame."""
+    src = CHART_JS.read_text(encoding="utf-8")
+    # updateFramingChart is an assigned function expression, not a declaration
+    at = src.index("window.updateFramingChart = function (recenter = true)")
+    body = src[at:src.index("\n    };", at)]
+    assert "refreshOfflineSavePanel();" in body, "a frame change refreshes the panel"
+    at = src.index("function refreshOfflineSavePanel()")
+    helper = src[at:src.index("\n    }", at)]
+    assert "offlineSavePanel.isOpen()" in helper, "only while the panel is open"
+    assert "offlineSavePanel.refresh()" in helper
+    assert "refresh: refresh," in PANEL_JS.read_text(encoding="utf-8"), "the panel exposes refresh"
