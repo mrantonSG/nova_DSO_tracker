@@ -4995,12 +4995,12 @@ msgid "Save for offline"
 msgstr "Für offline speichern"
 
 #: templates/graph_view.html:37
-msgid "Offline: sharp"
+msgid "Sharp offline"
 msgstr "Offline: scharf"
 
 #: templates/graph_view.html:38
-msgid "Offline: low detail"
-msgstr "Offline: geringe Detailtiefe"
+msgid "Low detail offline"
+msgstr "Offline: wenig Detail"
 
 #: templates/graph_view.html:39
 msgid "Not available offline"
@@ -8759,6 +8759,15 @@ msgstr ""
 "Die Kopie der Datei auf diesem Computer bei der nächsten Synchronisierung"
 " an den Server senden? Sie wird dann überall zur Datei dieses "
 "Datensatzes."
+
+#: templates/graph_view.html
+msgid "More surveys ({count})"
+msgstr "Weitere Surveys ({count})"
+
+#: templates/graph_view.html
+msgid "Fewer surveys"
+msgstr "Weniger Surveys"
+
 
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Vorschläge aktualisieren"

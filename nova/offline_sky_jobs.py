@@ -669,22 +669,25 @@ class JobRunner:
         self._fh = None
 
     def reconcile_pins(self) -> None:
-        """Rewrite the pin totals from disk, once per runner process.
+        """Once per runner process: fold duplicate entries, read the survey
+        metadata, and rewrite the pin totals.
 
-        Tiles that only an unfinished save held (cancelled, or stopped with no
-        space) are not pinned any more, so ``.total``/``.pinned`` are stale after
-        an upgrade until something recomputes them. Cheap, and only once per
-        process -- callers that need it up to date now (the save and estimate
-        routes) still call ``refresh_pinned_bytes`` themselves.
+        Entries that predate the rig field were one per save: the ones describing
+        the same object and frame are folded into a single row (the M106 pair).
+        Reading every survey's properties here is what keeps an estimate from
+        doing it inside a request -- stale properties mean an upstream fetch, and
+        that used to land on whichever estimate came first after a week. The
+        totals are re-derived last, once for both passes.
         """
         if self._reconciled:
             return
         self._reconciled = True
-        # Entries that predate the rig field were one per save; fold the ones that
-        # describe the same object and frame into a single row (the M106 pair),
-        # then re-derive the totals once for both passes.
         try:
             store.reconcile_entries()
+        except Exception:
+            traceback.print_exc()
+        try:
+            store.warm_up()
         except Exception:
             traceback.print_exc()
         store.refresh_pinned_bytes()
@@ -1125,6 +1128,45 @@ def cone_max_cached_order(slug: str, ra: float, dec: float, radius_deg: float) -
         plan = plan_survey(slug, ra, dec, radius_deg, order, fetch=False)
         rels = [_tile_rel(order, n, plan.ext) for n in plan.tiles.get(order, [])]
         if not rels or not all(store.tile_exists(slug, rel) for rel in rels):
+            break
+        best = order
+    return best
+
+
+def covered_pinned_order(slug: str, ra: float, dec: float, radius_deg: float) -> int:
+    """Highest order whose covered cone tiles are all pinned -- -1 for none.
+
+    What the offline indicator reads. Being on disk is not the same as being
+    kept: browsing fills the same cache and eviction may take any of it, so only
+    *pinned* tiles (a base job's, or a covering save's) survive with the network
+    down.
+
+    Nothing here depends on the base layer being "complete": a save pins exactly
+    the tiles for the frame it was made for, so a finished save for this frame
+    answers on its own. Gating on ``base_complete`` needed the Allsky preview
+    file, which nobody may ever have fetched, and that turned a frame a save
+    covers into "not available offline".
+    """
+    if slug not in SURVEY_BY_SLUG:
+        return -1
+    pinned = store.pinned_rel_paths()
+    if not pinned:
+        return -1
+    facts = survey_facts(slug, fetch=False)
+    cov = survey_coverage(slug, fetch=False)
+    high = facts.effective_max_order
+    if high < 0:
+        return -1
+    # The cone from order 0, not plan_survey's: a save plan starts above the base
+    # layer, and the whole-sky base orders are exactly what a base job pins.
+    by_order = hp.cone_pixels(ra, dec, radius_deg, 0, high)
+    best = -1
+    for order in range(0, high + 1):
+        keys = [f"{slug}/{_tile_rel(order, n, facts.tile_ext)}"
+                for n in by_order.get(order, []) if cov.contains(order, n)]
+        if not keys or not all(k in pinned for k in keys):
+            # A gap at this order stops the promise here: deeper orders contain
+            # this one's tiles, so they cannot be complete either.
             break
         best = order
     return best

@@ -427,6 +427,29 @@ def save_covers(manifest) -> set:
     return save_covered_keys(manifest)
 
 
+def warm_up() -> None:
+    """Read the metadata every estimate needs, once per process.
+
+    A survey's ``properties`` grows stale after a week, and reading it then means
+    an upstream fetch (up to the socket timeout) inside the request that happens
+    to come first -- so the first estimate after a week takes seconds. Reading it
+    here, off the request path, means an estimate only ever reads cached files.
+    """
+    from nova.offline_sky_sources import SURVEY_SOURCES
+    from nova.offline_sky_facts import survey_coverage, survey_facts
+    for slug in SURVEY_SOURCES:
+        # Both files an estimate needs: the properties (its order range) and the
+        # MOC (which tiles are covered). Reading only the first leaves the MOC
+        # fetch on the request path, which is the bigger of the two.
+        for read in (lambda s: survey_facts(s, fetch=True),
+                     lambda s: survey_coverage(s, fetch=True)):
+            try:
+                read(slug)
+            except Exception:
+                continue      # upstream trouble is not the caller's problem here
+    refresh_pinned_bytes()
+
+
 def _job_has_params(job_id) -> bool:
     """True when the save's job still holds the params a re-run needs.
 

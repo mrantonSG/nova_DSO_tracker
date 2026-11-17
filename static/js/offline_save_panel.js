@@ -139,6 +139,8 @@
             others: 0,              // entries saved for the caller's other objects
             rows: {},               // save id -> {status, cancel, size}
             surveyRows: {},         // survey id -> {input, note, size, row}
+            surveysExpanded: false, // the "More surveys" link's state
+            moreBtn: null,          // ...and the button itself (doc has no querySelector)
             busy: false,
         };
 
@@ -163,6 +165,9 @@
             setExpanded(true);
             var sel = $('offline-detail-select');
             if (sel) sel.value = String(DEFAULT_OFFSET);
+            // The list is drawn from the saved rows too (a survey this object
+            // already has saved stays in plain view), so the saves load first
+            // and the list is drawn again when they arrive.
             renderSurveys();
             scheduleEstimate(0);
             loadSaves();
@@ -200,37 +205,105 @@
 
         // --- surveys ------------------------------------------------------
         function checkedSurveys() {
+            // A folded-away survey is still checked and still part of the save:
+            // folding the list is about reading it, not about what the save
+            // covers. Only the checkbox itself (or its coverage) takes a survey
+            // out.
             return surveyIds.filter(function (sid) {
                 var r = state.surveyRows[sid];
                 return r && r.input.checked && !r.input.disabled;
             });
         }
 
+        /** The surveys worth showing without unfolding the list: the two the
+         *  view is looking at (the Survey and Blend dropdowns), and anything this
+         *  object already has saved, so a save that is already here is never
+         *  hidden behind the link. */
+        function shownSurveyIds() {
+            var base = deps.getBaseId ? deps.getBaseId() : '';
+            var blend = deps.getBlendId ? deps.getBlendId() : '';
+            var shown = surveyIds.filter(function (sid) { return sid === base || sid === blend; });
+            (state.saves || []).forEach(function (s) {
+                (s.survey_ids || []).forEach(function (sid) {
+                    if (sid && surveyIds.indexOf(sid) >= 0 && shown.indexOf(sid) < 0) shown.push(sid);
+                });
+            });
+            return shown;
+        }
+
+        function surveyRow(sid, hidden) {
+            var base = deps.getBaseId ? deps.getBaseId() : '';
+            var blend = deps.getBlendId ? deps.getBlendId() : '';
+            var row = el('label', 'offline-survey-row');
+            var input = el('input', 'offline-survey-check');
+            input.type = 'checkbox';
+            input.value = sid;
+            input.checked = (sid === base || sid === blend);
+            input.addEventListener('change', function () { scheduleEstimate(ESTIMATE_DEBOUNCE_MS); });
+            var name = el('span', 'offline-survey-name', (surveys[sid] && surveys[sid].label) || sid);
+            var size = el('span', 'offline-survey-size', '');
+            var note = el('span', 'offline-survey-note', '');
+            note.hidden = true;
+            row.hidden = !!hidden;
+            row.appendChild(input);
+            row.appendChild(name);
+            row.appendChild(size);
+            row.appendChild(note);
+            state.surveyRows[sid] = { input: input, note: note, size: size, row: row };
+            return row;
+        }
+
+        /** The whole list, one row each; the ones outside the current view and
+         *  the object's saves start folded away behind the "More surveys" link.
+         *  The panel's own scroll is the only scroll: nothing here has its own. */
         function renderSurveys() {
             var list = $('offline-survey-list');
             if (!list) return;
             list.textContent = '';
             state.surveyRows = {};
-            var base = deps.getBaseId ? deps.getBaseId() : '';
-            var blend = deps.getBlendId ? deps.getBlendId() : '';
-            surveyIds.forEach(function (sid) {
-                var row = el('label', 'offline-survey-row');
-                var input = el('input', 'offline-survey-check');
-                input.type = 'checkbox';
-                input.value = sid;
-                input.checked = (sid === base || sid === blend);
-                input.addEventListener('change', function () { scheduleEstimate(ESTIMATE_DEBOUNCE_MS); });
-                var name = el('span', 'offline-survey-name', (surveys[sid] && surveys[sid].label) || sid);
-                var size = el('span', 'offline-survey-size', '');
-                var note = el('span', 'offline-survey-note', '');
-                note.hidden = true;
-                row.appendChild(input);
-                row.appendChild(name);
-                row.appendChild(size);
-                row.appendChild(note);
-                list.appendChild(row);
-                state.surveyRows[sid] = { input: input, note: note, size: size, row: row };
+            state.moreBtn = null;
+            var shown = shownSurveyIds();
+            var hiddenIds = surveyIds.filter(function (sid) { return shown.indexOf(sid) < 0; });
+            shown.forEach(function (sid) { list.appendChild(surveyRow(sid, false)); });
+            var more = el('button', 'offline-survey-more', '');
+            more.type = 'button';
+            more.addEventListener('click', function () { setSurveysExpanded(!state.surveysExpanded); });
+            // Held, not looked up: the panel's doc only has getElementById.
+            // Its label and visibility are applySurveysExpanded's to set, below.
+            state.moreBtn = more;
+            list.appendChild(more);
+            hiddenIds.forEach(function (sid) {
+                list.appendChild(surveyRow(sid, !state.surveysExpanded));
             });
+            applySurveysExpanded();
+        }
+
+        function applySurveysExpanded() {
+            var list = $('offline-survey-list');
+            if (!list) return;
+            // What is not in plain view: the count the link reports, and what it
+            // governs. Computed before the rows are reset, so the two agree.
+            var shown = shownSurveyIds();
+            var folded = surveyIds.filter(function (sid) { return shown.indexOf(sid) < 0; });
+            surveyIds.forEach(function (sid) {
+                var r = state.surveyRows[sid];
+                if (!r) return;
+                r.row.hidden = folded.indexOf(sid) >= 0 && !state.surveysExpanded;
+            });
+            var more = state.moreBtn;
+            if (more) {
+                // Nothing folded away: there is nothing to link to.
+                more.hidden = folded.length === 0;
+                more.setAttribute('aria-expanded', state.surveysExpanded ? 'true' : 'false');
+                more.textContent = state.surveysExpanded
+                    ? t('offline_surveys_fewer')
+                    : t('offline_surveys_more', { count: folded.length });
+            }
+        }
+
+        function setSurveysExpanded(on) {
+            state.surveysExpanded = !!on;
+            applySurveysExpanded();
         }
 
         function applyCoverage() {
@@ -289,9 +362,17 @@
             }
         }
 
-        function estimateUrl(frame, offset, ids) {
+        function estimateUrl(frame, offset, ids, fetchMetadata) {
             return '/api/offline/estimate?' + frameQuery(frame) + '&detail_offset=' + offset +
-                '&surveys=' + ids.map(encodeURIComponent).join(',');
+                '&surveys=' + ids.map(encodeURIComponent).join(',') +
+                (fetchMetadata === false ? '&fetch=0' : '');
+        }
+
+        /** Answer from cached metadata only. Fast: never waits on upstream.
+         *  Used for the first look at a frame, so the panel is responsive even
+         *  when a survey's properties have gone stale. */
+        function quickEstimateUrl(frame, offset, ids) {
+            return estimateUrl(frame, offset, ids, false);
         }
 
         function runEstimate() {
@@ -306,9 +387,14 @@
                 return Promise.resolve();
             }
             var key = frameQuery(frame) + '|' + offset;
+            // Coverage answers which surveys this frame touches and what they
+            // cost, so it has to ask about every survey -- but from cached
+            // metadata only. With fetch on, this call would sit on upstream for
+            // surveys the user never looks at (SDSS9 404s and its mirror times
+            // out: seconds), and the panel would read "Estimating…" throughout.
             var coverageP = (state.coverage && state.coverage.key === key)
                 ? Promise.resolve(null)
-                : deps.fetch(estimateUrl(frame, offset, surveyIds)).then(readJson);
+                : deps.fetch(quickEstimateUrl(frame, offset, surveyIds)).then(readJson);
             return coverageP.then(function (cov) {
                 if (stale()) return null;
                 if (cov) {
@@ -331,7 +417,7 @@
                     setSaveBlocked(true, reasonText(t, 'no_surveys'));
                     return null;
                 }
-                return deps.fetch(estimateUrl(frame, offset, ids)).then(readJson).then(function (res) {
+                var applyChecked = function (res) {
                     if (stale()) return;
                     if (!res.ok || !res.data || !res.data.total) {
                         state.checkedEstimate = null;
@@ -352,6 +438,19 @@
                     } else {
                         setSaveBlocked(false);
                     }
+                };
+                // Cached metadata first, so the panel answers at once; then the
+                // real read, which may have to refresh a stale file upstream and
+                // is what the numbers should finally be. The second call keeps
+                // Save disabled until it lands, so a save can never be started
+                // against the provisional figures.
+                return deps.fetch(quickEstimateUrl(frame, offset, ids)).then(readJson).then(function (quick) {
+                    if (stale()) return;
+                    if (quick.ok && quick.data && quick.data.total) {
+                        renderEstimate(quick.data);
+                        if (quick.data.provisional) setEstimating();
+                    }
+                    return deps.fetch(estimateUrl(frame, offset, ids)).then(readJson).then(applyChecked);
                 });
             }).catch(function () {
                 if (stale()) return;
@@ -448,7 +547,17 @@
                 state.saves = (res.ok && res.data && res.data.saves) || [];
                 state.others = (res.ok && res.data && res.data.others) || 0;
                 renderSaves();
+                // The saved surveys belong in plain view, so the list is redrawn
+                // -- which rebuilds its rows, so the estimate is painted on them
+                // again (rows are created unchecked-but-for-base/blend, and the
+                // coverage/estimate state must follow).
+                renderSurveys();
+                applyCoverage();
+                renderEstimate(state.checkedEstimate);
                 syncPolling();
+                // A save starting, finishing or being deleted changes what is
+                // kept offline, so the indicator follows it.
+                if (deps.onSavesChanged) deps.onSavesChanged();
             }).catch(function () {});
         }
 
@@ -520,11 +629,12 @@
                 var parts = [];
                 var names = (s.surveys || []).map(function (_x, i) { return surveyLabel(s, i); });
                 if (names.length) parts.push(names.join(', '));
-                var choiceKey = s.legacy ? null : choiceKeyForOffset(s.detail_offset);
-                if (choiceKey) parts.push(t(choiceKey));
                 var date = formatDate(s.created);
-                // surveys · detail · <size> · date, with the size its own element
-                // so a running save can update it as the server reports progress.
+                // surveys · <size> · date, with the size its own element so a
+                // running save can update it as the server reports progress.
+                // The detail choice is not repeated here: the rig line above
+                // says what the save is for, and "Matches your rig" read as a
+                // claim the row could not keep once another rig was selected.
                 var meta = el('div', 'offline-save-meta', '');
                 if (parts.length) meta.appendChild(el('span', '', parts.join(' · ') + ' · '));
                 meta.appendChild(size);
@@ -534,6 +644,11 @@
                 var side = el('div', 'offline-save-side');
                 var status = el('span', 'offline-save-status', '');
                 side.appendChild(status);
+                // A 2px bar under the status, on a --border-light track (the
+                // toast countdown's own pattern), driven by the same done/total
+                // as the count beside it.
+                var bar = el('div', 'offline-save-bar');
+                side.appendChild(bar);
                 var cancel = el('button', 'inline-button-ghost offline-save-cancel', t('offline_cancel'));
                 cancel.type = 'button';
                 cancel.addEventListener('click', function () { cancelSave(s.id); });
@@ -546,7 +661,7 @@
                 row.appendChild(main);
                 row.appendChild(side);
                 list.appendChild(row);
-                state.rows[s.id] = { status: status, cancel: cancel, size: size };
+                state.rows[s.id] = { status: status, cancel: cancel, size: size, bar: bar };
                 applyStatus(s.id, { status: s.status, missing: s.missing });
             });
             if (state.others > 0) {
@@ -563,6 +678,16 @@
             if (st.tone) r.status.setAttribute('data-tone', st.tone);
             else r.status.removeAttribute('data-tone');
             r.cancel.hidden = !isActive(job.status);
+            // The bar only means something while a count is known: a bar at 0 %
+            // for "Waiting" would read as stalled.
+            var running = job.status === 'running' && job.total > 0;
+            r.bar.hidden = !running;
+            if (running) {
+                var pct = Math.max(0, Math.min(100, Math.round((job.done || 0) * 100 / job.total)));
+                // A data attribute, not a style: the offline JS keeps every
+                // appearance rule in CSS (see test_no_inline_styles_in_offline_js).
+                r.bar.setAttribute('data-progress', String(pct));
+            }
             // A running save grows: the server's manifest carries the size as of
             // its last checkpoint, so the row shows the real figure, not the
             // estimate it started from.

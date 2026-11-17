@@ -359,6 +359,8 @@
                 if (typeof window.setSurvey === 'function') {
                     window.setSurvey(actionBtn.value).catch(() => window.showSurveyNotice?.());
                 }
+                // The offline indicator is about the survey shown, so it follows.
+                window.refreshOfflineStatus?.();
                 break;
             case 'set-location':
                 console.log('[GRAPH_VIEW] set-location:', actionBtn.value);

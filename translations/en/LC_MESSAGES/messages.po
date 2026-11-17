@@ -4787,11 +4787,11 @@ msgid "Save for offline"
 msgstr ""
 
 #: templates/graph_view.html:37
-msgid "Offline: sharp"
+msgid "Sharp offline"
 msgstr ""
 
 #: templates/graph_view.html:38
-msgid "Offline: low detail"
+msgid "Low detail offline"
 msgstr ""
 
 #: templates/graph_view.html:39
@@ -8336,6 +8336,15 @@ msgstr ""
 msgid ""
 "Send this computer's copy of the file to the server with the next sync? "
 "It becomes the record's file everywhere."
+msgstr ""
+
+
+#: templates/graph_view.html
+msgid "More surveys ({count})"
+msgstr ""
+
+#: templates/graph_view.html
+msgid "Fewer surveys"
 msgstr ""
 
 #~ msgid "Refresh Suggestions"

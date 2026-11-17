@@ -4799,11 +4799,11 @@ msgid "Save for offline"
 msgstr "オフライン用に保存"
 
 #: templates/graph_view.html:37
-msgid "Offline: sharp"
+msgid "Sharp offline"
 msgstr "オフライン：高精細"
 
 #: templates/graph_view.html:38
-msgid "Offline: low detail"
+msgid "Low detail offline"
 msgstr "オフライン：低精細"
 
 #: templates/graph_view.html:39
@@ -8368,6 +8368,15 @@ msgid ""
 "Send this computer's copy of the file to the server with the next sync? "
 "It becomes the record's file everywhere."
 msgstr "次回の同期で、この PC にあるファイルのコピーをサーバーに送信しますか？そのコピーがすべての場所でこのレコードのファイルになります。"
+
+#: templates/graph_view.html
+msgid "More surveys ({count})"
+msgstr "その他のサーベイ（{count}）"
+
+#: templates/graph_view.html
+msgid "Fewer surveys"
+msgstr "サーベイを減らす"
+
 
 #~ msgid "Refresh Suggestions"
 #~ msgstr "更新提案"

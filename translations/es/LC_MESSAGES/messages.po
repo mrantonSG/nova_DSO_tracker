@@ -4968,12 +4968,12 @@ msgid "Save for offline"
 msgstr "Guardar para usar sin conexión"
 
 #: templates/graph_view.html:37
-msgid "Offline: sharp"
+msgid "Sharp offline"
 msgstr "Sin conexión: nítido"
 
 #: templates/graph_view.html:38
-msgid "Offline: low detail"
-msgstr "Sin conexión: bajo detalle"
+msgid "Low detail offline"
+msgstr "Sin conexión: poco detalle"
 
 #: templates/graph_view.html:39
 msgid "Not available offline"
@@ -8719,6 +8719,15 @@ msgid ""
 msgstr ""
 "¿Enviar la copia del archivo de este ordenador al servidor en la próxima "
 "sincronización? Pasará a ser el archivo del registro en todas partes."
+
+#: templates/graph_view.html
+msgid "More surveys ({count})"
+msgstr "Más sondeos ({count})"
+
+#: templates/graph_view.html
+msgid "Fewer surveys"
+msgstr "Menos sondeos"
+
 
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Actualizar sugerencias"

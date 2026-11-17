@@ -4787,11 +4787,11 @@ msgid "Save for offline"
 msgstr "保存以供离线使用"
 
 #: templates/graph_view.html:37
-msgid "Offline: sharp"
+msgid "Sharp offline"
 msgstr "离线：清晰"
 
 #: templates/graph_view.html:38
-msgid "Offline: low detail"
+msgid "Low detail offline"
 msgstr "离线：低细节"
 
 #: templates/graph_view.html:39
@@ -8346,6 +8346,15 @@ msgid ""
 "Send this computer's copy of the file to the server with the next sync? "
 "It becomes the record's file everywhere."
 msgstr "在下次同步时将这台电脑上的文件副本发送到服务器？它将成为该记录在所有位置的文件。"
+
+#: templates/graph_view.html
+msgid "More surveys ({count})"
+msgstr "更多巡天（{count}）"
+
+#: templates/graph_view.html
+msgid "Fewer surveys"
+msgstr "收起巡天列表"
+
 
 #~ msgid "Refresh Suggestions"
 #~ msgstr "刷新建议"

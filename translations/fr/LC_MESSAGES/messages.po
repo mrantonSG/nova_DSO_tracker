@@ -5010,12 +5010,12 @@ msgid "Save for offline"
 msgstr "Enregistrer pour le hors ligne"
 
 #: templates/graph_view.html:37
-msgid "Offline: sharp"
+msgid "Sharp offline"
 msgstr "Hors ligne : net"
 
 #: templates/graph_view.html:38
-msgid "Offline: low detail"
-msgstr "Hors ligne : faible détail"
+msgid "Low detail offline"
+msgstr "Hors ligne : peu de détail"
 
 #: templates/graph_view.html:39
 msgid "Not available offline"
@@ -8770,6 +8770,15 @@ msgstr ""
 "Envoyer la copie du fichier de cet ordinateur au serveur lors de la "
 "prochaine synchronisation ? Elle deviendra le fichier de l'enregistrement"
 " partout."
+
+#: templates/graph_view.html
+msgid "More surveys ({count})"
+msgstr "Plus de relevés ({count})"
+
+#: templates/graph_view.html
+msgid "Fewer surveys"
+msgstr "Moins de relevés"
+
 
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Suggestions de rafraîchissement"

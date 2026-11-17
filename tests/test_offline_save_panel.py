@@ -135,7 +135,11 @@ const h = {
             getRigScale: () => (frame.rigScale === undefined ? null : frame.rigScale),
         });
     },
-    surveyRows: () => byId['offline-survey-list'].children.map(row => ({
+    // The list holds check-row labels plus the "More surveys" button; only the
+    // labels are survey rows.
+    surveyRows: () => byId['offline-survey-list'].children
+        .filter(row => row.className.indexOf('offline-survey-row') === 0)   // '… is-disabled' too
+        .map(row => ({
         id: row.children[0].value, checked: row.children[0].checked, disabled: row.children[0].disabled,
         note: row.children[3].hidden ? null : row.children[3].textContent,
         size: row.children[2].textContent, cls: row.className,
@@ -187,6 +191,8 @@ I18N = {
     "offline_made_for": "Made for another rig",
     "offline_rig_less_detail": "Less detail than {rig} needs",
     "offline_more_other_objects": "{count} more saved for other objects",
+    "offline_surveys_more": "More surveys ({count})",
+    "offline_surveys_fewer": "Fewer surveys",
 }
 
 MB = 1024 * 1024
@@ -404,6 +410,9 @@ def test_estimate_per_survey_total_free_space_and_resolution(tmp_path):
         const p = h.create();
         p.open();
         await h.runTimers();
+        const more = h.$('offline-survey-list').children
+            .filter(c => c.className === 'offline-survey-more')[0];
+        if (more) more.click();   // show every survey, so all rows are readable
         return { rows: h.surveyRows(), total: h.$('offline-estimate-total').textContent,
                  free: h.$('offline-estimate-free').textContent,
                  scale: h.$('offline-detail-scale').textContent,
@@ -432,6 +441,10 @@ def test_uncovered_base_survey_is_unchecked_and_disabled(tmp_path):
         p.open();
         await h.runTimers();
         const post = h.calls.filter(c => c.url.startsWith('/api/offline/estimate')).slice(-1)[0].url;
+        const more = h.$('offline-survey-list').children
+            .filter(c => c.className === 'offline-survey-more')[0];
+        if (more) more.click();   // every row readable, whatever is folded
+        await h.flush();
         return { rows: h.surveyRows(), lastSurveys: decodeURIComponent(post.split('surveys=')[1]) };
     """, est={DSS_ID: _survey_est(DSS_ID, tiles=0)})
     rows = {r["id"]: r for r in got["rows"]}
@@ -462,6 +475,7 @@ def test_no_survey_checked_disables_save(tmp_path):
         p.open();
         await h.runTimers();
         for (const row of h.$('offline-survey-list').children) {
+            if (row.className !== 'offline-survey-row') continue;   // the "More surveys" button
             if (row.children[0].checked) { row.children[0].checked = false; row.children[0].fire('change'); }
         }
         await h.runTimers();
@@ -573,7 +587,8 @@ def test_cancel_button_posts_cancel(tmp_path):
         p.open();
         await h.runTimers();
         const row = h.$('offline-saves-list').children[0];
-        row.children[1].children[1].click();       // side: status, cancel, delete
+        const side = row.children[1];
+        side.children.filter(c => c.className.indexOf('offline-save-cancel') >= 0)[0].click();
         await h.flush();
         return h.calls.filter(c => c.method === 'POST').map(c => c.url);
     """, saves=[_active_save()], progress={"s1": {"status": "running", "done": 1, "total": 9}})
@@ -587,7 +602,8 @@ def test_saved_list_rows_and_delete_with_confirmation(tmp_path):
         p.open();
         await h.runTimers();
         const rows = h.saveRows();
-        const del = () => h.$('offline-saves-list').children[1].children[1].children[2];
+        const del = () => h.$('offline-saves-list').children[1].children[1]
+            .children.filter(c => c.className.indexOf('offline-save-delete') >= 0)[0];
         h.confirmAnswer = false;
         del().click();
         await h.flush();
@@ -609,7 +625,9 @@ def test_saved_list_rows_and_delete_with_confirmation(tmp_path):
          "partial": True, "missing": 0, "legacy": True},
     ])
     a, ldn = got["rows"]
-    assert a["text"].startswith("M31") and "DSS2 (color), NSNS DR0.2 ([OIII]) · Lighter · 12.5 MB · 11/16/2026" in a["text"]
+    assert a["text"].startswith("M31") and "DSS2 (color), NSNS DR0.2 ([OIII]) · 12.5 MB · 11/16/2026" in a["text"]
+    assert "Lighter" not in a["text"], "the detail label left the meta line (item 4)"
+    assert a["rig"] == "Made for another rig", "no rig recorded: no match claim"
     assert a["status"] == "Done" and a["badge"] is False
     assert ldn["text"].startswith("LDN1295partial")
     # a legacy save shows the note instead of a rig, and keeps its meta line
@@ -654,11 +672,15 @@ def test_chart_closes_panel_on_open_and_when_the_framing_tab_hides():
 
 
 def test_piece_c_stays_off_behind_its_own_gate():
+    """The base fetch and the dropdown marks stay off; the offline indicator does
+    not, because it only reads."""
     src = CHART_JS.read_text(encoding="utf-8")
     assert "const OFFLINE_BASE_UI_ENABLED = false;" in src
     assert "function offlineBaseUiEnabled() { return offlineSaveEnabled() && OFFLINE_BASE_UI_ENABLED; }" in src
-    for fn in ("ensureOfflineBaseSurveys", "refreshOfflineMarks", "refreshOfflineStatus"):
+    for fn in ("ensureOfflineBaseSurveys", "refreshOfflineMarks"):
         assert _fn_body(src, fn).split("\n")[1].strip() == "if (!offlineBaseUiEnabled()) return;", fn
+    assert _fn_body(src, "refreshOfflineStatus").split("\n")[1].strip() == \
+        "if (!offlineSaveEnabled()) return;", "the indicator reads; it does not warm"
 
 
 def test_no_inline_styles_in_offline_js():
@@ -1042,3 +1064,101 @@ def test_the_chart_refreshes_the_panel_when_the_frame_changes():
     assert "offlineSavePanel.isOpen()" in helper, "only while the panel is open"
     assert "offlineSavePanel.refresh()" in helper
     assert "refresh: refresh," in PANEL_JS.read_text(encoding="utf-8"), "the panel exposes refresh"
+
+
+# ---------------------------------------------------------------------------
+# Prompt 3: progress bar, folded survey list, no detail label
+# ---------------------------------------------------------------------------
+
+@pytestmark_node
+def test_a_running_save_has_a_progress_bar_on_its_status(tmp_path):
+    """Item 2: 2px bar under the status, same done/total as the count."""
+    got = _run(tmp_path, """
+        const p = h.create();
+        p.open();
+        await h.runTimers();
+        const barOf = i => { const row = h.$('offline-saves-list').children[i];
+            return row.children[1].children.filter(c => c.className === 'offline-save-bar')[0]; };
+        const waiting = { hidden: barOf(0) ? barOf(0).hidden : null, progress: barOf(0) ? barOf(0).getAttribute('data-progress') : null };
+        h.PROGRESS.s1 = { status: 'running', done: 384, total: 398 };
+        await h.runTimers();
+        const running = { hidden: barOf(0).hidden, progress: barOf(0).getAttribute('data-progress') };
+        const text = h.saveRows()[0].status;
+        h.PROGRESS.s1 = { status: 'done', done: 398, total: 398, missing: 0 };
+        h.SAVES = [Object.assign({}, h.SAVES[0], { status: 'done', partial: false })];
+        await h.runTimers();
+        await h.runTimers();
+        const done = { bar: !!barOf(0), hidden: barOf(0) ? barOf(0).hidden : null };
+        return { waiting, running, text, done };
+    """, saves=[_active_save(status="queued")],
+        progress={"s1": {"status": "queued"}})
+    assert got["waiting"]["hidden"] is True, "no bar for Waiting: it would read as stalled"
+    assert got["running"]["hidden"] is False
+    assert got["running"]["progress"] == "96"          # 384/398
+    assert got["text"] == "Downloading 384 / 398", "the count stays"
+    assert got["done"]["hidden"] is True, "no bar once it is Done"
+
+
+@pytestmark_node
+def test_survey_list_folds_to_the_current_and_saved_surveys(tmp_path):
+    """Item 3: Survey + Blend and already-saved surveys, the rest behind a link."""
+    saved_2mass = _active_save(id="s2", surveys=["2mass-color"], survey_ids=[TWOMASS_ID])
+    got = _run(tmp_path, """
+        const p = h.create();
+        p.open();
+        await h.runTimers();
+        const list = () => h.$('offline-survey-list');
+        const more = () => list().children.filter(c => c.className === 'offline-survey-more')[0];
+        const visible = () => list().children
+            .filter(c => c.className.indexOf('offline-survey-row') === 0 && !c.hidden)
+            .map(c => c.children[0].value);
+        const collapsed = { visible: visible(), link: more().textContent, linkHidden: more().hidden };
+        more().click();
+        const expanded = { visible: visible(), link: more().textContent, linkHidden: more().hidden };
+        return { collapsed, expanded, scrolls: list().className };
+    """, saves=[saved_2mass], est_default=_survey_est(DSS_ID))
+    # DSS + OIII are the two dropdowns; 2MASS is here because this object has it saved
+    assert got["collapsed"]["visible"] == [DSS_ID, OIII_ID, TWOMASS_ID]
+    assert got["collapsed"]["link"] == "More surveys (1)" and got["collapsed"]["linkHidden"] is False
+    assert got["expanded"]["visible"] == [DSS_ID, OIII_ID, TWOMASS_ID, SDSS_ID]
+    assert got["expanded"]["link"] == "Fewer surveys"
+
+
+@pytestmark_node
+def test_all_surveys_showing_hides_the_link(tmp_path):
+    """With every survey in plain view there is nothing to link to."""
+    got = _run(tmp_path, """
+        const p = h.create();
+        p.open();
+        await h.runTimers();
+        return h.$('offline-survey-list').children
+            .filter(c => c.className === 'offline-survey-more')
+            .map(c => ({ hidden: c.hidden, text: c.textContent }));
+    """, est_default=_survey_est(DSS_ID), saves=[
+        # this object has the two surveys that are not in the dropdowns saved
+        _active_save(id="s2", surveys=["2mass-color"], survey_ids=[TWOMASS_ID]),
+        _active_save(id="s3", surveys=["sdss9-color"], survey_ids=[SDSS_ID]),
+    ])
+    assert got[0]["hidden"] is True
+
+
+def test_the_survey_list_has_no_scroll_of_its_own():
+    """Item 3: the side panel is the only scroll."""
+    css = (REPO / "static" / "css" / "graph_view.css").read_text(encoding="utf-8")
+    at = css.index(".offline-survey-list {")
+    block = css[at:css.index("}", at)]
+    assert "max-height" not in block and "overflow" not in block
+
+
+def test_every_foldable_offline_element_beats_the_hidden_attribute():
+    """A `display:` rule outranks the [hidden] attribute, so anything the panel
+    hides by setting .hidden needs its own [hidden] rule -- the survey list
+    looked folded in the DOM while showing every row on screen."""
+    css = (REPO / "static" / "css" / "graph_view.css").read_text(encoding="utf-8")
+    # elements the panel hides with .hidden / .setAttribute('hidden')
+    for selector in (".offline-survey-row", ".offline-survey-more", ".offline-save-bar",
+                     ".offline-save-reason", ".offline-survey-note"):
+        at = css.index(selector + " {")
+        block = css[at:css.index("}", at)]
+        guard = f"{selector}[hidden]"
+        assert guard in css, f"{selector} sets {block.strip()[:40]!r} but has no {guard} rule"

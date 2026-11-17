@@ -3763,6 +3763,7 @@
     window.saveFramingToDB = saveFramingToDB;
     window.updateFramingChart = updateFramingChart;
     window.updateFovVsObjectLabel = updateFovVsObjectLabel;
+    window.refreshOfflineStatus = refreshOfflineStatus;
     window.onRotationInput = onRotationInput;
     window.setSurvey = setSurvey;
     window.showSurveyNotice = showSurveyNotice;
@@ -3909,9 +3910,10 @@
     // OFFLINE SKY: offline view toggle + save-for-offline + status chip
     // ==========================================================================
 
-    // Piece C (status chip, survey-dropdown marks, automatic base-layer start)
-    // stays off even when OFFLINE_SKY_SAVE_ENABLED is on; switch it on here once
-    // piece C lands.
+    // The offline indicator in the Framing header is on with the save UI: it
+    // only reads (/api/offline/status) and never warms anything, so it is safe
+    // to show. The pieces that *do* warm things -- the low-res base jobs and the
+    // survey-dropdown marks -- stay off behind their own gate (piece C).
     const OFFLINE_BASE_UI_ENABLED = false;
     let offlineSavePanel = null;
 
@@ -3995,35 +3997,43 @@
         refreshOfflineStatus();
     }
 
+    /** The offline indicator: is the current frame, at the detail the selected
+     *  rig needs, kept for offline? Three states, into the header slot.
+     *
+     *  Only reads -- never warms a base layer -- so it is gated on the save UI
+     *  being on, not on the piece-C gate that starts jobs. */
+    let offlineStatusSeq = 0;
     function refreshOfflineStatus() {
-        if (!offlineBaseUiEnabled()) return;
-        const chip = document.getElementById('offline-status-chip');
+        if (!offlineSaveEnabled()) return;
+        const slot = document.getElementById('framing-offline-slot');
+        if (!slot) return;
         const frame = offlineSaveFrame();
         const baseId = offlineBaseId();
-        if (!chip || !baseId || !offlineFrameValid(frame)) {
-            if (chip) { chip.hidden = true; }
-            return;
-        }
+        const show = (key, cls) => {
+            slot.textContent = window.t(key);
+            slot.className = 'framing-offline-slot offline-chip ' + cls;
+            slot.hidden = false;
+        };
+        const hide = () => { slot.textContent = ''; slot.className = 'framing-offline-slot'; };
+        if (!baseId || !offlineFrameValid(frame)) { hide(); return; }
+        const seq = ++offlineStatusSeq;
         const url = `/api/offline/status?${offlineFrameQuery(frame)}` +
             `&surveys=${encodeURIComponent(baseId)}`;
         fetch(url).then(r => r.ok ? r.json() : null).then(data => {
+            if (seq !== offlineStatusSeq) return;      // an older frame's answer
             const byId = data && data.survey_ids ? data.surveys : null;
             const entry = offlineSurveyEntry(baseId);
             const slug = entry ? entry.slug : null;
             const st = byId && slug ? byId[slug] : null;
-            if (!st) { chip.hidden = true; return; }
-            chip.hidden = false;
-            chip.classList.remove('offline-chip-sharp', 'offline-chip-low', 'offline-chip-none');
-            if (!st.base_complete) {
-                chip.textContent = window.t('offline_chip_not_available');
-                chip.classList.add('offline-chip-none');
-            } else if (st.max_cached_order >= (st.target_order ?? (entry ? entry.maxOrder : 9))) {
-                chip.textContent = window.t('offline_chip_sharp');
-                chip.classList.add('offline-chip-sharp');
-            } else {
-                chip.textContent = window.t('offline_chip_low');
-                chip.classList.add('offline-chip-low');
-            }
+            if (!st) { hide(); return; }
+            const target = st.target_order ?? (entry ? entry.maxOrder : 9);
+            // Three states, judged only on pinned coverage of THIS frame at the
+            // selected rig's detail. The base layer is deliberately not consulted:
+            // it is a whole-sky convenience, and a save pins the tiles for the
+            // frame it was made for whether or not the base was ever finished.
+            if (st.max_pinned_order < 0) show('offline_chip_not_available', 'offline-chip-none');
+            else if (st.max_pinned_order >= target) show('offline_chip_sharp', 'offline-chip-sharp');
+            else show('offline_chip_low', 'offline-chip-low');
         }).catch(() => {});
     }
 
@@ -4093,6 +4103,7 @@
                 const opt = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex] : null;
                 return opt ? (opt.textContent || '').trim() : '';
             },
+            onSavesChanged: () => refreshOfflineStatus(),
             getRigScale: () => {
                 const sel = document.getElementById('framing-rig-select');
                 const opt = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex] : null;
@@ -4117,8 +4128,11 @@
     }
 
     /** The rig or the mosaic changed: if the panel is open, re-read the estimate
-     *  and the saved list, so the numbers follow what the frame now is. */
+     *  and the saved list, so the numbers follow what the frame now is. The
+     *  indicator follows too -- what is kept offline depends on the frame and on
+     *  the rig's detail. */
     function refreshOfflineSavePanel() {
+        refreshOfflineStatus();
         if (offlineSavePanel && offlineSavePanel.isOpen()) offlineSavePanel.refresh();
     }
 

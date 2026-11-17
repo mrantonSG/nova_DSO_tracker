@@ -574,8 +574,14 @@ def offline_saves_list():
     return jsonify({"saves": saves, "others": others})
 
 
-def _estimate_for(uid, src):
-    """Shared by GET estimate and POST saves: (estimate dict) or raises LimitError."""
+def _estimate_for(uid, src, fetch=True):
+    """Shared by GET estimate and POST saves: (estimate dict) or raises LimitError.
+
+    ``fetch``: read survey metadata from disk only. The panel's first call for a
+    frame asks with ``fetch=False``, so it answers immediately even when a
+    survey's properties are stale; the panel then asks again with the default and
+    updates in place. Nothing is planned beyond what a cached file allows.
+    """
     from nova.offline_sky_jobs import LimitError, estimate, validate_offset
     from nova.offline_sky_sources import resolve_slugs
     frame = _frame_from(src)
@@ -584,10 +590,32 @@ def _estimate_for(uid, src):
     if not slugs:
         raise LimitError("no_surveys", "no whitelisted surveys")
     scale, scale_source, rig = _rig_scale(uid, src.get("rig_id"))
-    est = estimate(frame, scale, slugs, offset, fetch=True)
+    est = estimate(frame, scale, slugs, offset, fetch=fetch)
     est["image_scale"] = {"arcsec_per_px": scale, "source": scale_source,
                           "rig_id": int(src.get("rig_id")), "rig_name": rig.rig_name}
+    est["provisional"] = (not fetch) and _provisional(est)
     return est
+
+
+def _provisional(est) -> bool:
+    """True when this estimate leaned on a fallback because a file was not read.
+
+    A survey whose MOC could not be read is planned as the whole sky; a survey
+    whose properties were missing is described from the whitelist. Both make the
+    numbers change once the real file is read, so the panel says so instead of
+    showing them as final.
+    """
+    from nova.offline_sky_facts import survey_facts
+    for survey in est.get("surveys", []):
+        reason = (survey.get("coverage") or {}).get("reason") or ""
+        if "assuming full sky" in reason or "no MOC" in reason:
+            return True
+        try:
+            if not survey_facts(survey["slug"], fetch=False).properties_found:
+                return True
+        except Exception:
+            return True
+    return False
 
 
 @offline_sky_bp.route("/api/offline/saves", methods=["POST"])
@@ -853,8 +881,9 @@ def offline_estimate():
     from nova.offline_sky_jobs import LimitError
     args = request.args.to_dict()
     args["surveys"] = request.args.get("surveys", "")
+    fetch = request.args.get("fetch", "1") not in ("0", "false", "no")
     try:
-        return jsonify(_estimate_for(uid, args))
+        return jsonify(_estimate_for(uid, args, fetch=fetch))
     except LimitError as err:
         return _limit_response(err)
 
@@ -865,7 +894,7 @@ def offline_status():
     if uid is None:
         return Response(status=404)
     from nova.offline_sky_jobs import (
-        LimitError, base_complete, cone_max_cached_order, target_order_for_scale)
+        LimitError, base_complete, covered_pinned_order, target_order_for_scale)
     from nova.offline_sky_facts import effective_max_order
     from nova.offline_sky_sources import resolve_slugs
     try:
@@ -881,10 +910,15 @@ def offline_status():
             target = None
     result = {}
     for slug in resolve_slugs(request.args.get("surveys", "")):
+        pinned_order = covered_pinned_order(slug, frame["ra"], frame["dec"],
+                                            frame["radius_deg"])
         result[slug] = {
+            # Kept for information only: the indicator does not read it. A save
+            # pins the tiles for its own frame, so the base layer being partial
+            # says nothing about this frame.
             "base_complete": base_complete(slug),
-            "max_cached_order": cone_max_cached_order(slug, frame["ra"], frame["dec"],
-                                                      frame["radius_deg"]),
+            # What survives with the network down: pinned, not merely cached.
+            "max_pinned_order": pinned_order,
             "target_order": (None if target is None
                              else min(target, effective_max_order(slug, fetch=False))),
         }

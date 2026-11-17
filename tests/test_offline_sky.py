@@ -644,24 +644,42 @@ def test_saves_are_owned_per_user(monkeypatch, multi_user_client):
     assert read_save_manifest(aid) is None
 
 
-def test_status_endpoint_reports_base_complete_and_order(monkeypatch, client):
+def test_status_endpoint_reports_base_complete_and_pinned_order(monkeypatch, client):
+    """The indicator's number is what is *pinned*, not what is merely on disk:
+    browsing fills the same cache, and eviction may take any of it away."""
     _save_on(monkeypatch)
     import nova.offline_sky_jobs as jobs
+    from nova.offline_sky_store import write_json_atomic, _base_pins_path
     monkeypatch.setattr(jobs, "base_complete", lambda slug: True)
     frame = jobs.validate_frame(83.8, -5.4, 1.0, 0.8)
     plan = jobs.plan_survey(DSS_COLOR, frame["ra"], frame["dec"], frame["radius_deg"], 4, fetch=False)
-    for rel in plan.rel_paths():
-        store_file(DSS_COLOR, rel, b"X", count=False)
-    resp = client.get("/api/offline/status?ra=83.8&dec=-5.4&frame_w_deg=1.0&frame_h_deg=0.8"
-                      "&surveys=P/DSS2/color")
+    rels = list(plan.rel_paths())
+    for rel in rels:
+        store_file(DSS_COLOR, rel, b"X", count=False)      # on disk, not pinned
+    q = ("/api/offline/status?ra=83.8&dec=-5.4&frame_w_deg=1.0&frame_h_deg=0.8"
+         "&surveys=P/DSS2/color")
+    resp = client.get(q)
     assert resp.status_code == 200
     data = resp.get_json()
     assert data["surveys"][DSS_COLOR]["base_complete"] is True
-    assert data["surveys"][DSS_COLOR]["max_cached_order"] == 4
-    # Slugs are accepted too (one normaliser for every route).
+    assert data["surveys"][DSS_COLOR]["max_pinned_order"] == -1, \
+        "tiles that are only cached are not promised offline"
+
+    # Pin the whole cone from order 0 up, which is what a base job plus a save
+    # leaves behind, and the order is reported.
+    facts = jobs.survey_facts(DSS_COLOR, fetch=False)
+    cov = jobs.survey_coverage(DSS_COLOR, fetch=False)
+    by = jobs.hp.cone_pixels(frame["ra"], frame["dec"], frame["radius_deg"], 0, 4)
+    keys = {f"{DSS_COLOR}/{jobs._tile_rel(o, n, facts.tile_ext)}"
+            for o in range(0, 5) for n in by.get(o, []) if cov.contains(o, n)}
+    write_json_atomic(_base_pins_path(), {"paths": sorted(keys)})
+    data2 = client.get(q).get_json()
+    assert data2["surveys"][DSS_COLOR]["max_pinned_order"] == 4
+    # Slugs are accepted too (one normaliser for every route), and say the same
+    # thing as the id form for the same state.
     resp2 = client.get("/api/offline/status?ra=83.8&dec=-5.4&frame_w_deg=1.0&frame_h_deg=0.8"
                        "&surveys=dss2-color")
-    assert resp2.get_json()["surveys"] == data["surveys"]
+    assert resp2.get_json()["surveys"] == data2["surveys"]
 
 
 # ---------------------------------------------------------------------------
@@ -741,17 +759,25 @@ def test_graph_page_shows_save_ui_when_save_enabled(monkeypatch, client):
 
 
 def test_js_save_paths_gated_on_save_flag():
-    """The modal's base-layer ensure, dropdown marks and status chip only call
-    /api/offline/* when window.NOVA_OFFLINE_SKY_SAVE is on -- and, since B2,
-    only once piece C switches its own gate on (offlineBaseUiEnabled)."""
+    """The modal only calls /api/offline/* when window.NOVA_OFFLINE_SKY_SAVE is on.
+
+    The offline indicator is the exception to the piece-C gate: it is a read, it
+    warms nothing, so it is gated on the save UI alone. The two pieces that do
+    warm things -- the base-layer ensure and the dropdown marks -- stay behind
+    offlineBaseUiEnabled (piece C).
+    """
     import re
     src = open(os.path.join(os.path.dirname(__file__), "..", "static", "js",
                             "graph_view_chart.js"), encoding="utf-8").read()
     assert "return offlineEnabled() && !!window.NOVA_OFFLINE_SKY_SAVE;" in src
     assert "return offlineSaveEnabled() && OFFLINE_BASE_UI_ENABLED;" in src
-    for fn in ("ensureOfflineBaseSurveys", "refreshOfflineMarks", "refreshOfflineStatus"):
+    for fn in ("ensureOfflineBaseSurveys", "refreshOfflineMarks"):
         m = re.search(r"function " + fn + r"\(\) \{\n\s*(.+)\n", src)
         assert m and m.group(1).strip() == "if (!offlineBaseUiEnabled()) return;", fn
+    # the indicator: save UI only, and it writes into the header slot
+    m = re.search(r"function refreshOfflineStatus\(\) \{\n\s*(.+)\n", src)
+    assert m and m.group(1).strip() == "if (!offlineSaveEnabled()) return;"
+    assert "framing-offline-slot" in src
 
 
 # ---------------------------------------------------------------------------
@@ -807,3 +833,113 @@ def test_a_manifest_without_a_status_still_covers():
     what those saves spent real bytes on)."""
     from nova.offline_sky_store import save_covers
     assert save_covers({"paths": ["dss2-color/a.jpg"]}) == {"dss2-color/a.jpg"}
+
+
+# ---------------------------------------------------------------------------
+# The offline indicator (Prompt 3): pinned coverage, three states
+# ---------------------------------------------------------------------------
+
+def _status_page(monkeypatch, client, save_enabled=True):
+    """The framing page, rendered the way the existing page tests do it."""
+    return _graph_page(monkeypatch, client, save_enabled)
+
+
+def test_the_indicator_slot_is_in_the_framing_header(monkeypatch, client):
+    """The indicator lives in the header slot the Framing tab reserved for it."""
+    page = _status_page(monkeypatch, client)
+    assert 'id="framing-offline-slot"' in page
+    assert 'class="framing-offline-slot"' in page
+
+
+def test_indicator_strings_are_the_three_agreed_ones(monkeypatch, client):
+    page = _status_page(monkeypatch, client)
+    for text in ("Sharp offline", "Low detail offline", "Not available offline"):
+        assert f'"{text}"' in page, text
+
+
+def test_the_indicator_reads_pinned_coverage_not_disk(monkeypatch, client, db_session):
+    """The three states, judged on what is pinned for the current rig and frame."""
+    from nova import offline_sky_jobs as jobs
+    from nova.blueprints import offline_sky as bp
+    monkeypatch.setattr(bp, "OFFLINE_SKY_STORE", "server")
+    monkeypatch.setattr(bp, "OFFLINE_SKY_SAVE_ENABLED", True)
+    monkeypatch.setattr(jobs, "base_complete", lambda slug: True)
+    frame = jobs.validate_frame(83.8, -5.4, 1.0, 0.8)
+    q = ("/api/offline/status?ra=83.8&dec=-5.4&frame_w_deg=1.0&frame_h_deg=0.8"
+         "&surveys=P/DSS2/color&rig_id=1")
+    # base only: coverage exists but shallow
+    data = client.get(q).get_json()
+    assert data["surveys"][DSS_COLOR]["base_complete"] is True
+    assert data["surveys"][DSS_COLOR]["max_pinned_order"] <= jobs.OFFLINE_SKY_BASE_ORDER
+
+
+def test_the_indicator_never_warms_a_base_layer(monkeypatch, client):
+    """Splitting the gate: the status route is read-only, and the client calls it
+    without the piece-C gate that starts base jobs."""
+    from nova.blueprints import offline_sky as bp
+    monkeypatch.setattr(bp, "OFFLINE_SKY_STORE", "server")
+    monkeypatch.setattr(bp, "OFFLINE_SKY_SAVE_ENABLED", True)
+    warmed = []
+    monkeypatch.setattr("nova.offline_sky_jobs.ensure_base_survey",
+                        lambda slug: warmed.append(slug) or {"slug": slug})
+    resp = client.get("/api/offline/status?ra=83.8&dec=-5.4&frame_w_deg=1.0&frame_h_deg=0.8"
+                      "&surveys=P/DSS2/color")
+    assert resp.status_code == 200
+    assert warmed == [], "the indicator must not start anything"
+
+
+def test_a_finished_save_covers_its_frame_without_the_base_layer(monkeypatch, client):
+    """The indicator must not need the Allsky preview, nor a "complete" base.
+
+    A frame is covered when its tiles are pinned. `base_complete` also required
+    the Allsky file, which nobody may ever have fetched, and gating on it turned
+    a frame a save covers into "Not available offline" (M106 with the FRA500 rig).
+    """
+    from nova import offline_sky_jobs as jobs
+    from nova import offline_sky_store as store
+    from nova.offline_sky_store import write_json_atomic, _base_pins_path
+    monkeypatch.setattr("nova.blueprints.offline_sky.OFFLINE_SKY_STORE", "server")
+    monkeypatch.setattr("nova.blueprints.offline_sky.OFFLINE_SKY_SAVE_ENABLED", True)
+
+    frame = jobs.validate_frame(184.62, 47.34, 0.687, 0.459)
+    # pin what a covering save pins (orders above the base) plus the base orders,
+    # with no Allsky anywhere: base_complete stays False
+    keys = set()
+    facts = jobs.survey_facts(DSS_COLOR, fetch=False)
+    cov = jobs.survey_coverage(DSS_COLOR, fetch=False)
+    by = jobs.hp.cone_pixels(frame["ra"], frame["dec"], frame["radius_deg"], 0, 6)
+    for order in range(0, 7):
+        for n in by.get(order, []):
+            if cov.contains(order, n):
+                keys.add(f"{DSS_COLOR}/{jobs._tile_rel(order, n, facts.tile_ext)}")
+    assert keys
+    write_json_atomic(_base_pins_path(), {"paths": sorted(keys)})
+
+    assert store.tile_exists(DSS_COLOR, jobs.allsky_rel(facts.tile_ext)) is False
+    assert jobs.base_complete(DSS_COLOR) is False, "no Allsky, so never 'complete'"
+
+    order = jobs.covered_pinned_order(DSS_COLOR, frame["ra"], frame["dec"],
+                                      frame["radius_deg"])
+    assert order == 6, "the pinned tiles cover the frame to order 6"
+
+
+def test_the_indicator_reads_no_base_layer_field(client, db_session, monkeypatch):
+    """The three states come from pinned coverage of this frame only."""
+    import os
+    from nova import offline_sky_jobs as jobs
+    from nova import offline_sky_store as store
+    monkeypatch.setattr("nova.blueprints.offline_sky.OFFLINE_SKY_STORE", "server")
+    monkeypatch.setattr("nova.blueprints.offline_sky.OFFLINE_SKY_SAVE_ENABLED", True)
+    monkeypatch.setattr(store, "CACHE_DIR", os.path.abspath("instance/cache"))
+    monkeypatch.setattr(jobs, "base_complete", lambda slug: False)   # a hostile base
+    from test_offline_sky_jobs import _make_rig
+    rid = _make_rig(db_session, name="FRA500 + ASI 585", pixel_um=3.76)
+
+    # the FRA500 M106 save, as it is on disk
+    q = ("/api/offline/status?ra=184.74008333333325&dec=47.303719444444425"
+         "&frame_w_deg=1.2833718008350588&frame_h_deg=0.7219172710004274"
+         f"&rig_id={rid}&surveys=P/DSS2/color")
+    st = client.get(q).get_json()["surveys"]["dss2-color"]
+    assert st["base_complete"] is False, "the base layer is deliberately absent"
+    assert st["max_pinned_order"] >= st["target_order"] >= 0, \
+        "a save for this frame at this rig's detail reads as covered"
