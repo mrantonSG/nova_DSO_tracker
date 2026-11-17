@@ -4234,10 +4234,12 @@
     // ==========================================================================
 
     const OFFLINE_BASE_ORDER = window.NOVA_OFFLINE_SKY_BASE_ORDER || 3;
+    // Detail = an offset from the rig's target order (computed on the server from
+    // the rig's image scale); the server caps it per survey at its effective max.
     const OFFLINE_DETAIL_PRESETS = [
-        { key: 'standard', label: () => window.t('offline_detail_standard'), order: 6 },
-        { key: 'sharp',    label: () => window.t('offline_detail_sharp'),    order: 8 },
-        { key: 'maximum',  label: () => window.t('offline_detail_maximum'),  order: null }, // survey max
+        { key: 'standard', label: () => window.t('offline_detail_standard'), offset: -1 },
+        { key: 'sharp',    label: () => window.t('offline_detail_sharp'),    offset: 0 },
+        { key: 'maximum',  label: () => window.t('offline_detail_maximum'),  offset: 1 },
     ];
     let offlinePollTimer = null;
 
@@ -4250,8 +4252,11 @@
     function offlineBaseId() { return document.getElementById('survey-select')?.value || 'P/DSS2/color'; }
     function offlineBlendId() { return document.getElementById('blend-survey-select')?.value || ''; }
 
-    function offlineCurrentCenter() {
-        if (lockToObject && fovCenter && isFinite(fovCenter.ra) && isFinite(fovCenter.dec)) {
+    // Save area = the imaging frame (whole mosaic if one is set), never the Aladin
+    // view. The server derives the radius (half-diagonal + margin) and the detail
+    // (from the rig's image scale); rotation doesn't change the bounding radius.
+    function offlineFrameCenter() {
+        if (fovCenter && isFinite(fovCenter.ra) && isFinite(fovCenter.dec)) {
             return { ra: fovCenter.ra, dec: fovCenter.dec };
         }
         if (aladin && typeof aladin.getRaDec === 'function') {
@@ -4260,37 +4265,27 @@
         }
         return null;
     }
-    // Save area: the current view or the (rotated) frame + margin, whichever is larger.
-    function offlineSaveArea() {
-        const center = offlineCurrentCenter();
-        const g = aladin && typeof aladin.getFov === 'function' ? aladin.getFov() : null;
-        const fx = Array.isArray(g) ? (Number(g[0]) || 0) : (Number(g) || 0);
-        const fy = Array.isArray(g) ? (Number(g[1]) || fx) : fx;
-        const viewRadius = Math.hypot(fx, fy) / 2;
+    function offlineSaveFrame() {
+        const center = offlineFrameCenter();
         const sel = document.getElementById('framing-rig-select');
         const opt = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex] : null;
-        const fw = parseFloat(opt && opt.dataset.fovw) || 0;
-        const fh = parseFloat(opt && opt.dataset.fovh) || 0;
-        const frameWidthDeg = fw > 0 ? fw / 60 : 0;
-        const frameRadius = (fw > 0 && fh > 0) ? Math.hypot(fw / 60, fh / 60) / 2 : 0;
-        const margin = 1.15; // 15% margin
-        return { ra: center ? center.ra : null, dec: center ? center.dec : null,
-                 radiusDeg: Math.max(viewRadius, frameRadius) * margin, frameWidthDeg };
+        const wDeg = (parseFloat(opt && opt.dataset.fovw) || 0) / 60;
+        const hDeg = (parseFloat(opt && opt.dataset.fovh) || 0) / 60;
+        const cols = Math.max(1, parseInt(document.getElementById('mosaic-cols')?.value || 1) || 1);
+        const rows = Math.max(1, parseInt(document.getElementById('mosaic-rows')?.value || 1) || 1);
+        const overlap = (parseFloat(document.getElementById('mosaic-overlap')?.value || 0) || 0) / 100;
+        // Mosaic extent: first pane full size, every further pane adds (1 - overlap).
+        const frameW = wDeg * (1 + (cols - 1) * (1 - overlap));
+        const frameH = hDeg * (1 + (rows - 1) * (1 - overlap));
+        return { ra: center ? center.ra : NaN, dec: center ? center.dec : NaN,
+                 frameW, frameH, rigId: opt ? opt.value : '' };
     }
-    function offlineSuggestedOrder() {
-        const area = offlineSaveArea();
-        const entry = offlineSurveyEntry(offlineBaseId());
-        const maxOrder = entry ? entry.maxOrder : 9;
-        if (window.framingUtils && window.framingUtils.suggestedOrderForFov) {
-            return window.framingUtils.suggestedOrderForFov(
-                area.frameWidthDeg, OFFLINE_BASE_ORDER + 1, maxOrder);
-        }
-        return Math.min(8, maxOrder);
+    function offlineFrameValid(f) {
+        return isFinite(f.ra) && isFinite(f.dec) && f.frameW > 0 && f.frameH > 0 && !!f.rigId;
     }
-    function offlinePresetOrder(key, maxOrder) {
-        const p = OFFLINE_DETAIL_PRESETS.find(x => x.key === key);
-        if (!p) return maxOrder;
-        return p.order === null ? maxOrder : Math.min(p.order, maxOrder);
+    function offlineFrameQuery(f) {
+        return `ra=${f.ra}&dec=${f.dec}&frame_w_deg=${f.frameW}&frame_h_deg=${f.frameH}` +
+            `&rig_id=${encodeURIComponent(f.rigId)}`;
     }
 
     function setOfflineView(on, fromUser) {
@@ -4333,14 +4328,14 @@
     function refreshOfflineStatus() {
         if (!offlineSaveEnabled()) return;
         const chip = document.getElementById('offline-status-chip');
-        const area = offlineSaveArea();
+        const frame = offlineSaveFrame();
         const baseId = offlineBaseId();
-        if (!chip || !baseId || !isFinite(area.ra) || !isFinite(area.dec)) {
+        if (!chip || !baseId || !offlineFrameValid(frame)) {
             if (chip) { chip.hidden = true; }
             return;
         }
-        const url = `/api/offline/status?ra=${area.ra}&dec=${area.dec}` +
-            `&radius_deg=${area.radiusDeg}&surveys=${encodeURIComponent(baseId)}`;
+        const url = `/api/offline/status?${offlineFrameQuery(frame)}` +
+            `&surveys=${encodeURIComponent(baseId)}`;
         fetch(url).then(r => r.ok ? r.json() : null).then(data => {
             const byId = data && data.survey_ids ? data.surveys : null;
             const entry = offlineSurveyEntry(baseId);
@@ -4352,7 +4347,7 @@
             if (!st.base_complete) {
                 chip.textContent = window.t('offline_chip_not_available');
                 chip.classList.add('offline-chip-none');
-            } else if (st.max_cached_order >= offlineSuggestedOrder()) {
+            } else if (st.max_cached_order >= (st.target_order ?? (entry ? entry.maxOrder : 9))) {
                 chip.textContent = window.t('offline_chip_sharp');
                 chip.classList.add('offline-chip-sharp');
             } else {
@@ -4408,8 +4403,6 @@
     function renderOfflineSavePanel() {
         const panel = document.getElementById('offline-save-panel');
         if (!panel) return;
-        const area = offlineSaveArea();
-        const suggested = offlineSuggestedOrder();
         const baseId = offlineBaseId(), blendId = offlineBlendId();
         const surveys = window.NOVA_OFFLINE_SKY_SURVEYS || {};
         const surveyIds = Object.keys(surveys);
@@ -4422,9 +4415,7 @@
                 `<span>${m.label || sid}</span></label>`;
         }).join('');
 
-        const preset = OFFLINE_DETAIL_PRESETS.find(p =>
-            offlinePresetOrder(p.key, offlineSurveyEntry(baseId)?.maxOrder || 9) >= suggested)
-            || OFFLINE_DETAIL_PRESETS[OFFLINE_DETAIL_PRESETS.length - 1];
+        const preset = OFFLINE_DETAIL_PRESETS.find(p => p.offset === 0);
 
         panel.innerHTML =
             `<div class="offline-save-head">${window.t('save_for_offline')}</div>` +
@@ -4434,7 +4425,7 @@
                     OFFLINE_DETAIL_PRESETS.map(p =>
                         `<option value="${p.key}" ${p.key === preset.key ? 'selected' : ''}>${p.label()}</option>`).join('') +
                 `</select>` +
-                `<span class="offline-save-suggested">${window.t('offline_suggested')}: ${suggested}</span>` +
+                `<span id="offline-save-suggested" class="offline-save-suggested">${window.t('offline_suggested')}: …</span>` +
             `</div>` +
             `<div id="offline-save-estimate" class="offline-save-estimate"></div>` +
             `<div class="offline-save-actions">` +
@@ -4446,7 +4437,6 @@
 
         panel.querySelector('#offline-detail-select').addEventListener('change', updateOfflineEstimate);
         panel.querySelector('#offline-save-start').addEventListener('click', startOfflineSave);
-        panel.querySelector('#offline-save-cancel').addEventListener('click', cancelOfflineSave);
         panel.querySelectorAll('.offline-survey-check').forEach(cb => cb.addEventListener('change', updateOfflineEstimate));
         updateOfflineEstimate();
         renderOfflineSaves();
@@ -4457,29 +4447,30 @@
         if (!panel) return [];
         return Array.from(panel.querySelectorAll('.offline-survey-check:checked')).map(cb => cb.value);
     }
-    function offlineSelectedOrder() {
+    function offlineSelectedOffset() {
         const panel = document.getElementById('offline-save-panel');
         const key = panel?.querySelector('#offline-detail-select')?.value || 'sharp';
-        const entry = offlineSurveyEntry(offlineBaseId());
-        return offlinePresetOrder(key, entry ? entry.maxOrder : 9);
+        const p = OFFLINE_DETAIL_PRESETS.find(x => x.key === key);
+        return p ? p.offset : 0;
     }
 
     function updateOfflineEstimate() {
         const el = document.getElementById('offline-save-estimate');
         if (!el) return;
-        const area = offlineSaveArea();
+        const frame = offlineSaveFrame();
         const surveys = offlineSelectedSurveys();
-        if (!isFinite(area.ra) || !isFinite(area.dec) || !surveys.length) {
+        if (!offlineFrameValid(frame) || !surveys.length) {
             el.textContent = window.t('offline_chip_not_available');
             return;
         }
-        const order = offlineSelectedOrder();
-        const url = `/api/offline/estimate?ra=${area.ra}&dec=${area.dec}&radius_deg=${area.radiusDeg}` +
-            `&max_order=${order}&surveys=${surveys.map(encodeURIComponent).join(',')}`;
-        fetch(url).then(r => r.ok ? r.json() : null).then(d => {
-            if (!d) { el.textContent = ''; return; }
-            const tiles = d.surveys.reduce((a, s) => a + s.tile_count, 0);
-            const bytes = d.surveys.reduce((a, s) => a + s.est_bytes, 0);
+        const url = `/api/offline/estimate?${offlineFrameQuery(frame)}` +
+            `&detail_offset=${offlineSelectedOffset()}&surveys=${surveys.map(encodeURIComponent).join(',')}`;
+        fetch(url).then(r => r.json().catch(() => null)).then(d => {
+            if (!d || !d.surveys) { el.textContent = (d && d.error) || ''; return; }
+            const sug = document.getElementById('offline-save-suggested');
+            if (sug) sug.textContent = `${window.t('offline_suggested')}: ${d.target_order}`;
+            const tiles = d.total.tile_count;
+            const bytes = d.total.est_bytes;
             const mb = (bytes / (1024 * 1024)).toFixed(1);
             const freeMb = (d.free_bytes / (1024 * 1024)).toFixed(0);
             const capMb = (d.cap_bytes / (1024 * 1024)).toFixed(0);
@@ -4489,20 +4480,23 @@
     }
 
     function startOfflineSave() {
-        const area = offlineSaveArea();
+        const frame = offlineSaveFrame();
         const surveys = offlineSelectedSurveys();
-        const order = offlineSelectedOrder();
-        if (!isFinite(area.ra) || !isFinite(area.dec) || !surveys.length) return;
+        if (!offlineFrameValid(frame) || !surveys.length) return;
         const name = (window.NOVA_GRAPH_DATA && (window.NOVA_GRAPH_DATA.objectName || window.NOVA_GRAPH_DATA.altName)) || 'RA/Dec';
         const btn = document.getElementById('offline-save-start');
         if (btn) btn.disabled = true;
         fetch('/api/offline/saves', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, ra: area.ra, dec: area.dec, radius_deg: area.radiusDeg,
-                                   surveys, max_order: order })
-        }).then(r => r.ok ? r.json() : null).then(d => {
-            if (d && d.job_id) { startOfflinePoll(d.job_id); renderOfflineSaves(); }
-            else if (btn) btn.disabled = false;
+            body: JSON.stringify({ name, ra: frame.ra, dec: frame.dec,
+                                   frame_w_deg: frame.frameW, frame_h_deg: frame.frameH,
+                                   rig_id: frame.rigId, surveys,
+                                   detail_offset: offlineSelectedOffset() })
+        }).then(r => r.json().catch(() => null)).then(d => {
+            if (d && d.job_id) { startOfflinePoll(d.job_id); renderOfflineSaves(); return; }
+            if (btn) btn.disabled = false;
+            const prog = document.getElementById('offline-save-progress');
+            if (prog && d && d.error) prog.textContent = d.error;
         }).catch(() => { if (btn) btn.disabled = false; });
     }
 
@@ -4520,7 +4514,7 @@
                 if (!job) return;
                 const status = job.status || 'running';
                 if (prog) prog.textContent = `${status} · ${job.done}/${job.total}`;
-                if (status === 'done' || status === 'cancelled' || status === 'error') {
+                if (status === 'done' || status === 'stopped' || status === 'cancelled' || status === 'failed') {
                     stopOfflinePoll();
                     if (btn) btn.disabled = false;
                     if (cancelBtn) cancelBtn.hidden = true;

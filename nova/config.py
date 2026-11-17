@@ -74,15 +74,17 @@ NOVA_CATALOG_URL = config('NOVA_CATALOG_URL', default='')
 #   stored under instance/cache/hips and shared across all users of the instance.
 # "off": routes return 404 and the browser talks to CDS/mirrors directly.
 OFFLINE_SKY_STORE = config('OFFLINE_SKY_STORE', default='off')
-# Cap for browsed (non-pinned) tiles, in MiB, per instance. 0 or negative = no cap (unlimited).
+# Cap for the whole tile store, in MiB, per instance: pinned tiles (base layer +
+# saves) plus browsed tiles. Pinned tiles never exceed it (a save that would is
+# refused); browsed tiles are evicted to make room. 0 or negative = no cap.
 OFFLINE_SKY_CACHE_MB = config('OFFLINE_SKY_CACHE_MB', default=2048, cast=int)
 # Highest whole-sky order fetched for the low-res base layer. Orders 0..N plus the
 # Allsky file(s) are pinned at instance level (never evicted). N=3 is 1020 tiles.
 OFFLINE_SKY_BASE_ORDER = config('OFFLINE_SKY_BASE_ORDER', default=3, cast=int)
-# Max concurrent upstream requests the offline-sky *jobs* may have in flight, and
-# the delay between requests. The /hips/ proxy keeps its own separate budget.
-OFFLINE_SKY_JOB_CONCURRENCY = config('OFFLINE_SKY_JOB_CONCURRENCY', default=2, cast=int)
-OFFLINE_SKY_JOB_DELAY_SECONDS = config('OFFLINE_SKY_JOB_DELAY_SECONDS', default=0.05, cast=float)
+# Upstream requests per second for offline-sky *jobs*, per instance (one job
+# runner per instance, see nova/offline_sky_jobs.py). The /hips/ browsing proxy
+# keeps its own, separate concurrency budget.
+OFFLINE_SKY_JOB_RATE_PER_SEC = config('OFFLINE_SKY_JOB_RATE_PER_SEC', default=4.0, cast=float)
 # "Save for offline" (saves, base-layer jobs, status chip, dropdown offline marks).
 # Off until reworked: when False the /api/offline/* routes 404 and that UI is not
 # rendered. The /hips/ proxy, its cache and the Offline view toggle don't need it.

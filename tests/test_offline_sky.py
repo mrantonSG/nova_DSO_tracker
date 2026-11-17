@@ -12,7 +12,6 @@ load_global_request_context returns early for them).
 
 import json
 import os
-import threading
 import time
 import uuid
 
@@ -561,43 +560,7 @@ def test_cache_only_properties_serves_stale_and_404s(client, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# Base job
-# ---------------------------------------------------------------------------
-
-def _fast_job(monkeypatch):
-    import nova.offline_sky_jobs as jobs
-    monkeypatch.setattr(jobs, "OFFLINE_SKY_JOB_DELAY_SECONDS", 0)
-    monkeypatch.setattr(jobs, "_fetch_tile_format_ext", lambda slug: "jpg")
-    monkeypatch.setattr(jobs, "_throttled_fetch", lambda base, url: b"FAKE")
-
-
-def test_base_job_enumerates_orders_0_to_N_and_pins(monkeypatch):
-    import nova.offline_sky_jobs as jobs
-    from nova.offline_sky_store import base_pinned_rel_paths
-    _fast_job(monkeypatch)
-
-    jobs._run_base(DSS_COLOR, "base:dss2-color", threading.Event())
-
-    assert jobs.base_complete(DSS_COLOR)
-    pins = base_pinned_rel_paths()
-    assert f"{DSS_COLOR}/Norder3/Allsky.jpg" in pins          # HiPS 1.0 location
-    assert f"{DSS_COLOR}/Allsky.jpg" not in pins              # not at the root
-    assert f"{DSS_COLOR}/Norder0/Dir0/Npix11.jpg" in pins      # last tile of order 0
-    assert f"{DSS_COLOR}/Norder3/Dir0/Npix767.jpg" in pins     # last tile of order 3
-    assert not any("Norder4" in p for p in pins)               # base stops at order 3
-
-
-def test_base_complete_when_already_cached(monkeypatch):
-    import nova.offline_sky_jobs as jobs
-    monkeypatch.setattr(jobs, "_cached_tile_ext", lambda slug: "jpg")
-    assert not jobs.base_complete(DSS_COLOR)
-    for rel in jobs.base_rel_paths(DSS_COLOR, "jpg"):
-        store_file(DSS_COLOR, rel, b"X", count=False)
-    assert jobs.base_complete(DSS_COLOR)
-
-
-# ---------------------------------------------------------------------------
-# Save job
+# Jobs: see tests/test_offline_sky_jobs.py (planning, estimate, limits, runner).
 # ---------------------------------------------------------------------------
 
 def _manifest(**kw):
@@ -609,77 +572,6 @@ def _manifest(**kw):
     }
     base.update(kw)
     return base
-
-
-def test_save_job_enumerates_cone_orders_base_plus_1_to_chosen(monkeypatch):
-    import nova.offline_sky_jobs as jobs
-    from nova.offline_sky_store import read_save_manifest
-    _fast_job(monkeypatch)
-    m = _manifest()
-    jobs._run_save(m, m["id"], threading.Event())
-
-    saved = read_save_manifest(m["id"])
-    assert saved["paths"]
-    assert saved["bytes"] > 0
-    for p in saved["paths"]:
-        assert "/Norder4/" in p or "/Norder5/" in p       # base_order(3)+1 .. chosen(5)
-        assert "/Norder3/" not in p and "/Norder6/" not in p
-
-
-def test_save_job_skips_tiles_already_on_disk(monkeypatch):
-    import nova.offline_sky_jobs as jobs
-    from nova.offline_sky_store import read_save_manifest
-    _fast_job(monkeypatch)
-    calls = []
-    monkeypatch.setattr(jobs, "_throttled_fetch", lambda base, url: calls.append(url) or b"FAKE")
-
-    rels = jobs.save_rel_paths(DSS_COLOR, "jpg", 83.8, -5.4, 1.0, 5)
-    assert rels
-    for rel in rels:
-        store_file(DSS_COLOR, rel, b"X", count=False)
-
-    m = _manifest()
-    jobs._run_save(m, m["id"], threading.Event())
-    assert calls == []                                    # resume: nothing fetched again
-    assert len(read_save_manifest(m["id"])["paths"]) == len(rels)
-
-
-def test_save_job_cancel(monkeypatch):
-    import nova.offline_sky_jobs as jobs
-    from nova.offline_sky_store import read_save_manifest
-    _fast_job(monkeypatch)
-    cancel = threading.Event()
-    cancel.set()
-    m = _manifest()
-    jobs._run_save(m, m["id"], cancel)
-    assert read_save_manifest(m["id"])["status"] == "cancelled"
-    assert jobs._read_job_state(m["id"])["status"] == "cancelled"
-
-
-def test_job_throttle_limits_concurrency(monkeypatch):
-    import nova.offline_sky_jobs as jobs
-    import nova.blueprints.offline_sky as bp
-    jobs._JOB_SEMAPHORE = threading.BoundedSemaphore(2)
-    in_flight = []
-    peak = [0]
-    lock = threading.Lock()
-
-    def fake_fetch(base, url):
-        with lock:
-            in_flight.append(1)
-            peak[0] = max(peak[0], len(in_flight))
-        time.sleep(0.01)
-        with lock:
-            in_flight.pop()
-        return b"x"
-
-    monkeypatch.setattr(bp, "_fetch_upstream", fake_fetch)
-    threads = [threading.Thread(target=jobs._throttled_fetch, args=("b", f"u{i}")) for i in range(4)]
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join()
-    assert peak[0] <= 2
 
 
 # ---------------------------------------------------------------------------
@@ -706,18 +598,23 @@ def test_unpinned_tiles_become_evictable_after_delete(monkeypatch):
     mid = "00000000-0000-0000-0000-0000000000ff"
     write_save_manifest(_manifest(id=mid, paths=[f"{DSS_COLOR}/{rels[0]}"]))
     evict_browsed()
+    # One cap for the whole store: the pinned 400 KiB counts, so the oldest
+    # browsed tile (rels[1]) went to make room; the pinned one stays.
     assert read_file(DSS_COLOR, rels[0]) is not None   # pinned by the save
+    assert read_file(DSS_COLOR, rels[1]) is None
     delete_save_manifest(mid)
+    assert total_bytes() == 2 * 400 * 1024              # rels[0] is browsed again
+    store_file(DSS_COLOR, "Norder3/Dir0/Npix9.jpg", b"x" * 400 * 1024)  # newest
     evict_browsed()
-    assert read_file(DSS_COLOR, rels[0]) is None       # now ordinary and evictable
+    assert read_file(DSS_COLOR, rels[0]) is None       # now ordinary and evictable (oldest)
 
 
 def test_cone_max_cached_order(monkeypatch):
     import nova.offline_sky_jobs as jobs
     monkeypatch.setattr(jobs, "base_complete", lambda slug: True)
-    monkeypatch.setattr(jobs, "_cached_tile_ext", lambda slug: "jpg")
     for order in (4, 5):
-        for rel in jobs.save_rel_paths(DSS_COLOR, "jpg", 83.8, -5.4, 1.0, order):
+        plan = jobs.plan_survey(DSS_COLOR, 83.8, -5.4, 1.0, order, fetch=False)
+        for rel in plan.rel_paths():
             store_file(DSS_COLOR, rel, b"X", count=False)
     assert jobs.cone_max_cached_order(DSS_COLOR, 83.8, -5.4, 1.0) == 5
 
@@ -747,32 +644,24 @@ def test_saves_are_owned_per_user(monkeypatch, multi_user_client):
     assert read_save_manifest(aid) is None
 
 
-def test_estimate_endpoint_returns_tile_counts(monkeypatch, client):
-    _save_on(monkeypatch)
-    import nova.offline_sky_jobs as jobs
-    monkeypatch.setattr(jobs, "_cached_tile_ext", lambda slug: "jpg")
-    resp = client.get("/api/offline/estimate?ra=83.8&dec=-5.4&radius_deg=1.0"
-                      "&max_order=5&surveys=dss2-color")
-    assert resp.status_code == 200
-    data = resp.get_json()
-    assert data["surveys"][0]["slug"] == DSS_COLOR
-    assert data["surveys"][0]["tile_count"] > 0
-    assert data["surveys"][0]["est_bytes"] > 0
-    assert data["cap_bytes"] > 0
-
-
 def test_status_endpoint_reports_base_complete_and_order(monkeypatch, client):
     _save_on(monkeypatch)
     import nova.offline_sky_jobs as jobs
     monkeypatch.setattr(jobs, "base_complete", lambda slug: True)
-    monkeypatch.setattr(jobs, "_cached_tile_ext", lambda slug: "jpg")
-    for rel in jobs.save_rel_paths(DSS_COLOR, "jpg", 83.8, -5.4, 1.0, 4):
+    frame = jobs.validate_frame(83.8, -5.4, 1.0, 0.8)
+    plan = jobs.plan_survey(DSS_COLOR, frame["ra"], frame["dec"], frame["radius_deg"], 4, fetch=False)
+    for rel in plan.rel_paths():
         store_file(DSS_COLOR, rel, b"X", count=False)
-    resp = client.get("/api/offline/status?ra=83.8&dec=-5.4&radius_deg=1.0&surveys=P/DSS2/color")
+    resp = client.get("/api/offline/status?ra=83.8&dec=-5.4&frame_w_deg=1.0&frame_h_deg=0.8"
+                      "&surveys=P/DSS2/color")
     assert resp.status_code == 200
     data = resp.get_json()
     assert data["surveys"][DSS_COLOR]["base_complete"] is True
     assert data["surveys"][DSS_COLOR]["max_cached_order"] == 4
+    # Slugs are accepted too (one normaliser for every route).
+    resp2 = client.get("/api/offline/status?ra=83.8&dec=-5.4&frame_w_deg=1.0&frame_h_deg=0.8"
+                       "&surveys=dss2-color")
+    assert resp2.get_json()["surveys"] == data["surveys"]
 
 
 # ---------------------------------------------------------------------------
@@ -789,23 +678,24 @@ def test_api_routes_404_and_no_job_when_save_disabled(monkeypatch, client):
     _server_on(monkeypatch)
     monkeypatch.setattr("nova.blueprints.offline_sky.OFFLINE_SKY_SAVE_ENABLED", False)
     spawned = []
-    monkeypatch.setattr(jobs, "_spawn", lambda job_id, target: spawned.append(job_id))
-    monkeypatch.setattr(jobs, "_throttled_fetch",
+    monkeypatch.setattr(jobs, "kick", lambda: spawned.append(1))
+    monkeypatch.setattr("nova.blueprints.offline_sky._upstream_get",
                         lambda base, url: pytest.fail("no upstream fetch expected"))
     # An existing save must not be reachable either.
     write_save_manifest(_manifest(id=_SAVE_ID, user_id=1))
 
-    cone = "ra=83.8&dec=-5.4&radius_deg=1.0"
+    cone = "ra=83.8&dec=-5.4&frame_w_deg=1.0&frame_h_deg=0.8&rig_id=1"
     calls = [
         ("get", "/api/offline/saves", None),
-        ("post", "/api/offline/saves", {"ra": 83.8, "dec": -5.4, "radius_deg": 1.0,
-                                        "max_order": 6, "surveys": ["P/DSS2/color"]}),
+        ("post", "/api/offline/saves", {"ra": 83.8, "dec": -5.4, "frame_w_deg": 1.0,
+                                        "frame_h_deg": 0.8, "rig_id": 1,
+                                        "surveys": ["P/DSS2/color"]}),
         ("get", f"/api/offline/saves/{_SAVE_ID}/progress", None),
         ("post", f"/api/offline/saves/{_SAVE_ID}/cancel", None),
         ("delete", f"/api/offline/saves/{_SAVE_ID}", None),
         ("post", "/api/offline/base/ensure", {"surveys": ["P/DSS2/color"]}),
         ("get", "/api/offline/base/status", None),
-        ("get", f"/api/offline/estimate?{cone}&max_order=5&surveys=dss2-color", None),
+        ("get", f"/api/offline/estimate?{cone}&surveys=dss2-color", None),
         ("get", f"/api/offline/status?{cone}&surveys=P/DSS2/color", None),
     ]
     for method, url, body in calls:

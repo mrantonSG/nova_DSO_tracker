@@ -21,7 +21,7 @@ from flask_login import current_user
 
 import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay live (see nova/config.py)
 from nova.config import APP_VERSION, OFFLINE_SKY_STORE, OFFLINE_SKY_SAVE_ENABLED
-from nova.offline_sky_facts import allsky_rel
+from nova.offline_sky_facts import allsky_rel, effective_max_order
 from nova.offline_sky_sources import SURVEY_BY_SLUG, SURVEY_ID_BY_SLUG, SURVEY_SOURCES
 from nova.offline_sky_store import (
     read_file, store_file, touch, maybe_evict_async, tile_path,
@@ -99,31 +99,56 @@ def _breaker_trip(base: str) -> None:
         _breaker_until[base] = time.time() + _BREAKER_SECONDS
 
 
+# Outcomes of one upstream GET (see _upstream_get).
+UPSTREAM_OK = "ok"                 # 200, body returned
+UPSTREAM_MISSING = "missing"       # a definite "no such file" (4xx other than 429)
+UPSTREAM_UNAVAILABLE = "unavailable"  # breaker open, network error, 5xx, 429: try later
+
+
+def _upstream_get(base: str, url: str):
+    """One GET against ``base`` -> (outcome, body_or_None). No semaphore.
+
+    Circuit-breaks on a connection error/timeout/5xx; a 4xx is a real "no such
+    tile" and does not trip the breaker (429 "slow down" is reported as
+    unavailable without tripping it). An open breaker returns UNAVAILABLE
+    without making a request. Never redirects. The offline-sky jobs call this
+    directly under their own rate limit; the browsing proxy goes through
+    _fetch_upstream, which adds the proxy's concurrency semaphore.
+    """
+    if _breaker_open(base):
+        return UPSTREAM_UNAVAILABLE, None
+    try:
+        resp = _session.get(
+            url,
+            timeout=(_CONNECT_TIMEOUT, _READ_TIMEOUT),
+            allow_redirects=False,
+        )
+    except requests.RequestException:
+        _breaker_trip(base)
+        return UPSTREAM_UNAVAILABLE, None
+    if resp.status_code == 200:
+        return UPSTREAM_OK, resp.content
+    if resp.status_code >= 500:
+        _breaker_trip(base)
+        return UPSTREAM_UNAVAILABLE, None
+    if resp.status_code == 429:
+        return UPSTREAM_UNAVAILABLE, None
+    return UPSTREAM_MISSING, None
+
+
 def _fetch_upstream(base: str, url: str):
     """200-byte body from `base`, or None. Raises _UpstreamBusy when saturated.
 
-    Circuit-breaks on a connection error/timeout/5xx; a 4xx is a real "no such
-    tile" and does not trip the breaker. Never redirects.
+    The browsing proxy's fetch: _upstream_get inside the proxy's own
+    concurrency semaphore (an open breaker skips the base without a slot).
     """
     if _breaker_open(base):
         return None
     if not _FETCH_SEMAPHORE.acquire(timeout=_FETCH_SEMAPHORE_TIMEOUT):
         raise _UpstreamBusy()
     try:
-        try:
-            resp = _session.get(
-                url,
-                timeout=(_CONNECT_TIMEOUT, _READ_TIMEOUT),
-                allow_redirects=False,
-            )
-        except requests.RequestException:
-            _breaker_trip(base)
-            return None
-        if resp.status_code != 200:
-            if resp.status_code >= 500:
-                _breaker_trip(base)
-            return None
-        return resp.content
+        outcome, body = _upstream_get(base, url)
+        return body if outcome == UPSTREAM_OK else None
     finally:
         _FETCH_SEMAPHORE.release()
 
@@ -253,7 +278,9 @@ def _validate_tile(slug: str, order: int, dir: int, npix: int, ext: str):
     ext_l = ext.lower()
     if ext_l not in src.exts:
         return None
-    if order > src.max_order:
+    # Effective max order: the lower of the whitelist and the survey's own
+    # hips_order (cached properties only; never fetched on a tile request).
+    if order > effective_max_order(slug, fetch=False):
         return None
     if npix >= 12 * 4 ** order:
         return None
@@ -356,23 +383,72 @@ def _api_user_id():
     return db_user.id if db_user is not None else None
 
 
-def _survey_slug(survey_id: str):
-    src = SURVEY_SOURCES.get(survey_id)
-    return src.slug if src else None
+def _rig_image_scale(uid: int, rig_id):
+    """(arcsec/px, source) for the caller's rig; raises LimitError.
+
+    Same computation as the framing page's rig list (nova/blueprints/core.py):
+    206.265 x camera pixel size (um) / effective focal length (mm), with the
+    effective focal length = telescope focal length x reducer/extender factor,
+    components resolved by record UID. Falls back to the Rig.image_scale column
+    (stored at rig save time) when the components can't give it.
+    """
+    from nova.helpers import get_db, _compute_rig_metrics_from_components
+    from nova.models import Rig
+    from nova.offline_sky_jobs import LimitError
+    from nova.record_links import components_for_rig
+    try:
+        rid = int(rig_id)
+    except (TypeError, ValueError):
+        raise LimitError("rig_required", "rig_id is required")
+    db = get_db()
+    rig = db.query(Rig).filter_by(id=rid, user_id=uid).one_or_none()
+    if rig is None:
+        raise LimitError("rig_not_found", "rig not found")
+    rc = components_for_rig(db, rig)
+    _efl, _fr, scale, _fov = _compute_rig_metrics_from_components(
+        rc.telescope, rc.camera, rc.reducer_extender)
+    if scale and scale > 0:
+        return float(scale), "components"
+    if rig.image_scale and rig.image_scale > 0:
+        return float(rig.image_scale), "stored"
+    raise LimitError("rig_no_image_scale",
+                     "this rig has no image scale (camera pixel size and focal length are needed)")
+
+
+def _limit_response(err, status=400):
+    body = {"error": str(err), "code": err.code}
+    body.update(err.extra)
+    return jsonify(body), status
+
+
+def _frame_from(src):
+    from nova.offline_sky_jobs import validate_frame
+    return validate_frame(src.get("ra"), src.get("dec"),
+                          src.get("frame_w_deg"), src.get("frame_h_deg"))
 
 
 def _manifest_summary(manifest: dict) -> dict:
+    from nova.offline_sky_sources import SURVEY_ID_BY_SLUG
+    surveys = manifest.get("surveys", [])
     return {
         "id": manifest.get("id"),
         "name": manifest.get("name"),
         "ra": manifest.get("ra"),
         "dec": manifest.get("dec"),
         "radius_deg": manifest.get("radius_deg"),
-        "surveys": manifest.get("surveys", []),
+        "frame_w_deg": manifest.get("frame_w_deg"),
+        "frame_h_deg": manifest.get("frame_h_deg"),
+        "surveys": surveys,
+        "survey_ids": [SURVEY_ID_BY_SLUG.get(s) for s in surveys],
         "max_order": manifest.get("max_order"),
+        "target_order": manifest.get("target_order"),
+        "detail_offset": manifest.get("detail_offset"),
+        "image_scale_arcsec": manifest.get("image_scale_arcsec"),
         "created": manifest.get("created"),
         "bytes": manifest.get("bytes", 0),
         "tile_count": len(manifest.get("paths", [])),
+        "missing": manifest.get("missing", 0),
+        "partial": bool(manifest.get("partial", False)),
         "status": manifest.get("status", "done"),
     }
 
@@ -391,54 +467,77 @@ def offline_saves_list():
     return jsonify({"saves": saves})
 
 
+def _estimate_for(uid, src):
+    """Shared by GET estimate and POST saves: (estimate dict) or raises LimitError."""
+    from nova.offline_sky_jobs import LimitError, estimate, validate_offset
+    from nova.offline_sky_sources import resolve_slugs
+    frame = _frame_from(src)
+    offset = validate_offset(src.get("detail_offset"))
+    slugs = resolve_slugs(src.get("surveys") or [])
+    if not slugs:
+        raise LimitError("no_surveys", "no whitelisted surveys")
+    scale, scale_source = _rig_image_scale(uid, src.get("rig_id"))
+    est = estimate(frame, scale, slugs, offset, fetch=True)
+    est["image_scale"] = {"arcsec_per_px": scale, "source": scale_source,
+                          "rig_id": int(src.get("rig_id"))}
+    return est
+
+
 @offline_sky_bp.route("/api/offline/saves", methods=["POST"])
 def offline_saves_create():
     uid = _api_user_id()
     if uid is None:
         return Response(status=404)
     import uuid as _uuid
-    from nova.offline_sky_jobs import start_save_job
+    from nova.offline_sky_jobs import LimitError, enqueue, kick
+    from nova.offline_sky_store import write_save_manifest
 
     body = request.get_json(silent=True) or {}
-    name = str(body.get("name") or "").strip() or "RA/Dec"
     try:
-        ra = float(body.get("ra"))
-        dec = float(body.get("dec"))
-        radius_deg = float(body.get("radius_deg"))
-        max_order = int(body.get("max_order"))
-    except (TypeError, ValueError):
-        return jsonify({"error": "invalid parameters"}), 400
-    if not (-90 <= dec <= 90 and 0 < radius_deg < 180):
-        return jsonify({"error": "invalid coordinates or radius"}), 400
+        est = _estimate_for(uid, body)
+    except LimitError as err:
+        return _limit_response(err)
+    if est["reject"]:
+        return jsonify({"error": est["reject"]["message"], "code": est["reject"]["code"],
+                        "estimate": est}), 409
 
-    surveys_raw = body.get("surveys") or []
-    slugs = []
-    for sid in surveys_raw:
-        slug = _survey_slug(str(sid))
-        if slug:
-            slugs.append(slug)
-    if not slugs:
-        return jsonify({"error": "no whitelisted surveys"}), 400
-
-    # Cap the chosen order at each survey's own max order.
-    cap = min([SURVEY_BY_SLUG[s].max_order for s in slugs]) if slugs else 9
-    max_order = max(0, min(max_order, cap))
-
+    frame = est["frame"]
+    slugs = [s["slug"] for s in est["surveys"]]
+    save_id = str(_uuid.uuid4())
     manifest = {
-        "id": str(_uuid.uuid4()),
+        "id": save_id,
         "user_id": uid,
-        "name": name,
-        "ra": ra,
-        "dec": dec,
-        "radius_deg": radius_deg,
+        "name": str(body.get("name") or "").strip() or "RA/Dec",
+        "ra": frame["ra"],
+        "dec": frame["dec"],
+        "frame_w_deg": frame["frame_w_deg"],
+        "frame_h_deg": frame["frame_h_deg"],
+        "radius_deg": frame["radius_deg"],
         "surveys": slugs,
-        "max_order": max_order,
+        "max_order": est["requested_order"],
+        "target_order": est["target_order"],
+        "detail_offset": est["detail_offset"],
+        "image_scale_arcsec": est["image_scale_arcsec"],
         "created": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "paths": [],
         "bytes": 0,
+        "status": "queued",
+        "partial": True,
     }
-    job_id = start_save_job(manifest)
-    return jsonify({"job_id": job_id, "manifest": _manifest_summary(manifest)})
+    write_save_manifest(manifest)
+    enqueue(save_id, "save", {"ra": frame["ra"], "dec": frame["dec"],
+                              "radius_deg": frame["radius_deg"],
+                              "order": est["requested_order"]}, slugs)
+    kick()
+    return jsonify({"job_id": save_id, "manifest": _manifest_summary(manifest), "estimate": est})
+
+
+def _owned_manifest(uid, save_id):
+    from nova.offline_sky_store import read_save_manifest
+    manifest = read_save_manifest(save_id)
+    if not manifest or manifest.get("user_id") != uid:
+        return None
+    return manifest
 
 
 @offline_sky_bp.route("/api/offline/saves/<save_id>/progress", methods=["GET"])
@@ -446,12 +545,14 @@ def offline_saves_progress(save_id: str):
     uid = _api_user_id()
     if uid is None:
         return Response(status=404)
-    from nova.offline_sky_store import read_save_manifest
-    from nova.offline_sky_jobs import save_job_progress
-    manifest = read_save_manifest(save_id)
-    if not manifest or manifest.get("user_id") != uid:
+    from nova.offline_sky_jobs import ACTIVE_STATUSES, kick, read_job
+    manifest = _owned_manifest(uid, save_id)
+    if manifest is None:
         return Response(status=404)
-    return jsonify(save_job_progress(save_id) or {"job": None, "manifest": _manifest_summary(manifest)})
+    job = read_job(save_id)
+    if job and job.get("status") in ACTIVE_STATUSES:
+        kick()  # resume after a restart: whoever can take the lock runs it
+    return jsonify({"job": job, "manifest": _manifest_summary(manifest)})
 
 
 @offline_sky_bp.route("/api/offline/saves/<save_id>/cancel", methods=["POST"])
@@ -459,12 +560,13 @@ def offline_saves_cancel(save_id: str):
     uid = _api_user_id()
     if uid is None:
         return Response(status=404)
-    from nova.offline_sky_store import read_save_manifest
-    from nova.offline_sky_jobs import cancel_job
-    manifest = read_save_manifest(save_id)
-    if not manifest or manifest.get("user_id") != uid:
+    from nova.offline_sky_jobs import cancel_job, kick
+    if _owned_manifest(uid, save_id) is None:
         return Response(status=404)
-    return jsonify({"cancelled": cancel_job(save_id)})
+    cancelled = cancel_job(save_id)
+    if cancelled:
+        kick()
+    return jsonify({"cancelled": cancelled})
 
 
 @offline_sky_bp.route("/api/offline/saves/<save_id>", methods=["DELETE"])
@@ -472,11 +574,19 @@ def offline_saves_delete(save_id: str):
     uid = _api_user_id()
     if uid is None:
         return Response(status=404)
-    from nova.offline_sky_store import delete_save_manifest, read_save_manifest
-    manifest = read_save_manifest(save_id)
-    if not manifest or manifest.get("user_id") != uid:
+    from nova.offline_sky_jobs import cancel_job, delete_job_file, kick
+    from nova.offline_sky_store import delete_save_manifest, maybe_evict_async
+    if _owned_manifest(uid, save_id) is None:
         return Response(status=404)
+    # A running job is the runner's to finish: ask it to stop, then drop the
+    # manifest (the runner sees it gone and won't recreate it).
+    active = cancel_job(save_id)
     delete_save_manifest(save_id)
+    if active:
+        kick()
+    else:
+        delete_job_file(save_id)
+    maybe_evict_async()
     return jsonify({"deleted": True})
 
 
@@ -485,13 +595,12 @@ def offline_base_ensure():
     uid = _api_user_id()
     if uid is None:
         return Response(status=404)
-    from nova.offline_sky_jobs import ensure_base_survey
-    surveys_raw = (request.get_json(silent=True) or {}).get("surveys") or []
-    out = []
-    for sid in surveys_raw:
-        slug = _survey_slug(str(sid))
-        if slug:
-            out.append(ensure_base_survey(slug))
+    from nova.offline_sky_jobs import ensure_base_survey, kick
+    from nova.offline_sky_sources import resolve_slugs
+    slugs = resolve_slugs((request.get_json(silent=True) or {}).get("surveys") or [])
+    out = [ensure_base_survey(slug) for slug in slugs]
+    if any(not s.get("complete") for s in out):
+        kick()
     return jsonify({"surveys": out})
 
 
@@ -510,16 +619,13 @@ def offline_estimate():
     uid = _api_user_id()
     if uid is None:
         return Response(status=404)
-    from nova.offline_sky_jobs import estimate_save
+    from nova.offline_sky_jobs import LimitError
+    args = request.args.to_dict()
+    args["surveys"] = request.args.get("surveys", "")
     try:
-        ra = float(request.args.get("ra"))
-        dec = float(request.args.get("dec"))
-        radius_deg = float(request.args.get("radius_deg"))
-        max_order = int(request.args.get("max_order"))
-    except (TypeError, ValueError):
-        return jsonify({"error": "invalid parameters"}), 400
-    slugs = [s for s in (request.args.get("surveys", "").split(",")) if s]
-    return jsonify(estimate_save(ra, dec, radius_deg, slugs, max_order))
+        return jsonify(_estimate_for(uid, args))
+    except LimitError as err:
+        return _limit_response(err)
 
 
 @offline_sky_bp.route("/api/offline/status", methods=["GET"])
@@ -527,21 +633,28 @@ def offline_status():
     uid = _api_user_id()
     if uid is None:
         return Response(status=404)
-    from nova.offline_sky_jobs import base_complete, cone_max_cached_order
+    from nova.offline_sky_jobs import (
+        LimitError, base_complete, cone_max_cached_order, target_order_for_scale)
+    from nova.offline_sky_facts import effective_max_order
+    from nova.offline_sky_sources import resolve_slugs
     try:
-        ra = float(request.args.get("ra"))
-        dec = float(request.args.get("dec"))
-        radius_deg = float(request.args.get("radius_deg"))
-    except (TypeError, ValueError):
-        return jsonify({"error": "invalid parameters"}), 400
-    surveys_raw = request.args.get("surveys", "")
+        frame = _frame_from(request.args)
+    except LimitError as err:
+        return _limit_response(err)
+    target = None
+    if request.args.get("rig_id"):
+        try:
+            scale, _source = _rig_image_scale(uid, request.args.get("rig_id"))
+            target = target_order_for_scale(scale)
+        except LimitError:
+            target = None
     result = {}
-    for sid in surveys_raw.split(","):
-        slug = _survey_slug(sid.strip())
-        if not slug:
-            continue
+    for slug in resolve_slugs(request.args.get("surveys", "")):
         result[slug] = {
             "base_complete": base_complete(slug),
-            "max_cached_order": cone_max_cached_order(slug, ra, dec, radius_deg),
+            "max_cached_order": cone_max_cached_order(slug, frame["ra"], frame["dec"],
+                                                      frame["radius_deg"]),
+            "target_order": (None if target is None
+                             else min(target, effective_max_order(slug, fetch=False))),
         }
     return jsonify({"surveys": result, "survey_ids": {s: SURVEY_ID_BY_SLUG.get(s) for s in result}})

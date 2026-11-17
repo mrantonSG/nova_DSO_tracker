@@ -1,0 +1,1057 @@
+"""Offline-sky saves (piece B1): frame area, rig-driven detail, estimate, limits,
+the single job runner, pacing, honesty and accounting. No network.
+
+Upstream is ``nova.blueprints.offline_sky._upstream_get``, replaced by a fake;
+the breaker is forced closed; the disk is reported as roomy unless a test says
+otherwise. Jobs run through a test-owned ``JobRunner`` (``run_pending``), never
+the process-wide background thread (``jobs.kick`` is stubbed).
+
+Survey facts for DSS2 colour and NSNS [OIII] are the real ``properties`` and
+``Moc.fits`` files (tests/fixtures/offline_sky/), so the LDN1295 numbers below are
+what a real save would cost.
+"""
+
+import os
+import subprocess
+import sys
+import textwrap
+from math import atan, degrees
+
+import pytest
+
+import nova.blueprints.offline_sky as bp
+import nova.hips_healpix as hp
+import nova.offline_sky_facts as facts
+import nova.offline_sky_jobs as jobs
+import nova.offline_sky_store as store
+
+DSS = "dss2-color"
+OIII = "nsns-oiii8"
+DSS_ID = "P/DSS2/color"
+OIII_ID = "https://www.simg.de/nebulae3/dr0_2/oiii8"
+SURVEY_UPSTREAM_OIII = "https://www.simg.de/nebulae3/dr0_2/oiii8"
+GIB = 1024 ** 3
+FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures", "offline_sky")
+
+# LDN1295 with an Askar 50P-class 190 mm lens + ASI2600MC Pro (23.5 x 15.7 mm, 3.76 um).
+LDN_RA, LDN_DEC = 11.2, 52.43
+LDN_W_ARCMIN, LDN_H_ARCMIN = 425.0, 284.0
+
+
+# ---------------------------------------------------------------------------
+# Fixtures and helpers
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(autouse=True)
+def _env(monkeypatch):
+    facts.clear_memo()
+    kicks = []
+    monkeypatch.setattr(jobs, "kick", lambda: kicks.append(1) or False)
+    monkeypatch.setattr(store, "disk_free_bytes", lambda: 500 * GIB)
+    monkeypatch.setattr(bp, "_breaker_open", lambda base: False)
+    _install_real_facts(DSS)   # so job planning never asks upstream for metadata
+    yield kicks
+    facts.clear_memo()
+
+
+@pytest.fixture
+def runners():
+    made = []
+
+    def make(**kw):
+        kw.setdefault("rate", 0)
+        kw.setdefault("sleep", lambda s: None)
+        kw.setdefault("pause_seconds", 0.0)
+        r = jobs.JobRunner(**kw)
+        made.append(r)
+        return r
+
+    yield make
+    for r in made:
+        r.release()
+
+
+class FakeUpstream:
+    """Stands in for _upstream_get. ``script(url)`` may return an outcome tuple
+    to override the default 200 with ``size`` bytes."""
+
+    def __init__(self, size=1000, script=None):
+        self.size = size
+        self.script = script
+        self.calls = []
+
+    def __call__(self, base, url):
+        self.calls.append(url)
+        if self.script is not None:
+            out = self.script(url)
+            if out is not None:
+                return out
+        return bp.UPSTREAM_OK, b"x" * self.size
+
+
+@pytest.fixture
+def upstream(monkeypatch):
+    fake = FakeUpstream()
+    monkeypatch.setattr(bp, "_upstream_get", fake)
+    return fake
+
+
+def _install_real_facts(*slugs):
+    for slug in slugs:
+        for name in ("properties", "Moc.fits"):
+            with open(os.path.join(FIXTURES, slug, name), "rb") as fh:
+                store.store_file(slug, name, fh.read(), count=False)
+    facts.clear_memo()
+
+
+def _props(order, fmt="jpeg"):
+    return (f"hips_order = {order}\nhips_tile_format = {fmt}\n"
+            "hips_frame = equatorial\n").encode()
+
+
+def _moc_bytes(cells):
+    import io
+    import numpy as np
+    from astropy.io import fits
+    col = fits.Column(name="UNIQ", format="1K",
+                      array=np.array([4 * 4 ** o + n for o, n in cells], dtype=np.int64))
+    hdu = fits.BinTableHDU.from_columns([col])
+    hdu.header["PIXTYPE"] = "HEALPIX"
+    hdu.header["ORDERING"] = "NUNIQ"
+    hdu.header["COORDSYS"] = "C"
+    buf = io.BytesIO()
+    fits.HDUList([fits.PrimaryHDU(), hdu]).writeto(buf)
+    return buf.getvalue()
+
+
+def _ldn_frame():
+    return jobs.validate_frame(LDN_RA, LDN_DEC, LDN_W_ARCMIN / 60, LDN_H_ARCMIN / 60)
+
+
+def _small_frame(w=1.0, h=0.7):
+    return jobs.validate_frame(LDN_RA, LDN_DEC, w, h)
+
+
+def _make_rig(db, *, pixel_um=3.76, image_scale_col=None, name="Askar 50P + ASI2600MC Pro"):
+    from nova.models import Component, DbUser, Rig
+    from nova.record_links import sync_rig_links
+    user = db.query(DbUser).filter_by(username="default").one()
+    tel = Component(user_id=user.id, kind="telescope", name="Askar 50P",
+                    aperture_mm=50, focal_length_mm=190)
+    cam = Component(user_id=user.id, kind="camera", name="ASI2600MC Pro",
+                    sensor_width_mm=23.5, sensor_height_mm=15.7, pixel_size_um=pixel_um)
+    db.add_all([tel, cam])
+    db.flush()
+    rig = Rig(user_id=user.id, rig_name=name, telescope_id=tel.id, camera_id=cam.id,
+              image_scale=image_scale_col)
+    db.add(rig)
+    sync_rig_links(db, rig)
+    db.commit()
+    return rig.id
+
+
+def _default_uid(db):
+    from nova.models import DbUser
+    return db.query(DbUser).filter_by(username="default").one().id
+
+
+def _save_on(monkeypatch):
+    monkeypatch.setattr("nova.blueprints.offline_sky.OFFLINE_SKY_STORE", "server")
+    monkeypatch.setattr("nova.blueprints.offline_sky.OFFLINE_SKY_SAVE_ENABLED", True)
+
+
+def _query(rig_id, surveys, frame=None, offset=0):
+    f = frame or {"ra": LDN_RA, "dec": LDN_DEC,
+                  "frame_w_deg": LDN_W_ARCMIN / 60, "frame_h_deg": LDN_H_ARCMIN / 60}
+    return (f"ra={f['ra']}&dec={f['dec']}&frame_w_deg={f['frame_w_deg']}"
+            f"&frame_h_deg={f['frame_h_deg']}&rig_id={rig_id}&detail_offset={offset}"
+            f"&surveys={','.join(surveys)}")
+
+
+def _enqueue_save(save_id, frame, order, slugs, user_id=1):
+    store.write_save_manifest({"id": save_id, "user_id": user_id, "name": "T",
+                               "surveys": list(slugs), "paths": [], "bytes": 0,
+                               "status": "queued", "created": "2026-01-01T00:00:00Z"})
+    return jobs.enqueue(save_id, "save", {"ra": frame["ra"], "dec": frame["dec"],
+                                          "radius_deg": frame["radius_deg"], "order": order},
+                        slugs)
+
+
+def _plan_rels(slug, frame, order):
+    plan = jobs.plan_survey(slug, frame["ra"], frame["dec"], frame["radius_deg"], order, fetch=False)
+    return list(plan.rel_paths())
+
+
+# ---------------------------------------------------------------------------
+# 1. Area = the frame
+# ---------------------------------------------------------------------------
+
+def test_radius_is_half_diagonal_with_margin():
+    f = _ldn_frame()
+    w, h = LDN_W_ARCMIN / 60, LDN_H_ARCMIN / 60
+    assert f["radius_deg"] == pytest.approx((w * w + h * h) ** 0.5 / 2 * 1.15)
+    assert 4.8 < f["radius_deg"] < 5.0
+
+
+def test_radius_limit_rejected(monkeypatch, client):
+    _save_on(monkeypatch)
+    resp = client.get("/api/offline/estimate?" + _query(
+        1, [DSS_ID], frame={"ra": 10, "dec": 50, "frame_w_deg": 15, "frame_h_deg": 10}))
+    assert resp.status_code == 400
+    body = resp.get_json()
+    assert body["code"] == "radius_too_large"
+    assert body["max_radius_deg"] == jobs.MAX_SAVE_RADIUS_DEG
+
+
+# ---------------------------------------------------------------------------
+# 2. Detail from the rig
+# ---------------------------------------------------------------------------
+
+def test_hips_pixel_scale_and_target_order():
+    assert jobs.hips_pixel_scale_arcsec(0) == pytest.approx(412.24, rel=1e-4)
+    assert jobs.hips_pixel_scale_arcsec(9) == pytest.approx(0.805, rel=1e-3)
+    assert jobs.target_order_for_scale(4.08) == 7      # 3.22"/px is the first <= 4.08
+    assert jobs.target_order_for_scale(3.221) == 7     # order 7 = 3.2206"/px
+    assert jobs.target_order_for_scale(3.22) == 8
+    assert jobs.target_order_for_scale(500) == 0
+
+
+def test_rig_image_scale_from_components_then_stored(client, db_session, monkeypatch):
+    from nova import app
+    from nova.models import DbUser
+    rid = _make_rig(db_session)
+    rid_no_px = _make_rig(db_session, pixel_um=None, image_scale_col=2.5, name="stored")
+    uid = db_session.query(DbUser).filter_by(username="default").one().id
+    with app.test_request_context():
+        scale, source = bp._rig_image_scale(uid, rid)
+        assert source == "components"
+        assert scale == pytest.approx(206.265 * 3.76 / 190)       # 4.08"/px
+        scale2, source2 = bp._rig_image_scale(uid, rid_no_px)
+        assert (scale2, source2) == (2.5, "stored")
+        with pytest.raises(jobs.LimitError) as err:
+            bp._rig_image_scale(uid + 999, rid)                   # another user's rig
+        assert err.value.code == "rig_not_found"
+
+
+def test_ldn1295_fov_matches_rig():
+    w = degrees(2 * atan(11.75 / 190)) * 60
+    h = degrees(2 * atan(7.85 / 190)) * 60
+    assert w == pytest.approx(LDN_W_ARCMIN, abs=1)
+    assert h == pytest.approx(LDN_H_ARCMIN, abs=1)
+
+
+# ---------------------------------------------------------------------------
+# 3. Estimate -- the LDN1295 case (reported numbers)
+# ---------------------------------------------------------------------------
+
+def test_ldn1295_estimate(client, db_session, monkeypatch, capsys):
+    _save_on(monkeypatch)
+    _install_real_facts(DSS, OIII)
+    rid = _make_rig(db_session)
+    resp = client.get("/api/offline/estimate?" + _query(rid, [DSS_ID, OIII_ID]))
+    assert resp.status_code == 200, resp.get_data(as_text=True)
+    d = resp.get_json()
+
+    assert d["image_scale"]["source"] == "components"
+    assert d["target_order"] == 7 and d["requested_order"] == 7
+    by = {s["slug"]: s for s in d["surveys"]}
+    assert by[DSS]["orders"] == [4, 5, 6, 7] and not by[DSS]["capped"]
+    assert by[OIII]["orders"] == [4, 5, 6] and by[OIII]["capped"]      # hips_order = 6
+    assert by[OIII]["effective_max_order"] == 6
+    assert d["total"]["tile_count"] == by[DSS]["tile_count"] + by[OIII]["tile_count"]
+    assert 100 < d["total"]["tile_count"] < 5000                        # thousands at most
+    assert d["fits"] is True and d["reject"] is None
+
+    with capsys.disabled():
+        print("\nLDN1295  RA 11.2  Dec +52.43  frame 425'x284'  radius "
+              f"{d['radius_deg']:.3f} deg  scale {d['image_scale_arcsec']:.3f}\"/px  "
+              f"target order {d['target_order']}")
+        for s in d["surveys"]:
+            per = "  ".join(f"N{o}={v['tiles']}" for o, v in s["by_order"].items())
+            print(f"  {s['slug']:<11} orders {s['orders']}  {per}  total {s['tile_count']}  "
+                  f"~{s['est_bytes'] / 1e6:.1f} MB @ {s['avg_tile_bytes'] // 1024} KiB/tile "
+                  f"({'measured' if s['avg_tile_measured'] else 'fallback'})  "
+                  f"coverage {s['coverage']['reason']}")
+        print(f"  TOTAL {d['total']['tile_count']} tiles  ~{d['total']['est_bytes'] / 1e6:.1f} MB")
+
+
+def test_ids_and_slugs_give_same_estimate(client, db_session, monkeypatch):
+    _save_on(monkeypatch)
+    _install_real_facts(DSS, OIII)
+    rid = _make_rig(db_session)
+    a = client.get("/api/offline/estimate?" + _query(rid, [DSS_ID, OIII_ID])).get_json()
+    b = client.get("/api/offline/estimate?" + _query(rid, [DSS, OIII])).get_json()
+    c = client.get("/api/offline/estimate?" + _query(rid, [DSS_ID, DSS, OIII])).get_json()
+    for x in (b, c):
+        assert [s["slug"] for s in x["surveys"]] == [DSS, OIII]
+        assert x["total"] == a["total"]
+        assert [s["by_order"] for s in x["surveys"]] == [s["by_order"] for s in a["surveys"]]
+
+
+def test_estimate_excludes_tiles_on_disk_and_uses_measured_size(client, db_session, monkeypatch):
+    _save_on(monkeypatch)
+    _install_real_facts(DSS)
+    rid = _make_rig(db_session)
+    frame = _ldn_frame()
+    rels = _plan_rels(DSS, frame, 7)
+    for rel in rels[:10]:
+        store.store_file(DSS, rel, b"y" * 20000)
+    d = client.get("/api/offline/estimate?" + _query(rid, [DSS_ID])).get_json()
+    s = d["surveys"][0]
+    assert s["tiles_total"] == len(rels)
+    assert s["tile_count"] == len(rels) - 10
+    assert s["avg_tile_measured"] and s["avg_tile_bytes"] == 20000
+    assert s["est_bytes"] == (len(rels) - 10) * 20000
+    assert s["adopt_bytes"] == 10 * 20000          # browsed tiles that would become pinned
+    for key in ("free_under_cap_bytes", "disk_free_bytes", "cap_bytes", "free_bytes"):
+        assert key in d
+
+
+def test_detail_offset(client, db_session, monkeypatch):
+    _save_on(monkeypatch)
+    _install_real_facts(DSS)
+    rid = _make_rig(db_session)
+    lo = client.get("/api/offline/estimate?" + _query(rid, [DSS_ID], offset=-1)).get_json()
+    hi = client.get("/api/offline/estimate?" + _query(rid, [DSS_ID], offset=1)).get_json()
+    assert lo["surveys"][0]["orders"] == [4, 5, 6]
+    assert hi["surveys"][0]["orders"] == [4, 5, 6, 7, 8]
+    bad = client.get("/api/offline/estimate?" + _query(rid, [DSS_ID], offset=2))
+    assert bad.status_code == 400
+
+
+# ---------------------------------------------------------------------------
+# 2b. NSNS: capped at its max order and limited to its coverage
+# ---------------------------------------------------------------------------
+
+def test_nsns_capped_and_limited_to_coverage():
+    frame = _small_frame(2.0, 1.5)
+    centre4 = hp.cone_pixels(frame["ra"], frame["dec"], 0.01, 4, 4)[4][0]
+    store.store_file(OIII, "properties", _props(6, "png"), count=False)
+    store.store_file(OIII, "Moc.fits", _moc_bytes([(4, centre4)]), count=False)
+    facts.clear_memo()
+
+    plan = jobs.plan_survey(OIII, frame["ra"], frame["dec"], frame["radius_deg"], 8, fetch=False)
+    assert plan.capped and plan.orders == [4, 5, 6]
+    assert plan.ext == "png"                                   # SurveyFacts.tile_ext
+    cone = hp.cone_pixels(frame["ra"], frame["dec"], frame["radius_deg"], 4, 6)
+    for order in (4, 5, 6):
+        kept = plan.tiles[order]
+        assert kept and len(kept) < len(cone[order])           # some cone tiles dropped
+        for n in kept:
+            assert n >> (2 * (order - 4)) == centre4           # all inside the MOC cell
+    assert all(rel.endswith(".png") for rel in plan.rel_paths())
+
+
+# ---------------------------------------------------------------------------
+# 4. Limits before start
+# ---------------------------------------------------------------------------
+
+def _post_save(client, rid, surveys=(DSS_ID,), frame=None):
+    f = frame or {"ra": LDN_RA, "dec": LDN_DEC,
+                  "frame_w_deg": LDN_W_ARCMIN / 60, "frame_h_deg": LDN_H_ARCMIN / 60}
+    return client.post("/api/offline/saves", json={
+        "name": "LDN1295", **f, "rig_id": rid, "surveys": list(surveys), "detail_offset": 0})
+
+
+def test_save_rejected_over_cap(client, db_session, monkeypatch):
+    _save_on(monkeypatch)
+    _install_real_facts(DSS)
+    monkeypatch.setattr("nova.offline_sky_store.OFFLINE_SKY_CACHE_MB", 1)
+    rid = _make_rig(db_session)
+    resp = _post_save(client, rid)
+    assert resp.status_code == 409
+    assert resp.get_json()["code"] == "over_cap"
+    assert jobs.list_jobs() == [] and store.list_save_manifests() == []
+
+
+def test_save_rejected_below_disk_headroom(client, db_session, monkeypatch):
+    _save_on(monkeypatch)
+    _install_real_facts(DSS)
+    monkeypatch.setattr(store, "disk_free_bytes", lambda: jobs.DISK_HEADROOM_BYTES + 1024 * 1024)
+    rid = _make_rig(db_session)
+    resp = _post_save(client, rid)
+    assert resp.status_code == 409
+    assert resp.get_json()["code"] == "disk_headroom"
+    assert jobs.list_jobs() == []
+
+
+def test_browsed_tiles_do_not_block_a_save(client, db_session, monkeypatch):
+    """Browsed tiles are evictable: only pinned + new counts against the cap."""
+    _save_on(monkeypatch)
+    _install_real_facts(DSS)
+    monkeypatch.setattr("nova.offline_sky_store.OFFLINE_SKY_CACHE_MB", 200)
+    store.adjust_browsed_total(190 * 1024 * 1024)   # 190 MiB browsed
+    rid = _make_rig(db_session)
+    resp = _post_save(client, rid)
+    assert resp.status_code == 200, resp.get_json()
+
+
+def test_save_queues_job_and_kicks_runner(client, db_session, monkeypatch, _env):
+    _save_on(monkeypatch)
+    _install_real_facts(DSS)
+    rid = _make_rig(db_session)
+    resp = _post_save(client, rid)
+    assert resp.status_code == 200
+    body = resp.get_json()
+    job = jobs.read_job(body["job_id"])
+    assert job["status"] == "queued" and job["kind"] == "save"
+    assert job["params"]["order"] == 7 and job["surveys"] == [DSS]
+    m = store.read_save_manifest(body["job_id"])
+    assert m["frame_w_deg"] == pytest.approx(LDN_W_ARCMIN / 60) and m["status"] == "queued"
+    assert _env == [1]                                          # kick() called once
+
+
+# ---------------------------------------------------------------------------
+# Running a save: manifest, accounting, statuses
+# ---------------------------------------------------------------------------
+
+def test_save_job_runs_to_done(upstream, runners):
+    frame = _small_frame()
+    job = _enqueue_save("s1", frame, 6, [DSS])
+    r = runners()
+    assert r.acquire()
+    assert r.run_pending() == 1
+    state = jobs.read_job("s1")
+    rels = _plan_rels(DSS, frame, 6)
+    assert state["status"] == "done" and state["missing"] == 0
+    assert state["done"] == state["total"] == len(rels) == state["fetched"]
+    m = store.read_save_manifest("s1")
+    assert m["paths"] == sorted(f"{DSS}/{r_}" for r_ in rels)
+    assert m["bytes"] == len(rels) * 1000 and m["partial"] is False
+    assert store.pinned_bytes() == len(rels) * 1000
+    assert store.total_bytes() == 0                       # fetched tiles are pinned, not browsed
+
+
+def test_manifest_lists_present_and_new_and_adopts_browsed(upstream, runners):
+    frame = _small_frame()
+    rels = _plan_rels(DSS, frame, 6)
+    for rel in rels[:5]:
+        store.store_file(DSS, rel, b"b" * 3000)            # browsed via the proxy
+    assert store.total_bytes() == 5 * 3000
+    _enqueue_save("s2", frame, 6, [DSS])
+    r = runners()
+    r.acquire()
+    r.run_pending()
+    m = store.read_save_manifest("s2")
+    assert len(m["paths"]) == len(rels)                     # present + fetched
+    assert m["bytes"] == 5 * 3000 + (len(rels) - 5) * 1000  # from disk
+    assert len(upstream.calls) == len(rels) - 5
+    assert store.total_bytes() == 0                         # adopted tiles left .total
+    assert store.pinned_bytes() == m["bytes"]
+
+    # Deleting the save hands the tiles back to "browsed".
+    store.delete_save_manifest("s2")
+    assert store.total_bytes() == m["bytes"]
+    assert store.pinned_bytes() == 0
+
+
+def test_totals_with_overlapping_saves(upstream, runners):
+    frame = _small_frame()
+    _enqueue_save("a", frame, 5, [DSS])
+    _enqueue_save("b", frame, 6, [DSS])     # superset of a's tiles
+    r = runners()
+    r.acquire()
+    r.run_pending()
+    b = store.read_save_manifest("b")
+    a = store.read_save_manifest("a")
+    assert store.pinned_bytes() == b["bytes"]
+    store.delete_save_manifest("b")
+    # a's tiles stay pinned; only b's extra tiles become browsed.
+    assert store.pinned_bytes() == a["bytes"]
+    assert store.total_bytes() == b["bytes"] - a["bytes"]
+    assert store.evict_browsed()["total"] == b["bytes"] - a["bytes"]   # matches a full recount
+
+
+def test_manifest_written_before_final_status(upstream, runners, monkeypatch):
+    events = []
+    real_manifest = store.write_save_manifest
+    real_job = jobs._write_job
+
+    def spy_manifest(m):
+        real_manifest(m)
+        events.append(("manifest", m["status"]))
+
+    def spy_job(state):
+        if state["status"] == "done":
+            on_disk = store.read_save_manifest(state["id"])
+            events.append(("status-done", on_disk["status"], on_disk["bytes"]))
+        real_job(state)
+
+    monkeypatch.setattr(store, "write_save_manifest", spy_manifest)
+    monkeypatch.setattr(jobs, "_write_job", spy_job)
+    _enqueue_save("s3", _small_frame(), 6, [DSS])
+    r = runners()
+    r.acquire()
+    r.run_pending()
+    final_manifest = max(i for i, e in enumerate(events) if e == ("manifest", "done"))
+    done_status = [i for i, e in enumerate(events) if e[0] == "status-done"]
+    assert done_status and final_manifest < done_status[0]
+    _, status_on_disk, bytes_on_disk = events[done_status[0]]
+    assert status_on_disk == "done" and bytes_on_disk > 0    # no 0.0 MB race
+
+
+def test_missing_tiles_are_counted(upstream, runners):
+    frame = _small_frame()
+    rels = _plan_rels(DSS, frame, 6)
+    gone = {rels[3], rels[7]}
+    upstream.script = lambda url: ((bp.UPSTREAM_MISSING, None)
+                                   if any(url.endswith(g) for g in gone) else None)
+    _enqueue_save("s4", frame, 6, [DSS])
+    r = runners()
+    r.acquire()
+    r.run_pending()
+    state = jobs.read_job("s4")
+    m = store.read_save_manifest("s4")
+    assert state["status"] == "done" and state["missing"] == 2
+    assert state["done"] == len(rels)
+    assert m["missing"] == 2 and m["missing_paths"] == sorted(f"{DSS}/{g}" for g in gone)
+    assert len(m["paths"]) == len(rels) - 2
+
+
+def test_missing_on_one_mirror_but_present_on_another_is_fetched(upstream, runners):
+    frame = _small_frame()
+    upstream.script = lambda url: ((bp.UPSTREAM_MISSING, None)
+                                   if "alasky.cds" in url and "alaskybis" not in url else None)
+    _enqueue_save("s5", frame, 5, [DSS])
+    r = runners()
+    r.acquire()
+    r.run_pending()
+    assert jobs.read_job("s5")["missing"] == 0
+
+
+# ---------------------------------------------------------------------------
+# 6. Pause on breaker/busy; rate limit
+# ---------------------------------------------------------------------------
+
+def test_breaker_pause_does_not_mark_tile_done(upstream, runners):
+    frame = _small_frame()
+    rels = _plan_rels(DSS, frame, 5)
+    target = rels[2]
+    state = {"fails": 4}
+    seen_during_pause = []
+
+    def script(url):
+        if url.endswith(target) and state["fails"] > 0:
+            state["fails"] -= 1
+            return bp.UPSTREAM_UNAVAILABLE, None
+        return None
+
+    def sleep(_s):
+        js = jobs.read_job("p1")
+        seen_during_pause.append((js["status"], js["done"]))
+
+    upstream.script = script
+    _enqueue_save("p1", frame, 5, [DSS])
+    r = runners(sleep=sleep, pause_seconds=1.0)
+    r.acquire()
+    r.run_pending()
+    # DSS has 4 upstreams: one pass of 4 "unavailable" answers -> one pause.
+    # While paused the tile is not counted: done stays at the 2 tiles before it.
+    assert seen_during_pause and all(x == ("paused", 2) for x in seen_during_pause)
+    final = jobs.read_job("p1")
+    assert final["status"] == "done" and final["missing"] == 0
+    assert final["done"] == len(rels)
+    assert f"{DSS}/{target}" in store.read_save_manifest("p1")["paths"]
+
+
+def test_long_outage_fails_without_counting_tiles(upstream, runners):
+    frame = _small_frame()
+    upstream.script = lambda url: (bp.UPSTREAM_UNAVAILABLE, None)
+    t = [0.0]
+
+    def clock():
+        return t[0]
+
+    def sleep(s):
+        t[0] += s
+
+    _enqueue_save("p2", frame, 5, [DSS])
+    r = runners(clock=clock, sleep=sleep, pause_seconds=60.0, max_pause_seconds=300.0)
+    r.acquire()
+    r.run_pending()
+    state = jobs.read_job("p2")
+    assert state["status"] == "failed" and state["reason"] == jobs.REASON_UPSTREAM
+    assert state["done"] == 0 and state["fetched"] == 0
+    m = store.read_save_manifest("p2")
+    assert m["paths"] == [] and m["partial"] is True and m["status"] == "failed"
+
+
+def test_rate_limiter_spacing():
+    t = [0.0]
+    slept = []
+
+    def clock():
+        return t[0]
+
+    def sleep(s):
+        slept.append(s)
+        t[0] += s
+
+    rl = jobs.RateLimiter(4.0, clock, sleep)
+    for _ in range(9):
+        rl.wait()
+    assert t[0] == pytest.approx(2.0)                         # 8 gaps x 0.25 s
+
+
+def test_runner_requests_paced_at_4_per_second(upstream, runners):
+    frame = _small_frame()
+    t = [0.0]
+    stamps = []
+
+    def clock():
+        return t[0]
+
+    def sleep(s):
+        t[0] += s
+
+    def script(url):
+        stamps.append(t[0])
+        return None
+
+    upstream.script = script
+    _enqueue_save("r1", frame, 5, [DSS])
+    r = runners(rate=4.0, clock=clock, sleep=sleep)
+    r.acquire()
+    r.run_pending()
+    assert len(stamps) > 8
+    gaps = [b - a for a, b in zip(stamps, stamps[1:])]
+    assert min(gaps) >= 0.25 - 1e-9
+    assert (stamps[-1] - stamps[0]) == pytest.approx(0.25 * (len(stamps) - 1))
+
+
+def test_jobs_do_not_use_the_proxy_semaphore(monkeypatch, runners):
+    """The job path calls _upstream_get directly, never _fetch_upstream."""
+    monkeypatch.setattr(bp, "_fetch_upstream",
+                        lambda *a: pytest.fail("job used the browsing proxy's semaphore"))
+    monkeypatch.setattr(bp._session, "get", lambda url, **kw: type(
+        "R", (), {"status_code": 200, "content": b"z" * 10})())
+    _enqueue_save("r2", _small_frame(), 5, [DSS])
+    r = runners()
+    r.acquire()
+    r.run_pending()
+    assert jobs.read_job("r2")["status"] == "done"
+
+
+# ---------------------------------------------------------------------------
+# 4b. Space running out mid-job
+# ---------------------------------------------------------------------------
+
+def test_cap_reached_mid_job_stops_with_partial_manifest(upstream, runners, monkeypatch):
+    upstream.size = 100 * 1024
+    frame = _small_frame()
+    rels = _plan_rels(DSS, frame, 6)
+    assert len(rels) > 12
+    monkeypatch.setattr("nova.offline_sky_store.OFFLINE_SKY_CACHE_MB", 1)   # ~10 tiles
+    _enqueue_save("c1", frame, 6, [DSS])
+    r = runners()
+    r.acquire()
+    r.run_pending()
+    state = jobs.read_job("c1")
+    m = store.read_save_manifest("c1")
+    assert state["status"] == "stopped" and state["reason"] == jobs.REASON_NO_SPACE
+    assert 0 < len(m["paths"]) < len(rels)
+    assert m["partial"] is True and m["status"] == "stopped"
+    assert m["bytes"] == len(m["paths"]) * 100 * 1024 <= 1024 * 1024
+    assert store.pinned_bytes() == m["bytes"]
+
+
+def test_disk_runs_low_mid_job_stops(upstream, runners, monkeypatch):
+    free = [jobs.DISK_HEADROOM_BYTES + 20 * 1024 * 1024]
+    upstream.size = 4 * 1024 * 1024
+
+    def disk_free():
+        return free[0]
+
+    real_store = store.store_file
+
+    def store_and_shrink(slug, rel, data, count=True):
+        wrote = real_store(slug, rel, data, count=count)
+        free[0] -= len(data)
+        return wrote
+
+    monkeypatch.setattr(store, "disk_free_bytes", disk_free)
+    monkeypatch.setattr(store, "store_file", store_and_shrink)
+    _enqueue_save("c2", _small_frame(), 6, [DSS])
+    r = runners()
+    r.acquire()
+    r.run_pending()
+    state = jobs.read_job("c2")
+    assert state["status"] == "stopped" and state["reason"] == jobs.REASON_NO_SPACE
+    assert free[0] >= jobs.DISK_HEADROOM_BYTES
+    assert len(store.read_save_manifest("c2")["paths"]) == state["fetched"]
+
+
+# ---------------------------------------------------------------------------
+# 5. One owner per job: lock, cancel from elsewhere, resume after a crash
+# ---------------------------------------------------------------------------
+
+_LOCK_CHILD = textwrap.dedent("""
+    import importlib.util, sys, time
+    spec = importlib.util.spec_from_file_location("lk", sys.argv[1])
+    lk = importlib.util.module_from_spec(spec); spec.loader.exec_module(lk)
+    fh = lk.try_lock(sys.argv[2])
+    print("GOT" if fh else "BUSY", flush=True)
+    if fh and sys.argv[3] == "hold":
+        sys.stdin.readline()          # hold until the parent says so
+""")
+
+
+def test_two_processes_only_one_takes_the_runner_lock(tmp_path):
+    lock_mod = os.path.join(os.path.dirname(jobs.__file__), "offline_sky_lock.py")
+    lock_file = str(tmp_path / "jobs" / ".runner.lock")
+    script = tmp_path / "child.py"
+    script.write_text(_LOCK_CHILD)
+    holder = subprocess.Popen([sys.executable, "-I", str(script), lock_mod, lock_file, "hold"],
+                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+    try:
+        assert holder.stdout.readline().strip() == "GOT"
+        other = subprocess.run([sys.executable, "-I", str(script), lock_mod, lock_file, "try"],
+                               capture_output=True, text=True, timeout=30)
+        assert other.stdout.strip() == "BUSY"
+    finally:
+        holder.stdin.write("\n")
+        holder.stdin.flush()
+        holder.wait(timeout=30)
+    # The holder exited: the lock is free again (what resume-after-crash relies on).
+    again = subprocess.run([sys.executable, "-I", str(script), lock_mod, lock_file, "try"],
+                           capture_output=True, text=True, timeout=30)
+    assert again.stdout.strip() == "GOT"
+
+
+def test_two_runners_one_owner_other_only_queues(upstream, runners):
+    a = runners()
+    b = runners()
+    assert a.acquire()
+    assert not b.acquire()                        # second "process" can't run jobs
+    _enqueue_save("o1", _small_frame(), 5, [DSS])  # ...but can queue them
+    assert b.run_pending() == 0
+    assert jobs.read_job("o1")["status"] == "queued"
+    assert a.run_pending() == 1
+    assert jobs.read_job("o1")["status"] == "done"
+
+
+def test_cancel_from_another_process(upstream, runners):
+    frame = _small_frame()
+    calls = [0]
+
+    def script(url):
+        calls[0] += 1
+        if calls[0] == 3:
+            assert jobs.cancel_job("x1")          # what the other worker's route does
+        return None
+
+    upstream.script = script
+    _enqueue_save("x1", frame, 6, [DSS])
+    r = runners()
+    r.acquire()
+    r.run_pending()
+    state = jobs.read_job("x1")
+    m = store.read_save_manifest("x1")
+    assert state["status"] == "cancelled"
+    assert len(m["paths"]) == 3 and m["partial"] is True and m["status"] == "cancelled"
+    assert not os.path.exists(jobs._cancel_path("x1"))
+    assert not jobs.cancel_job("x1")                 # already final
+
+
+def test_cancel_route_writes_marker_only(client, db_session, monkeypatch, upstream):
+    _save_on(monkeypatch)
+    _enqueue_save("aaaaaaaa-0000-0000-0000-000000000001", _small_frame(), 5, [DSS],
+                  user_id=_default_uid(db_session))
+    resp = client.post("/api/offline/saves/aaaaaaaa-0000-0000-0000-000000000001/cancel")
+    assert resp.get_json() == {"cancelled": True}
+    assert os.path.exists(jobs._cancel_path("aaaaaaaa-0000-0000-0000-000000000001"))
+    assert jobs.read_job("aaaaaaaa-0000-0000-0000-000000000001")["status"] == "queued"  # runner's call
+    assert upstream.calls == []
+
+
+class _Crash(BaseException):
+    pass
+
+
+def test_resume_after_crash(upstream, runners):
+    frame = _small_frame(3.0, 2.0)
+    rels = _plan_rels(DSS, frame, 7)
+    assert len(rels) > 80
+    calls = [0]
+
+    def script(url):
+        calls[0] += 1
+        if calls[0] == 70:                     # after one checkpoint (64)
+            raise _Crash()
+        return None
+
+    upstream.script = script
+    _enqueue_save("k1", frame, 7, [DSS])
+    a = runners()
+    a.acquire()
+    with pytest.raises(_Crash):
+        a.run_pending()
+    a.release()                                 # the process died; the OS drops its lock
+    state = jobs.read_job("k1")
+    assert state["status"] == "running"
+    assert len(store.read_save_manifest("k1")["paths"]) == 64   # checkpointed
+
+    first_pass = set(upstream.calls[:69])
+    upstream.script = None
+    upstream.calls.clear()
+    b = runners()
+    assert b.acquire()
+    assert b.run_pending() == 1
+    final = jobs.read_job("k1")
+    assert final["status"] == "done"
+    assert not (set(upstream.calls) & first_pass)          # nothing fetched twice
+    assert len(store.read_save_manifest("k1")["paths"]) == len(rels)
+
+
+def test_delete_while_running_does_not_resurrect_manifest(upstream, runners):
+    frame = _small_frame()
+    calls = [0]
+
+    def script(url):
+        calls[0] += 1
+        if calls[0] == 2:
+            jobs.cancel_job("d1")
+            store.delete_save_manifest("d1")
+        return None
+
+    upstream.script = script
+    _enqueue_save("d1", frame, 6, [DSS])
+    r = runners()
+    r.acquire()
+    r.run_pending()
+    assert store.read_save_manifest("d1") is None
+    state = jobs.read_job("d1")
+    assert state["status"] == "cancelled" and state["reason"] == jobs.REASON_DELETED
+    assert store.pinned_bytes() == 0
+    assert store.total_bytes() == 2 * 1000      # reconciled: the 2 fetched tiles are browsed now
+
+
+def test_progress_route_kicks_runner_for_active_job(client, db_session, monkeypatch, _env):
+    _save_on(monkeypatch)
+    sid = "aaaaaaaa-0000-0000-0000-000000000002"
+    _enqueue_save(sid, _small_frame(), 5, [DSS], user_id=_default_uid(db_session))
+    resp = client.get(f"/api/offline/saves/{sid}/progress")
+    assert resp.status_code == 200
+    assert resp.get_json()["job"]["status"] == "queued"
+    assert _env == [1]
+
+
+# ---------------------------------------------------------------------------
+# 8. Base layer job
+# ---------------------------------------------------------------------------
+
+def test_base_job_coverage_aware_with_allsky(upstream, runners):
+    store.store_file(OIII, "properties", _props(6, "png"), count=False)
+    store.store_file(OIII, "Moc.fits", _moc_bytes([(1, 5)]), count=False)   # 1/48 of the sky
+    facts.clear_memo()
+    rels = jobs.base_rel_paths(OIII)
+    assert rels[0] == "Norder3/Allsky.png"
+    # order 0: the parent of (1,5); order 1: (1,5); order 2: 4 children; order 3: 16
+    assert len(rels) == 1 + 1 + 1 + 4 + 16
+    st = jobs.ensure_base_survey(OIII)
+    assert st["status"] == "queued"
+    assert jobs.ensure_base_survey(OIII)["status"] == "queued"          # not queued twice
+    r = runners()
+    r.acquire()
+    r.run_pending()
+    assert jobs.read_job(jobs.base_job_id(OIII))["status"] == "done"
+    assert jobs.base_complete(OIII)
+    pins = store.base_pinned_rel_paths()
+    assert f"{OIII}/Norder3/Allsky.png" in pins and len(pins) == len(rels)
+    assert len(upstream.calls) == len(rels)
+    assert jobs.ensure_base_survey(OIII) == {"slug": OIII, "status": "done", "complete": True}
+
+
+def test_base_respects_effective_max_order():
+    store.store_file(OIII, "properties", _props(2, "png"), count=False)
+    facts.clear_memo()
+    rels = jobs.base_rel_paths(OIII)
+    assert not any(r.startswith("Norder3/Dir") for r in rels)       # orders 0..2 only
+    assert len(rels) == 1 + 12 + 48 + 192
+
+
+def test_base_not_complete_while_a_covered_tile_is_absent():
+    store.store_file(OIII, "properties", _props(6, "png"), count=False)
+    store.store_file(OIII, "Moc.fits", _moc_bytes([(1, 5)]), count=False)
+    facts.clear_memo()
+    rels = jobs.base_rel_paths(OIII)
+    for rel in rels[:-1]:
+        store.store_file(OIII, rel, b"t", count=False)
+    assert not jobs.base_complete(OIII)
+    store.store_file(OIII, rels[-1], b"t", count=False)
+    assert jobs.base_complete(OIII)
+
+
+def _run_base_job(runners, slug):
+    r = runners()
+    r.acquire()
+    r.run_pending()
+    r.release()
+    return jobs.read_job(jobs.base_job_id(slug))
+
+
+def test_base_complete_counts_missing_and_retries_once_a_day(upstream, runners, monkeypatch):
+    store.store_file(OIII, "properties", _props(6, "png"), count=False)
+    store.store_file(OIII, "Moc.fits", _moc_bytes([(1, 5)]), count=False)
+    facts.clear_memo()
+    gone = jobs.base_rel_paths(OIII)[5]
+    clock = [1_000_000.0]
+    monkeypatch.setattr(jobs, "_now", lambda: clock[0])
+    upstream.script = lambda url: (bp.UPSTREAM_MISSING, None) if url.endswith(gone) else None
+
+    # First pass: every mirror says 404 -> recorded, and the base is complete.
+    assert jobs.ensure_base_survey(OIII)["status"] == "queued"
+    state = _run_base_job(runners, OIII)
+    assert state["status"] == "done" and state["missing"] == 1
+    assert jobs.read_missing(OIII) == {gone: clock[0]}
+    assert not store.tile_exists(OIII, gone)
+    assert jobs.base_complete(OIII)
+
+    # Modal opened again within the day: nothing queued, upstream not asked.
+    upstream.calls.clear()
+    clock[0] += 23 * 3600
+    assert jobs.ensure_base_survey(OIII) == {"slug": OIII, "status": "done", "complete": True}
+    assert jobs.read_job(jobs.base_job_id(OIII))["status"] == "done"
+    # Even a base job run inside the day skips the recorded tile.
+    jobs.enqueue(jobs.base_job_id(OIII), "base", {"slug": OIII}, [OIII])
+    assert _run_base_job(runners, OIII)["missing"] == 1
+    assert upstream.calls == []
+
+    # A day after the 404: one retry, still 404 -> timestamp refreshed.
+    clock[0] = 1_000_000.0 + 24 * 3600
+    st = jobs.ensure_base_survey(OIII)
+    assert st == {"slug": OIII, "status": "queued", "complete": True}
+    _run_base_job(runners, OIII)
+    assert [u for u in upstream.calls] == [f"{SURVEY_UPSTREAM_OIII}/{gone}"]
+    assert jobs.read_missing(OIII) == {gone: clock[0]}
+    assert jobs.ensure_base_survey(OIII)["status"] == "done"     # next retry tomorrow
+
+    # Next day the tile exists: fetched, pinned, record cleared.
+    upstream.calls.clear()
+    upstream.script = None
+    clock[0] += 24 * 3600
+    assert jobs.ensure_base_survey(OIII)["status"] == "queued"
+    _run_base_job(runners, OIII)
+    assert upstream.calls == [f"{SURVEY_UPSTREAM_OIII}/{gone}"]
+    assert store.tile_exists(OIII, gone)
+    assert f"{OIII}/{gone}" in store.base_pinned_rel_paths()
+    assert jobs.read_missing(OIII) == {}
+    assert jobs.base_complete(OIII)
+
+
+def test_base_missing_needs_404_from_every_mirror(upstream, runners):
+    """DSS has 4 upstreams: a 404 from one while the others are unavailable is
+    not recorded, so the base stays incomplete and the tile is retried."""
+    os.remove(store.tile_path(DSS, "Moc.fits"))
+    store.store_file(DSS, "Moc.fits", _moc_bytes([(1, 5)]), count=False)
+    facts.clear_memo()
+    gone = jobs.base_rel_paths(DSS)[5]
+    primary = "https://alasky.cds.unistra.fr/DSS/DSSColor/"
+
+    def script(url):
+        if url.endswith(gone):
+            return ((bp.UPSTREAM_MISSING, None) if url.startswith(primary)
+                    else (bp.UPSTREAM_UNAVAILABLE, None))
+        return None
+
+    upstream.script = script
+    jobs.ensure_base_survey(DSS)
+    state = _run_base_job(runners, DSS)
+    assert state["status"] == "done" and state["missing"] == 1   # job still finishes
+    assert jobs.read_missing(DSS) == {}
+    assert not jobs.base_complete(DSS)
+    assert jobs.ensure_base_survey(DSS)["status"] == "queued"
+
+
+def test_missing_record_is_never_evicted(monkeypatch):
+    monkeypatch.setattr("nova.offline_sky_store.OFFLINE_SKY_CACHE_MB", 1)
+    jobs._write_missing(OIII, {"Norder3/Dir0/Npix1.png": 1.0})
+    for i in range(4):
+        store.store_file(OIII, f"Norder5/Dir0/Npix{i}.png", b"t" * 400 * 1024)
+    store.evict_browsed()
+    assert jobs.read_missing(OIII) == {"Norder3/Dir0/Npix1.png": 1.0}
+
+
+# ---------------------------------------------------------------------------
+# 7. Eviction never deletes metadata
+# ---------------------------------------------------------------------------
+
+def test_eviction_keeps_properties_and_moc(monkeypatch):
+    monkeypatch.setattr("nova.offline_sky_store.OFFLINE_SKY_CACHE_MB", 1)
+    store.store_file(DSS, "properties", b"p" * 600 * 1024, count=False)
+    store.store_file(DSS, "Moc.fits", b"m" * 600 * 1024, count=False)
+    for i in range(4):
+        store.store_file(DSS, f"Norder5/Dir0/Npix{i}.jpg", b"t" * 400 * 1024)
+    out = store.evict_browsed()
+    assert out["removed"] >= 2
+    assert store.read_file(DSS, "properties") is not None
+    assert store.read_file(DSS, "Moc.fits") is not None
+    assert os.path.exists(os.path.join(store.hips_root(), ".total"))
+
+
+def test_eviction_counts_pinned_against_the_cap(monkeypatch):
+    """One cap for the whole store: browsed tiles make room for pinned ones."""
+    monkeypatch.setattr("nova.offline_sky_store.OFFLINE_SKY_CACHE_MB", 1)
+    rels = [f"Norder5/Dir0/Npix{i}.jpg" for i in range(4)]
+    for rel in rels:
+        store.store_file(DSS, rel, b"t" * 300 * 1024)
+    store.add_base_pins([f"{DSS}/{rels[0]}", f"{DSS}/{rels[1]}"])   # 600 KiB pinned
+    out = store.evict_browsed()
+    assert out["pinned"] == 600 * 1024
+    assert out["total"] + out["pinned"] <= 1024 * 1024
+    assert store.read_file(DSS, rels[0]) and store.read_file(DSS, rels[1])
+
+
+# ---------------------------------------------------------------------------
+# 9. Piece A follow-ups: effective max order in proxy validation and JS map
+# ---------------------------------------------------------------------------
+
+def test_proxy_rejects_orders_above_effective_max(client, monkeypatch):
+    monkeypatch.setattr("nova.blueprints.offline_sky.OFFLINE_SKY_STORE", "server")
+    store.store_file(OIII, "properties", _props(6, "png"), count=False)
+    facts.clear_memo()
+    store.store_file(OIII, "Norder6/Dir0/Npix1.png", b"T")
+    assert client.get(f"/hips/{OIII}/Norder6/Dir0/Npix1.png").status_code == 200
+    monkeypatch.setattr(bp, "_fetch_upstream", lambda *a: pytest.fail("no upstream for N7"))
+    assert client.get(f"/hips/{OIII}/Norder7/Dir0/Npix1.png").status_code == 404
+
+
+def test_build_js_map_uses_effective_max_order():
+    from nova.offline_sky_sources import build_js_map
+    store.store_file(OIII, "properties", _props(6, "png"), count=False)
+    facts.clear_memo()
+    m = build_js_map()
+    assert m[OIII_ID]["maxOrder"] == 6
+    assert m[DSS_ID]["maxOrder"] == 9            # no properties cached: whitelist
+
+
+def test_resolve_slug_accepts_ids_and_slugs():
+    from nova.offline_sky_sources import resolve_slug, resolve_slugs
+    assert resolve_slug(DSS_ID) == resolve_slug(DSS) == DSS
+    assert resolve_slug("nope") is None and resolve_slug("") is None
+    assert resolve_slugs(f"{DSS_ID},{DSS},{OIII_ID},x") == [DSS, OIII]
+
+
+# ---------------------------------------------------------------------------
+# 10. JS: one Cancel handler; the client sends the frame, not the view
+# ---------------------------------------------------------------------------
+
+def _js():
+    with open(os.path.join(os.path.dirname(__file__), "..", "static", "js",
+                           "graph_view_chart.js"), encoding="utf-8") as fh:
+        return fh.read()
+
+
+def test_js_single_cancel_handler():
+    src = _js()
+    assert "addEventListener('click', cancelOfflineSave)" not in src
+    assert src.count("cancelBtn.onclick = () => cancelOfflineSave(jobId);") == 1
+
+
+def test_js_sends_frame_and_rig_not_view():
+    src = _js()
+    start = src.index("function offlineSaveFrame()")
+    body = src[start:src.index("function setOfflineView(")]
+    assert "getFov" not in body                     # nothing about the Aladin view size
+    assert "frame_w_deg" in body and "rig_id" in body
+    assert "radius_deg" not in src[src.index("// OFFLINE SKY: offline view toggle"):]

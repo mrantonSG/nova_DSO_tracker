@@ -120,15 +120,53 @@ SURVEY_BY_SLUG = {src.slug: src for src in SURVEY_SOURCES.values()}
 SURVEY_ID_BY_SLUG = {src.slug: sid for sid, src in SURVEY_SOURCES.items()}
 
 
+def resolve_slug(value):
+    """Survey ID (``"P/DSS2/color"``, an NSNS URL) or slug -> slug, else None.
+
+    The one place the offline-sky API normalises what a client sends; estimate,
+    save, status, base and progress all go through it.
+    """
+    if value is None:
+        return None
+    key = str(value).strip()
+    if not key:
+        return None
+    src = SURVEY_SOURCES.get(key)
+    if src is not None:
+        return src.slug
+    return key if key in SURVEY_BY_SLUG else None
+
+
+def resolve_slugs(values):
+    """resolve_slug over a list (or comma-separated string); unknowns dropped,
+    order kept, duplicates (an ID and its slug) collapsed."""
+    if isinstance(values, str):
+        values = values.split(",")
+    out = []
+    for v in values or []:
+        slug = resolve_slug(v)
+        if slug and slug not in out:
+            out.append(slug)
+    return out
+
+
 def build_js_map():
     """survey_id -> {root, slug, maxOrder, label}, injected as window.NOVA_OFFLINE_SKY_SURVEYS.
 
     ``root`` is the same-origin /hips/ root (a relative path); the frontend turns
     it into an absolute URL before handing it to Aladin (see framingUtils.
     absoluteHipsRoot), and prefixes "offline/" for cache-only mode.
+
+    ``maxOrder`` is the survey's *effective* max order (min of the whitelist and
+    its published hips_order, from the cached properties; never fetched here).
     """
-    return {
-        sid: {"root": f"/hips/{src.slug}", "slug": src.slug,
-              "maxOrder": src.max_order, "label": src.label}
-        for sid, src in SURVEY_SOURCES.items()
-    }
+    from nova.offline_sky_facts import effective_max_order  # facts imports this module
+    out = {}
+    for sid, src in SURVEY_SOURCES.items():
+        try:
+            max_order = effective_max_order(src.slug, fetch=False)
+        except Exception:
+            max_order = src.max_order
+        out[sid] = {"root": f"/hips/{src.slug}", "slug": src.slug,
+                    "maxOrder": max_order, "label": src.label}
+    return out
