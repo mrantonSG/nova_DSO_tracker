@@ -1,3 +1,4 @@
+import logging
 import os
 import secrets
 import threading
@@ -85,6 +86,21 @@ OFFLINE_SKY_BASE_ORDER = config('OFFLINE_SKY_BASE_ORDER', default=3, cast=int)
 # runner per instance, see nova/offline_sky_jobs.py). The /hips/ browsing proxy
 # keeps its own, separate concurrency budget.
 OFFLINE_SKY_JOB_RATE_PER_SEC = config('OFFLINE_SKY_JOB_RATE_PER_SEC', default=4.0, cast=float)
+# Replaced by OFFLINE_SKY_JOB_RATE_PER_SEC in offline sky B1; ignored if set.
+REMOVED_OFFLINE_SKY_KEYS = ('OFFLINE_SKY_JOB_CONCURRENCY', 'OFFLINE_SKY_JOB_DELAY_SECONDS')
+
+
+def warn_removed_offline_sky_keys() -> list:
+    """Log a warning for every removed offline-sky key that is still set."""
+    found = [key for key in REMOVED_OFFLINE_SKY_KEYS if str(config(key, default='')).strip()]
+    for key in found:
+        logging.getLogger(__name__).warning(
+            "%s is no longer used and is ignored; job pacing is set by "
+            "OFFLINE_SKY_JOB_RATE_PER_SEC (requests per second).", key)
+    return found
+
+
+warn_removed_offline_sky_keys()
 # "Save for offline" (saves, base-layer jobs, status chip, dropdown offline marks).
 # Off until reworked: when False the /api/offline/* routes 404 and that UI is not
 # rendered. The /hips/ proxy, its cache and the Offline view toggle don't need it.

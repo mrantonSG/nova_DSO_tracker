@@ -12,7 +12,9 @@ Layout under CACHE_DIR/hips/:
     pins/<uuid>.json       # per-user save manifests (name, frame, tile list, bytes)
     jobs/<job_id>.json     # job state + parameters (the job queue)
     jobs/<job_id>.cancel   # cancel marker, written by any process
+    jobs/<job_id>.pins     # tiles a running job has claimed (one key per line)
     jobs/.runner.lock      # held by the one process that runs jobs
+    .pins.lock             # serialises pin changes against eviction and delete
 
 Sky tiles are not user-specific: the cache is shared across every user of the
 instance, which is the one deliberate exception to the "cache keys include
@@ -41,6 +43,12 @@ wins with identical bytes. The ``.total`` read-modify-write is serialised by an
 in-process lock and is best-effort across processes (a torn increment only makes
 the cap a hair off). Eviction is guarded by a non-blocking cross-process flock so
 only one worker evicts at a time.
+
+Pins and eviction: a job claims each tile in ``jobs/<job_id>.pins`` *before* it
+fetches or adopts it, so the tile is pinned from the moment it lands on disk.
+Claiming, manifest writes/deletes and the eviction pass all run under one
+blocking cross-process lock (``.pins.lock``), so eviction never works from a pin
+set that a claim or a delete changes underneath it.
 """
 
 import os
@@ -49,6 +57,7 @@ import time
 
 from nova.config import CACHE_DIR, OFFLINE_SKY_CACHE_MB
 from nova.helpers import write_file_atomic, try_acquire_file_lock, release_file_lock
+from nova.offline_sky_lock import hold_lock
 
 HIPS_SUBDIR = "hips"
 TOTAL_FILENAME = ".total"
@@ -59,6 +68,8 @@ BASE_PINS_FILENAME = ".base-pins.json"  # instance-level low-res base tiles (nev
 PINS_DIRNAME = "pins"                    # per-user save manifests (<uuid>.json)
 JOBS_DIRNAME = "jobs"                    # job state (<job_id>.json)
 EVICT_LOCK = ".evict"
+PINS_LOCK = ".pins.lock"
+JOB_PINS_SUFFIX = ".pins"
 
 _total_lock = threading.Lock()
 
@@ -94,6 +105,11 @@ def jobs_dir() -> str:
 
 def _evict_lock_path() -> str:
     return os.path.join(hips_root(), EVICT_LOCK)
+
+
+def pins_lock():
+    """Context manager: the cross-process pin lock (blocking, not re-entrant)."""
+    return hold_lock(os.path.join(hips_root(), PINS_LOCK))
 
 
 def _write_bytes(path: str, data: bytes) -> None:
@@ -259,27 +275,34 @@ def write_save_manifest(manifest: dict) -> None:
 
 
 def delete_save_manifest(uuid: str) -> bool:
-    """Remove a save manifest and keep the totals right.
+    """Remove a save manifest (and its job's claimed tiles) and keep the totals right.
 
-    Tiles only this save pinned become browsed again: their on-disk size moves
-    from ``.pinned`` to ``.total`` (they are then ordinary, evictable tiles).
+    Tiles only this save pinned -- listed in the manifest or claimed by its
+    running job -- become browsed again: their on-disk size moves from
+    ``.pinned`` to ``.total`` (they are then ordinary, evictable tiles). Runs
+    under the pin lock, so a job writing the manifest at the same moment either
+    finishes first (and its tiles are released here) or finds it gone.
     """
     path = os.path.join(pins_dir(), f"{uuid}.json")
-    manifest = read_save_manifest(uuid)
-    try:
-        os.remove(path)
-    except FileNotFoundError:
-        return False
-    paths = manifest.get("paths") if isinstance(manifest, dict) else None
-    if isinstance(paths, list) and paths:
-        still_pinned = pinned_rel_paths()
-        released = 0
-        for key in {str(p) for p in paths} - still_pinned:
-            size = pinned_key_size(key)
-            if size:
-                released += size
-        _add_bytes(released)
-    refresh_pinned_bytes()
+    with pins_lock():
+        manifest = read_save_manifest(uuid)
+        try:
+            os.remove(path)
+        except FileNotFoundError:
+            return False
+        keys = set(take_job_pins_locked(uuid))
+        paths = manifest.get("paths") if isinstance(manifest, dict) else None
+        if isinstance(paths, list):
+            keys |= {str(p) for p in paths}
+        if keys:
+            still_pinned = pinned_rel_paths()
+            released = 0
+            for key in keys - still_pinned:
+                size = pinned_key_size(key)
+                if size:
+                    released += size
+            _add_bytes(released)
+        refresh_pinned_bytes()
     return True
 
 
@@ -300,14 +323,74 @@ def list_save_manifests():
     return out
 
 
+# ---------------------------------------------------------------------------
+# Job pins: tiles a running job has claimed but not yet written to a manifest
+# ---------------------------------------------------------------------------
+
+def _job_pins_path(job_id: str) -> str:
+    return os.path.join(jobs_dir(), f"{job_id}{JOB_PINS_SUFFIX}")
+
+
+def _read_lines(path: str) -> set:
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            return {line.strip() for line in handle if line.strip()}
+    except (FileNotFoundError, OSError):
+        return set()
+
+
+def job_pins(job_id: str) -> set:
+    """Keys claimed by ``job_id`` (pinned until the job hands them to a manifest)."""
+    return _read_lines(_job_pins_path(job_id))
+
+
+def all_job_pins() -> set:
+    out = set()
+    try:
+        names = os.listdir(jobs_dir())
+    except FileNotFoundError:
+        return out
+    for name in names:
+        if name.endswith(JOB_PINS_SUFFIX) and not name.startswith("."):
+            out |= _read_lines(os.path.join(jobs_dir(), name))
+    return out
+
+
+def claim_for_job(job_id: str, key: str, guard=None):
+    """Pin ``key`` for ``job_id`` *before* the job fetches or adopts it.
+
+    Under the pin lock: ``guard()`` (may raise to refuse the claim, e.g. the
+    save was deleted), append the key, return the tile's on-disk size (None
+    when absent). Once this returns, eviction can no longer remove the tile.
+    """
+    with pins_lock():
+        if guard is not None:
+            guard()
+        os.makedirs(jobs_dir(), exist_ok=True)
+        with open(_job_pins_path(job_id), "a", encoding="utf-8") as handle:
+            handle.write(key + "\n")
+        return pinned_key_size(key)
+
+
+def take_job_pins_locked(job_id: str) -> set:
+    """Remove ``job_id``'s claim file and return its keys. Caller holds pins_lock()."""
+    keys = job_pins(job_id)
+    try:
+        os.remove(_job_pins_path(job_id))
+    except OSError:
+        pass
+    return keys
+
+
 def pinned_rel_paths() -> set:
-    """Rel paths eviction must skip: base tiles plus every save manifest's tiles."""
+    """Rel paths eviction must skip: base tiles, every save manifest's tiles and
+    every tile a running job has claimed."""
     pinned = base_pinned_rel_paths()
     for _uuid, manifest in list_save_manifests():
         paths = manifest.get("paths")
         if isinstance(paths, list):
             pinned |= {str(p) for p in paths}
-    return pinned
+    return pinned | all_job_pins()
 
 
 def refresh_pinned_bytes() -> int:
@@ -369,6 +452,11 @@ def evict_browsed() -> dict:
     cross-process read-modify-write is self-healed here (under the caller's
     eviction flock). Returns a summary.
     """
+    with pins_lock():
+        return _evict_browsed_locked()
+
+
+def _evict_browsed_locked() -> dict:
     root = hips_root()
     cap = cap_bytes()
     pinned = {p.replace("/", os.sep) for p in pinned_rel_paths()}

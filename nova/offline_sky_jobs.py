@@ -18,8 +18,11 @@ Area, detail, cost
 Limits
 ------
 OFFLINE_SKY_CACHE_MB caps the whole store (see nova/offline_sky_store.py). A save
-is refused when pinned + new would exceed it, or when the disk would drop below
-DISK_HEADROOM_BYTES free. Browsed tiles are evictable, so they never block a
+is refused when pinned + reserved + new would exceed it, or when the disk would
+drop below DISK_HEADROOM_BYTES free; "reserved" is what queued/running saves still
+expect to add (their estimate minus what they have pinned). The final check and
+the queueing happen under the store's pin lock, so two concurrent requests can
+never both take the same room. Browsed tiles are evictable, so they never block a
 save. The same two limits are re-checked before every tile a job fetches; when
 one is hit the job stops ("stopped", reason "no_space") and keeps a manifest of
 what it has.
@@ -39,20 +42,28 @@ skip what is on disk).
 Pace and honesty
 ----------------
 All job upstream requests share one RateLimiter (OFFLINE_SKY_JOB_RATE_PER_SEC,
-about 4/s): since only one runner exists per instance, that is the instance's
-job rate. It is separate from the browsing proxy's semaphore. When every
-upstream of a survey is unavailable (breaker open, network error, 5xx, 429) the
-job pauses and retries the same tile; it is never counted as done. A tile that
-an upstream definitively answers 404 for, inside coverage, is recorded as
-missing. Final status: done (``missing`` = N), stopped, cancelled, failed.
+about 4/s, never below MIN_JOB_RATE_PER_SEC): since only one runner exists per
+instance, that is the instance's job rate. It is separate from the browsing
+proxy's semaphore. A tile is missing only when every upstream of the survey was
+asked and answered 404. Anything else that brings no tile -- a network error,
+5xx, 429, an open breaker, even mixed with a 404 from another mirror -- pauses
+the job, which retries the same tile; it is never counted as done. Final
+status: done (``missing`` = N), stopped, cancelled, failed. Any unexpected
+error still goes through the finish path (manifest, accounting, cancel marker)
+and ends as "failed".
 
 Accounting
 ----------
 A save manifest lists every tile the save covers (fetched now or already on
-disk); its bytes are summed from disk. It is written atomically, and checkpointed
-during the job so eviction always sees the tiles as pinned, and the final
+disk); its bytes are summed from disk. Before a job fetches or adopts a tile it
+claims it in ``jobs/<id>.pins`` (store.claim_for_job), so eviction treats the
+tile as pinned from the moment it lands on disk; the claims are handed over to
+the manifest (or the base pins) when the job ends. Manifest writes and claims
+check, under the store's pin lock, that the save still exists, so a deleted save
+never comes back. The manifest is checkpointed during the job and the final
 manifest is written BEFORE the final job status. An already-browsed tile that a
-job adopts moves from ``.total`` to ``.pinned``.
+job adopts moves from ``.total`` to ``.pinned``; a tile already pinned (by
+another save, the base or this job's own claims from before a crash) is not.
 """
 
 import json
@@ -88,6 +99,7 @@ DISK_HEADROOM_BYTES = 1024 * 1024 * 1024
 FALLBACK_TILE_BYTES = 67 * 1024
 
 # --- Runner -----------------------------------------------------------------
+MIN_JOB_RATE_PER_SEC = 0.1       # a rate <= 0 (or tiny) never switches pacing off
 PAUSE_SECONDS = 30.0             # wait before retrying while upstream is unavailable
 MAX_PAUSE_SECONDS = 30 * 60      # give up ("failed") after this long paused on one tile
 CHECKPOINT_EVERY = 64            # tiles between manifest/state checkpoints
@@ -373,8 +385,10 @@ def estimate(frame: dict, image_scale_arcsec: float, slugs, detail_offset: int =
     cap = store.cap_bytes()
     pinned_bytes = store.refresh_pinned_bytes()
     disk_free = store.disk_free_bytes()
-    free_under_cap = max(0, cap - pinned_bytes) if cap > 0 else None
-    reject = limit_problem(pinned_bytes, tot_bytes + tot_adopt, tot_bytes, disk_free, cap)
+    reserved_pin, reserved_disk = reserved_bytes()
+    free_under_cap = max(0, cap - pinned_bytes - reserved_pin) if cap > 0 else None
+    reject = limit_problem(pinned_bytes + reserved_pin, tot_bytes + tot_adopt,
+                           tot_bytes + reserved_disk, disk_free, cap)
     return {
         "frame": frame,
         "radius_deg": frame["radius_deg"],
@@ -387,6 +401,7 @@ def estimate(frame: dict, image_scale_arcsec: float, slugs, detail_offset: int =
                   "est_bytes": tot_bytes, "adopt_bytes": tot_adopt},
         "cap_bytes": cap,
         "pinned_bytes": pinned_bytes,
+        "reserved_bytes": reserved_pin,
         "browsed_bytes": store.total_bytes(),
         "free_under_cap_bytes": free_under_cap,
         # Kept for the existing client: free space under the cap (browsed tiles
@@ -397,6 +412,44 @@ def estimate(frame: dict, image_scale_arcsec: float, slugs, detail_offset: int =
         "fits": reject is None,
         "reject": reject,
     }
+
+
+def reserved_bytes():
+    """(pinned, disk) bytes that queued/running/paused saves still expect to add.
+
+    Per job: its estimate at create time (params ``reserve_bytes`` /
+    ``reserve_disk_bytes``) minus what it has pinned / fetched so far (as of
+    its last checkpoint, so this errs on the side of reserving too much).
+    """
+    pin = disk = 0
+    for job in list_jobs():
+        if job.get("kind") != "save" or job.get("status") not in ACTIVE_STATUSES:
+            continue
+        params = job.get("params") or {}
+        try:
+            pin += max(0, int(params.get("reserve_bytes", 0)) - int(job.get("added", 0)))
+            disk += max(0, int(params.get("reserve_disk_bytes", 0)) - int(job.get("bytes", 0)))
+        except (TypeError, ValueError):
+            continue
+    return pin, disk
+
+
+def admit_save(manifest: dict, params: dict, slugs, add_pinned: int, add_disk: int):
+    """Re-check the limits and queue a save as one step; None, or the problem.
+
+    Runs under the store's pin lock, so two concurrent creates are serialised:
+    the second one sees the first one's job in reserved_bytes().
+    """
+    with store.pins_lock():
+        pinned = store.refresh_pinned_bytes()
+        r_pin, r_disk = reserved_bytes()
+        problem = limit_problem(pinned + r_pin, add_pinned, add_disk + r_disk,
+                                store.disk_free_bytes(), store.cap_bytes())
+        if problem:
+            return problem
+        store.write_save_manifest(manifest)
+        enqueue(manifest["id"], "save", params, slugs)
+    return None
 
 
 def limit_problem(pinned_bytes: int, add_pinned: int, add_disk: int, disk_free: int, cap: int):
@@ -438,7 +491,8 @@ def _write_job(state: dict) -> None:
 
 
 def delete_job_file(job_id: str) -> None:
-    for path in (_job_path(job_id), _cancel_path(job_id)):
+    """Remove a job's state, cancel marker and tile claims (not for a running job)."""
+    for path in (_job_path(job_id), _cancel_path(job_id), store._job_pins_path(job_id)):
         try:
             os.remove(path)
         except OSError:
@@ -488,23 +542,54 @@ def cancel_requested(job_id: str) -> bool:
     return os.path.exists(_cancel_path(job_id))
 
 
+def sweep_stale_job_files() -> None:
+    """Drop cancel markers of jobs that are not active (a cancel that raced the
+    job's end) and the state of save jobs whose save is gone. Runner only."""
+    try:
+        names = os.listdir(store.jobs_dir())
+    except FileNotFoundError:
+        return
+    for name in names:
+        if name.endswith(".cancel"):
+            state = read_job(name[:-len(".cancel")])
+            if not state or state.get("status") not in ACTIVE_STATUSES:
+                try:
+                    os.remove(os.path.join(store.jobs_dir(), name))
+                except OSError:
+                    pass
+        elif name.endswith(".json"):
+            state = read_job(name[:-5])
+            if (state and state.get("kind") == "save"
+                    and state.get("status") in FINAL_STATUSES
+                    and store.read_save_manifest(state["id"]) is None):
+                delete_job_file(state["id"])
+
+
 # ---------------------------------------------------------------------------
 # Rate limit
 # ---------------------------------------------------------------------------
 
 class RateLimiter:
-    """At most ``rate`` acquisitions per second (evenly spaced), thread-safe."""
+    """At most ``rate`` acquisitions per second (evenly spaced), thread-safe.
+
+    ``rate`` is clamped to at least MIN_JOB_RATE_PER_SEC: zero, a negative or a
+    non-number never turns the limit off.
+    """
 
     def __init__(self, rate: float, clock=time.monotonic, sleep=time.sleep):
-        self.interval = 1.0 / rate if rate and rate > 0 else 0.0
+        try:
+            rate = float(rate)
+        except (TypeError, ValueError):
+            rate = MIN_JOB_RATE_PER_SEC
+        if not math.isfinite(rate) or rate < MIN_JOB_RATE_PER_SEC:
+            rate = MIN_JOB_RATE_PER_SEC
+        self.interval = 1.0 / rate
         self._clock = clock
         self._sleep = sleep
         self._next = None
         self._lock = threading.Lock()
 
     def wait(self) -> None:
-        if self.interval <= 0:
-            return
         with self._lock:
             now = self._clock()
             at = now if self._next is None else max(now, self._next)
@@ -528,8 +613,10 @@ class JobRunner:
     """Runs queued jobs while holding the instance-wide runner lock."""
 
     def __init__(self, rate=None, clock=time.monotonic, sleep=time.sleep,
-                 pause_seconds=None, max_pause_seconds=None):
-        self.rate = RateLimiter(OFFLINE_SKY_JOB_RATE_PER_SEC if rate is None else rate, clock, sleep)
+                 pause_seconds=None, max_pause_seconds=None, limiter=None):
+        # ``limiter`` (anything with .wait()) replaces the RateLimiter -- tests only.
+        self.rate = limiter if limiter is not None else RateLimiter(
+            OFFLINE_SKY_JOB_RATE_PER_SEC if rate is None else rate, clock, sleep)
         self.clock = clock
         self.sleep = sleep
         self.pause_seconds = PAUSE_SECONDS if pause_seconds is None else pause_seconds
@@ -566,6 +653,7 @@ class JobRunner:
         """Run every active job once, oldest first. Only while holding the lock."""
         if not self.owns_lock:
             return 0
+        sweep_stale_job_files()
         n = 0
         for state in self.pending():
             if self._stop.is_set():
@@ -612,18 +700,25 @@ class JobRunner:
             else:
                 self._run_save(state)
         except Exception as exc:
+            # _run_save/_run_base already route errors through _finish; this is
+            # the last resort when _finish itself fails. The job's claims file
+            # stays, so its tiles stay pinned until the save is deleted or the
+            # base job runs again.
             traceback.print_exc()
-            state = read_job(job_id) or state
             state.update(status="failed", reason="error", error=str(exc))
-            _write_job(state)
+            for step in (lambda: _write_job(state), lambda: os.remove(_cancel_path(job_id))):
+                try:
+                    step()
+                except Exception:
+                    pass
 
     # --- tile fetch ---
     def _fetch(self, slug: str, rel: str):
-        """-> (outcome, nbytes, all_mirrors_404).
+        """-> (outcome, nbytes).
 
-        outcome: "fetched" | "present" | "missing" | "unavailable".
-        ``all_mirrors_404`` is True only when every upstream of the survey was
-        asked and answered 404 (a skipped, open-breaker mirror makes it False).
+        outcome: "fetched" | "present" | "missing" | "unavailable". "missing"
+        only when every upstream of the survey was asked and answered 404; a
+        skipped (open-breaker) or unavailable mirror makes it "unavailable".
         """
         from nova.blueprints import offline_sky as bp
         upstreams = SURVEY_BY_SLUG[slug].upstreams
@@ -635,13 +730,13 @@ class JobRunner:
             outcome, body = bp._upstream_get(base, f"{base.rstrip('/')}/{rel}")
             if outcome == bp.UPSTREAM_OK and body is not None:
                 if store.store_file(slug, rel, body, count=False):
-                    return "fetched", len(body), False
-                return "present", 0, False  # another process stored it meanwhile
+                    return "fetched", len(body)
+                return "present", 0  # another process stored it meanwhile
             if outcome == bp.UPSTREAM_MISSING:
                 n_missing += 1
-        if n_missing:
-            return "missing", 0, n_missing == len(upstreams)
-        return "unavailable", 0, False
+        if upstreams and n_missing == len(upstreams):
+            return "missing", 0
+        return "unavailable", 0
 
     def _pause(self, state: dict, since: float) -> None:
         """Wait out an upstream outage; raise _Stop on cancel or when too long."""
@@ -661,15 +756,16 @@ class JobRunner:
             raise _Stop("cancelled")
 
     def _process(self, state: dict, items, covered: list, missing: list, on_checkpoint,
-                 skip_missing=frozenset(), confirmed_missing=None):
+                 skip_missing=frozenset(), claim_guard=None):
         """Fetch/adopt every (slug, rel) of a job; raises _Stop to end early.
 
         ``covered`` / ``missing`` are the caller's lists, filled in place with
         "<slug>/<rel>" keys, so a stopped or cancelled job still knows exactly
         what it has for its partial manifest. ``skip_missing`` holds keys known
         to be missing and not due for a retry: counted as missing, not fetched.
-        ``confirmed_missing`` (optional list) receives the keys every mirror
-        answered 404 for.
+        Every tile is claimed for the job (store.claim_for_job) before it is
+        looked at, so it is pinned before it is fetched; ``claim_guard`` runs
+        under the pin lock with each claim and may raise _Stop.
         """
         job_id = state["id"]
         cap = store.cap_bytes()
@@ -678,15 +774,15 @@ class JobRunner:
         added = 0                                    # bytes this run moved into pinned
         avg = {}
         state.update(status="running", reason=None, total=len(items), done=0,
-                     fetched=0, present=0, missing=0, bytes=0)
+                     fetched=0, present=0, missing=0, bytes=0, added=0)
         _write_job(state)
         for i, (slug, rel) in enumerate(items):
             if cancel_requested(job_id):
                 raise _Stop("cancelled")
             key = f"{slug}/{rel}"
             paused_since = None
+            size = store.claim_for_job(job_id, key, claim_guard)
             while True:
-                size = store.file_size(slug, rel)
                 if size is None and key in skip_missing:
                     missing.append(key)
                     state["missing"] += 1
@@ -697,6 +793,7 @@ class JobRunner:
                         store.adjust_browsed_total(-size)
                         pinned_keys.add(key)
                         added += size
+                        state["added"] = added
                     covered.append(key)
                     state["present"] += 1
                     break
@@ -706,26 +803,27 @@ class JobRunner:
                     raise _Stop("stopped", REASON_NO_SPACE)
                 if store.disk_free_bytes() - avg[slug] < DISK_HEADROOM_BYTES:
                     raise _Stop("stopped", REASON_NO_SPACE)
-                outcome, nbytes, all_404 = self._fetch(slug, rel)
+                outcome, nbytes = self._fetch(slug, rel)
                 if outcome == "fetched":
                     pinned_keys.add(key)
                     added += nbytes
+                    state["added"] = added
                     covered.append(key)
                     state["fetched"] += 1
                     state["bytes"] += nbytes
                     break
                 if outcome == "present":
+                    size = store.file_size(slug, rel)
                     continue  # adopt it on the next pass of this loop
-                if outcome == "missing":
+                if outcome == "missing":                   # 404 from every mirror
                     missing.append(key)
                     state["missing"] += 1
-                    if all_404 and confirmed_missing is not None:
-                        confirmed_missing.append(key)
                     break
                 # unavailable: pause and retry this same tile; not done.
                 if paused_since is None:
                     paused_since = self.clock()
                 self._pause(state, paused_since)
+                size = store.file_size(slug, rel)
             if state.get("status") == "paused":
                 state.update(status="running", reason=None)
                 _write_job(state)
@@ -738,86 +836,142 @@ class JobRunner:
     def _run_save(self, state: dict) -> None:
         job_id = state["id"]
         p = state["params"]
-        manifest = store.read_save_manifest(job_id)
-        if manifest is None:
-            state.update(status="cancelled", reason=REASON_DELETED)
-            _write_job(state)
-            return
-        items = []
-        for slug in state.get("surveys", []):
-            if slug not in SURVEY_BY_SLUG:
-                continue
-            plan = plan_survey(slug, p["ra"], p["dec"], p["radius_deg"], p["order"], fetch=True)
-            items.extend((slug, rel) for rel in plan.rel_paths())
+        manifest_path = os.path.join(store.pins_dir(), f"{job_id}.json")
 
-        def write_manifest(covered, missing, status):
-            current = store.read_save_manifest(job_id)
-            if current is None:
-                raise _Stop("cancelled", REASON_DELETED)  # save deleted meanwhile
-            current["paths"] = sorted(set(covered))
-            current["missing_paths"] = sorted(set(missing))
-            current["missing"] = len(set(missing))
-            current["bytes"] = sum(store.pinned_key_size(k) or 0 for k in current["paths"])
-            current["status"] = status
-            current["partial"] = status != "done"
-            store.write_save_manifest(current)
-            store.refresh_pinned_bytes()
-            return current
+        def save_exists():
+            """Claim guard: runs under the pin lock, so a delete can't slip in."""
+            if not os.path.exists(manifest_path):
+                raise _Stop("cancelled", REASON_DELETED)
+
+        def write_manifest(covered, missing, status, final=False):
+            """Rewrite the manifest under the pin lock; never recreate a deleted one.
+
+            ``final``: also hand the job's claims over (remove its claims file)
+            and return True when a claimed tile is on disk but now pinned by
+            nothing (the caller then re-derives the totals).
+            """
+            leftover = False
+            with store.pins_lock():
+                current = store.read_save_manifest(job_id)
+                if current is None:
+                    if final:
+                        store.take_job_pins_locked(job_id)
+                    raise _Stop("cancelled", REASON_DELETED)  # save deleted meanwhile
+                current["paths"] = sorted(set(covered))
+                current["missing_paths"] = sorted(set(missing))
+                current["missing"] = len(set(missing))
+                current["bytes"] = sum(store.pinned_key_size(k) or 0 for k in current["paths"])
+                current["status"] = status
+                current["partial"] = status != "done"
+                store.write_save_manifest(current)
+                if final:
+                    claimed = store.take_job_pins_locked(job_id)
+                    loose = claimed - store.pinned_rel_paths()
+                    leftover = any(store.pinned_key_size(k) is not None for k in loose)
+                store.refresh_pinned_bytes()
+            return leftover
 
         covered, missing = [], []
-        status, reason = "done", None
+        status, reason, error = "done", None, None
         try:
+            save_exists()
+            items = []
+            for slug in state.get("surveys", []):
+                if slug not in SURVEY_BY_SLUG:
+                    continue
+                plan = plan_survey(slug, p["ra"], p["dec"], p["radius_deg"], p["order"], fetch=True)
+                items.extend((slug, rel) for rel in plan.rel_paths())
             self._process(state, items, covered, missing,
-                          lambda c, m: write_manifest(c, m, "running"))
+                          lambda c, m: write_manifest(c, m, "running"),
+                          claim_guard=save_exists)
         except _Stop as stop:
             status, reason = stop.status, stop.reason
+        except Exception as exc:
+            traceback.print_exc()
+            status, reason, error = "failed", "error", str(exc)
         self._finish(state, status, reason, covered, missing,
-                     lambda c, m: write_manifest(c, m, status))
+                     lambda c, m, st: write_manifest(c, m, st, final=True), error)
 
     # --- base ---
     def _run_base(self, state: dict) -> None:
         slug = state["params"]["slug"]
-        items = [(slug, rel) for rel in base_rel_paths(slug, fetch=True)]
+        job_id = state["id"]
         prefix = f"{slug}/"
         now = _now()
         # Recorded-missing tiles are retried at most once a day; until then the
         # job counts them as missing without asking upstream.
         recent = {prefix + rel for rel, ts in read_missing(slug).items()
                   if now - ts < MISSING_RETRY_SECONDS}
-        confirmed = []
 
-        def pin(covered, missing):
-            store.add_base_pins(covered)
-            store.refresh_pinned_bytes()
+        def pin(covered, missing, final=False):
+            leftover = False
+            with store.pins_lock():
+                store.add_base_pins(covered)
+                if final:
+                    claimed = store.take_job_pins_locked(job_id)
+                    loose = claimed - store.pinned_rel_paths()
+                    leftover = any(store.pinned_key_size(k) is not None for k in loose)
+                store.refresh_pinned_bytes()
             record = read_missing(slug)
             for key in covered:                      # found after all: forget it
                 record.pop(key[len(prefix):], None)
-            for key in confirmed:                    # 404 from every mirror (again)
-                record[key[len(prefix):]] = now
+            for key in missing:                      # 404 from every mirror (again)
+                if key not in recent:                # skipped ones were not re-asked
+                    record[key[len(prefix):]] = now
             _write_missing(slug, record)
+            return leftover
 
         covered, missing = [], []
-        status, reason = "done", None
+        status, reason, error = "done", None, None
         try:
-            self._process(state, items, covered, missing, pin,
-                          skip_missing=recent, confirmed_missing=confirmed)
+            items = [(slug, rel) for rel in base_rel_paths(slug, fetch=True)]
+            self._process(state, items, covered, missing, pin, skip_missing=recent)
         except _Stop as stop:
             status, reason = stop.status, stop.reason
-        self._finish(state, status, reason, covered, missing, pin)
+        except Exception as exc:
+            traceback.print_exc()
+            status, reason, error = "failed", "error", str(exc)
+        self._finish(state, status, reason, covered, missing,
+                     lambda c, m, _st: pin(c, m, final=True), error)
 
-    def _finish(self, state, status, reason, covered, missing, write_manifest):
-        """Manifest first (atomic), then the final status. Never the other way round."""
+    def _finish(self, state, status, reason, covered, missing, finalize, error=None):
+        """Manifest first (atomic), then the final status. Never the other way round.
+
+        Runs for every outcome, unexpected errors included: the manifest gets
+        the final status, the job's claims are handed over, the totals are
+        re-derived when needed and the cancel marker is removed. A save deleted
+        while the job ran leaves no job file behind.
+        """
+        recount = False
         try:
-            write_manifest(covered, missing)
+            recount = finalize(covered, missing, status)
         except _Stop as stop:  # the save was deleted while we ran
             status, reason = stop.status, stop.reason
+        except Exception as exc:
+            traceback.print_exc()
+            status, reason, error = "failed", "error", error or str(exc)
+            try:
+                recount = finalize(covered, missing, status)
+            except _Stop as stop:
+                reason = stop.reason if stop.reason == REASON_DELETED else reason
+            except Exception:
+                traceback.print_exc()
         over_cap = (store.cap_bytes() > 0
                     and store.total_bytes() + store.pinned_bytes() > store.cap_bytes())
-        if over_cap or reason == REASON_DELETED:
+        if recount or over_cap or reason == REASON_DELETED:
             # Eviction also re-derives .total/.pinned from disk: needed after a
-            # delete raced the job (tiles fetched after its last checkpoint).
-            store.evict_now()
+            # delete raced the job, or when a claimed tile ended up on disk
+            # without being handed to the manifest (it is browsed now).
+            try:
+                store.evict_browsed()
+            except Exception:
+                traceback.print_exc()
         state.update(status=status, reason=reason, missing=len(set(missing)))
+        if error:
+            state["error"] = error
+        if reason == REASON_DELETED:
+            delete_job_file(state["id"])  # the save is gone: no state, no marker
+            return
         _write_job(state)
         try:
             os.remove(_cancel_path(state["id"]))

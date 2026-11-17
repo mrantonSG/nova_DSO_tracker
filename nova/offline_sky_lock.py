@@ -18,6 +18,8 @@ its own (tests run it in real subprocesses).
 """
 
 import os
+import time
+from contextlib import contextmanager
 
 try:  # POSIX
     import fcntl as _fcntl
@@ -64,3 +66,25 @@ def unlock(fh) -> None:
         fh.close()
     except OSError:
         pass
+
+
+@contextmanager
+def hold_lock(path: str, timeout: float = 120.0, poll: float = 0.01):
+    """Blocking variant of try_lock: wait (polling) until the lock is ours.
+
+    Raises TimeoutError after ``timeout`` seconds. Not re-entrant: a second
+    hold_lock on the same path in the same thread waits for itself, so callers
+    must never nest it.
+    """
+    deadline = time.monotonic() + timeout
+    while True:
+        fh = try_lock(path)
+        if fh is not None:
+            break
+        if time.monotonic() >= deadline:
+            raise TimeoutError(f"lock {path} not acquired within {timeout:.0f} s")
+        time.sleep(poll)
+    try:
+        yield
+    finally:
+        unlock(fh)

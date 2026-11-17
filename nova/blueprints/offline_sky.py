@@ -489,8 +489,7 @@ def offline_saves_create():
     if uid is None:
         return Response(status=404)
     import uuid as _uuid
-    from nova.offline_sky_jobs import LimitError, enqueue, kick
-    from nova.offline_sky_store import write_save_manifest
+    from nova.offline_sky_jobs import LimitError, admit_save, kick
 
     body = request.get_json(silent=True) or {}
     try:
@@ -524,10 +523,19 @@ def offline_saves_create():
         "status": "queued",
         "partial": True,
     }
-    write_save_manifest(manifest)
-    enqueue(save_id, "save", {"ra": frame["ra"], "dec": frame["dec"],
-                              "radius_deg": frame["radius_deg"],
-                              "order": est["requested_order"]}, slugs)
+    total = est["total"]
+    params = {"ra": frame["ra"], "dec": frame["dec"], "radius_deg": frame["radius_deg"],
+              "order": est["requested_order"],
+              # What this save reserves under the cap / on disk until it has pinned it.
+              "reserve_bytes": total["est_bytes"] + total["adopt_bytes"],
+              "reserve_disk_bytes": total["est_bytes"]}
+    # Final check + queueing in one step, so concurrent creates can't both fit.
+    problem = admit_save(manifest, params, slugs,
+                         params["reserve_bytes"], params["reserve_disk_bytes"])
+    if problem:
+        est.update(fits=False, reject=problem)
+        return jsonify({"error": problem["message"], "code": problem["code"],
+                        "estimate": est}), 409
     kick()
     return jsonify({"job_id": save_id, "manifest": _manifest_summary(manifest), "estimate": est})
 

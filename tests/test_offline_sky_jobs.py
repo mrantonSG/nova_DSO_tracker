@@ -59,7 +59,8 @@ def runners():
     made = []
 
     def make(**kw):
-        kw.setdefault("rate", 0)
+        if "rate" not in kw:
+            kw.setdefault("limiter", _NoLimit())   # pacing has its own tests
         kw.setdefault("sleep", lambda s: None)
         kw.setdefault("pause_seconds", 0.0)
         r = jobs.JobRunner(**kw)
@@ -69,6 +70,11 @@ def runners():
     yield make
     for r in made:
         r.release()
+
+
+class _NoLimit:
+    def wait(self):
+        pass
 
 
 class FakeUpstream:
@@ -413,13 +419,21 @@ def test_save_job_runs_to_done(upstream, runners):
     assert r.run_pending() == 1
     state = jobs.read_job("s1")
     rels = _plan_rels(DSS, frame, 6)
+    assert len(rels) >= 10                                # a real plan, not 0 == 0
     assert state["status"] == "done" and state["missing"] == 0
     assert state["done"] == state["total"] == len(rels) == state["fetched"]
+    # One request per tile, to the first mirror, for exactly the planned tiles.
+    primary = jobs.SURVEY_BY_SLUG[DSS].upstreams[0].rstrip("/")
+    assert upstream.calls == [f"{primary}/{rel}" for rel in rels]
+    for rel in rels:                                      # every tile really on disk
+        assert store.read_file(DSS, rel) == b"x" * 1000
     m = store.read_save_manifest("s1")
     assert m["paths"] == sorted(f"{DSS}/{r_}" for r_ in rels)
-    assert m["bytes"] == len(rels) * 1000 and m["partial"] is False
+    assert m["bytes"] == len(rels) * 1000 and m["partial"] is False and m["status"] == "done"
     assert store.pinned_bytes() == len(rels) * 1000
     assert store.total_bytes() == 0                       # fetched tiles are pinned, not browsed
+    assert store.job_pins("s1") == set()                  # claims handed to the manifest
+    assert not os.path.exists(jobs._cancel_path("s1"))
 
 
 def test_manifest_lists_present_and_new_and_adopts_browsed(upstream, runners):
@@ -781,6 +795,9 @@ def test_resume_after_crash(upstream, runners):
         return None
 
     upstream.script = script
+    browsed = "Norder9/Dir0/Npix1.jpg"                   # unrelated, outside the plan
+    store.store_file(DSS, browsed, b"b" * 5000)
+    assert store.total_bytes() == 5000
     _enqueue_save("k1", frame, 7, [DSS])
     a = runners()
     a.acquire()
@@ -800,7 +817,13 @@ def test_resume_after_crash(upstream, runners):
     final = jobs.read_job("k1")
     assert final["status"] == "done"
     assert not (set(upstream.calls) & first_pass)          # nothing fetched twice
-    assert len(store.read_save_manifest("k1")["paths"]) == len(rels)
+    m = store.read_save_manifest("k1")
+    assert len(m["paths"]) == len(rels)
+    # The 5 tiles fetched after the checkpoint and before the crash were never in
+    # .total: the resumed job must not subtract them (it used to, leaving 0).
+    assert store.total_bytes() == 5000
+    assert store.pinned_bytes() == m["bytes"] == len(rels) * 1000
+    assert store.evict_browsed()["total"] == 5000           # matches a full recount
 
 
 def test_delete_while_running_does_not_resurrect_manifest(upstream, runners):
@@ -820,8 +843,10 @@ def test_delete_while_running_does_not_resurrect_manifest(upstream, runners):
     r.acquire()
     r.run_pending()
     assert store.read_save_manifest("d1") is None
-    state = jobs.read_job("d1")
-    assert state["status"] == "cancelled" and state["reason"] == jobs.REASON_DELETED
+    # The save is gone: no job state, cancel marker or claims file is left behind.
+    assert jobs.read_job("d1") is None
+    assert not os.path.exists(jobs._cancel_path("d1"))
+    assert store.job_pins("d1") == set()
     assert store.pinned_bytes() == 0
     assert store.total_bytes() == 2 * 1000      # reconciled: the 2 fetched tiles are browsed now
 
@@ -941,26 +966,66 @@ def test_base_complete_counts_missing_and_retries_once_a_day(upstream, runners, 
 
 def test_base_missing_needs_404_from_every_mirror(upstream, runners):
     """DSS has 4 upstreams: a 404 from one while the others are unavailable is
-    not recorded, so the base stays incomplete and the tile is retried."""
+    not missing -- the job pauses and retries the tile. Only once every mirror
+    answers 404 is it recorded as missing (and the base complete)."""
     os.remove(store.tile_path(DSS, "Moc.fits"))
     store.store_file(DSS, "Moc.fits", _moc_bytes([(1, 5)]), count=False)
     facts.clear_memo()
     gone = jobs.base_rel_paths(DSS)[5]
     primary = "https://alasky.cds.unistra.fr/DSS/DSSColor/"
+    pauses = []
 
     def script(url):
         if url.endswith(gone):
-            return ((bp.UPSTREAM_MISSING, None) if url.startswith(primary)
-                    else (bp.UPSTREAM_UNAVAILABLE, None))
+            if url.startswith(primary) or pauses:          # after one pause: all 404
+                return bp.UPSTREAM_MISSING, None
+            return bp.UPSTREAM_UNAVAILABLE, None
         return None
+
+    def sleep(_s):
+        st = jobs.read_job(jobs.base_job_id(DSS))
+        pauses.append((st["status"], st["missing"]))
 
     upstream.script = script
     jobs.ensure_base_survey(DSS)
-    state = _run_base_job(runners, DSS)
-    assert state["status"] == "done" and state["missing"] == 1   # job still finishes
-    assert jobs.read_missing(DSS) == {}
-    assert not jobs.base_complete(DSS)
-    assert jobs.ensure_base_survey(DSS)["status"] == "queued"
+    r = runners(sleep=sleep, pause_seconds=1.0)
+    r.acquire()
+    r.run_pending()
+    # One 404 + three unavailable: paused, the tile not counted as missing.
+    assert pauses and pauses[0] == ("paused", 0)
+    asked = [u for u in upstream.calls if u.endswith(gone)]
+    assert len(asked) == 8                                  # 4 mirrors, twice
+    state = jobs.read_job(jobs.base_job_id(DSS))
+    assert state["status"] == "done" and state["missing"] == 1
+    assert list(jobs.read_missing(DSS)) == [gone]
+    assert jobs.base_complete(DSS)
+
+
+def test_save_one_mirror_404_others_breaker_open_is_not_missing(upstream, runners, monkeypatch):
+    """A save tile with a 404 from one mirror and every other mirror skipped
+    (breaker open) pauses like unavailable; after the outage limit the job
+    fails without recording the tile as missing."""
+    frame = _small_frame()
+    rels = _plan_rels(DSS, frame, 5)
+    target = rels[1]
+    primary = jobs.SURVEY_BY_SLUG[DSS].upstreams[0]
+    monkeypatch.setattr(bp, "_breaker_open", lambda base: base != primary)
+    upstream.script = lambda url: (bp.UPSTREAM_MISSING, None) if url.endswith(target) else None
+    t = [0.0]
+
+    def sleep(s):
+        t[0] += s
+
+    _enqueue_save("m1", frame, 5, [DSS])
+    r = runners(clock=lambda: t[0], sleep=sleep, pause_seconds=60.0, max_pause_seconds=300.0)
+    r.acquire()
+    r.run_pending()
+    state = jobs.read_job("m1")
+    assert state["status"] == "failed" and state["reason"] == jobs.REASON_UPSTREAM
+    assert state["missing"] == 0 and state["done"] == 1
+    m = store.read_save_manifest("m1")
+    assert m["missing"] == 0 and m["missing_paths"] == []
+    assert len(m["paths"]) == 1
 
 
 def test_missing_record_is_never_evicted(monkeypatch):
@@ -970,6 +1035,229 @@ def test_missing_record_is_never_evicted(monkeypatch):
         store.store_file(OIII, f"Norder5/Dir0/Npix{i}.png", b"t" * 400 * 1024)
     store.evict_browsed()
     assert jobs.read_missing(OIII) == {"Norder3/Dir0/Npix1.png": 1.0}
+
+
+# ---------------------------------------------------------------------------
+# Review fixes: immediate pins, delete race, error finish, reservation, misc
+# ---------------------------------------------------------------------------
+
+def test_fetched_tiles_are_pinned_before_the_first_checkpoint(upstream, runners, monkeypatch):
+    """An eviction pass while a job runs (well before tile 64) must not delete
+    or count as browsed any tile the job has already fetched."""
+    frame = _small_frame()
+    rels = _plan_rels(DSS, frame, 6)
+    assert 6 < len(rels) < jobs.CHECKPOINT_EVERY
+    calls = [0]
+    seen = {}
+
+    def script(url):
+        calls[0] += 1
+        if calls[0] == 6:                       # 5 tiles fetched, no checkpoint yet
+            with monkeypatch.context() as mp:
+                mp.setattr(store, "cap_bytes", lambda: 1)   # evict every unpinned tile
+                seen.update(store.evict_browsed())
+        return None
+
+    upstream.script = script
+    _enqueue_save("e1", frame, 6, [DSS])
+    r = runners()
+    r.acquire()
+    r.run_pending()
+    assert seen["removed"] == 0 and seen["total"] == 0 and seen["pinned"] == 5 * 1000
+    for rel in rels:
+        assert store.read_file(DSS, rel) is not None
+    m = store.read_save_manifest("e1")
+    assert m["bytes"] == len(rels) * 1000
+    assert store.total_bytes() == 0 and store.pinned_bytes() == m["bytes"]
+
+
+def test_delete_during_manifest_write_does_not_resurrect(upstream, runners, monkeypatch):
+    """A DELETE that lands while the runner is writing the manifest waits for
+    the write and then removes it; the save never comes back."""
+    import threading
+    import time as _time
+    real_write = store.write_save_manifest
+    deleter = []
+
+    def slow_write(manifest):
+        if not deleter:
+            t = threading.Thread(target=store.delete_save_manifest, args=(manifest["id"],))
+            deleter.append(t)
+            t.start()
+            _time.sleep(0.3)                     # unlocked, the delete would land here
+        real_write(manifest)
+
+    _enqueue_save("w1", _small_frame(), 5, [DSS])
+    monkeypatch.setattr(store, "write_save_manifest", slow_write)   # the runner's writes
+    r = runners()
+    r.acquire()
+    r.run_pending()
+    deleter[0].join(timeout=10)
+    assert store.read_save_manifest("w1") is None
+    assert store.pinned_bytes() == 0
+    fetched = jobs.read_job("w1")["fetched"] * 1000
+    assert fetched > 0 and store.total_bytes() == fetched      # released to browsed
+    assert store.evict_browsed() == {"removed": 0, "bytes": 0, "total": fetched, "pinned": 0}
+
+
+def test_unexpected_error_runs_the_finish_path(upstream, runners, monkeypatch):
+    """A crash inside the job (here: the store raising after writing tile 3)
+    still ends with a failed job, a failed partial manifest, no cancel marker,
+    no claims file and totals that match the disk."""
+    real_store = store.store_file
+    n = [0]
+
+    def store_then_raise(slug, rel, data, count=True):
+        wrote = real_store(slug, rel, data, count=count)
+        n[0] += 1
+        if n[0] == 3:
+            jobs.cancel_job("f1")                # a marker left lying around
+            raise RuntimeError("disk on fire")
+        return wrote
+
+    monkeypatch.setattr(store, "store_file", store_then_raise)
+    _enqueue_save("f1", _small_frame(), 6, [DSS])
+    r = runners()
+    r.acquire()
+    r.run_pending()
+    state = jobs.read_job("f1")
+    assert state["status"] == "failed" and state["reason"] == "error"
+    assert "disk on fire" in state["error"]
+    m = store.read_save_manifest("f1")
+    assert m["status"] == "failed" and m["partial"] is True and len(m["paths"]) == 2
+    assert not os.path.exists(jobs._cancel_path("f1"))
+    assert store.job_pins("f1") == set()
+    # Tile 3 is on disk but in no manifest: it is browsed now, and counted so.
+    assert store.pinned_bytes() == m["bytes"] == 2 * 1000
+    assert store.total_bytes() == 1000
+
+
+def test_error_before_any_tile_still_marks_manifest_failed(upstream, runners, monkeypatch):
+    def boom(*a, **kw):
+        raise ValueError("bad plan")
+
+    monkeypatch.setattr(jobs, "plan_survey", boom)
+    _enqueue_save("f2", _small_frame(), 6, [DSS])
+    r = runners()
+    r.acquire()
+    r.run_pending()
+    assert jobs.read_job("f2")["status"] == "failed"
+    m = store.read_save_manifest("f2")
+    assert m["status"] == "failed" and m["partial"] is True
+
+
+def test_cap_check_counts_queued_saves(client, db_session, monkeypatch):
+    """A second save is refused when the first one's (queued) estimate already
+    takes the room under the cap."""
+    _save_on(monkeypatch)
+    _install_real_facts(DSS)
+    rid = _make_rig(db_session)
+    est = client.get("/api/offline/estimate?" + _query(rid, [DSS_ID])).get_json()
+    need = est["total"]["est_bytes"] + est["total"]["adopt_bytes"]
+    assert need > 2 * 1024 * 1024
+    mib = (need * 3 // 2) // (1024 * 1024) + 1             # room for 1.5 saves
+    monkeypatch.setattr("nova.offline_sky_store.OFFLINE_SKY_CACHE_MB", mib)
+    first = _post_save(client, rid)
+    assert first.status_code == 200, first.get_json()
+    second = _post_save(client, rid)
+    assert second.status_code == 409
+    assert second.get_json()["code"] == "over_cap"
+    assert len(jobs.list_jobs()) == 1 and len(store.list_save_manifests()) == 1
+    # The estimate reports the reservation too.
+    again = client.get("/api/offline/estimate?" + _query(rid, [DSS_ID])).get_json()
+    assert again["reserved_bytes"] == need and again["fits"] is False
+
+
+def test_admit_save_is_atomic_across_concurrent_creates(monkeypatch):
+    import threading
+    import time as _time
+    monkeypatch.setattr(store, "cap_bytes", lambda: 10 * 1024 * 1024)
+    real_free = store.disk_free_bytes
+
+    def slow_free():
+        _time.sleep(0.1)                         # widen the check-then-write window
+        return real_free()
+
+    monkeypatch.setattr(store, "disk_free_bytes", slow_free)
+    results = {}
+    barrier = threading.Barrier(2)
+
+    def create(sid):
+        manifest = {"id": sid, "user_id": 1, "paths": [], "status": "queued"}
+        params = {"ra": 0, "dec": 0, "radius_deg": 1, "order": 6,
+                  "reserve_bytes": 6 * 1024 * 1024, "reserve_disk_bytes": 6 * 1024 * 1024}
+        barrier.wait()
+        results[sid] = jobs.admit_save(manifest, params, [DSS], 6 * 1024 * 1024, 6 * 1024 * 1024)
+
+    threads = [threading.Thread(target=create, args=(sid,)) for sid in ("c-a", "c-b")]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=10)
+    assert sorted(v is None for v in results.values()) == [False, True]
+    assert len(jobs.list_jobs()) == 1 and len(store.list_save_manifests()) == 1
+
+
+def test_rate_limiter_never_disabled_by_zero_or_negative():
+    for rate in (0, -3, None, "x", float("nan")):
+        t = [0.0]
+
+        def sleep(s):
+            t[0] += s
+
+        rl = jobs.RateLimiter(rate, lambda: t[0], sleep)
+        assert rl.interval == pytest.approx(1.0 / jobs.MIN_JOB_RATE_PER_SEC)
+        rl.wait()
+        rl.wait()
+        assert t[0] == pytest.approx(rl.interval)
+
+
+def test_removed_job_keys_are_warned(monkeypatch, caplog):
+    import logging
+    import nova.config as cfg
+    monkeypatch.setenv("OFFLINE_SKY_JOB_CONCURRENCY", "2")
+    monkeypatch.delenv("OFFLINE_SKY_JOB_DELAY_SECONDS", raising=False)
+    with caplog.at_level(logging.WARNING, logger="nova.config"):
+        found = cfg.warn_removed_offline_sky_keys()
+    assert found == ["OFFLINE_SKY_JOB_CONCURRENCY"]
+    assert "OFFLINE_SKY_JOB_CONCURRENCY" in caplog.text
+    assert "OFFLINE_SKY_JOB_RATE_PER_SEC" in caplog.text
+    monkeypatch.delenv("OFFLINE_SKY_JOB_CONCURRENCY")
+    assert cfg.warn_removed_offline_sky_keys() == []
+
+
+def test_stale_cancel_markers_and_deleted_save_jobs_are_swept(upstream, runners):
+    _enqueue_save("z1", _small_frame(), 5, [DSS])
+    r = runners()
+    r.acquire()
+    r.run_pending()
+    assert jobs.read_job("z1")["status"] == "done"
+    # A cancel that raced the end of the job, and a marker with no job at all.
+    for jid in ("z1", "nojob"):
+        with open(jobs._cancel_path(jid), "w") as fh:
+            fh.write("1")
+    # A finished save job whose save was deleted by a route that saw it active.
+    os.remove(os.path.join(store.pins_dir(), "z1.json"))
+    r.run_pending()
+    assert not os.path.exists(jobs._cancel_path("z1"))
+    assert not os.path.exists(jobs._cancel_path("nojob"))
+    assert jobs.read_job("z1") is None
+
+
+def test_delete_route_removes_job_files_of_finished_save(client, db_session, monkeypatch,
+                                                         upstream, runners):
+    _save_on(monkeypatch)
+    sid = "aaaaaaaa-0000-0000-0000-000000000003"
+    _enqueue_save(sid, _small_frame(), 5, [DSS], user_id=_default_uid(db_session))
+    r = runners()
+    r.acquire()
+    r.run_pending()
+    with open(jobs._cancel_path(sid), "w") as fh:
+        fh.write("1")                           # stale marker
+    resp = client.delete(f"/api/offline/saves/{sid}")
+    assert resp.get_json() == {"deleted": True}
+    assert jobs.read_job(sid) is None and not os.path.exists(jobs._cancel_path(sid))
+    assert store.read_save_manifest(sid) is None and store.pinned_bytes() == 0
 
 
 # ---------------------------------------------------------------------------
