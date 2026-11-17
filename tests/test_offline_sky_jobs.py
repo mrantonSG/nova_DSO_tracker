@@ -666,6 +666,8 @@ def test_cap_reached_mid_job_stops_with_partial_manifest(upstream, runners, monk
     assert 0 < len(m["paths"]) < len(rels)
     assert m["partial"] is True and m["status"] == "stopped"
     assert m["bytes"] == len(m["paths"]) * 100 * 1024 <= 1024 * 1024
+    # Stopped for space, but its job still has the params a re-run needs: it
+    # keeps what it got pinned, so the re-run resumes instead of re-fetching.
     assert store.pinned_bytes() == m["bytes"]
 
 
@@ -1128,6 +1130,7 @@ def test_unexpected_error_runs_the_finish_path(upstream, runners, monkeypatch):
     assert not os.path.exists(jobs._cancel_path("f1"))
     assert store.job_pins("f1") == set()
     # Tile 3 is on disk but in no manifest: it is browsed now, and counted so.
+    # The two tiles the failed save got are pinned still -- its job resumed-able.
     assert store.pinned_bytes() == m["bytes"] == 2 * 1000
     assert store.total_bytes() == 1000
 
@@ -1349,3 +1352,88 @@ def test_js_sends_frame_and_rig_not_view():
     assert "getFov" not in body                     # nothing about the Aladin view size
     assert "frame_w_deg" in body and "rig_id" in body
     assert "radius_deg" not in src[src.index("// OFFLINE SKY: offline view toggle"):]
+
+
+# ---------------------------------------------------------------------------
+# Pin bookkeeping: what the runner sweeps and reconciles (item 9)
+# ---------------------------------------------------------------------------
+
+def test_a_pins_file_with_no_job_state_is_swept(upstream, runners):
+    """A crash between the claim and its state file leaves a claims file that
+    pins tiles no save covers and nothing would ever release."""
+    os.makedirs(store.jobs_dir(), exist_ok=True)
+    orphan = store._job_pins_path("ghost")
+    with open(orphan, "w", encoding="utf-8") as fh:
+        fh.write("dss2-color/Norder3/Dir0/Npix1.jpg\n")
+    assert store.all_job_pins()                        # it counts while it exists
+    r = runners()
+    r.acquire()
+    r.run_pending()
+    assert not os.path.exists(orphan)
+    assert store.all_job_pins() == set()
+
+
+def test_the_orphan_sweep_keeps_a_jobs_claims_while_its_state_exists(upstream, runners):
+    """The sweep only drops claims whose job state is gone entirely; a job that
+    still has state keeps its claims (write-ahead: the state exists first)."""
+    os.makedirs(store.jobs_dir(), exist_ok=True)
+    store.write_save_manifest({"id": "live", "user_id": 1, "name": "T", "surveys": [DSS],
+                               "paths": [], "bytes": 0, "status": "done",
+                               "created": "2026-01-01T00:00:00Z"})
+    store.write_json_atomic(jobs._job_path("live"),
+                            {"id": "live", "kind": "save", "status": "done", "params": {},
+                             "surveys": [DSS], "total": 0, "done": 0, "bytes": 0})
+    key = "dss2-color/Norder3/Dir0/Npix1.jpg"
+    store.claim_for_job("live", key)
+    r = runners()
+    r.acquire()
+    r.run_pending()
+    assert os.path.exists(jobs._job_path("live"))
+    assert key in store.all_job_pins()
+
+
+def test_the_runner_reconciles_pins_once_at_start(upstream, runners, monkeypatch):
+    """Totals on disk are re-derived from the manifests at the runner's first
+    pass, so an upgrade that un-pins a cancelled save's tiles is reflected."""
+    calls = []
+    real = store.refresh_pinned_bytes
+    monkeypatch.setattr(store, "refresh_pinned_bytes",
+                        lambda: (calls.append(1), real())[1])
+    r = runners()
+    r.acquire()
+    r.run_pending()
+    first = len(calls)
+    assert first >= 1
+    r.run_pending()                                    # a second pass does not repeat it
+    assert len(calls) == first
+
+
+def test_a_cancelled_save_pins_nothing_but_keeps_its_tiles(upstream, runners):
+    """The LDN1295 case end to end: tiles it fetched stay on disk, unpinned."""
+    upstream.size = 1000
+    frame = _small_frame()
+    _enqueue_save("k1", frame, 6, [DSS])
+    r = runners()
+    r.acquire()
+
+    real_store = store.store_file
+    n = [0]
+
+    def store_then_cancel(slug, rel, data, count=True):
+        wrote = real_store(slug, rel, data, count=count)
+        n[0] += 1
+        if n[0] == 3:
+            jobs.cancel_job("k1")
+        return wrote
+
+    import unittest.mock as _mock
+    with _mock.patch.object(store, "store_file", store_then_cancel):
+        r.run_pending()
+    state = jobs.read_job("k1")
+    assert state["status"] == "cancelled"
+    m = store.read_save_manifest("k1")
+    assert len(m["paths"]) >= 2
+    assert store.pinned_bytes() == 0                   # covers nothing
+    assert store.total_bytes() == len(m["paths"]) * 1000
+    for key in m["paths"]:
+        assert store.pinned_key_size(key) is not None   # nothing deleted

@@ -752,3 +752,58 @@ def test_js_save_paths_gated_on_save_flag():
     for fn in ("ensureOfflineBaseSurveys", "refreshOfflineMarks", "refreshOfflineStatus"):
         m = re.search(r"function " + fn + r"\(\) \{\n\s*(.+)\n", src)
         assert m and m.group(1).strip() == "if (!offlineBaseUiEnabled()) return;", fn
+
+
+# ---------------------------------------------------------------------------
+# What a save covers: paths and missing paths, and only while it is unfinished
+# ---------------------------------------------------------------------------
+
+def _coverage_manifest(save_id, status, paths, missing_paths=(), user_id=1):
+    return {"id": save_id, "user_id": user_id, "name": "x", "ra": 0.0, "dec": 0.0,
+            "radius_deg": 1.0, "surveys": [DSS_COLOR], "max_order": 3,
+            "created": "2026-01-01T00:00:00Z", "bytes": 0,
+            "paths": list(paths), "missing_paths": list(missing_paths), "status": status}
+
+
+def test_a_done_save_covers_its_missing_tiles_too():
+    """Tiles every mirror answered 404 for are part of what the save covers, so
+    the next save does not ask for them all over again."""
+    from nova.offline_sky_store import read_save_manifest, save_covers, write_save_manifest
+    rels = _store_n_tiles(2, 1000)
+    write_save_manifest(_coverage_manifest("00000000-0000-0000-0000-00000000000d", "done",
+                                  [f"{DSS_COLOR}/{rels[0]}"],
+                                  [f"{DSS_COLOR}/{rels[1]}"]))
+    covers = save_covers(read_save_manifest("00000000-0000-0000-0000-00000000000d"))
+    assert covers == {f"{DSS_COLOR}/{rels[0]}", f"{DSS_COLOR}/{rels[1]}"}
+
+
+@pytest.mark.parametrize("status", ["cancelled", "stopped", "failed"])
+def test_an_unfinished_save_covers_nothing(status):
+    """Cancel it, or run out of space, and its tiles go back to the browsing
+    budget -- they stay on disk, they are just no longer pinned."""
+    from nova.offline_sky_store import read_save_manifest, save_covers, write_save_manifest
+    write_save_manifest(_coverage_manifest("00000000-0000-0000-0000-00000000000e", status,
+                                  [f"{DSS_COLOR}/Norder3/Dir0/Npix1.jpg"]))
+    assert save_covers(read_save_manifest("00000000-0000-0000-0000-00000000000e")) == set()
+
+
+def test_an_unfinished_save_stops_pinning_but_keeps_its_bytes(monkeypatch):
+    """The LDN1295 case: a cancelled save's tiles become browsable and count
+    towards .total, and nothing is deleted from disk."""
+    from nova.offline_sky_store import write_save_manifest, refresh_pinned_bytes
+    monkeypatch.setattr("nova.offline_sky_store.OFFLINE_SKY_CACHE_MB", 8)
+    rels = _store_n_tiles(2, 1000)
+    key0 = f"{DSS_COLOR}/{rels[0]}"
+    write_save_manifest(_coverage_manifest("00000000-0000-0000-0000-00000000000f", "cancelled", [key0]))
+    assert refresh_pinned_bytes() == 0
+    assert total_bytes() == 2000
+    assert read_file(DSS_COLOR, rels[0]) is not None      # still on disk
+    result = evict_browsed()
+    assert result["pinned"] == 0                          # its tile is no longer pinned
+
+
+def test_a_manifest_without_a_status_still_covers():
+    """The first step-2 version wrote no status; its tiles stay pinned (they are
+    what those saves spent real bytes on)."""
+    from nova.offline_sky_store import save_covers
+    assert save_covers({"paths": ["dss2-color/a.jpg"]}) == {"dss2-color/a.jpg"}

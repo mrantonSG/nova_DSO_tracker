@@ -677,18 +677,25 @@ def _write_legacy(uid, status="cancelled"):
                    "updated": 1794871901.743596}, fh)
 
 
-def test_legacy_save_is_listed_as_deletable(monkeypatch, client, db_session):
+def test_legacy_unfinished_save_is_hidden_but_still_deletable(monkeypatch, client, db_session):
+    """A legacy save that never finished covers nothing and can never run again,
+    so the list hides it. Its file stays, its summary is still readable, and it
+    can still be deleted."""
     _save_on(monkeypatch)
     monkeypatch.setattr(jobs, "kick", lambda: False)
     _write_legacy(_uid(db_session))
     resp = client.get("/api/offline/saves")
     assert resp.status_code == 200
-    (s,) = resp.get_json()["saves"]
-    assert s["id"] == LEGACY_ID and s["legacy"] is True
+    assert resp.get_json()["saves"] == []            # hidden from the list
+
+    # the summary is still there, and still says what it always said
+    prog = client.get(f"/api/offline/saves/{LEGACY_ID}/progress")
+    assert prog.status_code == 200
+    s = prog.get_json()["manifest"]
+    assert s["id"] == LEGACY_ID and s["legacy"] is True and s["legacy_unfinished"] is True
     assert s["status"] == "cancelled" and s["partial"] is True
     assert s["detail_offset"] is None
     assert s["survey_ids"] == ["P/DSS2/color", "https://www.simg.de/nebulae3/dr0_2/oiii8"]
-    assert client.get(f"/api/offline/saves/{LEGACY_ID}/progress").status_code == 200
 
     assert client.delete(f"/api/offline/saves/{LEGACY_ID}").status_code == 200
     assert store.read_save_manifest(LEGACY_ID) is None
@@ -696,12 +703,23 @@ def test_legacy_save_is_listed_as_deletable(monkeypatch, client, db_session):
     assert client.get("/api/offline/saves").get_json()["saves"] == []
 
 
+def test_legacy_done_save_is_still_listed(monkeypatch, client, db_session):
+    """Only a legacy save that never finished is hidden: a finished one covers
+    its tiles and stays in the list."""
+    _save_on(monkeypatch)
+    monkeypatch.setattr(jobs, "kick", lambda: False)
+    _write_legacy(_uid(db_session), status="done")
+    (s,) = client.get("/api/offline/saves").get_json()["saves"]
+    assert s["legacy"] is True and s["legacy_unfinished"] is False and s["status"] == "done"
+
+
 def test_legacy_save_left_running_reads_as_failed_and_its_job_cannot_crash(monkeypatch, client, db_session):
     _save_on(monkeypatch)
     monkeypatch.setattr(jobs, "kick", lambda: False)
     _write_legacy(_uid(db_session), status="running")
-    (s,) = client.get("/api/offline/saves").get_json()["saves"]
+    s = client.get(f"/api/offline/saves/{LEGACY_ID}/progress").get_json()["manifest"]
     assert s["status"] == "failed" and s["partial"] is True and s["legacy"] is True
+    assert s["legacy_unfinished"] is True
     # Its job file has no params: whoever runs the queue marks it failed, no exception.
     jobs.JobRunner(rate=1000).run_job(LEGACY_ID)
     assert jobs.read_job(LEGACY_ID)["status"] == "failed"

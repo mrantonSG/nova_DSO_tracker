@@ -2385,7 +2385,7 @@
             fovLayer = A.graphicOverlay({color: (window.stylingUtils && window.stylingUtils.getPrimaryColor) ? window.stylingUtils.getPrimaryColor() : '#83b4c5', lineWidth: 3});
             aladin.addOverlay(fovLayer);
             const canvas = document.getElementById('aladin-lite-div');
-            if (window.ResizeObserver && canvas) { let roTimer = null; const ro = new ResizeObserver(() => { clearTimeout(roTimer); roTimer = setTimeout(() => { const sel = document.getElementById('framing-rig-select'); if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; applyRigFovZoom(opt.dataset.fovw, opt.dataset.fovh); } updateFramingChart(false); }, 80); }); ro.observe(canvas); }
+            if (window.ResizeObserver && canvas) { let roTimer = null; const ro = new ResizeObserver(() => { clearTimeout(roTimer); roTimer = setTimeout(() => { const sel = document.getElementById('framing-rig-select'); const rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; applyRigFovZoom(opt.dataset.fovw, opt.dataset.fovh, rot); } updateFramingChart(false); }, 80); }); ro.observe(canvas); }
             (function ensureScreenOverlay(){ const host = document.getElementById('aladin-lite-div'); if (!host || document.getElementById('screen-fov-overlay')) return; const ov = document.createElement('div'); ov.id = 'screen-fov-overlay'; ov.className = 'screen-fov-overlay'; const rect = document.createElement('div'); rect.id = 'screen-fov-rect'; rect.className = 'screen-fov-rect'; rect.hidden = true; ov.appendChild(rect); host.appendChild(ov); })();
             (function wireRotationLiveUpdate(){ const rotInput = document.getElementById('framing-rotation'); if (!rotInput) return; const handler = () => { const raw = (typeof rotInput.valueAsNumber === 'number') ? rotInput.valueAsNumber : parseFloat(rotInput.value) || 0; const snapped = (Math.abs(raw) <= 1) ? 0 : raw; if (snapped !== raw) rotInput.value = String(snapped); updateFramingChart(false); }; try { rotInput.removeEventListener('input', rotInput.__novaRotHandler); } catch(e) {} try { rotInput.removeEventListener('change', rotInput.__novaRotHandler); } catch(e) {} rotInput.__novaRotHandler = handler; rotInput.addEventListener('input', handler); rotInput.addEventListener('change', handler); try { rotInput.setAttribute('value', String(rotInput.valueAsNumber ?? rotInput.value ?? 0)); } catch(e) {} handler(); })();
             (function wireInsertIntoProject(){ const btn = document.getElementById('insert-into-project'); if (!btn) return; try { btn.removeEventListener('click', btn.__novaInsertHandler); } catch(e) {} btn.__novaInsertHandler = (ev) => { try { const q = buildFramingQuery(), href = location.pathname + q; history.replaceState(null, '', href); } catch(e) { console.warn('[nova] Insert-to-project wiring error:', e); } }; btn.addEventListener('click', btn.__novaInsertHandler); })();
@@ -2446,7 +2446,8 @@
         if (haveCenter) {
             if (aladin && typeof aladin.gotoRaDec === 'function') aladin.gotoRaDec(params.ra, params.dec);
             const sel = document.getElementById('framing-rig-select');
-            if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; applyRigFovZoom(opt.dataset.fovw, opt.dataset.fovh); }
+            const rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0;
+            if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; applyRigFovZoom(opt.dataset.fovw, opt.dataset.fovh, rot); }
         }
         updateFramingChart(haveCenter ? false : true);
         updateFovVsObjectLabel?.();
@@ -2626,12 +2627,31 @@
         }
     }
     
+    /** The whole frame in degrees: one pane grown by the mosaic, overlap counted.
+     *  cols/rows/overlapPct fall back to the inputs (1x1, 10%) -- the same maths
+     *  the offline save frame uses (offlineSaveFrame), so the two agree. */
+    function frameExtentDeg(paneWDeg, paneHDeg, cols, rows, overlapPct) {
+        const c = Math.max(1, parseInt(cols, 10) || 1);
+        const r = Math.max(1, parseInt(rows, 10) || 1);
+        const ov = (Math.min(80, Math.max(0, parseFloat(overlapPct) || 0))) / 100;
+        return { w: paneWDeg * (1 + (c - 1) * (1 - ov)), h: paneHDeg * (1 + (r - 1) * (1 - ov)) };
+    }
+    /** Fit the view to the whole frame -- every pane of a mosaic, at its rotation.
+     *
+     *  fovW/fovH may be the pane size (arcmin) for the callers that have only that;
+     *  whatever is passed is treated as the frame the mosaic grows from, so the
+     *  fit and the overlay rectangle always describe the same rectangle.
+     */
     function applyRigFovZoom(fovW_arcmin, fovH_arcmin, rotationDeg = 0, margin = 1.06) {
         if (!aladin) return; const host = document.getElementById('aladin-lite-div'); if (!host) return;
         const wpx = host.clientWidth, hpx = host.clientHeight; if (!(wpx > 0 && hpx > 0)) return; const aspect = wpx / hpx;
-        const wDeg = parseFloat(fovW_arcmin) / 60, hDeg = parseFloat(fovH_arcmin) / 60; if (!(isFinite(wDeg) && isFinite(hDeg) && wDeg > 0 && hDeg > 0)) return;
+        const paneWDeg = parseFloat(fovW_arcmin) / 60, paneHDeg = parseFloat(fovH_arcmin) / 60; if (!(isFinite(paneWDeg) && isFinite(paneHDeg) && paneWDeg > 0 && paneHDeg > 0)) return;
+        const frame = frameExtentDeg(paneWDeg, paneHDeg,
+                                     document.getElementById('mosaic-cols')?.value,
+                                     document.getElementById('mosaic-rows')?.value,
+                                     document.getElementById('mosaic-overlap')?.value);
         const th = (parseFloat(rotationDeg) || 0) * Math.PI / 180;
-        const needWidthDeg = Math.abs(wDeg * Math.cos(th)) + Math.abs(hDeg * Math.sin(th)), needHeightDeg = Math.abs(wDeg * Math.sin(th)) + Math.abs(hDeg * Math.cos(th));
+        const needWidthDeg = Math.abs(frame.w * Math.cos(th)) + Math.abs(frame.h * Math.sin(th)), needHeightDeg = Math.abs(frame.w * Math.sin(th)) + Math.abs(frame.h * Math.cos(th));
         const requiredWidthDeg = Math.max(needWidthDeg * margin, needHeightDeg * margin * aspect);
         aladin.setFov(requiredWidthDeg);
         updateScreenFovOverlay(fovW_arcmin, fovH_arcmin, rotationDeg);

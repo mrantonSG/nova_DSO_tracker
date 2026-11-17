@@ -2287,15 +2287,15 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     gap: 6px 8px;
     min-width: 0;
 }
-/* The status takes the room the buttons leave and wraps inside it; the buttons
-   only drop to their own line once that room is under 7.5em. */
+/* The status takes the room the buttons leave and stays on one line, whatever
+   the state (Done / Cancelled / Downloading 512 / 1402 read the same way); the
+   buttons drop to their own line once that room is under the status's width. */
 .offline-save-status {
-    flex: 1 1 0;
-    min-width: 7.5em;
+    flex: 1 1 auto;
     font-family: var(--font-mono);
     font-size: 12px;
     color: var(--text-secondary);
-    overflow-wrap: anywhere;
+    white-space: nowrap;
 }
 .offline-save-status:empty { display: none; }
 .offline-save-status[data-tone="success"] { color: #2a9060; }

@@ -546,13 +546,28 @@ def cancel_requested(job_id: str) -> bool:
 
 def sweep_stale_job_files() -> None:
     """Drop cancel markers of jobs that are not active (a cancel that raced the
-    job's end) and the state of save jobs whose save is gone. Runner only."""
+    job's end), the state of save jobs whose save is gone, and the tile claims of
+    a job with no state at all (a crash between the claim and its state file, or
+    a state deleted by hand). Left behind, those claims pin tiles no save covers:
+    nothing would ever release them. Runner only.
+
+    Write-ahead is safe here: ``claim_for_job`` creates the claims file and the
+    job state under the same pin lock, so a state file is never momentarily
+    absent for a job that is being created.
+    """
     try:
         names = os.listdir(store.jobs_dir())
     except FileNotFoundError:
         return
     for name in names:
-        if name.endswith(".cancel"):
+        if name.endswith(".pins"):
+            base = name[:-len(".pins")]
+            if not os.path.exists(_job_path(base)):
+                try:
+                    os.remove(os.path.join(store.jobs_dir(), name))
+                except OSError:
+                    pass
+        elif name.endswith(".cancel"):
             state = read_job(name[:-len(".cancel")])
             if not state or state.get("status") not in ACTIVE_STATUSES:
                 try:
@@ -626,6 +641,7 @@ class JobRunner:
         self._fh = None
         self._thread = None
         self._stop = threading.Event()
+        self._reconciled = False   # pin totals rewritten once per process (see reconcile_pins)
 
     # --- lock ---
     @staticmethod
@@ -645,6 +661,20 @@ class JobRunner:
         unlock(self._fh)
         self._fh = None
 
+    def reconcile_pins(self) -> None:
+        """Rewrite the pin totals from disk, once per runner process.
+
+        Tiles that only an unfinished save held (cancelled, or stopped with no
+        space) are not pinned any more, so ``.total``/``.pinned`` are stale after
+        an upgrade until something recomputes them. Cheap, and only once per
+        process -- callers that need it up to date now (the save and estimate
+        routes) still call ``refresh_pinned_bytes`` themselves.
+        """
+        if self._reconciled:
+            return
+        self._reconciled = True
+        store.refresh_pinned_bytes()
+
     # --- loop ---
     def pending(self):
         jobs = [j for j in list_jobs() if j.get("status") in ACTIVE_STATUSES]
@@ -656,6 +686,7 @@ class JobRunner:
         if not self.owns_lock:
             return 0
         sweep_stale_job_files()
+        self.reconcile_pins()
         n = 0
         for state in self.pending():
             if self._stop.is_set():
@@ -869,7 +900,13 @@ class JobRunner:
                 if final:
                     claimed = store.take_job_pins_locked(job_id)
                     loose = claimed - store.pinned_rel_paths()
-                    leftover = any(store.pinned_key_size(k) is not None for k in loose)
+                    # Only a tile that is on disk *and* now pinned by nothing else
+                    # moved from pinned to browsed without being handed on.
+                    leftover = any(
+                        store.pinned_key_size(k) is not None
+                        and k not in store.base_pinned_rel_paths()
+                        for k in loose
+                    )
                 store.refresh_pinned_bytes()
             return leftover
 

@@ -350,6 +350,10 @@ function buildCase(c, opts = {}) {
         function setSurvey() { return Promise.resolve(); }
         function ensureBlendLayer() {} function setBlendOpacity() {} function showSurveyNotice() {}
         function updateScreenFovOverlay() {}
+        // applyRigFovZoom grows the frame by the mosaic through this helper, so it
+        // has to exist here too (the harness stubs only what the frozen values
+        // need; the fit itself is pinned in tests/test_framing_zoom_fit.py).
+        function frameExtentDeg(paneW, paneH) { return { w: paneW, h: paneH }; }
         function startFrameOverlayLoop() {} function stopFrameOverlayLoop() {}
         function deleteSavedFraming() {}
         // what openFramingAssistant calls besides the extracted functions

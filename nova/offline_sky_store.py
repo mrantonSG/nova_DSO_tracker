@@ -248,6 +248,12 @@ def _write_json(path, data) -> None:
 # pinned until the last referencing manifest is deleted.
 # ---------------------------------------------------------------------------
 
+# A partial save (stopped for space, or failed) keeps its coverage only while
+# something can still resume it -- see save_covers. A cancelled save never does:
+# the user took it back, so its tiles go back to the browsing budget (they stay
+# on disk, as ordinary evictable tiles; nothing is deleted here).
+PARTIAL_STATUSES = ("stopped", "failed")
+
 def base_pinned_rel_paths() -> set:
     data = _read_json(_base_pins_path(), {})
     if isinstance(data, dict) and isinstance(data.get("paths"), list):
@@ -291,9 +297,7 @@ def delete_save_manifest(uuid: str) -> bool:
         except FileNotFoundError:
             return False
         keys = set(take_job_pins_locked(uuid))
-        paths = manifest.get("paths") if isinstance(manifest, dict) else None
-        if isinstance(paths, list):
-            keys |= {str(p) for p in paths}
+        keys |= save_covers(manifest)
         if keys:
             still_pinned = pinned_rel_paths()
             released = 0
@@ -382,14 +386,54 @@ def take_job_pins_locked(job_id: str) -> set:
     return keys
 
 
+def save_covers(manifest) -> set:
+    """Keys one save holds, as "<slug>/<rel>": its tiles and its missing ones.
+
+    ``paths`` are on disk, ``missing_paths`` were answered 404 by every mirror.
+    Both are part of what the save means to cover -- counting only ``paths``
+    would let the next save fetch the missing ones all over again.
+
+    A partial save (``stopped``, ``failed``) keeps its coverage while its job
+    still has params, because that is what a later run resumes from (it picks up
+    from the checkpoint rather than fetching the tiles again). A cancelled save,
+    and a save with no job params at all, covers nothing. A manifest with no
+    status covers: the first step-2 version wrote none.
+    """
+    if not isinstance(manifest, dict):
+        return set()
+    status = manifest.get("status")
+    if status == "cancelled":
+        return set()
+    if status in PARTIAL_STATUSES and not _job_has_params(manifest.get("id")):
+        return set()
+    keys = set()
+    for field in ("paths", "missing_paths"):
+        value = manifest.get(field)
+        if isinstance(value, list):
+            keys |= {str(p) for p in value}
+    return keys
+
+
+def _job_has_params(job_id) -> bool:
+    """True when the save's job still holds the params a re-run needs.
+
+    Read straight off the job file rather than through nova.offline_sky_jobs, so
+    the store keeps no import of the jobs layer. A save with no job file (or one
+    the first step-2 version wrote without params) can never run again, so it
+    resumes nothing.
+    """
+    if not job_id:
+        return False
+    data = _read_json(os.path.join(jobs_dir(), f"{job_id}.json"), None)
+    return bool(isinstance(data, dict) and data.get("params"))
+
+
 def pinned_rel_paths() -> set:
-    """Rel paths eviction must skip: base tiles, every save manifest's tiles and
-    every tile a running job has claimed."""
+    """Rel paths eviction must skip: base tiles, what every covering save holds
+    and every tile a running job has claimed."""
     pinned = base_pinned_rel_paths()
     for _uuid, manifest in list_save_manifests():
-        paths = manifest.get("paths")
-        if isinstance(paths, list):
-            pinned |= {str(p) for p in paths}
+        pinned |= save_covers(manifest)
     return pinned | all_job_pins()
 
 

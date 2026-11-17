@@ -435,6 +435,10 @@ def _manifest_summary(manifest: dict) -> dict:
     params, so their job can never run again. They are listed as ``legacy``
     (deletable, nothing else), a non-final status reads as "failed", and
     ``partial`` follows the status when the manifest doesn't say.
+
+    ``legacy_unfinished``: a legacy save that is not ``done`` -- it can never
+    run again and covers nothing (see ``store.save_covers``), so the list route
+    hides it.
     """
     from nova.offline_sky_jobs import FINAL_STATUSES
     from nova.offline_sky_sources import SURVEY_ID_BY_SLUG
@@ -464,6 +468,7 @@ def _manifest_summary(manifest: dict) -> dict:
         "partial": bool(manifest.get("partial", status != "done")),
         "status": status,
         "legacy": legacy,
+        "legacy_unfinished": legacy and status != "done",
     }
 
 
@@ -475,8 +480,15 @@ def offline_saves_list():
     from nova.offline_sky_store import list_save_manifests
     saves = []
     for _uuid, manifest in list_save_manifests():
-        if manifest.get("user_id") == uid:
-            saves.append(_manifest_summary(manifest))
+        if manifest.get("user_id") != uid:
+            continue
+        # An unfinished save from the first step-2 version can never run again
+        # (no job params) and holds nothing: hide it rather than show a row that
+        # can only be deleted. Its file stays, so a later version could still
+        # read it.
+        if _manifest_summary(manifest)["legacy_unfinished"]:
+            continue
+        saves.append(_manifest_summary(manifest))
     saves.sort(key=lambda s: s.get("created", ""), reverse=True)
     return jsonify({"saves": saves})
 
