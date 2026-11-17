@@ -12,7 +12,6 @@
     };
 
     let currentTimeUpdateInterval = null;
-    let framingKeydownHandler = null; // Store keydown handler for cleanup
 
     // Helper to get framing utils (with fallback for missing module)
     const fu = () => window.framingUtils || {
@@ -285,22 +284,6 @@
         return { ra: raNow * 180.0 / Math.PI, dec: decNow * 180.0 / Math.PI };
     }
     
-    function convertJNowToJ2000(raDeg, decDeg) {
-        const jdNow = (new Date().getTime() / 86400000.0) + 2440587.5;
-        const m = getPrecessionMatrix(jdNow);
-        // Transpose matrix for inverse rotation
-        const mt = [ [m[0][0], m[1][0], m[2][0]], [m[0][1], m[1][1], m[2][1]], [m[0][2], m[1][2], m[2][2]] ];
-        const raRad = raDeg * Math.PI / 180.0, decRad = decDeg * Math.PI / 180.0;
-        const x = Math.cos(decRad) * Math.cos(raRad);
-        const y = Math.cos(decRad) * Math.sin(raRad);
-        const z = Math.sin(decRad);
-        const v2 = applyMatrix(mt, [x, y, z]);
-        const r = Math.sqrt(v2[0]*v2[0] + v2[1]*v2[1]);
-        let raJ2000 = Math.atan2(v2[1], v2[0]);
-        if (raJ2000 < 0) raJ2000 += 2 * Math.PI;
-        const decJ2000 = Math.atan2(v2[2], r);
-        return { ra: raJ2000 * 180.0 / Math.PI, dec: decJ2000 * 180.0 / Math.PI };
-    }
     // --- End Precession Helpers ---
     
     // Weather icons rendered off-screen, keyed by icon id + colour + devicePixelRatio
@@ -724,7 +707,6 @@
     };
     console.log('Adapter:', Chart._adapters?._date?.id, 'Zone:', Chart.defaults.adapters.date.zone);
     
-    const OBJECT_SIZE_ARCMIN = null;
     let aladin = null;
     let scanResultsCatalog = null;
     let scanFrameActive    = false;
@@ -735,7 +717,6 @@
     let __blendLayerUrl = null;       // URL the blend layer was built from (CDS or a DSS mirror)
     let displayedBaseSurvey = null;   // survey value of the base layer actually shown (may be the NSNS fallback)
     let displayedBlendSurvey = null;  // survey value of the blend layer actually shown, null when none
-    let framingModalController = null; // ModalController instance for framing modal
 
     // --- Secondary Object Comparison State ---
     let secondaryObjectName = null;           // Name of selected secondary object (slug)
@@ -891,7 +872,6 @@
     function showSurveyLoading() {
         const host = document.getElementById('aladin-lite-div');
         if (!host || document.getElementById('survey-loading')) return;
-        if (!host.style.position) host.style.position = 'relative';
         const el = document.createElement('div');
         el.id = 'survey-loading';
         const spinner = document.createElement('span');
@@ -2079,9 +2059,6 @@
     let baseSurvey = null;
     let blendLayer = null;
     let geoBeltLayer = null; // Layer for satellite belt
-    let fovCenter = null;
-    let lockToObject = true;  // Default to ON - Lock FoV always starts enabled
-    let objectCoords = null;
     function to360(deg) { return ((deg % 360) + 360) % 360; }
     function toSigned180(deg) { const d = to360(deg); return d > 180 ? d - 360 : d; }
     let __pendingRotation = null;
@@ -2094,10 +2071,8 @@
             __pendingRotation = null; __rafRotation = null;
             // Clamp to configured rotation range (0-360 by default)
             const rotation = Math.max(FRAMING_CONFIG.ROTATION_MIN, Math.min(FRAMING_CONFIG.ROTATION_MAX, Number(val) || 0));
-            if (typeof lockToObject !== 'undefined' && lockToObject) {
-                const sel = document.getElementById('framing-rig-select');
-                if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rotation); }
-            }
+            const sel = document.getElementById('framing-rig-select');
+            if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rotation); }
             if (typeof window.updateFramingChart === 'function') window.updateFramingChart(false);
         });
     }
@@ -2110,13 +2085,6 @@
         const span = document.getElementById('rotation-value');
         if (span) span.textContent = v.toFixed(1).replace(/\.0$/, '') + '°';
         scheduleRotationUpdate(v);
-    }
-    function toggleFramingFullscreen(btn) {
-        const modalContent = document.getElementById('framing-modal-content');
-        if (!modalContent) return;
-        modalContent.classList.toggle('fullscreen');
-        const isFullscreen = modalContent.classList.contains('fullscreen');
-        if (btn) { btn.innerHTML = isFullscreen ? '&#x21F2;' : '&#x2922;'; btn.title = isFullscreen ? 'Exit fullscreen' : 'Fullscreen'; }
     }
 
     // ========================================================================
@@ -2298,12 +2266,6 @@
             flags.pendingImageAdjustments = pendingImageAdjustments;
         }
 
-        // ALWAYS ensure Lock FoV is ON (explicit checkbox state)
-        const lockBox = document.getElementById('lock-to-object');
-        if (lockBox) {
-            lockBox.checked = true;
-        }
-
         // Restore Geo Belt checkbox state (default ON if not specified)
         const geoBeltCheckbox = document.getElementById('show-geo-belt');
         if (geoBeltCheckbox) {
@@ -2321,137 +2283,14 @@
         return flags;
     }
 
-    /**
-     * Restore framing assistant state from query parameters
-     */
-    function restoreFramingState(params) {
-        const flags = {
-            haveCenter: false,
-            haveRot: false,
-            haveRigRestored: false
-        };
-
-        // Restore rig selection — the record_uid alone decides, never the row number
-        if (params.rigUid) {
-            const sel = document.getElementById('framing-rig-select');
-            if (sel) {
-                const idx = Array.from(sel.options).findIndex(o => o.dataset.rigUid === params.rigUid);
-                if (idx >= 0) {
-                    sel.selectedIndex = idx;
-                    flags.haveRigRestored = true;
-                }
-            }
-        }
-
-        // Restore rotation
-        if (!Number.isNaN(params.rot)) {
-            const rotInput = document.getElementById('framing-rotation');
-            const normRot = (fu().normalizeAngle ? fu().normalizeAngle(params.rot) : ((params.rot % 360 + 360) % 360));
-            if (rotInput) rotInput.value = normRot;
-            const rotSpan = document.getElementById('rotation-value');
-            if (rotSpan) rotSpan.textContent = `${Math.round(normRot)}°`;
-            flags.haveRot = true;
-        }
-
-        // Restore survey
-        if (params.survey) {
-            const sSel = document.getElementById('survey-select');
-            if (sSel) sSel.value = params.survey;
-            if (typeof setSurvey === 'function') setSurvey(params.survey);
-        }
-
-        // Restore blend settings
-        try {
-            const bsel = document.getElementById('blend-survey-select');
-            const bop = document.getElementById('blend-opacity');
-            if (params.blend && bsel) {
-                bsel.value = params.blend;
-                if (typeof ensureBlendLayer === 'function') ensureBlendLayer();
-            }
-            if (!Number.isNaN(params.blendOp) && bop) {
-                bop.value = String(Math.max(0, Math.min(1, params.blendOp)));
-                if (typeof setBlendOpacity === 'function') setBlendOpacity(bop.value);
-            }
-        } catch (e) {
-            console.warn('[nova] Blend restore error:', e);
-        }
-
-        // Restore mosaic settings
-        if (params.m_cols) document.getElementById('mosaic-cols').value = params.m_cols;
-        if (params.m_rows) document.getElementById('mosaic-rows').value = params.m_rows;
-        if (params.m_ov) document.getElementById('mosaic-overlap').value = params.m_ov;
-
-        // Restore image adjustment settings
-        const pendingImageAdjustments = {
-            brightness: !Number.isNaN(params.img_brightness) ? params.img_brightness : null,
-            contrast: !Number.isNaN(params.img_contrast) ? params.img_contrast : null,
-            gamma: !Number.isNaN(params.img_gamma) ? params.img_gamma : null,
-            saturation: !Number.isNaN(params.img_saturation) ? params.img_saturation : null
-        };
-
-        // Set slider values immediately
-        let hasImageAdjustments = false;
-        if (pendingImageAdjustments.brightness !== null) {
-            const el = document.getElementById('img-bright');
-            if (el) { el.value = pendingImageAdjustments.brightness; hasImageAdjustments = true; }
-        }
-        if (pendingImageAdjustments.contrast !== null) {
-            const el = document.getElementById('img-contrast');
-            if (el) { el.value = pendingImageAdjustments.contrast; hasImageAdjustments = true; }
-        }
-        if (pendingImageAdjustments.gamma !== null) {
-            const el = document.getElementById('img-gamma');
-            if (el) { el.value = pendingImageAdjustments.gamma; hasImageAdjustments = true; }
-        }
-        if (pendingImageAdjustments.saturation !== null) {
-            const el = document.getElementById('img-sat');
-            if (el) { el.value = pendingImageAdjustments.saturation; hasImageAdjustments = true; }
-        }
-
-        if (hasImageAdjustments) {
-            flags.pendingImageAdjustments = pendingImageAdjustments;
-        }
-
-        // ALWAYS ensure Lock FoV is ON (explicit checkbox state)
-        const lockBox = document.getElementById('lock-to-object');
-        if (lockBox) {
-            lockBox.checked = true;
-        }
-
-        // Restore Geo Belt checkbox state (default ON if not specified)
-        const geoBeltCheckbox = document.getElementById('show-geo-belt');
-        if (geoBeltCheckbox) {
-            if (params.geo_belt_enabled !== undefined && params.geo_belt_enabled !== null) {
-                geoBeltCheckbox.checked = params.geo_belt_enabled;
-            }
-        }
-
-        // Restore center coordinates
-        if (!Number.isNaN(params.ra) && !Number.isNaN(params.dec)) {
-            flags.haveCenter = true;
-        }
-
-        return flags;
-    }
-
     async function openFramingAssistant(optionalQueryString) {
-        const framingModal = document.getElementById('framing-modal');
         closeOfflineSavePanel();   // the panel starts closed on every open
 
-        // Show the modal frame immediately
-        if (framingModalController) {
-            framingModalController.open();
-        } else {
-            framingModal.style.display = 'block'; // Fallback
-        }
-
-        // Reset any stuck scan state on modal open
+        // Reset any stuck scan state on open
         const _scanBtn = document.getElementById('scan-frame-btn');
         if (_scanBtn) {
-            _scanBtn.textContent   = 'Scan Frame';
-            _scanBtn.disabled      = false;
-            _scanBtn.style.opacity = '';
-            _scanBtn.style.cursor  = '';
+            _scanBtn.textContent = window.t('scan_frame');
+            _scanBtn.disabled    = false;
         }
         if (!scanFrameActive) scanResultsCatalog = null;
         updateScanButtonState();
@@ -2503,13 +2342,13 @@
         }
         // --- END CLEANUP ---
 
-        (function ensureRotationReadout(){ const slider = document.getElementById('framing-rotation'); if (!slider) return; slider.setAttribute('min', '0'); slider.setAttribute('max', '360'); slider.setAttribute('step', '0.5'); if (!slider.hasAttribute('value')) slider.setAttribute('value', '0'); let n = slider.nextSibling; while (n && n.nodeType === Node.TEXT_NODE) { const t = n.textContent.trim(), next = n.nextSibling; if (t === '' || t === '0°') n.parentNode.removeChild(n); else break; n = next; } const existingSpans = Array.from(document.querySelectorAll('#rotation-value')); let span = existingSpans[0]; if (existingSpans.length > 1) existingSpans.slice(1).forEach(el => el.remove()); if (!span) { span = document.createElement('span'); span.id = 'rotation-value'; span.style.marginLeft = '8px'; span.style.fontWeight = 'normal'; span.style.fontSize = '15px'; slider.insertAdjacentElement('afterend', span); try { span.style.fontWeight = 'normal'; } catch(_) {} } try { span.style.cursor = 'pointer'; span.title = 'Tap to reset rotation to 0°'; span.addEventListener('click', () => { const slider = document.getElementById('framing-rotation'); if (!slider) return; slider.value = '0'; slider.dispatchEvent(new Event('input', { bubbles: true })); }, { once: false }); } catch (e) {} })();
+        (function wireRotationReset(){ const span = document.getElementById('rotation-value'); if (!span || span.dataset.resetWired) return; span.dataset.resetWired = '1'; span.addEventListener('click', () => { const slider = document.getElementById('framing-rotation'); if (!slider) return; slider.value = '0'; slider.dispatchEvent(new Event('input', { bubbles: true })); }); })();
 
         // Is CDS reachable? If not, which DSS2 mirror answers? Decides the base layer below
         // (mirror, else NSNS, when CDS is down)
         resetSurveyNotice();
-        // Placeholder only when Aladin still has to be created (not over a cached view)
-        if (!aladin && !framingModalController?.getCachedInstance()) showSurveyLoading();
+        // Placeholder only when Aladin still has to be created (not over an existing view)
+        if (!aladin) showSurveyLoading();
         if (window.NOVA_OFFLINE_SKY) {
             // No browser-side CDS probe: the proxy handles failover itself, and
             // the "server unreachable" notice comes only from the base layer's
@@ -2518,15 +2357,6 @@
             dssMirror = null;
         } else {
             ({ cdsReachable, dssMirror } = await probeSurveySources());
-        }
-
-        // Check if Aladin instance is cached (already initialized from previous modal open)
-        if (!aladin && framingModalController) {
-            const cached = framingModalController.getCachedInstance();
-            if (cached) {
-                aladin = cached;
-                console.log('[FRAMING] Using cached Aladin instance from previous modal open');
-            }
         }
 
         if (!aladin) {
@@ -2547,41 +2377,16 @@
                 hideSurveyLoading();
                 displayedBaseSurvey = initialBase.survey;
                 if (initialBase.notice) showSurveyNotice();
-            (function installSlowWheelZoom(){ if (window.__novaSlowZoomInstalled) return; const host = document.getElementById('aladin-lite-div'); if (!host) return; try { host.style.overscrollBehavior = 'contain'; } catch(e) {} function onWheel(ev) { if (ev.ctrlKey) return; ev.preventDefault(); ev.stopPropagation(); if (!aladin) return; const unit = (ev.deltaMode === 1) ? 16 : (ev.deltaMode === 2) ? 400 : 1; let dy = (ev.deltaY || 0) * unit; dy = Math.max(-80, Math.min(80, dy)); const g = aladin.getFov(), current = Array.isArray(g) ? (g[0] ?? 1) : (g ?? 1); const scale = Math.exp(dy * 0.00075), minFov = 0.01, maxFov = 180; const next = Math.min(maxFov, Math.max(minFov, current * scale)); if (Number.isFinite(next)) aladin.setFov(next); } host.addEventListener('wheel', onWheel, { passive: false, capture: true }); const tryBindCanvas = () => { const cv = host.querySelector('canvas'); if (cv) cv.addEventListener('wheel', onWheel, { passive: false, capture: true }); }; tryBindCanvas(); setTimeout(tryBindCanvas, 50); window.__novaSlowZoomInstalled = true; })();
+            (function installSlowWheelZoom(){ if (window.__novaSlowZoomInstalled) return; const host = document.getElementById('aladin-lite-div'); if (!host) return; function onWheel(ev) { if (ev.ctrlKey) return; ev.preventDefault(); ev.stopPropagation(); if (!aladin) return; const unit = (ev.deltaMode === 1) ? 16 : (ev.deltaMode === 2) ? 400 : 1; let dy = (ev.deltaY || 0) * unit; dy = Math.max(-80, Math.min(80, dy)); const g = aladin.getFov(), current = Array.isArray(g) ? (g[0] ?? 1) : (g ?? 1); const scale = Math.exp(dy * 0.00075), minFov = 0.01, maxFov = 180; const next = Math.min(maxFov, Math.max(minFov, current * scale)); if (Number.isFinite(next)) aladin.setFov(next); } host.addEventListener('wheel', onWheel, { passive: false, capture: true }); const tryBindCanvas = () => { const cv = host.querySelector('canvas'); if (cv) cv.addEventListener('wheel', onWheel, { passive: false, capture: true }); }; tryBindCanvas(); setTimeout(tryBindCanvas, 50); window.__novaSlowZoomInstalled = true; })();
             baseSurvey = aladin.getBaseImageLayer();
             (function wireBlendAndConstellationUI(){ const blendSel = document.getElementById('blend-survey-select'), blendOp = document.getElementById('blend-opacity'); if (blendSel) blendSel.addEventListener('change', () => { if (blendSel.value && blendOp.value === '0') { blendOp.value = '0.5'; } ensureBlendLayer(); const v = Number(blendOp?.value || 0); setBlendOpacity(v); updateSurveyCredit(); updateFramingChart(false); }); if (blendOp) { const sync = (e) => { setBlendOpacity(e.target.value); updateSurveyCredit(); updateFramingChart(false); }; blendOp.addEventListener('input', sync); blendOp.addEventListener('change', sync); } try { if (blendOp) setBlendOpacity(blendOp.value); } catch(e) {} })();
-            if (aladin.on) aladin.on('zoomChanged', () => { if (!lockToObject) return; const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } });
+            if (aladin.on) aladin.on('zoomChanged', () => { const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } });
             if (aladin.on) aladin.on('baseLayerChanged', () => { try { const bop = document.getElementById('blend-opacity'); ensureBlendLayer(); if (bop) setBlendOpacity(bop.value); } catch (e) { console.warn('[nova] Could not reapply blend after base change:', e); } });
             fovLayer = A.graphicOverlay({color: (window.stylingUtils && window.stylingUtils.getPrimaryColor) ? window.stylingUtils.getPrimaryColor() : '#83b4c5', lineWidth: 3});
             aladin.addOverlay(fovLayer);
             const canvas = document.getElementById('aladin-lite-div');
-            if (window.ResizeObserver && canvas) { let roTimer = null; const ro = new ResizeObserver(() => { clearTimeout(roTimer); roTimer = setTimeout(() => { const sel = document.getElementById('framing-rig-select'); if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; applyRigFovZoom(opt.dataset.fovw, opt.dataset.fovh); } updateFramingChart(false); if (lockToObject) { const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } } }, 80); }); ro.observe(canvas); }
-            (function ensureScreenOverlay(){ const host = document.getElementById('aladin-lite-div'); if (!host) return; if (!host.style.position) host.style.position = 'relative'; if (!document.getElementById('screen-fov-overlay')) { const ov = document.createElement('div'); ov.id = 'screen-fov-overlay'; ov.style.position = 'absolute'; ov.style.inset = '0'; ov.style.pointerEvents = 'none'; ov.style.zIndex = '5'; const rect = document.createElement('div'); rect.id = 'screen-fov-rect'; rect.style.position = 'absolute'; rect.style.border = `3px solid ${(window.stylingUtils && window.stylingUtils.getPrimaryColor) ? window.stylingUtils.getPrimaryColor() : '#83b4c5'}`; rect.style.boxSizing = 'border-box'; rect.style.left = '50%'; rect.style.top = '50%'; rect.style.transformOrigin = 'center center'; rect.style.display = 'none'; ov.appendChild(rect); host.appendChild(ov); } })();
-            canvas.addEventListener('click', (ev) => { if (!ev.shiftKey) return; if (lockToObject) return; const rect = canvas.getBoundingClientRect(), x = ev.clientX - rect.left, y = ev.clientY - rect.top; const sky = aladin.pix2world(x, y); if (!sky) return; fovCenter = {ra: sky[0], dec: sky[1]}; updateFramingChart(false); if (lockToObject) { const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } } updateReadoutFromCenter(); });
-            // Remove any existing keydown handler before adding new one (prevents memory leaks)
-            if (framingKeydownHandler) {
-                window.removeEventListener('keydown', framingKeydownHandler);
-            }
-            framingKeydownHandler = (e) => {
-            // Check if the user is currently typing in a form element or Trix editor
-            const activeTag = document.activeElement.tagName.toLowerCase();
-            const isTyping = activeTag === 'input' ||
-                             activeTag === 'textarea' ||
-                             activeTag === 'trix-editor' ||
-                             document.activeElement.isContentEditable;
-
-            if (isTyping) return; // Exit immediately if the user is typing
-
-            const k = e.key.toLowerCase();
-            if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'].includes(k)) {
-                e.preventDefault();
-                if (k === 'arrowup' || k === 'w') nudgeFov(0, +1);
-                if (k === 'arrowdown' || k === 's') nudgeFov(0, -1);
-                if (k === 'arrowleft' || k === 'a') nudgeFov(-1, 0);
-                if (k === 'arrowright' || k === 'd') nudgeFov(+1, 0);
-            }
-        };
-        window.addEventListener('keydown', framingKeydownHandler);
+            if (window.ResizeObserver && canvas) { let roTimer = null; const ro = new ResizeObserver(() => { clearTimeout(roTimer); roTimer = setTimeout(() => { const sel = document.getElementById('framing-rig-select'); if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; applyRigFovZoom(opt.dataset.fovw, opt.dataset.fovh); } updateFramingChart(false); }, 80); }); ro.observe(canvas); }
+            (function ensureScreenOverlay(){ const host = document.getElementById('aladin-lite-div'); if (!host || document.getElementById('screen-fov-overlay')) return; const ov = document.createElement('div'); ov.id = 'screen-fov-overlay'; ov.className = 'screen-fov-overlay'; const rect = document.createElement('div'); rect.id = 'screen-fov-rect'; rect.className = 'screen-fov-rect'; rect.hidden = true; ov.appendChild(rect); host.appendChild(ov); })();
             (function wireRotationLiveUpdate(){ const rotInput = document.getElementById('framing-rotation'); if (!rotInput) return; const handler = () => { const raw = (typeof rotInput.valueAsNumber === 'number') ? rotInput.valueAsNumber : parseFloat(rotInput.value) || 0; const snapped = (Math.abs(raw) <= 1) ? 0 : raw; if (snapped !== raw) rotInput.value = String(snapped); updateFramingChart(false); }; try { rotInput.removeEventListener('input', rotInput.__novaRotHandler); } catch(e) {} try { rotInput.removeEventListener('change', rotInput.__novaRotHandler); } catch(e) {} rotInput.__novaRotHandler = handler; rotInput.addEventListener('input', handler); rotInput.addEventListener('change', handler); try { rotInput.setAttribute('value', String(rotInput.valueAsNumber ?? rotInput.value ?? 0)); } catch(e) {} handler(); })();
             (function wireInsertIntoProject(){ const btn = document.getElementById('insert-into-project'); if (!btn) return; try { btn.removeEventListener('click', btn.__novaInsertHandler); } catch(e) {} btn.__novaInsertHandler = (ev) => { try { const q = buildFramingQuery(), href = location.pathname + q; history.replaceState(null, '', href); } catch(e) { console.warn('[nova] Insert-to-project wiring error:', e); } }; btn.addEventListener('click', btn.__novaInsertHandler); })();
             } catch (initErr) {
@@ -2615,13 +2420,6 @@
             else if (choice && choice.notice) showSurveyNotice();
         }
 
-        // Set fovCenter if we have coordinates
-        if (!Number.isNaN(params.ra) && !Number.isNaN(params.dec)) {
-            fovCenter = {ra: params.ra, dec: params.dec};
-        } else {
-            fovCenter = null;
-        }
-
         // Ensure blend layer is applied
         try {
             const bop = document.getElementById('blend-opacity');
@@ -2644,7 +2442,12 @@
             const rotSpan = document.getElementById('rotation-value');
             if (rotSpan) rotSpan.textContent = `0°`;
         }
-        if (haveCenter) { const lockBox = document.getElementById('lock-to-object'); if (lockBox) lockBox.checked = true; lockToObject = true; if (aladin && typeof aladin.gotoRaDec === 'function') aladin.gotoRaDec(fovCenter.ra, fovCenter.dec); if (haveCenter) { const sel = document.getElementById('framing-rig-select'); if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; applyRigFovZoom(opt.dataset.fovw, opt.dataset.fovh); } } }
+        // A saved centre: the view goes there (the frame is always the view centre)
+        if (haveCenter) {
+            if (aladin && typeof aladin.gotoRaDec === 'function') aladin.gotoRaDec(params.ra, params.dec);
+            const sel = document.getElementById('framing-rig-select');
+            if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; applyRigFovZoom(opt.dataset.fovw, opt.dataset.fovh); }
+        }
         updateFramingChart(haveCenter ? false : true);
         updateFovVsObjectLabel?.();
         updateReadoutFromCenter?.();
@@ -2655,8 +2458,7 @@
             console.error('Failed to build Nova objects catalog for Aladin:', e);
         }
 
-        if (!haveCenter) applyLockToObject(true);
-        else applyLockToObject(true);  // Always ensure Lock FoV is ON
+        showFrameOverlay();
 
         // Apply deferred image adjustments after Aladin is ready
         // Use setTimeout to ensure survey layer is fully loaded
@@ -2675,21 +2477,67 @@
             toggleGeoBelt(geoCheck.checked);
         }
     }
-    function closeFramingAssistant() {
-        closeOfflineSavePanel();
-        // Close using ModalController if available
-        if (framingModalController) {
-            framingModalController.close();
-        } else {
-            document.getElementById('framing-modal').style.display = 'none';
-        }
+    // ========================================================================
+    // Framing tab: shown/hidden by showTab (graph_view.js) via window.novaFramingTab
+    // ========================================================================
+    let framingPageLoaded = false;   // set by the load handler; the first open waits for it
+    let framingOpening = null;       // the first open while it runs; never two at once
 
-        // Clean up keydown event listener to prevent memory leaks
-        if (framingKeydownHandler) {
-            window.removeEventListener('keydown', framingKeydownHandler);
-            framingKeydownHandler = null;
-        }
+    function isFramingTabVisible() {
+        const tab = document.getElementById('framing-tab');
+        return !!tab && tab.classList.contains('active');
     }
+
+    /**
+     * The one open of the page: a framing URL (rig + ra/dec) opens with its own state,
+     * otherwise the saved framing when there is one (this also serves ?openframing=1),
+     * otherwise the defaults.
+     */
+    async function openFramingTabFirstTime() {
+        const q = new URLSearchParams(location.search);
+        if (q.has('rig') && (q.has('ra') || q.has('dec'))) return openFramingAssistant();
+        let qs = '';
+        try {
+            const r = await fetch(`/api/get_framing/${encodeURIComponent(NOVA_GRAPH_DATA.objectName)}`);
+            const data = await r.json();
+            setSavedFraming(data);   // the Result shows the saved values before Aladin loads
+            if (data.status === 'found') qs = savedFramingQuery(data);
+        } catch (e) {
+            console.warn('[FRAMING] Could not load the saved framing:', e);
+        }
+        return openFramingAssistant(qs);
+    }
+
+    function onFramingTabShown() {
+        if (!framingPageLoaded) return;   // the load handler calls this again once the page is ready
+        // Not open yet (first show, or an earlier open stopped: offline, no rigs): open
+        if (!aladin) {
+            if (!framingOpening) framingOpening = openFramingTabFirstTime().finally(() => { framingOpening = null; });
+            return;
+        }
+        if (framingOpening) return;   // the running open draws the frame and starts the loop
+        // Shown again: Aladin exists; give it its size back and resume the frame overlay
+        requestAnimationFrame(() => {
+            if (!aladin) return;
+            try { aladin.view?.fixLayoutDimensions?.(); } catch (e) {}
+            updateFramingChart(false);
+            startFrameOverlayLoop();
+            updateScanButtonState();
+        });
+    }
+
+    /** Open saved framing while the first open still runs waits for it, so Aladin is
+     *  created once: both opens would otherwise find aladin null and each create one. */
+    function openFramingQueued(qs) {
+        if (framingOpening) return framingOpening.then(() => openFramingAssistant(qs));
+        return openFramingAssistant(qs);
+    }
+
+    function onFramingTabHidden() {
+        closeOfflineSavePanel();   // closes the panel and stops its timers
+        stopFrameOverlayLoop();
+    }
+
     function flipFraming90() { const slider = document.getElementById('framing-rotation'); let v = parseFloat(slider.value) || 0; v += 90; const utils = fu(); v = (utils.normalizeAngle ? utils.normalizeAngle(v) : ((v % 360) + 360) % 360); slider.value = v; slider.dispatchEvent(new Event('input', { bubbles: true })); updateFramingChart(false); if (typeof updateReadoutFromCenter === 'function') updateReadoutFromCenter(); }
     
     function toggleGeoBelt(show) {
@@ -2786,7 +2634,7 @@
         const needWidthDeg = Math.abs(wDeg * Math.cos(th)) + Math.abs(hDeg * Math.sin(th)), needHeightDeg = Math.abs(wDeg * Math.sin(th)) + Math.abs(hDeg * Math.cos(th));
         const requiredWidthDeg = Math.max(needWidthDeg * margin, needHeightDeg * margin * aspect);
         aladin.setFov(requiredWidthDeg);
-        if (lockToObject) updateScreenFovOverlay(fovW_arcmin, fovH_arcmin, rotationDeg);
+        updateScreenFovOverlay(fovW_arcmin, fovH_arcmin, rotationDeg);
     }
     window.updateFramingChart = function (recenter = true) {
         if (!aladin) return;
@@ -2795,233 +2643,94 @@
         const fovWidthArcmin = parseFloat(selectedOption.dataset.fovw), fovHeightArcmin = parseFloat(selectedOption.dataset.fovh);
         const vNum = (rotationSlider && typeof rotationSlider.valueAsNumber === 'number') ? rotationSlider.valueAsNumber : NaN;
         const rotation = Number.isFinite(vNum) ? vNum : (Number.isFinite(parseFloat(rotationSlider.value)) ? parseFloat(rotationSlider.value) : 0);
-    
-        // Update badge with simple 0-360 value
-        (function updateRotationBadge(){ const el = document.getElementById('rotation-value'), sliderEl = document.getElementById('framing-rotation'), txt = `${Math.round(rotation)}°`; if (el) el.textContent = txt; if (sliderEl) sliderEl.title = `Rotation: ${txt}`; })();
-    
+
+        // Rotation badge, the Result angle and Copy angle: one value, whole degrees as always
+        (function updateRotationBadge(){ const el = document.getElementById('rotation-value'), sliderEl = document.getElementById('framing-rotation'), angleEl = document.getElementById('result-angle'), txt = `${Math.round(rotation)}°`; if (el) el.textContent = txt; if (angleEl) angleEl.value = txt; if (sliderEl) sliderEl.title = window.t('framing_rotation_title', { angle: txt }); })();
+
         if (recenter) applyRigFovZoom(fovWidthArcmin, fovHeightArcmin, rotation);
         if (recenter) {
-            // --- START OF FIX ---
-            // Get the coordinates from the global object (set in graph_view.html)
+            // The object's own coordinates from the database when there are any, else a name lookup
             const raDeg = window.NOVA_GRAPH_DATA.objectRADeg;
             const decDeg = window.NOVA_GRAPH_DATA.objectDECDeg;
-            const objectName = window.NOVA_GRAPH_DATA.objectName; // Also get objectName from here
-    
-            // Check if we have valid, manually-provided coordinates from our database
-            if (raDeg != null && decDeg != null && isFinite(raDeg) && isFinite(decDeg)) {
-    
-                // We have coords! Use gotoRaDec (which uses degrees) instead of gotoObject
-                aladin.gotoRaDec(raDeg, decDeg);
-    
-                // Manually trigger the "success" logic
+            const goneThere = () => {
                 applyRigFovZoom(fovWidthArcmin, fovHeightArcmin, rotation);
-                const rc = aladin.getRaDec(); // Get the coords we just set
-                objectCoords = {ra: rc[0], dec: rc[1]};
-                fovCenter = lockToObject ? {...objectCoords} : {ra: rc[0], dec: rc[1]};
-                if (lockToObject) {
-                    if (fovLayer) fovLayer.removeAll();
-                    updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotation);
-                } else {
-                    drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter);
-                }
-                updateReadoutFromCenter?.();
-    
+                showFrameOverlay();
+            };
+            if (raDeg != null && decDeg != null && isFinite(raDeg) && isFinite(decDeg)) {
+                aladin.gotoRaDec(raDeg, decDeg);
+                goneThere();
             } else {
-                // No manual coords, fall back to default Aladin/SIMBAD lookup
-                aladin.gotoObject(objectName, {
-                    success: () => {
-                        // (Original success logic)
-                        applyRigFovZoom(fovWidthArcmin, fovHeightArcmin, rotation);
-                        const rc = aladin.getRaDec();
-                        objectCoords = {ra: rc[0], dec: rc[1]};
-                        fovCenter = lockToObject ? {...objectCoords} : {ra: rc[0], dec: rc[1]};
-                        if (lockToObject) { if (fovLayer) fovLayer.removeAll(); updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotation); }
-                        else drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter);
-                        updateReadoutFromCenter?.();
-                    },
-                    error: () => {
-                        // (Original error logic)
-                        const rc = aladin.getRaDec();
-                        fovCenter = {ra: rc[0], dec: rc[1]};
-                        if (lockToObject) { if (fovLayer) fovLayer.removeAll(); updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotation); }
-                        else drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter);
-                        updateReadoutFromCenter?.();
-                    }
-                });
+                aladin.gotoObject(objectName, { success: goneThere, error: () => showFrameOverlay() });
             }
-            return; // End of 'recenter' block
-            // --- END OF FIX ---
+            return;
         }
-        if (!fovCenter) { const rc = aladin.getRaDec(); fovCenter = {ra: rc[0], dec: rc[1]}; }
-        if (lockToObject) { if (fovLayer) fovLayer.removeAll(); updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotation); }
-        else drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter);
+        if (fovLayer) fovLayer.removeAll();
+        updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotation);
+        updateResultDiffers();
     };
-    function drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotationDeg, center) {
-        if (!aladin || !fovLayer || !center) return;
-        fovLayer.removeAll();
-    
-        const cols = parseInt(document.getElementById('mosaic-cols')?.value || 1);
-        const rows = parseInt(document.getElementById('mosaic-rows')?.value || 1);
-        const overlap = parseFloat(document.getElementById('mosaic-overlap')?.value || 0) / 100;
-    
-        // Pane dimensions in degrees
-        const wDeg = (fovWidthArcmin / 60);
-        const hDeg = (fovHeightArcmin / 60);
-        const halfW = wDeg / 2;
-        const halfH = hDeg / 2;
-    
-        // Step sizes (effective width/height after overlap)
-        const wStep = wDeg * (1 - overlap);
-        const hStep = hDeg * (1 - overlap);
-    
-        // Invert angle to match CSS rotation (CSS is Clockwise, Standard Math is Counter-Clockwise)
-        const ang = -rotationDeg * Math.PI / 180;
-        const ra0 = center.ra * Math.PI / 180, dec0 = center.dec * Math.PI / 180;
-    
-        // Tangent plane vectors at center
-        const cX = Math.cos(dec0) * Math.cos(ra0), cY = Math.cos(dec0) * Math.sin(ra0), cZ = Math.sin(dec0);
-        const eX = -Math.sin(ra0), eY = Math.cos(ra0), eZ = 0;
-        const nX = -Math.sin(dec0) * Math.cos(ra0), nY = -Math.sin(dec0) * Math.sin(ra0), nZ = Math.cos(dec0);
-    
-        function rot2d(x, y) {
-            return [x * Math.cos(ang) - y * Math.sin(ang), x * Math.sin(ang) + y * Math.cos(ang)];
-        }
-    
-        function planeToSky(x_deg, y_deg) {
-            const dx = x_deg * Math.PI / 180, dy = y_deg * Math.PI / 180, r = Math.hypot(dx, dy);
-            if (r < 1e-12) return [center.ra, center.dec];
-            const dirX = (dx * eX + dy * nX) / r, dirY = (dx * eY + dy * nY) / r, dirZ = (dx * eZ + dy * nZ) / r;
-            const s = Math.sin(r), c = Math.cos(r);
-            const pX = c * cX + s * dirX, pY = c * cY + s * dirY, pZ = c * cZ + s * dirZ;
-            let ra = Math.atan2(pY, pX); if (ra < 0) ra += 2 * Math.PI; const dec = Math.asin(pZ);
-            return [ra * 180 / Math.PI, dec * 180 / Math.PI];
-        }
-    
-        // Generate Mosaic Grid
-        for (let r = 0; r < rows; r++) {
-            for (let c = 0; c < cols; c++) {
-                // Calculate offset of this pane's center from mosaic center (unrotated)
-                // We index 0,0 at bottom-left (standard sky coords, RA increases left, Dec up)
-                // Visual logic: Row 0 is bottom, Col 0 is left (East if looking South/North up)
-                const cx_off = (c - (cols - 1) / 2) * wStep;
-                // Standard Cartesian: r=0 is bottom.
-                const cy_off = (r - (rows - 1) / 2) * hStep;
-    
-                // 4 Corners relative to this pane's center
-                // Note: in Aladin/Sky, X is RA. RA increases to the East (Left on chart).
-                // Standard plot X increases Right.
-                // We use standard XY for rotation, then map to RA/Dec.
-                // Corner offsets:
-                const corners = [
-                    [-halfW, -halfH], [halfW, -halfH], [halfW, halfH], [-halfW, halfH]
-                ];
-    
-                const polyCoords = corners.map(([kx, ky]) => {
-                    // Offset from pane center + Pane center offset from mosaic center
-                    const totalX = kx + cx_off;
-                    const totalY = ky + cy_off;
-                    // Rotate around mosaic center
-                    const [rx, ry] = rot2d(totalX, totalY);
-                    // Project to sky
-                    return planeToSky(-rx, ry); // Negate X for RA direction if needed, usually Aladin handles standard projection
-                });
-    
-                polyCoords.push(polyCoords[0]);
-                const fovPolygon = A.polygon(polyCoords, {color: (window.stylingUtils && window.stylingUtils.getPrimaryColor) ? window.stylingUtils.getPrimaryColor() : '#83b4c5', lineWidth: 2});
-                fovLayer.add(fovPolygon);
-            }
-        }
-        updateReadoutFromCenter?.();
-    }
-    
-    let lockFovEnabled = false, lockRafId = null;
+    let frameRafId = null;
     function updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotationDeg) {
         const host = document.getElementById('aladin-lite-div');
         const rectEl = document.getElementById('screen-fov-rect');
-        if (!host || !rectEl) return;
-    
+        if (!host || !rectEl || !aladin) return;
+
         const cols = parseInt(document.getElementById('mosaic-cols')?.value || 1);
         const rows = parseInt(document.getElementById('mosaic-rows')?.value || 1);
         const overlap = parseFloat(document.getElementById('mosaic-overlap')?.value || 0) / 100;
-    
+
         const wpx = host.clientWidth || 1;
         const hpx = host.clientHeight || 1;
-    
+
         const gf = aladin.getFov();
         const viewWdeg = Array.isArray(gf) ? (gf[0] ?? 1) : (gf ?? 1);
         const viewHdeg = viewWdeg * (hpx / wpx);
-    
+
         const fovWdeg = (parseFloat(fovWidthArcmin) || 0) / 60;
         const fovHdeg = (parseFloat(fovHeightArcmin) || 0) / 60;
         if (!(fovWdeg > 0 && fovHdeg > 0)) return;
-    
-        // Base Pane Size in Pixels
+
+        // Pane size in pixels and the step between pane centres
         const panePxW = (fovWdeg / viewWdeg) * wpx;
         const panePxH = (fovHdeg / viewHdeg) * hpx;
-    
-        // Calculate Grid Dimensions
         const stepW = panePxW * (1 - overlap);
         const stepH = panePxH * (1 - overlap);
-    
-        const totalW = panePxW + (cols - 1) * stepW;
-        const totalH = panePxH + (rows - 1) * stepH;
-    
-        // Configure the container (rectEl) to be the center of rotation
-        // We make it 0x0 size so rotation logic is simpler around the center
-        rectEl.style.display = 'block';
-        rectEl.style.width = '0px';
-        rectEl.style.height = '0px';
-        rectEl.style.border = 'none'; // Container has no border
-        rectEl.style.left = '50%';
-        rectEl.style.top = '50%';
-        rectEl.style.marginLeft = '0px';
-        rectEl.style.marginTop = '0px';
-        rectEl.style.transform = `rotate(${rotationDeg || 0}deg)`;
-    
-        // Clear previous children
-        rectEl.innerHTML = '';
-    
-        // Generate Panes
+
+        // rectEl is a 0×0 point in the centre of the view, rotated; the panes sit around it.
+        // Geometry only, through custom properties read by .screen-fov-rect / .screen-fov-pane.
+        rectEl.hidden = false;
+        rectEl.style.setProperty('--frame-rot', `${rotationDeg || 0}deg`);
+        rectEl.style.setProperty('--pane-w', panePxW + 'px');
+        rectEl.style.setProperty('--pane-h', panePxH + 'px');
+
+        const isMosaic = cols > 1 || rows > 1;
+        const want = cols * rows;
+        while (rectEl.children.length > want) rectEl.removeChild(rectEl.lastChild);
+        while (rectEl.children.length < want) rectEl.appendChild(document.createElement('div'));
+
+        // Grid (0,0) is bottom-left: r = 0 maps to the largest screen Y
+        let k = 0;
         for (let r = 0; r < rows; r++) {
             for (let c = 0; c < cols; c++) {
-                const div = document.createElement('div');
-    
-                // Calculate center offset in pixels relative to mosaic center
-                // In CSS, Y increases downwards. To match the sky logic where r=0 is bottom,
-                // we must map r=0 to the highest Y value (bottom of container).
-                // Visual grid: (0,0) is Bottom-Left.
-    
-                const cx_off = (c - (cols - 1) / 2) * stepW;
-                // Invert Y for screen coords (0 at center, +Y is down, -Y is up)
-                // Sky: r=0 is bottom (negative offset). Screen: r=0 is bottom (positive Y offset).
-                const cy_off = -1 * (r - (rows - 1) / 2) * stepH;
-    
-                div.style.position = 'absolute';
-                div.style.boxSizing = 'border-box';
-                div.style.border = `2px solid ${(window.stylingUtils && window.stylingUtils.getPrimaryColor) ? window.stylingUtils.getPrimaryColor() : '#83b4c5'}`; // Pane border
-                if (cols > 1 || rows > 1) {
-                    div.style.background = 'rgba(131, 180, 197, 0.1)'; // Slight fill for mosaic
-                    div.innerText = `${c+1},${r+1}`;
-                    div.style.color = 'rgba(131, 180, 197, 0.8)';
-                    div.style.fontSize = '10px';
-                    div.style.display = 'flex';
-                    div.style.alignItems = 'center';
-                    div.style.justifyContent = 'center';
-                }
-    
-                div.style.width = panePxW + 'px';
-                div.style.height = panePxH + 'px';
-    
-                // Center the div at the calculated offset
-                div.style.left = (cx_off - panePxW/2) + 'px';
-                div.style.top = (cy_off - panePxH/2) + 'px';
-    
-                rectEl.appendChild(div);
+                const div = rectEl.children[k++];
+                div.className = isMosaic ? 'screen-fov-pane is-mosaic' : 'screen-fov-pane';
+                div.textContent = isMosaic ? `${c+1},${r+1}` : '';
+                div.style.setProperty('--pane-x', ((c - (cols - 1) / 2) * stepW) + 'px');
+                div.style.setProperty('--pane-y', (-1 * (r - (rows - 1) / 2) * stepH) + 'px');
             }
         }
     }
-    function startLockOverlayLoop() { if (lockRafId) return; const tick = () => { if (!lockToObject) { lockRafId = null; return; } const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } updateReadoutFromCenter(); lockRafId = requestAnimationFrame(tick); }; lockRafId = requestAnimationFrame(tick); }
-    function stopLockOverlayLoop() { if (lockRafId) { cancelAnimationFrame(lockRafId); lockRafId = null; } }
+    // While the Framing tab shows: the frame overlay follows zoom and resize, the Result
+    // follows the view centre as the sky is dragged.
+    function startFrameOverlayLoop() { if (frameRafId) return; const tick = () => { if (!aladin) { frameRafId = null; return; } const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } updateReadoutFromCenter(); frameRafId = requestAnimationFrame(tick); }; frameRafId = requestAnimationFrame(tick); }
+    function stopFrameOverlayLoop() { if (frameRafId) { cancelAnimationFrame(frameRafId); frameRafId = null; } }
+    /** The frame overlay on, the Result on the view centre, the loop running. */
+    function showFrameOverlay() {
+        if (fovLayer) fovLayer.removeAll();
+        const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0;
+        if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); }
+        if (isFramingTabVisible()) startFrameOverlayLoop();
+        updateReadoutFromCenter();
+    }
     async function setSurvey(hipsId) {
         if (!aladin) return;
     
@@ -3107,7 +2816,63 @@
         document.getElementById('ra-readout').value = formatRA(jNow.ra);
         document.getElementById('dec-readout').value = formatDec(jNow.dec);
     }
-    function updateReadoutFromCenter() { let center; if (lockToObject) { const rc = aladin.getRaDec(); center = { ra: rc[0], dec: rc[1] }; } else if (fovCenter && isFinite(fovCenter.ra) && isFinite(fovCenter.dec)) center = fovCenter; else { const rc = aladin.getRaDec(); center = { ra: rc[0], dec: rc[1] }; } updateReadout(center.ra, center.dec); }
+    /** The frame centre: always the Aladin view centre (J2000). The frame is fixed in the
+     *  middle of the view, so this is what the readout, Copy, Save, the URL and the CSV use. */
+    function frameCenter() { const rc = aladin.getRaDec(); return { ra: rc[0], dec: rc[1] }; }
+    function updateReadoutFromCenter() { const c = frameCenter(); updateReadout(c.ra, c.dec); updateResultDiffers(); }
+
+    // ---- Result block: the saved framing's values, and whether the view differs from them ----
+    let savedResult = null;   // { ra, dec, angle, raJ2000, decJ2000 } of the saved framing, or null
+
+    /** Saved values from an /api/get_framing response ("found"), or null. */
+    function savedResultFrom(data) {
+        if (!data || data.status !== 'found') return null;
+        const ra = parseFloat(data.ra), dec = parseFloat(data.dec), rot = parseFloat(data.rotation);
+        if (!Number.isFinite(ra) || !Number.isFinite(dec)) return null;
+        const jNow = convertJ2000ToJNow(ra, dec);
+        return {
+            ra: formatRA(jNow.ra), dec: formatDec(jNow.dec),
+            angle: `${Math.round(Number.isFinite(rot) ? rot : 0)}°`,
+            // compared in J2000, so the slow drift of JNow never reads as a change
+            raJ2000: formatRA(ra), decJ2000: formatDec(dec),
+        };
+    }
+
+    /** Keep the saved framing for the Result block; before Aladin is live, show its values. */
+    function setSavedFraming(data) {
+        savedResult = savedResultFrom(data);
+        if (!aladin && savedResult) {
+            document.getElementById('ra-readout').value = savedResult.ra;
+            document.getElementById('dec-readout').value = savedResult.dec;
+            const angleEl = document.getElementById('result-angle');
+            if (angleEl) angleEl.value = savedResult.angle;
+        }
+        updateResultDiffers();
+    }
+
+    /** "Saved framing" while the view matches the saved one, "Differs from saved" (with the
+     *  saved values underneath) once it doesn't. Hidden when nothing is saved. */
+    function updateResultDiffers() {
+        const chip = document.getElementById('result-saved-chip');
+        const line = document.getElementById('result-saved-line');
+        if (!chip) return;
+        if (!savedResult) { chip.hidden = true; if (line) line.hidden = true; return; }
+        let differs = false;
+        if (aladin) {
+            const c = frameCenter();
+            const angle = document.getElementById('result-angle')?.value;
+            differs = formatRA(c.ra) !== savedResult.raJ2000 || formatDec(c.dec) !== savedResult.decJ2000
+                || (angle !== undefined && angle !== savedResult.angle);
+        }
+        chip.hidden = false;
+        chip.textContent = differs ? window.t('framing_differs_from_saved') : window.t('framing_saved_chip');
+        chip.classList.toggle('is-different', differs);
+        if (line) {
+            line.hidden = !differs;
+            if (differs) line.textContent = window.t('framing_saved_values', { ra: savedResult.ra, dec: savedResult.dec, angle: savedResult.angle });
+        }
+    }
+
     function copyToClipboard(text, onSuccess, onError) {
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(text).then(onSuccess).catch(function(err) {
@@ -3139,6 +2904,16 @@
     }
     function copyRaDec() {
         const text = `${document.getElementById('ra-readout').value} ${document.getElementById('dec-readout').value}`;
+        copyToClipboard(text);
+    }
+    /** Result block Copy buttons: 'ra', 'dec', 'angle' (the number only, for the ASIAIR
+     *  field) or 'all' (three lines). Same values as the readout and the rotation badge. */
+    function copyResult(kind) {
+        const ra = document.getElementById('ra-readout').value, dec = document.getElementById('dec-readout').value;
+        const angle = document.getElementById('result-angle').value;
+        const angleNum = angle.replace(/°$/, '');
+        const text = kind === 'ra' ? ra : kind === 'dec' ? dec : kind === 'angle' ? angleNum
+            : `RA ${ra}\nDec ${dec}\n${window.t('framing_angle')} ${angle}`;
         copyToClipboard(text);
     }
     function changeView(view, skipPhaseUpdate = false) {
@@ -3188,59 +2963,11 @@
         if (view === 'day') renderClientSideChart();
         else renderMonthlyYearlyChart(view);
     }
-    function useReadoutAsFovCenter() {
-        const raStr = document.getElementById('ra-readout').value, decStr = document.getElementById('dec-readout').value;
-        const skyJNow = parseRaDec(raStr, decStr); // Parsed as JNow
-        if (!skyJNow) return;
-        // Convert back to J2000 for Aladin positioning
-        const skyJ2000 = convertJNowToJ2000(skyJNow.ra, skyJNow.dec);
-        fovCenter = {ra: skyJ2000.ra, dec: skyJ2000.dec};
-        updateFramingChart(false);
-        updateReadoutFromCenter();
-    }
-    function resetFovCenterToObject() { fovCenter = null; updateFramingChart(true); updateFovVsObjectLabel(); }
-    function nudgeFov(dxArcmin, dyArcmin) {
-        if (lockToObject && objectCoords) { fovCenter = {ra: objectCoords.ra, dec: objectCoords.dec}; updateFramingChart(false); updateReadoutFromCenter(); return; }
-        if (!fovCenter) { const rc = aladin.getRaDec(); fovCenter = {ra: rc[0], dec: rc[1]}; }
-        // Use framing utils calculateNudgedCenter if available
-        const utils = fu();
-        if (utils.calculateNudgedCenter) {
-            fovCenter = utils.calculateNudgedCenter(fovCenter, dxArcmin, dyArcmin);
-        } else {
-            // Fallback to original calculation
-            const decRad = fovCenter.dec * (Math.PI / 180);
-            if (Math.abs(decRad) < (Math.PI / 2.0 - 0.001)) fovCenter.ra -= (dxArcmin / 60.0) / Math.cos(decRad);
-            fovCenter.dec += dyArcmin / 60.0;
-        }
-        updateFramingChart(false); updateReadoutFromCenter();
-    }
-    function applyLockToObject(locked) {
-        lockToObject = !!locked;
-        const rectEl = document.getElementById('screen-fov-rect');
-        if (lockToObject) {
-            const c = objectCoords || (() => { const rc = aladin.getRaDec(); return {ra: rc[0], dec: rc[1]}; })();
-            fovCenter = {ra: c.ra, dec: c.dec};
-            if (fovLayer) fovLayer.removeAll();
-            if (rectEl) rectEl.style.display = 'block';
-            const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0;
-            if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); }
-            startLockOverlayLoop(); updateReadoutFromCenter();
-        } else {
-            if (rectEl) rectEl.style.display = 'none';
-            stopLockOverlayLoop();
-            const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0;
-            const center = fovCenter || (() => { const rc = aladin.getRaDec(); return {ra: rc[0], dec: rc[1]}; })();
-            if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; drawFovFootprint(parseFloat(opt.dataset.fovw), parseFloat(opt.dataset.fovh), rot, center); }
-            updateReadoutFromCenter();
-        }
-    }
-    function updateFovVsObjectLabel() { const el = document.getElementById('fov-vs-object'); if (!el) return; const sel = document.getElementById('framing-rig-select'); if (!sel || sel.selectedIndex < 0) { el.textContent = ''; return; } const opt = sel.options[sel.selectedIndex]; const fovW = parseFloat(opt.dataset.fovw), fovH = parseFloat(opt.dataset.fovh); if (!isFinite(fovW) || !isFinite(fovH)) { el.textContent = ''; return; } let text = `FOV (Rig): ${Math.round(fovW)}′ × ${Math.round(fovH)}′`; if (typeof OBJECT_SIZE_ARCMIN === 'number' && isFinite(OBJECT_SIZE_ARCMIN) && OBJECT_SIZE_ARCMIN > 0) { const minSide = Math.min(fovW, fovH), fitAcross = minSide / OBJECT_SIZE_ARCMIN; text += ` • Object ~ ${Math.round(OBJECT_SIZE_ARCMIN)}′ → ${fitAcross >= 1 ? 'fits' : 'spans'} ${fitAcross.toFixed(1)}× ${fitAcross >= 1 ? 'across' : 'of'} short side`; } el.textContent = text; }
-    (function recenterViewWhenLocked() { const canvas = document.getElementById('aladin-lite-div'); if (!canvas) return; canvas.addEventListener('mouseup', () => { if (lockToObject && objectCoords) aladin.gotoObject([objectCoords.ra, objectCoords.dec]); }); })();
+    function resetFovCenterToObject() { updateFramingChart(true); updateFovVsObjectLabel(); }
+    function updateFovVsObjectLabel() { const el = document.getElementById('fov-vs-object'); if (!el) return; const sel = document.getElementById('framing-rig-select'); if (!sel || sel.selectedIndex < 0) { el.textContent = ''; return; } const opt = sel.options[sel.selectedIndex]; const fovW = parseFloat(opt.dataset.fovw), fovH = parseFloat(opt.dataset.fovh); if (!isFinite(fovW) || !isFinite(fovH)) { el.textContent = ''; return; } el.textContent = window.t('framing_fov_chip', { w: Math.round(fovW), h: Math.round(fovH) }); }
     function pad(n, w = 2) { return n.toString().padStart(w, '0'); }
     function formatRA(raDeg) { const totalSec = raDeg / 15 * 3600, h = Math.floor(totalSec / 3600), m = Math.floor((totalSec % 3600) / 60), s = (totalSec % 60).toFixed(2); return `${pad(h)}:${pad(m)}:${pad(s, 5)}`; }
     function formatDec(decDeg) { const sign = decDeg >= 0 ? '+' : '-', abs = Math.abs(decDeg), d = Math.floor(abs), m = Math.floor((abs - d) * 60), s = ((abs - d) * 60 - m) * 60; return `${sign}${pad(d)}:${pad(m)}:${s.toFixed(1).padStart(4, '0')}`; }
-    function getFrameCenterRaDec() { if (lockToObject) { const rc = aladin.getRaDec(); return { ra: rc[0], dec: rc[1] }; } if (fovCenter && isFinite(fovCenter.ra) && isFinite(fovCenter.dec)) return fovCenter; const rc = aladin.getRaDec(); return { ra: rc[0], dec: rc[1] }; }
-    function parseRaDec(raHMS, decDMS) { try { const [h, m, s] = raHMS.split(':').map(parseFloat), ra = (h + m / 60 + s / 3600) * 15.0, sign = decDMS.trim()[0] === '-' ? -1 : 1, [d, dm, ds] = decDMS.replace('+', '').replace('-', '').split(':').map(parseFloat), dec = sign * (d + dm / 60 + ds / 3600); return {ra, dec}; } catch (e) { return null; } }
 
     // Project notes as last loaded or saved, so unsaved edits (typed, or put there by
     // Ask Nova, which does not save) can be told apart before leaving the page.
@@ -3338,7 +3065,7 @@
         });
     }
     
-        function buildFramingQuery() { const sel = document.getElementById('framing-rig-select'), rig = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].value : '', rigUid = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].dataset.rigUid : '', rotInput = document.getElementById('framing-rotation'), rot = rotInput ? (parseFloat(rotInput.value) || 0) : 0, sSel = document.getElementById('survey-select'), survey = sSel ? sSel.value : '', bSel = document.getElementById('blend-survey-select'), bOp = document.getElementById('blend-opacity'), blend = bSel ? bSel.value : '', blend_op = bOp ? (parseFloat(bOp.value) || 0) : 0; const { ra, dec } = (fovCenter || (aladin && (() => { const rc = aladin.getRaDec(); return { ra: rc[0], dec: rc[1] }; })()) || { ra: NaN, dec: NaN });
+        function buildFramingQuery() { const sel = document.getElementById('framing-rig-select'), rig = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].value : '', rigUid = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].dataset.rigUid : '', rotInput = document.getElementById('framing-rotation'), rot = rotInput ? (parseFloat(rotInput.value) || 0) : 0, sSel = document.getElementById('survey-select'), survey = sSel ? sSel.value : '', bSel = document.getElementById('blend-survey-select'), bOp = document.getElementById('blend-opacity'), blend = bSel ? bSel.value : '', blend_op = bOp ? (parseFloat(bOp.value) || 0) : 0; const { ra, dec } = aladin ? frameCenter() : { ra: NaN, dec: NaN };
             const cols = document.getElementById('mosaic-cols')?.value || 1;
         const rows = document.getElementById('mosaic-rows')?.value || 1;
         const overlap = document.getElementById('mosaic-overlap')?.value || 10;
@@ -3375,14 +3102,27 @@
     }
 
     function copyFramingUrl() {
-        const q = buildFramingQuery(), url = location.origin + location.pathname + q;
+        // tab=framing goes last, so the framing parameters before it read as they always did
+        const q = buildFramingQuery() + '&tab=framing', url = location.origin + location.pathname + q;
         copyToClipboard(url, function() {
             console.log("[Framing] Copied URL:", url);
         }, function(err) {
             console.warn("[Framing] copyFramingUrl failed:", err);
         });
     }
-    function openInStellarium() { document.getElementById('stellarium-status').textContent = "Sending object to Stellarium..."; document.getElementById('stellarium-status').style.color = "#666"; const objectName = NOVA_GRAPH_DATA.objectName; fetch("/proxy_focus", { method: "POST", headers: {"Content-Type": "application/x-www-form-urlencoded"}, body: new URLSearchParams({target: objectName, mode: "center"}) }).then(async response => { let data; try { data = await response.json(); } catch (e) { data = {message: "Could not parse server response."}; } if (response.ok && data.status === "success") { document.getElementById('stellarium-status').textContent = "Stellarium view updated!"; document.getElementById('stellarium-status').style.color = "#83b4c5"; } else document.getElementById('stellarium-status').innerHTML = `<p style="color:red; margin:0;">Error: ${data.message || "Unknown error"}</p>`; }); }
+    function openInStellarium() {
+        const status = document.getElementById('stellarium-status');
+        const setStatus = (text, cls) => { status.textContent = text; status.className = 'stellarium-status' + (cls ? ' ' + cls : ''); };
+        setStatus(window.t('stellarium_sending'), '');
+        const objectName = NOVA_GRAPH_DATA.objectName;
+        fetch("/proxy_focus", { method: "POST", headers: {"Content-Type": "application/x-www-form-urlencoded"}, body: new URLSearchParams({target: objectName, mode: "center"}) })
+            .then(async response => {
+                let data;
+                try { data = await response.json(); } catch (e) { data = {message: window.t('stellarium_bad_response')}; }
+                if (response.ok && data.status === "success") setStatus(window.t('stellarium_updated'), 'is-ok');
+                else setStatus(window.t('stellarium_error', { message: data.message || window.t('stellarium_unknown_error') }), 'is-error');
+            });
+    }
     function startCurrentTimeUpdater(chartInstance) {
         if (!chartInstance) return;
         if (currentTimeUpdateInterval) clearInterval(currentTimeUpdateInterval);
@@ -3410,7 +3150,7 @@
         const sel = document.getElementById('framing-rig-select');
 
         // 1. Gather Data
-        const center = getFrameCenterRaDec();
+        const center = frameCenter();
         const payload = {
             object_name: objectName,
             rig: sel?.value || '',
@@ -3491,7 +3231,7 @@
     }
     
     async function copyAsiairMosaic() {
-        if (!aladin || !fovCenter) return;
+        if (!aladin) return;
 
         const cols = parseInt(document.getElementById('mosaic-cols')?.value || 1);
         const rows = parseInt(document.getElementById('mosaic-rows')?.value || 1);
@@ -3515,7 +3255,7 @@
         const wStep = fovW * (1 - overlap);
         const hStep = fovH * (1 - overlap);
 
-        const center = fovCenter;
+        const center = frameCenter();
         const raCenterDeg = center.ra;
         const decCenterDeg = center.dec;
 
@@ -3597,7 +3337,7 @@
 
     async function deleteSavedFraming() {
         const objectName = NOVA_GRAPH_DATA.objectName;
-        if (!(await novaConfirm("Are you sure you want to delete the saved framing for this object?"))) return;
+        if (!(await novaConfirm(window.t('delete_saved_framing_confirm')))) return;
 
         fetch('/api/delete_framing', {
             method: 'POST',
@@ -3613,8 +3353,9 @@
                     const savedButtons = container.querySelectorAll('[data-saved-framing]');
                     savedButtons.forEach(btn => btn.remove());
                 }
+                setSavedFraming(null);
             } else {
-                await novaAlert("Error deleting: " + data.message);
+                await novaAlert(window.t('delete_saved_framing_error', { message: data.message }));
             }
         });
     }
@@ -3627,61 +3368,27 @@
         fetch(`/api/get_framing/${encodeURIComponent(objectName)}`)
             .then(r => r.json())
             .then(data => {
-                // Remove any existing saved framing buttons (keep Show Framing and Open in Stellarium)
+                // Remove any existing saved framing buttons
                 const existingSavedButtons = container.querySelectorAll('[data-saved-framing]');
                 existingSavedButtons.forEach(btn => btn.remove());
 
+                setSavedFraming(data);
                 if (data.status === 'found') {
-                    // 1. OPEN SAVED FRAMING BUTTON (insert after Show Framing)
+                    // 1. OPEN SAVED FRAMING BUTTON
                     const btn = document.createElement('button');
-                    btn.className = 'inline-button inline-button-ghost';
+                    btn.type = 'button';
+                    btn.className = 'inline-button-ghost';
                     btn.textContent = window.t('open_saved_framing');
                     btn.setAttribute('data-saved-framing', 'true');
 
-                    btn.onclick = () => {
-                        const params = new URLSearchParams();
-                        if(data.rig != null) params.set('rig', data.rig);
-                        if (data.rig_uid) params.set('rig_uid', data.rig_uid);
-                        if(data.ra != null) params.set('ra', data.ra);
-                        if(data.dec != null) params.set('dec', data.dec);
-                        if(data.rotation != null) params.set('rot', data.rotation);
-                        if(data.survey) params.set('survey', data.survey);
-                        if(data.blend) params.set('blend', data.blend);
-                        if(data.blend_op != null) params.set('blend_op', data.blend_op);
+                    btn.onclick = () => openFramingQueued(savedFramingQuery(data));
 
-                        // Restore Mosaic
-                        if(data.mosaic_cols != null) params.set('m_cols', data.mosaic_cols);
-                        if(data.mosaic_rows != null) params.set('m_rows', data.mosaic_rows);
-                        if(data.mosaic_overlap != null) params.set('m_ov', data.mosaic_overlap);
-
-                        // Restore Image Adjustments
-                        if(data.img_brightness != null && data.img_brightness !== 0) params.set('img_b', data.img_brightness);
-                        if(data.img_contrast != null && data.img_contrast !== 0) params.set('img_c', data.img_contrast);
-                        if(data.img_gamma != null && data.img_gamma !== 1) params.set('img_g', data.img_gamma);
-                        if(data.img_saturation != null && data.img_saturation !== 0) params.set('img_s', data.img_saturation);
-
-                        // Restore Overlay Preferences
-                        if(data.geo_belt_enabled != null) params.set('geo_belt', data.geo_belt_enabled ? '1' : '0');
-
-                        openFramingAssistant(params.toString());
-                    };
-
-                    // Insert after Show Framing button (the second button in the row, after any spacer elements)
-                    const showFramingBtn = container.querySelector('[data-action="open-framing-assistant"]');
-                    if (showFramingBtn) {
-                        container.insertBefore(btn, showFramingBtn.nextSibling);
-                    } else {
-                        container.appendChild(btn);
-                    }
-
-                    // Auto-click if ?openframing=1 is in the URL
-                    if (new URLSearchParams(window.location.search).get('openframing') === '1') {
-                        btn.click();
-                    }
+                    container.appendChild(btn);
 
                     // 2. DELETE SAVED FRAMING BUTTON
                     const delBtn = document.createElement('button');
-                    delBtn.className = 'inline-button inline-button-danger';
+                    delBtn.type = 'button';
+                    delBtn.className = 'inline-button-danger';
                     delBtn.textContent = window.t('delete_saved_framing');
                     delBtn.title = window.t('delete_saved_framing');
                     delBtn.setAttribute('data-saved-framing', 'true');
@@ -3691,6 +3398,35 @@
                     container.appendChild(delBtn);
                 }
             });
+    }
+
+    /** Query string for openFramingAssistant from an /api/get_framing "found" response. */
+    function savedFramingQuery(data) {
+        const params = new URLSearchParams();
+        if(data.rig != null) params.set('rig', data.rig);
+        if (data.rig_uid) params.set('rig_uid', data.rig_uid);
+        if(data.ra != null) params.set('ra', data.ra);
+        if(data.dec != null) params.set('dec', data.dec);
+        if(data.rotation != null) params.set('rot', data.rotation);
+        if(data.survey) params.set('survey', data.survey);
+        if(data.blend) params.set('blend', data.blend);
+        if(data.blend_op != null) params.set('blend_op', data.blend_op);
+
+        // Restore Mosaic
+        if(data.mosaic_cols != null) params.set('m_cols', data.mosaic_cols);
+        if(data.mosaic_rows != null) params.set('m_rows', data.mosaic_rows);
+        if(data.mosaic_overlap != null) params.set('m_ov', data.mosaic_overlap);
+
+        // Restore Image Adjustments
+        if(data.img_brightness != null && data.img_brightness !== 0) params.set('img_b', data.img_brightness);
+        if(data.img_contrast != null && data.img_contrast !== 0) params.set('img_c', data.img_contrast);
+        if(data.img_gamma != null && data.img_gamma !== 1) params.set('img_g', data.img_gamma);
+        if(data.img_saturation != null && data.img_saturation !== 0) params.set('img_s', data.img_saturation);
+
+        // Restore Overlay Preferences
+        if(data.geo_belt_enabled != null) params.set('geo_belt', data.geo_belt_enabled ? '1' : '0');
+
+        return params.toString();
     }
     
     window.addEventListener('load', () => {
@@ -3726,46 +3462,9 @@
             });
         }
     
-        // General UI
-        const lockBox = document.getElementById('lock-to-object');
-        if (lockBox) lockBox.checked = true;
-    
-        const q = new URLSearchParams(location.search);
-        if (q.has('rig') && (q.has('ra') || q.has('dec'))) setTimeout(() => openFramingAssistant(), 0);
-
-        // Initialize Framing Modal Controller with Aladin caching support
-        if (window.novaState && window.novaState.fn && window.novaState.fn.ModalController) {
-            try {
-                framingModalController = new window.novaState.fn.ModalController('framing-modal', {
-                    contentId: 'framing-modal-content',
-                    displayStyle: 'block',
-                    closeOnBackdrop: true,
-                    closeOnEscape: true,
-                    ariaLabelledBy: 'framing-modal-title',
-                    cacheKey: 'framing',
-                    onOpen: function() {
-                        // Cache the Aladin instance in the controller
-                        if (aladin) {
-                            this.setCachedInstance(aladin);
-                        }
-                    },
-                    onClose: function() {
-                        // Aladin instance is preserved (cached) for next open.
-                        // The offline save panel closes and stops its timers.
-                        closeOfflineSavePanel();
-                    }
-                });
-
-                // Store reference globally for access
-                window.novaState.fn.framingModal = framingModalController;
-                console.log('[FRAMING] ModalController initialized successfully');
-            } catch (e) {
-                console.error('[FRAMING] Failed to initialize ModalController:', e);
-                framingModalController = null;
-            }
-        } else {
-            console.warn('[FRAMING] ModalController not available - framing modal will use fallback behavior');
-        }
+        // The Framing tab may already be showing (?tab=framing, a framing URL, last tab)
+        framingPageLoaded = true;
+        if (isFramingTabVisible()) onFramingTabShown();
 
         // Date Picker Limits
         const dayInput = document.getElementById("day-select");
@@ -3781,36 +3480,18 @@
             updateDL();
         }
     
-        // Window resize handler for framing modal
+        // Window resize handler for the Framing tab
         window.addEventListener('resize', () => {
-            const isOpen = isFramingModalOpen();
-            if (isOpen) {
+            if (isFramingTabVisible()) {
                 if (typeof aladin !== 'undefined' && aladin) updateFramingChart(false);
             }
         });
 
-    /**
-     * Safely check if the framing modal is open.
-     * Handles cases where ModalController might not be initialized.
-     * @returns {boolean} - Whether the modal is open
-     */
-    function isFramingModalOpen() {
-        // Try using ModalController first
-        if (framingModalController && typeof framingModalController.isOpen === 'function') {
-            try {
-                return framingModalController.isOpen();
-            } catch (e) {
-                console.warn('[FRAMING] Error checking modal isOpen status:', e);
-            }
-        }
-        // Fallback to direct DOM check
-        const modal = document.getElementById('framing-modal');
-        return modal ? modal.style.display === 'block' : false;
-    }
-    
-        // --- CHECK DATABASE FOR FRAMING ---
-        checkAndShowFramingButton();
     });
+
+    // Saved framing: the Open / Delete buttons, and its values in the Result block right
+    // away (the DOM is parsed: this script is deferred), not only once the page has loaded
+    checkAndShowFramingButton();
 
     const MAX_SCAN_FOV_DEG = 4.0;
 
@@ -3820,8 +3501,6 @@
         if (offlineViewOn) {
             btn.disabled = true;
             btn.title = window.t('offline_scan_disabled');
-            btn.style.opacity = '0.45';
-            btn.style.cursor = 'not-allowed';
             const note = document.getElementById('offline-scan-note');
             if (note) note.hidden = false;
             return;
@@ -3835,16 +3514,10 @@
         const fovHDeg = parseFloat(opt.dataset.fovh) / 60;
         if (fovWDeg > MAX_SCAN_FOV_DEG || fovHDeg > MAX_SCAN_FOV_DEG) {
             btn.disabled = true;
-            btn.title    = 'FOV too large ('
-                + fovWDeg.toFixed(1) + '° × ' + fovHDeg.toFixed(1)
-                + '°) — max ' + MAX_SCAN_FOV_DEG + '° for Scan Frame';
-            btn.style.opacity = '0.45';
-            btn.style.cursor  = 'not-allowed';
+            btn.title    = window.t('scan_fov_too_large', { w: fovWDeg.toFixed(1), h: fovHDeg.toFixed(1), max: MAX_SCAN_FOV_DEG });
         } else {
-            btn.disabled      = false;
-            btn.title         = '';
-            btn.style.opacity = '';
-            btn.style.cursor  = '';
+            btn.disabled = false;
+            btn.title    = '';
         }
     }
 
@@ -3852,7 +3525,7 @@
         if (!scanFrameActive || !scanResultsCatalog
                 || !scanResultsAll.length) return;
         const popup = document.getElementById('scan-result-popup');
-        if (popup) popup.style.display = 'none';
+        if (popup) popup.hidden = true;
         const filtered = scanResultsAll.filter(obj =>
             minSize === 0 || (obj.size_arcmin !== null && obj.size_arcmin >= minSize)
         );
@@ -3888,20 +3561,20 @@
             scanResultsAll = [];
             const _si = document.getElementById('scan-min-size');
             if (_si) _si.disabled = true;
-            if (btn) { btn.textContent = 'Scan Frame'; btn.disabled = false; }
-            if (popup) popup.style.display = 'none';
+            if (btn) { btn.textContent = window.t('scan_frame'); btn.disabled = false; }
+            if (popup) popup.hidden = true;
             return;
         }
 
         if (!aladin) return;
 
-        const center = getFrameCenterRaDec();
+        const center = frameCenter();
         const sel = document.getElementById('framing-rig-select');
         const opt = sel ? sel.options[sel.selectedIndex] : null;
         const fovWDeg = opt ? parseFloat(opt.dataset.fovw) / 60 : 1.0;
         const fovHDeg = opt ? parseFloat(opt.dataset.fovh) / 60 : 1.0;
 
-        if (btn) { btn.textContent = 'Scanning…'; btn.disabled = true; }
+        if (btn) { btn.textContent = window.t('scan_scanning'); btn.disabled = true; }
 
         fetch('/api/scan_frame', {
             method: 'POST',
@@ -3915,7 +3588,7 @@
         })
         .then(r => r.json())
         .then(data => {
-            if (btn) { btn.textContent = 'Scan Frame'; btn.disabled = false; }
+            if (btn) { btn.textContent = window.t('scan_frame'); btn.disabled = false; }
             if (data.status !== 'success') {
                 if (data.code === 'simbad_unavailable') {
                     novaAlert(window.t('simbad_unavailable'));
@@ -3950,23 +3623,19 @@
                     if (!popup || !nameEl || !bodyEl) return;
 
                     // Position near clicked object
+                    // The popup sits in .framing-sky, which the view fills: view pixels are popup pixels
                     const pix = aladin.world2pix(source.ra, source.dec);
-                    const modalContent = document.getElementById('framing-modal-content');
-                    const aladinDiv    = document.getElementById('aladin-lite-div');
-                    if (pix && modalContent && aladinDiv) {
-                        const ar = aladinDiv.getBoundingClientRect();
-                        const mr = modalContent.getBoundingClientRect();
-                        const px = ar.left - mr.left + pix[0];
-                        const py = ar.top  - mr.top  + pix[1];
+                    const aladinDiv = document.getElementById('aladin-lite-div');
+                    if (pix && aladinDiv) {
+                        const px = pix[0], py = pix[1];
                         const pw = 230; // popup estimated width
                         const ph = 140; // popup estimated height
-                        const mw = modalContent.offsetWidth;
+                        const mw = aladinDiv.offsetWidth;
                         const left = (px + 28 + pw < mw) ? px + 28 : px - pw - 8;
                         const top  = (py - ph > 20) ? py - ph : py + 16;
-                        popup.style.left   = Math.max(8, left) + 'px';
-                        popup.style.top    = Math.max(8, top)  + 'px';
-                        popup.style.bottom = 'auto';
-                        popup.style.right  = 'auto';
+                        popup.style.setProperty('--popup-x', Math.max(8, left) + 'px');
+                        popup.style.setProperty('--popup-y', Math.max(8, top) + 'px');
+                        popup.classList.add('is-placed');
                     }
 
                     // Content
@@ -3987,19 +3656,15 @@
                     const decStr = dSign + dD + '°\u202f' + String(dM).padStart(2,'0')
                         + '′\u202f' + dS.toFixed(0) + '″';
 
-                    let html = '<span style="font-size:11px;font-weight:700;'
-                        + 'text-transform:uppercase;letter-spacing:0.07em;'
-                        + 'color:var(--text-secondary);">' + typeName + '</span><br>'
-                        + '<span style="font-family:var(--font-mono,monospace);'
-                        + 'font-size:11px;color:var(--text-muted);">'
-                        + raStr + '<br>' + decStr + '</span>';
+                    let html = '<span class="scan-popup-type">' + window.escapeHtml(typeName) + '</span>'
+                        + '<span class="scan-popup-coords">' + raStr + '<br>' + decStr + '</span>';
                     if (source.data.size_arcmin != null) {
-                        html += '<br><span style="font-size:11px;color:var(--text-secondary);">'
-                            + 'Size\u2009' + source.data.size_arcmin.toFixed(1) + '</span>';
+                        html += '<span class="scan-popup-fact">'
+                            + window.escapeHtml(window.t('scan_size')) + '\u2009' + source.data.size_arcmin.toFixed(1) + '</span>';
                     }
                     if (source.data.mag != null) {
-                        html += '<br><span style="font-size:11px;color:var(--text-secondary);">'
-                            + 'Mag\u2009' + source.data.mag.toFixed(1) + '</span>';
+                        html += '<span class="scan-popup-fact">'
+                            + window.escapeHtml(window.t('scan_mag')) + '\u2009' + source.data.mag.toFixed(1) + '</span>';
                     }
                     bodyEl.innerHTML = html;
 
@@ -4022,21 +3687,16 @@
                         e.stopPropagation();
                         window.open(this.href, '_blank');
                     });
-                    _addBtn.className = 'inline-button';
-                    _addBtn.textContent = '+ Add to Database';
-                    _addBtn.style.cssText = 'margin-top:8px;width:100%;font-size:12px;'
-                        + 'display:block;text-align:center;text-decoration:none;'
-                        + 'box-sizing:border-box;';
+                    _addBtn.className = 'inline-button scan-popup-add';
+                    _addBtn.textContent = window.t('scan_add_to_database');
                     bodyEl.appendChild(_addBtn);
 
                     // Wikipedia snippet
                     const _wikiName = (source.data.name || '')
                         .replace(/\s+/g, ' ').trim().replace(/ /g, '_');
                     const _wikiDiv = document.createElement('div');
-                    _wikiDiv.style.cssText = 'margin-top:8px;padding-top:8px;'
-                        + 'border-top:1px solid var(--border-color,#d0cdc8);'
-                        + 'font-size:11px;color:var(--text-muted);font-style:italic;';
-                    _wikiDiv.textContent = 'Loading…';
+                    _wikiDiv.className = 'scan-popup-wiki is-loading';
+                    _wikiDiv.textContent = window.t('scan_loading');
                     bodyEl.appendChild(_wikiDiv);
 
                     fetch('https://en.wikipedia.org/api/rest_v1/page/summary/'
@@ -4046,17 +3706,14 @@
                             if (!d || !d.extract) { _wikiDiv.remove(); return; }
                             const extract = d.extract.length > 220
                                 ? d.extract.slice(0, 220) + '…' : d.extract;
-                            _wikiDiv.style.fontStyle = 'normal';
-                            _wikiDiv.style.color = 'var(--text-secondary)';
+                            _wikiDiv.classList.remove('is-loading');
                             _wikiDiv.innerHTML = '<span>' + window.escapeHtml(extract) + '</span> '
-                                + '<a href="' + window.escapeHtml(d.content_urls.desktop.page) + '"'
-                                + ' target="_blank" rel="noopener"'
-                                + ' style="color:var(--primary-color);text-decoration:none;'
-                                + 'font-weight:600;white-space:nowrap;">Wikipedia →</a>';
+                                + '<a class="scan-popup-wiki-link" href="' + window.escapeHtml(d.content_urls.desktop.page) + '"'
+                                + ' target="_blank" rel="noopener">Wikipedia →</a>';
                         })
                         .catch(() => _wikiDiv.remove());
 
-                    popup.style.display = 'block';
+                    popup.hidden = false;
                 },
             });
 
@@ -4066,7 +3723,7 @@
         })
         .catch(err => {
             console.error('[SCAN] fetch error:', err);
-            if (btn) { btn.textContent = 'Scan Frame'; btn.disabled = false; }
+            if (btn) { btn.textContent = window.t('scan_frame'); btn.disabled = false; }
         });
     }
 
@@ -4075,8 +3732,7 @@
     window.changeView = changeView;
     window.saveProject = saveProject;
     window.openFramingAssistant = openFramingAssistant;
-    window.closeFramingAssistant = closeFramingAssistant;
-    window.applyLockToObject = applyLockToObject;
+    window.novaFramingTab = { shown: onFramingTabShown, hidden: onFramingTabHidden };
     window.toggleGeoBelt = toggleGeoBelt;
     window.flipFraming90 = flipFraming90;
     window.copyFramingUrl = copyFramingUrl;
@@ -4088,8 +3744,8 @@
     window.showSurveyNotice = showSurveyNotice;
     window.updateImageAdjustments = updateImageAdjustments;
     window.copyRaDec = copyRaDec;
+    window.copyResult = copyResult;
     window.resetFovCenterToObject = resetFovCenterToObject;
-    window.nudgeFov = nudgeFov;
     window.copyAsiairMosaic = copyAsiairMosaic;
     window.scanFrameForDSOs = scanFrameForDSOs;
     window.updateScanButtonState = updateScanButtonState;
@@ -4097,13 +3753,6 @@
     window.setLocation = setLocation;
     window._fetchPlotInputs = fetchPlotInputs;   // graph_view.js: Imaging Opportunities
     window.openInStellarium = openInStellarium;
-
-    // Clean up event listeners when navigating away (prevents memory leaks)
-    window.addEventListener('beforeunload', () => {
-        if (framingKeydownHandler) {
-            window.removeEventListener('keydown', framingKeydownHandler);
-        }
-    });
 
     // ============================================
     // THEME INTEGRATION
@@ -4257,9 +3906,7 @@
     // view. The server derives the radius (half-diagonal + margin) and the detail
     // (from the rig's image scale); rotation doesn't change the bounding radius.
     function offlineFrameCenter() {
-        if (fovCenter && isFinite(fovCenter.ra) && isFinite(fovCenter.dec)) {
-            return { ra: fovCenter.ra, dec: fovCenter.dec };
-        }
+        // The frame centre is the view centre (see frameCenter)
         if (aladin && typeof aladin.getRaDec === 'function') {
             const rc = aladin.getRaDec();
             if (rc && isFinite(rc[0]) && isFinite(rc[1])) return { ra: rc[0], dec: rc[1] };
@@ -4315,8 +3962,6 @@
             if (offlineViewOn) {
                 scanBtn.disabled = true;
                 scanBtn.title = window.t('offline_scan_disabled');
-                scanBtn.style.opacity = '0.45';
-                scanBtn.style.cursor = 'not-allowed';
                 note.hidden = false;
             } else {
                 note.hidden = true;
@@ -4419,12 +4064,12 @@
             },
         });
         // Capture phase, so Escape closes only the panel while it is open; the
-        // modal's own Escape handler (document, bubble) never sees that press.
+        // page's other Escape handlers (document, bubble) never see that press.
         window.addEventListener('keydown', (e) => { if (offlineSavePanel) offlineSavePanel.handleKeydown(e); }, true);
         return offlineSavePanel;
     }
 
-    /** Closes the panel and stops its timers; called on modal open and close. */
+    /** Closes the panel and stops its timers; called on open and when the Framing tab hides. */
     function closeOfflineSavePanel() {
         if (offlineSavePanel) offlineSavePanel.close();
     }

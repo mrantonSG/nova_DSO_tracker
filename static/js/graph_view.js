@@ -7,18 +7,18 @@
     var DATA = window.NOVA_GRAPH_DATA || {};
     var objectName = DATA.objectName || '';
 
-    // --- URL-based tab restoration ---
-    (function() {
+    // --- Tab requested by the URL ---
+    // ?tab=framing&subtab=notes (dashboard Notes cell) means the Notes tab; a framing URL
+    // (rig + ra/dec) or ?openframing=1 without a tab means the Framing tab.
+    function tabFromUrl() {
         var params = new URLSearchParams(window.location.search);
-        var tabName = params.get('tab');
-
-        if (tabName) {
-            var tabBtn = document.querySelector('.tab-button[data-tab="' + tabName + '"]');
-            if (tabBtn) {
-                tabBtn.click();
-            }
-        }
-    })();
+        var tab = params.get('tab');
+        if (tab === 'framing' && params.get('subtab') === 'notes') return 'notes';
+        if (tab) return tab;
+        if (params.has('rig') && (params.has('ra') || params.has('dec'))) return 'framing';
+        if (params.get('openframing') === '1') return 'framing';
+        return null;
+    }
 
     // --- Patch: Update Separation on Date Change ---
     document.addEventListener("DOMContentLoaded", function() {
@@ -50,11 +50,11 @@
 
     // --- Sub-Tab Control Logic ---
     window.showProjectSubTab = function(tabName) {
-        document.querySelectorAll('#framing-tab .detail-tab-content').forEach(function(tab) { tab.classList.remove('active'); });
-        document.querySelectorAll('#framing-tab .detail-tab-button').forEach(function(button) { button.classList.remove('active'); });
+        document.querySelectorAll('#notes-tab .detail-tab-content').forEach(function(tab) { tab.classList.remove('active'); });
+        document.querySelectorAll('#notes-tab .detail-tab-button').forEach(function(button) { button.classList.remove('active'); });
 
         document.getElementById(tabName + '-sub-tab').classList.add('active');
-        document.querySelector('#framing-tab .detail-tab-button[data-tab="' + tabName + '"]').classList.add('active');
+        document.querySelector('#notes-tab .detail-tab-button[data-tab="' + tabName + '"]').classList.add('active');
 
         if (tabName === 'project-detail') {
             if (document.getElementById('project-view-mode')) {
@@ -104,7 +104,7 @@
             if (editButton) editButton.style.display = 'inline-block';
 
             if (!justSwitchedTab) {
-                window.location.href = window.location.href.split('?')[0] + '?tab=framing';
+                window.location.href = window.location.href.split('?')[0] + '?tab=notes';
             }
         }
     };
@@ -249,64 +249,10 @@
                     console.error('[GRAPH_VIEW] saveProject function not available!');
                 }
                 break;
-            case 'open-framing-assistant':
-                console.log('[GRAPH_VIEW] open-framing-assistant, function exists:', typeof window.openFramingAssistant);
-                if (typeof window.openFramingAssistant === 'function') {
-                    // Check if there's saved framing data for this object
-                    const objectName = window.NOVA_GRAPH_DATA?.objectName;
-                    if (objectName) {
-                        fetch(`/api/get_framing/${encodeURIComponent(objectName)}`)
-                            .then(r => r.json())
-                            .then(data => {
-                                if (data.status === 'found') {
-                                    // Reconstruct query string from DB data
-                                    const params = new URLSearchParams();
-                                    if (data.rig != null) params.set('rig', data.rig);
-                                    if (data.rig_uid) params.set('rig_uid', data.rig_uid);
-                                    if (data.ra != null) params.set('ra', data.ra);
-                                    if (data.dec != null) params.set('dec', data.dec);
-                                    if (data.rotation != null) params.set('rot', data.rotation);
-                                    if (data.survey) params.set('survey', data.survey);
-                                    if (data.blend) params.set('blend', data.blend);
-                                    if (data.blend_op != null) params.set('blend_op', data.blend_op);
-
-                                    // Restore Mosaic
-                                    if (data.mosaic_cols != null) params.set('m_cols', data.mosaic_cols);
-                                    if (data.mosaic_rows != null) params.set('m_rows', data.mosaic_rows);
-                                    if (data.mosaic_overlap != null) params.set('m_ov', data.mosaic_overlap);
-
-                                    // Open with saved framing
-                                    window.openFramingAssistant(params.toString());
-                                } else {
-                                    // No saved framing, open with defaults
-                                    window.openFramingAssistant();
-                                }
-                            })
-                            .catch(err => {
-                                console.error('[GRAPH_VIEW] Error fetching saved framing:', err);
-                                // On error, open with defaults
-                                window.openFramingAssistant();
-                            });
-                    } else {
-                        window.openFramingAssistant();
-                    }
-                    window.updateScanButtonState?.();
-                } else {
-                    console.error('[GRAPH_VIEW] openFramingAssistant function not available!');
-                }
-                break;
             case 'open-stellarium':
                 console.log('[GRAPH_VIEW] open-stellarium');
                 if (typeof window.openInStellarium === 'function') {
                     window.openInStellarium();
-                }
-                break;
-            case 'close-framing-assistant':
-                console.log('[GRAPH_VIEW] close-framing-assistant');
-                if (typeof window.closeFramingAssistant === 'function') {
-                    window.closeFramingAssistant();
-                } else {
-                    console.error('[GRAPH_VIEW] closeFramingAssistant function not available!');
                 }
                 break;
             case 'flip-framing':
@@ -332,7 +278,7 @@
                 break;
             case 'close-scan-popup':
                 const p = document.getElementById('scan-result-popup');
-                if (p) p.style.display = 'none';
+                if (p) p.hidden = true;
                 break;
             case 'copy-mosaic-csv':
                 console.log('[GRAPH_VIEW] copy-mosaic-csv');
@@ -346,18 +292,15 @@
                     window.copyRaDec();
                 }
                 break;
+            case 'copy-result':
+                if (typeof window.copyResult === 'function') {
+                    window.copyResult(actionBtn.dataset.copy);
+                }
+                break;
             case 'recenter-fov':
                 console.log('[GRAPH_VIEW] recenter-fov');
                 if (typeof window.resetFovCenterToObject === 'function') {
                     window.resetFovCenterToObject();
-                }
-                break;
-            case 'nudge-fov':
-                console.log('[GRAPH_VIEW] nudge-fov:', actionBtn.dataset.dx, actionBtn.dataset.dy);
-                if (typeof window.nudgeFov === 'function') {
-                    var dx = parseInt(actionBtn.dataset.dx) || 0;
-                    var dy = parseInt(actionBtn.dataset.dy) || 0;
-                    window.nudgeFov(dx, dy);
                 }
                 break;
             case 'edit-project':
@@ -389,12 +332,6 @@
         console.log('[GRAPH_VIEW] Change action triggered:', action, actionBtn);
 
         switch(action) {
-            case 'toggle-lock-fov':
-                console.log('[GRAPH_VIEW] toggle-lock-fov:', actionBtn.checked);
-                if (typeof window.applyLockToObject === 'function') {
-                    window.applyLockToObject(actionBtn.checked);
-                }
-                break;
             case 'toggle-geo-belt':
                 console.log('[GRAPH_VIEW] toggle-geo-belt:', actionBtn.checked);
                 if (typeof window.toggleGeoBelt === 'function') {
@@ -492,11 +429,11 @@
 
         // --- Tab Initialization ---
         var params = new URLSearchParams(window.location.search);
-        var tabFromUrl = params.get('tab');
         var periodFromUrl = params.get('period');
 
-        var lastTab = localStorage.getItem('lastActiveTab-' + JSON.stringify(objectName));
-        var tabToShow = tabFromUrl || lastTab || 'chart';
+        var lastTab = null;
+        try { lastTab = localStorage.getItem('lastActiveTab-' + JSON.stringify(objectName)); } catch (e) {}
+        var tabToShow = tabFromUrl() || lastTab || 'chart';
 
         showTab(tabToShow);
 
@@ -516,14 +453,32 @@
     var opportunitiesLoaded = false;
     var simbadLoaded = false;
 
+    var currentTab = null;
+
     window.showTab = function(tabName) {
+        // Unknown tab (old link, stale localStorage): fall back to the chart
+        if (!document.getElementById(tabName + '-tab') ||
+            !document.querySelector('.tab-button[data-tab="' + tabName + '"]')) {
+            console.warn('[GRAPH_VIEW] Unknown tab:', tabName);
+            tabName = 'chart';
+        }
+        var previousTab = currentTab;
+        currentTab = tabName;
+
         document.querySelectorAll('.tab-content').forEach(function(tab) { tab.classList.remove('active'); });
         document.querySelectorAll('.tab-button').forEach(function(button) { button.classList.remove('active'); });
 
         document.getElementById(tabName + '-tab').classList.add('active');
         document.querySelector('.tab-button[data-tab="' + tabName + '"]').classList.add('active');
 
-        localStorage.setItem('lastActiveTab-' + JSON.stringify(objectName), tabName);
+        try { localStorage.setItem('lastActiveTab-' + JSON.stringify(objectName), tabName); } catch (e) {}
+
+        // Framing tab lifecycle (graph_view_chart.js): Aladin, Lock overlay loop, keys
+        var framingTab = window.novaFramingTab;
+        if (framingTab) {
+            if (previousTab === 'framing' && tabName !== 'framing') framingTab.hidden();
+            if (tabName === 'framing' && previousTab !== 'framing') framingTab.shown();
+        }
 
         if (tabName === 'opportunities' && !opportunitiesLoaded) {
             loadImagingOpportunities();

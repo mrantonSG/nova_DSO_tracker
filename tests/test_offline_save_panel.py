@@ -618,12 +618,11 @@ def _fn_body(src, name):
     return src[i:j]
 
 
-def test_chart_closes_panel_on_modal_open_and_close():
+def test_chart_closes_panel_on_open_and_when_the_framing_tab_hides():
     src = CHART_JS.read_text(encoding="utf-8")
     assert "closeOfflineSavePanel();   // the panel starts closed on every open" in _fn_body(src, "openFramingAssistant")
-    assert "closeOfflineSavePanel();" in _fn_body(src, "closeFramingAssistant")
-    on_close = src[src.index("onClose: function() {", src.index("cacheKey: 'framing'")):]
-    assert on_close[:400].count("closeOfflineSavePanel();") == 1
+    assert _fn_body(src, "onFramingTabHidden").count("closeOfflineSavePanel();") == 1
+    # Escape: the panel's handler runs in the capture phase, so it closes only the panel
     assert "window.addEventListener('keydown', (e) => { if (offlineSavePanel) offlineSavePanel.handleKeydown(e); }, true);" in src
 
 
@@ -748,7 +747,7 @@ def _graph_page(monkeypatch, client, save_enabled=True):
 
 def _offline_markup(page):
     i = page.index('<div id="offline-sky-controls"')
-    j = page.index('<div class="framing-controls" style="flex-wrap: wrap;">', i)
+    j = page.index('</details>', i)   # the end of the folded OFFLINE section
     return page[i:j]
 
 

@@ -157,14 +157,14 @@ def project_detail(project_id):
 
             # Redirect to graph dashboard with project's target object
             if project.target_object_name:
-                return redirect(url_for('core.graph_dashboard', object_name=project.target_object_name, tab='framing'))
+                return redirect(url_for('core.graph_dashboard', object_name=project.target_object_name, tab='notes'))
             return redirect(url_for('core.index'))
 
         # --- Handle GET Request ---
         # Project details are now shown inline in the graph dashboard (via _project_subtab.html)
         # Redirect to the graph dashboard with the project's target object
         if project.target_object_name:
-            return redirect(url_for('core.graph_dashboard', object_name=project.target_object_name, tab='framing'))
+            return redirect(url_for('core.graph_dashboard', object_name=project.target_object_name, tab='notes'))
         return redirect(url_for('core.index'))
     except Exception as e:
         db.rollback()

@@ -298,7 +298,6 @@ code {
     border-left: 2px solid var(--border-light);
 }
 
-
 .session-history-table {
     width: 100%;
     border-collapse: collapse;
@@ -361,7 +360,6 @@ code {
     line-height: var(--line-height-normal);
 }
 
-
 .selected-session-details div.form-data-value.preserve-newlines {
     min-height: 80px;
     background-color: var(--bg-white);
@@ -382,7 +380,6 @@ div.form-data-value.preserve-newlines {
     font-size: 1em;
     color: var(--accent-gray-text);
     width: 320px;
-
 
 }
 
@@ -410,7 +407,6 @@ div.form-data-value.preserve-newlines {
     flex: 1;
     min-width: 200px;
 }
-
 
 .framing-table {
     width: 100%;
@@ -462,63 +458,6 @@ div.form-data-value.preserve-newlines {
     background-color: rgba(0, 0, 0, 0.6);
 }
 
-.framing-controls {
-    margin-bottom: 15px;
-    display: flex;
-    gap: 20px;
-    align-items: center;
-    color: black;
-}
-
-.framing-controls select, .framing-controls button {
-    font-size: var(--font-size-sm);
-    padding: var(--space-1);
-}
-
-
-#aladin-lite-div .aladin-location,
-#aladin-lite-div .aladin-mouse-position {
-    display: none !important;
-}
-
-
-.modal-header-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 12px 56px 6px 16px;
-    border-bottom: 1px solid var(--primary-color);
-}
-
-.brand-strong {
-    font-weight: var(--font-weight-bold);
-    letter-spacing: 0.2px;
-    font-size: var(--font-size-xl);
-}
-
-.brand-light {
-    font-weight: var(--font-weight-normal);
-    margin-left: 6px;
-    color: var(--text-secondary);
-    font-size: var(--font-size-xl);
-}
-
-/* Light mode: "Nova" wordmark in brand teal */
-.modal-header-bar .brand-strong {
-    color: var(--primary-color);
-}
-
-.fov-chip {
-    font-size: var(--font-size-2xs);
-    color: var(--text-dark-alt);
-    background: var(--fov-bg);
-    border: 1px solid var(--border-framing);
-    border-radius: 999px;
-    padding: var(--space-1) var(--space-2-5);
-    white-space: nowrap;
-    margin-right: 48px;
-}
 
 .modal .close {
     position: absolute;
@@ -532,59 +471,6 @@ div.form-data-value.preserve-newlines {
 
 .modal .close:hover {
     color: var(--text-tertiary);
-}
-
-#framing-modal {
-    position: fixed;
-    inset: 0;
-    display: none;
-    background: rgba(0, 0, 0, 0.6);
-    z-index: var(--z-sticky);
-}
-
-
-#framing-modal-content {
-    position: relative;
-    margin: 2vh auto;
-    width: 98vw;
-    height: 96vh;
-    background: var(--bg-white);
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-overlay);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-}
-
-#framing-header,
-#framing-toolbar {
-    padding: var(--space-2-5) var(--space-4);
-}
-
-#framing-toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px 14px;
-    align-items: center;
-    border-top: 1px solid var(--border-toolbar-divider);
-    border-bottom: 1px solid var(--border-toolbar-divider);
-}
-
-
-#framing-body {
-    flex: 1 1 auto;
-    min-height: 240px;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    padding: 10px 16px 14px 16px;
-}
-
-#aladin-lite-div {
-    flex: 1 1 auto;
-    min-height: 200px;
-    border-radius: var(--radius-lg);
-    overflow: hidden;
 }
 
 /* Survey image credit, overlaid bottom right of the sky, directly left of the Aladin logo.
@@ -674,65 +560,6 @@ div.form-data-value.preserve-newlines {
     opacity: 1;
 }
 
-.framing-readout {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 12px;
-    align-items: center;
-    margin: 8px 0 10px;
-}
-
-@media (max-width: 1280px) {
-    #framing-modal-content {
-        width: 96vw;
-        height: 92vh;
-        margin: 2vh auto;
-    }
-
-    #framing-toolbar, #framing-body {
-        padding-left: 12px;
-        padding-right: 12px;
-    }
-
-    #framing-toolbar {
-        gap: 8px 10px;
-    }
-}
-
-@media (max-width: 900px) {
-    .framing-readout {
-        gap: 6px 10px;
-    }
-
-    .inline-label {
-        white-space: nowrap;
-        font-size: 0.95rem;
-    }
-}
-
-.framing-controls {
-    padding-left: 16px;
-    padding-right: 16px;
-}
-
-#framing-modal-content.fullscreen {
-    width: 98vw !important;
-    height: 96vh !important;
-    margin: 2vh auto !important;
-}
-
-.fullscreen-btn {
-    float: right;
-    border: none;
-    background: transparent;
-    font-size: 1.3rem;
-    cursor: pointer;
-    margin-right: 10px;
-}
-
-.fullscreen-btn:hover {
-    color: var(--link-color-alt);
-}
 
 .close {
     font-size: 1.4rem;
@@ -755,7 +582,6 @@ div.form-data-value.preserve-newlines {
     pointer-events: auto;
 }
 
-.fullscreen-btn,
 .close-btn {
     width: 28px;
     height: 28px;
@@ -994,13 +820,6 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     color: var(--text-primary);
 }
 
-/* Framing rig select */
-[data-theme="dark"] #framing-rig-select {
-    background-color: var(--bg-medium);
-    border: 1px solid var(--border-medium);
-    color: var(--text-primary);
-}
-
 /* View selector dropdown */
 [data-theme="dark"] .view-selector {
     background-color: var(--bg-medium);
@@ -1010,263 +829,7 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
 
 /* Loading overlay dark mode - see earlier in file for nova-themed version */
 
-/* ===================================================================
-   DARK MODE - FRAMING MODAL OVERRIDES
-   ================================================================ */
-
-/* Framing modal content container */
-[data-theme="dark"] #framing-modal-content {
-    background: var(--bg-light);
-    box-shadow: var(--shadow-overlay);
-}
-
-/* Framing header */
-[data-theme="dark"] #framing-header {
-    background-color: var(--bg-light);
-    color: var(--text-primary);
-}
-
-/* Framing toolbar */
-[data-theme="dark"] #framing-toolbar {
-    background-color: var(--bg-light);
-    border-top-color: var(--border-medium);
-    border-bottom-color: var(--border-medium);
-}
-
-/* Framing body */
-[data-theme="dark"] #framing-body {
-    background-color: var(--bg-light);
-}
-
-/* All inputs in framing modal */
-[data-theme="dark"] #framing-modal input[type="text"],
-[data-theme="dark"] #framing-modal input[type="number"],
-[data-theme="dark"] #framing-modal input[type="range"],
-[data-theme="dark"] #framing-modal input[type="checkbox"] {
-    background-color: var(--bg-medium);
-    border: 1px solid var(--border-medium);
-    color: var(--text-primary);
-}
-
-[data-theme="dark"] #framing-modal input[type="text"]:focus,
-[data-theme="dark"] #framing-modal input[type="number"]:focus {
-    border-color: var(--primary-color);
-    outline: none;
-}
-
-/* All selects in framing modal */
-[data-theme="dark"] #framing-modal select {
-    background-color: var(--bg-medium);
-    border: 1px solid var(--border-medium);
-    color: var(--text-primary);
-}
-
-[data-theme="dark"] #framing-modal select:focus {
-    border-color: var(--primary-color);
-    outline: none;
-}
-
-/* Range slider track */
-[data-theme="dark"] #framing-modal input[type="range"] {
-    -webkit-appearance: none;
-    appearance: none;
-    background: transparent;
-    border: none;
-}
-
-[data-theme="dark"] #framing-modal input[type="range"]::-webkit-slider-runnable-track {
-    background: var(--bg-medium);
-    border: 1px solid var(--border-medium);
-    height: 6px;
-    border-radius: var(--radius-sm);
-}
-
-[data-theme="dark"] #framing-modal input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    background: var(--primary-color);
-    height: 14px;
-    width: 14px;
-    border-radius: 50%;
-    margin-top: -5px;
-}
-
-/* All labels and text in framing modal */
-[data-theme="dark"] #framing-modal label,
-[data-theme="dark"] #framing-modal .inline-label,
-[data-theme="dark"] #framing-modal .framing-controls label,
-[data-theme="dark"] #framing-modal .framing-controls span,
-[data-theme="dark"] #framing-toolbar label,
-[data-theme="dark"] #framing-toolbar span {
-    color: var(--text-primary) !important;
-}
-
-/* Readout values */
-[data-theme="dark"] .framing-readout,
-[data-theme="dark"] .framing-readout span {
-    color: var(--text-primary);
-}
-
-/* Modal close and fullscreen buttons */
-[data-theme="dark"] .fullscreen-btn,
-[data-theme="dark"] .close-btn {
-    color: var(--text-muted);
-}
-
-[data-theme="dark"] .fullscreen-btn:hover,
-[data-theme="dark"] .close-btn:hover {
-    color: var(--text-primary);
-}
-
 /* NOTE: Trix dark mode overrides consolidated in base.css (lines 594-657) */
-
-/* =================================================================
-   FRAMING MODAL - FACELIFT STYLES
-   Enhanced dark mode for the control panel above Aladin Lite sky canvas
-   ================================================================ */
-
-/* Light mode framing controls - clean white panel */
-.framing-controls {
-    background: var(--nova-surface, #ffffff);
-    border-bottom: 1px solid var(--nova-border-light, rgba(0,0,0,0.04));
-    color: var(--nova-text, #141414);
-    padding: 10px 16px;
-    margin-bottom: 0;
-}
-
-/* Framing controls in dark mode - midnight panel */
-:root[data-theme="dark"] .framing-controls {
-    background: #161b24;
-    border-bottom: 1px solid rgba(255,255,255,0.07);
-    color: rgba(255,255,255,0.8);
-}
-
-/* All inputs in framing controls - dark mode */
-:root[data-theme="dark"] .framing-controls input[type="text"],
-:root[data-theme="dark"] .framing-controls input[type="number"] {
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.12);
-    color: rgba(255,255,255,0.8);
-    border-radius: 4px;
-    padding: 4px 8px;
-    font-size: 13px;
-}
-
-:root[data-theme="dark"] .framing-controls input[type="text"]:focus,
-:root[data-theme="dark"] .framing-controls input[type="number"]:focus {
-    border-color: var(--nova-accent, #7aafc0);
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(122,175,192,0.15);
-}
-
-/* All selects in framing controls - dark mode */
-:root[data-theme="dark"] .framing-controls select {
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.12);
-    color: rgba(255,255,255,0.8);
-    border-radius: 4px;
-    padding: 4px 8px;
-    font-size: 13px;
-    cursor: pointer;
-}
-
-:root[data-theme="dark"] .framing-controls select:focus {
-    border-color: var(--nova-accent, #7aafc0);
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(122,175,192,0.15);
-}
-
-/* Range sliders in framing controls - dark mode */
-:root[data-theme="dark"] .framing-controls input[type="range"] {
-    accent-color: var(--nova-accent, #7aafc0);
-    background: transparent;
-}
-
-:root[data-theme="dark"] .framing-controls input[type="range"]::-webkit-slider-runnable-track {
-    background: rgba(255,255,255,0.1);
-    height: 4px;
-    border-radius: 2px;
-}
-
-:root[data-theme="dark"] .framing-controls input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    background: var(--nova-accent, #7aafc0);
-    height: 14px;
-    width: 14px;
-    border-radius: 50%;
-    margin-top: -5px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-}
-
-:root[data-theme="dark"] .framing-controls input[type="range"]::-moz-range-track {
-    background: rgba(255,255,255,0.1);
-    height: 4px;
-    border-radius: 2px;
-}
-
-:root[data-theme="dark"] .framing-controls input[type="range"]::-moz-range-thumb {
-    background: var(--nova-accent, #7aafc0);
-    height: 14px;
-    width: 14px;
-    border-radius: 50%;
-    border: none;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-}
-
-/* Checkbox styling in framing controls */
-:root[data-theme="dark"] .framing-controls input[type="checkbox"] {
-    accent-color: var(--nova-accent, #7aafc0);
-}
-
-/* Labels in framing controls - dark mode */
-:root[data-theme="dark"] .framing-controls label {
-    color: rgba(255,255,255,0.7);
-}
-
-/* Inline buttons in framing controls - dark mode */
-:root[data-theme="dark"] .framing-controls .inline-button {
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.12);
-    color: rgba(255,255,255,0.8);
-    border-radius: 5px;
-    padding: 6px 10px;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-
-:root[data-theme="dark"] .framing-controls .inline-button:hover {
-    background: rgba(255,255,255,0.1);
-    border-color: rgba(255,255,255,0.2);
-    color: rgba(255,255,255,0.95);
-}
-
-/* Divider lines in framing controls - dark mode */
-:root[data-theme="dark"] .framing-controls [style*="border-left:1px solid"] {
-    border-left-color: rgba(255,255,255,0.07) !important;
-}
-
-/* Modal header bar - dark mode */
-:root[data-theme="dark"] .modal-header-bar {
-    background: #161b24;
-    border-bottom-color: var(--nova-accent, #7aafc0);
-}
-
-:root[data-theme="dark"] .modal-header-bar .brand-strong {
-    color: var(--nova-accent, #7aafc0);
-}
-
-:root[data-theme="dark"] .modal-header-bar .brand-light {
-    color: rgba(255,255,255,0.55);
-}
-
-/* FOV chip in header - dark mode */
-:root[data-theme="dark"] .fov-chip {
-    background: rgba(122,175,192,0.12);
-    border-color: rgba(122,175,192,0.2);
-    color: var(--nova-accent, #7aafc0);
-}
 
 /* =================================================================
    SIMBAD TAB - IFRAME CONTAINER STYLING
@@ -1577,23 +1140,8 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     background-color: var(--nova-bg, var(--gray-50));
 }
 
-/* "Show Framing" button — teal ghost variant */
-#project-framing-buttons .inline-button-ghost[data-action="open-framing-assistant"] {
-    background: transparent;
-    color: var(--primary-color);
-    border: 1px solid var(--primary-color);
-    border-radius: 6px;
-    padding: 6px 14px;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-}
-#project-framing-buttons .inline-button-ghost[data-action="open-framing-assistant"]:hover {
-    background: var(--primary-bg);
-}
-
-/* Ensure framing tab uses proper background */
-#framing-tab {
+/* Ensure the Notes tab uses proper background */
+#notes-tab {
     background-color: var(--nova-bg, var(--gray-50));
 }
 
@@ -1606,7 +1154,7 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
 :root[data-theme="dark"] #chart-section,
 :root[data-theme="dark"] #chart-tab,
 :root[data-theme="dark"] .tab-content,
-:root[data-theme="dark"] #framing-tab {
+:root[data-theme="dark"] #notes-tab {
     background-color: var(--nova-bg, #0f1118);
 }
 
@@ -1939,26 +1487,544 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     color: var(--nova-accent, #7aafc0);
 }
 
+/* =================================================================
+   FRAMING TAB - sky on the left, side panel on the right
+   The frame is fixed in the centre of the sky; the sky moves by dragging.
+   ================================================================= */
+
+/* The sky and the side panel sit in the same .content-section card as the other
+   tabs (same gap, margins, radius, border, background). The card has no padding;
+   overflow: clip rounds the sky's outer corners to the card's. */
+.framing-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    min-height: 0;
+    padding: 0;
+    overflow: clip;
+}
+
+/* Desktop: the page is exactly the viewport while the Framing tab shows. Everything
+   above the tab (header, status strip, banners, tab bar) keeps its own height and
+   margins, the tab takes the rest and the card fills the tab down to its usual bottom
+   margin, so the sky fills the card without measuring anything in JS. The body's
+   children are those rows (base.html). */
+@media (min-width: 901px) {
+    body:has(#framing-tab.active) {
+        box-sizing: border-box;
+        height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    body:has(#framing-tab.active) > * {
+        flex: none;
+    }
+    body:has(#framing-tab.active) > #framing-tab.active {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+    #framing-tab.active .framing-layout {
+        flex: 1 1 auto;
+    }
+}
+
+.framing-sky {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+}
+
+/* Aladin fills the sky cell; the overlays below position against it */
+#aladin-lite-div {
+    position: absolute;
+    inset: 0;
+    overscroll-behavior: contain;
+}
+
+#aladin-lite-div .aladin-location,
+#aladin-lite-div .aladin-mouse-position {
+    display: none !important;
+}
+
+/* Frame overlay: a 0×0 point in the centre of the view, rotated; panes around it.
+   graph_view_chart.js sets only the geometry (custom properties). */
+.screen-fov-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+}
+.screen-fov-rect {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 0;
+    height: 0;
+    transform: rotate(var(--frame-rot, 0deg));
+    transform-origin: center center;
+}
+.screen-fov-rect[hidden] {
+    display: none;
+}
+.screen-fov-pane {
+    position: absolute;
+    box-sizing: border-box;
+    width: var(--pane-w, 0px);
+    height: var(--pane-h, 0px);
+    left: calc(var(--pane-x, 0px) - var(--pane-w, 0px) / 2);
+    top: calc(var(--pane-y, 0px) - var(--pane-h, 0px) / 2);
+    border: 2px solid var(--primary-color);
+}
+.screen-fov-pane.is-mosaic {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+    color: var(--primary-color);
+    font-size: 10px;
+}
+
+/* --- Side panel --- */
+.framing-side {
+    min-height: 0;
+    overflow-y: auto;
+    border-left: 1px solid var(--border-color, #e5e2dc);
+}
+
+.framing-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2-5);
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border-color, #e5e2dc);
+}
+
+/* Design-system micro-label */
+.framing-section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    margin: 0;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--text-muted);
+}
+
+.framing-head-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+.framing-offline-slot:empty {
+    display: none;
+}
+
+.fov-chip {
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color, #e5e2dc);
+    border-radius: 5px;
+    padding: 2px 8px;
+    white-space: nowrap;
+}
+.fov-chip:empty {
+    display: none;
+}
+
+/* --- Result block --- */
+.result-row {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-2);
+}
+.result-label {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+.result-epoch {
+    display: block;
+    font-size: 9px;
+    font-weight: 400;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+}
+.result-value {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xl);
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+.result-copy {
+    padding: 4px 10px;
+}
+.result-saved-chip {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
+    padding: 1px 7px;
+    border-radius: 5px;
+    background: var(--primary-bg);
+    color: var(--primary-hover);
+    border: 1px solid var(--primary-light);
+}
+.result-saved-chip.is-different {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border-color: var(--border-color, #e5e2dc);
+}
+.result-saved-chip[hidden],
+.result-saved-line[hidden] {
+    display: none;
+}
+.result-saved-line {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+/* --- Fields --- */
+.framing-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-width: 0;
+}
+.framing-field label,
+.framing-min-size span:first-child {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+.framing-field-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.framing-field-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+}
+.framing-inline {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+.framing-inline input[type="range"] {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.framing-times,
+.framing-unit {
+    color: var(--text-muted);
+}
+
+.framing-field select,
+.framing-side .framing-number {
+    box-sizing: border-box;
+    height: 34px;
+    border: 1px solid var(--border-color, #d0cdc8);
+    border-radius: 6px;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 13px;
+}
+.framing-field select {
+    width: 100%;
+    padding: 0 28px 0 10px;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23aaa'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 10px 6px;
+    cursor: pointer;
+}
+[data-theme="dark"] .framing-field select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+    background-size: 10px 6px;
+}
+.framing-side .framing-number {
+    width: 64px;
+    padding: 0 8px;
+    text-align: center;
+    font-family: var(--font-mono);
+}
+.framing-field select:focus,
+.framing-side .framing-number:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-bg);
+}
+.framing-side .framing-number:disabled {
+    color: var(--text-muted);
+    background-color: var(--bg-tertiary);
+}
+.framing-side input[type="range"] {
+    accent-color: var(--primary-color);
+    cursor: pointer;
+}
+.framing-side input[type="checkbox"] {
+    accent-color: var(--primary-color);
+}
+
+.rotation-value {
+    padding: 0;
+    border: none;
+    background: transparent;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+.rotation-value:hover {
+    color: var(--primary-color);
+}
+
+.framing-check {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1-5);
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+/* --- Folded parts (Image adjustments, Offline) --- */
+.framing-fold > summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: var(--space-1-5);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+.framing-fold > summary::-webkit-details-marker {
+    display: none;
+}
+.framing-fold > summary::before {
+    content: '';
+    width: 0;
+    height: 0;
+    border-left: 4px solid currentColor;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    transition: transform 0.15s ease;
+}
+.framing-fold[open] > summary::before {
+    transform: rotate(90deg);
+}
+.framing-fold > summary.framing-section-title {
+    justify-content: flex-start;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+.framing-fold[open] > :not(summary) {
+    margin-top: var(--space-2-5);
+}
+.framing-fold > .framing-field + .framing-field {
+    margin-top: var(--space-2);
+}
+/* Offline section only when the offline sky is on (the controls start hidden) */
+.framing-offline:not(:has(#offline-sky-controls:not([hidden]))) {
+    display: none;
+}
+
+/* --- Buttons --- */
+.framing-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+.framing-buttons:empty {
+    display: none;
+}
+.framing-side .inline-button,
+.framing-side .inline-button-ghost,
+.framing-side .inline-button-danger {
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.4;
+}
+.framing-side .inline-button-ghost:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+.framing-min-size {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1-5);
+}
+
+/* --- Scan Frame result popup, over the sky --- */
+.scan-result-popup {
+    position: absolute;
+    z-index: 1000;
+    left: 16px;
+    bottom: 16px;
+    min-width: 200px;
+    max-width: 280px;
+    padding: 10px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color, #d0cdc8);
+    border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+    font-size: 13px;
+    color: var(--text-primary);
+}
+.scan-result-popup.is-placed {
+    left: var(--popup-x, 16px);
+    top: var(--popup-y, auto);
+    bottom: auto;
+}
+.scan-result-popup[hidden] {
+    display: none;
+}
+.scan-popup-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+.scan-popup-name {
+    font-size: 13px;
+    color: var(--primary-color);
+}
+.scan-popup-close {
+    padding: 0 6px;
+    border: 1px solid var(--border-color, #d0cdc8);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.4;
+    cursor: pointer;
+}
+.scan-popup-close:hover {
+    background: var(--bg-tertiary);
+}
+.scan-popup-body {
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.6;
+}
+.scan-popup-type,
+.scan-popup-coords,
+.scan-popup-fact {
+    display: block;
+    font-size: 11px;
+}
+.scan-popup-type {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+}
+.scan-popup-coords {
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+}
+.scan-popup-add {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    text-align: center;
+    text-decoration: none;
+}
+.scan-popup-wiki {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-color, #d0cdc8);
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+.scan-popup-wiki.is-loading {
+    color: var(--text-muted);
+    font-style: italic;
+}
+.scan-popup-wiki-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* The offline save panel is a card of its own; in the narrow side panel its two
+   columns stack. */
+.framing-side .offline-save-panel {
+    margin: 0;
+}
+.framing-side .offline-save-body {
+    grid-template-columns: 1fr;
+}
+.framing-side .offline-sky-controls:not([hidden]) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+}
+
+/* Narrow: the panel moves under the sky, the page scrolls */
+@media (max-width: 900px) {
+    .framing-layout {
+        grid-template-columns: 1fr;
+    }
+    .framing-sky {
+        height: 60vh;
+        min-height: 360px;
+    }
+    .framing-side {
+        overflow: visible;
+        border-left: none;
+        border-top: 1px solid var(--border-color, #e5e2dc);
+    }
+}
+
+/* Stellarium status under the notes */
+.stellarium-status {
+    margin-top: 10px;
+    color: var(--text-muted);
+}
+.stellarium-status.is-ok {
+    color: var(--primary-color);
+}
+.stellarium-status.is-error {
+    color: #a04040;
+}
+[data-theme="dark"] .stellarium-status.is-error {
+    color: #d06060;
+}
 
 /* =================================================================
    OFFLINE SKY - controls row, "Save for offline" panel, saved list
    (moved here from the inline <style> block in graph_view.html)
    ================================================================= */
 
-.framing-controls.offline-sky-controls {
-    align-items: center;
-    gap: 12px;
-    padding-top: 2px;
-}
 .offline-sky-controls[hidden],
 .offline-save-panel[hidden] {
     display: none;
-}
-/* .framing-controls button would shrink the ghost button; restore the system size. */
-.offline-sky-controls .inline-button-ghost {
-    padding: 6px 14px;
-    font-size: 12px;
-    border-radius: 6px;
 }
 .offline-sky-controls .inline-button-ghost[aria-expanded="true"] {
     background: var(--bg-tertiary);
@@ -2098,7 +2164,7 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     gap: 8px 12px;
 }
 .offline-detail-select,
-[data-theme="dark"] #framing-modal select.offline-detail-select {
+[data-theme="dark"] #framing-panel select.offline-detail-select {
     height: 34px;
     padding: 0 28px 0 10px;
     background-color: var(--bg-secondary);
@@ -2109,7 +2175,7 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     font-family: inherit;
 }
 .offline-detail-select:focus,
-[data-theme="dark"] #framing-modal select.offline-detail-select:focus {
+[data-theme="dark"] #framing-panel select.offline-detail-select:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px var(--primary-bg);
@@ -2176,11 +2242,13 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     font-size: 12px;
     color: var(--text-muted);
 }
+/* A saved row stacks in three lines, whatever its state (running, done, failed):
+   name; meta at full width; status on the left and the buttons on the right,
+   the buttons wrapping to a line of their own (still right) when they don't fit. */
 .offline-save-row {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    flex-direction: column;
+    gap: 6px;
     padding: 10px 0;
     border-top: 1px solid var(--border-light);
 }
@@ -2209,19 +2277,27 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     margin-top: 2px;
     font-size: 11px;
     color: var(--text-secondary);
+    overflow-wrap: anywhere;
 }
 .offline-save-side {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
-    flex: none;
+    justify-content: flex-end;
+    gap: 6px 8px;
+    min-width: 0;
 }
+/* The status takes the room the buttons leave and wraps inside it; the buttons
+   only drop to their own line once that room is under 7.5em. */
 .offline-save-status {
+    flex: 1 1 0;
+    min-width: 7.5em;
     font-family: var(--font-mono);
     font-size: 12px;
     color: var(--text-secondary);
-    white-space: nowrap;
+    overflow-wrap: anywhere;
 }
+.offline-save-status:empty { display: none; }
 .offline-save-status[data-tone="success"] { color: #2a9060; }
 .offline-save-status[data-tone="warning"] { color: #94600f; }
 .offline-save-status[data-tone="error"] { color: #a04040; }
@@ -2230,11 +2306,13 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
 [data-theme="dark"] .offline-save-status[data-tone="error"] { color: #d06060; }
 .offline-save-side .inline-button-ghost,
 .offline-save-side .inline-button-danger {
+    flex: none;
     height: 26px;
     padding: 0 10px;
     border-radius: 6px;
     font-size: 12px;
     font-weight: 600;
+    white-space: nowrap;
     cursor: pointer;
 }
 .offline-save-side .inline-button-ghost[hidden] { display: none; }

@@ -11,6 +11,27 @@
     window.NOVA_OFFLINE_SKY_BASE_ORDER = {{ OFFLINE_SKY_BASE_ORDER | tojson }};
     window.NOVA_OFFLINE_SKY_SAVE = {{ OFFLINE_SKY_SAVE_ENABLED | tojson }};
     window.novaI18n.offline_view = {{ _('Offline view') | tojson }};
+    // Framing tab (graph_view_chart.js)
+    window.novaI18n.scan_frame = {{ _('Scan Frame') | tojson }};
+    window.novaI18n.scan_scanning = {{ _('Scanning…') | tojson }};
+    window.novaI18n.scan_fov_too_large = {{ _('FOV too large ({w}° × {h}°), max {max}° for Scan Frame') | tojson }};
+    window.novaI18n.scan_size = {{ _('Size') | tojson }};
+    window.novaI18n.scan_mag = {{ _('Mag') | tojson }};
+    window.novaI18n.scan_add_to_database = {{ _('+ Add to Database') | tojson }};
+    window.novaI18n.scan_loading = {{ _('Loading…') | tojson }};
+    window.novaI18n.framing_rotation_title = {{ _('Rotation: {angle}') | tojson }};
+    window.novaI18n.framing_fov_chip = {{ _('FOV (Rig): {w}′ × {h}′') | tojson }};
+    window.novaI18n.framing_saved_chip = {{ _('Saved framing') | tojson }};
+    window.novaI18n.framing_differs_from_saved = {{ _('Differs from saved') | tojson }};
+    window.novaI18n.framing_saved_values = {{ _('Saved: RA {ra} · Dec {dec} · Angle {angle}') | tojson }};
+    window.novaI18n.framing_angle = {{ _('Angle') | tojson }};
+    window.novaI18n.delete_saved_framing_confirm = {{ _('Are you sure you want to delete the saved framing for this object?') | tojson }};
+    window.novaI18n.delete_saved_framing_error = {{ _('Error deleting: {message}') | tojson }};
+    window.novaI18n.stellarium_sending = {{ _('Sending object to Stellarium...') | tojson }};
+    window.novaI18n.stellarium_updated = {{ _('Stellarium view updated!') | tojson }};
+    window.novaI18n.stellarium_error = {{ _('Error: {message}') | tojson }};
+    window.novaI18n.stellarium_bad_response = {{ _('Could not parse server response.') | tojson }};
+    window.novaI18n.stellarium_unknown_error = {{ _('Unknown error') | tojson }};
     window.novaI18n.offline_scan_disabled = {{ _('Scan Frame is unavailable in offline view.') | tojson }};
     window.novaI18n.save_for_offline = {{ _('Save for offline') | tojson }};
     window.novaI18n.offline_chip_sharp = {{ _('Offline: sharp') | tojson }};
@@ -109,7 +130,8 @@
 
 <div class="tab-container">
     <button class="tab-button" data-tab="chart" data-action="show-tab">{{ _('Chart') }}</button>
-    <button class="tab-button" data-tab="framing" data-action="show-tab">{{ _('Notes & Framing') }}</button>
+    <button class="tab-button" data-tab="framing" data-action="show-tab">{{ _('Framing') }}</button>
+    <button class="tab-button" data-tab="notes" data-action="show-tab">{{ _('Notes') }}</button>
     <button class="tab-button" data-tab="rigdata" data-action="show-tab">{{ _('Rig Data') }}</button>
     <button class="tab-button" data-tab="inspiration" data-action="show-tab">{{ _('Object Info') }}</button>
     <button class="tab-button" data-tab="opportunities" data-action="show-tab">{{ _('Opportunities') }}</button>
@@ -179,15 +201,7 @@
     {% include '_journal_section.html' %}
 </div>
 
-<div id="framing-tab" class="tab-content">
-
-    <!-- Framing buttons row (in grey area, above the white card) -->
-    <div id="project-framing-buttons" style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-        <button class="inline-button inline-button-ghost" data-action="open-framing-assistant">{{ _('Show Framing') }}</button>
-        <button id="open-in-stellarium" class="inline-button" data-action="open-stellarium" style="display: none;">{{ _('Open in Stellarium') }}</button>
-        <!-- Dynamic saved framing buttons inserted here by JS -->
-    </div>
-
+<div id="notes-tab" class="tab-content">
     <div class="content-section project-notes-section">
         <h3>{{ alt_name | default(object_name, True) }} - {{ _('Notes') }}</h3>
 
@@ -206,8 +220,9 @@
                        {% if object_main_details.ActiveProject %}checked{% endif %}>
                 {{ _('Pinned') }}
             </label>
+            <button id="open-in-stellarium" class="inline-button" data-action="open-stellarium" style="display: none;">{{ _('Open in Stellarium') }}</button>
         </div>
-        <div id="stellarium-status" style="margin-top: 10px; color: var(--text-tertiary);"></div>
+        <div id="stellarium-status" class="stellarium-status"></div>
     </div>
 </div>
 
@@ -320,200 +335,240 @@
 </div>
 
 
-<div id="framing-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="framing-modal-title">
-    <div id="framing-modal-content">
-        <div class="modal-controls">
-            <button type="button" class="close-btn" aria-label="{{ _('Close') }}" title="{{ _('Close') }}" data-action="close-framing-assistant">×</button>
-            <h2 id="framing-modal-title" class="sr-only">{{ _('Framing Assistant') }}</h2>
-        </div>
-        <div class="modal-header-bar">
-            <div class="brand">
-                <span class="brand-strong">Nova</span><span class="brand-light">DSO Tracker</span>
-                {{ help_badge('framing_assistant', _('Help with Framing')) }}
-            </div>
-            <span id="fov-vs-object" class="fov-chip"></span>
-        </div>
-        <div class="framing-controls" style="align-items:center; gap:10px; padding-top:4px;">
-            <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="lock-to-object" data-action="toggle-lock-fov" checked> {{ _('Lock FOV') }}</label>
-            <label style="display:flex;align-items:center;gap:6px;margin-left:8px;" title="{{ _('Displays the approximate location of geostationary satellites (corrected for your latitude)') }}"><input type="checkbox" id="show-geo-belt" data-action="toggle-geo-belt" checked> {{ _('Geo Belt') }}</label>
-            <button class="inline-button" style="padding:6px 10px;font-size:13px;" data-action="flip-framing">{{ _('Flip 90°') }}</button>
-            <button class="inline-button" style="padding:6px 10px;font-size:13px;" data-action="copy-framing-url">{{ _('Copy framing URL') }}</button>
-            <button id="save-framing-db" type="button" class="inline-button" style="padding:6px 10px;font-size:13px;" data-action="save-framing-db">{{ _('Save Framing') }}</button>
-            <button id="scan-frame-btn" type="button" class="inline-button" style="padding:6px 10px;font-size:13px;" data-action="scan-frame">{{ _('Scan Frame') }}</button>
+<div id="framing-tab" class="tab-content">
+    <div id="framing-panel" class="content-section framing-layout">
+        <h2 class="sr-only">{{ _('Framing Assistant') }}</h2>
 
-            <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text-secondary);">
-                <span style="white-space:nowrap;">Min size</span>
-                <input type="number" id="scan-min-size" min="0" max="60" step="0.1" value="0.5" disabled
-                       style="width:52px;font-size:12px;padding:4px 6px;border:1px solid var(--border-color,#d0cdc8);border-radius:6px;background:var(--bg-secondary);color:var(--text-primary);text-align:center;">
-                <span style="font-size:11px;color:var(--text-muted);">′</span>
-            </label>
-
-            <div style="display:flex; align-items:center; gap:6px; margin-left:12px; padding-left:12px; border-left:1px solid var(--border-medium-alt);">
-                <label for="framing-rig-select" style="font-weight:bold;">{{ _('Rig') }}:</label>
-                <select id="framing-rig-select" data-action="update-framing-rig" data-inactive-label="{{ _('Inactive') }}" style="max-width:240px; font-size:14px;">
-                    {% if active_rigs %}
-                    {% for rig in active_rigs %}
-                    <option value="{{ rig.rig_id }}" data-rig-uid="{{ rig.rig_uid or '' }}" data-fovw="{{ rig.fov_w_arcmin }}" data-fovh="{{ rig.fov_h_arcmin }}">{{ rig.rig_name }}</option>
-                    {% endfor %}{% else %}<option value="">{{ _('No rigs configured') }}</option>{% endif %}
-                </select>
-            </div>
-
-            <div style="display:flex; align-items:center; gap:8px; margin-left:12px; padding-left:12px; border-left:1px solid var(--border-medium-alt); flex-grow: 1;">
-              <label for="framing-rotation" style="font-weight:bold;" title="{{ _('Position Angle (0°=North, 90°=East)') }}">{{ _('Rotation (PA)') }}:</label>
-              <input type="range" id="framing-rotation" min="0" max="360" value="0" step="0.5" data-action="rotation-input" style="flex-grow: 1; height: 6px; cursor: pointer;"/>
-              <span id="rotation-value" style="min-width: 45px; font-weight: bold; color: var(--text-primary); text-align: right;">0°</span>
+        {# The sky: the frame stays fixed in the centre, the sky moves only by dragging. #}
+        <div class="framing-sky">
+            <div id="aladin-lite-div"></div>
+            <div id="scan-result-popup" class="scan-result-popup" hidden>
+                <div class="scan-popup-head">
+                    <strong id="scan-popup-name" class="scan-popup-name"></strong>
+                    <button type="button" class="scan-popup-close" data-action="close-scan-popup" aria-label="{{ _('Close') }}" title="{{ _('Close') }}">×</button>
+                </div>
+                <div id="scan-popup-body" class="scan-popup-body"></div>
             </div>
         </div>
-        <div class="framing-controls">
-            <div style="display:flex; align-items:center; gap:10px;">
-                <div style="display:flex; flex-direction:column; gap:3px;">
-                    <label style="font-size:13px; color:var(--text-dark-alt); font-weight:bold; line-height:1;">{{ _('Mosaic (Col x Row)') }}</label>
-                    <div style="display:flex; align-items:center; gap:4px;">
-                        <input type="number" id="mosaic-cols" min="1" max="6" value="1" style="width:45px; padding:4px; font-size:14px; font-weight:bold;" data-action="update-mosaic" title="{{ _('Columns') }}">
-                        <span style="font-size:14px; font-weight:bold;">x</span>
-                        <input type="number" id="mosaic-rows" min="1" max="6" value="1" style="width:45px; padding:4px; font-size:14px; font-weight:bold;" data-action="update-mosaic" title="{{ _('Rows') }}">
+
+        <aside class="framing-side" aria-label="{{ _('Framing') }}">
+            <section class="framing-section framing-head">
+                <div class="framing-section-title">
+                    <span>{{ _('Framing') }}</span>
+                    {{ help_badge('framing_assistant', _('Help with Framing')) }}
+                </div>
+                <div class="framing-field">
+                    <label for="framing-rig-select">{{ _('Rig') }}</label>
+                    <select id="framing-rig-select" data-action="update-framing-rig" data-inactive-label="{{ _('Inactive') }}">
+                        {% if active_rigs %}
+                        {% for rig in active_rigs %}
+                        <option value="{{ rig.rig_id }}" data-rig-uid="{{ rig.rig_uid or '' }}" data-fovw="{{ rig.fov_w_arcmin }}" data-fovh="{{ rig.fov_h_arcmin }}">{{ rig.rig_name }}</option>
+                        {% endfor %}{% else %}<option value="">{{ _('No rigs configured') }}</option>{% endif %}
+                    </select>
+                </div>
+                <div class="framing-head-row">
+                    <span id="fov-vs-object" class="fov-chip"></span>
+                    {# Offline indicator goes here (step 3) #}
+                    <span id="framing-offline-slot" class="framing-offline-slot"></span>
+                </div>
+            </section>
+
+            <section id="framing-result" class="framing-section framing-result" aria-live="polite">
+                <div class="framing-section-title">
+                    <span>{{ _('Result') }}</span>
+                    <span id="result-saved-chip" class="result-saved-chip" hidden></span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label" title="{{ _('Coordinates are JNow (Real Time / Mean Equinox of Date) to match your mount.') }}">RA <span class="result-epoch">JNow</span></span>
+                    <output id="ra-readout" class="result-value">–</output>
+                    <button type="button" class="inline-button-ghost result-copy" data-action="copy-result" data-copy="ra">{{ _('Copy') }}</button>
+                </div>
+                <div class="result-row">
+                    <span class="result-label" title="{{ _('Coordinates are JNow (Real Time / Mean Equinox of Date) to match your mount.') }}">Dec <span class="result-epoch">JNow</span></span>
+                    <output id="dec-readout" class="result-value">–</output>
+                    <button type="button" class="inline-button-ghost result-copy" data-action="copy-result" data-copy="dec">{{ _('Copy') }}</button>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">{{ _('Angle') }}</span>
+                    <output id="result-angle" class="result-value">–</output>
+                    <button type="button" class="inline-button-ghost result-copy" data-action="copy-result" data-copy="angle">{{ _('Copy') }}</button>
+                </div>
+                <p id="result-saved-line" class="result-saved-line" hidden></p>
+                <div class="framing-buttons">
+                    <button type="button" class="inline-button-ghost" data-action="copy-ra-dec">{{ _('Copy RA/Dec') }}</button>
+                    <button type="button" class="inline-button-ghost" data-action="copy-result" data-copy="all">{{ _('Copy all') }}</button>
+                </div>
+            </section>
+
+            <section class="framing-section">
+                <div class="framing-section-title"><span>{{ _('Frame') }}</span></div>
+                <div class="framing-field">
+                    <div class="framing-field-head">
+                        <label for="framing-rotation" title="{{ _('Position Angle (0°=North, 90°=East)') }}">{{ _('Rotation') }}</label>
+                        <button type="button" id="rotation-value" class="rotation-value" title="{{ _('Tap to reset rotation to 0°') }}">0°</button>
+                    </div>
+                    <div class="framing-inline">
+                        <input type="range" id="framing-rotation" min="0" max="360" value="0" step="0.5" data-action="rotation-input">
+                        <button type="button" class="inline-button-ghost" data-action="flip-framing">{{ _('Flip 90°') }}</button>
                     </div>
                 </div>
-                <div style="display:flex; flex-direction:column; gap:3px;">
-                    <label style="font-size:13px; color:var(--text-dark-alt); font-weight:bold; line-height:1;">{{ _('Overlap %%') }}</label>
-                    <input type="number" id="mosaic-overlap" min="0" max="80" value="10" step="5" style="width:60px; padding:4px; font-size:14px;" data-action="update-mosaic">
-                </div>
-                <button class="inline-button" style="padding:8px 12px; font-size:13px; margin-left:8px;" data-action="copy-mosaic-csv" title="{{ _('Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., and Telescopius.') }}">{{ _('Copy Plan (CSV)') }}</button>
-            </div>
-            <div>
-                <label for="survey-select">{{ _('Survey') }}:</label>
-                <select id="survey-select" data-action="change-survey">
-                    <option value="P/DSS2/color">DSS2 (color)</option>
-                    <option value="P/allWISE/color">AllWISE (color)</option>
-                    <option value="P/2MASS/color">2MASS (color)</option>
-
-                    <option value="https://www.simg.de/nebulae3/dr0_2/ohs8">NSNS DR0.2 (OHS)</option>
-                    <option value="https://www.simg.de/nebulae3/dr0_2/hbr8">NSNS DR0.2 (HBR)</option>
-                    <option value="https://www.simg.de/nebulae3/dr0_2/halpha8">NSNS DR0.2 (H-alpha)</option>
-                    <option value="https://www.simg.de/nebulae3/dr0_2/oiii8">NSNS DR0.2 ([OIII])</option>
-                    <option value="https://www.simg.de/nebulae3/dr0_2/sii8">NSNS DR0.2 ([SII])</option>
-                    <option value="https://www.simg.de/nebulae3/dr0_2/rgb8">NSNS DR0.2 (True Color)</option>
-
-                    <option value="P/GALEXGR6/AIS/color">GALEX (color)</option>
-                    <option value="P/PanSTARRS/DR1/color-z-zg-g">Pan-STARRS (color)</option>
-                    <option value="P/SDSS9/color">SDSS9 (color)</option>
-                </select>
-                <span style="margin-left:18px;">{{ _('Blend with') }}:</span>
-                <select id="blend-survey-select" style="margin-left:6px;">
-                    <option value="P/DSS2/color" selected>DSS2 (color)</option>
-                    <option value="P/DSS2/red">DSS2 (red)</option>
-                    <option value="P/DSS2/blue">DSS2 (blue)</option>
-
-                    <option value="https://www.simg.de/nebulae3/dr0_2/ohs8">NSNS DR0.2 (OHS)</option>
-                    <option value="https://www.simg.de/nebulae3/dr0_2/hbr8">NSNS DR0.2 (HBR)</option>
-                    <option value="https://www.simg.de/nebulae3/dr0_2/halpha8">NSNS DR0.2 (H-alpha)</option>
-                    <option value="https://www.simg.de/nebulae3/dr0_2/oiii8">NSNS DR0.2 ([OIII])</option>
-                    <option value="https://www.simg.de/nebulae3/dr0_2/sii8">NSNS DR0.2 ([SII])</option>
-                    <option value="https://www.simg.de/nebulae3/dr0_2/rgb8">NSNS DR0.2 (True Color)</option>
-
-                    <option value="P/2MASS/color">2MASS (color)</option>
-                    <option value="P/allWISE/color">WISE (color)</option>
-                    <option value="P/SDSS9/color">SDSS (color)</option>
-                    <option value="P/GALEXGR6/AIS/color">GALEX (color)</option>
-                </select>
-                <input id="blend-opacity" type="range" min="0" max="1" step="0.01" value="0" title="{{ _('Blend opacity') }}" style="width:130px; vertical-align:middle; margin-left:8px;">
-            </div>
-        </div>
-        <div id="offline-sky-controls" class="framing-controls offline-sky-controls" hidden>
-            {% if OFFLINE_SKY_SAVE_ENABLED %}
-            <button id="save-offline-btn" type="button" class="inline-button-ghost" data-action="save-for-offline" aria-controls="offline-save-panel" aria-expanded="false">{{ _('Save for offline') }}</button>
-            {% endif %}
-            <label class="offline-view-label"><input type="checkbox" id="offline-view-toggle"> {{ _('Offline view') }}</label>
-            {% if OFFLINE_SKY_SAVE_ENABLED %}
-            <span id="offline-status-chip" class="offline-status-chip" hidden></span>
-            {% endif %}
-            <span id="offline-scan-note" class="offline-scan-note" hidden>{{ _('Scan Frame is unavailable in offline view.') }}</span>
-        </div>
-        {% if OFFLINE_SKY_SAVE_ENABLED %}
-        <section id="offline-save-panel" class="offline-save-panel" aria-labelledby="offline-save-title" hidden>
-            <div class="offline-save-head">
-                <h3 id="offline-save-title" class="offline-save-title">{{ _('Save for offline') }}</h3>
-                <button type="button" id="offline-save-close" class="offline-save-close" aria-label="{{ _('Close') }}" title="{{ _('Close') }}">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
-                </button>
-            </div>
-            <div class="offline-save-body">
-                <div class="offline-save-col">
-                    <div class="offline-save-label">{{ _('Surveys') }}</div>
-                    <div id="offline-survey-list" class="offline-survey-list"></div>
-                </div>
-                <div class="offline-save-col">
-                    <label class="offline-save-label" for="offline-detail-select">{{ _('Detail') }}</label>
-                    <div class="offline-detail-row">
-                        <select id="offline-detail-select" class="offline-detail-select">
-                            <option value="-1">{{ _('Lighter') }}</option>
-                            <option value="0" selected>{{ _('Matches your rig') }}</option>
-                            <option value="1">{{ _('Sharper') }}</option>
-                        </select>
-                        <span id="offline-detail-scale" class="offline-detail-scale"></span>
+                <div class="framing-field-pair">
+                    <div class="framing-field">
+                        <label for="mosaic-cols">{{ _('Mosaic') }}</label>
+                        <div class="framing-inline">
+                            <input type="number" id="mosaic-cols" class="framing-number" min="1" max="6" value="1" data-action="update-mosaic" title="{{ _('Columns') }}" aria-label="{{ _('Columns') }}">
+                            <span class="framing-times">×</span>
+                            <input type="number" id="mosaic-rows" class="framing-number" min="1" max="6" value="1" data-action="update-mosaic" title="{{ _('Rows') }}" aria-label="{{ _('Rows') }}">
+                        </div>
                     </div>
-                    <div class="offline-save-label offline-save-label-spaced">{{ _('Estimate') }}</div>
-                    <dl class="offline-estimate">
-                        <dt>{{ _('Total') }}</dt><dd id="offline-estimate-total">–</dd>
-                        <dt>{{ _('Free space') }}</dt><dd id="offline-estimate-free">–</dd>
-                    </dl>
-                    <p id="offline-save-reason" class="offline-save-reason" role="status" hidden></p>
-                    <div class="offline-save-actions">
-                        <button type="button" id="offline-save-start" class="inline-button" disabled>{{ _('Save') }}</button>
+                    <div class="framing-field">
+                        <label for="mosaic-overlap">{{ _('Overlap') }} %</label>
+                        <input type="number" id="mosaic-overlap" class="framing-number" min="0" max="80" value="10" step="5" data-action="update-mosaic">
                     </div>
                 </div>
-            </div>
-            <div class="offline-saves">
-                <div class="offline-save-label">{{ _('Saved for offline') }}</div>
-                <div id="offline-saves-list" class="offline-saves-list"></div>
-            </div>
-        </section>
-        {% endif %}
-        <div class="framing-controls" style="flex-wrap: wrap;">
-            <div><label>{{ _('Brightness') }}</label><input type="range" id="img-bright" min="-1" max="1" step="0.01" value="0" data-action="update-image-adjustments"></div>
-            <div><label>{{ _('Contrast') }}</label><input type="range" id="img-contrast" min="-1" max="1" step="0.01" value="0" data-action="update-image-adjustments"></div>
-            <div><label>{{ _('Gamma') }}</label><input type="range" id="img-gamma" min="0.1" max="10" step="0.1" value="1" data-action="update-image-adjustments"></div>
-            <div><label>{{ _('Saturation') }}</label><input type="range" id="img-sat" min="-1" max="1" step="0.01" value="0" data-action="update-image-adjustments"></div>
-            <div style="display:flex; align-items:center; gap:6px;">
-                <span style="font-size:11px; font-weight:bold; color:var(--text-secondary); background:var(--bg-light-gray); padding:2px 6px; border-radius:4px; border:1px solid var(--border-light-alt2); cursor:help;" title="{{ _('Coordinates are JNow (Real Time / Mean Equinox of Date) to match your mount.') }}">JNow</span>
-                <label style="font-size:14px; font-weight:bold;">RA</label>
-                <input id="ra-readout" type="text" style="width:160px; font-size:14px; font-family:monospace; font-weight:bold;" readonly>
-                <label style="font-size:14px; font-weight:bold;">Dec</label>
-                <input id="dec-readout" type="text" style="width:160px; font-size:14px; font-family:monospace; font-weight:bold;" readonly>
-                <button class="inline-button" style="padding:6px 10px; font-size:13px;" data-action="copy-ra-dec">{{ _('Copy') }}</button>
-            </div>
-            <div style="display:flex; align-items:center; gap:6px;">
-                <span style="font-size:12px;color:var(--text-secondary);">{{ _('Tip: Click on the sky to move the FOV center.') }}</span>
-                <button class="inline-button" style="padding:6px 10px; font-size:13px;" data-action="recenter-fov">{{ _('Recenter to object') }}</button>
-                <div style="display:flex; align-items:center; gap:4px;">
-                    <button class="inline-button" style="padding:4px 8px;" title="{{ _('Nudge Up') }}" data-action="nudge-fov" data-dx="0" data-dy="1">↑</button>
-                    <div>
-                        <button class="inline-button" style="padding:4px 8px;" title="{{ _('Nudge Left') }}" data-action="nudge-fov" data-dx="-1" data-dy="0">←</button>
-                        <button class="inline-button" style="padding:4px 8px;" title="{{ _('Nudge Right') }}" data-action="nudge-fov" data-dx="1" data-dy="0">→</button>
-                    </div>
-                    <button class="inline-button" style="padding:4px 8px;" title="{{ _('Nudge Down') }}" data-action="nudge-fov" data-dx="0" data-dy="-1">↓</button>
-                    <span style="font-size:12px;color:var(--text-secondary);">(1′ {{ _('steps') }})</span>
+                <label class="framing-check" title="{{ _('Displays the approximate location of geostationary satellites (corrected for your latitude)') }}">
+                    <input type="checkbox" id="show-geo-belt" data-action="toggle-geo-belt" checked> {{ _('Geo Belt') }}
+                </label>
+            </section>
+
+            <section class="framing-section">
+                <div class="framing-section-title"><span>{{ _('Sky') }}</span></div>
+                <div class="framing-field">
+                    <label for="survey-select">{{ _('Survey') }}</label>
+                    <select id="survey-select" data-action="change-survey">
+                        <option value="P/DSS2/color">DSS2 (color)</option>
+                        <option value="P/allWISE/color">AllWISE (color)</option>
+                        <option value="P/2MASS/color">2MASS (color)</option>
+
+                        <option value="https://www.simg.de/nebulae3/dr0_2/ohs8">NSNS DR0.2 (OHS)</option>
+                        <option value="https://www.simg.de/nebulae3/dr0_2/hbr8">NSNS DR0.2 (HBR)</option>
+                        <option value="https://www.simg.de/nebulae3/dr0_2/halpha8">NSNS DR0.2 (H-alpha)</option>
+                        <option value="https://www.simg.de/nebulae3/dr0_2/oiii8">NSNS DR0.2 ([OIII])</option>
+                        <option value="https://www.simg.de/nebulae3/dr0_2/sii8">NSNS DR0.2 ([SII])</option>
+                        <option value="https://www.simg.de/nebulae3/dr0_2/rgb8">NSNS DR0.2 (True Color)</option>
+
+                        <option value="P/GALEXGR6/AIS/color">GALEX (color)</option>
+                        <option value="P/PanSTARRS/DR1/color-z-zg-g">Pan-STARRS (color)</option>
+                        <option value="P/SDSS9/color">SDSS9 (color)</option>
+                    </select>
                 </div>
-            </div>
-        </div>
-        <div id="aladin-lite-div"></div>
-        <div id="scan-result-popup" style="display:none; position:absolute; z-index:1000;
-                bottom:16px; left:16px; min-width:200px; max-width:280px;
-                background:var(--bg-secondary);
-                border:1px solid var(--border-color,#d0cdc8);
-                border-radius:8px; padding:10px 12px;
-                box-shadow:var(--shadow-md);
-                font-size:13px; font-family:'DM Sans',sans-serif;
-                color:var(--text-primary);">
-          <div style="display:flex; justify-content:space-between;
-                      align-items:center; margin-bottom:6px;">
-            <strong id="scan-popup-name" style="font-size:13px; color:var(--primary-color);"></strong>
-            <button type="button" class="inline-button-ghost" style="padding:2px 7px; font-size:14px; line-height:1;"
-                    data-action="close-scan-popup">×</button>
-          </div>
-          <div id="scan-popup-body" style="color:var(--text-secondary); font-size:12px;
-                  line-height:1.6;"></div>
-        </div>
+                <div class="framing-field">
+                    <label for="blend-survey-select">{{ _('Blend with') }}</label>
+                    <select id="blend-survey-select">
+                        <option value="P/DSS2/color" selected>DSS2 (color)</option>
+                        <option value="P/DSS2/red">DSS2 (red)</option>
+                        <option value="P/DSS2/blue">DSS2 (blue)</option>
+
+                        <option value="https://www.simg.de/nebulae3/dr0_2/ohs8">NSNS DR0.2 (OHS)</option>
+                        <option value="https://www.simg.de/nebulae3/dr0_2/hbr8">NSNS DR0.2 (HBR)</option>
+                        <option value="https://www.simg.de/nebulae3/dr0_2/halpha8">NSNS DR0.2 (H-alpha)</option>
+                        <option value="https://www.simg.de/nebulae3/dr0_2/oiii8">NSNS DR0.2 ([OIII])</option>
+                        <option value="https://www.simg.de/nebulae3/dr0_2/sii8">NSNS DR0.2 ([SII])</option>
+                        <option value="https://www.simg.de/nebulae3/dr0_2/rgb8">NSNS DR0.2 (True Color)</option>
+
+                        <option value="P/2MASS/color">2MASS (color)</option>
+                        <option value="P/allWISE/color">WISE (color)</option>
+                        <option value="P/SDSS9/color">SDSS (color)</option>
+                        <option value="P/GALEXGR6/AIS/color">GALEX (color)</option>
+                    </select>
+                </div>
+                <div class="framing-field">
+                    <label for="blend-opacity">{{ _('Blend') }}</label>
+                    <input id="blend-opacity" type="range" min="0" max="1" step="0.01" value="0" title="{{ _('Blend opacity') }}">
+                </div>
+                <details class="framing-fold">
+                    <summary>{{ _('Image adjustments') }}</summary>
+                    <div class="framing-field"><label for="img-bright">{{ _('Brightness') }}</label><input type="range" id="img-bright" min="-1" max="1" step="0.01" value="0" data-action="update-image-adjustments"></div>
+                    <div class="framing-field"><label for="img-contrast">{{ _('Contrast') }}</label><input type="range" id="img-contrast" min="-1" max="1" step="0.01" value="0" data-action="update-image-adjustments"></div>
+                    <div class="framing-field"><label for="img-gamma">{{ _('Gamma') }}</label><input type="range" id="img-gamma" min="0.1" max="10" step="0.1" value="1" data-action="update-image-adjustments"></div>
+                    <div class="framing-field"><label for="img-sat">{{ _('Saturation') }}</label><input type="range" id="img-sat" min="-1" max="1" step="0.01" value="0" data-action="update-image-adjustments"></div>
+                </details>
+            </section>
+
+            <section class="framing-section framing-offline">
+                <details class="framing-fold">
+                    <summary class="framing-section-title">{{ _('Offline') }}</summary>
+                <div id="offline-sky-controls" class="offline-sky-controls" hidden>
+                    {% if OFFLINE_SKY_SAVE_ENABLED %}
+                    <button id="save-offline-btn" type="button" class="inline-button-ghost" data-action="save-for-offline" aria-controls="offline-save-panel" aria-expanded="false">{{ _('Save for offline') }}</button>
+                    {% endif %}
+                    <label class="offline-view-label"><input type="checkbox" id="offline-view-toggle"> {{ _('Offline view') }}</label>
+                    {% if OFFLINE_SKY_SAVE_ENABLED %}
+                    <span id="offline-status-chip" class="offline-status-chip" hidden></span>
+                    {% endif %}
+                    <span id="offline-scan-note" class="offline-scan-note" hidden>{{ _('Scan Frame is unavailable in offline view.') }}</span>
+                </div>
+                {% if OFFLINE_SKY_SAVE_ENABLED %}
+                <section id="offline-save-panel" class="offline-save-panel" aria-labelledby="offline-save-title" hidden>
+                    <div class="offline-save-head">
+                        <h3 id="offline-save-title" class="offline-save-title">{{ _('Save for offline') }}</h3>
+                        <button type="button" id="offline-save-close" class="offline-save-close" aria-label="{{ _('Close') }}" title="{{ _('Close') }}">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+                    <div class="offline-save-body">
+                        <div class="offline-save-col">
+                            <div class="offline-save-label">{{ _('Surveys') }}</div>
+                            <div id="offline-survey-list" class="offline-survey-list"></div>
+                        </div>
+                        <div class="offline-save-col">
+                            <label class="offline-save-label" for="offline-detail-select">{{ _('Detail') }}</label>
+                            <div class="offline-detail-row">
+                                <select id="offline-detail-select" class="offline-detail-select">
+                                    <option value="-1">{{ _('Lighter') }}</option>
+                                    <option value="0" selected>{{ _('Matches your rig') }}</option>
+                                    <option value="1">{{ _('Sharper') }}</option>
+                                </select>
+                                <span id="offline-detail-scale" class="offline-detail-scale"></span>
+                            </div>
+                            <div class="offline-save-label offline-save-label-spaced">{{ _('Estimate') }}</div>
+                            <dl class="offline-estimate">
+                                <dt>{{ _('Total') }}</dt><dd id="offline-estimate-total">–</dd>
+                                <dt>{{ _('Free space') }}</dt><dd id="offline-estimate-free">–</dd>
+                            </dl>
+                            <p id="offline-save-reason" class="offline-save-reason" role="status" hidden></p>
+                            <div class="offline-save-actions">
+                                <button type="button" id="offline-save-start" class="inline-button" disabled>{{ _('Save') }}</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="offline-saves">
+                        <div class="offline-save-label">{{ _('Saved for offline') }}</div>
+                        <div id="offline-saves-list" class="offline-saves-list"></div>
+                    </div>
+                </section>
+                {% endif %}
+                </details>
+            </section>
+
+            <section class="framing-section">
+                <div class="framing-section-title"><span>{{ _('Position') }}</span></div>
+                <div class="framing-buttons">
+                    <button type="button" class="inline-button-ghost" data-action="recenter-fov">{{ _('Recenter to object') }}</button>
+                </div>
+            </section>
+
+            <section class="framing-section">
+                <div class="framing-section-title"><span>{{ _('Actions') }}</span></div>
+                <div class="framing-buttons">
+                    <button id="save-framing-db" type="button" class="inline-button" data-action="save-framing-db">{{ _('Save Framing') }}</button>
+                </div>
+                <!-- Saved framing buttons (Open / Delete), inserted here by JS -->
+                <div id="project-framing-buttons" class="framing-buttons"></div>
+                <div class="framing-buttons">
+                    <button type="button" class="inline-button-ghost" data-action="copy-framing-url">{{ _('Copy framing URL') }}</button>
+                    <button type="button" class="inline-button-ghost" data-action="copy-mosaic-csv" title="{{ _('Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., and Telescopius.') }}">{{ _('Copy Plan (CSV)') }}</button>
+                </div>
+                <div class="framing-buttons">
+                    <button id="scan-frame-btn" type="button" class="inline-button-ghost" data-action="scan-frame">{{ _('Scan Frame') }}</button>
+                    <label class="framing-min-size">
+                        <span>{{ _('Min size') }}</span>
+                        <input type="number" id="scan-min-size" class="framing-number" min="0" max="60" step="0.1" value="0.5" disabled>
+                        <span class="framing-unit">′</span>
+                    </label>
+                </div>
+            </section>
+        </aside>
     </div>
 </div>
 
