@@ -4242,6 +4242,8 @@
     let offlinePollTimer = null;
 
     function offlineEnabled() { return !!window.NOVA_OFFLINE_SKY; }
+    // Save-for-offline, base-layer jobs, status chip and dropdown marks (off until reworked).
+    function offlineSaveEnabled() { return offlineEnabled() && !!window.NOVA_OFFLINE_SKY_SAVE; }
     function offlineSurveyEntry(surveyId) {
         return (window.NOVA_OFFLINE_SKY_SURVEYS || {})[surveyId] || null;
     }
@@ -4329,7 +4331,7 @@
     }
 
     function refreshOfflineStatus() {
-        if (!offlineEnabled()) return;
+        if (!offlineSaveEnabled()) return;
         const chip = document.getElementById('offline-status-chip');
         const area = offlineSaveArea();
         const baseId = offlineBaseId();
@@ -4361,7 +4363,7 @@
     }
 
     function refreshOfflineMarks() {
-        if (!offlineEnabled()) return;
+        if (!offlineSaveEnabled()) return;
         fetch('/api/offline/base/status').then(r => r.ok ? r.json() : null).then(data => {
             const surveys = data && data.surveys || {};
             for (const selId of ['survey-select', 'blend-survey-select']) {
@@ -4382,7 +4384,7 @@
     }
 
     function ensureOfflineBaseSurveys() {
-        if (!offlineEnabled()) return;
+        if (!offlineSaveEnabled()) return;
         const ids = [];
         const base = offlineBaseId(), blend = offlineBlendId();
         if (base) ids.push(base);

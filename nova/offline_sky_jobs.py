@@ -4,7 +4,7 @@ Two kinds of job, both single-threaded passes that enumerate tiles and fetch onl
 the ones missing from disk, so a pass is cheap to re-run after a restart (resume
 == re-run, skipping what is already there):
 
-  * base job  -- per survey, fetches Allsky + every tile of orders 0..N
+  * base job  -- per survey, fetches Norder3/Allsky + every tile of orders 0..N
     (OFFLINE_SKY_BASE_ORDER), then pins those tiles at instance level.
   * save job  -- per user save (UUID), fetches the cone tiles of orders
     N+1..chosen for each chosen survey and writes the save's pin manifest.
@@ -27,6 +27,7 @@ from nova.config import (
     OFFLINE_SKY_JOB_CONCURRENCY,
     OFFLINE_SKY_JOB_DELAY_SECONDS,
 )
+from nova.offline_sky_facts import allsky_rel
 from nova.offline_sky_sources import SURVEY_BY_SLUG
 from nova.offline_sky_store import (
     add_base_pins,
@@ -53,7 +54,8 @@ def _tile_rel(order: int, npix: int, ext: str) -> str:
 
 
 def _allsky_rel(ext: str) -> str:
-    return f"Allsky.{ext}"
+    # HiPS 1.0 puts the Allsky preview in Norder3/, not at the survey root.
+    return allsky_rel(ext)
 
 
 def _cached_tile_ext(slug: str) -> str:

@@ -20,7 +20,8 @@ from flask import Blueprint, Response, g, jsonify, request, session
 from flask_login import current_user
 
 import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay live (see nova/config.py)
-from nova.config import APP_VERSION, OFFLINE_SKY_STORE
+from nova.config import APP_VERSION, OFFLINE_SKY_STORE, OFFLINE_SKY_SAVE_ENABLED
+from nova.offline_sky_facts import allsky_rel
 from nova.offline_sky_sources import SURVEY_BY_SLUG, SURVEY_ID_BY_SLUG, SURVEY_SOURCES
 from nova.offline_sky_store import (
     read_file, store_file, touch, maybe_evict_async, tile_path,
@@ -275,14 +276,16 @@ def hips_moc(slug: str):
     return _serve_moc(slug)
 
 
-@offline_sky_bp.route("/hips/<slug>/Allsky.<string:ext>")
+# HiPS 1.0 keeps the Allsky preview in Norder3/ (what Aladin requests); there is
+# no Allsky at the survey root, so no root route.
+@offline_sky_bp.route("/hips/<slug>/Norder3/Allsky.<string:ext>")
 def hips_allsky(slug: str, ext: str):
     if not _allowed() or slug not in SURVEY_BY_SLUG:
         return Response(status=404)
     ext_l = ext.lower()
     if ext_l not in SURVEY_BY_SLUG[slug].exts:
         return Response(status=404)
-    return _serve_tile(slug, f"Allsky.{ext_l}")
+    return _serve_tile(slug, allsky_rel(ext_l))
 
 
 @offline_sky_bp.route("/hips/<slug>/Norder<int:order>/Dir<int:dir>/Npix<int:npix>.<string:ext>")
@@ -312,14 +315,14 @@ def hips_offline_moc(slug: str):
     return _serve_moc(slug, cache_only=True)
 
 
-@offline_sky_bp.route("/hips/offline/<slug>/Allsky.<string:ext>")
+@offline_sky_bp.route("/hips/offline/<slug>/Norder3/Allsky.<string:ext>")
 def hips_offline_allsky(slug: str, ext: str):
     if not _allowed() or slug not in SURVEY_BY_SLUG:
         return Response(status=404)
     ext_l = ext.lower()
     if ext_l not in SURVEY_BY_SLUG[slug].exts:
         return Response(status=404)
-    return _serve_tile(slug, f"Allsky.{ext_l}", cache_only=True)
+    return _serve_tile(slug, allsky_rel(ext_l), cache_only=True)
 
 
 @offline_sky_bp.route("/hips/offline/<slug>/Norder<int:order>/Dir<int:dir>/Npix<int:npix>.<string:ext>")
@@ -343,8 +346,9 @@ def _api_user_id():
     """The DB user id for the caller, or None when not permitted.
 
     Single-user: the default user. Multi-user: a signed-in, non-guest user only.
+    None (every /api/offline/* route 404s) while OFFLINE_SKY_SAVE_ENABLED is off.
     """
-    if not _enabled():
+    if not _enabled() or not OFFLINE_SKY_SAVE_ENABLED:
         return None
     if not nova.SINGLE_USER_MODE and not current_user.is_authenticated:
         return None

@@ -52,6 +52,12 @@ def _server_on(monkeypatch):
     monkeypatch.setattr("nova.blueprints.offline_sky.OFFLINE_SKY_STORE", "server")
 
 
+def _save_on(monkeypatch):
+    """Store on plus the step-2 "Save for offline" API (OFFLINE_SKY_SAVE_ENABLED)."""
+    _server_on(monkeypatch)
+    monkeypatch.setattr("nova.blueprints.offline_sky.OFFLINE_SKY_SAVE_ENABLED", True)
+
+
 # ---------------------------------------------------------------------------
 # Route gating and validation
 # ---------------------------------------------------------------------------
@@ -574,7 +580,8 @@ def test_base_job_enumerates_orders_0_to_N_and_pins(monkeypatch):
 
     assert jobs.base_complete(DSS_COLOR)
     pins = base_pinned_rel_paths()
-    assert f"{DSS_COLOR}/Allsky.jpg" in pins
+    assert f"{DSS_COLOR}/Norder3/Allsky.jpg" in pins          # HiPS 1.0 location
+    assert f"{DSS_COLOR}/Allsky.jpg" not in pins              # not at the root
     assert f"{DSS_COLOR}/Norder0/Dir0/Npix11.jpg" in pins      # last tile of order 0
     assert f"{DSS_COLOR}/Norder3/Dir0/Npix767.jpg" in pins     # last tile of order 3
     assert not any("Norder4" in p for p in pins)               # base stops at order 3
@@ -721,7 +728,7 @@ def test_cone_max_cached_order(monkeypatch):
 
 def test_saves_are_owned_per_user(monkeypatch, multi_user_client):
     from nova.offline_sky_store import write_save_manifest, read_save_manifest
-    _server_on(monkeypatch)
+    _save_on(monkeypatch)
     client, ids = multi_user_client
     aid = "aaaaaaaa-0000-0000-0000-000000000001"
     bid = "bbbbbbbb-0000-0000-0000-000000000002"
@@ -741,7 +748,7 @@ def test_saves_are_owned_per_user(monkeypatch, multi_user_client):
 
 
 def test_estimate_endpoint_returns_tile_counts(monkeypatch, client):
-    _server_on(monkeypatch)
+    _save_on(monkeypatch)
     import nova.offline_sky_jobs as jobs
     monkeypatch.setattr(jobs, "_cached_tile_ext", lambda slug: "jpg")
     resp = client.get("/api/offline/estimate?ra=83.8&dec=-5.4&radius_deg=1.0"
@@ -755,7 +762,7 @@ def test_estimate_endpoint_returns_tile_counts(monkeypatch, client):
 
 
 def test_status_endpoint_reports_base_complete_and_order(monkeypatch, client):
-    _server_on(monkeypatch)
+    _save_on(monkeypatch)
     import nova.offline_sky_jobs as jobs
     monkeypatch.setattr(jobs, "base_complete", lambda slug: True)
     monkeypatch.setattr(jobs, "_cached_tile_ext", lambda slug: "jpg")
@@ -766,3 +773,90 @@ def test_status_endpoint_reports_base_complete_and_order(monkeypatch, client):
     data = resp.get_json()
     assert data["surveys"][DSS_COLOR]["base_complete"] is True
     assert data["surveys"][DSS_COLOR]["max_cached_order"] == 4
+
+
+# ---------------------------------------------------------------------------
+# OFFLINE_SKY_SAVE_ENABLED off: save/base/status API and its UI are switched off,
+# the /hips/ proxy, cache-only routes and Offline view toggle stay.
+# ---------------------------------------------------------------------------
+
+_SAVE_ID = "aaaaaaaa-0000-0000-0000-000000000001"
+
+
+def test_api_routes_404_and_no_job_when_save_disabled(monkeypatch, client):
+    import nova.offline_sky_jobs as jobs
+    from nova.offline_sky_store import write_save_manifest
+    _server_on(monkeypatch)
+    monkeypatch.setattr("nova.blueprints.offline_sky.OFFLINE_SKY_SAVE_ENABLED", False)
+    spawned = []
+    monkeypatch.setattr(jobs, "_spawn", lambda job_id, target: spawned.append(job_id))
+    monkeypatch.setattr(jobs, "_throttled_fetch",
+                        lambda base, url: pytest.fail("no upstream fetch expected"))
+    # An existing save must not be reachable either.
+    write_save_manifest(_manifest(id=_SAVE_ID, user_id=1))
+
+    cone = "ra=83.8&dec=-5.4&radius_deg=1.0"
+    calls = [
+        ("get", "/api/offline/saves", None),
+        ("post", "/api/offline/saves", {"ra": 83.8, "dec": -5.4, "radius_deg": 1.0,
+                                        "max_order": 6, "surveys": ["P/DSS2/color"]}),
+        ("get", f"/api/offline/saves/{_SAVE_ID}/progress", None),
+        ("post", f"/api/offline/saves/{_SAVE_ID}/cancel", None),
+        ("delete", f"/api/offline/saves/{_SAVE_ID}", None),
+        ("post", "/api/offline/base/ensure", {"surveys": ["P/DSS2/color"]}),
+        ("get", "/api/offline/base/status", None),
+        ("get", f"/api/offline/estimate?{cone}&max_order=5&surveys=dss2-color", None),
+        ("get", f"/api/offline/status?{cone}&surveys=P/DSS2/color", None),
+    ]
+    for method, url, body in calls:
+        resp = getattr(client, method)(url, json=body) if body else getattr(client, method)(url)
+        assert resp.status_code == 404, (method, url)
+    assert spawned == []
+
+
+def test_hips_proxy_unaffected_when_save_disabled(monkeypatch, client):
+    _server_on(monkeypatch)
+    monkeypatch.setattr("nova.blueprints.offline_sky.OFFLINE_SKY_SAVE_ENABLED", False)
+    store_file(DSS_COLOR, "Norder3/Dir0/Npix1.jpg", b"TILE")
+    assert client.get(f"/hips/{DSS_COLOR}/Norder3/Dir0/Npix1.jpg").data == b"TILE"
+    assert client.get(f"/hips/offline/{DSS_COLOR}/Norder3/Dir0/Npix1.jpg").data == b"TILE"
+
+
+def _graph_page(monkeypatch, client, save_enabled):
+    import nova
+    monkeypatch.setattr(nova, "offline_sky_enabled", lambda: True)
+    monkeypatch.setattr(nova, "OFFLINE_SKY_SAVE_ENABLED", save_enabled)
+    resp = client.get("/graph_dashboard/M42")
+    assert resp.status_code == 200
+    return resp.get_data(as_text=True)
+
+
+def test_graph_page_hides_save_ui_when_save_disabled(monkeypatch, client):
+    page = _graph_page(monkeypatch, client, False)
+    assert 'id="save-offline-btn"' not in page
+    assert 'id="offline-status-chip"' not in page
+    assert 'id="offline-save-panel"' not in page
+    assert "window.NOVA_OFFLINE_SKY_SAVE = false;" in page
+    # Kept: the Offline view toggle.
+    assert 'id="offline-view-toggle"' in page
+    assert "window.NOVA_OFFLINE_SKY = true;" in page
+
+
+def test_graph_page_shows_save_ui_when_save_enabled(monkeypatch, client):
+    page = _graph_page(monkeypatch, client, True)
+    assert 'id="save-offline-btn"' in page
+    assert 'id="offline-status-chip"' in page
+    assert 'id="offline-save-panel"' in page
+    assert "window.NOVA_OFFLINE_SKY_SAVE = true;" in page
+
+
+def test_js_save_paths_gated_on_save_flag():
+    """The modal's base-layer ensure, dropdown marks and status chip only call
+    /api/offline/* when window.NOVA_OFFLINE_SKY_SAVE is on."""
+    import re
+    src = open(os.path.join(os.path.dirname(__file__), "..", "static", "js",
+                            "graph_view_chart.js"), encoding="utf-8").read()
+    assert "return offlineEnabled() && !!window.NOVA_OFFLINE_SKY_SAVE;" in src
+    for fn in ("ensureOfflineBaseSurveys", "refreshOfflineMarks", "refreshOfflineStatus"):
+        m = re.search(r"function " + fn + r"\(\) \{\n\s*(.+)\n", src)
+        assert m and m.group(1).strip() == "if (!offlineSaveEnabled()) return;", fn

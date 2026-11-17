@@ -9,6 +9,7 @@
     window.NOVA_OFFLINE_SKY = {{ OFFLINE_SKY_ENABLED | tojson }};
     window.NOVA_OFFLINE_SKY_SURVEYS = {{ OFFLINE_SKY_SURVEYS | tojson }};
     window.NOVA_OFFLINE_SKY_BASE_ORDER = {{ OFFLINE_SKY_BASE_ORDER | tojson }};
+    window.NOVA_OFFLINE_SKY_SAVE = {{ OFFLINE_SKY_SAVE_ENABLED | tojson }};
     window.novaI18n.offline_view = {{ _('Offline view') | tojson }};
     window.novaI18n.offline_scan_disabled = {{ _('Scan Frame is unavailable in offline view.') | tojson }};
     window.novaI18n.save_for_offline = {{ _('Save for offline') | tojson }};
@@ -426,12 +427,18 @@
             </div>
         </div>
         <div id="offline-sky-controls" class="framing-controls" style="align-items:center; gap:12px; padding-top:2px;" hidden>
+            {% if OFFLINE_SKY_SAVE_ENABLED %}
             <button id="save-offline-btn" type="button" class="inline-button-ghost" style="padding:6px 10px;font-size:13px;border-radius:6px;" data-action="save-for-offline">{{ _('Save for offline') }}</button>
+            {% endif %}
             <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-secondary);cursor:pointer;"><input type="checkbox" id="offline-view-toggle"> {{ _('Offline view') }}</label>
+            {% if OFFLINE_SKY_SAVE_ENABLED %}
             <span id="offline-status-chip" class="offline-status-chip" hidden></span>
+            {% endif %}
             <span id="offline-scan-note" style="font-size:11px;color:var(--text-muted);" hidden>{{ _('Scan Frame is unavailable in offline view.') }}</span>
         </div>
+        {% if OFFLINE_SKY_SAVE_ENABLED %}
         <div id="offline-save-panel" class="offline-save-panel" hidden></div>
+        {% endif %}
         <div class="framing-controls" style="flex-wrap: wrap;">
             <div><label>{{ _('Brightness') }}</label><input type="range" id="img-bright" min="-1" max="1" step="0.01" value="0" data-action="update-image-adjustments"></div>
             <div><label>{{ _('Contrast') }}</label><input type="range" id="img-contrast" min="-1" max="1" step="0.01" value="0" data-action="update-image-adjustments"></div>

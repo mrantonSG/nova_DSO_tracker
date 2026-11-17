@@ -83,6 +83,10 @@ OFFLINE_SKY_BASE_ORDER = config('OFFLINE_SKY_BASE_ORDER', default=3, cast=int)
 # the delay between requests. The /hips/ proxy keeps its own separate budget.
 OFFLINE_SKY_JOB_CONCURRENCY = config('OFFLINE_SKY_JOB_CONCURRENCY', default=2, cast=int)
 OFFLINE_SKY_JOB_DELAY_SECONDS = config('OFFLINE_SKY_JOB_DELAY_SECONDS', default=0.05, cast=float)
+# "Save for offline" (saves, base-layer jobs, status chip, dropdown offline marks).
+# Off until reworked: when False the /api/offline/* routes 404 and that UI is not
+# rendered. The /hips/ proxy, its cache and the Offline view toggle don't need it.
+OFFLINE_SKY_SAVE_ENABLED = config('OFFLINE_SKY_SAVE_ENABLED', default=False, cast=bool)
 
 
 def offline_sky_enabled() -> bool:

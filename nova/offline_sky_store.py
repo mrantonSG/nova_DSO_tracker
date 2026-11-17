@@ -4,7 +4,7 @@ Layout under CACHE_DIR/hips/:
 
     <slug>/properties
     <slug>/Norder<o>/Dir<d>/Npix<n>.<ext>
-    <slug>/Allsky.<ext>
+    <slug>/Norder3/Allsky.<ext>   # HiPS 1.0 location (not the survey root)
     .total                 # summed byte count of browsed tiles (see below)
     .base-pins.json        # instance-level base tiles (orders 0..N), never evicted
     pins/<uuid>.json       # per-user save manifests (name, cone, tile list, bytes)
