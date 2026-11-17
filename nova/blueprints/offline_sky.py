@@ -428,8 +428,21 @@ def _frame_from(src):
 
 
 def _manifest_summary(manifest: dict) -> dict:
+    """One save for the API.
+
+    Saves written by the first step-2 version (before B1) have no
+    ``detail_offset`` / frame size / ``partial`` and a job file without
+    params, so their job can never run again. They are listed as ``legacy``
+    (deletable, nothing else), a non-final status reads as "failed", and
+    ``partial`` follows the status when the manifest doesn't say.
+    """
+    from nova.offline_sky_jobs import FINAL_STATUSES
     from nova.offline_sky_sources import SURVEY_ID_BY_SLUG
     surveys = manifest.get("surveys", [])
+    legacy = "detail_offset" not in manifest
+    status = manifest.get("status", "done")
+    if legacy and status not in FINAL_STATUSES:
+        status = "failed"
     return {
         "id": manifest.get("id"),
         "name": manifest.get("name"),
@@ -448,8 +461,9 @@ def _manifest_summary(manifest: dict) -> dict:
         "bytes": manifest.get("bytes", 0),
         "tile_count": len(manifest.get("paths", [])),
         "missing": manifest.get("missing", 0),
-        "partial": bool(manifest.get("partial", False)),
-        "status": manifest.get("status", "done"),
+        "partial": bool(manifest.get("partial", status != "done")),
+        "status": status,
+        "legacy": legacy,
     }
 
 

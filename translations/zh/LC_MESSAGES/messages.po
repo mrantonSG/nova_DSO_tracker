@@ -8235,6 +8235,118 @@ msgstr "图块"
 msgid "Free space"
 msgstr "可用空间"
 
+#: templates/graph_view.html
+msgid "Lighter"
+msgstr "较轻"
+
+#: templates/graph_view.html
+msgid "Matches your rig"
+msgstr "匹配您的设备"
+
+#: templates/graph_view.html
+msgid "Sharper"
+msgstr "更清晰"
+
+#: templates/graph_view.html
+msgid "≈{scale}″/px · your rig {rig}″/px"
+msgstr "≈{scale}″/px · 您的设备 {rig}″/px"
+
+#: templates/graph_view.html
+msgid "Not covered here"
+msgstr "此处无覆盖"
+
+#: templates/graph_view.html
+msgid "Max detail of this survey"
+msgstr "已达该巡天的最高细节"
+
+#: templates/graph_view.html
+msgid "{tiles} tiles · {mb} MB"
+msgstr "{tiles} 个图块 · {mb} MB"
+
+#: templates/graph_view.html
+msgid "Estimating…"
+msgstr "正在估算…"
+
+#: templates/graph_view.html
+msgid "This is more than the space set aside for offline sky."
+msgstr "超出了为离线星空预留的空间。"
+
+#: templates/graph_view.html
+msgid "Not enough free disk space on this computer."
+msgstr "此计算机上的可用磁盘空间不足。"
+
+#: templates/graph_view.html
+msgid "Choose at least one survey."
+msgstr "请至少选择一个巡天。"
+
+#: templates/graph_view.html
+msgid "Choose a rig first."
+msgstr "请先选择设备。"
+
+#: templates/graph_view.html
+msgid "This rig has no image scale. Add the camera pixel size and the focal length."
+msgstr "该设备没有像素比例。请添加相机像元尺寸和焦距。"
+
+#: templates/graph_view.html
+msgid "This frame is too large to save for offline."
+msgstr "该画幅太大，无法离线保存。"
+
+#: templates/graph_view.html
+msgid "There is nothing to save for these surveys here."
+msgstr "这些巡天在此处没有可保存的内容。"
+
+#: templates/graph_view.html
+msgid "The estimate is not available right now."
+msgstr "暂时无法估算。"
+
+#: templates/graph_view.html
+msgid "Waiting"
+msgstr "等待中"
+
+#: templates/graph_view.html
+msgid "Downloading {done} / {total}"
+msgstr "正在下载 {done} / {total}"
+
+#: templates/graph_view.html
+msgid "Paused – survey server not reachable"
+msgstr "已暂停 – 无法连接巡天服务器"
+
+#: templates/graph_view.html
+msgid "Done"
+msgstr "完成"
+
+#: templates/graph_view.html
+msgid "Done – {count} tiles not available"
+msgstr "完成 – {count} 个图块不可用"
+
+#: templates/graph_view.html
+msgid "Stopped – not enough space"
+msgstr "已停止 – 空间不足"
+
+#: templates/graph_view.html
+msgid "Cancelled"
+msgstr "已取消"
+
+#: templates/graph_view.html
+msgid "Failed"
+msgstr "失败"
+
+#: templates/graph_view.html
+msgid "partial"
+msgstr "部分"
+
+#: templates/graph_view.html
+msgid "Saved by an earlier version"
+msgstr "由早期版本保存"
+
+#: templates/graph_view.html
+msgid "Delete the offline sky saved for {name}?"
+msgstr "删除为 {name} 离线保存的星空？"
+
+#: templates/graph_view.html
+msgid "Estimate"
+msgstr "估算"
+
 
 #~ msgid "Refresh Suggestions"
 #~ msgstr "刷新建议"

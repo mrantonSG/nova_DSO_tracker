@@ -8642,6 +8642,118 @@ msgstr "Kacheln"
 msgid "Free space"
 msgstr "Freier Speicher"
 
+#: templates/graph_view.html
+msgid "Lighter"
+msgstr "Leichter"
+
+#: templates/graph_view.html
+msgid "Matches your rig"
+msgstr "Passend zu Ihrem Rig"
+
+#: templates/graph_view.html
+msgid "Sharper"
+msgstr "Schärfer"
+
+#: templates/graph_view.html
+msgid "≈{scale}″/px · your rig {rig}″/px"
+msgstr "≈{scale}″/px · Ihr Rig {rig}″/px"
+
+#: templates/graph_view.html
+msgid "Not covered here"
+msgstr "Hier nicht abgedeckt"
+
+#: templates/graph_view.html
+msgid "Max detail of this survey"
+msgstr "Maximale Detailtiefe dieser Durchmusterung"
+
+#: templates/graph_view.html
+msgid "{tiles} tiles · {mb} MB"
+msgstr "{tiles} Kacheln · {mb} MB"
+
+#: templates/graph_view.html
+msgid "Estimating…"
+msgstr "Wird geschätzt…"
+
+#: templates/graph_view.html
+msgid "This is more than the space set aside for offline sky."
+msgstr "Das ist mehr als der für den Offline-Himmel vorgesehene Speicher."
+
+#: templates/graph_view.html
+msgid "Not enough free disk space on this computer."
+msgstr "Nicht genug freier Speicherplatz auf diesem Computer."
+
+#: templates/graph_view.html
+msgid "Choose at least one survey."
+msgstr "Wählen Sie mindestens eine Durchmusterung."
+
+#: templates/graph_view.html
+msgid "Choose a rig first."
+msgstr "Wählen Sie zuerst ein Rig."
+
+#: templates/graph_view.html
+msgid "This rig has no image scale. Add the camera pixel size and the focal length."
+msgstr "Dieses Rig hat keinen Abbildungsmaßstab. Ergänzen Sie die Pixelgröße der Kamera und die Brennweite."
+
+#: templates/graph_view.html
+msgid "This frame is too large to save for offline."
+msgstr "Dieses Bildfeld ist zu groß, um es offline zu speichern."
+
+#: templates/graph_view.html
+msgid "There is nothing to save for these surveys here."
+msgstr "Für diese Durchmusterungen gibt es hier nichts zu speichern."
+
+#: templates/graph_view.html
+msgid "The estimate is not available right now."
+msgstr "Die Schätzung ist gerade nicht verfügbar."
+
+#: templates/graph_view.html
+msgid "Waiting"
+msgstr "Wartet"
+
+#: templates/graph_view.html
+msgid "Downloading {done} / {total}"
+msgstr "Wird geladen {done} / {total}"
+
+#: templates/graph_view.html
+msgid "Paused – survey server not reachable"
+msgstr "Pausiert – Server der Durchmusterung nicht erreichbar"
+
+#: templates/graph_view.html
+msgid "Done"
+msgstr "Fertig"
+
+#: templates/graph_view.html
+msgid "Done – {count} tiles not available"
+msgstr "Fertig – {count} Kacheln nicht verfügbar"
+
+#: templates/graph_view.html
+msgid "Stopped – not enough space"
+msgstr "Angehalten – nicht genug Speicher"
+
+#: templates/graph_view.html
+msgid "Cancelled"
+msgstr "Abgebrochen"
+
+#: templates/graph_view.html
+msgid "Failed"
+msgstr "Fehlgeschlagen"
+
+#: templates/graph_view.html
+msgid "partial"
+msgstr "unvollständig"
+
+#: templates/graph_view.html
+msgid "Saved by an earlier version"
+msgstr "Mit einer früheren Version gespeichert"
+
+#: templates/graph_view.html
+msgid "Delete the offline sky saved for {name}?"
+msgstr "Den für {name} offline gespeicherten Himmel löschen?"
+
+#: templates/graph_view.html
+msgid "Estimate"
+msgstr "Schätzung"
+
 
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Vorschläge aktualisieren"

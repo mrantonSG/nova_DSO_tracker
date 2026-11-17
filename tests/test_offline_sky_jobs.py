@@ -1331,9 +1331,15 @@ def _js():
 
 
 def test_js_single_cancel_handler():
+    # Since B2 the panel lives in offline_save_panel.js: one Cancel button per
+    # saved row with one click handler; the chart has no cancel code left.
     src = _js()
-    assert "addEventListener('click', cancelOfflineSave)" not in src
-    assert src.count("cancelBtn.onclick = () => cancelOfflineSave(jobId);") == 1
+    assert "cancelOfflineSave" not in src
+    with open(os.path.join(os.path.dirname(__file__), "..", "static", "js",
+                           "offline_save_panel.js"), encoding="utf-8") as fh:
+        panel = fh.read()
+    assert panel.count("cancel.addEventListener('click', function () { cancelSave(s.id); });") == 1
+    assert panel.count("/cancel'") == 1
 
 
 def test_js_sends_frame_and_rig_not_view():

@@ -2436,6 +2436,7 @@
 
     async function openFramingAssistant(optionalQueryString) {
         const framingModal = document.getElementById('framing-modal');
+        closeOfflineSavePanel();   // the panel starts closed on every open
 
         // Show the modal frame immediately
         if (framingModalController) {
@@ -2675,6 +2676,7 @@
         }
     }
     function closeFramingAssistant() {
+        closeOfflineSavePanel();
         // Close using ModalController if available
         if (framingModalController) {
             framingModalController.close();
@@ -3748,8 +3750,9 @@
                         }
                     },
                     onClose: function() {
-                        // Aladin instance is preserved (cached) for next open
-                        // No cleanup needed - the viewer persists in the DOM
+                        // Aladin instance is preserved (cached) for next open.
+                        // The offline save panel closes and stops its timers.
+                        closeOfflineSavePanel();
                     }
                 });
 
@@ -4233,19 +4236,17 @@
     // OFFLINE SKY: offline view toggle + save-for-offline + status chip
     // ==========================================================================
 
-    const OFFLINE_BASE_ORDER = window.NOVA_OFFLINE_SKY_BASE_ORDER || 3;
-    // Detail = an offset from the rig's target order (computed on the server from
-    // the rig's image scale); the server caps it per survey at its effective max.
-    const OFFLINE_DETAIL_PRESETS = [
-        { key: 'standard', label: () => window.t('offline_detail_standard'), offset: -1 },
-        { key: 'sharp',    label: () => window.t('offline_detail_sharp'),    offset: 0 },
-        { key: 'maximum',  label: () => window.t('offline_detail_maximum'),  offset: 1 },
-    ];
-    let offlinePollTimer = null;
+    // Piece C (status chip, survey-dropdown marks, automatic base-layer start)
+    // stays off even when OFFLINE_SKY_SAVE_ENABLED is on; switch it on here once
+    // piece C lands.
+    const OFFLINE_BASE_UI_ENABLED = false;
+    let offlineSavePanel = null;
 
     function offlineEnabled() { return !!window.NOVA_OFFLINE_SKY; }
-    // Save-for-offline, base-layer jobs, status chip and dropdown marks (off until reworked).
+    // "Save for offline" button, panel and "Saved for offline" list (piece B2).
     function offlineSaveEnabled() { return offlineEnabled() && !!window.NOVA_OFFLINE_SKY_SAVE; }
+    // Status chip, dropdown marks and base-layer jobs (piece C): a separate gate.
+    function offlineBaseUiEnabled() { return offlineSaveEnabled() && OFFLINE_BASE_UI_ENABLED; }
     function offlineSurveyEntry(surveyId) {
         return (window.NOVA_OFFLINE_SKY_SURVEYS || {})[surveyId] || null;
     }
@@ -4326,7 +4327,7 @@
     }
 
     function refreshOfflineStatus() {
-        if (!offlineSaveEnabled()) return;
+        if (!offlineBaseUiEnabled()) return;
         const chip = document.getElementById('offline-status-chip');
         const frame = offlineSaveFrame();
         const baseId = offlineBaseId();
@@ -4358,7 +4359,7 @@
     }
 
     function refreshOfflineMarks() {
-        if (!offlineSaveEnabled()) return;
+        if (!offlineBaseUiEnabled()) return;
         fetch('/api/offline/base/status').then(r => r.ok ? r.json() : null).then(data => {
             const surveys = data && data.surveys || {};
             for (const selId of ['survey-select', 'blend-survey-select']) {
@@ -4379,7 +4380,7 @@
     }
 
     function ensureOfflineBaseSurveys() {
-        if (!offlineSaveEnabled()) return;
+        if (!offlineBaseUiEnabled()) return;
         const ids = [];
         const base = offlineBaseId(), blend = offlineBlendId();
         if (base) ids.push(base);
@@ -4391,181 +4392,41 @@
         }).then(() => refreshOfflineMarks()).catch(() => {});
     }
 
-    // --- Save-for-offline panel ---
-    function toggleOfflineSavePanel() {
-        const panel = document.getElementById('offline-save-panel');
-        if (!panel) return;
-        const show = panel.hidden;
-        panel.hidden = !show;
-        if (show) renderOfflineSavePanel();
+    // --- Save-for-offline panel (static/js/offline_save_panel.js) ---
+    function getOfflineSavePanel() {
+        if (offlineSavePanel || !offlineSaveEnabled() || !window.NovaOfflineSavePanel) return offlineSavePanel;
+        if (!document.getElementById('offline-save-panel')) return null;
+        offlineSavePanel = window.NovaOfflineSavePanel.create({
+            doc: document,
+            fetch: (url, opts) => fetch(url, opts),
+            t: (key, params) => window.t(key, params),
+            confirm: (msg, opts) => window.novaConfirm(msg, opts),
+            timers: {
+                setTimeout: (fn, ms) => window.setTimeout(fn, ms),
+                clearTimeout: (id) => window.clearTimeout(id),
+                setInterval: (fn, ms) => window.setInterval(fn, ms),
+                clearInterval: (id) => window.clearInterval(id),
+            },
+            surveys: window.NOVA_OFFLINE_SKY_SURVEYS || {},
+            getFrame: offlineSaveFrame,
+            getBaseId: offlineBaseId,
+            getBlendId: offlineBlendId,
+            getName: () => (window.NOVA_GRAPH_DATA && (window.NOVA_GRAPH_DATA.objectName || window.NOVA_GRAPH_DATA.altName)) || 'RA/Dec',
+            locale: document.documentElement.lang || undefined,
+            isConfirmOpen: () => {
+                const m = document.getElementById('nova-modal');
+                return !!m && m.classList.contains('is-visible');
+            },
+        });
+        // Capture phase, so Escape closes only the panel while it is open; the
+        // modal's own Escape handler (document, bubble) never sees that press.
+        window.addEventListener('keydown', (e) => { if (offlineSavePanel) offlineSavePanel.handleKeydown(e); }, true);
+        return offlineSavePanel;
     }
 
-    function renderOfflineSavePanel() {
-        const panel = document.getElementById('offline-save-panel');
-        if (!panel) return;
-        const baseId = offlineBaseId(), blendId = offlineBlendId();
-        const surveys = window.NOVA_OFFLINE_SKY_SURVEYS || {};
-        const surveyIds = Object.keys(surveys);
-
-        const rows = surveyIds.map(sid => {
-            const m = surveys[sid];
-            const checked = (sid === baseId || sid === blendId) ? 'checked' : '';
-            return `<label class="offline-survey-row">` +
-                `<input type="checkbox" class="offline-survey-check" value="${sid}" ${checked}>` +
-                `<span>${m.label || sid}</span></label>`;
-        }).join('');
-
-        const preset = OFFLINE_DETAIL_PRESETS.find(p => p.offset === 0);
-
-        panel.innerHTML =
-            `<div class="offline-save-head">${window.t('save_for_offline')}</div>` +
-            `<div class="offline-save-section"><div class="offline-save-label">${window.t('offline_surveys')}</div>${rows}</div>` +
-            `<div class="offline-save-section"><div class="offline-save-label">${window.t('offline_detail')}</div>` +
-                `<select id="offline-detail-select">` +
-                    OFFLINE_DETAIL_PRESETS.map(p =>
-                        `<option value="${p.key}" ${p.key === preset.key ? 'selected' : ''}>${p.label()}</option>`).join('') +
-                `</select>` +
-                `<span id="offline-save-suggested" class="offline-save-suggested">${window.t('offline_suggested')}: …</span>` +
-            `</div>` +
-            `<div id="offline-save-estimate" class="offline-save-estimate"></div>` +
-            `<div class="offline-save-actions">` +
-                `<button id="offline-save-start" class="inline-button" style="border-radius:6px;">${window.t('offline_save')}</button>` +
-                `<button id="offline-save-cancel" class="inline-button-ghost" style="border-radius:6px;" hidden>${window.t('offline_cancel')}</button>` +
-            `</div>` +
-            `<div id="offline-save-progress" class="offline-save-progress"></div>` +
-            `<div class="offline-save-section"><div class="offline-save-label">${window.t('offline_saved_for')}</div><div id="offline-saves-list"></div></div>`;
-
-        panel.querySelector('#offline-detail-select').addEventListener('change', updateOfflineEstimate);
-        panel.querySelector('#offline-save-start').addEventListener('click', startOfflineSave);
-        panel.querySelectorAll('.offline-survey-check').forEach(cb => cb.addEventListener('change', updateOfflineEstimate));
-        updateOfflineEstimate();
-        renderOfflineSaves();
-    }
-
-    function offlineSelectedSurveys() {
-        const panel = document.getElementById('offline-save-panel');
-        if (!panel) return [];
-        return Array.from(panel.querySelectorAll('.offline-survey-check:checked')).map(cb => cb.value);
-    }
-    function offlineSelectedOffset() {
-        const panel = document.getElementById('offline-save-panel');
-        const key = panel?.querySelector('#offline-detail-select')?.value || 'sharp';
-        const p = OFFLINE_DETAIL_PRESETS.find(x => x.key === key);
-        return p ? p.offset : 0;
-    }
-
-    function updateOfflineEstimate() {
-        const el = document.getElementById('offline-save-estimate');
-        if (!el) return;
-        const frame = offlineSaveFrame();
-        const surveys = offlineSelectedSurveys();
-        if (!offlineFrameValid(frame) || !surveys.length) {
-            el.textContent = window.t('offline_chip_not_available');
-            return;
-        }
-        const url = `/api/offline/estimate?${offlineFrameQuery(frame)}` +
-            `&detail_offset=${offlineSelectedOffset()}&surveys=${surveys.map(encodeURIComponent).join(',')}`;
-        fetch(url).then(r => r.json().catch(() => null)).then(d => {
-            if (!d || !d.surveys) { el.textContent = (d && d.error) || ''; return; }
-            const sug = document.getElementById('offline-save-suggested');
-            if (sug) sug.textContent = `${window.t('offline_suggested')}: ${d.target_order}`;
-            const tiles = d.total.tile_count;
-            const bytes = d.total.est_bytes;
-            const mb = (bytes / (1024 * 1024)).toFixed(1);
-            const freeMb = (d.free_bytes / (1024 * 1024)).toFixed(0);
-            const capMb = (d.cap_bytes / (1024 * 1024)).toFixed(0);
-            el.textContent = `${tiles} ${window.t('offline_tiles')} · ~${mb} MB · ` +
-                `${window.t('offline_free_space')}: ${freeMb} / ${capMb} MB`;
-        }).catch(() => {});
-    }
-
-    function startOfflineSave() {
-        const frame = offlineSaveFrame();
-        const surveys = offlineSelectedSurveys();
-        if (!offlineFrameValid(frame) || !surveys.length) return;
-        const name = (window.NOVA_GRAPH_DATA && (window.NOVA_GRAPH_DATA.objectName || window.NOVA_GRAPH_DATA.altName)) || 'RA/Dec';
-        const btn = document.getElementById('offline-save-start');
-        if (btn) btn.disabled = true;
-        fetch('/api/offline/saves', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, ra: frame.ra, dec: frame.dec,
-                                   frame_w_deg: frame.frameW, frame_h_deg: frame.frameH,
-                                   rig_id: frame.rigId, surveys,
-                                   detail_offset: offlineSelectedOffset() })
-        }).then(r => r.json().catch(() => null)).then(d => {
-            if (d && d.job_id) { startOfflinePoll(d.job_id); renderOfflineSaves(); return; }
-            if (btn) btn.disabled = false;
-            const prog = document.getElementById('offline-save-progress');
-            if (prog && d && d.error) prog.textContent = d.error;
-        }).catch(() => { if (btn) btn.disabled = false; });
-    }
-
-    function startOfflinePoll(jobId) {
-        stopOfflinePoll();
-        const btn = document.getElementById('offline-save-start');
-        const cancelBtn = document.getElementById('offline-save-cancel');
-        const prog = document.getElementById('offline-save-progress');
-        if (btn) btn.disabled = true;
-        if (cancelBtn) cancelBtn.hidden = false;
-        cancelBtn.onclick = () => cancelOfflineSave(jobId);
-        offlinePollTimer = setInterval(() => {
-            fetch(`/api/offline/saves/${jobId}/progress`).then(r => r.ok ? r.json() : null).then(d => {
-                const job = d && d.job;
-                if (!job) return;
-                const status = job.status || 'running';
-                if (prog) prog.textContent = `${status} · ${job.done}/${job.total}`;
-                if (status === 'done' || status === 'stopped' || status === 'cancelled' || status === 'failed') {
-                    stopOfflinePoll();
-                    if (btn) btn.disabled = false;
-                    if (cancelBtn) cancelBtn.hidden = true;
-                    renderOfflineSaves();
-                    refreshOfflineMarks();
-                }
-            }).catch(() => {});
-        }, 1000);
-    }
-
-    function stopOfflinePoll() {
-        if (offlinePollTimer) { clearInterval(offlinePollTimer); offlinePollTimer = null; }
-        const cancelBtn = document.getElementById('offline-save-cancel');
-        if (cancelBtn) cancelBtn.hidden = true;
-    }
-
-    function cancelOfflineSave(jobId) {
-        if (!jobId) return;
-        fetch(`/api/offline/saves/${jobId}/cancel`, { method: 'POST' }).catch(() => {});
-    }
-
-    function renderOfflineSaves() {
-        const list = document.getElementById('offline-saves-list');
-        if (!list) return;
-        fetch('/api/offline/saves').then(r => r.ok ? r.json() : null).then(d => {
-            const saves = (d && d.saves) || [];
-            if (!saves.length) {
-                list.textContent = window.t('offline_none_saved');
-                return;
-            }
-            list.innerHTML = '';
-            saves.forEach(s => {
-                const row = document.createElement('div');
-                row.className = 'offline-save-row';
-                const mb = ((s.bytes || 0) / (1024 * 1024)).toFixed(1);
-                const label = `${s.name || 'RA/Dec'} · ${(s.surveys || []).length} · ${s.max_order} · ${mb} MB`;
-                const name = document.createElement('span');
-                name.textContent = label;
-                const del = document.createElement('button');
-                del.type = 'button';
-                del.className = 'inline-button-danger';
-                del.style.cssText = 'border-radius:6px;padding:2px 8px;font-size:11px;';
-                del.textContent = window.t('delete');
-                del.addEventListener('click', () => {
-                    fetch(`/api/offline/saves/${s.id}`, { method: 'DELETE' })
-                        .then(() => renderOfflineSaves()).catch(() => {});
-                });
-                row.append(name, del);
-                list.appendChild(row);
-            });
-        }).catch(() => {});
+    /** Closes the panel and stops its timers; called on modal open and close. */
+    function closeOfflineSavePanel() {
+        if (offlineSavePanel) offlineSavePanel.close();
     }
 
     function wireOfflineSkyUi() {
@@ -4579,9 +4440,9 @@
             toggle.addEventListener('change', () => setOfflineView(toggle.checked, true));
         }
         const saveBtn = document.getElementById('save-offline-btn');
-        if (saveBtn && !saveBtn.__novaOfflineWired) {
+        if (saveBtn && !saveBtn.__novaOfflineWired && getOfflineSavePanel()) {
             saveBtn.__novaOfflineWired = true;
-            saveBtn.addEventListener('click', toggleOfflineSavePanel);
+            saveBtn.addEventListener('click', () => offlineSavePanel.toggle());
         }
 
         // Auto-on when the browser drops offline; restore the user's own setting

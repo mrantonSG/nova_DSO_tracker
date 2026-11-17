@@ -17,18 +17,37 @@
     window.novaI18n.offline_chip_low = {{ _('Offline: low detail') | tojson }};
     window.novaI18n.offline_chip_not_available = {{ _('Not available offline') | tojson }};
     window.novaI18n.offline_suffix = {{ _('offline') | tojson }};
-    window.novaI18n.offline_saved_for = {{ _('Saved for offline') | tojson }};
-    window.novaI18n.offline_surveys = {{ _('Surveys') | tojson }};
-    window.novaI18n.offline_detail = {{ _('Detail') | tojson }};
-    window.novaI18n.offline_detail_standard = {{ _('Standard') | tojson }};
-    window.novaI18n.offline_detail_sharp = {{ _('Sharp') | tojson }};
-    window.novaI18n.offline_detail_maximum = {{ _('Maximum') | tojson }};
-    window.novaI18n.offline_suggested = {{ _('Suggested') | tojson }};
-    window.novaI18n.offline_save = {{ _('Save') | tojson }};
+    {% if OFFLINE_SKY_SAVE_ENABLED %}
     window.novaI18n.offline_cancel = {{ _('Cancel') | tojson }};
     window.novaI18n.offline_none_saved = {{ _('Nothing saved for offline yet.') | tojson }};
-    window.novaI18n.offline_tiles = {{ _('tiles') | tojson }};
-    window.novaI18n.offline_free_space = {{ _('Free space') | tojson }};
+    window.novaI18n.offline_detail_lighter = {{ _('Lighter') | tojson }};
+    window.novaI18n.offline_detail_rig = {{ _('Matches your rig') | tojson }};
+    window.novaI18n.offline_detail_sharper = {{ _('Sharper') | tojson }};
+    window.novaI18n.offline_detail_scale = {{ _('≈{scale}″/px · your rig {rig}″/px') | tojson }};
+    window.novaI18n.offline_not_covered = {{ _('Not covered here') | tojson }};
+    window.novaI18n.offline_max_detail = {{ _('Max detail of this survey') | tojson }};
+    window.novaI18n.offline_tiles_mb = {{ _('{tiles} tiles · {mb} MB') | tojson }};
+    window.novaI18n.offline_estimating = {{ _('Estimating…') | tojson }};
+    window.novaI18n.offline_reason_over_cap = {{ _('This is more than the space set aside for offline sky.') | tojson }};
+    window.novaI18n.offline_reason_disk = {{ _('Not enough free disk space on this computer.') | tojson }};
+    window.novaI18n.offline_reason_no_surveys = {{ _('Choose at least one survey.') | tojson }};
+    window.novaI18n.offline_reason_no_rig = {{ _('Choose a rig first.') | tojson }};
+    window.novaI18n.offline_reason_rig_scale = {{ _('This rig has no image scale. Add the camera pixel size and the focal length.') | tojson }};
+    window.novaI18n.offline_reason_too_large = {{ _('This frame is too large to save for offline.') | tojson }};
+    window.novaI18n.offline_reason_nothing = {{ _('There is nothing to save for these surveys here.') | tojson }};
+    window.novaI18n.offline_reason_error = {{ _('The estimate is not available right now.') | tojson }};
+    window.novaI18n.offline_status_waiting = {{ _('Waiting') | tojson }};
+    window.novaI18n.offline_status_downloading = {{ _('Downloading {done} / {total}') | tojson }};
+    window.novaI18n.offline_status_paused = {{ _('Paused – survey server not reachable') | tojson }};
+    window.novaI18n.offline_status_done = {{ _('Done') | tojson }};
+    window.novaI18n.offline_status_done_missing = {{ _('Done – {count} tiles not available') | tojson }};
+    window.novaI18n.offline_status_no_space = {{ _('Stopped – not enough space') | tojson }};
+    window.novaI18n.offline_status_cancelled = {{ _('Cancelled') | tojson }};
+    window.novaI18n.offline_status_failed = {{ _('Failed') | tojson }};
+    window.novaI18n.offline_partial = {{ _('partial') | tojson }};
+    window.novaI18n.offline_earlier_version = {{ _('Saved by an earlier version') | tojson }};
+    window.novaI18n.offline_delete_confirm = {{ _('Delete the offline sky saved for {name}?') | tojson }};
+    {% endif %}
 </script>
 <script src="{{ url_for('static', filename='js/aladin.js') }}?v={{ version }}" charset="utf-8" defer></script>
 <script>
@@ -47,32 +66,6 @@
 </script>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/graph_view.css') }}?v={{ version }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/journal_form.css') }}?v={{ version }}">
-<style>
-    /* Offline-sky: save-for-offline panel + status chip. Design-system tokens only. */
-    .offline-save-panel {
-        margin-top: 10px; padding: 12px 14px;
-        background: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        font-size: 13px; color: var(--text-primary);
-    }
-    .offline-save-head { font-weight: 700; margin-bottom: 8px; }
-    .offline-save-section { margin-top: 10px; }
-    .offline-save-label {
-        font-size: 11px; font-weight: 700; text-transform: uppercase;
-        letter-spacing: 0.09em; color: var(--text-faint); margin-bottom: 4px;
-    }
-    .offline-survey-row { display: flex; align-items: center; gap: 6px; margin: 3px 0; font-size: 13px; color: var(--text-secondary); }
-    .offline-save-suggested { margin-left: 10px; font-size: 12px; color: var(--text-muted); }
-    .offline-save-estimate { margin-top: 8px; font-size: 12px; color: var(--text-secondary); }
-    .offline-save-actions { margin-top: 10px; display: flex; gap: 8px; }
-    .offline-save-progress { margin-top: 6px; font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
-    .offline-save-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--border-light); }
-    .offline-status-chip { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 5px; border: 1px solid transparent; }
-    .offline-chip-sharp { background: var(--primary-bg); color: var(--primary-hover); border-color: rgba(131,180,197,0.35); }
-    .offline-chip-low { background: var(--bg-tertiary); color: var(--text-muted); border-color: var(--border-color); }
-    .offline-chip-none { background: rgba(180,60,60,0.08); color: #a04040; border-color: rgba(180,60,60,0.18); }
-</style>
 {% endblock %}
 
 {% block page_title %}
@@ -426,18 +419,55 @@
                 <input id="blend-opacity" type="range" min="0" max="1" step="0.01" value="0" title="{{ _('Blend opacity') }}" style="width:130px; vertical-align:middle; margin-left:8px;">
             </div>
         </div>
-        <div id="offline-sky-controls" class="framing-controls" style="align-items:center; gap:12px; padding-top:2px;" hidden>
+        <div id="offline-sky-controls" class="framing-controls offline-sky-controls" hidden>
             {% if OFFLINE_SKY_SAVE_ENABLED %}
-            <button id="save-offline-btn" type="button" class="inline-button-ghost" style="padding:6px 10px;font-size:13px;border-radius:6px;" data-action="save-for-offline">{{ _('Save for offline') }}</button>
+            <button id="save-offline-btn" type="button" class="inline-button-ghost" data-action="save-for-offline" aria-controls="offline-save-panel" aria-expanded="false">{{ _('Save for offline') }}</button>
             {% endif %}
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-secondary);cursor:pointer;"><input type="checkbox" id="offline-view-toggle"> {{ _('Offline view') }}</label>
+            <label class="offline-view-label"><input type="checkbox" id="offline-view-toggle"> {{ _('Offline view') }}</label>
             {% if OFFLINE_SKY_SAVE_ENABLED %}
             <span id="offline-status-chip" class="offline-status-chip" hidden></span>
             {% endif %}
-            <span id="offline-scan-note" style="font-size:11px;color:var(--text-muted);" hidden>{{ _('Scan Frame is unavailable in offline view.') }}</span>
+            <span id="offline-scan-note" class="offline-scan-note" hidden>{{ _('Scan Frame is unavailable in offline view.') }}</span>
         </div>
         {% if OFFLINE_SKY_SAVE_ENABLED %}
-        <div id="offline-save-panel" class="offline-save-panel" hidden></div>
+        <section id="offline-save-panel" class="offline-save-panel" aria-labelledby="offline-save-title" hidden>
+            <div class="offline-save-head">
+                <h3 id="offline-save-title" class="offline-save-title">{{ _('Save for offline') }}</h3>
+                <button type="button" id="offline-save-close" class="offline-save-close" aria-label="{{ _('Close') }}" title="{{ _('Close') }}">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="offline-save-body">
+                <div class="offline-save-col">
+                    <div class="offline-save-label">{{ _('Surveys') }}</div>
+                    <div id="offline-survey-list" class="offline-survey-list"></div>
+                </div>
+                <div class="offline-save-col">
+                    <label class="offline-save-label" for="offline-detail-select">{{ _('Detail') }}</label>
+                    <div class="offline-detail-row">
+                        <select id="offline-detail-select" class="offline-detail-select">
+                            <option value="-1">{{ _('Lighter') }}</option>
+                            <option value="0" selected>{{ _('Matches your rig') }}</option>
+                            <option value="1">{{ _('Sharper') }}</option>
+                        </select>
+                        <span id="offline-detail-scale" class="offline-detail-scale"></span>
+                    </div>
+                    <div class="offline-save-label offline-save-label-spaced">{{ _('Estimate') }}</div>
+                    <dl class="offline-estimate">
+                        <dt>{{ _('Total') }}</dt><dd id="offline-estimate-total">–</dd>
+                        <dt>{{ _('Free space') }}</dt><dd id="offline-estimate-free">–</dd>
+                    </dl>
+                    <p id="offline-save-reason" class="offline-save-reason" role="status" hidden></p>
+                    <div class="offline-save-actions">
+                        <button type="button" id="offline-save-start" class="inline-button" disabled>{{ _('Save') }}</button>
+                    </div>
+                </div>
+            </div>
+            <div class="offline-saves">
+                <div class="offline-save-label">{{ _('Saved for offline') }}</div>
+                <div id="offline-saves-list" class="offline-saves-list"></div>
+            </div>
+        </section>
         {% endif %}
         <div class="framing-controls" style="flex-wrap: wrap;">
             <div><label>{{ _('Brightness') }}</label><input type="range" id="img-bright" min="-1" max="1" step="0.01" value="0" data-action="update-image-adjustments"></div>
@@ -522,6 +552,7 @@
 <script src="{{ url_for('static', filename='js/nova_opportunities.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/nova_plot_data.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/framing-utils.js') }}?v={{ version }}" defer></script>
+<script src="{{ url_for('static', filename='js/offline_save_panel.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/graph_view_chart.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/graph_view.js') }}?v={{ version }}" defer></script>
 <script src="{{ url_for('static', filename='js/journal_section.js') }}?v={{ version }}" defer></script>

@@ -8257,6 +8257,118 @@ msgstr "タイル"
 msgid "Free space"
 msgstr "空き容量"
 
+#: templates/graph_view.html
+msgid "Lighter"
+msgstr "軽め"
+
+#: templates/graph_view.html
+msgid "Matches your rig"
+msgstr "リグに合わせる"
+
+#: templates/graph_view.html
+msgid "Sharper"
+msgstr "より精細"
+
+#: templates/graph_view.html
+msgid "≈{scale}″/px · your rig {rig}″/px"
+msgstr "≈{scale}″/px · リグ {rig}″/px"
+
+#: templates/graph_view.html
+msgid "Not covered here"
+msgstr "この範囲は対象外"
+
+#: templates/graph_view.html
+msgid "Max detail of this survey"
+msgstr "このサーベイの最大詳細度"
+
+#: templates/graph_view.html
+msgid "{tiles} tiles · {mb} MB"
+msgstr "{tiles} タイル · {mb} MB"
+
+#: templates/graph_view.html
+msgid "Estimating…"
+msgstr "見積もり中…"
+
+#: templates/graph_view.html
+msgid "This is more than the space set aside for offline sky."
+msgstr "オフライン用の空に割り当てた容量を超えています。"
+
+#: templates/graph_view.html
+msgid "Not enough free disk space on this computer."
+msgstr "このコンピューターの空きディスク容量が足りません。"
+
+#: templates/graph_view.html
+msgid "Choose at least one survey."
+msgstr "サーベイを1つ以上選んでください。"
+
+#: templates/graph_view.html
+msgid "Choose a rig first."
+msgstr "先にリグを選んでください。"
+
+#: templates/graph_view.html
+msgid "This rig has no image scale. Add the camera pixel size and the focal length."
+msgstr "このリグには画像スケールがありません。カメラのピクセルサイズと焦点距離を入力してください。"
+
+#: templates/graph_view.html
+msgid "This frame is too large to save for offline."
+msgstr "このフレームは大きすぎてオフライン保存できません。"
+
+#: templates/graph_view.html
+msgid "There is nothing to save for these surveys here."
+msgstr "ここではこれらのサーベイに保存するものがありません。"
+
+#: templates/graph_view.html
+msgid "The estimate is not available right now."
+msgstr "現在、見積もりを取得できません。"
+
+#: templates/graph_view.html
+msgid "Waiting"
+msgstr "待機中"
+
+#: templates/graph_view.html
+msgid "Downloading {done} / {total}"
+msgstr "ダウンロード中 {done} / {total}"
+
+#: templates/graph_view.html
+msgid "Paused – survey server not reachable"
+msgstr "一時停止 – サーベイのサーバーに接続できません"
+
+#: templates/graph_view.html
+msgid "Done"
+msgstr "完了"
+
+#: templates/graph_view.html
+msgid "Done – {count} tiles not available"
+msgstr "完了 – {count} タイルは取得できません"
+
+#: templates/graph_view.html
+msgid "Stopped – not enough space"
+msgstr "停止 – 容量不足"
+
+#: templates/graph_view.html
+msgid "Cancelled"
+msgstr "キャンセル済み"
+
+#: templates/graph_view.html
+msgid "Failed"
+msgstr "失敗"
+
+#: templates/graph_view.html
+msgid "partial"
+msgstr "一部のみ"
+
+#: templates/graph_view.html
+msgid "Saved by an earlier version"
+msgstr "以前のバージョンで保存"
+
+#: templates/graph_view.html
+msgid "Delete the offline sky saved for {name}?"
+msgstr "{name} 用にオフライン保存した空を削除しますか？"
+
+#: templates/graph_view.html
+msgid "Estimate"
+msgstr "見積もり"
+
 
 #~ msgid "Refresh Suggestions"
 #~ msgstr "更新提案"

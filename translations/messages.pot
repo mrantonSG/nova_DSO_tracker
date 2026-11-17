@@ -8156,3 +8156,115 @@ msgstr ""
 msgid "Free space"
 msgstr ""
 
+#: templates/graph_view.html
+msgid "Lighter"
+msgstr ""
+
+#: templates/graph_view.html
+msgid "Matches your rig"
+msgstr ""
+
+#: templates/graph_view.html
+msgid "Sharper"
+msgstr ""
+
+#: templates/graph_view.html
+msgid "≈{scale}″/px · your rig {rig}″/px"
+msgstr ""
+
+#: templates/graph_view.html
+msgid "Not covered here"
+msgstr ""
+
+#: templates/graph_view.html
+msgid "Max detail of this survey"
+msgstr ""
+
+#: templates/graph_view.html
+msgid "{tiles} tiles · {mb} MB"
+msgstr ""
+
+#: templates/graph_view.html
+msgid "Estimating…"
+msgstr ""
+
+#: templates/graph_view.html
+msgid "This is more than the space set aside for offline sky."
+msgstr ""
+
+#: templates/graph_view.html
+msgid "Not enough free disk space on this computer."
+msgstr ""
+
+#: templates/graph_view.html
+msgid "Choose at least one survey."
+msgstr ""
+
+#: templates/graph_view.html
+msgid "Choose a rig first."
+msgstr ""
+
+#: templates/graph_view.html
+msgid "This rig has no image scale. Add the camera pixel size and the focal length."
+msgstr ""
+
+#: templates/graph_view.html
+msgid "This frame is too large to save for offline."
+msgstr ""
+
+#: templates/graph_view.html
+msgid "There is nothing to save for these surveys here."
+msgstr ""
+
+#: templates/graph_view.html
+msgid "The estimate is not available right now."
+msgstr ""
+
+#: templates/graph_view.html
+msgid "Waiting"
+msgstr ""
+
+#: templates/graph_view.html
+msgid "Downloading {done} / {total}"
+msgstr ""
+
+#: templates/graph_view.html
+msgid "Paused – survey server not reachable"
+msgstr ""
+
+#: templates/graph_view.html
+msgid "Done"
+msgstr ""
+
+#: templates/graph_view.html
+msgid "Done – {count} tiles not available"
+msgstr ""
+
+#: templates/graph_view.html
+msgid "Stopped – not enough space"
+msgstr ""
+
+#: templates/graph_view.html
+msgid "Cancelled"
+msgstr ""
+
+#: templates/graph_view.html
+msgid "Failed"
+msgstr ""
+
+#: templates/graph_view.html
+msgid "partial"
+msgstr ""
+
+#: templates/graph_view.html
+msgid "Saved by an earlier version"
+msgstr ""
+
+#: templates/graph_view.html
+msgid "Delete the offline sky saved for {name}?"
+msgstr ""
+
+#: templates/graph_view.html
+msgid "Estimate"
+msgstr ""
+

@@ -396,6 +396,8 @@ def estimate(frame: dict, image_scale_arcsec: float, slugs, detail_offset: int =
         "target_order": target,
         "detail_offset": int(detail_offset),
         "requested_order": requested,
+        # Resolution of the requested detail (before any per-survey cap).
+        "requested_pixel_scale_arcsec": hips_pixel_scale_arcsec(requested),
         "surveys": surveys,
         "total": {"tile_count": tot_new, "tiles_total": tot_all,
                   "est_bytes": tot_bytes, "adopt_bytes": tot_adopt},

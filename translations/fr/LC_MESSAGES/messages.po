@@ -8655,6 +8655,118 @@ msgstr "tuiles"
 msgid "Free space"
 msgstr "Espace libre"
 
+#: templates/graph_view.html
+msgid "Lighter"
+msgstr "Plus léger"
+
+#: templates/graph_view.html
+msgid "Matches your rig"
+msgstr "Adapté à votre rig"
+
+#: templates/graph_view.html
+msgid "Sharper"
+msgstr "Plus net"
+
+#: templates/graph_view.html
+msgid "≈{scale}″/px · your rig {rig}″/px"
+msgstr "≈{scale}″/px · votre rig {rig}″/px"
+
+#: templates/graph_view.html
+msgid "Not covered here"
+msgstr "Non couvert ici"
+
+#: templates/graph_view.html
+msgid "Max detail of this survey"
+msgstr "Détail maximal de ce relevé"
+
+#: templates/graph_view.html
+msgid "{tiles} tiles · {mb} MB"
+msgstr "{tiles} tuiles · {mb} MB"
+
+#: templates/graph_view.html
+msgid "Estimating…"
+msgstr "Estimation…"
+
+#: templates/graph_view.html
+msgid "This is more than the space set aside for offline sky."
+msgstr "C'est plus que l'espace réservé au ciel hors ligne."
+
+#: templates/graph_view.html
+msgid "Not enough free disk space on this computer."
+msgstr "Pas assez d'espace disque libre sur cet ordinateur."
+
+#: templates/graph_view.html
+msgid "Choose at least one survey."
+msgstr "Choisissez au moins un relevé."
+
+#: templates/graph_view.html
+msgid "Choose a rig first."
+msgstr "Choisissez d'abord un rig."
+
+#: templates/graph_view.html
+msgid "This rig has no image scale. Add the camera pixel size and the focal length."
+msgstr "Ce rig n'a pas d'échantillonnage. Ajoutez la taille des pixels de la caméra et la focale."
+
+#: templates/graph_view.html
+msgid "This frame is too large to save for offline."
+msgstr "Ce cadrage est trop grand pour être enregistré hors ligne."
+
+#: templates/graph_view.html
+msgid "There is nothing to save for these surveys here."
+msgstr "Rien à enregistrer ici pour ces relevés."
+
+#: templates/graph_view.html
+msgid "The estimate is not available right now."
+msgstr "L'estimation n'est pas disponible pour le moment."
+
+#: templates/graph_view.html
+msgid "Waiting"
+msgstr "En attente"
+
+#: templates/graph_view.html
+msgid "Downloading {done} / {total}"
+msgstr "Téléchargement {done} / {total}"
+
+#: templates/graph_view.html
+msgid "Paused – survey server not reachable"
+msgstr "En pause – serveur du relevé injoignable"
+
+#: templates/graph_view.html
+msgid "Done"
+msgstr "Terminé"
+
+#: templates/graph_view.html
+msgid "Done – {count} tiles not available"
+msgstr "Terminé – {count} tuiles indisponibles"
+
+#: templates/graph_view.html
+msgid "Stopped – not enough space"
+msgstr "Arrêté – espace insuffisant"
+
+#: templates/graph_view.html
+msgid "Cancelled"
+msgstr "Annulé"
+
+#: templates/graph_view.html
+msgid "Failed"
+msgstr "Échec"
+
+#: templates/graph_view.html
+msgid "partial"
+msgstr "partiel"
+
+#: templates/graph_view.html
+msgid "Saved by an earlier version"
+msgstr "Enregistré par une version précédente"
+
+#: templates/graph_view.html
+msgid "Delete the offline sky saved for {name}?"
+msgstr "Supprimer le ciel enregistré hors ligne pour {name} ?"
+
+#: templates/graph_view.html
+msgid "Estimate"
+msgstr "Estimation"
+
 
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Suggestions de rafraîchissement"

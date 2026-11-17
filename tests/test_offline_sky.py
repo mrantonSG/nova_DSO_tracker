@@ -742,11 +742,13 @@ def test_graph_page_shows_save_ui_when_save_enabled(monkeypatch, client):
 
 def test_js_save_paths_gated_on_save_flag():
     """The modal's base-layer ensure, dropdown marks and status chip only call
-    /api/offline/* when window.NOVA_OFFLINE_SKY_SAVE is on."""
+    /api/offline/* when window.NOVA_OFFLINE_SKY_SAVE is on -- and, since B2,
+    only once piece C switches its own gate on (offlineBaseUiEnabled)."""
     import re
     src = open(os.path.join(os.path.dirname(__file__), "..", "static", "js",
                             "graph_view_chart.js"), encoding="utf-8").read()
     assert "return offlineEnabled() && !!window.NOVA_OFFLINE_SKY_SAVE;" in src
+    assert "return offlineSaveEnabled() && OFFLINE_BASE_UI_ENABLED;" in src
     for fn in ("ensureOfflineBaseSurveys", "refreshOfflineMarks", "refreshOfflineStatus"):
         m = re.search(r"function " + fn + r"\(\) \{\n\s*(.+)\n", src)
-        assert m and m.group(1).strip() == "if (!offlineSaveEnabled()) return;", fn
+        assert m and m.group(1).strip() == "if (!offlineBaseUiEnabled()) return;", fn
