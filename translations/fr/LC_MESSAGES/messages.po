@@ -8619,6 +8619,14 @@ msgstr "{survey} ne répond pas — conservation de {current}."
 msgid "{survey} isn't stored offline — keeping {current}."
 msgstr "{survey} n'est pas enregistré hors ligne — conservation de {current}."
 
+#: templates/base.html
+msgid "{survey} isn't stored offline — showing {shown}."
+msgstr "{survey} n'est pas enregistré hors ligne — affichage de {shown}."
+
+#: templates/base.html
+msgid "{survey} isn't stored offline — showing an empty sky."
+msgstr "{survey} n'est pas enregistré hors ligne — affichage d'un ciel vide."
+
 
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Suggestions de rafraîchissement"

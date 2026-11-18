@@ -8197,6 +8197,14 @@ msgstr "{survey} 无响应——保留 {current}。"
 msgid "{survey} isn't stored offline — keeping {current}."
 msgstr "{survey} 未离线保存——保留 {current}。"
 
+#: templates/base.html
+msgid "{survey} isn't stored offline — showing {shown}."
+msgstr "{survey} 未离线保存——显示 {shown}。"
+
+#: templates/base.html
+msgid "{survey} isn't stored offline — showing an empty sky."
+msgstr "{survey} 未离线保存——显示空白天空。"
+
 
 #~ msgid "Refresh Suggestions"
 #~ msgstr "刷新建议"

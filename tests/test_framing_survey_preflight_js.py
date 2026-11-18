@@ -97,12 +97,17 @@ async function runCase(c) {
     let baseLayer = c.currentBase ? { id: input.roots[c.currentBase] || c.currentBase } : null;
     let blendLayer = c.currentBlend ? { id: input.roots[c.currentBlend] || c.currentBlend } : null;
 
+    // Aladin confirms a layer it shows through the layer's successCallback; every
+    // layer here loads (the pre-flight is what these cases are about).
+    const confirm = layer => Promise.resolve().then(() => {
+        if (layer.opts && layer.opts.successCallback) layer.opts.successCallback(layer);
+    });
     const aladin = {
-        createImageSurvey(id, name) { return { id, name }; },
-        setBaseImageLayer(layer) { swaps.push(layer.id); baseLayer = layer; },
+        createImageSurvey(id, name, url, frame, maxOrder, opts) { return { id, name, url: id, opts: opts || {} }; },
+        setBaseImageLayer(layer) { swaps.push(layer.id); baseLayer = layer; confirm(layer); },
         getBaseImageLayer() { return baseLayer; },
         getOverlayImageLayer: () => blendLayer,
-        setOverlayImageLayer(layer) { blendLayer = layer; return layer; },
+        setOverlayImageLayer(layer) { blendLayer = layer; confirm(layer); return layer; },
         removeImageLayer() { removed.push('blend'); blendLayer = null; },
         newImageSurvey: () => ({ id: 'new' }),
     };
@@ -144,26 +149,39 @@ async function runCase(c) {
         let baseSurvey = null;
         let cdsReachable = true, dssMirror = null;
         let __blendSurveyId = ${JSON.stringify(c.currentBlend)};
-        let __blendLayerUrl = ${JSON.stringify(c.currentBlend)};
+        // In Offline view the layers on screen are cache-only ones (these cases pick
+        // within Offline view; switching it is pinned in test_framing_survey_state_js).
+        let __blendLayerUrl = ${JSON.stringify(c.offlineView && c.currentBlend ? 'http://nova.test/hips/offline/blend' : c.currentBlend)};
+        let displayedBaseUrl = ${JSON.stringify(c.offlineView ? 'http://nova.test/hips/offline/base' : null)};
+        let baseRequest = 0, blendRequest = 0, baseWanted = ${JSON.stringify(c.currentBase)}, blendPending = null;
         const surveyReachability = new Map();
         let offlineViewOn = ${c.offlineView ? 'true' : 'false'};
         function surveyOptionLabel(v) { return __labels[v] || null; }
         function updateImageAdjustments() {}
+        function applyImageAdjustments() {}
         function updateSurveyCredit() {}
         function resolveHipsId(v) { return v.startsWith('http') ? v : __roots[v]; }
         function chooseDisplayedBase(v) { return { survey: v, notice: false }; }
-        function onSurveyLayerError() {}
         function showSurveyNotice(msg) { __notice(msg); }
         function hideSurveyNotice() { __hideNotice(); }
+        function snapSurveySelect() {}
         async function novaAlert() {}
         ${fn(src, 'probeHips')}
         ${fn(src, 'surveyNoticeLabel')}
         ${fn(src, 'surveyFailureMessage')}
         ${fn(src, 'surveyProbeUrl')}
         ${fn(src, 'surveyReachable')}
+        ${fn(src, 'isOfflineRootUrl')}
+        ${fn(src, 'forgetSurveyFailure')}
         ${fn(src, 'resetSurveyReachability')}
+        ${fn(src, 'emptyLayerOptions')}
+        ${fn(src, 'createSurveyLayer')}
+        ${fn(src, 'onSurveyLayerShown')}
+        ${fn(src, 'keepBaseAfterFailure')}
+        ${fn(src, 'removeBlendLayer')}
         ${fn(src, 'setSurvey')}
         ${fn(src, 'ensureBlendLayer')}
+        ${fn(src, 'buildBlendLayer')}
         ({ setSurvey, ensureBlendLayer, surveyReachable,
            baseLayer: () => __aladin.getBaseImageLayer(),
            blendLayer: () => __aladin.getOverlayImageLayer('blend'),

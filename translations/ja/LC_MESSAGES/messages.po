@@ -8219,6 +8219,14 @@ msgstr "{survey} が応答しません — {current} を表示したままにし
 msgid "{survey} isn't stored offline — keeping {current}."
 msgstr "{survey} はオフライン保存されていません — {current} を表示したままにします。"
 
+#: templates/base.html
+msgid "{survey} isn't stored offline — showing {shown}."
+msgstr "{survey} はオフライン保存されていません — {shown} を表示します。"
+
+#: templates/base.html
+msgid "{survey} isn't stored offline — showing an empty sky."
+msgstr "{survey} はオフライン保存されていません — 空の天空を表示します。"
+
 
 #~ msgid "Refresh Suggestions"
 #~ msgstr "更新提案"

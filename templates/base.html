@@ -210,6 +210,8 @@
       survey_server_unreachable:      {{ _('Sky survey server unreachable. Showing a fallback survey where available.') | tojson }},
       survey_not_responding:          {{ _('{survey} is not responding — keeping {current}.') | tojson }},
       survey_not_stored_offline:      {{ _('{survey} isn\'t stored offline — keeping {current}.') | tojson }},
+      survey_not_stored_offline_showing: {{ _('{survey} isn\'t stored offline — showing {shown}.') | tojson }},
+      survey_not_stored_offline_empty: {{ _('{survey} isn\'t stored offline — showing an empty sky.') | tojson }},
       framing_requires_internet:      {{ _('The Framing Assistant requires an active internet connection to load sky surveys.') | tojson }},
       framing_init_failed:            {{ _('Failed to initialize sky viewer. Please refresh and try again.') | tojson }},
       framing_saved:                  {{ _('Framing settings saved to database.') | tojson }},

@@ -180,11 +180,16 @@
     // without this a survey unreachable when the user first tried it could never be
     // retried in that session -- picking it again would keep reporting the stale
     // failure even after the upstream came back.
+    //
+    // Offline view's cache-only roots are never memoised: the answer is a local
+    // disk lookup, and it changes the moment a survey gets stored (online browsing
+    // writes to the same disk), so a remembered "not stored" would go stale.
     const SURVEY_PROBE_FAIL_TTL_MS = 60 * 1000;
     const surveyReachability = new Map();   // probed URL -> {promise, ok, at}
     function surveyReachable(value) {
         const url = surveyProbeUrl(value);
         if (!url) return Promise.resolve(true);       // nothing to probe: let Aladin try
+        if (isOfflineRootUrl(url)) return probeHips(url);
         const hit = surveyReachability.get(url);
         if (hit) {
             // ok is null while the probe is still in flight: hand back that promise.
@@ -197,6 +202,18 @@
         entry.promise = probeHips(url).then(ok => { entry.ok = ok; return ok; });
         surveyReachability.set(url, entry);
         return entry.promise;
+    }
+    // True for a cache-only /hips/offline/ root (absolute or relative).
+    function isOfflineRootUrl(url) {
+        return typeof url === 'string' && url.includes('/hips/offline/');
+    }
+    // A layer of this root just loaded, so a remembered failure for the same survey
+    // is wrong now: drop it (online root; the offline root is never memoised).
+    function forgetSurveyFailure(url) {
+        if (typeof url !== 'string') return;
+        const key = url.replace('/hips/offline/', '/hips/');
+        const hit = surveyReachability.get(key);
+        if (hit && hit.ok === false) surveyReachability.delete(key);
     }
 
     // A failed CDS probe is remembered for 10 minutes across reloads (sessionStorage);
@@ -266,10 +283,13 @@
         return p;
     }
 
-    // Label of the #survey-select option for a displayed survey (a DSS mirror shows as DSS2 color)
+    // Label of the option for a displayed survey (a DSS mirror shows as DSS2 color):
+    // #survey-select first, then #blend-survey-select, which offers surveys the base
+    // select does not (DSS2 red).
     function surveyOptionLabel(value) {
         const v = window.framingUtils.DSS_MIRRORS.includes(value) ? 'P/DSS2/color' : value;
-        const opt = document.querySelector(`#survey-select option[value='${v}']`);
+        const opt = document.querySelector(`#survey-select option[value='${v}']`)
+            || document.querySelector(`#blend-survey-select option[value='${v}']`);
         // Prefer the original label; the offline marker ("· offline") is appended
         // to the option text and must not leak into Aladin's layer name.
         return opt?.dataset?.origLabel || opt?.textContent;
@@ -786,6 +806,117 @@
     let secondaryDatasetId = 'secondary_alt'; // Unique ID for the secondary dataset
     // --- End Secondary Object State ---
 
+    // --- Survey layers: what Aladin actually shows ---------------------------
+    // A layer counts as shown only once Aladin confirms it (its successCallback).
+    // A swap that fails leaves the previous layer on screen, so the displayed
+    // survey, the credit and the dropdowns never move before that confirmation.
+    //
+    // Every base or blend choice takes a request number; a choice superseded by a
+    // later one is dropped wherever it is -- its pre-flight result, its swap, its
+    // error. Only the latest choice of a layer speaks.
+    let baseRequest = 0;
+    let blendRequest = 0;
+    let baseWanted = null;        // survey of the latest base choice (pending or shown)
+    let displayedBaseUrl = null;  // root URL of the base layer actually shown
+    let displayedBaseEmpty = false;  // the base shown is an empty offline root: nothing to credit
+    let blendPending = null;      // {value, url, promise} of the blend layer being built
+
+    // Everything Aladin would otherwise read from <root>/properties, so it builds
+    // the layer without fetching it: the empty offline root of a survey with
+    // nothing on disk (whose cache-only /properties is a 404). The frame must be a
+    // name Aladin parses ('ICRS'; it does not know 'equatorial' and would then
+    // fetch /properties after all).
+    function emptyLayerOptions(url) {
+        return { imgFormat: /\/nsns-/.test(url) ? 'png' : 'jpeg', tileSize: 512, cooFrame: 'ICRS',
+                 creatorDid: 'nova-empty:' + url };
+    }
+
+    // A survey layer whose outcome is known: layer.__nova.settled resolves true
+    // once Aladin shows it, false when it fails (Aladin then keeps the previous
+    // layer). `shownValue` is what the credit names (a DSS mirror URL); `req` is
+    // the blend request it belongs to; `placeholder` marks the layer an Offline
+    // view open starts with, which stands for no survey at all.
+    function createSurveyLayer(slot, survey, url, opts) {
+        const o = opts || {};
+        let settle;
+        const settled = new Promise(resolve => { settle = resolve; });
+        const options = {
+            successCallback: () => { onSurveyLayerShown(layer); settle(true); },
+            // One survey failing is never a connectivity fact: this must not touch
+            // Offline view (only the browser's offline/online events switch that).
+            // The notice is the caller's, which knows whether the choice still stands.
+            errorCallback: (err) => { console.warn('[FRAMING] Survey layer failed to load:', err); settle(false); },
+        };
+        if (o.empty || o.placeholder) Object.assign(options, emptyLayerOptions(url));
+        const name = surveyOptionLabel(survey) || url;
+        const layer = aladin
+            ? aladin.createImageSurvey(url, name, url, 'equatorial', 9, options)
+            : A.HiPS(url, Object.assign({ name, cooFrame: 'equatorial', maxOrder: 9 }, options));
+        layer.__nova = { slot, value: survey, survey: o.shownValue || survey, url, req: o.req,
+                         placeholder: !!o.placeholder, empty: !!(o.empty || o.placeholder), settled };
+        return layer;
+    }
+
+    // Aladin confirmed a layer: the state, the credit and the probe memo follow.
+    // Called before Aladin puts the layer in its layer list (successCallback runs
+    // first), so anything that must act on the list waits a tick.
+    function onSurveyLayerShown(layer) {
+        const info = layer && layer.__nova;
+        if (!info) return;
+        if (!info.placeholder) forgetSurveyFailure(info.url);
+        if (info.slot === 'base') {
+            displayedBaseSurvey = info.placeholder ? null : info.survey;
+            displayedBaseUrl = info.placeholder ? null : info.url;
+            displayedBaseEmpty = info.empty;
+            baseSurvey = layer;
+            // On this layer itself, never via aladin.getBaseImageLayer(): Aladin
+            // calls successCallback after the renderer holds the new layer but
+            // before its own layer list does, so getBaseImageLayer() still returns
+            // the old layer here -- and any setter on it writes the old layer's
+            // metadata (its tile format too) over the new one's in the renderer.
+            applyImageAdjustments(layer);
+        } else if (info.req !== blendRequest) {
+            // A blend choice dropped meanwhile (superseded or removed) still landed:
+            // take it off again rather than leave a layer nobody asked for.
+            __blendSurveyId = null;
+            __blendLayerUrl = null;
+            displayedBlendSurvey = null;
+            setTimeout(() => {
+                if (aladin && aladin.getOverlayImageLayer && aladin.getOverlayImageLayer('blend') === layer) {
+                    aladin.removeImageLayer('blend');
+                }
+            }, 0);
+        } else {
+            __blendSurveyId = info.value;
+            __blendLayerUrl = info.url;
+            displayedBlendSurvey = info.survey;
+            const op = Number(document.getElementById('blend-opacity')?.value || 0);
+            if (typeof layer.setOpacity === 'function') layer.setOpacity(Math.max(0, Math.min(1, op)));
+        }
+        updateSurveyCredit();
+    }
+
+    // The dropdown shows the survey actually on screen (a DSS mirror as DSS2 color).
+    function snapSurveySelect(id, value) {
+        const sel = document.getElementById(id);
+        if (!sel || !value) return;
+        const v = window.framingUtils.DSS_MIRRORS.includes(value) ? 'P/DSS2/color' : value;
+        if (Array.from(sel.options || []).some(o => o.value === v)) sel.value = v;
+    }
+
+    // Take the blend layer off and drop any blend still being built.
+    function removeBlendLayer() {
+        blendRequest++;
+        blendPending = null;
+        if (aladin && aladin.getOverlayImageLayer && aladin.getOverlayImageLayer('blend')) {
+            aladin.removeImageLayer('blend');
+        }
+        __blendSurveyId = null;
+        __blendLayerUrl = null;
+        displayedBlendSurvey = null;
+        updateSurveyCredit();
+    }
+
     async function ensureBlendLayer() {
         if (!aladin) return null;
         const sel = document.getElementById('blend-survey-select');
@@ -794,6 +925,9 @@
         const surveyId = sel.value;
         const existing = aladin.getOverlayImageLayer && aladin.getOverlayImageLayer('blend');
         const blendOp = Number(document.getElementById('blend-opacity')?.value || 0);
+        // At opacity 0 no blend is asked for, so a blend message no longer
+        // describes anything on screen.
+        if (!(blendOp > 0)) hideSurveyNotice('blend');
 
         // CDS unreachable: DSS2 color comes from a mirror that answered; any other CDS blend
         // layer is skipped (saved blend values stay as they are)
@@ -804,53 +938,61 @@
                 resolvedId = dssMirror;
                 shownValue = dssMirror;
             } else {
-                if (existing) aladin.removeImageLayer('blend');
-                __blendSurveyId = null;
-                __blendLayerUrl = null;
-                displayedBlendSurvey = null;
-                if (blendOp > 0) showSurveyNotice();
+                removeBlendLayer();
+                if (blendOp > 0) showSurveyNotice(undefined, 'blend');
                 return null;
             }
         }
 
+        // Already being built, or already shown, for this survey and root: nothing
+        // to do. The "Blend with" change handler calls this twice (directly and via
+        // setBlendOpacity); the second call joins the first instead of building again.
+        if (blendPending && blendPending.value === surveyId && blendPending.url === resolvedId) {
+            return blendPending.promise;
+        }
         if (existing && __blendSurveyId === surveyId && __blendLayerUrl === resolvedId) {
-            displayedBlendSurvey = shownValue;
             return existing;
         }
 
         // Only build a blend layer that is visible
         if (!(blendOp > 0)) return existing || null;
 
-        // Pre-flight, as for the base layer: a blend survey that does not answer
-        // keeps the layer already on screen and is named in the notice. The probe
-        // is memoised per survey value, so dragging the opacity slider (which
-        // re-enters here) never re-probes a survey already known unreachable.
-        if (!(await surveyReachable(surveyId))) {
-            showSurveyNotice(surveyFailureMessage(surveyId, displayedBlendSurvey || displayedBaseSurvey));
-            return existing || null;
-        }
+        const req = ++blendRequest;
+        hideSurveyNotice('blend');   // a new blend choice: the old blend notice is over
+        const promise = buildBlendLayer(req, surveyId, resolvedId, shownValue);
+        blendPending = { value: surveyId, url: resolvedId, promise };
+        promise.finally(() => { if (blendPending && blendPending.promise === promise) blendPending = null; });
+        return promise;
+    }
 
-        try {
-            let hpx;
-            // The blend layer's failure names the blend survey and the base still shown
-            const onBlendError = (err) => onSurveyLayerError(err, surveyId, displayedBaseSurvey);
-            if (resolvedId.startsWith('http')) {
-                const friendlyName = sel.options[sel.selectedIndex]?.textContent || resolvedId;
-                hpx = aladin.createImageSurvey(resolvedId, friendlyName, resolvedId, "equatorial", 9, { errorCallback: onBlendError });
-            } else {
-                hpx = (aladin.newImageSurvey) ? aladin.newImageSurvey(resolvedId, { errorCallback: onBlendError }) : aladin.createImageSurvey(resolvedId, resolvedId, resolvedId, 'equatorial', 9, { imgFormat: 'jpeg', errorCallback: onBlendError });
+    // Pre-flight, as for the base layer: a blend survey that does not answer keeps
+    // the blend already on screen, is named in the notice, and the dropdown snaps
+    // back. The probe is memoised per survey (online roots), so dragging the
+    // opacity slider never re-probes a survey already known unreachable.
+    //
+    // In Offline view a network-backed blend never stays: when this survey cannot
+    // replace it, the blend is taken off.
+    async function buildBlendLayer(req, surveyId, resolvedId, shownValue) {
+        const stale = () => req !== blendRequest;
+        const reroot = offlineViewOn && !!__blendLayerUrl && !isOfflineRootUrl(__blendLayerUrl);
+        const ok = await surveyReachable(surveyId);
+        if (stale()) return null;
+        if (ok) {
+            let layer = null;
+            try {
+                layer = createSurveyLayer('blend', surveyId, resolvedId, { shownValue, req });
+                aladin.setOverlayImageLayer(layer, 'blend');
+            } catch (e) {
+                console.warn('[nova] Could not create/set overlay image survey:', e);
+                layer = null;
             }
-            if (hpx) {
-                aladin.setOverlayImageLayer(hpx, 'blend');
-                __blendSurveyId = surveyId;
-                __blendLayerUrl = resolvedId;
-                displayedBlendSurvey = shownValue;
-                hideSurveyNotice();   // this layer loaded: whatever the notice said is over
-                return aladin.getOverlayImageLayer('blend');
-            }
-        } catch (e) {
-            console.warn('[nova] Could not create/set overlay image survey:', e);
+            const shown = layer ? await layer.__nova.settled : false;
+            if (stale()) return null;
+            if (shown) return layer;
         }
+        if (reroot) removeBlendLayer();
+        showSurveyNotice(surveyFailureMessage(surveyId, displayedBlendSurvey || displayedBaseSurvey), 'blend');
+        snapSurveySelect('blend-survey-select', displayedBlendSurvey);
         return null;
     }
     function setBlendOpacity(a) { const v = Math.max(0, Math.min(1, Number(a) || 0)); if (!aladin) return; const layer = ensureBlendLayer(); if (layer && (typeof layer.setOpacity === 'function' || typeof layer.setAlpha === 'function')) { (layer.setOpacity || layer.setAlpha).call(layer, v); return; } try { const survey = aladin.getOverlayImageLayer && aladin.getOverlayImageLayer('blend'); survey?.setOpacity?.(v); } catch(e) {} }
@@ -905,7 +1047,7 @@
         const blendValue = displayedBlendSurvey || '';
         const blendOp = Number(document.getElementById('blend-opacity')?.value || 0);
         const credits = [];
-        const mainCredit = surveyCreditFor(mainValue);
+        const mainCredit = displayedBaseEmpty ? null : surveyCreditFor(mainValue);
         if (mainCredit) credits.push(mainCredit);
         if (blendOp > 0 && blendValue !== mainValue) {
             const blendCredit = surveyCreditFor(blendValue);
@@ -917,42 +1059,60 @@
     }
 
     // --- Sky-survey notice (top of the sky, dismissible) ---
+    // One message per layer ('base', 'blend'): a layer clears only its own, so the
+    // base loading never hides a blend message that still holds, and vice versa.
+    // The latest message shown is the one on screen.
     let surveyNoticeDismissed = false;   // reset on every framing open
-    function showSurveyNotice(message) {
-        if (surveyNoticeDismissed) return;
+    const surveyNotices = new Map();     // source -> text, most recent last
+    function showSurveyNotice(message, source) {
+        const key = source || 'base';
+        // Offline view fetches nothing, so its failures are never "the server is
+        // unreachable" -- a survey missing there is simply not stored on disk. The
+        // default is decided here, at the single place the text is written, so no
+        // call site can put the server wording on screen in offline view.
+        const text = message || (offlineViewOn
+            ? surveyFailureMessage(offlineBaseId(), displayedBaseSurvey)
+            : window.t('survey_server_unreachable'));
+        surveyNotices.delete(key);
+        surveyNotices.set(key, text);
+        renderSurveyNotice();
+    }
+    // Clear a layer's notice (or all, with no source): the situation it described
+    // is over (a layer loaded, the user picked another survey, Offline view was
+    // switched). A later failure shows it again, so this does not touch the user's
+    // own dismissal.
+    function hideSurveyNotice(source) {
+        if (source) surveyNotices.delete(source);
+        else surveyNotices.clear();
+        renderSurveyNotice();
+    }
+    function renderSurveyNotice() {
+        const texts = Array.from(surveyNotices.values());
+        const text = texts[texts.length - 1];
+        let el = document.getElementById('survey-notice');
+        if (!text || surveyNoticeDismissed) {
+            if (el) el.hidden = true;
+            return;
+        }
         const host = document.getElementById('aladin-lite-div');
         if (!host) return;
-        let el = document.getElementById('survey-notice');
         if (!el) {
             el = document.createElement('div');
             el.id = 'survey-notice';
             el.setAttribute('role', 'status');
-            const text = document.createElement('span');
-            text.className = 'survey-notice-text';
+            const textEl = document.createElement('span');
+            textEl.className = 'survey-notice-text';
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'survey-notice-close';
             btn.setAttribute('aria-label', window.t('close'));
             btn.textContent = '×';
             btn.addEventListener('click', () => { surveyNoticeDismissed = true; el.hidden = true; });
-            el.append(text, btn);
+            el.append(textEl, btn);
             host.appendChild(el);
         }
-        // Offline view fetches nothing, so its failures are never "the server is
-        // unreachable" -- a survey missing there is simply not stored on disk. The
-        // default is decided here, at the single place the text is written, so no
-        // call site can put the server wording on screen in offline view.
-        el.querySelector('.survey-notice-text').textContent = message || (offlineViewOn
-            ? surveyFailureMessage(offlineBaseId(), displayedBaseSurvey)
-            : window.t('survey_server_unreachable'));
+        el.querySelector('.survey-notice-text').textContent = text;
         el.hidden = false;
-    }
-    // Clear the notice: the situation it described is over (a layer loaded, the user
-    // picked another survey, Offline view was switched). A later failure shows it
-    // again, so this does not touch the user's own dismissal.
-    function hideSurveyNotice() {
-        const el = document.getElementById('survey-notice');
-        if (el) el.hidden = true;
     }
     // --- Loading placeholder while the survey probes run and until Aladin has created its view ---
     function showSurveyLoading() {
@@ -973,28 +1133,12 @@
     }
     function resetSurveyNotice() {
         surveyNoticeDismissed = false;
-        const el = document.getElementById('survey-notice');
-        if (el) el.hidden = true;
+        hideSurveyNotice();
     }
     // Drop the remembered survey probes: a survey unreachable at the last open may
     // answer now, so this open probes again (same idea as dropping a failed CDS probe).
     function resetSurveyReachability() {
         surveyReachability.clear();
-    }
-    // errorCallback for every survey layer: a layer that fails mid-session shows the
-    // notice, naming the survey that failed and the one still on screen. One survey
-    // failing is never a connectivity fact, so this must not touch Offline view --
-    // only the browser's own offline/online events switch that automatically (see
-    // wireOfflineSkyUi).
-    //
-    // `failed`/`kept` come from the caller through a closure, because the callback
-    // itself only receives the error. Offline view is where this fires most: the layer
-    // is built against the cache-only root, so a failure means nothing is stored on
-    // disk for that survey -- reported as such, never as a server that cannot be
-    // reached.
-    function onSurveyLayerError(err, failed, kept) {
-        console.warn('[FRAMING] Survey layer failed to load:', err);
-        showSurveyNotice(surveyFailureMessage(failed, kept || displayedBaseSurvey));
     }
     
     // Catalog layer for all Nova DB objects shown in Aladin
@@ -2460,12 +2604,18 @@
 
         if (!aladin) {
             try {
-                // DSS2 by default; NSNS instead while CDS is unreachable (northern objects)
+                // DSS2 by default; NSNS instead while CDS is unreachable (northern objects).
+                // In Offline view the first layer is an empty placeholder that fetches
+                // nothing: whether anything is stored is for setSurvey to find out
+                // below (stored survey, else DSS2, else the empty offline root).
                 const initialBase = chooseDisplayedBase("P/DSS2/color");
                 const initialUrl = resolveHipsId(initialBase.survey);
-                const initialName = surveyOptionLabel(initialBase.survey) || initialUrl;
+                const initialLayer = createSurveyLayer('base', initialBase.survey, initialUrl,
+                                                       { placeholder: offlineViewOn });
+                const initialReq = ++baseRequest;
+                if (!offlineViewOn) baseWanted = initialBase.survey;
                 aladin = A.aladin('#aladin-lite-div', {
-                    survey: A.HiPS(initialUrl, { name: initialName, cooFrame: 'equatorial', maxOrder: 9, errorCallback: (err) => onSurveyLayerError(err, initialBase.survey, null) }),
+                    survey: initialLayer,
                     fov: FRAMING_CONFIG.DEFAULT_FOV_DEG,
                     cooFrame: 'ICRS',
                     showFullscreenControl: false,
@@ -2473,8 +2623,13 @@
                     showLayersControl: false,
                     log: false
                 });
+                guardAladinFallback(aladin);
                 hideSurveyLoading();
-                displayedBaseSurvey = initialBase.survey;
+                if (!offlineViewOn) {
+                    initialLayer.__nova.settled.then(shown => {
+                        if (!shown && initialReq === baseRequest) keepBaseAfterFailure(initialBase.survey, null);
+                    });
+                }
                 if (initialBase.notice) showSurveyNotice();
             (function installSlowWheelZoom(){ if (window.__novaSlowZoomInstalled) return; const host = document.getElementById('aladin-lite-div'); if (!host) return; function onWheel(ev) { if (ev.ctrlKey) return; ev.preventDefault(); ev.stopPropagation(); if (!aladin) return; const unit = (ev.deltaMode === 1) ? 16 : (ev.deltaMode === 2) ? 400 : 1; let dy = (ev.deltaY || 0) * unit; dy = Math.max(-80, Math.min(80, dy)); const g = aladin.getFov(), current = Array.isArray(g) ? (g[0] ?? 1) : (g ?? 1); const scale = Math.exp(dy * 0.00075), minFov = 0.01, maxFov = 180; const next = Math.min(maxFov, Math.max(minFov, current * scale)); if (Number.isFinite(next)) aladin.setFov(next); } host.addEventListener('wheel', onWheel, { passive: false, capture: true }); const tryBindCanvas = () => { const cv = host.querySelector('canvas'); if (cv) cv.addEventListener('wheel', onWheel, { passive: false, capture: true }); }; tryBindCanvas(); setTimeout(tryBindCanvas, 50); window.__novaSlowZoomInstalled = true; })();
             baseSurvey = aladin.getBaseImageLayer();
@@ -2510,12 +2665,13 @@
         const haveRot = flags.haveRot;
         const haveRigRestored = flags.haveRigRestored;
 
-        // No saved survey set the base layer: re-check the one shown, since CDS may have
-        // gone down or come back since a cached Aladin instance was built
+        // No saved survey set the base layer: re-check the one shown (or still loading),
+        // since CDS may have gone down or come back since a cached Aladin instance was
+        // built. An Offline view placeholder is no survey, so it is always replaced.
         if (!params.survey) {
             const selVal = document.getElementById('survey-select')?.value;
             const choice = selVal ? chooseDisplayedBase(selVal) : null;
-            if (choice && choice.survey !== displayedBaseSurvey) setSurvey(selVal);
+            if (choice && choice.survey !== baseWanted) setSurvey(selVal);
             else if (choice && choice.notice) showSurveyNotice();
         }
 
@@ -2850,94 +3006,112 @@
         if (isFramingTabVisible()) startFrameOverlayLoop();
         updateReadoutFromCenter();
     }
+    // Show a survey as the base layer. It counts as shown only once Aladin confirms
+    // it (onSurveyLayerShown); until then the previous layer stays on screen and in
+    // the state. Each call is a new choice: the base notice goes at once, and a
+    // choice superseded by a later one is dropped wherever it is.
+    //
+    // A survey that cannot be shown keeps the layer on screen, named in the notice,
+    // and the dropdown snaps back to it -- except in Offline view while the layer on
+    // screen is not a cache-only one (Offline view just switched on, a page opened
+    // offline): a network-backed layer must not stay, so DSS2 (color) is shown if
+    // stored, else the survey's own empty offline root, and the dropdown follows.
     async function setSurvey(hipsId) {
         if (!aladin) return;
-
-        let newLayer;
+        const req = ++baseRequest;
+        const stale = () => req !== baseRequest;
+        const before = baseWanted;
+        hideSurveyNotice('base');
 
         // The layer to show: the requested survey, the default for an unknown ID, or NSNS
         // while CDS is unreachable. #survey-select and saved values keep the request.
         const choice = chooseDisplayedBase(hipsId);
-        const shownId = choice.survey;
-        const resolvedId = resolveHipsId(shownId);
-        const friendlyName = surveyOptionLabel(shownId) || resolvedId;
+        const requested = choice.survey;
+        baseWanted = requested;
+        const reroot = offlineViewOn && !isOfflineRootUrl(displayedBaseUrl);
 
         // Pre-flight: ask the layer's own /properties before swapping. Aladin only
         // rejects on 404, so a 503 (the proxy with every upstream down) would
-        // otherwise fail silently *after* the swap was issued -- the old layer would
-        // stay on screen and the failure would only surface as a generic notice. A
-        // survey that does not answer keeps the current layer, named in the notice.
-        if (!(await surveyReachable(shownId))) {
-            showSurveyNotice(surveyFailureMessage(shownId, displayedBaseSurvey));
+        // otherwise fail silently *after* the swap was issued.
+        const ok = await surveyReachable(requested);
+        if (stale()) return;
+        const plan = [];   // layers to try in order: {survey, empty, message}
+        if (ok) plan.push({ survey: requested });
+        else if (!reroot) {
+            keepBaseAfterFailure(requested, before);
             return;
         }
-
-        try {
-            newLayer = aladin.createImageSurvey(
-                resolvedId,     // A unique ID for this layer (the URL is fine)
-                friendlyName,   // A human-readable name
-                resolvedId,     // The base URL for the HiPS tiles
-                "equatorial",   // The coordinate frame
-                9,              // A standard max order (depth)
-                { errorCallback: (err) => onSurveyLayerError(err, shownId, displayedBaseSurvey) }
-            );
-        } catch (e) {
-            console.error("Error creating external survey layer:", e);
-            await novaAlert(window.t('survey_load_error'));
-            return;
+        if (reroot) {
+            const label = surveyNoticeLabel(requested);
+            const fallback = 'P/DSS2/color';
+            if (!ok && requested !== fallback) {
+                const fallbackStored = await surveyReachable(fallback);
+                if (stale()) return;
+                if (fallbackStored) {
+                    plan.push({ survey: fallback, message: window.t('survey_not_stored_offline_showing',
+                        { survey: label, shown: surveyNoticeLabel(fallback) }) });
+                }
+            }
+            plan.push({ survey: requested, empty: true, message: ok ? null
+                : window.t('survey_not_stored_offline_empty', { survey: label }) });
         }
 
-        aladin.setBaseImageLayer(newLayer);
-        displayedBaseSurvey = shownId;
-        baseSurvey = aladin.getBaseImageLayer();
-        updateImageAdjustments();
-        updateSurveyCredit();
-        // This survey loaded, so any notice about a *different* survey on screen no
-        // longer applies. The CDS-outage notice is a separate, still-current
-        // situation and is shown again below when it holds.
-        hideSurveyNotice();
-        if (choice.notice) showSurveyNotice();
+        for (const step of plan) {
+            let newLayer;
+            try {
+                newLayer = createSurveyLayer('base', step.survey, resolveHipsId(step.survey), { empty: step.empty });
+            } catch (e) {
+                console.error("Error creating external survey layer:", e);
+                await novaAlert(window.t('survey_load_error'));
+                return;
+            }
+            aladin.setBaseImageLayer(newLayer);
+            const shown = await newLayer.__nova.settled;
+            if (stale()) return;
+            if (!shown) continue;
+            baseWanted = step.survey;
+            snapSurveySelect('survey-select', step.survey);
+            // The CDS-outage notice is a separate, still-current situation and is
+            // shown again when it holds.
+            if (step.message) showSurveyNotice(step.message, 'base');
+            else if (choice.notice) showSurveyNotice(undefined, 'base');
+            return;
+        }
+        keepBaseAfterFailure(requested, before);
     }
-    function updateImageAdjustments() {
-        // Read all slider values first
+    // The base choice could not be shown: say so, naming the survey still on screen
+    // (or, before anything was shown, the one still loading), and put the dropdown
+    // back on it.
+    function keepBaseAfterFailure(failed, before) {
+        const kept = displayedBaseSurvey || before;
+        showSurveyNotice(surveyFailureMessage(failed, kept), 'base');
+        snapSurveySelect('survey-select', kept);
+        baseWanted = kept;
+    }
+    // Apply the image-adjustment sliders to one Aladin layer (any layer that
+    // supports these methods).
+    function applyImageAdjustments(layer) {
+        if (!layer) return;
         const b = parseFloat(document.getElementById('img-bright').value);
         const c = parseFloat(document.getElementById('img-contrast').value);
         const g = parseFloat(document.getElementById('img-gamma').value);
         const s = parseFloat(document.getElementById('img-sat').value);
-    
-        /**
-         * Helper function to apply adjustments to any Aladin layer
-         * that supports these methods.
-         */
-        const applySettings = (layer) => {
-            if (!layer) return;
-    
-            // Check for the existence of each function before calling it
-            if (typeof layer.setBrightness === 'function') {
-                layer.setBrightness(b);
-            }
-            if (typeof layer.setContrast === 'function') {
-                layer.setContrast(c);
-            }
-            if (typeof layer.setGamma === 'function') {
-                layer.setGamma(g);
-            }
-            if (typeof layer.setSaturation === 'function') {
-                layer.setSaturation(s);
-            }
-        };
-    
+        // Check for the existence of each function before calling it
+        if (typeof layer.setBrightness === 'function') layer.setBrightness(b);
+        if (typeof layer.setContrast === 'function') layer.setContrast(c);
+        if (typeof layer.setGamma === 'function') layer.setGamma(g);
+        if (typeof layer.setSaturation === 'function') layer.setSaturation(s);
+    }
+    function updateImageAdjustments() {
         // 1. Apply settings to the main base survey layer
         if (aladin && typeof aladin.getBaseImageLayer === 'function') {
-            const currentBase = aladin.getBaseImageLayer();
-            applySettings(currentBase);
+            applyImageAdjustments(aladin.getBaseImageLayer());
         }
-    
+
         // 2. Apply the *same* settings to the blend overlay layer, if it exists
         if (aladin && typeof aladin.getOverlayImageLayer === 'function') {
             try {
-                const blendLayer = aladin.getOverlayImageLayer('blend');
-                applySettings(blendLayer);
+                applyImageAdjustments(aladin.getOverlayImageLayer('blend'));
             } catch (e) {
                 // This might fail if the layer hasn't been created, which is fine
             }
@@ -4061,6 +4235,9 @@
         // versa), so it goes before the layers are rebuilt. A failure under the new
         // mode shows its own notice.
         hideSurveyNotice();
+        // What failed under the other mode says nothing about this one (an upstream
+        // may be back, a survey may have been stored meanwhile): probe afresh.
+        resetSurveyReachability();
         applyOfflineViewToLayers();
         updateScanButtonState();
     }
@@ -4069,14 +4246,47 @@
         if (!aladin) return;
         const base = offlineBaseId();
         if (base) setSurvey(base).catch(() => {});
-        __blendLayerUrl = null;  // force the blend layer to rebuild from the new root
-        ensureBlendLayer();
-        setBlendOpacity(document.getElementById('blend-opacity')?.value || 0);
+        // The blend follows the new root even when it is not visible: a layer at
+        // opacity 0 still fetches its tiles. A visible blend is rebuilt on the new
+        // root (ensureBlendLayer sees the root change); an invisible one is taken
+        // off and built again on the right root once it is raised.
+        const op = Number(document.getElementById('blend-opacity')?.value || 0);
+        if (op > 0) {
+            ensureBlendLayer();
+            setBlendOpacity(op);
+        } else {
+            removeBlendLayer();
+        }
         updateSurveyCredit();
     }
 
+    // Aladin's own fallback: when its view has never shown a layer and the last one
+    // failed, it sets alaskybis DSS2 as the base, by URL string. In Offline view that
+    // would go to the network, so a string base layer is refused there. Nova's own
+    // swaps always pass layer objects, so only that fallback is affected.
+    function guardAladinFallback(al) {
+        if (!al || al.__novaFallbackGuard) return;
+        const original = al.setBaseImageLayer;
+        al.setBaseImageLayer = function (layer) {
+            if (typeof layer === 'string' && offlineViewOn) {
+                console.warn('[FRAMING] Offline view: Aladin fallback not loaded:', layer);
+                return null;
+            }
+            return original.apply(this, arguments);
+        };
+        al.__novaFallbackGuard = true;
+    }
+
+    let offlineStartChecked = false;
     function wireOfflineSkyUi() {
         if (!offlineEnabled()) return;
+
+        // A page opened while the browser is already offline never gets an
+        // 'offline' event: start in Offline view (once; the events take over).
+        if (!offlineStartChecked) {
+            offlineStartChecked = true;
+            if (navigator.onLine === false && !offlineViewOn) setOfflineView(true, false);
+        }
 
         const toggle = document.getElementById('offline-view-toggle');
         if (toggle && !toggle.__novaOfflineWired) {
@@ -4095,6 +4305,10 @@
 
     // Expose theme update function for external calls
     window.updateChartForTheme = updateChartForTheme;
+
+    // Offline view from page load: the switch, the browser's offline/online events,
+    // and a page opened offline -- before the Framing tab is first shown.
+    wireOfflineSkyUi();
 
 })();
 

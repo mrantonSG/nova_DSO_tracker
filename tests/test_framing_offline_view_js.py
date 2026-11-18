@@ -1,11 +1,12 @@
 """Offline view is switched by connectivity, never by one survey failing, in node.
 
-graph_view_chart.js: onSurveyLayerError fires whenever an Aladin survey layer fails
-to load -- one survey, not the network. It must leave Offline view exactly as it
-was, because only the browser's own offline/online events switch that automatically.
+graph_view_chart.js: a survey layer's errorCallback (set by createSurveyLayer)
+fires whenever an Aladin survey layer fails to load -- one survey, not the network.
+It must leave Offline view exactly as it was, because only the browser's own
+offline/online events switch that automatically.
 
 The functions are cut out of the real file by name and run against stand-ins, so
-what is pinned is the real onSurveyLayerError and the real setOfflineView.
+what is pinned is the real createSurveyLayer and the real setOfflineView.
 """
 
 import json
@@ -79,26 +80,32 @@ const api = vm.runInContext(`
     let offlineViewOn = false;
     let offlineViewUserSetting = null;
     let surveyNoticeDismissed = false;
-    let aladin = null;
+    let aladin = { createImageSurvey: (id, name, url, frame, maxOrder, opts) => ({ id, opts }) };
     let displayedBaseSurvey = 'P/DSS2/color';
     function applyOfflineViewToLayers() { __log('applyLayers'); }
     function updateScanButtonState() { __log('updateScanButtonState'); }
+    function resetSurveyReachability() { __log('resetProbes'); }
     function showSurveyNotice() { __log('notice'); }
     function hideSurveyNotice() { __log('hideNotice'); }
     function surveyOptionLabel(v) { return v; }
-    function offlineBaseId() { return 'P/DSS2/color'; }
-    ${fn(src, 'surveyNoticeLabel')}
-    ${fn(src, 'surveyFailureMessage')}
+    function onSurveyLayerShown() {}
+    function emptyLayerOptions() { return {}; }
     ${fn(src, 'setOfflineView')}
-    ${fn(src, 'onSurveyLayerError')}
-    ({ setOfflineView, onSurveyLayerError,
+    ${fn(src, 'createSurveyLayer')}
+    // A layer's failure, through the errorCallback Aladin calls.
+    function failLayer(msg) {
+        const layer = createSurveyLayer('base', 'P/GALEXGR6/AIS/color', 'http://nova.test/hips/galex');
+        layer.opts.errorCallback(new Error(msg));
+        return layer.__nova.settled;
+    }
+    ({ setOfflineView, failLayer,
        state: () => ({ on: offlineViewOn, userSetting: offlineViewUserSetting }) })
 `, ctx);
 
 const out = {};
-
+(async () => {
 // A layer error with Offline view off and no user setting: nothing may change.
-api.onSurveyLayerError(new Error('survey layer failed'));
+out.errorSettled = await api.failLayer('survey layer failed');
 out.afterError = { state: api.state(), checked: toggle.checked, log: log.slice() };
 
 // The user turned it off explicitly; a layer error must not put it back on.
@@ -106,7 +113,7 @@ log.length = 0;
 api.setOfflineView(false, true);
 out.afterUserOff = { state: api.state(), checked: toggle.checked, log: log.slice() };
 log.length = 0;
-api.onSurveyLayerError(new Error('survey layer failed again'));
+await api.failLayer('survey layer failed again');
 out.afterErrorPostUserOff = { state: api.state(), checked: toggle.checked, log: log.slice() };
 
 // The real switch still works when connectivity actually changes.
@@ -115,6 +122,7 @@ api.setOfflineView(true, false);
 out.afterConnectivityOff = { state: api.state(), checked: toggle.checked, log: log.slice() };
 
 fs.writeFileSync(outFile, JSON.stringify(out));
+})().catch(e => { console.error(e && e.stack || e); process.exit(1); });
 """
 
 
@@ -133,12 +141,14 @@ def out(tmp_path_factory):
 
 def test_a_layer_error_leaves_offline_view_off(out):
     """One survey failing is not a connectivity fact: the checkbox stays clear and
-    no user setting is invented. The notice still fires -- the failure is reported,
-    just not as an offline switch."""
+    no user setting is invented. The failure settles the layer as not shown; the
+    caller that asked for it (setSurvey / the blend) reports it, since only it knows
+    whether that choice still stands."""
+    assert out["errorSettled"] is False
     assert out["afterError"] == {
         "state": {"on": False, "userSetting": None},
         "checked": False,
-        "log": ["notice"],
+        "log": [],
     }
 
 
@@ -149,12 +159,12 @@ def test_a_layer_error_does_not_override_the_users_own_setting(out):
     assert out["afterUserOff"] == {
         "state": {"on": False, "userSetting": False},
         "checked": False,
-        "log": ["hideNotice", "applyLayers", "updateScanButtonState"],
+        "log": ["hideNotice", "resetProbes", "applyLayers", "updateScanButtonState"],
     }
     assert out["afterErrorPostUserOff"] == {
         "state": {"on": False, "userSetting": False},
         "checked": False,
-        "log": ["notice"],
+        "log": [],
     }
 
 
@@ -166,17 +176,17 @@ def test_set_offline_view_still_switches_when_connectivity_changes(out):
     assert out["afterConnectivityOff"] == {
         "state": {"on": True, "userSetting": False},
         "checked": True,
-        "log": ["hideNotice", "applyLayers", "updateScanButtonState"],
+        "log": ["hideNotice", "resetProbes", "applyLayers", "updateScanButtonState"],
     }
 
 
-def test_on_survey_layer_error_never_calls_set_offline_view():
-    """Source check: the call site that flipped Offline view on a layer error is gone."""
+def test_a_layer_error_callback_never_calls_set_offline_view():
+    """Source check: the layer error path does not switch Offline view."""
     chart = CHART_JS.read_text(encoding="utf-8")
-    body = chart[chart.index("function onSurveyLayerError("):]
+    body = chart[chart.index("function createSurveyLayer("):]
     body = body[:body.index("\n    }") + len("\n    }")]
+    assert "errorCallback" in body
     assert "setOfflineView" not in body
-    assert "showSurveyNotice" in body
 
 
 # ---------------------------------------------------------------------------
@@ -277,12 +287,18 @@ const api = vm.runInContext(`
     let offlineViewOn = true;          // start in Offline view, as the scenario does
     let offlineViewUserSetting = null;
     let surveyNoticeDismissed = false;
+    const surveyNotices = new Map();
+    // Aladin confirms the layer it shows through its successCallback.
     let aladin = {
-        createImageSurvey(id, name) { return { id, name }; },
-        setBaseImageLayer() {}, getBaseImageLayer() { return {}; },
+        createImageSurvey(id, name, url, frame, maxOrder, opts) { return { id, name, opts: opts || {} }; },
+        setBaseImageLayer(layer) { Promise.resolve().then(() => layer.opts.successCallback && layer.opts.successCallback(layer)); },
+        getBaseImageLayer() { return {}; },
     };
     let displayedBaseSurvey = 'P/DSS2/color';
     let displayedBlendSurvey = null;
+    let displayedBaseUrl = 'http://nova.test/hips/offline/P/DSS2/color';
+    let baseRequest = 0, blendRequest = 0, baseWanted = 'P/DSS2/color';
+    let __blendSurveyId = null, __blendLayerUrl = null;
     let baseSurvey = null;
     const surveyReachability = new Map();
     function surveyOptionLabel(v) {
@@ -292,12 +308,21 @@ const api = vm.runInContext(`
     function applyOfflineViewToLayers() {}
     function updateScanButtonState() {}
     function updateImageAdjustments() {}
+    function applyImageAdjustments() {}
     function updateSurveyCredit() {}
     function resolveHipsId(v) { return v.startsWith('http') ? v : 'http://nova.test/hips/' + v; }
     function chooseDisplayedBase(v) { return { survey: v, notice: false }; }
-    function onSurveyLayerError() {}
+    function snapSurveySelect() {}
+    function resetSurveyReachability() {}
     async function novaAlert() {}
     ${fn(src, 'probeHips')}
+    ${fn(src, 'isOfflineRootUrl')}
+    ${fn(src, 'forgetSurveyFailure')}
+    ${fn(src, 'emptyLayerOptions')}
+    ${fn(src, 'createSurveyLayer')}
+    ${fn(src, 'onSurveyLayerShown')}
+    ${fn(src, 'keepBaseAfterFailure')}
+    ${fn(src, 'renderSurveyNotice')}
     ${fn(src, 'surveyNoticeLabel')}
     ${fn(src, 'surveyFailureMessage')}
     ${fn(src, 'surveyProbeUrl')}
@@ -381,13 +406,14 @@ def test_a_later_failure_outside_offline_view_uses_the_server_wording(notice_out
         "Sky survey server unreachable. Showing a fallback survey where available."
 
 
-def test_a_successful_base_swap_clears_the_notice_in_the_real_code():
-    """Source check: the step above is a stand-in. In the real file setSurvey's tail
-    clears the notice once the new layer is on, before it re-shows the CDS-outage one
-    -- so a survey that loads leaves no stale failure notice behind."""
+def test_a_new_base_choice_clears_the_base_notice_in_the_real_code():
+    """Source check: setSurvey clears the base notice as soon as a new choice is
+    made, before its pre-flight -- so a survey that loads leaves no stale failure
+    notice behind, and one that fails replaces it with its own. Only the base
+    message is cleared: a blend message that still holds stays."""
     src = CHART_JS.read_text(encoding="utf-8")
-    tail = src[src.index("aladin.setBaseImageLayer(newLayer);"):]
-    tail = tail[:tail.index("\n    }")]
-    assert "hideSurveyNotice();" in tail, "setSurvey does not clear the notice on success"
-    assert tail.index("hideSurveyNotice();") < tail.index("if (choice.notice)"), \
-        "the clear must come before the CDS-outage notice is re-shown"
+    body = src[src.index("async function setSurvey("):]
+    body = body[:body.index("\n    }\n")]
+    assert "hideSurveyNotice('base');" in body, "setSurvey does not clear the base notice"
+    assert body.index("hideSurveyNotice('base');") < body.index("await surveyReachable("), \
+        "the clear must come before the pre-flight"

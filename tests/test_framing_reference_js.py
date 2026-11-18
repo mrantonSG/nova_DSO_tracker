@@ -364,7 +364,11 @@ function buildCase(c, opts = {}) {
         function displayOfflineMessage() {} function resetSurveyNotice() {} function resetSurveyReachability() {} function showSurveyLoading() {}
         function hideSurveyLoading() {} function updateSurveyCredit() {} function wireOfflineSkyUi() {}
         function ensureOfflineBaseSurveys() {} function ensureNovaObjectsCatalog() {} function toggleGeoBelt() {}
-        function updateFovVsObjectLabel() {} function onSurveyLayerError() {} function surveyOptionLabel() { return ''; }
+        function updateFovVsObjectLabel() {} function surveyOptionLabel() { return ''; }
+        // the survey-layer state (pinned in tests/test_framing_survey_state_js.py)
+        let baseRequest = 0, baseWanted = null, offlineViewOn = false;
+        function createSurveyLayer() { return { __nova: { settled: Promise.resolve(true) } }; }
+        function guardAladinFallback() {} function keepBaseAfterFailure() {}
         function resolveHipsId(v) { return v; }
         function isFramingTabVisible() { return true; }
         async function probeSurveySources() {
