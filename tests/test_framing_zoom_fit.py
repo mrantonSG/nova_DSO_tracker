@@ -136,6 +136,7 @@ function run() {
     vm.runInContext([
         'let aladin = null;',
         extractFn('frameExtentDeg'),
+        extractFn('viewNorthOffsetDeg'),
         extractFn('updateScreenFovOverlay'),
         extractFn('applyRigFovZoom'),
         'aladin = window.__aladin;',

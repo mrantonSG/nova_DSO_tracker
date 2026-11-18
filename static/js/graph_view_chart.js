@@ -3005,6 +3005,75 @@
         updateResultDiffers();
     };
     let frameRafId = null;
+
+    // --- North on screen ----------------------------------------------------
+    // Aladin's drag keeps the grabbed sky point exactly under the cursor. That
+    // turn of the sphere does not keep north up: every drag rolls the view by
+    // about dRA * sin(dec), and drags in loops add up (three circles at a 180 deg
+    // field: ~40 deg). gotoRaDec/gotoObject keep the roll. The frame overlay is
+    // screen-fixed, so it is drawn at Angle + where north points at the view
+    // centre (every frame, during the drag and its inertia too), and once the
+    // view has come to rest it is turned back to north-up around its centre.
+    let viewPointerDown = false;     // a mouse button / finger is down on the sky
+    let viewStill = { ra: NaN, dec: NaN, frames: 0 };
+    const VIEW_LEVEL_STILL_FRAMES = 6;
+
+    // Where north points on screen at the view centre, in degrees clockwise from
+    // screen-up (0 = north up). Measured with Aladin's own projection: the screen
+    // direction from the centre to a point a little north of it (south of it at
+    // the pole). Falls back to Aladin's roll angle, else 0.
+    function viewNorthOffsetDeg() {
+        if (!aladin) return 0;
+        try {
+            const c = typeof aladin.world2pix === 'function' ? aladin.getRaDec() : null;
+            if (c && Number.isFinite(c[0]) && Number.isFinite(c[1])) {
+                const gf = aladin.getFov();
+                const fov = Array.isArray(gf) ? gf[0] : gf;
+                const d = Math.min(0.5, Math.max(1e-4, 0.01 * (Number(fov) || 1)));
+                const towardsSouth = c[1] + d > 89.9999;
+                const p0 = aladin.world2pix(c[0], c[1]);
+                const p1 = aladin.world2pix(c[0], towardsSouth ? c[1] - d : c[1] + d);
+                if (p0 && p1 && (p1[0] !== p0[0] || p1[1] !== p0[1])) {
+                    let deg = Math.atan2(p1[0] - p0[0], -(p1[1] - p0[1])) * 180 / Math.PI;
+                    if (towardsSouth) deg += 180;
+                    return ((deg + 540) % 360) - 180;
+                }
+            }
+        } catch (e) { /* fall through */ }
+        if (typeof aladin.getRotation === 'function') {
+            const r = Number(aladin.getRotation());
+            if (Number.isFinite(r)) return -r;
+        }
+        return 0;
+    }
+
+    // Turn the view back to north-up once it is at rest: no button or finger
+    // down, and the centre unchanged for a few frames (inertia over). Turned
+    // around the centre, so the centre -- and the frame on the sky -- stay put.
+    function maybeLevelView() {
+        if (!aladin || viewPointerDown || typeof aladin.setRotation !== 'function'
+            || typeof aladin.getRotation !== 'function') {
+            viewStill.frames = 0;
+            return;
+        }
+        const rc = aladin.getRaDec();
+        if (rc[0] === viewStill.ra && rc[1] === viewStill.dec) viewStill.frames++;
+        else viewStill = { ra: rc[0], dec: rc[1], frames: 0 };
+        if (viewStill.frames < VIEW_LEVEL_STILL_FRAMES) return;
+        if (Math.abs(Number(aladin.getRotation()) || 0) < 1e-3) return;
+        aladin.setRotation(0);
+    }
+
+    // Track whether the sky is being held (mouse or touch), on the window so a
+    // release outside the view counts too.
+    function wireViewPointer(host) {
+        if (!host || host.__novaPointerWired) return;
+        host.__novaPointerWired = true;
+        host.addEventListener('pointerdown', () => { viewPointerDown = true; }, true);
+        const up = () => { viewPointerDown = false; };
+        window.addEventListener('pointerup', up, true);
+        window.addEventListener('pointercancel', up, true);
+    }
     function updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotationDeg) {
         const host = document.getElementById('aladin-lite-div');
         const rectEl = document.getElementById('screen-fov-rect');
@@ -3034,7 +3103,8 @@
         // rectEl is a 0×0 point in the centre of the view, rotated; the panes sit around it.
         // Geometry only, through custom properties read by .screen-fov-rect / .screen-fov-pane.
         rectEl.hidden = false;
-        rectEl.style.setProperty('--frame-rot', `${rotationDeg || 0}deg`);
+        // The Angle is relative to north; the view may be rolled (see viewNorthOffsetDeg).
+        rectEl.style.setProperty('--frame-rot', `${(Number(rotationDeg) || 0) + viewNorthOffsetDeg()}deg`);
         rectEl.style.setProperty('--pane-w', panePxW + 'px');
         rectEl.style.setProperty('--pane-h', panePxH + 'px');
 
@@ -3057,7 +3127,7 @@
     }
     // While the Framing tab shows: the frame overlay follows zoom and resize, the Result
     // follows the view centre as the sky is dragged.
-    function startFrameOverlayLoop() { if (frameRafId) return; const tick = () => { if (!aladin) { frameRafId = null; return; } const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } updateReadoutFromCenter(); frameRafId = requestAnimationFrame(tick); }; frameRafId = requestAnimationFrame(tick); }
+    function startFrameOverlayLoop() { if (frameRafId) return; wireViewPointer(document.getElementById('aladin-lite-div')); const tick = () => { if (!aladin) { frameRafId = null; return; } maybeLevelView(); const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } updateReadoutFromCenter(); frameRafId = requestAnimationFrame(tick); }; frameRafId = requestAnimationFrame(tick); }
     function stopFrameOverlayLoop() { if (frameRafId) { cancelAnimationFrame(frameRafId); frameRafId = null; } }
     /** The frame overlay on, the Result on the view centre, the loop running. */
     function showFrameOverlay() {
