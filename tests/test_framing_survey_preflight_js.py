@@ -23,6 +23,7 @@ CHART_JS = REPO / "static" / "js" / "graph_view_chart.js"
 NODE = shutil.which("node")
 
 I18N = {"survey_not_responding": "{survey} is not responding — keeping {current}.",
+        "survey_not_stored_offline": "{survey} isn't stored offline — keeping {current}.",
         "survey": "Survey"}
 LABELS = {"P/DSS2/color": "DSS2 (color)",
           "P/GALEXGR6/AIS/color": "GALEX (color)",
@@ -76,7 +77,7 @@ const TTL = eval(ttlMatch[1]);
 
 // Run one case: a fresh context, the real functions, stand-in collaborators.
 async function runCase(c) {
-    const log = [], notices = [], swaps = [], removed = [];
+    const log = [], notices = [], swaps = [], removed = [], hides = [];
     // A controllable clock: the failure TTL is time-based, so a step can advance it.
     let clock = 1000000;
     const Date = { now: () => clock };
@@ -145,6 +146,7 @@ async function runCase(c) {
         let __blendSurveyId = ${JSON.stringify(c.currentBlend)};
         let __blendLayerUrl = ${JSON.stringify(c.currentBlend)};
         const surveyReachability = new Map();
+        let offlineViewOn = ${c.offlineView ? 'true' : 'false'};
         function surveyOptionLabel(v) { return __labels[v] || null; }
         function updateImageAdjustments() {}
         function updateSurveyCredit() {}
@@ -152,10 +154,11 @@ async function runCase(c) {
         function chooseDisplayedBase(v) { return { survey: v, notice: false }; }
         function onSurveyLayerError() {}
         function showSurveyNotice(msg) { __notice(msg); }
+        function hideSurveyNotice() { __hideNotice(); }
         async function novaAlert() {}
         ${fn(src, 'probeHips')}
         ${fn(src, 'surveyNoticeLabel')}
-        ${fn(src, 'surveyUnreachableMessage')}
+        ${fn(src, 'surveyFailureMessage')}
         ${fn(src, 'surveyProbeUrl')}
         ${fn(src, 'surveyReachable')}
         ${fn(src, 'resetSurveyReachability')}
@@ -167,7 +170,8 @@ async function runCase(c) {
            setBaseValue: v => { __selects['survey-select'].value = v; },
            setBlendValue: v => { __selects['blend-survey-select'].value = v; } })
     `, Object.assign(ctx, { __aladin: aladin, __labels: input.labels, __roots: input.roots,
-                            __selects: els, __notice: m => notices.push(m) }));
+                            __selects: els, __notice: m => notices.push(m),
+                            __hideNotice: () => hides.push('hide') }));
 
     for (const step of c.steps) {
         // A step can turn a survey reachable (or not) between attempts, and advance
@@ -181,7 +185,7 @@ async function runCase(c) {
             await Promise.all([api.surveyReachable(step.value), api.surveyReachable(step.value)]);
         }
     }
-    return { log, notices, swaps, removed,
+    return { log, notices, swaps, removed, hides,
              baseLayer: api.baseLayer() ? api.baseLayer().id : null,
              blendLayer: api.blendLayer() ? api.blendLayer().id : null };
 }
@@ -205,6 +209,27 @@ def out(tmp_path_factory):
             "baseValue": "P/GALEXGR6/AIS/color", "blendValue": "P/DSS2/color", "blendOpacity": 0,
             "currentBase": "P/DSS2/color", "currentBlend": None,
             "reachable": {"P/GALEXGR6/AIS/color": False},
+            "steps": [{"kind": "base", "value": "P/GALEXGR6/AIS/color"}],
+        },
+        # Offline view: the same failure is "not stored offline", never "not responding"
+        "offlineBaseUnreachable": {
+            "baseValue": "P/GALEXGR6/AIS/color", "blendValue": "P/DSS2/color", "blendOpacity": 0,
+            "currentBase": "P/DSS2/color", "currentBlend": None, "offlineView": True,
+            "reachable": {"P/GALEXGR6/AIS/color": False},
+            "steps": [{"kind": "base", "value": "P/GALEXGR6/AIS/color"}],
+        },
+        # Offline view, blend layer: same rule
+        "offlineBlendUnreachable": {
+            "baseValue": "P/DSS2/color", "blendValue": "P/SDSS9/color", "blendOpacity": 0.5,
+            "currentBase": "P/DSS2/color", "currentBlend": "P/DSS2/color", "offlineView": True,
+            "reachable": {"P/SDSS9/color": False},
+            "steps": [{"kind": "blend", "value": "P/SDSS9/color"}],
+        },
+        # Offline view, but the survey *is* stored: it loads, with no message at all.
+        "offlineBaseStored": {
+            "baseValue": "P/GALEXGR6/AIS/color", "blendValue": "P/DSS2/color", "blendOpacity": 0,
+            "currentBase": "P/DSS2/color", "currentBlend": None, "offlineView": True,
+            "reachable": {"P/GALEXGR6/AIS/color": True},
             "steps": [{"kind": "base", "value": "P/GALEXGR6/AIS/color"}],
         },
         # base layer: it answers, so the swap happens
@@ -291,6 +316,41 @@ def test_an_unreachable_survey_is_not_swapped_and_is_named(out):
     assert res["swaps"] == [], "no layer swap on a survey that did not answer"
     assert res["baseLayer"] == ROOTS["P/DSS2/color"], "the current base layer is kept"
     assert res["notices"] == ["GALEX (color) is not responding — keeping DSS2 (color)."]
+
+
+def test_offline_view_reports_a_missing_survey_as_not_stored(out):
+    """Offline view fetches nothing, so a survey that does not appear is simply not
+    stored on disk. It must be named that way -- never as a server that cannot be
+    reached, which is a different situation (a CDS outage with a fallback)."""
+    res = out["offlineBaseUnreachable"]
+    assert res["swaps"] == [], "no layer swap when the survey is not stored"
+    assert res["baseLayer"] == ROOTS["P/DSS2/color"]
+    assert res["notices"] == ["GALEX (color) isn't stored offline — keeping DSS2 (color)."]
+    assert not any("unreachable" in n for n in res["notices"])
+
+
+def test_offline_view_blend_reports_not_stored_too(out):
+    res = out["offlineBlendUnreachable"]
+    assert res["notices"] == ["SDSS9 (color) isn't stored offline — keeping DSS2 (color)."]
+    assert not any("unreachable" in n for n in res["notices"])
+
+
+def test_offline_view_shows_a_stored_survey_with_no_message(out):
+    """A survey with tiles on disk loads normally in Offline view: no notice at all,
+    neither wording. The message is only for a survey that is *not* stored."""
+    res = out["offlineBaseStored"]
+    assert res["swaps"] == [ROOTS["P/GALEXGR6/AIS/color"]], "a stored survey is shown"
+    assert res["notices"] == [], "a stored survey needs no message"
+
+
+def test_the_server_unreachable_text_is_never_used_for_a_survey_failure():
+    """Source check: the generic server text is written in exactly one place (the
+    notice's own default, chosen by mode). No survey-failure call site names it."""
+    src = CHART_JS.read_text(encoding="utf-8")
+    assert src.count("survey_server_unreachable") == 1
+    # ...and that one place is the notice default, which offline view overrides.
+    line = [l for l in src.splitlines() if "survey_server_unreachable" in l][0]
+    assert "offlineViewOn" in src[src.index(line) - 400:src.index(line) + 200]
 
 
 def test_a_reachable_survey_is_swapped(out):

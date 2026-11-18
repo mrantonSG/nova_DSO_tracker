@@ -8774,6 +8774,11 @@ msgid "{survey} is not responding — keeping {current}."
 msgstr "{survey} antwortet nicht — {current} bleibt erhalten."
 
 
+#: templates/base.html
+msgid "{survey} isn't stored offline — keeping {current}."
+msgstr "{survey} ist nicht offline gespeichert — {current} bleibt erhalten."
+
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Vorschläge aktualisieren"
 

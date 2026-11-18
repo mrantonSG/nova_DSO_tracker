@@ -143,13 +143,21 @@
         return surveyOptionLabel(value) || value || window.t('survey');
     }
 
-    // "X is not responding -- keeping Y." The pre-flight failure notice: the survey
-    // asked for by name, and the one still on screen.
-    function surveyUnreachableMessage(requested, kept) {
-        return window.t('survey_not_responding', {
+    // The notice for a survey that cannot be shown, naming the survey asked for and
+    // the one still on screen. Offline view fetches nothing, so a survey that does not
+    // appear there is simply not stored on disk -- calling the server unreachable would
+    // be wrong. Outside it, the upstream did not answer.
+    //
+    // The generic "server unreachable" text is deliberately not used for either: it
+    // describes a CDS outage with a fallback survey standing in (the
+    // chooseDisplayedBase notice), which is a different situation from one survey
+    // failing.
+    function surveyFailureMessage(requested, kept) {
+        const params = {
             survey: surveyNoticeLabel(requested),
-            current: surveyNoticeLabel(kept),
-        });
+            current: surveyNoticeLabel(kept || requested),
+        };
+        return window.t(offlineViewOn ? 'survey_not_stored_offline' : 'survey_not_responding', params);
     }
 
     // The survey a layer swap would actually show, resolved to the URL Aladin gets.
@@ -818,23 +826,26 @@
         // is memoised per survey value, so dragging the opacity slider (which
         // re-enters here) never re-probes a survey already known unreachable.
         if (!(await surveyReachable(surveyId))) {
-            showSurveyNotice(surveyUnreachableMessage(surveyId, displayedBlendSurvey || displayedBaseSurvey));
+            showSurveyNotice(surveyFailureMessage(surveyId, displayedBlendSurvey || displayedBaseSurvey));
             return existing || null;
         }
 
         try {
             let hpx;
+            // The blend layer's failure names the blend survey and the base still shown
+            const onBlendError = (err) => onSurveyLayerError(err, surveyId, displayedBaseSurvey);
             if (resolvedId.startsWith('http')) {
                 const friendlyName = sel.options[sel.selectedIndex]?.textContent || resolvedId;
-                hpx = aladin.createImageSurvey(resolvedId, friendlyName, resolvedId, "equatorial", 9, { errorCallback: onSurveyLayerError });
+                hpx = aladin.createImageSurvey(resolvedId, friendlyName, resolvedId, "equatorial", 9, { errorCallback: onBlendError });
             } else {
-                hpx = (aladin.newImageSurvey) ? aladin.newImageSurvey(resolvedId, { errorCallback: onSurveyLayerError }) : aladin.createImageSurvey(resolvedId, resolvedId, resolvedId, 'equatorial', 9, { imgFormat: 'jpeg', errorCallback: onSurveyLayerError });
+                hpx = (aladin.newImageSurvey) ? aladin.newImageSurvey(resolvedId, { errorCallback: onBlendError }) : aladin.createImageSurvey(resolvedId, resolvedId, resolvedId, 'equatorial', 9, { imgFormat: 'jpeg', errorCallback: onBlendError });
             }
             if (hpx) {
                 aladin.setOverlayImageLayer(hpx, 'blend');
                 __blendSurveyId = surveyId;
                 __blendLayerUrl = resolvedId;
                 displayedBlendSurvey = shownValue;
+                hideSurveyNotice();   // this layer loaded: whatever the notice said is over
                 return aladin.getOverlayImageLayer('blend');
             }
         } catch (e) {
@@ -927,8 +938,21 @@
             el.append(text, btn);
             host.appendChild(el);
         }
-        el.querySelector('.survey-notice-text').textContent = message || window.t('survey_server_unreachable');
+        // Offline view fetches nothing, so its failures are never "the server is
+        // unreachable" -- a survey missing there is simply not stored on disk. The
+        // default is decided here, at the single place the text is written, so no
+        // call site can put the server wording on screen in offline view.
+        el.querySelector('.survey-notice-text').textContent = message || (offlineViewOn
+            ? surveyFailureMessage(offlineBaseId(), displayedBaseSurvey)
+            : window.t('survey_server_unreachable'));
         el.hidden = false;
+    }
+    // Clear the notice: the situation it described is over (a layer loaded, the user
+    // picked another survey, Offline view was switched). A later failure shows it
+    // again, so this does not touch the user's own dismissal.
+    function hideSurveyNotice() {
+        const el = document.getElementById('survey-notice');
+        if (el) el.hidden = true;
     }
     // --- Loading placeholder while the survey probes run and until Aladin has created its view ---
     function showSurveyLoading() {
@@ -958,13 +982,19 @@
         surveyReachability.clear();
     }
     // errorCallback for every survey layer: a layer that fails mid-session shows the
-    // notice. One survey failing is never a connectivity fact, so this must not touch
-    // Offline view -- only the browser's own offline/online events switch that
-    // automatically (see wireOfflineSkyUi). A survey that cannot be reached is reported
-    // per survey by setSurvey / ensureBlendLayer, which probe before swapping a layer.
-    function onSurveyLayerError(err) {
+    // notice, naming the survey that failed and the one still on screen. One survey
+    // failing is never a connectivity fact, so this must not touch Offline view --
+    // only the browser's own offline/online events switch that automatically (see
+    // wireOfflineSkyUi).
+    //
+    // `failed`/`kept` come from the caller through a closure, because the callback
+    // itself only receives the error. Offline view is where this fires most: the layer
+    // is built against the cache-only root, so a failure means nothing is stored on
+    // disk for that survey -- reported as such, never as a server that cannot be
+    // reached.
+    function onSurveyLayerError(err, failed, kept) {
         console.warn('[FRAMING] Survey layer failed to load:', err);
-        showSurveyNotice();
+        showSurveyNotice(surveyFailureMessage(failed, kept || displayedBaseSurvey));
     }
     
     // Catalog layer for all Nova DB objects shown in Aladin
@@ -2435,7 +2465,7 @@
                 const initialUrl = resolveHipsId(initialBase.survey);
                 const initialName = surveyOptionLabel(initialBase.survey) || initialUrl;
                 aladin = A.aladin('#aladin-lite-div', {
-                    survey: A.HiPS(initialUrl, { name: initialName, cooFrame: 'equatorial', maxOrder: 9, errorCallback: onSurveyLayerError }),
+                    survey: A.HiPS(initialUrl, { name: initialName, cooFrame: 'equatorial', maxOrder: 9, errorCallback: (err) => onSurveyLayerError(err, initialBase.survey, null) }),
                     fov: FRAMING_CONFIG.DEFAULT_FOV_DEG,
                     cooFrame: 'ICRS',
                     showFullscreenControl: false,
@@ -2842,7 +2872,7 @@
         // stay on screen and the failure would only surface as a generic notice. A
         // survey that does not answer keeps the current layer, named in the notice.
         if (!(await surveyReachable(shownId))) {
-            showSurveyNotice(surveyUnreachableMessage(shownId, displayedBaseSurvey));
+            showSurveyNotice(surveyFailureMessage(shownId, displayedBaseSurvey));
             return;
         }
 
@@ -2853,7 +2883,7 @@
                 resolvedId,     // The base URL for the HiPS tiles
                 "equatorial",   // The coordinate frame
                 9,              // A standard max order (depth)
-                { errorCallback: onSurveyLayerError }
+                { errorCallback: (err) => onSurveyLayerError(err, shownId, displayedBaseSurvey) }
             );
         } catch (e) {
             console.error("Error creating external survey layer:", e);
@@ -2866,6 +2896,10 @@
         baseSurvey = aladin.getBaseImageLayer();
         updateImageAdjustments();
         updateSurveyCredit();
+        // This survey loaded, so any notice about a *different* survey on screen no
+        // longer applies. The CDS-outage notice is a separate, still-current
+        // situation and is shown again below when it holds.
+        hideSurveyNotice();
         if (choice.notice) showSurveyNotice();
     }
     function updateImageAdjustments() {
@@ -4046,6 +4080,11 @@
         if (fromUser) offlineViewUserSetting = offlineViewOn;
         const t = document.getElementById('offline-view-toggle');
         if (t) t.checked = offlineViewOn;
+        // The notice describes the previous mode's situation ("X isn't stored
+        // offline" stops being true the moment offline view is left, and vice
+        // versa), so it goes before the layers are rebuilt. A failure under the new
+        // mode shows its own notice.
+        hideSurveyNotice();
         applyOfflineViewToLayers();
         updateOfflineViewUi();
     }

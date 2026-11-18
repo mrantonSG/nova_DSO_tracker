@@ -8344,3 +8344,7 @@ msgstr ""
 msgid "{survey} is not responding — keeping {current}."
 msgstr ""
 
+#: templates/base.html
+msgid "{survey} isn't stored offline — keeping {current}."
+msgstr ""
+
