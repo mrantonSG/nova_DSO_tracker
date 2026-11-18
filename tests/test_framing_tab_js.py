@@ -132,7 +132,6 @@ async function chartRun(search, saved, steps) {
         function updateFramingChart(r) { __log('updateFramingChart ' + r); }
         function startFrameOverlayLoop() { __log('startFrame'); }
         function stopFrameOverlayLoop() { __log('stopFrame'); }
-        function closeOfflineSavePanel() { __log('closePanel'); }
         function updateScanButtonState() {}
         function setSavedFraming() {}
         ${fn(chartSrc, 'savedFramingQuery')}
@@ -235,7 +234,7 @@ def test_saved_framing_lifecycle(out):
         "-- pageLoaded (keys 0)",
         "-- key (keys 0)",
         "-- deactivate (keys 0)",
-        "closePanel", "stopFrame",
+        "stopFrame",
         "-- hidden (keys 0)",
         "-- key (keys 0)",
         "-- activate (keys 0)",
@@ -263,7 +262,7 @@ def test_markup_framing_is_a_tab_not_a_modal():
     framing = html[html.index('<div id="framing-tab" class="tab-content">'):]
     for marker in ('id="project-framing-buttons"', 'id="framing-panel"', 'id="aladin-lite-div"',
                    'id="ra-readout"', 'id="dec-readout"', 'id="result-angle"', 'id="scan-frame-btn"',
-                   'id="offline-sky-controls"'):
+                   'id="offline-view-toggle"'):
         assert marker in framing, marker
     notes = html[html.index('<div id="notes-tab" class="tab-content">'):html.index('<div id="rigdata-tab"')]
     assert 'id="project-field-editor"' in notes and 'id="open-in-stellarium"' in notes
@@ -290,20 +289,23 @@ def test_panel_sections_in_order():
     framing = _framing_markup()
     sky, side = framing.index('class="framing-sky"'), framing.index('class="framing-side"')
     assert sky < side
-    # the header: FRAMING + help, the Rig select, then the FOV chip and the offline slot
-    head = ["framing-head", "help_badge('framing_assistant'", 'id="framing-rig-select"',
-            'id="fov-vs-object"', 'id="framing-offline-slot"', 'id="framing-result"']
+    # the header: FRAMING + help, the Offline view switch, the Rig select, then the FOV chip
+    head = ["framing-head", "help_badge('framing_assistant'", 'id="offline-view-toggle"',
+            'id="framing-rig-select"', 'id="fov-vs-object"', 'id="framing-result"']
     at = [framing.index(m, side) for m in head]
     assert at == sorted(at), head
     order = ["framing-head", 'id="framing-result"', "{{ _('Frame') }}", "{{ _('Sky') }}",
-             "{{ _('Offline') }}", "{{ _('Position') }}", "{{ _('Actions') }}"]
+             "{{ _('Position') }}", "{{ _('Actions') }}"]
     at = [framing.index(m, side) for m in order]
     assert at == sorted(at), order
+    # The OFFLINE section is gone with the save-for-offline UI
+    assert "{{ _('Offline') }}" not in framing
+    assert "framing-offline-slot" not in framing
     # Open / Delete saved framing live in ACTIONS now, next to Save framing
     assert framing.index('id="save-framing-db"') < framing.index('id="project-framing-buttons"')
     assert framing.index("{{ _('Actions') }}") < framing.index('id="project-framing-buttons"')
-    # Image adjustments and Offline are folded by default
-    assert framing.count('<details class="framing-fold">') == 2 and "<details open" not in framing
+    # Image adjustments is the only fold left, and it is folded by default
+    assert framing.count('<details class="framing-fold">') == 1 and "<details open" not in framing
 
 
 def test_removed_controls_are_gone():
@@ -313,8 +315,12 @@ def test_removed_controls_are_gone():
                  'modal-header-bar'):
         assert gone not in framing, gone
     src = CHART_JS.read_text(encoding="utf-8")
-    # (the only keydown left is the offline panel's Escape)
-    assert src.count("keydown") == 1 and "offlineSavePanel.handleKeydown" in src
+    # no keydown handler left at all: the offline panel's capture-phase Escape
+    # went with the panel
+    assert "keydown" not in src
+    for gone in ("offlineSavePanel", "closeOfflineSavePanel", "getOfflineSavePanel",
+                 "offline-save-panel", "save-offline-btn"):
+        assert gone not in src, gone
     for gone in ("lockToObject", "fovCenter", "applyLockToObject", "nudgeFov", "arrowup", "shiftKey",
                  "pix2world", "recenterViewWhenLocked", "useReadoutAsFovCenter", "drawFovFootprint",
                  "getFrameCenterRaDec", "LockOverlayLoop"):

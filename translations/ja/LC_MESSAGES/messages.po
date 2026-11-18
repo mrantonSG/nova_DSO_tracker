@@ -4793,146 +4793,6 @@ msgstr "サーバーの応答を解析できませんでした。"
 msgid "Scan Frame is unavailable in offline view."
 msgstr "オフラインビューではフレームスキャンは利用できません。"
 
-#: templates/graph_view.html:36 templates/graph_view.html:498
-#: templates/graph_view.html:509
-msgid "Save for offline"
-msgstr "オフライン用に保存"
-
-#: templates/graph_view.html:37
-msgid "Sharp offline"
-msgstr "オフライン：高精細"
-
-#: templates/graph_view.html:38
-msgid "Low detail offline"
-msgstr "オフライン：低精細"
-
-#: templates/graph_view.html:39
-msgid "Not available offline"
-msgstr "オフラインでは利用不可"
-
-#: templates/graph_view.html:40
-msgid "offline"
-msgstr "オフライン"
-
-#: templates/graph_view.html:43
-msgid "Nothing saved for offline yet."
-msgstr "まだオフライン用に保存されたものはありません。"
-
-#: templates/graph_view.html:44 templates/graph_view.html:523
-msgid "Lighter"
-msgstr "軽め"
-
-#: templates/graph_view.html:45 templates/graph_view.html:524
-msgid "Matches your rig"
-msgstr "リグに合わせる"
-
-#: templates/graph_view.html:46 templates/graph_view.html:525
-msgid "Sharper"
-msgstr "より精細"
-
-#: templates/graph_view.html:47
-#, python-brace-format
-msgid "≈{scale}″/px · your rig {rig}″/px"
-msgstr "≈{scale}″/px · リグ {rig}″/px"
-
-#: templates/graph_view.html:48
-msgid "Not covered here"
-msgstr "この範囲は対象外"
-
-#: templates/graph_view.html:49
-msgid "Max detail of this survey"
-msgstr "このサーベイの最大詳細度"
-
-#: templates/graph_view.html:50
-#, python-brace-format
-msgid "{tiles} tiles · {mb} MB"
-msgstr "{tiles} タイル · {mb} MB"
-
-#: templates/graph_view.html:51
-msgid "Estimating…"
-msgstr "見積もり中…"
-
-#: templates/graph_view.html:52
-msgid "This is more than the space set aside for offline sky."
-msgstr "オフライン用の空に割り当てた容量を超えています。"
-
-#: templates/graph_view.html:53
-msgid "Not enough free disk space on this computer."
-msgstr "このコンピューターの空きディスク容量が足りません。"
-
-#: templates/graph_view.html:54
-msgid "Choose at least one survey."
-msgstr "サーベイを1つ以上選んでください。"
-
-#: templates/graph_view.html:55
-msgid "Choose a rig first."
-msgstr "先にリグを選んでください。"
-
-#: templates/graph_view.html:56
-msgid ""
-"This rig has no image scale. Add the camera pixel size and the focal "
-"length."
-msgstr "このリグには画像スケールがありません。カメラのピクセルサイズと焦点距離を入力してください。"
-
-#: templates/graph_view.html:57
-msgid "This frame is too large to save for offline."
-msgstr "このフレームは大きすぎてオフライン保存できません。"
-
-#: templates/graph_view.html:58
-msgid "There is nothing to save for these surveys here."
-msgstr "ここではこれらのサーベイに保存するものがありません。"
-
-#: templates/graph_view.html:59
-msgid "The estimate is not available right now."
-msgstr "現在、見積もりを取得できません。"
-
-#: templates/graph_view.html:60
-msgid "Waiting"
-msgstr "待機中"
-
-#: templates/graph_view.html:61
-#, python-brace-format
-msgid "Downloading {done} / {total}"
-msgstr "ダウンロード中 {done} / {total}"
-
-#: templates/graph_view.html:62
-msgid "Paused – survey server not reachable"
-msgstr "一時停止 – サーベイのサーバーに接続できません"
-
-#: templates/graph_view.html:63
-msgid "Done"
-msgstr "完了"
-
-#: templates/graph_view.html:64
-#, python-brace-format
-msgid "Done – {count} tiles not available"
-msgstr "完了 – {count} タイルは取得できません"
-
-#: templates/graph_view.html:65
-msgid "Stopped – not enough space"
-msgstr "停止 – 容量不足"
-
-#: templates/graph_view.html:66
-msgid "Cancelled"
-msgstr "キャンセル済み"
-
-#: templates/graph_view.html:67
-msgid "Failed"
-msgstr "失敗"
-
-#: templates/graph_view.html:68
-msgid "partial"
-msgstr "一部のみ"
-
-#: templates/graph_view.html:69
-msgid "Saved by an earlier version"
-msgstr "以前のバージョンで保存"
-
-#: templates/graph_view.html:70
-#, python-brace-format
-msgid "Delete the offline sky saved for {name}?"
-msgstr "{name} 用にオフライン保存した空を削除しますか？"
-
 #: templates/graph_view.html:118
 msgid "Graph Date"
 msgstr "グラフ日付"
@@ -5247,29 +5107,9 @@ msgstr "ガンマ"
 msgid "Saturation"
 msgstr "彩度"
 
-#: templates/graph_view.html:495
-msgid "Offline"
-msgstr "オフライン"
-
-#: templates/graph_view.html:516
-msgid "Surveys"
-msgstr "サーベイ"
-
 #: templates/graph_view.html:520 templates/solar_system.html:660
 msgid "Detail"
 msgstr "細部"
-
-#: templates/graph_view.html:529
-msgid "Estimate"
-msgstr "見積もり"
-
-#: templates/graph_view.html:532
-msgid "Free space"
-msgstr "空き容量"
-
-#: templates/graph_view.html:541
-msgid "Saved for offline"
-msgstr "オフライン用に保存済み"
 
 #: templates/graph_view.html:550 templates/index.html:78
 msgid "Position"
@@ -8368,14 +8208,6 @@ msgid ""
 "Send this computer's copy of the file to the server with the next sync? "
 "It becomes the record's file everywhere."
 msgstr "次回の同期で、この PC にあるファイルのコピーをサーバーに送信しますか？そのコピーがすべての場所でこのレコードのファイルになります。"
-
-#: templates/graph_view.html
-msgid "More surveys ({count})"
-msgstr "その他のサーベイ（{count}）"
-
-#: templates/graph_view.html
-msgid "Fewer surveys"
-msgstr "サーベイを減らす"
 
 
 #: templates/base.html

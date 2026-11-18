@@ -1357,34 +1357,32 @@ def test_resolve_slug_accepts_ids_and_slugs():
 
 
 # ---------------------------------------------------------------------------
-# 10. JS: one Cancel handler; the client sends the frame, not the view
+# 10. The save request contract: the frame and the rig, never the Aladin view
+#
+# The client that built these requests was the Framing tab's save panel, which is
+# gone; the routes and their parameter contract stay, because the Configuration
+# download page will use the same ones. So this pins the contract itself rather
+# than the deleted caller.
 # ---------------------------------------------------------------------------
 
-def _js():
-    with open(os.path.join(os.path.dirname(__file__), "..", "static", "js",
-                           "graph_view_chart.js"), encoding="utf-8") as fh:
-        return fh.read()
+def test_save_and_estimate_take_the_frame_not_the_view(client, db_session, monkeypatch):
+    """`frame_w_deg`/`frame_h_deg`/`rig_id`/`detail_offset` is the contract; the
+    view-shaped `radius_deg`/`max_order` pair is not accepted from a client."""
+    from test_offline_sky_jobs import DSS, DSS_ID as JOBS_DSS_ID, _install_real_facts, _make_rig
+    monkeypatch.setattr("nova.blueprints.offline_sky.OFFLINE_SKY_STORE", "server")
+    monkeypatch.setattr("nova.blueprints.offline_sky.OFFLINE_SKY_SAVE_ENABLED", True)
+    _install_real_facts(DSS)
+    rid = _make_rig(db_session)
 
+    # The frame form answers, and reports a detail it derived from the rig.
+    d = client.get("/api/offline/estimate?" + _query(rid, [JOBS_DSS_ID])).get_json()
+    assert d["requested_order"] >= 0 and d["image_scale_arcsec"] > 0
 
-def test_js_single_cancel_handler():
-    # Since B2 the panel lives in offline_save_panel.js: one Cancel button per
-    # saved row with one click handler; the chart has no cancel code left.
-    src = _js()
-    assert "cancelOfflineSave" not in src
-    with open(os.path.join(os.path.dirname(__file__), "..", "static", "js",
-                           "offline_save_panel.js"), encoding="utf-8") as fh:
-        panel = fh.read()
-    assert panel.count("cancel.addEventListener('click', function () { cancelSave(s.id); });") == 1
-    assert panel.count("/cancel'") == 1
-
-
-def test_js_sends_frame_and_rig_not_view():
-    src = _js()
-    start = src.index("function offlineSaveFrame()")
-    body = src[start:src.index("function setOfflineView(")]
-    assert "getFov" not in body                     # nothing about the Aladin view size
-    assert "frame_w_deg" in body and "rig_id" in body
-    assert "radius_deg" not in src[src.index("// OFFLINE SKY: offline view toggle"):]
+    # The view form is not a valid request: no rig means no detail to target.
+    view = (f"ra={LDN_RA}&dec={LDN_DEC}&radius_deg=0.5&max_order=5"
+            f"&surveys={JOBS_DSS_ID}")
+    resp = client.get("/api/offline/estimate?" + view)
+    assert resp.status_code in (400, 422), "a view-shaped request is refused"
 
 
 # ---------------------------------------------------------------------------

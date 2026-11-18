@@ -1621,8 +1621,69 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     align-items: center;
     gap: var(--space-2);
 }
-.framing-offline-slot:empty {
-    display: none;
+
+/* --- Offline view switch (FRAMING header) ---
+   A real checkbox under a styled track, right-aligned on the micro-label row.
+   Built here rather than reusing .switch/.slider: that geometry lives in
+   dashboard.css, which this page does not load, and only its colours are global
+   (nova-theme.css). Same 44x24 shape and thumb travel as the simulation toggle,
+   so the two switches read as one component. */
+.framing-offline-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-left: auto;
+    cursor: pointer;
+}
+.framing-offline-switch input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+.framing-offline-switch-track {
+    position: relative;
+    flex: none;
+    width: 44px;
+    height: 24px;
+    border-radius: 24px;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color, #e5e2dc);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+.framing-offline-switch-track::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background-color: #ffffff;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s ease;
+}
+.framing-offline-switch input:checked + .framing-offline-switch-track {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+.framing-offline-switch input:checked + .framing-offline-switch-track::before {
+    transform: translateX(20px);
+}
+.framing-offline-switch input:focus-visible + .framing-offline-switch-track {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+.framing-offline-switch-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--text-muted);
+}
+.framing-offline-switch:hover .framing-offline-switch-label {
+    color: var(--text-secondary);
 }
 
 .fov-chip {
@@ -1843,11 +1904,6 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
 .framing-fold > .framing-field + .framing-field {
     margin-top: var(--space-2);
 }
-/* Offline section only when the offline sky is on (the controls start hidden) */
-.framing-offline:not(:has(#offline-sky-controls:not([hidden]))) {
-    display: none;
-}
-
 /* --- Buttons --- */
 .framing-buttons {
     display: flex;
@@ -1867,6 +1923,17 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     line-height: 1.4;
 }
 .framing-side .inline-button-ghost:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+/* Blocked -- Offline view, or a frame too large for Scan Frame. Dimmed like a
+   disabled button but deliberately left focusable and hoverable, so the title
+   explaining the state stays reachable: a real `disabled` button cannot be
+   focused at all. The click is refused in scanFrameForDSOs instead. `:disabled`
+   above is kept for the busy state, which has no tooltip to show. */
+.framing-side .inline-button.is-blocked,
+.framing-side .inline-button-ghost.is-blocked,
+.framing-side .inline-button-danger.is-blocked {
     opacity: 0.45;
     cursor: not-allowed;
 }
@@ -1971,21 +2038,6 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     white-space: nowrap;
 }
 
-/* The offline save panel is a card of its own; in the narrow side panel its two
-   columns stack. */
-.framing-side .offline-save-panel {
-    margin: 0;
-}
-.framing-side .offline-save-body {
-    grid-template-columns: 1fr;
-}
-.framing-side .offline-sky-controls:not([hidden]) {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-2) var(--space-3);
-}
-
 /* Narrow: the panel moves under the sky, the page scrolls */
 @media (max-width: 900px) {
     .framing-layout {
@@ -2017,462 +2069,3 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     color: #d06060;
 }
 
-/* =================================================================
-   OFFLINE SKY - controls row, "Save for offline" panel, saved list
-   (moved here from the inline <style> block in graph_view.html)
-   ================================================================= */
-
-.offline-sky-controls[hidden],
-.offline-save-panel[hidden] {
-    display: none;
-}
-.offline-sky-controls .inline-button-ghost[aria-expanded="true"] {
-    background: var(--bg-tertiary);
-    color: var(--text-primary);
-}
-.offline-view-label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: var(--text-secondary);
-    cursor: pointer;
-}
-.offline-scan-note {
-    font-size: 11px;
-    color: var(--text-muted);
-}
-
-/* Status chip (piece C, not shown yet), and the offline indicator in the
-   Framing header, which shares its states and colours. */
-.offline-status-chip { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 5px; border: 1px solid transparent; }
-.offline-chip { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 5px; border: 1px solid transparent; }
-.offline-chip-sharp { background: var(--primary-bg); color: #2d7d95; border-color: var(--primary-light); }
-.offline-chip-low { background: var(--bg-tertiary); color: var(--text-muted); border-color: var(--border-color, #e5e2dc); }
-.offline-chip-none { background: rgba(180,60,60,0.08); color: #a04040; border-color: rgba(180,60,60,0.18); }
-[data-theme="dark"] .offline-chip-sharp { color: var(--primary-color); }
-
-/* --- Panel card --- */
-.offline-save-panel {
-    margin: 0 0 15px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color, #e5e2dc);
-    border-radius: 10px;
-    overflow: clip;
-    color: var(--text-primary);
-    font-size: 13px;
-}
-.offline-save-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 10px 10px 10px 16px;
-    border-bottom: 1px solid var(--border-light);
-}
-.offline-save-title {
-    margin: 0;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-.offline-save-close {
-    width: 28px;
-    height: 28px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    background: transparent;
-    border: none;
-    border-radius: 6px;
-    color: var(--text-muted);
-    cursor: pointer;
-}
-.offline-save-close:hover {
-    background: var(--bg-tertiary);
-    color: var(--text-primary);
-}
-.offline-save-close:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 3px var(--primary-bg);
-}
-.offline-save-body {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 24px;
-    padding: 14px 16px;
-}
-@media (max-width: 760px) {
-    .offline-save-body { grid-template-columns: minmax(0, 1fr); }
-}
-
-/* Section micro-labels */
-.offline-save-label {
-    display: block;
-    width: auto;
-    margin: 0 0 10px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border-light);
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.09em;
-    color: var(--text-muted);
-}
-.offline-save-label-spaced { margin-top: 20px; }
-[data-theme="dark"] .offline-save-label { color: var(--text-secondary); }
-
-/* Surveys */
-/* No height of its own and no scrollbar: the side panel scrolls, nothing here
-   does. The full list unfolds behind the "More surveys" link instead. */
-.offline-survey-list {
-    display: flex;
-    flex-direction: column;
-}
-.offline-survey-more {
-    align-self: flex-start;
-    margin: 4px 0 2px;
-    padding: 0;
-    border: 0;
-    background: none;
-    font: inherit;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--primary-color);
-    cursor: pointer;
-    text-decoration: underline;
-}
-.offline-survey-more[hidden] { display: none; }
-.offline-survey-row {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center;
-    column-gap: 8px;
-    width: auto;
-    padding: 4px 0;
-    font-size: 13px;
-    color: var(--text-secondary);
-    cursor: pointer;
-}
-/* A folded-away row must actually go: display: grid above beats the [hidden]
-   attribute's display: none, so this has to be spelled out. */
-.offline-survey-row[hidden] { display: none; }
-.offline-survey-row.is-disabled {
-    color: var(--text-faint);
-    cursor: default;
-}
-.offline-survey-row.is-disabled input { cursor: default; }
-.offline-survey-name { min-width: 0; }
-.offline-survey-size {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--text-secondary);
-    white-space: nowrap;
-}
-.offline-survey-note {
-    grid-column: 2 / -1;
-    font-size: 11px;
-    color: var(--text-muted);
-}
-.offline-survey-note[hidden] { display: none; }
-
-/* Detail */
-.offline-detail-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px 12px;
-}
-.offline-detail-select,
-[data-theme="dark"] #framing-panel select.offline-detail-select {
-    height: 34px;
-    padding: 0 28px 0 10px;
-    background-color: var(--bg-secondary);
-    border: 1px solid var(--border-color, #e5e2dc);
-    border-radius: 6px;
-    color: var(--text-primary);
-    font-size: 13px;
-    font-family: inherit;
-}
-.offline-detail-select:focus,
-[data-theme="dark"] #framing-panel select.offline-detail-select:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px var(--primary-bg);
-}
-.offline-detail-scale {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--text-muted);
-}
-
-/* Estimate */
-.offline-estimate {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 6px 16px;
-    margin: 0;
-}
-.offline-estimate dt {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text-secondary);
-}
-.offline-estimate dd {
-    margin: 0;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--text-primary);
-    text-align: right;
-}
-.offline-save-reason {
-    margin: 12px 0 0;
-    font-size: 12px;
-    color: #94600f;
-}
-.offline-save-reason[hidden] { display: none; }
-[data-theme="dark"] .offline-save-reason { color: #e0aa50; }
-.offline-save-actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 14px;
-}
-.offline-save-panel .inline-button {
-    height: 30px;
-    padding: 0 14px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 600;
-}
-.offline-save-panel .inline-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    filter: none;
-}
-
-/* Saved for offline */
-.offline-saves {
-    padding: 0 16px 14px;
-}
-.offline-saves-empty {
-    padding: 14px 16px;
-    border: 1px dashed var(--border-color, #e5e2dc);
-    border-radius: 8px;
-    background: var(--bg-tertiary);
-    font-size: 12px;
-    color: var(--text-muted);
-}
-/* A saved row stacks in three lines, whatever its state (running, done, failed):
-   name; meta at full width; status on the left and the buttons on the right,
-   the buttons wrapping to a line of their own (still right) when they don't fit. */
-.offline-save-row {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding: 10px 0;
-    border-top: 1px solid var(--border-light);
-}
-.offline-save-row:first-child { border-top: none; padding-top: 0; }
-.offline-save-main { min-width: 0; }
-.offline-save-name {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-family: var(--font-mono);
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-.offline-save-badge {
-    padding: 1px 6px;
-    border-radius: 4px;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-color, #e5e2dc);
-    font-family: var(--font-mono);
-    font-size: 10px;
-    font-weight: 500;
-    color: var(--text-muted);
-}
-.offline-save-rig {
-    margin-top: 2px;
-    font-size: 11px;
-    color: var(--text-secondary);
-    overflow-wrap: anywhere;
-}
-.offline-save-rig.is-warning { color: #94600f; }
-[data-theme="dark"] .offline-save-rig.is-warning { color: #e0aa50; }
-.offline-saves-others {
-    padding: 8px 0 0;
-    font-size: 11px;
-    color: var(--text-muted);
-}
-.offline-save-meta {
-    margin-top: 2px;
-    font-size: 11px;
-    color: var(--text-secondary);
-    overflow-wrap: anywhere;
-}
-.offline-save-side {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 6px 8px;
-    min-width: 0;
-}
-/* The status takes the room the buttons leave and stays on one line, whatever
-   the state (Done / Cancelled / Downloading 512 / 1402 read the same way); the
-   buttons drop to their own line once that room is under the status's width. */
-.offline-save-status {
-    flex: 1 1 auto;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--text-secondary);
-    white-space: nowrap;
-}
-.offline-save-status:empty { display: none; }
-/* Progress for a running save: the toast countdown's own pattern -- 2px, on a
-   --border-light track, filled with a colour-derived tint (--fill is the bar's
-   width, set from done/total by offline_save_panel.js). */
-.offline-save-bar {
-    position: relative;
-    display: block;
-    width: 100%;
-    height: 2px;
-    margin-top: 3px;
-    background: var(--border-light);
-    overflow: hidden;
-}
-.offline-save-bar[hidden] { display: none; }
-/* The width comes from the data-progress attribute the panel sets from
-   done/total: one rule per whole percent, so nothing sets an inline style. */
-.offline-save-bar::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: 0;
-    background: rgba(45, 125, 149, 0.7);   /* --primary-color, as the toast tints its bar */
-    transition: width 0.3s ease;
-}
-.offline-save-bar[data-progress="0"]::after { width: 0; }
-.offline-save-bar[data-progress="1"]::after { width: 1%; }
-.offline-save-bar[data-progress="2"]::after { width: 2%; }
-.offline-save-bar[data-progress="3"]::after { width: 3%; }
-.offline-save-bar[data-progress="4"]::after { width: 4%; }
-.offline-save-bar[data-progress="5"]::after { width: 5%; }
-.offline-save-bar[data-progress="6"]::after { width: 6%; }
-.offline-save-bar[data-progress="7"]::after { width: 7%; }
-.offline-save-bar[data-progress="8"]::after { width: 8%; }
-.offline-save-bar[data-progress="9"]::after { width: 9%; }
-.offline-save-bar[data-progress="10"]::after { width: 10%; }
-.offline-save-bar[data-progress="11"]::after { width: 11%; }
-.offline-save-bar[data-progress="12"]::after { width: 12%; }
-.offline-save-bar[data-progress="13"]::after { width: 13%; }
-.offline-save-bar[data-progress="14"]::after { width: 14%; }
-.offline-save-bar[data-progress="15"]::after { width: 15%; }
-.offline-save-bar[data-progress="16"]::after { width: 16%; }
-.offline-save-bar[data-progress="17"]::after { width: 17%; }
-.offline-save-bar[data-progress="18"]::after { width: 18%; }
-.offline-save-bar[data-progress="19"]::after { width: 19%; }
-.offline-save-bar[data-progress="20"]::after { width: 20%; }
-.offline-save-bar[data-progress="21"]::after { width: 21%; }
-.offline-save-bar[data-progress="22"]::after { width: 22%; }
-.offline-save-bar[data-progress="23"]::after { width: 23%; }
-.offline-save-bar[data-progress="24"]::after { width: 24%; }
-.offline-save-bar[data-progress="25"]::after { width: 25%; }
-.offline-save-bar[data-progress="26"]::after { width: 26%; }
-.offline-save-bar[data-progress="27"]::after { width: 27%; }
-.offline-save-bar[data-progress="28"]::after { width: 28%; }
-.offline-save-bar[data-progress="29"]::after { width: 29%; }
-.offline-save-bar[data-progress="30"]::after { width: 30%; }
-.offline-save-bar[data-progress="31"]::after { width: 31%; }
-.offline-save-bar[data-progress="32"]::after { width: 32%; }
-.offline-save-bar[data-progress="33"]::after { width: 33%; }
-.offline-save-bar[data-progress="34"]::after { width: 34%; }
-.offline-save-bar[data-progress="35"]::after { width: 35%; }
-.offline-save-bar[data-progress="36"]::after { width: 36%; }
-.offline-save-bar[data-progress="37"]::after { width: 37%; }
-.offline-save-bar[data-progress="38"]::after { width: 38%; }
-.offline-save-bar[data-progress="39"]::after { width: 39%; }
-.offline-save-bar[data-progress="40"]::after { width: 40%; }
-.offline-save-bar[data-progress="41"]::after { width: 41%; }
-.offline-save-bar[data-progress="42"]::after { width: 42%; }
-.offline-save-bar[data-progress="43"]::after { width: 43%; }
-.offline-save-bar[data-progress="44"]::after { width: 44%; }
-.offline-save-bar[data-progress="45"]::after { width: 45%; }
-.offline-save-bar[data-progress="46"]::after { width: 46%; }
-.offline-save-bar[data-progress="47"]::after { width: 47%; }
-.offline-save-bar[data-progress="48"]::after { width: 48%; }
-.offline-save-bar[data-progress="49"]::after { width: 49%; }
-.offline-save-bar[data-progress="50"]::after { width: 50%; }
-.offline-save-bar[data-progress="51"]::after { width: 51%; }
-.offline-save-bar[data-progress="52"]::after { width: 52%; }
-.offline-save-bar[data-progress="53"]::after { width: 53%; }
-.offline-save-bar[data-progress="54"]::after { width: 54%; }
-.offline-save-bar[data-progress="55"]::after { width: 55%; }
-.offline-save-bar[data-progress="56"]::after { width: 56%; }
-.offline-save-bar[data-progress="57"]::after { width: 57%; }
-.offline-save-bar[data-progress="58"]::after { width: 58%; }
-.offline-save-bar[data-progress="59"]::after { width: 59%; }
-.offline-save-bar[data-progress="60"]::after { width: 60%; }
-.offline-save-bar[data-progress="61"]::after { width: 61%; }
-.offline-save-bar[data-progress="62"]::after { width: 62%; }
-.offline-save-bar[data-progress="63"]::after { width: 63%; }
-.offline-save-bar[data-progress="64"]::after { width: 64%; }
-.offline-save-bar[data-progress="65"]::after { width: 65%; }
-.offline-save-bar[data-progress="66"]::after { width: 66%; }
-.offline-save-bar[data-progress="67"]::after { width: 67%; }
-.offline-save-bar[data-progress="68"]::after { width: 68%; }
-.offline-save-bar[data-progress="69"]::after { width: 69%; }
-.offline-save-bar[data-progress="70"]::after { width: 70%; }
-.offline-save-bar[data-progress="71"]::after { width: 71%; }
-.offline-save-bar[data-progress="72"]::after { width: 72%; }
-.offline-save-bar[data-progress="73"]::after { width: 73%; }
-.offline-save-bar[data-progress="74"]::after { width: 74%; }
-.offline-save-bar[data-progress="75"]::after { width: 75%; }
-.offline-save-bar[data-progress="76"]::after { width: 76%; }
-.offline-save-bar[data-progress="77"]::after { width: 77%; }
-.offline-save-bar[data-progress="78"]::after { width: 78%; }
-.offline-save-bar[data-progress="79"]::after { width: 79%; }
-.offline-save-bar[data-progress="80"]::after { width: 80%; }
-.offline-save-bar[data-progress="81"]::after { width: 81%; }
-.offline-save-bar[data-progress="82"]::after { width: 82%; }
-.offline-save-bar[data-progress="83"]::after { width: 83%; }
-.offline-save-bar[data-progress="84"]::after { width: 84%; }
-.offline-save-bar[data-progress="85"]::after { width: 85%; }
-.offline-save-bar[data-progress="86"]::after { width: 86%; }
-.offline-save-bar[data-progress="87"]::after { width: 87%; }
-.offline-save-bar[data-progress="88"]::after { width: 88%; }
-.offline-save-bar[data-progress="89"]::after { width: 89%; }
-.offline-save-bar[data-progress="90"]::after { width: 90%; }
-.offline-save-bar[data-progress="91"]::after { width: 91%; }
-.offline-save-bar[data-progress="92"]::after { width: 92%; }
-.offline-save-bar[data-progress="93"]::after { width: 93%; }
-.offline-save-bar[data-progress="94"]::after { width: 94%; }
-.offline-save-bar[data-progress="95"]::after { width: 95%; }
-.offline-save-bar[data-progress="96"]::after { width: 96%; }
-.offline-save-bar[data-progress="97"]::after { width: 97%; }
-.offline-save-bar[data-progress="98"]::after { width: 98%; }
-.offline-save-bar[data-progress="99"]::after { width: 99%; }
-.offline-save-bar[data-progress="100"]::after { width: 100%; }
-.offline-save-status[data-tone="success"] { color: #2a9060; }
-.offline-save-status[data-tone="warning"] { color: #94600f; }
-.offline-save-status[data-tone="error"] { color: #a04040; }
-[data-theme="dark"] .offline-save-status[data-tone="success"] { color: #6dcab0; }
-[data-theme="dark"] .offline-save-status[data-tone="warning"] { color: #e0aa50; }
-[data-theme="dark"] .offline-save-status[data-tone="error"] { color: #d06060; }
-.offline-save-side .inline-button-ghost,
-.offline-save-side .inline-button-danger {
-    flex: none;
-    height: 26px;
-    padding: 0 10px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    white-space: nowrap;
-    cursor: pointer;
-}
-.offline-save-side .inline-button-ghost[hidden] { display: none; }

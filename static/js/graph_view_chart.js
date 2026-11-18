@@ -2383,7 +2383,6 @@
     }
 
     async function openFramingAssistant(optionalQueryString) {
-        closeOfflineSavePanel();   // the panel starts closed on every open
 
         // Reset any stuck scan state on open
         const _scanBtn = document.getElementById('scan-frame-btn');
@@ -2533,7 +2532,6 @@
         // Offline sky UI: show the controls, mark surveys, and kick off the
         // low-res base fetch for the surveys actually shown.
         wireOfflineSkyUi();
-        ensureOfflineBaseSurveys();
 
         // Set default rotation if not restored
         if (!haveRot) {
@@ -2635,7 +2633,6 @@
     }
 
     function onFramingTabHidden() {
-        closeOfflineSavePanel();   // closes the panel and stops its timers
         stopFrameOverlayLoop();
     }
 
@@ -2728,8 +2725,10 @@
     }
     
     /** The whole frame in degrees: one pane grown by the mosaic, overlap counted.
-     *  cols/rows/overlapPct fall back to the inputs (1x1, 10%) -- the same maths
-     *  the offline save frame uses (offlineSaveFrame), so the two agree. */
+     *  cols/rows/overlapPct fall back to the inputs (1x1, 10%). One frame source:
+     *  the fit and the overlay rectangle describe this same extent, and it is the
+     *  maths the offline download page will use for the frame it asks the server
+     *  to keep. */
     function frameExtentDeg(paneWDeg, paneHDeg, cols, rows, overlapPct) {
         const c = Math.max(1, parseInt(cols, 10) || 1);
         const r = Math.max(1, parseInt(rows, 10) || 1);
@@ -2787,10 +2786,6 @@
         if (fovLayer) fovLayer.removeAll();
         updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotation);
         updateResultDiffers();
-        // The frame the panel would save is not the same frame any more (a new
-        // rig, a mosaic step, a new rotation): its estimate and its rig lines
-        // have to follow it.
-        refreshOfflineSavePanel();
     };
     let frameRafId = null;
     function updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotationDeg) {
@@ -3633,29 +3628,50 @@
 
     const MAX_SCAN_FOV_DEG = 4.0;
 
+    /** Show why the Scan Frame button cannot be used right now, keeping the button
+     *  reachable rather than switching it off.
+     *
+     *  `aria-disabled` + a class instead of `disabled`, so the control stays in the
+     *  tab order and keeps its tooltip: a `disabled` button cannot be focused
+     *  (measured in Chromium and WebKit -- `el.focus()` leaves activeElement
+     *  unchanged), which puts the explanation out of reach of the keyboard. The
+     *  click is refused in scanFrameForDSOs instead of by the browser.
+     *
+     *  Both states go through here so neither can leave the other's mark behind.
+     */
+    function setScanButtonBlocked(btn, reason) {
+        if (!btn) return;
+        // Never `disabled`: the reason is carried by the class and the attribute
+        // so the button stays focusable and hoverable. scanFrameForDSOs refuses
+        // the click.
+        btn.disabled = false;
+        if (reason) {
+            btn.setAttribute('aria-disabled', 'true');
+            btn.classList.add('is-blocked');
+            btn.title = reason;
+        } else {
+            btn.removeAttribute('aria-disabled');
+            btn.classList.remove('is-blocked');
+            btn.title = '';
+        }
+    }
+
     function updateScanButtonState() {
         const btn = document.getElementById('scan-frame-btn');
         if (!btn) return;
         if (offlineViewOn) {
-            btn.disabled = true;
-            btn.title = window.t('offline_scan_disabled');
-            const note = document.getElementById('offline-scan-note');
-            if (note) note.hidden = false;
+            setScanButtonBlocked(btn, window.t('offline_scan_disabled'));
             return;
         }
-        const note = document.getElementById('offline-scan-note');
-        if (note) note.hidden = true;
         const sel = document.getElementById('framing-rig-select');
         const opt = sel ? sel.options[sel.selectedIndex] : null;
-        if (!opt) return;
+        if (!opt) { setScanButtonBlocked(btn, null); return; }
         const fovWDeg = parseFloat(opt.dataset.fovw) / 60;
         const fovHDeg = parseFloat(opt.dataset.fovh) / 60;
         if (fovWDeg > MAX_SCAN_FOV_DEG || fovHDeg > MAX_SCAN_FOV_DEG) {
-            btn.disabled = true;
-            btn.title    = window.t('scan_fov_too_large', { w: fovWDeg.toFixed(1), h: fovHDeg.toFixed(1), max: MAX_SCAN_FOV_DEG });
+            setScanButtonBlocked(btn, window.t('scan_fov_too_large', { w: fovWDeg.toFixed(1), h: fovHDeg.toFixed(1), max: MAX_SCAN_FOV_DEG }));
         } else {
-            btn.disabled = false;
-            btn.title    = '';
+            setScanButtonBlocked(btn, null);
         }
     }
 
@@ -3693,13 +3709,17 @@
         const btn = document.getElementById('scan-frame-btn');
         const popup = document.getElementById('scan-result-popup');
 
+        // A blocked button is not a disabled one any more (see setScanButtonBlocked),
+        // so the click arrives here and is refused where the reason is known.
+        if (btn && btn.getAttribute('aria-disabled') === 'true') return;
+
         if (scanFrameActive && scanResultsCatalog) {
             scanResultsCatalog.removeAll();
             scanFrameActive = false;
             scanResultsAll = [];
             const _si = document.getElementById('scan-min-size');
             if (_si) _si.disabled = true;
-            if (btn) { btn.textContent = window.t('scan_frame'); btn.disabled = false; }
+            if (btn) { btn.textContent = window.t('scan_frame'); setScanButtonBlocked(btn, null); }
             if (popup) popup.hidden = true;
             return;
         }
@@ -3712,7 +3732,13 @@
         const fovWDeg = opt ? parseFloat(opt.dataset.fovw) / 60 : 1.0;
         const fovHDeg = opt ? parseFloat(opt.dataset.fovh) / 60 : 1.0;
 
-        if (btn) { btn.textContent = window.t('scan_scanning'); btn.disabled = true; }
+        if (btn) {
+            btn.textContent = window.t('scan_scanning');
+            // Busy is a real disabled state: the button is not clickable and the
+            // per-rig tooltip goes away while it runs.
+            setScanButtonBlocked(btn, null);
+            btn.disabled = true;
+        }
 
         fetch('/api/scan_frame', {
             method: 'POST',
@@ -3726,7 +3752,7 @@
         })
         .then(r => r.json())
         .then(data => {
-            if (btn) { btn.textContent = window.t('scan_frame'); btn.disabled = false; }
+            if (btn) { btn.textContent = window.t('scan_frame'); setScanButtonBlocked(btn, null); }
             if (data.status !== 'success') {
                 if (data.code === 'simbad_unavailable') {
                     novaAlert(window.t('simbad_unavailable'));
@@ -3861,7 +3887,7 @@
         })
         .catch(err => {
             console.error('[SCAN] fetch error:', err);
-            if (btn) { btn.textContent = window.t('scan_frame'); btn.disabled = false; }
+            if (btn) { btn.textContent = window.t('scan_frame'); setScanButtonBlocked(btn, null); }
         });
     }
 
@@ -3877,7 +3903,6 @@
     window.saveFramingToDB = saveFramingToDB;
     window.updateFramingChart = updateFramingChart;
     window.updateFovVsObjectLabel = updateFovVsObjectLabel;
-    window.refreshOfflineStatus = refreshOfflineStatus;
     window.onRotationInput = onRotationInput;
     window.setSurvey = setSurvey;
     window.showSurveyNotice = showSurveyNotice;
@@ -4021,60 +4046,10 @@
     // ============================================
 
     // ==========================================================================
-    // OFFLINE SKY: offline view toggle + save-for-offline + status chip
+    // OFFLINE SKY: the Offline view switch
     // ==========================================================================
-
-    // The offline indicator in the Framing header is on with the save UI: it
-    // only reads (/api/offline/status) and never warms anything, so it is safe
-    // to show. The pieces that *do* warm things -- the low-res base jobs and the
-    // survey-dropdown marks -- stay off behind their own gate (piece C).
-    const OFFLINE_BASE_UI_ENABLED = false;
-    let offlineSavePanel = null;
-
     function offlineEnabled() { return !!window.NOVA_OFFLINE_SKY; }
-    // "Save for offline" button, panel and "Saved for offline" list (piece B2).
-    function offlineSaveEnabled() { return offlineEnabled() && !!window.NOVA_OFFLINE_SKY_SAVE; }
-    // Status chip, dropdown marks and base-layer jobs (piece C): a separate gate.
-    function offlineBaseUiEnabled() { return offlineSaveEnabled() && OFFLINE_BASE_UI_ENABLED; }
-    function offlineSurveyEntry(surveyId) {
-        return (window.NOVA_OFFLINE_SKY_SURVEYS || {})[surveyId] || null;
-    }
     function offlineBaseId() { return document.getElementById('survey-select')?.value || 'P/DSS2/color'; }
-    function offlineBlendId() { return document.getElementById('blend-survey-select')?.value || ''; }
-
-    // Save area = the imaging frame (whole mosaic if one is set), never the Aladin
-    // view. The server derives the radius (half-diagonal + margin) and the detail
-    // (from the rig's image scale); rotation doesn't change the bounding radius.
-    function offlineFrameCenter() {
-        // The frame centre is the view centre (see frameCenter)
-        if (aladin && typeof aladin.getRaDec === 'function') {
-            const rc = aladin.getRaDec();
-            if (rc && isFinite(rc[0]) && isFinite(rc[1])) return { ra: rc[0], dec: rc[1] };
-        }
-        return null;
-    }
-    function offlineSaveFrame() {
-        const center = offlineFrameCenter();
-        const sel = document.getElementById('framing-rig-select');
-        const opt = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex] : null;
-        const wDeg = (parseFloat(opt && opt.dataset.fovw) || 0) / 60;
-        const hDeg = (parseFloat(opt && opt.dataset.fovh) || 0) / 60;
-        const cols = Math.max(1, parseInt(document.getElementById('mosaic-cols')?.value || 1) || 1);
-        const rows = Math.max(1, parseInt(document.getElementById('mosaic-rows')?.value || 1) || 1);
-        const overlap = (parseFloat(document.getElementById('mosaic-overlap')?.value || 0) || 0) / 100;
-        // Mosaic extent: first pane full size, every further pane adds (1 - overlap).
-        const frameW = wDeg * (1 + (cols - 1) * (1 - overlap));
-        const frameH = hDeg * (1 + (rows - 1) * (1 - overlap));
-        return { ra: center ? center.ra : NaN, dec: center ? center.dec : NaN,
-                 frameW, frameH, rigId: opt ? opt.value : '' };
-    }
-    function offlineFrameValid(f) {
-        return isFinite(f.ra) && isFinite(f.dec) && f.frameW > 0 && f.frameH > 0 && !!f.rigId;
-    }
-    function offlineFrameQuery(f) {
-        return `ra=${f.ra}&dec=${f.dec}&frame_w_deg=${f.frameW}&frame_h_deg=${f.frameH}` +
-            `&rig_id=${encodeURIComponent(f.rigId)}`;
-    }
 
     function setOfflineView(on, fromUser) {
         offlineViewOn = !!on;
@@ -4087,7 +4062,7 @@
         // mode shows its own notice.
         hideSurveyNotice();
         applyOfflineViewToLayers();
-        updateOfflineViewUi();
+        updateScanButtonState();
     }
 
     function applyOfflineViewToLayers() {
@@ -4100,175 +4075,13 @@
         updateSurveyCredit();
     }
 
-    function updateOfflineViewUi() {
-        const scanBtn = document.getElementById('scan-frame-btn');
-        const note = document.getElementById('offline-scan-note');
-        if (scanBtn && note) {
-            if (offlineViewOn) {
-                scanBtn.disabled = true;
-                scanBtn.title = window.t('offline_scan_disabled');
-                note.hidden = false;
-            } else {
-                note.hidden = true;
-                updateScanButtonState();
-            }
-        }
-        refreshOfflineStatus();
-    }
-
-    /** The offline indicator: is the current frame, at the detail the selected
-     *  rig needs, kept for offline? Three states, into the header slot.
-     *
-     *  Only reads -- never warms a base layer -- so it is gated on the save UI
-     *  being on, not on the piece-C gate that starts jobs. */
-    let offlineStatusSeq = 0;
-    function refreshOfflineStatus() {
-        if (!offlineSaveEnabled()) return;
-        const slot = document.getElementById('framing-offline-slot');
-        if (!slot) return;
-        const frame = offlineSaveFrame();
-        const baseId = offlineBaseId();
-        const show = (key, cls) => {
-            slot.textContent = window.t(key);
-            slot.className = 'framing-offline-slot offline-chip ' + cls;
-            slot.hidden = false;
-        };
-        const hide = () => { slot.textContent = ''; slot.className = 'framing-offline-slot'; };
-        if (!baseId || !offlineFrameValid(frame)) { hide(); return; }
-        const seq = ++offlineStatusSeq;
-        const url = `/api/offline/status?${offlineFrameQuery(frame)}` +
-            `&surveys=${encodeURIComponent(baseId)}`;
-        fetch(url).then(r => r.ok ? r.json() : null).then(data => {
-            if (seq !== offlineStatusSeq) return;      // an older frame's answer
-            const byId = data && data.survey_ids ? data.surveys : null;
-            const entry = offlineSurveyEntry(baseId);
-            const slug = entry ? entry.slug : null;
-            const st = byId && slug ? byId[slug] : null;
-            if (!st) { hide(); return; }
-            const target = st.target_order ?? (entry ? entry.maxOrder : 9);
-            // Three states, judged only on pinned coverage of THIS frame at the
-            // selected rig's detail. The base layer is deliberately not consulted:
-            // it is a whole-sky convenience, and a save pins the tiles for the
-            // frame it was made for whether or not the base was ever finished.
-            if (st.max_pinned_order < 0) show('offline_chip_not_available', 'offline-chip-none');
-            else if (st.max_pinned_order >= target) show('offline_chip_sharp', 'offline-chip-sharp');
-            else show('offline_chip_low', 'offline-chip-low');
-        }).catch(() => {});
-    }
-
-    function refreshOfflineMarks() {
-        if (!offlineBaseUiEnabled()) return;
-        fetch('/api/offline/base/status').then(r => r.ok ? r.json() : null).then(data => {
-            const surveys = data && data.surveys || {};
-            for (const selId of ['survey-select', 'blend-survey-select']) {
-                const sel = document.getElementById(selId);
-                if (!sel) continue;
-                for (const opt of sel.options) {
-                    const entry = offlineSurveyEntry(opt.value);
-                    const slug = entry ? entry.slug : null;
-                    const complete = slug ? !!(surveys[slug] && surveys[slug].complete) : false;
-                    opt.dataset.offline = complete ? '1' : '0';
-                    // Append the offline marker to the original label once.
-                    const baseLabel = opt.dataset.origLabel || opt.textContent;
-                    if (!opt.dataset.origLabel) opt.dataset.origLabel = baseLabel;
-                    opt.textContent = complete ? `${baseLabel} · ${window.t('offline_suffix')}` : baseLabel;
-                }
-            }
-        }).catch(() => {});
-    }
-
-    function ensureOfflineBaseSurveys() {
-        if (!offlineBaseUiEnabled()) return;
-        const ids = [];
-        const base = offlineBaseId(), blend = offlineBlendId();
-        if (base) ids.push(base);
-        if (blend && blend !== base) ids.push(blend);
-        if (!ids.length) return;
-        fetch('/api/offline/base/ensure', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ surveys: ids })
-        }).then(() => refreshOfflineMarks()).catch(() => {});
-    }
-
-    // --- Save-for-offline panel (static/js/offline_save_panel.js) ---
-    function getOfflineSavePanel() {
-        if (offlineSavePanel || !offlineSaveEnabled() || !window.NovaOfflineSavePanel) return offlineSavePanel;
-        if (!document.getElementById('offline-save-panel')) return null;
-        offlineSavePanel = window.NovaOfflineSavePanel.create({
-            doc: document,
-            fetch: (url, opts) => fetch(url, opts),
-            t: (key, params) => window.t(key, params),
-            confirm: (msg, opts) => window.novaConfirm(msg, opts),
-            timers: {
-                setTimeout: (fn, ms) => window.setTimeout(fn, ms),
-                clearTimeout: (id) => window.clearTimeout(id),
-                setInterval: (fn, ms) => window.setInterval(fn, ms),
-                clearInterval: (id) => window.clearInterval(id),
-            },
-            surveys: window.NOVA_OFFLINE_SKY_SURVEYS || {},
-            getFrame: offlineSaveFrame,
-            getBaseId: offlineBaseId,
-            getBlendId: offlineBlendId,
-            getName: () => (window.NOVA_GRAPH_DATA && (window.NOVA_GRAPH_DATA.objectName || window.NOVA_GRAPH_DATA.altName)) || 'RA/Dec',
-            // The rig this view is set to: what a save is made for, and what a
-            // saved row's rig is compared with.
-            getRigId: () => {
-                const sel = document.getElementById('framing-rig-select');
-                const opt = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex] : null;
-                return opt ? opt.value : null;
-            },
-            getRigName: () => {
-                const sel = document.getElementById('framing-rig-select');
-                const opt = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex] : null;
-                return opt ? (opt.textContent || '').trim() : '';
-            },
-            onSavesChanged: () => refreshOfflineStatus(),
-            getRigScale: () => {
-                const sel = document.getElementById('framing-rig-select');
-                const opt = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex] : null;
-                const v = parseFloat(opt && opt.dataset.imageScale);
-                return isFinite(v) && v > 0 ? v : null;
-            },
-            locale: document.documentElement.lang || undefined,
-            isConfirmOpen: () => {
-                const m = document.getElementById('nova-modal');
-                return !!m && m.classList.contains('is-visible');
-            },
-        });
-        // Capture phase, so Escape closes only the panel while it is open; the
-        // page's other Escape handlers (document, bubble) never see that press.
-        window.addEventListener('keydown', (e) => { if (offlineSavePanel) offlineSavePanel.handleKeydown(e); }, true);
-        return offlineSavePanel;
-    }
-
-    /** Closes the panel and stops its timers; called on open and when the Framing tab hides. */
-    function closeOfflineSavePanel() {
-        if (offlineSavePanel) offlineSavePanel.close();
-    }
-
-    /** The rig or the mosaic changed: if the panel is open, re-read the estimate
-     *  and the saved list, so the numbers follow what the frame now is. The
-     *  indicator follows too -- what is kept offline depends on the frame and on
-     *  the rig's detail. */
-    function refreshOfflineSavePanel() {
-        refreshOfflineStatus();
-        if (offlineSavePanel && offlineSavePanel.isOpen()) offlineSavePanel.refresh();
-    }
-
     function wireOfflineSkyUi() {
-        const wrap = document.getElementById('offline-sky-controls');
-        if (wrap) wrap.hidden = !offlineEnabled();
         if (!offlineEnabled()) return;
 
         const toggle = document.getElementById('offline-view-toggle');
         if (toggle && !toggle.__novaOfflineWired) {
             toggle.__novaOfflineWired = true;
             toggle.addEventListener('change', () => setOfflineView(toggle.checked, true));
-        }
-        const saveBtn = document.getElementById('save-offline-btn');
-        if (saveBtn && !saveBtn.__novaOfflineWired && getOfflineSavePanel()) {
-            saveBtn.__novaOfflineWired = true;
-            saveBtn.addEventListener('click', () => offlineSavePanel.toggle());
         }
 
         // Auto-on when the browser drops offline; restore the user's own setting
@@ -4278,9 +4091,6 @@
             window.addEventListener('offline', () => setOfflineView(true, false));
             window.addEventListener('online', () => setOfflineView(offlineViewUserSetting === true, false));
         }
-
-        refreshOfflineStatus();
-        refreshOfflineMarks();
     }
 
     // Expose theme update function for external calls

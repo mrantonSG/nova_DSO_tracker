@@ -82,7 +82,7 @@ const api = vm.runInContext(`
     let aladin = null;
     let displayedBaseSurvey = 'P/DSS2/color';
     function applyOfflineViewToLayers() { __log('applyLayers'); }
-    function updateOfflineViewUi() { __log('updateUi'); }
+    function updateScanButtonState() { __log('updateScanButtonState'); }
     function showSurveyNotice() { __log('notice'); }
     function hideSurveyNotice() { __log('hideNotice'); }
     function surveyOptionLabel(v) { return v; }
@@ -149,7 +149,7 @@ def test_a_layer_error_does_not_override_the_users_own_setting(out):
     assert out["afterUserOff"] == {
         "state": {"on": False, "userSetting": False},
         "checked": False,
-        "log": ["hideNotice", "applyLayers", "updateUi"],
+        "log": ["hideNotice", "applyLayers", "updateScanButtonState"],
     }
     assert out["afterErrorPostUserOff"] == {
         "state": {"on": False, "userSetting": False},
@@ -166,7 +166,7 @@ def test_set_offline_view_still_switches_when_connectivity_changes(out):
     assert out["afterConnectivityOff"] == {
         "state": {"on": True, "userSetting": False},
         "checked": True,
-        "log": ["hideNotice", "applyLayers", "updateUi"],
+        "log": ["hideNotice", "applyLayers", "updateScanButtonState"],
     }
 
 
@@ -290,7 +290,7 @@ const api = vm.runInContext(`
     }
     function offlineBaseId() { return __selects['survey-select'].value; }
     function applyOfflineViewToLayers() {}
-    function updateOfflineViewUi() {}
+    function updateScanButtonState() {}
     function updateImageAdjustments() {}
     function updateSurveyCredit() {}
     function resolveHipsId(v) { return v.startsWith('http') ? v : 'http://nova.test/hips/' + v; }

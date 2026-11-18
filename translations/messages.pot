@@ -4775,146 +4775,6 @@ msgstr ""
 msgid "Scan Frame is unavailable in offline view."
 msgstr ""
 
-#: templates/graph_view.html:36 templates/graph_view.html:498
-#: templates/graph_view.html:509
-msgid "Save for offline"
-msgstr ""
-
-#: templates/graph_view.html:37
-msgid "Sharp offline"
-msgstr ""
-
-#: templates/graph_view.html:38
-msgid "Low detail offline"
-msgstr ""
-
-#: templates/graph_view.html:39
-msgid "Not available offline"
-msgstr ""
-
-#: templates/graph_view.html:40
-msgid "offline"
-msgstr ""
-
-#: templates/graph_view.html:43
-msgid "Nothing saved for offline yet."
-msgstr ""
-
-#: templates/graph_view.html:44 templates/graph_view.html:523
-msgid "Lighter"
-msgstr ""
-
-#: templates/graph_view.html:45 templates/graph_view.html:524
-msgid "Matches your rig"
-msgstr ""
-
-#: templates/graph_view.html:46 templates/graph_view.html:525
-msgid "Sharper"
-msgstr ""
-
-#: templates/graph_view.html:47
-#, python-brace-format
-msgid "≈{scale}″/px · your rig {rig}″/px"
-msgstr ""
-
-#: templates/graph_view.html:48
-msgid "Not covered here"
-msgstr ""
-
-#: templates/graph_view.html:49
-msgid "Max detail of this survey"
-msgstr ""
-
-#: templates/graph_view.html:50
-#, python-brace-format
-msgid "{tiles} tiles · {mb} MB"
-msgstr ""
-
-#: templates/graph_view.html:51
-msgid "Estimating…"
-msgstr ""
-
-#: templates/graph_view.html:52
-msgid "This is more than the space set aside for offline sky."
-msgstr ""
-
-#: templates/graph_view.html:53
-msgid "Not enough free disk space on this computer."
-msgstr ""
-
-#: templates/graph_view.html:54
-msgid "Choose at least one survey."
-msgstr ""
-
-#: templates/graph_view.html:55
-msgid "Choose a rig first."
-msgstr ""
-
-#: templates/graph_view.html:56
-msgid ""
-"This rig has no image scale. Add the camera pixel size and the focal "
-"length."
-msgstr ""
-
-#: templates/graph_view.html:57
-msgid "This frame is too large to save for offline."
-msgstr ""
-
-#: templates/graph_view.html:58
-msgid "There is nothing to save for these surveys here."
-msgstr ""
-
-#: templates/graph_view.html:59
-msgid "The estimate is not available right now."
-msgstr ""
-
-#: templates/graph_view.html:60
-msgid "Waiting"
-msgstr ""
-
-#: templates/graph_view.html:61
-#, python-brace-format
-msgid "Downloading {done} / {total}"
-msgstr ""
-
-#: templates/graph_view.html:62
-msgid "Paused – survey server not reachable"
-msgstr ""
-
-#: templates/graph_view.html:63
-msgid "Done"
-msgstr ""
-
-#: templates/graph_view.html:64
-#, python-brace-format
-msgid "Done – {count} tiles not available"
-msgstr ""
-
-#: templates/graph_view.html:65
-msgid "Stopped – not enough space"
-msgstr ""
-
-#: templates/graph_view.html:66
-msgid "Cancelled"
-msgstr ""
-
-#: templates/graph_view.html:67
-msgid "Failed"
-msgstr ""
-
-#: templates/graph_view.html:68
-msgid "partial"
-msgstr ""
-
-#: templates/graph_view.html:69
-msgid "Saved by an earlier version"
-msgstr ""
-
-#: templates/graph_view.html:70
-#, python-brace-format
-msgid "Delete the offline sky saved for {name}?"
-msgstr ""
-
 #: templates/graph_view.html:118
 msgid "Graph Date"
 msgstr ""
@@ -5229,28 +5089,8 @@ msgstr ""
 msgid "Saturation"
 msgstr ""
 
-#: templates/graph_view.html:495
-msgid "Offline"
-msgstr ""
-
-#: templates/graph_view.html:516
-msgid "Surveys"
-msgstr ""
-
 #: templates/graph_view.html:520 templates/solar_system.html:660
 msgid "Detail"
-msgstr ""
-
-#: templates/graph_view.html:529
-msgid "Estimate"
-msgstr ""
-
-#: templates/graph_view.html:532
-msgid "Free space"
-msgstr ""
-
-#: templates/graph_view.html:541
-msgid "Saved for offline"
 msgstr ""
 
 #: templates/graph_view.html:550 templates/index.html:78
@@ -8330,14 +8170,6 @@ msgstr ""
 msgid ""
 "Send this computer's copy of the file to the server with the next sync? "
 "It becomes the record's file everywhere."
-msgstr ""
-
-#: templates/graph_view.html
-msgid "More surveys ({count})"
-msgstr ""
-
-#: templates/graph_view.html
-msgid "Fewer surveys"
 msgstr ""
 
 #: templates/base.html

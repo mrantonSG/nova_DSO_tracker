@@ -18,6 +18,7 @@ import uuid
 import pytest
 import requests
 
+import nova.offline_sky_jobs as jobs
 from nova.offline_sky_store import (
     hips_root,
     survey_dir,
@@ -718,6 +719,115 @@ def _manifest(**kw):
 
 
 # ---------------------------------------------------------------------------
+# Save manifests: the legacy on-disk format, and the estimate's resolution
+# (moved here from tests/test_offline_save_panel.py with the panel UI removal:
+# the JSON these read and write is what the Configuration download page will
+# consume, so the coverage stays).
+# ---------------------------------------------------------------------------
+
+LEGACY_ID = "3cd1e599-bded-4310-9983-d557a5d203eb"
+
+
+def _uid(db_session):
+    from nova.models import DbUser
+    return db_session.query(DbUser).filter_by(username="default").one().id
+
+
+def _write_legacy_save(uid, status="cancelled"):
+    """A save exactly as the first step-2 version wrote it (the LDN1295 one)."""
+    from nova import offline_sky_store as store
+    store.write_save_manifest({
+        "id": LEGACY_ID, "user_id": uid, "name": "LDN1295",
+        "ra": 11.200000000000005, "dec": 52.43333333333334, "radius_deg": 21.564434664667715,
+        "surveys": ["dss2-color", "nsns-oiii8"], "max_order": 8,
+        "created": "2026-11-16T23:30:12Z",
+        "paths": ["dss2-color/Norder4/Dir0/Npix1.jpg"], "bytes": 19583809, "status": status})
+    os.makedirs(store.jobs_dir(), exist_ok=True)
+    with open(os.path.join(store.jobs_dir(), f"{LEGACY_ID}.json"), "w") as fh:
+        json.dump({"id": LEGACY_ID, "kind": "save", "surveys": ["dss2-color", "nsns-oiii8"],
+                   "done": 364, "total": 364, "bytes": 19583809, "status": status,
+                   "updated": 1794871901.743596}, fh)
+
+
+def test_legacy_unfinished_save_is_hidden_but_still_deletable(monkeypatch, client, db_session):
+    """A legacy save that never finished covers nothing and can never run again,
+    so the list hides it. Its file stays, its summary is still readable, and it
+    can still be deleted."""
+    from nova import offline_sky_store as store
+    _save_on(monkeypatch)
+    monkeypatch.setattr(jobs, "kick", lambda: False)
+    _write_legacy_save(_uid(db_session))
+    resp = client.get("/api/offline/saves")
+    assert resp.status_code == 200
+    assert resp.get_json()["saves"] == []            # hidden from the list
+
+    # the summary is still there, and still says what it always said
+    prog = client.get(f"/api/offline/saves/{LEGACY_ID}/progress")
+    assert prog.status_code == 200
+    s = prog.get_json()["manifest"]
+    assert s["id"] == LEGACY_ID and s["legacy"] is True and s["legacy_unfinished"] is True
+    assert s["status"] == "cancelled" and s["partial"] is True
+    assert s["detail_offset"] is None
+    assert s["survey_ids"] == ["P/DSS2/color", "https://www.simg.de/nebulae3/dr0_2/oiii8"]
+
+    assert client.delete(f"/api/offline/saves/{LEGACY_ID}").status_code == 200
+    assert store.read_save_manifest(LEGACY_ID) is None
+    assert jobs.read_job(LEGACY_ID) is None
+    assert client.get("/api/offline/saves").get_json()["saves"] == []
+
+
+def test_legacy_done_save_is_still_listed(monkeypatch, client, db_session):
+    """Only a legacy save that never finished is hidden: a finished one covers
+    its tiles and stays in the list."""
+    _save_on(monkeypatch)
+    monkeypatch.setattr(jobs, "kick", lambda: False)
+    _write_legacy_save(_uid(db_session), status="done")
+    (s,) = client.get("/api/offline/saves").get_json()["saves"]
+    assert s["legacy"] is True and s["legacy_unfinished"] is False and s["status"] == "done"
+
+
+def test_legacy_save_left_running_reads_as_failed_and_its_job_cannot_crash(
+        monkeypatch, client, db_session):
+    from nova import offline_sky_store as store
+    _save_on(monkeypatch)
+    monkeypatch.setattr(jobs, "kick", lambda: False)
+    _write_legacy_save(_uid(db_session), status="running")
+    s = client.get(f"/api/offline/saves/{LEGACY_ID}/progress").get_json()["manifest"]
+    assert s["status"] == "failed" and s["partial"] is True and s["legacy"] is True
+    assert s["legacy_unfinished"] is True
+    # Its job file has no params: whoever runs the queue marks it failed, no exception.
+    jobs.JobRunner(rate=1000).run_job(LEGACY_ID)
+    assert jobs.read_job(LEGACY_ID)["status"] == "failed"
+    assert client.delete(f"/api/offline/saves/{LEGACY_ID}").status_code == 200
+    assert store.read_save_manifest(LEGACY_ID) is None
+
+
+def test_new_save_is_not_legacy(monkeypatch, client, db_session):
+    from nova import offline_sky_store as store
+    _save_on(monkeypatch)
+    store.write_save_manifest({"id": "aaaaaaaa-0000-0000-0000-000000000001",
+                               "user_id": _uid(db_session),
+                               "name": "M42", "surveys": ["dss2-color"], "paths": [], "bytes": 0,
+                               "status": "done", "partial": False, "detail_offset": 1,
+                               "frame_w_deg": 1.0, "frame_h_deg": 0.7,
+                               "created": "2026-11-17T00:00:00Z"})
+    (s,) = client.get("/api/offline/saves").get_json()["saves"]
+    assert s["legacy"] is False and s["partial"] is False and s["detail_offset"] == 1
+
+
+def test_estimate_reports_the_requested_resolution(monkeypatch, client, db_session):
+    from test_offline_sky_jobs import DSS, DSS_ID as JOBS_DSS_ID, _install_real_facts, _make_rig, _query
+    _save_on(monkeypatch)
+    _install_real_facts(DSS)
+    rid = _make_rig(db_session)
+    for off in (-1, 0, 1):
+        d = client.get("/api/offline/estimate?" + _query(rid, [JOBS_DSS_ID], offset=off)).get_json()
+        assert d["requested_pixel_scale_arcsec"] == pytest.approx(
+            jobs.hips_pixel_scale_arcsec(d["requested_order"]))
+        assert d["image_scale_arcsec"] > 0
+
+
+# ---------------------------------------------------------------------------
 # Pin ownership, eviction, status
 # ---------------------------------------------------------------------------
 
@@ -873,7 +983,7 @@ def test_hips_proxy_unaffected_when_save_disabled(monkeypatch, client):
     assert client.get(f"/hips/offline/{DSS_COLOR}/Norder3/Dir0/Npix1.jpg").data == b"TILE"
 
 
-def _graph_page(monkeypatch, client, save_enabled):
+def _graph_page(monkeypatch, client, save_enabled=False):
     import nova
     monkeypatch.setattr(nova, "offline_sky_enabled", lambda: True)
     monkeypatch.setattr(nova, "OFFLINE_SKY_SAVE_ENABLED", save_enabled)
@@ -882,45 +992,48 @@ def _graph_page(monkeypatch, client, save_enabled):
     return resp.get_data(as_text=True)
 
 
-def test_graph_page_hides_save_ui_when_save_disabled(monkeypatch, client):
-    page = _graph_page(monkeypatch, client, False)
-    assert 'id="save-offline-btn"' not in page
-    assert 'id="offline-status-chip"' not in page
-    assert 'id="offline-save-panel"' not in page
-    assert "window.NOVA_OFFLINE_SKY_SAVE = false;" in page
-    # Kept: the Offline view toggle.
+@pytest.mark.parametrize("save_enabled", [False, True])
+def test_graph_page_has_no_offline_save_ui(monkeypatch, client, save_enabled):
+    """The Framing tab carries no save-for-offline UI, whatever the save flag says.
+
+    The panel, the button, the chip, the survey checklist, the saved list and the
+    indicator slot are all gone from the side panel; only the Offline view switch
+    stays, in the FRAMING header, and it is there because the proxy serves the sky
+    -- not because anything can be saved from this page.
+    """
+    page = _graph_page(monkeypatch, client, save_enabled)
+    for gone in ('id="save-offline-btn"', 'id="offline-save-panel"', 'id="offline-status-chip"',
+                 'id="offline-sky-controls"', 'id="offline-survey-list"', 'id="offline-saves-list"',
+                 'id="offline-save-start"', 'id="offline-detail-select"', 'id="offline-estimate-total"',
+                 'id="framing-offline-slot"', 'id="offline-scan-note"',
+                 'offline_save_panel.js', 'NOVA_OFFLINE_SKY_SAVE'):
+        assert gone not in page, gone
+    # Kept: the Offline view switch, and the proxy flag it is gated on.
     assert 'id="offline-view-toggle"' in page
     assert "window.NOVA_OFFLINE_SKY = true;" in page
 
 
-def test_graph_page_shows_save_ui_when_save_enabled(monkeypatch, client):
-    page = _graph_page(monkeypatch, client, True)
-    assert 'id="save-offline-btn"' in page
-    assert 'id="offline-status-chip"' in page
-    assert 'id="offline-save-panel"' in page
-    assert "window.NOVA_OFFLINE_SKY_SAVE = true;" in page
+def test_offline_save_ui_is_gone_from_the_frontend():
+    """Source check: no page-side code reaches /api/offline/* any more.
 
-
-def test_js_save_paths_gated_on_save_flag():
-    """The modal only calls /api/offline/* when window.NOVA_OFFLINE_SKY_SAVE is on.
-
-    The offline indicator is the exception to the piece-C gate: it is a read, it
-    warms nothing, so it is gated on the save UI alone. The two pieces that do
-    warm things -- the base-layer ensure and the dropdown marks -- stay behind
-    offlineBaseUiEnabled (piece C).
+    The backend keeps every route (tile store, job runner, pins, save routes)
+    behind OFFLINE_SKY_SAVE_ENABLED for the Configuration download page; what must
+    not come back is a Framing-tab code path that calls it. The offline *view*
+    machinery -- the switch, the cache-only roots, the "not stored offline" notice
+    -- is deliberately still there.
     """
-    import re
-    src = open(os.path.join(os.path.dirname(__file__), "..", "static", "js",
-                            "graph_view_chart.js"), encoding="utf-8").read()
-    assert "return offlineEnabled() && !!window.NOVA_OFFLINE_SKY_SAVE;" in src
-    assert "return offlineSaveEnabled() && OFFLINE_BASE_UI_ENABLED;" in src
-    for fn in ("ensureOfflineBaseSurveys", "refreshOfflineMarks"):
-        m = re.search(r"function " + fn + r"\(\) \{\n\s*(.+)\n", src)
-        assert m and m.group(1).strip() == "if (!offlineBaseUiEnabled()) return;", fn
-    # the indicator: save UI only, and it writes into the header slot
-    m = re.search(r"function refreshOfflineStatus\(\) \{\n\s*(.+)\n", src)
-    assert m and m.group(1).strip() == "if (!offlineSaveEnabled()) return;"
-    assert "framing-offline-slot" in src
+    js = os.path.join(os.path.dirname(__file__), "..", "static", "js")
+    assert not os.path.exists(os.path.join(js, "offline_save_panel.js")), \
+        "the save panel module is deleted"
+    chart = open(os.path.join(js, "graph_view_chart.js"), encoding="utf-8").read()
+    for gone in ("/api/offline/", "offlineSave", "NovaOfflineSavePanel", "framing-offline-slot",
+                 "OFFLINE_BASE_UI_ENABLED", "NOVA_OFFLINE_SKY_SAVE", "offline-scan-note"):
+        assert gone not in chart, gone
+    view = open(os.path.join(js, "graph_view.js"), encoding="utf-8").read()
+    assert "refreshOfflineStatus" not in view
+    # ...while the offline view wiring stays.
+    assert "function setOfflineView(" in chart and "function wireOfflineSkyUi(" in chart
+    assert "offlineHipsRoot" in chart
 
 
 # ---------------------------------------------------------------------------
@@ -979,26 +1092,10 @@ def test_a_manifest_without_a_status_still_covers():
 
 
 # ---------------------------------------------------------------------------
-# The offline indicator (Prompt 3): pinned coverage, three states
+# /api/offline/status: pinned coverage of a frame, three states
+# (the header indicator that used to render them is gone; the route it read
+# from stays, and is what the Configuration download page will use)
 # ---------------------------------------------------------------------------
-
-def _status_page(monkeypatch, client, save_enabled=True):
-    """The framing page, rendered the way the existing page tests do it."""
-    return _graph_page(monkeypatch, client, save_enabled)
-
-
-def test_the_indicator_slot_is_in_the_framing_header(monkeypatch, client):
-    """The indicator lives in the header slot the Framing tab reserved for it."""
-    page = _status_page(monkeypatch, client)
-    assert 'id="framing-offline-slot"' in page
-    assert 'class="framing-offline-slot"' in page
-
-
-def test_indicator_strings_are_the_three_agreed_ones(monkeypatch, client):
-    page = _status_page(monkeypatch, client)
-    for text in ("Sharp offline", "Low detail offline", "Not available offline"):
-        assert f'"{text}"' in page, text
-
 
 def test_the_indicator_reads_pinned_coverage_not_disk(monkeypatch, client, db_session):
     """The three states, judged on what is pinned for the current rig and frame."""

@@ -4989,148 +4989,6 @@ msgstr "Die Serverantwort konnte nicht gelesen werden."
 msgid "Scan Frame is unavailable in offline view."
 msgstr "Bildfeld-Scan ist in der Offline-Ansicht nicht verfügbar."
 
-#: templates/graph_view.html:36 templates/graph_view.html:498
-#: templates/graph_view.html:509
-msgid "Save for offline"
-msgstr "Für offline speichern"
-
-#: templates/graph_view.html:37
-msgid "Sharp offline"
-msgstr "Offline: scharf"
-
-#: templates/graph_view.html:38
-msgid "Low detail offline"
-msgstr "Offline: wenig Detail"
-
-#: templates/graph_view.html:39
-msgid "Not available offline"
-msgstr "Offline nicht verfügbar"
-
-#: templates/graph_view.html:40
-msgid "offline"
-msgstr "offline"
-
-#: templates/graph_view.html:43
-msgid "Nothing saved for offline yet."
-msgstr "Noch nichts für offline gespeichert."
-
-#: templates/graph_view.html:44 templates/graph_view.html:523
-msgid "Lighter"
-msgstr "Leichter"
-
-#: templates/graph_view.html:45 templates/graph_view.html:524
-msgid "Matches your rig"
-msgstr "Passend zu Ihrem Rig"
-
-#: templates/graph_view.html:46 templates/graph_view.html:525
-msgid "Sharper"
-msgstr "Schärfer"
-
-#: templates/graph_view.html:47
-#, python-brace-format
-msgid "≈{scale}″/px · your rig {rig}″/px"
-msgstr "≈{scale}″/px · Ihr Rig {rig}″/px"
-
-#: templates/graph_view.html:48
-msgid "Not covered here"
-msgstr "Hier nicht abgedeckt"
-
-#: templates/graph_view.html:49
-msgid "Max detail of this survey"
-msgstr "Maximale Detailtiefe dieser Durchmusterung"
-
-#: templates/graph_view.html:50
-#, python-brace-format
-msgid "{tiles} tiles · {mb} MB"
-msgstr "{tiles} Kacheln · {mb} MB"
-
-#: templates/graph_view.html:51
-msgid "Estimating…"
-msgstr "Wird geschätzt…"
-
-#: templates/graph_view.html:52
-msgid "This is more than the space set aside for offline sky."
-msgstr "Das ist mehr als der für den Offline-Himmel vorgesehene Speicher."
-
-#: templates/graph_view.html:53
-msgid "Not enough free disk space on this computer."
-msgstr "Nicht genug freier Speicherplatz auf diesem Computer."
-
-#: templates/graph_view.html:54
-msgid "Choose at least one survey."
-msgstr "Wählen Sie mindestens eine Durchmusterung."
-
-#: templates/graph_view.html:55
-msgid "Choose a rig first."
-msgstr "Wählen Sie zuerst ein Rig."
-
-#: templates/graph_view.html:56
-msgid ""
-"This rig has no image scale. Add the camera pixel size and the focal "
-"length."
-msgstr ""
-"Dieses Rig hat keinen Abbildungsmaßstab. Ergänzen Sie die Pixelgröße der "
-"Kamera und die Brennweite."
-
-#: templates/graph_view.html:57
-msgid "This frame is too large to save for offline."
-msgstr "Dieses Bildfeld ist zu groß, um es offline zu speichern."
-
-#: templates/graph_view.html:58
-msgid "There is nothing to save for these surveys here."
-msgstr "Für diese Durchmusterungen gibt es hier nichts zu speichern."
-
-#: templates/graph_view.html:59
-msgid "The estimate is not available right now."
-msgstr "Die Schätzung ist gerade nicht verfügbar."
-
-#: templates/graph_view.html:60
-msgid "Waiting"
-msgstr "Wartet"
-
-#: templates/graph_view.html:61
-#, python-brace-format
-msgid "Downloading {done} / {total}"
-msgstr "Wird geladen {done} / {total}"
-
-#: templates/graph_view.html:62
-msgid "Paused – survey server not reachable"
-msgstr "Pausiert – Server der Durchmusterung nicht erreichbar"
-
-#: templates/graph_view.html:63
-msgid "Done"
-msgstr "Fertig"
-
-#: templates/graph_view.html:64
-#, python-brace-format
-msgid "Done – {count} tiles not available"
-msgstr "Fertig – {count} Kacheln nicht verfügbar"
-
-#: templates/graph_view.html:65
-msgid "Stopped – not enough space"
-msgstr "Angehalten – nicht genug Speicher"
-
-#: templates/graph_view.html:66
-msgid "Cancelled"
-msgstr "Abgebrochen"
-
-#: templates/graph_view.html:67
-msgid "Failed"
-msgstr "Fehlgeschlagen"
-
-#: templates/graph_view.html:68
-msgid "partial"
-msgstr "unvollständig"
-
-#: templates/graph_view.html:69
-msgid "Saved by an earlier version"
-msgstr "Mit einer früheren Version gespeichert"
-
-#: templates/graph_view.html:70
-#, python-brace-format
-msgid "Delete the offline sky saved for {name}?"
-msgstr "Den für {name} offline gespeicherten Himmel löschen?"
-
 #: templates/graph_view.html:118
 msgid "Graph Date"
 msgstr "Diagrammdatum"
@@ -5460,29 +5318,9 @@ msgstr "Gamma"
 msgid "Saturation"
 msgstr "Sättigung"
 
-#: templates/graph_view.html:495
-msgid "Offline"
-msgstr "Offline"
-
-#: templates/graph_view.html:516
-msgid "Surveys"
-msgstr "Durchmusterungen"
-
 #: templates/graph_view.html:520 templates/solar_system.html:660
 msgid "Detail"
 msgstr "Details"
-
-#: templates/graph_view.html:529
-msgid "Estimate"
-msgstr "Schätzung"
-
-#: templates/graph_view.html:532
-msgid "Free space"
-msgstr "Freier Speicher"
-
-#: templates/graph_view.html:541
-msgid "Saved for offline"
-msgstr "Für offline gespeichert"
 
 #: templates/graph_view.html:550 templates/index.html:78
 msgid "Position"
@@ -8759,14 +8597,6 @@ msgstr ""
 "Die Kopie der Datei auf diesem Computer bei der nächsten Synchronisierung"
 " an den Server senden? Sie wird dann überall zur Datei dieses "
 "Datensatzes."
-
-#: templates/graph_view.html
-msgid "More surveys ({count})"
-msgstr "Weitere Surveys ({count})"
-
-#: templates/graph_view.html
-msgid "Fewer surveys"
-msgstr "Weniger Surveys"
 
 
 #: templates/base.html

@@ -298,10 +298,10 @@ def test_the_fit_and_the_overlay_describe_the_same_rectangle(tmp_path):
 
 
 @pytestmark_node
-def test_frame_extent_matches_the_offline_save_frame(tmp_path):
-    """The fit's mosaic maths is the offline save frame's maths (one frame source)."""
+def test_frame_extent_is_the_whole_mosaic_not_one_pane(tmp_path):
+    """The fit sizes the whole mosaic: one pane grown by every further pane."""
     out = _fit(tmp_path, cols=3, rows=2, overlap_pct=25.0)
-    # offlineSaveFrame: wDeg * (1 + (cols-1)*(1-overlap))
+    # frameExtentDeg: wDeg * (1 + (cols-1)*(1-overlap))
     ov = 0.25
     want_w = PANE_W / 60.0 * (1 + (3 - 1) * (1 - ov))
     want_h = PANE_H / 60.0 * (1 + (2 - 1) * (1 - ov))
@@ -354,22 +354,3 @@ def _extract_fn_text(src, name):
             if depth == 0:
                 return src[start:i + 1]
     raise AssertionError("unterminated " + name)
-
-
-# ---------------------------------------------------------------------------
-# the style rule behind "the status never wraps" (item 8)
-# ---------------------------------------------------------------------------
-
-def test_save_status_never_wraps():
-    css = (REPO / "static" / "css" / "graph_view.css").read_text(encoding="utf-8")
-    block = _css_block(css, ".offline-save-status")
-    assert "white-space: nowrap" in block
-    assert "overflow-wrap: anywhere" not in block, \
-        "Downloading 512 / 1402 must not break mid-phrase"
-    side = _css_block(css, ".offline-save-side")
-    assert "flex-wrap: wrap" in side, "the buttons make room instead"
-
-
-def _css_block(css, selector):
-    at = css.index(selector + " {")
-    return css[at:css.index("}", at) + 1]

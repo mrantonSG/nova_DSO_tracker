@@ -5004,148 +5004,6 @@ msgstr "Impossible de lire la réponse du serveur."
 msgid "Scan Frame is unavailable in offline view."
 msgstr "Le balayage du champ est indisponible en vue hors ligne."
 
-#: templates/graph_view.html:36 templates/graph_view.html:498
-#: templates/graph_view.html:509
-msgid "Save for offline"
-msgstr "Enregistrer pour le hors ligne"
-
-#: templates/graph_view.html:37
-msgid "Sharp offline"
-msgstr "Hors ligne : net"
-
-#: templates/graph_view.html:38
-msgid "Low detail offline"
-msgstr "Hors ligne : peu de détail"
-
-#: templates/graph_view.html:39
-msgid "Not available offline"
-msgstr "Non disponible hors ligne"
-
-#: templates/graph_view.html:40
-msgid "offline"
-msgstr "hors ligne"
-
-#: templates/graph_view.html:43
-msgid "Nothing saved for offline yet."
-msgstr "Rien d'enregistré pour le hors ligne pour l'instant."
-
-#: templates/graph_view.html:44 templates/graph_view.html:523
-msgid "Lighter"
-msgstr "Plus léger"
-
-#: templates/graph_view.html:45 templates/graph_view.html:524
-msgid "Matches your rig"
-msgstr "Adapté à votre rig"
-
-#: templates/graph_view.html:46 templates/graph_view.html:525
-msgid "Sharper"
-msgstr "Plus net"
-
-#: templates/graph_view.html:47
-#, python-brace-format
-msgid "≈{scale}″/px · your rig {rig}″/px"
-msgstr "≈{scale}″/px · votre rig {rig}″/px"
-
-#: templates/graph_view.html:48
-msgid "Not covered here"
-msgstr "Non couvert ici"
-
-#: templates/graph_view.html:49
-msgid "Max detail of this survey"
-msgstr "Détail maximal de ce relevé"
-
-#: templates/graph_view.html:50
-#, python-brace-format
-msgid "{tiles} tiles · {mb} MB"
-msgstr "{tiles} tuiles · {mb} MB"
-
-#: templates/graph_view.html:51
-msgid "Estimating…"
-msgstr "Estimation…"
-
-#: templates/graph_view.html:52
-msgid "This is more than the space set aside for offline sky."
-msgstr "C'est plus que l'espace réservé au ciel hors ligne."
-
-#: templates/graph_view.html:53
-msgid "Not enough free disk space on this computer."
-msgstr "Pas assez d'espace disque libre sur cet ordinateur."
-
-#: templates/graph_view.html:54
-msgid "Choose at least one survey."
-msgstr "Choisissez au moins un relevé."
-
-#: templates/graph_view.html:55
-msgid "Choose a rig first."
-msgstr "Choisissez d'abord un rig."
-
-#: templates/graph_view.html:56
-msgid ""
-"This rig has no image scale. Add the camera pixel size and the focal "
-"length."
-msgstr ""
-"Ce rig n'a pas d'échantillonnage. Ajoutez la taille des pixels de la "
-"caméra et la focale."
-
-#: templates/graph_view.html:57
-msgid "This frame is too large to save for offline."
-msgstr "Ce cadrage est trop grand pour être enregistré hors ligne."
-
-#: templates/graph_view.html:58
-msgid "There is nothing to save for these surveys here."
-msgstr "Rien à enregistrer ici pour ces relevés."
-
-#: templates/graph_view.html:59
-msgid "The estimate is not available right now."
-msgstr "L'estimation n'est pas disponible pour le moment."
-
-#: templates/graph_view.html:60
-msgid "Waiting"
-msgstr "En attente"
-
-#: templates/graph_view.html:61
-#, python-brace-format
-msgid "Downloading {done} / {total}"
-msgstr "Téléchargement {done} / {total}"
-
-#: templates/graph_view.html:62
-msgid "Paused – survey server not reachable"
-msgstr "En pause – serveur du relevé injoignable"
-
-#: templates/graph_view.html:63
-msgid "Done"
-msgstr "Terminé"
-
-#: templates/graph_view.html:64
-#, python-brace-format
-msgid "Done – {count} tiles not available"
-msgstr "Terminé – {count} tuiles indisponibles"
-
-#: templates/graph_view.html:65
-msgid "Stopped – not enough space"
-msgstr "Arrêté – espace insuffisant"
-
-#: templates/graph_view.html:66
-msgid "Cancelled"
-msgstr "Annulé"
-
-#: templates/graph_view.html:67
-msgid "Failed"
-msgstr "Échec"
-
-#: templates/graph_view.html:68
-msgid "partial"
-msgstr "partiel"
-
-#: templates/graph_view.html:69
-msgid "Saved by an earlier version"
-msgstr "Enregistré par une version précédente"
-
-#: templates/graph_view.html:70
-#, python-brace-format
-msgid "Delete the offline sky saved for {name}?"
-msgstr "Supprimer le ciel enregistré hors ligne pour {name} ?"
-
 #: templates/graph_view.html:118
 msgid "Graph Date"
 msgstr "Date du graphique"
@@ -5475,29 +5333,9 @@ msgstr "Gamma"
 msgid "Saturation"
 msgstr "Saturation"
 
-#: templates/graph_view.html:495
-msgid "Offline"
-msgstr "Hors ligne"
-
-#: templates/graph_view.html:516
-msgid "Surveys"
-msgstr "Relevés"
-
 #: templates/graph_view.html:520 templates/solar_system.html:660
 msgid "Detail"
 msgstr "Détails"
-
-#: templates/graph_view.html:529
-msgid "Estimate"
-msgstr "Estimation"
-
-#: templates/graph_view.html:532
-msgid "Free space"
-msgstr "Espace libre"
-
-#: templates/graph_view.html:541
-msgid "Saved for offline"
-msgstr "Enregistré pour le hors ligne"
 
 #: templates/graph_view.html:550 templates/index.html:78
 msgid "Position"
@@ -8770,14 +8608,6 @@ msgstr ""
 "Envoyer la copie du fichier de cet ordinateur au serveur lors de la "
 "prochaine synchronisation ? Elle deviendra le fichier de l'enregistrement"
 " partout."
-
-#: templates/graph_view.html
-msgid "More surveys ({count})"
-msgstr "Plus de relevés ({count})"
-
-#: templates/graph_view.html
-msgid "Fewer surveys"
-msgstr "Moins de relevés"
 
 
 #: templates/base.html
