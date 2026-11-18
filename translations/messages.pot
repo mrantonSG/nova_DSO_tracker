@@ -8188,3 +8188,7 @@ msgstr ""
 msgid "{survey} isn't stored offline — showing an empty sky."
 msgstr ""
 
+#: templates/base.html
+msgid "{survey} is not responding — showing the stored copy."
+msgstr ""
+

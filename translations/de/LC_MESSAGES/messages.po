@@ -8616,6 +8616,10 @@ msgstr "{survey} ist nicht offline gespeichert — {shown} wird angezeigt."
 msgid "{survey} isn't stored offline — showing an empty sky."
 msgstr "{survey} ist nicht offline gespeichert — der Himmel bleibt leer."
 
+#: templates/base.html
+msgid "{survey} is not responding — showing the stored copy."
+msgstr "{survey} antwortet nicht — die gespeicherte Kopie wird angezeigt."
+
 
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Vorschläge aktualisieren"

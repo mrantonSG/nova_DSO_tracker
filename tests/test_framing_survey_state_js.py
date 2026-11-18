@@ -58,6 +58,7 @@ I18N = {
     "survey_not_stored_offline": "{survey} isn't stored offline — keeping {current}.",
     "survey_not_stored_offline_showing": "{survey} isn't stored offline — showing {shown}.",
     "survey_not_stored_offline_empty": "{survey} isn't stored offline — showing an empty sky.",
+    "survey_not_responding_stored": "{survey} is not responding — showing the stored copy.",
     "survey_server_unreachable": "Sky survey server unreachable.",
     "survey": "Survey",
     "close": "Close",
@@ -220,8 +221,15 @@ async function runCase(c) {
     const probeDelay = c.probeDelay || {};           // slug -> ms (online and offline)
     const loadFail = new Set(c.loadFail || []);      // slugs whose Aladin load fails although the probe passed
     const loadDelay = c.loadDelay || {};
-    const fetches = [], created = [], fallback = [], snaps = {};
+    const fetches = [], probes = [], created = [], fallback = [], snaps = {};
     const listeners = {};
+    // D2: slugs whose properties file is fresh on the server's disk. The plain
+    // /properties request is answered from it even with every upstream down;
+    // only ?preflight=1 asks the upstreams.
+    const propsOnDisk = new Set(c.propsOnDisk || []);
+    // D1: slug -> deepest order with a tile at the frame centre on disk (-1:
+    // none). A slug not listed has every tile. Asked only with ra/dec.
+    const centreOrder = c.centreOrder || {};
 
     // The fake /hips/ server, from a root URL.
     const parse = url => {
@@ -231,7 +239,18 @@ async function runCase(c) {
     const answers = url => {
         const p = parse(url);
         if (!p) return false;
-        return p.offline ? stored.has(p.slug) : !down.has(p.slug);
+        return p.offline ? stored.has(p.slug) : (!down.has(p.slug) || propsOnDisk.has(p.slug));
+    };
+    // The server's answer to a pre-flight probe (query included).
+    const probeAnswer = url => {
+        const [path, query = ''] = String(url).split('?');
+        const p = parse(path);
+        if (!p) return false;
+        const q = new URLSearchParams(query);
+        if (!p.offline) return q.get('preflight') ? !down.has(p.slug) : answers(path);
+        if (!stored.has(p.slug)) return false;
+        if (!q.has('ra') || !q.has('dec') || !(p.slug in centreOrder)) return true;
+        return centreOrder[p.slug] >= 0;                 // a tile at the centre, any order
     };
 
     // The fake Aladin: layers are added one after another (Aladin awaits every
@@ -290,13 +309,19 @@ async function runCase(c) {
         },
         setOverlayImageLayer(layer, name) { queried[name || 'overlay'] = layer; queueLayer(name || 'overlay', layer); return layer; },
         getBaseImageLayer: () => screen.base || queried.base || null,
+        getRaDec: () => c.centre || [94.27, 22.52],
         getOverlayImageLayer: name => screen[name || 'overlay'] || queried[name || 'overlay'] || null,
         removeImageLayer(name) { screen[name] = null; },
     };
 
     const navigator = { onLine: c.browserOnline !== false };
+    // The rig select and the page's rig list (image scale in arcsec/px).
+    dom.rigSel = { id: 'framing-rig-select', options: [{ value: '7', dataset: {} }], selectedIndex: 0, value: '7' };
+    const getEl = dom.document.getElementById;
+    dom.document.getElementById = id => (id === 'framing-rig-select' ? dom.rigSel : getEl(id));
     const window = {
         location: { origin: 'http://nova.test' },
+        availableRigs: c.rigScale === undefined ? [] : [{ rig_id: 7, image_scale: c.rigScale }],
         NOVA_OFFLINE_SKY: true,
         NOVA_OFFLINE_SKY_SURVEYS: {},
         addEventListener(ev, f) { (listeners[ev] = listeners[ev] || []).push(f); },
@@ -316,11 +341,12 @@ async function runCase(c) {
         AbortController: class { constructor() { this.signal = {}; } abort() {} },
         setTimeout, clearTimeout,
         fetch: async (url, opts) => {
-            const root = String(url).replace(/\/properties$/, '');
+            const root = String(url).split('?')[0].replace(/\/properties$/, '');
             fetches.push(root.replace('http://nova.test', ''));
+            probes.push(String(url).replace('http://nova.test', ''));
             const p = parse(root);
             await sleep((p && probeDelay[p.slug]) || 1);
-            const ok = answers(root);
+            const ok = probeAnswer(url);
             return { ok, status: ok ? 200 : (p && p.offline ? 404 : 503) };
         },
         sessionStorage: { getItem: () => null, setItem() {}, removeItem() {} },
@@ -341,6 +367,9 @@ async function runCase(c) {
             createSurveyLayer: typeof createSurveyLayer === 'function' ? createSurveyLayer : null,
             resolveHipsId,
             offlineViewOn: () => offlineViewOn,
+            // What the "Blend with" change handler does before building: a new
+            // pick retries a blend choice that failed.
+            repickBlend: () => { try { blendFailed = null; } catch (e) {} },
         })
     `, Object.assign(ctx, { __aladin: aladin }));
 
@@ -362,7 +391,8 @@ async function runCase(c) {
         credit: (dom.document.getElementById('survey-credit') || { textContent: null }).textContent,
         offlineView: api.offlineViewOn(), checked: dom.toggle.checked,
         blendLayersCreated: created.filter(l => l.opts && l.opts.__slot === 'blend' || l.__slot === 'blend').length,
-        created: created.map(rel), fetches: fetches.slice(), fallback: fallback.slice(),
+        created: created.map(rel), fetches: fetches.slice(), probes: probes.slice(),
+        fallback: fallback.slice(),
     });
 
     const pending = [];
@@ -371,6 +401,7 @@ async function runCase(c) {
         else if (step.do === 'blend') {
             // The real "Blend with" change handler (wireBlendAndConstellationUI).
             dom.bSel.value = step.value;
+            api.repickBlend();
             if (dom.bSel.value && dom.op.value === '0') dom.op.value = '0.5';
             pending.push(api.ensureBlendLayer());
             api.setBlendOpacity(Number(dom.op.value || 0));
@@ -386,7 +417,7 @@ async function runCase(c) {
         else if (step.do === 'up') down.delete(step.slug);
         else if (step.do === 'down') down.add(step.slug);
         else if (step.do === 'loadFail') loadFail.add(step.slug);
-        else if (step.do === 'clearFetches') fetches.length = 0;
+        else if (step.do === 'clearFetches') { fetches.length = 0; probes.length = 0; }
         else if (step.do === 'initialLayer') {
             // The Framing open's first layer, outside setSurvey.
             const url = api.resolveHipsId(step.value);
@@ -427,6 +458,109 @@ def _start(offline=False, blend=None, op=None):
 
 
 CASES = {
+    # --- Part 2: probes. A failure is never memoised, a success is.
+    "p2_repick_retries": {
+        "stored": ALL_STORED, "down": ["nsns-rgb8"], "centreOrder": {"nsns-rgb8": -1},
+        "steps": _start() + [
+            {"do": "pick", "value": RGB},
+            {"do": "up", "slug": "nsns-rgb8"},
+            {"do": "pick", "value": RGB},
+        ],
+    },
+    "p2_failure_probed_each_time": {
+        "stored": ALL_STORED, "down": ["nsns-rgb8"], "centreOrder": {"nsns-rgb8": -1},
+        "steps": _start() + [{"do": "clearFetches"},
+                             {"do": "pick", "value": RGB}, {"do": "pick", "value": RGB}],
+    },
+    "p2_success_memoised": {
+        "stored": ALL_STORED,
+        "steps": _start() + [{"do": "clearFetches"},
+                             {"do": "pick", "value": HA}, {"do": "pick", "value": DSS},
+                             {"do": "pick", "value": HA}],
+    },
+    # A failed blend with nothing shown before: the slider does not re-probe it, a
+    # re-pick does.
+    "p2_blend_slider": {
+        "stored": ALL_STORED, "down": ["dss2-red"],
+        "steps": _start() + [
+            {"do": "clearFetches"},
+            {"do": "blend", "value": DSS_RED},
+            {"do": "op", "value": 0.6}, {"do": "op", "value": 0.7},
+            {"do": "snap", "name": "dragged"},
+            {"do": "blend", "value": DSS_RED},
+            {"do": "snap", "name": "repicked"},
+            {"do": "up", "slug": "dss2-red"},
+            {"do": "blend", "value": DSS_RED},
+        ],
+    },
+    # --- D2: the online pre-flight asks the upstreams, not the server's disk copy
+    "d2_props_on_disk_upstreams_down": {
+        "stored": ALL_STORED, "down": ["panstarrs-dr1-color"], "propsOnDisk": ["panstarrs-dr1-color"],
+        "steps": _start() + [{"do": "pick", "value": PS}],
+    },
+    "d2_blend_props_on_disk_upstreams_down": {
+        "stored": ALL_STORED, "down": ["dss2-red"], "propsOnDisk": ["dss2-red"],
+        "steps": _start(blend=HA) + [{"do": "blend", "value": DSS_RED}],
+    },
+    # --- D1: Offline view's pre-flight asks for the tile at the frame centre
+    "d1_properties_only": {
+        "stored": ALL_STORED + ["galex-ais-color"], "centreOrder": {"galex-ais-color": -1},
+        "rigScale": 1.0,
+        "steps": _start(offline=True) + [{"do": "pick", "value": GALEX}],
+    },
+    "d1_centre_tile_at_target": {
+        "stored": ALL_STORED + ["galex-ais-color"], "centreOrder": {"galex-ais-color": 9},
+        "rigScale": 1.0,
+        "steps": _start(offline=True) + [{"do": "pick", "value": GALEX}],
+    },
+    "d1_shallow_tile": {
+        "stored": ALL_STORED + ["galex-ais-color"], "centreOrder": {"galex-ais-color": 2},
+        "rigScale": 1.0,
+        "steps": _start(offline=True) + [{"do": "pick", "value": GALEX}],
+    },
+    # --- Online, not responding but stored at the centre: the stored copy
+    "stored_copy_base": {
+        "stored": ALL_STORED, "down": ["nsns-rgb8"],
+        "steps": _start() + [{"do": "pick", "value": RGB}, {"do": "snap", "name": "shown"},
+                             {"do": "clearFetches"}, {"do": "pick", "value": RGB}],
+    },
+    "stored_copy_not_at_centre": {
+        "stored": ALL_STORED, "down": ["nsns-halpha8"], "centreOrder": {"nsns-halpha8": -1},
+        "steps": _start() + [{"do": "pick", "value": HA}],
+    },
+    "stored_copy_blend": {
+        "stored": ALL_STORED, "down": ["nsns-halpha8"],
+        "steps": _start(blend=RGB) + [{"do": "blend", "value": HA}, {"do": "snap", "name": "shown"},
+                                      {"do": "clearFetches"},
+                                      {"do": "op", "value": 0.7}, {"do": "op", "value": 0.8}],
+    },
+    "stored_copy_then_offline_view": {
+        "stored": ALL_STORED, "down": ["nsns-rgb8"],
+        "steps": _start() + [{"do": "pick", "value": RGB},
+                             {"do": "toggle", "on": True}, {"do": "snap", "name": "on"},
+                             {"do": "toggle", "on": False}],
+    },
+    # --- Re-picking the survey already shown: no probe, no message
+    "repick_shown": {
+        "stored": ALL_STORED,
+        "steps": _start() + [{"do": "pick", "value": HA}, {"do": "pick", "value": PS},
+                             {"do": "down", "slug": "panstarrs-dr1-color"},
+                             {"do": "clearFetches"}, {"do": "pick", "value": PS}],
+    },
+    "repick_after_failure": {
+        "stored": ALL_STORED, "down": ["panstarrs-dr1-color"],
+        "steps": _start() + [{"do": "pick", "value": PS}, {"do": "clearFetches"},
+                             {"do": "pick", "value": DSS}],
+    },
+    "d1_reroot": {
+        "stored": ALL_STORED + ["panstarrs-dr1-color"], "centreOrder": {"panstarrs-dr1-color": -1},
+        "rigScale": 2.0,
+        "steps": _start() + [{"do": "pick", "value": PS}, {"do": "toggle", "on": True}],
+    },
+    "d1_blend": {
+        "stored": ALL_STORED, "centreOrder": {"nsns-halpha8": -1}, "rigScale": 2.0,
+        "steps": _start(offline=True, blend=RGB) + [{"do": "blend", "value": HA}],
+    },
     # --- D3: the kept survey is the one still on screen, credited only once shown
     "d3_base": {
         "stored": ALL_STORED,
@@ -471,7 +605,7 @@ CASES = {
     },
     # --- D6: the probe memo
     "d6_toggle_resets": {
-        "stored": ALL_STORED, "down": ["nsns-rgb8"],
+        "stored": ALL_STORED, "down": ["nsns-rgb8"], "centreOrder": {"nsns-rgb8": -1},
         "steps": _start() + [
             {"do": "pick", "value": RGB},
             {"do": "up", "slug": "nsns-rgb8"},
@@ -480,7 +614,7 @@ CASES = {
         ],
     },
     "d6_online_event_resets": {
-        "stored": ALL_STORED, "down": ["nsns-rgb8"],
+        "stored": ALL_STORED, "down": ["nsns-rgb8"], "centreOrder": {"nsns-rgb8": -1},
         "steps": [{"do": "wire"}] + _start() + [
             {"do": "pick", "value": RGB},
             {"do": "up", "slug": "nsns-rgb8"},
@@ -497,7 +631,7 @@ CASES = {
         ],
     },
     "d6_success_drops_failure": {
-        "stored": ALL_STORED, "down": ["nsns-rgb8"],
+        "stored": ALL_STORED, "down": ["nsns-rgb8"], "centreOrder": {"nsns-rgb8": -1},
         "steps": _start() + [
             {"do": "pick", "value": RGB},                 # failure remembered
             {"do": "up", "slug": "nsns-rgb8"},
@@ -638,6 +772,164 @@ def _root(value, offline=False):
 
 def _label(value):
     return SURVEYS[value][1]
+
+
+# --- Part 2: the probe memo ----------------------------------------------------
+
+def _preflights(s, value):
+    return [p for p in s["probes"] if p.startswith(_root(value) + "/properties")]
+
+
+def test_p2_a_re_pick_retries_a_failed_survey_at_once(out):
+    """No failure memo: RGB failed, its upstream is back, and picking it again
+    straight away loads it (the old 60 s failure memo answered "not responding")."""
+    s = _case(out, "p2_repick_retries")
+    assert s["base"] == _root(RGB)
+    assert s["notice"] is None, s["notice"]
+
+
+def test_p2_every_pick_of_a_failing_survey_asks_the_server(out):
+    s = _case(out, "p2_failure_probed_each_time")
+    assert len(_preflights(s, RGB)) == 2, s["probes"]
+    assert s["notice"] == f"{_label(RGB)} is not responding — keeping {_label(DSS)}."
+
+
+def test_p2_a_success_is_still_memoised(out):
+    s = _case(out, "p2_success_memoised")
+    assert len(_preflights(s, HA)) == 1, s["probes"]
+    assert s["base"] == _root(HA)
+
+
+def test_p2_the_opacity_slider_does_not_re_probe_a_failed_blend(out):
+    dragged = _case(out, "p2_blend_slider", "dragged")
+    assert len(_preflights(dragged, DSS_RED)) == 1, dragged["probes"]
+    assert dragged["notice"] == f"{_label(DSS_RED)} is not responding — keeping {_label(DSS)}."
+    repicked = _case(out, "p2_blend_slider", "repicked")
+    assert len(_preflights(repicked, DSS_RED)) == 2, "a re-pick asks again"
+    final = _case(out, "p2_blend_slider")
+    assert final["blend"] == _root(DSS_RED), "the upstream is back: the re-pick loads it"
+    assert final["notice"] is None
+
+
+def test_p2_the_blend_change_handler_clears_the_failed_choice():
+    src = CHART_JS.read_text(encoding="utf-8")
+    handler = src[src.index("blendSel.addEventListener('change'"):]
+    handler = handler[:handler.index("});")]
+    assert "blendFailed = null" in handler
+
+
+# --- D2 ------------------------------------------------------------------------
+
+def test_d2_the_online_preflight_asks_the_upstreams(out):
+    """PanSTARRS' properties are fresh on the server's disk but every upstream is
+    down. The plain properties request would pass (and the sky would stay black);
+    the pre-flight asks with ?preflight=1, gets the 503 and keeps DSS2."""
+    s = _case(out, "d2_props_on_disk_upstreams_down")
+    assert _root(PS) + "/properties?preflight=1" in s["probes"], s["probes"]
+    assert s["base"] == _root(DSS)
+    assert s["notice"] == f"{_label(PS)} is not responding — keeping {_label(DSS)}."
+    assert s["select"] == DSS
+
+
+def test_d2_the_blend_preflight_asks_the_upstreams_too(out):
+    s = _case(out, "d2_blend_props_on_disk_upstreams_down")
+    assert s["blend"] == _root(HA)
+    assert s["notice"] == f"{_label(DSS_RED)} is not responding — keeping {_label(HA)}."
+
+
+# --- D1 ------------------------------------------------------------------------
+
+def test_d1_properties_alone_are_not_stored_offline(out):
+    s = _case(out, "d1_properties_only")
+    assert s["base"] == _root(DSS, offline=True)
+    assert s["notice"] == f"{_label(GALEX)} isn't stored offline — keeping {_label(DSS)}."
+    assert s["select"] == DSS
+
+
+def test_d1_the_offline_preflight_asks_for_the_frame_centre(out):
+    s = _case(out, "d1_centre_tile_at_target")
+    assert _root(GALEX, offline=True) + "/properties?ra=94.270000&dec=22.520000" in s["probes"], s["probes"]
+    assert s["base"] == _root(GALEX, offline=True)
+    assert s["notice"] is None
+
+
+def test_d1_a_tile_at_any_order_is_enough_and_shown_silently(out):
+    s = _case(out, "d1_shallow_tile")
+    assert s["base"] == _root(GALEX, offline=True)
+    assert s["notice"] is None, s["notice"]
+
+
+# --- Online stored copy -----------------------------------------------------------
+
+def test_a_survey_that_does_not_respond_is_shown_from_its_stored_copy(out):
+    s = _case(out, "stored_copy_base", "shown")
+    assert s["base"] == _root(RGB, offline=True)
+    assert s["notice"] == f"{_label(RGB)} is not responding — showing the stored copy."
+    assert s["select"] == RGB
+    assert s["offlineView"] is False and s["checked"] is False, "Offline view is left alone"
+    assert "Northern Sky Narrowband Survey" in s["credit"], s["credit"]
+
+
+def test_re_picking_the_stored_copy_does_nothing_and_keeps_its_notice(out):
+    s = _case(out, "stored_copy_base")
+    assert s["probes"] == [], s["probes"]
+    assert s["base"] == _root(RGB, offline=True)
+    assert s["notice"] == f"{_label(RGB)} is not responding — showing the stored copy."
+
+
+def test_no_stored_copy_at_the_centre_keeps_the_layer(out):
+    s = _case(out, "stored_copy_not_at_centre")
+    assert s["base"] == _root(DSS)
+    assert s["notice"] == f"{_label(HA)} is not responding — keeping {_label(DSS)}."
+
+
+def test_a_blend_that_does_not_respond_is_shown_from_its_stored_copy(out):
+    shown = _case(out, "stored_copy_blend", "shown")
+    assert shown["blend"] == _root(HA, offline=True)
+    assert shown["notice"] == f"{_label(HA)} is not responding — showing the stored copy."
+    s = _case(out, "stored_copy_blend")
+    assert s["probes"] == [], "the slider does not rebuild a stored-copy blend"
+    assert s["blend"] == _root(HA, offline=True)
+    assert s["notice"] == f"{_label(HA)} is not responding — showing the stored copy."
+
+
+def test_the_stored_copy_follows_offline_view_both_ways(out):
+    on = _case(out, "stored_copy_then_offline_view", "on")
+    assert on["base"] == _root(RGB, offline=True)
+    assert on["notice"] is None, "in Offline view a stored survey needs no message"
+    off = _case(out, "stored_copy_then_offline_view")
+    assert off["base"] == _root(RGB, offline=True)
+    assert off["notice"] == f"{_label(RGB)} is not responding — showing the stored copy."
+
+
+# --- Re-pick of the survey on screen ----------------------------------------------
+
+def test_re_picking_the_survey_on_screen_neither_probes_nor_speaks(out):
+    s = _case(out, "repick_shown")
+    assert s["probes"] == [] and s["fetches"] == [], (s["probes"], s["fetches"])
+    assert s["base"] == _root(PS)
+    assert s["notice"] is None
+
+
+def test_picking_the_kept_survey_after_a_failure_clears_the_failure_notice(out):
+    s = _case(out, "repick_after_failure")
+    assert s["probes"] == [], s["probes"]
+    assert s["base"] == _root(DSS)
+    assert s["select"] == DSS
+    assert s["notice"] is None, "a new choice: the PanSTARRS notice is over"
+
+
+def test_d1_rerooting_a_survey_with_only_properties_falls_back_to_dss2(out):
+    s = _case(out, "d1_reroot")
+    assert s["base"] == _root(DSS, offline=True)
+    assert s["notice"] == f"{_label(PS)} isn't stored offline — showing {_label(DSS)}."
+    assert s["select"] == DSS
+
+
+def test_d1_the_blend_preflight_asks_for_the_centre_tile_too(out):
+    s = _case(out, "d1_blend")
+    assert s["blend"] == _root(RGB, offline=True)
+    assert s["notice"] == f"{_label(HA)} isn't stored offline — keeping {_label(RGB)}."
 
 
 # --- D3 ------------------------------------------------------------------------

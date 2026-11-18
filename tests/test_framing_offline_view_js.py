@@ -283,7 +283,6 @@ vm.createContext(ctx);
 
 const api = vm.runInContext(`
     const CDS_PROBE_TIMEOUT_MS = 4000;
-    const SURVEY_PROBE_FAIL_TTL_MS = 60 * 1000;
     let offlineViewOn = true;          // start in Offline view, as the scenario does
     let offlineViewUserSetting = null;
     let surveyNoticeDismissed = false;
@@ -297,9 +296,10 @@ const api = vm.runInContext(`
     let displayedBaseSurvey = 'P/DSS2/color';
     let displayedBlendSurvey = null;
     let displayedBaseUrl = 'http://nova.test/hips/offline/P/DSS2/color';
+    let displayedBaseEmpty = false;
     let baseRequest = 0, blendRequest = 0, baseWanted = 'P/DSS2/color';
     let __blendSurveyId = null, __blendLayerUrl = null;
-    let baseSurvey = null;
+    let baseSurvey = null, blendFailed = null;
     const surveyReachability = new Map();
     function surveyOptionLabel(v) {
         return ({ 'P/DSS2/color': 'DSS2 (color)', 'P/GALEXGR6/AIS/color': 'GALEX (color)' })[v] || null;
@@ -317,7 +317,11 @@ const api = vm.runInContext(`
     async function novaAlert() {}
     ${fn(src, 'probeHips')}
     ${fn(src, 'isOfflineRootUrl')}
-    ${fn(src, 'forgetSurveyFailure')}
+    ${fn(src, 'isProxyRootUrl')}
+    ${fn(src, 'offlineCoverageQuery')}
+    ${fn(src, 'storedCopyUrl')}
+    ${fn(src, 'storedCopyFor')}
+    ${fn(src, 'storedCopyMessage')}
     ${fn(src, 'emptyLayerOptions')}
     ${fn(src, 'createSurveyLayer')}
     ${fn(src, 'onSurveyLayerShown')}

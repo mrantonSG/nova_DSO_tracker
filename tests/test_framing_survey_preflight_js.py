@@ -70,17 +70,9 @@ function fn(source, name) {
     return cut(source, hits[0].index);
 }
 
-// The failure TTL, read out of the real file so the harness cannot drift from it.
-const ttlMatch = src.match(/const\s+SURVEY_PROBE_FAIL_TTL_MS\s*=\s*([^;]+);/);
-if (!ttlMatch) throw new Error('SURVEY_PROBE_FAIL_TTL_MS not found in ' + chartFile);
-const TTL = eval(ttlMatch[1]);
-
 // Run one case: a fresh context, the real functions, stand-in collaborators.
 async function runCase(c) {
     const log = [], notices = [], swaps = [], removed = [], hides = [];
-    // A controllable clock: the failure TTL is time-based, so a step can advance it.
-    let clock = 1000000;
-    const Date = { now: () => clock };
     // The selects need options/selectedIndex: ensureBlendLayer reads the selected
     // option's text for Aladin's layer name.
     function makeSelect(id, value) {
@@ -116,7 +108,7 @@ async function runCase(c) {
         console: { warn: () => {}, log: () => {}, error: () => {} },
         AbortController: class { constructor() { this.signal = {}; } abort() {} },
         setTimeout: () => 0, clearTimeout: () => {},
-        Promise, Map, Set, JSON, Object, Array, Number, String, Error, RegExp, Date,
+        Promise, Map, Set, JSON, Object, Array, Number, String, Error, RegExp,
         document: { getElementById: id => els[id] || null, querySelector: () => null,
                     createElement: () => ({ style: {}, setAttribute() {}, append() {}, addEventListener() {} }) },
         window: {},
@@ -142,17 +134,17 @@ async function runCase(c) {
     const api = vm.runInContext(`
         const FRAMING_CONFIG = { DEFAULT_FOV_DEG: 3 };
         const CDS_PROBE_TIMEOUT_MS = 4000;
-        const SURVEY_PROBE_FAIL_TTL_MS = ${TTL};
         let aladin = __aladin;
         let displayedBaseSurvey = ${JSON.stringify(c.currentBase)};
         let displayedBlendSurvey = ${JSON.stringify(c.currentBlend)};
-        let baseSurvey = null;
+        let baseSurvey = null, blendFailed = null;
         let cdsReachable = true, dssMirror = null;
         let __blendSurveyId = ${JSON.stringify(c.currentBlend)};
         // In Offline view the layers on screen are cache-only ones (these cases pick
         // within Offline view; switching it is pinned in test_framing_survey_state_js).
         let __blendLayerUrl = ${JSON.stringify(c.offlineView && c.currentBlend ? 'http://nova.test/hips/offline/blend' : c.currentBlend)};
         let displayedBaseUrl = ${JSON.stringify(c.offlineView ? 'http://nova.test/hips/offline/base' : null)};
+        let displayedBaseEmpty = false;
         let baseRequest = 0, blendRequest = 0, baseWanted = ${JSON.stringify(c.currentBase)}, blendPending = null;
         const surveyReachability = new Map();
         let offlineViewOn = ${c.offlineView ? 'true' : 'false'};
@@ -172,7 +164,11 @@ async function runCase(c) {
         ${fn(src, 'surveyProbeUrl')}
         ${fn(src, 'surveyReachable')}
         ${fn(src, 'isOfflineRootUrl')}
-        ${fn(src, 'forgetSurveyFailure')}
+        ${fn(src, 'isProxyRootUrl')}
+        ${fn(src, 'offlineCoverageQuery')}
+        ${fn(src, 'storedCopyUrl')}
+        ${fn(src, 'storedCopyFor')}
+        ${fn(src, 'storedCopyMessage')}
         ${fn(src, 'resetSurveyReachability')}
         ${fn(src, 'emptyLayerOptions')}
         ${fn(src, 'createSurveyLayer')}
@@ -192,10 +188,8 @@ async function runCase(c) {
                             __hideNotice: () => hides.push('hide') }));
 
     for (const step of c.steps) {
-        // A step can turn a survey reachable (or not) between attempts, and advance
-        // the clock, so the TTL is exercised rather than assumed.
+        // A step can turn a survey reachable (or not) between attempts.
         if (step.reachable !== undefined) c.reachable[step.value] = step.reachable;
-        if (step.advanceMs) clock += step.advanceMs;
         if (step.kind === 'base') { api.setBaseValue(step.value); await api.setSurvey(step.value); }
         else if (step.kind === 'blend') { api.setBlendValue(step.value); await api.ensureBlendLayer(); }
         else if (step.kind === 'concurrent') {
@@ -271,40 +265,29 @@ def out(tmp_path_factory):
             "reachable": {"P/SDSS9/color": True},
             "steps": [{"kind": "blend", "value": "P/SDSS9/color"}],
         },
-        # the probe is memoised: a second call for the same survey does not re-probe
-        "memoised": {
+        # A failure is not memoised: a second pick of the same survey probes again
+        "failureNotMemoised": {
             "baseValue": "P/GALEXGR6/AIS/color", "blendValue": "P/GALEXGR6/AIS/color", "blendOpacity": 0.5,
             "currentBase": "P/DSS2/color", "currentBlend": None,
             "reachable": {"P/GALEXGR6/AIS/color": False},
             "steps": [{"kind": "base", "value": "P/GALEXGR6/AIS/color"},
                       {"kind": "base", "value": "P/GALEXGR6/AIS/color"}],
         },
-        # A failure older than the TTL is retried on the next attempt: the survey
-        # comes back, and picking it again must load it.
-        "failureExpires": {
+        # ...so a survey that comes back is loaded on the very next pick.
+        "failureRetried": {
             "baseValue": "P/GALEXGR6/AIS/color", "blendValue": "P/DSS2/color", "blendOpacity": 0,
             "currentBase": "P/DSS2/color", "currentBlend": None,
             "reachable": {"P/GALEXGR6/AIS/color": False},
             "steps": [{"kind": "base", "value": "P/GALEXGR6/AIS/color"},
-                      {"kind": "base", "value": "P/GALEXGR6/AIS/color",
-                       "advanceMs": 61000, "reachable": True}],
+                      {"kind": "base", "value": "P/GALEXGR6/AIS/color", "reachable": True}],
         },
-        # Inside the TTL the failure is still remembered: no second probe, no swap.
-        "failureNotYetExpired": {
-            "baseValue": "P/GALEXGR6/AIS/color", "blendValue": "P/DSS2/color", "blendOpacity": 0,
-            "currentBase": "P/DSS2/color", "currentBlend": None,
-            "reachable": {"P/GALEXGR6/AIS/color": False},
-            "steps": [{"kind": "base", "value": "P/GALEXGR6/AIS/color"},
-                      {"kind": "base", "value": "P/GALEXGR6/AIS/color",
-                       "advanceMs": 59000, "reachable": True}],
-        },
-        # A success is kept for the session: no re-probe even long after the TTL.
+        # A success is kept for the session.
         "successKept": {
             "baseValue": "P/GALEXGR6/AIS/color", "blendValue": "P/DSS2/color", "blendOpacity": 0,
             "currentBase": "P/DSS2/color", "currentBlend": None,
             "reachable": {"P/GALEXGR6/AIS/color": True},
             "steps": [{"kind": "base", "value": "P/GALEXGR6/AIS/color"},
-                      {"kind": "base", "value": "P/GALEXGR6/AIS/color", "advanceMs": 600000}],
+                      {"kind": "base", "value": "P/GALEXGR6/AIS/color"}],
         },
         # Two callers asking at the same moment share one probe: the in-flight promise
         # is handed back rather than a second request going out (the blend layer's
@@ -390,19 +373,17 @@ def test_a_reachable_blend_is_swapped(out):
     assert res["notices"] == []
 
 
-def test_the_reachability_probe_is_memoised_per_survey(out):
-    """Two base changes to the same unreachable survey probe once: the second call
-    reuses the answer instead of hitting the network again."""
-    res = out["memoised"]
-    assert res["log"] == ["probe P/GALEXGR6/AIS/color -> fail"], res["log"]
-    assert len(res["notices"]) == 2, "each attempt still tells the user"
+def test_a_failed_probe_is_not_memoised(out):
+    """Two picks of the same unreachable survey probe twice: an explicit re-pick
+    always asks again (the server's breaker and absence marks protect the
+    upstreams), and each attempt tells the user."""
+    res = out["failureNotMemoised"]
+    assert res["log"] == ["probe P/GALEXGR6/AIS/color -> fail"] * 2, res["log"]
+    assert len(res["notices"]) == 2
 
 
-def test_a_failed_probe_expires_and_the_survey_is_retried(out):
-    """Framing is a tab, opened once per page load. A failure must not be remembered
-    for the whole session: after the TTL, picking the survey again probes afresh and
-    loads it once the upstream is back."""
-    res = out["failureExpires"]
+def test_a_survey_that_comes_back_loads_on_the_next_pick(out):
+    res = out["failureRetried"]
     assert res["log"] == ["probe P/GALEXGR6/AIS/color -> fail",
                           "probe P/GALEXGR6/AIS/color -> ok"], res["log"]
     assert res["swaps"] == [ROOTS["P/GALEXGR6/AIS/color"]], "the retry swaps the layer"
@@ -410,22 +391,14 @@ def test_a_failed_probe_expires_and_the_survey_is_retried(out):
         "only the first attempt failed"
 
 
-def test_a_failure_inside_the_ttl_is_still_remembered(out):
-    """Just under the TTL the answer stands: no second probe, no swap. This is what
-    stops the opacity slider re-probing on every drag."""
-    res = out["failureNotYetExpired"]
-    assert res["log"] == ["probe P/GALEXGR6/AIS/color -> fail"], res["log"]
-    assert res["swaps"] == []
-    assert len(res["notices"]) == 2
-
-
 def test_a_successful_probe_is_kept_for_the_session(out):
-    """Only failures expire: a survey that answered is known good, so it is never
-    re-probed in that session even long after the TTL. The swap still happens per
-    request -- the memo saves the probe, not the layer change."""
+    """A survey that answered is known good: it is not re-probed in that session.
+    (The second pick here is of the survey already on screen, which does nothing
+    at all: no probe, no swap, no message.)"""
     res = out["successKept"]
     assert res["log"] == ["probe P/GALEXGR6/AIS/color -> ok"], res["log"]
-    assert res["swaps"] == [ROOTS["P/GALEXGR6/AIS/color"]] * 2
+    assert res["swaps"] == [ROOTS["P/GALEXGR6/AIS/color"]]
+    assert res["notices"] == []
 
 
 def test_an_in_flight_probe_is_shared_not_duplicated(out):

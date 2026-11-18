@@ -8227,6 +8227,10 @@ msgstr "{survey} はオフライン保存されていません — {shown} を�
 msgid "{survey} isn't stored offline — showing an empty sky."
 msgstr "{survey} はオフライン保存されていません — 空の天空を表示します。"
 
+#: templates/base.html
+msgid "{survey} is not responding — showing the stored copy."
+msgstr "{survey} が応答しません — 保存済みのコピーを表示します。"
+
 
 #~ msgid "Refresh Suggestions"
 #~ msgstr "更新提案"

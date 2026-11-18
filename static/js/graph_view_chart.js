@@ -126,11 +126,13 @@
     let dssMirrorPromise = null;  // memoised like cdsProbePromise
     let dssMirror = null;         // DSS2 color mirror URL that answered, used while CDS is unreachable
 
-    // true when <baseUrl>/properties answers 2xx within CDS_PROBE_TIMEOUT_MS
-    function probeHips(baseUrl) {
+    // true when <baseUrl>/properties answers 2xx within CDS_PROBE_TIMEOUT_MS;
+    // query (no leading "?") is appended when given
+    function probeHips(baseUrl, query) {
         const ctrl = new AbortController();
         const timer = setTimeout(() => ctrl.abort(), CDS_PROBE_TIMEOUT_MS);
-        return fetch(baseUrl + '/properties', { signal: ctrl.signal, cache: 'no-store' })
+        const url = baseUrl + '/properties' + (query ? '?' + query : '');
+        return fetch(url, { signal: ctrl.signal, cache: 'no-store' })
             .then(r => r.ok)
             .catch(() => false)
             .finally(() => clearTimeout(timer));
@@ -175,31 +177,34 @@
     // /hips/offline/<slug>, which is a different (cache-only) root and must be
     // probed on its own.
     //
-    // A survey that answered stays known good for the session. A *failure* expires
-    // (SURVEY_PROBE_FAIL_TTL_MS): Framing is a tab, opened once per page load, so
-    // without this a survey unreachable when the user first tried it could never be
-    // retried in that session -- picking it again would keep reporting the stale
-    // failure even after the upstream came back.
+    // Only a *success* is remembered (for the session; Offline view switching and
+    // the online event clear it). A failure is never remembered: an explicit
+    // re-pick always asks again, and the server's circuit breaker and absence
+    // marks are what keep a dead upstream from being hammered. Concurrent calls
+    // share the probe in flight.
     //
-    // Offline view's cache-only roots are never memoised: the answer is a local
-    // disk lookup, and it changes the moment a survey gets stored (online browsing
-    // writes to the same disk), so a remembered "not stored" would go stale.
-    const SURVEY_PROBE_FAIL_TTL_MS = 60 * 1000;
-    const surveyReachability = new Map();   // probed URL -> {promise, ok, at}
+    // What is asked depends on the root:
+    //  * the same-origin /hips/<slug> proxy: ?preflight=1, which makes the server
+    //    try the upstreams instead of answering from its disk copy (503 when all
+    //    are down);
+    //  * Offline view's cache-only /hips/offline/<slug>: the frame centre, so
+    //    "stored" means a tile there is on disk (any order), not just the
+    //    properties file. Never memoised: it is a disk lookup that changes with
+    //    the frame and the moment a tile is stored;
+    //  * anything else (store off: CDS or a mirror directly): plain properties.
+    const surveyReachability = new Map();   // probed URL -> {promise, ok}
     function surveyReachable(value) {
         const url = surveyProbeUrl(value);
         if (!url) return Promise.resolve(true);       // nothing to probe: let Aladin try
-        if (isOfflineRootUrl(url)) return probeHips(url);
+        if (isOfflineRootUrl(url)) return probeHips(url, offlineCoverageQuery());
         const hit = surveyReachability.get(url);
-        if (hit) {
-            // ok is null while the probe is still in flight: hand back that promise.
-            if (hit.ok !== false || Date.now() - hit.at < SURVEY_PROBE_FAIL_TTL_MS) {
-                return hit.promise;
-            }
-            surveyReachability.delete(url);           // the failure has expired: retry
-        }
-        const entry = { promise: null, ok: null, at: Date.now() };
-        entry.promise = probeHips(url).then(ok => { entry.ok = ok; return ok; });
+        if (hit) return hit.promise;                  // known good, or in flight
+        const entry = { promise: null, ok: null };
+        entry.promise = probeHips(url, isProxyRootUrl(url) ? 'preflight=1' : '').then(ok => {
+            entry.ok = ok;
+            if (!ok && surveyReachability.get(url) === entry) surveyReachability.delete(url);
+            return ok;
+        });
         surveyReachability.set(url, entry);
         return entry.promise;
     }
@@ -207,13 +212,42 @@
     function isOfflineRootUrl(url) {
         return typeof url === 'string' && url.includes('/hips/offline/');
     }
-    // A layer of this root just loaded, so a remembered failure for the same survey
-    // is wrong now: drop it (online root; the offline root is never memoised).
-    function forgetSurveyFailure(url) {
-        if (typeof url !== 'string') return;
-        const key = url.replace('/hips/offline/', '/hips/');
-        const hit = surveyReachability.get(key);
-        if (hit && hit.ok === false) surveyReachability.delete(key);
+    // True for this server's /hips/<slug> proxy root (not a third-party host that
+    // happens to have /hips/ in its path, like CASDA's).
+    function isProxyRootUrl(url) {
+        if (typeof url !== 'string') return false;
+        const origin = (window.location && window.location.origin) || '';
+        return !!origin && url.startsWith(origin + '/hips/') && !isOfflineRootUrl(url);
+    }
+    // The cache-only pre-flight's question: the frame centre. The server answers
+    // 200 when a tile there is on disk at any order (Aladin shows the best one
+    // there is). No frame yet: nothing, and only properties count.
+    function offlineCoverageQuery() {
+        let c = null;
+        try { c = aladin ? frameCenter() : null; } catch (e) { c = null; }
+        if (!c || !Number.isFinite(c.ra) || !Number.isFinite(c.dec)) return '';
+        return `ra=${c.ra.toFixed(6)}&dec=${c.dec.toFixed(6)}`;
+    }
+    // The cache-only root of a survey that resolves to this server's /hips/ proxy
+    // (null for anything else): where its stored copy is served from.
+    function storedCopyUrl(value) {
+        const url = surveyProbeUrl(value);
+        if (!isProxyRootUrl(url)) return null;
+        const origin = window.location.origin;
+        return origin + '/hips/offline/' + url.slice((origin + '/hips/').length);
+    }
+    // Online, a survey that does not respond may still be on disk at the frame
+    // centre: then its stored copy (cache-only root) is shown instead of keeping
+    // the layer on screen. Offline view itself is left as it is. Resolves to the
+    // stored root, or null.
+    async function storedCopyFor(value) {
+        if (offlineViewOn) return null;
+        const url = storedCopyUrl(value);
+        if (!url) return null;
+        return (await probeHips(url, offlineCoverageQuery())) ? url : null;
+    }
+    function storedCopyMessage(value) {
+        return window.t('survey_not_responding_stored', { survey: surveyNoticeLabel(value) });
     }
 
     // A failed CDS probe is remembered for 10 minutes across reloads (sessionStorage);
@@ -820,6 +854,7 @@
     let displayedBaseUrl = null;  // root URL of the base layer actually shown
     let displayedBaseEmpty = false;  // the base shown is an empty offline root: nothing to credit
     let blendPending = null;      // {value, url, promise} of the blend layer being built
+    let blendFailed = null;       // {value, url, message} of the blend choice that just failed
 
     // Everything Aladin would otherwise read from <root>/properties, so it builds
     // the layer without fetching it: the empty offline root of a survey with
@@ -857,13 +892,12 @@
         return layer;
     }
 
-    // Aladin confirmed a layer: the state, the credit and the probe memo follow.
+    // Aladin confirmed a layer: the state and the credit follow.
     // Called before Aladin puts the layer in its layer list (successCallback runs
     // first), so anything that must act on the list waits a tick.
     function onSurveyLayerShown(layer) {
         const info = layer && layer.__nova;
         if (!info) return;
-        if (!info.placeholder) forgetSurveyFailure(info.url);
         if (info.slot === 'base') {
             displayedBaseSurvey = info.placeholder ? null : info.survey;
             displayedBaseUrl = info.placeholder ? null : info.url;
@@ -953,6 +987,21 @@
         if (existing && __blendSurveyId === surveyId && __blendLayerUrl === resolvedId) {
             return existing;
         }
+        // Online, this survey's stored copy is already the blend (it did not
+        // respond): the same, and its notice still holds while the blend shows.
+        if (existing && __blendSurveyId === surveyId && !offlineViewOn
+            && __blendLayerUrl && __blendLayerUrl === storedCopyUrl(surveyId)) {
+            if (blendOp > 0) showSurveyNotice(storedCopyMessage(surveyId), 'blend');
+            return existing;
+        }
+        // This blend choice failed and nothing has been picked since: the opacity
+        // slider and the base-change hook do not retry it (they would probe on
+        // every drag); only a new pick in "Blend with" does. Probes themselves are
+        // not memoised on failure -- this is the choice, not the answer.
+        if (blendFailed && blendFailed.value === surveyId && blendFailed.url === resolvedId) {
+            if (blendOp > 0) showSurveyNotice(blendFailed.message, 'blend');
+            return existing || null;
+        }
 
         // Only build a blend layer that is visible
         if (!(blendOp > 0)) return existing || null;
@@ -965,10 +1014,11 @@
         return promise;
     }
 
-    // Pre-flight, as for the base layer: a blend survey that does not answer keeps
-    // the blend already on screen, is named in the notice, and the dropdown snaps
-    // back. The probe is memoised per survey (online roots), so dragging the
-    // opacity slider never re-probes a survey already known unreachable.
+    // Pre-flight, as for the base layer: a blend survey that does not answer is
+    // shown from its stored copy when the frame centre is on disk (online only);
+    // otherwise it keeps the blend already on screen, is named in the notice, and
+    // the dropdown snaps back. A failed choice is remembered (blendFailed) until the next pick, so
+    // dragging the opacity slider never re-probes it.
     //
     // In Offline view a network-backed blend never stays: when this survey cannot
     // replace it, the blend is taken off.
@@ -977,10 +1027,14 @@
         const reroot = offlineViewOn && !!__blendLayerUrl && !isOfflineRootUrl(__blendLayerUrl);
         const ok = await surveyReachable(surveyId);
         if (stale()) return null;
-        if (ok) {
+        // Online and not responding: its stored copy, when the frame centre is on disk.
+        const stored = ok ? null : await storedCopyFor(surveyId);
+        if (stale()) return null;
+        const url = ok ? resolvedId : stored;
+        if (url) {
             let layer = null;
             try {
-                layer = createSurveyLayer('blend', surveyId, resolvedId, { shownValue, req });
+                layer = createSurveyLayer('blend', surveyId, url, { shownValue, req });
                 aladin.setOverlayImageLayer(layer, 'blend');
             } catch (e) {
                 console.warn('[nova] Could not create/set overlay image survey:', e);
@@ -988,10 +1042,16 @@
             }
             const shown = layer ? await layer.__nova.settled : false;
             if (stale()) return null;
-            if (shown) return layer;
+            if (shown) {
+                blendFailed = null;
+                if (stored) showSurveyNotice(storedCopyMessage(surveyId), 'blend');
+                return layer;
+            }
         }
         if (reroot) removeBlendLayer();
-        showSurveyNotice(surveyFailureMessage(surveyId, displayedBlendSurvey || displayedBaseSurvey), 'blend');
+        const message = surveyFailureMessage(surveyId, displayedBlendSurvey || displayedBaseSurvey);
+        blendFailed = { value: surveyId, url: resolvedId, message };
+        showSurveyNotice(message, 'blend');
         snapSurveySelect('blend-survey-select', displayedBlendSurvey);
         return null;
     }
@@ -1139,6 +1199,7 @@
     // answer now, so this open probes again (same idea as dropping a failed CDS probe).
     function resetSurveyReachability() {
         surveyReachability.clear();
+        blendFailed = null;
     }
     
     // Catalog layer for all Nova DB objects shown in Aladin
@@ -2633,7 +2694,7 @@
                 if (initialBase.notice) showSurveyNotice();
             (function installSlowWheelZoom(){ if (window.__novaSlowZoomInstalled) return; const host = document.getElementById('aladin-lite-div'); if (!host) return; function onWheel(ev) { if (ev.ctrlKey) return; ev.preventDefault(); ev.stopPropagation(); if (!aladin) return; const unit = (ev.deltaMode === 1) ? 16 : (ev.deltaMode === 2) ? 400 : 1; let dy = (ev.deltaY || 0) * unit; dy = Math.max(-80, Math.min(80, dy)); const g = aladin.getFov(), current = Array.isArray(g) ? (g[0] ?? 1) : (g ?? 1); const scale = Math.exp(dy * 0.00075), minFov = 0.01, maxFov = 180; const next = Math.min(maxFov, Math.max(minFov, current * scale)); if (Number.isFinite(next)) aladin.setFov(next); } host.addEventListener('wheel', onWheel, { passive: false, capture: true }); const tryBindCanvas = () => { const cv = host.querySelector('canvas'); if (cv) cv.addEventListener('wheel', onWheel, { passive: false, capture: true }); }; tryBindCanvas(); setTimeout(tryBindCanvas, 50); window.__novaSlowZoomInstalled = true; })();
             baseSurvey = aladin.getBaseImageLayer();
-            (function wireBlendAndConstellationUI(){ const blendSel = document.getElementById('blend-survey-select'), blendOp = document.getElementById('blend-opacity'); if (blendSel) blendSel.addEventListener('change', () => { if (blendSel.value && blendOp.value === '0') { blendOp.value = '0.5'; } ensureBlendLayer(); const v = Number(blendOp?.value || 0); setBlendOpacity(v); updateSurveyCredit(); updateFramingChart(false); }); if (blendOp) { const sync = (e) => { setBlendOpacity(e.target.value); updateSurveyCredit(); updateFramingChart(false); }; blendOp.addEventListener('input', sync); blendOp.addEventListener('change', sync); } try { if (blendOp) setBlendOpacity(blendOp.value); } catch(e) {} })();
+            (function wireBlendAndConstellationUI(){ const blendSel = document.getElementById('blend-survey-select'), blendOp = document.getElementById('blend-opacity'); if (blendSel) blendSel.addEventListener('change', () => { blendFailed = null; if (blendSel.value && blendOp.value === '0') { blendOp.value = '0.5'; } ensureBlendLayer(); const v = Number(blendOp?.value || 0); setBlendOpacity(v); updateSurveyCredit(); updateFramingChart(false); }); if (blendOp) { const sync = (e) => { setBlendOpacity(e.target.value); updateSurveyCredit(); updateFramingChart(false); }; blendOp.addEventListener('input', sync); blendOp.addEventListener('change', sync); } try { if (blendOp) setBlendOpacity(blendOp.value); } catch(e) {} })();
             if (aladin.on) aladin.on('zoomChanged', () => { const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } });
             if (aladin.on) aladin.on('baseLayerChanged', () => { try { const bop = document.getElementById('blend-opacity'); ensureBlendLayer(); if (bop) setBlendOpacity(bop.value); } catch (e) { console.warn('[nova] Could not reapply blend after base change:', e); } });
             fovLayer = A.graphicOverlay({color: (window.stylingUtils && window.stylingUtils.getPrimaryColor) ? window.stylingUtils.getPrimaryColor() : '#83b4c5', lineWidth: 3});
@@ -3011,6 +3072,10 @@
     // the state. Each call is a new choice: the base notice goes at once, and a
     // choice superseded by a later one is dropped wherever it is.
     //
+    // Online, a survey that does not respond is shown from its stored copy when the
+    // frame centre is on disk ("not responding — showing the stored copy"); Offline
+    // view stays as it is. A re-pick of the survey already on screen does nothing.
+    //
     // A survey that cannot be shown keeps the layer on screen, named in the notice,
     // and the dropdown snaps back to it -- except in Offline view while the layer on
     // screen is not a cache-only one (Offline view just switched on, a page opened
@@ -3028,6 +3093,19 @@
         const choice = chooseDisplayedBase(hipsId);
         const requested = choice.survey;
         baseWanted = requested;
+
+        // The survey already on screen, from the root it would get now (or, online,
+        // its stored copy): nothing to probe and nothing new to say. A notice that
+        // still describes the screen (the stored copy, a CDS outage) stays.
+        const shownStored = !offlineViewOn && !!displayedBaseUrl
+            && displayedBaseUrl === storedCopyUrl(requested);
+        if (requested === displayedBaseSurvey && !displayedBaseEmpty
+            && (displayedBaseUrl === resolveHipsId(requested) || shownStored)) {
+            snapSurveySelect('survey-select', requested);
+            if (shownStored) showSurveyNotice(storedCopyMessage(requested), 'base');
+            else if (choice.notice) showSurveyNotice(undefined, 'base');
+            return;
+        }
         const reroot = offlineViewOn && !isOfflineRootUrl(displayedBaseUrl);
 
         // Pre-flight: ask the layer's own /properties before swapping. Aladin only
@@ -3035,11 +3113,17 @@
         // otherwise fail silently *after* the swap was issued.
         const ok = await surveyReachable(requested);
         if (stale()) return;
-        const plan = [];   // layers to try in order: {survey, empty, message}
+        const plan = [];   // layers to try in order: {survey, url, empty, message}
         if (ok) plan.push({ survey: requested });
         else if (!reroot) {
-            keepBaseAfterFailure(requested, before);
-            return;
+            // Online and not responding: its stored copy, when the frame centre is on disk.
+            const stored = await storedCopyFor(requested);
+            if (stale()) return;
+            if (!stored) {
+                keepBaseAfterFailure(requested, before);
+                return;
+            }
+            plan.push({ survey: requested, url: stored, message: storedCopyMessage(requested) });
         }
         if (reroot) {
             const label = surveyNoticeLabel(requested);
@@ -3059,7 +3143,7 @@
         for (const step of plan) {
             let newLayer;
             try {
-                newLayer = createSurveyLayer('base', step.survey, resolveHipsId(step.survey), { empty: step.empty });
+                newLayer = createSurveyLayer('base', step.survey, step.url || resolveHipsId(step.survey), { empty: step.empty });
             } catch (e) {
                 console.error("Error creating external survey layer:", e);
                 await novaAlert(window.t('survey_load_error'));

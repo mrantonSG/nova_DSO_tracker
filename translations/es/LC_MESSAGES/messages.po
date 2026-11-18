@@ -8576,6 +8576,10 @@ msgstr "{survey} no está guardado sin conexión — se muestra {shown}."
 msgid "{survey} isn't stored offline — showing an empty sky."
 msgstr "{survey} no está guardado sin conexión — se muestra un cielo vacío."
 
+#: templates/base.html
+msgid "{survey} is not responding — showing the stored copy."
+msgstr "{survey} no responde — se muestra la copia guardada."
+
 
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Actualizar sugerencias"

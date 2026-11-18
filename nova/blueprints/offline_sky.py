@@ -198,6 +198,26 @@ def _fetch_upstream(base: str, url: str):
         _FETCH_SEMAPHORE.release()
 
 
+def _went_unavailable(base: str) -> bool:
+    """After a _fetch_upstream that returned None: was ``base`` unavailable
+    (rather than answering "no such file")?
+
+    _upstream_get trips the breaker on every network error, timeout and 5xx, and
+    an already-open breaker is what made it skip the base -- so an open breaker
+    right after the call means "unavailable". A definite 4xx leaves it closed.
+    (A 429 is unavailable too but does not trip the breaker, so it reads as
+    missing here: a throttled request gets the 404 it always got.)
+    """
+    return _breaker_open(base)
+
+
+def _miss_response(missing: bool, unavailable: bool) -> Response:
+    """No upstream delivered: 503 when it was only unavailability, else 404."""
+    if unavailable and not missing:
+        return Response(status=503, headers={"Cache-Control": "no-store"})
+    return Response(status=404)
+
+
 def _strip_service_urls(raw: bytes) -> bytes:
     """Drop every hips_service_url* line so Aladin can't switch off /hips/.
 
@@ -234,19 +254,29 @@ def _serve_tile(slug: str, rel_path: str, cache_only: bool = False) -> Response:
         return Response(status=404)
 
     src = SURVEY_BY_SLUG[slug]
+    # 404 only when an upstream said the tile does not exist; when every upstream
+    # that hosts the survey was unavailable (breaker open, network error, 5xx,
+    # saturated) the tile may well exist, so that is a 503.
+    missing = False
+    unavailable = False
     for base in src.upstreams:
         if _base_absent(base):
             continue  # this base does not host the survey: no request, no wasted 404
         try:
             raw = _fetch_upstream(base, f"{base.rstrip('/')}/{rel_path}")
         except _UpstreamBusy:
+            unavailable = True
             break  # saturated: fail fast
         if raw is None:
+            if _went_unavailable(base):
+                unavailable = True
+            else:
+                missing = True
             continue
         store_file(slug, rel_path, raw)
         maybe_evict_async()
         return _tile_response(raw, rel_path)
-    return Response(status=404)
+    return _miss_response(missing, unavailable)
 
 
 def _serve_properties(slug: str, cache_only: bool = False) -> Response:
@@ -288,6 +318,85 @@ def _serve_properties(slug: str, cache_only: bool = False) -> Response:
     if cached is not None:
         return _respond(cached, "text/plain; charset=utf-8", _PROPERTIES_CACHE_CONTROL)
     return Response(status=503)
+
+
+def _preflight_properties(slug: str) -> Response:
+    """The Framing pre-flight for an online survey: ask the upstreams, not the disk.
+
+    _serve_properties answers from a fresh disk copy without contacting anyone,
+    so it cannot tell whether the survey can be shown right now. This tries the
+    upstreams in order (storing properties when there is no disk copy yet --
+    store_file never overwrites) and answers:
+
+    * 200 -- an upstream delivered;
+    * 503 -- none delivered and at least one was unavailable (breaker open,
+      network error, 5xx, saturated): "not responding";
+    * 404 -- every upstream said the survey is not there.
+
+    Breaker and absence marks are respected: an open breaker counts as
+    unavailable without a request, and an absent base is skipped. Only when
+    *every* upstream is marked absent are they asked again -- a /properties 200
+    is the only thing that clears the mark, and with nothing else to try the
+    survey could otherwise never come back in this process.
+    """
+    src = SURVEY_BY_SLUG[slug]
+    bases = [b for b in src.upstreams if not _base_absent(b)] or list(src.upstreams)
+    missing = False
+    unavailable = False
+    for base in bases:
+        if _breaker_open(base):
+            unavailable = True
+            continue
+        try:
+            raw = _fetch_upstream(base, f"{base.rstrip('/')}/properties")
+        except _UpstreamBusy:
+            unavailable = True
+            break
+        if raw is None:
+            if _went_unavailable(base):
+                unavailable = True
+            else:
+                missing = True
+            continue
+        data = _strip_service_urls(raw)
+        store_file(slug, "properties", data, count=False)
+        return _respond(data, "text/plain; charset=utf-8", "no-store")
+    if unavailable:
+        return Response(status=503, headers={"Cache-Control": "no-store"})
+    return Response(status=404, headers={"Cache-Control": "no-store"})
+
+
+def _offline_centre_stored(slug: str, args) -> bool:
+    """True when a tile at the frame centre is on disk at any order (Offline view
+    pre-flight): Aladin then shows the best order available there.
+
+    Orders 0 .. the survey's effective max order, deepest first; any accepted
+    format. A centre outside the survey's coverage (its MOC) has no tile
+    anywhere, so there is nothing to require. Disk only, never upstream.
+    """
+    from nova.offline_sky_facts import survey_coverage, survey_facts
+    from nova.offline_sky_store import tile_exists
+    import nova.hips_healpix as hp
+    try:
+        ra = float(args.get("ra")) % 360.0
+        dec = float(args.get("dec"))
+    except (TypeError, ValueError):
+        return False
+    if not (-90.0 <= dec <= 90.0):
+        return False
+    facts = survey_facts(slug, fetch=False)
+    top = max(0, facts.effective_max_order)
+    if not survey_coverage(slug, fetch=False).contains(top, hp.radec_to_nest(top, ra, dec)):
+        return True
+    # Any accepted format: Aladin may request a different one than the facts'
+    # first pick (a survey publishing "png jpeg"), and either is what it shows.
+    exts = (facts.tile_ext,) + tuple(e for e in SURVEY_BY_SLUG[slug].exts if e != facts.tile_ext)
+    for order in range(top, -1, -1):
+        npix = hp.radec_to_nest(order, ra, dec)
+        stem = f"Norder{order}/Dir{(npix // 10000) * 10000}/Npix{npix}."
+        if any(tile_exists(slug, stem + ext) for ext in exts):
+            return True
+    return False
 
 
 def _serve_moc(slug: str, cache_only: bool = False) -> Response:
@@ -348,6 +457,8 @@ def _validate_tile(slug: str, order: int, dir: int, npix: int, ext: str):
 def hips_properties(slug: str):
     if not _allowed() or slug not in SURVEY_BY_SLUG:
         return Response(status=404)
+    if request.args.get("preflight"):
+        return _preflight_properties(slug)
     return _serve_properties(slug)
 
 
@@ -387,7 +498,15 @@ def hips_tile(slug: str, order: int, dir: int, npix: int, ext: str):
 def hips_offline_properties(slug: str):
     if not _allowed() or slug not in SURVEY_BY_SLUG:
         return Response(status=404)
-    return _serve_properties(slug, cache_only=True)
+    resp = _serve_properties(slug, cache_only=True)
+    if resp.status_code == 200 and "ra" in request.args and "dec" in request.args:
+        # The Framing pre-flight: properties on disk says nothing about the
+        # frame (any online browsing stores it), so also ask for a tile at the
+        # frame centre. Aladin's own properties request carries no ra/dec.
+        if not _offline_centre_stored(slug, request.args):
+            return Response(status=404, headers={"Cache-Control": "no-store"})
+        resp.headers["Cache-Control"] = "no-store"
+    return resp
 
 
 @offline_sky_bp.route("/hips/offline/<slug>/Moc.fits")

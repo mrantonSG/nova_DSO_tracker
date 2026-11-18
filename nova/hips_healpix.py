@@ -101,6 +101,60 @@ def pix2ang_nest(nside: int, pix: int):
     return math.acos(max(-1.0, min(1.0, z))), phi
 
 
+def xyf2nest(nside: int, ix: int, iy: int, face: int) -> int:
+    """(face, x, y) -> nested pixel index; the inverse of ``nest2xyf``."""
+    local = 0
+    bit = 0
+    while (ix >> bit) or (iy >> bit):
+        local |= ((ix >> bit) & 1) << (2 * bit)
+        local |= ((iy >> bit) & 1) << (2 * bit + 1)
+        bit += 1
+    return face * nside * nside + local
+
+
+def ang2pix_nest(nside: int, theta: float, phi: float) -> int:
+    """(theta, phi) in radians -> the nested pixel that contains the point.
+
+    Port of chealpix ``ang2pix_nest_z_phi``; theta is the colatitude, phi the
+    longitude (any value, taken modulo 2*pi).
+    """
+    z = math.cos(theta)
+    za = abs(z)
+    tt = (phi % (2.0 * _PI)) / _HALF_PI          # in [0, 4)
+    if za <= 2.0 / 3.0:                          # equatorial region
+        temp1 = nside * (0.5 + tt)
+        temp2 = nside * (z * 0.75)
+        jp = int(temp1 - temp2)                  # ascending edge line index
+        jm = int(temp1 + temp2)                  # descending edge line index
+        ifp = jp // nside
+        ifm = jm // nside
+        if ifp == ifm:
+            face = ifp | 4
+        elif ifp < ifm:
+            face = ifp
+        else:
+            face = ifm + 8
+        ix = jm & (nside - 1)
+        iy = nside - (jp & (nside - 1)) - 1
+    else:                                        # polar caps
+        ntt = min(int(tt), 3)
+        tp = tt - ntt
+        tmp = nside * math.sqrt(3.0 * (1.0 - za))
+        jp = min(int(tp * tmp), nside - 1)
+        jm = min(int((1.0 - tp) * tmp), nside - 1)
+        if z >= 0:
+            face, ix, iy = ntt, nside - jm - 1, nside - jp - 1
+        else:
+            face, ix, iy = ntt + 8, jp, jm
+    return xyf2nest(nside, ix, iy, face)
+
+
+def radec_to_nest(order: int, ra_deg: float, dec_deg: float) -> int:
+    """The HiPS tile (``Npix`` at ``order``) that contains an ICRS position."""
+    return ang2pix_nest(order_to_nside(order), math.radians(90.0 - dec_deg),
+                        math.radians(ra_deg))
+
+
 def _vec(z: float, phi: float):
     s = math.sqrt(max(0.0, 1.0 - z * z))
     return (s * math.cos(phi), s * math.sin(phi), z)
