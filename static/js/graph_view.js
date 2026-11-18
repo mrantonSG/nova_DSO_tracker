@@ -356,8 +356,10 @@
                 break;
             case 'change-survey':
                 console.log('[GRAPH_VIEW] change-survey:', actionBtn.value);
+                // setSurvey reports its own failures (it names the survey in the
+                // notice) and never rejects, so there is nothing to catch here.
                 if (typeof window.setSurvey === 'function') {
-                    window.setSurvey(actionBtn.value).catch(() => window.showSurveyNotice?.());
+                    window.setSurvey(actionBtn.value);
                 }
                 // The offline indicator is about the survey shown, so it follows.
                 window.refreshOfflineStatus?.();

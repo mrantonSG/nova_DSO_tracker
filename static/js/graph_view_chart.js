@@ -2303,11 +2303,12 @@
             flags.haveRot = true;
         }
 
-        // Restore survey
+        // Restore survey. setSurvey reports its own failures (it names the survey in
+        // the notice), so there is nothing to catch here: it never rejects.
         if (params.survey) {
             const sSel = document.getElementById('survey-select');
             if (sSel) sSel.value = params.survey;
-            if (typeof setSurvey === 'function') setSurvey(params.survey).catch(() => showSurveyNotice());
+            if (typeof setSurvey === 'function') setSurvey(params.survey);
         }
 
         // Restore blend settings
@@ -2515,7 +2516,7 @@
         if (!params.survey) {
             const selVal = document.getElementById('survey-select')?.value;
             const choice = selVal ? chooseDisplayedBase(selVal) : null;
-            if (choice && choice.survey !== displayedBaseSurvey) setSurvey(selVal).catch(() => showSurveyNotice());
+            if (choice && choice.survey !== displayedBaseSurvey) setSurvey(selVal);
             else if (choice && choice.notice) showSurveyNotice();
         }
 
