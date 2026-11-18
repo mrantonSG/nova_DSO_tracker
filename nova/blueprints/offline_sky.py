@@ -50,6 +50,24 @@ _BREAKER_SECONDS = 60.0
 _breaker_lock = threading.Lock()
 _breaker_until = {}
 
+# "Absent" upstream bases: a base whose /properties answered a definite 404 (the
+# survey is not there -- CDS serves its "Page unavailable" 404 for a whole survey
+# it no longer hosts). Such a base is skipped for *tiles* without a request, so a
+# survey whose first upstream is gone costs one request per tile, not one wasted
+# 404 plus one good fetch.
+#
+# Unlike the breaker this is not a timer: a 404 does not heal on its own, and a
+# 60s window would let the wasted request back in every minute. The mark is
+# cleared only by a /properties that succeeds (see _serve_properties), which the
+# frontend issues once per framing open -- so an upstream that comes back is
+# picked up on the next open, and CDS is used again as soon as it answers.
+#
+# In-process only (each gunicorn worker keeps its own), like the breaker. A
+# definite tile 404 does NOT mark a base absent: one survey can legitimately have
+# no tile at a given Npix (NSNS covers Dec >= -16 only), while its neighbours do.
+_absent_lock = threading.Lock()
+_absent_bases = set()
+
 # A cached properties file is served from disk for this long before an upstream
 # refresh is attempted again.
 _PROPERTIES_MAX_AGE_SECONDS = 7 * 86400
@@ -99,6 +117,22 @@ def _breaker_trip(base: str) -> None:
         _breaker_until[base] = time.time() + _BREAKER_SECONDS
 
 
+def _base_absent(base: str) -> bool:
+    with _absent_lock:
+        return base in _absent_bases
+
+
+def _mark_absent(base: str) -> None:
+    with _absent_lock:
+        _absent_bases.add(base)
+
+
+def _mark_present(base: str) -> None:
+    """An upstream answered /properties: it is there again, so stop skipping it."""
+    with _absent_lock:
+        _absent_bases.discard(base)
+
+
 # Outcomes of one upstream GET (see _upstream_get).
 UPSTREAM_OK = "ok"                 # 200, body returned
 UPSTREAM_MISSING = "missing"       # a definite "no such file" (4xx other than 429)
@@ -114,9 +148,16 @@ def _upstream_get(base: str, url: str):
     without making a request. Never redirects. The offline-sky jobs call this
     directly under their own rate limit; the browsing proxy goes through
     _fetch_upstream, which adds the proxy's concurrency semaphore.
+
+    This is also the only place that sees an outcome, so it is where the
+    "absent" mark is kept: a /properties 404 means the base does not host that
+    survey (skip it for tiles until it answers again), and a /properties 200
+    means it does (clear the mark). A tile 404 says nothing about the base --
+    one survey can legitimately lack a given tile while its neighbours exist.
     """
     if _breaker_open(base):
         return UPSTREAM_UNAVAILABLE, None
+    is_properties = url.endswith("/properties")
     try:
         resp = _session.get(
             url,
@@ -127,12 +168,16 @@ def _upstream_get(base: str, url: str):
         _breaker_trip(base)
         return UPSTREAM_UNAVAILABLE, None
     if resp.status_code == 200:
+        if is_properties:
+            _mark_present(base)
         return UPSTREAM_OK, resp.content
     if resp.status_code >= 500:
         _breaker_trip(base)
         return UPSTREAM_UNAVAILABLE, None
     if resp.status_code == 429:
         return UPSTREAM_UNAVAILABLE, None
+    if is_properties:
+        _mark_absent(base)
     return UPSTREAM_MISSING, None
 
 
@@ -190,6 +235,8 @@ def _serve_tile(slug: str, rel_path: str, cache_only: bool = False) -> Response:
 
     src = SURVEY_BY_SLUG[slug]
     for base in src.upstreams:
+        if _base_absent(base):
+            continue  # this base does not host the survey: no request, no wasted 404
         try:
             raw = _fetch_upstream(base, f"{base.rstrip('/')}/{rel_path}")
         except _UpstreamBusy:
@@ -211,8 +258,13 @@ def _serve_properties(slug: str, cache_only: bool = False) -> Response:
         except OSError:
             mtime = 0.0
         if time.time() - mtime < _PROPERTIES_MAX_AGE_SECONDS:
-            # Fresh: serve from disk, no upstream.
-            return _respond(cached, "text/plain; charset=utf-8", _PROPERTIES_CACHE_CONTROL)
+            # Fresh: serve from disk, no upstream -- unless one of this survey's
+            # upstreams is marked absent. Then this request is the re-probe that
+            # can clear the mark, so fall through to the upstreams below (the
+            # frontend asks once per framing open, which is what makes a
+            # recovered upstream -- CDS included -- used again).
+            if cache_only or not any(_base_absent(b) for b in src.upstreams):
+                return _respond(cached, "text/plain; charset=utf-8", _PROPERTIES_CACHE_CONTROL)
         if cache_only:
             # Offline view: a stale copy is still served from disk.
             return _respond(cached, "text/plain; charset=utf-8", _PROPERTIES_CACHE_CONTROL)
@@ -221,6 +273,7 @@ def _serve_properties(slug: str, cache_only: bool = False) -> Response:
 
     # No cache, or stale (older than 7 days): try upstreams first, re-store on
     # success; on failure fall back to the stale disk copy when there is one.
+    # Absent bases are tried here too: a 200 clears the mark (in _upstream_get).
     for base in src.upstreams:
         try:
             raw = _fetch_upstream(base, f"{base.rstrip('/')}/properties")
@@ -256,6 +309,8 @@ def _serve_moc(slug: str, cache_only: bool = False) -> Response:
         return Response(status=404)
 
     for base in src.upstreams:
+        if _base_absent(base):
+            continue  # not a re-probe: properties is what clears the mark
         try:
             raw = _fetch_upstream(base, f"{base.rstrip('/')}/Moc.fits")
         except _UpstreamBusy:

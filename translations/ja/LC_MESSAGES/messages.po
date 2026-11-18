@@ -8378,6 +8378,11 @@ msgid "Fewer surveys"
 msgstr "サーベイを減らす"
 
 
+#: templates/base.html
+msgid "{survey} is not responding — keeping {current}."
+msgstr "{survey} が応答しません — {current} を表示したままにします。"
+
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "更新提案"
 

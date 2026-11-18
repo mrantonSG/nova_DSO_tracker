@@ -361,7 +361,7 @@ function buildCase(c, opts = {}) {
         let scanFrameActive = false, scanResultsCatalog = null;
         let cdsReachable = true, dssMirror = null, displayedBaseSurvey = 'P/DSS2/color', baseSurvey = null;
         function closeOfflineSavePanel() {} function refreshOfflineSavePanel() {} function updateScanButtonState() {} function applyMinSizeFilter() {}
-        function displayOfflineMessage() {} function resetSurveyNotice() {} function showSurveyLoading() {}
+        function displayOfflineMessage() {} function resetSurveyNotice() {} function resetSurveyReachability() {} function showSurveyLoading() {}
         function hideSurveyLoading() {} function updateSurveyCredit() {} function wireOfflineSkyUi() {}
         function ensureOfflineBaseSurveys() {} function ensureNovaObjectsCatalog() {} function toggleGeoBelt() {}
         function updateFovVsObjectLabel() {} function onSurveyLayerError() {} function surveyOptionLabel() { return ''; }

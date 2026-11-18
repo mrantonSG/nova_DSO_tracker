@@ -8340,3 +8340,7 @@ msgstr ""
 msgid "Fewer surveys"
 msgstr ""
 
+#: templates/base.html
+msgid "{survey} is not responding — keeping {current}."
+msgstr ""
+

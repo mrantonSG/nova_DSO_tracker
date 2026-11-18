@@ -8356,6 +8356,11 @@ msgid "Fewer surveys"
 msgstr "收起巡天列表"
 
 
+#: templates/base.html
+msgid "{survey} is not responding — keeping {current}."
+msgstr "{survey} 无响应——保留 {current}。"
+
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "刷新建议"
 

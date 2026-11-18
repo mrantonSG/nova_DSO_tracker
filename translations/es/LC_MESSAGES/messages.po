@@ -8729,6 +8729,11 @@ msgid "Fewer surveys"
 msgstr "Menos sondeos"
 
 
+#: templates/base.html
+msgid "{survey} is not responding — keeping {current}."
+msgstr "{survey} no responde — se mantiene {current}."
+
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Actualizar sugerencias"
 

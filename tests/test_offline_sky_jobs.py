@@ -1316,6 +1316,39 @@ def test_build_js_map_uses_effective_max_order():
     assert m[DSS_ID]["maxOrder"] == 9            # no properties cached: whitelist
 
 
+def test_removed_surveys_are_gone_from_the_whitelist():
+    """DSS2 (blue) and 2MASS (H) were removed: every upstream they had 404s, and no
+    registered mirror hosts them. A whitelist entry with no working upstream is a
+    survey the proxy can only answer 503 for."""
+    from nova.offline_sky_sources import SURVEY_SOURCES, SURVEY_BY_SLUG
+    assert "P/DSS2/blue" not in SURVEY_SOURCES
+    assert "P/2MASS/H" not in SURVEY_SOURCES
+    assert "dss2-blue" not in SURVEY_BY_SLUG
+    assert "2mass-h" not in SURVEY_BY_SLUG
+
+
+def test_cds_stays_first_for_every_survey_it_hosts():
+    """CDS is the preferred source: it leads each survey's upstream list, so a
+    healthy CDS is used and a recovered one is picked up again."""
+    from nova.offline_sky_sources import SURVEY_SOURCES
+    for sid, src in SURVEY_SOURCES.items():
+        if sid.startswith("https://"):        # NSNS is its own single host
+            continue
+        assert src.upstreams[0].startswith("https://alasky.cds.unistra.fr/"), \
+            f"{sid} should try CDS first, got {src.upstreams[0]}"
+
+
+def test_every_cds_survey_has_a_non_cds_fallback():
+    """Each CDS-hosted survey needs at least one upstream outside CDS, so it still
+    loads while CDS is down (the outage that made every survey but DSS2 fail)."""
+    from nova.offline_sky_sources import SURVEY_SOURCES
+    for sid, src in SURVEY_SOURCES.items():
+        if sid.startswith("https://"):
+            continue
+        outside = [u for u in src.upstreams if ".cds.unistra.fr" not in u]
+        assert outside, f"{sid} has no non-CDS upstream: {src.upstreams}"
+
+
 def test_resolve_slug_accepts_ids_and_slugs():
     from nova.offline_sky_sources import resolve_slug, resolve_slugs
     assert resolve_slug(DSS_ID) == resolve_slug(DSS) == DSS

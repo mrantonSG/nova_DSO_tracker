@@ -88,15 +88,14 @@
         "P/GALEXGR6/AIS/color":             "https://alasky.cds.unistra.fr/GALEX/GR6-03-2014/AIS-Color",
         "P/PanSTARRS/DR1/color-z-zg-g":     "https://alasky.cds.unistra.fr/Pan-STARRS/DR1/color-z-zg-g",
         "P/SDSS9/color":                    "https://alasky.cds.unistra.fr/SDSS/DR9/color",
-        "P/DSS2/red":                       "https://alaskybis.cds.unistra.fr/DSS/DSS2Merged",
-        "P/DSS2/blue":                      "https://alasky.cds.unistra.fr/DSS/DSS2-blue-XJ-S",
-        "P/2MASS/H":                        "https://alasky.cds.unistra.fr/2MASS/H",
+        "P/DSS2/red":                       "https://alasky.cds.unistra.fr/DSS/DSS2Merged",
     });
 
     // Offline view: when on, every /hips/ request from this modal goes to the
-    // cache-only /hips/offline/ routes (never upstream). Auto-on when the browser
-    // drops offline or the base layer fails; the user's own toggle is remembered
-    // and restored when connectivity returns.
+    // cache-only /hips/offline/ routes (never upstream). Auto-on only when the
+    // browser reports it is offline; a survey that fails to load is not a
+    // connectivity fact and must not switch it. The user's own toggle is
+    // remembered and restored when connectivity returns.
     let offlineViewOn = false;
     let offlineViewUserSetting = null;
 
@@ -135,6 +134,61 @@
             .then(r => r.ok)
             .catch(() => false)
             .finally(() => clearTimeout(timer));
+    }
+
+    // The label of a survey value for the "not responding" notice: the select's own
+    // text where there is one (which carries the offline marker stripped), else the
+    // value itself. Never throws on an unknown value.
+    function surveyNoticeLabel(value) {
+        return surveyOptionLabel(value) || value || window.t('survey');
+    }
+
+    // "X is not responding -- keeping Y." The pre-flight failure notice: the survey
+    // asked for by name, and the one still on screen.
+    function surveyUnreachableMessage(requested, kept) {
+        return window.t('survey_not_responding', {
+            survey: surveyNoticeLabel(requested),
+            current: surveyNoticeLabel(kept),
+        });
+    }
+
+    // The survey a layer swap would actually show, resolved to the URL Aladin gets.
+    // Null when there is nothing to probe (unknown value, no proxy root).
+    function surveyProbeUrl(value) {
+        if (!value) return null;
+        const resolved = resolveHipsId(value);
+        if (typeof resolved !== 'string' || !resolved) return null;
+        return resolved.startsWith('http') ? resolved : null;
+    }
+
+    // probeHips memoised per probed URL, so the opacity slider and the blend's
+    // several call sites do not re-probe on every change. Keyed on the URL, not the
+    // survey value: the offline view resolves the same survey to
+    // /hips/offline/<slug>, which is a different (cache-only) root and must be
+    // probed on its own.
+    //
+    // A survey that answered stays known good for the session. A *failure* expires
+    // (SURVEY_PROBE_FAIL_TTL_MS): Framing is a tab, opened once per page load, so
+    // without this a survey unreachable when the user first tried it could never be
+    // retried in that session -- picking it again would keep reporting the stale
+    // failure even after the upstream came back.
+    const SURVEY_PROBE_FAIL_TTL_MS = 60 * 1000;
+    const surveyReachability = new Map();   // probed URL -> {promise, ok, at}
+    function surveyReachable(value) {
+        const url = surveyProbeUrl(value);
+        if (!url) return Promise.resolve(true);       // nothing to probe: let Aladin try
+        const hit = surveyReachability.get(url);
+        if (hit) {
+            // ok is null while the probe is still in flight: hand back that promise.
+            if (hit.ok !== false || Date.now() - hit.at < SURVEY_PROBE_FAIL_TTL_MS) {
+                return hit.promise;
+            }
+            surveyReachability.delete(url);           // the failure has expired: retry
+        }
+        const entry = { promise: null, ok: null, at: Date.now() };
+        entry.promise = probeHips(url).then(ok => { entry.ok = ok; return ok; });
+        surveyReachability.set(url, entry);
+        return entry.promise;
     }
 
     // A failed CDS probe is remembered for 10 minutes across reloads (sessionStorage);
@@ -724,7 +778,7 @@
     let secondaryDatasetId = 'secondary_alt'; // Unique ID for the secondary dataset
     // --- End Secondary Object State ---
 
-    function ensureBlendLayer() {
+    async function ensureBlendLayer() {
         if (!aladin) return null;
         const sel = document.getElementById('blend-survey-select');
         if (!sel) return null;
@@ -759,6 +813,15 @@
         // Only build a blend layer that is visible
         if (!(blendOp > 0)) return existing || null;
 
+        // Pre-flight, as for the base layer: a blend survey that does not answer
+        // keeps the layer already on screen and is named in the notice. The probe
+        // is memoised per survey value, so dragging the opacity slider (which
+        // re-enters here) never re-probes a survey already known unreachable.
+        if (!(await surveyReachable(surveyId))) {
+            showSurveyNotice(surveyUnreachableMessage(surveyId, displayedBlendSurvey || displayedBaseSurvey));
+            return existing || null;
+        }
+
         try {
             let hpx;
             if (resolvedId.startsWith('http')) {
@@ -788,7 +851,6 @@
     const SURVEY_CREDITS = {
         'P/DSS2/color': DSS2_CREDIT,
         'P/DSS2/red': DSS2_CREDIT,
-        'P/DSS2/blue': DSS2_CREDIT,
         'P/allWISE/color': 'AllWISE (NASA/JPL-Caltech) · HiPS: CDS',
         'P/2MASS/color': '2MASS (UMass/IPAC-Caltech) · HiPS: CDS',
         'P/GALEXGR6/AIS/color': 'GALEX (NASA) · HiPS: CDS',
@@ -843,9 +905,9 @@
         el.hidden = credits.length === 0;
     }
 
-    // --- "Sky survey server unreachable" notice (top of the sky, dismissible) ---
+    // --- Sky-survey notice (top of the sky, dismissible) ---
     let surveyNoticeDismissed = false;   // reset on every framing open
-    function showSurveyNotice() {
+    function showSurveyNotice(message) {
         if (surveyNoticeDismissed) return;
         const host = document.getElementById('aladin-lite-div');
         if (!host) return;
@@ -865,7 +927,7 @@
             el.append(text, btn);
             host.appendChild(el);
         }
-        el.querySelector('.survey-notice-text').textContent = window.t('survey_server_unreachable');
+        el.querySelector('.survey-notice-text').textContent = message || window.t('survey_server_unreachable');
         el.hidden = false;
     }
     // --- Loading placeholder while the survey probes run and until Aladin has created its view ---
@@ -890,13 +952,19 @@
         const el = document.getElementById('survey-notice');
         if (el) el.hidden = true;
     }
-    // errorCallback for every survey layer: a server that fails mid-session shows the notice
+    // Drop the remembered survey probes: a survey unreachable at the last open may
+    // answer now, so this open probes again (same idea as dropping a failed CDS probe).
+    function resetSurveyReachability() {
+        surveyReachability.clear();
+    }
+    // errorCallback for every survey layer: a layer that fails mid-session shows the
+    // notice. One survey failing is never a connectivity fact, so this must not touch
+    // Offline view -- only the browser's own offline/online events switch that
+    // automatically (see wireOfflineSkyUi). A survey that cannot be reached is reported
+    // per survey by setSurvey / ensureBlendLayer, which probe before swapping a layer.
     function onSurveyLayerError(err) {
         console.warn('[FRAMING] Survey layer failed to load:', err);
         showSurveyNotice();
-        // A failed base layer is the "server-side offline" signal: flip into
-        // offline view so cached tiles keep the sky usable (auto, not a user set).
-        if (window.NOVA_OFFLINE_SKY) setOfflineView(true, false);
     }
     
     // Catalog layer for all Nova DB objects shown in Aladin
@@ -2347,6 +2415,7 @@
         // Is CDS reachable? If not, which DSS2 mirror answers? Decides the base layer below
         // (mirror, else NSNS, when CDS is down)
         resetSurveyNotice();
+        resetSurveyReachability();
         // Placeholder only when Aladin still has to be created (not over an existing view)
         if (!aladin) showSurveyLoading();
         if (window.NOVA_OFFLINE_SKY) {
@@ -2757,7 +2826,7 @@
     }
     async function setSurvey(hipsId) {
         if (!aladin) return;
-    
+
         let newLayer;
 
         // The layer to show: the requested survey, the default for an unknown ID, or NSNS
@@ -2766,6 +2835,16 @@
         const shownId = choice.survey;
         const resolvedId = resolveHipsId(shownId);
         const friendlyName = surveyOptionLabel(shownId) || resolvedId;
+
+        // Pre-flight: ask the layer's own /properties before swapping. Aladin only
+        // rejects on 404, so a 503 (the proxy with every upstream down) would
+        // otherwise fail silently *after* the swap was issued -- the old layer would
+        // stay on screen and the failure would only surface as a generic notice. A
+        // survey that does not answer keeps the current layer, named in the notice.
+        if (!(await surveyReachable(shownId))) {
+            showSurveyNotice(surveyUnreachableMessage(shownId, displayedBaseSurvey));
+            return;
+        }
 
         try {
             newLayer = aladin.createImageSurvey(

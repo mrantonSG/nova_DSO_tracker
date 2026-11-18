@@ -256,7 +256,9 @@ def test_allsky_rel_is_norder3():
 
 def test_base_rel_paths_use_norder3_allsky():
     import nova.offline_sky_jobs as jobs
-    rels = jobs.base_rel_paths(DSS, "jpg")
+    # base_rel_paths(slug, fetch=False): no second positional. Passing the extension
+    # here landed in `fetch` and made this test hit the live upstreams.
+    rels = jobs.base_rel_paths(DSS)
     assert rels[0] == "Norder3/Allsky.jpg"
     assert "Allsky.jpg" not in rels
 
