@@ -8,6 +8,10 @@
     const IS_GUEST_USER = {{ is_guest | tojson }};
     window.NOVA_OFFLINE_SKY = {{ OFFLINE_SKY_ENABLED | tojson }};
     window.NOVA_OFFLINE_SKY_SURVEYS = {{ OFFLINE_SKY_SURVEYS | tojson }};
+    // Whether this installation shows the Offline view switch (OFFLINE_SKY_UI
+    // resolved against the user mode, and the tile store on). When false the
+    // switch is not rendered and no connectivity listener is installed.
+    window.NOVA_OFFLINE_SKY_UI = {{ OFFLINE_SKY_UI | tojson }};
     // The generic "Survey" label, for surveyNoticeLabel()'s last fallback: an
     // unknown survey value still names something rather than rendering the key.
     window.novaI18n.survey = {{ _('Survey') | tojson }};
@@ -321,8 +325,10 @@
                     <span>{{ _('Framing') }}</span>
                     {{ help_badge('framing_assistant', _('Help with Framing')) }}
                     {# The only offline control left on this tab: the sky is read from the
-                       cache-only /hips/offline/ routes while it is on. #}
-                    {% if OFFLINE_SKY_ENABLED %}
+                       cache-only /hips/offline/ routes while it is on. Gated on
+                       OFFLINE_SKY_UI (auto = on in single-user, off in multi-user),
+                       not merely on the proxy. #}
+                    {% if OFFLINE_SKY_UI %}
                     <label class="framing-offline-switch">
                         <input type="checkbox" id="offline-view-toggle">
                         <span class="framing-offline-switch-track" aria-hidden="true"></span>

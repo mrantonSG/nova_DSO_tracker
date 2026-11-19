@@ -75,9 +75,13 @@ NOVA_CATALOG_URL = config('NOVA_CATALOG_URL', default='')
 #   stored under instance/cache/hips and shared across all users of the instance.
 # "off": routes return 404 and the browser talks to CDS/mirrors directly.
 OFFLINE_SKY_STORE = config('OFFLINE_SKY_STORE', default='off')
+# Where the tile store lives. Empty (the default) means the instance's own
+# cache/hips; a relative path is resolved against INSTANCE_PATH, an absolute one
+# is used as given. Read once at startup, like every other path setting.
+OFFLINE_SKY_DIR = config('OFFLINE_SKY_DIR', default='')
 # Cap for the whole tile store, in MiB, per instance: pinned tiles (base layer +
-# saves) plus browsed tiles. Pinned tiles never exceed it (a save that would is
-# refused); browsed tiles are evicted to make room. 0 or negative = no cap.
+# downloads) plus browsed tiles. Pinned tiles never exceed it (a download that
+# would is refused); browsed tiles are evicted to make room. 0 or negative = no cap.
 OFFLINE_SKY_CACHE_MB = config('OFFLINE_SKY_CACHE_MB', default=2048, cast=int)
 # Highest whole-sky order fetched for the low-res base layer. Orders 0..N plus the
 # Allsky file(s) are pinned at instance level (never evicted). N=3 is 1020 tiles.
@@ -88,27 +92,64 @@ OFFLINE_SKY_BASE_ORDER = config('OFFLINE_SKY_BASE_ORDER', default=3, cast=int)
 OFFLINE_SKY_JOB_RATE_PER_SEC = config('OFFLINE_SKY_JOB_RATE_PER_SEC', default=4.0, cast=float)
 # Replaced by OFFLINE_SKY_JOB_RATE_PER_SEC in offline sky B1; ignored if set.
 REMOVED_OFFLINE_SKY_KEYS = ('OFFLINE_SKY_JOB_CONCURRENCY', 'OFFLINE_SKY_JOB_DELAY_SECONDS')
+# Replaced by the Configuration -> General "Offline sky" download page; the
+# per-object saves it switched on are gone, so a leftover key warns.
+REMOVED_OFFLINE_SKY_FLAGS = ('OFFLINE_SKY_SAVE_ENABLED',)
+REMOVED_OFFLINE_SKY_FLAG_HINT = ("offline sky downloads are configured on the "
+                                 "Configuration page (Offline sky)")
 
 
 def warn_removed_offline_sky_keys() -> list:
     """Log a warning for every removed offline-sky key that is still set."""
+    logger = logging.getLogger(__name__)
     found = [key for key in REMOVED_OFFLINE_SKY_KEYS if str(config(key, default='')).strip()]
     for key in found:
-        logging.getLogger(__name__).warning(
+        logger.warning(
             "%s is no longer used and is ignored; job pacing is set by "
             "OFFLINE_SKY_JOB_RATE_PER_SEC (requests per second).", key)
-    return found
+    for key in REMOVED_OFFLINE_SKY_FLAGS:
+        if str(config(key, default='')).strip():
+            logger.warning("%s is no longer used and is ignored; %s.",
+                           key, REMOVED_OFFLINE_SKY_FLAG_HINT)
+    return found + [key for key in REMOVED_OFFLINE_SKY_FLAGS
+                    if str(config(key, default='')).strip()]
 
 
 warn_removed_offline_sky_keys()
-# "Save for offline" (saves, base-layer jobs, status chip, dropdown offline marks).
-# Off until reworked: when False the /api/offline/* routes 404 and that UI is not
-# rendered. The /hips/ proxy, its cache and the Offline view toggle don't need it.
-OFFLINE_SKY_SAVE_ENABLED = config('OFFLINE_SKY_SAVE_ENABLED', default=False, cast=bool)
 
 
 def offline_sky_enabled() -> bool:
     return OFFLINE_SKY_STORE == 'server'
+
+
+def resolve_offline_sky_ui(raw, single_user_mode: bool) -> bool:
+    """Whether this installation shows the Framing tab's Offline view switch.
+
+    Unset (or empty) means ``auto``: on for a single-user installation, off for a
+    multi-user one -- the same rule NOVA_SYNC_CLIENT follows. ``on``/``true``/
+    ``1``/``yes`` turn it on, ``off``/``false``/``0``/``no`` turn it off, in
+    either mode. Anything else (a typo included) is ``auto``.
+    """
+    value = (raw or '').strip().lower()
+    if value in ('on', 'true', '1', 'yes'):
+        return True
+    if value in ('off', 'false', '0', 'no'):
+        return False
+    return bool(single_user_mode)
+
+
+OFFLINE_SKY_UI_RAW = config('OFFLINE_SKY_UI', default='')
+
+
+def warn_unknown_offline_sky_ui(raw) -> None:
+    """One warning when OFFLINE_SKY_UI holds something that is not auto/on/off."""
+    value = (raw or '').strip().lower()
+    if value and value not in ('auto', 'on', 'true', '1', 'yes', 'off', 'false', '0', 'no'):
+        logging.getLogger(__name__).warning(
+            "OFFLINE_SKY_UI=%r is not one of auto/on/off; using auto.", raw)
+
+
+warn_unknown_offline_sky_ui(OFFLINE_SKY_UI_RAW)
 
 
 # --- File uploads ---

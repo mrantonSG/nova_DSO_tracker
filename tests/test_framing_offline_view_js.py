@@ -70,6 +70,7 @@ const ctx = {
 };
 ctx.window.t = k => k;
 ctx.window.NOVA_OFFLINE_SKY = true;
+ctx.window.NOVA_OFFLINE_SKY_UI = true;
 ctx.__log = s => log.push(s);
 vm.createContext(ctx);
 
@@ -279,6 +280,7 @@ ctx.window.t = (k, params) => {
         (a, [p, v]) => a.replace(new RegExp('\\{' + p + '\\}', 'g'), v), s) : s;
 };
 ctx.window.NOVA_OFFLINE_SKY = true;
+ctx.window.NOVA_OFFLINE_SKY_UI = true;
 vm.createContext(ctx);
 
 const api = vm.runInContext(`

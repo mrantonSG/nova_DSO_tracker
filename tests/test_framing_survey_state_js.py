@@ -323,6 +323,7 @@ async function runCase(c) {
         location: { origin: 'http://nova.test' },
         availableRigs: c.rigScale === undefined ? [] : [{ rig_id: 7, image_scale: c.rigScale }],
         NOVA_OFFLINE_SKY: true,
+        NOVA_OFFLINE_SKY_UI: true,
         NOVA_OFFLINE_SKY_SURVEYS: {},
         addEventListener(ev, f) { (listeners[ev] = listeners[ev] || []).push(f); },
         t: (k, params) => {

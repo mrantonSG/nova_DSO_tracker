@@ -138,7 +138,8 @@ from nova.config import (
     _telemetry_startup_once, TELEMETRY_DEBUG_STATE, TRANSLATION_STATUS,
     AI_PROVIDER, AI_API_KEY, AI_MODEL, AI_BASE_URL, AI_ALLOWED_USERS,
     ADMIN_USERS,
-    offline_sky_enabled, OFFLINE_SKY_BASE_ORDER, OFFLINE_SKY_SAVE_ENABLED,
+    offline_sky_enabled, OFFLINE_SKY_BASE_ORDER, OFFLINE_SKY_UI_RAW,
+    resolve_offline_sky_ui,
 )
 from nova.helpers import (
     get_db, get_user_log_string, allowed_file, _yaml_dump_pretty,
@@ -3466,9 +3467,23 @@ def inject_version():
     return dict(version=APP_VERSION)
 
 
+def offline_sky_ui() -> bool:
+    """Whether the Framing tab shows its Offline view switch.
+
+    OFFLINE_SKY_UI resolved against the *current* user mode (auto = on in
+    single-user, off in multi-user), and the tile store must be on: the switch
+    points at the cache-only /hips/offline/ roots, which only exist with the
+    proxy. Read live, not at import, so a test (or a mode switch) that changes
+    nova.SINGLE_USER_MODE is honoured.
+    """
+    if not offline_sky_enabled():
+        return False
+    return resolve_offline_sky_ui(OFFLINE_SKY_UI_RAW, SINGLE_USER_MODE)
+
+
 @app.context_processor
 def inject_offline_sky():
-    """Offline-sky flags for templates/JS (window.NOVA_OFFLINE_SKY[_SURVEYS]).
+    """Offline-sky flags for templates/JS (window.NOVA_OFFLINE_SKY[_SURVEYS][_UI]).
 
     The survey map comes from nova.offline_sky_sources.build_js_map() -- the same
     whitelist the /hips/ proxy serves from -- so the frontend can't drift from it.
@@ -3478,16 +3493,18 @@ def inject_offline_sky():
     denied to it anyway).
     """
     if not offline_sky_enabled():
-        return {"OFFLINE_SKY_ENABLED": False, "OFFLINE_SKY_SURVEYS": {}, "OFFLINE_SKY_BASE_ORDER": OFFLINE_SKY_BASE_ORDER,
-                "OFFLINE_SKY_SAVE_ENABLED": False}
+        return {"OFFLINE_SKY_ENABLED": False, "OFFLINE_SKY_SURVEYS": {},
+                "OFFLINE_SKY_BASE_ORDER": OFFLINE_SKY_BASE_ORDER,
+                "OFFLINE_SKY_UI": False}
     from flask_login import current_user
     if not SINGLE_USER_MODE and not current_user.is_authenticated:
-        return {"OFFLINE_SKY_ENABLED": False, "OFFLINE_SKY_SURVEYS": {}, "OFFLINE_SKY_BASE_ORDER": OFFLINE_SKY_BASE_ORDER,
-                "OFFLINE_SKY_SAVE_ENABLED": False}
+        return {"OFFLINE_SKY_ENABLED": False, "OFFLINE_SKY_SURVEYS": {},
+                "OFFLINE_SKY_BASE_ORDER": OFFLINE_SKY_BASE_ORDER,
+                "OFFLINE_SKY_UI": False}
     from nova.offline_sky_sources import build_js_map
     return {"OFFLINE_SKY_ENABLED": True, "OFFLINE_SKY_SURVEYS": build_js_map(),
             "OFFLINE_SKY_BASE_ORDER": OFFLINE_SKY_BASE_ORDER,
-            "OFFLINE_SKY_SAVE_ENABLED": bool(OFFLINE_SKY_SAVE_ENABLED)}
+            "OFFLINE_SKY_UI": offline_sky_ui()}
 
 
 
@@ -4364,6 +4381,50 @@ def _backfill_integration_on_startup():
               f"{result.get('scanned', 0)} NULL session(s)")
 
 
+def _retire_offline_saves_once_per_process():
+    """Drop the retired per-object save manifests, once per install.
+
+    The Framing tab's "Save for offline" entries are replaced by the
+    Configuration -> General download page, so their manifests under
+    <store>/pins/ are removed on the first start after the upgrade. The tiles
+    they pinned stay on disk as ordinary browsed tiles (nothing is deleted), so
+    they can be evicted like any other cached tile.
+
+    Idempotent and safe with nothing to migrate: a missing or empty pins/
+    directory is a no-op and logs nothing, which is what later starts see.
+    Dedicated advisory lock (instance/offline_sky_retire.lock) so one process of
+    a gunicorn worker pool does it and the rest skip. Never raises.
+    """
+    try:
+        fh = try_acquire_file_lock(os.path.join(INSTANCE_PATH, "offline_sky_retire"))
+        if fh is None:
+            return  # another process is the runner
+        try:
+            from nova.offline_sky_store import retire_save_entries
+            retire_save_entries()
+        except Exception:
+            print("[STARTUP] ERROR: offline-sky save retirement failed:")
+            traceback.print_exc()
+        finally:
+            release_file_lock(fh)
+    except Exception:
+        traceback.print_exc()
+
+
+def _check_offline_sky_dir():
+    """Create the tile store directory and note whether it can be written.
+
+    Never raises: a store on a read-only mount must not stop the app from
+    starting. An unwritable store only switches downloads off (the flag the
+    download page will read); browsing keeps working, served from upstream.
+    """
+    try:
+        from nova.offline_sky_store import check_dir
+        check_dir()
+    except Exception:
+        traceback.print_exc()
+
+
 def _run_backfill_once_per_process():
     """Run the startup backfill in exactly one process per install.
 
@@ -4417,6 +4478,13 @@ if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
     # install (dedicated lock), even where the weather/heatmap/telemetry workers
     # are disabled. Never raises, so it cannot block or crash startup.
     _run_backfill_once_per_process()
+
+    # --- OFFLINE SKY: tile store + one-off retirement of the old saves ---
+    # The store directory is created here (before anything reads it) and its
+    # writability recorded; the retired save manifests are dropped once, under
+    # their own lock, with their tiles left on disk.
+    _check_offline_sky_dir()
+    _retire_offline_saves_once_per_process()
 
     # --- BACKGROUND THREADS (Single-Worker Locking) ---
     # We use a non-blocking file lock to ensure only ONE gunicorn worker

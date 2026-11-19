@@ -129,6 +129,7 @@ async function runCase(c) {
     };
     ctx.window.framingUtils = { isCdsUrl: () => false };
     ctx.window.NOVA_OFFLINE_SKY = true;
+    ctx.window.NOVA_OFFLINE_SKY_UI = true;
     vm.createContext(ctx);
 
     const api = vm.runInContext(`

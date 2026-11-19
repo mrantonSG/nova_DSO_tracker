@@ -4375,8 +4375,16 @@
 
     // ==========================================================================
     // OFFLINE SKY: the Offline view switch
+    //
+    // Two flags, and they are not the same thing: NOVA_OFFLINE_SKY says the
+    // /hips/ proxy is serving this browser at all (the survey map and the local
+    // roots depend on it), NOVA_OFFLINE_SKY_UI says this installation *shows*
+    // the switch (OFFLINE_SKY_UI resolved against the user mode, and the store
+    // on). The cache-only roots and the "not stored offline" notice belong to
+    // the first; the switch and its connectivity listeners to the second.
     // ==========================================================================
     function offlineEnabled() { return !!window.NOVA_OFFLINE_SKY; }
+    function offlineUiEnabled() { return !!window.NOVA_OFFLINE_SKY_UI; }
     function offlineBaseId() { return document.getElementById('survey-select')?.value || 'P/DSS2/color'; }
 
     function setOfflineView(on, fromUser) {
@@ -4433,7 +4441,12 @@
 
     let offlineStartChecked = false;
     function wireOfflineSkyUi() {
-        if (!offlineEnabled()) return;
+        // The switch and everything that switches it exist only where the
+        // installation shows it. With the UI off nothing is installed: no
+        // checkbox listener, no offline/online listener, no page-opened-offline
+        // start -- so a real internet loss leaves the layer on its online root
+        // and the ordinary "not responding" notice reports the failure.
+        if (!offlineUiEnabled()) return;
 
         // A page opened while the browser is already offline never gets an
         // 'offline' event: start in Offline view (once; the events take over).

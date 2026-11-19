@@ -118,6 +118,10 @@ _CACHE_DIR_MODULES = (
 def _patch_cache_dir(mp, path):
     for mod in _CACHE_DIR_MODULES:
         mp.setattr(f'{mod}.CACHE_DIR', str(path))
+    # The offline-sky tile store now takes its directory from OFFLINE_SKY_DIR
+    # (empty = CACHE_DIR/hips), so it is OFFLINE_SKY_DIR the store has to see.
+    # Other CACHE_DIR readers keep the patched CACHE_DIR.
+    mp.setattr('nova.offline_sky_store.OFFLINE_SKY_DIR', '')
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -136,6 +140,10 @@ def isolated_cache_dir(_session_cache_dir, tmp_path, monkeypatch):
     path = tmp_path / "cache"
     path.mkdir()
     _patch_cache_dir(monkeypatch, path)
+    # The store's writability flag is process-wide: a test that points the store
+    # at an unwritable directory must not leak that into the next test.
+    import nova.offline_sky_store as _store
+    monkeypatch.setattr(_store, 'DOWNLOADS_AVAILABLE', True)
     return path
 
 

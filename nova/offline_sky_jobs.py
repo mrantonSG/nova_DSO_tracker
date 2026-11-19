@@ -1,31 +1,12 @@
-"""Offline-sky jobs: what a save covers, what it costs, and the one job runner.
+"""Offline-sky jobs: the low-res base layer and the one job runner.
 
-Area, detail, cost
-------------------
-* Area is the imaging *frame* (whole mosaic extent when a mosaic is set), never
-  the Aladin view: ``radius = half-diagonal x FRAME_MARGIN``. Rotation does not
-  matter (the half-diagonal bounds any rotation). Requests whose radius exceeds
-  MAX_SAVE_RADIUS_DEG are rejected.
-* Detail comes from the rig: the target order is the lowest HiPS order whose
-  pixel scale (58.63 deg x 3600 / (512 x 2^order)) is <= the rig's image scale
-  (arcsec/px). A detail offset (-1, 0, +1) moves it; per survey the order is
-  capped at the survey's effective max order (nova/offline_sky_facts.py), and
-  the save holds orders OFFLINE_SKY_BASE_ORDER+1 .. capped order. Tiles outside a
-  survey's coverage (its MOC) are skipped.
-* An estimate counts the tiles not on disk yet; MB use the survey's measured
-  average tile size on disk (fallback FALLBACK_TILE_BYTES).
-
-Limits
-------
-OFFLINE_SKY_CACHE_MB caps the whole store (see nova/offline_sky_store.py). A save
-is refused when pinned + reserved + new would exceed it, or when the disk would
-drop below DISK_HEADROOM_BYTES free; "reserved" is what queued/running saves still
-expect to add (their estimate minus what they have pinned). The final check and
-the queueing happen under the store's pin lock, so two concurrent requests can
-never both take the same room. Browsed tiles are evictable, so they never block a
-save. The same two limits are re-checked before every tile a job fetches; when
-one is hit the job stops ("stopped", reason "no_space") and keeps a manifest of
-what it has.
+Base layer
+----------
+The base is the whole-sky low-res layer: the Allsky preview plus every covered
+tile of orders 0..min(OFFLINE_SKY_BASE_ORDER, the survey's own hips_order). A
+base job pins what it fetches in the instance-level ``.base-pins.json``, so the
+base is never evicted; a tile every mirror answered 404 for is recorded in
+``<slug>/.missing.json`` and retried at most once a day.
 
 One runner per instance
 -----------------------
@@ -33,11 +14,10 @@ Under gunicorn there are several processes. Jobs live on disk as
 ``jobs/<id>.json`` (the queue); any process may enqueue a job or write a cancel
 marker ``jobs/<id>.cancel``. Exactly one process -- whoever holds the
 ``jobs/.runner.lock`` file lock (nova/offline_sky_lock.py) -- runs jobs, one at a
-time, oldest first, in a single thread. ``kick()`` (called by the API routes)
-tries to take the lock; a process that cannot just returns, and status is read
-from disk. The OS drops the lock when the holder dies, so the next process that
-takes it resumes every queued/running/paused job (resume = re-enumerate and
-skip what is on disk).
+time, oldest first, in a single thread. ``kick()`` tries to take the lock; a
+process that cannot just returns, and status is read from disk. The OS drops the
+lock when the holder dies, so the next process that takes it resumes every
+queued/running/paused job (resume = re-enumerate and skip what is on disk).
 
 Pace and honesty
 ----------------
@@ -49,21 +29,17 @@ asked and answered 404. Anything else that brings no tile -- a network error,
 5xx, 429, an open breaker, even mixed with a 404 from another mirror -- pauses
 the job, which retries the same tile; it is never counted as done. Final
 status: done (``missing`` = N), stopped, cancelled, failed. Any unexpected
-error still goes through the finish path (manifest, accounting, cancel marker)
-and ends as "failed".
+error still goes through the finish path (accounting, cancel marker) and ends as
+"failed".
 
 Accounting
 ----------
-A save manifest lists every tile the save covers (fetched now or already on
-disk); its bytes are summed from disk. Before a job fetches or adopts a tile it
-claims it in ``jobs/<id>.pins`` (store.claim_for_job), so eviction treats the
-tile as pinned from the moment it lands on disk; the claims are handed over to
-the manifest (or the base pins) when the job ends. Manifest writes and claims
-check, under the store's pin lock, that the save still exists, so a deleted save
-never comes back. The manifest is checkpointed during the job and the final
-manifest is written BEFORE the final job status. An already-browsed tile that a
-job adopts moves from ``.total`` to ``.pinned``; a tile already pinned (by
-another save, the base or this job's own claims from before a crash) is not.
+Before a job fetches or adopts a tile it claims it in ``jobs/<id>.pins``
+(store.claim_for_job), so eviction treats the tile as pinned from the moment it
+lands on disk; the claims are handed to the base pins when the job ends. An
+already-browsed tile that a job adopts moves from ``.total`` to ``.pinned``; a
+tile already pinned (the base, or this job's own claims from before a crash) is
+not.
 """
 
 import json
@@ -72,26 +48,13 @@ import os
 import threading
 import time
 import traceback
-from dataclasses import dataclass, field
 
 from nova.config import OFFLINE_SKY_BASE_ORDER, OFFLINE_SKY_JOB_RATE_PER_SEC
 from nova.offline_sky_facts import allsky_rel, survey_coverage, survey_facts
 from nova.offline_sky_lock import try_lock, unlock
-from nova.offline_sky_sources import SURVEY_BY_SLUG, SURVEY_ID_BY_SLUG
+from nova.offline_sky_sources import SURVEY_BY_SLUG
 import nova.offline_sky_store as store
 import nova.hips_healpix as hp
-
-# --- Area -------------------------------------------------------------------
-FRAME_MARGIN = 1.15
-# Largest accepted save radius (deg). 10 deg covers a ~17 deg frame diagonal
-# (e.g. a 2x2 mosaic of a 135 mm lens on APS-C) with the 15 % margin.
-MAX_SAVE_RADIUS_DEG = 10.0
-
-# --- Detail -----------------------------------------------------------------
-HIPS_ORDER0_TILE_DEG = 58.63
-HIPS_TILE_PX = 512
-DETAIL_OFFSETS = (-1, 0, 1)
-_MAX_ORDER = 29  # HEALPix limit
 
 # --- Limits / cost ----------------------------------------------------------
 # Keep at least this much free on the disk holding the store.
@@ -102,7 +65,7 @@ FALLBACK_TILE_BYTES = 67 * 1024
 MIN_JOB_RATE_PER_SEC = 0.1       # a rate <= 0 (or tiny) never switches pacing off
 PAUSE_SECONDS = 30.0             # wait before retrying while upstream is unavailable
 MAX_PAUSE_SECONDS = 30 * 60      # give up ("failed") after this long paused on one tile
-CHECKPOINT_EVERY = 64            # tiles between manifest/state checkpoints
+CHECKPOINT_EVERY = 64            # tiles between job-state checkpoints
 IDLE_POLL_SECONDS = 2.0          # how often an idle runner looks for new jobs
 RUNNER_LOCK_NAME = ".runner.lock"
 
@@ -131,107 +94,11 @@ class LimitError(ValueError):
 
 
 # ---------------------------------------------------------------------------
-# Geometry and detail
+# Tiles
 # ---------------------------------------------------------------------------
-
-def frame_radius_deg(frame_w_deg: float, frame_h_deg: float) -> float:
-    """Save radius for a frame: half the diagonal, plus FRAME_MARGIN."""
-    return math.hypot(frame_w_deg, frame_h_deg) / 2.0 * FRAME_MARGIN
-
-
-def hips_pixel_scale_arcsec(order: int) -> float:
-    return HIPS_ORDER0_TILE_DEG * 3600.0 / (HIPS_TILE_PX * (2 ** order))
-
-
-def target_order_for_scale(image_scale_arcsec: float) -> int:
-    """Lowest order whose HiPS pixel scale is <= the rig's image scale."""
-    for order in range(0, _MAX_ORDER + 1):
-        if hips_pixel_scale_arcsec(order) <= image_scale_arcsec:
-            return order
-    return _MAX_ORDER
-
-
-def validate_frame(ra, dec, frame_w_deg, frame_h_deg) -> dict:
-    """Normalised frame dict, or LimitError."""
-    try:
-        ra = float(ra) % 360.0
-        dec = float(dec)
-        w = float(frame_w_deg)
-        h = float(frame_h_deg)
-    except (TypeError, ValueError):
-        raise LimitError("invalid_parameters", "ra, dec, frame_w_deg and frame_h_deg must be numbers")
-    if not all(math.isfinite(v) for v in (ra, dec, w, h)):
-        raise LimitError("invalid_parameters", "ra, dec, frame_w_deg and frame_h_deg must be finite")
-    if not -90.0 <= dec <= 90.0:
-        raise LimitError("invalid_parameters", "dec must be within -90..90")
-    if w <= 0 or h <= 0:
-        raise LimitError("invalid_parameters", "frame width and height must be > 0")
-    radius = frame_radius_deg(w, h)
-    if radius > MAX_SAVE_RADIUS_DEG:
-        raise LimitError(
-            "radius_too_large",
-            f"The frame needs a {radius:.1f} deg radius; the limit is {MAX_SAVE_RADIUS_DEG:.0f} deg.",
-            radius_deg=radius, max_radius_deg=MAX_SAVE_RADIUS_DEG)
-    return {"ra": ra, "dec": dec, "frame_w_deg": w, "frame_h_deg": h, "radius_deg": radius}
-
-
-def validate_offset(value) -> int:
-    if value in (None, ""):
-        return 0
-    try:
-        off = int(value)
-    except (TypeError, ValueError):
-        raise LimitError("invalid_parameters", "detail_offset must be -1, 0 or 1")
-    if off not in DETAIL_OFFSETS:
-        raise LimitError("invalid_parameters", "detail_offset must be -1, 0 or 1")
-    return off
-
 
 def _tile_rel(order: int, npix: int, ext: str) -> str:
     return f"Norder{order}/Dir{(npix // 10000) * 10000}/Npix{npix}.{ext}"
-
-
-@dataclass
-class SurveyPlan:
-    slug: str
-    ext: str
-    low: int                   # first saved order (base + 1)
-    high: int                  # last saved order (requested, capped); < low = nothing
-    requested_order: int
-    effective_max_order: int
-    coverage_reason: str
-    coverage_fraction: float
-    tiles: dict = field(default_factory=dict)   # order -> [npix in coverage]
-
-    @property
-    def capped(self) -> bool:
-        return self.high < self.requested_order
-
-    @property
-    def orders(self):
-        return list(range(self.low, self.high + 1)) if self.high >= self.low else []
-
-    def rel_paths(self):
-        for order in self.orders:
-            for npix in self.tiles.get(order, []):
-                yield _tile_rel(order, npix, self.ext)
-
-
-def plan_survey(slug: str, ra: float, dec: float, radius_deg: float,
-                requested_order: int, fetch: bool = True) -> SurveyPlan:
-    facts = survey_facts(slug, fetch)
-    cov = survey_coverage(slug, fetch)
-    low = OFFLINE_SKY_BASE_ORDER + 1
-    high = min(int(requested_order), facts.effective_max_order)
-    plan = SurveyPlan(slug=slug, ext=facts.tile_ext, low=low, high=high,
-                      requested_order=int(requested_order),
-                      effective_max_order=facts.effective_max_order,
-                      coverage_reason=cov.reason, coverage_fraction=cov.fraction)
-    if high >= low:
-        by_order = hp.cone_pixels(ra, dec, radius_deg, low, high)
-        for order in range(low, high + 1):
-            plan.tiles[order] = [n for n in by_order.get(order, []) if cov.contains(order, n)]
-    return plan
 
 
 # ---------------------------------------------------------------------------
@@ -250,6 +117,31 @@ def base_rel_paths(slug: str, fetch: bool = False):
             if cov.contains(order, npix):
                 out.append(_tile_rel(order, npix, ext))
     return out
+
+
+def measured_avg_tile_bytes(slug: str):
+    """(mean on-disk tile size, measured?) for a survey; fallback 67 KB.
+
+    Used by a job to judge whether the next tile still fits under the cap and
+    above the disk headroom before it spends an upstream request on it.
+    """
+    total = 0
+    count = 0
+    root = store.survey_dir(slug)
+    for dirpath, _dirs, names in os.walk(root):
+        if dirpath == root:
+            continue  # metadata lives at the survey root, tiles under Norder*/
+        for name in names:
+            if name.startswith(".") or name in store.METADATA_FILES or name.startswith("Allsky."):
+                continue
+            try:
+                total += os.path.getsize(os.path.join(dirpath, name))
+                count += 1
+            except OSError:
+                continue
+    if count:
+        return total // count, True
+    return FALLBACK_TILE_BYTES, False
 
 
 def _missing_path(slug: str) -> str:
@@ -300,176 +192,6 @@ def base_complete(slug: str) -> bool:
     missing = read_missing(slug)
     return all(store.tile_exists(slug, rel) or rel in missing
                for rel in base_rel_paths(slug, fetch=False))
-
-
-# ---------------------------------------------------------------------------
-# Estimate and limits
-# ---------------------------------------------------------------------------
-
-def measured_avg_tile_bytes(slug: str):
-    """(mean on-disk tile size, measured?) for a survey; fallback 67 KB."""
-    total = 0
-    count = 0
-    root = store.survey_dir(slug)
-    for dirpath, _dirs, names in os.walk(root):
-        if dirpath == root:
-            continue  # metadata lives at the survey root, tiles under Norder*/
-        for name in names:
-            if name.startswith(".") or name in store.METADATA_FILES or name.startswith("Allsky."):
-                continue
-            try:
-                total += os.path.getsize(os.path.join(dirpath, name))
-                count += 1
-            except OSError:
-                continue
-    if count:
-        return total // count, True
-    return FALLBACK_TILE_BYTES, False
-
-
-def estimate(frame: dict, image_scale_arcsec: float, slugs, detail_offset: int = 0,
-             fetch: bool = True) -> dict:
-    """Per-survey and total cost of saving ``frame`` for ``slugs``, plus budget.
-
-    ``frame`` comes from validate_frame. Tiles already on disk are not counted as
-    new; tiles on disk but not pinned yet are reported as ``adopt_bytes`` (they
-    become pinned, so they count against the cap, not the disk).
-    """
-    target = target_order_for_scale(image_scale_arcsec)
-    requested = max(0, target + int(detail_offset))
-    pinned = store.pinned_rel_paths()
-    surveys = []
-    tot_new = tot_all = tot_bytes = tot_adopt = 0
-    for slug in slugs:
-        plan = plan_survey(slug, frame["ra"], frame["dec"], frame["radius_deg"], requested, fetch)
-        avg, measured = measured_avg_tile_bytes(slug)
-        by_order = {}
-        new = 0
-        adopt = 0
-        all_count = 0
-        for order in plan.orders:
-            o_total = o_new = 0
-            for npix in plan.tiles.get(order, []):
-                rel = _tile_rel(order, npix, plan.ext)
-                o_total += 1
-                size = store.file_size(slug, rel)
-                if size is None:
-                    o_new += 1
-                elif f"{slug}/{rel}" not in pinned:
-                    adopt += size
-            by_order[str(order)] = {"tiles": o_total, "new": o_new}
-            new += o_new
-            all_count += o_total
-        est = new * avg
-        surveys.append({
-            "slug": slug,
-            "survey_id": SURVEY_ID_BY_SLUG.get(slug),
-            "requested_order": requested,
-            "effective_max_order": plan.effective_max_order,
-            # The resolution this survey really serves for this frame: the
-            # requested order capped at what the survey has (see plan.capped).
-            "effective_pixel_scale_arcsec": hips_pixel_scale_arcsec(plan.effective_max_order),
-            "capped": plan.capped,
-            "orders": plan.orders,
-            "by_order": by_order,
-            "tiles_total": all_count,
-            "tile_count": new,
-            "avg_tile_bytes": avg,
-            "avg_tile_measured": measured,
-            "est_bytes": est,
-            "adopt_bytes": adopt,
-            "coverage": {"reason": plan.coverage_reason, "fraction": plan.coverage_fraction},
-        })
-        tot_new += new
-        tot_all += all_count
-        tot_bytes += est
-        tot_adopt += adopt
-
-    cap = store.cap_bytes()
-    pinned_bytes = store.refresh_pinned_bytes()
-    disk_free = store.disk_free_bytes()
-    reserved_pin, reserved_disk = reserved_bytes()
-    free_under_cap = max(0, cap - pinned_bytes - reserved_pin) if cap > 0 else None
-    reject = limit_problem(pinned_bytes + reserved_pin, tot_bytes + tot_adopt,
-                           tot_bytes + reserved_disk, disk_free, cap)
-    return {
-        "frame": frame,
-        "radius_deg": frame["radius_deg"],
-        "image_scale_arcsec": image_scale_arcsec,
-        "target_order": target,
-        "detail_offset": int(detail_offset),
-        "requested_order": requested,
-        # Resolution of the requested detail (before any per-survey cap).
-        "requested_pixel_scale_arcsec": hips_pixel_scale_arcsec(requested),
-        # ...and what the surveys really serve for this frame, which is the same
-        # unless every one of them is capped shallower than the request.
-        "effective_pixel_scale_arcsec": max(s["effective_pixel_scale_arcsec"]
-                                            for s in surveys) if surveys else None,
-        "surveys": surveys,
-        "total": {"tile_count": tot_new, "tiles_total": tot_all,
-                  "est_bytes": tot_bytes, "adopt_bytes": tot_adopt},
-        "cap_bytes": cap,
-        "pinned_bytes": pinned_bytes,
-        "reserved_bytes": reserved_pin,
-        "browsed_bytes": store.total_bytes(),
-        "free_under_cap_bytes": free_under_cap,
-        # Kept for the existing client: free space under the cap (browsed tiles
-        # are evictable, so they count as free).
-        "free_bytes": free_under_cap if free_under_cap is not None else disk_free,
-        "disk_free_bytes": disk_free,
-        "disk_headroom_bytes": DISK_HEADROOM_BYTES,
-        "fits": reject is None,
-        "reject": reject,
-    }
-
-
-def reserved_bytes():
-    """(pinned, disk) bytes that queued/running/paused saves still expect to add.
-
-    Per job: its estimate at create time (params ``reserve_bytes`` /
-    ``reserve_disk_bytes``) minus what it has pinned / fetched so far (as of
-    its last checkpoint, so this errs on the side of reserving too much).
-    """
-    pin = disk = 0
-    for job in list_jobs():
-        if job.get("kind") != "save" or job.get("status") not in ACTIVE_STATUSES:
-            continue
-        params = job.get("params") or {}
-        try:
-            pin += max(0, int(params.get("reserve_bytes", 0)) - int(job.get("added", 0)))
-            disk += max(0, int(params.get("reserve_disk_bytes", 0)) - int(job.get("bytes", 0)))
-        except (TypeError, ValueError):
-            continue
-    return pin, disk
-
-
-def admit_save(manifest: dict, params: dict, slugs, add_pinned: int, add_disk: int):
-    """Re-check the limits and queue a save as one step; None, or the problem.
-
-    Runs under the store's pin lock, so two concurrent creates are serialised:
-    the second one sees the first one's job in reserved_bytes().
-    """
-    with store.pins_lock():
-        pinned = store.refresh_pinned_bytes()
-        r_pin, r_disk = reserved_bytes()
-        problem = limit_problem(pinned + r_pin, add_pinned, add_disk + r_disk,
-                                store.disk_free_bytes(), store.cap_bytes())
-        if problem:
-            return problem
-        store.write_save_manifest(manifest)
-        enqueue(manifest["id"], "save", params, slugs)
-    return None
-
-
-def limit_problem(pinned_bytes: int, add_pinned: int, add_disk: int, disk_free: int, cap: int):
-    """None when a save fits, else {"code", "message"}."""
-    if cap > 0 and pinned_bytes + add_pinned > cap:
-        return {"code": "over_cap",
-                "message": "Saved sky would exceed the offline cache limit (OFFLINE_SKY_CACHE_MB)."}
-    if disk_free - add_disk < DISK_HEADROOM_BYTES:
-        return {"code": "disk_headroom",
-                "message": "Not enough free disk space for this save."}
-    return None
 
 
 # ---------------------------------------------------------------------------
@@ -553,10 +275,9 @@ def cancel_requested(job_id: str) -> bool:
 
 def sweep_stale_job_files() -> None:
     """Drop cancel markers of jobs that are not active (a cancel that raced the
-    job's end), the state of save jobs whose save is gone, and the tile claims of
-    a job with no state at all (a crash between the claim and its state file, or
-    a state deleted by hand). Left behind, those claims pin tiles no save covers:
-    nothing would ever release them. Runner only.
+    job's end) and the tile claims of a job with no state at all (a crash between
+    the claim and its state file, or a state deleted by hand). Left behind, those
+    claims pin tiles nothing covers: nothing would ever release them. Runner only.
 
     Write-ahead is safe here: ``claim_for_job`` creates the claims file and the
     job state under the same pin lock, so a state file is never momentarily
@@ -581,12 +302,6 @@ def sweep_stale_job_files() -> None:
                     os.remove(os.path.join(store.jobs_dir(), name))
                 except OSError:
                     pass
-        elif name.endswith(".json"):
-            state = read_job(name[:-5])
-            if (state and state.get("kind") == "save"
-                    and state.get("status") in FINAL_STATUSES
-                    and store.read_save_manifest(state["id"]) is None):
-                delete_job_file(state["id"])
 
 
 # ---------------------------------------------------------------------------
@@ -669,23 +384,17 @@ class JobRunner:
         self._fh = None
 
     def reconcile_pins(self) -> None:
-        """Once per runner process: fold duplicate entries, read the survey
-        metadata, and rewrite the pin totals.
+        """Once per runner process: read the survey metadata and rewrite the pin
+        totals.
 
-        Entries that predate the rig field were one per save: the ones describing
-        the same object and frame are folded into a single row (the M106 pair).
-        Reading every survey's properties here is what keeps an estimate from
+        Reading every survey's properties here is what keeps a job's planning from
         doing it inside a request -- stale properties mean an upstream fetch, and
-        that used to land on whichever estimate came first after a week. The
-        totals are re-derived last, once for both passes.
+        that used to land on whichever request came first after a week. The
+        totals are re-derived after it.
         """
         if self._reconciled:
             return
         self._reconciled = True
-        try:
-            store.reconcile_entries()
-        except Exception:
-            traceback.print_exc()
         try:
             store.warm_up()
         except Exception:
@@ -747,13 +456,10 @@ class JobRunner:
         try:
             if state.get("kind") == "base":
                 self._run_base(state)
-            else:
-                self._run_save(state)
         except Exception as exc:
-            # _run_save/_run_base already route errors through _finish; this is
-            # the last resort when _finish itself fails. The job's claims file
-            # stays, so its tiles stay pinned until the save is deleted or the
-            # base job runs again.
+            # _run_base already routes errors through _finish; this is the last
+            # resort when _finish itself fails. The job's claims file stays, so
+            # its tiles stay pinned until the base job runs again.
             traceback.print_exc()
             state.update(status="failed", reason="error", error=str(exc))
             for step in (lambda: _write_job(state), lambda: os.remove(_cancel_path(job_id))):
@@ -882,90 +588,6 @@ class JobRunner:
                 on_checkpoint(covered, missing)
                 _write_job(state)
 
-    # --- save ---
-    def _run_save(self, state: dict) -> None:
-        job_id = state["id"]
-        p = state["params"]
-        manifest_path = os.path.join(store.pins_dir(), f"{job_id}.json")
-
-        def save_exists():
-            """Claim guard: runs under the pin lock, so a delete can't slip in.
-
-            What must exist is where this save's tiles belong: the entry it was
-            merged into, or -- for a save that is its own entry -- its own file.
-            """
-            own = store.read_save_manifest(job_id)
-            target = (own.get("entry_id") if own else None) or job_id
-            if store.read_save_manifest(target) is None:
-                raise _Stop("cancelled", REASON_DELETED)
-
-        def write_manifest(covered, missing, status, final=False):
-            """Write what this save has so far, under the pin lock.
-
-            The save's own manifest is the record of what its job did; the entry
-            it belongs to (``entry_id``) gets the union of the two. A standalone
-            save is its own entry, so both writes land on one file. ``final``:
-            keep the pins on the entry and drop the job's claims file, returning
-            True when a claimed tile is on disk but now pinned by nothing.
-            """
-            leftover = False
-            current_in = {"paths": sorted(set(covered)), "missing_paths": sorted(set(missing)),
-                          "missing": len(set(missing)), "status": status,
-                          "partial": status != "done"}
-            with store.pins_lock():
-                current = store.read_save_manifest(job_id)
-                if current is None:
-                    if final:
-                        store.take_job_pins_locked(job_id)
-                    raise _Stop("cancelled", REASON_DELETED)  # save deleted meanwhile
-                entry_id = current.get("entry_id") or job_id
-                current.update(current_in)
-                current["bytes"] = sum(store.pinned_key_size(k) or 0
-                                       for k in store.save_covered_keys(current))
-                store.write_save_manifest(current)
-                if entry_id != job_id:
-                    entry = store.read_save_manifest(entry_id)
-                    if entry is None:
-                        if final:
-                            store.take_job_pins_locked(job_id)
-                        raise _Stop("cancelled", REASON_DELETED)  # entry deleted meanwhile
-                    store.merge_into_entry(entry, current_in)
-                    store.write_save_manifest(entry)
-                if final:
-                    claimed = store.take_job_pins_locked(job_id)
-                    loose = claimed - store.pinned_rel_paths()
-                    # Only a tile that is on disk *and* now pinned by nothing else
-                    # moved from pinned to browsed without being handed on. A tile
-                    # the base already pins was never this job's to release.
-                    leftover = any(
-                        store.pinned_key_size(k) is not None
-                        and k not in store.base_pinned_rel_paths()
-                        for k in loose
-                    )
-                store.refresh_pinned_bytes()
-            return leftover
-
-        covered, missing = [], []
-        status, reason, error = "done", None, None
-        try:
-            save_exists()
-            items = []
-            for slug in state.get("surveys", []):
-                if slug not in SURVEY_BY_SLUG:
-                    continue
-                plan = plan_survey(slug, p["ra"], p["dec"], p["radius_deg"], p["order"], fetch=True)
-                items.extend((slug, rel) for rel in plan.rel_paths())
-            self._process(state, items, covered, missing,
-                          lambda c, m: write_manifest(c, m, "running"),
-                          claim_guard=save_exists)
-        except _Stop as stop:
-            status, reason = stop.status, stop.reason
-        except Exception as exc:
-            traceback.print_exc()
-            status, reason, error = "failed", "error", str(exc)
-        self._finish(state, status, reason, covered, missing,
-                     lambda c, m, st: write_manifest(c, m, st, final=True), error)
-
     # --- base ---
     def _run_base(self, state: dict) -> None:
         slug = state["params"]["slug"]
@@ -1009,17 +631,16 @@ class JobRunner:
                      lambda c, m, _st: pin(c, m, final=True), error)
 
     def _finish(self, state, status, reason, covered, missing, finalize, error=None):
-        """Manifest first (atomic), then the final status. Never the other way round.
+        """Pins first (atomic), then the final status. Never the other way round.
 
-        Runs for every outcome, unexpected errors included: the manifest gets
-        the final status, the job's claims are handed over, the totals are
-        re-derived when needed and the cancel marker is removed. A save deleted
-        while the job ran leaves no job file behind.
+        Runs for every outcome, unexpected errors included: the job's claims are
+        handed over, the totals are re-derived when needed and the cancel marker
+        is removed.
         """
         recount = False
         try:
             recount = finalize(covered, missing, status)
-        except _Stop as stop:  # the save was deleted while we ran
+        except _Stop as stop:  # cancelled while we ran
             status, reason = stop.status, stop.reason
         except Exception as exc:
             traceback.print_exc()
@@ -1032,10 +653,10 @@ class JobRunner:
                 traceback.print_exc()
         over_cap = (store.cap_bytes() > 0
                     and store.total_bytes() + store.pinned_bytes() > store.cap_bytes())
-        if recount or over_cap or reason == REASON_DELETED:
-            # Eviction also re-derives .total/.pinned from disk: needed after a
-            # delete raced the job, or when a claimed tile ended up on disk
-            # without being handed to the manifest (it is browsed now).
+        if recount or over_cap:
+            # Eviction also re-derives .total/.pinned from disk: needed when a
+            # claimed tile ended up on disk without being handed to the base
+            # pins (it is browsed now).
             try:
                 store.evict_browsed()
             except Exception:
@@ -1043,9 +664,6 @@ class JobRunner:
         state.update(status=status, reason=reason, missing=len(set(missing)))
         if error:
             state["error"] = error
-        if reason == REASON_DELETED:
-            delete_job_file(state["id"])  # the save is gone: no state, no marker
-            return
         _write_job(state)
         try:
             os.remove(_cancel_path(state["id"]))
@@ -1064,9 +682,8 @@ _kick_lock = threading.Lock()
 def kick() -> bool:
     """Make sure *some* process runs the queue. True if this process is the runner.
 
-    Called by the API routes (never at import, never while the save flag is
-    off). A process that cannot take the lock does nothing: the holder runs the
-    job, and status is read from disk.
+    Called when a job is queued (never at import). A process that cannot take the
+    lock does nothing: the holder runs the job, and status is read from disk.
     """
     with _kick_lock:
         if _RUNNER.running:
@@ -1107,66 +724,3 @@ def base_job_progress(slug: str) -> dict:
     if not state:
         return {"slug": slug, "status": "idle", "complete": base_complete(slug)}
     return {**state, "slug": slug, "complete": base_complete(slug)}
-
-
-# ---------------------------------------------------------------------------
-# Status (read-only)
-# ---------------------------------------------------------------------------
-
-def cone_max_cached_order(slug: str, ra: float, dec: float, radius_deg: float) -> int:
-    """Highest order whose covered cone tiles are all on disk; -1 without a base.
-
-    The base (orders 0..N) is whole-sky, so a complete base counts as order N
-    for any cone; higher orders are checked against the covered cone tiles, up
-    to the survey's effective max order. Never contacts upstream.
-    """
-    if slug not in SURVEY_BY_SLUG or not base_complete(slug):
-        return -1
-    facts = survey_facts(slug, fetch=False)
-    best = min(OFFLINE_SKY_BASE_ORDER, facts.effective_max_order)
-    for order in range(OFFLINE_SKY_BASE_ORDER + 1, facts.effective_max_order + 1):
-        plan = plan_survey(slug, ra, dec, radius_deg, order, fetch=False)
-        rels = [_tile_rel(order, n, plan.ext) for n in plan.tiles.get(order, [])]
-        if not rels or not all(store.tile_exists(slug, rel) for rel in rels):
-            break
-        best = order
-    return best
-
-
-def covered_pinned_order(slug: str, ra: float, dec: float, radius_deg: float) -> int:
-    """Highest order whose covered cone tiles are all pinned -- -1 for none.
-
-    What the offline indicator reads. Being on disk is not the same as being
-    kept: browsing fills the same cache and eviction may take any of it, so only
-    *pinned* tiles (a base job's, or a covering save's) survive with the network
-    down.
-
-    Nothing here depends on the base layer being "complete": a save pins exactly
-    the tiles for the frame it was made for, so a finished save for this frame
-    answers on its own. Gating on ``base_complete`` needed the Allsky preview
-    file, which nobody may ever have fetched, and that turned a frame a save
-    covers into "not available offline".
-    """
-    if slug not in SURVEY_BY_SLUG:
-        return -1
-    pinned = store.pinned_rel_paths()
-    if not pinned:
-        return -1
-    facts = survey_facts(slug, fetch=False)
-    cov = survey_coverage(slug, fetch=False)
-    high = facts.effective_max_order
-    if high < 0:
-        return -1
-    # The cone from order 0, not plan_survey's: a save plan starts above the base
-    # layer, and the whole-sky base orders are exactly what a base job pins.
-    by_order = hp.cone_pixels(ra, dec, radius_deg, 0, high)
-    best = -1
-    for order in range(0, high + 1):
-        keys = [f"{slug}/{_tile_rel(order, n, facts.tile_ext)}"
-                for n in by_order.get(order, []) if cov.contains(order, n)]
-        if not keys or not all(k in pinned for k in keys):
-            # A gap at this order stops the promise here: deeper orders contain
-            # this one's tiles, so they cannot be complete either.
-            break
-        best = order
-    return best
