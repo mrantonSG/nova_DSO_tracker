@@ -8232,6 +8232,80 @@ msgid "{survey} is not responding — showing the stored copy."
 msgstr "{survey} が応答しません — 保存済みのコピーを表示します。"
 
 
+#: templates/config_form.html
+msgid "Offline sky"
+msgstr "オフライン天空"
+
+#: templates/config_form.html
+msgid "Storage"
+msgstr "ストレージ"
+
+#: templates/config_form.html
+msgid "Using %(used)s of %(limit)s"
+msgstr "%(limit)s 中 %(used)s を使用"
+
+#: templates/config_form.html
+msgid "Limit:"
+msgstr "上限:"
+
+#: templates/config_form.html
+msgid "No limit"
+msgstr "無制限"
+
+#: templates/config_form.html
+msgid "Sky browsing keeps about 1 GB of disk space free."
+msgstr "空の閲覧用に約 1 GB のディスク空き容量を確保します。"
+
+#: templates/config_form.html
+msgid "Downloaded sky (%(pinned)s) already exceeds this limit. Viewed tiles are not kept."
+msgstr "ダウンロード済みの天空（%(pinned)s）がこの上限をすでに超えています。閲覧したタイルは保持されません。"
+
+#: templates/config_form.html
+msgid "Clear browsed sky"
+msgstr "閲覧した天空を消去"
+
+#: templates/config_form.html
+msgid "Downloaded sky is never removed."
+msgstr "ダウンロード済みの天空は削除されません。"
+
+#: templates/config_form.html
+msgid "Downloads are unavailable: the sky-tile folder is not writable."
+msgstr "ダウンロードは利用できません。天空タイルのフォルダーに書き込めません。"
+
+#: templates/config_form.html
+msgid "Browsed sky tiles are not kept on disk either."
+msgstr "閲覧した天空タイルもディスクに保存されません。"
+
+#: templates/config_form.html
+msgid "Remove all viewed sky tiles? Downloaded sky is kept."
+msgstr "閲覧した天空タイルをすべて削除しますか？ダウンロード済みの天空は保持されます。"
+
+#: templates/config_form.html
+msgid "Viewed sky tiles removed."
+msgstr "閲覧した天空タイルを削除しました。"
+
+#: templates/config_form.html
+msgid "Limit saved."
+msgstr "上限を保存しました。"
+
+#: templates/config_form.html
+msgid "Could not save the limit."
+msgstr "上限を保存できませんでした。"
+
+#: templates/config_form.html
+msgid "Sky storage is busy. Try again in a moment."
+msgstr "天空ストレージは使用中です。しばらくしてから再試行してください。"
+
+#: templates/config_form.html
+msgid "The sky-tile folder is not writable, so the limit cannot be changed."
+msgstr "天空タイルのフォルダーに書き込めないため、上限を変更できません。"
+
+
+#: templates/config_form.html
+msgid "Using %(used)s"
+msgstr "%(used)s を使用"
+
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "更新提案"
 

@@ -12,9 +12,13 @@ When OFFLINE_SKY_STORE != "server" every route returns 404, so the frontend's
 store-off path (direct CDS/mirror, as before) is untouched.
 
 The cache-only /hips/offline/<slug>/... variants serve from disk and never
-contact upstream: that is what the Framing tab's Offline view reads. There is no
-user-facing download API here yet -- the Configuration -> General download page
-comes next and will build on the job runner in nova/offline_sky_jobs.py.
+contact upstream: that is what the Framing tab's Offline view reads.
+
+The Configuration -> General "Offline sky" section is served by the small JSON
+API at the bottom of this file (/api/offline-sky/...): the store's usage, the
+limit the user picks, and clearing the viewed tiles. Those routes share the
+store with the tile proxy -- same directory, same locking -- which is why they
+live on this blueprint rather than next to the config page.
 """
 
 import os
@@ -22,15 +26,17 @@ import threading
 import time
 
 import requests
-from flask import Blueprint, Response, request
+from flask import Blueprint, Response, jsonify, request
 from flask_login import current_user
 
 import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay live (see nova/config.py)
-from nova.config import APP_VERSION, OFFLINE_SKY_STORE
+from nova.config import ADMIN_USERS, APP_VERSION, OFFLINE_SKY_STORE
 from nova.offline_sky_facts import allsky_rel, effective_max_order
 from nova.offline_sky_sources import SURVEY_BY_SLUG
 from nova.offline_sky_store import (
     read_file, store_file, touch, maybe_evict_async, tile_path,
+    clear_now, evict_now, set_limit_mb, status as store_status,
+    with_evict_lock,
 )
 
 offline_sky_bp = Blueprint("offline_sky", __name__)
@@ -111,6 +117,46 @@ def _allowed() -> bool:
     if not nova.SINGLE_USER_MODE and not current_user.is_authenticated:
         return False
     return True
+
+
+def _is_admin() -> bool:
+    """True when the caller may change instance-wide store settings.
+
+    Single-user: the one user is the owner. Multi-user: ADMIN_USERS only -- the
+    sky store is shared by every account on the instance, so its limit and its
+    clear button are not a per-user preference. Same rule as the admin blueprint
+    and the telemetry diagnostics route.
+    """
+    if nova.SINGLE_USER_MODE:
+        return True
+    return (current_user.is_authenticated
+            and (current_user.username or "") in ADMIN_USERS)
+
+
+def storage_available() -> bool:
+    """True when this request may see *and* use the storage section.
+
+    The one rule, used by the routes and by the Configuration page when it
+    decides whether to render the section -- so the section is shown exactly
+    when the API behind it would answer. Kept separate from ``_storage_guard``,
+    which must tell the two refusals apart (404 vs 403).
+    """
+    return _enabled() and nova.offline_sky_ui() and _is_admin()
+
+
+def _storage_guard():
+    """None when the caller may use the storage API, else a response.
+
+    The section is only shown when the Offline view switch is, so a request that
+    arrives when it is not is answered 404 -- "no such thing here" -- rather than
+    403, which would confirm the endpoint to a stranger. A caller who *is* in the
+    right place but lacks the right is told 403.
+    """
+    if not _enabled() or not nova.offline_sky_ui():
+        return jsonify({"error": "not found"}), 404
+    if not _is_admin():
+        return jsonify({"error": "Not authorized"}), 403
+    return None
 
 
 def _breaker_open(base: str) -> bool:
@@ -540,3 +586,189 @@ def hips_offline_tile(slug: str, order: int, dir: int, npix: int, ext: str):
     if rel is None:
         return Response(status=404)
     return _serve_tile(slug, rel, cache_only=True)
+
+
+# --- Storage API (Configuration -> General -> Offline sky) --------------------
+#
+# Admin-only in multi-user mode and 404 whenever the section would not be shown.
+# Every POST is CSRF-protected: this blueprint's /hips/ routes are public by
+# design, but these three change instance-wide state.
+
+# The limit selector's presets, in MiB (1 GB = 1024 MB).
+LIMIT_PRESETS_MB = (2048, 5120, 10240, 25600)
+LIMIT_NONE = "none"
+
+
+def _storage_csrf_check():
+    """Refuse a storage POST without this session's CSRF token, or None to go on.
+
+    Called by each POST *after* ``_storage_guard``, so a caller who may not use
+    the API at all is told 404/403 rather than 400 -- the access answer is the
+    one that must not leak. Not gated on the user mode (single-user mode is the
+    one where a cross-site POST needs no cookie at all), but it does honour
+    WTF_CSRF_ENABLED, which the suite switches off for form-posting tests.
+    """
+    from flask import current_app
+    if not current_app.config.get("WTF_CSRF_ENABLED", True):
+        return None
+    from nova import csrf
+    csrf.protect()      # aborts 400 when the token is missing or wrong
+    return None
+
+
+def _storage_payload(extra=None) -> dict:
+    """The store snapshot the section renders from, plus any route-specific keys."""
+    data = store_status()
+    data["limit_presets_mb"] = list(LIMIT_PRESETS_MB)
+    if extra:
+        data.update(extra)
+    return data
+
+
+# How long a storage response waits for another worker's pass to finish, so it
+# can report settled numbers instead of a snapshot taken mid-change. Deliberately
+# short: a pass is normally well under a second, and anything longer is better
+# handled by the page polling (it keeps the UI responsive and the request cheap).
+# The warning itself no longer depends on this wait -- status() measures pinned
+# from the pin set, so it is right even while a pass is pending.
+_SETTLE_WAIT_SECONDS = 2.0
+_SETTLE_POLL_SECONDS = 0.15
+
+
+def _await_eviction_settled() -> bool:
+    """Wait (bounded) for the pass holding ``.evict`` to finish. True if it did.
+
+    Taking the lock and releasing it immediately is the test: acquiring means the
+    other pass is done and the sidecars it rewrote are current; timing out means
+    it is still running, and the caller reports "evicting" so the page polls.
+    The borrowed pass returns a sentinel, so "acquired" is not confused with
+    "acquired and the pass returned None".
+    """
+    acquired = object()
+    deadline = time.monotonic() + _SETTLE_WAIT_SECONDS
+    while time.monotonic() < deadline:
+        if with_evict_lock(lambda: acquired) is acquired:
+            return True
+        time.sleep(_SETTLE_POLL_SECONDS)
+    return False
+
+
+# --- Size formatting ----------------------------------------------------------
+# One formatter, mirrored by formatSkySize in static/js/config_form.js so the
+# label the page renders and the label JS rewrites never disagree: 1 GB =
+# 1024 MB, one decimal below 10 GB, no trailing ".0", the unit spelled out.
+
+def format_gb(nbytes) -> str:
+    """Bytes as a human size: "512 MB" under a gigabyte, else "1.2 GB"/"25 GB"."""
+    try:
+        value = float(nbytes)
+    except (TypeError, ValueError):
+        return "0 GB"
+    gb = value / (1024 ** 3)
+    if 0 < gb < 1:
+        return f"{int(round(value / (1024 ** 2)))} MB"
+    if gb < 10:
+        text = f"{gb:.1f}".rstrip("0").rstrip(".")
+        return f"{text or '0'} GB"
+    return f"{int(round(gb))} GB"
+
+
+def format_limit_gb(mb) -> str:
+    """A limit in MiB as its selector label: "2 GB", "2.9 GB", "25 GB"."""
+    if mb is None:
+        return "No limit"
+    try:
+        return format_gb(int(mb) * 1024 * 1024)
+    except (TypeError, ValueError):
+        return ""
+
+
+def storage_view() -> dict:
+    """Everything Configuration -> General -> Offline sky needs to render.
+
+    Reads only the O(1) sidecars (plus one statvfs), so it is safe on the config
+    page's render path. The numbers are formatted here rather than in the
+    template so the section and its JSON refresh agree on every label.
+    """
+    data = store_status()
+    limit_mb = data["limit_mb"]
+    presets = list(LIMIT_PRESETS_MB)
+    labels = {mb: format_limit_gb(mb) for mb in presets}
+    limit_label = format_limit_gb(limit_mb)
+    return {
+        **data,
+        "limit_presets": presets,
+        "limit_labels": labels,
+        "limit_label": limit_label,
+        "limit_is_custom": limit_mb is not None and limit_mb not in presets,
+        "limit_exceeded": limit_mb is not None and data["pinned"] > limit_mb * 1024 * 1024,
+        "used_label": format_gb(data["used"]),
+        "pinned_label": format_gb(data["pinned"]),
+    }
+
+
+@offline_sky_bp.route("/api/offline-sky/status")
+def offline_sky_status():
+    guard = _storage_guard()
+    if guard is not None:
+        return guard
+    return jsonify(_storage_payload())
+
+
+@offline_sky_bp.route("/api/offline-sky/limit", methods=["POST"])
+def offline_sky_set_limit():
+    guard = _storage_guard()
+    if guard is not None:
+        return guard
+    refused = _storage_csrf_check()
+    if refused is not None:
+        return refused
+    if request.is_json:
+        raw = (request.get_json(silent=True) or {}).get("limit")
+    else:
+        raw = request.form.get("limit")
+    raw = str(raw if raw is not None else "").strip().lower()
+    if raw == LIMIT_NONE:
+        mb = None
+    else:
+        try:
+            mb = int(raw)
+        except (TypeError, ValueError):
+            return jsonify({"error": "invalid limit"}), 400
+        if mb <= 0:
+            mb = None
+    try:
+        set_limit_mb(mb)
+    except OSError:
+        # An unwritable store cannot remember the choice; say so instead of
+        # reporting a limit that will be gone on the next request.
+        return jsonify({"error": "read_only",
+                        **store_status()}), 503
+    summary = evict_now()
+    if summary is None:
+        # Another worker holds the eviction lock. Wait for it (bounded) so the
+        # numbers this response reports are the settled ones: a pass is what
+        # reconciles .total/.pinned, and the page derives the over-limit warning
+        # from them, so answering from a snapshot taken while a pass is pending
+        # can show a warning that is not true. Only if the holder is genuinely
+        # slow do we hand back a snapshot and let the page poll.
+        if _await_eviction_settled():
+            summary = True
+        else:
+            maybe_evict_async()      # no-ops while the lock is held
+    return jsonify(_storage_payload({"evicting": summary is None}))
+
+
+@offline_sky_bp.route("/api/offline-sky/clear", methods=["POST"])
+def offline_sky_clear_browsed():
+    guard = _storage_guard()
+    if guard is not None:
+        return guard
+    refused = _storage_csrf_check()
+    if refused is not None:
+        return refused
+    summary = clear_now()
+    if summary is None:
+        return jsonify(_storage_payload({"evicting": True, "cleared": False}))
+    return jsonify(_storage_payload({"evicting": False, "cleared": True,
+                                     "removed": summary["removed"]}))

@@ -8621,6 +8621,80 @@ msgid "{survey} is not responding — showing the stored copy."
 msgstr "{survey} antwortet nicht — die gespeicherte Kopie wird angezeigt."
 
 
+#: templates/config_form.html
+msgid "Offline sky"
+msgstr "Offline-Himmel"
+
+#: templates/config_form.html
+msgid "Storage"
+msgstr "Speicher"
+
+#: templates/config_form.html
+msgid "Using %(used)s of %(limit)s"
+msgstr "%(used)s von %(limit)s belegt"
+
+#: templates/config_form.html
+msgid "Limit:"
+msgstr "Limit:"
+
+#: templates/config_form.html
+msgid "No limit"
+msgstr "Kein Limit"
+
+#: templates/config_form.html
+msgid "Sky browsing keeps about 1 GB of disk space free."
+msgstr "Die Himmelsansicht hält etwa 1 GB Speicherplatz frei."
+
+#: templates/config_form.html
+msgid "Downloaded sky (%(pinned)s) already exceeds this limit. Viewed tiles are not kept."
+msgstr "Heruntergeladener Himmel (%(pinned)s) überschreitet dieses Limit bereits. Angesehene Kacheln werden nicht behalten."
+
+#: templates/config_form.html
+msgid "Clear browsed sky"
+msgstr "Angesehenen Himmel löschen"
+
+#: templates/config_form.html
+msgid "Downloaded sky is never removed."
+msgstr "Heruntergeladener Himmel wird nie entfernt."
+
+#: templates/config_form.html
+msgid "Downloads are unavailable: the sky-tile folder is not writable."
+msgstr "Downloads sind nicht verfügbar: Der Ordner für die Himmelskacheln ist nicht beschreibbar."
+
+#: templates/config_form.html
+msgid "Browsed sky tiles are not kept on disk either."
+msgstr "Angesehene Himmelskacheln werden dann auch nicht auf der Festplatte behalten."
+
+#: templates/config_form.html
+msgid "Remove all viewed sky tiles? Downloaded sky is kept."
+msgstr "Alle angesehenen Himmelskacheln entfernen? Heruntergeladener Himmel bleibt erhalten."
+
+#: templates/config_form.html
+msgid "Viewed sky tiles removed."
+msgstr "Angesehene Himmelskacheln entfernt."
+
+#: templates/config_form.html
+msgid "Limit saved."
+msgstr "Limit gespeichert."
+
+#: templates/config_form.html
+msgid "Could not save the limit."
+msgstr "Das Limit konnte nicht gespeichert werden."
+
+#: templates/config_form.html
+msgid "Sky storage is busy. Try again in a moment."
+msgstr "Der Himmelsspeicher ist beschäftigt. Bitte gleich erneut versuchen."
+
+#: templates/config_form.html
+msgid "The sky-tile folder is not writable, so the limit cannot be changed."
+msgstr "Der Ordner für die Himmelskacheln ist nicht beschreibbar, daher kann das Limit nicht geändert werden."
+
+
+#: templates/config_form.html
+msgid "Using %(used)s"
+msgstr "%(used)s belegt"
+
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Vorschläge aktualisieren"
 

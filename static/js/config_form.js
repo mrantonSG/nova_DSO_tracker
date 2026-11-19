@@ -997,6 +997,7 @@
 
             if (activeTab === 'rigs') fetchRigsData();
             if (activeTab === 'shared' && contentPanels['shared']) { fetchSharedItems(); }
+            if (activeTab === 'general') initOfflineSkyStorage();
             localStorage.setItem('activeConfigTab', activeTab);
         }
         tabs.forEach(tab => tab.addEventListener('click', () => { activeTab = tab.dataset.tab; updateTabDisplay(); }));
@@ -1264,4 +1265,207 @@
             fileInput.value = '';
         };
         reader.readAsText(file);
+    }
+
+    // --- Offline sky storage (Configuration -> General) ----------------------
+    //
+    // The section renders server-side; these three handlers keep it true after
+    // a change: the limit saves, Clear empties the viewed tiles, and both patch
+    // the usage line in place. The size formatter here mirrors
+    // nova.blueprints.offline_sky.format_gb -- 1 GB = 1024 MB, one decimal
+    // below 10 GB -- so the number the page renders and the number JS writes
+    // never disagree.
+
+    const OFFLINE_SKY_GB = 1024 * 1024 * 1024;
+
+    function formatSkySize(bytes) {
+        const value = Number(bytes) || 0;
+        const gb = value / OFFLINE_SKY_GB;
+        if (gb > 0 && gb < 1) return Math.round(value / (1024 * 1024)) + ' MB';
+        if (gb < 10) {
+            const text = gb.toFixed(1).replace(/\.0$/, '');
+            return (text || '0') + ' GB';
+        }
+        return Math.round(gb) + ' GB';
+    }
+
+    // A limit in MiB as its selector label ("2 GB" / "2 GB" / "25 GB").
+    function formatSkyLimit(mb) {
+        if (mb === null || mb === undefined) return window.t('none');
+        return formatSkySize(Number(mb) * 1024 * 1024);
+    }
+
+    function initOfflineSkyStorage() {
+        const section = document.getElementById('offline-sky-section');
+        if (!section || section.dataset.skyReady === '1') return;
+        section.dataset.skyReady = '1';
+
+        const usageEl = document.getElementById('offline-sky-usage');
+        const limitEl = document.getElementById('offline-sky-limit');
+        const clearBtn = document.getElementById('offline-sky-clear');
+        const overEl = document.getElementById('offline-sky-over-limit');
+        const noLimitEl = document.getElementById('offline-sky-no-limit-note');
+        const csrf = section.dataset.csrf || '';
+        const presets = JSON.parse(section.dataset.presets || '[]');
+
+        // The "keeps about 1 GB free" sentence only holds for "No limit": with a
+        // limit chosen, the limit is what bounds the store, not the disk.
+        function applyNoLimitNote(limitMb) {
+            const noLimit = limitMb === null || limitMb === undefined;
+            noLimitEl.classList.toggle('hidden', !noLimit);
+        }
+
+        // --- toasts: reuse the page's stack (base.js dismisses on the countdown) ---
+        function skyToast(message, kind) {
+            const stack = document.getElementById('flash-message-container');
+            if (!stack) return;
+            const toast = document.createElement('div');
+            toast.className = 'flash-message nova-toast nova-toast--' + (kind || 'success');
+            toast.innerHTML =
+                '<span class="nova-toast-text"></span>' +
+                '<button type="button" class="nova-toast-close" aria-label="Dismiss">&#215;</button>' +
+                '<span class="nova-toast-bar" aria-hidden="true"></span>';
+            toast.querySelector('.nova-toast-text').textContent = message;
+            stack.appendChild(toast);
+        }
+
+        // --- render one status snapshot into the section ---
+        function applyStatus(data) {
+            if (!data) return;
+            const noLimit = data.limit_mb === null || data.limit_mb === undefined;
+            // Two sentences, not one with a substituted "No limit": "Using 1.7 GB
+            // of No limit" reads as "of nothing". Which one shows is decided by
+            // the limit, exactly like the hint line below it.
+            usageEl.textContent = noLimit
+                ? window.t('offline_sky_usage_no_limit', { used: formatSkySize(data.used) })
+                : window.t('offline_sky_usage', {
+                      used: formatSkySize(data.used), limit: formatSkyLimit(data.limit_mb)
+                  });
+            applyLimitOptions(data.limit_mb);
+            applyNoLimitNote(data.limit_mb);
+            const pinned = data.pinned || 0;
+            const over = data.limit_mb !== null && data.limit_mb !== undefined
+                && pinned > data.limit_mb * 1024 * 1024;
+            overEl.textContent = over ? window.t('offline_sky_over_limit', {
+                pinned: formatSkySize(pinned)
+            }) : '';
+            overEl.classList.toggle('hidden', !over);
+        }
+
+        // The selector always states the limit in effect: presets, plus the
+        // current value when it is not one of them (the env default), which
+        // goes away the moment a preset is chosen.
+        function applyLimitOptions(limitMb) {
+            const isCustom = limitMb !== null && limitMb !== undefined
+                && presets.indexOf(Number(limitMb)) === -1;
+            Array.prototype.forEach.call(limitEl.querySelectorAll('option[data-custom]'),
+                function (opt) { opt.remove(); });
+            if (isCustom) {
+                const opt = document.createElement('option');
+                opt.value = String(limitMb);
+                opt.dataset.custom = '1';
+                opt.textContent = formatSkyLimit(limitMb);
+                limitEl.insertBefore(opt, limitEl.querySelector('option[value="none"]'));
+            }
+            limitEl.value = (limitMb === null || limitMb === undefined)
+                ? 'none' : String(limitMb);
+        }
+
+        function postJson(url, payload) {
+            return fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+                credentials: 'same-origin',
+                body: JSON.stringify(payload || {})
+            });
+        }
+
+        // A pass in another process was still running when the route answered,
+        // so the numbers in hand are not the settled ones. Ask again until it
+        // reports finished, then leave the section on the final status -- the
+        // over-limit warning is derived from those numbers, so it must be built
+        // from the last word, never from a mid-eviction snapshot.
+        async function pollUntilSettled() {
+            const DEADLINE = Date.now() + 20000;
+            while (Date.now() < DEADLINE) {
+                await new Promise(function (r) { setTimeout(r, 700); });
+                try {
+                    const resp = await fetch(section.dataset.statusUrl,
+                                             { credentials: 'same-origin' });
+                    if (!resp.ok) return null;
+                    const data = await resp.json();
+                    applyStatus(data);
+                    if (!data.evicting) return data;
+                } catch (e) {
+                    return null;    // network hiccup: leave the last state showing
+                }
+            }
+            return null;
+        }
+
+        // --- limit ---
+        limitEl.addEventListener('change', async function () {
+            const previous = limitEl.dataset.saved || limitEl.value;
+            limitEl.disabled = true;
+            try {
+                const resp = await postJson(section.dataset.limitUrl, { limit: limitEl.value });
+                const data = await resp.json().catch(function () { return null; });
+                if (!resp.ok) {
+                    skyToast(resp.status === 503 ? window.t('offline_sky_read_only')
+                                                 : window.t('offline_sky_save_failed'), 'error');
+                    limitEl.value = previous;           // put the old choice back
+                    if (data) applyStatus(data);
+                    return;
+                }
+                applyStatus(data);
+                limitEl.dataset.saved = limitEl.value;
+                if (data.evicting) {
+                    skyToast(window.t('offline_sky_busy'), 'warning');
+                    await pollUntilSettled();
+                } else {
+                    skyToast(window.t('offline_sky_limit_saved'), 'success');
+                }
+            } catch (e) {
+                console.error('[CONFIG_FORM] offline sky limit failed:', e);
+                skyToast(window.t('offline_sky_save_failed'), 'error');
+                limitEl.value = previous;
+            } finally {
+                limitEl.disabled = false;
+            }
+        });
+
+        // --- clear viewed tiles ---
+        clearBtn.addEventListener('click', async function () {
+            // The confirm button names the action; the cancel label is the
+            // dialog's own (nova-modal.js defaults it, untranslated there).
+            const ok = await novaConfirm(window.t('offline_sky_clear_confirm'), {
+                confirmLabel: window.t('offline_sky_clear_action'), danger: true
+            });
+            if (!ok) return;
+            clearBtn.disabled = true;
+            try {
+                const resp = await postJson(section.dataset.clearUrl, {});
+                const data = await resp.json().catch(function () { return null; });
+                if (!resp.ok) {
+                    skyToast(window.t('error'), 'error');
+                    return;
+                }
+                applyStatus(data);
+                skyToast(data.cleared ? window.t('offline_sky_cleared')
+                                      : window.t('offline_sky_busy'),
+                         data.cleared ? 'success' : 'warning');
+            } catch (e) {
+                console.error('[CONFIG_FORM] offline sky clear failed:', e);
+                skyToast(window.t('error'), 'error');
+            } finally {
+                clearBtn.disabled = false;
+            }
+        });
+
+        // Remember the server's value so a failed change can be undone, and
+        // settle the two conditioned lines from what the server rendered.
+        limitEl.dataset.saved = limitEl.value;
+        const initialLimit = limitEl.value === 'none' ? null : Number(limitEl.value);
+        applyLimitOptions(initialLimit);
+        applyNoLimitNote(initialLimit);
     }

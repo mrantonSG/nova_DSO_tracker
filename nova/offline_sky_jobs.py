@@ -57,8 +57,10 @@ import nova.offline_sky_store as store
 import nova.hips_healpix as hp
 
 # --- Limits / cost ----------------------------------------------------------
-# Keep at least this much free on the disk holding the store.
-DISK_HEADROOM_BYTES = 1024 * 1024 * 1024
+# Keep at least this much free on the disk holding the store. One definition,
+# in the store, because eviction and downloads must judge the disk the same way;
+# this name stays as the alias the tests and job code already use.
+DISK_HEADROOM_BYTES = store.DISK_HEADROOM_BYTES
 FALLBACK_TILE_BYTES = 67 * 1024
 
 # --- Runner -----------------------------------------------------------------
@@ -122,8 +124,8 @@ def base_rel_paths(slug: str, fetch: bool = False):
 def measured_avg_tile_bytes(slug: str):
     """(mean on-disk tile size, measured?) for a survey; fallback 67 KB.
 
-    Used by a job to judge whether the next tile still fits under the cap and
-    above the disk headroom before it spends an upstream request on it.
+    Used by a job to judge whether the next tile still fits under the store's
+    budget before it spends an upstream request on it.
     """
     total = 0
     count = 0
@@ -524,7 +526,6 @@ class JobRunner:
         under the pin lock with each claim and may raise _Stop.
         """
         job_id = state["id"]
-        cap = store.cap_bytes()
         pinned_keys = store.pinned_rel_paths()       # includes this job's own checkpoint
         pinned_now = store.refresh_pinned_bytes()
         added = 0                                    # bytes this run moved into pinned
@@ -555,9 +556,12 @@ class JobRunner:
                     break
                 if slug not in avg:
                     avg[slug] = measured_avg_tile_bytes(slug)[0]
-                if cap > 0 and pinned_now + added + avg[slug] > cap:
-                    raise _Stop("stopped", REASON_NO_SPACE)
-                if store.disk_free_bytes() - avg[slug] < DISK_HEADROOM_BYTES:
+                # Re-read the limit per tile (the store memoises it on the
+                # settings file's mtime), so a limit lowered while a job runs is
+                # honoured instead of the one captured at start. Under "No limit"
+                # this budget already folds in the disk headroom, which is why the
+                # disk is not checked again here.
+                if pinned_now + added + avg[slug] > store.budget_bytes():
                     raise _Stop("stopped", REASON_NO_SPACE)
                 outcome, nbytes = self._fetch(slug, rel)
                 if outcome == "fetched":
@@ -651,9 +655,8 @@ class JobRunner:
                 reason = stop.reason if stop.reason == REASON_DELETED else reason
             except Exception:
                 traceback.print_exc()
-        over_cap = (store.cap_bytes() > 0
-                    and store.total_bytes() + store.pinned_bytes() > store.cap_bytes())
-        if recount or over_cap:
+        over_budget = store.total_bytes() + store.pinned_bytes() > store.budget_bytes()
+        if recount or over_budget:
             # Eviction also re-derives .total/.pinned from disk: needed when a
             # claimed tile ended up on disk without being handed to the base
             # pins (it is browsed now).

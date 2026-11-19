@@ -1988,3 +1988,105 @@
 .sync-error .inline-button-ghost {
   margin-top: 2px;
 }
+
+/* ===================================================================
+   OFFLINE SKY STORAGE (Configuration -> General)
+   A .config-section of its own, below General Settings. Its sibling
+   sections do the typing; this only adds the usage line, the notes and
+   the action row. Every colour is a token -- nothing new is defined.
+   =================================================================== */
+
+/* The usage line ("Using 1.2 GB of 5 GB") is a value readout, not a headline:
+   it sits at the page's body size and weight, like every other config value
+   line on this page (the body is 13px/400; the uppercase column headers are the
+   only emphasised text here). Sizing it as a heading was the mistake this
+   comment exists to prevent. */
+.offline-sky-section .offline-sky-usage {
+  margin: 0 0 var(--space-2);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-primary);
+}
+
+/* Notes are the quiet lines: warnings under the limit, the read-only
+   explanation. Dashed and inset, like .sync-empty-state, so a note reads
+   as an aside rather than a second paragraph. */
+.offline-sky-section .offline-sky-note {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px dashed var(--border-color, #e5e2dc);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* The over-limit note is a warning, not a hint: danger tokens, solid edge. */
+.offline-sky-section .offline-sky-note.offline-sky-warn {
+  border: 1px solid var(--danger-color);
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+/* The template renders the over-limit note and the No-limit hint always, and
+   JS toggles each with `.hidden`. `.hidden` is a locked class in the design
+   system but no stylesheet defines it globally, so it gets its one meaning
+   here, scoped to the block whose elements rely on it (both the note and the
+   hint <small>). */
+.offline-sky-section .hidden {
+  display: none;
+}
+
+.offline-sky-section .inline-fields {
+  margin-top: var(--space-3);
+}
+
+/* The limit selector. The design system's `select` rule (nova-theme.css) puts
+   the arrow at `right 10px` and reserves `padding-right: 28px` for it -- but
+   this page's `input, select, textarea { padding: var(--space-1) }` shorthand
+   (line 30) resets that right padding to 4px, so the arrow landed on the text
+   (worst on the longest option, "Sans limite"). Restoring the gutter is the
+   whole fix: the control sizes itself to its widest option, in whatever
+   language, so no width is set here. The left/vertical padding is left as the
+   page's compact one. */
+.offline-sky-section .inline-fields select#offline-sky-limit {
+  padding-right: 30px;
+}
+
+.offline-sky-section hr {
+  margin: var(--space-5) 0;
+  border: 0;
+  border-top: 1px solid var(--border-light);
+}
+
+/* Clear + its caption on one row while there is room, caption wrapping
+   under the button when the card is narrow. */
+.offline-sky-section .offline-sky-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+/* `.inline-button-danger` (base.css) carries only the danger *colours*; the
+   geometry in the design system's Danger spec has to come from the page, which
+   is why the sync page repeats it in `.sync-actions`. This is that same spec --
+   6px 14px, 12px/600, radius 6px -- and nothing more. An earlier version of
+   this rule added `height: 30px`, which was the sync page's taller row sizing
+   leaking in here and made the button read as oversized next to its caption. */
+.offline-sky-section .offline-sky-actions .inline-button-danger {
+  margin: 0;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.offline-sky-section .offline-sky-actions .form-text {
+  margin: 0;
+}
+
+[data-theme="dark"] .offline-sky-section .offline-sky-note {
+  border-color: rgba(255, 255, 255, 0.15);
+}

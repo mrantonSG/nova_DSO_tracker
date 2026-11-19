@@ -206,6 +206,89 @@
                <button type="submit" name="submit_general" class="action-button" style="margin-top:10px;">{{ _('Save Settings') }}</button>
           </form>
         </div>
+
+        {# Offline sky storage. Its own section, NOT inside the General Settings
+           form: the limit and Clear save through the /api/offline-sky/ routes
+           (fetch), so they must never ride the "Save Settings" POST. The view
+           decides whether to render (storage_available: UI on, store on, and
+           admin-only in multi-user) -- one rule, shared with the API, so the
+           section appears exactly when its routes would answer. #}
+        {% if offline_sky_storage %}
+        {% set sky = offline_sky_storage %}
+        <div class="config-section offline-sky-section"
+             id="offline-sky-section"
+             data-status-url="{{ url_for('offline_sky.offline_sky_status') }}"
+             data-limit-url="{{ url_for('offline_sky.offline_sky_set_limit') }}"
+             data-clear-url="{{ url_for('offline_sky.offline_sky_clear_browsed') }}"
+             data-csrf="{{ csrf_token() }}"
+             data-presets="{{ sky.limit_presets | tojson }}">
+          <h2 style="display: flex; align-items: center; gap: 10px;">
+              {{ _('Offline sky') }}
+          </h2>
+
+          <h3>{{ _('Storage') }}</h3>
+
+          <p class="offline-sky-usage" id="offline-sky-usage">
+            {% if sky.limit_mb is none %}
+            {# "No limit" is not a figure, so "of …" would read as "of nothing".
+               A sentence of its own, with its own msgid (config_form.js swaps
+               between the two as the selector changes). #}
+            {{ _('Using %(used)s', used=sky.used_label) }}
+            {% else %}
+            {{ _('Using %(used)s of %(limit)s',
+                 used=sky.used_label, limit=sky.limit_label) }}
+            {% endif %}
+          </p>
+
+          {% if not sky.downloads_available %}
+          <p class="offline-sky-note" id="offline-sky-unwritable">
+            {{ _('Downloads are unavailable: the sky-tile folder is not writable.') }}
+            {{ _('Browsed sky tiles are not kept on disk either.') }}
+          </p>
+          {% endif %}
+
+          <div class="inline-fields">
+            <div>
+              <label class="verylong-label" for="offline-sky-limit">{{ _('Limit:') }}</label>
+              <select id="offline-sky-limit" name="offline_sky_limit">
+                {% for mb in sky.limit_presets %}
+                <option value="{{ mb }}" {% if sky.limit_mb == mb %}selected{% endif %}>{{ sky.limit_labels[mb] }}</option>
+                {% endfor %}
+                {% if sky.limit_is_custom %}
+                {# The env default is not a preset: show it as an extra selected
+                   option so the selector always states the limit in effect. It
+                   disappears as soon as the user picks a preset. data-custom is
+                   what lets the JS replace this option rather than add a second
+                   one on its first pass. #}
+                <option value="{{ sky.limit_mb }}" data-custom="1" selected>{{ sky.limit_label }}</option>
+                {% endif %}
+                <option value="none" {% if sky.limit_mb is none %}selected{% endif %}>{{ _('No limit') }}</option>
+              </select>
+            </div>
+          </div>
+          {# The headroom explanation belongs to "No limit" only: with a limit
+             selected the disk is not what bounds the store, so the sentence
+             would be misleading. Rendered hidden when a limit is set, and
+             toggled by config_form.js on every change. #}
+          <small class="form-text text-muted{% if sky.limit_mb is not none %} hidden{% endif %}"
+                 id="offline-sky-no-limit-note">{{ _('Sky browsing keeps about 1 GB of disk space free.') }}</small>
+
+          <p class="offline-sky-note offline-sky-warn{% if not sky.limit_exceeded %} hidden{% endif %}"
+             id="offline-sky-over-limit">
+            {{ _('Downloaded sky (%(pinned)s) already exceeds this limit. Viewed tiles are not kept.',
+                 pinned=sky.pinned_label) }}
+          </p>
+
+          <hr>
+
+          <div class="offline-sky-actions">
+            <button type="button" class="inline-button-danger" id="offline-sky-clear">
+              {{ _('Clear browsed sky') }}
+            </button>
+            <small class="form-text text-muted">{{ _('Downloaded sky is never removed.') }}</small>
+          </div>
+        </div>
+        {% endif %}
       </div>
 
 <div id="locations-tab-content" class="tab-content">
@@ -720,6 +803,20 @@
     // Rig delete confirm text, read in config_form.js via window.t()
     window.novaI18n.rig_delete_confirm = {{ _("Are you sure you want to delete the rig '{name}'?") | tojson }};
     window.novaI18n.rig_delete_confirm_framings = {{ _("Are you sure you want to delete the rig '{name}'? This will also delete {framings} saved framing(s) that use it.") | tojson }};
+
+    // Offline sky storage block (config_form.js). The same msgids the template
+    // renders, so the sentence the page shows and the one JS rewrites are one
+    // string, translated once.
+    window.novaI18n.offline_sky_usage = {{ _('Using %(used)s of %(limit)s', used='{used}', limit='{limit}') | tojson }};
+    window.novaI18n.offline_sky_usage_no_limit = {{ _('Using %(used)s', used='{used}') | tojson }};
+    window.novaI18n.offline_sky_clear_confirm = {{ _('Remove all viewed sky tiles? Downloaded sky is kept.') | tojson }};
+    window.novaI18n.offline_sky_clear_action = {{ _('Clear browsed sky') | tojson }};
+    window.novaI18n.offline_sky_cleared = {{ _('Viewed sky tiles removed.') | tojson }};
+    window.novaI18n.offline_sky_limit_saved = {{ _('Limit saved.') | tojson }};
+    window.novaI18n.offline_sky_save_failed = {{ _('Could not save the limit.') | tojson }};
+    window.novaI18n.offline_sky_busy = {{ _('Sky storage is busy. Try again in a moment.') | tojson }};
+    window.novaI18n.offline_sky_read_only = {{ _('The sky-tile folder is not writable, so the limit cannot be changed.') | tojson }};
+    window.novaI18n.offline_sky_over_limit = {{ _('Downloaded sky (%(pinned)s) already exceeds this limit. Viewed tiles are not kept.', pinned='{pinned}') | tojson }};
 
     // --- Global variables ---
     const CURRENT_USERNAME = "{{ 'default' if SINGLE_USER_MODE else (current_user.username if current_user.is_authenticated else '') }}";

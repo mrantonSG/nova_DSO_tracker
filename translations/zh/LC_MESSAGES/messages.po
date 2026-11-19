@@ -8210,6 +8210,80 @@ msgid "{survey} is not responding — showing the stored copy."
 msgstr "{survey} 无响应——显示已保存的副本。"
 
 
+#: templates/config_form.html
+msgid "Offline sky"
+msgstr "离线天空"
+
+#: templates/config_form.html
+msgid "Storage"
+msgstr "存储"
+
+#: templates/config_form.html
+msgid "Using %(used)s of %(limit)s"
+msgstr "已使用 %(used)s，共 %(limit)s"
+
+#: templates/config_form.html
+msgid "Limit:"
+msgstr "上限："
+
+#: templates/config_form.html
+msgid "No limit"
+msgstr "无限制"
+
+#: templates/config_form.html
+msgid "Sky browsing keeps about 1 GB of disk space free."
+msgstr "浏览天空时会保留约 1 GB 的磁盘空间。"
+
+#: templates/config_form.html
+msgid "Downloaded sky (%(pinned)s) already exceeds this limit. Viewed tiles are not kept."
+msgstr "已下载的天空（%(pinned)s）已超出此上限。浏览过的图块不会保留。"
+
+#: templates/config_form.html
+msgid "Clear browsed sky"
+msgstr "清除浏览过的天空"
+
+#: templates/config_form.html
+msgid "Downloaded sky is never removed."
+msgstr "已下载的天空永远不会被移除。"
+
+#: templates/config_form.html
+msgid "Downloads are unavailable: the sky-tile folder is not writable."
+msgstr "无法下载：天空图块文件夹不可写入。"
+
+#: templates/config_form.html
+msgid "Browsed sky tiles are not kept on disk either."
+msgstr "浏览过的天空图块也不会保存在磁盘上。"
+
+#: templates/config_form.html
+msgid "Remove all viewed sky tiles? Downloaded sky is kept."
+msgstr "要移除所有浏览过的天空图块吗？已下载的天空会保留。"
+
+#: templates/config_form.html
+msgid "Viewed sky tiles removed."
+msgstr "已移除浏览过的天空图块。"
+
+#: templates/config_form.html
+msgid "Limit saved."
+msgstr "上限已保存。"
+
+#: templates/config_form.html
+msgid "Could not save the limit."
+msgstr "无法保存上限。"
+
+#: templates/config_form.html
+msgid "Sky storage is busy. Try again in a moment."
+msgstr "天空存储正忙。请稍后重试。"
+
+#: templates/config_form.html
+msgid "The sky-tile folder is not writable, so the limit cannot be changed."
+msgstr "天空图块文件夹不可写入，因此无法更改上限。"
+
+
+#: templates/config_form.html
+msgid "Using %(used)s"
+msgstr "已使用 %(used)s"
+
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "刷新建议"
 

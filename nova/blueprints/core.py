@@ -976,7 +976,15 @@ def config_form():
             config_for_template['objects'].append(obj_data_dict)
 
         catalog_packs = discover_catalog_packs()
-        return render_template('config_form.html', config=config_for_template, locations=locations_for_template, all_timezones=pytz.all_timezones, catalog_packs=catalog_packs)
+        # The Offline sky storage block: a store snapshot for the template.
+        # storage_available() is the same rule the storage API enforces, so the
+        # section appears exactly when its routes would answer, and a store that
+        # is off (or a multi-user non-admin) never pays for the statvfs.
+        offline_sky_storage = None
+        from nova.blueprints.offline_sky import storage_available, storage_view
+        if storage_available():
+            offline_sky_storage = storage_view()
+        return render_template('config_form.html', config=config_for_template, locations=locations_for_template, all_timezones=pytz.all_timezones, catalog_packs=catalog_packs, offline_sky_storage=offline_sky_storage)
 
     except Exception as e:
         db.rollback()

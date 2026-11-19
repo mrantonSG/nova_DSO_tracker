@@ -8581,6 +8581,80 @@ msgid "{survey} is not responding — showing the stored copy."
 msgstr "{survey} no responde — se muestra la copia guardada."
 
 
+#: templates/config_form.html
+msgid "Offline sky"
+msgstr "Cielo sin conexión"
+
+#: templates/config_form.html
+msgid "Storage"
+msgstr "Almacenamiento"
+
+#: templates/config_form.html
+msgid "Using %(used)s of %(limit)s"
+msgstr "%(used)s de %(limit)s en uso"
+
+#: templates/config_form.html
+msgid "Limit:"
+msgstr "Límite:"
+
+#: templates/config_form.html
+msgid "No limit"
+msgstr "Sin límite"
+
+#: templates/config_form.html
+msgid "Sky browsing keeps about 1 GB of disk space free."
+msgstr "La navegación del cielo mantiene libres unos 1 GB de disco."
+
+#: templates/config_form.html
+msgid "Downloaded sky (%(pinned)s) already exceeds this limit. Viewed tiles are not kept."
+msgstr "El cielo descargado (%(pinned)s) ya supera este límite. Las teselas vistas no se conservan."
+
+#: templates/config_form.html
+msgid "Clear browsed sky"
+msgstr "Borrar el cielo visto"
+
+#: templates/config_form.html
+msgid "Downloaded sky is never removed."
+msgstr "El cielo descargado nunca se elimina."
+
+#: templates/config_form.html
+msgid "Downloads are unavailable: the sky-tile folder is not writable."
+msgstr "Las descargas no están disponibles: la carpeta de teselas del cielo no tiene permiso de escritura."
+
+#: templates/config_form.html
+msgid "Browsed sky tiles are not kept on disk either."
+msgstr "Tampoco se conservan en el disco las teselas del cielo vistas."
+
+#: templates/config_form.html
+msgid "Remove all viewed sky tiles? Downloaded sky is kept."
+msgstr "¿Eliminar todas las teselas del cielo vistas? El cielo descargado se conserva."
+
+#: templates/config_form.html
+msgid "Viewed sky tiles removed."
+msgstr "Teselas del cielo vistas eliminadas."
+
+#: templates/config_form.html
+msgid "Limit saved."
+msgstr "Límite guardado."
+
+#: templates/config_form.html
+msgid "Could not save the limit."
+msgstr "No se pudo guardar el límite."
+
+#: templates/config_form.html
+msgid "Sky storage is busy. Try again in a moment."
+msgstr "El almacenamiento del cielo está ocupado. Inténtelo de nuevo en un momento."
+
+#: templates/config_form.html
+msgid "The sky-tile folder is not writable, so the limit cannot be changed."
+msgstr "La carpeta de teselas del cielo no tiene permiso de escritura, por lo que el límite no se puede cambiar."
+
+
+#: templates/config_form.html
+msgid "Using %(used)s"
+msgstr "%(used)s en uso"
+
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Actualizar sugerencias"
 
