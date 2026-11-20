@@ -8244,3 +8244,7 @@ msgstr ""
 msgid "Using %(used)s"
 msgstr ""
 
+#: templates/graph_view.html:459
+msgid "Keep north up"
+msgstr ""
+

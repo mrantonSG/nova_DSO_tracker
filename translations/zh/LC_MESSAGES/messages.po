@@ -8262,6 +8262,11 @@ msgid "Using %(used)s"
 msgstr "已使用 %(used)s"
 
 
+#: templates/graph_view.html:459
+msgid "Keep north up"
+msgstr "保持北向朝上"
+
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "刷新建议"
 

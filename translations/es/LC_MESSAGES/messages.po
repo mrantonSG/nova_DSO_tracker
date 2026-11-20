@@ -8633,6 +8633,11 @@ msgid "Using %(used)s"
 msgstr "%(used)s en uso"
 
 
+#: templates/graph_view.html:459
+msgid "Keep north up"
+msgstr "Mantener el norte arriba"
+
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Actualizar sugerencias"
 

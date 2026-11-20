@@ -2770,6 +2770,15 @@
     let viewPointerDown = false;     // a mouse button / finger is down on the sky
     let viewStill = { ra: NaN, dec: NaN, frames: 0 };
     const VIEW_LEVEL_STILL_FRAMES = 6;
+    // "Keep north up" (the Framing panel's Sky section) decides what happens once the
+    // view is at rest. OFF -- the default -- leaves the drag's roll exactly where the
+    // drag left it; the frame overlay is still drawn at Angle + viewNorthOffsetDeg, so
+    // the framed angle stays true to north whatever the roll. ON: the roll is turned
+    // back to north-up over VIEW_LEVEL_MS with an ease-out curve instead of in one
+    // step. The choice is remembered in localStorage, key nova.framing.keepNorthUp.
+    const VIEW_LEVEL_MS = 250;
+    const KEEP_NORTH_UP_KEY = 'nova.framing.keepNorthUp';
+    let viewLevelAnim = null;   // { from: rotation at the start, start: ms } while it straightens
 
     // Where north points on screen at the view centre, in degrees clockwise from
     // screen-up (0 = north up). Measured with Aladin's own projection: the screen
@@ -2800,21 +2809,56 @@
         return 0;
     }
 
-    // Turn the view back to north-up once it is at rest: no button or finger
-    // down, and the centre unchanged for a few frames (inertia over). Turned
-    // around the centre, so the centre -- and the frame on the sky -- stay put.
+    // Whether the sky should be brought back to north-up at all: the checkbox, whose
+    // remembered state was put into it on page load (see wireKeepNorthUp).
+    function keepNorthUpOn() {
+        const box = document.getElementById('keep-north-up');
+        return !!(box && box.checked);
+    }
+
+    // The straightening, in Aladin's own rotation angle: from wherever it is now to
+    // exactly 0 over VIEW_LEVEL_MS, ease-out. Rotation 0 is north-up (that is what
+    // viewNorthOffsetDeg falls back to), so the end is exact whatever the curve did
+    // on the way -- and every frame in between is an ordinary rolled view, which the
+    // frame overlay is measured against.
+    function startViewLevel() {
+        if (!aladin || typeof aladin.getRotation !== 'function'
+            || typeof aladin.setRotation !== 'function') {
+            return;
+        }
+        const from = Number(aladin.getRotation());
+        if (!Number.isFinite(from) || Math.abs(from) < 1e-3) return;
+        viewLevelAnim = { from: from, start: Date.now() };
+    }
+    function stepViewLevel() {
+        const t = (Date.now() - viewLevelAnim.start) / VIEW_LEVEL_MS;
+        if (t >= 1) {
+            aladin.setRotation(0);                    // ends exactly north-up
+            viewLevelAnim = null;
+            return;
+        }
+        const ease = 1 - Math.pow(1 - t, 3);          // ease-out
+        aladin.setRotation(viewLevelAnim.from * (1 - ease));
+    }
+
+    // Bring the view back to north-up once it is at rest -- with "Keep north up" on:
+    // no button or finger down, and the centre unchanged for a few frames (inertia
+    // over). Turned around the centre, so the centre -- and the frame on the sky --
+    // stay put. With the box off, nothing is levelled: the sky keeps its roll.
     function maybeLevelView() {
-        if (!aladin || viewPointerDown || typeof aladin.setRotation !== 'function'
-            || typeof aladin.getRotation !== 'function') {
+        if (!aladin || viewPointerDown || !keepNorthUpOn()
+            || typeof aladin.setRotation !== 'function' || typeof aladin.getRotation !== 'function') {
             viewStill.frames = 0;
+            viewLevelAnim = null;      // the hand comes back down, or the box is off
             return;
         }
         const rc = aladin.getRaDec();
         if (rc[0] === viewStill.ra && rc[1] === viewStill.dec) viewStill.frames++;
         else viewStill = { ra: rc[0], dec: rc[1], frames: 0 };
+        if (viewLevelAnim) { stepViewLevel(); return; }
         if (viewStill.frames < VIEW_LEVEL_STILL_FRAMES) return;
         if (Math.abs(Number(aladin.getRotation()) || 0) < 1e-3) return;
-        aladin.setRotation(0);
+        startViewLevel();
     }
 
     // Track whether the sky is being held (mouse or touch), on the window so a
@@ -2826,6 +2870,23 @@
         const up = () => { viewPointerDown = false; };
         window.addEventListener('pointerup', up, true);
         window.addEventListener('pointercancel', up, true);
+    }
+    // The "Keep north up" checkbox: put the remembered choice into it, keep it
+    // remembered, and let a tick while rolled straighten the view once, smoothly.
+    // Wired once on page load, whatever tab is showing -- the same as the Offline
+    // view switch below, which is likewise wired before the Framing tab is first shown.
+    function wireKeepNorthUp() {
+        const box = document.getElementById('keep-north-up');
+        if (!box || box.__novaKeepNorthUpWired) return;
+        box.__novaKeepNorthUpWired = true;
+        try { box.checked = localStorage.getItem(KEEP_NORTH_UP_KEY) === '1'; }
+        catch (e) { /* no storage available: the box keeps its default, off */ }
+        box.addEventListener('change', () => {
+            try { localStorage.setItem(KEEP_NORTH_UP_KEY, box.checked ? '1' : '0'); }
+            catch (e) { /* remembered for this page only */ }
+            if (box.checked) startViewLevel();   // straighten once from wherever it is rolled
+            else viewLevelAnim = null;           // off mid-curve: stop where the view stands
+        });
     }
     function updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotationDeg) {
         const host = document.getElementById('aladin-lite-div');
@@ -2881,7 +2942,7 @@
     // While the Framing tab shows: the frame overlay follows zoom and resize, the Result
     // follows the view centre as the sky is dragged.
     function startFrameOverlayLoop() { if (frameRafId) return; wireViewPointer(document.getElementById('aladin-lite-div')); const tick = () => { if (!aladin) { frameRafId = null; return; } maybeLevelView(); const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } updateReadoutFromCenter(); frameRafId = requestAnimationFrame(tick); }; frameRafId = requestAnimationFrame(tick); }
-    function stopFrameOverlayLoop() { if (frameRafId) { cancelAnimationFrame(frameRafId); frameRafId = null; } }
+    function stopFrameOverlayLoop() { if (frameRafId) { cancelAnimationFrame(frameRafId); frameRafId = null; } viewLevelAnim = null; }   // a straightening that lost its loop starts again when the loop comes back
     /** The frame overlay on, the Result on the view centre, the loop running. */
     function showFrameOverlay() {
         if (fovLayer) fovLayer.removeAll();
@@ -4133,6 +4194,10 @@
 
     // Expose theme update function for external calls
     window.updateChartForTheme = updateChartForTheme;
+
+    // "Keep north up" from page load: the remembered choice goes into the box before
+    // the Framing tab is first shown, so the view is levelled (or not) from the first drag.
+    wireKeepNorthUp();
 
     // Offline view from page load: the switch, the browser's offline/online events,
     // and a page opened offline -- before the Framing tab is first shown.

@@ -8284,6 +8284,11 @@ msgid "Using %(used)s"
 msgstr "%(used)s を使用"
 
 
+#: templates/graph_view.html:459
+msgid "Keep north up"
+msgstr "北を上に保つ"
+
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "更新提案"
 

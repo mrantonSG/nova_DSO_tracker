@@ -452,6 +452,12 @@
                     <label for="blend-opacity">{{ _('Blend') }}</label>
                     <input id="blend-opacity" type="range" min="0" max="1" step="0.01" value="0" title="{{ _('Blend opacity') }}">
                 </div>
+                {# Off (the default): a drag's roll stays where the drag left it. On: the view
+                   turns back to north-up once it is at rest. The frame overlay is drawn at
+                   Angle + where north points either way, so the Angle stays true to north. #}
+                <label class="framing-check">
+                    <input type="checkbox" id="keep-north-up"> {{ _('Keep north up') }}
+                </label>
                 <details class="framing-fold">
                     <summary>{{ _('Image adjustments') }}</summary>
                     <div class="framing-field"><label for="img-bright">{{ _('Brightness') }}</label><input type="range" id="img-bright" min="-1" max="1" step="0.01" value="0" data-action="update-image-adjustments"></div>
