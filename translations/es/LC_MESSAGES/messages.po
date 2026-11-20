@@ -8560,12 +8560,8 @@ msgstr ""
 
 
 #: templates/config_form.html
-msgid "Offline sky"
-msgstr "Cielo sin conexión"
-
-#: templates/config_form.html
-msgid "Storage"
-msgstr "Almacenamiento"
+msgid "Offline sky storage"
+msgstr "Almacenamiento del cielo sin conexión"
 
 #: templates/config_form.html
 msgid "Using %(used)s of %(limit)s"
@@ -8590,10 +8586,6 @@ msgstr "El cielo descargado (%(pinned)s) ya supera este límite. Las teselas vis
 #: templates/config_form.html
 msgid "Clear browsed sky"
 msgstr "Borrar el cielo visto"
-
-#: templates/config_form.html
-msgid "Downloaded sky is never removed."
-msgstr "El cielo descargado nunca se elimina."
 
 #: templates/config_form.html
 msgid "Downloads are unavailable: the sky-tile folder is not writable."

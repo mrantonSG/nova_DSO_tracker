@@ -8173,11 +8173,7 @@ msgid ""
 msgstr ""
 
 #: templates/config_form.html
-msgid "Offline sky"
-msgstr ""
-
-#: templates/config_form.html
-msgid "Storage"
+msgid "Offline sky storage"
 msgstr ""
 
 #: templates/config_form.html
@@ -8202,10 +8198,6 @@ msgstr ""
 
 #: templates/config_form.html
 msgid "Clear browsed sky"
-msgstr ""
-
-#: templates/config_form.html
-msgid "Downloaded sky is never removed."
 msgstr ""
 
 #: templates/config_form.html

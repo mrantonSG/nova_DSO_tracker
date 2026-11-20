@@ -223,10 +223,8 @@
              data-csrf="{{ csrf_token() }}"
              data-presets="{{ sky.limit_presets | tojson }}">
           <h2 style="display: flex; align-items: center; gap: 10px;">
-              {{ _('Offline sky') }}
+              {{ _('Offline sky storage') }}
           </h2>
-
-          <h3>{{ _('Storage') }}</h3>
 
           <p class="offline-sky-usage" id="offline-sky-usage">
             {% if sky.limit_mb is none %}
@@ -285,7 +283,6 @@
             <button type="button" class="inline-button-danger" id="offline-sky-clear">
               {{ _('Clear browsed sky') }}
             </button>
-            <small class="form-text text-muted">{{ _('Downloaded sky is never removed.') }}</small>
           </div>
         </div>
         {% endif %}

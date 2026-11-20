@@ -8189,12 +8189,8 @@ msgstr "在下次同步时将这台电脑上的文件副本发送到服务器？
 
 
 #: templates/config_form.html
-msgid "Offline sky"
-msgstr "离线天空"
-
-#: templates/config_form.html
-msgid "Storage"
-msgstr "存储"
+msgid "Offline sky storage"
+msgstr "离线天空存储"
 
 #: templates/config_form.html
 msgid "Using %(used)s of %(limit)s"
@@ -8219,10 +8215,6 @@ msgstr "已下载的天空（%(pinned)s）已超出此上限。浏览过的图�
 #: templates/config_form.html
 msgid "Clear browsed sky"
 msgstr "清除浏览过的天空"
-
-#: templates/config_form.html
-msgid "Downloaded sky is never removed."
-msgstr "已下载的天空永远不会被移除。"
 
 #: templates/config_form.html
 msgid "Downloads are unavailable: the sky-tile folder is not writable."

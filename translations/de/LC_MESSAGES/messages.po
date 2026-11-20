@@ -8600,12 +8600,8 @@ msgstr ""
 
 
 #: templates/config_form.html
-msgid "Offline sky"
-msgstr "Offline-Himmel"
-
-#: templates/config_form.html
-msgid "Storage"
-msgstr "Speicher"
+msgid "Offline sky storage"
+msgstr "Offline-Himmelsspeicher"
 
 #: templates/config_form.html
 msgid "Using %(used)s of %(limit)s"
@@ -8630,10 +8626,6 @@ msgstr "Heruntergeladener Himmel (%(pinned)s) überschreitet dieses Limit bereit
 #: templates/config_form.html
 msgid "Clear browsed sky"
 msgstr "Angesehenen Himmel löschen"
-
-#: templates/config_form.html
-msgid "Downloaded sky is never removed."
-msgstr "Heruntergeladener Himmel wird nie entfernt."
 
 #: templates/config_form.html
 msgid "Downloads are unavailable: the sky-tile folder is not writable."

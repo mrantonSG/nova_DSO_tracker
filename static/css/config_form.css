@@ -2059,8 +2059,7 @@
   border-top: 1px solid var(--border-light);
 }
 
-/* Clear + its caption on one row while there is room, caption wrapping
-   under the button when the card is narrow. */
+/* Clear sits on its own row below the divider. */
 .offline-sky-section .offline-sky-actions {
   display: flex;
   align-items: center;
@@ -2073,7 +2072,7 @@
    is why the sync page repeats it in `.sync-actions`. This is that same spec --
    6px 14px, 12px/600, radius 6px -- and nothing more. An earlier version of
    this rule added `height: 30px`, which was the sync page's taller row sizing
-   leaking in here and made the button read as oversized next to its caption. */
+   leaking in here and made the button read as oversized. */
 .offline-sky-section .offline-sky-actions .inline-button-danger {
   margin: 0;
   padding: 6px 14px;
@@ -2081,10 +2080,6 @@
   font-weight: 600;
   border-radius: 6px;
   white-space: nowrap;
-}
-
-.offline-sky-section .offline-sky-actions .form-text {
-  margin: 0;
 }
 
 [data-theme="dark"] .offline-sky-section .offline-sky-note {

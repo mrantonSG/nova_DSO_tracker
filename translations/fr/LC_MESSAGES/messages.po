@@ -8611,12 +8611,8 @@ msgstr ""
 
 
 #: templates/config_form.html
-msgid "Offline sky"
-msgstr "Ciel hors ligne"
-
-#: templates/config_form.html
-msgid "Storage"
-msgstr "Stockage"
+msgid "Offline sky storage"
+msgstr "Stockage du ciel hors ligne"
 
 #: templates/config_form.html
 msgid "Using %(used)s of %(limit)s"
@@ -8641,10 +8637,6 @@ msgstr "Le ciel téléchargé (%(pinned)s) dépasse déjà cette limite. Les tui
 #: templates/config_form.html
 msgid "Clear browsed sky"
 msgstr "Effacer le ciel consulté"
-
-#: templates/config_form.html
-msgid "Downloaded sky is never removed."
-msgstr "Le ciel téléchargé n'est jamais supprimé."
 
 #: templates/config_form.html
 msgid "Downloads are unavailable: the sky-tile folder is not writable."

@@ -8211,12 +8211,8 @@ msgstr "次回の同期で、この PC にあるファイルのコピーをサ�
 
 
 #: templates/config_form.html
-msgid "Offline sky"
-msgstr "オフライン天空"
-
-#: templates/config_form.html
-msgid "Storage"
-msgstr "ストレージ"
+msgid "Offline sky storage"
+msgstr "オフライン天空ストレージ"
 
 #: templates/config_form.html
 msgid "Using %(used)s of %(limit)s"
@@ -8241,10 +8237,6 @@ msgstr "ダウンロード済みの天空（%(pinned)s）がこの上限をす�
 #: templates/config_form.html
 msgid "Clear browsed sky"
 msgstr "閲覧した天空を消去"
-
-#: templates/config_form.html
-msgid "Downloaded sky is never removed."
-msgstr "ダウンロード済みの天空は削除されません。"
 
 #: templates/config_form.html
 msgid "Downloads are unavailable: the sky-tile folder is not writable."
