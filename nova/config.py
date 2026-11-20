@@ -89,7 +89,7 @@ OFFLINE_SKY_BASE_ORDER = config('OFFLINE_SKY_BASE_ORDER', default=3, cast=int)
 # Upstream requests per second for offline-sky *jobs*, per instance (one job
 # runner per instance, see nova/offline_sky_jobs.py). The /hips/ browsing proxy
 # keeps its own, separate concurrency budget.
-OFFLINE_SKY_JOB_RATE_PER_SEC = config('OFFLINE_SKY_JOB_RATE_PER_SEC', default=4.0, cast=float)
+OFFLINE_SKY_JOB_RATE_PER_SEC = config('OFFLINE_SKY_JOB_RATE_PER_SEC', default=8.0, cast=float)
 # Replaced by OFFLINE_SKY_JOB_RATE_PER_SEC in offline sky B1; ignored if set.
 REMOVED_OFFLINE_SKY_KEYS = ('OFFLINE_SKY_JOB_CONCURRENCY', 'OFFLINE_SKY_JOB_DELAY_SECONDS')
 # Replaced by the Configuration -> General "Offline sky" download page; the

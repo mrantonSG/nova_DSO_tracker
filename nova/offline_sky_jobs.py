@@ -8,6 +8,16 @@ base job pins what it fetches in the instance-level ``.base-pins.json``, so the
 base is never evicted; a tile every mirror answered 404 for is recorded in
 ``<slug>/.missing.json`` and retried at most once a day.
 
+Downloads
+---------
+A ``download`` job fetches a survey's planned tiles for the ticked locations'
+declination band. Its claims file (``jobs/<id>.pins``) is its *ownership*
+record: it is deliberately **not** handed to the base pins on finish, because a
+Remove has to delete exactly what this download owns. A removal skips any tile
+another claim or a base pin still holds. The same ``.missing.json`` record is
+written by a download, so a survey with genuine upstream holes can still reach
+"ready" (the tile counts as "not available on the server").
+
 One runner per instance
 -----------------------
 Under gunicorn there are several processes. Jobs live on disk as
@@ -22,7 +32,7 @@ queued/running/paused job (resume = re-enumerate and skip what is on disk).
 Pace and honesty
 ----------------
 All job upstream requests share one RateLimiter (OFFLINE_SKY_JOB_RATE_PER_SEC,
-about 4/s, never below MIN_JOB_RATE_PER_SEC): since only one runner exists per
+default 8/s, never below MIN_JOB_RATE_PER_SEC): since only one runner exists per
 instance, that is the instance's job rate. It is separate from the browsing
 proxy's semaphore. A tile is missing only when every upstream of the survey was
 asked and answered 404. Anything else that brings no tile -- a network error,
@@ -73,9 +83,11 @@ RUNNER_LOCK_NAME = ".runner.lock"
 
 # Base tiles that every mirror answered 404 for are recorded per survey in
 # <slug>/.missing.json ({rel: unix time of the last 404}). They count towards
-# "base complete" and are retried at most once per MISSING_RETRY_SECONDS.
-MISSING_FILE = ".missing.json"
-MISSING_RETRY_SECONDS = 24 * 3600
+# "base complete" and are retried at most once per MISSING_RETRY_SECONDS. The
+# record now lives in the store, so the planner can read it too; these names
+# stay as the aliases the base code and tests already use.
+MISSING_FILE = store.MISSING_FILENAME
+MISSING_RETRY_SECONDS = store.MISSING_RETRY_SECONDS
 _now = time.time  # wall clock for the persisted missing record (tests patch it)
 
 ACTIVE_STATUSES = ("queued", "running", "paused")
@@ -101,6 +113,11 @@ class LimitError(ValueError):
 
 def _tile_rel(order: int, npix: int, ext: str) -> str:
     return f"Norder{order}/Dir{(npix // 10000) * 10000}/Npix{npix}.{ext}"
+
+
+def download_job_id(slug: str) -> str:
+    """The stable id of a survey's download job (one per survey)."""
+    return f"download-{slug}"
 
 
 # ---------------------------------------------------------------------------
@@ -147,37 +164,20 @@ def measured_avg_tile_bytes(slug: str):
 
 
 def _missing_path(slug: str) -> str:
-    return os.path.join(store.survey_dir(slug), MISSING_FILE)
+    return store._missing_path(slug)
 
 
 def read_missing(slug: str) -> dict:
-    """{rel: last 404 time} of base tiles recorded as missing on every mirror."""
-    try:
-        with open(_missing_path(slug), "r", encoding="utf-8") as handle:
-            data = json.load(handle)
-    except (FileNotFoundError, ValueError, OSError):
-        return {}
-    if not isinstance(data, dict):
-        return {}
-    out = {}
-    for rel, ts in data.items():
-        try:
-            out[str(rel)] = float(ts)
-        except (TypeError, ValueError):
-            continue
-    return out
+    """{rel: last 404 time} of tiles recorded as missing on every mirror.
+
+    Thin alias for ``store.read_missing``: the record lives in the store so the
+    planner can read it without importing this module.
+    """
+    return store.read_missing(slug)
 
 
 def _write_missing(slug: str, record: dict) -> None:
-    path = _missing_path(slug)
-    if not record:
-        try:
-            os.remove(path)
-        except OSError:
-            pass
-        return
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    store.write_json_atomic(path, record)
+    store.write_missing(slug, record)
 
 
 def missing_due(slug: str) -> list:
@@ -401,6 +401,16 @@ class JobRunner:
             store.warm_up()
         except Exception:
             traceback.print_exc()
+        # Pins must agree with the disk before any status is trusted: a base
+        # pin without its file is dropped, a claim's size is re-read (0 = still
+        # to fetch). Once per runner process, i.e. at startup.
+        try:
+            counts = store.reconcile_pins_with_disk()
+            print(f"[STARTUP] Offline sky: pins reconciled with disk: "
+                  f"{counts['base_dropped']} base pin(s) without a file dropped, "
+                  f"{counts['claims_absent']} claimed tile(s) not on disk.")
+        except Exception:
+            traceback.print_exc()
         store.refresh_pinned_bytes()
 
     # --- loop ---
@@ -458,6 +468,8 @@ class JobRunner:
         try:
             if state.get("kind") == "base":
                 self._run_base(state)
+            elif state.get("kind") == "download":
+                self._run_download(state)
         except Exception as exc:
             # _run_base already routes errors through _finish; this is the last
             # resort when _finish itself fails. The job's claims file stays, so
@@ -634,6 +646,88 @@ class JobRunner:
         self._finish(state, status, reason, covered, missing,
                      lambda c, m, _st: pin(c, m, final=True), error)
 
+    # --- download ---
+    def _run_download(self, state: dict) -> None:
+        """Fetch a download's planned tiles; the claims stay as its ownership.
+
+        A download differs from the base in three ways: its plan is the band
+        intersection (not the whole sky), its claims file is its ownership
+        record and is *not* handed to the base pins on finish, and its Allsky
+        tile is owned by the download even though it is never counted as a
+        grid tile. A finished download leaves ``jobs/<id>.pins`` in place; a
+        Remove deletes the owned tiles and the claims file.
+        """
+        from nova import offline_sky_plan as plan_mod
+
+        slug = state["params"]["survey"]
+        job_id = state["id"]
+        plan = plan_mod.read_plan(job_id)
+        if not plan:
+            # No plan means the selection changed or the plan was lost; the
+            # route re-plans before enqueueing, so this is a defensive failure.
+            self._finish(state, "failed", "no_plan", [], [], lambda *_: False)
+            return
+        tiles = plan.get("tiles") or []
+        items = [(slug, rel) for rel in tiles]
+        prefix = f"{slug}/"
+        # A tile the upstream does not have is recorded in <slug>/.missing.json
+        # and retried at most once a day, exactly as the base layer does. Until
+        # its retry is due the job counts it as missing without asking upstream,
+        # so a re-run of a finished download does not re-ask for known 404s.
+        now = _now()
+        recent = {prefix + rel for rel, ts in store.read_missing(slug).items()
+                  if now - ts < MISSING_RETRY_SECONDS}
+
+        flushed = [0]
+
+        def record_sizes(covered):
+            # A claim line is written before its fetch (size 0 when absent);
+            # record the real sizes of the tiles covered since the last flush,
+            # so the plan's "on disk" set (claim size > 0) sees them.
+            new = covered[flushed[0]:]
+            flushed[0] = len(covered)
+            store.set_claim_sizes(job_id, {key: store.pinned_key_size(key) or 0
+                                           for key in new})
+
+        def checkpoint(covered, missing):
+            # The claims file is the ownership record; refresh the cached totals
+            # so status() sees the download's bytes without walking the pins.
+            record_sizes(covered)
+            store.refresh_pinned_bytes()
+
+        covered, missing = [], []
+        status, reason, error = "done", None, None
+        try:
+            self._process(state, items, covered, missing, checkpoint,
+                          skip_missing=recent)
+        except _Stop as stop:
+            status, reason = stop.status, stop.reason
+        except Exception as exc:
+            traceback.print_exc()
+            status, reason, error = "failed", "error", str(exc)
+
+        def finalize(_covered, _missing, _status):
+            # Record this run's 404s so the next plan counts them as "not
+            # available on the server" and a finished download can reach
+            # "ready". A tile found on a later run is forgotten again.
+            if _covered or _missing:
+                record = store.read_missing(slug)
+                for key in _covered:
+                    record.pop(key[len(prefix):], None)
+                for key in _missing:
+                    if key not in recent:      # skipped ones were not re-asked
+                        record[key[len(prefix):]] = now
+                store.write_missing(slug, record)
+            record_sizes(_covered)
+            # The job is done with the pins: make every record agree with disk.
+            store.reconcile_pins_with_disk()
+            store.refresh_pinned_bytes()
+            # New tiles on disk: the per-order size figures are re-measured.
+            store.invalidate_size_cache(slug)
+            return False
+
+        self._finish(state, status, reason, covered, missing, finalize, error)
+
     def _finish(self, state, status, reason, covered, missing, finalize, error=None):
         """Pins first (atomic), then the final status. Never the other way round.
 
@@ -685,16 +779,51 @@ _kick_lock = threading.Lock()
 def kick() -> bool:
     """Make sure *some* process runs the queue. True if this process is the runner.
 
-    Called when a job is queued (never at import). A process that cannot take the
+    Called when a job is queued and at startup. A process that cannot take the
     lock does nothing: the holder runs the job, and status is read from disk.
+    The first time this process becomes the runner, it drops any legacy job
+    that is not a download before starting, so nothing from an older version
+    fetches on its own.
     """
     with _kick_lock:
         if _RUNNER.running:
             return True
         if not _RUNNER.acquire():
             return False
+        drop_legacy_jobs()
         _RUNNER.start()
         return True
+
+
+def drop_legacy_jobs() -> int:
+    """Drop queued/running/paused jobs that are not downloads. Returns how many.
+
+    Old base jobs from earlier versions must not fetch on their own: only a
+    user's click starts a download. The base's tiles stay pinned in
+    ``.base-pins.json`` and are never touched -- the base is not revived. The
+    dropped jobs' claims files are removed too, so their tiles stop being
+    pinned and become ordinary browsed tiles. One ``[STARTUP]`` line.
+    """
+    dropped = 0
+    for state in list_jobs():
+        if state.get("status") not in ACTIVE_STATUSES:
+            continue
+        if state.get("kind") == "download":
+            continue
+        job_id = state.get("id")
+        if not job_id:
+            continue
+        for path in (_job_path(job_id), _cancel_path(job_id),
+                     store._job_pins_path(job_id)):
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+        dropped += 1
+    if dropped:
+        print(f"[STARTUP] Offline sky: dropped {dropped} legacy job(s) "
+              f"(not downloads); base pins untouched.")
+    return dropped
 
 
 # ---------------------------------------------------------------------------
@@ -727,3 +856,163 @@ def base_job_progress(slug: str) -> dict:
     if not state:
         return {"slug": slug, "status": "idle", "complete": base_complete(slug)}
     return {**state, "slug": slug, "complete": base_complete(slug)}
+
+
+# ---------------------------------------------------------------------------
+# Download API helpers
+# ---------------------------------------------------------------------------
+
+def enqueue_download(slug: str, order: int, band, locations) -> dict:
+    """Plan, store the plan and queue a download. Returns the job state.
+
+    The id is stable per survey, so a second click on the same survey replaces
+    the previous job rather than starting a second one. The plan is written
+    before the job so the runner never sees a download without one.
+    """
+    from nova import offline_sky_plan as plan_mod
+
+    summary = plan_mod.plan_summary(slug, order, band, locations, include_tiles=True)
+    job_id = download_job_id(slug)
+    plan_mod.write_plan(job_id, summary)
+    params = {"survey": slug, "order": summary["order"],
+              "band": summary["band"], "locations": locations}
+    state = enqueue(job_id, "download", params, [slug])
+    kick()
+    return state
+
+
+def _plan_without_tiles(plan):
+    """The plan summary without its ``tiles`` list.
+
+    The plan file carries every planned rel path (15k+ for a Basic download).
+    The poll response must not: it is re-sent on every refresh, and 436 KB per
+    poll is not a status payload. The tiles stay in the file, where the job
+    runner and the trim read them.
+    """
+    if not plan:
+        return plan
+    return {k: v for k, v in plan.items() if k != "tiles"}
+
+
+def download_progress(slug: str) -> dict:
+    """The job state plus its plan summary, or an idle stub.
+
+    ``could_free`` is the bytes the download owns that fall outside its current
+    plan -- the "could free X" figure the UI shows when a location is unticked.
+    Nothing is deleted until the user asks for a trim. The plan's ``tiles`` list
+    is dropped from the response; see ``_plan_without_tiles``.
+    """
+    from nova import offline_sky_plan as plan_mod
+
+    job_id = download_job_id(slug)
+    state = read_job(job_id)
+    full = plan_mod.read_plan(job_id)          # needs "tiles" for _could_free
+    plan = _plan_without_tiles(full)           # the response drops them
+    could_free = _could_free(job_id, full)
+    if not state:
+        return {"id": job_id, "status": "idle", "plan": plan,
+                "could_free": could_free}
+    return {**state, "plan": plan, "could_free": could_free}
+
+
+def plan_owned_keys(slug: str, plan) -> set:
+    """The plan's tiles as claim keys (``<slug>/<rel>``).
+
+    The plan stores bare HiPS rel paths; a claim key is prefixed with the
+    survey slug. Comparing the two without prefixing would make every owned
+    tile look "outside the plan" and a trim would delete the whole download.
+    """
+    prefix = f"{slug}/"
+    return {prefix + rel for rel in (plan.get("tiles") or [])}
+
+
+def _could_free(job_id: str, plan) -> int:
+    """Bytes owned by the download but outside its current plan."""
+    if not plan:
+        return 0
+    owned = store.job_pins(job_id)
+    keep = plan_owned_keys(plan.get("survey") or "", plan)
+    extra = owned - keep
+    if not extra:
+        return 0
+    sizes = store.job_pin_sizes(job_id)
+    total = 0
+    for key in extra:
+        # A claim line is written before the fetch with size 0; once the tile
+        # is on disk its real size is authoritative. Prefer the stat when the
+        # recorded size is missing or zero.
+        size = sizes.get(key)
+        if not size:
+            slug, _, rel = key.partition("/")
+            size = store.file_size(slug, rel) or 0
+        total += size
+    return total
+
+
+def _wait_for_job_to_stop(job_id: str, timeout: float = 10.0) -> bool:
+    """Wait until ``job_id`` leaves the active states. True when it stopped.
+
+    ``cancel_job`` only writes a marker; the runner sees it at its next tile.
+    A Remove that deletes immediately races that thread and the job resurrects
+    a few tiles. This waits for the job's own state to leave the active set,
+    so the delete happens after the thread has stopped. A timeout means the
+    runner did not stop in time; the caller must not delete then, because a
+    live thread may still be writing.
+    """
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        state = read_job(job_id)
+        if not state or state.get("status") not in ACTIVE_STATUSES:
+            return True
+        time.sleep(0.05)
+    return False
+
+
+class RemoveRefused(RuntimeError):
+    """Remove could not stop the job in time; nothing was deleted."""
+
+    def __init__(self, job_id: str):
+        super().__init__(f"job {job_id} did not stop in time")
+        self.job_id = job_id
+
+
+def remove_download(slug: str) -> dict:
+    """Delete a download's owned tiles and its job files. Returns the summary.
+
+    The tiles are deleted unless another download or a base pin still claims
+    them (``store.delete_tiles`` skips those). The plan file goes too.
+
+    Raises ``RemoveRefused`` when the job does not stop within the timeout:
+    deleting while a live thread may still write would resurrect the download,
+    so the caller refuses instead (the route answers 409).
+    """
+    from nova import offline_sky_plan as plan_mod
+
+    job_id = download_job_id(slug)
+    state = read_job(job_id)
+    # Cancel first and wait for the job to actually stop. The cancel marker is
+    # only seen at the next tile, so deleting while the thread still runs lets
+    # it re-create the claims file and fetch a few more tiles after the delete.
+    cancel_job(job_id)
+    if not _wait_for_job_to_stop(job_id):
+        raise RemoveRefused(job_id)
+    # Read the owned tiles, then remove *this* download's claims file before
+    # deleting. Otherwise delete_tiles sees the job's own claims and keeps
+    # every tile as "still claimed by another download".
+    owned = store.job_pins(job_id)
+    try:
+        os.remove(store._job_pins_path(job_id))
+    except OSError:
+        pass
+    summary = store.delete_tiles(owned)
+    for path in (_job_path(job_id), _cancel_path(job_id)):
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+    plan_mod.delete_plan(job_id)
+    store.refresh_pinned_bytes()
+    store.invalidate_size_cache(slug)
+    return {"id": job_id, "status": "removed", "owned": len(owned),
+            "deleted": summary["deleted"], "kept": summary["kept"],
+            "bytes": summary["bytes"], "had_job": bool(state)}

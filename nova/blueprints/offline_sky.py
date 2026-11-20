@@ -30,13 +30,16 @@ from flask import Blueprint, Response, jsonify, request
 from flask_login import current_user
 
 import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay live (see nova/config.py)
+import nova.offline_sky_store as store
 from nova.config import ADMIN_USERS, APP_VERSION, OFFLINE_SKY_STORE
 from nova.offline_sky_facts import allsky_rel, effective_max_order
 from nova.offline_sky_sources import SURVEY_BY_SLUG
 from nova.offline_sky_store import (
     read_file, store_file, touch, maybe_evict_async, tile_path,
     clear_now, evict_now, set_limit_mb, status as store_status,
-    with_evict_lock,
+    with_evict_lock, downloads_available, budget_bytes, pinned_bytes,
+    read_selection, write_selection, job_pins, delete_tiles,
+    refresh_pinned_bytes,
 )
 
 offline_sky_bp = Blueprint("offline_sky", __name__)
@@ -772,3 +775,270 @@ def offline_sky_clear_browsed():
         return jsonify(_storage_payload({"evicting": True, "cleared": False}))
     return jsonify(_storage_payload({"evicting": False, "cleared": True,
                                      "removed": summary["removed"]}))
+
+
+# --- Downloads ---------------------------------------------------------------
+#
+# The four surveys the download page offers. One row per survey; the id is
+# stable per survey so a re-plan replaces the previous job. Everything is
+# admin-only in multi-user mode and CSRF-protected on every write.
+
+DOWNLOAD_SURVEYS = ("dss2-color", "nsns-rgb8", "nsns-halpha8", "nsns-oiii8")
+# The three detail levels, by HEALPix order: ~13" / ~6" / ~3" per pixel at the
+# 512-pixel tile width. Each is capped at the survey's own maximum order, so a
+# survey that stops at order 5 clamps all three to 5.
+DETAIL_ORDERS = {"basic": 5, "standard": 6, "fine": 7}
+
+
+def _storage_csrf():
+    """The CSRF check, under its existing name for the download routes."""
+    return _storage_csrf_check()
+
+
+def _download_guard():
+    """Admin + CSRF + writable store, or a refusal response."""
+    guard = _storage_guard()
+    if guard is not None:
+        return guard
+    refused = _storage_csrf()
+    if refused is not None:
+        return refused
+    if not downloads_available():
+        return jsonify({"error": "read_only", **_storage_payload()}), 409
+    return None
+
+
+def _session_user():
+    """The username whose locations this request may touch.
+
+    Single-user mode is always "default" (the app auto-authenticates as it).
+    Multi-user is the signed-in user's username. The body never names the user:
+    a client cannot tick another account's location.
+    """
+    if nova.SINGLE_USER_MODE:
+        return "default"
+    return (current_user.username or "").strip()
+
+
+def _requested_locations():
+    """The selection the client sent, normalised to ``[{"user","record_uid"}]``.
+
+    The user is always the session's, never the body's. A ``record_uid`` that
+    does not belong to that user is rejected, not silently dropped, so a client
+    cannot tick another account's location by guessing its uid. Returns
+    ``(entries, error)``; ``error`` is a refusal response or None.
+    """
+    payload = request.get_json(silent=True) or {}
+    raw = payload.get("locations")
+    if raw is None:
+        return read_selection(), None
+    user = _session_user()
+    if not user:
+        return None, (jsonify({"error": "authentication required"}), 401)
+    from nova.models import Location
+    from nova.helpers import get_db
+    db = get_db()
+    out = []
+    seen = set()
+    for entry in raw or []:
+        if not isinstance(entry, dict):
+            continue
+        uid = str(entry.get("record_uid") or "").strip()
+        if not uid:
+            continue
+        key = (user, uid)
+        if key in seen:
+            continue
+        row = (db.query(Location)
+               .filter(Location.record_uid == uid)
+               .filter(Location.user_id == _db_user_id(user))
+               .first())
+        if row is None:
+            return None, (jsonify({
+                "error": "unknown_location",
+                "message": f"record_uid {uid!r} is not a location of this user",
+            }), 400)
+        seen.add(key)
+        out.append({"user": user, "record_uid": uid})
+    return out, None
+
+
+def _db_user_id(username: str):
+    """The DB user id for ``username``, or None when the user does not exist."""
+    from nova.models import DbUser
+    from nova.helpers import get_db
+    row = get_db().query(DbUser).filter(DbUser.username == username).first()
+    return row.id if row else None
+
+
+def _locations_with_coords(entries):
+    """Attach each selected location's name, latitude and longitude.
+
+    The selection stores only ``(user, record_uid)``; the sky needs the
+    latitude. A location whose uid no longer exists is skipped rather than
+    failing the whole request. ``record_uid`` is unique per user, so the query
+    also filters on the user's id: a stale selection from another account
+    cannot leak its coordinates into this user's plan.
+    """
+    from nova.models import Location
+    from nova.helpers import get_db
+    out = []
+    db = get_db()
+    for entry in entries:
+        user_id = _db_user_id(entry.get("user") or "")
+        if user_id is None:
+            continue
+        row = (db.query(Location)
+               .filter(Location.record_uid == entry["record_uid"])
+               .filter(Location.user_id == user_id)
+               .first())
+        if row is None:
+            continue
+        out.append({**entry, "name": row.name, "lat": row.lat, "lon": row.lon})
+    return out
+
+
+def _detail_order(survey: str, detail: str):
+    """The order a detail label means for ``survey``, capped at its maximum."""
+    from nova.offline_sky_facts import survey_facts
+    facts = survey_facts(survey)
+    wanted = DETAIL_ORDERS.get(str(detail or "basic").lower(), DETAIL_ORDERS["basic"])
+    return min(wanted, facts.effective_max_order)
+
+
+def _band_for(located):
+    """The union band of the located selection, or None when nothing is ticked."""
+    from nova import offline_sky_plan as plan_mod
+    return plan_mod.union_band([loc.get("lat") for loc in located])
+
+
+@offline_sky_bp.route("/api/offline-sky/selection", methods=["GET", "PUT"])
+def offline_sky_selection():
+    """Read or replace the ticked-location selection."""
+    guard = _storage_guard()
+    if guard is not None:
+        return guard
+    if request.method == "PUT":
+        refused = _storage_csrf()
+        if refused is not None:
+            return refused
+        entries, error = _requested_locations()
+        if error is not None:
+            return error
+        store.write_selection(entries)
+        return jsonify({"locations": store.read_selection()})
+    return jsonify({"locations": store.read_selection()})
+
+
+@offline_sky_bp.route("/api/offline-sky/plan")
+def offline_sky_plan():
+    """The tile count, size and per-location coverage for a planned download."""
+    guard = _storage_guard()
+    if guard is not None:
+        return guard
+    survey = request.args.get("survey", "")
+    if survey not in DOWNLOAD_SURVEYS:
+        return jsonify({"error": "unknown survey"}), 400
+    order = _detail_order(survey, request.args.get("detail"))
+    entries, error = _requested_locations()
+    if error is not None:
+        return error
+    located = _locations_with_coords(entries)
+    band = _band_for(located)
+    from nova import offline_sky_plan as plan_mod
+    return jsonify(plan_mod.plan_summary(survey, order, band, located))
+
+
+@offline_sky_bp.route("/api/offline-sky/downloads")
+def offline_sky_downloads():
+    """Every download's job state and plan."""
+    guard = _storage_guard()
+    if guard is not None:
+        return guard
+    from nova import offline_sky_jobs as jobs
+    return jsonify({"downloads": [jobs.download_progress(slug) for slug in DOWNLOAD_SURVEYS]})
+
+
+@offline_sky_bp.route("/api/offline-sky/downloads/<slug>", methods=["POST"])
+def offline_sky_start_download(slug):
+    """Plan and queue a download; refuse when it cannot fit the budget."""
+    guard = _download_guard()
+    if guard is not None:
+        return guard
+    if slug not in DOWNLOAD_SURVEYS:
+        return jsonify({"error": "unknown survey"}), 404
+    payload = request.get_json(silent=True) or {}
+    order = _detail_order(slug, payload.get("detail"))
+    entries, error = _requested_locations()
+    if error is not None:
+        return error
+    located = _locations_with_coords(entries)
+    band = _band_for(located)
+    if band is None:
+        return jsonify({"error": "no_locations",
+                        "message": "Tick at least one location first."}), 409
+    from nova import offline_sky_plan as plan_mod
+    summary = plan_mod.plan_summary(slug, order, band, located)
+    needed = summary.get("size_bytes")
+    if needed is not None:
+        available = budget_bytes() - pinned_bytes()
+        if needed > available:
+            return jsonify({"error": "insufficient_space", "needed": needed,
+                            "available": max(0, available), "plan": summary}), 409
+    from nova import offline_sky_jobs as jobs
+    return jsonify({"job": jobs.enqueue_download(slug, order, band, located),
+                    "plan": summary})
+
+
+@offline_sky_bp.route("/api/offline-sky/downloads/<slug>/cancel", methods=["POST"])
+def offline_sky_cancel_download(slug):
+    guard = _download_guard()
+    if guard is not None:
+        return guard
+    from nova import offline_sky_jobs as jobs
+    return jsonify({"cancelled": bool(jobs.cancel_job(jobs.download_job_id(slug)))})
+
+
+@offline_sky_bp.route("/api/offline-sky/downloads/<slug>", methods=["DELETE"])
+def offline_sky_remove_download(slug):
+    """Remove a download; 409 when its job will not stop in time."""
+    guard = _download_guard()
+    if guard is not None:
+        return guard
+    from nova import offline_sky_jobs as jobs
+    try:
+        removed = jobs.remove_download(slug)
+    except jobs.RemoveRefused as exc:
+        # The job is still active, so a delete could resurrect it. Nothing was
+        # deleted; the client may retry once the runner has stopped.
+        return jsonify({"error": "job_still_running", "job": exc.job_id,
+                        "message": "The download did not stop in time; try again."}), 409
+    return jsonify({"removed": removed, **_storage_payload()})
+
+
+@offline_sky_bp.route("/api/offline-sky/downloads/<slug>/trim", methods=["POST"])
+def offline_sky_trim_download(slug):
+    """Delete the download's tiles outside the current band ("could free X")."""
+    guard = _download_guard()
+    if guard is not None:
+        return guard
+    from nova import offline_sky_jobs as jobs
+    from nova import offline_sky_plan as plan_mod
+    job_id = jobs.download_job_id(slug)
+    plan = plan_mod.read_plan(job_id)
+    if not plan:
+        return jsonify({"error": "no_plan"}), 404
+    owned = job_pins(job_id)
+    # Plan tiles are bare rel paths; a claim key is "<slug>/<rel>". Prefix
+    # before comparing, or every owned tile looks outside the plan and the
+    # trim deletes the whole download.
+    from nova.offline_sky_jobs import plan_owned_keys
+    keep = plan_owned_keys(slug, plan)
+    extra = owned - keep
+    summary = delete_tiles(extra)
+    # Release the deleted tiles' claims too, or could_free keeps reporting
+    # bytes that are already gone.
+    store.release_job_pins(job_id, extra)
+    refresh_pinned_bytes()
+    store.invalidate_size_cache(slug)
+    return jsonify({"trimmed": summary, **_storage_payload()})

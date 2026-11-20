@@ -10,6 +10,8 @@ Layout under OFFLINE_SKY_DIR (default: the instance's own cache/hips):
     .pinned                # summed byte count of pinned tiles (base + jobs)
     .base-pins.json        # instance-level base tiles (orders 0..N), never evicted
     .settings.json         # the installation's chosen store limit (see below)
+    .downloads.json        # the ticked locations for downloads: (user, record_uid)
+    <slug>/.missing.json   # tiles every upstream answered 404 for, per survey
     jobs/<job_id>.json     # job state + parameters (the job queue)
     jobs/<job_id>.cancel   # cancel marker, written by any process
     jobs/<job_id>.pins     # tiles a running job has claimed (one key per line)
@@ -70,7 +72,8 @@ import os
 import threading
 import time
 
-from nova.config import CACHE_DIR, INSTANCE_PATH, OFFLINE_SKY_CACHE_MB, OFFLINE_SKY_DIR
+from nova.config import (BoundedCache, CACHE_DIR, INSTANCE_PATH, OFFLINE_SKY_CACHE_MB,
+                         OFFLINE_SKY_DIR)
 from nova.helpers import write_file_atomic, try_acquire_file_lock, release_file_lock
 from nova.offline_sky_lock import hold_lock
 
@@ -79,6 +82,10 @@ from nova.offline_sky_lock import hold_lock
 # the headroom, then evict. Lives here (not in offline_sky_jobs, which imports
 # this module) so eviction and downloads judge the disk by the same number.
 DISK_HEADROOM_BYTES = 1024 * 1024 * 1024
+
+# A survey with nothing measured yet still needs a size to judge a download by.
+# 67 KiB is the DSS2 average; NSNS is larger but its "unknown" is shown as such.
+FALLBACK_TILE_BYTES = 67 * 1024
 
 HIPS_SUBDIR = "hips"
 TOTAL_FILENAME = ".total"
@@ -91,6 +98,9 @@ JOBS_DIRNAME = "jobs"                    # job state (<job_id>.json)
 EVICT_LOCK = ".evict"
 PINS_LOCK = ".pins.lock"
 JOB_PINS_SUFFIX = ".pins"
+# Tiles every upstream answered 404 for, per survey: {rel: last 404 time}. A
+# download counts these as "not available on the server" -- done, not blocking.
+MISSING_FILENAME = ".missing.json"
 
 # The retired per-object save manifests lived here: pins/<uuid>.json. The folder
 # is read once at startup (retire_save_entries) and never written again.
@@ -234,6 +244,64 @@ def tile_path(slug: str, rel_path: str) -> str:
     return os.path.join(survey_dir(slug), rel_path)
 
 
+def tile_rel(order: int, npix: int, ext: str) -> str:
+    """The HiPS rel path of a tile: ``Norder{o}/Dir{d}/Npix{npix}.{ext}``."""
+    return f"Norder{order}/Dir{(npix // 10000) * 10000}/Npix{npix}.{ext}"
+
+
+# ---------------------------------------------------------------------------
+# Tiles the upstream does not have (recorded 404s)
+#
+# A tile every upstream answered 404 for is recorded per survey as
+# ``<slug>/.missing.json``: {rel: last 404 time}. A download counts those as
+# done -- "not available on the server" -- so a survey with holes in its
+# footprint can still reach "ready". Retried at most once a day (the base
+# layer's retry rule, unchanged).
+# ---------------------------------------------------------------------------
+
+MISSING_RETRY_SECONDS = 24 * 3600
+
+
+def _missing_path(slug: str) -> str:
+    return os.path.join(survey_dir(slug), MISSING_FILENAME)
+
+
+def read_missing(slug: str) -> dict:
+    """{rel: last 404 time} of tiles recorded as missing on every upstream."""
+    try:
+        with open(_missing_path(slug), "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (FileNotFoundError, ValueError, OSError):
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    out = {}
+    for rel, ts in data.items():
+        try:
+            out[str(rel)] = float(ts)
+        except (TypeError, ValueError):
+            continue
+    return out
+
+
+def write_missing(slug: str, record: dict) -> None:
+    """Replace the survey's missing record; an empty record removes the file."""
+    path = _missing_path(slug)
+    if not record:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+        return
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    write_json_atomic(path, record)
+
+
+def missing_rel_paths(slug: str) -> set:
+    """The rel paths recorded as "not available on the server" for ``slug``."""
+    return set(read_missing(slug))
+
+
 def read_file(slug: str, rel_path: str):
     """Bytes at hips/<slug>/<rel_path>, or None when absent."""
     path = tile_path(slug, rel_path)
@@ -324,6 +392,11 @@ def write_json_atomic(path, data) -> None:
 
 def _write_json(path, data) -> None:
     write_json_atomic(path, data)
+
+
+def read_json(path):
+    """Read a JSON file, or ``None`` when it is missing or unreadable."""
+    return _read_json(path, None)
 
 
 # ---------------------------------------------------------------------------
@@ -462,16 +535,130 @@ def _job_pins_path(job_id: str) -> str:
 
 
 def _read_lines(path: str) -> set:
+    """Keys from a claims file: ``rel<TAB>bytes`` lines, or old ``rel`` lines.
+
+    The size is only an accounting hint; the key is what matters, so both
+    formats read back as the same set of keys.
+    """
     try:
         with open(path, "r", encoding="utf-8") as handle:
-            return {line.strip() for line in handle if line.strip()}
+            return {line.split("\t", 1)[0].strip() for line in handle if line.strip()}
     except (FileNotFoundError, OSError):
         return set()
+
+
+def _read_claim_sizes(path: str) -> dict:
+    """{key: bytes} from a claims file; old ``rel``-only lines yield no size."""
+    out = {}
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            for line in handle:
+                line = line.strip()
+                if not line:
+                    continue
+                key, _sep, size = line.partition("\t")
+                key = key.strip()
+                if not key:
+                    continue
+                try:
+                    out[key] = int(size)
+                except (TypeError, ValueError):
+                    out[key] = None
+    except (FileNotFoundError, OSError):
+        return {}
+    return out
 
 
 def job_pins(job_id: str) -> set:
     """Keys claimed by ``job_id`` (pinned until the job hands them to a manifest)."""
     return _read_lines(_job_pins_path(job_id))
+
+
+def release_job_pins(job_id: str, keys) -> int:
+    """Drop ``keys`` from ``job_id``'s claims file. Returns how many went.
+
+    A trim deletes the tiles *and* releases their claims: leaving the claims
+    behind would make the deleted tiles look owned, so ``could_free`` would keep
+    reporting bytes that are already gone. Rewrites the file under the pin lock.
+    """
+    wanted = {str(k) for k in keys}
+    if not wanted:
+        return 0
+    with pins_lock():
+        path = _job_pins_path(job_id)
+        sizes = _read_claim_sizes(path)
+        if not sizes:
+            return 0
+        removed = [k for k in sizes if k in wanted]
+        if not removed:
+            return 0
+        keep = {k: v for k, v in sizes.items() if k not in wanted}
+        try:
+            _rewrite_claims_locked(path, keep)
+        except OSError:
+            return 0
+        return len(removed)
+
+
+def _rewrite_claims_locked(path: str, sizes: dict) -> None:
+    """Rewrite a claims file as one ``key<TAB>bytes`` line per key. Pin lock held."""
+    payload = "".join(f"{key}\t{int(size or 0)}\n" for key, size in sizes.items())
+    write_file_atomic(path, lambda p: _write_bytes(p, payload.encode("utf-8")))
+
+
+# The keys each job's claims file holds, so a claim can skip a key the job
+# already owns without re-reading the file. Validated on every use against the
+# file's (inode, size, mtime_ns): a rewrite or delete by another process (trim,
+# Remove, reconcile) makes the entry stale and it is re-read. Bounded per the
+# codebase rule; only the runner claims, so a handful of jobs is plenty.
+_CLAIM_KEYS_CACHE = BoundedCache(16)
+
+
+def _file_sig(path: str):
+    try:
+        st = os.stat(path)
+    except OSError:
+        return None
+    return (st.st_ino, st.st_size, st.st_mtime_ns)
+
+
+def _claimed_keys_locked(job_id: str) -> set:
+    """The keys ``job_id`` already claims. Caller holds pins_lock()."""
+    path = _job_pins_path(job_id)
+    sig = _file_sig(path)
+    cached = _CLAIM_KEYS_CACHE.get(job_id)
+    if cached is not None and cached[0] == sig:
+        return cached[1]
+    keys = _read_lines(path) if sig is not None else set()
+    _CLAIM_KEYS_CACHE[job_id] = (sig, keys)
+    return keys
+
+
+def set_claim_sizes(job_id: str, sizes: dict) -> int:
+    """Record on-disk sizes in ``job_id``'s claim lines. Returns how many changed.
+
+    A claim is written before its fetch, with size 0 when the tile is not on
+    disk yet; the job reports the real size here at each checkpoint and at the
+    end. A claim line with a size > 0 is what "on disk" means to the plan's
+    status, so this is what lets a fetched tile count as ready without a stat
+    per poll. Only keys already claimed are updated.
+    """
+    if not sizes:
+        return 0
+    with pins_lock():
+        path = _job_pins_path(job_id)
+        current = _read_claim_sizes(path)
+        changed = 0
+        for key, size in sizes.items():
+            if key in current and int(current[key] or 0) != int(size or 0):
+                current[key] = int(size or 0)
+                changed += 1
+        if changed:
+            try:
+                _rewrite_claims_locked(path, current)
+            except OSError:
+                return 0
+        return changed
 
 
 def all_job_pins() -> set:
@@ -486,20 +673,46 @@ def all_job_pins() -> set:
     return out
 
 
-def claim_for_job(job_id: str, key: str, guard=None):
+def claim_for_job(job_id: str, key: str, guard=None, size=None):
     """Pin ``key`` for ``job_id`` *before* the job fetches or adopts it.
 
     Under the pin lock: ``guard()`` (may raise to refuse the claim, e.g. the
-    save was deleted), append the key, return the tile's on-disk size (None
-    when absent). Once this returns, eviction can no longer remove the tile.
+    save was deleted), append the key (with its size when known), return the
+    tile's on-disk size (None when absent). Once this returns, eviction can no
+    longer remove the tile.
+
+    The size in the claim line lets ``status()`` sum the download's bytes
+    without stat()ing every tile; an unknown size is written as ``0`` and the
+    line still reads back as the key.
+
+    A key the job already claims is not appended again (a resumed or re-planned
+    run walks the same tiles), so the file stays at one line per key.
     """
     with pins_lock():
         if guard is not None:
             guard()
         os.makedirs(jobs_dir(), exist_ok=True)
-        with open(_job_pins_path(job_id), "a", encoding="utf-8") as handle:
-            handle.write(key + "\n")
-        return pinned_key_size(key)
+        on_disk = pinned_key_size(key)
+        claimed = _claimed_keys_locked(job_id)
+        if key in claimed:
+            return on_disk
+        line_size = on_disk if size is None else size
+        path = _job_pins_path(job_id)
+        with open(path, "a", encoding="utf-8") as handle:
+            handle.write(f"{key}\t{int(line_size or 0)}\n")
+        claimed.add(key)
+        _CLAIM_KEYS_CACHE[job_id] = (_file_sig(path), claimed)
+        return on_disk
+
+
+def job_pin_sizes(job_id: str) -> dict:
+    """{key: bytes} for ``job_id``'s claims, from the claim lines."""
+    return _read_claim_sizes(_job_pins_path(job_id))
+
+
+def claimed_bytes(job_id: str) -> int:
+    """Sum of the sizes in ``job_id``'s claim lines (0 for unknown sizes)."""
+    return sum(v or 0 for v in job_pin_sizes(job_id).values())
 
 
 def take_job_pins_locked(job_id: str) -> set:
@@ -541,6 +754,79 @@ def pinned_rel_paths() -> set:
     return base_pinned_rel_paths() | all_job_pins()
 
 
+def pinned_on_disk_keys() -> set:
+    """Pinned keys whose tile is on disk -- what "ready" counts. No stat() per key.
+
+    Base pins are trusted as on disk: ``reconcile_pins_with_disk`` drops any
+    whose file is absent, at runner start and when a job finishes. A job claim
+    counts only when its line records a size > 0 (``set_claim_sizes``); a claim
+    written before its fetch, or one whose file has gone, reads 0 and so counts
+    as still to fetch.
+    """
+    out = base_pinned_rel_paths()
+    try:
+        names = os.listdir(jobs_dir())
+    except FileNotFoundError:
+        return out
+    for name in names:
+        if name.endswith(JOB_PINS_SUFFIX) and not name.startswith("."):
+            sizes = _read_claim_sizes(os.path.join(jobs_dir(), name))
+            out |= {key for key, size in sizes.items() if size}
+    return out
+
+
+def reconcile_pins_with_disk() -> dict:
+    """Make the pin records agree with the files on disk. Returns the counts.
+
+    * A base pin whose file is absent is dropped: the base layer is no longer
+      fetched, so a registered-but-never-fetched tile must not count as there.
+    * Every job claim's recorded size is set to the file's real size, or 0 when
+      the file is absent (the tile is still to fetch; the job fetches it on its
+      next run). Duplicate claim lines collapse to one in the rewrite.
+
+    Runs at runner start (once per runner process) and when a download
+    finishes -- never per poll. One stat() per pinned key.
+    """
+    result = {"base_dropped": 0, "claims_absent": 0}
+    if not os.access(hips_root(), os.W_OK):
+        return result
+    with pins_lock():
+        base = base_pinned_rel_paths()
+        present = {key for key in base if pinned_key_size(key) is not None}
+        if len(present) != len(base):
+            _write_json(_base_pins_path(), {"paths": sorted(present)})
+            result["base_dropped"] = len(base) - len(present)
+        try:
+            names = os.listdir(jobs_dir())
+        except FileNotFoundError:
+            names = []
+        for name in names:
+            if not name.endswith(JOB_PINS_SUFFIX) or name.startswith("."):
+                continue
+            path = os.path.join(jobs_dir(), name)
+            sizes = _read_claim_sizes(path)
+            changed = False
+            for key, recorded in sizes.items():
+                actual = pinned_key_size(key)
+                if actual is None:
+                    result["claims_absent"] += 1
+                    actual = 0
+                if int(recorded or 0) != actual:
+                    sizes[key] = actual
+                    changed = True
+            try:
+                with open(path, "r", encoding="utf-8") as handle:
+                    lines = sum(1 for line in handle if line.strip())
+            except OSError:
+                lines = len(sizes)
+            if changed or lines != len(sizes):
+                try:
+                    _rewrite_claims_locked(path, sizes)
+                except OSError:
+                    pass
+    return result
+
+
 def measured_pinned_bytes() -> int:
     """Sum the pinned tiles' on-disk sizes, straight from the pin set.
 
@@ -566,6 +852,210 @@ def refresh_pinned_bytes() -> int:
     total = measured_pinned_bytes()
     _write_int(_pinned_path(), total)
     return total
+
+
+# ---------------------------------------------------------------------------
+# Measured tile sizes: per order, for the download estimate
+# ---------------------------------------------------------------------------
+
+_SIZE_CACHE = {}
+_SIZE_CACHE_LOCK = threading.Lock()
+
+
+def measured_avg_tile_bytes(slug: str):
+    """(mean on-disk tile size, measured?) for a survey; fallback 67 KiB.
+
+    The fallback is the DSS2 average: a survey with nothing on disk yet still
+    needs a number to judge a download against the budget.
+    """
+    total = 0
+    count = 0
+    root = survey_dir(slug)
+    for dirpath, _dirs, names in os.walk(root):
+        if dirpath == root:
+            continue  # metadata lives at the survey root, tiles under Norder*
+        for name in names:
+            if name.startswith(".") or name in METADATA_FILES or name.startswith("Allsky."):
+                continue
+            try:
+                total += os.path.getsize(os.path.join(dirpath, name))
+                count += 1
+            except OSError:
+                continue
+    if count:
+        return total // count, True
+    return FALLBACK_TILE_BYTES, False
+
+
+# A per-order mean is trusted only from this many tiles of that order on disk;
+# below it the estimate uses FALLBACK_TILE_BYTES for the order.
+MIN_SIZE_SAMPLE = 50
+
+
+def avg_tile_bytes_by_order(slug: str):
+    """{order: mean bytes} for the orders with >= MIN_SIZE_SAMPLE tiles on disk.
+
+    Orders with a smaller sample are left out, so the caller falls back to
+    ``FALLBACK_TILE_BYTES`` for them. ``None`` when no order qualifies.
+
+    Cached per survey; tile sizes are immutable once fetched, so the cache is
+    dropped (``invalidate_size_cache``) only when a download finishes or a
+    Remove/trim deletes tiles -- not per browsed tile.
+    """
+    with _SIZE_CACHE_LOCK:
+        if slug in _SIZE_CACHE:
+            return _SIZE_CACHE[slug]
+    by_order = {}
+    root = survey_dir(slug)
+    for dirpath, _dirs, names in os.walk(root):
+        if dirpath == root:
+            continue
+        # Tiles live in <root>/Norder<o>/Dir<d>/: the order is the first
+        # component below the survey root, not the tile's own directory.
+        order = _order_of_dir(os.path.relpath(dirpath, root).split(os.sep)[0])
+        if order is None:
+            continue
+        for name in names:
+            if name.startswith(".") or name in METADATA_FILES or name.startswith("Allsky."):
+                continue
+            try:
+                size = os.path.getsize(os.path.join(dirpath, name))
+            except OSError:
+                continue
+            bucket = by_order.setdefault(order, [0, 0])
+            bucket[0] += size
+            bucket[1] += 1
+    result = {o: total // n for o, (total, n) in by_order.items()
+              if n >= MIN_SIZE_SAMPLE} or None
+    with _SIZE_CACHE_LOCK:
+        _SIZE_CACHE[slug] = result
+    return result
+
+
+def _order_of_dir(name: str):
+    """The order number in a ``Norder<o>`` path component, or None."""
+    base = os.path.basename(name)
+    if not base.startswith("Norder"):
+        return None
+    try:
+        return int(base[len("Norder"):])
+    except ValueError:
+        return None
+
+
+def invalidate_size_cache(slug: str = None) -> None:
+    """Drop the measured-size cache (after a download writes new tiles)."""
+    with _SIZE_CACHE_LOCK:
+        if slug is None:
+            _SIZE_CACHE.clear()
+        else:
+            _SIZE_CACHE.pop(slug, None)
+
+
+# ---------------------------------------------------------------------------
+# The location selection: <store>/.downloads.json
+#
+# One entry per ticked location: the user it belongs to and the location's
+# canonical record_uid. The sky is shared instance-wide, so the selection is
+# instance-level too -- but each entry carries its user, so a multi-user
+# instance can tell whose tick is whose. No schema change: the file is the
+# whole state.
+# ---------------------------------------------------------------------------
+
+DOWNLOADS_FILENAME = ".downloads.json"
+_DOWNLOADS_LOCK = threading.Lock()
+
+
+def _downloads_path() -> str:
+    return os.path.join(hips_root(), DOWNLOADS_FILENAME)
+
+
+def read_selection() -> list:
+    """The ticked locations: ``[{"user": str, "record_uid": str}, ...]``."""
+    data = _read_json(_downloads_path(), None)
+    if not isinstance(data, dict):
+        return []
+    entries = data.get("locations")
+    if not isinstance(entries, list):
+        return []
+    out = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        user = str(entry.get("user") or "").strip()
+        uid = str(entry.get("record_uid") or "").strip()
+        if user and uid:
+            out.append({"user": user, "record_uid": uid})
+    return out
+
+
+def write_selection(entries) -> list:
+    """Replace the selection with ``entries``; returns what was written."""
+    cleaned = []
+    seen = set()
+    for entry in entries or []:
+        if not isinstance(entry, dict):
+            continue
+        user = str(entry.get("user") or "").strip()
+        uid = str(entry.get("record_uid") or "").strip()
+        if not user or not uid:
+            continue
+        key = (user, uid)
+        if key in seen:
+            continue
+        seen.add(key)
+        cleaned.append({"user": user, "record_uid": uid})
+    with _DOWNLOADS_LOCK:
+        os.makedirs(hips_root(), exist_ok=True)
+        write_json_atomic(_downloads_path(), {"locations": cleaned})
+    return cleaned
+
+
+# ---------------------------------------------------------------------------
+# Deleting a download's tiles
+# ---------------------------------------------------------------------------
+
+def delete_tiles(rel_paths) -> dict:
+    """Delete ``rel_paths`` unless another pin still claims them.
+
+    The caller must already hold the eviction lock (``with_evict_lock``) if it
+    wants the cross-process lock order honoured; the pin lock is taken here. A
+    path still claimed by base pins or another download's claims file is kept --
+    that is what makes "Remove" exact when two downloads share tiles.
+
+    Returns ``{"deleted": n, "kept": n, "bytes": n}``.
+    """
+    wanted = {str(p) for p in rel_paths}
+    if not wanted:
+        return {"deleted": 0, "kept": 0, "bytes": 0}
+    with pins_lock():
+        still_claimed = base_pinned_rel_paths() | all_job_pins()
+        deleted = 0
+        kept = 0
+        freed = 0
+        for key in wanted:
+            if key in still_claimed:
+                kept += 1
+                continue
+            slug, _, rel = key.partition("/")
+            if not rel:
+                continue
+            path = os.path.join(hips_root(), slug, *rel.split("/"))
+            try:
+                size = os.path.getsize(path)
+            except OSError:
+                size = 0
+            try:
+                os.remove(path)
+            except FileNotFoundError:
+                continue
+            except OSError:
+                kept += 1
+                continue
+            deleted += 1
+            freed += size
+        _reconcile_totals_locked()
+    return {"deleted": deleted, "kept": kept, "bytes": freed}
 
 
 # ---------------------------------------------------------------------------
@@ -719,26 +1209,22 @@ def budget_bytes() -> int:
 
 
 def status() -> dict:
-    """A snapshot for the Configuration page and the jobs.
+    """A snapshot for the Configuration page and the jobs. O(1).
 
-    ``pinned`` is *measured* from the pin set rather than read from the
-    ``.pinned`` sidecar: the sidecar is only reconciled by a pass, so while one
-    is pending it can read high or low, and the over-limit warning the page shows
-    is derived from this number. ``browsed`` stays the O(1) sidecar read -- a
-    stale-high browsed total cannot make the warning wrong (the warning is
-    pinned-only), and walking the whole tree on page render is not worth it.
+    ``pinned`` is read from the ``.pinned`` sidecar, which is maintained on every
+    claim, adopt, delete, checkpoint and job finish (``refresh_pinned_bytes`` and
+    the accounting helpers), and re-derived from disk at startup and at job
+    finish. Measuring every pin on each poll would be ~621 ms at 250k pins; the
+    cached figure is the same number, just not recomputed per request.
 
-    ``evicting`` is true while a pass holds the lock, i.e. while ``browsed`` (and
-    the totals a pass would rewrite) are still due to change; the page keeps
-    polling until it goes false, so the warning is always re-evaluated from the
-    settled numbers.
+    ``browsed`` stays the O(1) sidecar read. ``evicting`` is true while a pass
+    holds the lock; the page keeps polling until it goes false.
 
-    The caller must not hold the pin lock: ``measured_pinned_bytes`` reads the
-    pin set, which a claim changes under the lock.
+    The caller must not hold the pin lock.
     """
     mb = limit_mb()
     browsed = total_bytes()
-    pinned = measured_pinned_bytes()
+    pinned = pinned_bytes()
     return {
         "limit_mb": mb,
         "browsed": browsed,

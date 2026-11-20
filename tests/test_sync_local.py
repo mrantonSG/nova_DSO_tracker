@@ -339,6 +339,9 @@ def test_every_file_write_is_atomic_or_outside_uploads_and_logs():
         "_save_conflicts", "import_yaml_for_user", "_write_cache", "append_purge_note",
         "_backup_with_rotation", "move_replaced_files", "save_job", "_hardlink_tree",
         "save_push_session", "heatmap_background_worker",
+        # Offline-sky claims file (<store>/jobs/<id>.pins): one appended line per
+        # claimed tile, under the pin lock; the store is never uploads/ or logs/.
+        "claim_for_job",
     }
     violations = [
         f"{f}:{line} [{prim}] in {fn}"

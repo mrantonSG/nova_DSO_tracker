@@ -516,7 +516,12 @@ def _is_test_environment() -> bool:
             return True
     except RuntimeError:
         pass  # No app context
-    return os.environ.get('PYTEST_CURRENT_TEST') is not None
+    if os.environ.get('PYTEST_CURRENT_TEST') is not None:
+        return True
+    # The module-level startup block runs at import time, before any app
+    # context exists and before pytest sets PYTEST_CURRENT_TEST. "pytest is
+    # imported" is the only signal available then.
+    return "pytest" in sys.modules
 
 
 def _seed_new_user_from_yaml(db_session, user_to_seed: 'DbUser'):
@@ -4411,6 +4416,33 @@ def _retire_offline_saves_once_per_process():
         traceback.print_exc()
 
 
+def _kick_offline_sky_runner():
+    """Start the offline-sky job runner in this process, once per install.
+
+    ``kick`` takes the instance-wide runner lock; a process that cannot just
+    returns. Never raises: a store that cannot be written must not stop the
+    app from starting. Skipped under TESTING only: the download runner is not a
+    background *worker* (it never fetches without a user's click), so it must
+    start even when ``NOVA_DISABLE_BACKGROUND_TASKS`` is set -- otherwise a
+    download queued before a restart would never resume.
+    """
+    # _is_test_environment, not app.config["TESTING"]: this runs at import
+    # time, where TESTING is not set yet. A real runner thread started during
+    # pytest would race the tests over the same jobs directory.
+    if _is_test_environment():
+        return
+    try:
+        from nova.offline_sky_jobs import kick
+        kick()
+    except Exception as exc:
+        # A queued download would never resume without a runner, so this must
+        # be visible in the log rather than silently swallowed. Startup still
+        # goes on: the app must boot even when the store misbehaves.
+        print(f"[STARTUP] WARNING: offline-sky job runner did not start: "
+              f"{type(exc).__name__}: {exc}")
+        traceback.print_exc()
+
+
 def _check_offline_sky_dir():
     """Create the tile store directory and note whether it can be written.
 
@@ -4485,6 +4517,14 @@ if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
     # their own lock, with their tiles left on disk.
     _check_offline_sky_dir()
     _retire_offline_saves_once_per_process()
+
+    # --- OFFLINE SKY: start the one job runner ---
+    # The runner thread is what executes queued downloads. It is started here,
+    # after the store directory exists, so a download queued by any process has
+    # a runner. ``kick`` takes the instance-wide lock; only one process wins.
+    # It also drops legacy (non-download) jobs first, so nothing from an older
+    # version fetches without a user's click. Never at import: tests stub it.
+    _kick_offline_sky_runner()
 
     # --- BACKGROUND THREADS (Single-Worker Locking) ---
     # We use a non-blocking file lock to ensure only ONE gunicorn worker
