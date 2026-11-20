@@ -8599,28 +8599,6 @@ msgstr ""
 "Datensatzes."
 
 
-#: templates/base.html
-msgid "{survey} is not responding — keeping {current}."
-msgstr "{survey} antwortet nicht — {current} bleibt erhalten."
-
-
-#: templates/base.html
-msgid "{survey} isn't stored offline — keeping {current}."
-msgstr "{survey} ist nicht offline gespeichert — {current} bleibt erhalten."
-
-#: templates/base.html
-msgid "{survey} isn't stored offline — showing {shown}."
-msgstr "{survey} ist nicht offline gespeichert — {shown} wird angezeigt."
-
-#: templates/base.html
-msgid "{survey} isn't stored offline — showing an empty sky."
-msgstr "{survey} ist nicht offline gespeichert — der Himmel bleibt leer."
-
-#: templates/base.html
-msgid "{survey} is not responding — showing the stored copy."
-msgstr "{survey} antwortet nicht — die gespeicherte Kopie wird angezeigt."
-
-
 #: templates/config_form.html
 msgid "Offline sky"
 msgstr "Offline-Himmel"

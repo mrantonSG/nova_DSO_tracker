@@ -8610,28 +8610,6 @@ msgstr ""
 " partout."
 
 
-#: templates/base.html
-msgid "{survey} is not responding — keeping {current}."
-msgstr "{survey} ne répond pas — conservation de {current}."
-
-
-#: templates/base.html
-msgid "{survey} isn't stored offline — keeping {current}."
-msgstr "{survey} n'est pas enregistré hors ligne — conservation de {current}."
-
-#: templates/base.html
-msgid "{survey} isn't stored offline — showing {shown}."
-msgstr "{survey} n'est pas enregistré hors ligne — affichage de {shown}."
-
-#: templates/base.html
-msgid "{survey} isn't stored offline — showing an empty sky."
-msgstr "{survey} n'est pas enregistré hors ligne — affichage d'un ciel vide."
-
-#: templates/base.html
-msgid "{survey} is not responding — showing the stored copy."
-msgstr "{survey} ne répond pas — affichage de la copie enregistrée."
-
-
 #: templates/config_form.html
 msgid "Offline sky"
 msgstr "Ciel hors ligne"

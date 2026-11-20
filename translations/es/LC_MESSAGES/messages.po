@@ -8559,28 +8559,6 @@ msgstr ""
 "sincronización? Pasará a ser el archivo del registro en todas partes."
 
 
-#: templates/base.html
-msgid "{survey} is not responding — keeping {current}."
-msgstr "{survey} no responde — se mantiene {current}."
-
-
-#: templates/base.html
-msgid "{survey} isn't stored offline — keeping {current}."
-msgstr "{survey} no está guardado sin conexión — se mantiene {current}."
-
-#: templates/base.html
-msgid "{survey} isn't stored offline — showing {shown}."
-msgstr "{survey} no está guardado sin conexión — se muestra {shown}."
-
-#: templates/base.html
-msgid "{survey} isn't stored offline — showing an empty sky."
-msgstr "{survey} no está guardado sin conexión — se muestra un cielo vacío."
-
-#: templates/base.html
-msgid "{survey} is not responding — showing the stored copy."
-msgstr "{survey} no responde — se muestra la copia guardada."
-
-
 #: templates/config_form.html
 msgid "Offline sky"
 msgstr "Cielo sin conexión"

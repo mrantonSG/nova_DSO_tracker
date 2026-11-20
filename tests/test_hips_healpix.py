@@ -12,6 +12,7 @@ independent ground truth for the HEALPix projection this port reproduces:
 """
 
 import math
+import random
 
 import pytest
 
@@ -85,3 +86,39 @@ def test_cone_pixels_monotonic_count():
     counts = [len(res[o]) for o in (3, 4, 5, 6)]
     assert counts == sorted(counts)  # more tiles at higher orders
     assert counts[-1] > counts[0]
+
+
+# --- ang2pix / radec_to_nest (the tile that contains a point) ---
+
+def test_ang2pix_nest_inverts_pix2ang_nest():
+    rng = random.Random(7)
+    for order in range(0, 12):
+        nside = 1 << order
+        for _ in range(400):
+            pix = rng.randrange(12 * nside * nside)
+            theta, phi = hp.pix2ang_nest(nside, pix)
+            assert hp.ang2pix_nest(nside, theta, phi) == pix
+
+
+def test_radec_to_nest_returns_the_tile_that_contains_the_point():
+    rng = random.Random(11)
+    for order in (0, 3, 6, 9):
+        nside = 1 << order
+        for _ in range(300):
+            ra = rng.uniform(0, 360)
+            dec = math.degrees(math.asin(rng.uniform(-1, 1)))
+            pix = hp.radec_to_nest(order, ra, dec)
+            centre = hp._pix_centre_vec(nside, pix)
+            assert hp._angle(centre, hp._centre_vec(ra, dec)) <= hp.max_pixrad(nside) + 1e-12
+            # and it is one of the cone's own pixels for a point-sized cone
+            assert pix in hp.cone_pixels(ra, dec, 0.0, order, order)[order]
+
+
+def test_radec_to_nest_face_layout():
+    # Order 0 is the 12 base faces: 0..3 round the north pole, 4..7 on the
+    # equator (face 4 centred on ra=0), 8..11 round the south pole.
+    assert hp.radec_to_nest(0, 45, 89.99) == 0
+    assert hp.radec_to_nest(0, 135, 89.99) == 1
+    assert hp.radec_to_nest(0, 0, 0) == 4
+    assert hp.radec_to_nest(0, 90, 0) == 5
+    assert hp.radec_to_nest(0, 45, -89.99) == 8

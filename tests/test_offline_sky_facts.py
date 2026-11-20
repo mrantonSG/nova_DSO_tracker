@@ -276,7 +276,7 @@ def test_allsky_route_fetches_and_caches_norder3(client, monkeypatch):
     assert resp.status_code == 200
     assert resp.mimetype == "image/jpeg"
     assert resp.get_data() == b"ALLSKY"
-    assert calls == ["https://alasky.cds.unistra.fr/DSS/DSSColor/Norder3/Allsky.jpg"]
+    assert calls == ["https://skies.esac.esa.int/DSSColor/Norder3/Allsky.jpg"]
     assert read_file(DSS, "Norder3/Allsky.jpg") == b"ALLSKY"
 
     _no_upstream(monkeypatch)

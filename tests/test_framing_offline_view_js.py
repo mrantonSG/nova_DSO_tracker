@@ -85,19 +85,16 @@ const api = vm.runInContext(`
     let displayedBaseSurvey = 'P/DSS2/color';
     function applyOfflineViewToLayers() { __log('applyLayers'); }
     function updateScanButtonState() { __log('updateScanButtonState'); }
-    function resetSurveyReachability() { __log('resetProbes'); }
     function showSurveyNotice() { __log('notice'); }
     function hideSurveyNotice() { __log('hideNotice'); }
     function surveyOptionLabel(v) { return v; }
     function onSurveyLayerShown() {}
-    function emptyLayerOptions() { return {}; }
     ${fn(src, 'setOfflineView')}
     ${fn(src, 'createSurveyLayer')}
     // A layer's failure, through the errorCallback Aladin calls.
     function failLayer(msg) {
         const layer = createSurveyLayer('base', 'P/GALEXGR6/AIS/color', 'http://nova.test/hips/galex');
         layer.opts.errorCallback(new Error(msg));
-        return layer.__nova.settled;
     }
     ({ setOfflineView, failLayer,
        state: () => ({ on: offlineViewOn, userSetting: offlineViewUserSetting }) })
@@ -106,7 +103,7 @@ const api = vm.runInContext(`
 const out = {};
 (async () => {
 // A layer error with Offline view off and no user setting: nothing may change.
-out.errorSettled = await api.failLayer('survey layer failed');
+api.failLayer('survey layer failed');
 out.afterError = { state: api.state(), checked: toggle.checked, log: log.slice() };
 
 // The user turned it off explicitly; a layer error must not put it back on.
@@ -114,7 +111,7 @@ log.length = 0;
 api.setOfflineView(false, true);
 out.afterUserOff = { state: api.state(), checked: toggle.checked, log: log.slice() };
 log.length = 0;
-await api.failLayer('survey layer failed again');
+api.failLayer('survey layer failed again');
 out.afterErrorPostUserOff = { state: api.state(), checked: toggle.checked, log: log.slice() };
 
 // The real switch still works when connectivity actually changes.
@@ -141,11 +138,8 @@ def out(tmp_path_factory):
 
 
 def test_a_layer_error_leaves_offline_view_off(out):
-    """One survey failing is not a connectivity fact: the checkbox stays clear and
-    no user setting is invented. The failure settles the layer as not shown; the
-    caller that asked for it (setSurvey / the blend) reports it, since only it knows
-    whether that choice still stands."""
-    assert out["errorSettled"] is False
+    """One survey failing is not a connectivity fact: the checkbox stays clear, no
+    user setting is invented, and nothing is reported."""
     assert out["afterError"] == {
         "state": {"on": False, "userSetting": None},
         "checked": False,
@@ -160,7 +154,7 @@ def test_a_layer_error_does_not_override_the_users_own_setting(out):
     assert out["afterUserOff"] == {
         "state": {"on": False, "userSetting": False},
         "checked": False,
-        "log": ["hideNotice", "resetProbes", "applyLayers", "updateScanButtonState"],
+        "log": ["applyLayers", "updateScanButtonState"],
     }
     assert out["afterErrorPostUserOff"] == {
         "state": {"on": False, "userSetting": False},
@@ -177,7 +171,7 @@ def test_set_offline_view_still_switches_when_connectivity_changes(out):
     assert out["afterConnectivityOff"] == {
         "state": {"on": True, "userSetting": False},
         "checked": True,
-        "log": ["hideNotice", "resetProbes", "applyLayers", "updateScanButtonState"],
+        "log": ["applyLayers", "updateScanButtonState"],
     }
 
 
@@ -188,238 +182,3 @@ def test_a_layer_error_callback_never_calls_set_offline_view():
     body = body[:body.index("\n    }") + len("\n    }")]
     assert "errorCallback" in body
     assert "setOfflineView" not in body
-
-
-# ---------------------------------------------------------------------------
-# The notice clears itself when the situation it describes is over.
-# ---------------------------------------------------------------------------
-
-_NOTICE_DRIVER = r"""
-'use strict';
-const fs = require('fs');
-const vm = require('vm');
-const [chartFile, outFile] = process.argv.slice(2);
-const src = fs.readFileSync(chartFile, 'utf8');
-
-function cut(source, start) {
-    let i = source.indexOf('{', source.indexOf(')', start)), depth = 0;
-    const stack = [];
-    for (; i < source.length; i++) {
-        const ch = source[i], nx = source[i + 1];
-        if (stack[stack.length - 1] === 'tpl') {
-            if (ch === '\\') { i++; continue; }
-            if (ch === '`') { stack.pop(); continue; }
-            if (ch === '$' && nx === '{') { stack.pop(); stack.push(depth); depth++; i++; }
-            continue;
-        }
-        if (ch === '/' && nx === '/') { i = source.indexOf('\n', i); continue; }
-        if (ch === '/' && nx === '*') { i = source.indexOf('*/', i) + 1; continue; }
-        if (ch === '"' || ch === "'") { for (i++; source[i] !== ch; i++) if (source[i] === '\\') i++; continue; }
-        if (ch === '`') { stack.push('tpl'); continue; }
-        if (ch === '{') depth++;
-        if (ch === '}') {
-            depth--;
-            if (stack.length && stack[stack.length - 1] === depth) { stack.pop(); stack.push('tpl'); continue; }
-            if (depth === 0) return source.slice(start, i + 1);
-        }
-    }
-    throw new Error('unterminated declaration at ' + start);
-}
-function fn(source, name) {
-    const hits = [...source.matchAll(new RegExp('(?:async\\s+)?function\\s+' + name + '\\s*\\(', 'g'))];
-    if (hits.length !== 1) throw new Error(`${name}: ${hits.length} declarations`);
-    return cut(source, hits[0].index);
-}
-
-// A stand-in for #survey-notice inside #aladin-lite-div, enough for show/hide.
-const host = { id: 'aladin-lite-div', children: [], appendChild(c) { this.children.push(c); } };
-let noticeEl = null;
-function makeEl(tag) {
-    return {
-        tagName: tag, children: [], hidden: true, className: '', id: '',
-        _text: '', _listeners: {},
-        setAttribute(k, v) { this[k] = v; },
-        append(...kids) { kids.forEach(k => this.children.push(k)); },
-        addEventListener(ev, f) { (this._listeners[ev] = this._listeners[ev] || []).push(f); },
-        get textContent() { return this._text; },
-        set textContent(v) { this._text = v; },
-        querySelector(sel) {
-            if (sel === '.survey-notice-text') return this.children.find(c => c.className === 'survey-notice-text') || null;
-            return null;
-        },
-    };
-}
-const toggle = { id: 'offline-view-toggle', checked: false };
-const surveySelect = { id: 'survey-select', value: 'P/GALEXGR6/AIS/color' };
-const els = { 'aladin-lite-div': host, 'offline-view-toggle': toggle, 'survey-select': surveySelect };
-
-const ctx = {
-    console: { warn: () => {}, log: () => {}, error: () => {} },
-    // The real setSurvey pre-flights through probeHips: every survey answers here,
-    // so the swap proceeds and the notice-clearing tail is what the test exercises.
-    AbortController: class { constructor() { this.signal = {}; } abort() {} },
-    setTimeout: () => 0, clearTimeout: () => {},
-    fetch: () => Promise.resolve({ ok: true, status: 200 }),
-    document: {
-        getElementById: id => {
-            if (id === 'survey-notice') return noticeEl;
-            return els[id] || null;
-        },
-        createElement: tag => { const e = makeEl(tag); if (tag === 'div') noticeEl = e; return e; },
-        createTextNode: t => ({ textContent: t }),
-    },
-    window: {},
-};
-ctx.window.t = (k, params) => {
-    const s = { survey_not_responding: '{survey} is not responding — keeping {current}.',
-                survey_not_stored_offline: "{survey} isn't stored offline — keeping {current}.",
-                survey_server_unreachable: 'Sky survey server unreachable. Showing a fallback survey where available.',
-                close: 'Close' }[k];
-    if (s === undefined) return k;
-    return params ? Object.entries(params).reduce(
-        (a, [p, v]) => a.replace(new RegExp('\\{' + p + '\\}', 'g'), v), s) : s;
-};
-ctx.window.NOVA_OFFLINE_SKY = true;
-ctx.window.NOVA_OFFLINE_SKY_UI = true;
-vm.createContext(ctx);
-
-const api = vm.runInContext(`
-    const CDS_PROBE_TIMEOUT_MS = 4000;
-    let offlineViewOn = true;          // start in Offline view, as the scenario does
-    let offlineViewUserSetting = null;
-    let surveyNoticeDismissed = false;
-    const surveyNotices = new Map();
-    // Aladin confirms the layer it shows through its successCallback.
-    let aladin = {
-        createImageSurvey(id, name, url, frame, maxOrder, opts) { return { id, name, opts: opts || {} }; },
-        setBaseImageLayer(layer) { Promise.resolve().then(() => layer.opts.successCallback && layer.opts.successCallback(layer)); },
-        getBaseImageLayer() { return {}; },
-    };
-    let displayedBaseSurvey = 'P/DSS2/color';
-    let displayedBlendSurvey = null;
-    let displayedBaseUrl = 'http://nova.test/hips/offline/P/DSS2/color';
-    let displayedBaseEmpty = false;
-    let baseRequest = 0, blendRequest = 0, baseWanted = 'P/DSS2/color';
-    let __blendSurveyId = null, __blendLayerUrl = null;
-    let baseSurvey = null, blendFailed = null;
-    const surveyReachability = new Map();
-    function surveyOptionLabel(v) {
-        return ({ 'P/DSS2/color': 'DSS2 (color)', 'P/GALEXGR6/AIS/color': 'GALEX (color)' })[v] || null;
-    }
-    function offlineBaseId() { return __selects['survey-select'].value; }
-    function applyOfflineViewToLayers() {}
-    function updateScanButtonState() {}
-    function updateImageAdjustments() {}
-    function applyImageAdjustments() {}
-    function updateSurveyCredit() {}
-    function resolveHipsId(v) { return v.startsWith('http') ? v : 'http://nova.test/hips/' + v; }
-    function chooseDisplayedBase(v) { return { survey: v, notice: false }; }
-    function snapSurveySelect() {}
-    function resetSurveyReachability() {}
-    async function novaAlert() {}
-    ${fn(src, 'probeHips')}
-    ${fn(src, 'isOfflineRootUrl')}
-    ${fn(src, 'isProxyRootUrl')}
-    ${fn(src, 'offlineCoverageQuery')}
-    ${fn(src, 'storedCopyUrl')}
-    ${fn(src, 'storedCopyFor')}
-    ${fn(src, 'storedCopyMessage')}
-    ${fn(src, 'emptyLayerOptions')}
-    ${fn(src, 'createSurveyLayer')}
-    ${fn(src, 'onSurveyLayerShown')}
-    ${fn(src, 'keepBaseAfterFailure')}
-    ${fn(src, 'renderSurveyNotice')}
-    ${fn(src, 'surveyNoticeLabel')}
-    ${fn(src, 'surveyFailureMessage')}
-    ${fn(src, 'surveyProbeUrl')}
-    ${fn(src, 'surveyReachable')}
-    ${fn(src, 'showSurveyNotice')}
-    ${fn(src, 'hideSurveyNotice')}
-    ${fn(src, 'setOfflineView')}
-    ${fn(src, 'setSurvey')}
-    ({ showSurveyNotice, hideSurveyNotice, setOfflineView, setSurvey,
-       noticeText: () => {
-           const el = document.getElementById('survey-notice');
-           if (!el || el.hidden) return null;
-           const t = el.querySelector('.survey-notice-text');
-           return t ? t.textContent : null;
-       },
-       setSurveyValue: v => { __selects['survey-select'].value = v; } })
-`, Object.assign(ctx, { __selects: els }));
-
-const out = {};
-const snap = () => api.noticeText();
-
-// 1. A failure in Offline view shows the offline wording.
-api.showSurveyNotice();                       // the notice's own default, decided by mode
-out.offlineDefault = snap();
-
-// 2. Unticking Offline view clears it: the situation it described is over.
-api.setOfflineView(false, true);
-out.afterUntick = snap();
-
-// 3. A survey then loads successfully: the real setSurvey, whose tail clears the
-//    notice once the new layer is on.
-api.setSurveyValue('P/DSS2/color');
-(async () => {
-    await api.setSurvey('P/DSS2/color');
-    out.afterLoad = snap();
-
-    // 4. And a later failure outside Offline view uses the server wording.
-    api.showSurveyNotice();
-    out.afterLaterFailure = snap();
-
-    fs.writeFileSync(outFile, JSON.stringify(out));
-})().catch(e => { console.error(e && e.stack || e); process.exit(1); });
-"""
-
-
-@pytest.fixture(scope="module")
-def notice_out(tmp_path_factory):
-    if NODE is None:
-        pytest.skip("node is not installed")
-    tmp = tmp_path_factory.mktemp("framing_notice")
-    driver, result = tmp / "notice.cjs", tmp / "out.json"
-    driver.write_text(_NOTICE_DRIVER, encoding="utf-8")
-    proc = subprocess.run([NODE, str(driver), str(CHART_JS), str(result)],
-                          capture_output=True, text=True, timeout=60)
-    assert proc.returncode == 0, proc.stderr
-    return json.loads(result.read_text(encoding="utf-8"))
-
-
-def test_offline_view_default_notice_is_the_not_stored_wording(notice_out):
-    """The notice's own default, with no message passed, must be the offline wording
-    while Offline view is on -- never the server text."""
-    assert notice_out["offlineDefault"] == \
-        "GALEX (color) isn't stored offline — keeping DSS2 (color)."
-    assert "unreachable" not in notice_out["offlineDefault"]
-
-
-def test_the_notice_clears_when_offline_view_is_unticked(notice_out):
-    """Scenario: notice shown in Offline view -> untick -> gone."""
-    assert notice_out["afterUntick"] is None
-
-
-def test_the_notice_stays_gone_after_a_survey_loads(notice_out):
-    """...and the survey loading successfully leaves it gone."""
-    assert notice_out["afterLoad"] is None
-
-
-def test_a_later_failure_outside_offline_view_uses_the_server_wording(notice_out):
-    """The clearing must not disable the notice: a failure after leaving Offline view
-    still reports, in the wording that fits that mode."""
-    assert notice_out["afterLaterFailure"] == \
-        "Sky survey server unreachable. Showing a fallback survey where available."
-
-
-def test_a_new_base_choice_clears_the_base_notice_in_the_real_code():
-    """Source check: setSurvey clears the base notice as soon as a new choice is
-    made, before its pre-flight -- so a survey that loads leaves no stale failure
-    notice behind, and one that fails replaces it with its own. Only the base
-    message is cleared: a blend message that still holds stays."""
-    src = CHART_JS.read_text(encoding="utf-8")
-    body = src[src.index("async function setSurvey("):]
-    body = body[:body.index("\n    }\n")]
-    assert "hideSurveyNotice('base');" in body, "setSurvey does not clear the base notice"
-    assert body.index("hideSurveyNotice('base');") < body.index("await surveyReachable("), \
-        "the clear must come before the pre-flight"

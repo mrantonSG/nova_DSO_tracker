@@ -356,8 +356,8 @@
                 break;
             case 'change-survey':
                 console.log('[GRAPH_VIEW] change-survey:', actionBtn.value);
-                // setSurvey reports its own failures (it names the survey in the
-                // notice) and never rejects, so there is nothing to catch here.
+                // setSurvey always builds the layer and never rejects, so there
+                // is nothing to catch here.
                 if (typeof window.setSurvey === 'function') {
                     window.setSurvey(actionBtn.value);
                 }

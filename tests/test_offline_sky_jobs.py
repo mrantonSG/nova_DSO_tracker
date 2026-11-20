@@ -239,12 +239,12 @@ def test_base_missing_needs_404_from_every_mirror(upstream, runners):
     store.store_file(DSS, "Moc.fits", _moc_bytes([(1, 5)]), count=False)
     facts.clear_memo()
     gone = jobs.base_rel_paths(DSS)[5]
-    primary = "https://alasky.cds.unistra.fr/DSS/DSSColor/"
+    cds = "https://alasky.cds.unistra.fr/DSS/DSSColor/"
     pauses = []
 
     def script(url):
         if url.endswith(gone):
-            if url.startswith(primary) or pauses:          # after one pause: all 404
+            if url.startswith(cds) or pauses:              # after one pause: all 404
                 return bp.UPSTREAM_MISSING, None
             return bp.UPSTREAM_UNAVAILABLE, None
         return None
@@ -657,26 +657,39 @@ def test_removed_surveys_are_gone_from_the_whitelist():
     assert "2mass-h" not in SURVEY_BY_SLUG
 
 
-def test_cds_stays_first_for_every_survey_it_hosts():
-    """CDS is the preferred source: it leads each survey's upstream list, so a
-    healthy CDS is used and a recovered one is picked up again."""
+def test_cds_is_in_every_list_after_the_mirrors():
+    """The mirrors that serve today are tried first; CDS stays in every list, after
+    them, so a survey whose mirrors fail still reaches it."""
     from nova.offline_sky_sources import SURVEY_SOURCES
     for sid, src in SURVEY_SOURCES.items():
         if sid.startswith("https://"):        # NSNS is its own single host
             continue
-        assert src.upstreams[0].startswith("https://alasky.cds.unistra.fr/"), \
-            f"{sid} should try CDS first, got {src.upstreams[0]}"
+        cds = [i for i, u in enumerate(src.upstreams) if ".cds.unistra.fr/" in u]
+        assert cds, f"{sid} lost CDS: {src.upstreams}"
+        mirrors = [i for i, u in enumerate(src.upstreams) if ".cds.unistra.fr/" not in u]
+        assert all(m < c for m in mirrors for c in cds), \
+            f"{sid}: a mirror is listed after CDS: {src.upstreams}"
 
 
-def test_every_cds_survey_has_a_non_cds_fallback():
-    """Each CDS-hosted survey needs at least one upstream outside CDS, so it still
-    loads while CDS is down (the outage that made every survey but DSS2 fail)."""
+def test_every_cds_survey_but_panstarrs_has_a_non_cds_fallback():
+    """Each CDS-hosted survey keeps at least one upstream outside CDS, so it still
+    loads while CDS is down -- except Pan-STARRS, whose only registered non-CDS
+    copy (MAST) is a different survey (color-i-r-g) and was removed."""
     from nova.offline_sky_sources import SURVEY_SOURCES
     for sid, src in SURVEY_SOURCES.items():
-        if sid.startswith("https://"):
+        if sid.startswith("https://") or sid == "P/PanSTARRS/DR1/color-z-zg-g":
             continue
         outside = [u for u in src.upstreams if ".cds.unistra.fr" not in u]
         assert outside, f"{sid} has no non-CDS upstream: {src.upstreams}"
+
+
+def test_no_upstream_publishes_a_different_survey():
+    """Every upstream of a survey writes into the same folder, so a host serving a
+    different survey under a similar name must never be listed (MAST's GALEXColor
+    is GALEXGR6_7, its PanSTARRS is color-i-r-g)."""
+    from nova.offline_sky_sources import SURVEY_SOURCES
+    for src in SURVEY_SOURCES.values():
+        assert not any("stpubdata" in u for u in src.upstreams), src.upstreams
 
 
 def test_resolve_slug_accepts_ids_and_slugs():

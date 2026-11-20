@@ -8188,28 +8188,6 @@ msgid ""
 msgstr "在下次同步时将这台电脑上的文件副本发送到服务器？它将成为该记录在所有位置的文件。"
 
 
-#: templates/base.html
-msgid "{survey} is not responding — keeping {current}."
-msgstr "{survey} 无响应——保留 {current}。"
-
-
-#: templates/base.html
-msgid "{survey} isn't stored offline — keeping {current}."
-msgstr "{survey} 未离线保存——保留 {current}。"
-
-#: templates/base.html
-msgid "{survey} isn't stored offline — showing {shown}."
-msgstr "{survey} 未离线保存——显示 {shown}。"
-
-#: templates/base.html
-msgid "{survey} isn't stored offline — showing an empty sky."
-msgstr "{survey} 未离线保存——显示空白天空。"
-
-#: templates/base.html
-msgid "{survey} is not responding — showing the stored copy."
-msgstr "{survey} 无响应——显示已保存的副本。"
-
-
 #: templates/config_form.html
 msgid "Offline sky"
 msgstr "离线天空"

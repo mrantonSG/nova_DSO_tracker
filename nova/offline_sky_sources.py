@@ -9,12 +9,17 @@ that ties them together, so the /hips/ proxy and the JS cannot drift.
 ``survey_id`` is the exact value the frontend uses -- a CDS HiPS ID
 (e.g. ``"P/DSS2/color"``) or an NSNS URL (e.g. ``"https://www.simg.de/nebulae3/
 dr0_2/rgb8"``). ``slug`` is the safe path/disk segment for that survey under
-/hips/<slug>. ``upstreams`` is the ordered list of base HiPS URLs to try. CDS
-comes first for every survey it hosts, so a healthy CDS is always preferred and
-is used again as soon as it answers; the mirrors after it are registered copies
-of the same survey (verified to serve the same tiles) and carry the load while
-CDS does not. Tiles from any upstream of a survey are identical, so they all
-land in the same on-disk directory keyed by ``slug``.
+/hips/<slug>. ``upstreams`` is the ordered list of base HiPS URLs to try, in the
+order they serve the survey today (checked 2026-11-20, one tile request each):
+the mirrors that answer come first, CDS (alasky, alaskybis) after them. CDS stays
+in every list, so a survey whose mirrors fail still reaches it, but a CDS outage
+no longer costs every missing tile a wasted CDS request first.
+
+Every upstream must be a copy of *the same* survey (same creator_did, same
+tiles): they all land in the same on-disk directory keyed by ``slug``, so a
+host that publishes a different survey under a similar name must never be
+listed. That is why MAST's GALEXColor (GALEXGR6_7) and PanSTARRS
+(color-i-r-g) are not here.
 
 Mirror hosts, all listed on CDS's own HiPS availability page
 (https://cds.unistra.fr/hips_available_2026*.html):
@@ -22,7 +27,6 @@ Mirror hosts, all listed on CDS's own HiPS availability page
   * alasky / alaskybis -- CDS itself, the primary and its bis mirror
   * skies.esac.esa.int -- ESA ESASky
   * casda.csiro.au -- CSIRO CASDA
-  * stpubdata.s3... -- MAST sky backgrounds (STScI)
   * hips.china-vo.org -- China-VO CDS mirror
 
 ``build_js_map()`` is what templates inject as ``window.NOVA_OFFLINE_SKY_SURVEYS``;
@@ -32,11 +36,12 @@ enough to keep both sides in sync.
 
 from dataclasses import dataclass
 
-# The two CDS hosts every HiPS survey is mirrored on.
+# The two CDS hosts every HiPS survey is mirrored on. Listed after the mirrors
+# that serve today (see the module docstring), never dropped.
 _ALASKY = "https://alasky.cds.unistra.fr"
 _ALASKYBIS = "https://alaskybis.cds.unistra.fr"
 
-# Registered copies of the CDS surveys, used while CDS itself does not answer.
+# Registered copies of the CDS surveys.
 # DSS2 color mirrors (order 9, jpeg; see framingUtils.DSS_MIRRORS).
 _DSS_COLOR_MIRRORS = (
     "https://skies.esac.esa.int/DSSColor",
@@ -45,7 +50,6 @@ _DSS_COLOR_MIRRORS = (
 _SKIES = "https://skies.esac.esa.int"
 _CASDA = "https://casda.csiro.au/hips"
 _CHINAVO = "https://hips.china-vo.org/m"
-_MAST = "https://stpubdata.s3.us-east-1.amazonaws.com/mast/skybackgrounds"
 
 # NSNS host + the six filter sub-paths offered in #survey-select.
 _NSNS = "https://www.simg.de/nebulae3/dr0_2"
@@ -68,43 +72,41 @@ SURVEY_SOURCES = {
     # --- CDS HiPS surveys (HIPS_ID_TO_URL) ---
     "P/DSS2/color": SurveySource(
         slug="dss2-color", label="DSS2 (color)",
-        upstreams=(f"{_ALASKY}/DSS/DSSColor",
-                   f"{_ALASKYBIS}/DSS/DSSColor") + _DSS_COLOR_MIRRORS,
+        upstreams=_DSS_COLOR_MIRRORS + (f"{_ALASKY}/DSS/DSSColor",
+                                        f"{_ALASKYBIS}/DSS/DSSColor"),
         max_order=9),
     "P/DSS2/red": SurveySource(
         slug="dss2-red", label="DSS2 (red)",
-        upstreams=(f"{_ALASKY}/DSS/DSS2Merged",
-                   f"{_CHINAVO}/DSS2Merged"),
+        upstreams=(f"{_CHINAVO}/DSS2Merged",
+                   f"{_ALASKY}/DSS/DSS2Merged"),
         max_order=9),
     "P/allWISE/color": SurveySource(
         slug="allwise-color", label="AllWISE (color)",
-        upstreams=(f"{_ALASKY}/AllWISE/RGB-W4-W2-W1",
-                   f"{_SKIES}/AllWISEColor",
-                   f"{_CHINAVO}/CDS_P_allWISE_color"),
+        upstreams=(f"{_SKIES}/AllWISEColor",
+                   f"{_CHINAVO}/CDS_P_allWISE_color",
+                   f"{_ALASKY}/AllWISE/RGB-W4-W2-W1"),
         max_order=9),
     "P/2MASS/color": SurveySource(
         slug="2mass-color", label="2MASS (color)",
-        upstreams=(f"{_ALASKY}/2MASS/Color",
-                   f"{_SKIES}/2MASSColor",
+        upstreams=(f"{_SKIES}/2MASSColor",
                    f"{_CASDA}/2MASS/Color",
-                   f"{_CHINAVO}/CDS_P_2MASS_color"),
+                   f"{_CHINAVO}/CDS_P_2MASS_color",
+                   f"{_ALASKY}/2MASS/Color"),
         max_order=9),
     "P/GALEXGR6/AIS/color": SurveySource(
         slug="galex-ais-color", label="GALEX (color)",
-        upstreams=(f"{_ALASKY}/GALEX/GR6-03-2014/AIS-Color",
-                   f"{_CHINAVO}/CDS_P_GALEXGR6_AIS_color",
-                   f"{_MAST}/GALEXColor"),
+        upstreams=(f"{_CHINAVO}/CDS_P_GALEXGR6_AIS_color",
+                   f"{_ALASKY}/GALEX/GR6-03-2014/AIS-Color"),
         max_order=9),
     "P/PanSTARRS/DR1/color-z-zg-g": SurveySource(
         slug="panstarrs-dr1-color", label="Pan-STARRS (color)",
-        upstreams=(f"{_ALASKY}/Pan-STARRS/DR1/color-z-zg-g",
-                   f"{_MAST}/PanSTARRS"),
+        upstreams=(f"{_ALASKY}/Pan-STARRS/DR1/color-z-zg-g",),
         max_order=9),
     "P/SDSS9/color": SurveySource(
         slug="sdss9-color", label="SDSS9 (color)",
-        upstreams=(f"{_ALASKY}/SDSS/DR9/color",
-                   f"{_SKIES}/SDSS9Color",
-                   f"{_CHINAVO}/CDS_P_SDSS9_color"),
+        upstreams=(f"{_SKIES}/SDSS9Color",
+                   f"{_CHINAVO}/CDS_P_SDSS9_color",
+                   f"{_ALASKY}/SDSS/DR9/color"),
         max_order=9),
 
     # --- NSNS (SURVEY_FALLBACK.NSNS_* and the #survey-select options) ---

@@ -17,6 +17,7 @@ import time
 import pytest
 import requests
 
+from nova.offline_sky_sources import SURVEY_BY_SLUG
 from nova.offline_sky_store import (
     survey_dir,
     store_file,
@@ -142,16 +143,26 @@ def test_properties_strips_service_urls_and_caches(client, monkeypatch):
     assert "hips_tile_format=jpeg" in body
     assert "hips_service_url" not in body          # stripped
 
-    # First upstream (CDS primary) was asked; the stripped copy is on disk.
-    assert calls[0] == "https://alasky.cds.unistra.fr/DSS/DSSColor/properties"
+    # First upstream (the ESA mirror) was asked; the stripped copy is on disk.
+    assert calls[0] == "https://skies.esac.esa.int/DSSColor/properties"
     on_disk = read_file(DSS_COLOR, "properties")
     assert b"hips_service_url" not in on_disk
 
 
-def test_properties_503_when_upstream_down(client, monkeypatch):
+def test_properties_builtin_when_upstream_down_and_nothing_on_disk(client, monkeypatch):
+    """/properties always answers, so the layer always builds: with no disk copy
+    and no upstream, the built-in copy (never stored, never cached by the browser)."""
     _server_on(monkeypatch)
     monkeypatch.setattr("nova.blueprints.offline_sky._fetch_upstream", lambda base, url: None)
-    assert client.get("/hips/dss2-color/properties").status_code == 503
+    resp = client.get("/hips/dss2-color/properties")
+    assert resp.status_code == 200
+    assert resp.headers["Cache-Control"] == "no-store"
+    body = resp.get_data(as_text=True)
+    assert "hips_tile_format     = jpeg" in body
+    assert "hips_frame           = equatorial" in body
+    assert read_file(DSS_COLOR, "properties") is None
+    nsns = client.get("/hips/nsns-oiii8/properties").get_data(as_text=True)
+    assert "hips_tile_format     = png" in nsns
 
 
 def test_properties_fresh_served_without_upstream(client, monkeypatch):
@@ -270,7 +281,7 @@ def test_tile_upstream_failover_order(client, monkeypatch):
     def fake_fetch(base, url):
         calls.append(url)
         if len(calls) == 1:
-            return None                      # CDS primary fails
+            return None                      # the first mirror fails
         return b"FROM-MIRROR"
 
     monkeypatch.setattr("nova.blueprints.offline_sky._fetch_upstream", fake_fetch)
@@ -278,8 +289,8 @@ def test_tile_upstream_failover_order(client, monkeypatch):
     resp = client.get("/hips/dss2-color/Norder3/Dir0/Npix5.jpg")
     assert resp.status_code == 200
     assert resp.get_data() == b"FROM-MIRROR"
-    assert "alasky.cds.unistra.fr" in calls[0]           # primary first
-    assert "alaskybis.cds.unistra.fr" in calls[1]        # then the bis mirror
+    assert "skies.esac.esa.int" in calls[0]              # ESA first
+    assert "casda.csiro.au" in calls[1]                  # then CASDA
     assert read_file(DSS_COLOR, "Norder3/Dir0/Npix5.jpg") == b"FROM-MIRROR"
 
 
@@ -314,6 +325,46 @@ def test_breaker_skips_failed_base_and_retries_after_expiry(monkeypatch):
     assert calls == [base + "/Norder3/Dir0/Npix2.jpg"]
 
 
+def test_a_connect_timeout_trips_the_breaker_at_once(monkeypatch):
+    """A host that does not answer costs one connect timeout, not one per tile:
+    the first ConnectTimeout opens the breaker, and the next tile skips the host
+    without a request."""
+    from nova.blueprints import offline_sky as bp
+    bp._breaker_until.clear()
+    base = "https://alaskybis.cds.unistra.fr/DSS/DSSColor"
+    calls = []
+
+    def timeout(url, **kw):
+        calls.append(url)
+        assert kw["timeout"][0] == bp._CONNECT_TIMEOUT
+        raise requests.ConnectTimeout("no answer")
+
+    monkeypatch.setattr(bp._session, "get", timeout)
+    assert bp._fetch_upstream(base, base + "/Norder3/Dir0/Npix0.jpg") is None
+    assert bp._breaker_open(base) is True
+    assert bp._fetch_upstream(base, base + "/Norder3/Dir0/Npix1.jpg") is None
+    assert calls == [base + "/Norder3/Dir0/Npix0.jpg"]
+
+
+def test_a_tile_no_upstream_delivers_is_a_404(client, monkeypatch):
+    """A miss is a miss: 404 whether the upstreams said "not there" or did not
+    answer at all -- the layer shows nothing there either way."""
+    _server_on(monkeypatch)
+    from nova.blueprints import offline_sky as bp
+    bases = SURVEY_BY_SLUG[DSS_COLOR].upstreams
+
+    def get(url, **kw):
+        if url.startswith(bases[0]):
+            return _Resp(404)
+        if url.startswith(bases[1]):
+            raise requests.ConnectTimeout("no answer")
+        return _Resp(503)
+
+    monkeypatch.setattr(bp._session, "get", get)
+    resp = client.get("/hips/dss2-color/Norder3/Dir0/Npix0.jpg")
+    assert resp.status_code == 404
+
+
 def test_breaker_trips_on_5xx(monkeypatch):
     from nova.blueprints import offline_sky as bp
     bp._breaker_until.clear()
@@ -321,149 +372,6 @@ def test_breaker_trips_on_5xx(monkeypatch):
     monkeypatch.setattr(bp._session, "get", lambda url, **kw: _Resp(503))
     assert bp._fetch_upstream(base, base + "/Norder3/Dir0/Npix0.jpg") is None
     assert bp._breaker_open(base) is True
-
-
-# ---------------------------------------------------------------------------
-# "Absent" upstreams: a /properties 404 skips that base for tiles, so a survey
-# whose first upstream no longer hosts it costs one request per tile, not two.
-# ---------------------------------------------------------------------------
-
-def _reset_absent(monkeypatch):
-    """The proxy's module-level upstream state, cleared for this test.
-
-    The autouse isolated_upstream_state fixture already resets it around every test;
-    this keeps the intent explicit at the top of each absence-mark test (and works
-    when one of them is run on its own).
-    """
-    from nova.blueprints import offline_sky as bp
-    monkeypatch.setattr(bp, "_absent_bases", set())
-    monkeypatch.setattr(bp, "_breaker_until", {})
-    return bp
-
-
-def test_properties_404_marks_the_base_absent(monkeypatch):
-    bp = _reset_absent(monkeypatch)
-    base = "https://alasky.cds.unistra.fr/DSS/DSSColor"
-    monkeypatch.setattr(bp._session, "get", lambda url, **kw: _Resp(404))
-    assert bp._fetch_upstream(base, base + "/properties") is None
-    assert bp._base_absent(base) is True
-
-
-def test_a_tile_404_does_not_mark_the_base_absent(monkeypatch):
-    """One survey can legitimately have no tile at a Npix while its neighbours do
-    (NSNS covers Dec >= -16 only), so a tile 404 must not disable the base."""
-    bp = _reset_absent(monkeypatch)
-    base = "https://alasky.cds.unistra.fr/DSS/DSSColor"
-    monkeypatch.setattr(bp._session, "get", lambda url, **kw: _Resp(404))
-    assert bp._fetch_upstream(base, base + "/Norder3/Dir0/Npix5.jpg") is None
-    assert bp._base_absent(base) is False
-
-
-def test_absent_base_is_skipped_for_tiles_without_a_request(client, monkeypatch):
-    """The measured symptom: while CDS serves its "Page unavailable" 404 for a
-    survey, every tile used to cost a wasted CDS request plus a good mirror fetch.
-    With the mark, the tile goes straight to the mirror."""
-    bp = _reset_absent(monkeypatch)
-    _server_on(monkeypatch)
-    cds = "https://alasky.cds.unistra.fr/DSS/DSSColor"
-    calls = []
-
-    def fake_get(url, **kw):
-        calls.append(url)
-        return _Resp(200, b"FROM-MIRROR")
-
-    monkeypatch.setattr(bp._session, "get", fake_get)
-    # CDS answered 404 for this survey's properties earlier in the session.
-    bp._mark_absent(cds)
-
-    resp = client.get("/hips/dss2-color/Norder3/Dir0/Npix5.jpg")
-    assert resp.status_code == 200
-    assert resp.get_data() == b"FROM-MIRROR"
-    assert [u for u in calls if u.startswith(cds)] == [], \
-        "the absent base is skipped entirely: no wasted 404 request first"
-    assert calls, "the next upstream was asked and served"
-
-
-def test_the_first_mirror_404ing_still_falls_through_to_cds(client, monkeypatch):
-    """The requested case: the survey's *first* upstream answers 404 (a mirror that
-    no longer hosts it) and CDS answers. The mirror is marked absent and CDS
-    serves -- and the mark is per base, not per survey, so the other mirrors stay
-    in play for later tiles."""
-    import dataclasses
-    bp = _reset_absent(monkeypatch)
-    _server_on(monkeypatch)
-    mirror = "https://skies.esac.esa.int/DSSColor"
-    cds = "https://alasky.cds.unistra.fr/DSS/DSSColor"
-    # Put the mirror first, so the 404 comes from the first upstream in the list.
-    src = bp.SURVEY_BY_SLUG["dss2-color"]
-    monkeypatch.setitem(bp.SURVEY_BY_SLUG, "dss2-color",
-                        dataclasses.replace(src, upstreams=(mirror, cds)))
-    calls = []
-
-    def fake_get(url, **kw):
-        calls.append(url)
-        if url.startswith(mirror):
-            return _Resp(404)      # this mirror no longer hosts the survey
-        return _Resp(200, b"FROM-CDS")
-
-    monkeypatch.setattr(bp._session, "get", fake_get)
-    bp._mark_absent(mirror)        # as its /properties 404 would have
-
-    resp = client.get("/hips/dss2-color/Norder3/Dir0/Npix5.jpg")
-    assert resp.status_code == 200
-    assert resp.get_data() == b"FROM-CDS"
-    assert [u for u in calls if u.startswith(mirror)] == [], \
-        "CDS served the tile; the absent mirror was not asked"
-    assert [u for u in calls if u.startswith(cds)], "CDS was asked and served"
-
-
-def test_a_properties_200_clears_the_absent_mark(client, monkeypatch):
-    """What makes CDS used again when it is back: the frontend asks /properties
-    once per framing open, and a 200 there clears the mark. Goes through the real
-    _upstream_get (via _session.get), which is where the marking lives."""
-    bp = _reset_absent(monkeypatch)
-    _server_on(monkeypatch)
-    base = "https://alasky.cds.unistra.fr/DSS/DSSColor"
-    bp._mark_absent(base)
-    assert bp._base_absent(base) is True
-
-    monkeypatch.setattr(bp._session, "get",
-                        lambda url, **kw: _Resp(200, b"hips_order=9\nhips_tile_format=jpeg\n"))
-    assert client.get("/hips/dss2-color/properties").status_code == 200
-    assert bp._base_absent(base) is False, "a 200 from the base means it is there again"
-
-
-def test_fresh_properties_reprobes_while_a_base_is_absent(client, monkeypatch):
-    """A fresh on-disk properties copy is normally served without touching upstream,
-    which would leave a marked-absent base marked for ever. While any of the
-    survey's upstreams is absent, /properties goes to the upstreams instead, so the
-    mark can clear (this is the per-framing-open re-probe)."""
-    bp = _reset_absent(monkeypatch)
-    _server_on(monkeypatch)
-    store_file(DSS_COLOR, "properties", b"hips_order=9\n", count=False)
-    base = "https://alasky.cds.unistra.fr/DSS/DSSColor"
-    bp._mark_absent(base)
-
-    calls = []
-    monkeypatch.setattr(bp._session, "get", lambda url, **kw: calls.append(url) or _Resp(200, b"x"))
-    resp = client.get("/hips/dss2-color/properties")
-    assert resp.status_code == 200
-    assert calls, "a marked-absent upstream forces the re-probe despite a fresh cache"
-    assert bp._base_absent(base) is False, "the 200 cleared the mark"
-
-
-def test_fresh_properties_untouched_when_no_base_is_absent(client, monkeypatch):
-    """The normal path is unchanged: nothing absent means the fresh cache is served
-    with no upstream request at all."""
-    bp = _reset_absent(monkeypatch)
-    _server_on(monkeypatch)
-    store_file(DSS_COLOR, "properties", b"hips_order=9\n", count=False)
-
-    def fail(url, **kw):
-        raise AssertionError("fresh properties must not hit upstream")
-
-    monkeypatch.setattr(bp._session, "get", fail)
-    assert client.get("/hips/dss2-color/properties").status_code == 200
 
 
 def test_saturated_semaphore_fails_fast(monkeypatch):
@@ -673,7 +581,7 @@ def test_cache_only_tile_serves_disk_and_404s_without_fetch(client, monkeypatch)
     assert client.get("/hips/offline/dss2-color/Norder3/Dir0/Npix5.jpg").status_code == 404
 
 
-def test_cache_only_properties_serves_stale_and_404s(client, monkeypatch):
+def test_cache_only_properties_serves_stale_and_builtin(client, monkeypatch):
     _server_on(monkeypatch)
     store_file(DSS_COLOR, "properties", b"hips_order=9\n", count=False)
     old = time.time() - 8 * 86400
@@ -685,5 +593,7 @@ def test_cache_only_properties_serves_stale_and_404s(client, monkeypatch):
     monkeypatch.setattr("nova.blueprints.offline_sky._fetch_upstream", fail)
     # stale but present -> 200 from disk
     assert client.get("/hips/offline/dss2-color/properties").status_code == 200
-    # absent -> 404, no upstream
-    assert client.get("/hips/offline/allwise-color/properties").status_code == 404
+    # nothing on disk -> the built-in copy, no upstream: the layer still builds
+    resp = client.get("/hips/offline/allwise-color/properties")
+    assert resp.status_code == 200
+    assert "hips_tile_width      = 512" in resp.get_data(as_text=True)

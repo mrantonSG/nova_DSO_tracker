@@ -204,17 +204,15 @@ def no_outlook_thread(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def isolated_upstream_state(monkeypatch):
-    """The /hips/ proxy keeps its circuit breaker and its "absent upstream" marks in
-    module-level dicts/sets that live for the process. A test that lets a real
-    upstream request through (or marks a base by hand) would otherwise change how
-    the *next* test's proxy behaves -- a marked-absent alasky silently skips CDS and
-    the next test's call list starts at the bis mirror instead.
+    """The /hips/ proxy keeps its circuit breaker in a module-level dict that lives
+    for the process. A test that trips it would otherwise change how the *next*
+    test's proxy behaves -- a tripped alasky silently skips CDS and the next
+    test's call list starts at the bis mirror instead.
 
-    Reset both around every test, so a proxy test always starts from "nothing known
+    Reset it around every test, so a proxy test always starts from "nothing known
     about any upstream".
     """
     from nova.blueprints import offline_sky as bp
-    monkeypatch.setattr(bp, "_absent_bases", set())
     monkeypatch.setattr(bp, "_breaker_until", {})
 
 

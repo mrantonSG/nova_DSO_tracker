@@ -8172,26 +8172,6 @@ msgid ""
 "It becomes the record's file everywhere."
 msgstr ""
 
-#: templates/base.html
-msgid "{survey} is not responding — keeping {current}."
-msgstr ""
-
-#: templates/base.html
-msgid "{survey} isn't stored offline — keeping {current}."
-msgstr ""
-
-#: templates/base.html
-msgid "{survey} isn't stored offline — showing {shown}."
-msgstr ""
-
-#: templates/base.html
-msgid "{survey} isn't stored offline — showing an empty sky."
-msgstr ""
-
-#: templates/base.html
-msgid "{survey} is not responding — showing the stored copy."
-msgstr ""
-
 #: templates/config_form.html
 msgid "Offline sky"
 msgstr ""

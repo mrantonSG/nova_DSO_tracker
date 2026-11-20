@@ -8210,28 +8210,6 @@ msgid ""
 msgstr "次回の同期で、この PC にあるファイルのコピーをサーバーに送信しますか？そのコピーがすべての場所でこのレコードのファイルになります。"
 
 
-#: templates/base.html
-msgid "{survey} is not responding — keeping {current}."
-msgstr "{survey} が応答しません — {current} を表示したままにします。"
-
-
-#: templates/base.html
-msgid "{survey} isn't stored offline — keeping {current}."
-msgstr "{survey} はオフライン保存されていません — {current} を表示したままにします。"
-
-#: templates/base.html
-msgid "{survey} isn't stored offline — showing {shown}."
-msgstr "{survey} はオフライン保存されていません — {shown} を表示します。"
-
-#: templates/base.html
-msgid "{survey} isn't stored offline — showing an empty sky."
-msgstr "{survey} はオフライン保存されていません — 空の天空を表示します。"
-
-#: templates/base.html
-msgid "{survey} is not responding — showing the stored copy."
-msgstr "{survey} が応答しません — 保存済みのコピーを表示します。"
-
-
 #: templates/config_form.html
 msgid "Offline sky"
 msgstr "オフライン天空"
