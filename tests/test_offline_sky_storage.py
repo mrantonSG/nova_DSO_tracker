@@ -828,3 +828,125 @@ def test_the_limit_route_reports_evicting_when_the_holder_is_slow(
         assert limit_mb() == 5120           # the choice is still persisted
     finally:
         release_file_lock(fh)
+
+
+# ---------------------------------------------------------------------------
+# 11. A store folder that is missing, and one that cannot be written
+#
+# Both passes take their cross-process lock from a file *inside* the store
+# folder, so the folder is the first thing either of them reads. The two ways it
+# can be unusable answer differently on purpose: no folder means there is
+# nothing to pass over (an empty pass, and the folder is not conjured up to be
+# able to say so), while a folder that is there and unwritable is a real refusal
+# -- the same "read_only" the limit route gives for a choice it cannot persist.
+# ---------------------------------------------------------------------------
+
+def _store_off_disk(monkeypatch, tmp_path, name="gone"):
+    """Point the store at a path that does not exist (and is not created)."""
+    target = tmp_path / name
+    monkeypatch.setattr(store, "OFFLINE_SKY_DIR", str(target))
+    return target
+
+
+def test_clear_now_on_a_missing_folder_is_an_empty_pass(monkeypatch, tmp_path):
+    """Nothing to clear is not an error: a pass over a folder that is not there
+    removes nothing and says so, instead of raising out of the lock's open()."""
+    target = _store_off_disk(monkeypatch, tmp_path)
+    assert not target.exists()
+
+    out = store.clear_now()
+
+    assert out == {"removed": 0, "bytes": 0, "total": 0, "pinned": 0}
+
+
+def test_clear_now_does_not_create_the_missing_folder(monkeypatch, tmp_path):
+    """The folder is startup's check_dir() job, not a button's: a pass reports
+    "nothing to clear" without making the store appear.
+
+    Creating it would restate a wrong OFFLINE_SKY_DIR (a typo, a volume not
+    mounted yet) as a healthy, empty store while the real tiles sit somewhere
+    the app is no longer looking.
+    """
+    target = _store_off_disk(monkeypatch, tmp_path)
+
+    store.clear_now()
+
+    assert not target.exists(), "the pass must not create the store folder"
+
+
+def test_evict_now_on_a_missing_folder_is_an_empty_pass(monkeypatch, tmp_path):
+    """Eviction reads the folder the same way -- the background trigger must not
+    blow up on an install whose store folder is not there."""
+    target = _store_off_disk(monkeypatch, tmp_path)
+
+    out = store.evict_now()
+
+    assert out == {"removed": 0, "bytes": 0, "total": 0, "pinned": 0}
+    assert not target.exists()
+
+
+def test_a_pass_on_an_unwritable_folder_is_refused(monkeypatch, tmp_path):
+    """A folder that is there but cannot be written is a refusal, not an empty
+    pass: the route turns the OSError into the same "read_only" answer the limit
+    route gives. Contrast the missing-folder case above, which is success."""
+    import stat
+    target = tmp_path / "ro"
+    target.mkdir()
+    os.chmod(target, stat.S_IRUSR | stat.S_IXUSR)      # r-x: not writable
+    monkeypatch.setattr(store, "OFFLINE_SKY_DIR", str(target))
+    try:
+        with pytest.raises(OSError):
+            store.clear_now()
+        with pytest.raises(OSError):
+            store.evict_now()
+    finally:
+        os.chmod(target, stat.S_IRWXU)
+
+
+def test_clear_route_on_a_missing_folder_reports_cleared(
+        su_client_logged_in, monkeypatch, tmp_path):
+    """The route's end of the missing-folder case: 200, an empty pass, and the
+    folder still absent. (The regression this pins was a 500 here.)"""
+    _store_on(monkeypatch)
+    target = _store_off_disk(monkeypatch, tmp_path)
+
+    resp = su_client_logged_in.post("/api/offline-sky/clear")
+
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["cleared"] is True
+    assert data["removed"] == 0
+    assert data["browsed"] == 0
+    assert not target.exists()
+
+
+def test_clear_route_on_an_unwritable_folder_is_read_only(
+        su_client_logged_in, monkeypatch, tmp_path):
+    """The route's end of the unwritable case: the 503 "read_only" refusal, with
+    the same body shape the limit route hands back."""
+    import stat
+    _store_on(monkeypatch)
+    target = tmp_path / "ro"
+    target.mkdir()
+    os.chmod(target, stat.S_IRUSR | stat.S_IXUSR)
+    monkeypatch.setattr(store, "OFFLINE_SKY_DIR", str(target))
+    try:
+        resp = su_client_logged_in.post("/api/offline-sky/clear")
+    finally:
+        os.chmod(target, stat.S_IRWXU)
+
+    assert resp.status_code == 503
+    data = resp.get_json()
+    assert data["error"] == "read_only"
+    # The same snapshot the limit route's refusal carries, so the page can
+    # render its numbers from either refusal.
+    assert "browsed" in data and "limit_mb" in data
+
+
+def test_evict_in_progress_agrees_with_the_guard(monkeypatch, tmp_path):
+    """The probe the guard was modelled on: a folder that is not there reads as
+    "no pass running" rather than raising, the way it always has."""
+    target = _store_off_disk(monkeypatch, tmp_path)
+
+    assert store.evict_in_progress() is False
+    assert not target.exists()

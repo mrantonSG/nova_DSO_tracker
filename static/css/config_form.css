@@ -2041,6 +2041,19 @@
   margin-top: var(--space-3);
 }
 
+/* The limit row is a single field, so it has no label column: the label sits
+   directly before the selector with the flex row's own space between them.
+   The page's width classes (`.verylong-label` and friends) are for the stacked
+   General-settings inputs, where a fixed column makes the controls line up --
+   applied to one short "Limit:" they only stranded the selector 140px away.
+   `--space-2` replaces the row's 4px gap here so the two read as a pair; the
+   label keeps its own 13px/500 from `.inline-fields label`, so nothing about
+   its type changes. Light and dark need nothing extra: both only ever set
+   colour tokens, and the narrow case is the flex wrap the row already has. */
+.offline-sky-section .inline-fields > div {
+  gap: var(--space-2);
+}
+
 /* The limit selector. The design system's `select` rule (nova-theme.css) puts
    the arrow at `right 10px` and reserves `padding-right: 28px` for it -- but
    this page's `input, select, textarea { padding: var(--space-1) }` shorthand

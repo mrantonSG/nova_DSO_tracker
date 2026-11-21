@@ -248,9 +248,13 @@
           </p>
           {% endif %}
 
+          {# One field, so no label column: this row carries no width class on
+             purpose (see the note in config_form.css). `.verylong-label` here
+             was the page's fixed 140px column, meant to line up a stack of
+             inputs, and with a short "Limit:" it only stranded the selector. #}
           <div class="inline-fields">
             <div>
-              <label class="verylong-label" for="offline-sky-limit">{{ _('Limit:') }}</label>
+              <label for="offline-sky-limit">{{ _('Limit:') }}</label>
               <select id="offline-sky-limit" name="offline_sky_limit">
                 {% for mb in sky.limit_presets %}
                 <option value="{{ mb }}" {% if sky.limit_mb == mb %}selected{% endif %}>{{ sky.limit_labels[mb] }}</option>

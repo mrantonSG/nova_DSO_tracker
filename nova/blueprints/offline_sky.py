@@ -629,7 +629,13 @@ def offline_sky_clear_browsed():
     refused = _storage_csrf_check()
     if refused is not None:
         return refused
-    summary = clear_now()
+    try:
+        summary = clear_now()
+    except OSError:
+        # An unwritable store cannot clear anything; the same refusal the limit
+        # route gives for a choice it cannot persist (see offline_sky_set_limit).
+        return jsonify({"error": "read_only",
+                        **store_status()}), 503
     if summary is None:
         return jsonify(_storage_payload({"evicting": True, "cleared": False}))
     return jsonify(_storage_payload({"evicting": False, "cleared": True,

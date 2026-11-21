@@ -1381,6 +1381,19 @@ _evict_thread_lock = threading.Lock()
 _evict_running = False
 
 
+def empty_pass() -> dict:
+    """The summary a pass returns when there is no store directory to pass over.
+
+    Every key a real pass returns, all zero: nothing on disk to remove, nothing
+    to count. The folder is deliberately *not* created to be able to say this --
+    making the store directory is startup's ``check_dir()`` job, not a button's,
+    and a pass that created it would report a healthy, empty store for a path
+    that is wrong (a typo in OFFLINE_SKY_DIR, a volume not mounted yet) while
+    the real tiles sit somewhere the app is no longer looking.
+    """
+    return {"removed": 0, "bytes": 0, "total": 0, "pinned": 0}
+
+
 def with_evict_lock(pass_fn):
     """Run ``pass_fn`` holding the cross-process eviction lock.
 
@@ -1390,7 +1403,21 @@ def with_evict_lock(pass_fn):
     when another worker is already holding ``.evict`` (so a caller whose pass
     returns None itself must use a sentinel to tell the two apart, see
     ``_await_eviction_settled``).
+
+    The store directory is read before anything touches it, the way
+    ``evict_in_progress`` reads it. The lock file lives *inside* that directory,
+    so this is also what keeps a missing folder from being an error: a folder
+    that is not there has nothing for a pass to remove and nowhere to put the
+    lock, and it reads as an empty pass (``empty_pass()``) rather than a
+    FileNotFoundError out of the lock's ``open``. A folder that is there but
+    cannot be written raises OSError -- the same failure ``set_limit_mb`` hands
+    its caller -- so the route can answer "read_only" instead of a 500.
     """
+    root = hips_root()
+    if not os.path.isdir(root):
+        return empty_pass()
+    if not os.access(root, os.W_OK):
+        raise OSError(f"offline sky store at {root} is not writable")
     fh = try_acquire_file_lock(_evict_lock_path())
     try:
         if fh is None:
@@ -1424,7 +1451,9 @@ def evict_in_progress() -> bool:
 def evict_now() -> dict:
     """Run one eviction pass under the cross-process eviction lock.
 
-    Returns the pass summary, or None when another worker is evicting.
+    Returns the pass summary, or None when another worker is evicting. A missing
+    store directory reads as an empty pass; an unwritable one raises OSError
+    (both per ``with_evict_lock``).
     """
     return with_evict_lock(evict_browsed)
 
@@ -1434,7 +1463,9 @@ def clear_now():
 
     Returns the pass summary, or None when another worker holds the lock (an
     eviction in flight, or a clear in another worker): the caller then reports
-    "busy" instead of pretending the sky was emptied.
+    "busy" instead of pretending the sky was emptied. A missing store directory
+    reads as an empty pass -- "nothing to clear" -- with the folder left
+    uncreated; an unwritable one raises OSError (both per ``with_evict_lock``).
     """
     return with_evict_lock(clear_browsed)
 
@@ -1461,6 +1492,10 @@ def maybe_evict_async() -> None:
         global _evict_running
         try:
             evict_now()
+        except OSError:
+            # The store turned unwritable (or vanished) mid-pass: the pass
+            # already did all it could. The next trigger tries again.
+            _log.warning("Offline sky: eviction pass skipped -- the tile store is not writable.")
         finally:
             with _evict_thread_lock:
                 _evict_running = False
