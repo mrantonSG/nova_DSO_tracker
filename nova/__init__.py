@@ -138,7 +138,7 @@ from nova.config import (
     _telemetry_startup_once, TELEMETRY_DEBUG_STATE, TRANSLATION_STATUS,
     AI_PROVIDER, AI_API_KEY, AI_MODEL, AI_BASE_URL, AI_ALLOWED_USERS,
     ADMIN_USERS,
-    offline_sky_enabled, OFFLINE_SKY_BASE_ORDER, OFFLINE_SKY_UI_RAW,
+    offline_sky_enabled, OFFLINE_SKY_UI_RAW,
     resolve_offline_sky_ui,
 )
 from nova.helpers import (
@@ -3503,16 +3503,13 @@ def inject_offline_sky():
     """
     if not offline_sky_enabled():
         return {"OFFLINE_SKY_ENABLED": False, "OFFLINE_SKY_SURVEYS": {},
-                "OFFLINE_SKY_BASE_ORDER": OFFLINE_SKY_BASE_ORDER,
                 "OFFLINE_SKY_UI": False}
     from flask_login import current_user
     if not SINGLE_USER_MODE and not current_user.is_authenticated:
         return {"OFFLINE_SKY_ENABLED": False, "OFFLINE_SKY_SURVEYS": {},
-                "OFFLINE_SKY_BASE_ORDER": OFFLINE_SKY_BASE_ORDER,
                 "OFFLINE_SKY_UI": False}
     from nova.offline_sky_sources import build_js_map
     return {"OFFLINE_SKY_ENABLED": True, "OFFLINE_SKY_SURVEYS": build_js_map(),
-            "OFFLINE_SKY_BASE_ORDER": OFFLINE_SKY_BASE_ORDER,
             "OFFLINE_SKY_UI": offline_sky_ui()}
 
 
@@ -4425,11 +4422,16 @@ def _kick_offline_sky_runner():
 
     ``kick`` takes the instance-wide runner lock; a process that cannot just
     returns. Never raises: a store that cannot be written must not stop the
-    app from starting. Skipped under TESTING only: the download runner is not a
-    background *worker* (it never fetches without a user's click), so it must
-    start even when ``NOVA_DISABLE_BACKGROUND_TASKS`` is set -- otherwise a
-    download queued before a restart would never resume.
+    app from starting. Skipped when the tile store is off
+    (``OFFLINE_SKY_STORE`` != ``server``): no download can exist then, so there
+    is nothing to run and no lock or sidecar file is created. Otherwise skipped
+    under TESTING only: the download runner is not a background *worker* (it
+    never fetches without a user's click), so it must start even when
+    ``NOVA_DISABLE_BACKGROUND_TASKS`` is set -- otherwise a download queued
+    before a restart would never resume.
     """
+    if not offline_sky_enabled():
+        return
     # _is_test_environment, not app.config["TESTING"]: this runs at import
     # time, where TESTING is not set yet. A real runner thread started during
     # pytest would race the tests over the same jobs directory.
@@ -4453,7 +4455,11 @@ def _check_offline_sky_dir():
     Never raises: a store on a read-only mount must not stop the app from
     starting. An unwritable store only switches downloads off (the flag the
     download page will read); browsing keeps working, served from upstream.
+    Skipped when the tile store is off (``OFFLINE_SKY_STORE`` != ``server``):
+    nothing reads or writes the folder then, so it is not created.
     """
+    if not offline_sky_enabled():
+        return
     try:
         from nova.offline_sky_store import check_dir
         check_dir()
@@ -4516,16 +4522,16 @@ if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
     _run_backfill_once_per_process()
 
     # --- OFFLINE SKY: tile store + one-off retirement of the old saves ---
-    # The store directory is created here (before anything reads it) and its
-    # writability recorded; the retired save manifests are dropped once, under
+    # The store directory is created here (store=server only, before anything
+    # reads it) and its writability recorded; the retired save manifests are dropped once, under
     # their own lock, with their tiles left on disk.
     _check_offline_sky_dir()
     _retire_offline_saves_once_per_process()
 
     # --- OFFLINE SKY: start the one job runner ---
-    # The runner thread is what executes queued downloads. It is started here,
-    # after the store directory exists, so a download queued by any process has
-    # a runner. ``kick`` takes the instance-wide lock; only one process wins.
+    # The runner thread is what executes queued downloads (store=server only).
+    # It is started here, after the store directory exists, so a download
+    # queued by any process has a runner. ``kick`` takes the instance-wide lock; only one process wins.
     # It also drops legacy (non-download) jobs first, so nothing from an older
     # version fetches without a user's click. Never at import: tests stub it.
     _kick_offline_sky_runner()

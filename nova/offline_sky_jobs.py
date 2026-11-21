@@ -180,12 +180,6 @@ def _write_missing(slug: str, record: dict) -> None:
     store.write_missing(slug, record)
 
 
-def missing_due(slug: str) -> list:
-    """Recorded-missing base tiles whose once-a-day retry is due."""
-    now = _now()
-    return [rel for rel, ts in read_missing(slug).items() if now - ts >= MISSING_RETRY_SECONDS]
-
-
 def base_complete(slug: str) -> bool:
     """Every covered base tile (and the Allsky) is on disk or recorded as missing
     (404 from every mirror). Never contacts upstream."""
@@ -386,21 +380,12 @@ class JobRunner:
         self._fh = None
 
     def reconcile_pins(self) -> None:
-        """Once per runner process: read the survey metadata and rewrite the pin
-        totals.
-
-        Reading every survey's properties here is what keeps a job's planning from
-        doing it inside a request -- stale properties mean an upstream fetch, and
-        that used to land on whichever request came first after a week. The
-        totals are re-derived after it.
-        """
+        """Once per runner process: reconcile the pins with the disk and rewrite
+        the pin totals. Reads nothing from upstream: a survey's metadata is
+        fetched when a plan first needs it."""
         if self._reconciled:
             return
         self._reconciled = True
-        try:
-            store.warm_up()
-        except Exception:
-            traceback.print_exc()
         # Pins must agree with the disk before any status is trusted: a base
         # pin without its file is dropped, a claim's size is re-read (0 = still
         # to fetch). Once per runner process, i.e. at startup.
@@ -832,30 +817,6 @@ def drop_legacy_jobs() -> int:
 
 def base_job_id(slug: str) -> str:
     return f"base-{slug}"  # no ':' -- job ids are file names (Windows)
-
-
-def ensure_base_survey(slug: str) -> dict:
-    """Queue a base job for ``slug`` unless complete or already queued/running."""
-    if slug not in SURVEY_BY_SLUG:
-        return {"slug": slug, "status": "unknown", "complete": False}
-    complete = base_complete(slug)
-    # Complete (missing tiles included) and no missing tile due for its daily
-    # retry: nothing to do -- opening the modal again never re-asks upstream.
-    if complete and not missing_due(slug):
-        return {"slug": slug, "status": "done", "complete": True}
-    job_id = base_job_id(slug)
-    state = read_job(job_id)
-    if state and state.get("status") in ACTIVE_STATUSES:
-        return {"slug": slug, "status": state["status"], "complete": complete}
-    enqueue(job_id, "base", {"slug": slug}, [slug])
-    return {"slug": slug, "status": "queued", "complete": complete}
-
-
-def base_job_progress(slug: str) -> dict:
-    state = read_job(base_job_id(slug))
-    if not state:
-        return {"slug": slug, "status": "idle", "complete": base_complete(slug)}
-    return {**state, "slug": slug, "complete": base_complete(slug)}
 
 
 # ---------------------------------------------------------------------------

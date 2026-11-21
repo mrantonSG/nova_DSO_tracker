@@ -950,3 +950,56 @@ def test_evict_in_progress_agrees_with_the_guard(monkeypatch, tmp_path):
 
     assert store.evict_in_progress() is False
     assert not target.exists()
+
+
+# ---------------------------------------------------------------------------
+# .total across gunicorn workers (several processes, several threads each)
+# ---------------------------------------------------------------------------
+
+_RACE_PROCS = 2
+_RACE_THREADS = 4
+_RACE_TILES = 150          # per thread
+_RACE_SIZE = 1000
+
+
+def _race_worker(proc_index):
+    """One "gunicorn worker": a few threads storing distinct tiles at once."""
+    import threading
+
+    def run(thread_index):
+        base = (proc_index * _RACE_THREADS + thread_index) * _RACE_TILES
+        for i in range(base, base + _RACE_TILES):
+            store_file(DSS, f"Norder9/Dir0/Npix{i}.jpg", b"r" * _RACE_SIZE)
+
+    threads = [threading.Thread(target=run, args=(t,)) for t in range(_RACE_THREADS)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+
+def test_total_counts_every_byte_across_processes_and_threads():
+    """The proxy's increments from several workers at once must all land.
+
+    Each process reads .total, adds its tile and writes it back; without a
+    cross-process lock two overlapping workers overwrite each other and the
+    counter reads low (the audit measured 48 % lost), so the store overshoots
+    its limit until an eviction pass happens to run. Forked children inherit
+    the test's store directory.
+    """
+    import multiprocessing
+    ctx = multiprocessing.get_context("fork")
+    procs = [ctx.Process(target=_race_worker, args=(p,)) for p in range(_RACE_PROCS)]
+    for p in procs:
+        p.start()
+    for p in procs:
+        p.join(120)
+        assert p.exitcode == 0
+
+    on_disk = 0
+    for dirpath, _dirs, names in os.walk(os.path.join(survey_dir(DSS), "Norder9")):
+        for name in names:
+            on_disk += os.path.getsize(os.path.join(dirpath, name))
+    tiles = _RACE_PROCS * _RACE_THREADS * _RACE_TILES
+    assert on_disk == tiles * _RACE_SIZE
+    assert store.total_bytes() == on_disk

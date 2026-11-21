@@ -688,6 +688,28 @@ def test_remove_route_answers_409_when_the_job_will_not_stop(su_client_logged_in
     assert resp.get_json()["error"] == "job_still_running"
 
 
+@pytest.mark.parametrize("method,path", [
+    ("post", "/api/offline-sky/downloads/{slug}/cancel"),
+    ("delete", "/api/offline-sky/downloads/{slug}"),
+    ("post", "/api/offline-sky/downloads/{slug}/trim"),
+])
+def test_download_routes_refuse_an_unknown_survey(su_client_logged_in, monkeypatch,
+                                                  method, path):
+    """Cancel, remove and trim check the slug like start does: 404, and no
+    job, cancel marker or plan is touched (audit M5)."""
+    _store_on(monkeypatch)
+    monkeypatch.setattr(bp, "ADMIN_USERS", {"default"})
+    called = []
+    monkeypatch.setattr(jobs, "cancel_job", lambda *a: called.append("cancel"))
+    monkeypatch.setattr(jobs, "remove_download", lambda *a: called.append("remove"))
+    monkeypatch.setattr(plan, "read_plan", lambda *a: called.append("plan"))
+    for slug in ("no-such-survey", "properties"):
+        resp = getattr(su_client_logged_in, method)(path.format(slug=slug))
+        assert resp.status_code == 404
+        assert resp.get_json() == {"error": "unknown survey"}
+    assert called == []
+
+
 def test_could_free_reports_owned_tiles_outside_the_plan(upstream, runners, monkeypatch):
     """Unticking a location must show "could free X" without deleting anything."""
     band = plan.union_band([47.066])
@@ -885,6 +907,7 @@ def test_startup_runner_failure_is_logged_not_swallowed(monkeypatch, capsys):
     # race the tests). This test is about the failure path, so opt out of that
     # gate and make kick() blow up.
     monkeypatch.setattr(nova_mod, "_is_test_environment", lambda: False)
+    monkeypatch.setattr("nova.config.OFFLINE_SKY_STORE", "server")
     monkeypatch.setattr(jobs, "kick", _raise_boom)
     nova_mod._kick_offline_sky_runner()
     out = capsys.readouterr().out
@@ -895,6 +918,56 @@ def test_startup_runner_failure_is_logged_not_swallowed(monkeypatch, capsys):
 
 def _raise_boom():
     raise RuntimeError("boom")
+
+
+@pytest.mark.parametrize("setting", ["off", "server"])
+def test_startup_store_dir_only_when_the_store_is_on(monkeypatch, tmp_path, setting):
+    """OFFLINE_SKY_STORE=off: startup creates no store folder at all;
+    "server" is the control: the folder is created and found writable."""
+    import nova as nova_mod
+    target = tmp_path / "hips_store"
+    monkeypatch.setattr(store, "OFFLINE_SKY_DIR", str(target))
+    monkeypatch.setattr("nova.config.OFFLINE_SKY_STORE", setting)
+    monkeypatch.setattr(store, "DOWNLOADS_AVAILABLE", True)
+
+    nova_mod._check_offline_sky_dir()
+
+    assert target.exists() is (setting == "server")
+
+
+_REAL_KICK = jobs.kick          # the module's autouse fixture stubs kick()
+
+
+@pytest.mark.parametrize("setting", ["off", "server"])
+def test_startup_runner_only_when_the_store_is_on(monkeypatch, setting):
+    """OFFLINE_SKY_STORE=off: no download can exist, so startup starts no runner
+    and leaves no lock or sidecar file in the store directory (audit S2/M2).
+    "server" is the positive control: the real kick() takes the runner lock.
+    A fresh JobRunner whose thread is never started stands in for the real one.
+    """
+    import nova as nova_mod
+    monkeypatch.setattr(nova_mod, "_is_test_environment", lambda: False)
+    monkeypatch.setattr("nova.config.OFFLINE_SKY_STORE", setting)
+    monkeypatch.setattr(jobs, "kick", _REAL_KICK)
+    runner = jobs.JobRunner()
+    started = []
+    monkeypatch.setattr(runner, "start", lambda: started.append(1))
+    monkeypatch.setattr(jobs, "_RUNNER", runner)
+    os.makedirs(store.hips_root(), exist_ok=True)
+    before = set(os.listdir(store.hips_root()))
+    try:
+        nova_mod._kick_offline_sky_runner()
+        created = set(os.listdir(store.hips_root())) - before
+    finally:
+        runner.release()
+
+    if setting == "off":
+        assert started == []
+        assert created == set()      # no .pins.lock, .pinned, jobs/.runner.lock
+    else:
+        assert started == [1]
+        assert "jobs" in created
+
 
 
 # ---------------------------------------------------------------------------

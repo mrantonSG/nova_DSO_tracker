@@ -42,16 +42,16 @@ all browsed (unpinned) tiles and ``.pinned`` that of all pinned tiles. ``.total`
 is adjusted incrementally when a tile is stored by the proxy and when a job
 adopts an already-browsed tile (it becomes pinned). ``.pinned`` is recomputed
 from disk whenever pins change (job checkpoint/end) -- never per tile request.
-Eviction re-derives both from disk and rewrites them, so drift from the
-best-effort cross-process read-modify-write self-heals there. A tile's mtime is
-its last-access time (touched on serve, set on write).
+Eviction re-derives both from disk and rewrites them. A tile's mtime is its
+last-access time (touched on serve, set on write).
 
 Concurrency: the app runs under gunicorn (``-w 2 -k gthread --threads 4``), i.e.
 multiple processes and threads. Writes go through write_file_atomic (temp file +
 fsync + os.replace), so a tile is never observed half-written; the last writer
-wins with identical bytes. The ``.total`` read-modify-write is serialised by an
-in-process lock and is best-effort across processes (a torn increment only makes
-the totals a hair off). Eviction and clearing are guarded by a non-blocking
+wins with identical bytes. Every write of ``.total`` / ``.pinned`` -- the
+``.total`` read-modify-write in particular -- holds ``.total.lock``, a blocking
+cross-process lock (``counter_lock``), so two workers' increments never
+overwrite each other. Eviction and clearing are guarded by a non-blocking
 cross-process flock so only one worker runs either at a time.
 
 Pins and eviction: a job claims each tile in ``jobs/<job_id>.pins`` *before* it
@@ -71,6 +71,7 @@ import logging
 import os
 import threading
 import time
+from contextlib import contextmanager
 
 from nova.config import (BoundedCache, CACHE_DIR, INSTANCE_PATH, OFFLINE_SKY_CACHE_MB,
                          OFFLINE_SKY_DIR)
@@ -97,6 +98,10 @@ SETTINGS_FILENAME = ".settings.json"     # the installation's chosen store limit
 JOBS_DIRNAME = "jobs"                    # job state (<job_id>.json)
 EVICT_LOCK = ".evict"
 PINS_LOCK = ".pins.lock"
+COUNTER_LOCK = ".total.lock"   # guards every .total / .pinned write
+# A counter update never waits longer than this: it runs on the request path,
+# and a lost update is corrected by the next eviction pass.
+COUNTER_LOCK_TIMEOUT = 5.0
 JOB_PINS_SUFFIX = ".pins"
 # Tiles every upstream answered 404 for, per survey: {rel: last 404 time}. A
 # download counts these as "not available on the server" -- done, not blocking.
@@ -192,6 +197,23 @@ def pins_lock():
     return hold_lock(os.path.join(hips_root(), PINS_LOCK))
 
 
+@contextmanager
+def counter_lock():
+    """Context manager: hold the cross-process lock on the ``.total`` /
+    ``.pinned`` counters (blocking, not re-entrant).
+
+    The in-process lock keeps this process's threads from polling the file lock
+    against each other; the file lock (offline_sky_lock.hold_lock, as for the
+    pins) serialises the gunicorn workers. Innermost lock: it may be taken while
+    holding ``pins_lock()``, never the other way round. Raises OSError when the
+    store cannot be written and TimeoutError after ``COUNTER_LOCK_TIMEOUT``.
+    """
+    with _total_lock:
+        with hold_lock(os.path.join(hips_root(), COUNTER_LOCK),
+                       timeout=COUNTER_LOCK_TIMEOUT):
+            yield
+
+
 def _write_bytes(path: str, data: bytes) -> None:
     with open(path, "wb") as handle:
         handle.write(data)
@@ -223,11 +245,22 @@ def _set_total(n: int) -> None:
 
 
 def _add_bytes(n: int) -> None:
-    """Adjust the browsed total by ``n`` (may be negative)."""
+    """Adjust the browsed total by ``n`` (may be negative). Never raises.
+
+    The read-modify-write holds ``counter_lock``, so concurrent workers' adds all
+    land. If the lock cannot be had (an unwritable store, a timeout) the update
+    is skipped -- the next eviction pass rewrites the total from disk.
+    """
     if n == 0:
         return
-    with _total_lock:
-        _set_total(total_bytes() + n)
+    try:
+        with counter_lock():
+            _set_total(total_bytes() + n)
+    except OSError as exc:
+        _store_failed(exc)
+    except TimeoutError as exc:
+        _log.warning("Offline sky: %s; the stored-size counter is corrected by "
+                     "the next eviction pass.", exc)
 
 
 def adjust_browsed_total(n: int) -> None:
@@ -521,9 +554,7 @@ def _reconcile_totals_locked() -> None:
                 pinned_total += size
             else:
                 total += size
-    with _total_lock:
-        _set_total(total)
-    _write_int(_pinned_path(), pinned_total)
+    _write_counters(total, pinned_total)
 
 
 # ---------------------------------------------------------------------------
@@ -725,29 +756,6 @@ def take_job_pins_locked(job_id: str) -> set:
     return keys
 
 
-def warm_up() -> None:
-    """Read the survey metadata a job's planning needs, once per process.
-
-    A survey's ``properties`` grows stale after a week, and reading it then means
-    an upstream fetch (up to the socket timeout) inside whatever request happens
-    to come first -- so the first plan after a week takes seconds. Reading it
-    here, off the request path, means a job only ever reads cached files.
-    """
-    from nova.offline_sky_sources import SURVEY_SOURCES
-    from nova.offline_sky_facts import survey_coverage, survey_facts
-    for slug in SURVEY_SOURCES:
-        # Both files a plan needs: the properties (its order range) and the MOC
-        # (which tiles are covered). Reading only the first leaves the MOC fetch
-        # on the request path, which is the bigger of the two.
-        for read in (lambda s: survey_facts(s, fetch=True),
-                     lambda s: survey_coverage(s, fetch=True)):
-            try:
-                read(slug)
-            except Exception:
-                continue      # upstream trouble is not the caller's problem here
-    refresh_pinned_bytes()
-
-
 def pinned_rel_paths() -> set:
     """Rel paths eviction must skip: base tiles, plus every tile a running job
     has claimed."""
@@ -850,7 +858,7 @@ def measured_pinned_bytes() -> int:
 def refresh_pinned_bytes() -> int:
     """Recompute ``.pinned`` from disk (union of all pins, each tile once)."""
     total = measured_pinned_bytes()
-    _write_int(_pinned_path(), total)
+    _write_counters(None, total)
     return total
 
 
@@ -1299,9 +1307,23 @@ def _scan_tiles():
 
 def _apply_totals(browsed_bytes: int, pinned_total: int) -> None:
     """Write the reconciled .total/.pinned sidecars (see the callers' notes)."""
-    with _total_lock:
-        _set_total(browsed_bytes)
-    _write_int(_pinned_path(), pinned_total)
+    _write_counters(browsed_bytes, pinned_total)
+
+
+def _write_counters(browsed_bytes, pinned_total) -> None:
+    """Set ``.total`` (unless None) and ``.pinned`` under ``counter_lock``, so a
+    reconciled figure is never overwritten by an add that read the old one.
+    Never raises; without the lock (an unwritable store, a timeout) the sidecars
+    are still written, as they were before the lock existed."""
+    def write():
+        if browsed_bytes is not None:
+            _set_total(browsed_bytes)
+        _write_int(_pinned_path(), pinned_total)
+    try:
+        with counter_lock():
+            write()
+    except (OSError, TimeoutError):
+        write()
 
 
 def evict_browsed() -> dict:

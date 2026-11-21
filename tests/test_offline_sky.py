@@ -138,6 +138,8 @@ def test_properties_strips_service_urls_and_caches(client, monkeypatch):
     resp = client.get("/hips/dss2-color/properties")
     assert resp.status_code == 200
     assert resp.mimetype == "text/plain"
+    # One charset parameter: Werkzeug adds it to text/* itself (audit M3).
+    assert resp.headers["Content-Type"] == "text/plain; charset=utf-8"
     body = resp.get_data(as_text=True)
     assert "hips_order=9" in body
     assert "hips_tile_format=jpeg" in body

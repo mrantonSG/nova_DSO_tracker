@@ -128,6 +128,10 @@ def _moc_bytes(cells):
     return buf.getvalue()
 
 
+def _queue_base(slug):
+    jobs.enqueue(jobs.base_job_id(slug), "base", {"slug": slug}, [slug])
+
+
 def _run_base_job(runners, slug):
     r = runners()
     r.acquire()
@@ -148,9 +152,8 @@ def test_base_job_coverage_aware_with_allsky(upstream, runners):
     assert rels[0] == "Norder3/Allsky.png"
     # order 0: the parent of (1,5); order 1: (1,5); order 2: 4 children; order 3: 16
     assert len(rels) == 1 + 1 + 1 + 4 + 16
-    st = jobs.ensure_base_survey(OIII)
-    assert st["status"] == "queued"
-    assert jobs.ensure_base_survey(OIII)["status"] == "queued"          # not queued twice
+    _queue_base(OIII)
+    assert jobs.read_job(jobs.base_job_id(OIII))["status"] == "queued"
     r = runners()
     r.acquire()
     r.run_pending()
@@ -159,7 +162,6 @@ def test_base_job_coverage_aware_with_allsky(upstream, runners):
     pins = store.base_pinned_rel_paths()
     assert f"{OIII}/Norder3/Allsky.png" in pins and len(pins) == len(rels)
     assert len(upstream.calls) == len(rels)
-    assert jobs.ensure_base_survey(OIII) == {"slug": OIII, "status": "done", "complete": True}
 
 
 def test_base_respects_effective_max_order():
@@ -192,37 +194,32 @@ def test_base_complete_counts_missing_and_retries_once_a_day(upstream, runners, 
     upstream.script = lambda url: (bp.UPSTREAM_MISSING, None) if url.endswith(gone) else None
 
     # First pass: every mirror says 404 -> recorded, and the base is complete.
-    assert jobs.ensure_base_survey(OIII)["status"] == "queued"
+    _queue_base(OIII)
     state = _run_base_job(runners, OIII)
     assert state["status"] == "done" and state["missing"] == 1
     assert jobs.read_missing(OIII) == {gone: clock[0]}
     assert not store.tile_exists(OIII, gone)
     assert jobs.base_complete(OIII)
 
-    # Modal opened again within the day: nothing queued, upstream not asked.
+    # A base job run inside the day skips the recorded tile.
     upstream.calls.clear()
     clock[0] += 23 * 3600
-    assert jobs.ensure_base_survey(OIII) == {"slug": OIII, "status": "done", "complete": True}
-    assert jobs.read_job(jobs.base_job_id(OIII))["status"] == "done"
-    # Even a base job run inside the day skips the recorded tile.
-    jobs.enqueue(jobs.base_job_id(OIII), "base", {"slug": OIII}, [OIII])
+    _queue_base(OIII)
     assert _run_base_job(runners, OIII)["missing"] == 1
     assert upstream.calls == []
 
     # A day after the 404: one retry, still 404 -> timestamp refreshed.
     clock[0] = 1_000_000.0 + 24 * 3600
-    st = jobs.ensure_base_survey(OIII)
-    assert st == {"slug": OIII, "status": "queued", "complete": True}
+    _queue_base(OIII)
     _run_base_job(runners, OIII)
     assert [u for u in upstream.calls] == [f"{SURVEY_UPSTREAM_OIII}/{gone}"]
     assert jobs.read_missing(OIII) == {gone: clock[0]}
-    assert jobs.ensure_base_survey(OIII)["status"] == "done"     # next retry tomorrow
 
     # Next day the tile exists: fetched, pinned, record cleared.
     upstream.calls.clear()
     upstream.script = None
     clock[0] += 24 * 3600
-    assert jobs.ensure_base_survey(OIII)["status"] == "queued"
+    _queue_base(OIII)
     _run_base_job(runners, OIII)
     assert upstream.calls == [f"{SURVEY_UPSTREAM_OIII}/{gone}"]
     assert store.tile_exists(OIII, gone)
@@ -254,7 +251,7 @@ def test_base_missing_needs_404_from_every_mirror(upstream, runners):
         pauses.append((st["status"], st["missing"]))
 
     upstream.script = script
-    jobs.ensure_base_survey(DSS)
+    _queue_base(DSS)
     r = runners(sleep=sleep, pause_seconds=1.0)
     r.acquire()
     r.run_pending()
@@ -368,7 +365,7 @@ def test_resume_after_crash(upstream, runners, monkeypatch):
         return None
 
     upstream.script = script
-    jobs.ensure_base_survey(OIII)
+    _queue_base(OIII)
     a = runners()
     a.acquire()
     with pytest.raises(_Crash):
@@ -411,7 +408,7 @@ def test_breaker_pause_does_not_mark_tile_done(upstream, runners):
         seen_during_pause.append((js["status"], js["done"]))
 
     upstream.script = script
-    jobs.ensure_base_survey(OIII)
+    _queue_base(OIII)
     r = runners(sleep=sleep, pause_seconds=1.0)
     r.acquire()
     r.run_pending()

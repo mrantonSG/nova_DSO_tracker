@@ -302,9 +302,9 @@ def _serve_properties(slug: str, cache_only: bool = False) -> Response:
             mtime = 0.0
         if cache_only or time.time() - mtime < _PROPERTIES_MAX_AGE_SECONDS:
             # Fresh -- or Offline view, which serves even a stale copy from disk.
-            return _respond(cached, "text/plain; charset=utf-8", _PROPERTIES_CACHE_CONTROL)
+            return _respond(cached, "text/plain", _PROPERTIES_CACHE_CONTROL)
     elif cache_only:
-        return _respond(_builtin_properties(slug), "text/plain; charset=utf-8", "no-store")
+        return _respond(_builtin_properties(slug), "text/plain", "no-store")
 
     # No cache, or stale (older than 7 days): try upstreams first, re-store on
     # success; on failure fall back to the stale disk copy, else the built-in one.
@@ -317,11 +317,11 @@ def _serve_properties(slug: str, cache_only: bool = False) -> Response:
             continue
         data = _strip_service_urls(raw)
         store_file(slug, "properties", data, count=False)
-        return _respond(data, "text/plain; charset=utf-8", _PROPERTIES_CACHE_CONTROL)
+        return _respond(data, "text/plain", _PROPERTIES_CACHE_CONTROL)
 
     if cached is not None:
-        return _respond(cached, "text/plain; charset=utf-8", _PROPERTIES_CACHE_CONTROL)
-    return _respond(_builtin_properties(slug), "text/plain; charset=utf-8", "no-store")
+        return _respond(cached, "text/plain", _PROPERTIES_CACHE_CONTROL)
+    return _respond(_builtin_properties(slug), "text/plain", "no-store")
 
 
 def _serve_moc(slug: str, cache_only: bool = False) -> Response:
@@ -860,6 +860,8 @@ def offline_sky_cancel_download(slug):
     guard = _download_guard()
     if guard is not None:
         return guard
+    if slug not in DOWNLOAD_SURVEYS:
+        return jsonify({"error": "unknown survey"}), 404
     from nova import offline_sky_jobs as jobs
     return jsonify({"cancelled": bool(jobs.cancel_job(jobs.download_job_id(slug)))})
 
@@ -870,6 +872,8 @@ def offline_sky_remove_download(slug):
     guard = _download_guard()
     if guard is not None:
         return guard
+    if slug not in DOWNLOAD_SURVEYS:
+        return jsonify({"error": "unknown survey"}), 404
     from nova import offline_sky_jobs as jobs
     try:
         removed = jobs.remove_download(slug)
@@ -887,6 +891,8 @@ def offline_sky_trim_download(slug):
     guard = _download_guard()
     if guard is not None:
         return guard
+    if slug not in DOWNLOAD_SURVEYS:
+        return jsonify({"error": "unknown survey"}), 404
     from nova import offline_sky_jobs as jobs
     from nova import offline_sky_plan as plan_mod
     job_id = jobs.download_job_id(slug)

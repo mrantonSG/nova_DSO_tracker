@@ -12,9 +12,6 @@
     // resolved against the user mode, and the tile store on). When false the
     // switch is not rendered and no connectivity listener is installed.
     window.NOVA_OFFLINE_SKY_UI = {{ OFFLINE_SKY_UI | tojson }};
-    // The generic "Survey" label, for surveyNoticeLabel()'s last fallback: an
-    // unknown survey value still names something rather than rendering the key.
-    window.novaI18n.survey = {{ _('Survey') | tojson }};
     // Framing tab (graph_view_chart.js)
     window.novaI18n.scan_frame = {{ _('Scan Frame') | tojson }};
     window.novaI18n.scan_scanning = {{ _('Scanning…') | tojson }};
