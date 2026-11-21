@@ -70,11 +70,12 @@ STELLARIUM_ERROR_MESSAGE = os.getenv("STELLARIUM_ERROR_MESSAGE")
 NOVA_CATALOG_URL = config('NOVA_CATALOG_URL', default='')
 
 # --- Offline sky (survey tile proxy + on-disk cache) ---
-# Off by default; enable with OFFLINE_SKY_STORE=server in instance/.env.
+# On by default ("server"); OFFLINE_SKY_STORE=off in instance/.env is the
+# emergency switch that turns all of it off. An explicit value always wins.
 # "server": cache and serve survey tiles through the same-origin /hips/ proxy,
 #   stored under instance/cache/hips and shared across all users of the instance.
 # "off": routes return 404 and the browser talks to CDS/mirrors directly.
-OFFLINE_SKY_STORE = config('OFFLINE_SKY_STORE', default='off')
+OFFLINE_SKY_STORE = config('OFFLINE_SKY_STORE', default='server')
 # Where the tile store lives. Empty (the default) means the instance's own
 # cache/hips; a relative path is resolved against INSTANCE_PATH, an absolute one
 # is used as given. Read once at startup, like every other path setting.

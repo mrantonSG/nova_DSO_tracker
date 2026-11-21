@@ -481,13 +481,41 @@ def test_eviction_reconciles_total(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# Default off + access control
+# Default on + access control
 # ---------------------------------------------------------------------------
 
-def test_default_store_off_404(client):
-    # OFFLINE_SKY_STORE defaults to "off"; no _server_on here.
-    assert client.get("/hips/dss2-color/properties").status_code == 404
-    assert client.get("/hips/dss2-color/Norder3/Dir0/Npix0.jpg").status_code == 404
+def test_default_store_is_server(monkeypatch, client):
+    """OFFLINE_SKY_STORE defaults to "server": the test .env does not set the
+    key, so what the app sees here is the code default. No _server_on here."""
+    import os
+    import nova.config
+    import nova.blueprints.offline_sky as bp
+    assert "OFFLINE_SKY_STORE" not in os.environ      # really the default
+    assert nova.config.OFFLINE_SKY_STORE == "server"
+    assert bp.OFFLINE_SKY_STORE == "server"
+    assert nova.config.offline_sky_enabled() is True
+    monkeypatch.setattr("nova.blueprints.offline_sky._fetch_upstream",
+                        lambda base, url: b"hips_order=9\nhips_tile_format=jpeg\n")
+    assert client.get("/hips/dss2-color/properties").status_code == 200
+
+
+def test_env_upgrade_never_writes_the_store_key(tmp_path, monkeypatch):
+    """_ensure_env_defaults adds missing keys to an existing .env. It must not
+    add OFFLINE_SKY_STORE (a missing key means the "server" default) and must
+    leave an explicit OFFLINE_SKY_STORE=off -- the emergency switch -- as is."""
+    import nova
+    for key in ("INSTANCE_ID", "NOVA_TELEMETRY_ENDPOINT", "NOVA_CATALOG_URL"):
+        monkeypatch.delenv(key, raising=False)   # the helper exports what it adds
+    explicit = tmp_path / "explicit.env"
+    explicit.write_text("SECRET_KEY=x\nOFFLINE_SKY_STORE=off\n", encoding="utf-8")
+    nova._ensure_env_defaults(str(explicit))
+    lines = explicit.read_text(encoding="utf-8").splitlines()
+    assert [l for l in lines if l.startswith("OFFLINE_SKY_STORE")] == ["OFFLINE_SKY_STORE=off"]
+
+    missing = tmp_path / "missing.env"
+    missing.write_text("SECRET_KEY=x\n", encoding="utf-8")
+    nova._ensure_env_defaults(str(missing))
+    assert "OFFLINE_SKY_STORE" not in missing.read_text(encoding="utf-8")
 
 
 def test_multi_user_unauth_404_no_fetch(monkeypatch, mu_client_logged_out):
