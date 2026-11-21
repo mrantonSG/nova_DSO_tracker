@@ -125,19 +125,24 @@ def storage_available() -> bool:
     decides whether to render the section -- so the section is shown exactly
     when the API behind it would answer. Kept separate from ``_storage_guard``,
     which must tell the two refusals apart (404 vs 403).
+
+    The tile store decides it, not ``OFFLINE_SKY_UI``: that flag only shows or
+    hides the Framing tab's Offline view switch, while the store exists (and is
+    worth a limit and a Clear button) whenever this server keeps tiles on disk.
     """
-    return _enabled() and nova.offline_sky_ui() and _is_admin()
+    return _enabled() and _is_admin()
 
 
 def _storage_guard():
     """None when the caller may use the storage API, else a response.
 
-    The section is only shown when the Offline view switch is, so a request that
-    arrives when it is not is answered 404 -- "no such thing here" -- rather than
-    403, which would confirm the endpoint to a stranger. A caller who *is* in the
-    right place but lacks the right is told 403.
+    A store that is off has no sky storage at all, so that answers 404 -- "no
+    such thing here". A store that is on and a caller who may not run it (a
+    multi-user non-admin) answers 403, the same refusal as every other
+    admin-only route. ``OFFLINE_SKY_UI`` plays no part here: it gates the
+    Framing tab's Offline view switch, not the store.
     """
-    if not _enabled() or not nova.offline_sky_ui():
+    if not _enabled():
         return jsonify({"error": "not found"}), 404
     if not _is_admin():
         return jsonify({"error": "Not authorized"}), 403

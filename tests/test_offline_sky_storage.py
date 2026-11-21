@@ -12,7 +12,9 @@ What is pinned here:
 * Clear: viewed tiles go, downloaded/pinned tiles and all metadata stay, totals
   reconcile.
 * The label formatter and the status route.
-* Access control: the 404/403 matrix and CSRF on the POSTs.
+* Access control: who sees the section and who reaches its routes -- the store
+  decides whether it exists, an admin (in multi-user mode) decides who may use
+  it, and OFFLINE_SKY_UI decides neither -- plus CSRF on the POSTs.
 """
 
 import json
@@ -65,18 +67,35 @@ def _age(rels, slug, base):
 
 
 def _store_on(monkeypatch):
-    """Store on, UI on, single-user: the section is shown and reachable."""
+    """Store on: the section is shown and reachable (single-user fixtures)."""
     monkeypatch.setattr("nova.blueprints.offline_sky.OFFLINE_SKY_STORE", "server")
     monkeypatch.setattr("nova.config.OFFLINE_SKY_STORE", "server")
-    monkeypatch.setattr(nova, "OFFLINE_SKY_UI_RAW", "on")
     monkeypatch.setattr(store, "OFFLINE_SKY_DIR", "")
 
 
-def _store_on_multi(monkeypatch):
-    monkeypatch.setattr("nova.blueprints.offline_sky.OFFLINE_SKY_STORE", "server")
-    monkeypatch.setattr("nova.config.OFFLINE_SKY_STORE", "server")
-    monkeypatch.setattr(nova, "OFFLINE_SKY_UI_RAW", "on")
+def _storage_settings(monkeypatch, *, store_on=True, ui="auto"):
+    """The two switches, set independently: the tile store and OFFLINE_SKY_UI.
+
+    Kept separate from ``_store_on`` because the point of the matrix below is
+    that only the first one is the storage section's.
+    """
+    _val = "server" if store_on else "off"
+    monkeypatch.setattr("nova.blueprints.offline_sky.OFFLINE_SKY_STORE", _val)
+    monkeypatch.setattr("nova.config.OFFLINE_SKY_STORE", _val)
+    monkeypatch.setattr(nova, "OFFLINE_SKY_UI_RAW", ui)
     monkeypatch.setattr(store, "OFFLINE_SKY_DIR", "")
+    if store_on:
+        # A real instance has the store folder from startup (check_dir()); the
+        # per-test tmp directory starts empty, and the eviction lock file lives
+        # in it -- so Clear would fail for a reason that has nothing to do with
+        # who is allowed to press it.
+        os.makedirs(store.hips_root(), exist_ok=True)
+
+
+def _as_admin(monkeypatch):
+    """Make the multi-user fixture's "UserA" an instance admin."""
+    monkeypatch.setattr("nova.config.ADMIN_USERS", {"UserA"})
+    monkeypatch.setattr("nova.blueprints.offline_sky.ADMIN_USERS", {"UserA"})
 
 
 # ---------------------------------------------------------------------------
@@ -514,7 +533,14 @@ def test_clear_route_reports_a_busy_lock(su_client_logged_in, monkeypatch):
 # ---------------------------------------------------------------------------
 
 def _storage_routes():
-    return ["/api/offline-sky/status"]
+    """The storage section's three routes, as (method, path) pairs.
+
+    The matrix below checks every one of them in every combination, so a route
+    added without listing it here fails loudly rather than going ungated.
+    """
+    return [("GET", "/api/offline-sky/status"),
+            ("POST", "/api/offline-sky/limit"),
+            ("POST", "/api/offline-sky/clear")]
 
 
 def test_storage_routes_are_enumerated():
@@ -537,20 +563,60 @@ def test_storage_routes_are_enumerated():
     ]
 
 
+_STORAGE_MODES = {
+    "single_user": "su_client_logged_in",
+    "mu_admin": "multi_user_client",
+    "mu_non_admin": "multi_user_client",
+}
+
+
+def _expect(mode, store_on):
+    """The one answer the section and its routes must give in this combination."""
+    if not store_on:
+        return 404                 # no sky store here at all
+    if mode == "mu_non_admin":
+        return 403                 # a store shared by every account is not theirs
+    return 200
+
+
+@pytest.mark.parametrize("store_on", [True, False])
+@pytest.mark.parametrize("ui", ["auto", "on", "off"])
+@pytest.mark.parametrize("mode", sorted(_STORAGE_MODES))
+def test_the_section_follows_the_store_and_the_admin_right_not_the_ui_flag(
+        mode, ui, store_on, request, monkeypatch):
+    """The visibility matrix: 3 modes x OFFLINE_SKY_UI x OFFLINE_SKY_STORE.
+
+    The store says whether this installation has sky storage; being an admin
+    says whether *this caller* may run it; OFFLINE_SKY_UI says neither, so all
+    three UI values must give the same row. A hidden section and a refused route
+    are the same decision, made once (``storage_available`` / ``_storage_guard``).
+    """
+    client = request.getfixturevalue(_STORAGE_MODES[mode])
+    if mode != "single_user":
+        client, _ids = client
+    if mode == "mu_admin":
+        _as_admin(monkeypatch)
+    _storage_settings(monkeypatch, store_on=store_on, ui=ui)
+    expected = _expect(mode, store_on)
+
+    for method, path in _storage_routes():
+        send = client.get if method == "GET" else client.post
+        resp = send(path, json={"limit": "5120"})
+        assert resp.status_code == expected, (
+            f"{method} {path}: {mode}, OFFLINE_SKY_UI={ui!r}, "
+            f"OFFLINE_SKY_STORE={'server' if store_on else 'off'}")
+
+    html = client.get("/config_form").get_data(as_text=True)
+    assert ('id="offline-sky-section"' in html) is (expected == 200), (
+        f"the section and its routes disagree: {mode}, OFFLINE_SKY_UI={ui!r}, "
+        f"OFFLINE_SKY_STORE={'server' if store_on else 'off'}")
+
+
 def test_store_off_is_404(su_client_logged_in, monkeypatch):
-    monkeypatch.setattr("nova.blueprints.offline_sky.OFFLINE_SKY_STORE", "off")
-    monkeypatch.setattr("nova.config.OFFLINE_SKY_STORE", "off")
-    assert su_client_logged_in.get("/api/offline-sky/status").status_code == 404
-    assert su_client_logged_in.post("/api/offline-sky/clear").status_code == 404
-    assert su_client_logged_in.post("/api/offline-sky/limit",
-                                    json={"limit": "5120"}).status_code == 404
-
-
-def test_ui_off_is_404(su_client_logged_in, monkeypatch):
-    _store_on(monkeypatch)
-    monkeypatch.setattr(nova, "OFFLINE_SKY_UI_RAW", "off")
-    assert su_client_logged_in.get("/api/offline-sky/status").status_code == 404
-    assert su_client_logged_in.post("/api/offline-sky/clear").status_code == 404
+    _storage_settings(monkeypatch, store_on=False)
+    for method, path in _storage_routes():
+        send = su_client_logged_in.get if method == "GET" else su_client_logged_in.post
+        assert send(path, json={"limit": "5120"}).status_code == 404
 
 
 def test_single_user_can_use_the_storage_api(su_client_logged_in, monkeypatch):
@@ -558,28 +624,45 @@ def test_single_user_can_use_the_storage_api(su_client_logged_in, monkeypatch):
     assert su_client_logged_in.get("/api/offline-sky/status").status_code == 200
 
 
+def test_ui_off_keeps_the_storage_api(su_client_logged_in, monkeypatch):
+    """OFFLINE_SKY_UI=off hides the Framing tab's Offline view switch, not the
+    store. The tiles are still on this disk, so the limit and Clear are still
+    needed -- and the switch really does go away."""
+    _storage_settings(monkeypatch, store_on=True, ui="off")
+    assert su_client_logged_in.get("/api/offline-sky/status").status_code == 200
+    assert su_client_logged_in.post("/api/offline-sky/clear").status_code == 200
+    html = su_client_logged_in.get("/config_form").get_data(as_text=True)
+    assert 'id="offline-sky-section"' in html
+
+    page = su_client_logged_in.get("/graph_dashboard/M42").get_data(as_text=True)
+    assert 'id="offline-view-toggle"' not in page
+    assert "window.NOVA_OFFLINE_SKY_UI = false;" in page
+
+
+def test_storage_available_ignores_the_ui_flag(su_client_logged_in, monkeypatch):
+    """The single rule the page and the routes share, read directly."""
+    from nova.blueprints.offline_sky import storage_available
+    for ui in ("", "auto", "on", "off"):
+        _storage_settings(monkeypatch, store_on=True, ui=ui)
+        assert storage_available() is True
+    _storage_settings(monkeypatch, store_on=False, ui="on")
+    assert storage_available() is False
+
+
 def test_multi_user_non_admin_is_403(multi_user_client, monkeypatch):
-    monkeypatch.setattr("nova.blueprints.offline_sky.OFFLINE_SKY_STORE", "server")
-    monkeypatch.setattr("nova.config.OFFLINE_SKY_STORE", "server")
-    monkeypatch.setattr(nova, "OFFLINE_SKY_UI_RAW", "on")
-    monkeypatch.setattr(store, "OFFLINE_SKY_DIR", "")
+    _storage_settings(monkeypatch, store_on=True, ui="auto")   # auto: UI off here
     client, _ids = multi_user_client          # logged in as "UserA", not an admin
-    assert client.get("/api/offline-sky/status").status_code == 403
-    assert client.post("/api/offline-sky/clear").status_code == 403
-    assert client.post("/api/offline-sky/limit",
-                       json={"limit": "5120"}).status_code == 403
+    for method, path in _storage_routes():
+        send = client.get if method == "GET" else client.post
+        assert send(path, json={"limit": "5120"}).status_code == 403
     # And the section itself is not rendered for them.
     html = client.get("/config_form").get_data(as_text=True)
     assert 'id="offline-sky-section"' not in html
 
 
 def test_multi_user_admin_is_allowed(multi_user_client, monkeypatch):
-    monkeypatch.setattr("nova.blueprints.offline_sky.OFFLINE_SKY_STORE", "server")
-    monkeypatch.setattr("nova.config.OFFLINE_SKY_STORE", "server")
-    monkeypatch.setattr(nova, "OFFLINE_SKY_UI_RAW", "on")
-    monkeypatch.setattr(store, "OFFLINE_SKY_DIR", "")
-    monkeypatch.setattr("nova.config.ADMIN_USERS", {"UserA"})
-    monkeypatch.setattr("nova.blueprints.offline_sky.ADMIN_USERS", {"UserA"})
+    _storage_settings(monkeypatch, store_on=True, ui="auto")   # auto: UI off here
+    _as_admin(monkeypatch)
     client, _ids = multi_user_client
     assert client.get("/api/offline-sky/status").status_code == 200
     html = client.get("/config_form").get_data(as_text=True)
@@ -588,12 +671,17 @@ def test_multi_user_admin_is_allowed(multi_user_client, monkeypatch):
 
 def test_multi_user_unauthenticated_is_not_a_redirect_to_login(
         mu_client_logged_out, monkeypatch):
-    """The /api/ tree answers JSON, never a login redirect."""
-    monkeypatch.setattr("nova.blueprints.offline_sky.OFFLINE_SKY_STORE", "server")
-    monkeypatch.setattr("nova.config.OFFLINE_SKY_STORE", "server")
-    monkeypatch.setattr(nova, "OFFLINE_SKY_UI_RAW", "on")
+    """The /api/ tree answers JSON, never a login redirect.
+
+    With the store on there is a real store here, but the app-wide gate on /api/
+    answers first: an anonymous caller is 401. A *signed-in* non-admin reaches
+    ``_storage_guard`` and is 403 -- that row is in the matrix above.
+    """
+    _storage_settings(monkeypatch, store_on=True, ui="auto")
     resp = mu_client_logged_out.get("/api/offline-sky/status")
-    assert resp.status_code in (401, 403, 404)
+    assert resp.status_code == 401
+    assert resp.get_json()["error"] == "authentication required"
+    assert mu_client_logged_out.post("/api/offline-sky/clear").status_code == 401
 
 
 def test_a_post_without_a_csrf_token_is_refused(su_client_logged_in, monkeypatch):

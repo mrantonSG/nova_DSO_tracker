@@ -5,7 +5,10 @@ Three things are pinned here:
 
 * OFFLINE_SKY_UI resolved against the user mode (auto/on/off, and a typo), and
   the rule that the Framing tab shows its Offline view switch only when that
-  resolves on *and* OFFLINE_SKY_STORE == "server".
+  resolves on *and* OFFLINE_SKY_STORE == "server". It gates nothing else -- the
+  Configuration -> General "Offline sky storage" section and the whole
+  /api/offline-sky/ API follow OFFLINE_SKY_STORE alone (the visibility matrix is
+  in tests/test_offline_sky_storage.py).
 * OFFLINE_SKY_DIR: the default, a relative path, an absolute path, a missing
   directory (created), and an unwritable one (downloads off, browsing fine).
 * The startup migration: the retired save manifests go, their tiles stay on
@@ -99,6 +102,10 @@ def test_the_env_example_documents_the_ui_switch():
     assert "\nOFFLINE_SKY_UI=\n" in text
     assert "anything else" in text              # says what a typo does
     assert "OFFLINE_SKY_DIR=" in text
+    # ...and that the flag is only the Framing switch, never the store or its API.
+    assert "gates only the switch" in text
+    assert ('"Offline sky storage" section follow '
+            'OFFLINE_SKY_STORE alone') in text
     assert "OFFLINE_SKY_SAVE_ENABLED" not in text.replace(
         "OFFLINE_SKY_SAVE_ENABLED, which are ignored", "")   # only the removal note
 

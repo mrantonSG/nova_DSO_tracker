@@ -210,9 +210,12 @@
         {# Offline sky storage. Its own section, NOT inside the General Settings
            form: the limit and Clear save through the /api/offline-sky/ routes
            (fetch), so they must never ride the "Save Settings" POST. The view
-           decides whether to render (storage_available: UI on, store on, and
-           admin-only in multi-user) -- one rule, shared with the API, so the
-           section appears exactly when its routes would answer. #}
+           decides whether to render (storage_available: the tile store is on,
+           i.e. OFFLINE_SKY_STORE=server, and admin-only in multi-user) -- one
+           rule, shared with the API, so the section appears exactly when its
+           routes would answer. OFFLINE_SKY_UI (the Framing tab's Offline view
+           switch) does not gate it: a server that stores tiles has storage to
+           manage whether or not anyone is offered the Offline view. #}
         {% if offline_sky_storage %}
         {% set sky = offline_sky_storage %}
         <div class="config-section offline-sky-section"

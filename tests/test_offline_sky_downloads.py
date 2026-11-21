@@ -19,7 +19,10 @@ The download layer's contract, as decided in DECISIONS.md:
   server" and never blocks "ready";
 * Remove deletes the owned tiles minus any another download or base still
   claims, and refuses (409) rather than deleting while the job may still write;
-* the base pins and their tiles are never touched.
+* the base pins and their tiles are never touched;
+* the whole ``/api/offline-sky/`` surface belongs to the tile store
+  (``OFFLINE_SKY_STORE=server``) and, in multi-user mode, to instance admins --
+  never to ``OFFLINE_SKY_UI``, which is only the Framing tab's Offline view switch.
 """
 
 import json
@@ -778,13 +781,22 @@ def test_an_unwritable_store_refuses_downloads(su_client_logged_in, monkeypatch)
 def test_download_routes_are_admin_only(multi_user_client, monkeypatch):
     monkeypatch.setattr(bp, "OFFLINE_SKY_STORE", "server")
     monkeypatch.setattr("nova.config.OFFLINE_SKY_STORE", "server")
-    import nova
-    monkeypatch.setattr(nova, "OFFLINE_SKY_UI_RAW", "on")
     monkeypatch.setattr(store, "OFFLINE_SKY_DIR", "")
     client, _ids = multi_user_client
     # "UserA" is not an admin.
     resp = client.post(f"/api/offline-sky/downloads/{DSS}", json={"detail": "basic"})
     assert resp.status_code == 403
+
+
+def test_download_routes_ignore_the_ui_flag(su_client_logged_in, monkeypatch):
+    """OFFLINE_SKY_UI only shows or hides the Framing tab's Offline view switch.
+    The download backend hangs off the store, so with the UI switch off it is
+    still there -- the read-only routes answer 200 instead of 404."""
+    _store_on(monkeypatch)
+    import nova
+    monkeypatch.setattr(nova, "OFFLINE_SKY_UI_RAW", "off")
+    assert su_client_logged_in.get("/api/offline-sky/selection").status_code == 200
+    assert su_client_logged_in.get("/api/offline-sky/downloads").status_code == 200
 
 
 def test_download_routes_are_404_when_the_store_is_off(su_client_logged_in, monkeypatch):
@@ -892,8 +904,6 @@ def _raise_boom():
 def _store_on(monkeypatch):
     monkeypatch.setattr(bp, "OFFLINE_SKY_STORE", "server")
     monkeypatch.setattr("nova.config.OFFLINE_SKY_STORE", "server")
-    import nova
-    monkeypatch.setattr(nova, "OFFLINE_SKY_UI_RAW", "on")
     monkeypatch.setattr(store, "OFFLINE_SKY_DIR", "")
 
 

@@ -3480,6 +3480,10 @@ def offline_sky_ui() -> bool:
     points at the cache-only /hips/offline/ roots, which only exist with the
     proxy. Read live, not at import, so a test (or a mode switch) that changes
     nova.SINGLE_USER_MODE is honoured.
+
+    This is the Framing tab's switch and nothing else -- the Configuration ->
+    General "Offline sky storage" section follows the store alone, see
+    ``nova.blueprints.offline_sky.storage_available()``.
     """
     if not offline_sky_enabled():
         return False
