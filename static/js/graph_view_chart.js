@@ -3801,6 +3801,7 @@
         'SNR': 'SNR',               'HII': 'HII Region',
         'EmN': 'Emission Nebula',   'RfN': 'Reflection Nebula',
         'MoC': 'Molecular Cloud',   'Cl*': 'Star Cluster',
+        'DNe': 'Dark Nebula',       'RNe': 'Reflection Nebula',
     };
 
     function scanFrameForDSOs() {

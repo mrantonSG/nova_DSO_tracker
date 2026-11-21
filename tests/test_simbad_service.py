@@ -200,3 +200,69 @@ def test_is_available_cached_false_when_every_known_host_is_down(monkeypatch):
     simbad_service.mark_down("simbad.harvard.edu")
     clock.now += 61.0
     assert simbad_service.is_available_cached() is False
+
+
+# --- tap_csv(budget=...): a firm limit on the whole call, failover included ---
+
+class _FakeTapResponse:
+    ok = True
+    status_code = 200
+    headers = {"content-type": "text/csv"}
+    text = "main_id,ra\nM 1,83.6\n"
+
+
+def test_tap_csv_cuts_the_request_timeout_to_the_budget(monkeypatch):
+    clock = _FakeClock()
+    monkeypatch.setattr(simbad_service, "time", clock)
+    simbad_service.mark_up("simbad.cds.unistra.fr")
+    seen = []
+    monkeypatch.setattr(simbad_service.requests, "post",
+                        lambda url, data, timeout: seen.append(timeout) or _FakeTapResponse())
+
+    assert simbad_service.tap_csv("SELECT 1", timeout=10, budget=4.0).startswith("main_id")
+    assert seen == [4.0]
+
+
+def test_tap_csv_does_not_start_a_probe_that_cannot_finish(monkeypatch):
+    """Stale hosts are skipped when probe + one attempt do not fit; a fresh one is used."""
+    clock = _FakeClock()
+    monkeypatch.setattr(simbad_service, "time", clock)
+    simbad_service.mark_up("simbad.idia.ac.za")       # fresh; the other two are unknown
+    probed, posted = [], []
+    monkeypatch.setattr(simbad_service, "_probe", lambda host: probed.append(host) or True)
+    monkeypatch.setattr(simbad_service.requests, "post",
+                        lambda url, data, timeout: posted.append(url) or _FakeTapResponse())
+
+    simbad_service.tap_csv("SELECT 1", budget=simbad_service.PROBE_MAX)
+    assert probed == []
+    assert len(posted) == 1 and "simbad.idia.ac.za" in posted[0]
+
+
+def test_tap_csv_stops_failover_when_the_budget_is_spent(monkeypatch):
+    """A host that hangs for the whole budget is not followed by another attempt."""
+    clock = _FakeClock()
+    monkeypatch.setattr(simbad_service, "time", clock)
+    for host in simbad_service.HOSTS:
+        simbad_service.mark_up(host)
+    posted = []
+
+    def hanging_post(url, data, timeout):
+        posted.append((url, timeout))
+        clock.now += timeout
+        raise requests.exceptions.ReadTimeout("hung")
+
+    monkeypatch.setattr(simbad_service.requests, "post", hanging_post)
+    with pytest.raises(simbad_service.SimbadUnavailableError):
+        simbad_service.tap_csv("SELECT 1", timeout=10, budget=13.0)
+    # 10 s on the first host, then 3 s left: the second gets 3 s, then nothing is left.
+    assert [t for _, t in posted] == [10, 3.0]
+    assert clock.now - 1000.0 <= 13.0
+
+
+def test_tap_csv_reports_an_exhausted_budget_without_trying_any_host(monkeypatch):
+    clock = _FakeClock()
+    monkeypatch.setattr(simbad_service, "time", clock)
+    monkeypatch.setattr(simbad_service, "_probe",
+                        lambda host: pytest.fail("no probe expected"))
+    with pytest.raises(simbad_service.SimbadUnavailableError, match="budget exhausted"):
+        simbad_service.tap_csv("SELECT 1", budget=0.5)

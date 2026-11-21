@@ -1071,6 +1071,11 @@ def _resolve_scan_name(ids_str, fallback):
     return fallback, False
 
 
+# scan_frame's time limits, kept under gunicorn's --timeout 30 (Dockerfile).
+_SCAN_SECOND_QUERY_CUTOFF_S = 12.0   # sized query slower than this: skip the second
+_SCAN_TOTAL_BUDGET_S = 25.0          # both queries together
+
+
 @api_bp.route('/api/scan_frame', methods=['POST'])
 @login_required
 def scan_frame():
@@ -1120,13 +1125,17 @@ def scan_frame():
                              "ORDER BY galdim_majaxis DESC")
     sizeless_adql = _base + "AND b.galdim_majaxis IS NULL"
 
-    def _scan_rows(adql):
-        text = simbad_service.tap_csv(adql, timeout=DEFAULT_HTTP_TIMEOUT)
+    def _scan_rows(adql, **kw):
+        text = simbad_service.tap_csv(adql, **kw)
         current_app.logger.debug('[SCAN] SIMBAD response: %s', text[:300])
         return list(csv.DictReader(io.StringIO(text)))
 
+    # Both queries together stay inside gunicorn's --timeout 30: tap_csv holds
+    # the sized query to its default budget (20 s), and the sizeless one only
+    # runs when there is time left, with whatever is left up to 25 s.
+    started = time.monotonic()
     try:
-        rows = _scan_rows(sized_adql)
+        rows = _scan_rows(sized_adql, timeout=DEFAULT_HTTP_TIMEOUT)
     except simbad_service.SimbadUnavailableError:
         return jsonify({
             'status': 'error',
@@ -1136,12 +1145,24 @@ def scan_frame():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 200
 
-    # A failing second call must not lose the sized results already in hand.
-    try:
-        rows += _scan_rows(sizeless_adql)
-    except Exception as e:
-        current_app.logger.warning('[SCAN] Sizeless query failed, '
-                                   'returning sized results only: %s', e)
+    # A failing or skipped second call must not lose the sized results already
+    # in hand; the answer is then partial and is not cached.
+    partial = False
+    elapsed = time.monotonic() - started
+    if elapsed > _SCAN_SECOND_QUERY_CUTOFF_S:
+        partial = True
+        current_app.logger.warning('[SCAN] Sized query took %.1f s, skipping the '
+                                   'sizeless query', elapsed)
+    else:
+        remaining = _SCAN_TOTAL_BUDGET_S - elapsed
+        try:
+            rows += _scan_rows(sizeless_adql,
+                               timeout=min(DEFAULT_HTTP_TIMEOUT, remaining),
+                               budget=remaining)
+        except Exception as e:
+            partial = True
+            current_app.logger.warning('[SCAN] Sizeless query failed, '
+                                       'returning sized results only: %s', e)
 
     objects = []
     for row in rows:
@@ -1169,7 +1190,9 @@ def scan_frame():
         })
 
     resp = {'status': 'success', 'count': len(objects), 'objects': objects}
-    _scan_frame_cache[cache_key] = (now, resp)
+    # A partial answer is not cached: a rescan of the same frame asks SIMBAD again.
+    if not partial:
+        _scan_frame_cache[cache_key] = (now, resp)
     return jsonify(resp)
 
 @api_bp.route('/api/get_framing/<path:object_name>')

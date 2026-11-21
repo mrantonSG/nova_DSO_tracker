@@ -17,7 +17,7 @@ FAKE_SIMBAD_CSV = (
 EMPTY_SIMBAD_CSV = "main_id,ra,dec,otype,galdim_majaxis,ids,vmag\n"
 
 
-def _fake_tap_sized_only(adql, timeout=None):
+def _fake_tap_sized_only(adql, timeout=None, **kwargs):
     """The route asks twice; answer the sized query, leave the sizeless one empty."""
     return EMPTY_SIMBAD_CSV if 'galdim_majaxis IS NULL' in adql else FAKE_SIMBAD_CSV
 
@@ -1131,7 +1131,7 @@ def test_api_scan_frame_mag_filter(client, db_session, monkeypatch):
 
 
 def test_api_scan_frame_unavailable(client, db_session, monkeypatch):
-    def _raise_unavailable(adql, timeout=None):
+    def _raise_unavailable(adql, timeout=None, **kwargs):
         raise simbad_service.SimbadUnavailableError('down')
     monkeypatch.setattr(simbad_service, 'tap_csv', _raise_unavailable)
     payload = {'ra': 10.0, 'dec': 20.0, 'fov_w': 1.0, 'fov_h': 1.0}
@@ -1180,7 +1180,7 @@ def test_scan_frame_query_includes_dark_and_reflection_nebulae(
     """DNe carries Barnard/LDN; RNe carries vdB/Ced/RCW/Gum."""
     seen = []
 
-    def fake_tap(adql, timeout=None):
+    def fake_tap(adql, timeout=None, **kwargs):
         seen.append(adql)
         return EMPTY_SIMBAD_CSV
 
@@ -1199,7 +1199,7 @@ def test_scan_frame_lists_sized_objects_before_sizeless(
     sizeless = ('main_id,ra,dec,otype,galdim_majaxis,ids,vmag\n'
                 'DOBASHI 1854,295.1558,10.865,DNe,,DOBASHI 1854,\n')
 
-    def fake_tap(adql, timeout=None):
+    def fake_tap(adql, timeout=None, **kwargs):
         return sized if 'IS NOT NULL' in adql else sizeless
 
     monkeypatch.setattr(simbad_service, 'tap_csv', fake_tap)
@@ -1214,7 +1214,7 @@ def test_scan_frame_keeps_sized_results_when_the_sizeless_query_fails(
     sized = ('main_id,ra,dec,otype,galdim_majaxis,ids,vmag\n'
              'Barnard 142,294.925,10.5167,DNe,40.0,Barnard 142|TGU H367,\n')
 
-    def fake_tap(adql, timeout=None):
+    def fake_tap(adql, timeout=None, **kwargs):
         if 'IS NULL' in adql and 'IS NOT NULL' not in adql:
             raise RuntimeError('second query failed')
         return sized
@@ -1224,6 +1224,89 @@ def test_scan_frame_keeps_sized_results_when_the_sizeless_query_fails(
     body = client.post('/api/scan_frame', json=payload).get_json()
     assert body['status'] == 'success'
     assert [o['name'] for o in body['objects']] == ['Barnard 142']
+
+
+_SCAN_SIZED_B142 = ('main_id,ra,dec,otype,galdim_majaxis,ids,vmag\n'
+                    'Barnard 142,294.925,10.5167,DNe,40.0,Barnard 142|TGU H367,\n')
+
+
+def _is_sizeless(adql):
+    return 'IS NULL' in adql and 'IS NOT NULL' not in adql
+
+
+class _ScanClock:
+    """Stands in for the api module's ``time``: monotonic() is driven by the test."""
+    def __init__(self):
+        self.now = 1000.0
+
+    def monotonic(self):
+        return self.now
+
+    def __getattr__(self, name):
+        import time as _time
+        return getattr(_time, name)
+
+
+def test_scan_frame_does_not_cache_a_partial_result(client, db_session, monkeypatch):
+    calls = []
+
+    def fake_tap(adql, timeout=None, **kwargs):
+        calls.append(adql)
+        if _is_sizeless(adql):
+            raise RuntimeError('second query failed')
+        return _SCAN_SIZED_B142
+
+    monkeypatch.setattr(simbad_service, 'tap_csv', fake_tap)
+    payload = {'ra': 7.0, 'dec': 8.0, 'fov_w': 1.0, 'fov_h': 1.0}
+    for _ in range(2):
+        body = client.post('/api/scan_frame', json=payload).get_json()
+        assert [o['name'] for o in body['objects']] == ['Barnard 142']
+    assert len(calls) == 4, 'the rescan must reach SIMBAD again'
+
+
+def test_scan_frame_skips_the_sizeless_query_after_a_slow_sized_one(
+        client, db_session, monkeypatch):
+    """Sized query over 12 s: no second query, sized rows returned, nothing cached."""
+    from nova.blueprints import api as api_module
+    clock = _ScanClock()
+    monkeypatch.setattr(api_module, 'time', clock)
+    calls = []
+
+    def slow_tap(adql, timeout=None, **kwargs):
+        calls.append(adql)
+        assert not _is_sizeless(adql), 'the sizeless query must be skipped'
+        clock.now += 12.5
+        return _SCAN_SIZED_B142
+
+    monkeypatch.setattr(simbad_service, 'tap_csv', slow_tap)
+    payload = {'ra': 9.0, 'dec': 10.0, 'fov_w': 1.0, 'fov_h': 1.0}
+    for _ in range(2):
+        body = client.post('/api/scan_frame', json=payload).get_json()
+        assert body['status'] == 'success'
+        assert [o['name'] for o in body['objects']] == ['Barnard 142']
+    assert len(calls) == 2, 'a skipped second query leaves the result uncached'
+
+
+def test_scan_frame_gives_the_sizeless_query_the_time_left(
+        client, db_session, monkeypatch):
+    """Sized query took 9 s: the second runs with budget 25 - 9 = 16 s, timeout 10 s."""
+    from nova.blueprints import api as api_module
+    clock = _ScanClock()
+    monkeypatch.setattr(api_module, 'time', clock)
+    seen = {}
+
+    def fake_tap(adql, timeout=None, **kwargs):
+        if _is_sizeless(adql):
+            seen['timeout'], seen['budget'] = timeout, kwargs.get('budget')
+            return EMPTY_SIMBAD_CSV
+        clock.now += 9.0
+        return _SCAN_SIZED_B142
+
+    monkeypatch.setattr(simbad_service, 'tap_csv', fake_tap)
+    payload = {'ra': 11.0, 'dec': 12.0, 'fov_w': 1.0, 'fov_h': 1.0}
+    body = client.post('/api/scan_frame', json=payload).get_json()
+    assert body['status'] == 'success'
+    assert seen == {'timeout': 10, 'budget': 16.0}
 
 
 # --- /api/simbad_status: decides whether the SIMBAD tab embeds Strasbourg ---

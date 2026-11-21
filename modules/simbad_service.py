@@ -40,6 +40,10 @@ QUERY_TIMEOUT = (3, 8)
 UP_TTL = 60
 DOWN_TTL = 900
 TOTAL_BUDGET = 20.0
+# tap_csv's firm budget: the longest a stale host's probe can take (connect +
+# read), and the least time worth starting a request with.
+PROBE_MAX = float(sum(PROBE_TIMEOUT))
+TAP_MIN_ATTEMPT = 1.0
 
 _lock = threading.Lock()
 _probe_locks = {host: threading.Lock() for host in HOSTS}
@@ -229,26 +233,42 @@ def query_object(object_name, fields=("main_id",), row_limit=1):
     raise SimbadUnavailableError("SIMBAD request budget exhausted")
 
 
-def tap_csv(adql, timeout=DEFAULT_HTTP_TIMEOUT):
+def tap_csv(adql, timeout=DEFAULT_HTTP_TIMEOUT, budget=TOTAL_BUDGET):
     """Run ADQL against the first healthy host and return the CSV text.
 
     Tries the next host on failure. Raises SimbadUnavailableError when all fail.
+
+    ``budget`` is a firm limit on the whole call, failover included: no host is
+    tried with less than TAP_MIN_ATTEMPT seconds left, no stale host is probed
+    unless the probe can finish inside the budget, and each request's timeout is
+    cut to the time remaining.
     """
-    deadline = time.monotonic() + TOTAL_BUDGET
+    deadline = time.monotonic() + budget
     last_exc = None
     tried = 0
+    out_of_budget = False
     for host in _ordered_hosts():
-        if time.monotonic() >= deadline:
+        remaining = deadline - time.monotonic()
+        if remaining < TAP_MIN_ATTEMPT:
+            out_of_budget = True
             break
+        if not _is_fresh(host, time.monotonic()) \
+                and remaining < PROBE_MAX + TAP_MIN_ATTEMPT:
+            out_of_budget = True
+            continue    # no time to probe this one; a fresh host may follow
         if not _ensure_host_usable(host):
             continue
+        remaining = deadline - time.monotonic()
+        if remaining < TAP_MIN_ATTEMPT:
+            out_of_budget = True
+            break
         tried += 1
         try:
             r = requests.post(
                 f"https://{host}/simbad/sim-tap/sync",
                 data=[("REQUEST", "doQuery"), ("LANG", "ADQL"),
                       ("FORMAT", "csv"), ("QUERY", adql)],
-                timeout=timeout,
+                timeout=min(timeout, remaining),
             )
             ctype = (r.headers.get("content-type") or "").lower()
             text = r.text or ""
@@ -264,7 +284,7 @@ def tap_csv(adql, timeout=DEFAULT_HTTP_TIMEOUT):
         except requests.exceptions.RequestException as exc:
             last_exc = exc
             mark_down(host)
-    if tried == 0:
+    if tried == 0 and not out_of_budget:
         raise SimbadUnavailableError("No reachable SIMBAD host")
     if last_exc is not None:
         raise SimbadUnavailableError(f"SIMBAD hosts failed: {last_exc}") from last_exc
