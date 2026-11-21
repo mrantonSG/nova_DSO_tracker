@@ -2734,6 +2734,30 @@
         aladin.setFov(requiredWidthDeg);
         updateScreenFovOverlay(fovW_arcmin, fovH_arcmin, rotationDeg);
     }
+    /** Rig changed: re-fit the frame to the new rig's FOV and re-zoom to it.
+     *
+     *  The frame centre is the view centre and stays where the user put it -- only the
+     *  pane size changes. No gotoRaDec/gotoObject here: jumping back to the object is
+     *  what "Recenter to object" and the first open of the tab are for.
+     */
+    function applyRigChangeKeepingCentre() {
+        if (!aladin) return;
+        const framingRigSelect = document.getElementById('framing-rig-select');
+        const selectedOption = framingRigSelect && framingRigSelect.options[framingRigSelect.selectedIndex];
+        if (!selectedOption) return;
+        const fovWidthArcmin = parseFloat(selectedOption.dataset.fovw), fovHeightArcmin = parseFloat(selectedOption.dataset.fovh);
+        const rotationSlider = document.getElementById('framing-rotation');
+        const vNum = (rotationSlider && typeof rotationSlider.valueAsNumber === 'number') ? rotationSlider.valueAsNumber : NaN;
+        const rotation = Number.isFinite(vNum) ? vNum : (Number.isFinite(parseFloat(rotationSlider.value)) ? parseFloat(rotationSlider.value) : 0);
+
+        // Rotation badge, the Result angle and Copy angle: the same single value as in
+        // updateFramingChart, so the rig change leaves the angle readout exactly as it is.
+        (function updateRotationBadge(){ const el = document.getElementById('rotation-value'), sliderEl = document.getElementById('framing-rotation'), angleEl = document.getElementById('result-angle'), txt = `${Math.round(rotation)}°`; if (el) el.textContent = txt; if (angleEl) angleEl.value = txt; if (sliderEl) sliderEl.title = window.t('framing_rotation_title', { angle: txt }); })();
+
+        applyRigFovZoom(fovWidthArcmin, fovHeightArcmin, rotation);
+        showFrameOverlay();
+        updateResultDiffers();
+    }
     window.updateFramingChart = function (recenter = true) {
         if (!aladin) return;
         const objectName = NOVA_GRAPH_DATA.objectName, framingRigSelect = document.getElementById('framing-rig-select'), rotationSlider = document.getElementById('framing-rotation'), selectedOption = framingRigSelect.options[framingRigSelect.selectedIndex];
@@ -3988,6 +4012,7 @@
     window.copyRaDec = copyRaDec;
     window.copyResult = copyResult;
     window.resetFovCenterToObject = resetFovCenterToObject;
+    window.applyRigChangeKeepingCentre = applyRigChangeKeepingCentre;
     window.copyAsiairMosaic = copyAsiairMosaic;
     window.scanFrameForDSOs = scanFrameForDSOs;
     window.updateScanButtonState = updateScanButtonState;

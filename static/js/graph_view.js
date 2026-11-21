@@ -340,8 +340,8 @@
                 break;
             case 'update-framing-rig':
                 console.log('[GRAPH_VIEW] update-framing-rig');
-                if (typeof window.updateFramingChart === 'function') {
-                    window.updateFramingChart(true);
+                if (typeof window.applyRigChangeKeepingCentre === 'function') {
+                    window.applyRigChangeKeepingCentre();
                 }
                 if (typeof window.updateFovVsObjectLabel === 'function') {
                     window.updateFovVsObjectLabel();
