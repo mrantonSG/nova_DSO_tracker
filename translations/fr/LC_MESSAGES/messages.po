@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-17 18:15+0800\n"
+"POT-Creation-Date: 2026-11-21 21:24+0800\n"
 "PO-Revision-Date: 2026-03-06 10:45+0800\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -139,61 +139,61 @@ msgstr "Objet non trouvé"
 msgid "<p>Error reading help file: %(error)s</p>"
 msgstr "<p>Erreur lors de la lecture du fichier d'aide : %(error)s</p>"
 
-#: nova/blueprints/api.py:1092 nova/blueprints/core.py:1277
-#: nova/blueprints/core.py:1325 templates/base.html:188
-#: templates/graph_view.html:337 templates/mobile_add_object.html:58
+#: nova/blueprints/api.py:1134 nova/blueprints/core.py:1285
+#: nova/blueprints/core.py:1333 templates/base.html:188
+#: templates/graph_view.html:298 templates/mobile_add_object.html:58
 msgid "SIMBAD is currently unavailable. Please try again later."
 msgstr "SIMBAD est actuellement indisponible. Veuillez réessayer plus tard."
 
-#: nova/blueprints/api.py:1701
+#: nova/blueprints/api.py:1751
 msgid "No file uploaded"
 msgstr "Aucun fichier téléchargé"
 
-#: nova/blueprints/api.py:1705
+#: nova/blueprints/api.py:1755
 msgid "Empty filename"
 msgstr "Nom de fichier vide"
 
-#: nova/blueprints/api.py:1712
+#: nova/blueprints/api.py:1762
 msgid "File is too large. Maximum size is 10 MB."
 msgstr "Le fichier est trop volumineux. La taille maximale est de 10 Mo."
 
-#: nova/blueprints/api.py:1755 nova/blueprints/api.py:3436
+#: nova/blueprints/api.py:1805 nova/blueprints/api.py:3486
 msgid "User not found"
 msgstr "Utilisateur non trouvé"
 
-#: nova/blueprints/api.py:1759
+#: nova/blueprints/api.py:1809
 msgid "Session not found"
 msgstr "Session non trouvée"
 
-#: nova/blueprints/api.py:3130
+#: nova/blueprints/api.py:3180
 msgid "Object data not found or invalid."
 msgstr "Données de l'objet introuvables ou invalides."
 
-#: nova/blueprints/api.py:3134
+#: nova/blueprints/api.py:3184
 msgid "RA/DEC missing for object."
 msgstr "RA/DEC manquant pour l'objet."
 
-#: nova/blueprints/api.py:3139
+#: nova/blueprints/api.py:3189
 msgid "Invalid RA/DEC format for object."
 msgstr "Format RA/DEC invalide pour l'objet."
 
-#: nova/blueprints/api.py:3302
+#: nova/blueprints/api.py:3352
 msgid "Could not generate time series for plot."
 msgstr "Impossible de générer la série temporelle pour le graphique."
 
-#: nova/blueprints/api.py:3400
+#: nova/blueprints/api.py:3450
 msgid "Location not configured"
 msgstr "Emplacement non configuré"
 
-#: nova/blueprints/api.py:4377
+#: nova/blueprints/api.py:4427
 msgid "Missing or invalid lat/lon parameters"
 msgstr "Paramètres lat/lon manquants ou invalides"
 
-#: nova/blueprints/api.py:4386
+#: nova/blueprints/api.py:4436
 msgid "Invalid datetime format"
 msgstr "Format de date et heure invalide."
 
-#: nova/blueprints/api.py:4406
+#: nova/blueprints/api.py:4456
 msgid "Calibration star catalog not found"
 msgstr "Catalogue d'étoiles de calibration introuvable"
 
@@ -303,85 +303,85 @@ msgstr ""
 "Impossible de supprimer le lieu '%(name)s' : il est utilisé par "
 "%(sessions)d séance(s)."
 
-#: nova/blueprints/core.py:983
+#: nova/blueprints/core.py:991
 #, python-format
 msgid "A database error occurred: %(error)s"
 msgstr "Une erreur de base de données s'est produite : %(error)s"
 
-#: nova/blueprints/core.py:1197
+#: nova/blueprints/core.py:1205
 msgid "Label required"
 msgstr "Libellé requis"
 
-#: nova/blueprints/core.py:1207
+#: nova/blueprints/core.py:1215
 msgid "Filter already exists"
 msgstr "Le filtre existe déjà"
 
-#: nova/blueprints/core.py:1224
+#: nova/blueprints/core.py:1232
 msgid "Filter not found"
 msgstr "Filtre non trouvé"
 
-#: nova/blueprints/core.py:1253 nova/blueprints/core.py:1299
+#: nova/blueprints/core.py:1261 nova/blueprints/core.py:1307
 msgid "No object specified."
 msgstr "Aucun objet spécifié."
 
-#: nova/blueprints/core.py:1268
+#: nova/blueprints/core.py:1276
 msgid "This object is already in your library."
 msgstr "Cet objet est déjà dans votre bibliothèque."
 
-#: nova/blueprints/core.py:1286 nova/blueprints/core.py:1932
-#: nova/blueprints/core.py:1959 templates/mobile_add_object.html:57
+#: nova/blueprints/core.py:1294 nova/blueprints/core.py:1940
+#: nova/blueprints/core.py:1967 templates/mobile_add_object.html:57
 msgid "Object not found."
 msgstr "Objet non trouvé."
 
-#: nova/blueprints/core.py:1605
+#: nova/blueprints/core.py:1613
 msgid "Fetched and saved missing object details."
 msgstr "Récupération et enregistrement des détails des objets manquants."
 
-#: nova/blueprints/core.py:1607
+#: nova/blueprints/core.py:1615
 msgid "No missing data found or no updates needed."
 msgstr "Aucune donnée manquante trouvée ou aucune mise à jour nécessaire."
 
-#: nova/blueprints/core.py:1611
+#: nova/blueprints/core.py:1619
 #, python-format
 msgid "An error occurred during data fetching: %(error)s"
 msgstr "Une erreur s'est produite lors de la récupération des données : %(error)s"
 
-#: nova/blueprints/core.py:1963
+#: nova/blueprints/core.py:1971
 msgid "An internal error occurred."
 msgstr "Une erreur interne s'est produite."
 
-#: nova/blueprints/core.py:2080
+#: nova/blueprints/core.py:2088
 msgid "Please log in to view object details."
 msgstr "Veuillez vous connecter pour voir les détails de l'objet."
 
-#: nova/blueprints/core.py:2095
+#: nova/blueprints/core.py:2103
 #, python-format
 msgid "User '%(username)s' not found."
 msgstr "Utilisateur « %(username)s » introuvable."
 
-#: nova/blueprints/core.py:2111
+#: nova/blueprints/core.py:2119
 #, python-format
 msgid "Requested location '%(location_name)s' not found, using default."
 msgstr ""
 "Emplacement demandé « %(location_name)s » introuvable, utilisation de "
 "l'emplacement par défaut."
 
-#: nova/blueprints/core.py:2129
+#: nova/blueprints/core.py:2137
 msgid "Error: No valid location configured or selected for this user."
 msgstr ""
 "Erreur : aucun emplacement valide n'est configuré ou sélectionné pour cet"
 " utilisateur."
 
-#: nova/blueprints/core.py:2147
+#: nova/blueprints/core.py:2155
 #, python-format
 msgid "Object '%(object_name)s' not found in your configuration."
 msgstr "Objet « %(object_name)s » introuvable dans votre configuration."
 
-#: nova/blueprints/core.py:2422
+#: nova/blueprints/core.py:2430
 msgid "Invalid date components provided, defaulting to current date."
 msgstr "Composants de date invalides fournis, valeur par défaut : date actuelle."
 
-#: nova/blueprints/core.py:2637
+#: nova/blueprints/core.py:2645
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
 msgstr ""
@@ -983,8 +983,8 @@ msgid "Import failed: %(error)s"
 msgstr "Échec de l'importation : %(error)s"
 
 #: nova/blueprints/tools.py:576 templates/_journal_section.html:2788
-#: templates/_project_subtab.html:195 templates/graph_view.html:107
-#: templates/graph_view.html:108 templates/index.html:38
+#: templates/_project_subtab.html:195 templates/graph_view.html:73
+#: templates/graph_view.html:74 templates/index.html:38
 #: templates/index.html:200 templates/index.html:218
 #: templates/journal_report.html:688 templates/mobile_base.html:30
 #: templates/mobile_base.html:68 templates/mobile_journal_new.html:225
@@ -1003,13 +1003,13 @@ msgid "Component"
 msgstr "Composant"
 
 #: nova/blueprints/tools.py:577 templates/_journal_section.html:2835
-#: templates/graph_view.html:402 templates/index.html:152
+#: templates/graph_view.html:338 templates/index.html:152
 #: templates/mobile_journal_new.html:237 templates/project_report.html:1167
 msgid "Rig"
 msgstr "Rig"
 
-#: nova/blueprints/tools.py:577 templates/graph_view.html:133
-#: templates/graph_view.html:359 templates/graph_view.html:362
+#: nova/blueprints/tools.py:577 templates/graph_view.html:99
+#: templates/graph_view.html:320 templates/graph_view.html:323
 #: templates/mobile_framing_coords.html:2
 #: templates/mobile_object_detail.html:527 templates/mobile_outlook.html:183
 #: templates/mobile_up_now.html:895
@@ -1299,7 +1299,7 @@ msgstr "Heure de culmination"
 msgid "Duration"
 msgstr "Durée"
 
-#: templates/_inspiration_section.html:504 templates/config_form.html:584
+#: templates/_inspiration_section.html:504 templates/config_form.html:671
 #: templates/index.html:145 templates/mobile_up_now.html:982
 msgid "Constellation"
 msgstr "Constellation"
@@ -1313,8 +1313,7 @@ msgstr "Source : Wiki"
 #: templates/_objects_section.html:474 templates/base.html:256
 #: templates/base.html:487 templates/base.html:505 templates/base.html:510
 #: templates/base.html:519 templates/base.html:558
-#: templates/config_form.html:684 templates/graph_view.html:353
-#: templates/graph_view.html:510
+#: templates/config_form.html:771 templates/graph_view.html:314
 msgid "Close"
 msgstr "Fermer"
 
@@ -1388,10 +1387,10 @@ msgid "h"
 msgstr "h"
 
 #: templates/_inspiration_section.html:542 templates/_objects_section.html:463
-#: templates/base.html:108 templates/config_form.html:607
-#: templates/config_form.html:636 templates/config_form.html:672
-#: templates/graph_view.html:179 templates/graph_view.html:193
-#: templates/graph_view.html:837 templates/mobile_object_detail.html:588
+#: templates/base.html:108 templates/config_form.html:694
+#: templates/config_form.html:723 templates/config_form.html:759
+#: templates/graph_view.html:145 templates/graph_view.html:159
+#: templates/graph_view.html:758 templates/mobile_object_detail.html:588
 msgid "Loading..."
 msgstr "Chargement..."
 
@@ -1670,12 +1669,12 @@ msgid "Rig Specs:"
 msgstr "Caractéristiques du rig :"
 
 #: templates/_journal_section.html:2192 templates/_journal_section.html:2234
-#: templates/config_form.html:487 templates/journal_report.html:761
+#: templates/config_form.html:574 templates/journal_report.html:761
 msgid "Telescope:"
 msgstr "Télescope :"
 
 #: templates/_journal_section.html:2193 templates/_journal_section.html:2238
-#: templates/config_form.html:493 templates/journal_report.html:771
+#: templates/config_form.html:580 templates/journal_report.html:771
 msgid "Camera:"
 msgstr "Chambre :"
 
@@ -1898,18 +1897,18 @@ msgstr "#"
 msgid "Time"
 msgstr "Temps"
 
-#: templates/_journal_section.html:2388 templates/graph_view.html:842
+#: templates/_journal_section.html:2388 templates/graph_view.html:763
 #: templates/journal_report.html:1091
 msgid "RA"
 msgstr "AD"
 
-#: templates/_journal_section.html:2389 templates/graph_view.html:843
+#: templates/_journal_section.html:2389 templates/graph_view.html:764
 #: templates/journal_report.html:1092
 msgid "Dec"
 msgstr "Décembre"
 
-#: templates/_journal_section.html:2390 templates/graph_view.html:27
-#: templates/graph_view.html:388 templates/journal_report.html:1093
+#: templates/_journal_section.html:2390 templates/graph_view.html:29
+#: templates/graph_view.html:367 templates/journal_report.html:1093
 msgid "Angle"
 msgstr "Angle"
 
@@ -2135,9 +2134,8 @@ msgstr "Projet d'édition :"
 #: templates/_journal_section.html:2770 templates/_journal_section.html:3086
 #: templates/_objects_section.html:364 templates/_project_subtab.html:232
 #: templates/admin_users.html:107 templates/base.html:591
-#: templates/graph_view.html:42 templates/graph_view.html:634
-#: templates/index.html:297 templates/journal_form.html:205
-#: templates/solar_system.html:187
+#: templates/graph_view.html:555 templates/index.html:297
+#: templates/journal_form.html:205 templates/solar_system.html:187
 msgid "Cancel"
 msgstr "Annuler"
 
@@ -2246,7 +2244,7 @@ msgstr "Modification de la session"
 msgid "New session"
 msgstr "Nouvelle session"
 
-#: templates/_journal_section.html:2767 templates/graph_view.html:636
+#: templates/_journal_section.html:2767 templates/graph_view.html:557
 msgid "Unsaved changes"
 msgstr "Modifications non enregistrées"
 
@@ -2266,7 +2264,7 @@ msgstr "Journaux et fichiers"
 msgid "Session date"
 msgstr "Date de la session"
 
-#: templates/_journal_section.html:2788 templates/graph_view.html:113
+#: templates/_journal_section.html:2788 templates/graph_view.html:79
 msgid " (Inactive)"
 msgstr " (inactif)"
 
@@ -2336,7 +2334,7 @@ msgid "-- Manually Enter Below --"
 msgstr "-- Saisir manuellement ci-dessous --"
 
 #: templates/_journal_section.html:2842 templates/admin_users.html:75
-#: templates/config_form.html:714 templates/graph_view.html:403
+#: templates/config_form.html:801 templates/graph_view.html:339
 msgid "Inactive"
 msgstr "Inactif"
 
@@ -2458,7 +2456,7 @@ msgstr "Expositions avec filtre monochrome"
 msgid "Exp (s)"
 msgstr "Pose (s)"
 
-#: templates/_journal_section.html:2891 templates/graph_view.html:531
+#: templates/_journal_section.html:2891
 msgid "Total"
 msgstr "Total"
 
@@ -2620,7 +2618,7 @@ msgid "{label} removed."
 msgstr "{label} supprimé."
 
 #: templates/_journal_section.html:3075 templates/base.html:305
-#: templates/graph_view.html:623 templates/index.html:114
+#: templates/graph_view.html:544 templates/index.html:114
 msgid "Ask Nova"
 msgstr "Ask Nova"
 
@@ -2637,7 +2635,7 @@ msgid "Checking guiding data..."
 msgstr "Vérification des données de guidage..."
 
 #: templates/_journal_section.html:3080 templates/base.html:317
-#: templates/graph_view.html:629
+#: templates/graph_view.html:550
 msgid "Almost there..."
 msgstr "Nous y sommes presque..."
 
@@ -2653,11 +2651,11 @@ msgstr "mots"
 msgid "Nova has a summary ready. What would you like to do?"
 msgstr "Nova a un résumé prêt. Que souhaitez-vous faire ?"
 
-#: templates/_journal_section.html:3084 templates/graph_view.html:632
+#: templates/_journal_section.html:3084 templates/graph_view.html:553
 msgid "Overwrite"
 msgstr "Écraser"
 
-#: templates/_journal_section.html:3085 templates/graph_view.html:633
+#: templates/_journal_section.html:3085 templates/graph_view.html:554
 msgid "Append"
 msgstr "Ajouter à la suite"
 
@@ -2710,8 +2708,8 @@ msgstr "Le plus d'heures"
 msgid "Filter by status"
 msgstr "Filtrer par statut"
 
-#: templates/_object_switcher.html:229 templates/config_form.html:599
-#: templates/config_form.html:628 templates/config_form.html:664
+#: templates/_object_switcher.html:229 templates/config_form.html:686
+#: templates/config_form.html:715 templates/config_form.html:751
 #: templates/index.html:179 templates/index.html:211
 msgid "All"
 msgstr "Tous"
@@ -2763,8 +2761,8 @@ msgid "e.g., Cyg"
 msgstr "par exemple, Cyg"
 
 #: templates/_objects_section.html:45 templates/_objects_section.html:143
-#: templates/_objects_section.html:307 templates/config_form.html:583
-#: templates/config_form.html:647 templates/index.html:146
+#: templates/_objects_section.html:307 templates/config_form.html:670
+#: templates/config_form.html:734 templates/index.html:146
 #: templates/mobile_up_now.html:965
 msgid "Type"
 msgstr "Type"
@@ -2794,19 +2792,19 @@ msgid "Shared by Me"
 msgstr "Partagé par moi"
 
 #: templates/_objects_section.html:57 templates/_objects_section.html:116
-#: templates/base.html:123 templates/config_form.html:601
-#: templates/config_form.html:630 templates/config_form.html:666
+#: templates/base.html:123 templates/config_form.html:688
+#: templates/config_form.html:717 templates/config_form.html:753
 msgid "Imported"
 msgstr "Importé"
 
 #: templates/_objects_section.html:59 templates/_objects_section.html:177
-#: templates/_objects_section.html:326 templates/graph_view.html:227
+#: templates/_objects_section.html:326 templates/graph_view.html:187
 #: templates/index.html:105
 msgid "Pinned"
 msgstr "Épinglé"
 
 #: templates/_objects_section.html:63 templates/_objects_section.html:163
-#: templates/graph_view.html:310
+#: templates/graph_view.html:271
 msgid "Source"
 msgstr "Source"
 
@@ -2814,8 +2812,8 @@ msgstr "Source"
 msgid "e.g., messier (use = for exact)"
 msgstr "par exemple, messier (utilisation = pour exact)"
 
-#: templates/_objects_section.html:68 templates/config_form.html:586
-#: templates/graph_view.html:134 templates/graph_view.html:212
+#: templates/_objects_section.html:68 templates/config_form.html:673
+#: templates/graph_view.html:100 templates/graph_view.html:172
 #: templates/index.html:153 templates/mobile_journal_new.html:376
 #: templates/mobile_object_detail.html:534 templates/project_report.html:1121
 msgid "Notes"
@@ -2826,7 +2824,7 @@ msgid "Search notes (use * for all)..."
 msgstr "Rechercher des notes (utiliser * pour toutes)..."
 
 #: templates/_objects_section.html:73 templates/_objects_section.html:147
-#: templates/_objects_section.html:311 templates/graph_view.html:19
+#: templates/_objects_section.html:311 templates/graph_view.html:20
 msgid "Mag"
 msgstr "Mag"
 
@@ -2835,7 +2833,7 @@ msgid "e.g., <15, >8, >8 <12"
 msgstr "par exemple, <15, >8, >8 <12"
 
 #: templates/_objects_section.html:77 templates/_objects_section.html:152
-#: templates/_objects_section.html:315 templates/graph_view.html:18
+#: templates/_objects_section.html:315 templates/graph_view.html:19
 #: templates/index.html:148
 msgid "Size"
 msgstr "Taille"
@@ -2905,7 +2903,7 @@ msgstr "Activé"
 msgid "Update"
 msgstr "Mise à jour"
 
-#: templates/_objects_section.html:189 templates/graph_view.html:287
+#: templates/_objects_section.html:189 templates/graph_view.html:248
 msgid "Inspiration Content"
 msgstr "Contenu inspirant"
 
@@ -2955,7 +2953,7 @@ msgstr "Notes privées"
 msgid "Personal notes... (not shared)"
 msgstr "Notes personnelles... (non partagées)"
 
-#: templates/_objects_section.html:253 templates/config_form.html:681
+#: templates/_objects_section.html:253 templates/config_form.html:768
 msgid "Shared Notes"
 msgstr "Notes partagées"
 
@@ -2971,7 +2969,7 @@ msgstr "Partager cet objet avec d'autres utilisateurs"
 msgid "Update Objects"
 msgstr "Mettre à jour les objets"
 
-#: templates/_objects_section.html:282 templates/config_form.html:581
+#: templates/_objects_section.html:282 templates/config_form.html:668
 #: templates/index.html:206 templates/mobile_add_object.html:17
 msgid "Object ID"
 msgstr "Identifiant de l'objet"
@@ -3060,8 +3058,8 @@ msgstr ""
 "est non destructive : les objets existants ne sont jamais écrasés et les "
 "objets qui se chevauchent sont ignorés."
 
-#: templates/_objects_section.html:403 templates/config_form.html:618
-#: templates/graph_view.html:306
+#: templates/_objects_section.html:403 templates/config_form.html:705
+#: templates/graph_view.html:267
 msgid "Description"
 msgstr "Description"
 
@@ -3074,8 +3072,8 @@ msgid "Objects"
 msgstr "Objets"
 
 #: templates/_objects_section.html:406 templates/base.html:273
-#: templates/config_form.html:587 templates/config_form.html:620
-#: templates/config_form.html:649
+#: templates/config_form.html:674 templates/config_form.html:707
+#: templates/config_form.html:736
 msgid "Action"
 msgstr "Action"
 
@@ -3286,7 +3284,7 @@ msgstr "Utilisateurs existants"
 msgid "ID"
 msgstr "Numéro d'identification"
 
-#: templates/admin_users.html:60 templates/graph_view.html:557
+#: templates/admin_users.html:60 templates/graph_view.html:476
 msgid "Actions"
 msgstr "Actions"
 
@@ -3324,8 +3322,8 @@ msgstr ""
 msgid "New password"
 msgstr "Nouveau mot de passe"
 
-#: templates/admin_users.html:106 templates/graph_view.html:536
-#: templates/index.html:296 templates/solar_system.html:186
+#: templates/admin_users.html:106 templates/index.html:296
+#: templates/solar_system.html:186
 msgid "Save"
 msgstr "Enregistrer"
 
@@ -3459,12 +3457,12 @@ msgstr "Sélectionner un télescope"
 msgid "Select Camera"
 msgstr "Sélectionner une caméra"
 
-#: templates/base.html:153 templates/config_form.html:656
+#: templates/base.html:153 templates/config_form.html:743
 #: templates/project_report.html:1174 templates/solar_system.html:257
 msgid "Telescope"
 msgstr "Télescope"
 
-#: templates/base.html:154 templates/config_form.html:657
+#: templates/base.html:154 templates/config_form.html:744
 #: templates/project_report.html:1178 templates/solar_system.html:258
 msgid "Camera"
 msgstr "Caméra"
@@ -3833,7 +3831,7 @@ msgstr ""
 msgid "Error: %(error)s (all %(total)d chunks failed to load)"
 msgstr "Erreur : %(error)s (le chargement des %(total)d segments a échoué)"
 
-#: templates/base.html:255 templates/graph_view.html:34
+#: templates/base.html:255 templates/graph_view.html:36
 #: templates/mobile_edit_notes.html:27
 msgid "Unknown error"
 msgstr "Erreur inconnue"
@@ -4034,7 +4032,7 @@ msgstr "Erreur lors de la demande à Nova. Veuillez réessayer."
 msgid "Consulting star charts..."
 msgstr "Consultation des cartes stellaires..."
 
-#: templates/base.html:315 templates/graph_view.html:626
+#: templates/base.html:315 templates/graph_view.html:547
 msgid "Checking your rigs..."
 msgstr "Vérification de vos rigs..."
 
@@ -4129,8 +4127,8 @@ msgstr ""
 msgid "Submit feedback"
 msgstr "Envoyer des commentaires"
 
-#: templates/base.html:506 templates/config_form.html:283
-#: templates/config_form.html:368 templates/graph_view.html:140
+#: templates/base.html:506 templates/config_form.html:370
+#: templates/config_form.html:455 templates/graph_view.html:106
 msgid "Help"
 msgstr "Aide"
 
@@ -4250,7 +4248,7 @@ msgid "Download"
 msgstr "Télécharger"
 
 #: templates/config_form.html:45 templates/config_form.html:59
-#: templates/graph_view.html:138 templates/index.html:82
+#: templates/graph_view.html:104 templates/index.html:82
 msgid "Journal"
 msgstr "Journal"
 
@@ -4270,7 +4268,7 @@ msgstr "Aide avec les outils de données"
 msgid "General Settings"
 msgstr "Paramètres généraux"
 
-#: templates/config_form.html:83 templates/config_form.html:215
+#: templates/config_form.html:83 templates/config_form.html:302
 #: templates/macros.html:79
 msgid "Click for help"
 msgstr "Cliquez ici pour obtenir de l'aide"
@@ -4411,102 +4409,153 @@ msgstr ""
 msgid "Save Settings"
 msgstr "Enregistrer les paramètres"
 
-#: templates/config_form.html:214
+#: templates/config_form.html:229
+msgid "Offline sky storage"
+msgstr "Stockage du ciel hors ligne"
+
+#: templates/config_form.html:237 templates/config_form.html:815
+#, python-format
+msgid "Using %(used)s"
+msgstr "%(used)s utilisés"
+
+#: templates/config_form.html:239 templates/config_form.html:814
+#, python-format
+msgid "Using %(used)s of %(limit)s"
+msgstr "%(used)s sur %(limit)s utilisés"
+
+#: templates/config_form.html:246
+msgid "Downloads are unavailable: the sky-tile folder is not writable."
+msgstr ""
+"Les téléchargements sont indisponibles : le dossier des tuiles du ciel "
+"n'est pas accessible en écriture."
+
+#: templates/config_form.html:247
+msgid "Browsed sky tiles are not kept on disk either."
+msgstr ""
+"Les tuiles du ciel consultées ne sont alors pas non plus conservées sur "
+"le disque."
+
+#: templates/config_form.html:257
+msgid "Limit:"
+msgstr "Limite :"
+
+#: templates/config_form.html:270
+msgid "No limit"
+msgstr "Sans limite"
+
+#: templates/config_form.html:279
+msgid "Sky browsing keeps about 1 GB of disk space free."
+msgstr "La navigation du ciel conserve environ 1 Go d'espace disque libre."
+
+#: templates/config_form.html:283 templates/config_form.html:823
+#, python-format
+msgid ""
+"Downloaded sky (%(pinned)s) already exceeds this limit. Viewed tiles are "
+"not kept."
+msgstr ""
+"Le ciel téléchargé (%(pinned)s) dépasse déjà cette limite. Les tuiles "
+"consultées ne sont pas conservées."
+
+#: templates/config_form.html:291 templates/config_form.html:817
+msgid "Clear browsed sky"
+msgstr "Effacer le ciel consulté"
+
+#: templates/config_form.html:301
 msgid "Locations Configuration"
 msgstr "Configuration des lieux"
 
-#: templates/config_form.html:220
+#: templates/config_form.html:307
 msgid "Add New Location"
 msgstr "Ajouter un nouveau lieu"
 
-#: templates/config_form.html:224 templates/config_form.html:422
-#: templates/config_form.html:441 templates/config_form.html:461
+#: templates/config_form.html:311 templates/config_form.html:509
+#: templates/config_form.html:528 templates/config_form.html:548
 #: templates/index.html:288
 msgid "Name:"
 msgstr "Nom :"
 
-#: templates/config_form.html:225
+#: templates/config_form.html:312
 msgid "e.g., Home Observatory"
 msgstr "Par exemple, Observatoire domestique"
 
-#: templates/config_form.html:228 templates/config_form.html:315
+#: templates/config_form.html:315 templates/config_form.html:402
 msgid "Lat:"
 msgstr "Lat :"
 
-#: templates/config_form.html:232 templates/config_form.html:319
+#: templates/config_form.html:319 templates/config_form.html:406
 msgid "Lon:"
 msgstr "Lon :"
 
-#: templates/config_form.html:236 templates/config_form.html:323
+#: templates/config_form.html:323 templates/config_form.html:410
 msgid "Elevation:"
 msgstr "Élévation :"
 
-#: templates/config_form.html:238 templates/config_form.html:325
+#: templates/config_form.html:325 templates/config_form.html:412
 msgid "Elevation (m)"
 msgstr "Élévation (m)"
 
-#: templates/config_form.html:241 templates/config_form.html:328
+#: templates/config_form.html:328 templates/config_form.html:415
 msgid "Timezone:"
 msgstr "Fuseau horaire :"
 
-#: templates/config_form.html:243
+#: templates/config_form.html:330
 msgid "Type to search..."
 msgstr "Tapez pour rechercher..."
 
-#: templates/config_form.html:252 templates/config_form.html:338
-#: templates/config_form.html:482
+#: templates/config_form.html:339 templates/config_form.html:425
+#: templates/config_form.html:569
 msgid "Active:"
 msgstr "Actif :"
 
-#: templates/config_form.html:256 templates/config_form.html:342
+#: templates/config_form.html:343 templates/config_form.html:429
 msgid "Bortle:"
 msgstr "Bortle :"
 
-#: templates/config_form.html:258 templates/config_form.html:344
+#: templates/config_form.html:345 templates/config_form.html:431
 msgid "Not set"
 msgstr "Non défini"
 
-#: templates/config_form.html:259 templates/config_form.html:345
+#: templates/config_form.html:346 templates/config_form.html:432
 msgid "Exceptional dark sky"
 msgstr "Ciel noir exceptionnel"
 
-#: templates/config_form.html:260 templates/config_form.html:346
+#: templates/config_form.html:347 templates/config_form.html:433
 msgid "Truly dark sky"
 msgstr "Ciel vraiment noir"
 
-#: templates/config_form.html:261 templates/config_form.html:347
+#: templates/config_form.html:348 templates/config_form.html:434
 msgid "Rural sky"
 msgstr "Ciel rural"
 
-#: templates/config_form.html:262 templates/config_form.html:348
+#: templates/config_form.html:349 templates/config_form.html:435
 msgid "Rural/suburban transition"
 msgstr "Transition rural/périurbain"
 
-#: templates/config_form.html:263 templates/config_form.html:349
+#: templates/config_form.html:350 templates/config_form.html:436
 msgid "Suburban sky"
 msgstr "Ciel périurbain"
 
-#: templates/config_form.html:264 templates/config_form.html:350
+#: templates/config_form.html:351 templates/config_form.html:437
 msgid "Bright suburban sky"
 msgstr "Ciel périurbain lumineux"
 
-#: templates/config_form.html:265 templates/config_form.html:351
+#: templates/config_form.html:352 templates/config_form.html:438
 msgid "Suburban/urban transition"
 msgstr "Transition périurbain/urbain"
 
-#: templates/config_form.html:266 templates/config_form.html:352
+#: templates/config_form.html:353 templates/config_form.html:439
 msgid "City sky"
 msgstr "Ciel urbain"
 
-#: templates/config_form.html:267 templates/config_form.html:353
+#: templates/config_form.html:354 templates/config_form.html:440
 msgid "Inner-city sky"
 msgstr "Ciel de centre-ville"
 
-#: templates/config_form.html:271 templates/config_form.html:357
+#: templates/config_form.html:358 templates/config_form.html:444
 msgid "SQM Zenith:"
 msgstr "SQM au zénith :"
 
-#: templates/config_form.html:272 templates/config_form.html:358
+#: templates/config_form.html:359 templates/config_form.html:445
 msgid ""
 "Leave blank to derive from Bortle scale. Enter a measured SQM value "
 "(mag/arcsec²) if available."
@@ -4514,67 +4563,67 @@ msgstr ""
 "Laissez vide pour le déduire de l'échelle de Bortle. Saisissez une valeur"
 " SQM mesurée (mag/arcsec²) si disponible."
 
-#: templates/config_form.html:274 templates/config_form.html:360
+#: templates/config_form.html:361 templates/config_form.html:447
 msgid "Zenith SQM (optional)"
 msgstr "SQM au zénith (optionnel)"
 
-#: templates/config_form.html:282 templates/config_form.html:367
+#: templates/config_form.html:369 templates/config_form.html:454
 msgid "Horizon Mask:"
 msgstr "Masque Horizon :"
 
-#: templates/config_form.html:286 templates/config_form.html:371
+#: templates/config_form.html:373 templates/config_form.html:458
 msgid "Optional. e.g., [[0, 35], [90, 15]]"
 msgstr "Facultatif. Par exemple, [[0, 35], [90, 15]]"
 
-#: templates/config_form.html:288 templates/config_form.html:373
+#: templates/config_form.html:375 templates/config_form.html:460
 msgid "Import a Stellarium .hzn horizon file"
 msgstr "Importer un fichier horizon .hzn dans Stellarium"
 
-#: templates/config_form.html:288 templates/config_form.html:373
+#: templates/config_form.html:375 templates/config_form.html:460
 msgid "Import .hzn"
 msgstr "Importer .hzn"
 
-#: templates/config_form.html:298 templates/config_form.html:382
+#: templates/config_form.html:385 templates/config_form.html:469
 msgid "Comments:"
 msgstr "Commentaires :"
 
-#: templates/config_form.html:299 templates/config_form.html:383
+#: templates/config_form.html:386 templates/config_form.html:470
 msgid "Notes on sky quality, obstructions, etc."
 msgstr "Remarques sur la qualité du ciel, les obstacles, etc."
 
-#: templates/config_form.html:304
+#: templates/config_form.html:391
 msgid "Add"
 msgstr "Ajouter"
 
-#: templates/config_form.html:390
+#: templates/config_form.html:477
 msgid "Del:"
 msgstr "Suppr :"
 
-#: templates/config_form.html:392
+#: templates/config_form.html:479
 msgid "Cannot delete your only location"
 msgstr "Impossible de supprimer votre seul emplacement"
 
-#: templates/config_form.html:396
+#: templates/config_form.html:483
 msgid "View on Google Maps"
 msgstr "Voir sur Google Maps"
 
-#: templates/config_form.html:397
+#: templates/config_form.html:484
 msgid "Open Map"
 msgstr "Ouvrir la carte"
 
-#: templates/config_form.html:403
+#: templates/config_form.html:490
 msgid "Update Locations"
 msgstr "Mettre à jour les emplacements"
 
-#: templates/config_form.html:414
+#: templates/config_form.html:501
 msgid "1. Define Your Components"
 msgstr "1. Définissez vos composants"
 
-#: templates/config_form.html:415
+#: templates/config_form.html:502
 msgid "Help with Rigs"
 msgstr "Aide pour les rigs"
 
-#: templates/config_form.html:417
+#: templates/config_form.html:504
 msgid ""
 "Add or update your equipment here. To edit an item, click \"Edit\" to "
 "load its details into the form, make your changes, and click the "
@@ -4584,80 +4633,80 @@ msgstr ""
 "cliquez sur « Modifier » afin d'afficher ses détails dans le formulaire, "
 "apportez vos modifications, puis cliquez sur le bouton « Mettre à jour »."
 
-#: templates/config_form.html:418
+#: templates/config_form.html:505
 msgid "Telescopes"
 msgstr "Télescopes"
 
-#: templates/config_form.html:422
+#: templates/config_form.html:509
 msgid "e.g., Celestron EdgeHD 11"
 msgstr "par exemple, Celestron EdgeHD 11"
 
-#: templates/config_form.html:423
+#: templates/config_form.html:510
 msgid "Aperture (mm):"
 msgstr "Ouvertures (mm) :"
 
-#: templates/config_form.html:424
+#: templates/config_form.html:511
 msgid "Focal Length (mm):"
 msgstr "Distance focale (mm) :"
 
-#: templates/config_form.html:428 templates/config_form.html:448
-#: templates/config_form.html:466
+#: templates/config_form.html:515 templates/config_form.html:535
+#: templates/config_form.html:553
 msgid "Share this component"
 msgstr "Partager ce composant"
 
-#: templates/config_form.html:431
+#: templates/config_form.html:518
 msgid "Add Telescope"
 msgstr "Ajouter un télescope"
 
-#: templates/config_form.html:437
+#: templates/config_form.html:524
 msgid "Cameras"
 msgstr "Caméras"
 
-#: templates/config_form.html:441
+#: templates/config_form.html:528
 msgid "e.g., ZWO ASI2600MC Pro"
 msgstr "Par exemple, ZWO ASI2600MC Pro"
 
-#: templates/config_form.html:442
+#: templates/config_form.html:529
 msgid "Sensor Width (mm):"
 msgstr "Largeur du capteur (mm) :"
 
-#: templates/config_form.html:443
+#: templates/config_form.html:530
 msgid "Sensor Height (mm):"
 msgstr "Hauteur du capteur (mm) :"
 
-#: templates/config_form.html:444
+#: templates/config_form.html:531
 msgid "Pixel Size (μm):"
 msgstr "Taille des pixels (μm) :"
 
-#: templates/config_form.html:451
+#: templates/config_form.html:538
 msgid "Add Camera"
 msgstr "Ajouter une caméra"
 
-#: templates/config_form.html:457
+#: templates/config_form.html:544
 msgid "Reducers / Extenders"
 msgstr "Réducteurs / Multiplicateurs"
 
-#: templates/config_form.html:461
+#: templates/config_form.html:548
 msgid "e.g., Celestron 0.7x Reducer"
 msgstr "Par exemple, réducteur Celestron 0,7x"
 
-#: templates/config_form.html:462
+#: templates/config_form.html:549
 msgid "Factor:"
 msgstr "Facteur :"
 
-#: templates/config_form.html:462
+#: templates/config_form.html:549
 msgid "e.g., 0.7 for reducer"
 msgstr "par exemple, 0,7 pour réduire"
 
-#: templates/config_form.html:469
+#: templates/config_form.html:556
 msgid "Add Reducer/Extender"
 msgstr "Ajouter réducteur/extendeur"
 
-#: templates/config_form.html:476
+#: templates/config_form.html:563
 msgid "2. Configure Your Rigs"
 msgstr "2. Configurez vos plateformes"
 
-#: templates/config_form.html:477
+#: templates/config_form.html:564
 msgid ""
 "Combine your components into a complete imaging rig. To edit, click "
 "\"Edit\" to load the rig into the form below."
@@ -4666,148 +4715,148 @@ msgstr ""
 " modifier, cliquez sur « Modifier » afin de charger le dispositif dans le"
 " formulaire ci-dessous."
 
-#: templates/config_form.html:480
+#: templates/config_form.html:567
 msgid "Rig Name:"
 msgstr "Nom du rig :"
 
-#: templates/config_form.html:480
+#: templates/config_form.html:567
 msgid "e.g., C11 Deep Sky Rig"
 msgstr "Par exemple, C11 Deep Sky Rig"
 
-#: templates/config_form.html:489
+#: templates/config_form.html:576
 msgid "-- Select a Telescope --"
 msgstr "-- Sélectionner un télescope --"
 
-#: templates/config_form.html:495
+#: templates/config_form.html:582
 msgid "-- Select a Camera --"
 msgstr "-- Sélectionner une caméra --"
 
-#: templates/config_form.html:499
+#: templates/config_form.html:586
 msgid "Reducer / Extender (Optional):"
 msgstr "Réducteur / Multiplicateur (facultatif) :"
 
-#: templates/config_form.html:501 templates/config_form.html:517
-#: templates/config_form.html:523
+#: templates/config_form.html:588 templates/config_form.html:604
+#: templates/config_form.html:610
 msgid "-- None --"
 msgstr "-- Aucun --"
 
-#: templates/config_form.html:506
+#: templates/config_form.html:593
 msgid "Guide Optics"
 msgstr "Optique de guidage"
 
-#: templates/config_form.html:506
+#: templates/config_form.html:593
 msgid "Optional — for dither recommendations"
 msgstr "Facultatif — pour les recommandations relatives au tramage"
 
-#: templates/config_form.html:511
+#: templates/config_form.html:598
 msgid "Off-Axis Guider (OAG) — uses main scope focal length"
 msgstr "Guider hors axe (OAG) — utilise la distance focale du télescope principal"
 
-#: templates/config_form.html:515
+#: templates/config_form.html:602
 msgid "Guide Scope:"
 msgstr "Lunette de guidage :"
 
-#: templates/config_form.html:521
+#: templates/config_form.html:608
 msgid "Guide Camera:"
 msgstr "Caméra de guidage :"
 
-#: templates/config_form.html:527
+#: templates/config_form.html:614
 msgid "Create Rig"
 msgstr "Créer un rig"
 
-#: templates/config_form.html:531
+#: templates/config_form.html:618
 msgid "Select Your Typical Seeing:"
 msgstr "Sélectionnez votre vision habituelle :"
 
-#: templates/config_form.html:533
+#: templates/config_form.html:620
 msgid "-- Select Seeing to Assess Rigs --"
 msgstr "-- Sélectionner « Voir » pour évaluer les plates-formes --"
 
-#: templates/config_form.html:534
+#: templates/config_form.html:621
 msgid "Excellent Seeing (1.0\" - 2.0\" FWHM)"
 msgstr "Excellente visibilité (1,0\" - 2,0\" FWHM)"
 
-#: templates/config_form.html:535
+#: templates/config_form.html:622
 msgid "Good Seeing (2.0\" - 4.0\" FWHM)"
 msgstr "Bon seeing (2.0\" - 4.0\" FWHM)"
 
-#: templates/config_form.html:536
+#: templates/config_form.html:623
 msgid "Poor Seeing (> 4.0\" FWHM)"
 msgstr "Mauvais seeing (> 4.0\" FWHM)"
 
-#: templates/config_form.html:540
+#: templates/config_form.html:627
 msgid "Sort rigs by:"
 msgstr "Rigs noirs par :"
 
-#: templates/config_form.html:542
+#: templates/config_form.html:629
 msgid "Name (A→Z)"
 msgstr "Nom (A→Z)"
 
-#: templates/config_form.html:543
+#: templates/config_form.html:630
 msgid "Name (Z→A)"
 msgstr "Nom (Z→A)"
 
-#: templates/config_form.html:544
+#: templates/config_form.html:631
 msgid "Effective Focal Length (low→high)"
 msgstr "Distance focale effective (faible→élevée)"
 
-#: templates/config_form.html:545
+#: templates/config_form.html:632
 msgid "Effective Focal Length (high→low)"
 msgstr "Distance focale effective (haute→basse)"
 
-#: templates/config_form.html:546
+#: templates/config_form.html:633
 msgid "f/ratio (low→high)"
 msgstr "f/ratio (faible→élevé)"
 
-#: templates/config_form.html:547
+#: templates/config_form.html:634
 msgid "f/ratio (high→low)"
 msgstr "f/ratio (haut→bas)"
 
-#: templates/config_form.html:548
+#: templates/config_form.html:635
 msgid "Image Scale (low→high)"
 msgstr "Échelle d'image (faible→élevée)"
 
-#: templates/config_form.html:549
+#: templates/config_form.html:636
 msgid "Image Scale (high→low)"
 msgstr "Échelle d'image (élevée→faible)"
 
-#: templates/config_form.html:550
+#: templates/config_form.html:637
 msgid "FOV Width (low→high)"
 msgstr "Largeur du champ de vision (faible→élevée)"
 
-#: templates/config_form.html:551
+#: templates/config_form.html:638
 msgid "FOV Width (high→low)"
 msgstr "Largeur du champ de vision (haut→bas)"
 
-#: templates/config_form.html:552
+#: templates/config_form.html:639
 msgid "Recently Added (newest first)"
 msgstr "Ajouts récents (les plus récents en premier)"
 
-#: templates/config_form.html:553
+#: templates/config_form.html:640
 msgid "Recently Added (oldest first)"
 msgstr "Ajoutés récemment (les plus anciens en premier)"
 
-#: templates/config_form.html:557
+#: templates/config_form.html:644
 msgid "Filter by telescope:"
 msgstr "Filtrer par télescope :"
 
-#: templates/config_form.html:559 templates/config_form.html:717
+#: templates/config_form.html:646 templates/config_form.html:804
 msgid "All telescopes"
 msgstr "Tous les télescopes"
 
-#: templates/config_form.html:562
+#: templates/config_form.html:649
 msgid "Existing Rigs"
 msgstr "Rigs existants"
 
-#: templates/config_form.html:570
+#: templates/config_form.html:657
 msgid "Shared Items from Other Users"
 msgstr "Éléments partagés par d'autres utilisateurs"
 
-#: templates/config_form.html:571
+#: templates/config_form.html:658
 msgid "Help with Shared Items"
 msgstr "Aide pour les éléments partagés"
 
-#: templates/config_form.html:573
+#: templates/config_form.html:660
 msgid ""
 "Here you can find Objects and Components shared by other users in the "
 "system. Click \"Import\" to add a copy to your own configuration."
@@ -4816,99 +4865,99 @@ msgstr ""
 "utilisateurs du système. Cliquez sur « Importer » pour ajouter une copie "
 "à votre propre configuration."
 
-#: templates/config_form.html:575
+#: templates/config_form.html:662
 msgid "Shared Objects"
 msgstr "Objets partagés"
 
-#: templates/config_form.html:580
+#: templates/config_form.html:667
 msgid "Img"
 msgstr "Img"
 
-#: templates/config_form.html:582 templates/index.html:135
+#: templates/config_form.html:669 templates/index.html:135
 #: templates/index.html:196 templates/index.html:234
 #: templates/mobile_add_object.html:21
 msgid "Common Name"
 msgstr "Nom commun"
 
-#: templates/config_form.html:585 templates/config_form.html:619
-#: templates/config_form.html:648
+#: templates/config_form.html:672 templates/config_form.html:706
+#: templates/config_form.html:735
 msgid "Shared By"
 msgstr "Partagé par"
 
-#: templates/config_form.html:591
+#: templates/config_form.html:678
 msgid "Filter ID..."
 msgstr "Filtrer ID..."
 
-#: templates/config_form.html:592 templates/config_form.html:623
-#: templates/config_form.html:652
+#: templates/config_form.html:679 templates/config_form.html:710
+#: templates/config_form.html:739
 msgid "Filter name..."
 msgstr "Filtrer par nom..."
 
-#: templates/config_form.html:593
+#: templates/config_form.html:680
 msgid "Filter type..."
 msgstr "Filtrer type..."
 
-#: templates/config_form.html:594
+#: templates/config_form.html:681
 msgid "Filter con..."
 msgstr "Filtrer con..."
 
-#: templates/config_form.html:595 templates/config_form.html:625
-#: templates/config_form.html:661
+#: templates/config_form.html:682 templates/config_form.html:712
+#: templates/config_form.html:748
 msgid "Filter user..."
 msgstr "Filtrer utilisateur..."
 
-#: templates/config_form.html:600 templates/config_form.html:629
-#: templates/config_form.html:665
+#: templates/config_form.html:687 templates/config_form.html:716
+#: templates/config_form.html:752
 msgid "Not Imported"
 msgstr "Non importé"
 
-#: templates/config_form.html:612
+#: templates/config_form.html:699
 msgid "Shared Views"
 msgstr "Vues partagées"
 
-#: templates/config_form.html:617
+#: templates/config_form.html:704
 msgid "View Name"
 msgstr "Nom de la vue"
 
-#: templates/config_form.html:624
+#: templates/config_form.html:711
 msgid "Filter desc..."
 msgstr "Filtrer desc..."
 
-#: templates/config_form.html:641
+#: templates/config_form.html:728
 msgid "Shared Components"
 msgstr "Composants partagés"
 
-#: templates/config_form.html:646
+#: templates/config_form.html:733
 msgid "Component Name"
 msgstr "Nom du composant"
 
-#: templates/config_form.html:655
+#: templates/config_form.html:742
 msgid "All Types"
 msgstr "Tous les types"
 
-#: templates/config_form.html:658
+#: templates/config_form.html:745
 msgid "Reducer/Extender"
 msgstr "Réducteur/Extendeur"
 
-#: templates/config_form.html:690
+#: templates/config_form.html:777
 msgid "Fetching Details..."
 msgstr "Récupération des détails..."
 
-#: templates/config_form.html:694
+#: templates/config_form.html:781
 msgid "Please wait, communicating with SIMBAD..."
 msgstr "Veuillez patienter, communication avec SIMBAD..."
 
-#: templates/config_form.html:718
+#: templates/config_form.html:805
 #, python-brace-format
 msgid "{shown} of {total}"
 msgstr "{shown} sur {total}"
 
-#: templates/config_form.html:721
+#: templates/config_form.html:808
 #, python-brace-format
 msgid "Are you sure you want to delete the rig '{name}'?"
 msgstr "Voulez-vous vraiment supprimer le rig '{name}' ?"
 
-#: templates/config_form.html:722
+#: templates/config_form.html:809
 #, python-brace-format
 msgid ""
 "Are you sure you want to delete the rig '{name}'? This will also delete "
@@ -4917,6 +4966,34 @@ msgstr ""
 "Voulez-vous vraiment supprimer le rig '{name}' ? Cela supprimera "
 "également {framings} cadrage(s) enregistré(s) qui l'utilisent."
 
+#: templates/config_form.html:816
+msgid "Remove all viewed sky tiles? Downloaded sky is kept."
+msgstr ""
+"Supprimer toutes les tuiles du ciel consultées ? Le ciel téléchargé est "
+"conservé."
+
+#: templates/config_form.html:818
+msgid "Viewed sky tiles removed."
+msgstr "Tuiles du ciel consultées supprimées."
+
+#: templates/config_form.html:819
+msgid "Limit saved."
+msgstr "Limite enregistrée."
+
+#: templates/config_form.html:820
+msgid "Could not save the limit."
+msgstr "Impossible d'enregistrer la limite."
+
+#: templates/config_form.html:821
+msgid "Sky storage is busy. Try again in a moment."
+msgstr "Le stockage du ciel est occupé. Réessayez dans un instant."
+
+#: templates/config_form.html:822
+msgid "The sky-tile folder is not writable, so the limit cannot be changed."
+msgstr ""
+"Le dossier des tuiles du ciel n'est pas accessible en écriture, la limite"
+" ne peut donc pas être modifiée."
+
 #: templates/graph_view.html:4 templates/journal_form.html:4
 #: templates/journal_report.html:6 templates/journal_report.html:1232
 #: templates/project_report.html:6 templates/project_report.html:1234
@@ -4924,195 +5001,195 @@ msgstr ""
 msgid "Nova DSO Tracker"
 msgstr "Nova DSO Tracker"
 
-#: templates/graph_view.html:13 templates/graph_view.html:500
-msgid "Offline view"
-msgstr "Vue hors ligne"
-
-#: templates/graph_view.html:15 templates/graph_view.html:568
+#: templates/graph_view.html:16 templates/graph_view.html:487
 msgid "Scan Frame"
 msgstr "Scanner le cadre"
 
-#: templates/graph_view.html:16
+#: templates/graph_view.html:17
 msgid "Scanning…"
 msgstr "Analyse…"
 
-#: templates/graph_view.html:17
+#: templates/graph_view.html:18
 #, python-brace-format
 msgid "FOV too large ({w}° × {h}°), max {max}° for Scan Frame"
 msgstr ""
 "Champ trop grand ({w}° × {h}°), {max}° au maximum pour « Scanner le cadre"
 " »"
 
-#: templates/graph_view.html:20
+#: templates/graph_view.html:21
 msgid "+ Add to Database"
 msgstr "+ Ajouter à la base de données"
 
-#: templates/graph_view.html:21
+#: templates/graph_view.html:22
 msgid "Loading…"
 msgstr "Chargement…"
 
-#: templates/graph_view.html:22
+#: templates/graph_view.html:23 templates/graph_view.html:494
+msgid "Catalog names only"
+msgstr "Noms de catalogue uniquement"
+
+#: templates/graph_view.html:24
 #, python-brace-format
 msgid "Rotation: {angle}"
 msgstr "Rotation : {angle}"
 
-#: templates/graph_view.html:23
+#: templates/graph_view.html:25
 #, python-brace-format
 msgid "FOV (Rig): {w}′ × {h}′"
 msgstr "Champ (Rig) : {w}′ × {h}′"
 
-#: templates/graph_view.html:24
+#: templates/graph_view.html:26
 msgid "Saved framing"
 msgstr "Cadrage enregistré"
 
-#: templates/graph_view.html:25
+#: templates/graph_view.html:27
 msgid "Differs from saved"
 msgstr "Différent de l'enregistré"
 
-#: templates/graph_view.html:26
+#: templates/graph_view.html:28
 #, python-brace-format
 msgid "Saved: RA {ra} · Dec {dec} · Angle {angle}"
 msgstr "Enregistré : RA {ra} · Dec {dec} · Angle {angle}"
 
-#: templates/graph_view.html:28
+#: templates/graph_view.html:30
 msgid "Are you sure you want to delete the saved framing for this object?"
 msgstr "Voulez-vous vraiment supprimer le cadrage enregistré pour cet objet ?"
 
-#: templates/graph_view.html:29
+#: templates/graph_view.html:31
 #, python-brace-format
 msgid "Error deleting: {message}"
 msgstr "Erreur lors de la suppression : {message}"
 
-#: templates/graph_view.html:30
+#: templates/graph_view.html:32
 msgid "Sending object to Stellarium..."
 msgstr "Envoi de l'objet à Stellarium..."
 
-#: templates/graph_view.html:31
+#: templates/graph_view.html:33
 msgid "Stellarium view updated!"
 msgstr "Vue Stellarium mise à jour !"
 
-#: templates/graph_view.html:32
+#: templates/graph_view.html:34
 #, python-brace-format
 msgid "Error: {message}"
 msgstr "Erreur : {message}"
 
-#: templates/graph_view.html:33
+#: templates/graph_view.html:35
 msgid "Could not parse server response."
 msgstr "Impossible de lire la réponse du serveur."
 
-#: templates/graph_view.html:35 templates/graph_view.html:504
+#: templates/graph_view.html:37
 msgid "Scan Frame is unavailable in offline view."
 msgstr "Le balayage du champ est indisponible en vue hors ligne."
 
-#: templates/graph_view.html:118
+#: templates/graph_view.html:84
 msgid "Graph Date"
 msgstr "Date du graphique"
 
-#: templates/graph_view.html:119 templates/index.html:46
+#: templates/graph_view.html:85 templates/index.html:46
 #: templates/mobile_base.html:35 templates/project_report.html:1152
 #: templates/solar_system.html:24 templates/solar_system.html:294
 #: templates/solar_system.html:339
 msgid "Moon"
 msgstr "Lune"
 
-#: templates/graph_view.html:120
+#: templates/graph_view.html:86
 msgid "Moon Sep."
 msgstr "Sép. lunaire"
 
-#: templates/graph_view.html:122
+#: templates/graph_view.html:88
 msgid "ASTR. DUSK / DAWN"
 msgstr "Astr. Crépuscule / Aube"
 
-#: templates/graph_view.html:132
+#: templates/graph_view.html:98
 msgid "Chart"
 msgstr "Graphique"
 
-#: templates/graph_view.html:135
+#: templates/graph_view.html:101
 msgid "Rig Data"
 msgstr "Données du rig"
 
-#: templates/graph_view.html:136
+#: templates/graph_view.html:102
 msgid "Object Info"
 msgstr "Infos de l'objet"
 
-#: templates/graph_view.html:137 templates/mobile_object_detail.html:533
+#: templates/graph_view.html:103 templates/mobile_object_detail.html:533
 msgid "Opportunities"
 msgstr "Opportunités"
 
-#: templates/graph_view.html:139 templates/mobile_object_detail.html:529
+#: templates/graph_view.html:105 templates/mobile_object_detail.html:529
 msgid "SIMBAD"
 msgstr "Symbole"
 
-#: templates/graph_view.html:154
+#: templates/graph_view.html:120
 msgid "Loading Chart"
 msgstr "Chargement du graphique"
 
-#: templates/graph_view.html:160 templates/mobile_object_detail.html:519
+#: templates/graph_view.html:126 templates/mobile_object_detail.html:519
 msgid "Day"
 msgstr "Jour"
 
-#: templates/graph_view.html:162 templates/mobile_object_detail.html:520
+#: templates/graph_view.html:128 templates/mobile_object_detail.html:520
 #: templates/solar_system.html:111 templates/solar_system.html:114
 #: templates/solar_system.html:367
 msgid "Month"
 msgstr "Mois"
 
-#: templates/graph_view.html:168 templates/mobile_object_detail.html:521
+#: templates/graph_view.html:134 templates/mobile_object_detail.html:521
 #: templates/solar_system.html:112 templates/solar_system.html:120
 msgid "Year"
 msgstr "Année"
 
-#: templates/graph_view.html:170 templates/mobile_object_detail.html:523
+#: templates/graph_view.html:136 templates/mobile_object_detail.html:523
 msgid "Today"
 msgstr "Aujourd'hui"
 
-#: templates/graph_view.html:172
+#: templates/graph_view.html:138
 msgid "Day View"
 msgstr "Vue jour"
 
-#: templates/graph_view.html:173
+#: templates/graph_view.html:139
 msgid "Month View"
 msgstr "Vue mois"
 
-#: templates/graph_view.html:174
+#: templates/graph_view.html:140
 msgid "Year View"
 msgstr "Vue année"
 
-#: templates/graph_view.html:177 templates/mobile_add_object.html:3
+#: templates/graph_view.html:143 templates/mobile_add_object.html:3
 #: templates/mobile_add_object.html:4 templates/mobile_base.html:64
 msgid "Add Object"
 msgstr "Ajouter un objet"
 
-#: templates/graph_view.html:181
+#: templates/graph_view.html:147
 msgid "How objects are ranked"
 msgstr "Comment les objets sont classés"
 
-#: templates/graph_view.html:186 templates/graph_view.html:835
+#: templates/graph_view.html:152 templates/graph_view.html:756
 msgid "Calibration Star"
 msgstr "Étoile de calibration"
 
-#: templates/graph_view.html:188
+#: templates/graph_view.html:154
 msgid "Refresh"
 msgstr "Actualiser"
 
-#: templates/graph_view.html:189
+#: templates/graph_view.html:155
 msgid "Help with calibration star"
 msgstr "Aide pour l'étoile de calibration"
 
-#: templates/graph_view.html:208
-msgid "Open in Stellarium"
-msgstr "Ouvrir dans Stellarium"
-
-#: templates/graph_view.html:223 templates/mobile_edit_notes.html:17
+#: templates/graph_view.html:183 templates/mobile_edit_notes.html:17
 #: templates/mobile_edit_notes.html:108 templates/mobile_edit_notes.html:122
 msgid "Save Notes"
 msgstr "Enregistrer les notes"
 
-#: templates/graph_view.html:237 templates/graph_view.html:272
+#: templates/graph_view.html:189
+msgid "Open in Stellarium"
+msgstr "Ouvrir dans Stellarium"
+
+#: templates/graph_view.html:198 templates/graph_view.html:233
 msgid "Framing With Your Rigs"
 msgstr "Cadrage avec vos rigs"
 
-#: templates/graph_view.html:238
+#: templates/graph_view.html:199
 msgid ""
 "Assessment is based on the object's largest dimension and may not reflect"
 " framing of specific features."
@@ -5120,43 +5197,43 @@ msgstr ""
 "L'évaluation repose sur la plus grande dimension de l'objet et peut ne "
 "pas refléter le cadrage de détails spécifiques."
 
-#: templates/graph_view.html:242
+#: templates/graph_view.html:203
 msgid "Rig Name"
 msgstr "Nom du rig"
 
-#: templates/graph_view.html:243
+#: templates/graph_view.html:204
 msgid "Rig FOV"
 msgstr "Champ de vision du rig"
 
-#: templates/graph_view.html:244
+#: templates/graph_view.html:205
 msgid "Object Size"
 msgstr "Taille de l'objet"
 
-#: templates/graph_view.html:245
+#: templates/graph_view.html:206
 msgid "Fit Assessment"
 msgstr "Compatibilité"
 
-#: templates/graph_view.html:254
+#: templates/graph_view.html:215
 msgid "Mosaic Required"
 msgstr "Mosaïque requise"
 
-#: templates/graph_view.html:255
+#: templates/graph_view.html:216
 msgid "Fits with Rotation"
 msgstr "Convient avec rotation"
 
-#: templates/graph_view.html:257
+#: templates/graph_view.html:218
 msgid "Small Target"
 msgstr "Petite cible"
 
-#: templates/graph_view.html:258
+#: templates/graph_view.html:219
 msgid "Wide Field"
 msgstr "Grand champ"
 
-#: templates/graph_view.html:259
+#: templates/graph_view.html:220
 msgid "Good Fit"
 msgstr "Bonne compatibilité"
 
-#: templates/graph_view.html:274
+#: templates/graph_view.html:235
 msgid ""
 "No rig is configured yet. Add a rig to see how this object fits your "
 "field of view."
@@ -5164,11 +5241,11 @@ msgstr ""
 "Aucun rig n'est encore configuré. Ajoutez un rig pour voir comment cet "
 "objet s'inscrit dans votre champ de vision."
 
-#: templates/graph_view.html:275 templates/solar_system.html:275
+#: templates/graph_view.html:236 templates/solar_system.html:275
 msgid "Manage Rigs"
 msgstr "Gérer les rigs"
 
-#: templates/graph_view.html:277
+#: templates/graph_view.html:238
 msgid ""
 "The size of this object is unknown, so its fit in your rigs cannot be "
 "assessed. Add a size to the object to enable this view."
@@ -5177,23 +5254,23 @@ msgstr ""
 "donc pas être évalué. Ajoutez une taille à l'objet pour activer cette "
 "vue."
 
-#: templates/graph_view.html:278
+#: templates/graph_view.html:239
 msgid "Edit Object"
 msgstr "Modifier l'objet"
 
-#: templates/graph_view.html:289
+#: templates/graph_view.html:250
 msgid "Edit Object to Add Content"
 msgstr "Modifier l'objet pour ajouter du contenu"
 
-#: templates/graph_view.html:297
+#: templates/graph_view.html:258
 msgid "Inspiration Image for"
 msgstr "Image d'inspiration pour"
 
-#: templates/graph_view.html:310
+#: templates/graph_view.html:271
 msgid "External Source"
 msgstr "Source externe"
 
-#: templates/graph_view.html:318
+#: templates/graph_view.html:279
 msgid ""
 "No inspiration content (custom image or description) has been added for "
 "this object yet."
@@ -5201,25 +5278,33 @@ msgstr ""
 "Aucun contenu d'inspiration (image personnalisée ou description) n'a "
 "encore été ajouté pour cet objet."
 
-#: templates/graph_view.html:319
+#: templates/graph_view.html:280
 msgid "Go to <strong>Configuration > Manage Objects</strong> to add one."
 msgstr ""
 "Allez dans <strong>Configuration > Gérer les objets</strong> pour en "
 "ajouter un."
 
-#: templates/graph_view.html:345
+#: templates/graph_view.html:306
 msgid "Framing Assistant"
 msgstr "Assistant de cadrage"
 
-#: templates/graph_view.html:363
+#: templates/graph_view.html:324
 msgid "Help with Framing"
 msgstr "Aide pour le cadrage"
 
-#: templates/graph_view.html:374
+#: templates/graph_view.html:333
+msgid "Offline view"
+msgstr "Vue hors ligne"
+
+#: templates/graph_view.html:343
+msgid "No rigs configured"
+msgstr "Aucun rig configuré"
+
+#: templates/graph_view.html:353
 msgid "Result"
 msgstr "Résultat"
 
-#: templates/graph_view.html:378 templates/graph_view.html:383
+#: templates/graph_view.html:357 templates/graph_view.html:362
 msgid ""
 "Coordinates are JNow (Real Time / Mean Equinox of Date) to match your "
 "mount."
@@ -5227,61 +5312,57 @@ msgstr ""
 "Les coordonnées sont en JNow (temps réel / équinoxe moyen de la date) "
 "pour correspondre à votre monture."
 
-#: templates/graph_view.html:380 templates/graph_view.html:385
-#: templates/graph_view.html:390 templates/sync_tokens.html:35
+#: templates/graph_view.html:359 templates/graph_view.html:364
+#: templates/graph_view.html:369 templates/sync_tokens.html:35
 msgid "Copy"
 msgstr "Copier"
 
-#: templates/graph_view.html:394
+#: templates/graph_view.html:373
 msgid "Copy RA/Dec"
 msgstr "Copier RA/Dec"
 
-#: templates/graph_view.html:395
+#: templates/graph_view.html:374
 msgid "Copy all"
 msgstr "Tout copier"
 
-#: templates/graph_view.html:400
+#: templates/graph_view.html:379
 msgid "Frame"
 msgstr "Cadre"
 
-#: templates/graph_view.html:407
-msgid "No rigs configured"
-msgstr "Aucun rig configuré"
-
-#: templates/graph_view.html:412
+#: templates/graph_view.html:382
 msgid "Position Angle (0°=North, 90°=East)"
 msgstr "Angle de position (0°=Nord, 90°=Est)"
 
-#: templates/graph_view.html:412
+#: templates/graph_view.html:382
 msgid "Rotation"
 msgstr "Rotation"
 
-#: templates/graph_view.html:413
+#: templates/graph_view.html:383
 msgid "Tap to reset rotation to 0°"
 msgstr "Touchez pour remettre la rotation à 0°"
 
-#: templates/graph_view.html:417
+#: templates/graph_view.html:387
 msgid "Flip 90°"
 msgstr "Basculer 90°"
 
-#: templates/graph_view.html:422 templates/mobile_mosaic_copy.html:8
+#: templates/graph_view.html:392 templates/mobile_mosaic_copy.html:8
 #: templates/solar_system.html:671
 msgid "Mosaic"
 msgstr "Mosaïque"
 
-#: templates/graph_view.html:424
+#: templates/graph_view.html:394
 msgid "Columns"
 msgstr "Colonnes"
 
-#: templates/graph_view.html:426
+#: templates/graph_view.html:396
 msgid "Rows"
 msgstr "Lignes"
 
-#: templates/graph_view.html:430
+#: templates/graph_view.html:400
 msgid "Overlap"
 msgstr "Chevauchement"
 
-#: templates/graph_view.html:434
+#: templates/graph_view.html:404
 msgid ""
 "Displays the approximate location of geostationary satellites (corrected "
 "for your latitude)"
@@ -5289,71 +5370,71 @@ msgstr ""
 "Affiche la position approximative des satellites géostationnaires "
 "(corrigée pour votre latitude)"
 
-#: templates/graph_view.html:435
+#: templates/graph_view.html:405
 msgid "Geo Belt"
 msgstr "Ceinture géostationnaire"
 
-#: templates/graph_view.html:440
+#: templates/graph_view.html:410
 msgid "Sky"
 msgstr "Ciel"
 
-#: templates/graph_view.html:442
+#: templates/graph_view.html:412
 msgid "Survey"
 msgstr "Relevé"
 
-#: templates/graph_view.html:461
+#: templates/graph_view.html:431
 msgid "Blend with"
 msgstr "Mélanger avec"
 
-#: templates/graph_view.html:481
+#: templates/graph_view.html:450
 msgid "Blend"
 msgstr "Mélange"
 
-#: templates/graph_view.html:482
+#: templates/graph_view.html:451
 msgid "Blend opacity"
 msgstr "Opacité du mélange"
 
-#: templates/graph_view.html:485
+#: templates/graph_view.html:457
+msgid "Keep north up"
+msgstr "Garder le nord en haut"
+
+#: templates/graph_view.html:460
 msgid "Image adjustments"
 msgstr "Réglages de l'image"
 
-#: templates/graph_view.html:486
+#: templates/graph_view.html:461
 msgid "Brightness"
 msgstr "Luminosité"
 
-#: templates/graph_view.html:487
+#: templates/graph_view.html:462
 msgid "Contrast"
 msgstr "Contraste"
 
-#: templates/graph_view.html:488
+#: templates/graph_view.html:463
 msgid "Gamma"
 msgstr "Gamma"
 
-#: templates/graph_view.html:489
+#: templates/graph_view.html:464
 msgid "Saturation"
 msgstr "Saturation"
 
-#: templates/graph_view.html:520 templates/solar_system.html:660
-msgid "Detail"
-msgstr "Détails"
-
-#: templates/graph_view.html:550 templates/index.html:78
+#: templates/graph_view.html:469 templates/index.html:78
 msgid "Position"
 msgstr "Position"
 
-#: templates/graph_view.html:552
+#: templates/graph_view.html:471
 msgid "Recenter to object"
 msgstr "Recentrer sur l'objet"
 
-#: templates/graph_view.html:559
+#: templates/graph_view.html:478
 msgid "Save Framing"
 msgstr "Enregistrer le cadrage"
 
-#: templates/graph_view.html:564
+#: templates/graph_view.html:483
 msgid "Copy framing URL"
 msgstr "Copier l'URL de cadrage"
 
-#: templates/graph_view.html:565
+#: templates/graph_view.html:484
 msgid ""
 "Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., "
 "and Telescopius."
@@ -5361,72 +5442,80 @@ msgstr ""
 "Génère un format CSV compatible avec ASIAIR (import de plan), N.I.N.A. et"
 " Telescopius."
 
-#: templates/graph_view.html:565
+#: templates/graph_view.html:484
 msgid "Copy Plan (CSV)"
 msgstr "Copier le plan (CSV)"
 
-#: templates/graph_view.html:570
+#: templates/graph_view.html:489
 msgid "Min size"
 msgstr "Taille min."
 
-#: templates/graph_view.html:624
+#: templates/graph_view.html:493
+msgid ""
+"Show only objects with a well-known catalog name. Uncheck to include "
+"survey designations such as PGCC."
+msgstr ""
+"Afficher uniquement les objets ayant un nom de catalogue connu. Décochez pour "
+"inclure les désignations de relevés comme PGCC."
+
+#: templates/graph_view.html:545
 msgid "Ask Nova for observing notes"
 msgstr "Demander à Nova des notes d'observation"
 
-#: templates/graph_view.html:625
+#: templates/graph_view.html:546
 msgid "Consulting the star charts..."
 msgstr "Consultation des cartes stellaires..."
 
-#: templates/graph_view.html:627
+#: templates/graph_view.html:548
 msgid "Scanning the cosmos..."
 msgstr "Exploration du cosmos..."
 
-#: templates/graph_view.html:628
+#: templates/graph_view.html:549
 msgid "Calculating from"
 msgstr "Calcul à partir de"
 
-#: templates/graph_view.html:630
+#: templates/graph_view.html:551
 msgid "your location"
 msgstr "votre emplacement"
 
-#: templates/graph_view.html:631
+#: templates/graph_view.html:552
 msgid "Nova has notes ready. What would you like to do?"
 msgstr "Nova a des notes prêtes. Que souhaitez-vous faire ?"
 
-#: templates/graph_view.html:635
+#: templates/graph_view.html:556
 msgid "Nova couldn't load notes"
 msgstr "Nova n'a pas pu charger les notes"
 
-#: templates/graph_view.html:637 templates/mobile_journal_new.html:385
+#: templates/graph_view.html:558 templates/mobile_journal_new.html:385
 msgid "Discard"
 msgstr "Ignorer"
 
-#: templates/graph_view.html:836
+#: templates/graph_view.html:757
 msgid "No calibration star available near meridian"
 msgstr "Aucune étoile de calibration disponible près du méridien"
 
-#: templates/graph_view.html:838
+#: templates/graph_view.html:759
 msgid "Window"
 msgstr "Fenêtre"
 
-#: templates/graph_view.html:839 templates/mobile_object_detail.html:493
+#: templates/graph_view.html:760 templates/mobile_object_detail.html:493
 #: templates/solar_system.html:353
 msgid "Now"
 msgstr "Maintenant"
 
-#: templates/graph_view.html:840
+#: templates/graph_view.html:761
 msgid "Alt"
 msgstr "Alt"
 
-#: templates/graph_view.html:841
+#: templates/graph_view.html:762
 msgid "Az"
 msgstr "Az"
 
-#: templates/graph_view.html:844
+#: templates/graph_view.html:765
 msgid "HA"
 msgstr "HA"
 
-#: templates/graph_view.html:845
+#: templates/graph_view.html:766
 msgid "from meridian"
 msgstr "du méridien"
 
@@ -8064,6 +8153,10 @@ msgstr "en dessous de l'idéal"
 msgid "above ideal"
 msgstr "au-dessus de l'idéal"
 
+#: templates/solar_system.html:660
+msgid "Detail"
+msgstr "Détails"
+
 #: templates/solar_system.html:661
 msgid ""
 "How much detail the aperture can resolve on this planet: diameter divided"
@@ -8609,78 +8702,6 @@ msgstr ""
 "prochaine synchronisation ? Elle deviendra le fichier de l'enregistrement"
 " partout."
 
-
-#: templates/config_form.html
-msgid "Offline sky storage"
-msgstr "Stockage du ciel hors ligne"
-
-#: templates/config_form.html
-msgid "Using %(used)s of %(limit)s"
-msgstr "%(used)s sur %(limit)s utilisés"
-
-#: templates/config_form.html
-msgid "Limit:"
-msgstr "Limite :"
-
-#: templates/config_form.html
-msgid "No limit"
-msgstr "Sans limite"
-
-#: templates/config_form.html
-msgid "Sky browsing keeps about 1 GB of disk space free."
-msgstr "La navigation du ciel conserve environ 1 Go d'espace disque libre."
-
-#: templates/config_form.html
-msgid "Downloaded sky (%(pinned)s) already exceeds this limit. Viewed tiles are not kept."
-msgstr "Le ciel téléchargé (%(pinned)s) dépasse déjà cette limite. Les tuiles consultées ne sont pas conservées."
-
-#: templates/config_form.html
-msgid "Clear browsed sky"
-msgstr "Effacer le ciel consulté"
-
-#: templates/config_form.html
-msgid "Downloads are unavailable: the sky-tile folder is not writable."
-msgstr "Les téléchargements sont indisponibles : le dossier des tuiles du ciel n'est pas accessible en écriture."
-
-#: templates/config_form.html
-msgid "Browsed sky tiles are not kept on disk either."
-msgstr "Les tuiles du ciel consultées ne sont alors pas non plus conservées sur le disque."
-
-#: templates/config_form.html
-msgid "Remove all viewed sky tiles? Downloaded sky is kept."
-msgstr "Supprimer toutes les tuiles du ciel consultées ? Le ciel téléchargé est conservé."
-
-#: templates/config_form.html
-msgid "Viewed sky tiles removed."
-msgstr "Tuiles du ciel consultées supprimées."
-
-#: templates/config_form.html
-msgid "Limit saved."
-msgstr "Limite enregistrée."
-
-#: templates/config_form.html
-msgid "Could not save the limit."
-msgstr "Impossible d'enregistrer la limite."
-
-#: templates/config_form.html
-msgid "Sky storage is busy. Try again in a moment."
-msgstr "Le stockage du ciel est occupé. Réessayez dans un instant."
-
-#: templates/config_form.html
-msgid "The sky-tile folder is not writable, so the limit cannot be changed."
-msgstr "Le dossier des tuiles du ciel n'est pas accessible en écriture, la limite ne peut donc pas être modifiée."
-
-
-#: templates/config_form.html
-msgid "Using %(used)s"
-msgstr "%(used)s utilisés"
-
-
-#: templates/graph_view.html:459
-msgid "Keep north up"
-msgstr "Garder le nord en haut"
-
-
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Suggestions de rafraîchissement"
 
@@ -8874,5 +8895,4 @@ msgstr "Garder le nord en haut"
 
 #~ msgid "tiles"
 #~ msgstr "tuiles"
-
 

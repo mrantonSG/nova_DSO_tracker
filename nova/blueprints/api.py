@@ -1019,31 +1019,56 @@ def save_framing():
 # Preferred catalog prefixes for scan_frame labels, in priority order.
 # Matched case-insensitively against each '|' -separated SIMBAD identifier,
 # with whitespace normalised (SIMBAD emits e.g. "M  42" / "SH  2-281").
-_SCAN_NAME_PREFIXES = ('M ', 'NGC ', 'IC ', 'SH 2', 'Cl ', 'LDN ', 'Ced ')
+# Spellings verified against SIMBAD's ident table: dark nebulae are "Barnard 142"
+# (title case) and "LDN  694" (4 spaces); van den Bergh, Gum and the Abell PNe are
+# upper-case ("VDB   1", "GUM  1", "PN A66    1"). There is no "Abell" and no
+# "PGC" -- only "PGCC", which is a molecular cloud, not a well-known name.
+_SCAN_NAME_PREFIXES = ('M ', 'NGC ', 'IC ', 'Barnard ', 'SH 2', 'LDN ', 'VDB ',
+                       'Ced ', 'RCW ', 'GUM ', 'PN A66 ', 'Cl ')
+
+# LBN is matched separately: SIMBAD carries both numbered ("LBN     3") and
+# coordinate ("LBN 151.25+02.12") forms. The numbered one is a name; the
+# coordinate one is only a position, so it labels the row but is not well-known.
+_NUMBERED_LBN = re.compile(r'^LBN \d+[A-Z]?$')
+
+
+def _pick_lbn(norm_ids):
+    """Return (index, well_known) for the best LBN identifier, or (None, False)."""
+    for i, n in enumerate(norm_ids):
+        if _NUMBERED_LBN.match(n):
+            return i, True
+    for i, n in enumerate(norm_ids):
+        if n.startswith('LBN '):
+            return i, False
+    return None, False
 
 
 def _resolve_scan_name(ids_str, fallback):
     """Pick the most well-known catalog label for a scanned object.
 
     ``ids_str`` is the pipe-separated identifier list returned by SIMBAD's
-    ``smb_get_ids()`` (e.g. ``"M  42|NGC  1976|..."``). Returns the first
-    identifier (in its original spelling) that starts with one of
-    ``_SCAN_NAME_PREFIXES`` — honoring prefix priority so "M  42" wins over
-    "NGC  1976" regardless of list position. Falls back to ``fallback``
-    (the object's ``main_id``) when nothing matches or ids is empty.
+    ``smb_get_ids()`` (e.g. ``"M  42|NGC  1976|..."``). Returns
+    ``(label, well_known)``. ``label`` is the first identifier that starts with
+    one of ``_SCAN_NAME_PREFIXES`` — honoring prefix priority so "M 42" wins
+    over "NGC 1976" regardless of list position — or ``fallback`` (the
+    object's ``main_id``). ``well_known`` is True only when a preferred prefix
+    matched, so the frontend can hide survey-designation rows such as
+    "PGCC G048.69-05.97". Whitespace runs inside an identifier are collapsed
+    ("LDN  694" -> "LDN 694") because that is what the sky canvas renders.
     """
     if not ids_str or not ids_str.strip():
-        return fallback
-    ids = [p.strip() for p in ids_str.split('|') if p.strip()]
-    # Collapse runs of whitespace and upper-case for tolerant matching, while
-    # keeping ``ids`` untouched so we return the identifier verbatim.
-    norm = [' '.join(i.split()).upper() for i in ids]
+        return fallback, False
+    ids = [' '.join(p.split()) for p in ids_str.split('|') if p.strip()]
+    norm = [i.upper() for i in ids]
     for prefix in _SCAN_NAME_PREFIXES:
         p = prefix.upper()
         for i, n in enumerate(norm):
             if n.startswith(p):
-                return ids[i]
-    return fallback
+                return ids[i], True
+    lbn_i, lbn_known = _pick_lbn(norm)
+    if lbn_i is not None:
+        return ids[lbn_i], lbn_known
+    return fallback, False
 
 
 @api_bp.route('/api/scan_frame', methods=['POST'])
@@ -1072,7 +1097,16 @@ def scan_frame():
             return jsonify(cached)
         del _scan_frame_cache[cache_key]
 
-    adql = (
+    # Two queries, because this ADQL cannot coalesce a NULL for sorting
+    # (COALESCE, CASE, ISNULL and NULLS LAST are all rejected) and cannot
+    # UNION. Sizing the first query this way keeps the largest named objects
+    # when TOP 500 truncates a dense field; the sizeless rows then follow.
+    # ORDER BY must name the column unqualified -- "b.galdim_majaxis" is a
+    # parse error on every mirror.
+    #
+    # Dark nebulae are 'DNe' and reflection nebulae 'RNe': vdB, Ced, RCW and
+    # Gum all land in that second class, so the prefixes need the otype.
+    _base = (
         "SELECT TOP 500 b.main_id, b.ra, b.dec, b.otype, b.galdim_majaxis, "
         "smb_get_ids(b.oid, 40) AS ids, f.V AS vmag "
         "FROM basic AS b "
@@ -1080,11 +1114,19 @@ def scan_frame():
         "WHERE CONTAINS(POINT('ICRS', b.ra, b.dec), "
         "BOX('ICRS', {ra}, {dec}, {fov_w}, {fov_h})) = 1 "
         "AND b.otype IN ('G','GiG','GiC','GlC','OpC','PN','SNR',"
-        "                'HII','EmN','RfN','MoC','Cl*')"
+        "                'HII','EmN','RfN','MoC','Cl*','DNe','RNe') "
     ).format(ra=ra, dec=dec, fov_w=fov_w, fov_h=fov_h)
+    sized_adql    = _base + ("AND b.galdim_majaxis IS NOT NULL "
+                             "ORDER BY galdim_majaxis DESC")
+    sizeless_adql = _base + "AND b.galdim_majaxis IS NULL"
+
+    def _scan_rows(adql):
+        text = simbad_service.tap_csv(adql, timeout=DEFAULT_HTTP_TIMEOUT)
+        current_app.logger.debug('[SCAN] SIMBAD response: %s', text[:300])
+        return list(csv.DictReader(io.StringIO(text)))
 
     try:
-        text = simbad_service.tap_csv(adql, timeout=DEFAULT_HTTP_TIMEOUT)
+        rows = _scan_rows(sized_adql)
     except simbad_service.SimbadUnavailableError:
         return jsonify({
             'status': 'error',
@@ -1094,10 +1136,15 @@ def scan_frame():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 200
 
-    current_app.logger.debug('[SCAN] SIMBAD response: %s', text[:300])
-    reader = csv.DictReader(io.StringIO(text))
+    # A failing second call must not lose the sized results already in hand.
+    try:
+        rows += _scan_rows(sizeless_adql)
+    except Exception as e:
+        current_app.logger.warning('[SCAN] Sizeless query failed, '
+                                   'returning sized results only: %s', e)
+
     objects = []
-    for row in reader:
+    for row in rows:
         try:
             ra_val  = float(row['ra'])
             dec_val = float(row['dec'])
@@ -1109,8 +1156,11 @@ def scan_frame():
         if vmag is not None and vmag > mag_limit:
             continue
         size_s = row.get('galdim_majaxis', '').strip()
+        name, well_known = _resolve_scan_name(
+            row.get('ids', ''), row.get('main_id', '').strip())
         objects.append({
-            'name':        _resolve_scan_name(row.get('ids', ''), row.get('main_id', '').strip()),
+            'name':        name,
+            'well_known':  well_known,
             'ra':          ra_val,
             'dec':         dec_val,
             'otype':       row.get('otype', '').strip(),

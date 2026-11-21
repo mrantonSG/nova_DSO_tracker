@@ -14,6 +14,13 @@ FAKE_SIMBAD_CSV = (
     "Taurus X-1,83.650,-57.1000,PN,42.5,\n"
 )
 
+EMPTY_SIMBAD_CSV = "main_id,ra,dec,otype,galdim_majaxis,ids,vmag\n"
+
+
+def _fake_tap_sized_only(adql, timeout=None):
+    """The route asks twice; answer the sized query, leave the sizeless one empty."""
+    return EMPTY_SIMBAD_CSV if 'galdim_majaxis IS NULL' in adql else FAKE_SIMBAD_CSV
+
 # 1. Add the project's parent directory to the system path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -1090,8 +1097,7 @@ def test_config_form_post_update_and_delete_locations(client, db_session):
 
 
 def test_api_scan_frame_basic(client, db_session, monkeypatch):
-    monkeypatch.setattr(simbad_service, 'tap_csv',
-                        lambda adql, timeout=None: FAKE_SIMBAD_CSV)
+    monkeypatch.setattr(simbad_service, 'tap_csv', _fake_tap_sized_only)
 
     payload = {'ra': 83.5, 'dec': -57.0, 'fov_w': 1.0, 'fov_h': 1.0}
     response = client.post('/api/scan_frame', json=payload)
@@ -1108,8 +1114,7 @@ def test_api_scan_frame_basic(client, db_session, monkeypatch):
 
 
 def test_api_scan_frame_mag_filter(client, db_session, monkeypatch):
-    monkeypatch.setattr(simbad_service, 'tap_csv',
-                        lambda adql, timeout=None: FAKE_SIMBAD_CSV)
+    monkeypatch.setattr(simbad_service, 'tap_csv', _fake_tap_sized_only)
 
     payload = {'ra': 83.5, 'dec': -57.0, 'fov_w': 1.0, 'fov_h': 1.0,
                'mag_limit': 7.5}
@@ -1135,6 +1140,90 @@ def test_api_scan_frame_unavailable(client, db_session, monkeypatch):
     body = response.get_json()
     assert body['status'] == 'error'
     assert body['code'] == 'simbad_unavailable'
+
+
+# --- Scan Frame: well-known catalogue names over survey designations ---
+
+def test_resolve_scan_name_prefers_barnard_over_the_g_number():
+    """SIMBAD holds Barnard 142 as an identifier on a "[DB2002b] G..." row."""
+    from nova.blueprints.api import _resolve_scan_name
+    ids = 'Barnard 142|[DB2002b] G47.85-5.72|TGU H367'
+    assert _resolve_scan_name(ids, '[DB2002b] G47.85-5.72') == ('Barnard 142', True)
+
+
+def test_resolve_scan_name_reads_ldn_with_simbad_whitespace():
+    """LDN ship as "LDN  694"; the label is returned with whitespace collapsed."""
+    from nova.blueprints.api import _resolve_scan_name
+    ids = 'Barnard 143|[CB88] 200|[DB2002b] G48.37-5.83|LDN  694|TDS 202'
+    assert _resolve_scan_name(ids, 'LDN  694') == ('Barnard 143', True)
+    assert _resolve_scan_name('LDN  694', 'LDN  694') == ('LDN 694', True)
+
+
+def test_resolve_scan_name_marks_a_fallback_as_not_well_known():
+    from nova.blueprints.api import _resolve_scan_name
+    assert _resolve_scan_name('PGCC G048.69-05.97', 'PGCC G048.69-05.97') == \
+        ('PGCC G048.69-05.97', False)
+    assert _resolve_scan_name('', 'DOBASHI 1854') == ('DOBASHI 1854', False)
+
+
+def test_resolve_scan_name_prefers_numbered_lbn_over_coordinates():
+    """A row can carry both; only the numbered form counts as well known."""
+    from nova.blueprints.api import _resolve_scan_name
+    assert _resolve_scan_name('LBN 000.03+00.13|LBN     1|Mol  29', '') == \
+        ('LBN 1', True)
+    assert _resolve_scan_name('LBN 151.25+02.12', 'x') == \
+        ('LBN 151.25+02.12', False)
+
+
+def test_scan_frame_query_includes_dark_and_reflection_nebulae(
+        client, db_session, monkeypatch):
+    """DNe carries Barnard/LDN; RNe carries vdB/Ced/RCW/Gum."""
+    seen = []
+
+    def fake_tap(adql, timeout=None):
+        seen.append(adql)
+        return EMPTY_SIMBAD_CSV
+
+    monkeypatch.setattr(simbad_service, 'tap_csv', fake_tap)
+    payload = {'ra': 1.0, 'dec': 2.0, 'fov_w': 1.0, 'fov_h': 1.0}
+    response = client.post('/api/scan_frame', json=payload)
+    assert response.status_code == 200
+    assert len(seen) == 2, 'the route must issue both queries'
+    assert all("'DNe'" in q and "'RNe'" in q for q in seen)
+
+
+def test_scan_frame_lists_sized_objects_before_sizeless(
+        client, db_session, monkeypatch):
+    sized = ('main_id,ra,dec,otype,galdim_majaxis,ids,vmag\n'
+             'Barnard 142,294.925,10.5167,DNe,40.0,Barnard 142|TGU H367,\n')
+    sizeless = ('main_id,ra,dec,otype,galdim_majaxis,ids,vmag\n'
+                'DOBASHI 1854,295.1558,10.865,DNe,,DOBASHI 1854,\n')
+
+    def fake_tap(adql, timeout=None):
+        return sized if 'IS NOT NULL' in adql else sizeless
+
+    monkeypatch.setattr(simbad_service, 'tap_csv', fake_tap)
+    payload = {'ra': 3.0, 'dec': 4.0, 'fov_w': 1.0, 'fov_h': 1.0}
+    body = client.post('/api/scan_frame', json=payload).get_json()
+    assert body['status'] == 'success'
+    assert [o['name'] for o in body['objects']] == ['Barnard 142', 'DOBASHI 1854']
+
+
+def test_scan_frame_keeps_sized_results_when_the_sizeless_query_fails(
+        client, db_session, monkeypatch):
+    sized = ('main_id,ra,dec,otype,galdim_majaxis,ids,vmag\n'
+             'Barnard 142,294.925,10.5167,DNe,40.0,Barnard 142|TGU H367,\n')
+
+    def fake_tap(adql, timeout=None):
+        if 'IS NULL' in adql and 'IS NOT NULL' not in adql:
+            raise RuntimeError('second query failed')
+        return sized
+
+    monkeypatch.setattr(simbad_service, 'tap_csv', fake_tap)
+    payload = {'ra': 5.0, 'dec': 6.0, 'fov_w': 1.0, 'fov_h': 1.0}
+    body = client.post('/api/scan_frame', json=payload).get_json()
+    assert body['status'] == 'success'
+    assert [o['name'] for o in body['objects']] == ['Barnard 142']
 
 
 # --- /api/simbad_status: decides whether the SIMBAD tab embeds Strasbourg ---

@@ -20,6 +20,7 @@
     window.novaI18n.scan_mag = {{ _('Mag') | tojson }};
     window.novaI18n.scan_add_to_database = {{ _('+ Add to Database') | tojson }};
     window.novaI18n.scan_loading = {{ _('Loading…') | tojson }};
+    window.novaI18n.scan_catalog_names_only = {{ _('Catalog names only') | tojson }};
     window.novaI18n.framing_rotation_title = {{ _('Rotation: {angle}') | tojson }};
     window.novaI18n.framing_fov_chip = {{ _('FOV (Rig): {w}′ × {h}′') | tojson }};
     window.novaI18n.framing_saved_chip = {{ _('Saved framing') | tojson }};
@@ -488,6 +489,9 @@
                         <span>{{ _('Min size') }}</span>
                         <input type="number" id="scan-min-size" class="framing-number" min="0" max="60" step="0.1" value="0.5" disabled>
                         <span class="framing-unit">′</span>
+                    </label>
+                    <label class="framing-check" title="{{ _('Show only objects with a well-known catalog name. Uncheck to include survey designations such as PGCC.') }}">
+                        <input type="checkbox" id="scan-catalog-names" checked disabled> {{ _('Catalog names only') }}
                     </label>
                 </div>
             </section>

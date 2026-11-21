@@ -2370,6 +2370,15 @@
             });
         }
 
+        const _catalogEl = document.getElementById('scan-catalog-names');
+        if (_catalogEl && !_catalogEl.dataset.listenerAttached) {
+            _catalogEl.dataset.listenerAttached = 'true';
+            _catalogEl.addEventListener('change', function() {
+                applyMinSizeFilter(
+                    parseFloat(document.getElementById('scan-min-size')?.value) || 0);
+            });
+        }
+
         // --- Check for internet connection first ---
         // With the offline-sky proxy on, cached tiles are served locally, so open
         // the modal and let the notice fire only if the base layer actually fails.
@@ -3738,9 +3747,16 @@
                 || !scanResultsAll.length) return;
         const popup = document.getElementById('scan-result-popup');
         if (popup) popup.hidden = true;
-        const filtered = scanResultsAll.filter(obj =>
-            minSize === 0 || (obj.size_arcmin !== null && obj.size_arcmin >= minSize)
-        );
+        // "Catalog names only" is checked by default: hide rows whose label fell
+        // back to the raw survey designation (PGCC, DOBASHI, ...). Client-side,
+        // so toggling it costs no request.
+        const catalogEl = document.getElementById('scan-catalog-names');
+        const catalogOnly = !catalogEl || catalogEl.checked;
+        const filtered = scanResultsAll.filter(function (obj) {
+            if (catalogOnly && obj.well_known === false) return false;
+            return minSize === 0
+                || (obj.size_arcmin !== null && obj.size_arcmin >= minSize);
+        });
         scanResultsCatalog.removeAll();
         scanResultsCatalog.addSources(
             filtered.map(obj =>
@@ -3777,6 +3793,8 @@
             scanResultsAll = [];
             const _si = document.getElementById('scan-min-size');
             if (_si) _si.disabled = true;
+            const _ci = document.getElementById('scan-catalog-names');
+            if (_ci) _ci.disabled = true;
             if (btn) { btn.textContent = window.t('scan_frame'); setScanButtonBlocked(btn, null); }
             if (popup) popup.hidden = true;
             return;
@@ -3827,6 +3845,8 @@
             const _sizeInput = document.getElementById('scan-min-size');
             const _minSize   = parseFloat(_sizeInput?.value) || 0.5;
             if (_sizeInput) _sizeInput.disabled = false;
+            const _catalogInput = document.getElementById('scan-catalog-names');
+            if (_catalogInput) _catalogInput.disabled = false;
 
             scanResultsCatalog = A.catalog({
                 name:         'SIMBAD DSOs',
