@@ -11,6 +11,14 @@
         WEATHER_GROUPING_MS: 10800000
     };
 
+    // Sky marker labels: the Nova objects layer and the Scan Frame layer draw their
+    // labels the same way -- set off the circle by two NBSPs, in the same font -- so
+    // only the colour tells the two layers apart. The padding is display-only: it
+    // goes in the label column, never in a field the code reads back.
+    const MARKER_LABEL_PADDING = '\u00A0\u00A0';
+    const MARKER_LABEL_FONT = '16px sans-serif';
+    const markerLabel = name => MARKER_LABEL_PADDING + name;
+
     let currentTimeUpdateInterval = null;
 
     // Helper to get framing utils (with fallback for missing module)
@@ -1010,7 +1018,7 @@
             labelColumn: 'name',      // read label from the "name" field of each source
             displayLabel: true,       // draw the labels on the sky
             labelColor: window.stylingUtils && window.stylingUtils.getPrimaryColor ? window.stylingUtils.getPrimaryColor() : '#83b4c5',       // dark-ish blue labels
-            labelFont: '16px sans-serif', // larger font for visibility
+            labelFont: MARKER_LABEL_FONT, // larger font for visibility
             labelHalo: true,          // white halo to separate text from background
             labelHaloColor: window.stylingUtils && window.stylingUtils.getCssVar('--text-white', '#fff') || '#fff',   // contrast halo for dark backgrounds
             onClick: (source) => {
@@ -1071,7 +1079,7 @@
                 String(obj.id);
     
             // Add leading non-breaking spaces to visually offset label from circle
-            const labelWithPadding = '\u00A0\u00A0' + label;  // 3 spaces worth of padding
+            const labelWithPadding = markerLabel(label);
     
             // Merge the object data with the label ('name') into a single flat object
             // This ensures Aladin finds 'name' for the label AND 'obj' properties for the click handler
@@ -3929,6 +3937,7 @@
         scanResultsCatalog.addSources(
             filtered.map(obj =>
                 A.source(obj.ra, obj.dec, {
+                    label:       markerLabel(obj.name),
                     name:        obj.name,
                     otype:       obj.otype,
                     mag:         obj.mag,
@@ -4025,10 +4034,10 @@
                 shape:        'circle',
                 sourceSize:   10,
                 color:        '#e8a84c',
-                labelColumn:  'name',
+                labelColumn:  'label',   // padded display copy; data.name stays clean
                 displayLabel: true,
                 labelColor:   '#e8a84c',
-                labelFont:    '13px DM Sans, sans-serif',
+                labelFont:    MARKER_LABEL_FONT,
                 labelHalo:    true,
                 labelHaloColor: '#000000',
                 onClick: function(source) {
