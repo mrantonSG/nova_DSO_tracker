@@ -58,11 +58,26 @@
         min-width: 100px;
         text-align: center;
     }
+    /* Trend: sized per language to the rendered header (uppercase 10px/700, 0.09em)
+       + 6px side padding + 4px margin. The sort arrow renders on its own line under
+       the label, so it adds no width. Default = es (widest) so an unlisted locale
+       can't overflow. Common Name is the only auto-width column on the Position
+       tab, so the width Trend frees goes to it and nowhere else. */
     th[data-column-key="Trend"], td[data-column-key="Trend"] {
-        width: 70px;
-        min-width: 70px;
+        width: 86px;
+        min-width: 86px;
         text-align: center;
     }
+    #data-table th[data-column-key="Trend"],
+    #data-table td[data-column-key="Trend"] {
+        padding-left: 6px;
+        padding-right: 6px;
+    }
+    :lang(fr) th[data-column-key="Trend"], :lang(fr) td[data-column-key="Trend"] { width: 81px; min-width: 81px; }
+    :lang(ja) th[data-column-key="Trend"], :lang(ja) td[data-column-key="Trend"] { width: 60px; min-width: 60px; }
+    :lang(en) th[data-column-key="Trend"], :lang(en) td[data-column-key="Trend"],
+    :lang(de) th[data-column-key="Trend"], :lang(de) td[data-column-key="Trend"] { width: 51px; min-width: 51px; }
+    :lang(zh) th[data-column-key="Trend"], :lang(zh) td[data-column-key="Trend"] { width: 33px; min-width: 33px; }
     th[data-column-key="Transit Time"], td[data-column-key="Transit Time"] {
         width: 80px;
         min-width: 80px;
