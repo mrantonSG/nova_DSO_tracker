@@ -56,6 +56,7 @@ import json
 import logging
 import math
 import os
+import re
 import threading
 import time
 import traceback
@@ -68,6 +69,23 @@ import nova.offline_sky_store as store
 import nova.hips_healpix as hp
 
 _log = logging.getLogger(__name__)
+
+# Job files named with the old colon-style id "base:<slug>" (f586374b, before
+# 7af5f065 renamed it to "base-<slug>"). They fail store.check_name, so only the
+# startup migration in drop_legacy_jobs sees them. This exact form only.
+_LEGACY_COLON_FILE_RE = re.compile(
+    r"^base:[A-Za-z0-9][A-Za-z0-9_.-]{0,63}\.(json|cancel|pins)$")
+
+# Invalid job file names already warned about in this process: the runner polls
+# every IDLE_POLL_SECONDS, and one warning per file is enough.
+_warned_names = set()
+
+
+def _warn_invalid_name(name: str) -> None:
+    if name in _warned_names:
+        return
+    _warned_names.add(name)
+    _log.warning("Offline sky: skipping job file with an invalid name: %r", name)
 
 # --- Limits / cost ----------------------------------------------------------
 # Keep at least this much free on the disk holding the store. One definition,
@@ -242,7 +260,7 @@ def list_jobs():
             try:
                 job_id = store.check_name(name[:-5])
             except ValueError:
-                _log.warning("Offline sky: skipping job file with an invalid name: %r", name)
+                _warn_invalid_name(name)
                 continue
             state = read_job(job_id)
             if state:
@@ -303,7 +321,7 @@ def sweep_stale_job_files() -> None:
             else:
                 continue
         except ValueError:
-            _log.warning("Offline sky: skipping job file with an invalid name: %r", name)
+            _warn_invalid_name(name)
             continue
         if stale:
             try:
@@ -799,6 +817,29 @@ def kick() -> bool:
         return True
 
 
+def _drop_colon_job_files() -> int:
+    """Remove "base:<slug>" job files (.json/.cancel/.pins). Returns how many jobs.
+
+    Base pins are untouched; tiles held only by such a claims file become
+    browsed, as drop_legacy_jobs always did for a dropped job's claims.
+    """
+    try:
+        names = os.listdir(store.jobs_dir())
+    except OSError:
+        return 0
+    found = set()
+    for name in names:
+        match = _LEGACY_COLON_FILE_RE.match(name)
+        if not match:
+            continue
+        try:
+            os.remove(os.path.join(store.jobs_dir(), name))
+        except OSError:
+            continue
+        found.add(name[:-(len(match.group(1)) + 1)])
+    return len(found)
+
+
 def drop_legacy_jobs() -> int:
     """Drop queued/running/paused jobs that are not downloads. Returns how many.
 
@@ -807,8 +848,11 @@ def drop_legacy_jobs() -> int:
     ``.base-pins.json`` and are never touched -- the base is not revived. The
     dropped jobs' claims files are removed too, so their tiles stop being
     pinned and become ordinary browsed tiles. One ``[STARTUP]`` line.
+
+    Job files with the old colon-style id ("base:<slug>") fail check_name, so
+    list_jobs cannot see them; they are removed first, whatever their status.
     """
-    dropped = 0
+    dropped = _drop_colon_job_files()
     for state in list_jobs():
         if state.get("status") not in ACTIVE_STATUSES:
             continue

@@ -43,6 +43,7 @@ FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures", "offline_sky")
 @pytest.fixture(autouse=True)
 def _env(monkeypatch):
     facts.clear_memo()
+    jobs._warned_names.clear()
     kicks = []
     monkeypatch.setattr(jobs, "kick", lambda: kicks.append(1) or False)
     monkeypatch.setattr(store, "disk_free_bytes", lambda: 500 * GIB)
@@ -790,3 +791,41 @@ def test_job_files_with_invalid_ids_are_skipped_not_fatal(upstream, runners, cap
         assert "invalid id: '../escape'" in caplog.text
 
     assert jobs.read_job(jobs.base_job_id(OIII))["status"] == "done"
+
+
+def test_legacy_colon_job_files_dropped_at_startup(capsys):
+    """Old "base:<slug>" job files (pre "base-<slug>") fail check_name; the startup
+    migration removes them with their marker and claims, counts them in the
+    [STARTUP] line and leaves the base pins alone."""
+    import json
+    store.add_base_pins([f"{DSS}/Norder0/Dir0/Npix0.jpg"])
+    with open(store._base_pins_path(), "rb") as fh:
+        base_pins_before = fh.read()
+    d = store.jobs_dir()
+    os.makedirs(d, exist_ok=True)
+    with open(os.path.join(d, "base:dss2-color.json"), "w") as fh:
+        json.dump({"id": "base:dss2-color", "kind": "base", "status": "done"}, fh)
+    with open(os.path.join(d, "base:dss2-color.pins"), "w") as fh:
+        fh.write(f"{DSS}/Norder1/Dir0/Npix5.jpg\t0\n")
+    with open(os.path.join(d, "base:dss2-color.cancel"), "w") as fh:
+        fh.write("0")
+
+    assert jobs.drop_legacy_jobs() == 1
+
+    assert not [n for n in os.listdir(d) if n.startswith("base:")]
+    with open(store._base_pins_path(), "rb") as fh:
+        assert fh.read() == base_pins_before
+    assert "dropped 1 legacy job(s)" in capsys.readouterr().out
+
+
+def test_invalid_job_file_name_warned_once(caplog):
+    """The runner polls list_jobs every 2 s: an invalid name warns once per process."""
+    import logging
+    os.makedirs(store.jobs_dir(), exist_ok=True)
+    with open(os.path.join(store.jobs_dir(), "bad name.json"), "w") as fh:
+        fh.write("{}")
+    with caplog.at_level(logging.WARNING, logger="nova.offline_sky_jobs"):
+        jobs.list_jobs()
+        jobs.list_jobs()
+    warnings = [r for r in caplog.records if "invalid name" in r.getMessage()]
+    assert len(warnings) == 1
