@@ -45,7 +45,7 @@ The **Scan Frame** button queries the SIMBAD astronomical database for deep-sky 
 * **Min size filter:** The **Min size** field (default: 0.5′) filters out catalog stubs and very small objects. Adjust after scanning to refine results — filtering is instant, with no new network request. Set to 0 to show all objects including those with no recorded size.
 * **Catalog names only:** Checked by default. Hides objects whose only SIMBAD identifier is a survey designation (for example `PGCC G048.69-05.97`), so the markers you see carry names such as **Barnard 143**, **LDN 694** or **NGC 7000**. Uncheck to also show objects that only have a survey designation. Objects without a recorded size still follow the **Min size** filter (set it to 0 to show them). Filtering is instant, with no new network request.
 * **Object popup:** Click the amber **circle** on an object to see its name, type, coordinates (RA/Dec), angular size, and a short description from Wikipedia where available. Note: clicking the label text does not open the popup — only the circle itself is interactive. The **+ Add to Database** button opens the Configuration page pre-filled with the object's data.
-* **FOV limit:** Scan Frame is disabled for rigs with a field of view wider than 5°. If the button is greyed out, switch to a narrower rig configuration.
+* **FOV limit:** Scan Frame is disabled for rigs with a field of view wider than 8°. If the button is greyed out, switch to a narrower rig configuration.
 
 *SIMBAD is an external service. Results require an active internet connection and may take a few seconds.*
 

@@ -541,6 +541,7 @@
         objectId: {{ object_id | default(0) }},
         objectName: {{ object_name | tojson }},
         simbadHost: {{ simbad_host|default('simbad.cds.unistra.fr', true)|tojson }},
+        scanMaxFovDeg: {{ scan_max_fov_deg | tojson }},
         altName: {{ alt_name | default(object_name, True) | tojson }},
         plotLat: "{{ graph_lat_param | default('', True) }}",
         plotLon: "{{ graph_lon_param | default('', True) }}",

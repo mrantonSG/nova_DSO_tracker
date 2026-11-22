@@ -54,7 +54,7 @@ import ephem
 import nova  # module-qualified so runtime reads of nova.SINGLE_USER_MODE stay live (see nova/config.py)
 from modules import simbad_service
 from nova.analytics import record_event, record_login
-from nova.config import CACHE_DIR, UPLOAD_FOLDER, cache_worker_status
+from nova.config import CACHE_DIR, UPLOAD_FOLDER, SCAN_FRAME_MAX_FOV_DEG, cache_worker_status
 from nova.helpers import (
     _parse_float_from_request,
     convert_to_native_python,
@@ -2592,6 +2592,7 @@ def graph_dashboard(object_name):
                                object_name=object_name,
                                simbad_host=simbad_service.current_host(),
                                simbad_available=simbad_service.is_available_cached(),
+                               scan_max_fov_deg=SCAN_FRAME_MAX_FOV_DEG,
                                alt_name=object_main_details.get("Common Name", object_name),
                                object_main_details=object_main_details,
                                available_rigs=sorted_rigs,

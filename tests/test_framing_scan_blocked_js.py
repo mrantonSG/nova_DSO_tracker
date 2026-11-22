@@ -115,7 +115,7 @@ ctx.aladin = { addCatalog() {} };
 vm.createContext(ctx);
 
 const api = vm.runInContext(`
-    const MAX_SCAN_FOV_DEG = 4.0;
+    const MAX_SCAN_FOV_DEG = 8.0;
     let offlineViewOn = false;
     let scanFrameActive = false, scanResultsCatalog = null, scanResultsAll = [];
     function frameCenter() { return { ra: 1, dec: 2 }; }

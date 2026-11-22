@@ -1,3 +1,4 @@
+from pathlib import Path
 import pytest
 from datetime import date
 import sys, os, io
@@ -1551,3 +1552,58 @@ def test_search_object_whitespace_name_skips_library_check(client, monkeypatch):
     assert resp.status_code == 200
     body = resp.get_json()
     assert body["status"] == "success"
+
+def test_scan_frame_accepts_a_wide_field_rig_within_the_limit(client, db_session, monkeypatch):
+    """425' x 284' (about 7.1 deg x 4.7 deg) is under the 8 deg limit: it scans."""
+    monkeypatch.setattr(simbad_service, 'tap_csv', _fake_tap_sized_only)
+    payload = {'ra': 295.5, 'dec': 10.917, 'fov_w': 7.1, 'fov_h': 4.7}
+    body = client.post('/api/scan_frame', json=payload).get_json()
+    assert body['status'] == 'success'
+    assert body['count'] == 4
+
+
+def test_scan_frame_refuses_a_frame_over_the_limit_without_asking_simbad(
+        client, db_session, monkeypatch):
+    calls = []
+    monkeypatch.setattr(simbad_service, 'tap_csv',
+                        lambda adql, **kw: calls.append(adql) or FAKE_SIMBAD_CSV)
+    payload = {'ra': 295.5, 'dec': 10.917, 'fov_w': 8.5, 'fov_h': 4.7}
+    body = client.post('/api/scan_frame', json=payload).get_json()
+    assert body['status'] == 'error'
+    assert body['code'] == 'fov_too_large'
+    # The real numbers, not the msgid's placeholders
+    assert body['message'] == 'FOV too large (8.5° × 4.7°), max 8° for Scan Frame'
+    assert calls == [], 'a refused frame must not reach SIMBAD'
+
+
+def test_scan_frame_limit_applies_to_either_side(client, db_session, monkeypatch):
+    monkeypatch.setattr(simbad_service, 'tap_csv', _fake_tap_sized_only)
+    payload = {'ra': 295.5, 'dec': 10.917, 'fov_w': 4.7, 'fov_h': 8.5}
+    body = client.post('/api/scan_frame', json=payload).get_json()
+    assert body['code'] == 'fov_too_large'
+    assert body['message'] == 'FOV too large (4.7° × 8.5°), max 8° for Scan Frame'
+
+
+def test_scan_frame_limit_message_is_translated_with_real_numbers(
+        client, db_session, monkeypatch):
+    """Same msgid as the button tooltip, so the existing translations apply."""
+    monkeypatch.setattr(simbad_service, 'tap_csv', _fake_tap_sized_only)
+    with client.session_transaction() as sess:
+        sess['language'] = 'de'
+    payload = {'ra': 295.5, 'dec': 10.917, 'fov_w': 8.5, 'fov_h': 4.7}
+    body = client.post('/api/scan_frame', json=payload,
+                       headers={'Accept-Language': 'de'}).get_json()
+    assert body['message'] == ('Sichtfeld zu groß (8.5° × 4.7°), höchstens 8° '
+                               'für „Bildausschnitt scannen“')
+
+
+def test_graph_page_hands_the_scan_limit_to_the_js(client, db_session):
+    """One shared value: the page's NOVA_GRAPH_DATA carries nova.config's limit,
+    and graph_view_chart.js reads it rather than its own literal."""
+    from nova.config import SCAN_FRAME_MAX_FOV_DEG
+    resp = client.get('/graph_dashboard/M42')
+    assert resp.status_code == 200
+    assert f'scanMaxFovDeg: {SCAN_FRAME_MAX_FOV_DEG}' in resp.get_data(as_text=True)
+    js = (Path(__file__).resolve().parent.parent / 'static' / 'js'
+          / 'graph_view_chart.js').read_text(encoding='utf-8')
+    assert 'const MAX_SCAN_FOV_DEG = NOVA_GRAPH_DATA.scanMaxFovDeg;' in js

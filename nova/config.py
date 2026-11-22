@@ -158,6 +158,10 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 # --- Limits ---
 MAX_ACTIVE_LOCATIONS = 5
+# Scan Frame: the widest rig FOV (either side, degrees) that may be scanned. The
+# server refuses wider frames; graph_view.html hands the value to the JS, which
+# blocks the button for such rigs.
+SCAN_FRAME_MAX_FOV_DEG = 8.0
 
 # --- Timeouts ---
 SIMBAD_TIMEOUT = 60  # SIMBAD queries can be slow

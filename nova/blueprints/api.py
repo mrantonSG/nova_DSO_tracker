@@ -32,6 +32,7 @@ from nova.config import (
     ADMIN_USERS, TELEMETRY_DEBUG_STATE, LATEST_VERSION_INFO,
     nightly_curves_cache, observable_objects_cache,
     weather_cache, upper_wind_cache, CACHE_DIR, DEFAULT_HTTP_TIMEOUT,
+    SCAN_FRAME_MAX_FOV_DEG,
 )
 
 
@@ -1099,6 +1100,16 @@ def scan_frame():
         mag_limit = float(data.get('mag_limit', 16.0))
     except (KeyError, TypeError, ValueError) as e:
         return jsonify({'status': 'error', 'message': f'Bad parameters: {e}'}), 200
+
+    # The frontend blocks the button for wider rigs; this is the same limit for
+    # anything that posts directly. Same msgid as the button's tooltip.
+    if fov_w > SCAN_FRAME_MAX_FOV_DEG or fov_h > SCAN_FRAME_MAX_FOV_DEG:
+        return jsonify({
+            'status': 'error',
+            'code': 'fov_too_large',
+            'message': _('FOV too large ({w}° × {h}°), max {max}° for Scan Frame').format(
+                w=f'{fov_w:.1f}', h=f'{fov_h:.1f}', max=f'{SCAN_FRAME_MAX_FOV_DEG:g}'),
+        }), 200
 
     cache_key = (
         g.db_user.username,

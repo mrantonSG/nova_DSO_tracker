@@ -3851,7 +3851,8 @@
     // away (the DOM is parsed: this script is deferred), not only once the page has loaded
     checkAndShowFramingButton();
 
-    const MAX_SCAN_FOV_DEG = 4.0;
+    // nova/config.py SCAN_FRAME_MAX_FOV_DEG; the server refuses wider frames too.
+    const MAX_SCAN_FOV_DEG = NOVA_GRAPH_DATA.scanMaxFovDeg;
 
     /** Show why the Scan Frame button cannot be used right now, keeping the button
      *  reachable rather than switching it off.
