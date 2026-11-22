@@ -53,6 +53,7 @@ not.
 """
 
 import json
+import logging
 import math
 import os
 import threading
@@ -65,6 +66,8 @@ from nova.offline_sky_lock import try_lock, unlock
 from nova.offline_sky_sources import SURVEY_BY_SLUG
 import nova.offline_sky_store as store
 import nova.hips_healpix as hp
+
+_log = logging.getLogger(__name__)
 
 # --- Limits / cost ----------------------------------------------------------
 # Keep at least this much free on the disk holding the store. One definition,
@@ -195,11 +198,13 @@ def base_complete(slug: str) -> bool:
 # ---------------------------------------------------------------------------
 
 def _job_path(job_id: str) -> str:
-    return os.path.join(store.jobs_dir(), f"{job_id}.json")
+    store.check_name(job_id)
+    return store._within_store(os.path.join(store.jobs_dir(), f"{job_id}.json"))
 
 
 def _cancel_path(job_id: str) -> str:
-    return os.path.join(store.jobs_dir(), f"{job_id}.cancel")
+    store.check_name(job_id)
+    return store._within_store(os.path.join(store.jobs_dir(), f"{job_id}.cancel"))
 
 
 def read_job(job_id: str):
@@ -234,7 +239,12 @@ def list_jobs():
         return out
     for name in names:
         if name.endswith(".json"):
-            state = read_job(name[:-5])
+            try:
+                job_id = store.check_name(name[:-5])
+            except ValueError:
+                _log.warning("Offline sky: skipping job file with an invalid name: %r", name)
+                continue
+            state = read_job(job_id)
             if state:
                 out.append(state)
     return out
@@ -284,20 +294,22 @@ def sweep_stale_job_files() -> None:
     except FileNotFoundError:
         return
     for name in names:
-        if name.endswith(".pins"):
-            base = name[:-len(".pins")]
-            if not os.path.exists(_job_path(base)):
-                try:
-                    os.remove(os.path.join(store.jobs_dir(), name))
-                except OSError:
-                    pass
-        elif name.endswith(".cancel"):
-            state = read_job(name[:-len(".cancel")])
-            if not state or state.get("status") not in ACTIVE_STATUSES:
-                try:
-                    os.remove(os.path.join(store.jobs_dir(), name))
-                except OSError:
-                    pass
+        try:
+            if name.endswith(".pins"):
+                stale = not os.path.exists(_job_path(name[:-len(".pins")]))
+            elif name.endswith(".cancel"):
+                state = read_job(name[:-len(".cancel")])
+                stale = not state or state.get("status") not in ACTIVE_STATUSES
+            else:
+                continue
+        except ValueError:
+            _log.warning("Offline sky: skipping job file with an invalid name: %r", name)
+            continue
+        if stale:
+            try:
+                os.remove(os.path.join(store.jobs_dir(), name))
+            except OSError:
+                pass
 
 
 # ---------------------------------------------------------------------------
@@ -414,7 +426,14 @@ class JobRunner:
         for state in self.pending():
             if self._stop.is_set():
                 break
-            self.run_job(state["id"])
+            try:
+                job_id = store.check_name(state.get("id"))
+            except ValueError:
+                # The id inside the job file is not a valid job id.
+                _log.warning("Offline sky: skipping job with an invalid id: %r",
+                             state.get("id"))
+                continue
+            self.run_job(job_id)
             n += 1
         return n
 
@@ -798,8 +817,13 @@ def drop_legacy_jobs() -> int:
         job_id = state.get("id")
         if not job_id:
             continue
-        for path in (_job_path(job_id), _cancel_path(job_id),
-                     store._job_pins_path(job_id)):
+        try:
+            paths = (_job_path(job_id), _cancel_path(job_id),
+                     store._job_pins_path(job_id))
+        except ValueError:
+            _log.warning("Offline sky: skipping job with an invalid id: %r", job_id)
+            continue
+        for path in paths:
             try:
                 os.remove(path)
             except OSError:

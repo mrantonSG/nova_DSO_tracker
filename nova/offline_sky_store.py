@@ -69,6 +69,7 @@ only downloads are switched off, see ``DOWNLOADS_AVAILABLE``.
 import json
 import logging
 import os
+import re
 import threading
 import time
 from contextlib import contextmanager
@@ -168,8 +169,29 @@ def downloads_available() -> bool:
     return bool(DOWNLOADS_AVAILABLE)
 
 
+# A survey slug or job id is one plain path segment: no "/", "\\" or "..".
+_SLUG_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$")
+
+
+def check_name(name: str) -> str:
+    """``name`` when it is a safe slug / job id, else ValueError."""
+    if not isinstance(name, str) or name in (".", "..") or not _SLUG_RE.match(name):
+        raise ValueError(f"invalid offline sky name: {name!r}")
+    return name
+
+
+def _within_store(path: str) -> str:
+    """``path`` normalised, or ValueError when it is outside the store."""
+    root = os.path.normpath(os.path.abspath(hips_root()))
+    full = os.path.normpath(os.path.abspath(path))
+    if full != root and not full.startswith(root + os.sep):
+        raise ValueError("path escapes offline sky store")
+    return full
+
+
 def survey_dir(slug: str) -> str:
-    return os.path.join(hips_root(), slug)
+    check_name(slug)
+    return _within_store(os.path.join(hips_root(), slug))
 
 
 def _total_path() -> str:
@@ -274,7 +296,7 @@ def pinned_bytes() -> int:
 
 
 def tile_path(slug: str, rel_path: str) -> str:
-    return os.path.join(survey_dir(slug), rel_path)
+    return _within_store(os.path.join(survey_dir(slug), rel_path))
 
 
 def tile_rel(order: int, npix: int, ext: str) -> str:
@@ -296,7 +318,7 @@ MISSING_RETRY_SECONDS = 24 * 3600
 
 
 def _missing_path(slug: str) -> str:
-    return os.path.join(survey_dir(slug), MISSING_FILENAME)
+    return _within_store(os.path.join(survey_dir(slug), MISSING_FILENAME))
 
 
 def read_missing(slug: str) -> dict:
@@ -354,7 +376,7 @@ def file_size(slug: str, rel_path: str):
     """Size in bytes of hips/<slug>/<rel_path>, or None when absent."""
     try:
         return os.path.getsize(tile_path(slug, rel_path))
-    except OSError:
+    except (OSError, ValueError):  # ValueError: a malformed key from a claims file
         return None
 
 
@@ -562,7 +584,8 @@ def _reconcile_totals_locked() -> None:
 # ---------------------------------------------------------------------------
 
 def _job_pins_path(job_id: str) -> str:
-    return os.path.join(jobs_dir(), f"{job_id}{JOB_PINS_SUFFIX}")
+    check_name(job_id)
+    return _within_store(os.path.join(jobs_dir(), f"{job_id}{JOB_PINS_SUFFIX}"))
 
 
 def _read_lines(path: str) -> set:
@@ -1048,7 +1071,12 @@ def delete_tiles(rel_paths) -> dict:
             slug, _, rel = key.partition("/")
             if not rel:
                 continue
-            path = os.path.join(hips_root(), slug, *rel.split("/"))
+            try:
+                # Keys come from claims files on disk: never delete outside the store.
+                path = _within_store(os.path.join(hips_root(), slug, *rel.split("/")))
+            except ValueError:
+                kept += 1
+                continue
             try:
                 size = os.path.getsize(path)
             except OSError:

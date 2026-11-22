@@ -1003,3 +1003,32 @@ def test_total_counts_every_byte_across_processes_and_threads():
     tiles = _RACE_PROCS * _RACE_THREADS * _RACE_TILES
     assert on_disk == tiles * _RACE_SIZE
     assert store.total_bytes() == on_disk
+
+
+# ---------------------------------------------------------------------------
+# Path containment: nothing outside the store is read, written or deleted
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("slug", ["../x", "a/b", "..", ".", "", "a\\b"])
+def test_survey_dir_rejects_a_slug_that_is_not_one_plain_segment(slug):
+    with pytest.raises(ValueError):
+        survey_dir(slug)
+
+
+def test_tile_path_rejects_a_rel_path_that_leaves_the_store():
+    with pytest.raises(ValueError):
+        store.tile_path(DSS, "../../etc/passwd")
+
+
+def test_delete_tiles_never_removes_a_file_outside_the_store():
+    os.makedirs(store.hips_root(), exist_ok=True)
+    outside = os.path.join(os.path.dirname(os.path.abspath(store.hips_root())), "outside.txt")
+    with open(outside, "w", encoding="utf-8") as fh:
+        fh.write("keep me")
+    try:
+        result = store.delete_tiles({"survey/../../outside.txt"})
+        assert os.path.exists(outside)
+        assert result["kept"] == 1
+        assert result["deleted"] == 0
+    finally:
+        os.remove(outside)

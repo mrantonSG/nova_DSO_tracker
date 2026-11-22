@@ -761,3 +761,32 @@ def test_the_runner_reconciles_pins_once_at_start(upstream, runners, monkeypatch
     assert first >= 1
     r.run_pending()                                    # a second pass does not repeat it
     assert len(calls) == first
+
+
+def test_job_files_with_invalid_ids_are_skipped_not_fatal(upstream, runners, caplog):
+    """A job file whose name, or whose stored id, is not a valid job id is skipped
+    with a warning; the runner still processes the valid job next to it."""
+    import json
+    import logging
+    os.makedirs(store.jobs_dir(), exist_ok=True)
+    queued = {"kind": "base", "status": "queued", "params": {"slug": OIII},
+              "surveys": [OIII], "created": 0}
+    # Invalid file name: list_jobs never reads it.
+    with open(os.path.join(store.jobs_dir(), "bad name!.json"), "w") as fh:
+        json.dump(dict(queued, id="bad name!"), fh)
+    # Valid file name, invalid id inside: run_pending skips it.
+    with open(os.path.join(store.jobs_dir(), "mismatch.json"), "w") as fh:
+        json.dump(dict(queued, id="../escape"), fh)
+    _queue_base(OIII)
+
+    with caplog.at_level(logging.WARNING, logger="nova.offline_sky_jobs"):
+        ids = {j["id"] for j in jobs.list_jobs()}
+        assert ids == {"../escape", jobs.base_job_id(OIII)}
+        assert "invalid name: 'bad name!.json'" in caplog.text
+
+        r = runners()
+        assert r.acquire()
+        assert r.run_pending() == 1
+        assert "invalid id: '../escape'" in caplog.text
+
+    assert jobs.read_job(jobs.base_job_id(OIII))["status"] == "done"

@@ -302,7 +302,8 @@ def _band_coverage(coverage, lo, hi):
 # ---------------------------------------------------------------------------
 
 def plan_path(job_id):
-    return os.path.join(store.jobs_dir(), f"{job_id}.plan.json")
+    store.check_name(job_id)
+    return store._within_store(os.path.join(store.jobs_dir(), f"{job_id}.plan.json"))
 
 
 def read_plan(job_id):
