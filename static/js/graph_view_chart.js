@@ -2436,6 +2436,15 @@
 
         if (!aladin) {
             try {
+                // Aladin Lite v3 loads its WASM engine asynchronously: A.init is the
+                // promise that resolves once its web client (A.WebClient) exists, and
+                // A.aladin() needs it. On a direct open -- ?tab=framing, a framing URL,
+                // or the last tab restored -- this runs while the page is still loading,
+                // before that promise settles, and A.aladin() throws on "new A.WebClient"
+                // of undefined. Opening the tab later worked only because the WASM had
+                // loaded in the meantime. A rejection here (offline, or no WebGL2) falls
+                // into the catch below and shows the init-failed message, as before.
+                if (A && A.init) await A.init;
                 // DSS2 by default; NSNS instead while CDS is unreachable (northern objects).
                 // On the current mode's root, like every other layer.
                 const initialBase = chooseDisplayedBase("P/DSS2/color");

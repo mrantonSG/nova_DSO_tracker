@@ -327,6 +327,7 @@ function buildCase(c, opts = {}) {
     ctx.__clip = t => clipboard.push(t);
     ctx.__log = s => log.push(s);
     ctx.__probeTicks = opts.probeDelay || 0;
+    ctx.__aInitTicks = opts.aInitTicks === undefined ? null : opts.aInitTicks;
     vm.createContext(ctx);
     vm.runInContext(fs.readFileSync(utilsFile, 'utf8'), ctx, { filename: utilsFile });
 
@@ -346,6 +347,14 @@ function buildCase(c, opts = {}) {
             aladin() { __log('create'); return __aladinStandIn; },
             HiPS() { return {}; }, graphicOverlay() { return { removeAll() {} }; },
         };
+        // Aladin Lite v3's engine promise. null = an Aladin without it (the default,
+        // so the frozen tests are untouched); a number = the ticks until it settles.
+        if (__aInitTicks !== null) {
+            A.init = (async () => {
+                for (let k = 0; k < __aInitTicks; k++) await new Promise(r => setImmediate(r));
+                __log('init');
+            })();
+        }
         ${aladinReady ? 'aladin = __aladinStandIn;' : ''}
         function setSurvey() { return Promise.resolve(); }
         function ensureBlendLayer() {} function setBlendOpacity() {} function showSurveyNotice() {}
