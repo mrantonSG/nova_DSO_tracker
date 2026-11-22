@@ -146,6 +146,25 @@
     })();
 
 
+    // --- "New Target": the field is always visible; Create is enabled only once it
+    // holds a non-blank name. Enter in the field submits. ---
+    (function () {
+        const input = document.getElementById('new-target-name');
+        const btn = document.getElementById('new-target-confirm');
+        if (!input || !btn) return;
+        const sync = function () {
+            btn.disabled = input.value.trim() === '';
+        };
+        input.addEventListener('input', sync);
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (!btn.disabled) btn.click();
+            }
+        });
+        sync();
+    })();
+
     // --- Event Delegation for data-action attributes (click events) ---
     document.addEventListener('click', function(e) {
         const actionBtn = e.target.closest('[data-action]');
@@ -276,6 +295,17 @@
             case 'scan-frame':
                 window.scanFrameForDSOs();
                 break;
+            case 'new-target-confirm': {
+                const input = document.getElementById('new-target-name');
+                const btn = document.getElementById('new-target-confirm');
+                if (btn && btn.disabled) break;
+                if (typeof window.createNewTarget === 'function' && typeof window.frameCenter === 'function') {
+                    // One snapshot, used for both the object's position and its framing.
+                    const center = window.frameCenter();
+                    window.createNewTarget(input ? input.value : '', center, center);
+                }
+                break;
+            }
             case 'close-scan-popup':
                 const p = document.getElementById('scan-result-popup');
                 if (p) p.hidden = true;

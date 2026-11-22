@@ -8651,6 +8651,58 @@ msgstr ""
 "¿Enviar la copia del archivo de este ordenador al servidor en la próxima "
 "sincronización? Pasará a ser el archivo del registro en todas partes."
 
+#: nova/blueprints/api.py
+msgid "A target name is required."
+msgstr "Se requiere un nombre para el objetivo."
+
+#: nova/blueprints/api.py
+msgid "'%(name)s' is already in your library."
+msgstr "'%(name)s' ya está en tu biblioteca."
+
+#: templates/graph_view.html
+msgid "Make this my target"
+msgstr "Convertir en mi objetivo"
+
+#: templates/graph_view.html
+msgid "New Target"
+msgstr "Nuevo objetivo"
+
+#: templates/graph_view.html
+msgid "Target name (e.g. Barnard 143)"
+msgstr "Nombre del objetivo (p. ej. Barnard 143)"
+
+#: templates/graph_view.html
+msgid "Creates a target at the current frame centre and saves this framing on it."
+msgstr "Crea un objetivo en el centro del campo actual y guarda este encuadre en él."
+
+#: templates/graph_view.html
+msgid "Enter a name for the new target."
+msgstr "Introduce un nombre para el nuevo objetivo."
+
+#: templates/graph_view.html
+msgid "Could not create the target"
+msgstr "No se pudo crear el objetivo"
+
+#: templates/graph_view.html
+msgid "The target was created, but the framing could not be saved."
+msgstr "El objetivo se creó, pero no se pudo guardar el encuadre."
+
+#: templates/graph_view.html
+msgid "This is already the open target. Use Save Framing to keep this view."
+msgstr "Este ya es el objetivo abierto. Usa «Guardar encuadre» para conservar esta vista."
+
+#: templates/graph_view.html
+msgid "%(name)s is already in your library. Opening it with your current frame — use Save Framing to keep it."
+msgstr "%(name)s ya está en tu biblioteca. Se abrirá con tu campo actual; usa «Guardar encuadre» para conservarlo."
+
+#: templates/graph_view.html
+msgid "Scan"
+msgstr "Escanear"
+
+#: templates/graph_view.html
+msgid "Create target"
+msgstr "Crear objetivo"
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Actualizar sugerencias"
 
@@ -8840,4 +8892,8 @@ msgstr ""
 
 #~ msgid "tiles"
 #~ msgstr "teselas"
+
+#: templates/base.html
+msgid "Open"
+msgstr "Abrir"
 

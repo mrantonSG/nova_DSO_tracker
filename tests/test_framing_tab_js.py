@@ -295,15 +295,23 @@ def test_panel_sections_in_order():
     at = [framing.index(m, side) for m in head]
     assert at == sorted(at), head
     order = ["framing-head", 'id="framing-result"', "{{ _('Frame') }}", "{{ _('Sky') }}",
-             "{{ _('Position') }}", "{{ _('Actions') }}"]
+             "{{ _('Position') }}", "{{ _('Scan') }}", "{{ _('New Target') }}",
+             "{{ _('Actions') }}"]
     at = [framing.index(m, side) for m in order]
     assert at == sorted(at), order
+    # Scan Frame's controls moved out of Actions into their own section; IDs unchanged.
+    assert framing.index('id="scan-frame-btn"') > framing.index("{{ _('Scan') }}")
+    assert framing.index('id="scan-frame-btn"') < framing.index("{{ _('Actions') }}")
+    assert framing.index('id="scan-catalog-names"') < framing.index("{{ _('New Target') }}")
     # The OFFLINE section is gone with the save-for-offline UI
     assert "{{ _('Offline') }}" not in framing
     assert "framing-offline-slot" not in framing
-    # Open / Delete saved framing live in ACTIONS now, next to Save framing
+    # Actions rows: Save Framing alone, then Open/Delete, then the copy actions.
+    assert framing.index("{{ _('Actions') }}") < framing.index('id="save-framing-db"')
     assert framing.index('id="save-framing-db"') < framing.index('id="project-framing-buttons"')
-    assert framing.index("{{ _('Actions') }}") < framing.index('id="project-framing-buttons"')
+    assert framing.index('id="project-framing-buttons"') < framing.index("{{ _('Copy framing URL') }}")
+    # The saved-framing group is a row of its own, and disappears when empty.
+    assert 'class="framing-buttons framing-buttons-inline"' in framing
     # Image adjustments is the only fold left, and it is folded by default
     assert framing.count('<details class="framing-fold">') == 1 and "<details open" not in framing
 

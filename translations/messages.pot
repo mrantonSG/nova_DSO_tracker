@@ -8253,3 +8253,59 @@ msgid ""
 "It becomes the record's file everywhere."
 msgstr ""
 
+#: nova/blueprints/api.py
+msgid "A target name is required."
+msgstr ""
+
+#: nova/blueprints/api.py
+msgid "'%(name)s' is already in your library."
+msgstr ""
+
+#: templates/graph_view.html
+msgid "Make this my target"
+msgstr ""
+
+#: templates/graph_view.html
+msgid "New Target"
+msgstr ""
+
+#: templates/graph_view.html
+msgid "Target name (e.g. Barnard 143)"
+msgstr ""
+
+#: templates/graph_view.html
+msgid "Creates a target at the current frame centre and saves this framing on it."
+msgstr ""
+
+#: templates/graph_view.html
+msgid "Enter a name for the new target."
+msgstr ""
+
+#: templates/graph_view.html
+msgid "Could not create the target"
+msgstr ""
+
+#: templates/graph_view.html
+msgid "The target was created, but the framing could not be saved."
+msgstr ""
+
+#: templates/graph_view.html
+msgid "This is already the open target. Use Save Framing to keep this view."
+msgstr ""
+
+#: templates/graph_view.html
+msgid "%(name)s is already in your library. Opening it with your current frame — use Save Framing to keep it."
+msgstr ""
+
+#: templates/graph_view.html
+msgid "Scan"
+msgstr ""
+
+#: templates/graph_view.html
+msgid "Create target"
+msgstr ""
+
+#: templates/base.html
+msgid "Open"
+msgstr ""
+

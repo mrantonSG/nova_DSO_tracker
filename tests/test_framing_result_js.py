@@ -109,8 +109,11 @@ const textOf = els => ({
         await settle();
         b.setResponse(c.framing);
         b.api.showSaved(); await settle();
+        // Structural, not text-based: the short label is "Open", so find the ghost-styled
+        // saved-framing button by its class and data attribute instead.
         const openBtn = b.els['project-framing-buttons'].children
-            .find(x => x.textContent === input.i18n.open_saved_framing);
+            .find(x => x.getAttribute('data-saved-framing') === 'true'
+                       && x.className === 'inline-button-ghost');
         if (!queued) b.api.setOpening(null);      // as before: the button opened straight away
         const second = openBtn.onclick();
         await Promise.all([first, second]);

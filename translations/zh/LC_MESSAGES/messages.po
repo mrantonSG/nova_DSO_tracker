@@ -8269,6 +8269,58 @@ msgid ""
 "It becomes the record's file everywhere."
 msgstr "在下次同步时将这台电脑上的文件副本发送到服务器？它将成为该记录在所有位置的文件。"
 
+#: nova/blueprints/api.py
+msgid "A target name is required."
+msgstr "必须填写目标名称。"
+
+#: nova/blueprints/api.py
+msgid "'%(name)s' is already in your library."
+msgstr "“%(name)s”已在您的库中。"
+
+#: templates/graph_view.html
+msgid "Make this my target"
+msgstr "设为我的目标"
+
+#: templates/graph_view.html
+msgid "New Target"
+msgstr "新目标"
+
+#: templates/graph_view.html
+msgid "Target name (e.g. Barnard 143)"
+msgstr "目标名称（例如 Barnard 143）"
+
+#: templates/graph_view.html
+msgid "Creates a target at the current frame centre and saves this framing on it."
+msgstr "在当前视场中心创建目标，并将此构图保存到该目标。"
+
+#: templates/graph_view.html
+msgid "Enter a name for the new target."
+msgstr "请输入新目标的名称。"
+
+#: templates/graph_view.html
+msgid "Could not create the target"
+msgstr "无法创建目标"
+
+#: templates/graph_view.html
+msgid "The target was created, but the framing could not be saved."
+msgstr "目标已创建，但无法保存构图。"
+
+#: templates/graph_view.html
+msgid "This is already the open target. Use Save Framing to keep this view."
+msgstr "这已是当前打开的目标。请使用“保存构图”保留此视图。"
+
+#: templates/graph_view.html
+msgid "%(name)s is already in your library. Opening it with your current frame — use Save Framing to keep it."
+msgstr "%(name)s 已在您的库中。将用您当前的视场打开它——若要保留，请使用“保存构图”。"
+
+#: templates/graph_view.html
+msgid "Scan"
+msgstr "扫描"
+
+#: templates/graph_view.html
+msgid "Create target"
+msgstr "创建目标"
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "刷新建议"
 
@@ -8448,4 +8500,8 @@ msgstr "在下次同步时将这台电脑上的文件副本发送到服务器？
 
 #~ msgid "tiles"
 #~ msgstr "图块"
+
+#: templates/base.html
+msgid "Open"
+msgstr "打开"
 

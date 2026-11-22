@@ -20,6 +20,7 @@
     window.novaI18n.scan_mag = {{ _('Mag') | tojson }};
     window.novaI18n.scan_add_to_database = {{ _('+ Add to Database') | tojson }};
     window.novaI18n.scan_loading = {{ _('Loading…') | tojson }};
+    window.novaI18n.scan_make_target = {{ _('Make this my target') | tojson }};
     window.novaI18n.framing_rotation_title = {{ _('Rotation: {angle}') | tojson }};
     window.novaI18n.framing_fov_chip = {{ _('FOV (Rig): {w}′ × {h}′') | tojson }};
     window.novaI18n.framing_saved_chip = {{ _('Saved framing') | tojson }};
@@ -34,6 +35,12 @@
     window.novaI18n.stellarium_bad_response = {{ _('Could not parse server response.') | tojson }};
     window.novaI18n.stellarium_unknown_error = {{ _('Unknown error') | tojson }};
     window.novaI18n.offline_scan_disabled = {{ _('Scan Frame is unavailable in offline view.') | tojson }};
+    // New Target section (graph_view_chart.js createNewTarget)
+    window.novaI18n.target_name_required = {{ _('Enter a name for the new target.') | tojson }};
+    window.novaI18n.target_create_error = {{ _('Could not create the target') | tojson }};
+    window.novaI18n.target_framing_not_saved = {{ _('The target was created, but the framing could not be saved.') | tojson }};
+    window.novaI18n.target_is_current = {{ _('This is already the open target. Use Save Framing to keep this view.') | tojson }};
+    window.novaI18n.target_already_exists = {{ _('%(name)s is already in your library. Opening it with your current frame — use Save Framing to keep it.', name='{name}') | tojson }};
 </script>
 <script src="{{ url_for('static', filename='js/aladin.js') }}?v={{ version }}" charset="utf-8" defer></script>
 <script>
@@ -471,17 +478,10 @@
                 </div>
             </section>
 
+            {# Scan Frame: its own section, so its controls are not crowded by the copy
+               actions. Same element IDs as before -- no JS changes. #}
             <section class="framing-section">
-                <div class="framing-section-title"><span>{{ _('Actions') }}</span></div>
-                <div class="framing-buttons">
-                    <button id="save-framing-db" type="button" class="inline-button" data-action="save-framing-db">{{ _('Save Framing') }}</button>
-                </div>
-                <!-- Saved framing buttons (Open / Delete), inserted here by JS -->
-                <div id="project-framing-buttons" class="framing-buttons"></div>
-                <div class="framing-buttons">
-                    <button type="button" class="inline-button-ghost" data-action="copy-framing-url">{{ _('Copy framing URL') }}</button>
-                    <button type="button" class="inline-button-ghost" data-action="copy-mosaic-csv" title="{{ _('Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., and Telescopius.') }}">{{ _('Copy Plan (CSV)') }}</button>
-                </div>
+                <div class="framing-section-title"><span>{{ _('Scan') }}</span></div>
                 <div class="framing-buttons">
                     <button id="scan-frame-btn" type="button" class="inline-button-ghost" data-action="scan-frame">{{ _('Scan Frame') }}</button>
                     <label class="framing-min-size">
@@ -489,9 +489,39 @@
                         <input type="number" id="scan-min-size" class="framing-number" min="0" max="60" step="0.1" value="0.5" disabled>
                         <span class="framing-unit">′</span>
                     </label>
+                </div>
+                <div class="framing-buttons">
                     <label class="framing-check" title="{{ _('Show only objects with a well-known catalog name. Uncheck to include survey designations such as PGCC.') }}">
                         <input type="checkbox" id="scan-catalog-names" checked disabled> {{ _('Catalog names only') }}
                     </label>
+                </div>
+            </section>
+
+            {# Make the current frame a target of its own; the open object is left alone. #}
+            <section class="framing-section">
+                <div class="framing-section-title"><span>{{ _('New Target') }}</span></div>
+                <div class="framing-buttons">
+                    <input type="text" id="new-target-name" class="input framing-target-name"
+                           placeholder="{{ _('Target name (e.g. Barnard 143)') }}"
+                           maxlength="256" autocomplete="off">
+                </div>
+                <div class="framing-buttons">
+                    <button id="new-target-confirm" type="button" class="inline-button" data-action="new-target-confirm" disabled>{{ _('Create target') }}</button>
+                </div>
+                <p class="framing-hint">{{ _('Creates a target at the current frame centre and saves this framing on it.') }}</p>
+            </section>
+
+            <section class="framing-section">
+                <div class="framing-section-title"><span>{{ _('Actions') }}</span></div>
+                <div class="framing-buttons">
+                    <button id="save-framing-db" type="button" class="inline-button" data-action="save-framing-db">{{ _('Save Framing') }}</button>
+                </div>
+                <!-- Open / Delete saved framing, inserted here by JS. The container IS the
+                     row (both classes), so it vanishes entirely when nothing is saved. -->
+                <div id="project-framing-buttons" class="framing-buttons framing-buttons-inline"></div>
+                <div class="framing-buttons">
+                    <button type="button" class="inline-button-ghost" data-action="copy-framing-url">{{ _('Copy framing URL') }}</button>
+                    <button type="button" class="inline-button-ghost" data-action="copy-mosaic-csv" title="{{ _('Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., and Telescopius.') }}">{{ _('Copy Plan (CSV)') }}</button>
                 </div>
             </section>
         </aside>

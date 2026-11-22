@@ -8691,6 +8691,58 @@ msgstr ""
 " an den Server senden? Sie wird dann überall zur Datei dieses "
 "Datensatzes."
 
+#: nova/blueprints/api.py
+msgid "A target name is required."
+msgstr "Ein Zielname ist erforderlich."
+
+#: nova/blueprints/api.py
+msgid "'%(name)s' is already in your library."
+msgstr "'%(name)s' ist bereits in Ihrer Bibliothek."
+
+#: templates/graph_view.html
+msgid "Make this my target"
+msgstr "Als mein Ziel festlegen"
+
+#: templates/graph_view.html
+msgid "New Target"
+msgstr "Neues Ziel"
+
+#: templates/graph_view.html
+msgid "Target name (e.g. Barnard 143)"
+msgstr "Zielname (z. B. Barnard 143)"
+
+#: templates/graph_view.html
+msgid "Creates a target at the current frame centre and saves this framing on it."
+msgstr "Erstellt ein Ziel in der aktuellen Bildfeldmitte und speichert diesen Bildausschnitt darauf."
+
+#: templates/graph_view.html
+msgid "Enter a name for the new target."
+msgstr "Geben Sie einen Namen für das neue Ziel ein."
+
+#: templates/graph_view.html
+msgid "Could not create the target"
+msgstr "Das Ziel konnte nicht erstellt werden"
+
+#: templates/graph_view.html
+msgid "The target was created, but the framing could not be saved."
+msgstr "Das Ziel wurde erstellt, aber der Bildausschnitt konnte nicht gespeichert werden."
+
+#: templates/graph_view.html
+msgid "This is already the open target. Use Save Framing to keep this view."
+msgstr "Dies ist bereits das geöffnete Ziel. Verwenden Sie „Bildausschnitt speichern“, um diese Ansicht zu behalten."
+
+#: templates/graph_view.html
+msgid "%(name)s is already in your library. Opening it with your current frame — use Save Framing to keep it."
+msgstr "%(name)s ist bereits in Ihrer Bibliothek. Wird mit Ihrem aktuellen Bildfeld geöffnet – mit „Bildausschnitt speichern“ übernehmen."
+
+#: templates/graph_view.html
+msgid "Scan"
+msgstr "Scannen"
+
+#: templates/graph_view.html
+msgid "Create target"
+msgstr "Ziel erstellen"
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Vorschläge aktualisieren"
 
@@ -8880,4 +8932,8 @@ msgstr ""
 
 #~ msgid "tiles"
 #~ msgstr "Kacheln"
+
+#: templates/base.html
+msgid "Open"
+msgstr "Öffnen"
 

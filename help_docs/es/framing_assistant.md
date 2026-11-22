@@ -14,14 +14,24 @@
 
 **Guardar su trabajo** * **Guardar encuadre:** haga clic aquí para almacenar su equipo, rotación y coordenadas centrales actuales en la base de datos. La próxima vez que visite este objeto, su encuadre personalizado se restaurará automáticamente. * **Bloquear FOV:** esta opción está marcada de forma predeterminada. Al desmarcarla, se desbloquea el rectángulo del sensor, lo que le permite arrastrar el rectángulo por un mapa estático del cielo.
 
-**Scan Frame**
+**Escanear**
 
-El botón **Scan Frame** consulta la base de datos astronómica SIMBAD en busca de objetos deep-sky dentro del campo de visión (FOV) de su equipo actual y los superpone como marcadores ámbar sobre el mapa celeste.
+El botón **Escanear encuadre** consulta la base de datos astronómica SIMBAD en busca de objetos deep-sky dentro del campo de visión (FOV) de su equipo actual y los superpone como marcadores ámbar sobre el mapa celeste.
 
-* **Cómo funciona:** Haga clic en **Scan Frame** para obtener todos los DSOs conocidos dentro del FOV de su equipo desde SIMBAD. Los resultados aparecen como círculos ámbar etiquetados en la imagen del cielo. Haga clic de nuevo en **Scan Frame** para quitar la superposición.
-* **Filtro de tamaño mínimo:** El campo **Min size** (valor predeterminado: 0.5′) filtra las entradas de catálogo incompletas y los objetos muy pequeños. Ajuste el valor después del escaneo para refinar los resultados — el filtrado es instantáneo sin nueva solicitud de red. Establezca en 0 para mostrar todos los objetos, incluidos aquellos sin tamaño registrado.
-* **Solo nombres de catálogo:** Marcado por defecto. Oculta los objetos cuyo único identificador SIMBAD es una designación de catálogo (por ejemplo `PGCC G048.69-05.97`), de modo que los marcadores lleven nombres como **Barnard 143**, **LDN 694** o **NGC 7000**. Desmarque para mostrar también los objetos que solo tienen una designación de catálogo. Los objetos sin tamaño registrado siguen sujetos al filtro **Min size** (establézcalo en 0 para mostrarlos). El filtrado es instantáneo, sin nueva solicitud de red.
-* **Ventana del objeto:** Haga clic en el círculo **ámbar** de un objeto para ver su nombre, tipo, coordenadas (RA/Dec), tamaño angular y una descripción corta de Wikipedia cuando esté disponible. Nota: hacer clic en el texto de la etiqueta no abre la ventana emergente — solo el círculo es interactivo. El botón **+ Add to Database** abre la página de Configuración prellenada con los datos del objeto.
-* **Límite FOV:** Scan Frame está desactivado para equipos con un campo de visión mayor a 5°. Si el botón aparece en gris, cambie a una configuración de equipo con FOV más estrecho.
+* **Cómo funciona:** Haga clic en **Escanear encuadre** para obtener todos los DSOs conocidos dentro del FOV de su equipo desde SIMBAD. Los resultados aparecen como círculos ámbar etiquetados en la imagen del cielo. Haga clic de nuevo en **Escanear encuadre** para quitar la superposición.
+* **Filtro de tamaño mínimo:** El campo **Tamaño mín.** (valor predeterminado: 0.5′) filtra las entradas de catálogo incompletas y los objetos muy pequeños. Ajuste el valor después del escaneo para refinar los resultados — el filtrado es instantáneo sin nueva solicitud de red. Establezca en 0 para mostrar todos los objetos, incluidos aquellos sin tamaño registrado.
+* **Solo nombres de catálogo:** Marcado por defecto. Oculta los objetos cuyo único identificador SIMBAD es una designación de catálogo (por ejemplo `PGCC G048.69-05.97`), de modo que los marcadores lleven nombres como **Barnard 143**, **LDN 694** o **NGC 7000**. Desmarque para mostrar también los objetos que solo tienen una designación de catálogo. Los objetos sin tamaño registrado siguen sujetos al filtro **Tamaño mín.** (establézcalo en 0 para mostrarlos). El filtrado es instantáneo, sin nueva solicitud de red.
+* **Ventana del objeto:** Haga clic en el círculo **ámbar** de un objeto para ver su nombre, tipo, coordenadas (RA/Dec), tamaño angular y una descripción corta de Wikipedia cuando esté disponible. Nota: hacer clic en el texto de la etiqueta no abre la ventana emergente — solo el círculo es interactivo. El botón **+ Añadir a la base de datos** abre la página de Configuración prellenada con los datos del objeto.
+* **Límite FOV:** Escanear encuadre está desactivado para equipos con un campo de visión mayor a 5°. Si el botón aparece en gris, cambie a una configuración de equipo con FOV más estrecho.
 
 *SIMBAD es un servicio externo. Los resultados requieren una conexión activa a Internet y pueden tardar unos segundos.* 
+
+**Crear un nuevo objetivo**
+
+Dos formas de convertir el campo actual en un objetivo propio, sin salir del asistente de encuadre:
+
+* Sección **Nuevo objetivo**: escriba un nombre y pulse **Crear objetivo**. El objetivo se coloca en el centro del campo actual y este encuadre se guarda en él. El objeto que abrió permanece intacto. No se necesita conexión a internet.
+* **Convertir en mi objetivo** (en la ventana «Escanear encuadre»): la versión de un clic. El objetivo se coloca en la posición del *objeto escaneado*, mientras que el encuadre guardado sigue siendo el que ha compuesto.
+
+En ambos casos Nova cambia a la pestaña Encuadre del nuevo objetivo con su campo restaurado. Si ya existe un objetivo con ese nombre, Nova no lo sobrescribe: lo abre con su campo actual, y usted decide si pulsa **Guardar encuadre** para conservarlo.
+

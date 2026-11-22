@@ -3378,13 +3378,13 @@
         currentTimeUpdateInterval = setInterval(updateLine, 60000);
     }
     
-    function saveFramingToDB() {
-        const objectName = NOVA_GRAPH_DATA.objectName;
+    /** The framing fields /api/save_framing reads, for `objectName` at the frame centre
+     *  `center` ({ra, dec}, ICRS/J2000 degrees). `center` is passed in rather than read
+     *  here, so a caller that must freeze one snapshot can use its own: Save Framing
+     *  passes frameCenter(), createNewTarget passes the centre it captured at click time. */
+    function framingPayload(objectName, center) {
         const sel = document.getElementById('framing-rig-select');
-
-        // 1. Gather Data
-        const center = frameCenter();
-        const payload = {
+        return {
             object_name: objectName,
             rig: sel?.value || '',
             rotation: parseFloat(document.getElementById('framing-rotation')?.value || 0),
@@ -3405,9 +3405,11 @@
             // Overlay Preferences
             geo_belt_enabled: document.getElementById('show-geo-belt')?.checked ?? true
         };
+    }
 
-        // Debug: Log payload being saved
-        // 2. Send to DB
+    function saveFramingToDB() {
+        const payload = framingPayload(NOVA_GRAPH_DATA.objectName, frameCenter());
+
         fetch('/api/save_framing', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -3422,6 +3424,100 @@
                 await novaAlert(`${window.t('error_saving')}: ${data.message}`);
             }
         });
+    }
+
+    /** True when two object identifiers name the same target. Space- and case-insensitive,
+     *  which is what every rule of the server's normalize_object_name turns on ("Barnard143"
+     *  vs "BARNARD 143"); it is a display guard for hiding one button, not the authority —
+     *  /api/create_object's 409 is, and it compares raw and normalized forms. */
+    function sameTargetName(a, b) {
+        const norm = s => String(s || '').toUpperCase().replace(/\s+/g, '');
+        return !!norm(a) && norm(a) === norm(b);
+    }
+
+    /** Open an object's Framing tab with the current frame in the URL, saving nothing.
+     *  A framing URL outranks the saved framing in openFramingTabFirstTime, so the frame
+     *  the user is looking at is restored instead of that object's stored one. */
+    function goToObjectFraming(objectName) {
+        const params = new URLSearchParams(buildFramingQuery().replace(/^\?/, ''));
+        params.set('tab', 'framing');
+        params.set('openframing', '1');
+        const loc = sessionStorage.getItem('selectedLocation');
+        if (loc) params.set('location', loc);
+        window.location.href = '/graph_dashboard/' + encodeURIComponent(objectName)
+                             + '?' + params.toString();
+    }
+
+    /**
+     * Make a target out of the current frame.
+     *
+     * @param {string} name        the target's identifier
+     * @param {Object} objectPos   {ra, dec} ICRS/J2000 degrees: the OBJECT's position
+     *                             (entry A: the scanned object; entry B: the frame centre)
+     * @param {Object} frameSnapshot {ra, dec} ICRS/J2000 degrees: the FRAME's centre,
+     *                             captured once by the caller. This is what the saved
+     *                             framing stores, so the acquired frame is kept — for
+     *                             entry A it differs from objectPos, which is the point.
+     * @param {Object} [extras]    optional type/size/magnitude/sb/constellation
+     */
+    async function createNewTarget(name, objectPos, frameSnapshot, extras) {
+        const typed = (name || '').trim();
+        if (!typed) { await novaAlert(window.t('target_name_required')); return; }
+
+        const pos = objectPos || frameSnapshot;   // entry B: the object IS the frame centre
+        if (!pos || !Number.isFinite(pos.ra) || !Number.isFinite(pos.dec)) return;
+        const frame = (frameSnapshot && Number.isFinite(frameSnapshot.ra)) ? frameSnapshot : pos;
+
+        let res;
+        try {
+            const r = await fetch('/api/create_object', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(Object.assign(
+                    { name: typed, ra: pos.ra / 15, dec: pos.dec }, extras || {}))
+            });
+            res = { ok: r.ok, data: await r.json() };
+        } catch (err) {
+            console.warn('[TARGET] create_object failed:', err);
+            await novaAlert(window.t('target_create_error'));
+            return;
+        }
+
+        if (!res.ok) {
+            if (res.data && res.data.code === 'already_exists') {
+                if (res.data.object_name === NOVA_GRAPH_DATA.objectName) {
+                    // The collision is the target already open: nothing to navigate to,
+                    // and a reload would throw away the frame. Say so and stop.
+                    await novaAlert(window.t('target_is_current'));
+                    return;
+                }
+                // No overwrite and no implicit save: open the existing target with the
+                // current frame in the URL, so the user decides via Save Framing.
+                await novaAlert(window.t('target_already_exists', { name: res.data.object_name }));
+                goToObjectFraming(res.data.object_name);
+                return;
+            }
+            await novaAlert(`${window.t('target_create_error')}: ${(res.data && res.data.message) || ''}`);
+            return;
+        }
+
+        const canonical = res.data.object_name;
+
+        // The object exists now. A framing that will not save must not strand the user
+        // on the old object: navigate anyway and say what did not stick.
+        let framed = true;
+        try {
+            const r = await fetch('/api/save_framing', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(framingPayload(canonical, frame))
+            });
+            const d = await r.json();
+            if (!d || d.status !== 'success') framed = false;
+        } catch (e) { framed = false; }
+
+        if (!framed) await novaAlert(window.t('target_framing_not_saved'));
+        goToObjectFraming(canonical);
     }
     
     function formatRaAsiair(raDeg) {
@@ -3608,10 +3704,13 @@
                 setSavedFraming(data);
                 if (data.status === 'found') {
                     // 1. OPEN SAVED FRAMING BUTTON
+                    // Short label: "Open Saved Framing" wraps the row in de/fr. The full
+                    // label stays as the title, so the meaning is still on hover.
                     const btn = document.createElement('button');
                     btn.type = 'button';
                     btn.className = 'inline-button-ghost';
-                    btn.textContent = window.t('open_saved_framing');
+                    btn.textContent = window.t('open');
+                    btn.title = window.t('open_saved_framing');
                     btn.setAttribute('data-saved-framing', 'true');
 
                     btn.onclick = () => openFramingQueued(savedFramingQuery(data));
@@ -3622,7 +3721,7 @@
                     const delBtn = document.createElement('button');
                     delBtn.type = 'button';
                     delBtn.className = 'inline-button-danger';
-                    delBtn.textContent = window.t('delete_saved_framing');
+                    delBtn.textContent = window.t('delete');
                     delBtn.title = window.t('delete_saved_framing');
                     delBtn.setAttribute('data-saved-framing', 'true');
 
@@ -3967,6 +4066,29 @@
                     _addBtn.textContent = window.t('scan_add_to_database');
                     bodyEl.appendChild(_addBtn);
 
+                    // "Make this my target": the object's position from the scan, the frame
+                    // from the live view (captured here, once) — so the framing that gets
+                    // saved is the one on screen, not one centred on the scanned object.
+                    // Hidden when the scanned object is the one already open.
+                    if (!sameTargetName(source.data.name, NOVA_GRAPH_DATA.objectName)) {
+                        const _targetBtn = document.createElement('button');
+                        _targetBtn.type = 'button';
+                        _targetBtn.className = 'inline-button scan-popup-add';
+                        _targetBtn.textContent = window.t('scan_make_target');
+                        _targetBtn.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            createNewTarget(
+                                source.data.name || '',
+                                { ra: source.ra, dec: source.dec },   // the object (ICRS deg)
+                                frameCenter(),                        // the frame, as shown
+                                { type: typeName,
+                                  size: source.data.size_arcmin != null
+                                      ? source.data.size_arcmin.toFixed(2) : null });
+                        });
+                        bodyEl.appendChild(_targetBtn);
+                    }
+
                     // Wikipedia snippet
                     const _wikiName = (source.data.name || '')
                         .replace(/\s+/g, ' ').trim().replace(/ /g, '_');
@@ -4021,6 +4143,8 @@
     window.updateImageAdjustments = updateImageAdjustments;
     window.copyRaDec = copyRaDec;
     window.copyResult = copyResult;
+    window.frameCenter = frameCenter;          // graph_view.js: New Target section
+    window.createNewTarget = createNewTarget;
     window.resetFovCenterToObject = resetFovCenterToObject;
     window.applyRigChangeKeepingCentre = applyRigChangeKeepingCentre;
     window.copyAsiairMosaic = copyAsiairMosaic;

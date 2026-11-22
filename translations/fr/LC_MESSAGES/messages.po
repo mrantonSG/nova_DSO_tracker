@@ -8702,6 +8702,58 @@ msgstr ""
 "prochaine synchronisation ? Elle deviendra le fichier de l'enregistrement"
 " partout."
 
+#: nova/blueprints/api.py
+msgid "A target name is required."
+msgstr "Un nom de cible est requis."
+
+#: nova/blueprints/api.py
+msgid "'%(name)s' is already in your library."
+msgstr "'%(name)s' est déjà dans votre bibliothèque."
+
+#: templates/graph_view.html
+msgid "Make this my target"
+msgstr "Définir comme ma cible"
+
+#: templates/graph_view.html
+msgid "New Target"
+msgstr "Nouvelle cible"
+
+#: templates/graph_view.html
+msgid "Target name (e.g. Barnard 143)"
+msgstr "Nom de la cible (ex. Barnard 143)"
+
+#: templates/graph_view.html
+msgid "Creates a target at the current frame centre and saves this framing on it."
+msgstr "Crée une cible au centre du champ actuel et y enregistre ce cadrage."
+
+#: templates/graph_view.html
+msgid "Enter a name for the new target."
+msgstr "Saisissez un nom pour la nouvelle cible."
+
+#: templates/graph_view.html
+msgid "Could not create the target"
+msgstr "Impossible de créer la cible"
+
+#: templates/graph_view.html
+msgid "The target was created, but the framing could not be saved."
+msgstr "La cible a été créée, mais le cadrage n'a pas pu être enregistré."
+
+#: templates/graph_view.html
+msgid "This is already the open target. Use Save Framing to keep this view."
+msgstr "C'est déjà la cible ouverte. Utilisez « Enregistrer le cadrage » pour conserver cette vue."
+
+#: templates/graph_view.html
+msgid "%(name)s is already in your library. Opening it with your current frame — use Save Framing to keep it."
+msgstr "%(name)s est déjà dans votre bibliothèque. Ouverture avec votre champ actuel — utilisez « Enregistrer le cadrage » pour le conserver."
+
+#: templates/graph_view.html
+msgid "Scan"
+msgstr "Scanner"
+
+#: templates/graph_view.html
+msgid "Create target"
+msgstr "Créer la cible"
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Suggestions de rafraîchissement"
 
@@ -8895,4 +8947,8 @@ msgstr ""
 
 #~ msgid "tiles"
 #~ msgstr "tuiles"
+
+#: templates/base.html
+msgid "Open"
+msgstr "Ouvrir"
 

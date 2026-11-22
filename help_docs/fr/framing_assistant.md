@@ -37,14 +37,24 @@ Si votre cible est trop grande pour une seule image, utilisez la section **Mosa�
 * **Sauvegarder le Recadrage :** Cliquez ici pour stocker votre Rig actuel, votre Rotation et vos Coordonnées centrales dans la base de données. La prochaine fois que vous visiterez cet objet, votre recadrage personnalisé sera automatiquement restauré.
 * **Verrouiller FOV :** Ceci est coché par défaut. Le décocher déverrouille le rectangle du capteur, vous permettant de faire glisser le rectangle lui-même sur une carte du ciel statique.
 
-**Scan Frame**
+**Scanner**
 
-Le bouton **Scan Frame** interroge la base de données astronomique SIMBAD pour les objets du ciel profond dans le champ de vision (FOV) de votre rig actuel et les superpose en tant que marqueurs ambrés sur la carte du ciel.
+Le bouton **Scanner le cadre** interroge la base de données astronomique SIMBAD pour les objets du ciel profond dans le champ de vision (FOV) de votre rig actuel et les superpose en tant que marqueurs ambrés sur la carte du ciel.
 
-* **Comment ça marche :** Cliquez sur **Scan Frame** pour récupérer tous les DSOs connus dans le FOV de votre rig depuis SIMBAD. Les résultats apparaissent sous forme de cercles ambrés étiquetés sur l'image du ciel. Cliquez à nouveau sur **Scan Frame** pour retirer la superposition.
-* **Filtre de taille minimale :** Le champ **Min size** (par défaut : 0.5′) filtre les entrées de catalogue simplifiées et les objets très petits. Ajustez après le scan pour affiner les résultats — le filtrage est instantané, sans nouvelle requête réseau. Réglez sur 0 pour afficher tous les objets, y compris ceux sans taille enregistrée.
-* **Noms de catalogue uniquement :** Coché par défaut. Masque les objets dont le seul identifiant SIMBAD est une désignation de relevé (par exemple `PGCC G048.69-05.97`), afin que les marqueurs portent des noms tels que **Barnard 143**, **LDN 694** ou **NGC 7000**. Décochez pour afficher aussi les objets qui n'ont qu'une désignation de relevé. Les objets sans taille enregistrée restent soumis au filtre **Min size** (réglez-le sur 0 pour les afficher). Le filtrage est instantané, sans nouvelle requête réseau.
-* **Popup d'objet :** Cliquez sur le **cercle** ambré d'un objet pour voir son nom, son type, ses coordonnées (RA/Dec), sa taille angulaire et une courte description de Wikipedia lorsque disponible. Remarque : cliquer sur le texte de l'étiquette n'ouvre pas la fenêtre contextuelle — seul le cercle est interactif. Le bouton **+ Add to Database** ouvre la page de Configuration pré-remplie avec les données de l'objet.
-* **Limite FOV :** Scan Frame est désactivé pour les rigs avec un champ de vision supérieur à 5°. Si le bouton est grisifié, passez à une configuration de rig plus étroite.
+* **Comment ça marche :** Cliquez sur **Scanner le cadre** pour récupérer tous les DSOs connus dans le FOV de votre rig depuis SIMBAD. Les résultats apparaissent sous forme de cercles ambrés étiquetés sur l'image du ciel. Cliquez à nouveau sur **Scanner le cadre** pour retirer la superposition.
+* **Filtre de taille minimale :** Le champ **Taille min.** (par défaut : 0.5′) filtre les entrées de catalogue simplifiées et les objets très petits. Ajustez après le scan pour affiner les résultats — le filtrage est instantané, sans nouvelle requête réseau. Réglez sur 0 pour afficher tous les objets, y compris ceux sans taille enregistrée.
+* **Noms de catalogue uniquement :** Coché par défaut. Masque les objets dont le seul identifiant SIMBAD est une désignation de relevé (par exemple `PGCC G048.69-05.97`), afin que les marqueurs portent des noms tels que **Barnard 143**, **LDN 694** ou **NGC 7000**. Décochez pour afficher aussi les objets qui n'ont qu'une désignation de relevé. Les objets sans taille enregistrée restent soumis au filtre **Taille min.** (réglez-le sur 0 pour les afficher). Le filtrage est instantané, sans nouvelle requête réseau.
+* **Popup d'objet :** Cliquez sur le **cercle** ambré d'un objet pour voir son nom, son type, ses coordonnées (RA/Dec), sa taille angulaire et une courte description de Wikipedia lorsque disponible. Remarque : cliquer sur le texte de l'étiquette n'ouvre pas la fenêtre contextuelle — seul le cercle est interactif. Le bouton **+ Ajouter à la base de données** ouvre la page de Configuration pré-remplie avec les données de l'objet.
+* **Limite FOV :** Scanner le cadre est désactivé pour les rigs avec un champ de vision supérieur à 5°. Si le bouton est grisifié, passez à une configuration de rig plus étroite.
 
 *SIMBAD est un service externe. Les résultats nécessitent une connexion internet active et peuvent prendre quelques secondes.*
+
+**Créer une nouvelle cible**
+
+Deux façons de faire du champ actuel une cible à part entière, sans quitter l'assistant de recadrage :
+
+* Section **Nouvelle cible** : saisissez un nom, puis **Créer la cible**. La cible est placée au centre du champ actuel et ce cadrage y est enregistré. L'objet que vous avez ouvert reste intact. Aucune connexion internet n'est nécessaire.
+* **Définir comme ma cible** (dans la fenêtre « Scanner le cadre ») : la version en un clic. La cible est placée à la position de *l'objet scanné*, tandis que le cadrage enregistré reste celui que vous avez composé.
+
+Dans les deux cas, Nova bascule vers l'onglet Recadrage de la nouvelle cible avec votre champ restauré. Si une cible portant ce nom existe déjà, Nova ne l'écrase pas — elle l'ouvre avec votre champ actuel, et c'est à vous de cliquer sur **Enregistrer le cadrage** si vous voulez le conserver.
+

@@ -48,3 +48,13 @@ The **Scan Frame** button queries the SIMBAD astronomical database for deep-sky 
 * **FOV limit:** Scan Frame is disabled for rigs with a field of view wider than 5°. If the button is greyed out, switch to a narrower rig configuration.
 
 *SIMBAD is an external service. Results require an active internet connection and may take a few seconds.*
+
+**Creating a new target**
+
+Two ways to make the frame in front of you a target of its own, without leaving the Framing tab:
+
+* **New Target** section: type a name, then **Create target**. The target is placed at the current frame centre and this framing is saved onto it. The object you opened stays untouched. No internet connection is needed.
+* **Make this my target** (in the Scan Frame popup): the one-click version. The target is placed at the *scanned object's* position, while the framing that is saved is still the frame you have composed.
+
+Either way Nova switches to the new target's Framing tab with your frame restored. If a target with that name is already in your library, Nova does not overwrite it — it opens that target with your current frame instead, and **Save Framing** is yours to click if you want to keep it.
+

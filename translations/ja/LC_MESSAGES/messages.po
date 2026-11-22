@@ -8292,6 +8292,58 @@ msgid ""
 "It becomes the record's file everywhere."
 msgstr "次回の同期で、この PC にあるファイルのコピーをサーバーに送信しますか？そのコピーがすべての場所でこのレコードのファイルになります。"
 
+#: nova/blueprints/api.py
+msgid "A target name is required."
+msgstr "ターゲット名を入力してください。"
+
+#: nova/blueprints/api.py
+msgid "'%(name)s' is already in your library."
+msgstr "'%(name)s' はすでにライブラリにあります。"
+
+#: templates/graph_view.html
+msgid "Make this my target"
+msgstr "これをターゲットにする"
+
+#: templates/graph_view.html
+msgid "New Target"
+msgstr "新しいターゲット"
+
+#: templates/graph_view.html
+msgid "Target name (e.g. Barnard 143)"
+msgstr "ターゲット名（例: Barnard 143）"
+
+#: templates/graph_view.html
+msgid "Creates a target at the current frame centre and saves this framing on it."
+msgstr "現在の視野中心にターゲットを作成し、このフレーミングを保存します。"
+
+#: templates/graph_view.html
+msgid "Enter a name for the new target."
+msgstr "新しいターゲットの名前を入力してください。"
+
+#: templates/graph_view.html
+msgid "Could not create the target"
+msgstr "ターゲットを作成できませんでした"
+
+#: templates/graph_view.html
+msgid "The target was created, but the framing could not be saved."
+msgstr "ターゲットは作成されましたが、フレーミングを保存できませんでした。"
+
+#: templates/graph_view.html
+msgid "This is already the open target. Use Save Framing to keep this view."
+msgstr "これはすでに開いているターゲットです。「フレーミングを保存」でこの表示を保持できます。"
+
+#: templates/graph_view.html
+msgid "%(name)s is already in your library. Opening it with your current frame — use Save Framing to keep it."
+msgstr "%(name)s はすでにライブラリにあります。現在の視野で開きます。保持するには「フレーミングを保存」を使用してください。"
+
+#: templates/graph_view.html
+msgid "Scan"
+msgstr "スキャン"
+
+#: templates/graph_view.html
+msgid "Create target"
+msgstr "ターゲットを作成"
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "更新提案"
 
@@ -8474,4 +8526,8 @@ msgstr "次回の同期で、この PC にあるファイルのコピーをサ�
 
 #~ msgid "tiles"
 #~ msgstr "タイル"
+
+#: templates/base.html
+msgid "Open"
+msgstr "開く"
 

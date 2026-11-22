@@ -37,14 +37,24 @@ Wenn Ihr Ziel zu groß für ein einzelnes Bild ist, verwenden Sie den **Mosaik**
 * **Framing speichern:** Klicken Sie hier, um Ihr aktuelles Rig, Ihre Rotation und Ihre Mitte-Koordinaten in der Datenbank zu speichern. Beim nächsten Besuch dieses Objekts wird Ihr benutzerdefiniertes Framing automatisch wiederhergestellt.
 * **FOV sperren:** Dies ist standardmäßig aktiviert. Durch Deaktivieren wird das Sensor-Rechteck freigeschaltet, sodass Sie das Rechteck selbst auf einer statischen Himmelskarte bewegen können.
 
-**Scan Frame**
+**Scannen**
 
-Die Schaltfläche **Scan Frame** fragt die astronomische SIMBAD-Datenbank nach Deep-Sky-Objekten im Sichtfeld Ihres aktuellen Rigs ab und überlagert sie als bernsteinfarbene Markierungen auf der Himmelskarte.
+Die Schaltfläche **Bildausschnitt scannen** fragt die astronomische SIMBAD-Datenbank nach Deep-Sky-Objekten im Sichtfeld Ihres aktuellen Rigs ab und überlagert sie als bernsteinfarbene Markierungen auf der Himmelskarte.
 
-* **So funktioniert es:** Klicken Sie auf **Scan Frame**, um alle bekannten DSOs im FOV Ihres Rigs aus SIMBAD abzurufen. Die Ergebnisse erscheinen als beschriftete bernsteinfarbene Kreise auf dem Himmelbild. Klicken Sie erneut auf **Scan Frame**, um die Überlagerung zu entfernen.
-* **Mindestgrößenfilter:** Das Feld **Min size** (Standard: 0.5′) filtert Katalogstubs und sehr kleine Objekte heraus. Passen Sie den Wert nach dem Scan an, um die Ergebnisse zu verfeinern — die Filterung erfolgt sofort ohne neue Netzwerkverbindung. Auf 0 setzen, um alle Objekte anzuzeigen, einschließlich solcher ohne aufgezeichnete Größe.
-* **Nur Katalognamen:** Standardmäßig aktiviert. Blendet Objekte aus, deren einzige SIMBAD-Kennung eine Durchmusterungsbezeichnung ist (zum Beispiel `PGCC G048.69-05.97`), sodass die Markierungen Namen wie **Barnard 143**, **LDN 694** oder **NGC 7000** tragen. Deaktivieren, um auch Objekte mit reiner Durchmusterungsbezeichnung anzuzeigen. Objekte ohne erfasste Größe unterliegen weiterhin dem Filter **Min size** (auf 0 setzen, um sie anzuzeigen). Die Filterung erfolgt sofort, ohne neue Netzwerkverbindung.
-* **Objektdetails:** Klicken Sie auf das bernsteinfarbene **Kreis**-Symbol eines Objekts, um Name, Typ, Koordinaten (RA/Dec), Winkelgröße und eine kurze Beschreibung von Wikipedia (falls verfügbar) anzuzeigen. Hinweis: Das Klicken auf den Textlabel öffnet keine Popup — nur der Kreis selbst ist interaktiv. Die Schaltfläche **+ Add to Database** öffnet die Konfigurationsseite, vorbelegt mit den Daten des Objekts.
-* **FOV-Grenze:** Scan Frame ist für Rigs mit einem Sichtfeld größer als 5° deaktiviert. Wenn die Schaltfläche ausgegraut ist, wechseln Sie zu einem Rig mit schmalerem FOV.
+* **So funktioniert es:** Klicken Sie auf **Bildausschnitt scannen**, um alle bekannten DSOs im FOV Ihres Rigs aus SIMBAD abzurufen. Die Ergebnisse erscheinen als beschriftete bernsteinfarbene Kreise auf dem Himmelbild. Klicken Sie erneut auf **Bildausschnitt scannen**, um die Überlagerung zu entfernen.
+* **Mindestgrößenfilter:** Das Feld **Mindestgröße** (Standard: 0.5′) filtert Katalogstubs und sehr kleine Objekte heraus. Passen Sie den Wert nach dem Scan an, um die Ergebnisse zu verfeinern — die Filterung erfolgt sofort ohne neue Netzwerkverbindung. Auf 0 setzen, um alle Objekte anzuzeigen, einschließlich solcher ohne aufgezeichnete Größe.
+* **Nur Katalognamen:** Standardmäßig aktiviert. Blendet Objekte aus, deren einzige SIMBAD-Kennung eine Durchmusterungsbezeichnung ist (zum Beispiel `PGCC G048.69-05.97`), sodass die Markierungen Namen wie **Barnard 143**, **LDN 694** oder **NGC 7000** tragen. Deaktivieren, um auch Objekte mit reiner Durchmusterungsbezeichnung anzuzeigen. Objekte ohne erfasste Größe unterliegen weiterhin dem Filter **Mindestgröße** (auf 0 setzen, um sie anzuzeigen). Die Filterung erfolgt sofort, ohne neue Netzwerkverbindung.
+* **Objektdetails:** Klicken Sie auf das bernsteinfarbene **Kreis**-Symbol eines Objekts, um Name, Typ, Koordinaten (RA/Dec), Winkelgröße und eine kurze Beschreibung von Wikipedia (falls verfügbar) anzuzeigen. Hinweis: Das Klicken auf den Textlabel öffnet keine Popup — nur der Kreis selbst ist interaktiv. Die Schaltfläche **+ Zur Datenbank hinzufügen** öffnet die Konfigurationsseite, vorbelegt mit den Daten des Objekts.
+* **FOV-Grenze:** Bildausschnitt scannen ist für Rigs mit einem Sichtfeld größer als 5° deaktiviert. Wenn die Schaltfläche ausgegraut ist, wechseln Sie zu einem Rig mit schmalerem FOV.
 
 *SIMBAD ist ein externer Dienst. Ergebnisse erfordern eine aktive Internetverbindung und können einige Sekunden dauern.*
+
+**Ein neues Ziel erstellen**
+
+Zwei Wege, um das aktuelle Bildfeld zu einem eigenen Ziel zu machen, ohne den Framing-Assistenten zu verlassen:
+
+* Abschnitt **Neues Ziel**: Namen eingeben, dann **Ziel erstellen**. Das Ziel wird in der aktuellen Bildfeldmitte angelegt und dieser Bildausschnitt darauf gespeichert. Das geöffnete Objekt bleibt unberührt. Keine Internetverbindung erforderlich.
+* **Als mein Ziel festlegen** (im Popup „Bildausschnitt scannen“): die Ein-Klick-Variante. Das Ziel wird an der Position des *gescannten Objekts* angelegt, während der gespeicherte Bildausschnitt weiterhin Ihr aktuell eingestelltes Bildfeld ist.
+
+In beiden Fällen wechselt Nova zum Framing-Assistenten des neuen Ziels, mit wiederhergestelltem Bildfeld. Existiert bereits ein Ziel mit diesem Namen, überschreibt Nova es nicht — es wird mit Ihrem aktuellen Bildfeld geöffnet, und **Bildausschnitt speichern** können Sie anklicken, wenn Sie es behalten möchten.
+

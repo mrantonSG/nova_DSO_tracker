@@ -79,6 +79,7 @@ from nova.helpers import (
     heatmap_fingerprint, heatmap_cache_path,
     resolve_sampling_interval, resolve_altitude_threshold, get_imaging_criteria,
     is_valid_username, guiding_rms_limits,
+    normalize_object_name, _parse_float_from_request,
 )
 from nova.models import (
     DbUser, AstroObject, JournalSession, Project,
@@ -1256,6 +1257,94 @@ def delete_framing():
     except Exception as e:
         db.rollback()
         current_app.logger.error(f"[FRAMING API] Failed to delete framing for '{object_name}': {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@api_bp.route('/api/create_object', methods=['POST'])
+@login_required
+def create_object():
+    """Create one new target from the Framing tab.
+
+    Create-only: never an upsert. A name already in the user's library (either
+    the raw name or its normalized form) is refused with 409 and the existing
+    canonical name, so the client can offer to open it — the caller must never
+    silently move an existing object's coordinates or overwrite its framing.
+
+    No SIMBAD call and no network of any kind: the position comes from the
+    caller (ICRS/J2000, RA in hours), so this works offline. Only
+    ``constellation`` is derived, locally, with astropy.
+    """
+    req = request.get_json(silent=True) or {}
+    username = "default" if nova.SINGLE_USER_MODE else current_user.username
+    db = get_db()
+    try:
+        raw_name = (req.get('name') or '').strip()
+        if not raw_name:
+            return jsonify({"status": "error",
+                            "message": _("A target name is required.")}), 400
+        object_name = normalize_object_name(raw_name)
+
+        # The raw name is checked too: a user typing "NGC1976" while "NGC 1976"
+        # is already in the library must collide, not create a second row.
+        existing = db.query(AstroObject).filter(
+            AstroObject.user_id == g.db_user.id,
+            AstroObject.object_name.in_({object_name, raw_name}),
+        ).first()
+        if existing:
+            return jsonify({
+                "status": "error",
+                "code": "already_exists",
+                "object_name": existing.object_name,
+                "message": _("'%(name)s' is already in your library.",
+                             name=existing.object_name),
+            }), 409
+
+        ra_hours = _parse_float_from_request(req.get('ra'), "RA")
+        dec_deg = _parse_float_from_request(req.get('dec'), "DEC")
+
+        constellation = (req.get('constellation') or '').strip() or None
+        if not constellation:
+            try:
+                constellation = get_constellation(
+                    SkyCoord(ra=ra_hours * u.hourangle, dec=dec_deg * u.deg),
+                    short_name=True)
+            except Exception:
+                constellation = None
+
+        # The typed name is the common name: it is what the user called it, and
+        # for the panel entry point there is nothing else to put there.
+        # common_name is nullable, so an empty one stays empty.
+        new_obj = AstroObject(
+            user_id=g.db_user.id,
+            object_name=object_name,
+            common_name=raw_name or None,
+            ra_hours=ra_hours,
+            dec_deg=dec_deg,
+            constellation=constellation,
+            type=(req.get('type') or '').strip() or None,
+            magnitude=str(req.get('magnitude') or '').strip() or None,
+            size=str(req.get('size') or '').strip() or None,
+            sb=str(req.get('sb') or '').strip() or None,
+            active_project=False,     # a new target is not an active project
+            is_shared=False,          # never shared on create
+        )
+        # No adopt_unlinked_rows here: adopting by name would hand this brand-new
+        # object someone else's older sessions or a framing saved under the same
+        # name, which is exactly the cross-object write this feature must not do.
+        db.add(new_obj)
+        db.commit()
+        bust_astro_context_cache(g.db_user.id)
+        invalidate_object_caches(g.db_user.id, username, [], curves=False, outlook=False)
+        record_event('target_created')
+        return jsonify({"status": "success",
+                        "object_name": new_obj.object_name,
+                        "record_uid": new_obj.record_uid})
+    except ValueError as ve:
+        db.rollback()
+        return jsonify({"status": "error", "message": str(ve)}), 400
+    except Exception as e:
+        db.rollback()
+        current_app.logger.error(f"[CREATE OBJECT] Failed for '{req.get('name')}': {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 

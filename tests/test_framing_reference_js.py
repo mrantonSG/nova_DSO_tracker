@@ -66,7 +66,7 @@ EXTRACT = [
     "applyRigFovZoom", "showFrameOverlay", "frameCenter", "updateReadout", "updateReadoutFromCenter",
     "savedResultFrom", "setSavedFraming", "updateResultDiffers",
     "copyRaDec", "copyResult", "pad", "formatRA", "formatDec", "buildFramingQuery",
-    "copyFramingUrl", "saveFramingToDB", "formatRaCsv", "formatDecCsv", "copyAsiairMosaic",
+    "copyFramingUrl", "framingPayload", "saveFramingToDB", "formatRaCsv", "formatDecCsv", "copyAsiairMosaic",
     "checkAndShowFramingButton", "savedFramingQuery", "openFramingAssistant", "openFramingQueued",
     "openFramingTabFirstTime",
 ]
@@ -416,8 +416,11 @@ async function runOne(c, variant) {
     if (variant === 'afterPlain') await api.open('');
     api.showSaved();
     await settle();
+    // Structural, not text-based: the short label is "Open", so find the ghost-styled
+    // saved-framing button by its class and data attribute instead.
     const openBtn = els['project-framing-buttons'].children
-        .find(b => b.textContent === input.i18n.open_saved_framing);
+        .find(b => b.getAttribute('data-saved-framing') === 'true'
+                   && b.className === 'inline-button-ghost');
     if (!openBtn) throw new Error('no Open saved framing button');
     openBtn.onclick();
     await settle();

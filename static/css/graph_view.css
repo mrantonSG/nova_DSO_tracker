@@ -1943,6 +1943,40 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     gap: var(--space-1-5);
 }
 
+/* The New Target name field: the design system's .input text style, full width on
+   its own row. `.input` supplies the body font, left alignment and the light/dark
+   colours; only the width is this page's business. */
+.framing-target-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: 100%;
+}
+
+/* The saved-framing group (Open / Delete) is its own row under Save Framing. The
+   element carries .framing-buttons too, so it vanishes when nothing is saved; this
+   rule keeps the inline variant honest if it is ever used without that class. */
+.framing-buttons-inline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+.framing-buttons-inline:empty {
+    display: none;
+}
+
+/* Inside the panel, `hidden` must actually hide. The panel's own display rules
+   (.framing-buttons{display:flex}, .inline-button{display:inline-block}) outrank the
+   UA [hidden] rule, so a hidden-toggled element would otherwise stay visible. */
+#framing-panel [hidden] {
+    display: none !important;
+}
+.framing-hint {
+    margin: var(--space-2) 0 0;
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
 /* --- Scan Frame result popup, over the sky --- */
 .scan-result-popup {
     position: absolute;
@@ -2019,6 +2053,11 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     font-size: 12px;
     text-align: center;
     text-decoration: none;
+}
+/* The popup can carry two actions ("Add to Database", "Make this my target");
+   the second one tucks in behind the first. */
+.scan-popup-add + .scan-popup-add {
+    margin-top: var(--space-1-5);
 }
 .scan-popup-wiki {
     margin-top: 8px;
