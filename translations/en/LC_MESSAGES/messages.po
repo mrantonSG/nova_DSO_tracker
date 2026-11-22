@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-22 18:19+0800\n"
+"POT-Creation-Date: 2026-11-22 21:04+0800\n"
 "PO-Revision-Date: 2026-03-03 13:38+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -124,87 +124,102 @@ msgstr ""
 msgid "User deleted, but some data could not be removed. Check the server log."
 msgstr ""
 
-#: nova/blueprints/api.py:211
+#: nova/blueprints/api.py:212
 msgid "Object not found"
 msgstr ""
 
-#: nova/blueprints/api.py:629
+#: nova/blueprints/api.py:630
 #, python-format
 msgid "<p>Error reading help file: %(error)s</p>"
 msgstr ""
 
-#: nova/blueprints/api.py:1081 nova/blueprints/core.py:1285
+#: nova/blueprints/api.py:1082 nova/blueprints/core.py:1285
 #: nova/blueprints/core.py:1333 templates/base.html:188
 #: templates/graph_view.html:306 templates/mobile_add_object.html:58
 msgid "SIMBAD is currently unavailable. Please try again later."
 msgstr ""
 
-#: nova/blueprints/api.py:1296
+#: nova/blueprints/api.py:1102
+msgid "Invalid scan parameters."
+msgstr ""
+
+#: nova/blueprints/api.py:1110 templates/graph_view.html:18
+#, python-brace-format
+msgid "FOV too large ({w}° × {h}°), max {max}° for Scan Frame"
+msgstr ""
+
+#: nova/blueprints/api.py:1165 nova/blueprints/api.py:1259
+#: nova/blueprints/api.py:1284 nova/blueprints/api.py:1382
+#: nova/blueprints/core.py:1971
+msgid "An internal error occurred."
+msgstr ""
+
+#: nova/blueprints/api.py:1308
 msgid "A target name is required."
 msgstr ""
 
-#: nova/blueprints/api.py:1311
+#: nova/blueprints/api.py:1323
 msgid "RA must be at least 0 and less than 24 hours."
 msgstr ""
 
-#: nova/blueprints/api.py:1314
+#: nova/blueprints/api.py:1326
 msgid "Dec must be between -90 and +90 degrees."
 msgstr ""
 
-#: nova/blueprints/api.py:1387
+#: nova/blueprints/api.py:1378 nova/blueprints/api.py:3362
+msgid "Invalid RA/DEC format for object."
+msgstr ""
+
+#: nova/blueprints/api.py:1400
 #, python-format
 msgid "'%(name)s' is already in your library."
 msgstr ""
 
-#: nova/blueprints/api.py:1911
+#: nova/blueprints/api.py:1924
 msgid "No file uploaded"
 msgstr ""
 
-#: nova/blueprints/api.py:1915
+#: nova/blueprints/api.py:1928
 msgid "Empty filename"
 msgstr ""
 
-#: nova/blueprints/api.py:1922
+#: nova/blueprints/api.py:1935
 msgid "File is too large. Maximum size is 10 MB."
 msgstr ""
 
-#: nova/blueprints/api.py:1965 nova/blueprints/api.py:3646
+#: nova/blueprints/api.py:1978 nova/blueprints/api.py:3659
 msgid "User not found"
 msgstr ""
 
-#: nova/blueprints/api.py:1969
+#: nova/blueprints/api.py:1982
 msgid "Session not found"
 msgstr ""
 
-#: nova/blueprints/api.py:3340
+#: nova/blueprints/api.py:3353
 msgid "Object data not found or invalid."
 msgstr ""
 
-#: nova/blueprints/api.py:3344
+#: nova/blueprints/api.py:3357
 msgid "RA/DEC missing for object."
 msgstr ""
 
-#: nova/blueprints/api.py:3349
-msgid "Invalid RA/DEC format for object."
-msgstr ""
-
-#: nova/blueprints/api.py:3512
+#: nova/blueprints/api.py:3525
 msgid "Could not generate time series for plot."
 msgstr ""
 
-#: nova/blueprints/api.py:3610
+#: nova/blueprints/api.py:3623
 msgid "Location not configured"
 msgstr ""
 
-#: nova/blueprints/api.py:4587
+#: nova/blueprints/api.py:4600
 msgid "Missing or invalid lat/lon parameters"
 msgstr ""
 
-#: nova/blueprints/api.py:4596
+#: nova/blueprints/api.py:4609
 msgid "Invalid datetime format"
 msgstr ""
 
-#: nova/blueprints/api.py:4616
+#: nova/blueprints/api.py:4629
 msgid "Calibration star catalog not found"
 msgstr ""
 
@@ -341,10 +356,6 @@ msgstr ""
 msgid "An error occurred during data fetching: %(error)s"
 msgstr ""
 
-#: nova/blueprints/core.py:1971
-msgid "An internal error occurred."
-msgstr ""
-
 #: nova/blueprints/core.py:2088
 msgid "Please log in to view object details."
 msgstr ""
@@ -372,7 +383,7 @@ msgstr ""
 msgid "Invalid date components provided, defaulting to current date."
 msgstr ""
 
-#: nova/blueprints/core.py:2645
+#: nova/blueprints/core.py:2646
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
 msgstr ""
@@ -1296,7 +1307,7 @@ msgstr ""
 #: templates/base.html:108 templates/config_form.html:694
 #: templates/config_form.html:723 templates/config_form.html:759
 #: templates/graph_view.html:153 templates/graph_view.html:167
-#: templates/graph_view.html:790 templates/mobile_object_detail.html:588
+#: templates/graph_view.html:791 templates/mobile_object_detail.html:588
 msgid "Loading..."
 msgstr ""
 
@@ -1801,12 +1812,12 @@ msgstr ""
 msgid "Time"
 msgstr ""
 
-#: templates/_journal_section.html:2388 templates/graph_view.html:795
+#: templates/_journal_section.html:2388 templates/graph_view.html:796
 #: templates/journal_report.html:1091
 msgid "RA"
 msgstr ""
 
-#: templates/_journal_section.html:2389 templates/graph_view.html:796
+#: templates/_journal_section.html:2389 templates/graph_view.html:797
 #: templates/journal_report.html:1092
 msgid "Dec"
 msgstr ""
@@ -2034,7 +2045,7 @@ msgstr ""
 #: templates/_journal_section.html:2770 templates/_journal_section.html:3086
 #: templates/_objects_section.html:364 templates/_project_subtab.html:232
 #: templates/admin_users.html:107 templates/base.html:594
-#: templates/graph_view.html:587 templates/index.html:297
+#: templates/graph_view.html:588 templates/index.html:297
 #: templates/journal_form.html:205 templates/solar_system.html:187
 msgid "Cancel"
 msgstr ""
@@ -2142,7 +2153,7 @@ msgstr ""
 msgid "New session"
 msgstr ""
 
-#: templates/_journal_section.html:2767 templates/graph_view.html:589
+#: templates/_journal_section.html:2767 templates/graph_view.html:590
 msgid "Unsaved changes"
 msgstr ""
 
@@ -2514,7 +2525,7 @@ msgid "{label} removed."
 msgstr ""
 
 #: templates/_journal_section.html:3075 templates/base.html:308
-#: templates/graph_view.html:576 templates/index.html:114
+#: templates/graph_view.html:577 templates/index.html:114
 msgid "Ask Nova"
 msgstr ""
 
@@ -2531,7 +2542,7 @@ msgid "Checking guiding data..."
 msgstr ""
 
 #: templates/_journal_section.html:3080 templates/base.html:320
-#: templates/graph_view.html:582
+#: templates/graph_view.html:583
 msgid "Almost there..."
 msgstr ""
 
@@ -2547,11 +2558,11 @@ msgstr ""
 msgid "Nova has a summary ready. What would you like to do?"
 msgstr ""
 
-#: templates/_journal_section.html:3084 templates/graph_view.html:585
+#: templates/_journal_section.html:3084 templates/graph_view.html:586
 msgid "Overwrite"
 msgstr ""
 
-#: templates/_journal_section.html:3085 templates/graph_view.html:586
+#: templates/_journal_section.html:3085 templates/graph_view.html:587
 msgid "Append"
 msgstr ""
 
@@ -3875,7 +3886,7 @@ msgstr "Error asking Nova. Please try again."
 msgid "Consulting star charts..."
 msgstr ""
 
-#: templates/base.html:318 templates/graph_view.html:579
+#: templates/base.html:318 templates/graph_view.html:580
 msgid "Checking your rigs..."
 msgstr ""
 
@@ -4799,11 +4810,6 @@ msgstr ""
 msgid "Scanning…"
 msgstr ""
 
-#: templates/graph_view.html:18
-#, python-brace-format
-msgid "FOV too large ({w}° × {h}°), max {max}° for Scan Frame"
-msgstr ""
-
 #: templates/graph_view.html:21
 msgid "+ Add to Database"
 msgstr ""
@@ -4983,7 +4989,7 @@ msgstr ""
 msgid "How objects are ranked"
 msgstr ""
 
-#: templates/graph_view.html:160 templates/graph_view.html:788
+#: templates/graph_view.html:160 templates/graph_view.html:789
 msgid "Calibration Star"
 msgstr ""
 
@@ -5284,64 +5290,64 @@ msgstr ""
 msgid "Copy Plan (CSV)"
 msgstr ""
 
-#: templates/graph_view.html:577
+#: templates/graph_view.html:578
 msgid "Ask Nova for observing notes"
 msgstr ""
 
-#: templates/graph_view.html:578
+#: templates/graph_view.html:579
 msgid "Consulting the star charts..."
 msgstr ""
 
-#: templates/graph_view.html:580
+#: templates/graph_view.html:581
 msgid "Scanning the cosmos..."
 msgstr ""
 
-#: templates/graph_view.html:581
+#: templates/graph_view.html:582
 msgid "Calculating from"
 msgstr ""
 
-#: templates/graph_view.html:583
+#: templates/graph_view.html:584
 msgid "your location"
 msgstr ""
 
-#: templates/graph_view.html:584
+#: templates/graph_view.html:585
 msgid "Nova has notes ready. What would you like to do?"
 msgstr ""
 
-#: templates/graph_view.html:588
+#: templates/graph_view.html:589
 msgid "Nova couldn't load notes"
 msgstr ""
 
-#: templates/graph_view.html:590 templates/mobile_journal_new.html:385
+#: templates/graph_view.html:591 templates/mobile_journal_new.html:385
 msgid "Discard"
 msgstr ""
 
-#: templates/graph_view.html:789
+#: templates/graph_view.html:790
 msgid "No calibration star available near meridian"
 msgstr ""
 
-#: templates/graph_view.html:791
+#: templates/graph_view.html:792
 msgid "Window"
 msgstr ""
 
-#: templates/graph_view.html:792 templates/mobile_object_detail.html:493
+#: templates/graph_view.html:793 templates/mobile_object_detail.html:493
 #: templates/solar_system.html:353
 msgid "Now"
 msgstr ""
 
-#: templates/graph_view.html:793
+#: templates/graph_view.html:794
 msgid "Alt"
 msgstr ""
 
-#: templates/graph_view.html:794
+#: templates/graph_view.html:795
 msgid "Az"
 msgstr ""
 
-#: templates/graph_view.html:797
+#: templates/graph_view.html:798
 msgid "HA"
 msgstr ""
 
-#: templates/graph_view.html:798
+#: templates/graph_view.html:799
 msgid "from meridian"
 msgstr ""
 

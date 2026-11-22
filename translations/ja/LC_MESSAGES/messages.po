@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-22 18:19+0800\n"
+"POT-Creation-Date: 2026-11-22 21:04+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -124,87 +124,102 @@ msgstr "ユーザー '%(username)s' が削除されました。"
 msgid "User deleted, but some data could not be removed. Check the server log."
 msgstr "ユーザーは削除されましたが、一部のデータを削除できませんでした。サーバーログを確認してください。"
 
-#: nova/blueprints/api.py:211
+#: nova/blueprints/api.py:212
 msgid "Object not found"
 msgstr "オブジェクトが見つかりません"
 
-#: nova/blueprints/api.py:629
+#: nova/blueprints/api.py:630
 #, python-format
 msgid "<p>Error reading help file: %(error)s</p>"
 msgstr "<p>ヘルプファイルの読み込みエラー: %(error)s</p>"
 
-#: nova/blueprints/api.py:1081 nova/blueprints/core.py:1285
+#: nova/blueprints/api.py:1082 nova/blueprints/core.py:1285
 #: nova/blueprints/core.py:1333 templates/base.html:188
 #: templates/graph_view.html:306 templates/mobile_add_object.html:58
 msgid "SIMBAD is currently unavailable. Please try again later."
 msgstr "SIMBADは現在利用できません。後でもう一度お試しください。"
 
-#: nova/blueprints/api.py:1296
+#: nova/blueprints/api.py:1102
+msgid "Invalid scan parameters."
+msgstr "スキャンのパラメーターが無効です。"
+
+#: nova/blueprints/api.py:1110 templates/graph_view.html:18
+#, python-brace-format
+msgid "FOV too large ({w}° × {h}°), max {max}° for Scan Frame"
+msgstr "視野が大きすぎます（{w}° × {h}°）。「フレームをスキャン」は最大 {max}° です"
+
+#: nova/blueprints/api.py:1165 nova/blueprints/api.py:1259
+#: nova/blueprints/api.py:1284 nova/blueprints/api.py:1382
+#: nova/blueprints/core.py:1971
+msgid "An internal error occurred."
+msgstr "内部エラーが発生しました。"
+
+#: nova/blueprints/api.py:1308
 msgid "A target name is required."
 msgstr "ターゲット名を入力してください。"
 
-#: nova/blueprints/api.py:1311
+#: nova/blueprints/api.py:1323
 msgid "RA must be at least 0 and less than 24 hours."
 msgstr "赤経は0以上24時間未満でなければなりません。"
 
-#: nova/blueprints/api.py:1314
+#: nova/blueprints/api.py:1326
 msgid "Dec must be between -90 and +90 degrees."
 msgstr "赤緯は-90〜+90度の範囲でなければなりません。"
 
-#: nova/blueprints/api.py:1387
+#: nova/blueprints/api.py:1378 nova/blueprints/api.py:3362
+msgid "Invalid RA/DEC format for object."
+msgstr "オブジェクトのRA/DEC形式が無効です。"
+
+#: nova/blueprints/api.py:1400
 #, python-format
 msgid "'%(name)s' is already in your library."
 msgstr "'%(name)s' はすでにライブラリにあります。"
 
-#: nova/blueprints/api.py:1911
+#: nova/blueprints/api.py:1924
 msgid "No file uploaded"
 msgstr "ファイルがアップロードされていません"
 
-#: nova/blueprints/api.py:1915
+#: nova/blueprints/api.py:1928
 msgid "Empty filename"
 msgstr "ファイル名が空です"
 
-#: nova/blueprints/api.py:1922
+#: nova/blueprints/api.py:1935
 msgid "File is too large. Maximum size is 10 MB."
 msgstr "ファイルが大きすぎる。最大サイズは10MBです。"
 
-#: nova/blueprints/api.py:1965 nova/blueprints/api.py:3646
+#: nova/blueprints/api.py:1978 nova/blueprints/api.py:3659
 msgid "User not found"
 msgstr "ユーザーが見つかりません"
 
-#: nova/blueprints/api.py:1969
+#: nova/blueprints/api.py:1982
 msgid "Session not found"
 msgstr "セッションが見つかりません"
 
-#: nova/blueprints/api.py:3340
+#: nova/blueprints/api.py:3353
 msgid "Object data not found or invalid."
 msgstr "オブジェクトデータが見つからないか無効です。"
 
-#: nova/blueprints/api.py:3344
+#: nova/blueprints/api.py:3357
 msgid "RA/DEC missing for object."
 msgstr "オブジェクトのRA/DECがありません。"
 
-#: nova/blueprints/api.py:3349
-msgid "Invalid RA/DEC format for object."
-msgstr "オブジェクトのRA/DEC形式が無効です。"
-
-#: nova/blueprints/api.py:3512
+#: nova/blueprints/api.py:3525
 msgid "Could not generate time series for plot."
 msgstr "プロットの時系列を生成できませんでした。"
 
-#: nova/blueprints/api.py:3610
+#: nova/blueprints/api.py:3623
 msgid "Location not configured"
 msgstr "場所が設定されていません"
 
-#: nova/blueprints/api.py:4587
+#: nova/blueprints/api.py:4600
 msgid "Missing or invalid lat/lon parameters"
 msgstr "lat/lon パラメータが欠落しているか無効です"
 
-#: nova/blueprints/api.py:4596
+#: nova/blueprints/api.py:4609
 msgid "Invalid datetime format"
 msgstr "日時の形式が無効です"
 
-#: nova/blueprints/api.py:4616
+#: nova/blueprints/api.py:4629
 msgid "Calibration star catalog not found"
 msgstr "キャリブレーション星カタログが見つかりません"
 
@@ -343,10 +358,6 @@ msgstr "欠落データは見つかりませんでした、または更新の必
 msgid "An error occurred during data fetching: %(error)s"
 msgstr "データ取得中にエラーが発生しました: %(error)s"
 
-#: nova/blueprints/core.py:1971
-msgid "An internal error occurred."
-msgstr "内部エラーが発生しました。"
-
 #: nova/blueprints/core.py:2088
 msgid "Please log in to view object details."
 msgstr "オブジェクトの詳細を表示するにはログインしてください。"
@@ -374,7 +385,7 @@ msgstr "オブジェクト '%(object_name)s' が設定に見つかりません�
 msgid "Invalid date components provided, defaulting to current date."
 msgstr "無効な日付コンポーネントが指定されました。デフォルトで現在の日付を使用します。"
 
-#: nova/blueprints/core.py:2645
+#: nova/blueprints/core.py:2646
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
 msgstr "%(object_name)s の詳細を読み込む際にエラーが発生しました。"
@@ -1302,7 +1313,7 @@ msgstr "h"
 #: templates/base.html:108 templates/config_form.html:694
 #: templates/config_form.html:723 templates/config_form.html:759
 #: templates/graph_view.html:153 templates/graph_view.html:167
-#: templates/graph_view.html:790 templates/mobile_object_detail.html:588
+#: templates/graph_view.html:791 templates/mobile_object_detail.html:588
 msgid "Loading..."
 msgstr "読み込み中..."
 
@@ -1807,12 +1818,12 @@ msgstr "#"
 msgid "Time"
 msgstr "時刻"
 
-#: templates/_journal_section.html:2388 templates/graph_view.html:795
+#: templates/_journal_section.html:2388 templates/graph_view.html:796
 #: templates/journal_report.html:1091
 msgid "RA"
 msgstr "RA"
 
-#: templates/_journal_section.html:2389 templates/graph_view.html:796
+#: templates/_journal_section.html:2389 templates/graph_view.html:797
 #: templates/journal_report.html:1092
 msgid "Dec"
 msgstr "Dec"
@@ -2040,7 +2051,7 @@ msgstr "編集プロジェクト："
 #: templates/_journal_section.html:2770 templates/_journal_section.html:3086
 #: templates/_objects_section.html:364 templates/_project_subtab.html:232
 #: templates/admin_users.html:107 templates/base.html:594
-#: templates/graph_view.html:587 templates/index.html:297
+#: templates/graph_view.html:588 templates/index.html:297
 #: templates/journal_form.html:205 templates/solar_system.html:187
 msgid "Cancel"
 msgstr "キャンセル"
@@ -2148,7 +2159,7 @@ msgstr "セッションを編集中"
 msgid "New session"
 msgstr "新しいセッション"
 
-#: templates/_journal_section.html:2767 templates/graph_view.html:589
+#: templates/_journal_section.html:2767 templates/graph_view.html:590
 msgid "Unsaved changes"
 msgstr "未保存の変更"
 
@@ -2520,7 +2531,7 @@ msgid "{label} removed."
 msgstr "{label} を削除しました。"
 
 #: templates/_journal_section.html:3075 templates/base.html:308
-#: templates/graph_view.html:576 templates/index.html:114
+#: templates/graph_view.html:577 templates/index.html:114
 msgid "Ask Nova"
 msgstr "Ask Nova"
 
@@ -2537,7 +2548,7 @@ msgid "Checking guiding data..."
 msgstr "ガイディングデータを確認中..."
 
 #: templates/_journal_section.html:3080 templates/base.html:320
-#: templates/graph_view.html:582
+#: templates/graph_view.html:583
 msgid "Almost there..."
 msgstr "もう少しだ..."
 
@@ -2553,11 +2564,11 @@ msgstr "語"
 msgid "Nova has a summary ready. What would you like to do?"
 msgstr "Nova がサマリーを用意しました。どうしますか？"
 
-#: templates/_journal_section.html:3084 templates/graph_view.html:585
+#: templates/_journal_section.html:3084 templates/graph_view.html:586
 msgid "Overwrite"
 msgstr "上書き"
 
-#: templates/_journal_section.html:3085 templates/graph_view.html:586
+#: templates/_journal_section.html:3085 templates/graph_view.html:587
 msgid "Append"
 msgstr "追記"
 
@@ -3887,7 +3898,7 @@ msgstr "Novaへの質問でエラーが発生しました。もう一度お試�
 msgid "Consulting star charts..."
 msgstr "星図を参照中..."
 
-#: templates/base.html:318 templates/graph_view.html:579
+#: templates/base.html:318 templates/graph_view.html:580
 msgid "Checking your rigs..."
 msgstr "リグを確認中..."
 
@@ -4811,11 +4822,6 @@ msgstr "フレームをスキャン"
 msgid "Scanning…"
 msgstr "スキャン中…"
 
-#: templates/graph_view.html:18
-#, python-brace-format
-msgid "FOV too large ({w}° × {h}°), max {max}° for Scan Frame"
-msgstr "視野が大きすぎます（{w}° × {h}°）。「フレームをスキャン」は最大 {max}° です"
-
 #: templates/graph_view.html:21
 msgid "+ Add to Database"
 msgstr "+ データベースに追加"
@@ -4995,7 +5001,7 @@ msgstr "オブジェクトを追加"
 msgid "How objects are ranked"
 msgstr "オブジェクトのランキング方法"
 
-#: templates/graph_view.html:160 templates/graph_view.html:788
+#: templates/graph_view.html:160 templates/graph_view.html:789
 msgid "Calibration Star"
 msgstr "キャリブレーション星"
 
@@ -5294,64 +5300,64 @@ msgstr "ASIAIR（プランのインポート）、N.I.N.A.、Telescopius と互�
 msgid "Copy Plan (CSV)"
 msgstr "プランをコピー (CSV)"
 
-#: templates/graph_view.html:577
+#: templates/graph_view.html:578
 msgid "Ask Nova for observing notes"
 msgstr "Novaに観測メモを依頼"
 
-#: templates/graph_view.html:578
+#: templates/graph_view.html:579
 msgid "Consulting the star charts..."
 msgstr "星図を参照中..."
 
-#: templates/graph_view.html:580
+#: templates/graph_view.html:581
 msgid "Scanning the cosmos..."
 msgstr "宇宙をスキャン中..."
 
-#: templates/graph_view.html:581
+#: templates/graph_view.html:582
 msgid "Calculating from"
 msgstr "算出中："
 
-#: templates/graph_view.html:583
+#: templates/graph_view.html:584
 msgid "your location"
 msgstr "あなたの場所"
 
-#: templates/graph_view.html:584
+#: templates/graph_view.html:585
 msgid "Nova has notes ready. What would you like to do?"
 msgstr "Nova がノートを用意しました。どうしますか？"
 
-#: templates/graph_view.html:588
+#: templates/graph_view.html:589
 msgid "Nova couldn't load notes"
 msgstr "Novaはメモを読み込めませんでした"
 
-#: templates/graph_view.html:590 templates/mobile_journal_new.html:385
+#: templates/graph_view.html:591 templates/mobile_journal_new.html:385
 msgid "Discard"
 msgstr "破棄"
 
-#: templates/graph_view.html:789
+#: templates/graph_view.html:790
 msgid "No calibration star available near meridian"
 msgstr "子午線付近にキャリブレーション星がありません"
 
-#: templates/graph_view.html:791
+#: templates/graph_view.html:792
 msgid "Window"
 msgstr "観測可能時間"
 
-#: templates/graph_view.html:792 templates/mobile_object_detail.html:493
+#: templates/graph_view.html:793 templates/mobile_object_detail.html:493
 #: templates/solar_system.html:353
 msgid "Now"
 msgstr "現在"
 
-#: templates/graph_view.html:793
+#: templates/graph_view.html:794
 msgid "Alt"
 msgstr "高度"
 
-#: templates/graph_view.html:794
+#: templates/graph_view.html:795
 msgid "Az"
 msgstr "方位角"
 
-#: templates/graph_view.html:797
+#: templates/graph_view.html:798
 msgid "HA"
 msgstr "HA"
 
-#: templates/graph_view.html:798
+#: templates/graph_view.html:799
 msgid "from meridian"
 msgstr "子午線から"
 

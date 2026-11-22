@@ -1098,8 +1098,8 @@ def scan_frame():
         fov_w     = float(data['fov_w'])
         fov_h     = float(data['fov_h'])
         mag_limit = float(data.get('mag_limit', 16.0))
-    except (KeyError, TypeError, ValueError) as e:
-        return jsonify({'status': 'error', 'message': f'Bad parameters: {e}'}), 200
+    except (KeyError, TypeError, ValueError):
+        return jsonify({'status': 'error', 'message': _("Invalid scan parameters.")}), 200
 
     # The frontend blocks the button for wider rigs; this is the same limit for
     # anything that posts directly. Same msgid as the button's tooltip.
@@ -1160,8 +1160,9 @@ def scan_frame():
         rows = _scan_rows(sized_adql, timeout=DEFAULT_HTTP_TIMEOUT)
     except simbad_service.SimbadUnavailableError:
         return _simbad_unavailable()
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 200
+    except Exception:
+        current_app.logger.exception("[SCAN FRAME] SIMBAD query failed")
+        return jsonify({'status': 'error', 'message': _("An internal error occurred.")}), 200
 
     # A failing or skipped second call must not lose the sized results already
     # in hand; the answer is then partial and is not cached.
@@ -1253,9 +1254,9 @@ def get_framing(object_name):
             })
         else:
             return jsonify({"status": "empty"})
-    except Exception as e:
-        current_app.logger.error(f"[FRAMING API] Failed to get framing for '{object_name}': {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
+    except Exception:
+        current_app.logger.exception(f"[FRAMING API] Failed to get framing for '{object_name}'")
+        return jsonify({"status": "error", "message": _("An internal error occurred.")}), 500
 
 
 @api_bp.route('/api/delete_framing', methods=['POST'])
@@ -1277,10 +1278,10 @@ def delete_framing():
             return jsonify({"status": "success", "message": "Framing deleted."})
         else:
             return jsonify({"status": "error", "message": "No saved framing found."}), 404
-    except Exception as e:
+    except Exception:
         db.rollback()
-        current_app.logger.error(f"[FRAMING API] Failed to delete framing for '{object_name}': {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
+        current_app.logger.exception(f"[FRAMING API] Failed to delete framing for '{object_name}'")
+        return jsonify({"status": "error", "message": _("An internal error occurred.")}), 500
 
 
 @api_bp.route('/api/create_object', methods=['POST'])
@@ -1371,13 +1372,14 @@ def create_object():
         return jsonify({"status": "success",
                         "object_name": new_obj.object_name,
                         "record_uid": new_obj.record_uid})
-    except ValueError as ve:
+    except ValueError:
         db.rollback()
-        return jsonify({"status": "error", "message": str(ve)}), 400
-    except Exception as e:
+        return jsonify({"status": "error",
+                        "message": _("Invalid RA/DEC format for object.")}), 400
+    except Exception:
         db.rollback()
-        current_app.logger.error(f"[CREATE OBJECT] Failed for '{req.get('name')}': {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
+        current_app.logger.exception(f"[CREATE OBJECT] Failed for '{req.get('name')}'")
+        return jsonify({"status": "error", "message": _("An internal error occurred.")}), 500
 
 
 def _find_existing_object(db, user_id, names):
