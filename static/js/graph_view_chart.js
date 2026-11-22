@@ -3448,6 +3448,8 @@
                              + '?' + params.toString();
     }
 
+    let createTargetBusy = false;   // one create at a time, whichever button started it
+
     /**
      * Make a target out of the current frame.
      *
@@ -3459,14 +3461,26 @@
      *                             framing stores, so the acquired frame is kept — for
      *                             entry A it differs from objectPos, which is the point.
      * @param {Object} [extras]    optional type/size/magnitude/sb/constellation
+     * @param {HTMLButtonElement} [triggerBtn] the button that started it: disabled while
+     *                             the request runs, enabled again on an error or a 409
      */
-    async function createNewTarget(name, objectPos, frameSnapshot, extras) {
+    async function createNewTarget(name, objectPos, frameSnapshot, extras, triggerBtn) {
+        if (createTargetBusy) return;   // a second click / Enter while one is running
         const typed = (name || '').trim();
         if (!typed) { await novaAlert(window.t('target_name_required')); return; }
 
         const pos = objectPos || frameSnapshot;   // entry B: the object IS the frame centre
         if (!pos || !Number.isFinite(pos.ra) || !Number.isFinite(pos.dec)) return;
         const frame = (frameSnapshot && Number.isFinite(frameSnapshot.ra)) ? frameSnapshot : pos;
+
+        // Busy until the page navigates away; released only where it stays put.
+        // data-busy tells graph_view.js's name-field sync not to re-enable the button.
+        createTargetBusy = true;
+        if (triggerBtn) { triggerBtn.disabled = true; triggerBtn.dataset.busy = '1'; }
+        const release = () => {
+            createTargetBusy = false;
+            if (triggerBtn) { triggerBtn.disabled = false; delete triggerBtn.dataset.busy; }
+        };
 
         let res;
         try {
@@ -3479,13 +3493,17 @@
             res = { ok: r.ok, data: await r.json() };
         } catch (err) {
             console.warn('[TARGET] create_object failed:', err);
+            release();
             await novaAlert(window.t('target_create_error'));
             return;
         }
 
         if (!res.ok) {
+            release();
             if (res.data && res.data.code === 'already_exists') {
-                if (res.data.object_name === NOVA_GRAPH_DATA.objectName) {
+                // Compared as names, not strings: the page may have been opened as
+                // "M 42" while the library's canonical name is "M42".
+                if (sameTargetName(res.data.object_name, NOVA_GRAPH_DATA.objectName)) {
                     // The collision is the target already open: nothing to navigate to,
                     // and a reload would throw away the frame. Say so and stop.
                     await novaAlert(window.t('target_is_current'));
@@ -3874,6 +3892,14 @@
         }
     }
 
+    /** The Scan section's notice under the controls. `text` null hides it. */
+    function setScanNotice(text) {
+        const el = document.getElementById('scan-notice');
+        if (!el) return;
+        el.textContent = text || '';
+        el.hidden = !text;
+    }
+
     function applyMinSizeFilter(minSize) {
         if (!scanFrameActive || !scanResultsCatalog
                 || !scanResultsAll.length) return;
@@ -3884,11 +3910,21 @@
         // so toggling it costs no request.
         const catalogEl = document.getElementById('scan-catalog-names');
         const catalogOnly = !catalogEl || catalogEl.checked;
+        const bigEnough = obj => minSize === 0
+            || (obj.size_arcmin !== null && obj.size_arcmin >= minSize);
         const filtered = scanResultsAll.filter(function (obj) {
             if (catalogOnly && obj.well_known === false) return false;
-            return minSize === 0
-                || (obj.size_arcmin !== null && obj.size_arcmin >= minSize);
+            return bigEnough(obj);
         });
+        // No marker left: say so. When "Catalog names only" is what hid them (an
+        // object would show without it), point at the checkbox.
+        if (filtered.length) {
+            setScanNotice(null);
+        } else if (catalogOnly && scanResultsAll.some(o => o.well_known === false && bigEnough(o))) {
+            setScanNotice(window.t('scan_no_objects') + ' ' + window.t('scan_untick_catalog_names'));
+        } else {
+            setScanNotice(window.t('scan_no_objects'));
+        }
         scanResultsCatalog.removeAll();
         scanResultsCatalog.addSources(
             filtered.map(obj =>
@@ -3930,10 +3966,12 @@
             if (_ci) _ci.disabled = true;
             if (btn) { btn.textContent = window.t('scan_frame'); setScanButtonBlocked(btn, null); }
             if (popup) popup.hidden = true;
+            setScanNotice(null);
             return;
         }
 
         if (!aladin) return;
+        setScanNotice(null);
 
         const center = frameCenter();
         const sel = document.getElementById('framing-rig-select');
@@ -3971,6 +4009,7 @@
             }
             if (!data.objects.length) {
                 console.log('[SCAN] No DSOs found in frame.');
+                setScanNotice(window.t('scan_no_objects'));
                 return;
             }
 
@@ -4084,7 +4123,10 @@
                                 frameCenter(),                        // the frame, as shown
                                 { type: typeName,
                                   size: source.data.size_arcmin != null
-                                      ? source.data.size_arcmin.toFixed(2) : null });
+                                      ? source.data.size_arcmin.toFixed(2) : null,
+                                  magnitude: source.data.mag != null
+                                      ? source.data.mag : null },
+                                _targetBtn);
                         });
                         bodyEl.appendChild(_targetBtn);
                     }

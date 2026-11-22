@@ -1309,6 +1309,56 @@ def test_scan_frame_gives_the_sizeless_query_the_time_left(
     assert seen == {'timeout': 10, 'budget': 16.0}
 
 
+def test_scan_frame_no_sized_rows_and_failed_sizeless_is_an_error(
+        client, db_session, monkeypatch):
+    """Sized query empty, sizeless one failed: SIMBAD did not answer, not an empty
+    frame. The usual simbad_unavailable error, and nothing cached."""
+    calls = []
+
+    def fake_tap(adql, timeout=None, **kwargs):
+        calls.append(adql)
+        if _is_sizeless(adql):
+            raise RuntimeError('second query failed')
+        return EMPTY_SIMBAD_CSV
+
+    monkeypatch.setattr(simbad_service, 'tap_csv', fake_tap)
+    payload = {'ra': 13.0, 'dec': 14.0, 'fov_w': 1.0, 'fov_h': 1.0}
+    for _ in range(2):
+        body = client.post('/api/scan_frame', json=payload).get_json()
+        assert body['status'] == 'error'
+        assert body['code'] == 'simbad_unavailable'
+    assert len(calls) == 4, 'an error is never cached'
+
+
+def test_scan_frame_no_sized_rows_and_skipped_sizeless_is_an_error(
+        client, db_session, monkeypatch):
+    from nova.blueprints import api as api_module
+    clock = _ScanClock()
+    monkeypatch.setattr(api_module, 'time', clock)
+
+    def slow_empty_tap(adql, timeout=None, **kwargs):
+        assert not _is_sizeless(adql), 'the sizeless query must be skipped'
+        clock.now += 12.5
+        return EMPTY_SIMBAD_CSV
+
+    monkeypatch.setattr(simbad_service, 'tap_csv', slow_empty_tap)
+    payload = {'ra': 15.0, 'dec': 16.0, 'fov_w': 1.0, 'fov_h': 1.0}
+    body = client.post('/api/scan_frame', json=payload).get_json()
+    assert body['status'] == 'error'
+    assert body['code'] == 'simbad_unavailable'
+
+
+def test_scan_frame_both_queries_empty_is_an_empty_success(
+        client, db_session, monkeypatch):
+    """Both queries answered with no rows: a genuinely empty frame stays a success."""
+    monkeypatch.setattr(simbad_service, 'tap_csv',
+                        lambda adql, timeout=None, **kw: EMPTY_SIMBAD_CSV)
+    payload = {'ra': 17.0, 'dec': 18.0, 'fov_w': 1.0, 'fov_h': 1.0}
+    body = client.post('/api/scan_frame', json=payload).get_json()
+    assert body['status'] == 'success'
+    assert body['count'] == 0
+
+
 # --- /api/simbad_status: decides whether the SIMBAD tab embeds Strasbourg ---
 
 def test_simbad_status_embeds_when_strasbourg_probe_succeeds(client, monkeypatch):

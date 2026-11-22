@@ -35,6 +35,8 @@
     window.novaI18n.stellarium_bad_response = {{ _('Could not parse server response.') | tojson }};
     window.novaI18n.stellarium_unknown_error = {{ _('Unknown error') | tojson }};
     window.novaI18n.offline_scan_disabled = {{ _('Scan Frame is unavailable in offline view.') | tojson }};
+    window.novaI18n.scan_no_objects = {{ _('No objects in this frame.') | tojson }};
+    window.novaI18n.scan_untick_catalog_names = {{ _('Untick “Catalog names only” to see survey designations.') | tojson }};
     // New Target section (graph_view_chart.js createNewTarget)
     window.novaI18n.target_name_required = {{ _('Enter a name for the new target.') | tojson }};
     window.novaI18n.target_create_error = {{ _('Could not create the target') | tojson }};
@@ -495,6 +497,7 @@
                         <input type="checkbox" id="scan-catalog-names" checked disabled> {{ _('Catalog names only') }}
                     </label>
                 </div>
+                <p id="scan-notice" class="framing-hint" role="status" hidden></p>
             </section>
 
             {# Make the current frame a target of its own; the open object is left alone. #}

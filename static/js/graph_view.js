@@ -147,13 +147,14 @@
 
 
     // --- "New Target": the field is always visible; Create is enabled only once it
-    // holds a non-blank name. Enter in the field submits. ---
+    // holds a non-blank name, and stays disabled while a create is running
+    // (data-busy, set by createNewTarget). Enter in the field submits. ---
     (function () {
         const input = document.getElementById('new-target-name');
         const btn = document.getElementById('new-target-confirm');
         if (!input || !btn) return;
         const sync = function () {
-            btn.disabled = input.value.trim() === '';
+            btn.disabled = btn.dataset.busy === '1' || input.value.trim() === '';
         };
         input.addEventListener('input', sync);
         input.addEventListener('keydown', function (e) {
@@ -302,7 +303,7 @@
                 if (typeof window.createNewTarget === 'function' && typeof window.frameCenter === 'function') {
                     // One snapshot, used for both the object's position and its framing.
                     const center = window.frameCenter();
-                    window.createNewTarget(input ? input.value : '', center, center);
+                    window.createNewTarget(input ? input.value : '', center, center, undefined, btn);
                 }
                 break;
             }

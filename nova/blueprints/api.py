@@ -1,6 +1,6 @@
 import json
 import os
-import csv, io, time
+import csv, io, math, time
 from pathlib import Path
 import calendar
 import traceback
@@ -16,6 +16,7 @@ from flask import (
 from flask_login import login_required, current_user
 from flask_babel import gettext as _
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from astropy.coordinates import EarthLocation, SkyCoord, AltAz, get_body, search_around_sky, get_constellation
@@ -1072,6 +1073,15 @@ def _resolve_scan_name(ids_str, fallback):
     return fallback, False
 
 
+def _simbad_unavailable():
+    """scan_frame's answer when SIMBAD could not be asked (the frontend alerts on the code)."""
+    return jsonify({
+        'status': 'error',
+        'code': 'simbad_unavailable',
+        'message': _('SIMBAD is currently unavailable. Please try again later.'),
+    }), 200
+
+
 # scan_frame's time limits, kept under gunicorn's --timeout 30 (Dockerfile).
 _SCAN_SECOND_QUERY_CUTOFF_S = 12.0   # sized query slower than this: skip the second
 _SCAN_TOTAL_BUDGET_S = 25.0          # both queries together
@@ -1138,16 +1148,13 @@ def scan_frame():
     try:
         rows = _scan_rows(sized_adql, timeout=DEFAULT_HTTP_TIMEOUT)
     except simbad_service.SimbadUnavailableError:
-        return jsonify({
-            'status': 'error',
-            'code': 'simbad_unavailable',
-            'message': _('SIMBAD is currently unavailable. Please try again later.'),
-        }), 200
+        return _simbad_unavailable()
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 200
 
     # A failing or skipped second call must not lose the sized results already
     # in hand; the answer is then partial and is not cached.
+    sized_count = len(rows)
     partial = False
     elapsed = time.monotonic() - started
     if elapsed > _SCAN_SECOND_QUERY_CUTOFF_S:
@@ -1164,6 +1171,11 @@ def scan_frame():
             partial = True
             current_app.logger.warning('[SCAN] Sizeless query failed, '
                                        'returning sized results only: %s', e)
+
+    # Nothing from the sized query and no answer from the sizeless one: that is
+    # not "an empty frame", it is "SIMBAD did not answer". Say so.
+    if partial and sized_count == 0:
+        return _simbad_unavailable()
 
     objects = []
     for row in rows:
@@ -1283,26 +1295,25 @@ def create_object():
             return jsonify({"status": "error",
                             "message": _("A target name is required.")}), 400
         object_name = normalize_object_name(raw_name)
+        names = (object_name, raw_name)
 
         # The raw name is checked too: a user typing "NGC1976" while "NGC 1976"
         # is already in the library must collide, not create a second row.
-        existing = db.query(AstroObject).filter(
-            AstroObject.user_id == g.db_user.id,
-            AstroObject.object_name.in_({object_name, raw_name}),
-        ).first()
+        existing = _find_existing_object(db, g.db_user.id, names)
         if existing:
-            return jsonify({
-                "status": "error",
-                "code": "already_exists",
-                "object_name": existing.object_name,
-                "message": _("'%(name)s' is already in your library.",
-                             name=existing.object_name),
-            }), 409
+            return _object_already_exists(existing.object_name)
 
         ra_hours = _parse_float_from_request(req.get('ra'), "RA")
         dec_deg = _parse_float_from_request(req.get('dec'), "DEC")
+        # NaN and inf are not < or >= anything, so isfinite() comes first.
+        if not (math.isfinite(ra_hours) and 0.0 <= ra_hours < 24.0):
+            return jsonify({"status": "error",
+                            "message": _("RA must be at least 0 and less than 24 hours.")}), 400
+        if not (math.isfinite(dec_deg) and -90.0 <= dec_deg <= 90.0):
+            return jsonify({"status": "error",
+                            "message": _("Dec must be between -90 and +90 degrees.")}), 400
 
-        constellation = (req.get('constellation') or '').strip() or None
+        constellation = _optional_text(req.get('constellation'))
         if not constellation:
             try:
                 constellation = get_constellation(
@@ -1321,18 +1332,28 @@ def create_object():
             ra_hours=ra_hours,
             dec_deg=dec_deg,
             constellation=constellation,
-            type=(req.get('type') or '').strip() or None,
-            magnitude=str(req.get('magnitude') or '').strip() or None,
-            size=str(req.get('size') or '').strip() or None,
-            sb=str(req.get('sb') or '').strip() or None,
+            type=_optional_text(req.get('type')),
+            magnitude=_optional_text(req.get('magnitude')),   # 0 is a magnitude
+            size=_optional_text(req.get('size')),
+            sb=_optional_text(req.get('sb')),
             active_project=False,     # a new target is not an active project
             is_shared=False,          # never shared on create
         )
-        # No adopt_unlinked_rows here: adopting by name would hand this brand-new
-        # object someone else's older sessions or a framing saved under the same
-        # name, which is exactly the cross-object write this feature must not do.
+        # No adopt_unlinked_rows here, so no older journal sessions or projects are
+        # attached to this object by name. A SavedFraming row that is already stored
+        # under the new name (left from an object deleted earlier) is a different
+        # case: the client's save_framing call right after this one finds it by
+        # name and overwrites every field of it, so it ends up holding only the new
+        # frame and nothing of the old one.
         db.add(new_obj)
-        db.commit()
+        try:
+            db.commit()
+        except IntegrityError:
+            # Another request created the same name between the check and here
+            # (uq_user_object): answer as the check would have.
+            db.rollback()
+            existing = _find_existing_object(db, g.db_user.id, names)
+            return _object_already_exists(existing.object_name if existing else object_name)
         bust_astro_context_cache(g.db_user.id)
         invalidate_object_caches(g.db_user.id, username, [], curves=False, outlook=False)
         record_event('target_created')
@@ -1346,6 +1367,33 @@ def create_object():
         db.rollback()
         current_app.logger.error(f"[CREATE OBJECT] Failed for '{req.get('name')}': {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
+
+
+def _find_existing_object(db, user_id, names):
+    """The user's object whose name matches any of ``names``, ignoring case, or None."""
+    wanted = {n.upper() for n in names if n}
+    return db.query(AstroObject).filter(
+        AstroObject.user_id == user_id,
+        func.upper(AstroObject.object_name).in_(wanted),
+    ).first()
+
+
+def _object_already_exists(canonical_name):
+    """create_object's 409: the client opens ``canonical_name`` instead."""
+    return jsonify({
+        "status": "error",
+        "code": "already_exists",
+        "object_name": canonical_name,
+        "message": _("'%(name)s' is already in your library.", name=canonical_name),
+    }), 409
+
+
+def _optional_text(value):
+    """A request value as stripped text, None when missing or blank. 0 stays "0"."""
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
 
 
 # --- PHD2 & ASIAIR Log Parsing ---

@@ -120,6 +120,7 @@ const api = vm.runInContext(`
     let scanFrameActive = false, scanResultsCatalog = null, scanResultsAll = [];
     function frameCenter() { return { ra: 1, dec: 2 }; }
     function applyMinSizeFilter() {}
+    ${fn(src, 'setScanNotice')}
     ${fn(src, 'setScanButtonBlocked')}
     ${fn(src, 'updateScanButtonState')}
     ${fn(src, 'scanFrameForDSOs')}
