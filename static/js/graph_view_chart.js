@@ -1299,57 +1299,47 @@
     }
 
     /**
-     * Build transit time annotations
-     * @param {string} transitTime - Transit time string (may include multiple times)
+     * Build the transit (meridian flip) annotation: the upper transit, drawn only when
+     * it falls in the dark window.
+     * @param {string} transitTime - The upper transit as 'HH:MM', or 'N/A'
      * @param {Object} baseDt - Luxon DateTime for base date
      * @param {number} duskTime - Dusk time in milliseconds
      * @param {number} dawnTime - Dawn time in milliseconds
-     * @returns {Object} - Map of transit annotation configurations
+     * @returns {Object} - { transitLine } or an empty map
      */
     function _buildTransitAnnotations(transitTime, baseDt, duskTime, dawnTime) {
         const annotations = {};
-        if (!transitTime || transitTime === "N/A") return annotations;
+        const m = /^(\d{1,2}):(\d{2})$/.exec(transitTime || '');
+        if (!m) return annotations;
 
-        const transitStrings = transitTime.split(',').map(s => s.trim());
+        const th = Number(m[1]);
+        const tm = Number(m[2]);
+        const t0 = baseDt.set({hour: th, minute: tm, second: 0, millisecond: 0}).toMillis();
+        const t1 = baseDt.plus({days: 1}).set({hour: th, minute: tm, second: 0, millisecond: 0}).toMillis();
+        const inWindow = (t) => t >= duskTime && t <= dawnTime;
+        const transitMs = inWindow(t0) ? t0 : t1;
 
-        transitStrings.forEach((tStr, idx) => {
-            const parts = tStr.split(':');
-            const th = Number(parts[0] || 0);
-            const tm = Number(parts[1] || 0);
-            const t0 = baseDt.set({hour: th, minute: tm, second: 0, millisecond: 0}).toMillis();
-            const t1 = baseDt.plus({days: 1}).set({hour: th, minute: tm, second: 0, millisecond: 0}).toMillis();
+        // Only draw if within dark window
+        if (!inWindow(transitMs)) return annotations;
 
-            const nightStart = duskTime;
-            const nightEnd = dawnTime;
-            const inWindow = (t) => t >= nightStart && t <= nightEnd;
-
-            const transitMs = inWindow(t0) ? t0 : t1;
-
-            // Only draw if within dark window
-            if (transitMs < nightStart || transitMs > nightEnd) {
-                return;
+        annotations.transitLine = {
+            type: 'line',
+            xMin: transitMs,
+            xMax: transitMs,
+            borderColor: 'crimson',
+            borderWidth: 2,
+            borderDash: [6, 6],
+            clip: false,
+            label: {
+                display: true,
+                content: transitTime,
+                position: 'start',
+                rotation: 90,
+                font: {size: 10, weight: 'bold'},
+                color: 'crimson',
+                backgroundColor: 'rgba(255,255,255,0.7)'
             }
-
-            const annotKey = `transitLine_${idx}`;
-            annotations[annotKey] = {
-                type: 'line',
-                xMin: transitMs,
-                xMax: transitMs,
-                borderColor: 'crimson',
-                borderWidth: 2,
-                borderDash: [6, 6],
-                clip: false,
-                label: {
-                    display: true,
-                    content: tStr,
-                    position: 'start',
-                    rotation: 90,
-                    font: {size: 10, weight: 'bold'},
-                    color: 'crimson',
-                    backgroundColor: 'rgba(255,255,255,0.7)'
-                }
-            };
-        });
+        };
 
         return annotations;
     }

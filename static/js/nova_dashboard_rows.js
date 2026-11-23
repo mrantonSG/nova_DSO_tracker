@@ -401,7 +401,7 @@
                     reqNow: reqNow, slopeNow: slope(cur.az), sgNow: sgNow,
                     alt11: e.alt, az11: e.az, req11: req11, slope11: slope(e.az), sg11: sg11,
                     maxAltitude: dur.maxAltitude, nearSamples: near,
-                    transit: transit.utcMsAll, transitCrossings: transit.crossings,
+                    transit: transit.utcMs,
                 };
             }
         });

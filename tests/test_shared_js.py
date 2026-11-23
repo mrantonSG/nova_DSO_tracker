@@ -42,7 +42,7 @@ CONFIG_DEFAULT = REPO / "config_templates" / "config_default.yaml"
 # The bytes of the shared copies, as they sit in nova-ios today.
 SHARED_WITH_NOVA_IOS = {
     "nova_astro.js": "c6c70e9d667255160d006779f4e9a5f80656a67357ad9afcd34fd93367722b2c",
-    "nova_transit.js": "b32ed7b19bd642727d590d2f468a3648da337890dd96919ad8a3004edece2049",
+    "nova_transit.js": "1a9c58db640f2bbdf4a5c1b484496cfd05ce8985cc6463e3e16b115a28bd4d98",
     "nova_weather_icons.js": "a871aac1e0573d493834ba316a02c206a2d0b96c6689a2dbc6797fbe3d274f7e",
     "nova_planets.js": "057095316479eb0eb4fca9b502cc8dc905108030352af02319359df733f18b9f",
     "nova_moon.js": "0923926b15164174c1695eaa6e93d2996b8f51546aeca5b263b1dda07a70fe4e",
@@ -64,6 +64,18 @@ OBJECTS_WANTED = 20
 # July puts Europe/London on BST, the DST night nova_transit.js's header warns about;
 # January is the plain case.
 NIGHTS = ("2026-01-15", "2026-07-15")
+
+# Cases the catalogue sample does not reach: an object north of the zenith whose lower
+# culmination is at night (the November 2026 bug), a circumpolar one, and one that
+# never rises ('N/A' on both sides).
+EXTRA_CASES = [
+    {"id": "M106 @ New York 2026-11-22", "ra": 12.3158, "dec": 47.3036,
+     "lat": 40.71, "lon": -74.01, "tz": "America/New_York", "date": "2026-11-22"},
+    {"id": "M101 @ New York 2026-11-22", "ra": 14.0535, "dec": 54.3488,
+     "lat": 40.71, "lon": -74.01, "tz": "America/New_York", "date": "2026-11-22"},
+    {"id": "LMC @ New York 2026-06-22", "ra": 5.3929, "dec": -69.7561,
+     "lat": 40.71, "lon": -74.01, "tz": "America/New_York", "date": "2026-06-22"},
+]
 
 # Loads the two files the way the page does — plain scripts in one context, so
 # nova_transit.js finds the NovaAstro global the page gives it — and writes the
@@ -143,26 +155,17 @@ def _as_minutes(hhmm):
 
 
 def _agrees_within_a_minute(server, browser):
-    """Nova's own pass mark: the same number of times, each within a printed minute.
+    """Nova's own pass mark: the same time within a printed minute.
 
     nova-ios's tools/compare_transit.cjs allows this much because the engine's apparent
     place differs from ephem's by about an arcsecond, which is enough to move a crossing
     across a minute boundary. 'N/A' is not one of those cases: it must match exactly.
     """
-    if server == "N/A" or browser == "N/A":
+    a, b = _as_minutes(server), _as_minutes(browser)
+    if a is None or b is None:
         return False
-    server_times = server.split(", ")
-    browser_times = browser.split(", ")
-    if len(server_times) != len(browser_times):
-        return False
-    for expected, actual in zip(server_times, browser_times):
-        a, b = _as_minutes(expected), _as_minutes(actual)
-        if a is None or b is None:
-            return False
-        gap = abs(a - b)
-        if min(gap, 1440 - gap) > 1:  # the wrap: 23:59 and 00:00 are one minute apart
-            return False
-    return True
+    gap = abs(a - b)
+    return min(gap, 1440 - gap) <= 1  # the wrap: 23:59 and 00:00 are one minute apart
 
 
 @pytest.mark.skipif(NODE is None, reason="node is not installed")
@@ -183,6 +186,7 @@ def test_nova_transit_agrees_with_calculate_transit_time(tmp_path):
         for night in NIGHTS
     ]
     assert len(cases) == OBJECTS_WANTED * 3 * len(NIGHTS)
+    cases += EXTRA_CASES
 
     driver = tmp_path / "transit_driver.js"
     driver.write_text(_DRIVER)

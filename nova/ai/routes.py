@@ -40,6 +40,18 @@ from nova.record_links import (
 logger = logging.getLogger(__name__)
 
 
+def transit_local_datetime(local_date_str: str, transit_hhmm: str, tz_name: str) -> datetime:
+    """The aware local datetime of a transit 'HH:MM' on the observing night local_date_str.
+
+    calculate_transit_time() reports the upper transit in the window local noon to
+    noon, so a time before 12:00 is on the next calendar day (after midnight).
+    """
+    night = datetime.strptime(local_date_str, "%Y-%m-%d").date()
+    clock = datetime.strptime(transit_hhmm, "%H:%M").time()
+    day = night + timedelta(days=1) if clock.hour < 12 else night
+    return pytz.timezone(tz_name).localize(datetime.combine(day, clock))
+
+
 def compress_objects_for_prompt(objects: list[dict]) -> str:
     """Converts object dicts to compact pipe-delimited lines for AI prompt.
 
@@ -1297,12 +1309,7 @@ def prefilter_debug():
             try:
                 # Parse transit time for datetime conversion
                 if transit_time and transit_time != "N/A":
-                    transit_local = pytz.timezone(tz_name).localize(
-                        datetime.combine(
-                            datetime.strptime(local_date_str, "%Y-%m-%d"),
-                            datetime.strptime(transit_time, "%H:%M").time()
-                        )
-                    )
+                    transit_local = transit_local_datetime(local_date_str, transit_time, tz_name)
                     transit_utc = transit_local.astimezone(pytz.utc)
                     time_obj = Time(transit_utc)
                     loc_obj = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)

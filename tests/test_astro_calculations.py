@@ -165,6 +165,45 @@ def test_calculate_transit_time_southern_hemisphere():
     assert transit_time_str == "23:45"
 
 
+# The transit is always the upper culmination (hour angle 0), never the lower one, even
+# when the upper one is in daylight and the lower one is at night.
+NEW_YORK = (40.71, -74.01, "America/New_York")
+
+
+def test_transit_north_of_zenith_is_the_upper_culmination():
+    """M106 (Dec +47.3) culminates north of the zenith at New York. Its lower
+    culmination (20:08, about -2 deg) falls in the night, the upper one (~08:06,
+    about 84 deg) after dawn; the upper one is the transit."""
+    lat, lon, tz = NEW_YORK
+    assert calculate_transit_time(12.3158, 47.3036, lat, lon, tz, "2026-11-22") in ("08:05", "08:06")
+
+
+def test_transit_south_of_zenith_is_the_upper_culmination_in_daylight():
+    """M42 in June: upper transit at ~12:29 in daylight, not the lower one at 00:27."""
+    lat, lon, tz = NEW_YORK
+    assert calculate_transit_time(5.5881, -5.3911, lat, lon, tz, "2026-06-22") in ("12:28", "12:29")
+
+
+def test_transit_circumpolar_is_the_upper_culmination():
+    """M101 (Dec +54.3) is circumpolar at New York: its lower culmination (21:51,
+    about 5 deg up) is at night, the upper one (~09:49) in daylight."""
+    lat, lon, tz = NEW_YORK
+    assert calculate_transit_time(14.0535, 54.3488, lat, lon, tz, "2026-11-22") in ("09:48", "09:49")
+
+
+@pytest.mark.parametrize("night", ["2026-06-22", "2026-11-22"])
+def test_transit_never_rises_is_na(night):
+    """The LMC (Dec -69.8) never rises at New York: 90 - |40.71 + 69.76| < 0."""
+    lat, lon, tz = NEW_YORK
+    assert calculate_transit_time(5.3929, -69.7561, lat, lon, tz, night) == "N/A"
+
+
+def test_transit_on_the_horizon_is_na():
+    """An upper culmination exactly on the horizon (90 - |40 - (-50)| == 0) counts as
+    never rising."""
+    assert calculate_transit_time(6.0, -50.0, 40.0, -74.0, "America/New_York", "2026-11-22") == "N/A"
+
+
 def test_calculate_sun_events_at_high_latitude_summer():
     lat = 67.0
     lon = 18.0

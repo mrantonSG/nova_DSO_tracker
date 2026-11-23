@@ -24,8 +24,8 @@ printed value, so a few-millidegree engine difference can flip it:
   - A twilight (dusk, dawn, sunset, sunrise) may print a different minute only when
     the browser's instant is within EPS_S of that minute boundary. When the night
     window uses that twilight (sunset/sunrise only stand in for a missing dusk/dawn),
-    every sample moves: Observable Duration may then differ by up to 2 samples, Max
-    Altitude by up to 0.3 deg, and the transit string's dusk-to-dawn filter may differ.
+    every sample moves: Observable Duration may then differ by up to 2 samples and Max
+    Altitude by up to 0.3 deg. The transit string does not depend on the twilights.
 Allowed differences are counted and printed per field; any other difference fails.
 """
 
@@ -277,8 +277,9 @@ def _near(a, b, eps):
 
 def _hhmm_minutes(s):
     try:
-        return [int(p.split(":")[0]) * 60 + int(p.split(":")[1]) for p in s.split(", ")]
-    except (ValueError, IndexError):
+        h, m = s.split(":")
+        return int(h) * 60 + int(m)
+    except (ValueError, AttributeError):
         return None
 
 
@@ -325,19 +326,12 @@ def _allowed(field, server_value, browser_value, raw, ctx):
         if ctx["differs"] & {"Altitude 11PM", "Azimuth 11PM"}:
             return "follows a printed 11 PM difference"
     if field == "Transit Time":
-        if ctx["night_edge"]:
-            return "night edge"
         s_min, b_min = _hhmm_minutes(server_value), _hhmm_minutes(browser_value)
-        instants = raw["transit"]
-        if s_min and b_min and len(s_min) == len(b_min) == len(instants):
-            if all(min(abs(a - b), 1440 - abs(a - b)) <= 1 for a, b in zip(s_min, b_min)) and \
-                    all(min(t / 1000 % 60, 60 - t / 1000 % 60) < EPS_S
-                        for (t, a, b) in zip(instants, s_min, b_min) if a != b):
+        t = raw["transit"]
+        if s_min is not None and b_min is not None and t is not None:
+            gap = abs(s_min - b_min)
+            if min(gap, 1440 - gap) <= 1 and min(t / 1000 % 60, 60 - t / 1000 % 60) < EPS_S:
                 return "minute edge"
-        twilights = [ctx["window"]["dusk"], ctx["window"]["dawn"]] if ctx["window"] else []
-        if any(abs(c["utcMs"] - t) < (60 + EPS_S) * 1000
-               for c in raw["transitCrossings"] for t in twilights):
-            return "dusk/dawn edge"
     if field == "Observable Duration (min)":
         gap = abs(server_value - browser_value)
         if gap <= raw["nearSamples"] * ctx["interval"]:

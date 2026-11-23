@@ -2,24 +2,20 @@
  * nova_transit.js — the meridian transit of an object on one observing night.
  *
  * Port of calculate_transit_time() in nova_DSO_tracker's modules/astro_calculations.py
- * (checked against Nova 6.9.1 beta), so the app can show the same transit time as Nova
- * and mark it on the altitude chart. It answers the question the Python function
- * answers, with the same rules and the same values, including the ones that look wrong:
+ * (checked against Nova 7.3.1 with the November 2026 upper-transit fix), so the app
+ * can show the same transit time as Nova and mark it on the altitude chart. It answers
+ * the question the Python function answers, with the same rules and the same values:
  *
  *   - The window is 24 absolute hours from local noon on the given night, not dusk to
  *     dawn. On a DST night it therefore ends at 13:00 wall clock the next day.
- *   - Both crossings are computed, the upper transit (next_transit) and the lower one
- *     (next_antitransit, the nadir). Either can be the one reported.
- *   - A crossing is kept only if its time of day lies between astronomical dusk and
- *     astronomical dawn. Nova compares the crossing's clock time with the twilights
- *     truncated to the minute, so a crossing in the first minute after dawn counts as
- *     daytime and is dropped; that is reproduced here, not corrected.
- *   - If no crossing falls in the night, or the night has no astronomical twilight at
- *     all, the upper transit is returned even when it is in broad daylight.
- *   - Circumpolar and never-rising objects get a time like any other: ephem's transit
- *     calls do not raise for them, so Nova's AlwaysUpError/NeverUpError handler is dead
- *     code. An object that never rises is given the time it crosses the meridian below
- *     the horizon.
+ *   - Only the upper transit (ephem's next_transit, the upper culmination) is ever
+ *     reported, daylight included. The lower one (next_antitransit) is still computed
+ *     and returned as `lower` and in `crossings`, but it never names the display:
+ *     it is not a meridian flip. Until November 2026 both reported a lower crossing at
+ *     night instead of a daytime upper one; that rule is gone from both.
+ *   - An object that never rises, whose upper culmination 90 - |lat - dec| (the
+ *     catalogue position, as Nova's Max Altitude column has it) is at or below 0, gets
+ *     'N/A'. `upper` and `lower` are still filled in for it.
  *   - Seconds are truncated, never rounded, so the printed minute can be up to 59.9
  *     seconds earlier than the instant it names.
  *
@@ -41,18 +37,18 @@
  *     tz               IANA name.
  *     dateStr          'YYYY-MM-DD', the observing night.
  *     Returns {
- *       display    Nova's string: 'HH:MM', 'HH:MM, HH:MM' (both crossings at night,
- *                  chronological), or 'N/A'.
- *       utcMs      the instant display names, UTC milliseconds, or null; the first
- *                  one when display names two.
- *       utcMsAll   every instant display names, chronological.
- *       kinds      'upper' or 'lower' for each of utcMsAll, in the same order.
+ *       display    Nova's string: 'HH:MM' (the upper transit) or 'N/A'.
+ *       utcMs      the instant display names, UTC milliseconds, or null.
+ *       utcMsAll   [utcMs], or [] when display is 'N/A'. Kept for older callers.
+ *       kinds      ['upper'], or [] when display is 'N/A'. Kept for older callers.
  *       upper      the window's upper transit, UTC milliseconds, or null if the window
  *                  has none. This is the crossing the chart marks.
  *       lower      the window's lower transit, UTC milliseconds, or null.
  *       crossings  both crossings in the window, chronological:
- *                  [{ utcMs, kind, inNight }], where inNight is Nova's dusk-to-dawn
- *                  test for that crossing.
+ *                  [{ utcMs, kind, inNight }], where inNight says whether the
+ *                  crossing's clock time lies between astronomical dusk and dawn
+ *                  (twilights truncated to the minute, as Nova printed them).
+ *                  Informational only: it no longer decides the display.
  *       window     { start, end }, UTC milliseconds: local noon to local noon.
  *     }
  *
@@ -125,7 +121,7 @@
         return p.hour * 3600 + p.minute * 60 + p.second + mod(utcMs, 1000) / 1000;
     }
 
-    // Nova's test for one crossing: dusk > dawn spans midnight.
+    // Whether a clock time lies between dusk and dawn: dusk > dawn spans midnight.
     function inNight(sec, duskSec, dawnSec) {
         return duskSec > dawnSec ? (sec >= duskSec || sec <= dawnSec)
                                  : (duskSec <= sec && sec <= dawnSec);
@@ -155,8 +151,8 @@
         return t;
     }
 
-    // Everything the two entry points need: the window, both crossings with Nova's
-    // night flag, and the twilights they were tested against.
+    // Everything the two entry points need: the window and both crossings, each with
+    // its dusk-to-dawn flag.
     function nightOf(raHours, decDeg, lat, lon, tz, dateStr) {
         const A = engine();
         const d = parseDate(dateStr);
@@ -187,7 +183,6 @@
             crossings: list,
             upper: at('upper'),
             lower: at('lower'),
-            night: hasNight ? list.filter(c => c.inNight) : [],
         };
     }
 
@@ -195,6 +190,12 @@
     // the header. Nova's own junk answer for them is not reproduced.
     function usable(raHours, decDeg) {
         return isFinite(raHours) && isFinite(decDeg);
+    }
+
+    // Nova's never-rises test: the upper culmination of the catalogue position,
+    // 90 - |lat - dec|, at or below the horizon.
+    function rises(decDeg, lat) {
+        return 90 - Math.abs(lat - decDeg) > 0;
     }
 
     function nothing() {
@@ -213,10 +214,11 @@
         }
 
         const n = nightOf(raHours, decDeg, lat, lon, tz, dateStr);
-        const named = n.night.length ? n.night : (n.upper !== null ? [{ utcMs: n.upper, kind: 'upper' }] : []);
+        // Only ever the upper transit; utcMsAll and kinds stay arrays for older callers.
+        const named = rises(decDeg, lat) && n.upper !== null ? [{ utcMs: n.upper, kind: 'upper' }] : [];
 
         return {
-            display: named.length ? named.map(c => A.formatHM(c.utcMs, tz)).join(', ') : 'N/A',
+            display: named.length ? A.formatHM(named[0].utcMs, tz) : 'N/A',
             utcMs: named.length ? named[0].utcMs : null,
             utcMsAll: named.map(c => c.utcMs),
             kinds: named.map(c => c.kind),
