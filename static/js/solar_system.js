@@ -403,7 +403,7 @@
     function renderStrip() {
         const strip = NovaDashboardRows.statusStrip({inputs: state.inputs, nowMs: Date.now(), simDate: simDate()});
         $('solar-time').textContent = strip.time;
-        $('solar-date').textContent = europeanDate(strip.date);
+        $('solar-date').textContent = europeanDate(strip.local_date || strip.date);
         $('solar-phase').textContent = strip.phase.toFixed(1) + '%';
         $('solar-dusk').textContent = strip.astronomical_dusk;
         $('solar-dawn').textContent = strip.astronomical_dawn;

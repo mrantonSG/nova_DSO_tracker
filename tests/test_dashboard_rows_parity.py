@@ -669,7 +669,7 @@ def test_status_strip_agrees_with_sun_events(client, db_session, tmp_path, monke
             problems.append(f"{case['id']}: browser threw: {result['error']}")
             continue
         browser = result["data"]
-        for key in ("date", "time"):
+        for key in ("date", "local_date", "time"):
             if browser[key] != server[key]:
                 problems.append(f"{case['id']} {key}: server {server[key]!r}, browser {browser[key]!r}")
         for key in ("astronomical_dusk", "astronomical_dawn"):

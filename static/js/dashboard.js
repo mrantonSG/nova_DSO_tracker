@@ -406,9 +406,10 @@
                 // In simulation mode, use the selected sim date (YYYY-MM-DD)
                 return `novaCache_${loc}_${simDateVal}`;
             } else {
-                // Use the date shown in the status bar (European format DD.MM.YYYY)
+                // The observing night (DD.MM.YYYY) _renderStatusStrip keeps on #date; the
+                // header text itself shows the calendar date, which changes at midnight.
                 const dateEl = document.getElementById('date');
-                const displayDate = dateEl?.textContent?.trim() || new Date().toISOString().slice(0, 10);
+                const displayDate = dateEl?.dataset?.night || new Date().toISOString().slice(0, 10);
                 return `novaCache_${loc}_${displayDate}`;
             }
         }
@@ -2793,7 +2794,9 @@
               const dateEl = document.getElementById('date');
               const timeEl = document.getElementById('time');
               const phaseEl = document.getElementById('phase');
-              if(dateEl && data.date) dateEl.textContent = formatDateISOtoEuropean(data.date);
+              const shownDate = data.local_date || data.date;
+              if(dateEl && shownDate) dateEl.textContent = formatDateISOtoEuropean(shownDate);
+              if(dateEl && data.date) dateEl.dataset.night = formatDateISOtoEuropean(data.date);
               if(timeEl && data.time) timeEl.textContent = data.time;
               if(phaseEl && data.phase !== undefined) phaseEl.textContent = `${data.phase}%`;
         }

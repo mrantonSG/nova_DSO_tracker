@@ -1874,6 +1874,9 @@ def sun_events():
         else:
             observing_date = now_local.date()
     local_date = observing_date.strftime('%Y-%m-%d')
+    # The header's calendar date: the location's wall date live; in simulation the
+    # simulated night as given, so the simulated header is unchanged.
+    calendar_date = observing_date if sim_date_str else now_local.date()
 
     # Calculate sun events using determined variables (a copy: the cached dict is shared)
     events = dict(calculate_sun_events_cached(local_date, tz_name, lat, lon))
@@ -1887,6 +1890,7 @@ def sun_events():
 
     # Add all data to the response JSON
     events["date"] = local_date
+    events["local_date"] = calendar_date.strftime('%Y-%m-%d')
     events["time"] = now_local.strftime('%H:%M')
     events["phase"] = moon_phase # Use calculated (or N/A) phase
     # Add error field if moon phase calculation failed

@@ -431,9 +431,12 @@
     /**
      * statusStrip({inputs, nowMs, simDate}) returns the fields of
      * nova/blueprints/core.py:sun_events() that the dashboard's status strip shows:
-     *   date   live: the wall date, or the day before when the wall hour is < 12;
-     *          with simDate that date as given (no noon rule), or the wall date where
-     *          strptime would reject it
+     *   date   the observing night, which keys every per-night value (twilight, Moon,
+     *          the Ask Nova cache): live the wall date, or the day before when the wall
+     *          hour is < 12; with simDate that date as given (no noon rule), or the
+     *          wall date where strptime would reject it
+     *   local_date  what the header shows: live the location's wall date (its time
+     *          zone, never the browser's); with simDate the same as date
      *   time   the location's wall clock 'HH:MM', in simulation too (localize() keeps it)
      *   phase  NovaAstro.moonPhaseAt() at 00:00 local on the day after the night's
      *          date, one decimal; ephem's calculate_moon_phase_cached() agrees to
@@ -459,6 +462,7 @@
         const events = A.sunEvents(date, tz, lat, lon);
         return {
             date: date,
+            local_date: o.simDate ? date : dateString(wall.year, wall.month, wall.day),
             time: pad2(wall.hour) + ':' + pad2(wall.minute),
             phase: finite(A.moonPhaseAt(nightMidnightUtc(date, tz, A)), 'moon phase'),
             astronomical_dusk: events.astronomical_dusk,
