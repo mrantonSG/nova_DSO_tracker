@@ -1,9 +1,29 @@
+import os
+import threading
 import time
 import traceback
 import re as _re
 import requests
 
 from nova.config import APP_VERSION, LATEST_VERSION_INFO
+
+
+def update_check_disabled():
+    """NOVA_DISABLE_UPDATE_CHECK=1 switches off the GitHub release check and its notice.
+    Read per call so instance/.env (loaded by nova.config) and test monkeypatching both apply."""
+    return os.environ.get("NOVA_DISABLE_UPDATE_CHECK") == "1"
+
+
+def start_update_check(app):
+    """Start the daily release check in a daemon thread, unless disabled. Returns the thread or None."""
+    if update_check_disabled():
+        print("[STARTUP] NOVA_DISABLE_UPDATE_CHECK=1: skipping the update check.")
+        return None
+    print("[STARTUP] Starting background update check thread...")
+    thread = threading.Thread(target=check_for_updates, args=(app,))
+    thread.daemon = True
+    thread.start()
+    return thread
 
 
 def check_for_updates(app):

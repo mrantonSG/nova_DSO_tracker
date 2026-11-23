@@ -165,7 +165,7 @@ from nova.helpers import (
 from nova.config import DEFAULT_DITHER_MAIN_SHIFT_PX
 from nova.report_graphs import generate_session_charts
 from nova.workers.weather import weather_cache_worker
-from nova.workers.updates import check_for_updates
+from nova.workers.updates import start_update_check
 from nova.workers.heatmap import heatmap_background_worker
 from nova.analytics import record_event, record_login
 from nova.auth import db, User, login_manager, init_auth, UserMixin  # noqa: F401
@@ -4568,10 +4568,7 @@ if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
 
     # Skip background workers during testing
     if should_start_threads and not app.config.get('TESTING'):
-        print("[STARTUP] Starting background update check thread...")
-        update_thread = threading.Thread(target=check_for_updates, args=(app,))
-        update_thread.daemon = True
-        update_thread.start()
+        start_update_check(app)
 
         print("[STARTUP] Starting background weather worker thread...")
         weather_thread = threading.Thread(target=weather_cache_worker, args=(app,))

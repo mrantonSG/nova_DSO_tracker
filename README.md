@@ -377,6 +377,16 @@ AI_ALLOWED_USERS=all
 
 In multi-user mode, set `AI_ALLOWED_USERS` to specific usernames to restrict access. Leave `AI_API_KEY` or `AI_ALLOWED_USERS` empty to hide all AI UI completely.
 
+### Update Check (Optional)
+
+Once a day, Nova asks GitHub for the latest release and shows a "Latest version" link next to the version number in the header when a newer one exists. To turn this off (no request to GitHub, no notice), add to your `instance/.env`:
+
+```bash
+NOVA_DISABLE_UPDATE_CHECK=1
+```
+
+With Docker, you can pass it to the container instead: `docker run -e NOVA_DISABLE_UPDATE_CHECK=1 ...`. Only the exact value `1` turns the check off; leave it unset to keep the default behavior. Restart Nova after changing it.
+
 ### User Modes
 
 Nova supports two modes, configured in `instance/.env`:

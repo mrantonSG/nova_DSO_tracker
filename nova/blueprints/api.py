@@ -34,6 +34,7 @@ from nova.config import (
     weather_cache, upper_wind_cache, CACHE_DIR, DEFAULT_HTTP_TIMEOUT,
     SCAN_FRAME_MAX_FOV_DEG,
 )
+from nova.workers.updates import update_check_disabled
 
 
 def _nearest_sg_alt(az, sg_data):
@@ -189,6 +190,9 @@ def telemetry_ping():
 @api_bp.route('/api/latest_version')
 def get_latest_version():
     """An API endpoint for the frontend to check for updates."""
+    # Same shape as "no update available", so base.js shows nothing.
+    if update_check_disabled():
+        return jsonify({})
     return jsonify(LATEST_VERSION_INFO)
 
 
