@@ -1190,13 +1190,29 @@
     }
 
     /**
-     * Build the "Now" line annotation for current time
+     * The themed chip behind a vertical-line label: text colour, background and border
+     * for the current theme. updateChartForTheme() repaints the same three values.
+     * @returns {{color: string, backgroundColor: string, borderColor: string}}
+     */
+    function _annotationLabelChip() {
+        const dark = !!(window.stylingUtils && window.stylingUtils.isDarkTheme && window.stylingUtils.isDarkTheme());
+        return dark
+            ? { color: '#e0e0e0', backgroundColor: 'rgba(40,40,40,0.92)', borderColor: 'rgba(100,100,100,0.5)' }
+            : { color: '#222', backgroundColor: 'rgba(255,255,255,0.92)', borderColor: 'rgba(0,0,0,0.15)' };
+    }
+
+    /**
+     * Build the "Now" line annotation for current time. Its label sits where the
+     * sun-event and transit labels do ('start'); the annotation draws above them
+     * (z: 1), so when the lines are close the Now label is never covered.
      * @param {number} nowMs - Current time in milliseconds
      * @returns {Object} - Chart.js annotation configuration
      */
     function _buildCurrentTimeAnnotation(nowMs) {
+        const chip = _annotationLabelChip();
         return {
             type: 'line',
+            z: 1,
             borderColor: 'rgba(255, 99, 132, 0.8)',
             borderWidth: 3,
             borderDash: [10, 3],
@@ -1207,7 +1223,9 @@
                 rotation: 90,
                 font: { size: 10, weight: 'bold' },
                 color: 'rgba(255, 99, 132, 1)',
-                backgroundColor: 'rgba(255, 255, 255, 0.7)'
+                backgroundColor: chip.backgroundColor,
+                borderColor: chip.borderColor,
+                borderWidth: 1
             },
             xMin: nowMs,
             xMax: nowMs,
@@ -1243,14 +1261,15 @@
         const sunriseTime = wallTimeMs(nextDt, sunEvents.next.sunrise);
         const sunsetTime = sunsetTimeCurrent;
 
+        const chip = _annotationLabelChip();
         const labelConfig = {
             display: true,
             position: 'start',
             rotation: 90,
             font: {size: 10, weight: '400'},
-            color: (window.stylingUtils && window.stylingUtils.isDarkTheme && window.stylingUtils.isDarkTheme()) ? '#e0e0e0' : '#222',
-            backgroundColor: (window.stylingUtils && window.stylingUtils.isDarkTheme && window.stylingUtils.isDarkTheme()) ? 'rgba(40,40,40,0.92)' : 'rgba(255,255,255,0.92)',
-            borderColor: (window.stylingUtils && window.stylingUtils.isDarkTheme && window.stylingUtils.isDarkTheme()) ? 'rgba(100,100,100,0.5)' : 'rgba(0,0,0,0.15)',
+            color: chip.color,
+            backgroundColor: chip.backgroundColor,
+            borderColor: chip.borderColor,
             borderWidth: 1
         };
 
@@ -1322,6 +1341,7 @@
         // Only draw if within dark window
         if (!inWindow(transitMs)) return annotations;
 
+        const chip = _annotationLabelChip();
         annotations.transitLine = {
             type: 'line',
             xMin: transitMs,
@@ -1337,7 +1357,9 @@
                 rotation: 90,
                 font: {size: 10, weight: 'bold'},
                 color: 'crimson',
-                backgroundColor: 'rgba(255,255,255,0.7)'
+                backgroundColor: chip.backgroundColor,
+                borderColor: chip.borderColor,
+                borderWidth: 1
             }
         };
 
@@ -4255,17 +4277,22 @@
         if (window.altitudeChart.options.plugins && window.altitudeChart.options.plugins.annotation) {
             const annotations = window.altitudeChart.options.plugins.annotation.annotations;
             if (annotations) {
-                // Only the sun-event lines are themed: they are the ones built from
-                // labelConfig. The Now and transit labels carry their own red/crimson
-                // colours on purpose, and repainting them makes the day chart's
-                // appearance depend on whether this pass runs before or after the
-                // chart is created.
+                // The sun-event labels are themed in full: they are the ones built from
+                // labelConfig. The Now and transit labels keep their own red/crimson
+                // text on purpose, and repainting it makes the day chart's appearance
+                // depend on whether this pass runs before or after the chart is
+                // created; only their chip (background and border) follows the theme.
                 const themedLabels = ['sunsetLine', 'duskLine', 'dawnLine', 'sunriseLine'];
+                const chipOnlyLabels = ['currentTimeLine', 'transitLine'];
                 Object.keys(annotations).forEach(key => {
-                    if (themedLabels.includes(key) && annotations[key].label) {
-                        annotations[key].label.color = annotationLabelColor;
-                        annotations[key].label.backgroundColor = annotationBgColor;
-                        annotations[key].label.borderColor = annotationBorderColor;
+                    const label = annotations[key].label;
+                    if (!label) return;
+                    if (themedLabels.includes(key)) {
+                        label.color = annotationLabelColor;
+                    }
+                    if (themedLabels.includes(key) || chipOnlyLabels.includes(key)) {
+                        label.backgroundColor = annotationBgColor;
+                        label.borderColor = annotationBorderColor;
                     }
                 });
             }
