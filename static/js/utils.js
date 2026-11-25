@@ -19,6 +19,24 @@ function formatDateISOtoEuropean(isoStr) {
   return `${day}.${month}.${year}`;
 }
 
+/**
+ * True when an image/resource URL points to another origin (catalog image,
+ * DSS2, Wikipedia). Same-origin URLs (uploads) and data:/blob: URLs are not
+ * external: they can load while the browser is offline, so callers should
+ * only treat "offline" as "unavailable" for external URLs.
+ * @param {string} url
+ * @returns {boolean}
+ */
+function isExternalUrl(url) {
+  if (!url) return false;
+  try {
+    const u = new URL(url, window.location.href);
+    return (u.protocol === 'http:' || u.protocol === 'https:') && u.origin !== window.location.origin;
+  } catch (e) {
+    return false;
+  }
+}
+
 function loadPlotly() {
   return new Promise(function(resolve, reject) {
     if (window.Plotly) { resolve(); return; }

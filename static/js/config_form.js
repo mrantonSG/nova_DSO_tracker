@@ -474,6 +474,16 @@
                             <td class="action-cell">${actionButton}</td>
                         </tr>`;
                     }).join('');
+                    // Failed thumbnail → same placeholder icon as Config → Objects
+                    const placeholderTpl = document.getElementById('image-placeholder-icon-tpl');
+                    objectsBody.querySelectorAll('img').forEach(img => {
+                        img.addEventListener('error', () => {
+                            const ph = document.createElement('span');
+                            ph.className = 'obj-thumb-placeholder obj-thumb-placeholder-sm';
+                            if (placeholderTpl) ph.appendChild(placeholderTpl.content.cloneNode(true));
+                            img.replaceWith(ph);
+                        }, { once: true });
+                    });
                 } else {
                     objectsBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px; color: ' + ((window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-secondary', '#555') : '#555') + ';">No shared objects found from other users.</td></tr>';
                 }

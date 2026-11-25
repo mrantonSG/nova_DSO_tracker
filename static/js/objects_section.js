@@ -536,7 +536,23 @@
     let objectImageLightboxController = null;
     function openObjectImageLightbox(src) {
         const img = document.getElementById('object-image-lightbox-img');
-        if (img) img.src = src;
+        const unavailable = document.getElementById('object-image-lightbox-unavailable');
+        if (img) {
+            const showUnavailable = () => {
+                img.style.display = 'none';
+                if (unavailable) unavailable.hidden = false;
+            };
+            img.style.display = '';
+            if (unavailable) unavailable.hidden = true;
+            img.onerror = showUnavailable;
+            if (!navigator.onLine && isExternalUrl(src)) {
+                // Offline and the image lives on another server
+                img.removeAttribute('src');
+                showUnavailable();
+            } else {
+                img.src = src;
+            }
+        }
         if (!objectImageLightboxController) {
             objectImageLightboxController = new window.novaState.fn.ModalController('object-image-lightbox', {
                 visibleClass: 'is-visible',

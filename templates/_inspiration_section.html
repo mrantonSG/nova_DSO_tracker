@@ -826,12 +826,10 @@
 
                 // 5. Update UI
                 const setOfflineState = () => {
-                    tile.querySelector('.tile-image').classList.remove('skeleton-pulse');
-                    tile.querySelector('.tile-image').innerHTML = `
-                        <div class="offline-message" style="height:100%; min-height:0; border:none; background:var(--bg-light); border-radius:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0;">
-                            <div style="font-size:24px; opacity:0.3; margin-bottom:5px; filter: grayscale(1);">📡</div>
-                            <div style="font-size:12px; color:var(--text-muted-alt);">Offline</div>
-                        </div>`;
+                    const imageBox = tile.querySelector('.tile-image');
+                    imageBox.classList.remove('skeleton-pulse');
+                    badgeEl.style.display = 'none';
+                    showImageUnavailable(imageBox, imgEl);
                 };
 
                 imgEl.onload = () => {
@@ -844,8 +842,8 @@
                     setOfflineState();
                 };
 
-                if (!navigator.onLine) {
-                    // Browser is strictly offline
+                if (finalImg && !navigator.onLine && isExternalUrl(finalImg)) {
+                    // Offline and the image lives on another server
                     setOfflineState();
                 } else if (finalImg) {
                     imgEl.src = finalImg;
@@ -892,6 +890,35 @@
         });
     }
 
+    // Shared "Image unavailable" placeholder: dashboard tiles, the inspiration
+    // modal and the Object Info tab (graph view) all use this, so they match.
+    function showImageUnavailable(container, imgEl) {
+        if (imgEl) imgEl.style.display = 'none';
+        if (container.querySelector('.offline-message')) return;
+        const offlineDiv = document.createElement('div');
+        offlineDiv.className = 'offline-message';
+        offlineDiv.style.cssText = "height:100%; min-height:0; border:none; background:var(--code-bg); display:flex; flex-direction:column; align-items:center; justify-content:center; width: 100%;";
+        offlineDiv.innerHTML = '<div style="font-size:40px; opacity:0.3; margin-bottom:10px; filter: grayscale(1);">📡</div><div style="color:var(--text-quaternary);">' + inspirationI18n.imageUnavailable + '</div>';
+        container.appendChild(offlineDiv);
+    }
+
+    // Object Info tab (graph view): placeholder when the image fails, or when
+    // offline and the image is external. Waits for DOMContentLoaded because
+    // isExternalUrl comes from the deferred utils.js; an image that already
+    // failed by then is caught by the complete/naturalWidth check.
+    document.addEventListener('DOMContentLoaded', function initObjectInfoImage() {
+        const wrapper = document.querySelector('.insp-detail-image-wrapper');
+        const imgEl = wrapper && wrapper.querySelector('img');
+        if (!imgEl) return;
+        const fail = () => {
+            wrapper.classList.add('is-unavailable');
+            showImageUnavailable(wrapper, imgEl);
+        };
+        const offlineExternal = !navigator.onLine && isExternalUrl(imgEl.getAttribute('src'));
+        if (offlineExternal || (imgEl.complete && imgEl.naturalWidth === 0)) fail();
+        else imgEl.addEventListener('error', fail);
+    });
+
     function openInspirationModal(obj, imgSrc, summary, source, wikiUrl) {
         const imgEl = document.getElementById('modal-img');
         const imgContainer = document.querySelector('.insp-modal-image');
@@ -904,18 +931,8 @@
             // Continue with rest of function
         }
 
-        // Helper to show offline/error state inside the modal
-        const showOfflinePlaceholder = () => {
-            imgEl.style.display = 'none';
-            // Only append if not already there
-            if (!imgContainer.querySelector('.offline-message')) {
-                const offlineDiv = document.createElement('div');
-                offlineDiv.className = 'offline-message';
-                offlineDiv.style.cssText = "height:100%; min-height:0; border:none; background:var(--code-bg); display:flex; flex-direction:column; align-items:center; justify-content:center; width: 100%;";
-                offlineDiv.innerHTML = '<div style="font-size:40px; opacity:0.3; margin-bottom:10px; filter: grayscale(1);">📡</div><div style="color:var(--text-quaternary);">' + inspirationI18n.imageUnavailable + '</div>';
-                imgContainer.appendChild(offlineDiv);
-            }
-        };
+        // Offline/error state inside the modal (shared helper)
+        const showOfflinePlaceholder = () => showImageUnavailable(imgContainer, imgEl);
 
         // 1. Reset State (Remove old placeholders, show image tag)
         const existingMsg = imgContainer.querySelector('.offline-message');
@@ -923,8 +940,8 @@
         imgEl.style.display = 'block';
 
         // 2. Handle Image Logic
-        if (!navigator.onLine && imgSrc) {
-            // Offline Mode
+        if (imgSrc && !navigator.onLine && isExternalUrl(imgSrc)) {
+            // Offline and the image lives on another server
             showOfflinePlaceholder();
         } else {
             // Online Mode (or attempting to load)

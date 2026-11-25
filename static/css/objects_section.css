@@ -460,6 +460,33 @@
         left: 50%;
         transform: translate(-50%, -50%);
     }
+    /* Shared-objects table: 34px placeholder in place of a failed thumbnail */
+    .obj-thumb-placeholder-sm {
+        display: inline-flex;
+        width: 34px;
+        height: 34px;
+        vertical-align: middle;
+        border: 1px solid var(--border-color);
+        border-radius: 3px;
+        background: var(--bg-light-alt);
+    }
+    /* Lightbox: image could not load */
+    .obj-image-lightbox-unavailable {
+        width: 320px;
+        max-width: 90vw;
+        height: 220px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        background: var(--bg-secondary);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-modal);
+        color: var(--text-faint);
+        font-size: 13px;
+    }
+    .obj-image-lightbox-unavailable[hidden] { display: none; }
     .obj-image-lightbox-content img {
         display: block;
         max-width: 90vw;

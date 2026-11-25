@@ -779,6 +779,14 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     border-radius: var(--radius-md);
     pointer-events: none;
 }
+/* Image unavailable (offline / load error): same 300px box as the inspiration
+   modal, and the credit badge goes with the image. */
+.insp-detail-image-wrapper.is-unavailable {
+    height: 300px;
+}
+.insp-detail-image-wrapper.is-unavailable .insp-detail-badge {
+    display: none;
+}
 .insp-detail-text {
     background: var(--bg-white);
     padding: var(--space-5);
