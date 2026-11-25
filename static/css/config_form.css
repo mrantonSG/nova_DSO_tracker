@@ -7,7 +7,7 @@
     body {
       padding: var(--space-5);
       margin: 0;
-      font-family: 'DM Sans', 'Roboto', sans-serif;
+      font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
       background-color: var(--gray-50);
       color: var(--text-primary);
     }
@@ -31,7 +31,7 @@
       font-size: var(--font-size-sm);
       padding: var(--space-1);  /* Compact: 4px (smaller than standard --input-padding-y) */
       box-sizing: border-box;
-      font-family: 'DM Sans', 'Roboto', sans-serif;
+      font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
     }
 
     /* =================================================================

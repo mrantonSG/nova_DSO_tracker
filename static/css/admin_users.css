@@ -6,7 +6,7 @@
 body {
   padding: var(--space-5);
   margin: 0;
-  font-family: 'DM Sans', 'Roboto', sans-serif;
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
   background-color: var(--gray-50);
   color: var(--text-primary);
 }

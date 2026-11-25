@@ -15,22 +15,6 @@
     border: 0;
 }
 
-@font-face {
-  font-family: 'Roboto';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('../fonts/roboto-v49-latin-regular.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Roboto';
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url('../fonts/roboto-v49-latin-700.woff2') format('woff2');
-}
-
 /* ===================================================================
    CSS CUSTOM PROPERTIES (Variables)
    ================================================================ */
@@ -1195,10 +1179,8 @@
         box-shadow: inset 0 0 0 1000px var(--bg-light-alt) !important;
     }
 
-    /* Typography - DM Sans with Roboto fallback, plus CJK support */
-    /* CJK fonts (Noto Sans JP/SC) are placed after Latin fonts - browsers automatically
-       use them when encountering Japanese/Chinese characters */
-    * { font-family: 'DM Sans', 'Roboto', 'Noto Sans JP', 'Noto Sans SC', sans-serif !important; }
+    /* Typography - DM Sans; CJK text falls through to the OS font */
+    * { font-family: 'DM Sans', system-ui, -apple-system, sans-serif !important; }
 
     /* Nova Brand - Teal Headers */
     .section-title { color: var(--primary-color) !important; }

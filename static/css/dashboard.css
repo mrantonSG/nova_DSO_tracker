@@ -1,5 +1,5 @@
     body {
-        font-family: 'DM Sans', 'Roboto', sans-serif;
+        font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
         padding: var(--space-5);
         margin: 0;
         background-color: var(--gray-50);
@@ -280,7 +280,7 @@
       box-sizing: border-box;
       padding: var(--space-1);  /* Compact: 4px */
       font-size: var(--font-size-2xs);
-      font-family: 'DM Sans', 'Roboto', sans-serif;
+      font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
       margin-top: 2px;
       margin-bottom: 2px;
       border: var(--input-border-width) solid var(--input-border-color);
@@ -294,7 +294,7 @@
       box-sizing: border-box;
       padding: var(--space-1);
       font-size: 11px !important;
-      font-family: 'DM Sans', 'Roboto', sans-serif;
+      font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
       margin-top: 2px;
       margin-bottom: 2px;
       border: 1px solid var(--border-color);
@@ -308,7 +308,7 @@
         font-size: 12px;
         padding: 3px 28px 3px 10px;
         box-sizing: border-box;
-        font-family: 'DM Sans', 'Roboto', sans-serif;
+        font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
         line-height: 1.2;
 
         /* Appearance from screenshot */
@@ -565,7 +565,7 @@
         border: 1px solid var(--border-medium-alt);
         border-radius: var(--radius-md);
         padding: var(--space-1) var(--space-2);
-        font-family: 'DM Sans', 'Roboto', sans-serif;
+        font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
         font-size: var(--font-size-md); /* Larger font */
         height: 34px;    /* Larger height */
         font-weight: var(--font-weight-bold);

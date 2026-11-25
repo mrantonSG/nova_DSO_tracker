@@ -27,6 +27,19 @@ const [swFile, inFile, outFile] = process.argv.slice(2);
 const cases = JSON.parse(fs.readFileSync(inFile, 'utf8'));
 
 const listeners = {};
+// One cache for the whole run, keyed by the string the worker passes, so a later
+// case sees what an earlier case stored. /m is always there, as after install.
+const store = new Map();
+const lookup = async (key) => {
+    if (key === '/m') return new Response('cached /m', { status: 200 });
+    const hit = store.get(String(key));
+    return hit ? hit.clone() : undefined;
+};
+const cache = {
+    addAll: async () => {},
+    put: async (key, res) => { store.set(String(key), res.clone()); },
+    match: lookup,
+};
 const ctx = {
     console, URL, Response, Promise,
     self: {
@@ -36,9 +49,9 @@ const ctx = {
         clients: { claim: () => {} },
     },
     caches: {
-        open: async () => ({ addAll: async () => {} }),
+        open: async () => cache,
         keys: async () => [],
-        match: async (url) => (url === '/m' ? new Response('cached /m', { status: 200 }) : undefined),
+        match: lookup,
     },
 };
 let networkUp = true;
@@ -54,10 +67,26 @@ vm.runInContext(fs.readFileSync(swFile, 'utf8'), ctx, { filename: swFile });
     for (const c of cases.requests) {
         networkUp = c.networkUp;
         let answer = null;
+        const pending = [];
         const request = { method: c.method, url: c.url, mode: c.mode || 'cors' };
-        listeners.fetch({ request, respondWith: (p) => { answer = p; } });
+        listeners.fetch({
+            request,
+            respondWith: (p) => { answer = p; },
+            waitUntil: (p) => { pending.push(p); },
+        });
         if (answer === null) { results.push({ responded: false }); continue; }
-        const res = await answer;
+        let res;
+        try {
+            res = await answer;
+        } catch (e) {
+            res = null;  // the page sees a network error
+        }
+        // Let cache writes finish before the next case reads the cache.
+        await Promise.all(pending);
+        if (res === null || res.type === 'error') {
+            results.push({ responded: true, networkError: true });
+            continue;
+        }
         results.push({ responded: true, status: res.status, body: await res.text() });
     }
     fs.writeFileSync(outFile, JSON.stringify(results));
@@ -123,3 +152,43 @@ def test_hips_tiles_pass_through(run_sw):
         {"method": "GET", "url": ORIGIN + "/hips/dss2-color/Norder3/Dir0/Npix0.jpg", "networkUp": False},
     ])
     assert results == [{"responded": False}, {"responded": False}]
+
+
+def test_mobile_css_offline_gets_the_cached_copy_whatever_the_version(run_sw):
+    """Network first; the copy is stored without its ?v= query, so offline a page
+    asking for a newer ?v= still gets the last good stylesheet."""
+    results = run_sw([
+        {"method": "GET", "url": ORIGIN + "/static/css/mobile.css?v=1", "networkUp": True},
+        {"method": "GET", "url": ORIGIN + "/static/css/mobile.css?v=2", "networkUp": False},
+    ])
+    online = {"responded": True, "status": 200, "body": "network " + ORIGIN + "/static/css/mobile.css?v=1"}
+    assert results == [online, online]
+
+
+def test_cached_font_is_served_without_the_network(run_sw):
+    """Cache-first: once stored, a font comes from the cache even with the network down."""
+    font = ORIGIN + "/static/fonts/dm-sans-latin-400-normal.woff2"
+    results = run_sw([
+        {"method": "GET", "url": font, "networkUp": True},
+        {"method": "GET", "url": font, "networkUp": False},
+    ])
+    stored = {"responded": True, "status": 200, "body": "network " + font}
+    assert results == [stored, stored]
+
+
+def test_uncached_font_offline_is_a_network_error(run_sw):
+    """No copy and no network: a network error the browser falls back from, never a 503."""
+    results = run_sw([
+        {"method": "GET", "url": ORIGIN + "/static/fonts/dm-mono-latin-ext-500-normal.woff2", "networkUp": False},
+    ])
+    assert results == [{"responded": True, "networkError": True}]
+
+
+def test_cross_origin_fonts_and_css_are_not_answered(run_sw):
+    """The font and CSS branches match same-origin paths only; a CDN font or
+    stylesheet at the same path goes straight to the browser."""
+    results = run_sw([
+        {"method": "GET", "url": "https://cdn.example.org/static/fonts/dm-sans-latin-400-normal.woff2", "networkUp": True},
+        {"method": "GET", "url": "https://cdn.example.org/static/css/mobile.css?v=1", "networkUp": False},
+    ])
+    assert results == [{"responded": False}] * 2

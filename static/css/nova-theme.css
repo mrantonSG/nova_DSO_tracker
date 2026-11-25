@@ -12,7 +12,7 @@
 
 :root {
   /* === FONT FAMILIES === */
-  --nova-font-sans: 'DM Sans', 'Roboto', system-ui, -apple-system, sans-serif;
+  --nova-font-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
   --nova-font-mono: 'DM Mono', 'Courier New', monospace;
 
   /* === TEXT COLORS (semantic aliases) === */
