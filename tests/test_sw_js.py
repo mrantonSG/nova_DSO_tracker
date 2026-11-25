@@ -165,6 +165,18 @@ def test_mobile_css_offline_gets_the_cached_copy_whatever_the_version(run_sw):
     assert results == [online, online]
 
 
+def test_trix_offline_gets_the_cached_copy_whatever_the_version(run_sw):
+    """The vendored Trix editor is network first like mobile.css; offline, a page
+    asking for a newer ?v= gets the last good copy, so the /m note editors work."""
+    results = run_sw([
+        {"method": "GET", "url": ORIGIN + "/static/vendor/trix/trix.umd.min.js?v=1", "networkUp": True},
+        {"method": "GET", "url": ORIGIN + "/static/vendor/trix/trix.umd.min.js?v=2", "networkUp": False},
+    ])
+    online = {"responded": True, "status": 200,
+              "body": "network " + ORIGIN + "/static/vendor/trix/trix.umd.min.js?v=1"}
+    assert results == [online, online]
+
+
 def test_cached_font_is_served_without_the_network(run_sw):
     """Cache-first: once stored, a font comes from the cache even with the network down."""
     font = ORIGIN + "/static/fonts/dm-sans-latin-400-normal.woff2"

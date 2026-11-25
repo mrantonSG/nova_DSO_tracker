@@ -1,8 +1,9 @@
 // Nova DSO Tracker - Minimal Service Worker
-// Network-first for real-time data; fonts cache-first; mobile CSS network-first
-// with a cached copy so /m keeps its styling and fonts offline.
+// Network-first for real-time data; fonts cache-first; mobile CSS and the Trix
+// editor network-first with a cached copy, so /m keeps its styling, fonts and
+// note editor offline.
 
-const CACHE_NAME = 'nova-mobile-v2';
+const CACHE_NAME = 'nova-mobile-v3';
 
 // App shell URLs to cache on install. Pages ask for CSS with a ?v=<version>
 // query; cacheKey() drops the query, so these plain paths are what gets matched.
@@ -15,6 +16,8 @@ const APP_SHELL = [
     '/static/css/mobile.css',
     '/static/css/fonts.css',
     '/static/manifest.json',
+    '/static/vendor/trix/trix.css',
+    '/static/vendor/trix/trix.umd.min.js',
     '/static/fonts/dm-sans-latin-400-normal.woff2',
     '/static/fonts/dm-sans-latin-400-italic.woff2',
     '/static/fonts/dm-sans-latin-500-normal.woff2',
@@ -31,11 +34,13 @@ const APP_SHELL = [
     '/static/fonts/dm-mono-latin-ext-500-normal.woff2'
 ];
 
-// Stylesheets fetched network-first, so a new release's CSS lands when online,
-// with the last good copy served when offline.
-const NETWORK_FIRST_CSS = new Set([
+// Files fetched network-first, so a new release's copy lands when online, with
+// the last good copy served when offline.
+const NETWORK_FIRST_ASSETS = new Set([
     '/static/css/mobile.css',
-    '/static/css/fonts.css'
+    '/static/css/fonts.css',
+    '/static/vendor/trix/trix.css',
+    '/static/vendor/trix/trix.umd.min.js'
 ]);
 
 // One cache entry per path: ignore the ?v= cache-buster, so the entry matches
@@ -109,9 +114,9 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // mobile.css / fonts.css: network-first, refresh the cached copy on success,
-    // serve the cached copy when offline.
-    if (NETWORK_FIRST_CSS.has(url.pathname)) {
+    // mobile.css / fonts.css / Trix: network-first, refresh the cached copy on
+    // success, serve the cached copy when offline.
+    if (NETWORK_FIRST_ASSETS.has(url.pathname)) {
         const key = cacheKey(url);
         event.respondWith(
             fetch(event.request)
