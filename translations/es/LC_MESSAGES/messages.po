@@ -8741,6 +8741,14 @@ msgstr ""
 "¿Enviar la copia del archivo de este ordenador al servidor en la próxima "
 "sincronización? Pasará a ser el archivo del registro en todas partes."
 
+#: templates/graph_view.html:38
+msgid "No internet connection — switched to Offline view."
+msgstr "Sin conexión a Internet — se cambió a Vista sin conexión."
+
+#: templates/graph_view.html:39
+msgid "Internet connection is back — Offline view switched off."
+msgstr "La conexión a Internet ha vuelto — Vista sin conexión desactivada."
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Actualizar sugerencias"
 

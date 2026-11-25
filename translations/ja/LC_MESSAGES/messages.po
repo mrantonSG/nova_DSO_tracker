@@ -8372,6 +8372,14 @@ msgid ""
 "It becomes the record's file everywhere."
 msgstr "次回の同期で、この PC にあるファイルのコピーをサーバーに送信しますか？そのコピーがすべての場所でこのレコードのファイルになります。"
 
+#: templates/graph_view.html:38
+msgid "No internet connection — switched to Offline view."
+msgstr "インターネットに接続されていません — オフラインビューに切り替えました。"
+
+#: templates/graph_view.html:39
+msgid "Internet connection is back — Offline view switched off."
+msgstr "インターネット接続が復旧しました — オフラインビューをオフにしました。"
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "更新提案"
 

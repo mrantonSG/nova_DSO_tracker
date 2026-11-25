@@ -8350,6 +8350,14 @@ msgid ""
 "It becomes the record's file everywhere."
 msgstr "在下次同步时将这台电脑上的文件副本发送到服务器？它将成为该记录在所有位置的文件。"
 
+#: templates/graph_view.html:38
+msgid "No internet connection — switched to Offline view."
+msgstr "无网络连接 — 已切换到离线视图。"
+
+#: templates/graph_view.html:39
+msgid "Internet connection is back — Offline view switched off."
+msgstr "网络连接已恢复 — 已关闭离线视图。"
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "刷新建议"
 

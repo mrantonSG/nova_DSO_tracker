@@ -102,8 +102,9 @@
     // Offline view: when on, every /hips/ request from this modal goes to the
     // cache-only /hips/offline/ routes (never upstream). Auto-on only when the
     // browser reports it is offline; a survey that fails to load is not a
-    // connectivity fact and must not switch it. The user's own toggle is
-    // remembered and restored when connectivity returns.
+    // connectivity fact and must not switch it. Once the user touches the
+    // switch, automatic switching stops for this page session (not saved
+    // across reloads).
     let offlineViewOn = false;
     let offlineViewUserSetting = null;
 
@@ -4365,13 +4366,44 @@
     function offlineUiEnabled() { return !!window.NOVA_OFFLINE_SKY_UI; }
     function offlineBaseId() { return document.getElementById('survey-select')?.value || 'P/DSS2/color'; }
 
+    // Returns true when the view actually changed; an unchanged state rebuilds
+    // nothing (the checkbox and the user's choice are still recorded).
     function setOfflineView(on, fromUser) {
-        offlineViewOn = !!on;
-        if (fromUser) offlineViewUserSetting = offlineViewOn;
+        const next = !!on;
+        if (fromUser) offlineViewUserSetting = next;
         const t = document.getElementById('offline-view-toggle');
-        if (t) t.checked = offlineViewOn;
+        if (t) t.checked = next;
+        if (next === offlineViewOn) return false;
+        offlineViewOn = next;
         applyOfflineViewToLayers();
         updateScanButtonState();
+        return true;
+    }
+
+    // The automatic switch (page opened offline, the 'offline' and 'online'
+    // events). It acts only while the user has not touched the switch in this
+    // page session. With `note`, it puts up a note when it actually changed the
+    // view (the events do; a page opened offline switches silently).
+    function autoOfflineView(on, note) {
+        if (offlineViewUserSetting !== null) return;
+        if (!setOfflineView(on, false) || !note) return;
+        offlineViewToast(window.t(on ? 'offline_view_auto_on' : 'offline_view_auto_off'),
+                         on ? 'warning' : 'success');
+    }
+
+    // Same toast as the page's flash stack (base.js dismisses it on the countdown).
+    function offlineViewToast(message, kind) {
+        const stack = document.getElementById('flash-message-container');
+        if (!stack) return;
+        const toast = document.createElement('div');
+        toast.className = 'flash-message nova-toast nova-toast--' + kind;
+        toast.innerHTML =
+            '<span class="nova-toast-text"></span>' +
+            '<button type="button" class="nova-toast-close">&#215;</button>' +
+            '<span class="nova-toast-bar" aria-hidden="true"></span>';
+        toast.querySelector('.nova-toast-text').textContent = message;
+        toast.querySelector('.nova-toast-close').setAttribute('aria-label', window.t('close'));
+        stack.appendChild(toast);
     }
 
     // Both layers are rebuilt on the new root, whatever they show now: no
@@ -4422,7 +4454,7 @@
         // 'offline' event: start in Offline view (once; the events take over).
         if (!offlineStartChecked) {
             offlineStartChecked = true;
-            if (navigator.onLine === false && !offlineViewOn) setOfflineView(true, false);
+            if (navigator.onLine === false) autoOfflineView(true, false);
         }
 
         const toggle = document.getElementById('offline-view-toggle');
@@ -4431,12 +4463,12 @@
             toggle.addEventListener('change', () => setOfflineView(toggle.checked, true));
         }
 
-        // Auto-on when the browser drops offline; restore the user's own setting
-        // when connectivity returns.
+        // Auto-on when the browser drops offline, auto-off when it is back --
+        // both only until the user has made their own choice.
         if (!window.__novaOfflineListeners) {
             window.__novaOfflineListeners = true;
-            window.addEventListener('offline', () => setOfflineView(true, false));
-            window.addEventListener('online', () => setOfflineView(offlineViewUserSetting === true, false));
+            window.addEventListener('offline', () => autoOfflineView(true, true));
+            window.addEventListener('online', () => autoOfflineView(false, true));
         }
     }
 

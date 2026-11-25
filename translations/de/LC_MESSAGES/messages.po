@@ -8781,6 +8781,15 @@ msgstr ""
 " an den Server senden? Sie wird dann überall zur Datei dieses "
 "Datensatzes."
 
+#: templates/graph_view.html:38
+msgid "No internet connection — switched to Offline view."
+msgstr "Keine Internetverbindung – zur Offline-Ansicht gewechselt."
+
+#: templates/graph_view.html:39
+msgid "Internet connection is back — Offline view switched off."
+msgstr ""
+"Internetverbindung wiederhergestellt – Offline-Ansicht ausgeschaltet."
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Vorschläge aktualisieren"
 

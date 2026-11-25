@@ -8790,6 +8790,14 @@ msgstr ""
 "prochaine synchronisation ? Elle deviendra le fichier de l'enregistrement"
 " partout."
 
+#: templates/graph_view.html:38
+msgid "No internet connection — switched to Offline view."
+msgstr "Aucune connexion Internet — passage en Vue hors ligne."
+
+#: templates/graph_view.html:39
+msgid "Internet connection is back — Offline view switched off."
+msgstr "Connexion Internet rétablie — Vue hors ligne désactivée."
+
 #~ msgid "Refresh Suggestions"
 #~ msgstr "Suggestions de rafraîchissement"
 

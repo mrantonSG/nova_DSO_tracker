@@ -8335,3 +8335,10 @@ msgid ""
 "It becomes the record's file everywhere."
 msgstr ""
 
+#: templates/graph_view.html:38
+msgid "No internet connection — switched to Offline view."
+msgstr ""
+
+#: templates/graph_view.html:39
+msgid "Internet connection is back — Offline view switched off."
+msgstr ""
