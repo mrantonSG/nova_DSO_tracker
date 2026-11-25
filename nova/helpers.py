@@ -2444,6 +2444,9 @@ def _read_yaml(path: str) -> tuple[dict | None, str | None]:
         print(f"[MIGRATION] {error_msg}")
         return (None, error_msg)
 
+CATALOG_MANIFEST_TIMEOUT = 2  # seconds; the manifest list only, not pack downloads
+
+
 def discover_catalog_packs() -> list[dict]:
     """Scan the central web repository for catalog packs."""
     global CATALOG_MANIFEST_CACHE
@@ -2471,8 +2474,10 @@ def discover_catalog_packs() -> list[dict]:
     try:
         # 3. Fetch new manifest
         print(f"[CATALOG DISCOVER] Fetching new manifest from {manifest_url}")
-        # Timeout reduced to 2.0s to prevent page load blocking if catalog server is slow/unreachable
-        r = requests.get(manifest_url, timeout=DEFAULT_HTTP_TIMEOUT)
+        # Short timeout: /config_form waits on this, so a slow or unreachable
+        # catalog server must not hold the page. Pack downloads
+        # (migration.load_catalog_pack) keep their own longer timeout.
+        r = requests.get(manifest_url, timeout=CATALOG_MANIFEST_TIMEOUT)
         r.raise_for_status()  # Raise error for bad status (404, 500)
         packs = r.json()
 

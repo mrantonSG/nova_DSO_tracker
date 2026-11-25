@@ -55,8 +55,8 @@ def get_ai_response(prompt: str, system: str = None, stream: bool = False, max_t
         return _call_openai(api_key, model, base_url, prompt, system, max_tokens, timeout)
     elif provider == "ollama":
         if stream:
-            return _stream_ollama(base_url, model, prompt, system)
-        return _call_ollama(base_url, model, prompt, system)
+            return _stream_ollama(base_url, model, prompt, system, timeout)
+        return _call_ollama(base_url, model, prompt, system, timeout)
     else:
         raise AIServiceError(f"Unsupported AI provider: {provider}")
 
@@ -148,7 +148,25 @@ def _call_openai(api_key: str, model: str, base_url: str, prompt: str, system: s
         raise AIServiceError(str(e))
 
 
-def _call_ollama(base_url: str, model: str, prompt: str, system: str = None) -> str:
+# Floor for non-streaming Ollama calls. With "stream": False Ollama sends nothing
+# until the whole answer is generated, so the read timeout covers the entire
+# generation, and a local model can easily need more than the 120 s default.
+# Streaming calls keep the caller's timeout: there it applies per chunk.
+OLLAMA_MIN_BLOCKING_TIMEOUT = 300
+
+
+def _is_requests_timeout(e: Exception) -> bool:
+    """True for a requests timeout, including a read timeout mid-stream, which
+    requests re-raises from iter_content as ConnectionError(ReadTimeoutError)."""
+    if isinstance(e, requests.exceptions.Timeout):
+        return True
+    if isinstance(e, requests.exceptions.ConnectionError):
+        from urllib3.exceptions import ReadTimeoutError
+        return any(isinstance(a, ReadTimeoutError) for a in e.args)
+    return False
+
+
+def _call_ollama(base_url: str, model: str, prompt: str, system: str = None, timeout: int = 120) -> str:
     """Call the Ollama API."""
     if not base_url:
         raise AIServiceError("AI_BASE_URL is required for Ollama provider")
@@ -163,10 +181,13 @@ def _call_ollama(base_url: str, model: str, prompt: str, system: str = None) -> 
         if system is not None:
             payload["system"] = system
 
-        response = requests.post(url, json=payload)
+        # max(): see OLLAMA_MIN_BLOCKING_TIMEOUT; this call blocks for the full answer.
+        response = requests.post(url, json=payload, timeout=max(timeout, OLLAMA_MIN_BLOCKING_TIMEOUT))
         response.raise_for_status()
         return response.json()["response"]
     except Exception as e:
+        if _is_requests_timeout(e):
+            raise AIServiceError("Request timed out.")
         raise AIServiceError(str(e))
 
 
@@ -225,7 +246,7 @@ def _stream_openai(api_key: str, model: str, base_url: str, prompt: str, system:
         raise AIServiceError(str(e))
 
 
-def _stream_ollama(base_url: str, model: str, prompt: str, system: str = None):
+def _stream_ollama(base_url: str, model: str, prompt: str, system: str = None, timeout: int = 120):
     """Stream response from the Ollama API, yielding text chunks."""
     if not base_url:
         raise AIServiceError("AI_BASE_URL is required for Ollama provider")
@@ -240,7 +261,8 @@ def _stream_ollama(base_url: str, model: str, prompt: str, system: str = None):
         if system is not None:
             payload["system"] = system
 
-        response = requests.post(url, json=payload, stream=True)
+        # Per-chunk timeout here, so the caller's value is used as-is.
+        response = requests.post(url, json=payload, stream=True, timeout=timeout)
         response.raise_for_status()
 
         for line in response.iter_lines():
@@ -250,4 +272,6 @@ def _stream_ollama(base_url: str, model: str, prompt: str, system: str = None):
                 if "response" in chunk:
                     yield chunk["response"]
     except Exception as e:
+        if _is_requests_timeout(e):
+            raise AIServiceError("Request timed out.")
         raise AIServiceError(str(e))
