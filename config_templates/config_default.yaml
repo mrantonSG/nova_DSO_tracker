@@ -39,13 +39,13 @@ locations:
 objects:
 - Object: ABELL21
   Common Name: Medusa Nebula
-  RA (hours): 0.34409600000000007
-  DEC (degrees): 28.694579999999995
-  Type: ClG
-  Constellation: And
-  Magnitude: '20.82'
-  Size: '18.94'
-  SB: '26.94'
+  RA (hours): 7.484086018172001
+  DEC (degrees): 13.24682987644
+  Type: PN
+  Constellation: Gem
+  Magnitude: '15.99'
+  Size: '10.25'
+  SB: '20.78'
   catalog_info: null
   image_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/0/06/Medusa_Nebula.png/960px-Medusa_Nebula.png?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail
   image_credit: Outten Astrophotography (CC BY-SA 4.0) via Wiki
