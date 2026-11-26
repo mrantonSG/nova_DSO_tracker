@@ -276,17 +276,22 @@ def get_object_list():
 
 @api_bp.route('/api/simbad_status')
 def api_simbad_status():
-    """Whether the SIMBAD tab may embed Strasbourg, asked when the tab opens.
+    """Which SIMBAD host the tab should embed, asked when the tab opens.
 
-    Answers from simbad_service's cache when it knows; otherwise probes
-    Strasbourg once. Same access rule as core.graph_dashboard(): guests
-    included. Mirrors are never probed - they refuse framing.
+    The first host in simbad_service.HOSTS that answers (cache, else probe).
+    "mirror" is true when it is not Strasbourg, so the tab can say so.
+    Same access rule as core.graph_dashboard(): guests included.
     """
     # --- Manual Auth Check for Guest Support (same as core.graph_dashboard()) ---
     if not (current_user.is_authenticated or nova.SINGLE_USER_MODE or getattr(g, 'is_guest', False)):
         return jsonify({"error": "Unauthorized"}), 401
 
-    return jsonify({"embed": simbad_service.strasbourg_embeddable()})
+    host = simbad_service.first_available_host()
+    return jsonify({
+        "embed": host is not None,
+        "host": host,
+        "mirror": host is not None and host != simbad_service.PRIMARY_HOST,
+    })
 
 
 @api_bp.route('/api/journal/objects')

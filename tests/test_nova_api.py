@@ -1360,9 +1360,9 @@ def test_scan_frame_both_queries_empty_is_an_empty_success(
     assert body['count'] == 0
 
 
-# --- /api/simbad_status: decides whether the SIMBAD tab embeds Strasbourg ---
+# --- /api/simbad_status: which SIMBAD host the tab embeds (first that answers) ---
 
-def test_simbad_status_embeds_when_strasbourg_probe_succeeds(client, monkeypatch):
+def test_simbad_status_embeds_strasbourg_when_its_probe_succeeds(client, monkeypatch):
     probed = []
     monkeypatch.setattr(simbad_service, '_probe',
                         lambda host: probed.append(host) or True)
@@ -1371,18 +1371,42 @@ def test_simbad_status_embeds_when_strasbourg_probe_succeeds(client, monkeypatch
     try:
         response = client.get('/api/simbad_status')
         assert response.status_code == 200
-        assert response.get_json() == {"embed": True}
+        assert response.get_json() == {"embed": True, "host": "simbad.cds.unistra.fr", "mirror": False}
         assert probed == ["simbad.cds.unistra.fr"]
 
         # The probe result is recorded: the next call answers from the cache.
-        assert client.get('/api/simbad_status').get_json() == {"embed": True}
+        assert client.get('/api/simbad_status').get_json()["host"] == "simbad.cds.unistra.fr"
         assert probed == ["simbad.cds.unistra.fr"]
     finally:
         simbad_service._health.clear()
         simbad_service._health.update(saved)
 
 
-def test_simbad_status_does_not_embed_when_strasbourg_probe_fails(client, monkeypatch):
+def test_simbad_status_falls_back_to_mirrors_in_order(client, monkeypatch):
+    probed = []
+    up = {"simbad.cds.unistra.fr": False, "simbad.cfa.harvard.edu": True, "simbad.idia.ac.za": True}
+    monkeypatch.setattr(simbad_service, '_probe',
+                        lambda host: probed.append(host) or up[host])
+    saved = dict(simbad_service._health)
+    simbad_service._health.clear()
+    try:
+        assert client.get('/api/simbad_status').get_json() == \
+            {"embed": True, "host": "simbad.cfa.harvard.edu", "mirror": True}
+        assert probed == ["simbad.cds.unistra.fr", "simbad.cfa.harvard.edu"]
+
+        # Harvard down too: IDIA.
+        simbad_service._health.clear()
+        probed.clear()
+        up["simbad.cfa.harvard.edu"] = False
+        assert client.get('/api/simbad_status').get_json() == \
+            {"embed": True, "host": "simbad.idia.ac.za", "mirror": True}
+        assert probed == ["simbad.cds.unistra.fr", "simbad.cfa.harvard.edu", "simbad.idia.ac.za"]
+    finally:
+        simbad_service._health.clear()
+        simbad_service._health.update(saved)
+
+
+def test_simbad_status_does_not_embed_when_every_probe_fails(client, monkeypatch):
     probed = []
     monkeypatch.setattr(simbad_service, '_probe',
                         lambda host: probed.append(host) or False)
@@ -1391,8 +1415,8 @@ def test_simbad_status_does_not_embed_when_strasbourg_probe_fails(client, monkey
     try:
         response = client.get('/api/simbad_status')
         assert response.status_code == 200
-        assert response.get_json() == {"embed": False}
-        assert probed == ["simbad.cds.unistra.fr"]
+        assert response.get_json() == {"embed": False, "host": None, "mirror": False}
+        assert probed == simbad_service.HOSTS
     finally:
         simbad_service._health.clear()
         simbad_service._health.update(saved)
@@ -1406,9 +1430,14 @@ def test_simbad_status_answers_from_cache_without_probing(client, monkeypatch):
     simbad_service._health.clear()
     try:
         simbad_service.mark_up("simbad.cds.unistra.fr")
-        assert client.get('/api/simbad_status').get_json() == {"embed": True}
+        assert client.get('/api/simbad_status').get_json()["host"] == "simbad.cds.unistra.fr"
         simbad_service.mark_down("simbad.cds.unistra.fr")
-        assert client.get('/api/simbad_status').get_json() == {"embed": False}
+        simbad_service.mark_up("simbad.cfa.harvard.edu")
+        assert client.get('/api/simbad_status').get_json() == \
+            {"embed": True, "host": "simbad.cfa.harvard.edu", "mirror": True}
+        for host in simbad_service.HOSTS:
+            simbad_service.mark_down(host)
+        assert client.get('/api/simbad_status').get_json()["embed"] is False
     finally:
         simbad_service._health.clear()
         simbad_service._health.update(saved)

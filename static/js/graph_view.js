@@ -542,22 +542,19 @@
         var iframe = document.getElementById('simbadIframe');
         if (!iframe) {
             // Fast path: the server already rendered the translated unavailable
-            // message because the cache knows a mirror is current, and mirrors
-            // refuse to be framed.
+            // message because the cache knows every SIMBAD host is down.
             simbadLoaded = true;
             return;
         }
 
         var container = document.getElementById('simbadContainer');
-        var simbadHost = (window.NOVA_GRAPH_DATA && window.NOVA_GRAPH_DATA.simbadHost)
-            || 'simbad.cds.unistra.fr';
 
         function showSimbadUnavailable() {
             container.innerHTML = '<div class="offline-message" style="min-height: 400px;">' + window.t('simbad_unavailable') + '</div>';
         }
 
-        // The tab is opened lazily, so ask the server whether Strasbourg can be
-        // embedded: it answers from its cache, or probes Strasbourg once.
+        // The tab is opened lazily, so ask the server which SIMBAD host to embed:
+        // the first of Strasbourg, Harvard, IDIA that answers (cache, else probe).
         simbadLoaded = true;
         container.innerHTML = '<div class="offline-message" style="min-height: 400px;">' + window.t('loading') + '</div>';
 
@@ -567,13 +564,14 @@
                 return response.json();
             })
             .then(function (data) {
-                if (!data || !data.embed) {
+                if (!data || !data.embed || !data.host) {
                     showSimbadUnavailable();
                     return;
                 }
+                var url = 'https://' + data.host + '/simbad/sim-basic?Ident=' + encodeURIComponent(objectName) + '&submit=SIMBAD+search';
                 container.innerHTML = '';
                 container.appendChild(iframe);
-                iframe.src = 'https://' + simbadHost + '/simbad/sim-basic?Ident=' + encodeURIComponent(objectName) + '&submit=SIMBAD+search';
+                iframe.src = url;
             })
             .catch(showSimbadUnavailable);
     }

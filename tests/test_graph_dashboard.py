@@ -104,54 +104,51 @@ def test_graph_dashboard_full_context(client, db_session):
     assert b'data-fovh="128.90039980471445"' in response_data
 
 
-# --- SIMBAD tab: embed only Strasbourg; a mirror or no host gets the message ---
+# --- SIMBAD tab: Strasbourg and mirrors embed; only "all down" gets the message ---
 
-def test_graph_dashboard_shows_simbad_unavailable_message_when_strasbourg_is_not_current(client):
+def test_graph_dashboard_shows_simbad_unavailable_message_when_all_hosts_down(client):
     from modules import simbad_service
     saved = dict(simbad_service._health)
     simbad_service._health.clear()
     try:
-        # A mirror is current: it refuses framing, so no iframe.
-        simbad_service.mark_down("simbad.cds.unistra.fr")
-        simbad_service.mark_up("simbad.harvard.edu")
+        for host in simbad_service.HOSTS:
+            simbad_service.mark_down(host)
         response = client.get('/graph_dashboard/M42')
         body = response.data
         assert response.status_code == 200
         assert b'id="simbadIframe"' not in body
         assert b'id="simbadUnavailable"' in body
         assert b'SIMBAD is currently unavailable. Please try again later.' in body
-
-        # Every host down: the same message.
-        simbad_service._health.clear()
-        for host in simbad_service.HOSTS:
-            simbad_service.mark_down(host)
-        body = client.get('/graph_dashboard/M42').data
-        assert b'id="simbadIframe"' not in body
-        assert b'id="simbadUnavailable"' in body
     finally:
         simbad_service._health.clear()
         simbad_service._health.update(saved)
 
 
-def test_graph_dashboard_shows_simbad_iframe_when_strasbourg_or_unknown(client):
+def test_graph_dashboard_shows_simbad_iframe_for_strasbourg_mirror_or_unknown(client):
+    """The iframe renders whenever some host may answer; /api/simbad_status picks it."""
     from modules import simbad_service
     saved = dict(simbad_service._health)
     simbad_service._health.clear()
     try:
-        # Nothing known yet: defaults to Strasbourg, which embeds.
+        # Nothing known yet.
         response = client.get('/graph_dashboard/M42')
-        body = response.data
         assert response.status_code == 200
-        assert b'id="simbadIframe"' in body
-        assert b'id="simbadUnavailable"' not in body
-        assert b'simbad.cds.unistra.fr' in body
+        assert b'id="simbadIframe"' in response.data
+        assert b'id="simbadUnavailable"' not in response.data
 
-        # Strasbourg known up: still the iframe, still Strasbourg.
+        # Strasbourg known up.
         simbad_service.mark_up("simbad.cds.unistra.fr")
         body = client.get('/graph_dashboard/M42').data
         assert b'id="simbadIframe"' in body
         assert b'id="simbadUnavailable"' not in body
-        assert b'simbad.cds.unistra.fr' in body
+
+        # Strasbourg down, a mirror current: mirrors allow framing, so the iframe stays.
+        simbad_service._health.clear()
+        simbad_service.mark_down("simbad.cds.unistra.fr")
+        simbad_service.mark_up("simbad.cfa.harvard.edu")
+        body = client.get('/graph_dashboard/M42').data
+        assert b'id="simbadIframe"' in body
+        assert b'id="simbadUnavailable"' not in body
     finally:
         simbad_service._health.clear()
         simbad_service._health.update(saved)

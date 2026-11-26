@@ -19,30 +19,57 @@ def _set(host, is_up, age=0):
     simbad_service._health[host] = (is_up, time.monotonic() - age)
 
 
-def test_ordered_hosts_prefers_up_then_unknown_then_down():
+def test_ordered_hosts_keeps_priority_order_and_puts_fresh_down_last():
     _set("simbad.cds.unistra.fr", False, age=0)
-    _set("simbad.harvard.edu", True, age=0)
+    _set("simbad.cfa.harvard.edu", True, age=0)
     _set("simbad.idia.ac.za", True, age=61)
     order = simbad_service._ordered_hosts()
     assert order == [
-        "simbad.harvard.edu",
+        "simbad.cfa.harvard.edu",
         "simbad.idia.ac.za",
         "simbad.cds.unistra.fr",
     ]
 
 
+def test_ordered_hosts_retries_strasbourg_before_a_working_mirror_once_down_ttl_expires():
+    """A mirror kept fresh by its own successes must not hide Strasbourg's recovery."""
+    _set("simbad.cds.unistra.fr", False, age=901)   # down verdict expired
+    _set("simbad.cfa.harvard.edu", True, age=0)     # fresh up
+    assert simbad_service._ordered_hosts() == simbad_service.HOSTS
+
+
+def test_tap_csv_switches_back_to_strasbourg_when_it_recovers(monkeypatch):
+    _set("simbad.cds.unistra.fr", False, age=901)
+    _set("simbad.cfa.harvard.edu", True, age=0)
+    monkeypatch.setattr(simbad_service, "_probe", lambda host: True)
+    posted = []
+
+    def fake_post(url, data=None, timeout=None):
+        posted.append(url)
+        r = MagicMock()
+        r.ok, r.status_code = True, 200
+        r.headers = {"content-type": "text/csv"}
+        r.text = "main_id,ra\n\"M  42\",83.8\n"
+        return r
+
+    monkeypatch.setattr(simbad_service.requests, "post", fake_post)
+    simbad_service.tap_csv("SELECT 1")
+    assert posted == ["https://simbad.cds.unistra.fr/simbad/sim-tap/sync"]
+    assert simbad_service.current_host() == "simbad.cds.unistra.fr"
+
+
 def test_ttl_up_is_sixty_seconds():
-    _set("simbad.harvard.edu", True, age=59)
-    assert simbad_service._is_fresh("simbad.harvard.edu", time.monotonic())
-    _set("simbad.harvard.edu", True, age=61)
-    assert not simbad_service._is_fresh("simbad.harvard.edu", time.monotonic())
+    _set("simbad.cfa.harvard.edu", True, age=59)
+    assert simbad_service._is_fresh("simbad.cfa.harvard.edu", time.monotonic())
+    _set("simbad.cfa.harvard.edu", True, age=61)
+    assert not simbad_service._is_fresh("simbad.cfa.harvard.edu", time.monotonic())
 
 
 def test_ttl_down_is_nine_hundred_seconds():
-    _set("simbad.harvard.edu", False, age=899)
-    assert simbad_service._is_fresh("simbad.harvard.edu", time.monotonic())
-    _set("simbad.harvard.edu", False, age=901)
-    assert not simbad_service._is_fresh("simbad.harvard.edu", time.monotonic())
+    _set("simbad.cfa.harvard.edu", False, age=899)
+    assert simbad_service._is_fresh("simbad.cfa.harvard.edu", time.monotonic())
+    _set("simbad.cfa.harvard.edu", False, age=901)
+    assert not simbad_service._is_fresh("simbad.cfa.harvard.edu", time.monotonic())
 
 
 def test_probe_is_serialized_by_host_lock(monkeypatch):
@@ -57,7 +84,7 @@ def test_probe_is_serialized_by_host_lock(monkeypatch):
     results = []
 
     def worker():
-        results.append(simbad_service._ensure_host_usable("simbad.harvard.edu"))
+        results.append(simbad_service._ensure_host_usable("simbad.cfa.harvard.edu"))
 
     threads = [threading.Thread(target=worker) for _ in range(2)]
     for t in threads:
@@ -65,17 +92,17 @@ def test_probe_is_serialized_by_host_lock(monkeypatch):
     for t in threads:
         t.join()
 
-    assert calls == ["simbad.harvard.edu"]
+    assert calls == ["simbad.cfa.harvard.edu"]
     assert results == [True, True]
 
 
 def test_mark_down_and_mark_up_update_cache():
-    simbad_service.mark_down("simbad.harvard.edu")
-    is_up, _ = simbad_service._health["simbad.harvard.edu"]
+    simbad_service.mark_down("simbad.cfa.harvard.edu")
+    is_up, _ = simbad_service._health["simbad.cfa.harvard.edu"]
     assert is_up is False
-    assert simbad_service._is_fresh("simbad.harvard.edu", time.monotonic())
-    simbad_service.mark_up("simbad.harvard.edu")
-    is_up, _ = simbad_service._health["simbad.harvard.edu"]
+    assert simbad_service._is_fresh("simbad.cfa.harvard.edu", time.monotonic())
+    simbad_service.mark_up("simbad.cfa.harvard.edu")
+    is_up, _ = simbad_service._health["simbad.cfa.harvard.edu"]
     assert is_up is True
 
 
@@ -94,7 +121,7 @@ def test_query_object_fails_over_to_next_host(monkeypatch):
     monkeypatch.setattr(simbad_service, "make_simbad_instance", make_instance)
     assert simbad_service.query_object("M 31") is table
     assert simbad_service._health["simbad.cds.unistra.fr"][0] is False
-    assert simbad_service._health["simbad.harvard.edu"][0] is True
+    assert simbad_service._health["simbad.cfa.harvard.edu"][0] is True
 
 
 class _FailingSimbad:
@@ -158,13 +185,13 @@ def test_current_host_keeps_mirror_after_up_ttl(monkeypatch):
     # One search with Strasbourg down: the probe marks Strasbourg down and a
     # mirror up. This is what a real query leaves in the cache.
     simbad_service.mark_down("simbad.cds.unistra.fr")
-    simbad_service.mark_up("simbad.harvard.edu")
-    assert simbad_service.current_host() == "simbad.harvard.edu"
+    simbad_service.mark_up("simbad.cfa.harvard.edu")
+    assert simbad_service.current_host() == "simbad.cfa.harvard.edu"
     assert simbad_service.is_available_cached() is True
 
     # 61 s later the up entry is stale but the down entry is still fresh.
     clock.now += 61.0
-    assert simbad_service.current_host() == "simbad.harvard.edu"
+    assert simbad_service.current_host() == "simbad.cfa.harvard.edu"
     assert simbad_service.is_available_cached() is True
 
 
@@ -182,9 +209,9 @@ def test_current_host_prefers_host_marked_up_again(monkeypatch):
     monkeypatch.setattr(simbad_service, "time", clock)
 
     simbad_service.mark_down("simbad.cds.unistra.fr")
-    simbad_service.mark_up("simbad.harvard.edu")
+    simbad_service.mark_up("simbad.cfa.harvard.edu")
     clock.now += 61.0
-    assert simbad_service.current_host() == "simbad.harvard.edu"
+    assert simbad_service.current_host() == "simbad.cfa.harvard.edu"
 
     clock.now += 1.0
     simbad_service.mark_up("simbad.cds.unistra.fr")
@@ -197,7 +224,7 @@ def test_is_available_cached_false_when_every_known_host_is_down(monkeypatch):
     monkeypatch.setattr(simbad_service, "time", clock)
 
     simbad_service.mark_down("simbad.cds.unistra.fr")
-    simbad_service.mark_down("simbad.harvard.edu")
+    simbad_service.mark_down("simbad.cfa.harvard.edu")
     clock.now += 61.0
     assert simbad_service.is_available_cached() is False
 

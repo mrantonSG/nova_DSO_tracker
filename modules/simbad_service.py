@@ -21,12 +21,16 @@ except Exception:  # pragma: no cover - pyvo ships with astroquery
 # Local default; callers may pass their own timeout.
 DEFAULT_HTTP_TIMEOUT = 10
 
-# Strasbourg first, then mirrors. Order matters only within a health group.
+# The one SIMBAD server list: CDS Strasbourg, then the mirrors CDS recommends
+# (Harvard, IDIA). Tried strictly in this order; a host is skipped only while
+# its "down" verdict is fresh (DOWN_TTL). All three allow iframe embedding
+# (no X-Frame-Options / frame-ancestors, checked 2026-11-26).
 HOSTS = [
     "simbad.cds.unistra.fr",
-    "simbad.harvard.edu",
+    "simbad.cfa.harvard.edu",
     "simbad.idia.ac.za",
 ]
+PRIMARY_HOST = HOSTS[0]
 for _host in HOSTS:
     try:
         if _host not in simbad_conf.servers_list:
@@ -123,16 +127,21 @@ def _probe(host):
 
 
 def _ordered_hosts():
-    """Hosts ordered by cached health: known-up, unknown, known-down."""
+    """Hosts in priority order; those with a fresh "down" verdict go last.
+
+    A working mirror does not outrank Strasbourg once Strasbourg's down
+    verdict has expired, so Strasbourg is re-probed every DOWN_TTL and takes
+    over again as soon as it answers.
+    """
     now = time.monotonic()
     health = _health_snapshot()
-    up, unknown, down = [], [], []
+    usable, down = [], []
     for host in HOSTS:
-        if _is_fresh(host, now, health):
-            (up if health[host][0] else down).append(host)
+        if _is_fresh(host, now, health) and not health[host][0]:
+            down.append(host)
         else:
-            unknown.append(host)
-    return up + unknown + down
+            usable.append(host)
+    return usable + down
 
 
 def _ensure_host_usable(host):
@@ -181,14 +190,16 @@ def is_available_cached():
     return any(health[host][0] for host in known)
 
 
-def strasbourg_embeddable():
-    """True if Strasbourg is up, so the SIMBAD tab may embed it.
+def first_available_host():
+    """The first host in HOSTS order that answers, or None if all are down.
 
-    Cache-only while the cached verdict is still fresh; otherwise runs the same
-    probe the failover path uses, for Strasbourg only. Mirrors are never probed
-    here - they refuse framing, so their health is irrelevant to embedding.
+    Uses the cached verdict while fresh; otherwise runs the same probe as the
+    failover path. Used by the SIMBAD tab via /api/simbad_status.
     """
-    return _ensure_host_usable(HOSTS[0])
+    for host in HOSTS:
+        if _ensure_host_usable(host):
+            return host
+    return None
 
 
 def make_simbad_instance(host, row_limit=1):
